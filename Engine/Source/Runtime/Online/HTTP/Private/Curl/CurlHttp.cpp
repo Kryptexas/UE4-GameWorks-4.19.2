@@ -9,7 +9,7 @@
 
 // FCurlHttpRequest
 
-FCurlHttpRequest::FCurlHttpRequest(CURLM * InMultiHandle)
+FCurlHttpRequest::FCurlHttpRequest(CURLM * InMultiHandle, CURLSH* InShareHandle)
 	:	MultiHandle(InMultiHandle)
 	,	EasyHandle(NULL)
 	,	HeaderList(NULL)
@@ -35,6 +35,8 @@ FCurlHttpRequest::FCurlHttpRequest(CURLM * InMultiHandle)
 		curl_easy_setopt(EasyHandle, CURLOPT_VERBOSE, 1L);
 
 #endif // !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+
+		curl_easy_setopt(EasyHandle, CURLOPT_SHARE, InShareHandle);
 
 		// set certificate verification (disable to allow self-signed certificates)
 		if (FCurlHttpManager::CurlRequestOptions.bVerifyPeer)
@@ -412,7 +414,12 @@ size_t FCurlHttpRequest::DebugCallback(CURL * Handle, curl_infotype DebugInfoTyp
 			break;
 
 		case CURLINFO_HEADER_OUT:
-			UE_LOG(LogHttp, VeryVerbose, TEXT("%p: Sent header (%d bytes)"), this, DebugInfoSize);
+			{
+				FString DebugText(ANSI_TO_TCHAR(DebugInfo));
+				DebugText.ReplaceInline(TEXT("\n"), TEXT(""), ESearchCase::CaseSensitive);
+				DebugText.ReplaceInline(TEXT("\r"), TEXT(""), ESearchCase::CaseSensitive);
+				UE_LOG(LogHttp, VeryVerbose, TEXT("%p: Sent header (%d bytes) - %s"), this, DebugInfoSize, *DebugText);
+			}
 			break;
 
 		case CURLINFO_DATA_IN:

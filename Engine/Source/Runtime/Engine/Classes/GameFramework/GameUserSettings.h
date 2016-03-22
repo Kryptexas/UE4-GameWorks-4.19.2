@@ -330,9 +330,21 @@ protected:
 	/** Min resolution scale we allow in current display mode */
 	float MinResolutionScale;
 
+	/** Desired screen width used to calculate the resolution scale when user changes display mode */
+	UPROPERTY(config)
+	int32 DesiredScreenWidth;
+
 	/** Desired screen height used to calculate the resolution scale when user changes display mode */
 	UPROPERTY(config)
 	int32 DesiredScreenHeight;
+
+	/** Result of the last benchmark; calculated resolution to use. */
+	UPROPERTY(config)
+	float LastRecommendedScreenWidth;
+
+	/** Result of the last benchmark; calculated resolution to use. */
+	UPROPERTY(config)
+	float LastRecommendedScreenHeight;
 
 	/**
 	 * Check if the current version of the game user settings is valid. Sub-classes can override this to provide game-specific versioning as necessary.
@@ -343,8 +355,8 @@ protected:
 	/** Update the version of the game user settings to the current version */
 	virtual void UpdateVersion();
 
-	/** Picks the best resolution quality for a given screen height */
-	float FindResolutionQualityForScreenHeight(int32 ScreenHeight);
+	/** Picks the best resolution quality for a given screen size */
+	float FindResolutionQualityForScreenSize(int32 Width, int32 Height);
 
 private:
 

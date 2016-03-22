@@ -230,6 +230,15 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	FMargin ConfirmationButtonContentMargin;
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin NoneFriendContentMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	float NoneFriendContentHeight;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	float NoneFriendIconWidth;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
 	FMargin SubMenuBackIconMargin;
 
 	UPROPERTY(EditAnywhere, Category = Appearance)

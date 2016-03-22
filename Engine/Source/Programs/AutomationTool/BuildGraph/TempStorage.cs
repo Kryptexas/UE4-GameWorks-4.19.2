@@ -503,7 +503,7 @@ namespace AutomationTool
 					}
 
 					// Read the shared manifest
-					CommandUtils.Log("Copying shared manifest from {0}", SharedManifestFile.FullName);
+					CommandUtils.Log("Copying shared manifest from {0} to {1}", SharedManifestFile.FullName, LocalManifestFile.FullName);
 					Manifest = TempStorageManifest.Load(SharedManifestFile);
 
 					// Unzip all the build products
@@ -523,7 +523,7 @@ namespace AutomationTool
 					}
 
 					// Save the manifest locally
-					CommandUtils.Log("Saving local manifest to {0}", LocalManifestFile.FullName);
+					LocalManifestFile.Directory.CreateDirectory();
 					Manifest.Save(LocalManifestFile);
 				}
 

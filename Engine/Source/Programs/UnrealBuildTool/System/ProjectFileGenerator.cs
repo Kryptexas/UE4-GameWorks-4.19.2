@@ -810,6 +810,21 @@ namespace UnrealBuildTool
 						GameProjectFile.AddFilesToProject( SourceFileSearch.FindFiles( GameConfigDirectory ), GameProjectDirectory );
 					}
 				}
+
+				// Game build files
+				if( IncludeBuildSystemFiles )
+				{
+					var GameBuildDirectory = DirectoryReference.Combine(GameProjectDirectory, "Build");
+					if( GameBuildDirectory.Exists() )
+					{
+						var SubdirectoryNamesToExclude = new List<string>();
+						SubdirectoryNamesToExclude.Add("Receipts");
+						SubdirectoryNamesToExclude.Add("Scripts");
+
+						var GameProjectFile = GameFolderAndProjectFile.Value;
+						GameProjectFile.AddFilesToProject( SourceFileSearch.FindFiles( GameBuildDirectory, SubdirectoryNamesToExclude ), GameProjectDirectory );
+					}
+				}
 			}
 		}
 
@@ -1793,6 +1808,7 @@ namespace UnrealBuildTool
 		}
 
 
+
 		/// Adds engine documentation to the specified project
 		protected void AddEngineDocumentation( ProjectFile EngineProject )
 		{
@@ -1851,6 +1867,8 @@ namespace UnrealBuildTool
 				Log.TraceVerbose("Skipping documentation project... directory not found");
 			}
 		}
+
+
 
 
 		/// <summary>

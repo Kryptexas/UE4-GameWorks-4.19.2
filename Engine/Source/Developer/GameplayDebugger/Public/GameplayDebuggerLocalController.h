@@ -40,6 +40,7 @@ protected:
 	AActor* DebugActorCandidate;
 
 	TArray<TSharedRef<FGameplayDebuggerExtension> > Extensions;
+	TArray<TArray<int32> > DataPackMap;
 	TArray<TArray<int32> > SlotCategoryIds;
 	TArray<FString> SlotNames;
 
@@ -100,6 +101,9 @@ protected:
 	/** draw header row for simulate in editor mode */
 	void DrawSimulateHeader(FGameplayDebuggerCanvasContext& CanvasContext);
 
+	/** draw header for category */
+	void DrawCategoryHeader(int32 CategoryId, TSharedRef<FGameplayDebuggerCategory> Category, FGameplayDebuggerCanvasContext& CanvasContext);
+
 	/** event for simulate in editor mode */
 	void OnSelectionChanged(UObject* Object);
 
@@ -117,4 +121,7 @@ protected:
 
 	/** called when known category set has changed */
 	void OnCategoriesChanged();
+
+	/** build DataPackMap for replication details */
+	void RebuildDataPackMap();
 };

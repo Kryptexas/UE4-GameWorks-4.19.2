@@ -2172,6 +2172,8 @@ void GameLoopIsStarved()
 
 int32 FEngineLoop::Init()
 {
+	CheckImageIntegrity();
+
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FEngineLoop::Init" ), STAT_FEngineLoop_Init, STATGROUP_LoadTime );
 
 	FScopedSlowTask SlowTask(100);
@@ -3122,6 +3124,7 @@ bool FEngineLoop::AppInit( )
 	//// Command line.
 	UE_LOG(LogInit, Log, TEXT("Version: %s"), *FEngineVersion::Current().ToString());
 	UE_LOG(LogInit, Log, TEXT("API Version: %u"), FEngineVersion::CompatibleWith().GetChangelist());
+	UE_LOG(LogInit, Log, TEXT("Net Version: %u"), GEngineNetVersion);
 	FDevVersionRegistration::DumpVersionsToLog();
 
 #if PLATFORM_64BITS

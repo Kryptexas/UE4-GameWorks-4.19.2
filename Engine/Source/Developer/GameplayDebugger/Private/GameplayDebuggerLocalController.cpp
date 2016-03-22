@@ -7,6 +7,7 @@
 #include "GameplayDebuggerExtension.h"
 #include "GameplayDebuggerConfig.h"
 #include "Debug/DebugDrawService.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/Selection.h"
 #include "Engine/Canvas.h"
 #include "GameFramework/PlayerInput.h"
@@ -115,11 +116,22 @@ void UGameplayDebuggerLocalController::OnDebugDraw(class UCanvas* Canvas, class 
 			DrawHeader(CanvasContext);
 		}
 
+		if (DataPackMap.Num() != NumCategories)
+		{
+			RebuildDataPackMap();
+		}
+
+		const bool bHasDebugActor = CachedReplicator->HasDebugActor();
 		for (int32 Idx = 0; Idx < NumCategories; Idx++)
 		{
 			TSharedRef<FGameplayDebuggerCategory> Category = CachedReplicator->GetCategory(Idx);
-			if (Category->ShouldDrawCategory(CachedReplicator->GetDebugActor()))
+			if (Category->ShouldDrawCategory(bHasDebugActor))
 			{
+				if (Category->IsCategoryHeaderVisible())
+				{
+					DrawCategoryHeader(Idx, Category, CanvasContext);
+				}
+
 				Category->DrawCategory(CachedReplicator->GetReplicationOwner(), CanvasContext);
 			}
 		}
@@ -161,7 +173,7 @@ void UGameplayDebuggerLocalController::DrawHeader(FGameplayDebuggerCanvasContext
 
 	CanvasContext.Printf(TEXT("Tap {yellow}%s{white} to close, use %s to toggle catories."), *ActivationKeyDesc, *CategoryKeysDesc);
 
-	const FString DebugActorDesc = FString::Printf(TEXT("Debug actor: {cyan}%s"), *GetNameSafe(CachedReplicator->GetDebugActor()));
+	const FString DebugActorDesc = FString::Printf(TEXT("Debug actor: {cyan}%s"), *CachedReplicator->GetDebugActorName().ToString());
 	float DebugActorSizeX = 0.0f, DebugActorSizeY = 0.0f;
 	CanvasContext.MeasureString(DebugActorDesc, DebugActorSizeX, DebugActorSizeY);
 	CanvasContext.PrintAt(CanvasContext.Canvas->SizeX - PaddingRight - DebugActorSizeX, PaddingTop, DebugActorDesc);
@@ -249,7 +261,7 @@ void UGameplayDebuggerLocalController::DrawSimulateHeader(FGameplayDebuggerCanva
 	float TimestampSizeX = 0.0f, TimestampSizeY = 0.0f;
 	CanvasContext.MeasureString(TimestampDesc, TimestampSizeX, TimestampSizeY);
 
-	const FString DebugActorDesc = FString::Printf(TEXT("Selected actor: {cyan}%s"), *GetNameSafe(CachedReplicator->GetDebugActor()));
+	const FString DebugActorDesc = FString::Printf(TEXT("Selected actor: {cyan}%s"), *CachedReplicator->GetDebugActorName().ToString());
 	float DebugActorSizeX = 0.0f, DebugActorSizeY = 0.0f;
 	CanvasContext.MeasureString(DebugActorDesc, DebugActorSizeX, DebugActorSizeY);
 
@@ -262,6 +274,55 @@ void UGameplayDebuggerLocalController::DrawSimulateHeader(FGameplayDebuggerCanva
 	CanvasContext.PrintAt((CanvasContext.Canvas->SizeX - DebugActorSizeX) * 0.5f, PaddingTop + LineHeight, DebugActorDesc);
 
 	CanvasContext.DefaultY = CanvasContext.CursorY = NewCategoryPosY;
+}
+
+void UGameplayDebuggerLocalController::DrawCategoryHeader(int32 CategoryId, TSharedRef<FGameplayDebuggerCategory> Category, FGameplayDebuggerCanvasContext& CanvasContext)
+{
+	FString DataPackDesc;
+	
+	if (DataPackMap.IsValidIndex(CategoryId) && !Category->IsCategoryAuth() && !Category->ShouldDrawReplicationStatus())
+	{
+		// collect brief data pack status, detailed info is displayed only when ShouldDrawReplicationStatus is true
+		const int32 CurrentSyncCounter = CachedReplicator->GetDebugActorCounter();
+
+		DataPackDesc = TEXT("{white} ver[");
+		bool bIsPrevOutdated = false;
+		bool bAddSeparator = false;
+
+		for (int32 Idx = 0; Idx < DataPackMap[CategoryId].Num(); Idx++)
+		{
+			TSharedRef<FGameplayDebuggerCategory> MappedCategory = CachedReplicator->GetCategory(DataPackMap[CategoryId][Idx]);
+			for (int32 DataPackIdx = 0; DataPackIdx < MappedCategory->GetNumDataPacks(); DataPackIdx++)
+			{
+				FGameplayDebuggerDataPack::FHeader DataHeader = MappedCategory->GetDataPackHeaderCopy(DataPackIdx);
+				const bool bIsOutdated = (DataHeader.SyncCounter != CurrentSyncCounter);
+
+				if (bAddSeparator)
+				{
+					DataPackDesc += TEXT(';');
+				}
+
+				if (bIsOutdated != bIsPrevOutdated)
+				{
+					DataPackDesc += bIsOutdated ? TEXT("{red}") : TEXT("{white}");
+					bIsPrevOutdated = bIsOutdated;
+				}
+
+				DataPackDesc += TTypeToString<int16>::ToString(DataHeader.DataVersion);
+				bAddSeparator = true;
+			}
+		}
+
+		if (bIsPrevOutdated)
+		{
+			DataPackDesc += TEXT("{white}");
+		}
+
+		DataPackDesc += TEXT(']');
+	}
+
+	CanvasContext.MoveToNewLine();
+	CanvasContext.Printf(FColor::Green, TEXT("[CATEGORY: %s]%s"), *Category->GetCategoryName().ToString(), *DataPackDesc);
 }
 
 void UGameplayDebuggerLocalController::BindInput(UInputComponent& InputComponent)
@@ -529,12 +590,13 @@ void UGameplayDebuggerLocalController::OnSelectActorTick()
 		FRotator CameraRotation;
 		OwnerPC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
-		AActor* BestCandidate = nullptr;
-		float BestScore = 0.0f;
-		
 		// TODO: move to module's settings
 		const float MaxScanDistance = 25000.0f;
+		const float MinViewDirDot = 0.8f;
 
+		AActor* BestCandidate = nullptr;
+		float BestScore = MinViewDirDot;
+		
 		const FVector ViewDir = CameraRotation.Vector();
 		for (FConstPawnIterator It = OwnerPC->GetWorld()->GetPawnIterator(); It; ++It)
 		{
@@ -581,6 +643,8 @@ void UGameplayDebuggerLocalController::ToggleSlotState(int32 SlotIdx)
 			const int32 CategoryId = SlotCategoryIds[SlotIdx][Idx];
 			CachedReplicator->SetCategoryEnabled(CategoryId, !bIsEnabled);
 		}
+
+		CachedReplicator->MarkComponentsRenderStateDirty();
 	}
 }
 
@@ -680,4 +744,43 @@ void UGameplayDebuggerLocalController::OnCategoriesChanged()
 
 	NumCategorySlots = SlotCategoryIds.Num();
 	NumCategories = AddonManager.GetNumCategories();
+
+	DataPackMap.Reset();
+}
+
+void UGameplayDebuggerLocalController::RebuildDataPackMap()
+{
+	DataPackMap.SetNum(NumCategories);
+	
+	// category: get all categories from slot and combine data pack data if category header is not displayed
+	for (int32 SlotIdx = 0; SlotIdx < NumCategorySlots; SlotIdx++)
+	{
+		TArray<int32> NoHeaderCategories;
+		int32 FirstVisibleCategoryId = INDEX_NONE;
+
+		for (int32 InnerIdx = 0; InnerIdx < SlotCategoryIds[SlotIdx].Num(); InnerIdx++)
+		{
+			const int32 CategoryId = SlotCategoryIds[SlotIdx][InnerIdx];
+			
+			TSharedRef<FGameplayDebuggerCategory> Category = CachedReplicator->GetCategory(CategoryId);
+			if (!Category->IsCategoryHeaderVisible())
+			{
+				NoHeaderCategories.Add(CategoryId);
+			}
+			else
+			{
+				DataPackMap[CategoryId].Add(CategoryId);
+				
+				if (FirstVisibleCategoryId == INDEX_NONE)
+				{
+					FirstVisibleCategoryId = CategoryId;
+				}
+			}
+		}
+
+		if ((FirstVisibleCategoryId != INDEX_NONE) && NoHeaderCategories.Num())
+		{
+			DataPackMap[FirstVisibleCategoryId].Append(NoHeaderCategories);
+		}
+	}
 }

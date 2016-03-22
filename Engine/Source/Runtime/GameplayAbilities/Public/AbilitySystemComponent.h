@@ -931,6 +931,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 		bool Accumulate;
 		TArray<FString>	Strings;
+
+		int32 GameFlags; // arbitrary flags for games to set/read in Debug_Internal
 	};
 
 	virtual void DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
@@ -945,10 +947,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	void ServerPrintDebug_Request();
 
 	UFUNCTION(Client, reliable)
-	void ClientPrintDebug_Response(const TArray<FString>& Strings);
+	void ClientPrintDebug_Response(const TArray<FString>& Strings, int32 GameFlags);
+	virtual void OnClientPrintDebug_Response(const TArray<FString>& Strings, int32 GameFlags);
 
 	/** Called when the ability is forced cancelled due to replication */
-	void	ForceCancelAbilityDueToReplication(UGameplayAbility* Instance);
+	void ForceCancelAbilityDueToReplication(UGameplayAbility* Instance);
 
 protected:
 

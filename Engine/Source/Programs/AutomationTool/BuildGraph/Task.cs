@@ -142,7 +142,7 @@ namespace AutomationTool
 		{
 			if(String.IsNullOrEmpty(Name))
 			{
-				return new DirectoryReference(CommandUtils.CmdEnv.LocalRoot);
+				return CommandUtils.RootDirectory;
 			}
 			else if(Path.IsPathRooted(Name))
 			{
@@ -150,7 +150,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				return new DirectoryReference(Path.Combine(CommandUtils.CmdEnv.LocalRoot, Name));
+				return DirectoryReference.Combine(CommandUtils.RootDirectory, Name);
 			}
 		}
 
@@ -183,36 +183,112 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Resolve a list of file specifications separated by semicolons, each of which may be:
-		///   a) A p4-style wildcard as acceped by FileFilter (eg. *.cpp;Engine/.../*.bat)
-		///   b) The name of a tag set (eg. #CompiledBinaries)
-		/// Only rules which include files are supported - files cannot be excluded using "-Pattern" syntax (because wildcards are not run on the tag set).
+		/// Resolve a list of files, tag names or file specifications separated by semicolons. Supported entries may be:
+		///   a) The name of a tag set (eg. #CompiledBinaries)
+		///   b) Relative or absolute filenames
+		///   c) A simple file pattern (eg. Foo/*.cpp)
+		///   d) A full directory wildcard (eg. Engine/...)
+		/// Note that wildcards may only match the last fragment in a pattern, so matches like "/*/Foo.txt" and "/.../Bar.txt" are illegal.
 		/// </summary>
-		/// <param name="BaseDirectory">The base directory to match files</param>
-		/// <param name="IncludePatternList">The list of patterns which select files to include in the match. See above.</param>
-		/// <param name="IncludePatternList">Patterns of files to exclude from the match.</param>
+		/// <param name="DefaultDirectory">The default directory to resolve relative paths to</param>
+		/// <param name="DelimitedPatterns">List of files, tag names, or file specifications to include separated by semicolons.</param>
 		/// <param name="TagNameToFileSet">Mapping of tag name to fileset, as passed to the Execute() method</param>
 		/// <returns>Set of matching files.</returns>
-		public static HashSet<FileReference> ResolveFilespec(DirectoryReference BaseDirectory, string[] Patterns, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public static HashSet<FileReference> ResolveFilespec(DirectoryReference DefaultDirectory, string DelimitedPatterns, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			HashSet<FileReference> Files = new HashSet<FileReference>();
+			// Find all the files and directories that are referenced
+			HashSet<DirectoryReference> Directories = new HashSet<DirectoryReference>();
+			HashSet<FileReference> Files = ResolveFilespec(DefaultDirectory, DelimitedPatterns, Directories, TagNameToFileSet);
 
-			// Add all the tagged files directly into the output set, and add any patterns into a filter that gets applied to the directory
-			FileFilter Filter = new FileFilter(FileFilterType.Exclude);
+			// Include all the files underneath the directories
+			foreach(DirectoryReference Directory in Directories)
+			{
+				Files.UnionWith(Directory.EnumerateFileReferences("*", SearchOption.AllDirectories));
+			}
+			return Files;
+		}
+
+		/// <summary>
+		/// Resolve a list of files, tag names or file specifications separated by semicolons as above, but preserves any directory references for further processing.
+		/// </summary>
+		/// <param name="DefaultDirectory">The default directory to resolve relative paths to</param>
+		/// <param name="DelimitedPatterns">List of files, tag names, or file specifications to include separated by semicolons.</param>
+		/// <param name="Directories">Set of directories which are referenced using directory wildcards. Files under these directories are not added to the output set.</param>
+		/// <param name="TagNameToFileSet">Mapping of tag name to fileset, as passed to the Execute() method</param>
+		/// <returns>Set of matching files.</returns>
+		public static HashSet<FileReference> ResolveFilespec(DirectoryReference DefaultDirectory, string DelimitedPatterns, HashSet<DirectoryReference> Directories, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		{
+			// Split the argument into a list of patterns
+			string[] Patterns = SplitDelimitedList(DelimitedPatterns);
+
+			// Parse each of the patterns, and add the results into the given sets
+			HashSet<FileReference> Files = new HashSet<FileReference>();
 			foreach(string Pattern in Patterns)
 			{
+				// Check if it's a tag name
 				if(Pattern.StartsWith("#"))
 				{
 					Files.UnionWith(FindOrAddTagSet(TagNameToFileSet, Pattern.Substring(1)));
+					continue;
+				}
+
+				// List of all wildcards
+				string[] Wildcards = { "?", "*", "..." };
+
+				// Find the first index of a wildcard in the given pattern
+				int WildcardIdx = -1;
+				foreach(string Wildcard in Wildcards)
+				{
+					int Idx = Pattern.IndexOf(Wildcard);
+					if(Idx != -1 && (WildcardIdx == -1 || Idx < WildcardIdx))
+					{
+						WildcardIdx = Idx;
+					}
+				}
+
+				// If we didn't find any wildcards, we can just add the pattern directly.
+				if(WildcardIdx == -1)
+				{
+					Files.Add(FileReference.Combine(DefaultDirectory, Pattern));
+					continue;
+				}
+
+				// Check the wildcard is in the last fragment of the path.
+				int LastDirectoryIdx = Pattern.LastIndexOfAny(new char[]{ Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar });
+				if(LastDirectoryIdx != -1 && LastDirectoryIdx > WildcardIdx)
+				{
+					CommandUtils.LogWarning("Invalid pattern '{0}': Path wildcard can only match files");
+					continue;
+				}
+
+				// Check if it's a directory reference (ends with ...) or file reference.
+				int PathWildcardIdx = Pattern.IndexOf("...");
+				if(PathWildcardIdx != -1)
+				{
+					// Add the base directory to the list of results
+					if(PathWildcardIdx + 3 != Pattern.Length)
+					{
+						CommandUtils.LogWarning("Invalid pattern '{0}': Path wildcard must appear at end of pattern.");
+					}
+					else if(PathWildcardIdx != LastDirectoryIdx + 1)
+					{
+						CommandUtils.LogWarning("Invalid pattern '{0}': Path wildcard cannot partially match a name.");
+					}
+					else
+					{
+						Directories.Add(DirectoryReference.Combine(DefaultDirectory, Pattern.Substring(0, PathWildcardIdx)));
+					}
 				}
 				else
 				{
-					Filter.AddRule(Pattern, FileFilterType.Include);
+					// Construct a file filter and apply it to files in the directory. Don't use the default file enumeration logic for consistency; search patterns
+					// passed to Directory.EnumerateFiles et al have special cases for backwards compatibility that we don't want.
+					FileFilter Filter = new FileFilter();
+					Filter.AddRule("/" + Pattern.Substring(LastDirectoryIdx + 1), FileFilterType.Include);
+					DirectoryReference BaseDir = DirectoryReference.Combine(DefaultDirectory, Pattern.Substring(0, LastDirectoryIdx + 1));
+					Files.UnionWith(Filter.ApplyToDirectory(BaseDir, true));
 				}
 			}
-
-			// Include the files from disk, and return the full set
-			Files.UnionWith(Filter.ApplyToDirectory(BaseDirectory, true));
 			return Files;
 		}
 

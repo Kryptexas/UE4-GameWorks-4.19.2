@@ -642,7 +642,7 @@ void NUTNet::HandleBeaconReplicate(AOnlineBeaconClient* InBeacon, UNetConnection
 {
 	// Due to the way the beacon is created in unit tests (replicated, instead of taking over a local beacon client),
 	// the NetDriver and BeaconConnection values have to be hack-set, to enable sending of RPC's
-	InBeacon->NetDriverName = InConnection->Driver->NetDriverName;
+	InBeacon->SetNetDriverName(InConnection->Driver->NetDriverName);
 	InBeacon->SetNetConnection(InConnection);
 }
 

@@ -161,7 +161,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	FCurlHttpRequest(CURLM * InMultiHandle);
+	FCurlHttpRequest(CURLM * InMultiHandle, CURLSH* InShareHandle);
 
 	/**
 	 * Destructor. Clean up any connection/request handles

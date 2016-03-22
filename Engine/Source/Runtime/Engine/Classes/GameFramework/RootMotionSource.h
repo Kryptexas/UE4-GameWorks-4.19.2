@@ -349,6 +349,9 @@ struct ENGINE_API FRootMotionSource_ConstantForce : public FRootMotionSource
 	UPROPERTY()
 	FVector Force;
 
+	UPROPERTY()
+	UCurveFloat* StrengthOverTime;
+
 	virtual FRootMotionSource* Clone() const override;
 
 	virtual bool Matches(const FRootMotionSource* Other) const override;
@@ -369,6 +372,8 @@ struct ENGINE_API FRootMotionSource_ConstantForce : public FRootMotionSource
 	virtual UScriptStruct* GetScriptStruct() const override;
 
 	virtual FString ToSimpleString() const override;
+
+	virtual void AddReferencedObjects(class FReferenceCollector& Collector) override;
 };
 
 template<>

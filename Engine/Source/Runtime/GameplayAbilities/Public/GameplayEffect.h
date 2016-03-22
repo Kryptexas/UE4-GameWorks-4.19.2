@@ -1228,6 +1228,9 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpecForRPC
 	UPROPERTY()
 	float Level;
 
+	UPROPERTY()
+	float AbilityLevel;
+
 	FGameplayEffectContextHandle GetContext() const
 	{
 		return EffectContext;
@@ -1236,6 +1239,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpecForRPC
 	float GetLevel() const
 	{
 		return Level;
+	}
+
+	float GetAbilityLevel() const
+	{
+		return AbilityLevel;
 	}
 
 	FString ToSimpleString() const

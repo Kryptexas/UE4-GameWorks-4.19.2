@@ -15,13 +15,7 @@ namespace BuildGraph.Tasks
 	public class PakFileTaskParameters
 	{
 		/// <summary>
-		/// Base directory to create relative paths in the pak file.
-		/// </summary>
-		[TaskParameter(Optional = true)]
-		public string BaseDirectory;
-
-		/// <summary>
-		/// List of maps to be cooked, separated by '+' characters
+		/// List of files, wildcards and tag sets to add to the pak file, separated by ';' characters.
 		/// </summary>
 		[TaskParameter]
 		public string Files;
@@ -36,7 +30,7 @@ namespace BuildGraph.Tasks
 		/// Directories to rebase the files relative to. If specified, the shortest path under a listed directory will be used for each file.
 		/// </summary>
 		[TaskParameter(Optional = true)]
-		public string Rebase;
+		public string RebaseDir;
 
 		/// <summary>
 		/// Script which gives the order of files
@@ -92,13 +86,11 @@ namespace BuildGraph.Tasks
 		/// <returns>True if the task succeeded</returns>
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			DirectoryReference BaseDir = ResolveDirectory(Parameters.BaseDirectory);
-
 			// Find the directories we're going to rebase relative to
-			HashSet<DirectoryReference> RebaseDirs = new HashSet<DirectoryReference>{ BaseDir };
-			if(Parameters.Rebase != null)
+			HashSet<DirectoryReference> RebaseDirs = new HashSet<DirectoryReference>{ CommandUtils.RootDirectory };
+			if(Parameters.RebaseDir != null)
 			{
-				RebaseDirs.UnionWith(SplitDelimitedList(Parameters.Rebase).Select(x => ResolveDirectory(x)));
+				RebaseDirs.UnionWith(SplitDelimitedList(Parameters.RebaseDir).Select(x => ResolveDirectory(x)));
 			}
 
 			// Get the output parameter
@@ -112,7 +104,7 @@ namespace BuildGraph.Tasks
 			}
 
 			// Write out the response file
-			HashSet<FileReference> Files = ResolveFilespec(BaseDir, SplitDelimitedList(Parameters.Files), TagNameToFileSet);
+			HashSet<FileReference> Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet);
 			using(StreamWriter Writer = new StreamWriter(ResponseFile.FullName, false, new System.Text.UTF8Encoding(true)))
 			{
 				foreach(FileReference File in Files)

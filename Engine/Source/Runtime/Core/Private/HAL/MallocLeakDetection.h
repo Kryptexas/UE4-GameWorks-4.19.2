@@ -28,10 +28,31 @@ class FMallocLeakDetection
 		uint32 FrameNumber;
 		uint32 Size;
 		uint32 Count;
+
+		bool operator==(const FCallstackTrack& Other) const
+		{
+			bool bEqual = true;
+			for (int32 i = 0; i < Depth; ++i)
+			{
+				if (CallStack[i] != Other.CallStack[i])
+				{
+					bEqual = false;
+					break;
+				}
+			}
+			return bEqual;
+		}
+
+		bool operator!=(const FCallstackTrack& Other) const
+		{
+			return !(*this == Other);
+		}
 	};
 
 	FMallocLeakDetection();
 	~FMallocLeakDetection();
+
+	
 
 	void AddCallstack(FCallstackTrack& Callstack);
 	void RemoveCallstack(FCallstackTrack& Callstack);
@@ -83,11 +104,14 @@ private:
 	/* Verifier object */
 	FMallocLeakDetection& Verify;
 
+	FCriticalSection AllocatedPointersCritical;
+
 public:
 	explicit FMallocLeakDetectionProxy(FMalloc* InMalloc);	
 
 	virtual void* Malloc(SIZE_T Size, uint32 Alignment) override
 	{
+		FScopeLock SafeLock(&AllocatedPointersCritical);
 		void* Result = UsedMalloc->Malloc(Size, Alignment);
 		Verify.Malloc(Result, Size);
 		return Result;
@@ -95,6 +119,7 @@ public:
 
 	virtual void* Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment) override
 	{
+		FScopeLock SafeLock(&AllocatedPointersCritical);
 		void* Result = UsedMalloc->Realloc(Ptr, NewSize, Alignment);
 		Verify.Realloc(Ptr, Result, NewSize);
 		return Result;
@@ -104,6 +129,7 @@ public:
 	{
 		if (Ptr)
 		{
+			FScopeLock SafeLock(&AllocatedPointersCritical);
 			Verify.Free(Ptr);
 			UsedMalloc->Free(Ptr);
 		}

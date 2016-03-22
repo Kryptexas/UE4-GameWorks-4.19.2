@@ -112,11 +112,13 @@ class GameplayDebugger : public IGameplayDebugger
 {
 public:
 	static inline GameplayDebugger& Get() { return FModuleManager::LoadModuleChecked< GameplayDebugger >("GameplayDebugger"); }
+	virtual void UseNewGameplayDebugger() = 0;
 };
 #else
 class DEPRECATED_FORGAME(4.12, "This module interface is now deprecated, please check GameplayDebugger.h for details.") GameplayDebugger : public IGameplayDebugger
 {
 public:
 	static inline GameplayDebugger& Get() { return FModuleManager::LoadModuleChecked< GameplayDebugger >("GameplayDebugger"); }
+	virtual void UseNewGameplayDebugger() {}
 };
 #endif

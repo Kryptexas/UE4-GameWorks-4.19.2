@@ -156,10 +156,7 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 	ENGINE_API void SetDuration(float NewDuration);
 
 	/** Returns true is this AnimNotify is a BranchingPoint */
-	ENGINE_API bool IsBranchingPoint() const
-	{
-		return (MontageTickType == EMontageNotifyTickType::BranchingPoint) && GetLinkedMontage();
-	}
+	ENGINE_API bool IsBranchingPoint() const;
 
 	/** Returns true if this is blueprint derived notifies **/
 	bool IsBlueprintNotify() const

@@ -277,6 +277,7 @@ FString FRootMotionSource::ToSimpleString() const
 
 FRootMotionSource_ConstantForce::FRootMotionSource_ConstantForce()
 	: Force(EForceInit::ForceInitToZero)
+	, StrengthOverTime(nullptr)
 {
 }
 
@@ -296,7 +297,8 @@ bool FRootMotionSource_ConstantForce::Matches(const FRootMotionSource* Other) co
 	// We can cast safely here since in FRootMotionSource::Matches() we ensured ScriptStruct equality
 	const FRootMotionSource_ConstantForce* OtherCast = static_cast<const FRootMotionSource_ConstantForce*>(Other);
 
-	return FVector::PointsAreNear(Force, OtherCast->Force, 0.1f);
+	return FVector::PointsAreNear(Force, OtherCast->Force, 0.1f) &&
+		StrengthOverTime == OtherCast->StrengthOverTime;
 }
 
 bool FRootMotionSource_ConstantForce::MatchesAndHasSameState(const FRootMotionSource* Other) const
@@ -332,6 +334,14 @@ void FRootMotionSource_ConstantForce::PrepareRootMotion
 
 	FTransform NewTransform(Force);
 
+	// Scale strength of force over time
+	if (StrengthOverTime)
+	{
+		const float TimeValue = Duration > 0.f ? FMath::Clamp(GetTime() / Duration, 0.f, 1.f) : GetTime();
+		const float TimeFactor = StrengthOverTime->GetFloatValue(TimeValue);
+		NewTransform.ScaleTranslation(TimeFactor);
+	}
+
 	// Scale force based on Simulation/MovementTime differences
 	// Ex: Force is to go 200 cm per second forward.
 	//     To catch up with server state we need to apply
@@ -356,6 +366,7 @@ bool FRootMotionSource_ConstantForce::NetSerialize(FArchive& Ar, UPackageMap* Ma
 	}
 
 	Ar << Force; // TODO-RootMotionSource: Quantization
+	Ar << StrengthOverTime;
 
 	bOutSuccess = true;
 	return true;
@@ -369,6 +380,13 @@ UScriptStruct* FRootMotionSource_ConstantForce::GetScriptStruct() const
 FString FRootMotionSource_ConstantForce::ToSimpleString() const
 {
 	return FString::Printf(TEXT("[ID:%u]FRootMotionSource_ConstantForce %s"), LocalID, *InstanceName.GetPlainNameString());
+}
+
+void FRootMotionSource_ConstantForce::AddReferencedObjects(class FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObject(StrengthOverTime);
+
+	FRootMotionSource::AddReferencedObjects(Collector);
 }
 
 //

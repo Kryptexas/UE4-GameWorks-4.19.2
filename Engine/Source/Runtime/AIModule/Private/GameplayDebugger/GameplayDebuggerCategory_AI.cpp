@@ -20,7 +20,7 @@ FGameplayDebuggerCategory_AI::FGameplayDebuggerCategory_AI()
 	RawLastPath = nullptr;
 
 	SetDataPackReplication<FRepData>(&DataPack);
-	PathDataPackId = SetDataPackReplication<FRepDataPath>(&PathDataPack, EGameplayDebuggerDataPack::PersistentData);
+	PathDataPackId = SetDataPackReplication<FRepDataPath>(&PathDataPack, EGameplayDebuggerDataPack::ResetOnActorChange);
 }
 
 TSharedRef<FGameplayDebuggerCategory> FGameplayDebuggerCategory_AI::MakeInstance()
@@ -33,8 +33,6 @@ void FGameplayDebuggerCategory_AI::FRepData::Serialize(FArchive& Ar)
 {
 	Ar << ControllerName;
 	Ar << PawnName;
-	Ar << PawnClass;
-	Ar << DebugIcon;
 	Ar << MovementBaseInfo;
 	Ar << MovementModeInfo;
 	Ar << PathFollowingInfo;
@@ -82,7 +80,6 @@ void FGameplayDebuggerCategory_AI::CollectData(APlayerController* OwnerPC, AActo
 	APawn* MyPawn = Cast<APawn>(DebugActor);
 	ACharacter* MyChar = Cast<ACharacter>(MyPawn);
 	DataPack.PawnName = MyPawn ? MyPawn->GetHumanReadableName() : FString(TEXT("{red}No selected pawn."));
-	DataPack.PawnClass = MyPawn ? MyPawn->GetClass()->GetName() : FString(TEXT("None"));
 	DataPack.bIsUsingCharacter = (MyChar != nullptr);
 
 	AAIController* MyController = MyPawn ? Cast<AAIController>(MyPawn->Controller) : nullptr;
@@ -92,7 +89,6 @@ void FGameplayDebuggerCategory_AI::CollectData(APlayerController* OwnerPC, AActo
 		if (MyController->IsPendingKill() == false)
 		{
 			DataPack.ControllerName = MyController->GetName();
-			DataPack.DebugIcon = MyController->GetDebugIcon();
 		}
 		else
 		{
@@ -244,7 +240,7 @@ void FGameplayDebuggerCategory_AI::DrawData(APlayerController* OwnerPC, FGamepla
 	if (bShowClassNames)
 	{
 		CanvasContext.Printf(TEXT("Controller Name: {yellow}%s"), *DataPack.ControllerName);
-		CanvasContext.Printf(TEXT("Pawn Name: {yellow}%s{white}, Pawn Class: {yellow}%s"), *DataPack.PawnName, *DataPack.PawnClass);
+		CanvasContext.Printf(TEXT("Pawn Name: {yellow}%s"), *DataPack.PawnName);
 	}
 
 	if (DataPack.bIsUsingCharacter)
@@ -302,6 +298,7 @@ FDebugRenderSceneProxy* FGameplayDebuggerCategory_AI::CreateSceneProxy(const UPr
 			{
 				FDebugRenderSceneProxy::FMesh PolyMesh;
 				PolyMesh.Vertices.Add(FDynamicMeshVertex(Poly.Points[0]));
+				PolyMesh.Color = Poly.Color;
 
 				for (int32 VertIdx = 2; VertIdx < Poly.Points.Num(); VertIdx++)
 				{
@@ -387,7 +384,7 @@ void FGameplayDebuggerCategory_AI::DrawPawnIcons(UWorld* World, AActor* DebugAct
 			FString DebugIconPath = IsValid(ItAI) ? ItAI->GetDebugIcon() : FailsafeIcon;
 			if (CanvasContext.IsLocationVisible(IconLocation) && DebugIconPath.Len())
 			{
-				UTexture2D* IconTexture = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, *DataPack.DebugIcon, NULL, LOAD_NoWarn | LOAD_Quiet, NULL);
+				UTexture2D* IconTexture = (UTexture2D*)StaticLoadObject(UTexture2D::StaticClass(), NULL, *DebugIconPath, NULL, LOAD_NoWarn | LOAD_Quiet, NULL);
 				FCanvasIcon CanvasIcon = UCanvas::MakeIcon(IconTexture);
 				if (CanvasIcon.Texture)
 				{

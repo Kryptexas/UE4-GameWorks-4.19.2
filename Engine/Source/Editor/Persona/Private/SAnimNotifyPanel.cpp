@@ -3735,9 +3735,7 @@ const EVisibility SAnimNotifyTrack::GetTimingNodeVisibility(TSharedPtr<SAnimNoti
 	{
 		if(FAnimNotifyEvent* Event = NotifyNode->NodeObjectInterface->GetNotifyEvent())
 		{
-			EMontageNotifyTickType::Type TickType = Event->MontageTickType;
-
-			return TickType == EMontageNotifyTickType::BranchingPoint ? OnGetTimingNodeVisibility.Execute(ETimingElementType::BranchPointNotify) : OnGetTimingNodeVisibility.Execute(ETimingElementType::QueuedNotify);
+			return Event->IsBranchingPoint() ? OnGetTimingNodeVisibility.Execute(ETimingElementType::BranchPointNotify) : OnGetTimingNodeVisibility.Execute(ETimingElementType::QueuedNotify);
 		}
 	}
 

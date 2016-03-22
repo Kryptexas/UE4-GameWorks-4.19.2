@@ -242,6 +242,7 @@ namespace AutomationTool
 					}
 					TaskType.Attributes.Add(CreateSchemaAttribute(Parameter.Name, SchemaTypeName, Parameter.bOptional? XmlSchemaUse.Optional : XmlSchemaUse.Required));
 				}
+				TaskType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
 				TaskNameToType.Add(Task.Name, TaskType);
 			}
 
@@ -442,6 +443,7 @@ namespace AutomationTool
 			NodeType.Attributes.Add(CreateSchemaAttribute("Name", ScriptSchemaStandardType.Name, XmlSchemaUse.Required));
 			NodeType.Attributes.Add(CreateSchemaAttribute("Requires", ScriptSchemaStandardType.TagList, XmlSchemaUse.Optional));
 			NodeType.Attributes.Add(CreateSchemaAttribute("Produces", ScriptSchemaStandardType.TagList, XmlSchemaUse.Optional));
+			NodeType.Attributes.Add(CreateSchemaAttribute("After", ScriptSchemaStandardType.TagList, XmlSchemaUse.Optional));
 			NodeType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
 			return NodeType;
 		}

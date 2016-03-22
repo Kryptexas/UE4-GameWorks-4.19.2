@@ -83,15 +83,17 @@ void FSlateRHIRenderingPolicy::EndDrawingWindows()
 
 struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertexAndIndexBuffers>
 {
-	TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer;
-	FSlateElementIndexBuffer& IndexBuffer;
+	FVertexBufferRHIRef VertexBufferRHI;
+	FIndexBufferRHIRef IndexBufferRHI;
 	FSlateBatchData& BatchData;
 
 	FSlateUpdateVertexAndIndexBuffers(TSlateElementVertexBuffer<FSlateVertex>& InVertexBuffer, FSlateElementIndexBuffer& InIndexBuffer, FSlateBatchData& InBatchData)
-		: VertexBuffer(InVertexBuffer)
-		, IndexBuffer(InIndexBuffer)
+		: VertexBufferRHI(InVertexBuffer.VertexBufferRHI)
+		, IndexBufferRHI(InIndexBuffer.IndexBufferRHI)
 		, BatchData(InBatchData)
-	{}
+	{
+		check(IsInRenderingThread());
+	}
 
 	void Execute(FRHICommandListBase& CmdList)
 	{
@@ -100,13 +102,16 @@ struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertex
 		const int32 NumBatchedVertices = BatchData.GetNumBatchedVertices();
 		const int32 NumBatchedIndices = BatchData.GetNumBatchedIndices();
 
-		uint8* VertexBufferData = (uint8*)VertexBuffer.LockBuffer_RHIThread(NumBatchedVertices);
-		uint8* IndexBufferData = (uint8*)IndexBuffer.LockBuffer_RHIThread(NumBatchedIndices);
+		int32 RequiredVertexBufferSize = NumBatchedVertices*sizeof(FSlateVertex);
+		uint8* VertexBufferData = (uint8*)GDynamicRHI->RHILockVertexBuffer( VertexBufferRHI, 0, RequiredVertexBufferSize, RLM_WriteOnly );
 
-		BatchData.FillVertexAndIndexBuffer(VertexBufferData, IndexBufferData);
+		uint32 RequiredIndexBufferSize = NumBatchedIndices*sizeof(SlateIndex);		
+		uint8* IndexBufferData = (uint8*)GDynamicRHI->RHILockIndexBuffer( IndexBufferRHI, 0, RequiredIndexBufferSize, RLM_WriteOnly );
 
-		VertexBuffer.UnlockBuffer_RHIThread();
-		IndexBuffer.UnlockBuffer_RHIThread();
+		BatchData.FillVertexAndIndexBuffer( VertexBufferData, IndexBufferData );
+
+		GDynamicRHI->RHIUnlockVertexBuffer( VertexBufferRHI );
+		GDynamicRHI->RHIUnlockIndexBuffer( IndexBufferRHI );
 	}
 };
 

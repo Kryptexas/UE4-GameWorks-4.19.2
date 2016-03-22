@@ -9,6 +9,7 @@
 #include "IConsoleManager.h"
 #include "LinkerPlaceholderClass.h"
 #include "UObject/GCScopeLock.h"
+#include "HAL/ExceptionHandling.h"
 
 /*-----------------------------------------------------------------------------
    Garbage collection.
@@ -1134,6 +1135,8 @@ bool VerifyClusterAssumptions(UObject* ClusterRootObject);
  */
 void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 {
+	CheckImageIntegrityAtRuntime();
+
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "CollectGarbageInternal" ), STAT_CollectGarbageInternal, STATGROUP_GC );
 	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, TEXT( "GarbageCollection - Begin" ) );
 

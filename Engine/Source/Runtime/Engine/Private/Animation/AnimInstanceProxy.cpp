@@ -163,6 +163,9 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 	RootMotionMode = InAnimInstance->RootMotionMode;
 	bShouldExtractRootMotion = InAnimInstance->ShouldExtractRootMotion();
 
+	// Save off LOD level that we're currently using.
+	LODLevel = InAnimInstance->GetSkelMeshComponent()->PredictedLODLevel;
+
 	NotifyQueue.Reset(InAnimInstance->GetSkelMeshComponent());
 
 	ClearSlotNodeWeights();

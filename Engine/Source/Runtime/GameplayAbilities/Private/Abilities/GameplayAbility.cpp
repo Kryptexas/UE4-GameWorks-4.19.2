@@ -1239,12 +1239,15 @@ void UGameplayAbility::K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag, FGamep
 void UGameplayAbility::K2_ExecuteGameplayCueWithParams(FGameplayTag GameplayCueTag, const FGameplayCueParameters& GameplayCueParameters)
 {
 	check(CurrentActorInfo);
+	const_cast<FGameplayCueParameters&>(GameplayCueParameters).AbilityLevel = GetAbilityLevel();
 	CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag, GameplayCueParameters);
 }
 
 void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context, bool bRemoveOnAbilityEnd)
 {
 	check(CurrentActorInfo);
+	Context.SetAbility(this);
+
 	CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag, Context);
 
 	if (bRemoveOnAbilityEnd)
@@ -1279,8 +1282,11 @@ FGameplayEffectContextHandle UGameplayAbility::GetContextFromOwner(FGameplayAbil
 
 int32 UGameplayAbility::GetAbilityLevel() const
 {
-	check(IsInstantiated()); // You should not call this on non instanced abilities.
-	check(CurrentActorInfo);
+	if (IsInstantiated() == false || CurrentActorInfo == nullptr)
+	{
+		return 1;
+	}
+	
 	return GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo);
 }
 

@@ -145,7 +145,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 							NewClientActor->Role = ROLE_None;
 							NewClientActor->SetReplicates(false);
 							check(NetDriverName == NetDriver->NetDriverName);
-							NewClientActor->NetDriverName = NetDriverName;
+							NewClientActor->SetNetDriverName(NetDriverName);
 							ClientActors.Add(NewClientActor);
 							FNetControlMessage<NMT_BeaconAssignGUID>::Send(Connection, NetGUID);
 						}

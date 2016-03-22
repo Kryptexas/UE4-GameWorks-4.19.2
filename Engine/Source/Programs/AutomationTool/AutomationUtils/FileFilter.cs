@@ -281,15 +281,13 @@ namespace AutomationTool
 		{
 			string NormalizedPattern = Pattern.Replace('\\', '/');
 
-			// Remove the slash from the start of the pattern, interpreting it in the following manner:
-			// * Any pattern starting with a path separator is matched relative to the root directory
-			// * Any pattern containing a path separator is matched relative to the root directory, unless it starts with a wildcard indicating that it can be matched anywhere
-			// * Anything else is matched anywhere
+			// Remove the slash from the start of the pattern. Any exclude pattern that doesn't contain a directory separator is assumed to apply to any directory (eg. *.cpp), otherwise it's 
+			// taken relative to the root.
 			if (NormalizedPattern.StartsWith("/"))
 			{
 				NormalizedPattern = NormalizedPattern.Substring(1);
 			}
-			else if(!NormalizedPattern.Contains("/") && !NormalizedPattern.StartsWith("..."))
+			else if(!NormalizedPattern.Contains("/") && !NormalizedPattern.StartsWith("...") && Type == FileFilterType.Exclude)
 			{
 				NormalizedPattern = ".../" + NormalizedPattern;
 			}
@@ -442,6 +440,18 @@ namespace AutomationTool
 		{
 			List<FileReference> MatchingFileNames = new List<FileReference>();
 			FindMatchesFromDirectory(new DirectoryInfo(DirectoryName.FullName), "", bIgnoreSymlinks, MatchingFileNames);
+			return MatchingFileNames;
+		}
+
+		/// <summary>
+		/// Finds a list of files within a given directory which match the filter.
+		/// </summary>
+		/// <param name="DirectoryName">File to match</param>
+		/// <returns>List of files that pass the filter</returns>
+		public List<FileReference> ApplyToDirectory(DirectoryReference DirectoryName, string PrefixPath, bool bIgnoreSymlinks)
+		{
+			List<FileReference> MatchingFileNames = new List<FileReference>();
+			FindMatchesFromDirectory(new DirectoryInfo(DirectoryName.FullName), PrefixPath.Replace('\\', '/'), bIgnoreSymlinks, MatchingFileNames);
 			return MatchingFileNames;
 		}
 

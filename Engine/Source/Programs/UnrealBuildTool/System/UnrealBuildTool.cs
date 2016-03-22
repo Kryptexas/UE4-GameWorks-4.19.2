@@ -917,8 +917,6 @@ namespace UnrealBuildTool
 
 			Telemetry.Initialize();
 
-			bool bRunCopyrightVerification = false;
-			bool bDumpToFile = false;
 			bool bCheckThirdPartyHeaders = false;
 			bool bIgnoreJunk = false;
 
@@ -1115,14 +1113,6 @@ namespace UnrealBuildTool
 							bSpecificModulesOnly = true;
 							continue;
 						}
-						else if (LowercaseArg == "-copyrightverification")
-						{
-							bRunCopyrightVerification = true;
-						}
-						else if (LowercaseArg == "-dumptofile")
-						{
-							bDumpToFile = true;
-						}
 						else if (LowercaseArg == "-check3rdpartyheaders")
 						{
 							bCheckThirdPartyHeaders = true;
@@ -1226,8 +1216,6 @@ namespace UnrealBuildTool
 							? "GenerateVCProjectFiles"
 							: bGenerateXcodeProjectFiles
 							? "GenerateXcodeProjectFiles"
-							: bRunCopyrightVerification
-							? "RunCopyrightVerification"
 							: bGenerateMakefiles
 							? "GenerateMakefiles"
 							: bGenerateCMakefiles
@@ -1308,12 +1296,6 @@ namespace UnrealBuildTool
 						{
 							Result = ECompilationResult.OtherCompilationError;
 						}
-					}
-					else if (bRunCopyrightVerification)
-					{
-						// We ensure we are in the engine source directory during startup.
-						CopyrightVerify.RunCopyrightVerification(Directory.GetCurrentDirectory(), GameName, bDumpToFile);
-						Log.TraceInformation("Completed... exiting.");
 					}
 					else if (bAutoSDKOnly)
 					{

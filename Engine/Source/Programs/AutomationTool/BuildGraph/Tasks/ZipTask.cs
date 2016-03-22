@@ -71,7 +71,7 @@ namespace BuildGraph.Tasks
 			}
 			else
 			{
-				Files = ResolveFilespec(BaseDirectory, SplitDelimitedList(Parameters.Files), TagNameToFileSet);
+				Files = ResolveFilespec(BaseDirectory, Parameters.Files, TagNameToFileSet);
 			}
 
 			// Create the zip file

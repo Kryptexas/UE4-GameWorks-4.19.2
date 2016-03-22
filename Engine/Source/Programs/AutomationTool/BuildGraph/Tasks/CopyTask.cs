@@ -73,7 +73,7 @@ namespace BuildGraph.Tasks
 				}
 				else
 				{
-					SourceFiles = ResolveFilespec(FromDir, SplitDelimitedList(Parameters.Files), TagNameToFileSet);
+					SourceFiles = ResolveFilespec(FromDir, Parameters.Files, TagNameToFileSet);
 				}
 
 				// Figure out matching target files

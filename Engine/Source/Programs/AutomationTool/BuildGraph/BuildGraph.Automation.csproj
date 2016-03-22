@@ -71,6 +71,8 @@
     <Compile Include="Build.cs" />
     <Compile Include="Schema.cs" />
     <Compile Include="Script.cs" />
+    <Compile Include="Tasks\ChunkTask.cs" />
+    <Compile Include="Tasks\ErrorTask.cs" />
     <Compile Include="Tasks\MsBuildTask.cs" />
     <Compile Include="Tasks\PakFileTask.cs" />
     <Compile Include="Tasks\SpawnTask.cs" />
@@ -85,6 +87,7 @@
     <Compile Include="Tasks\StageTask.cs" />
     <Compile Include="Tasks\StripTask.cs" />
     <Compile Include="Tasks\SetVersionTask.cs" />
+    <Compile Include="Tasks\WarningTask.cs" />
     <Compile Include="Tasks\ZipTask.cs" />
     <Compile Include="TempStorage.cs" />
   </ItemGroup>

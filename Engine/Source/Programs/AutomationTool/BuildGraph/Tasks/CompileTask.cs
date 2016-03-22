@@ -55,7 +55,7 @@ namespace AutomationTool
 		/// <param name="InParameters">Parameters for this task</param>
 		public CompileTask(CompileTaskParameters Parameters)
 		{
-			Targets.Add(new UE4Build.BuildTarget { TargetName = Parameters.Target, Platform = Parameters.Platform, Config = Parameters.Configuration, UBTArgs = Parameters.Arguments });
+			Targets.Add(new UE4Build.BuildTarget { TargetName = Parameters.Target, Platform = Parameters.Platform, Config = Parameters.Configuration, UBTArgs = "-nobuilduht " + (Parameters.Arguments ?? "") });
 		}
 
 		/// <summary>
@@ -89,7 +89,7 @@ namespace AutomationTool
             UE4Build.BuildAgenda Agenda = new UE4Build.BuildAgenda();
 			Agenda.Targets.AddRange(Targets);
 
-			Builder.Build(Agenda, InDeleteBuildProducts: false, InUpdateVersionFiles: false, InForceNoXGE: true, InUseParallelExecutor: true);
+			Builder.Build(Agenda, InDeleteBuildProducts: false, InUpdateVersionFiles: false, InForceNoXGE: CommandUtils.IsBuildMachine, InUseParallelExecutor: true);
             UE4Build.CheckBuildProducts(Builder.BuildProductFiles);
 
 			BuildProducts.UnionWith(Builder.BuildProductFiles.Select(x => new FileReference(x)));

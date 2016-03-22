@@ -1492,6 +1492,9 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 		}
 	}
 
+	// Log which shader, pipeline or factory is missing when about to have a fatal error
+	const bool bLogShaderMapFailInfo = IsSpecialEngineMaterial() && (bContainsInlineShaders || FPlatformProperties::RequiresCookedData());
+
 	if (GameThreadShaderMap && GameThreadShaderMap->TryToAddToExistingCompilationTask(this))
 	{
 		OutstandingCompileShaderMapIds.Add(GameThreadShaderMap->GetCompilingId());
@@ -1499,7 +1502,7 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 		GameThreadShaderMap = nullptr;
 		bSucceeded = true;
 	}
-	else if (!GameThreadShaderMap || !GameThreadShaderMap->IsComplete(this, true))
+	else if (!GameThreadShaderMap || !GameThreadShaderMap->IsComplete(this, !bLogShaderMapFailInfo))
 	{
 		if (bContainsInlineShaders || FPlatformProperties::RequiresCookedData())
 		{

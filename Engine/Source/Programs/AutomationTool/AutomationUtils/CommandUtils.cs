@@ -1918,6 +1918,14 @@ namespace AutomationTool
 			get { return Automation.IsBuildMachine; }
 		}
 
+		/// <summary>
+		/// Path to the root directory
+		/// </summary>
+		public static DirectoryReference RootDirectory 
+		{
+			get { return UnrealBuildTool.UnrealBuildTool.RootDirectory; }
+		}
+
 		#endregion
 
         /// <summary>

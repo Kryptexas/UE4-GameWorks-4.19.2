@@ -49,6 +49,9 @@ FString GFPSChartLabel;
 /** Start time of current FPS chart. */
 double GFPSChartStartTime = 0;
 
+/** Stop time of current FPS chart (so we don't depend on time when Dump.. is called) */
+double GFPSChartStopTime = 0;
+
 /** FPS chart information. Time spent for each bucket and count. */
 FFPSChartEntry	GFPSChart[STAT_FPSChartLastBucketStat - STAT_FPSChartFirstStat];
 
@@ -82,6 +85,17 @@ TArray<float> GFrameTimes;
 
 /** Array of interesting summary thresholds (e.g., 30 Hz, 60 Hz, 120 Hz) */
 TArray<int32> GTargetFrameRatesForSummary;
+
+
+/** We can't trust delta seconds if frame time clamping is enabled or if we're benchmarking so we simply calculate it ourselves. */
+double GLastTimeChartCreationTicked = 0;
+
+/** Keep track of our previous frame's statistics */
+float GLastDeltaSeconds = 0.0f;
+
+/** Keep track of our previous frame's statistics */
+double GLastHitchTime = 0;
+
 
 //////////////////////////////////////////////////////////////////////
 
@@ -234,6 +248,11 @@ void FDumpFPSChartToEndpoint::DumpChart(float InTotalTime, float InDeltaTime, in
 	DeltaTime = InDeltaTime;
 	NumFrames = InNumFrames;
 	MapName = InMapName;
+
+	if (TotalTime > DeltaTime)
+	{
+		UE_LOG(LogChartCreation, Log, TEXT("Weirdness: wall clock time (%f) is smaller than total frame time (%f)"), DeltaTime, TotalTime);
+	}
 
 	AvgFPS = NumFrames / TotalTime;
 	TimeDisregarded = FMath::Max<float>(0, DeltaTime - TotalTime);
@@ -616,15 +635,6 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 {
 	const float MSToSeconds = 1.0f / 1000.0f;
 
-	// We can't trust delta seconds if frame time clamping is enabled or if we're benchmarking so we simply
-	// calculate it ourselves.
-	static double LastTime = 0;
-
-	// Keep track of our previous frame's statistics
-	static float LastDeltaSeconds = 0.0f;
-
-	static double LastHitchTime = 0;
-
 	// early out if we aren't doing any of the captures
 	if (!GEnableDataCapture)
 	{
@@ -632,11 +642,11 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 	}
 
 	const double CurrentTime = FPlatformTime::Seconds();
-	if( LastTime > 0 )
+	if( GLastTimeChartCreationTicked > 0 )
 	{
-		DeltaSeconds = CurrentTime - LastTime;
+		DeltaSeconds = CurrentTime - GLastTimeChartCreationTicked;
 	}
-	LastTime = CurrentTime;
+	GLastTimeChartCreationTicked = CurrentTime;
 
 	// now gather some stats on what this frame was bound by (game, render, gpu)
 
@@ -812,7 +822,7 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 		if (DeltaSeconds >= MinFrameTimeToConsiderAsHitch)
 		{
 			// How long has it been since the last hitch we detected?
-			const float TimeSinceLastHitch = ( float )( CurrentTime - LastHitchTime );
+			const float TimeSinceLastHitch = ( float )( CurrentTime - GLastHitchTime );
 
 			// Minimum time passed before we'll record a new hitch
 			const float MinTimeBetweenHitches = FEnginePerformanceTargets::GetMinTimeBetweenHitchesMS() * MSToSeconds;
@@ -825,7 +835,7 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 				const float HitchMultiplierAmount = FEnginePerformanceTargets::GetHitchToNonHitchRatio();
 
 				// If our frame time is much larger than our last frame time, we'll count this as a hitch!
-				if (DeltaSeconds > (LastDeltaSeconds * HitchMultiplierAmount))
+				if (DeltaSeconds > (GLastDeltaSeconds * HitchMultiplierAmount))
 				{
 					// We have a hitch!
 					OnHitchDetectedDelegate.Broadcast(DeltaSeconds);
@@ -864,13 +874,13 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 						}
 					}
 
-					LastHitchTime = CurrentTime;
+					GLastHitchTime = CurrentTime;
 				}
 			}
 		}
 
 		// Store stats for the next frame to look at
-		LastDeltaSeconds = DeltaSeconds;
+		GLastDeltaSeconds = DeltaSeconds;
 	}
 }
 
@@ -928,12 +938,21 @@ void UEngine::StartFPSChart(const FString& Label, bool bRecordPerFrameTimes)
 
 	GEnableDataCapture = true;
 
+	GLastTimeChartCreationTicked = 0;
+	GLastHitchTime = 0;
+	GLastDeltaSeconds = 0.0f;
+
 	GCaptureStartTime = FDateTime::Now().ToString();
+
+	UE_LOG(LogChartCreation, Log, TEXT("Started creating FPS charts at %f seconds"), GFPSChartStartTime);
 }
 
 void UEngine::StopFPSChart()
 {
+	GFPSChartStopTime = FPlatformTime::Seconds();
 	GEnableDataCapture = false;
+
+	UE_LOG(LogChartCreation, Log, TEXT("Stopped creating FPS charts at %f seconds"), GFPSChartStopTime);
 }
 
 void UEngine::DumpFPSChartToLog( float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName )
@@ -1152,7 +1171,7 @@ void UEngine::DumpFPSChart( const FString& InMapName, bool bForceDump )
 {
 	// Iterate over all buckets, gathering total frame count and cumulative time.
 	float TotalTime = 0;
-	const float DeltaTime = FPlatformTime::Seconds() - GFPSChartStartTime;
+	const float DeltaTime = GFPSChartStopTime - GFPSChartStartTime;
 	int32 NumFrames = 0;
 	for( int32 BucketIndex=0; BucketIndex<ARRAY_COUNT(GFPSChart); BucketIndex++ )
 	{
@@ -1198,7 +1217,7 @@ void UEngine::DumpFPSChartAnalytics(const FString& InMapName, TArray<FAnalyticsE
 {
 	// Iterate over all buckets, gathering total frame count and cumulative time.
 	float TotalTime = 0;
-	const float DeltaTime = FPlatformTime::Seconds() - GFPSChartStartTime;
+	const float DeltaTime = GFPSChartStopTime - GFPSChartStartTime;
 	int32 NumFrames = 0;
 	for (int32 BucketIndex = 0; BucketIndex < ARRAY_COUNT(GFPSChart); BucketIndex++)
 	{
@@ -1207,7 +1226,7 @@ void UEngine::DumpFPSChartAnalytics(const FString& InMapName, TArray<FAnalyticsE
 	}
 
 	bool bMemoryChartIsActive = false;
-	if (FParse::Param(FCommandLine::Get(), TEXT("CaptureMemeoryChartInfo")) || FParse::Param(FCommandLine::Get(), TEXT("gCMI")))
+	if (FParse::Param(FCommandLine::Get(), TEXT("CaptureMemoryChartInfo")) || FParse::Param(FCommandLine::Get(), TEXT("gCMI")))
 	{
 		bMemoryChartIsActive = true;
 	}

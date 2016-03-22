@@ -350,6 +350,14 @@ bool UGameplayTagsManager::ShouldImportTagsFromINI()
 	return ImportFromINI;
 }
 
+/** TEMP - Returns true if we should warn on invalid (missing) tags */
+bool UGameplayTagsManager::ShouldWarnOnInvalidTags()
+{
+	bool ImportFromINI = true;
+	GConfig->GetBool(TEXT("GameplayTags"), TEXT("WarnOnInvalidTags"), ImportFromINI, GEngineIni);
+	return ImportFromINI;
+}
+
 void UGameplayTagsManager::RedirectTagsForContainer(FGameplayTagContainer& Container, TSet<FName>& DeprecatedTagNamesNotFoundInTagMap, UProperty* SerializingProperty)
 {
 	TSet<FName> NamesToRemove;
@@ -374,7 +382,7 @@ void UGameplayTagsManager::RedirectTagsForContainer(FGameplayTagContainer& Conta
 		{
 			// Warn about invalid tags at load time in editor builds, too late to fix it in cooked builds
 			FGameplayTag OldTag = RequestGameplayTag(TagName, false);
-			if (!OldTag.IsValid())
+			if (!OldTag.IsValid() && ShouldWarnOnInvalidTags())
 			{
 				UE_LOG(LogGameplayTags, Warning, TEXT("Invalid GameplayTag %s found while loading property %s."), *TagName.ToString(), *GetPathNameSafe(SerializingProperty));
 			}
@@ -430,7 +438,7 @@ void UGameplayTagsManager::RedirectSingleGameplayTag(FGameplayTag& Tag, UPropert
 	{
 		// Warn about invalid tags at load time in editor builds, too late to fix it in cooked builds
 		FGameplayTag OldTag = RequestGameplayTag(TagName, false);
-		if (!OldTag.IsValid())
+		if (!OldTag.IsValid() && ShouldWarnOnInvalidTags())
 		{
 			UE_LOG(LogGameplayTags, Warning, TEXT("Invalid GameplayTag %s found while loading property %s."), *TagName.ToString(), *GetPathNameSafe(SerializingProperty));
 		}

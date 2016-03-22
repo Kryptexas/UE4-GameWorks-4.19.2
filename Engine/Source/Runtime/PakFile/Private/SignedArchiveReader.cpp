@@ -28,10 +28,7 @@ FChunkCacheWorker::FChunkCacheWorker(FArchive* InReader)
 	: Reader(InReader)
 	, QueuedRequestsEvent(NULL)
 {
-	DecryptionKey.Exponent.Parse(DECRYPTION_KEY_EXPONENT);
-	DecryptionKey.Modulus.Parse(DECYRPTION_KEY_MODULUS);
-	// Public key should never be zero at this point. Check PublicKey.inl for more details.
-	check(!DecryptionKey.Exponent.IsZero() && !DecryptionKey.Modulus.IsZero());
+	SetupDecryptionKey();
 
 	QueuedRequestsEvent = FPlatformProcess::GetSynchEventFromPool();
 	Thread = FRunnableThread::Create(this, TEXT("FChunkCacheWorker"), 0, TPri_BelowNormal);
@@ -48,6 +45,31 @@ FChunkCacheWorker::~FChunkCacheWorker()
 bool FChunkCacheWorker::Init()
 {
 	return true;
+}
+
+void FChunkCacheWorker::SetupDecryptionKey()
+{
+	DecryptionKey.Exponent.Parse(DECRYPTION_KEY_EXPONENT);
+	DecryptionKey.Modulus.Parse(DECYRPTION_KEY_MODULUS);
+	// Public key should never be zero at this point. Check PublicKey.inl for more details.
+	UE_CLOG(DecryptionKey.Exponent.IsZero() || DecryptionKey.Modulus.IsZero(), LogPakFile, Fatal, TEXT("Invalid decryption key detected"));
+	// Public key should produce decrypted results - check for identity keys
+	static int256 TestValues[] = 
+	{
+		11,
+		23,
+		67,
+		121,
+		180,
+		211
+	};
+	bool bIdentical = true;
+	for (int32 Index = 0; bIdentical && Index < ARRAY_COUNT(TestValues); ++Index)
+	{
+		int256 DecryptedValue = FEncryption::ModularPow(TestValues[Index], DecryptionKey.Exponent, DecryptionKey.Modulus);
+		bIdentical = (DecryptedValue == TestValues[Index]);
+	}	
+	UE_CLOG(bIdentical, LogPakFile, Fatal, TEXT("Decryption key produces identical results to source data."));
 }
 
 void FChunkCacheWorker::DecryptSignatures(int32 NextIndexToDecrypt)

@@ -296,7 +296,7 @@ ALobbyBeaconPlayerState* ALobbyBeaconState::CreateNewPlayer(const FText& PlayerN
 		if (NewPlayer)
 		{
 			// Associate with this objects net driver for proper replication
-			NewPlayer->NetDriverName = NetDriverName;
+			NewPlayer->SetNetDriverName(NetDriverName);
 			NewPlayer->DisplayName = PlayerName;
 			NewPlayer->UniqueId = UniqueId;
 			NewPlayer->bInLobby = true;

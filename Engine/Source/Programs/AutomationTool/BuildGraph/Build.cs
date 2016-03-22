@@ -86,9 +86,6 @@ namespace AutomationTool
 			string SchemaFileName = ParseParamValue("Schema", null);
 			string ExportFileName = ParseParamValue("Export", null);
 
-//			string BranchName = ParseParamValue("Branch", P4Enabled? P4Env.BuildRootP4 : "Unknown");
-//			string ChangeName = ParseParamValue("Change", P4Enabled? P4Env.ChangelistString : "Unknown");
-
 			string SharedStorageDir = ParseParamValue("SharedStorageDir", null);
 			string SingleNodeName = ParseParamValue("SingleNode", null);
 			string[] TriggerNames = ParseParamValue("Trigger", "").Split(new char[]{ '+' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
@@ -141,7 +138,8 @@ namespace AutomationTool
 
 			// Set up the standard properties which build scripts might need
 			DefaultProperties["Branch"] = P4Enabled? P4Env.BuildRootP4 : "Unknown";
-			DefaultProperties["Change"] = P4Enabled? P4Env.ChangelistString : "Unknown";
+			DefaultProperties["EscapedBranch"] = P4Enabled? P4Env.BuildRootEscaped : "Unknown";
+			DefaultProperties["Change"] = P4Enabled? P4Env.Changelist.ToString() : "0";
 			DefaultProperties["RootDir"] = new DirectoryReference(CommandUtils.CmdEnv.LocalRoot).FullName;
 			DefaultProperties["IsBuildMachine"] = IsBuildMachine? "true" : "false";
 			DefaultProperties["HostPlatform"] = HostPlatform.Current.HostEditorPlatform.ToString();
@@ -329,6 +327,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Builds all the nodes in the graph
 		/// </summary>
+		/// <param name="Job">Information about the current job</param>
 		/// <param name="Graph">The graph instance</param>
 		/// <returns>True if everything built successfully</returns>
 		bool BuildAllNodes(JobContext Job, Graph Graph, TempStorage Storage)
@@ -369,6 +368,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Build a single node
 		/// </summary>
+		/// <param name="Job">Information about the current job</param>
 		/// <param name="Graph">The graph to which the node belongs. Used to determine which outputs need to be transferred to temp storage.</param>
 		/// <param name="Node">The node to build</param>
 		/// <returns>True if the node built successfully, false otherwise.</returns>
@@ -406,9 +406,10 @@ namespace AutomationTool
 			HashSet<string> ReferencedOutputs = new HashSet<string>();
 			foreach(AgentGroup Group in Graph.Groups)
 			{
-				if(!Group.Nodes.Contains(Node))
+				bool bSameGroup = Group.Nodes.Contains(Node);
+				foreach(Node OtherNode in Group.Nodes)
 				{
-					foreach(Node OtherNode in Group.Nodes)
+					if(!bSameGroup || Node.ControllingTrigger != OtherNode.ControllingTrigger)
 					{
 						ReferencedOutputs.UnionWith(OtherNode.InputNames);
 					}

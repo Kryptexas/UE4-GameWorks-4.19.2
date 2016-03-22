@@ -605,7 +605,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 		ThisActor->SetOwner(NULL);
 	}
 	// Notify net players that this guy has been destroyed.
-	UNetDriver* ActorNetDriver = GEngine->FindNamedNetDriver(this, ThisActor->NetDriverName);
+	UNetDriver* ActorNetDriver = GEngine->FindNamedNetDriver(this, ThisActor->GetNetDriverName());
 	if (ActorNetDriver)
 	{
 		ActorNetDriver->NotifyActorDestroyed(ThisActor);

@@ -153,7 +153,7 @@ struct GAMEPLAYABILITIES_API FGlobalCurveDataOverride
 /**
  *	Generic numerical value in the form Coeffecient * Curve[Level] 
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FScalableFloat
 {
 	GENERATED_USTRUCT_BODY()

@@ -221,6 +221,10 @@ protected:
 	UFUNCTION()
 	virtual void OnRep_Owner();
 
+	/** Used to specify the net driver to replicate on (NAME_None || NAME_GameNetDriver is the default net driver) */
+	UPROPERTY()
+	FName NetDriverName;
+
 private:
 	/**
 	 * Describes how much control the remote machine has over the actor.
@@ -335,9 +339,15 @@ public:
 	UPROPERTY(transient)
 	float LastNetUpdateTime;
 
-	/** Used to specify the net driver to replicate on (NAME_None || NAME_GameNetDriver is the default net driver) */
-	UPROPERTY()
-	FName NetDriverName;
+	/**
+	 * Set the name of the net driver associated with this actor.  Will move the actor out of the list of network actors from the old net driver and add it to the new list
+	 *
+	 * @param NewNetDriverName name of the new net driver association
+	 */
+	void SetNetDriverName(FName NewNetDriverName );
+
+	/** @return name of the net driver associated with this actor (all RPCs will go out via this connection) */
+	FName GetNetDriverName() const { return NetDriverName; }
 
 	/** Method that allows an actor to replicate subobjects on its actor channel */
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags);

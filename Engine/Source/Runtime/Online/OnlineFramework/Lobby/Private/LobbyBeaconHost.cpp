@@ -48,7 +48,7 @@ void ALobbyBeaconHost::SetupLobbyState(int32 InMaxPlayers)
 			LobbyState->MaxPlayers = InMaxPlayers;
 
 			// Associate with this objects net driver for proper replication
-			LobbyState->NetDriverName = GetNetDriverName();
+			LobbyState->SetNetDriverName(GetNetDriverName());
 		}
 	}
 }

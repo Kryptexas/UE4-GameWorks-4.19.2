@@ -59,7 +59,7 @@ namespace BuildGraph.Tasks
 			DirectoryReference BaseDir = ResolveDirectory(Parameters.BaseDir);
 
 			// Find the matching files
-			FileReference[] Files = ResolveFilespec(BaseDir, SplitDelimitedList(Parameters.Files), TagNameToFileSet).OrderBy(x => x.FullName).ToArray();
+			FileReference[] Files = ResolveFilespec(BaseDir, Parameters.Files, TagNameToFileSet).OrderBy(x => x.FullName).ToArray();
 
 			// Sign all the files
 			CodeSign.SignMultipleFilesIfEXEOrDLL(Files.Select(x => x.FullName).ToList(), true);

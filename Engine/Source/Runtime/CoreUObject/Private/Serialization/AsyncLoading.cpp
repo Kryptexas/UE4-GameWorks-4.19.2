@@ -14,6 +14,7 @@
 #include "ExclusiveLoadPackageTimeTracker.h"
 #include "AssetRegistryInterface.h"
 #include "BlueprintSupport.h"
+#include "HAL/ExceptionHandling.h"
 
 #define FIND_MEMORY_STOMPS (1 && PLATFORM_WINDOWS && !WITH_EDITORONLY_DATA)
 
@@ -2224,6 +2225,8 @@ bool IsInAsyncLoadingThreadCoreUObjectInternal()
 
 void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 {
+	CheckImageIntegrityAtRuntime();
+
 	if (IsAsyncLoading())
 	{
 		FAsyncLoadingThread& AsyncThread = FAsyncLoadingThread::Get();

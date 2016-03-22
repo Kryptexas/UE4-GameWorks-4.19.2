@@ -8,7 +8,7 @@
 #include "UObject/ReleaseObjectVersion.h"
 
 /** Version numbers for networking */
-int32 GEngineNetVersion			= BUILT_FROM_CHANGELIST;
+int32 GEngineNetVersion = ENGINE_NET_VERSION;
 const int32 GEngineMinNetVersion		= 7038;
 const int32 GEngineNegotiationVersion	= 3077;
 

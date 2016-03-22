@@ -17,20 +17,20 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// Message to print out
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(Optional = true)]
 		public string Message;
 
 		/// <summary>
-		/// If specified, causes the matching list of files to be printed after the given message.
-		/// </summary>
-		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
-		public string Tag;
-
-		/// <summary>
-		/// If specified, causes the contents of the given file to be printed after the given message.
+		/// If specified, causes the given list of files to be printed after the given message.
 		/// </summary>
 		[TaskParameter(Optional = true)]
-		public string File;
+		public string Files;
+
+		/// <summary>
+		/// If specified, causes the contents of the given files to be printed out.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public bool IncludeContents;
 	}
 
 	/// <summary>
@@ -63,32 +63,25 @@ namespace BuildGraph.Tasks
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Print the message
-			CommandUtils.Log(Parameters.Message);
+			if(!String.IsNullOrEmpty(Parameters.Message))
+			{
+				CommandUtils.Log(Parameters.Message);
+			}
 
 			// Print the contents of the given tag, if specified
-			if(!String.IsNullOrEmpty(Parameters.Tag))
+			if(!String.IsNullOrEmpty(Parameters.Files))
 			{
-				HashSet<FileReference> Files = FindOrAddTagSet(TagNameToFileSet, Parameters.Tag);
+				HashSet<FileReference> Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet);
 				foreach(FileReference File in Files.OrderBy(x => x.FullName))
 				{
 					CommandUtils.Log("  {0}", File.FullName);
-				}
-			}
-
-			// Print the contents of the given file, if specified
-			if(!String.IsNullOrEmpty(Parameters.File))
-			{
-				FileReference FileToRead = new FileReference(Path.Combine(CommandUtils.CmdEnv.LocalRoot, Parameters.File));
-				if(FileToRead.Exists())
-				{
-					foreach(string Line in File.ReadAllLines(FileToRead.FullName))
+					if(Parameters.IncludeContents)
 					{
-						CommandUtils.Log("  {0}", Line);
+						foreach(string Line in System.IO.File.ReadAllLines(File.FullName))
+						{
+							CommandUtils.Log("    {0}", Line);
+						}
 					}
-				}
-				else
-				{
-					CommandUtils.Log("  No file found named - {0}", FileToRead.FullName);
 				}
 			}
 

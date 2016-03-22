@@ -190,7 +190,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	bEnableUpdateRateOptimizations = false;
 	RagdollAggregateThreshold = UPhysicsSettings::Get()->RagdollAggregateThreshold;
 
-	
+	LastPoseTickTime = -1.f;
 
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 

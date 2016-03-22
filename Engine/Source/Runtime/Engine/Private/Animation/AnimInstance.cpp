@@ -2344,6 +2344,19 @@ FAnimMontageInstance* UAnimInstance::GetActiveInstanceForMontage(UAnimMontage co
 	return FoundInstancePtr ? *FoundInstancePtr : nullptr;
 }
 
+FAnimMontageInstance* UAnimInstance::GetMontageInstanceForID(int32 MontageInstanceID)
+{
+	for (FAnimMontageInstance* MontageInstance : MontageInstances)
+	{
+		if (MontageInstance && MontageInstance->GetInstanceID() == MontageInstanceID)
+		{
+			return MontageInstance;
+		}
+	}
+
+	return nullptr;
+}
+
 FAnimMontageInstance* UAnimInstance::GetRootMotionMontageInstance() const
 {
 	return RootMotionMontageInstance;

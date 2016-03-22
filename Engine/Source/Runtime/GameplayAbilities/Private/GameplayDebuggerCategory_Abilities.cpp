@@ -57,7 +57,8 @@ void FGameplayDebuggerCategory_Abilities::CollectData(APlayerController* OwnerPC
 	UAbilitySystemComponent* AbilityComp = DebugActor ? DebugActor->FindComponentByClass<UAbilitySystemComponent>() : nullptr;
 	if (AbilityComp)
 	{
-		FGameplayTagContainer OwnerTags;
+		static FGameplayTagContainer OwnerTags;
+		OwnerTags.Reset();
 		AbilityComp->GetOwnedGameplayTags(OwnerTags);
 		DataPack.OwnedTags = OwnerTags.ToStringSimple();
 

@@ -1408,10 +1408,14 @@ void UAbilitySystemComponent::ServerPrintDebug_Request_Implementation()
 
 	Debug_Internal(DebugInfo);
 
-	ClientPrintDebug_Response(DebugInfo.Strings);
+	ClientPrintDebug_Response(DebugInfo.Strings, DebugInfo.GameFlags);
 }
 
-void UAbilitySystemComponent::ClientPrintDebug_Response_Implementation(const TArray<FString>& Strings)
+void UAbilitySystemComponent::ClientPrintDebug_Response_Implementation(const TArray<FString>& Strings, int32 GameFlags)
+{
+	OnClientPrintDebug_Response(Strings, GameFlags);
+}
+void UAbilitySystemComponent::OnClientPrintDebug_Response(const TArray<FString>& Strings, int32 GameFlags)
 {
 	ABILITY_LOG(Warning, TEXT(" "));
 	ABILITY_LOG(Warning, TEXT("Server State: "));
@@ -1526,7 +1530,6 @@ void UAbilitySystemComponent::PrintDebug()
 	DebugInfo.bShowGameplayEffects = true;
 	DebugInfo.bPrintToLog = true;
 	DebugInfo.Accumulate = true;
-	
 
 	Debug_Internal(DebugInfo);
 

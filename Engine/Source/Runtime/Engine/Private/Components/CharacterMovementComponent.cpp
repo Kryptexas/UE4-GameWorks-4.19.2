@@ -397,6 +397,21 @@ void UCharacterMovementComponent::OnRegister()
 	// This is only to respond to changes propagated by PostEditChangeProperty, so it's only done in the editor.
 	SetWalkableFloorAngle(WalkableFloorAngle);
 #endif
+
+	// Force linear smoothing for replays.
+	const UWorld* MyWorld = GetWorld();
+	const bool IsReplay = (MyWorld && MyWorld->DemoNetDriver && MyWorld->DemoNetDriver->ServerConnection);
+	if (IsReplay)
+	{
+		if (CVarReplayUseInterpolation.GetValueOnGameThread() == 1)
+		{
+			NetworkSmoothingMode = ENetworkSmoothingMode::Replay;
+		}
+		else
+		{
+			NetworkSmoothingMode = ENetworkSmoothingMode::Linear;
+		}
+	}
 }
 
 
@@ -973,22 +988,6 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 	if (!HasValidData())
 	{
 		return;
-	}
-
-	// Force linear smoothing for replays.
-	const UWorld* MyWorld = GetWorld();
-	const bool IsReplay = ( MyWorld && MyWorld->DemoNetDriver && MyWorld->DemoNetDriver->ServerConnection );
-
-	if ( IsReplay )
-	{
-		if ( CVarReplayUseInterpolation.GetValueOnGameThread() == 1 )
-		{
-			NetworkSmoothingMode = ENetworkSmoothingMode::Replay;
-		}
-		else
-		{
-			NetworkSmoothingMode = ENetworkSmoothingMode::Linear;
-		}
 	}
 
 	// See if we fell out of the world.

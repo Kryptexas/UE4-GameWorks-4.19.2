@@ -165,6 +165,12 @@ public:
 		return RequiredBones;
 	}
 
+	/** Access to LODLevel */
+	int32 GetLODLevel() const
+	{
+		return LODLevel;
+	}
+
 	/** Get the current skeleton we are using */
 	USkeleton* GetSkeleton() 
 	{ 
@@ -532,6 +538,9 @@ private:
 
 	/** Temporary array of bone indices required this frame. Should be subset of Skeleton and Mesh's RequiredBones */
 	FBoneContainer RequiredBones;
+
+	/** LODLevel used by RequiredBones */
+	int32 LODLevel;
 
 	/** When RequiredBones mapping has changed, AnimNodes need to update their bones caches. */
 	bool bBoneCachesInvalidated;

@@ -457,7 +457,7 @@ void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Functio
 				if (Connection && Connection->ViewTarget)
 				{
 					// Do relevancy check if unreliable.
-					// Reliables will always go out. This is odd behavior. On one hand we wish to garuntee "reliables always get there". On the other
+					// Reliables will always go out. This is odd behavior. On one hand we wish to guarantee "reliables always get there". On the other
 					// hand, replicating a reliable to something on the other side of the map that is non relevant seems weird. 
 					//
 					// Multicast reliables should probably never be used in gameplay code for actors that have relevancy checks. If they are, the 

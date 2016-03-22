@@ -17,7 +17,7 @@ TSharedRef<FGameplayDebuggerCategory> FGameplayDebuggerCategory_BehaviorTree::Ma
 
 void FGameplayDebuggerCategory_BehaviorTree::FRepData::Serialize(FArchive& Ar)
 {
-	Ar << TreeName;
+	Ar << CompName;
 	Ar << TreeDesc;
 	Ar << BlackboardDesc;
 }
@@ -30,7 +30,7 @@ void FGameplayDebuggerCategory_BehaviorTree::CollectData(APlayerController* Owne
 	
 	if (IsValid(BrainComp))
 	{
-		DataPack.TreeName = BrainComp->GetName();
+		DataPack.CompName = BrainComp->GetName();
 		DataPack.TreeDesc = BrainComp->GetDebugInfoString();
 
 		if (BrainComp->GetBlackboardComponent())
@@ -42,9 +42,9 @@ void FGameplayDebuggerCategory_BehaviorTree::CollectData(APlayerController* Owne
 
 void FGameplayDebuggerCategory_BehaviorTree::DrawData(APlayerController* OwnerPC, FGameplayDebuggerCanvasContext& CanvasContext)
 {
-	if (!DataPack.TreeName.IsEmpty())
+	if (!DataPack.CompName.IsEmpty())
 	{
-		CanvasContext.Printf(TEXT("Brain Component: {yellow}%s"), *DataPack.TreeName);
+		CanvasContext.Printf(TEXT("Brain Component: {yellow}%s"), *DataPack.CompName);
 		CanvasContext.Print(DataPack.TreeDesc);
 
 		TArray<FString> BlackboardLines;

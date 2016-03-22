@@ -557,7 +557,7 @@ void UAnimMontage::RefreshBranchingPointMarkers()
 	{
 		FAnimNotifyEvent& NotifyEvent = Notifies[NotifyIndex];
 
-		if (NotifyEvent.MontageTickType == EMontageNotifyTickType::BranchingPoint)
+		if (NotifyEvent.IsBranchingPoint())
 		{
 			AddBranchingPointMarker(FBranchingPointMarker(NotifyIndex, NotifyEvent.GetTriggerTime(), EAnimNotifyEventType::Begin), TriggerTimes);
 
@@ -666,7 +666,7 @@ void UAnimMontage::FilterOutNotifyBranchingPoints(TArray<const FAnimNotifyEvent*
 {
 	for (int32 Index = InAnimNotifies.Num()-1; Index >= 0; Index--)
 	{
-		if (InAnimNotifies[Index]->MontageTickType == EMontageNotifyTickType::BranchingPoint)
+		if (InAnimNotifies[Index]->IsBranchingPoint())
 		{
 			InAnimNotifies.RemoveAt(Index, 1);
 		}
@@ -1287,7 +1287,8 @@ void FAnimMontageInstance::Terminate()
 		for (int32 Index = ActiveStateBranchingPoints.Num() - 1; Index >= 0; Index--)
 		{
 			FAnimNotifyEvent& NotifyEvent = ActiveStateBranchingPoints[Index];
-			NotifyEvent.NotifyStateClass->NotifyEnd(Inst->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent.NotifyStateClass->GetOuter()));
+			FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, &NotifyEvent, InstanceID);
+			NotifyEvent.NotifyStateClass->BranchingPointNotifyEnd(BranchingPointNotifyPayload);
 		}
 		ActiveStateBranchingPoints.Empty();
 
@@ -1828,7 +1829,8 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 		for (int32 Index = 0; Index < ActiveStateBranchingPoints.Num(); Index++)
 		{
 			FAnimNotifyEvent& NotifyEvent = ActiveStateBranchingPoints[Index];
-			NotifyEvent.NotifyStateClass->NotifyTick(AnimInstance->GetSkelMeshComponent(), Montage, DeltaTime);
+			FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, &NotifyEvent, InstanceID);
+			NotifyEvent.NotifyStateClass->BranchingPointNotifyTick(BranchingPointNotifyPayload, DeltaTime);
 		}
 	}
 }
@@ -1896,7 +1898,8 @@ void FAnimMontageInstance::UpdateActiveStateBranchingPoints(float CurrentTrackPo
 
 			if (!bNotifyIsActive)
 			{
-				NotifyEvent.NotifyStateClass->NotifyEnd(AnimInstance->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent.NotifyStateClass->GetOuter()));
+				FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, &NotifyEvent, InstanceID);
+				NotifyEvent.NotifyStateClass->BranchingPointNotifyEnd(BranchingPointNotifyPayload);
 				ActiveStateBranchingPoints.RemoveAt(Index, 1);
 			}
 		}
@@ -1913,7 +1916,8 @@ void FAnimMontageInstance::UpdateActiveStateBranchingPoints(float CurrentTrackPo
 			bool bNotifyIsActive = (CurrentTrackPosition > NotifyStartTime) && (CurrentTrackPosition <= NotifyEndTime);
 			if (bNotifyIsActive && !ActiveStateBranchingPoints.Contains(NotifyEvent))
 			{
-				NotifyEvent.NotifyStateClass->NotifyBegin(AnimInstance->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent.NotifyStateClass->GetOuter()), NotifyEvent.GetDuration());
+				FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, &NotifyEvent, InstanceID);
+				NotifyEvent.NotifyStateClass->BranchingPointNotifyBegin(BranchingPointNotifyPayload);
 				ActiveStateBranchingPoints.Add(NotifyEvent);
 			}
 		}
@@ -1948,16 +1952,25 @@ void FAnimMontageInstance::BranchingPointEventHandler(const FBranchingPointMarke
 			{
 				if (BranchingPointMarker->NotifyEventType == EAnimNotifyEventType::Begin)
 				{
-					NotifyEvent->NotifyStateClass->NotifyBegin(AnimInstance->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent->NotifyStateClass->GetOuter()), NotifyEvent->GetDuration());
+					FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, NotifyEvent, InstanceID);
+					NotifyEvent->NotifyStateClass->BranchingPointNotifyBegin(BranchingPointNotifyPayload);
 					ActiveStateBranchingPoints.Add(*NotifyEvent);
 				}
 				else
 				{
-					NotifyEvent->NotifyStateClass->NotifyEnd(AnimInstance->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent->NotifyStateClass->GetOuter()));
+					FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, NotifyEvent, InstanceID);
+					NotifyEvent->NotifyStateClass->BranchingPointNotifyEnd(BranchingPointNotifyPayload);
 					ActiveStateBranchingPoints.RemoveSingleSwap(*NotifyEvent);
 				}
 			}
-			// Regular 'non state' anim notifies
+			// Non state notify with a native notify class
+			else if	(NotifyEvent->Notify != nullptr)
+			{
+				// Implemented notify: just call Notify. UAnimNotify will forward this to the event which will do the work.
+				FBranchingPointNotifyPayload BranchingPointNotifyPayload(AnimInstance->GetSkelMeshComponent(), Montage, NotifyEvent, InstanceID);
+				NotifyEvent->Notify->BranchingPointNotify(BranchingPointNotifyPayload);
+			}
+			// Try to match a notify function by name.
 			else
 			{
 				AnimInstance.Get()->TriggerSingleAnimNotify(NotifyEvent);

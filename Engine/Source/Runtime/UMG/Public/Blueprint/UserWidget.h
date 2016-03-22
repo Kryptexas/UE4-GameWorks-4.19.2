@@ -1000,7 +1000,7 @@ private:
 #define LOCTEXT_NAMESPACE "UMG"
 
 template< class T >
-T* CreateWidget(UWorld* World, UClass* UserWidgetClass)
+T* CreateWidget(UWorld* World, UClass* UserWidgetClass  = T::StaticClass() )
 {
 	if ( World == nullptr )
 	{
@@ -1035,7 +1035,7 @@ T* CreateWidget(UWorld* World, UClass* UserWidgetClass)
 }
 
 template< class T >
-T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
+T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass = T::StaticClass() )
 {
 	if ( OwningPlayer == nullptr )
 	{
@@ -1079,7 +1079,7 @@ T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
 }
 
 template< class T >
-T* CreateWidget(UGameInstance* OwningGame, UClass* UserWidgetClass)
+T* CreateWidget(UGameInstance* OwningGame, UClass* UserWidgetClass = T::StaticClass() )
 {
 	if ( OwningGame == nullptr )
 	{

@@ -15,7 +15,7 @@ namespace BuildGraph.Tasks
 	public class DeleteTaskParameters
 	{
 		/// <summary>
-		/// The directory to copy from
+		/// The directory to delete from
 		/// </summary>
 		[TaskParameter]
 		public string Dir;
@@ -71,7 +71,7 @@ namespace BuildGraph.Tasks
 			}
 			else
 			{
-				Files = ResolveFilespec(BaseDirectory, SplitDelimitedList(Parameters.Files), TagNameToFileSet);
+				Files = ResolveFilespec(BaseDirectory, Parameters.Files, TagNameToFileSet);
 			}
 
 			// Delete them all

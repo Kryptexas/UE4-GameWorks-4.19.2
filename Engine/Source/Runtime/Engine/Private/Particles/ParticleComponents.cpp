@@ -280,7 +280,7 @@ void UParticleLODLevel::PostLoad()
 		RequiredModule->ConditionalPostLoad();
 	}
 
-	for(UParticleModule* ParticleModule : Modules)
+	for (UParticleModule* ParticleModule : Modules)
 	{
 		ParticleModule->ConditionalPostLoad();
 	}
@@ -1545,9 +1545,9 @@ void UParticleEmitter::Build()
 			if(HighLODLevel->TypeDataModule->RequiresBuild())
 		{
 			FParticleEmitterBuildInfo EmitterBuildInfo;
-#if WITH_EDITOR
+//#if WITH_EDITOR
 				HighLODLevel->CompileModules( EmitterBuildInfo );
-#endif
+//#endif
 				HighLODLevel->TypeDataModule->Build( EmitterBuildInfo );
 			}
 

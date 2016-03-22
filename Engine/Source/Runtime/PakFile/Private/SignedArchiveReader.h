@@ -155,6 +155,10 @@ class FChunkCacheWorker : public FRunnable
 	 * Decrements a ref count on a buffer for the specified chunk 
 	 */
 	void ReleaseBuffer(int32 ChunkIndex);
+	/**
+	* Initializes the public key
+	*/
+	void SetupDecryptionKey();
 
 public:
 

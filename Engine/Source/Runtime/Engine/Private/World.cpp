@@ -3433,7 +3433,7 @@ FConstCameraActorIterator UWorld::GetAutoActivateCameraIterator() const
 
 void UWorld::AddNetworkActor( AActor* Actor )
 {
-	if ( Actor == NULL )
+	if ( Actor == nullptr )
 	{
 		return;
 	}

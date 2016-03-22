@@ -14,28 +14,29 @@ namespace AutomationTool.Tasks
 	public class TagTaskParameters
 	{
 		/// <summary>
-		/// Set the base directory for patterns to be matched against
+		/// Set the base directory to match relative patterns against
 		/// </summary>
 		[TaskParameter(Optional = true)]
-		public string BaseDirectory;
-
-		/// <summary>
-		/// List of tags to use as the source files. If not specified, files will be enumerated from disk (under BaseDirectory) to match the patterns.
-		/// </summary>
-		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
-		public string From;
+		public string BaseDir;
 
 		/// <summary>
 		/// Patterns to filter the list of files by. May include tag names or patterns that apply to the base directory. Defaults to all files if not specified.
 		/// </summary>
 		[TaskParameter(Optional = true)]
-		public string Files;
+		public string Filter;
 
 		/// <summary>
 		/// Set of patterns to exclude from the matched list. May include tag names of patterns that apply to the base directory.
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public string Except;
+
+		/// <summary>
+		/// Set of source files. Typically a tag name, but paths and wildcards may also be used. This list is expanded prior to applying the 'Files' and 'Except' filters, 
+		/// which is slower than just searching against a base directory.
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public string From;
 
 		/// <summary>
 		/// Name of the tag to apply
@@ -77,60 +78,88 @@ namespace AutomationTool.Tasks
 		/// <returns>True if the task succeeded</returns>
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			// Find the base directory
-			DirectoryReference BaseDirectory;
-			if(Parameters.BaseDirectory == null)
+			// Get the base directory
+			DirectoryReference BaseDir = ResolveDirectory(Parameters.BaseDir);
+
+			// Resolve the input list
+			HashSet<FileReference> Files;
+			HashSet<DirectoryReference> Directories;
+			if(Parameters.From == null)
 			{
-				BaseDirectory = new DirectoryReference(CommandUtils.CmdEnv.LocalRoot);
-			}
-			else if(Path.IsPathRooted(Parameters.BaseDirectory))
-			{
-				BaseDirectory = new DirectoryReference(Parameters.BaseDirectory);
+				Directories = new HashSet<DirectoryReference>{ CommandUtils.RootDirectory };
+				Files = new HashSet<FileReference>();
 			}
 			else
 			{
-				BaseDirectory = new DirectoryReference(Path.Combine(CommandUtils.CmdEnv.LocalRoot, Parameters.BaseDirectory));
+				Directories = new HashSet<DirectoryReference>();
+				Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.From, Directories, TagNameToFileSet);
 			}
 
-			// Build a filter to select the files
-			FileFilter Filter = new FileFilter(FileFilterType.Exclude);
-			if(Parameters.Files == null)
-			{
-				Filter.AddRule("...", FileFilterType.Include);
-			}
-			else
-			{
-				Filter.AddRules(SplitDelimitedList(Parameters.Files), FileFilterType.Include);
-			}
+			// Create the filter
+			FileFilter Filter = new FileFilter();
+			AddRules(Filter, FileFilterType.Include, BaseDir, Parameters.Filter ?? "...", TagNameToFileSet);
+			AddRules(Filter, FileFilterType.Exclude, BaseDir, Parameters.Except ?? "", TagNameToFileSet);
 
-			// Add the exclude rules
-			if(Parameters.Except != null)
+			// Apply the filter to the list of files, then to the directories
+			HashSet<FileReference> MatchingFiles = FindOrAddTagSet(TagNameToFileSet, Parameters.With);
+			foreach(DirectoryReference Directory in Directories)
 			{
-				Filter.AddRules(SplitDelimitedList(Parameters.Except), FileFilterType.Exclude);
+				List<FileReference> FoundFiles = Filter.ApplyToDirectory(Directory, Directory.FullName, true);
+				MatchingFiles.UnionWith(FoundFiles);
 			}
-
-			// Find the input files
-			HashSet<FileReference> InputFiles = null;
-			if(Parameters.From != null)
+			foreach(FileReference File in Files)
 			{
-				InputFiles = new HashSet<FileReference>();
-				foreach(string TagName in SplitDelimitedList(Parameters.From))
+				if(Filter.Matches(File.FullName))
 				{
-					InputFiles.UnionWith(FindOrAddTagSet(TagNameToFileSet, TagName));
+					MatchingFiles.Add(File);
 				}
 			}
-
-			// Match the files and add them to the tag set
-			HashSet<FileReference> Files = FindOrAddTagSet(TagNameToFileSet, Parameters.With);
-			if(InputFiles == null)
-			{
-				Files.UnionWith(Filter.ApplyToDirectory(BaseDirectory, true));
-			}
-			else
-			{
-				Files.UnionWith(Filter.ApplyTo(BaseDirectory, InputFiles));
-			}
 			return true;
+		}
+
+		/// <summary>
+		/// Add rules matching a given set of patterns to a file filter. Patterns are added as absolute paths from the root.
+		/// </summary>
+		/// <param name="Filter">The filter to add to</param>
+		/// <param name="RuleType">The type of rule to add; whether to include or exclude files matching these patterns.</param>
+		/// <param name="BaseDir">The base directory for relative paths.</param>
+		/// <param name="DelimitedPatterns">List of patterns to add, separated by semicolons.</param>
+		/// <param name="TagNameToFileSet">Mapping of tag name to a set of files.</param>
+		void AddRules(FileFilter Filter, FileFilterType RuleType, DirectoryReference BaseDir, string DelimitedPatterns, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		{
+			string[] Patterns = SplitDelimitedList(DelimitedPatterns);
+			foreach(string Pattern in Patterns)
+			{
+				if(Pattern.StartsWith("#"))
+				{
+					// Add the files in a specific set to the filter
+					HashSet<FileReference> Files = FindOrAddTagSet(TagNameToFileSet, Pattern.Substring(1));
+					foreach(FileReference File in Files)
+					{
+						Filter.AddRule(File.FullName, RuleType);
+					}
+				}
+				else
+				{
+					// Parse a wildcard filter
+					if(Pattern.StartsWith("..."))
+					{
+						Filter.AddRule(Pattern, RuleType);
+					}
+					else if(!Pattern.Contains("/") && RuleType == FileFilterType.Exclude)
+					{
+						Filter.AddRule(".../" + Pattern, RuleType);
+					}
+					else if(!Pattern.StartsWith("/"))
+					{
+						Filter.AddRule(BaseDir.FullName + "/" + Pattern, RuleType);
+					}
+					else
+					{
+						Filter.AddRule(BaseDir.FullName + Pattern, RuleType);
+					}
+				}
+			}
 		}
 	}
 }

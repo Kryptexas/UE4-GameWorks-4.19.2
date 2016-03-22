@@ -316,6 +316,9 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/** Returns true if we should import tags from UGameplayTagsSettings objects (configured by INI files) */
 	static bool ShouldImportTagsFromINI();
 
+	/** TEMP - Returns true if we should warn on invalid (missing) tags */
+	static bool ShouldWarnOnInvalidTags();
+
 	/** Should use fast replication */
 	bool ShouldUseFastReplication()
 	{

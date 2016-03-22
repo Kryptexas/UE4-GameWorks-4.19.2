@@ -333,13 +333,21 @@ namespace UnrealBuildTool
 		/// <returns>Path to the receipt for this target</returns>
 		public static string GetDefaultPath(string BaseDir, string TargetName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string BuildArchitecture)
 		{
-			if (String.IsNullOrEmpty(BuildArchitecture) && Configuration == UnrealTargetConfiguration.Development)
+			// Get the architecture suffix. Platforms have the option of overriding whether to include this string in filenames.
+			string ArchitectureSuffix = "";
+			if(UEBuildPlatform.GetBuildPlatform(Platform).RequiresArchitectureSuffix())
+			{
+				ArchitectureSuffix = BuildArchitecture;
+			}
+		
+			// Build the output filename
+			if (String.IsNullOrEmpty(ArchitectureSuffix) && Configuration == UnrealTargetConfiguration.Development)
 			{
 				return Path.Combine(BaseDir, "Binaries", Platform.ToString(), String.Format("{0}.target", TargetName));
 			}
 			else
 			{
-				return Path.Combine(BaseDir, "Binaries", Platform.ToString(), String.Format("{0}-{1}-{2}{3}.target", TargetName, Platform.ToString(), Configuration.ToString(), BuildArchitecture));
+				return Path.Combine(BaseDir, "Binaries", Platform.ToString(), String.Format("{0}-{1}-{2}{3}.target", TargetName, Platform.ToString(), Configuration.ToString(), ArchitectureSuffix));
 			}
 		}
 

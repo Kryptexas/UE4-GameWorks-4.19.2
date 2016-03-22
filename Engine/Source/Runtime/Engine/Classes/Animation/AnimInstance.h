@@ -705,6 +705,9 @@ public:
 	/** Get Active FAnimMontageInstance for given Montage asset. Will return NULL if Montage is not currently Active. */
 	FAnimMontageInstance * GetActiveInstanceForMontage(UAnimMontage const & Montage) const;
 
+	/** Get the FAnimMontageInstance currently running that matches this ID.  Will return NULL if no instance is found. */
+	FAnimMontageInstance * GetMontageInstanceForID(int32 MontageInstanceID);
+
 	/** AnimMontage instances that are running currently
 	* - only one is primarily active per group, and the other ones are blending out
 	*/

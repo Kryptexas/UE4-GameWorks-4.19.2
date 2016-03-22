@@ -864,6 +864,13 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 	}
 }
 
+#if !UE_BUILD_SHIPPING
+bool FWindowsPlatformMisc::IsDebuggerPresent()
+{
+	return !GIgnoreDebugger && !!::IsDebuggerPresent();
+}
+#endif // UE_BUILD_SHIPPING
+
 static void WinPumpMessages()
 {
 	{

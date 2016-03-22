@@ -23,24 +23,24 @@ namespace BuildGraph.Tasks
 		/// The cook platform to target (eg. WindowsNoEditor)
 		/// </summary>
 		[TaskParameter]
-		public string CookPlatform;
+		public string Platform;
 
 		/// <summary>
 		/// List of maps to be cooked, separated by '+' characters
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(Optional = true)]
 		public string Maps;
 
 		/// <summary>
 		/// Additional arguments to be passed to the cooker
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(Optional = true)]
 		public bool Versioned = false;
 	
 		/// <summary>
 		/// Additional arguments to be passed to the cooker
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(Optional = true)]
 		public string Arguments = "";
 	}
 
@@ -86,20 +86,20 @@ namespace BuildGraph.Tasks
 			}
 
 			// Execute the cooker
-			using(TelemetryStopwatch CookStopwatch = new TelemetryStopwatch("Cook.{0}.{1}", (ProjectFile == null)? "UE4" : ProjectFile.GetFileNameWithoutExtension(), Parameters.CookPlatform))
+			using(TelemetryStopwatch CookStopwatch = new TelemetryStopwatch("Cook.{0}.{1}", (ProjectFile == null)? "UE4" : ProjectFile.GetFileNameWithoutExtension(), Parameters.Platform))
 			{
 				string[] Maps = (Parameters.Maps == null)? null : Parameters.Maps.Split(new char[]{ '+' });
-				CommandUtils.CookCommandlet(ProjectFile, "UE4Editor-Cmd.exe", Maps, null, null, null, Parameters.CookPlatform, (Parameters.Versioned? "" : "-Unversioned ") + Parameters.Arguments);
+				CommandUtils.CookCommandlet(ProjectFile, "UE4Editor-Cmd.exe", Maps, null, null, null, Parameters.Platform, (Parameters.Versioned? "" : "-Unversioned ") + Parameters.Arguments);
 			}
 
 			// Find all the cooked files
-			DirectoryReference CookedDirectory = DirectoryReference.Combine(ProjectFile.Directory, "Saved", "Cooked", Parameters.CookPlatform);
-			if(CookedDirectory.Exists())
+			DirectoryReference CookedDirectory = DirectoryReference.Combine(ProjectFile.Directory, "Saved", "Cooked", Parameters.Platform);
+			if(!CookedDirectory.Exists())
 			{
 				CommandUtils.LogError("Cook output directory not found ({0})", CookedDirectory.FullName);
 				return false;
 			}
-			List<FileReference> CookedFiles = CookedDirectory.EnumerateFileReferences().ToList();
+			List<FileReference> CookedFiles = CookedDirectory.EnumerateFileReferences("*", System.IO.SearchOption.AllDirectories).ToList();
 			if(CookedFiles.Count == 0)
 			{
 				CommandUtils.LogError("Cooking did not produce any files in {0}", CookedDirectory.FullName);

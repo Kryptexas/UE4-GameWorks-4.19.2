@@ -331,10 +331,13 @@ const FAnimationTransitionBetweenStates& FAnimNode_StateMachine::GetTransitionIn
 	return PRIVATE_MachineDescription->Transitions[TransIndex];
 }
 
+// Temporarily turned off while we track down and fix https://jira.ol.epicgames.net/browse/OR-17066
+TAutoConsoleVariable<int32> CVarAnimStateMachineRelevancyReset(TEXT("a.AnimNode.StateMachine.EnableRelevancyReset"), 1, TEXT("Reset State Machine when it becomes relevant"));
+
 void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 {
 	// If we just became relevant and haven't been initialized yet, then reinitialize state machine.
-	if (!bFirstUpdate && (UpdateCounter.Get() != INDEX_NONE) && !UpdateCounter.WasSynchronizedInTheLastFrame(Context.AnimInstanceProxy->GetUpdateCounter()))
+	if (!bFirstUpdate && (UpdateCounter.Get() != INDEX_NONE) && !UpdateCounter.WasSynchronizedInTheLastFrame(Context.AnimInstanceProxy->GetUpdateCounter()) && (CVarAnimStateMachineRelevancyReset.GetValueOnAnyThread() == 1))
 	{
 		FAnimationInitializeContext InitializationContext(Context.AnimInstanceProxy);
 		Initialize(InitializationContext);

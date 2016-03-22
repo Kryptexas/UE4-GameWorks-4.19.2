@@ -530,7 +530,12 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 					}
 				}
 
-				PerfCounters->Set(TEXT("AvgPing"), AvgPing / PingCount, IPerfCounters::Flags::Transient);
+				if (PingCount > 0)
+				{
+					AvgPing /= static_cast<float>(PingCount);
+				}
+
+				PerfCounters->Set(TEXT("AvgPing"), AvgPing, IPerfCounters::Flags::Transient);
 				float CurrentMaxPing = PerfCounters->Get(TEXT("MaxPing"), MaxPing);
 				PerfCounters->Set(TEXT("MaxPing"), FMath::Max(MaxPing, CurrentMaxPing), IPerfCounters::Flags::Transient);
 				float CurrentMinPing = PerfCounters->Get(TEXT("MinPing"), MinPing);
@@ -2323,8 +2328,9 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 
 			// This actor may belong to a different net driver, make sure this is the correct one
 			// (this can happen when using beacon net drivers for example)
-			if ( Actor->NetDriverName != NetDriverName )
+			if ( Actor->GetNetDriverName() != NetDriverName )
 			{
+				UE_LOG(LogNetTraffic, Error, TEXT("Actor %s in wrong network actors list!"), *Actor->GetName());
 				continue;
 			}
 

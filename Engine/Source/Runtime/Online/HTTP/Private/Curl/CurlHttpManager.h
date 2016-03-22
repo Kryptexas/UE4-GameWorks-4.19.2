@@ -38,6 +38,7 @@ public:
 	static void InitCurl();
 	static void ShutdownCurl();
 	static CURLM * GMultiHandle;
+	static CURLSH* GShareHandle;
 
 	static struct FCurlRequestOptions
 	{

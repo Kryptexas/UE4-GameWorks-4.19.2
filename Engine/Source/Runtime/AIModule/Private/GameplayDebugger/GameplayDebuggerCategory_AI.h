@@ -27,8 +27,6 @@ protected:
 	{
 		FString ControllerName;
 		FString PawnName;
-		FString PawnClass;
-		FString DebugIcon;
 		FString MovementBaseInfo;
 		FString MovementModeInfo;
 		FString PathFollowingInfo;

@@ -12,29 +12,73 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameplayDebugReplication, Display, All);
 
+static TAutoConsoleVariable<int32> CVarGameplayDebuggerRepDetails(
+	TEXT("ai.vd.DetailedReplicationLogs"),
+	0,
+	TEXT("Enable or disable very verbose replication logs for gameplay debugger"),
+	ECVF_Cheat);
+
 class FNetFastCategoryBaseState : public INetDeltaBaseState
 {
 public:
+	struct FDataPackState
+	{
+		int32 DataOffset;
+		int16 DataVersion;
+		int16 SyncCounter;
+
+		FDataPackState() : DataOffset(0), DataVersion(0), SyncCounter(0) {}
+		FDataPackState(const FGameplayDebuggerDataPack::FHeader& Header) : DataOffset(Header.DataOffset), DataVersion(Header.DataVersion), SyncCounter(Header.SyncCounter) {}
+
+		FORCEINLINE bool IsEqual(const FDataPackState& OtherState) const
+		{
+			return (DataOffset == OtherState.DataOffset) && (DataVersion == OtherState.DataVersion) && (SyncCounter == OtherState.SyncCounter);
+		}
+
+		FORCEINLINE bool operator==(const FDataPackState& OtherState) const { return IsEqual(OtherState); }
+		FORCEINLINE bool operator!=(const FDataPackState& OtherState) const { return !IsEqual(OtherState); }
+	};
+
 	struct FCategoryState
 	{
-		int32 BaseRepCounter;
 		int32 TextLinesRepCounter;
 		int32 ShapesRepCounter;
-		TArray<int32> DataPackRepCounters;
+		TArray<FDataPackState> DataPackStates;
 
-		bool operator==(const FCategoryState& OtherState) const
+		FCategoryState() : TextLinesRepCounter(0), ShapesRepCounter(0) {}
+
+		FORCEINLINE bool IsEqual(const FCategoryState& OtherState) const
 		{
-			return (BaseRepCounter == OtherState.BaseRepCounter) &&
-				(TextLinesRepCounter == OtherState.TextLinesRepCounter) &&
+			return (TextLinesRepCounter == OtherState.TextLinesRepCounter) &&
 				(ShapesRepCounter == OtherState.ShapesRepCounter) &&
-				(DataPackRepCounters == OtherState.DataPackRepCounters);
+				(DataPackStates == OtherState.DataPackStates);
 		}
+
+		FORCEINLINE bool operator==(const FCategoryState& OtherState) const { return IsEqual(OtherState); }
+		FORCEINLINE bool operator!=(const FCategoryState& OtherState) const { return !IsEqual(OtherState); }
 	};
 
 	virtual bool IsStateEqual(INetDeltaBaseState* OtherState) override
 	{
 		FNetFastCategoryBaseState* Other = static_cast<FNetFastCategoryBaseState*>(OtherState);
 		return (CategoryStates == Other->CategoryStates);
+	}
+
+	void DumpToLog()
+	{
+		for (int32 CategoryIdx = 0; CategoryIdx < CategoryStates.Num(); CategoryIdx++)
+		{
+			const FCategoryState& CategoryData = CategoryStates[CategoryIdx];
+			UE_LOG(LogGameplayDebugReplication, VeryVerbose, TEXT("category[%d] TextLinesRepCounter:%d ShapesRepCounter:%d"),
+				CategoryIdx, CategoryData.TextLinesRepCounter, CategoryData.ShapesRepCounter);
+
+			for (int32 DataPackIdx = 0; DataPackIdx < CategoryData.DataPackStates.Num(); DataPackIdx++)
+			{
+				const FDataPackState& DataPack = CategoryData.DataPackStates[DataPackIdx];
+				UE_LOG(LogGameplayDebugReplication, VeryVerbose, TEXT(">>    data[%d] DataVersion:%d SyncCounter:%d DataOffset:%d"),
+					DataPackIdx, DataPack.DataVersion, DataPack.SyncCounter, DataPack.DataOffset);
+			}
+		}
 	}
 
 	TArray<FCategoryState> CategoryStates;
@@ -46,8 +90,6 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 	{
 		return true;
 	}
-
-	const uint32 DataPackMarker = 0x11223344;
 
 	if (DeltaParms.Writer)
 	{
@@ -69,48 +111,77 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 
 			for (int32 Idx = 0; Idx < SavedData.Num(); Idx++)
 			{
+				FNetFastCategoryBaseState::FCategoryState& CategoryState = NewState->CategoryStates[Idx];
 				FGameplayDebuggerCategory& CategoryOb = Owner->Categories[Idx].Get();
 				FCategoryData& SavedCategory = SavedData[Idx];
+
 				const bool bMissingOldState = (OldState == nullptr) || !OldState->CategoryStates.IsValidIndex(Idx);
 				ChangedCategories[Idx] = bMissingOldState ? 1 : 0;
 
-				if (bMissingOldState || (SavedCategory.bIsEnabled != CategoryOb.bIsEnabled))
+				if (SavedCategory.bIsEnabled != CategoryOb.bIsEnabled)
 				{
 					SavedCategory.bIsEnabled = CategoryOb.bIsEnabled;
-					NewState->CategoryStates[Idx].BaseRepCounter = bMissingOldState ? 1 : (OldState->CategoryStates[Idx].BaseRepCounter + 1);
 					ChangedCategories[Idx]++;
 				}
 
-				if (bMissingOldState || (SavedCategory.TextLines != CategoryOb.ReplicatedLines))
+				const bool bTextLinesChanged = (SavedCategory.TextLines != CategoryOb.ReplicatedLines);
+				CategoryState.TextLinesRepCounter = (bMissingOldState ? 0 : OldState->CategoryStates[Idx].TextLinesRepCounter) + (bTextLinesChanged ? 1 : 0);
+				if (bTextLinesChanged)
 				{
 					SavedCategory.TextLines = CategoryOb.ReplicatedLines;
-					NewState->CategoryStates[Idx].TextLinesRepCounter = bMissingOldState ? 1 : (OldState->CategoryStates[Idx].TextLinesRepCounter + 1);
 					ChangedCategories[Idx]++;
 				}
 
-				if (bMissingOldState || (SavedCategory.Shapes != CategoryOb.ReplicatedShapes))
+				const bool bShapesChanged = (SavedCategory.Shapes != CategoryOb.ReplicatedShapes);
+				CategoryState.ShapesRepCounter = (bMissingOldState ? 0 : OldState->CategoryStates[Idx].ShapesRepCounter) + (bShapesChanged ? 1 : 0);
+				if (bShapesChanged)
 				{
 					SavedCategory.Shapes = CategoryOb.ReplicatedShapes;
-					NewState->CategoryStates[Idx].ShapesRepCounter = bMissingOldState ? 1 : (OldState->CategoryStates[Idx].ShapesRepCounter + 1);
 					ChangedCategories[Idx]++;
 				}
 
 				const int32 NumDataPacks = CategoryOb.ReplicatedDataPacks.Num();
 				SavedCategory.DataPacks.SetNum(NumDataPacks);
-				NewState->CategoryStates[Idx].DataPackRepCounters.SetNum(NumDataPacks);
+				CategoryState.DataPackStates.SetNum(NumDataPacks);
 				for (int32 DataIdx = 0; DataIdx < CategoryOb.ReplicatedDataPacks.Num(); DataIdx++)
 				{
-					if (bMissingOldState || !(SavedCategory.DataPacks[DataIdx] == CategoryOb.ReplicatedDataPacks[DataIdx].Header))
+					FGameplayDebuggerDataPack& DataPack = CategoryOb.ReplicatedDataPacks[DataIdx];
+					if (DataPack.bNeedsConfirmation && !DataPack.bReceived && !bMissingOldState && OldState->CategoryStates[Idx].DataPackStates.IsValidIndex(DataIdx))
 					{
-						SavedCategory.DataPacks[DataIdx] = CategoryOb.ReplicatedDataPacks[DataIdx].Header;
-						NewState->CategoryStates[Idx].DataPackRepCounters[DataIdx] =
-							bMissingOldState || !OldState->CategoryStates[Idx].DataPackRepCounters.IsValidIndex(DataIdx) ? 1 : (OldState->CategoryStates[Idx].DataPackRepCounters[DataIdx] + 1);
+						FNetFastCategoryBaseState::FDataPackState& OldDataPackState = OldState->CategoryStates[Idx].DataPackStates[DataIdx];
+						UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("Checking packet confirmation for Category[%d].DataPack[%d] OldState(DataVersion:%d DataOffset:%d complete:%s) current(DataVersion:%d DataOffset:%d)"),
+							Idx, DataIdx,
+							OldDataPackState.DataVersion, OldDataPackState.DataOffset,
+							(OldDataPackState.DataOffset == DataPack.Header.DataSize) && (OldDataPackState.DataVersion == DataPack.Header.DataVersion) ? TEXT("yes") : TEXT("no"),
+							DataPack.Header.DataVersion, DataPack.Header.DataOffset);
 
+						DataPack.OnPacketRequest(OldDataPackState.DataVersion, OldDataPackState.DataOffset);
+					}
+
+					CategoryState.DataPackStates[DataIdx] = FNetFastCategoryBaseState::FDataPackState(DataPack.Header);
+					const bool bDataPackChanged = (SavedCategory.DataPacks[DataIdx] != DataPack.Header);
+					if (bDataPackChanged)
+					{
+						SavedCategory.DataPacks[DataIdx] = DataPack.Header;
 						ChangedCategories[Idx]++;
 					}
 				}
 
 				NumChangedCategories += ChangedCategories[Idx] ? 1 : 0;
+			}
+		}
+
+		if (CVarGameplayDebuggerRepDetails.GetValueOnGameThread())
+		{
+			if (OldState)
+			{
+				UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("NetDeltaSerialize DUMP OldState"));
+				OldState->DumpToLog();
+			}
+			if (NewState)
+			{
+				UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("NetDeltaSerialize DUMP NewState"));
+				NewState->DumpToLog();
 			}
 		}
 
@@ -158,8 +229,8 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 
 			for (int32 DataIdx = 0; DataIdx < NumDataPacks; DataIdx++)
 			{
-				uint8 ShouldUpdateDataPack = bMissingOldState || !OldState->CategoryStates[Idx].DataPackRepCounters.IsValidIndex(DataIdx) ||
-					(OldState->CategoryStates[Idx].DataPackRepCounters[DataIdx] != NewState->CategoryStates[Idx].DataPackRepCounters[DataIdx]);
+				uint8 ShouldUpdateDataPack = bMissingOldState || !OldState->CategoryStates[Idx].DataPackStates.IsValidIndex(DataIdx) ||
+					(OldState->CategoryStates[Idx].DataPackStates[DataIdx] != NewState->CategoryStates[Idx].DataPackStates[DataIdx]);
 
 				Writer.WriteBit(ShouldUpdateDataPack);
 				if (ShouldUpdateDataPack)
@@ -171,6 +242,7 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 					Writer.WriteBit(IsCompressed);
 
 					Writer << DataPack.Header.DataVersion;
+					Writer << DataPack.Header.SyncCounter;
 					Writer << DataPack.Header.DataSize;
 					Writer << DataPack.Header.DataOffset;
 
@@ -180,10 +252,9 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 						Writer.Serialize(DataPack.Data.GetData() + DataPack.Header.DataOffset, PacketSize);
 					}
 
-					uint32 Marker = DataPackMarker;
-					Writer << Marker;
-
-					UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("  >> replicate data pack[%d] progress:%0.f%% (offset:%d packet:%d)"), DataIdx, DataPack.GetProgress() * 100.0f, DataPack.Header.DataOffset, PacketSize);
+					UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("  >> replicate data pack[%d] progress:%0.f%% (offset:%d packet:%d)"),
+						DataIdx, DataPack.Header.DataSize ? (100.0f * (DataPack.Header.DataOffset + PacketSize) / DataPack.Header.DataSize) : 100.0f,
+						DataPack.Header.DataOffset, PacketSize);
 				}
 			}
 		}
@@ -191,7 +262,6 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 	else if (DeltaParms.Reader)
 	{
 		FBitReader& Reader = *DeltaParms.Reader;
-
 		UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("NetDeltaSerialize READ START"));
 
 		int32 CategoryCount = 0;
@@ -250,6 +320,7 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 					DataPacket.Header.bIsCompressed = (IsCompressed != 0);
 
 					Reader << DataPacket.Header.DataVersion;
+					Reader << DataPacket.Header.SyncCounter;
 					Reader << DataPacket.Header.DataSize;
 					Reader << DataPacket.Header.DataOffset;
 
@@ -258,16 +329,6 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 					{
 						DataPacket.Data.AddUninitialized(PacketSize);
 						Reader.Serialize(DataPacket.Data.GetData(), PacketSize);
-					}
-
-					uint32 Marker = 0;
-					Reader << Marker;
-
-					if (Marker != DataPackMarker)
-					{				
-						UE_LOG(LogGameplayDebugReplication, Error, TEXT("Data pack[%d] corrupted! marker:%X expected:%X"), DataIdx, Marker, DataPackMarker);
-						Reader.SetError();
-						return false;
 					}
 
 					Owner->OnReceivedDataPackPacket(Idx, DataIdx, DataPacket);
@@ -376,17 +437,6 @@ bool AGameplayDebuggerCategoryReplicator::IsNetRelevantFor(const AActor* RealVie
 	return (RealViewer == OwnerPC);
 }
 
-void AGameplayDebuggerCategoryReplicator::PostNetReceive()
-{
-	Super::PostNetReceive();
-
-	if (PendingReplicationRequests.Num() && !bHasAuthority)
-	{
-		ServerRequestDataPackets(PendingReplicationRequests);
-		PendingReplicationRequests.Reset();
-	}
-}
-
 void AGameplayDebuggerCategoryReplicator::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -427,29 +477,12 @@ void AGameplayDebuggerCategoryReplicator::ServerSetCategoryEnabled_Implementatio
 	SetCategoryEnabled(CategoryId, bEnable);
 }
 
-bool AGameplayDebuggerCategoryReplicator::ServerRequestDataPackets_Validate(const TArray<FGameplayDebuggerDataPacketRequest>& RequestList)
-{
-	return true;
-}
-
-void AGameplayDebuggerCategoryReplicator::ServerRequestDataPackets_Implementation(const TArray<FGameplayDebuggerDataPacketRequest>& RequestList)
-{
-	for (int32 Idx = 0; Idx < RequestList.Num(); Idx++)
-	{
-		const FGameplayDebuggerDataPacketRequest& Request = RequestList[Idx];
-		if (Categories.IsValidIndex(Request.CategoryId) && Categories[Request.CategoryId]->ReplicatedDataPacks.IsValidIndex(Request.DataPackId))
-		{
-			Categories[Request.CategoryId]->ReplicatedDataPacks[Request.DataPackId].OnPacketRequest(Request.DataVersion, Request.DataOffset);
-		}
-	}
-}
-
 void AGameplayDebuggerCategoryReplicator::OnReceivedDataPackPacket(int32 CategoryId, int32 DataPackId, const FGameplayDebuggerDataPack& DataPacket)
 {
 	if (Categories.IsValidIndex(CategoryId) && Categories[CategoryId]->ReplicatedDataPacks.IsValidIndex(DataPackId))
 	{
 		FGameplayDebuggerDataPack& DataPack = Categories[CategoryId]->ReplicatedDataPacks[DataPackId];
-		bool bIsPacketValid = true;
+		bool bIsPacketValid = false;
 
 		if (DataPack.Header.DataVersion != DataPacket.Header.DataVersion)
 		{
@@ -459,6 +492,7 @@ void AGameplayDebuggerCategoryReplicator::OnReceivedDataPackPacket(int32 Categor
 				// first packet of data, replace old data pack's intermediate data
 				DataPack.Header = DataPacket.Header;
 				DataPack.Data = DataPacket.Data;
+				bIsPacketValid = true;
 			}
 			else
 			{
@@ -469,11 +503,9 @@ void AGameplayDebuggerCategoryReplicator::OnReceivedDataPackPacket(int32 Categor
 					DataPacket.Header.DataOffset,
 					DataPackId, DataPack.Header.DataVersion,
 					DataPackId, DataPack.Header.DataOffset);
-
-				bIsPacketValid = false;
 			}
 		}
-		else
+		else if (DataPack.Data.Num() < DataPacket.Header.DataSize)
 		{
 			// another packet for existing data pack
 			if (DataPacket.Header.DataOffset == DataPack.Data.Num())
@@ -481,6 +513,7 @@ void AGameplayDebuggerCategoryReplicator::OnReceivedDataPackPacket(int32 Categor
 				// offset matches, this is next expected packet
 				DataPack.Data.Append(DataPacket.Data);
 				DataPack.Header.DataOffset = DataPack.Data.Num();
+				bIsPacketValid = true;
 			}
 			else
 			{
@@ -490,38 +523,18 @@ void AGameplayDebuggerCategoryReplicator::OnReceivedDataPackPacket(int32 Categor
 					DataPacket.Header.DataOffset,
 					DataPackId, DataPack.Header.DataOffset,
 					DataPackId, DataPack.Data.Num());
-
-				bIsPacketValid = false;
 			}
 		}
 
 		// check if data pack is now complete
-		if (bIsPacketValid)
+		if (bIsPacketValid && (DataPack.Data.Num() == DataPack.Header.DataSize))
 		{
-			bool bCreatePacketRequest = true;
-			if (DataPack.Data.Num() == DataPack.Header.DataSize)
-			{
-				// complete
-				UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("Category[%d].DataPack[%d] RECEIVED, DataVersion:%d DataSize:%d"),
-					CategoryId, DataPackId, DataPack.Header.DataVersion, DataPack.Header.DataSize);
+			// complete
+			UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("Category[%d].DataPack[%d] RECEIVED, DataVersion:%d DataSize:%d SyncCounter:%d"),
+				CategoryId, DataPackId, DataPack.Header.DataVersion, DataPack.Header.DataSize, DataPack.Header.SyncCounter);
 
-				// larger data packs will wait on server until receiving confirmation
-				bCreatePacketRequest = (DataPack.Header.DataSize > FGameplayDebuggerDataPack::PacketSize);
-
-				DataPack.OnReplicated();
-				Categories[CategoryId]->OnDataPackReplicated(DataPackId);
-			}
-
-			if (bCreatePacketRequest)
-			{
-				FGameplayDebuggerDataPacketRequest NewRequest;
-				NewRequest.CategoryId = CategoryId;
-				NewRequest.DataPackId = DataPackId;
-				NewRequest.DataVersion = DataPack.Header.DataVersion;
-				NewRequest.DataOffset = DataPack.Data.Num();
-
-				PendingReplicationRequests.Add(NewRequest);
-			}
+			DataPack.OnReplicated();
+			Categories[CategoryId]->OnDataPackReplicated(DataPackId);
 		}
 	}
 }
@@ -542,7 +555,8 @@ void AGameplayDebuggerCategoryReplicator::TickActor(float DeltaTime, enum ELevel
 				FGameplayDebuggerDataPack& DataPack = CategoryOb.ReplicatedDataPacks[DataPackIdx];
 				DataPack.bIsDirty = false;
 
-				if (DataPack.Flags == EGameplayDebuggerDataPack::AutoResetData)
+				if ((DataPack.Flags == EGameplayDebuggerDataPack::ResetOnTick) ||
+					(DataPack.Flags == EGameplayDebuggerDataPack::ResetOnActorChange && DataPack.Header.SyncCounter != DebugActor.SyncCounter))
 				{
 					DataPack.ResetDelegate.Execute();
 				}
@@ -551,7 +565,8 @@ void AGameplayDebuggerCategoryReplicator::TickActor(float DeltaTime, enum ELevel
 			CategoryOb.ReplicatedLines.Reset();
 			CategoryOb.ReplicatedShapes.Reset();
 
-			CategoryOb.CollectData(OwnerPC, DebugActor);
+			CategoryOb.CollectData(OwnerPC, DebugActor.Actor);
+			CategoryOb.LastCollectDataTime = GameTime;
 
 			// update dirty data packs
 			for (int32 DataPackIdx = 0; DataPackIdx < CategoryOb.ReplicatedDataPacks.Num(); DataPackIdx++)
@@ -567,11 +582,11 @@ void AGameplayDebuggerCategoryReplicator::TickActor(float DeltaTime, enum ELevel
 				}
 				else
 				{
-					const bool bWasDirty = DataPack.RequestReplication();
+					const bool bWasDirty = DataPack.RequestReplication(DebugActor.SyncCounter);
 					if (bWasDirty)
 					{
-						UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("Category[%d].DataPack[%d] SENT, DataVersion:%d DataSize:%d"),
-							Idx, DataPackIdx, DataPack.Header.DataVersion, DataPack.Header.DataSize);
+						UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("Category[%d].DataPack[%d] SENT, DataVersion:%d DataSize:%d SyncCounter:%d"),
+							Idx, DataPackIdx, DataPack.Header.DataVersion, DataPack.Header.DataSize, DataPack.Header.SyncCounter);
 					}
 				}
 			}
@@ -611,9 +626,15 @@ void AGameplayDebuggerCategoryReplicator::SetEnabled(bool bEnable)
 
 void AGameplayDebuggerCategoryReplicator::SetDebugActor(AActor* Actor)
 {
+	UE_LOG(LogGameplayDebugReplication, Log, TEXT("SetDebugActor %s"), *GetNameSafe(Actor));
 	if (bHasAuthority)
 	{
-		DebugActor = Actor;
+		if (DebugActor.Actor != Actor)
+		{
+			DebugActor.Actor = Actor;
+			DebugActor.ActorName = Actor ? Actor->GetFName() : NAME_None;
+			DebugActor.SyncCounter++;
+		}
 	}
 	else
 	{

@@ -677,6 +677,7 @@ FGameplayEffectSpec& FGameplayEffectSpec::operator=(const FGameplayEffectSpec& O
 FGameplayEffectSpecForRPC::FGameplayEffectSpecForRPC()
 	: Def(nullptr)
 	, Level(UGameplayEffect::INVALID_LEVEL)
+	, AbilityLevel(1)
 {
 }
 
@@ -687,8 +688,8 @@ FGameplayEffectSpecForRPC::FGameplayEffectSpecForRPC(const FGameplayEffectSpec& 
 	, AggregatedSourceTags(*InSpec.CapturedSourceTags.GetAggregatedTags())
 	, AggregatedTargetTags(*InSpec.CapturedTargetTags.GetAggregatedTags())
 	, Level(InSpec.GetLevel())
+	, AbilityLevel(InSpec.GetEffectContext().GetAbilityLevel())
 {
-	
 	// Only copy attributes that are in the gameplay cue info
 	for (int32 i = InSpec.ModifiedAttributes.Num() - 1; i >= 0; i--)
 	{

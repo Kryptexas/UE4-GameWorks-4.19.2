@@ -69,7 +69,18 @@ namespace AutomationTool
 			{
 				// Read the document
 				Document.LineInfo = (IXmlLineInfo)Reader;
-				Document.Load(Reader);
+				try
+				{
+					Document.Load(Reader);
+				}
+				catch(XmlException Ex)
+				{
+					if(!Document.bHasErrors)
+					{
+						CommandUtils.LogError("{0}", Ex.Message);
+						Document.bHasErrors = true;
+					}
+				}
 
 				// If we hit any errors while parsing
 				if(Document.bHasErrors)
@@ -601,61 +612,67 @@ namespace AutomationTool
 		/// <param name="Tasks">List of tasks to add to</param>
 		void ReadTask(ScriptElement Element, List<CustomTask> Tasks)
 		{
-			// Get the reflection info for this element
-			ScriptTask Task;
-			if(!Schema.TryGetTask(Element.Name, out Task))
+			if(EvaluateCondition(Element))
 			{
-				LogError(Element, "Unknown task '{0}'", Element.Name);
-				return;
-			}
-
-			// Check all the required parameters are present
-			bool bHasRequiredAttributes = true;
-			foreach(ScriptTaskParameter Parameter in Task.NameToParameter.Values)
-			{
-				if(!Parameter.bOptional && !Element.HasAttribute(Parameter.Name))
+				// Get the reflection info for this element
+				ScriptTask Task;
+				if(!Schema.TryGetTask(Element.Name, out Task))
 				{
-					LogError(Element, "Missing required attribute - {0}", Parameter.Name);
-					bHasRequiredAttributes = false;
-				}
-			}
-
-			// Read all the attributes into a parameters object for this task
-			object ParametersObject = Activator.CreateInstance(Task.ParametersClass);
-			foreach(XmlAttribute Attribute in Element.Attributes)
-			{
-				// Get the field that this attribute should be written to in the parameters object
-				ScriptTaskParameter Parameter;
-				if(!Task.NameToParameter.TryGetValue(Attribute.Name, out Parameter))
-				{
-					LogError(Element, "Unknown attribute '{0}'", Attribute.Name);
-					continue;
+					LogError(Element, "Unknown task '{0}'", Element.Name);
+					return;
 				}
 
-				// Expand variables in the value
-				string ExpandedValue = ExpandProperties(Attribute.Value);
+				// Check all the required parameters are present
+				bool bHasRequiredAttributes = true;
+				foreach(ScriptTaskParameter Parameter in Task.NameToParameter.Values)
+				{
+					if(!Parameter.bOptional && !Element.HasAttribute(Parameter.Name))
+					{
+						LogError(Element, "Missing required attribute - {0}", Parameter.Name);
+						bHasRequiredAttributes = false;
+					}
+				}
 
-				// Parse it and assign it to the parameters object
-				object Value;
-				if(Parameter.FieldInfo.FieldType.IsEnum)
+				// Read all the attributes into a parameters object for this task
+				object ParametersObject = Activator.CreateInstance(Task.ParametersClass);
+				foreach(XmlAttribute Attribute in Element.Attributes)
 				{
-					Value = Enum.Parse(Parameter.FieldInfo.FieldType, ExpandedValue);
-				}
-				else if(Parameter.FieldInfo.FieldType == typeof(Boolean))
-				{
-					Value = Condition.Evaluate(ExpandedValue);
-				}
-				else
-				{
-					Value = Convert.ChangeType(ExpandedValue, Parameter.FieldInfo.FieldType);
-				}
-				Parameter.FieldInfo.SetValue(ParametersObject, Value);
-			}
+					if(String.Compare(Attribute.Name, "If", StringComparison.InvariantCultureIgnoreCase) != 0)
+					{
+						// Get the field that this attribute should be written to in the parameters object
+						ScriptTaskParameter Parameter;
+						if(!Task.NameToParameter.TryGetValue(Attribute.Name, out Parameter))
+						{
+							LogError(Element, "Unknown attribute '{0}'", Attribute.Name);
+							continue;
+						}
 
-			// Construct the task
-			if(bHasRequiredAttributes)
-			{
-				Tasks.Add((CustomTask)Activator.CreateInstance(Task.TaskClass, ParametersObject));
+						// Expand variables in the value
+						string ExpandedValue = ExpandProperties(Attribute.Value);
+
+						// Parse it and assign it to the parameters object
+						object Value;
+						if(Parameter.FieldInfo.FieldType.IsEnum)
+						{
+							Value = Enum.Parse(Parameter.FieldInfo.FieldType, ExpandedValue);
+						}
+						else if(Parameter.FieldInfo.FieldType == typeof(Boolean))
+						{
+							Value = Condition.Evaluate(ExpandedValue);
+						}
+						else
+						{
+							Value = Convert.ChangeType(ExpandedValue, Parameter.FieldInfo.FieldType);
+						}
+						Parameter.FieldInfo.SetValue(ParametersObject, Value);
+					}
+				}
+
+				// Construct the task
+				if(bHasRequiredAttributes)
+				{
+					Tasks.Add((CustomTask)Activator.CreateInstance(Task.TaskClass, ParametersObject));
+				}
 			}
 		}
 

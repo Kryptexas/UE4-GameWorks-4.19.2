@@ -2159,7 +2159,6 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 
 	int32 NumVertsToReserve = 0;
 	int32 NumIndicesToReserve = 0;
-	int32 NumClusters = 0;
 
 	const FRecastNavMeshGenerator* Generator = static_cast<const FRecastNavMeshGenerator*>(NavMeshOwner->GetGenerator());
 
@@ -2182,8 +2181,6 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 						dtPolyDetail const* const DetailPoly = &Tile->detailMeshes[PolyIdx];
 						NumIndicesToReserve += (DetailPoly->triCount * 3);
 					}
-
-					NumClusters = FMath::Max(Tile->header->clusterCount, NumClusters);
 				}
 			}
 		}
@@ -2191,7 +2188,6 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 		OutGeometry.MeshVerts.Reserve(OutGeometry.MeshVerts.Num() + NumVertsToReserve);
 		OutGeometry.AreaIndices[0].Reserve(OutGeometry.AreaIndices[0].Num() + NumIndicesToReserve);
 		OutGeometry.BuiltMeshIndices.Reserve(OutGeometry.BuiltMeshIndices.Num() + NumIndicesToReserve);
-		OutGeometry.Clusters.AddZeroed(OutGeometry.Clusters.Num() + NumClusters);
 
 		uint32 VertBase = OutGeometry.MeshVerts.Num();
 		for (const FIntPoint& TileLocation : ActiveTiles)
@@ -2224,15 +2220,12 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 					dtPolyDetail const* const DetailPoly = &Tile->detailMeshes[PolyIdx];
 					NumIndicesToReserve += (DetailPoly->triCount * 3);
 				}
-
-				NumClusters = FMath::Max(Header->clusterCount, NumClusters);
 			}
 		}
 
 		OutGeometry.MeshVerts.Reserve(OutGeometry.MeshVerts.Num() + NumVertsToReserve);
 		OutGeometry.AreaIndices[0].Reserve(OutGeometry.AreaIndices[0].Num() + NumIndicesToReserve);
 		OutGeometry.BuiltMeshIndices.Reserve(OutGeometry.BuiltMeshIndices.Num() + NumIndicesToReserve);
-		OutGeometry.Clusters.AddZeroed(OutGeometry.Clusters.Num() + NumClusters);
 
 		uint32 VertBase = OutGeometry.MeshVerts.Num();
 		for (int32 TileIdx = StartingTile; TileIdx < NumTiles; ++TileIdx)
@@ -2311,12 +2304,21 @@ int32 FPImplRecastNavMesh::GetTilesDebugGeometry(const FRecastNavMeshGenerator* 
 				Indices->Add(TriVertIndices[1]);
 				Indices->Add(TriVertIndices[2]);
 
-				if (Tile.polyClusters && OutGeometry.Clusters.IsValidIndex(Tile.polyClusters[PolyIdx]))
+				if (Tile.polyClusters)
 				{
-					TArray<int32>& ClusterIndices = OutGeometry.Clusters[Tile.polyClusters[PolyIdx]].MeshIndices;
-					ClusterIndices.Add(TriVertIndices[0]);
-					ClusterIndices.Add(TriVertIndices[1]);
-					ClusterIndices.Add(TriVertIndices[2]);
+					const uint16 ClusterId = Tile.polyClusters[PolyIdx];
+					if (ClusterId < MAX_uint8)
+					{
+						if (ClusterId >= OutGeometry.Clusters.Num())
+						{
+							OutGeometry.Clusters.AddDefaulted(ClusterId - OutGeometry.Clusters.Num() + 1);
+						}
+
+						TArray<int32>& ClusterIndices = OutGeometry.Clusters[ClusterId].MeshIndices;
+						ClusterIndices.Add(TriVertIndices[0]);
+						ClusterIndices.Add(TriVertIndices[1]);
+						ClusterIndices.Add(TriVertIndices[2]);
+					}
 				}
 			}
 		}

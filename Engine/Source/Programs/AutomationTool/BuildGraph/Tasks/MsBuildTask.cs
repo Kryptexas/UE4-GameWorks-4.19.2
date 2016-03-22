@@ -88,7 +88,7 @@ namespace BuildGraph.Tasks
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Get the project file
-			HashSet<FileReference> ProjectFiles = ResolveFilespec(new DirectoryReference(CommandUtils.CmdEnv.LocalRoot), SplitDelimitedList(Parameters.Project), TagNameToFileSet);
+			HashSet<FileReference> ProjectFiles = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Project, TagNameToFileSet);
 			foreach(FileReference ProjectFile in ProjectFiles)
 			{
 				if(!ProjectFile.Exists())

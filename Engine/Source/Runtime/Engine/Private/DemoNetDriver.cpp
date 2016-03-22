@@ -2093,7 +2093,7 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FU
 
 	// Make sure SpectatorController->GetNetDriver returns this driver. Ensures functions that depend on it,
 	// such as IsLocalController, work as expected.
-	SpectatorController->NetDriverName = NetDriverName;
+	SpectatorController->SetNetDriverName(NetDriverName);
 
 	// If the controller doesn't have a player state, we are probably recording on a client.
 	// Spawn one manually.

@@ -81,7 +81,7 @@ namespace BuildGraph.Tasks
 			}
 
 			// Find the matching files
-			FileReference[] SourceFiles = ResolveFilespec(BaseDir, SplitDelimitedList(Parameters.Files), TagNameToFileSet).OrderBy(x => x.FullName).ToArray();
+			FileReference[] SourceFiles = ResolveFilespec(BaseDir, Parameters.Files, TagNameToFileSet).OrderBy(x => x.FullName).ToArray();
 
 			// Create the matching target files
 			FileReference[] TargetFiles = SourceFiles.Select(x => FileReference.Combine(OutputDir, x.MakeRelativeTo(BaseDir))).ToArray();

@@ -3390,6 +3390,25 @@ UNetDriver* AActor::GetNetDriver() const
 	return GEngine->FindNamedNetDriver(World, NetDriverName);
 }
 
+void AActor::SetNetDriverName(FName NewNetDriverName)
+{
+	if (NewNetDriverName != NetDriverName)
+	{
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			World->RemoveNetworkActor(this);
+		}
+
+		NetDriverName = NewNetDriverName;
+
+		if (World)
+		{
+			World->AddNetworkActor(this);
+		}
+	}
+}
+
 //
 // Return whether a function should be executed remotely.
 //

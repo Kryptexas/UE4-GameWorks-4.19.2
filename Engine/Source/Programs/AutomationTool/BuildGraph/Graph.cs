@@ -217,7 +217,7 @@ namespace AutomationTool
 						// Write out the object
 						JsonWriter.WriteObjectStart();
 						JsonWriter.WriteValue("Name", Trigger.Name);
-						JsonWriter.WriteValue("AllDependencies", String.Join(";", Dependencies.Select(x => x.Name)));
+						JsonWriter.WriteValue("AllDependencies", String.Join(";", Groups.SelectMany(x => x.Nodes).Where(x => Dependencies.Contains(x)).Select(x => x.Name)));
 						JsonWriter.WriteValue("DirectDependencies", String.Join(";", Dependencies.Where(x => DirectDependencies.Contains(x)).Select(x => x.Name)));
 						JsonWriter.WriteValue("Notify", String.Join(";", Trigger.NotifyUsers));
 						JsonWriter.WriteObjectEnd();
@@ -284,11 +284,13 @@ namespace AutomationTool
 							CommandUtils.Log("            Node: {0}{1}", Node.Name, CompletedNodes.Contains(Node)? " (completed)" : "");
 							if(Options.HasFlag(GraphPrintOptions.ShowDependencies))
 							{
-								foreach(Node InputDependency in Node.GetDirectInputDependencies())
+								HashSet<Node> InputDependencies = new HashSet<Node>(Node.GetDirectInputDependencies());
+								foreach(Node InputDependency in InputDependencies)
 								{
-									CommandUtils.Log("                in> {0}", InputDependency.Name);
+									CommandUtils.Log("                input> {0}", InputDependency.Name);
 								}
-								foreach(Node OrderDependency in Node.GetDirectOrderDependencies())
+								HashSet<Node> OrderDependencies = new HashSet<Node>(Node.GetDirectOrderDependencies());
+								foreach(Node OrderDependency in OrderDependencies.Except(InputDependencies))
 								{
 									CommandUtils.Log("                after> {0}", OrderDependency.Name);
 								}

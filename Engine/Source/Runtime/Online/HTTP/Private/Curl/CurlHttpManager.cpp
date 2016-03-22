@@ -6,7 +6,9 @@
 
 #if WITH_LIBCURL
 
-CURLM * FCurlHttpManager::GMultiHandle = NULL;
+CURLM* FCurlHttpManager::GMultiHandle = NULL;
+CURLSH* FCurlHttpManager::GShareHandle = NULL;
+
 FCurlHttpManager::FCurlRequestOptions FCurlHttpManager::CurlRequestOptions;
 
 void FCurlHttpManager::InitCurl()
@@ -66,6 +68,18 @@ void FCurlHttpManager::InitCurl()
 		if (NULL == GMultiHandle)
 		{
 			UE_LOG(LogInit, Fatal, TEXT("Could not initialize create libcurl multi handle! HTTP transfers will not function properly."));
+		}
+
+		GShareHandle = curl_share_init();
+		if (NULL != GShareHandle)
+		{
+			curl_share_setopt(GShareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_COOKIE);
+			curl_share_setopt(GShareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
+			curl_share_setopt(GShareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
+		}
+		else
+		{
+			UE_LOG(LogInit, Fatal, TEXT("Could not initialize libcurl share handle!"));
 		}
 	}
 	else
