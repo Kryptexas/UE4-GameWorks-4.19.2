@@ -1925,7 +1925,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 
 	// At this point, we either have an outer, or we are a package
 	check( !CacheObjectPtr->bIsPending );
-	check( ObjOuter == NULL || ObjOuter->GetOutermost()->IsFullyLoaded() );
+	check(ObjOuter == NULL || ObjOuter->GetOutermost()->IsFullyLoaded() || ObjOuter->GetOutermost()->HasAnyPackageFlags(EPackageFlags::PKG_CompiledIn));
 
 	// See if this object is in memory
 	Object = StaticFindObject( UObject::StaticClass(), ObjOuter, *CacheObjectPtr->PathName.ToString(), false );
@@ -1998,7 +1998,8 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 			return NULL;
 		}
 
-		if ( !Package->IsFullyLoaded() )
+		if (!Package->IsFullyLoaded() 
+			&& !Package->HasAnyPackageFlags(EPackageFlags::PKG_CompiledIn)) //TODO: dependencies of CompiledIn could still be loaded asynchronously. Are they necessary at this point??
 		{
 			if ( CVarAllowAsyncLoading.GetValueOnGameThread() > 0 )
 			{
@@ -2009,7 +2010,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 			{
 				// If package isn't fully loaded, flush async loading now
 				FlushAsyncLoading(); 
-				check( Package->IsFullyLoaded() );
+				check(Package->IsFullyLoaded());
 			}
 		}
 
