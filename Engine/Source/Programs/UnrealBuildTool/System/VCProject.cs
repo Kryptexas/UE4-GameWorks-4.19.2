@@ -1040,7 +1040,7 @@ namespace UnrealBuildTool
 
 					// Make the output file path
 					FileReference NMakePath = FileReference.Combine(OutputDirectory, BaseExeName);
-					if (Configuration != UnrealTargetConfiguration.Development && (Configuration != UnrealTargetConfiguration.DebugGame || bShouldCompileMonolithic))
+					if (Configuration != TargetRulesObject.UndecoratedConfiguration && (Configuration != UnrealTargetConfiguration.DebugGame || bShouldCompileMonolithic))
 					{
 						NMakePath += "-" + UBTPlatformName + "-" + UBTConfigurationName;
 					}

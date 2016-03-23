@@ -137,7 +137,7 @@ void FJsonStructSerializerBackend::WriteProperty(const FStructSerializerState& S
 
 		if (ByteProperty->IsEnum())
 		{
-			WritePropertyValue(JsonWriter, State, ByteProperty->Enum->GetEnumName(ByteProperty->GetPropertyValue_InContainer(State.ValueData, ArrayIndex)));
+			WritePropertyValue(JsonWriter, State, ByteProperty->Enum->GetEnumNameStringByValue(ByteProperty->GetPropertyValue_InContainer(State.ValueData, ArrayIndex)));
 		}
 		else
 		{

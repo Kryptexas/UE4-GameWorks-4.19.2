@@ -151,7 +151,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	CefString(&Settings.locale) = *LocaleCode;
 
 	// Append engine version to the user agent string.
-	FString ProductVersion = FString::Printf( TEXT("%s UnrealEngineChrome/%s"), FApp::GetGameName(), ENGINE_VERSION_STRING);
+	FString ProductVersion = FString::Printf( TEXT("%s UnrealEngine/%s"), FApp::GetGameName(), ENGINE_VERSION_STRING);
 	CefString(&Settings.product_version) = *ProductVersion;
 
 	// Enable on disk cache
@@ -342,7 +342,7 @@ bool FWebBrowserSingleton::Tick(float DeltaTime)
 	{
 		if (!WindowInterfaces[Index].IsValid())
 		{
-			WindowInterfaces.RemoveAtSwap(Index);
+			WindowInterfaces.RemoveAt(Index);
 		}
 		else if (bIsSlateAwake) // only check for Tick activity if Slate is currently ticking
 		{

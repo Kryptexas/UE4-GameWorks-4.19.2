@@ -208,8 +208,10 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->TransparencySupport = InArgs._SupportsTransparency.Value;
 	this->Opacity = InArgs._InitialOpacity;
 	this->bInitiallyMaximized = InArgs._IsInitiallyMaximized;
+	this->bInitiallyMinimized = InArgs._IsInitiallyMinimized;
 	this->SizingRule = InArgs._SizingRule;
 	this->bIsPopupWindow = InArgs._IsPopupWindow;
+	this->bIsTopmostWindow = InArgs._IsTopmostWindow;
 	this->bFocusWhenFirstShown = InArgs._FocusWhenFirstShown;
 	this->bActivateWhenFirstShown = InArgs._ActivateWhenFirstShown;
 	this->bHasOSWindowBorder = InArgs._UseOSWindowBorder;
@@ -366,11 +368,11 @@ TSharedRef<SWindow> SWindow::MakeToolTipWindow()
 	TSharedRef<SWindow> NewWindow = SNew( SWindow )
 		.Type( EWindowType::ToolTip )
 		.IsPopupWindow( true )
-		.SizingRule( ESizingRule::Autosized )
+		.IsTopmostWindow(true)
+		.SizingRule(ESizingRule::Autosized)
 		.SupportsTransparency( EWindowTransparency::PerWindow )
 		.FocusWhenFirstShown( false )
 		.ActivateWhenFirstShown( false );
-	NewWindow->bIsTopmostWindow = true;
 	NewWindow->Opacity = 0.0f;
 
 	// NOTE: These sizes are tweaked for SToolTip widgets (text wrap width of around 400 px)
@@ -387,11 +389,11 @@ TSharedRef<SWindow> SWindow::MakeCursorDecorator()
 	TSharedRef<SWindow> NewWindow = SNew( SWindow )
 		.Type( EWindowType::CursorDecorator )
 		.IsPopupWindow( true )
-		.SizingRule( ESizingRule::Autosized )
+		.IsTopmostWindow(true)
+		.SizingRule(ESizingRule::Autosized)
 		.SupportsTransparency( EWindowTransparency::PerWindow )
 		.FocusWhenFirstShown( false )
 		.ActivateWhenFirstShown( false );
-	NewWindow->bIsTopmostWindow = true;
 	NewWindow->Opacity = 1.0f;
 
 	return NewWindow;
@@ -1149,6 +1151,10 @@ void SWindow::ShowWindow()
 		// Set the window to be maximized if we need to.  Note that this won't actually show the window if its not
 		// already shown.
 		InitialMaximize();
+
+		// Set the window to be minimized if we need to.  Note that this won't actually show the window if its not
+		// already shown.
+		InitialMinimize();
 	}
 
 	bHasEverBeenShown = true;
@@ -1208,6 +1214,14 @@ void SWindow::InitialMaximize()
 	if (NativeWindow.IsValid() && bInitiallyMaximized)
 	{
 		NativeWindow->Maximize();
+	}
+}
+
+void SWindow::InitialMinimize()
+{
+	if (NativeWindow.IsValid() && bInitiallyMinimized)
+	{
+		NativeWindow->Minimize();
 	}
 }
 
@@ -1659,9 +1673,10 @@ SWindow::SWindow()
 	, bIsTopmostWindow( false )
 	, bSizeWillChangeOften( false )
 	, bInitiallyMaximized( false )
+	, bInitiallyMinimized(false)
 	, bHasEverBeenShown( false )
-	, bFocusWhenFirstShown(true)
-	, bActivateWhenFirstShown(true)
+	, bFocusWhenFirstShown( true )
+	, bActivateWhenFirstShown( true )
 	, bHasOSWindowBorder( false )
 	, bHasCloseButton( false )
 	, bHasMinimizeButton( false )

@@ -1267,14 +1267,14 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 							if(OpenGLLibName)
 							{
 								if(CFGetTypeID(OpenGLLibName) == CFStringGetTypeID())
-								{
+									{
 									Desc.GPUOpenGLBundle = (NSString*)OpenGLLibName;
-								}
-								else
-								{
+									}
+									else
+									{
 									CFRelease(OpenGLLibName);
+									}
 								}
-							}
 							
 							const CFStringRef BundleID = (const CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFSTR("CFBundleIdentifier"), kCFAllocatorDefault, kIORegistryIterateRecursively);
 							if(BundleID)
@@ -1282,7 +1282,7 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 								if(CFGetTypeID(BundleID) == CFStringGetTypeID())
 								{
 									Desc.GPUBundleID = (NSString*)BundleID;
-								}
+							}
 								else
 								{
 									CFRelease(BundleID);
@@ -1341,14 +1341,14 @@ FString FMacPlatformMisc::GetPrimaryGPUBrand()
 		{
 			PrimaryGPU = GPUs[0].GPUName;
 		}
-		
-		if ( PrimaryGPU.IsEmpty() )
-		{
-			PrimaryGPU = FGenericPlatformMisc::GetPrimaryGPUBrand();
+			
+			if ( PrimaryGPU.IsEmpty() )
+			{
+				PrimaryGPU = FGenericPlatformMisc::GetPrimaryGPUBrand();
+			}
 		}
-	}
 	return PrimaryGPU;
-}
+	}
 
 FGPUDriverInfo FMacPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescription)
 {
@@ -1610,21 +1610,18 @@ uint32 FMacPlatformMisc::GetCPUInfo()
 
 FString FMacPlatformMisc::GetDefaultLocale()
 {
-	CFLocaleRef loc = CFLocaleCopyCurrent();
 
-	TCHAR langCode[20];
-	CFArrayRef langs = CFLocaleCopyPreferredLanguages();
-	CFStringRef langCodeStr = (CFStringRef)CFArrayGetValueAtIndex(langs, 0);
-	FPlatformString::CFStringToTCHAR(langCodeStr, langCode);
+	CFArrayRef Languages = CFLocaleCopyPreferredLanguages();
+	CFStringRef LangCodeStr = (CFStringRef)CFArrayGetValueAtIndex(Languages, 0);
+	FString LangCode((__bridge NSString*)LangCodeStr);
+	CFRelease(Languages);
 
-	TCHAR countryCode[20];
-	CFStringRef countryCodeStr = (CFStringRef)CFLocaleGetValue(loc, kCFLocaleCountryCode);
-	FPlatformString::CFStringToTCHAR(countryCodeStr, countryCode);
+	CFLocaleRef Locale = CFLocaleCopyCurrent();
+	CFStringRef CountryCodeStr = (CFStringRef)CFLocaleGetValue(Locale, kCFLocaleCountryCode);
+	FString CountryCode((__bridge NSString*)CountryCodeStr);
+	CFRelease(Locale);
 
-	CFRelease(langs);
-	CFRelease(loc);
-	
-	return FString::Printf(TEXT("%s_%s"), langCode, countryCode);
+	return FString::Printf(TEXT("%s_%s"), *LangCode, *CountryCode);
 }
 
 FText FMacPlatformMisc::GetFileManagerName()

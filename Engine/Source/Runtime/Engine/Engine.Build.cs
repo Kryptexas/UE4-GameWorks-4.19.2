@@ -76,7 +76,8 @@ public class Engine : ModuleRules
 				"SynthBenchmark",
                 "AIModule",
 				"DatabaseSupport",
-                "PacketHandler"
+                		"PacketHandler",
+				"HardwareSurvey",
 			}
 		);
 
@@ -120,7 +121,7 @@ public class Engine : ModuleRules
 			}
 		}
 
-        if (bVariadicTemplatesSupported)
+		if (bVariadicTemplatesSupported)
         {
             PrivateIncludePathModuleNames.AddRange(
                 new string[] {
@@ -132,15 +133,15 @@ public class Engine : ModuleRules
 
             if (Target.Type == TargetRules.TargetType.Editor)
             {
-                // these modules require variadic templates
-                PrivateDependencyModuleNames.AddRange(
-                    new string[] {
-                        "MessagingRpc",
-                        "PortalRpc",
-                        "PortalServices",
-                    }
-                );
-            }
+            // these modules require variadic templates
+            PrivateDependencyModuleNames.AddRange(
+                new string[] {
+                    "MessagingRpc",
+                    "PortalRpc",
+                    "PortalServices",
+                }
+            );
+        }
         }
 
         CircularlyReferencedDependentModules.Add("AIModule");

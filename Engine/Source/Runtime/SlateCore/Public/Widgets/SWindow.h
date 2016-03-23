@@ -89,8 +89,10 @@ public:
 		, _SupportsTransparency( EWindowTransparency::None )
 		, _InitialOpacity( 1.0f )
 		, _IsInitiallyMaximized( false )
+		, _IsInitiallyMinimized(false)
 		, _SizingRule( ESizingRule::UserSized )
 		, _IsPopupWindow( false )
+		, _IsTopmostWindow( false )
 		, _FocusWhenFirstShown( true )
 		, _ActivateWhenFirstShown( true )
 		, _UseOSWindowBorder( false )
@@ -134,11 +136,17 @@ public:
 		/** Is the window initially maximized */
 		SLATE_ARGUMENT( bool, IsInitiallyMaximized )
 		
+		/** Is the window initially minimized */
+		SLATE_ARGUMENT(bool, IsInitiallyMinimized)
+
 		/** How the window should be sized */
 		SLATE_ARGUMENT( ESizingRule::Type, SizingRule )
 
 		/** True if this should be a 'pop-up' window */
 		SLATE_ARGUMENT( bool, IsPopupWindow )
+
+		/** True if this window should always be on top of all other windows */
+		SLATE_ARGUMENT(bool, IsTopmostWindow)
 
 		/** Should this window be focused immediately after it is shown? */
 		SLATE_ARGUMENT( bool, FocusWhenFirstShown )
@@ -512,6 +520,9 @@ public:
 	/** Maximize the window if bInitiallyMaximized is set */
 	void InitialMaximize();
 
+	/** Maximize the window if bInitiallyMinimized is set */
+	void InitialMinimize();
+
 	/**
 	 * Sets the opacity of this window
 	 *
@@ -803,6 +814,9 @@ protected:
 
 	/** true if this window is maximized when its created */
 	bool bInitiallyMaximized : 1;
+
+	/** true if this window is minimized when its created */
+	bool bInitiallyMinimized : 1;
 
 	/** True if this window has been shown yet */
 	bool bHasEverBeenShown : 1;

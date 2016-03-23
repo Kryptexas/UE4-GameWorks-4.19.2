@@ -159,7 +159,7 @@ bool FWebBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
 		return true;
 	}
 	else
-	{
+		{
 		TSharedPtr<FWebBrowserPopupFeatures> NewBrowserPopupFeatures = MakeShareable(new FWebBrowserPopupFeatures(PopupFeatures));
 		// Allow overriding transparency setting for child windows
 		bool shouldUseTransparency = bUseTransparency
@@ -170,14 +170,14 @@ bool FWebBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
 		NewHandler->ParentHandler = this;
 		NewHandler->SetPopupFeatures(NewBrowserPopupFeatures);
 		OutClient = NewHandler;
+					
 
-
-		// Always use off screen rendering so we can integrate with our windows
+					// Always use off screen rendering so we can integrate with our windows
 		OutWindowInfo.SetAsWindowless(nullptr, shouldUseTransparency);
 
-		// We need to rely on CEF to create our window so we set the WindowInfo, BrowserSettings, Client, and then return false
+					// We need to rely on CEF to create our window so we set the WindowInfo, BrowserSettings, Client, and then return false
 		return false;
-	}
+				}
 }
 
 bool FWebBrowserHandler::OnCertificateError(CefRefPtr<CefBrowser> Browser,

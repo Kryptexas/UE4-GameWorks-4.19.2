@@ -1496,12 +1496,17 @@ namespace AutomationTool
 			return XmlHandler.ReadXml<UnrealBuildTool.BuildManifest>(ManifestName);
 		}
 
-		private static void CloneDirectoryRecursiveWorker(string SourcePathBase, string TargetPathBase, List<string> ClonedFiles)
+		private static void CloneDirectoryRecursiveWorker(string SourcePathBase, string TargetPathBase, List<string> ClonedFiles, bool bIncremental = false)
 		{
-            if (!InternalUtils.SafeCreateDirectory(TargetPathBase))
+			bool bDirectoryCreated = InternalUtils.SafeCreateDirectory(TargetPathBase);
+			if (!bIncremental && !bDirectoryCreated)
             {
                 throw new AutomationException("Failed to create directory {0} for copy", TargetPathBase);
             }
+			else if (bIncremental && !CommandUtils.DirectoryExists_NoExceptions(TargetPathBase))
+			{
+				throw new AutomationException("Target directory {0} does not exist", TargetPathBase);
+			}
 
 			DirectoryInfo SourceDirectory = new DirectoryInfo(SourcePathBase);
 			DirectoryInfo[] SourceSubdirectories = SourceDirectory.GetDirectories();
@@ -1511,6 +1516,9 @@ namespace AutomationTool
 			foreach (FileInfo SourceFI in SourceFiles)
 			{
 				string TargetFilename = CommandUtils.CombinePaths(TargetPathBase, SourceFI.Name);
+
+				if (!bIncremental || !CommandUtils.FileExists_NoExceptions(TargetFilename))
+				{
 				SourceFI.CopyTo(TargetFilename);
 
 				if (ClonedFiles != null)
@@ -1518,13 +1526,14 @@ namespace AutomationTool
 					ClonedFiles.Add(TargetFilename);
 				}
 			}
+			}
 
 			// Recurse into subfolders
 			foreach (DirectoryInfo SourceSubdir in SourceSubdirectories)
 			{
 				string NewSourcePath = CommandUtils.CombinePaths(SourcePathBase, SourceSubdir.Name);
 				string NewTargetPath = CommandUtils.CombinePaths(TargetPathBase, SourceSubdir.Name);
-				CloneDirectoryRecursiveWorker(NewSourcePath, NewTargetPath, ClonedFiles);
+				CloneDirectoryRecursiveWorker(NewSourcePath, NewTargetPath, ClonedFiles, bIncremental);
 			}
 		}
 
@@ -1539,8 +1548,19 @@ namespace AutomationTool
 		public static void CloneDirectory(string SourcePath, string TargetPath, List<string> ClonedFiles = null)
 		{
 			DeleteDirectory_NoExceptions(TargetPath);
-
 			CloneDirectoryRecursiveWorker(SourcePath, TargetPath, ClonedFiles);
+		}
+
+		/// <summary>
+		/// Clones a directory, skipping any files which already exist in the destination.
+		/// This is recursive, copying subfolders too.
+		/// </summary>
+		/// <param name="SourcePath">Source directory.</param>
+		/// <param name="TargetPath">Target directory.</param>
+		/// <param name="ClonedFiles">List of cloned files.</param>
+		public static void CloneDirectoryIncremental(string SourcePath, string TargetPath, List<string> ClonedFiles = null)
+		{
+			CloneDirectoryRecursiveWorker(SourcePath, TargetPath, ClonedFiles, bIncremental: true);
 		}
 
 		#endregion
@@ -2046,9 +2066,9 @@ namespace AutomationTool
 			if (Utils.IsRunningOnMono)
 			{
 				CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
- 				CommandUtils.PushDir(BaseDirectory);
- 				string FilesList = "";
-				foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+				CommandUtils.PushDir(BaseDirectory);
+				string FilesList = "";
+				foreach (string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
 				{
 					FilesList += " \"" + FilteredFile + "\"";
 					if (FilesList.Length > 32000)
@@ -2067,7 +2087,7 @@ namespace AutomationTool
 			{
 				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
 				Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
-				foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+				foreach (string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
 				{
 					Zip.AddFile(Path.Combine(BaseDirectory, FilteredFile), Path.GetDirectoryName(FilteredFile));
 				}

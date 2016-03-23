@@ -493,7 +493,7 @@ partial class GUBP
 			{
 				BranchConfig.AddNode(new InternalToolsNode(BranchConfig, HostPlatform));
 			
-				if (HostPlatform == UnrealTargetPlatform.Win64 && ActivePlatforms.Contains(UnrealTargetPlatform.Linux))
+				if (HostPlatform == UnrealTargetPlatform.Win64 && ActivePlatforms.Contains(UnrealTargetPlatform.Linux) && !BranchConfig.BranchOptions.ExcludeNodes.Contains("LinuxTools"))
 				{
 					BranchConfig.AddNode(new ToolsCrossCompileNode(BranchConfig, HostPlatform));
 				}
@@ -1158,7 +1158,15 @@ partial class GUBP
         BranchConfig.AddNode(new WaitForTestShared(this));
 		List<UnrealTargetPlatform> HostPlatformsToWaitFor = BranchConfig.HostPlatforms;
 		HostPlatformsToWaitFor.RemoveAll(HostPlatform => BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform));
-		BranchConfig.AddNode(new WaitToPackageSamplesNode(HostPlatformsToWaitFor));
+
+		foreach(GUBPNode Node in BranchConfig.GUBPNodes.Values)
+		{
+			if(Node.FullNamesOfDependencies.Contains(WaitToPackageSamplesNode.StaticGetFullName()) || Node.FullNamesOfPseudodependencies.Contains(WaitToPackageSamplesNode.StaticGetFullName()))
+			{
+				BranchConfig.AddNode(new WaitToPackageSamplesNode(HostPlatformsToWaitFor));
+				break;
+			}
+		}
 
 		AddCustomNodes(BranchConfig, HostPlatforms, ActivePlatforms);
         

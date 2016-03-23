@@ -16,6 +16,12 @@ FFriendsListStyle& FFriendsListStyle::SetGlobalChatButtonStyle(const FButtonStyl
 	return *this;
 }
 
+FFriendsListStyle& FFriendsListStyle::SetGlobalChatIcon(const FSlateBrush& BrushStyle)
+{
+	GlobalChatIcon = BrushStyle;
+	return *this;
+}
+
 FFriendsListStyle& FFriendsListStyle::SetFriendItemButtonStyle(const FButtonStyle& ButtonStyle)
 {
 	FriendItemButtonStyle = ButtonStyle;

@@ -1140,6 +1140,9 @@ public:
 	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 	virtual void SetAllUserFocusAllowingDescendantFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 
+	DECLARE_EVENT_OneParam(FSlateApplication, FApplicationActivationStateChangedEvent, const bool /*IsActive*/)
+	virtual FApplicationActivationStateChangedEvent& OnApplicationActivationStateChanged() { return ApplicationActivationStateChangedEvent; }
+
 public:
 
 	//~ Begin FGenericApplicationMessageHandler Interface
@@ -1674,6 +1677,7 @@ private:
 	/** The icon to use on application windows */
 	const FSlateBrush *AppIcon;
 
+	FApplicationActivationStateChangedEvent ApplicationActivationStateChangedEvent;
 	//
 	// Hittest 2.0
 	//

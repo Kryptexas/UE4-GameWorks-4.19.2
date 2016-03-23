@@ -22,6 +22,12 @@ enum class EWebBrowserDocumentState
 	NoDocument
 };
 
+struct FWebNavigationRequest
+{
+	bool bIsRedirect;
+	bool bIsMainFrame;
+};
+
 /**
  * Interface for dealing with a Web Browser window
  */
@@ -286,7 +292,7 @@ public:
 	virtual FOnNeedsRedraw& OnNeedsRedraw() = 0;
 	
 	/** A delegate that is invoked prior to browser navigation. */
-	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforeBrowse, const FString& /*Url*/, bool /*bIsRedirect*/)
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforeBrowse, const FString& /*Url*/, const FWebNavigationRequest& /*Request*/)
 	virtual FOnBeforeBrowse& OnBeforeBrowse() = 0;
 	
 	/** A delegate that is invoked to allow user code to override the contents of a Url. */

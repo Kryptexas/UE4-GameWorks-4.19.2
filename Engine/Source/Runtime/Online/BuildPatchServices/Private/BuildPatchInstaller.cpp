@@ -48,7 +48,7 @@ namespace
 
 /* FBuildPatchInstaller implementation
 *****************************************************************************/
-FBuildPatchInstaller::FBuildPatchInstaller(FBuildPatchBoolManifestDelegate InOnCompleteDelegate, FBuildPatchAppManifestPtr CurrentManifest, FBuildPatchAppManifestRef InstallManifest, const FString& InInstallDirectory, const FString& InStagingDirectory, FBuildPatchInstallationInfo& InstallationInfoRef, bool ShouldStageOnly)
+FBuildPatchInstaller::FBuildPatchInstaller(FBuildPatchBoolManifestDelegate InOnCompleteDelegate, FBuildPatchAppManifestPtr CurrentManifest, FBuildPatchAppManifestRef InstallManifest, const FString& InInstallDirectory, const FString& InStagingDirectory, FBuildPatchInstallationInfo& InstallationInfoRef, bool ShouldStageOnly, const FString& InLocalMachineConfigFile, bool bInIsRepairing, bool bShouldForceSkipPrereqs)
 	: Thread( NULL )
 	, OnCompleteDelegate( InOnCompleteDelegate )
 	, CurrentBuildManifest( CurrentManifest )
@@ -60,14 +60,16 @@ FBuildPatchInstaller::FBuildPatchInstaller(FBuildPatchBoolManifestDelegate InOnC
 	, CloudDirectory( FBuildPatchServicesModule::GetCloudDirectory() )
 	, BackupDirectory( FBuildPatchServicesModule::GetBackupDirectory() )
 	, PreviousMoveMarker( InstallDirectory / TEXT( "$movedMarker" ) )
+	, LocalMachineConfigFile( InLocalMachineConfigFile )
 	, ThreadLock()
 	, bIsFileData( InstallManifest->IsFileDataManifest() )
 	, bIsChunkData( !bIsFileData )
-	, bIsRepairing(CurrentManifest.IsValid() && CurrentManifest->IsSameAs(InstallManifest))
+	, bIsRepairing(bInIsRepairing)
 	, bShouldStageOnly(ShouldStageOnly)
 	, bSuccess( true )
 	, bIsRunning( false )
 	, bIsInited( false )
+	, bForceSkipPrereqs(bShouldForceSkipPrereqs)
 	, DownloadSpeedValue( -1.0 )
 	, DownloadHealthValue(EBuildPatchDownloadHealth::Excellent)
 	, DownloadBytesLeft( 0 )
@@ -127,7 +129,7 @@ bool FBuildPatchInstaller::StartInstallation()
 		InstallTags.Add(TEXT(""));
 
 		// Load configuration now
-		LoadConfig();
+		LoadLocalMachineConfig();
 
 		// Start thread!
 		const TCHAR* ThreadName = TEXT("BuildPatchInstallerThread");
@@ -175,7 +177,7 @@ uint32 FBuildPatchInstaller::Run()
 	TArray<FString> CorruptFiles;
 
 	// Init prereqs progress value
-	const bool bInstallPrereqs = !NewBuildManifest->GetPrereqPath().IsEmpty();
+	const bool bInstallPrereqs = !bForceSkipPrereqs && !NewBuildManifest->GetPrereqPath().IsEmpty();
 
 	// Get the start time
 	double StartTime = FPlatformTime::Seconds();
@@ -615,21 +617,21 @@ void FBuildPatchInstaller::CleanupEmptyDirectories(const FString& RootDirectory)
 	}
 }
 
-void FBuildPatchInstaller::LoadConfig()
+void FBuildPatchInstaller::LoadLocalMachineConfig()
 {
 	check(IsInGameThread());
 	TArray<FString> ConfigStrings;
-	GConfig->GetArray(TEXT("Portal.BuildPatch"), TEXT("InstalledPrereqs"), ConfigStrings, GEngineIni);
+	GConfig->GetArray(TEXT("Portal.BuildPatch"), TEXT("InstalledPrereqs"), ConfigStrings, LocalMachineConfigFile);
 	ThreadLock.Lock();
 	InstalledPrereqs.Append(ConfigStrings);
 	ThreadLock.Unlock();
 }
 
-void FBuildPatchInstaller::SaveConfig()
+void FBuildPatchInstaller::SaveLocalMachineConfig()
 {
 	check(IsInGameThread());
 	ThreadLock.Lock();
-	GConfig->SetArray(TEXT("Portal.BuildPatch"), TEXT("InstalledPrereqs"), InstalledPrereqs.Array(), GEngineIni);
+	GConfig->SetArray(TEXT("Portal.BuildPatch"), TEXT("InstalledPrereqs"), InstalledPrereqs.Array(), LocalMachineConfigFile);
 	ThreadLock.Unlock();
 }
 
@@ -1306,7 +1308,7 @@ void FBuildPatchInstaller::ExecuteCompleteDelegate()
 	check( IsInGameThread() );
 	check( IsComplete() );
 	// Take opportunity to save configuration
-	SaveConfig();
+	SaveLocalMachineConfig();
 	// Call the complete delegate
 	OnCompleteDelegate.ExecuteIfBound(bSuccess, NewBuildManifest);
 }

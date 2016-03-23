@@ -5655,6 +5655,13 @@ void FSlateApplication::ProcessApplicationActivationEvent(bool InAppActivated)
 			DragDropContent.Reset();
 		}
 	}
+	else
+	{
+		//Ensure that slate ticks/renders next frame
+		QueueSynthesizedMouseMove();
+	}
+
+	OnApplicationActivationStateChanged().Broadcast(InAppActivated);
 }
 
 

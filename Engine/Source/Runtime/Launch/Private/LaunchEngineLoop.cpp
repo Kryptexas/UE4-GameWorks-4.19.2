@@ -2262,7 +2262,7 @@ int32 FEngineLoop::Init()
 	}
 
 	// Begin the async platform hardware survey
-	GEngine->InitHardwareSurvey();
+	GEngine->StartHardwareSurvey();
 
 	FCoreDelegates::StarvedGameLoop.BindStatic(&GameLoopIsStarved);
 
@@ -2796,9 +2796,6 @@ void FEngineLoop::Tick()
 			RHICmdList.EndFrame();
 			RHICmdList.PopEvent();
 		});
-
-		// Check for async platform hardware survey results
-		GEngine->TickHardwareSurvey();
 
 		// Set CPU utilization stats.
 		const FCPUTime CPUTime = FPlatformTime::GetCPUTime();

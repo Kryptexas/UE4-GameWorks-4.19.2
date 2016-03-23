@@ -370,25 +370,12 @@ protected:
 	 */
 	bool SupportsNetworkedTransport() const
 	{
-		if (FApp::IsGame())
-		{
-			// only allow in Debug and Development configurations for now
-			if ((FApp::GetBuildConfiguration() == EBuildConfigurations::Shipping) || (FApp::GetBuildConfiguration() == EBuildConfigurations::Test))
-			{
-				return false;
-			}
+		const bool IsMessagingExplicitlyDesired = FParse::Param(FCommandLine::Get(), TEXT("Messaging"));
 
+		if (FApp::IsGame() && (IsMessagingExplicitlyDesired || IsRunningCommandlet()))
+		{
 			// disallow unsupported platforms
 			if (!FPlatformMisc::SupportsMessaging() || !FPlatformProcess::SupportsMultithreading())
-			{
-				return false;
-			}
-		}
-
-		if (FApp::IsGame() || IsRunningCommandlet())
-		{
-			// only allow UDP transport if explicitly desired
-			if (!FParse::Param(FCommandLine::Get(), TEXT("Messaging")))
 			{
 				return false;
 			}

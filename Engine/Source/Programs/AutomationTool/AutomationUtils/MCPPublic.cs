@@ -615,45 +615,8 @@ namespace EpicGames.MCP.Automation
         /// <param name="ManifestRelativePath">Relative path to the Manifest file relative to the global build root (which is like P:\Builds) </param>
         /// <param name="LabelName">Name of the label that we will be setting.</param>
         abstract public void BuildPromotionCompleted(BuildPatchToolStagingInfo stagingInfo, string AppName, string BuildVersion, string ManifestRelativePath, string PlatformName, string LabelName);
-
-        /// <summary>
-        /// Mounts the production CDN share (allows overriding via -CDNDrive command line arg)
-        /// </summary>
-        /// <param name="command"></param>
-        /// <returns>Path to the share (allows for override)</returns>
-        abstract public string MountProductionCDNShare();
-
-        /// <summary>
-        /// Mounts the production CDN share (allows overriding via -CDNDrive command line arg)
-        /// </summary>
-        /// <param name="command"></param>
-        /// <returns>Path to the share (allows for override)</returns>
-        abstract public string MountInternalCDNShare();
-
-		/// <summary>
-		/// Checks for a stagingInfo's manifest on the production CDN.
-		/// </summary>
-		/// <param name="stagingInfo">Staging info used to determine where the chunks are to copy.</param>
-		abstract public bool IsManifestOnProductionCDN(BuildPatchToolStagingInfo stagingInfo);
-
-        /// <summary>
-        /// Copies chunks from a staged location to the production CDN.
-        /// </summary>
-        /// <param name="command">Build command (used to allow the -CDNDrive cmdline override).</param>
-        /// <param name="stagingInfo">Staging info used to determine where the chunks are to copy.</param>
-        abstract public void CopyChunksToProductionCDN(BuildPatchToolStagingInfo stagingInfo);
-
-        /// <summary>
-        /// Copies chunks from a staged location to the production CDN.
-        /// NOTE: This code assumes the location of the BuildRootPath at the time this build 
-        /// by calling <see cref="BuildPatchToolStagingInfo.GetBuildRootPath"/> (usually P:\Builds).
-        /// If this path changes then this code posting older builds will break because we won't know
-        /// where the BuildRootPath for the older build was!
-        /// </summary>
-        /// <param name="command">Build command (used to allow the -CDNDrive cmdline override).</param>
-        /// <param name="manifestUrlPath">relative path to the manifest file from the build info service</param>
-        abstract public void CopyChunksToProductionCDN(string manifestUrlPath);
 	}
+
     /// <summary>
     /// Helpers for using the MCP account service
     /// </summary>

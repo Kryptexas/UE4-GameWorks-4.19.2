@@ -58,6 +58,7 @@
 #include "Engine/LevelScriptActor.h"
 #include "Vehicles/TireType.h"
 #include "RHICommandList.h"
+#include "HardwareSurvey.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
@@ -1646,31 +1647,31 @@ void UEngine::InitializePortalServices()
 		PortalRpcModule.IsValid() &&
 		PortalServicesModule.IsValid())
 	{
-		// Initialize Portal services
+	// Initialize Portal services
 		PortalRpcClient = MessagingRpcModule->CreateRpcClient();
-		{
-			// @todo gmp: catch timeouts?
-		}
+	{
+		// @todo gmp: catch timeouts?
+	}
 
 		PortalRpcLocator = PortalRpcModule->CreateLocator();
-		{
-			PortalRpcLocator->OnServerLocated().BindLambda([=]() { PortalRpcClient->Connect(PortalRpcLocator->GetServerAddress()); });
-			PortalRpcLocator->OnServerLost().BindLambda([=]() { PortalRpcClient->Disconnect(); });
-		}
+	{
+		PortalRpcLocator->OnServerLocated().BindLambda([=]() { PortalRpcClient->Connect(PortalRpcLocator->GetServerAddress()); });
+		PortalRpcLocator->OnServerLost().BindLambda([=]() { PortalRpcClient->Disconnect(); });
+	}
 
-		ServiceDependencies = MakeShareable(new FTypeContainer);
-		{
-			ServiceDependencies->RegisterInstance<IMessageRpcClient>(PortalRpcClient.ToSharedRef());
-		}
+	ServiceDependencies = MakeShareable(new FTypeContainer);
+	{
+		ServiceDependencies->RegisterInstance<IMessageRpcClient>(PortalRpcClient.ToSharedRef());
+	}
 
 		ServiceLocator = PortalServicesModule->CreateLocator(ServiceDependencies.ToSharedRef());
-		{
-			// @todo add any Engine specific Portal services here
-			ServiceLocator->Configure(TEXT("IPortalApplicationWindow"), TEXT("*"), "PortalProxies");
-			ServiceLocator->Configure(TEXT("IPortalUser"), TEXT("*"), "PortalProxies");
-			ServiceLocator->Configure(TEXT("IPortalUserLogin"), TEXT("*"), "PortalProxies");
-		}
+	{
+		// @todo add any Engine specific Portal services here
+		ServiceLocator->Configure(TEXT("IPortalApplicationWindow"), TEXT("*"), "PortalProxies");
+		ServiceLocator->Configure(TEXT("IPortalUser"), TEXT("*"), "PortalProxies");
+		ServiceLocator->Configure(TEXT("IPortalUserLogin"), TEXT("*"), "PortalProxies");
 	}
+}
 	else
 	{
 		class FNullPortalServiceLocator
@@ -4531,7 +4532,7 @@ bool UEngine::HandleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	return true;
 }
 
-bool UEngine::HandleDebugCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	if (FParse::Command(&Cmd, TEXT("RESETLOADERS")))
 	{
@@ -4541,7 +4542,7 @@ bool UEngine::HandleDebugCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 
 	// Handle "DEBUG CRASH" etc. 
 	return PerformError(Cmd, Ar);
-}
+	}
 
 
 bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
@@ -6313,7 +6314,7 @@ void UEngine::OnLostFocusPause(bool EnablePause)
 	}
 }
 
-void UEngine::InitHardwareSurvey()
+void UEngine::StartHardwareSurvey()
 {
 	bool bEnabled = true;
 #if !WITH_EDITORONLY_DATA
@@ -6326,36 +6327,21 @@ void UEngine::InitHardwareSurvey()
 	bEnabled = false;
 #endif
 
-	if (bEnabled)
-	{
-		if (IsHardwareSurveyRequired())
+	if (bEnabled && FEngineAnalytics::IsAvailable())
 		{
-			bPendingHardwareSurveyResults = true;
+		IHardwareSurveyModule::Get().StartHardwareSurvey(FEngineAnalytics::GetProvider());
 		}
 	}	
+
+void UEngine::InitHardwareSurvey()
+{
+	StartHardwareSurvey();
+
 }
 
 void UEngine::TickHardwareSurvey()
 {
-	// Debug routine to eat 1MB of memory every frame
-	if (GDebugAllocMemEveryFrame)
-	{
-		for( int32 i=0;i<16;i++ )
-		{
-			void* Eat = FMemory::Malloc(65536);
-			FMemory::Memset( Eat, 0, 65536 );
-		}
-	}
 
-	if (bPendingHardwareSurveyResults)
-	{
-		FHardwareSurveyResults HardwareSurveyResults;
-		if (FPlatformSurvey::GetSurveyResults(HardwareSurveyResults))
-		{
-			OnHardwareSurveyComplete(HardwareSurveyResults);
-			bPendingHardwareSurveyResults = false;
-		}
-	}
 }
 
 bool UEngine::IsHardwareSurveyRequired()
@@ -6508,143 +6494,6 @@ FString UEngine::HardwareSurveyGetResolutionClass(uint32 LargestDisplayHeight)
 
 void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResults)
 {
-#if PLATFORM_IOS || PLATFORM_ANDROID || PLATFORM_DESKTOP
-	if (FEngineAnalytics::IsAvailable())
-	{
-		IAnalyticsProvider& Analytics = FEngineAnalytics::GetProvider();
-
-		// remember last time we did a survey
-		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Hardware Survey"), TEXT("HardwareSurveyDateTime"), FDateTime::UtcNow().ToString());
-
-#if PLATFORM_IOS || PLATFORM_ANDROID
-
-		TArray<FAnalyticsEventAttribute> HardwareStatsAttribs;
-		// copy from what IOSPlatformSurvey has filled out
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("Model"), SurveyResults.Platform));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Version"), SurveyResults.OSVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Bits"), FString::Printf(TEXT("%d-bit"), SurveyResults.OSBits)));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Language"), SurveyResults.OSLanguage));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("RenderingAPI"), SurveyResults.MultimediaAPI));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("CPU.Count"), FString::Printf(TEXT("%d"), SurveyResults.CPUCount)));
-		FString DisplayResolution = FString::Printf(TEXT("%dx%d"), SurveyResults.Displays[0].CurrentModeWidth, SurveyResults.Displays[0].CurrentModeHeight);
-		FString ViewResolution = FString::Printf(TEXT("%dx%d"), SurveyResults.Displays[0].CurrentModeWidth, SurveyResults.Displays[0].CurrentModeHeight);
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("DisplayResolution"), DisplayResolution));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("ViewResolution"), ViewResolution));
-	
-#if PLATFORM_ANDROID
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("GPUModel"), SurveyResults.Displays[0].GPUCardName));
-#endif
-
-		Analytics.RecordEvent(*FString::Printf(TEXT("%sHardwareStats"), FPlatformProperties::IniPlatformName()), HardwareStatsAttribs);
-
-#elif PLATFORM_DESKTOP
-
-		TArray<FAnalyticsEventAttribute> HardwareWEIAttribs;
-		HardwareWEIAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.CPUPerformanceIndex )));
-		HardwareWEIAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.GPUPerformanceIndex )));
-		HardwareWEIAttribs.Add(FAnalyticsEventAttribute(TEXT( "Memory.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.RAMPerformanceIndex )));
-
-		Analytics.RecordEvent(TEXT( "Hardware.WEI.1" ), HardwareWEIAttribs);
-
-		FString MainGPUName(TEXT("Unknown"));
-		float MainGPUVRAMMB = 0.0f;
-		FString MainGPUDriverVer(TEXT("UnknownVersion"));
-		if (SurveyResults.DisplayCount > 0)
-		{
-			MainGPUName = &SurveyResults.Displays[0].GPUCardName[0];
-			MainGPUVRAMMB = SurveyResults.Displays[0].GPUDedicatedMemoryMB;
-			MainGPUDriverVer = &SurveyResults.Displays[0].GPUDriverVersion[0];
-		}
-
-		uint32 LargestDisplayHeight = 0;
-		FString DisplaySize[3];
-		if (SurveyResults.DisplayCount > 0)
-		{
-			DisplaySize[0] = HardwareSurveyBucketResolution(SurveyResults.Displays[0].CurrentModeWidth, SurveyResults.Displays[0].CurrentModeHeight);
-			LargestDisplayHeight = FMath::Max(LargestDisplayHeight, SurveyResults.Displays[0].CurrentModeHeight);
-		}
-		if (SurveyResults.DisplayCount > 1)
-		{
-			DisplaySize[1] = HardwareSurveyBucketResolution(SurveyResults.Displays[1].CurrentModeWidth, SurveyResults.Displays[1].CurrentModeHeight);
-			LargestDisplayHeight = FMath::Max(LargestDisplayHeight, SurveyResults.Displays[1].CurrentModeHeight);
-		}
-		if (SurveyResults.DisplayCount > 2)
-		{
-			DisplaySize[2] = HardwareSurveyBucketResolution(SurveyResults.Displays[2].CurrentModeWidth, SurveyResults.Displays[2].CurrentModeHeight);
-			LargestDisplayHeight = FMath::Max(LargestDisplayHeight, SurveyResults.Displays[2].CurrentModeHeight);
-		}
-
-		// Resolution Class
-		FString ResolutionClass;
-		if (LargestDisplayHeight < 700)
-		{
-			ResolutionClass = TEXT("<720");
-		}
-		else if (LargestDisplayHeight < 1024)
-		{
-			ResolutionClass = TEXT("720");
-		}
-		else
-		{
-			ResolutionClass = TEXT("1080+");
-		}
-
-		// Bucket RAM
-		FString BucketedRAM = HardwareSurveyBucketRAM(SurveyResults.MemoryMB);
-
-		// Bucket VRAM
-		FString BucketedVRAM = HardwareSurveyBucketVRAM(MainGPUVRAMMB);
-
-		TArray<FAnalyticsEventAttribute> HardwareStatsAttribs;
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "Platform" ), SurveyResults.Platform ));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.CPUPerformanceIndex )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Brand" ), SurveyResults.CPUBrand));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Speed" ), FString::Printf( TEXT( "%.1fGHz" ), SurveyResults.CPUClockGHz )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Count" ), FString::Printf( TEXT( "%d" ), SurveyResults.CPUCount )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Name" ), SurveyResults.CPUNameString));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Info" ), FString::Printf( TEXT( "0x%08x" ), SurveyResults.CPUInfo )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.GPUPerformanceIndex )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.Name" ), MainGPUName));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.VRAM" ), BucketedVRAM));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.DriverVersion" ), MainGPUDriverVer));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterName" ), SurveyResults.RHIAdpater.AdapterName));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterInternalDriverVersion" ), SurveyResults.RHIAdpater.AdapterInternalDriverVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterUserDriverVersion" ), SurveyResults.RHIAdpater.AdapterUserDriverVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterDriverDate" ), SurveyResults.RHIAdpater.AdapterDriverDate));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "RAM" ), BucketedRAM));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "RAM.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.RAMPerformanceIndex )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "NumberOfMonitors" ), FString::Printf( TEXT( "%d" ), SurveyResults.DisplayCount )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "MonitorResolution.0" ), DisplaySize[0]));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "MonitorResolution.1" ), DisplaySize[1]));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "MonitorResolution.2" ), DisplaySize[2]));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "ResolutionClass" ), ResolutionClass));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "OS.Version" ), SurveyResults.OSVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "OS.SubVersion" ), SurveyResults.OSSubVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "OS.Bits" ), FString::Printf( TEXT( "%d-bit" ), SurveyResults.OSBits)));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "OS.Language" ), SurveyResults.OSLanguage));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "IsLaptop" ), SurveyResults.bIsLaptopComputer ? TEXT("true") : TEXT("false")));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "IsRemoteSession" ), SurveyResults.bIsRemoteSession ? TEXT("true") : TEXT("false")));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.CPU0" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.CPUStats[0].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.CPU1" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.CPUStats[1].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.GPU0" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.GPUStats[0].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.GPU1" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.GPUStats[1].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.GPU2" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.GPUStats[2].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.GPU3" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.GPUStats[3].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.GPU4" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.GPUStats[4].ComputePerfIndex() )));
-
-		Analytics.RecordEvent(TEXT( "HardwareStats.1" ), HardwareStatsAttribs);
-
-		TArray<FAnalyticsEventAttribute> HardwareStatErrorsAttribs;
-		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "ErrorCount" ), FString::Printf( TEXT( "%d" ), SurveyResults.ErrorCount )));
-		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "LastError" ), SurveyResults.LastSurveyError));
-		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "LastError.Detail" ), SurveyResults.LastSurveyErrorDetail));			
-		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "LastError.WEI" ), SurveyResults.LastPerformanceIndexError));
-		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "LastError.WEI.Detail" ), SurveyResults.LastPerformanceIndexErrorDetail));
-
-		Analytics.RecordEvent(TEXT( "HardwareStatErrors.1" ), HardwareStatErrorsAttribs);
-#endif // PLATFORM_DESKTOP
-	}
-#endif
 }
 
 static TAutoConsoleVariable<float> CVarMaxFPS(
@@ -11181,7 +11030,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 				if (!bContainedInsideNewInstance)
 				{
 					// A bad thing has happened and cannot be reasonably fixed at this point
-					UE_LOG(LogEngine, Log, TEXT("Warning: The CDO '%s' references a component that does not have the CDO in its outer chain!"), *NewObject->GetFullName(), *NewInstance->GetFullName());
+					UE_LOG(LogEngine, Log, TEXT("Warning: The CDO '%s' references a component that does not have the CDO in its outer chain!"), *NewObject->GetFullName(), *NewInstance->GetFullName()); 	
 				}
 			}
 		}
@@ -12253,22 +12102,22 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 			if (WaveInstance->GetActualVolume() >= 0.01f)
 			{
 				++ActiveInstances;
-				ActiveSounds.Add(WaveInstance->ActiveSound);
+			ActiveSounds.Add(WaveInstance->ActiveSound);
 
-				UAudioComponent* AudioComponent = WaveInstance->ActiveSound->GetAudioComponent();
-				AActor* SoundOwner = AudioComponent ? AudioComponent->GetOwner() : nullptr;
-				USoundClass* SoundClass = WaveInstance->SoundClass;
+			UAudioComponent* AudioComponent = WaveInstance->ActiveSound->GetAudioComponent();
+			AActor* SoundOwner = AudioComponent ? AudioComponent->GetOwner() : nullptr;
+			USoundClass* SoundClass = WaveInstance->SoundClass;
 
-				FString TheString = *FString::Printf(TEXT("%4i.    %6.2f  %s   Owner: %s   SoundClass: %s"),
-													 InstanceIndex,
-													 WaveInstance->GetActualVolume(),
-													 *WaveInstance->WaveData->GetPathName(),
-													 SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
-													 SoundClass ? *SoundClass->GetName() : TEXT("None"));
+			FString TheString = *FString::Printf(TEXT("%4i.    %6.2f  %s   Owner: %s   SoundClass: %s"),
+				InstanceIndex,
+				WaveInstance->GetActualVolume(),
+				*WaveInstance->WaveData->GetPathName(),
+				SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
+				SoundClass ? *SoundClass->GetName() : TEXT("None"));
 
-				Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
-				Y += 12;
-			}
+			Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
+			Y += 12;
+		}
 		}
 
 		int32 Max = AudioDevice->MaxChannels / 2;
@@ -12307,9 +12156,9 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 			FWaveInstance* WaveInstance = WaveInstances[InstanceIndex];
 			if (WaveInstance->GetActualVolume() >= 0.01f)
 			{
-				ActiveSounds.Add(WaveInstance->ActiveSound);
-			}
+			ActiveSounds.Add(WaveInstance->ActiveSound);
 		}
+	}
 	}
 
 	Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Cues:"), GetSmallFont(), FColor::Green);

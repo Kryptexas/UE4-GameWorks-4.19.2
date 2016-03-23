@@ -16,10 +16,7 @@ public:
 	 *
 	 * @param InAttachment An optional message attachment.
 	 */
-	FUdpDeserializedMessage(const IMessageAttachmentPtr& InAttachment)
-		: Attachment(InAttachment)
-		, MessageData(nullptr)
-	{ }
+	FUdpDeserializedMessage(const IMessageAttachmentPtr& InAttachment);
 
 	/** Virtual destructor. */
 	virtual ~FUdpDeserializedMessage() override;

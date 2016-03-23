@@ -356,11 +356,11 @@ void SWebBrowserView::HandleToolTip(FString ToolTipText)
 	}
 }
 
-bool SWebBrowserView::HandleBeforeNavigation(const FString& Url, bool bIsRedirect)
+bool SWebBrowserView::HandleBeforeNavigation(const FString& Url, const FWebNavigationRequest& Request)
 {
 	if(OnBeforeNavigation.IsBound())
 	{
-		return OnBeforeNavigation.Execute(Url, bIsRedirect);
+		return OnBeforeNavigation.Execute(Url, Request);
 	}
 	return false;
 }

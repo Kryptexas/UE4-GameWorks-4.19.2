@@ -1041,7 +1041,12 @@ bool FWebBrowserWindow::OnBeforeBrowse( CefRefPtr<CefBrowser> Browser, CefRefPtr
 			if(OnBeforeBrowse().IsBound())
 			{
 				FString Url = Request->GetURL().ToWString().c_str();
-				return OnBeforeBrowse().Execute(Url, bIsRedirect);
+
+				FWebNavigationRequest RequestDetails;
+				RequestDetails.bIsRedirect = bIsRedirect;
+				RequestDetails.bIsMainFrame = Frame->IsMain();
+
+				return OnBeforeBrowse().Execute(Url, RequestDetails);
 			}
 		}
 	}

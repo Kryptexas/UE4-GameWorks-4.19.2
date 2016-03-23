@@ -21,7 +21,12 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 
 	// Default Constructor
 	FFriendsChatStyle()
-		: TimeStampOpacity(1.0f)
+		: TimeStampOpacity(0.5f)
+		, ChatEntryPadding(0)
+		, ChatEntryHeight(55)
+		, FriendActionPadding(20, 15)
+		, FriendActionHeaderPadding(20)
+		, FriendActionStatusMargin(20, 0, 0, 0)
 	{
 
 	}
