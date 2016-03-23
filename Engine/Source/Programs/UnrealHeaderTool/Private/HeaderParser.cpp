@@ -4275,7 +4275,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 //
 // Compile a declaration in Token. Returns 1 if compiled, 0 if not.
 //
-bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
+bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFunction*>& DelegatesToFixup, FToken& Token)
 {
 	EAccessSpecifier AccessSpecifier = ParseAccessProtectionSpecifier(Token);
 	if (AccessSpecifier)
@@ -4422,13 +4422,15 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
 
 	if (Token.Matches(TEXT("UDELEGATE")))
 	{
-		CompileDelegateDeclaration(AllClasses, Token.Identifier, EDelegateSpecifierAction::Parse);
+		UDelegateFunction* Delegate = CompileDelegateDeclaration(AllClasses, Token.Identifier, EDelegateSpecifierAction::Parse);
+		DelegatesToFixup.Add(Delegate);
 		return true;
 	}
 
 	if (IsValidDelegateDeclaration(Token)) // Legacy delegate parsing - it didn't need a UDELEGATE
 	{
-		CompileDelegateDeclaration(AllClasses, Token.Identifier);
+		UDelegateFunction* Delegate = CompileDelegateDeclaration(AllClasses, Token.Identifier);
+		DelegatesToFixup.Add(Delegate);
 		return true;
 	}
 
@@ -5297,7 +5299,7 @@ void FHeaderParser::ParseParameterList(FClasses& AllClasses, UFunction* Function
 	} while( MatchSymbol(TEXT(",")) );
 	RequireSymbol( TEXT(")"), TEXT("parameter list") );
 }
-void FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction)
+UDelegateFunction* FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction)
 {
 	FUnrealSourceFile* CurrentSrcFile = GetCurrentSourceFile();
 	TMap<FName, FString> MetaData;
@@ -5411,7 +5413,7 @@ void FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR
 	}
 
 	FuncInfo.MacroLine = InputLine;
-	auto* DelegateSignatureFunction = CreateDelegateFunction(FuncInfo);
+	UDelegateFunction* DelegateSignatureFunction = CreateDelegateFunction(FuncInfo);
 	UHTMakefile.AddDelegateFunction(CurrentSrcFile, DelegateSignatureFunction);
 
 	FClassMetaData* ClassMetaData = GScriptHelper.AddClassData(DelegateSignatureFunction, UHTMakefile, CurrentSrcFile);
@@ -5490,6 +5492,8 @@ void FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR
 			FError::Throwf(TEXT("Can't override delegate signature function '%s'"), FuncInfo.Function.Identifier);
 		}
 	}
+
+	return DelegateSignatureFunction;
 }
 
 /**
@@ -6381,7 +6385,7 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 // Compile a statement: Either a declaration or a command.
 // Returns 1 if success, 0 if end of file.
 //
-bool FHeaderParser::CompileStatement(FClasses& AllClasses)
+bool FHeaderParser::CompileStatement(FClasses& AllClasses, TArray<UDelegateFunction*>& DelegatesToFixup)
 {
 	// Get a token and compile it.
 	FToken Token;
@@ -6390,7 +6394,7 @@ bool FHeaderParser::CompileStatement(FClasses& AllClasses)
 		// End of file.
 		return false;
 	}
-	else if (!CompileDeclaration(AllClasses, Token))
+	else if (!CompileDeclaration(AllClasses, DelegatesToFixup, Token))
 	{
 		FError::Throwf(TEXT("'%s': Bad command or expression"), Token.Identifier );
 	}
@@ -6586,7 +6590,8 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 #endif
 	{
 		// Parse entire program.
-		while (CompileStatement(AllClasses))
+		TArray<UDelegateFunction*> DelegatesToFixup;
+		while (CompileStatement(AllClasses, DelegatesToFixup))
 		{
 			bEmptyFile = false;
 
@@ -6612,6 +6617,15 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 			// now validate all delegate variables declared in the class
 			TMap<FName, UFunction*> DelegateCache;
 			FixupDelegateProperties(AllClasses, Struct, FScope::GetTypeScope(Struct).Get(), DelegateCache);
+		}
+
+		// Fix up any delegates themselves, if they refer to other delegates
+		{
+			TMap<FName, UFunction*> DelegateCache;
+			for (UDelegateFunction* Delegate : DelegatesToFixup)
+			{
+				FixupDelegateProperties(AllClasses, Delegate, CurrentSrcFile->GetScope().Get(), DelegateCache);
+			}
 		}
 
 		// Precompute info for runtime optimization.
