@@ -26,16 +26,6 @@ enum class ESearchEngine : uint8
 	Bing
 };
 
-struct ESuperSearchConfig
-{
-	TOptional<const FSearchBoxStyle*> Style;
-};
-
-struct ESuperSearchOutput
-{
-	TSharedPtr< SEditableTextBox > ExposedEditableTextBox;
-};
-
 class SSuperSearchBox;
 
 class SUPERSEARCH_API FSuperSearchModule : public IModuleInterface
@@ -94,11 +84,7 @@ public:
 	void SetSearchEngine(ESearchEngine SearchEngine);
 	
 	/** Generates a SuperSearch box widget.  Remember, this widget will become invalid if the SuperSearch DLL is unloaded on the fly. */
-	DEPRECATED(4.11, "Use the new MakeSearchBox.")
-	virtual TSharedRef< SWidget > MakeSearchBox(TSharedPtr< SEditableTextBox >& OutExposedEditableTextBox, const FString& ConfigFilename, const TOptional<const FSearchBoxStyle*> InStyle = TOptional<const FSearchBoxStyle*>(), const TOptional<const FComboBoxStyle*> InSearchEngineStyle = TOptional<const FComboBoxStyle*>()) const;
-
-	/** Generates a SuperSearch box widget.  Remember, this widget will become invalid if the SuperSearch DLL is unloaded on the fly. */
-	virtual TSharedRef< SWidget > MakeSearchBox(const ESuperSearchConfig& Config, ESuperSearchOutput& Output) const;
+	virtual TSharedRef< SWidget > MakeSearchBox(TSharedPtr< SEditableTextBox >& OutExposedEditableTextBox, const TOptional<const FSearchBoxStyle*> InStyle = TOptional<const FSearchBoxStyle*>()) const;
 
 private:
 	

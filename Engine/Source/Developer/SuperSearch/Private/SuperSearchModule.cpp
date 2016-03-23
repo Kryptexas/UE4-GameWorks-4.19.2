@@ -48,20 +48,7 @@ void FSuperSearchModule::SetSearchEngine(ESearchEngine InSearchEngine)
 	}
 }
 
-TSharedRef<SWidget> FSuperSearchModule::MakeSearchBox(TSharedPtr< SEditableTextBox >& OutExposedEditableTextBox, const FString& ConfigFilename, const TOptional<const FSearchBoxStyle*> InStyle, const TOptional<const FComboBoxStyle*> InSearchEngineStyle) const
-{
-	ESuperSearchConfig Config;
-	Config.Style = InStyle;
-
-	ESuperSearchOutput Output;
-	TSharedRef< SWidget > SearchBox = MakeSearchBox(Config, Output);
-
-	OutExposedEditableTextBox = Output.ExposedEditableTextBox;
-
-	return SearchBox;
-}
-
-TSharedRef< SWidget > FSuperSearchModule::MakeSearchBox(const ESuperSearchConfig& Config, ESuperSearchOutput& Output) const
+TSharedRef<SWidget> FSuperSearchModule::MakeSearchBox(TSharedPtr< SEditableTextBox >& OutExposedEditableTextBox, const TOptional<const FSearchBoxStyle*> InStyle) const
 {
 	// Remove any search box that has expired.
 	for ( int32 i = SuperSearchBoxes.Num() - 1; i >= 0; i-- )
@@ -74,10 +61,10 @@ TSharedRef< SWidget > FSuperSearchModule::MakeSearchBox(const ESuperSearchConfig
 
 	TSharedRef< SSuperSearchBox > NewSearchBox =
 		SNew(SSuperSearchBox)
-		.Style(Config.Style)
+		.Style(InStyle)
 		.SearchEngine(SearchEngine);
 
-	Output.ExposedEditableTextBox = NewSearchBox->GetEditableTextBox();
+	OutExposedEditableTextBox = NewSearchBox->GetEditableTextBox();
 
 	SuperSearchBoxes.Add(NewSearchBox);
 

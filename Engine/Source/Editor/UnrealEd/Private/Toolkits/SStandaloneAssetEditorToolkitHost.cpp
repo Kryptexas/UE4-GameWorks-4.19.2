@@ -127,7 +127,7 @@ void SStandaloneAssetEditorToolkitHost::RestoreFromLayout( const TSharedRef<FTab
 
 #if !PLATFORM_MAC
 	TSharedPtr< SEditableTextBox > ExposedEditableTextBox;
-	TSharedRef<SWidget> SuperSearchWidget = FSuperSearchModule::Get().MakeSearchBox(ExposedEditableTextBox, GEditorSettingsIni);
+	TSharedRef<SWidget> SuperSearchWidget = FSuperSearchModule::Get().MakeSearchBox(ExposedEditableTextBox);
 #endif
 	
 	MenuOverlayWidgetContent.Reset();
