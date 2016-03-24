@@ -1,7 +1,7 @@
 {
     "FileVersion" : 3,
 	
-	"DisplayName" : "Leap Motion Plugin",
+	"FriendlyName" : "Leap Motion Plugin",
 	"Version" : 20,
 	"VersionName" : "1.0.0",
 	"CreatedBy" : "Getnamo",
