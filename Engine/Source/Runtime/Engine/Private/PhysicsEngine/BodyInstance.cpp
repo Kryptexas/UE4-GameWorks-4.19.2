@@ -4365,7 +4365,9 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 				if(!POutDirection.isFinite())
 				{
 					UE_LOG(LogPhysics, Warning, TEXT("Warning: OverlapPhysX_AssumesLocked: MTD returned NaN :( normal: (X:%f, Y:%f, Z:%f)"), POutDirection.x, POutDirection.y, POutDirection.z);
-					continue;
+					POutDirection.x = 0.f;
+					POutDirection.y = 0.f;
+					POutDirection.z = 0.f;
 				}
 
 				if(OutMTD)
