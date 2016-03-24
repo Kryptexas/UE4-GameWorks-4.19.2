@@ -368,6 +368,15 @@ public:
 		}
 	}
 
+	/** Compacts the allocated elements into a contiguous range. Does not change the iteration order of the elements. */
+	FORCEINLINE void CompactStable()
+	{
+		if (Elements.CompactStable())
+		{
+			Rehash();
+		}
+	}
+
 	/** Preallocates enough memory to contain Number elements */
 	FORCEINLINE void Reserve(int32 Number)
 	{
