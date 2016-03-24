@@ -183,6 +183,19 @@ struct CORE_API FGenericPlatformStackWalk
 	static void StackWalkAndDump( ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, void* Context = nullptr );
 
 	/**
+	* Walks the stack for the specified thread and appends the human readable string to the passed in one.
+	* @warning: The code assumes that HumanReadableString is large enough to contain the information.
+	*
+	* @param	HumanReadableString	String to concatenate information with
+	* @param	HumanReadableStringSize size of string in characters
+	* @param	IgnoreCount			Number of stack entries to ignore (some are guaranteed to be in the stack walking code)
+	* @param	ThreadId				ThreadId to walk the strack for.
+	*/
+	static void ThreadStackWalkAndDump(ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, uint32 ThreadId)
+	{
+	}
+
+	/**
 	 * Walks the stack and appends the human readable string to the passed in one.
 	 * @warning: The code assumes that HumanReadableString is large enough to contain the information.
 	 *

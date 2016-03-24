@@ -190,6 +190,11 @@ public:
 	{ 
 		return UsedMalloc->GetDescriptiveName();
 	}
+
+	virtual void FlushCurrentThreadCache() override
+	{
+		UsedMalloc->FlushCurrentThreadCache();
+	}
 };
 
 #endif // MALLOC_LEAKDETECTION

@@ -219,8 +219,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			{
 				this.BuildVersion = this.AffectedVersions.Last();	// Latest Version Affected
 			}
-
-
+            
 			foreach( var AffectedBuild in this.AffectedVersions )
 			{
 				var Subs = AffectedBuild.Split( ".".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
@@ -245,7 +244,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			this.LatestOSAffected = LatestOSAffected;			// Latest Environment Affected
 
 			// ToJiraSummary
-			var FunctionCalls = CrashesForBugg.First().GetCallStack().GetFunctionCallsForJira();
+			var FunctionCalls = new CallStackContainer(CrashesForBugg.First()).GetFunctionCallsForJira();
 			if( FunctionCalls.Count > 0 )
 			{
 				this.ToJiraSummary = FunctionCalls[0];
@@ -417,7 +416,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				var CrashList =
 				(
 						from BuggCrash in CrashRepo.Context.Buggs_Crashes
-						where BuggCrash.BuggId == Id && BuggCrash.Crash.TimeOfCrash > DateTime.UtcNow.AddMonths(-6)
+                        where BuggCrash.BuggId == Id && BuggCrash.Crash.TimeOfCrash > DateTime.UtcNow.AddMonths(-6)
 						select BuggCrash.Crash
 				).OrderByDescending( c => c.TimeOfCrash ).ToList();
 				return CrashList;

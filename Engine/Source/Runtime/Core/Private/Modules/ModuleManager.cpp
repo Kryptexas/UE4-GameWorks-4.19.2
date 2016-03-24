@@ -226,9 +226,38 @@ void FModuleManager::AddModule(const FName InModuleName)
 		return;
 	}
 
+	FString ModuleFilename = MoveTemp(TMap<FName, FString>::TConstIterator(ModulePathMap).Value());
+
+	const int32 MatchPos = ModuleFilename.Find(ModuleNameString, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+	if (!ensureMsgf(MatchPos != INDEX_NONE, TEXT("Could not find module name '%s' in module filename '%s'"), InModuleName, *ModuleFilename))
+	{
+		return;
+	}
+
+	// Skip any existing module number suffix
+	const int32 SuffixStart = MatchPos + ModuleNameString.Len();
+	int32 SuffixEnd = SuffixStart;
+	if (ModuleFilename[SuffixEnd] == TEXT('-'))
+	{
+		++SuffixEnd;
+		while (FCString::Strchr(TEXT("0123456789"), ModuleFilename[SuffixEnd]))
+		{
+			++SuffixEnd;
+		}
+
+		// Only skip the suffix if it was a number
+		if (SuffixEnd - SuffixStart == 1)
+		{
+			--SuffixEnd;
+		}
+	}
+
+	const FString Prefix = ModuleFilename.Left(SuffixStart);
+	const FString Suffix = ModuleFilename.Right(ModuleFilename.Len() - SuffixEnd);
+
 	// Add this module to the set of modules that we know about
-	ModuleInfo->OriginalFilename = TMap<FName, FString>::TConstIterator(ModulePathMap).Value();
-	ModuleInfo->Filename = ModuleInfo->OriginalFilename;
+	ModuleInfo->OriginalFilename = Prefix + Suffix;
+	ModuleInfo->Filename         = ModuleInfo->OriginalFilename;
 
 	// When iterating on code during development, it's possible there are multiple rolling versions of this
 	// module's DLL file.  This can happen if the programmer is recompiling DLLs while the game is loaded.  In
@@ -245,18 +274,6 @@ void FModuleManager::AddModule(const FName InModuleName)
 	{
 		return;
 	}
-
-	const FString ModuleName = *InModuleName.ToString();
-	const int32 MatchPos = ModuleInfo->OriginalFilename.Find(ModuleName, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-	if (!ensureMsgf(MatchPos != INDEX_NONE, TEXT("Could not find module name '%s' in module filename '%s'"), *ModuleName, *ModuleInfo->OriginalFilename))
-	{
-		return;
-	}
-
-	const int32 SuffixPos = MatchPos + ModuleName.Len();
-
-	const FString Prefix = ModuleInfo->OriginalFilename.Left(SuffixPos);
-	const FString Suffix = ModuleInfo->OriginalFilename.Right(ModuleInfo->OriginalFilename.Len() - SuffixPos);
 
 	const FString ModuleFileSearchString = FString::Printf(TEXT("%s-*%s"), *Prefix, *Suffix);
 

@@ -183,12 +183,12 @@ bool FApp::ShouldUseThreadingForPerformance()
 #endif // HAVE_RUNTIME_THREADING_SWITCHES
 
 
-static bool GUnfocusedVolumeMultiplierItialised = false;
+static bool GUnfocusedVolumeMultiplierInitialised = false;
 float FApp::GetUnfocusedVolumeMultiplier()
 {
-	if (!GUnfocusedVolumeMultiplierItialised)
+	if (!GUnfocusedVolumeMultiplierInitialised)
 	{
-		GUnfocusedVolumeMultiplierItialised = true;
+		GUnfocusedVolumeMultiplierInitialised = true;
 		GConfig->GetFloat(TEXT("Audio"), TEXT("UnfocusedVolumeMultiplier"), UnfocusedVolumeMultiplier, GEngineIni);
 	}
 	return UnfocusedVolumeMultiplier;
@@ -197,7 +197,7 @@ float FApp::GetUnfocusedVolumeMultiplier()
 void FApp::SetUnfocusedVolumeMultiplier(float InVolumeMultiplier)
 {
 	UnfocusedVolumeMultiplier = InVolumeMultiplier;
-	GUnfocusedVolumeMultiplierItialised = true;
+	GUnfocusedVolumeMultiplierInitialised = true;
 }
 
 void FApp::SetUseVRFocus(bool bInUseVRFocus)

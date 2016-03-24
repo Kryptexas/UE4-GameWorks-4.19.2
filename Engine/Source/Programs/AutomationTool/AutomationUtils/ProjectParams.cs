@@ -498,6 +498,14 @@ namespace AutomationTool
 			this.Clean = GetOptionalParamValueIfNotSpecified(Command, Clean, this.Clean, "clean", null);
 			this.SignPak = ParseParamValueIfNotSpecified(Command, SignPak, "signpak", String.Empty);
 			this.SignedPak = !String.IsNullOrEmpty(this.SignPak) || GetParamValueIfNotSpecified(Command, SignedPak, this.SignedPak, "signedpak");
+			if (string.IsNullOrEmpty(this.SignPak))
+			{
+				this.SignPak = Path.Combine(RawProjectPath.Directory.FullName, @"Build\NoRedist\Keys.txt");
+				if (!File.Exists(this.SignPak))
+				{
+					this.SignPak = null;
+				}
+			}
 			this.Pak = this.SignedPak || GetParamValueIfNotSpecified(Command, Pak, this.Pak, "pak");
 			this.SkipPak = GetParamValueIfNotSpecified(Command, SkipPak, this.SkipPak, "skippak");
 			if (this.SkipPak)

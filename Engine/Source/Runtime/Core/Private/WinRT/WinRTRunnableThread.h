@@ -74,6 +74,7 @@ class FRunnableThreadWinRT : public FRunnableThread
 		check(Runnable);
 
 		ThreadID = GetCurrentThreadId();
+		FThreadManager::Get().AddThread(ThreadID, this);
 
 		// Initialize the runnable object
 		if (Runnable->Init() == true)

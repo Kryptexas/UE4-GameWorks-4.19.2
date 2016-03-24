@@ -1127,9 +1127,9 @@ void AddModuleRelativePathToMetadata(UField* Type, TMap<FName, FString> &MetaDat
 UEnum* FHeaderParser::CompileEnum()
 {
 	FUnrealSourceFile* CurrentSrcFile = GetCurrentSourceFile();
-	auto Scope = CurrentSrcFile->GetScope();
+	TSharedPtr<FFileScope> Scope = CurrentSrcFile->GetScope();
 
-	CheckAllow( TEXT("'Enum'"), ALLOW_TypeDecl );
+	CheckAllow( TEXT("'Enum'"), ENestAllowFlags::TypeDecl );
 
 	// Get the enum specifier list
 	FToken                     EnumToken;
@@ -1711,7 +1711,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses)
 	auto Scope = CurrentSrcFile->GetScope();
 
 	// Make sure structs can be declared here.
-	CheckAllow( TEXT("'struct'"), ALLOW_TypeDecl );//@TODO: UCREMOVAL: After the switch: Make this require global scope
+	CheckAllow( TEXT("'struct'"), ENestAllowFlags::TypeDecl );
 
 	FScriptLocation StructDeclaration;
 
@@ -2182,14 +2182,14 @@ const TCHAR *FHeaderParser::NestTypeName( ENestType NestType )
 {
 	switch( NestType )
 	{
-		case NEST_GlobalScope:
+		case ENestType::GlobalScope:
 			return TEXT("Global Scope");
-		case NEST_Class:
+		case ENestType::Class:
 			return TEXT("Class");
-		case NEST_NativeInterface:
-		case NEST_Interface:
+		case ENestType::NativeInterface:
+		case ENestType::Interface:
 			return TEXT("Interface");
-		case NEST_FunctionDeclaration:
+		case ENestType::FunctionDeclaration:
 			return TEXT("Function");
 		default:
 			check(false);
@@ -2198,9 +2198,9 @@ const TCHAR *FHeaderParser::NestTypeName( ENestType NestType )
 }
 
 // Checks to see if a particular kind of command is allowed on this nesting level.
-bool FHeaderParser::IsAllowedInThisNesting(uint32 AllowFlags)
+bool FHeaderParser::IsAllowedInThisNesting(ENestAllowFlags AllowFlags)
 {
-	return ((TopNest->Allow & AllowFlags) != 0);
+	return (TopNest->Allow & AllowFlags) != ENestAllowFlags::None;
 }
 
 //
@@ -2208,11 +2208,11 @@ bool FHeaderParser::IsAllowedInThisNesting(uint32 AllowFlags)
 // If it's not, issues a compiler error referring to the token and the current
 // nesting level.
 //
-void FHeaderParser::CheckAllow( const TCHAR* Thing, uint32 AllowFlags )
+void FHeaderParser::CheckAllow( const TCHAR* Thing, ENestAllowFlags AllowFlags )
 {
 	if (!IsAllowedInThisNesting(AllowFlags))
 	{
-		if (TopNest->NestType == NEST_GlobalScope)
+		if (TopNest->NestType == ENestType::GlobalScope)
 		{
 			FError::Throwf(TEXT("%s is not allowed before the Class definition"), Thing );
 		}
@@ -2240,7 +2240,7 @@ void FHeaderParser::PushNest(ENestType NestType, UStruct* InNode, FUnrealSourceF
 {
 	// Update pointer to top nesting level.
 	TopNest = &Nest[NestLevel++];
-	TopNest->SetScope(NestType == NEST_GlobalScope ? &SourceFile->GetScope().Get() : &FScope::GetTypeScope(InNode).Get());
+	TopNest->SetScope(NestType == ENestType::GlobalScope ? &SourceFile->GetScope().Get() : &FScope::GetTypeScope(InNode).Get());
 	TopNest->NestType = NestType;
 
 	// Prevent overnesting.
@@ -2250,7 +2250,7 @@ void FHeaderParser::PushNest(ENestType NestType, UStruct* InNode, FUnrealSourceF
 	}
 
 	// Inherit info from stack node above us.
-	if (NestLevel > 1 && NestType == NEST_GlobalScope)
+	if (NestLevel > 1 && NestType == ENestType::GlobalScope)
 	{
 		// Use the existing stack node.
 		TopNest->SetScope(TopNest[-1].GetScope());
@@ -2259,21 +2259,21 @@ void FHeaderParser::PushNest(ENestType NestType, UStruct* InNode, FUnrealSourceF
 	// NestType specific logic.
 	switch (NestType)
 	{
-	case NEST_GlobalScope:
-		TopNest->Allow = ALLOW_Class | ALLOW_TypeDecl | ALLOW_Function;
+	case ENestType::GlobalScope:
+		TopNest->Allow = ENestAllowFlags::Class | ENestAllowFlags::TypeDecl | ENestAllowFlags::ImplicitDelegateDecl;
 		break;
 
-	case NEST_Class:
-		TopNest->Allow = ALLOW_VarDecl | ALLOW_Function | ALLOW_TypeDecl;
+	case ENestType::Class:
+		TopNest->Allow = ENestAllowFlags::VarDecl | ENestAllowFlags::Function | ENestAllowFlags::ImplicitDelegateDecl;
 		break;
 
-	case NEST_NativeInterface:
-	case NEST_Interface:
-		TopNest->Allow = ALLOW_Function | ALLOW_TypeDecl;
+	case ENestType::NativeInterface:
+	case ENestType::Interface:
+		TopNest->Allow = ENestAllowFlags::Function;
 		break;
 
-	case NEST_FunctionDeclaration:
-		TopNest->Allow = ALLOW_VarDecl;
+	case ENestType::FunctionDeclaration:
+		TopNest->Allow = ENestAllowFlags::VarDecl;
 
 		break;
 
@@ -2301,19 +2301,19 @@ void FHeaderParser::PopNest(ENestType NestType, const TCHAR* Descr)
 		FError::Throwf(TEXT("Unexpected end of %s in '%s' block"), Descr, NestTypeName(TopNest->NestType));
 	}
 
-	if (NestType != NEST_GlobalScope && NestType != NEST_Class && NestType != NEST_Interface && NestType != NEST_NativeInterface && NestType != NEST_FunctionDeclaration)
+	if (NestType != ENestType::GlobalScope && NestType != ENestType::Class && NestType != ENestType::Interface && NestType != ENestType::NativeInterface && NestType != ENestType::FunctionDeclaration)
 	{
 		FError::Throwf(TEXT("Bad first pass NestType %i"), (uint8)NestType);
 	}
 
 	bool bLinkProps = true;
-	if (NestType == NEST_Class)
+	if (NestType == ENestType::Class)
 	{
 		UClass* TopClass = CastChecked<UClass>(GetCurrentClass());
 		bLinkProps = !TopClass->HasAnyClassFlags(CLASS_Intrinsic);
 	}
 
-	if (NestType != NEST_GlobalScope)
+	if (NestType != ENestType::GlobalScope)
 	{
 		GetCurrentClass()->StaticLink(bLinkProps);
 	}
@@ -4345,16 +4345,16 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
 	EAccessSpecifier AccessSpecifier = ParseAccessProtectionSpecifier(Token);
 	if (AccessSpecifier)
 	{
-		if (!IsAllowedInThisNesting(ALLOW_VarDecl) && !IsAllowedInThisNesting(ALLOW_Function))
+		if (!IsAllowedInThisNesting(ENestAllowFlags::VarDecl) && !IsAllowedInThisNesting(ENestAllowFlags::Function))
 		{
 			FError::Throwf(TEXT("Access specifier %s not allowed here."), Token.Identifier);
 		}
-		check(TopNest->NestType == NEST_Class || TopNest->NestType == NEST_Interface || TopNest->NestType == NEST_NativeInterface);
+		check(TopNest->NestType == ENestType::Class || TopNest->NestType == ENestType::Interface || TopNest->NestType == ENestType::NativeInterface);
 		CurrentAccessSpecifier = AccessSpecifier;
 		return true;
 	}
 
-	if (Token.Matches(TEXT("class")) && (TopNest->NestType == NEST_GlobalScope))
+	if (Token.Matches(TEXT("class")) && (TopNest->NestType == ENestType::GlobalScope))
 	{
 		// Make sure the previous class ended with valid nesting.
 		if (bEncounteredNewStyleClass_UnmatchedBrackets)
@@ -4375,9 +4375,9 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
 		return true;
 	}
 
-	if (Token.Matches(TEXT("GENERATED_IINTERFACE_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == NEST_NativeInterface))
+	if (Token.Matches(TEXT("GENERATED_IINTERFACE_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == ENestType::NativeInterface))
 	{
-		if (TopNest->NestType != NEST_NativeInterface)
+		if (TopNest->NestType != ENestType::NativeInterface)
 		{
 			FError::Throwf(TEXT("%s must occur inside the native interface definition"), Token.Identifier);
 		}
@@ -4404,9 +4404,9 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
 		return true;
 	}
 
-	if (Token.Matches(TEXT("GENERATED_UINTERFACE_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == NEST_Interface))
+	if (Token.Matches(TEXT("GENERATED_UINTERFACE_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == ENestType::Interface))
 	{
-		if (TopNest->NestType != NEST_Interface)
+		if (TopNest->NestType != ENestType::Interface)
 		{
 			FError::Throwf(TEXT("%s must occur inside the interface definition"), Token.Identifier);
 		}
@@ -4428,9 +4428,9 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
 		return true;
 	}
 
-	if (Token.Matches(TEXT("GENERATED_UCLASS_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == NEST_Class))
+	if (Token.Matches(TEXT("GENERATED_UCLASS_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == ENestType::Class))
 	{
-		if (TopNest->NestType != NEST_Class)
+		if (TopNest->NestType != ENestType::Class)
 		{
 			FError::Throwf(TEXT("%s must occur inside the class definition"), Token.Identifier);
 		}
@@ -4463,7 +4463,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
 		return true;
 	}
 
-	if (Token.Matches(TEXT("UCLASS"), ESearchCase::CaseSensitive) && (TopNest->Allow & ALLOW_Class))
+	if (Token.Matches(TEXT("UCLASS"), ESearchCase::CaseSensitive))
 	{
 		bHaveSeenUClass = true;
 		bEncounteredNewStyleClass_UnmatchedBrackets = true;
@@ -4471,7 +4471,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
 		return true;
 	}
 
-	if (Token.Matches(TEXT("UINTERFACE")) && (TopNest->Allow & ALLOW_Class))
+	if (Token.Matches(TEXT("UINTERFACE")))
 	{
 		bHaveSeenUClass = true;
 		bEncounteredNewStyleClass_UnmatchedBrackets = true;
@@ -4499,8 +4499,8 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
 
 	if (Token.Matches(TEXT("UPROPERTY"), ESearchCase::CaseSensitive))
 	{
-		CheckAllow(TEXT("'Member variable declaration'"), ALLOW_VarDecl);
-		check(TopNest->NestType == NEST_Class);
+		CheckAllow(TEXT("'Member variable declaration'"), ENestAllowFlags::VarDecl);
+		check(TopNest->NestType == ENestType::Class);
 
 		CompileVariableDeclaration(AllClasses, GetCurrentClass());
 		return true;
@@ -4545,7 +4545,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
 		// Pop nesting here to allow other non UClass declarations in the header file.
 		if (CurrentClass->ClassFlags & CLASS_Interface)
 		{
-			checkf(TopNest->NestType == NEST_Interface || TopNest->NestType == NEST_NativeInterface, TEXT("Unexpected end of interface block."));
+			checkf(TopNest->NestType == ENestType::Interface || TopNest->NestType == ENestType::NativeInterface, TEXT("Unexpected end of interface block."));
 			PopNest(TopNest->NestType, TEXT("'Interface'"));
 			PostPopNestInterface(AllClasses, CurrentClass);
 
@@ -4563,7 +4563,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FToken& Token)
 		}
 		else
 		{
-			PopNest(NEST_Class, TEXT("'Class'"));
+			PopNest(ENestType::Class, TEXT("'Class'"));
 			PostPopNestClass(CurrentClass);
 
 			// Ensure classes have a GENERATED_BODY declaration
@@ -4920,7 +4920,7 @@ void PostParsingClassSetup(UClass* Class)
 void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 {
 	// Start of a class block.
-	CheckAllow(TEXT("'class'"), ALLOW_Class);
+	CheckAllow(TEXT("'class'"), ENestAllowFlags::Class);
 
 	// New-style UCLASS() syntax
 	TMap<FName, FString> MetaData;
@@ -4954,7 +4954,7 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 
 	Class->ClassFlags |= CLASS_Parsed;
 
-	PushNest(ENestType::NEST_Class, Class);
+	PushNest(ENestType::Class, Class);
 	
 	const uint32 PrevClassFlags = Class->ClassFlags;
 	ResetClassData();
@@ -5114,7 +5114,7 @@ bool FHeaderParser::TryParseIInterfaceClass(FClasses& AllClasses)
 	RequireSymbol(TEXT("{"), *ErrorMsg);
 
 	// Push the interface class nesting again.
-	PushNest(NEST_NativeInterface, FoundClass);
+	PushNest(ENestType::NativeInterface, FoundClass);
 
 	return true;
 }
@@ -5127,7 +5127,7 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 	FUnrealSourceFile* CurrentSrcFile = GetCurrentSourceFile();
 	// Start of an interface block. Since Interfaces and Classes are always at the same nesting level,
 	// whereever a class declaration is allowed, an interface declaration is also allowed.
-	CheckAllow( TEXT("'interface'"), ALLOW_Class );
+	CheckAllow( TEXT("'interface'"), ENestAllowFlags::Class );
 
 	FString DeclaredInterfaceName;
 	FString RequiredAPIMacroIfPresent;
@@ -5226,8 +5226,8 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 	check(InterfaceClass->HasAnyFlags(RF_Standalone));
 
 	// Push the interface class nesting.
-	// we need a more specific set of allow flags for NEST_Interface, only function declaration is allowed, no other stuff are allowed
-	PushNest(NEST_Interface, InterfaceClass);
+	// we need a more specific set of allow flags for ENestType::Interface, only function declaration is allowed, no other stuff are allowed
+	PushNest(ENestType::Interface, InterfaceClass);
 }
 
 // Returns true if the token is a dynamic delegate declaration
@@ -5364,6 +5364,8 @@ void FHeaderParser::ParseParameterList(FClasses& AllClasses, UFunction* Function
 }
 void FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction)
 {
+	const TCHAR* CurrentScopeName = TEXT("Delegate Declaration");
+
 	FUnrealSourceFile* CurrentSrcFile = GetCurrentSourceFile();
 	TMap<FName, FString> MetaData;
 	AddModuleRelativePathToMetadata(*CurrentSrcFile, MetaData);
@@ -5386,15 +5388,13 @@ void FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR
 			FError::Throwf(TEXT("Unexpected token following UDELEGATE(): %s"), Token.Identifier);
 
 		DelegateMacro = Token.Identifier;
+		CheckAllow(CurrentScopeName, ENestAllowFlags::TypeDecl);
 	}
 	else
 	{
 		DelegateMacro = DelegateIdentifier;
+		CheckAllow(CurrentScopeName, ENestAllowFlags::ImplicitDelegateDecl);
 	}
-
-	// Make sure we can have a delegate declaration here
-	const TCHAR* CurrentScopeName = TEXT("Delegate Declaration");
-	CheckAllow(CurrentScopeName, ALLOW_TypeDecl);//@TODO: UCREMOVAL: After the switch: Make this require global scope
 
 	// Break the delegate declaration macro down into parts
 	const bool bHasReturnValue = DelegateMacro.Contains(TEXT("_RetVal"));
@@ -5562,7 +5562,7 @@ void FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR
  */
 void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 {
-	CheckAllow(TEXT("'Function'"), ALLOW_Function);
+	CheckAllow(TEXT("'Function'"), ENestAllowFlags::Function);
 
 	FUnrealSourceFile* CurrentSrcFile = GetCurrentSourceFile();
 	TMap<FName, FString> MetaData;
@@ -6390,7 +6390,7 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 		// Deprecation validation
 		ValidatePropertyIsDeprecatedIfNecessary(Property, NULL);
 
-		if (TopNest->NestType != NEST_FunctionDeclaration)
+		if (TopNest->NestType != ENestType::FunctionDeclaration)
 		{
 			if (NewProperties.Num())
 			{
@@ -6640,7 +6640,7 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 	// Init nesting.
 	NestLevel = 0;
 	TopNest = NULL;
-	PushNest(NEST_GlobalScope, nullptr, CurrentSrcFile);
+	PushNest(ENestType::GlobalScope, nullptr, CurrentSrcFile);
 
 	// C++ classes default to private access level
 	CurrentAccessSpecifier = ACCESS_Private; 
@@ -6665,7 +6665,7 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 			StatementsParsed++;
 		}
 
-		PopNest(NEST_GlobalScope, TEXT("Global scope"));
+		PopNest(ENestType::GlobalScope, TEXT("Global scope"));
 
 		auto ScopeTypeIterator = CurrentSrcFile->GetScope()->GetTypeIterator();
 		while (ScopeTypeIterator.MoveNext())
@@ -6747,7 +6747,7 @@ ECompilationResult::Type FHeaderParser::ParseHeader(FClasses& AllClasses, FUnrea
 		if (NestLevel == 0)
 		{
 			// Pushing nest so there is a file context for this error.
-			PushNest(NEST_GlobalScope, nullptr, CurrentSrcFile);
+			PushNest(ENestType::GlobalScope, nullptr, CurrentSrcFile);
 		}
 
 		// Handle compiler error.

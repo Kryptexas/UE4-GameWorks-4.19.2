@@ -657,6 +657,11 @@ namespace UnrealBuildTool
 		public List<string> AdditionalPlugins = new List<string>();
 
 		/// <summary>
+		/// Path to the set of pak signing keys to embed in the executable
+		/// </summary>
+		public string PakSigningKeysFile = "";
+
+		/// <summary>
 		/// Is the given type a 'game' type (Game/Editor/Server) wrt building?
 		/// </summary>
 		/// <param name="InType">The target type of interest</param>

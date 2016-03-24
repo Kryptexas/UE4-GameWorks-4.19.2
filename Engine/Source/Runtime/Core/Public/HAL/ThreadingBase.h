@@ -258,6 +258,7 @@ class CORE_API FRunnableThread
 {
 	friend class FThreadSingletonInitializer;
 	friend class FTlsAutoCleanup;
+	friend class FThreadManager;
 
 	/** Index of TLS slot for FRunnableThread pointer. */
 	static uint32 RunnableTlsSlot;
@@ -360,7 +361,7 @@ public:
 	FRunnableThread();
 
 	/** Virtual destructor */
-	virtual ~FRunnableThread(){}
+	virtual ~FRunnableThread();
 
 protected:
 
@@ -412,6 +413,11 @@ protected:
 
 	/** ID set during thread creation. */
 	uint32 ThreadID;
+
+private:
+
+	/** Used by the thread manager to tick threads in single-threaded mode */
+	virtual void Tick() {}
 };
 
 
@@ -487,40 +493,45 @@ public:
 
 
 /**
- * Manages runnables and runnable threads when multithreading is disabled.
+ * Manages runnables and runnable threads.
  */
-class CORE_API FSingleThreadManager
+class CORE_API FThreadManager
 {
 	/** List of thread objects to be ticked. */
-	TArray<class FFakeThread*> ThreadList;
+	TMap<uint32, class FRunnableThread*> Threads;
+	/** Critical section for ThreadList */
+	FCriticalSection ThreadsCritical;
 
 public:
 
 	/**
-	 * Used internally to add a new thread object when multithreading is disabled.
-	 *
-	 * @param Thread Fake thread object.
-	 * @see RemoveThread
-	 */
-	void AddThread( class FFakeThread* Thread );
+	* Used internally to add a new thread object.
+	*
+	* @param Thread thread object.
+	* @see RemoveThread
+	*/
+	void AddThread(uint32 ThreadId, class FRunnableThread* Thread);
 
 	/**
-	 * Used internally to remove fake thread object.
-	 *
-	 * @param Thread Fake thread object to be removed.
-	 * @see AddThread
-	 */
-	void RemoveThread( class FFakeThread* Thread );
+	* Used internally to remove thread object.
+	*
+	* @param Thread thread object to be removed.
+	* @see AddThread
+	*/
+	void RemoveThread(class FRunnableThread* Thread);
 
 	/** Ticks all fake threads and their runnable objects. */
 	void Tick();
+
+	/** Returns the name of a thread given its TLS id */
+	const FString& GetThreadName(uint32 ThreadId);
 
 	/**
 	 * Access to the singleton object.
 	 *
 	 * @return Thread manager object.
 	 */
-	static FSingleThreadManager& Get();
+	static FThreadManager& Get();
 };
 
 
@@ -650,6 +661,7 @@ extern CORE_API FQueuedThreadPool* GLargeThreadPool;
 class FThreadSafeCounter
 {
 public:
+	typedef int32 IntegerType;
 
 	/**
 	 * Default constructor.
@@ -779,6 +791,7 @@ private:
 class FThreadSafeCounter64
 {
 public:
+	typedef int64 IntegerType;
 
 	/**
 	* Default constructor.

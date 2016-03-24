@@ -1114,6 +1114,7 @@ namespace AutomationTool
 				{
 					throw new AutomationException("Unable to update version info in {0}", MyFile.FullName);
 				}
+				OriginalLines = Lines;
 			}
 		}
 

@@ -73,6 +73,20 @@ FORCEINLINE void Move(T& A,typename TMoveSupportTraits<T>::Move B)
 	// Use placement new and a copy constructor so types with const members will work.
 	new(&A) T(MoveTemp(B));
 }
+
+/**
+ * Tests if an index is valid for a given array.
+ *
+ * @param Array  The array to check against.
+ * @param Index  The index to check.
+ * @return true if the index is valid, false otherwise.
+ */
+template <typename T, SIZE_T N>
+static FORCEINLINE bool IsValidArrayIndex(const T(&Array)[N], SIZE_T Index)
+{
+	return Index < N;
+}
+
 /*----------------------------------------------------------------------------
 	Standard macros.
 ----------------------------------------------------------------------------*/

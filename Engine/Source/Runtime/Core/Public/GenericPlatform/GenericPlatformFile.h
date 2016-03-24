@@ -178,6 +178,14 @@ public:
 		}
 	}
 
+	virtual void		BypassSecurity(bool bInBypass)
+	{
+		if (GetLowerLevel() != nullptr)
+		{
+			GetLowerLevel()->BypassSecurity(bInBypass);
+		}
+	}
+
 	/** Gets the platform file wrapped by this file. */
 	virtual IPlatformFile* GetLowerLevel() = 0;
 		/** Gets this platform file type name. */

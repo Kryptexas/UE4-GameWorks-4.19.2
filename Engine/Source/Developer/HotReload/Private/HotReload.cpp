@@ -1358,6 +1358,8 @@ void FHotReloadModule::DoHotReloadFromIDE()
 
 		UE_LOG(LogHotReload, Log, TEXT("Starting Hot-Reload from IDE"));
 
+		HotReloadStartTime = FPlatformTime::Seconds();
+
 		FScopedSlowTask SlowTask(100.f, LOCTEXT("CompilingGameCode", "Compiling Game Code"));
 		SlowTask.MakeDialog();
 

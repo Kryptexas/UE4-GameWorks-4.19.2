@@ -719,13 +719,17 @@ FArchive* CreatePakWriter(const TCHAR* Filename)
 		else if (!ReadKeysFromFile(*KeyFilename, Pair))
 		{
 			UE_LOG(LogPakFile, Error, TEXT("Unable to load signature keys %s."), *KeyFilename);
+		}
+
+		if (!TestKeys(Pair))
+		{
 			Pair.PrivateKey.Exponent.Zero();
 		}
 
 		if (!Pair.PrivateKey.Exponent.IsZero())
 		{
 			UE_LOG(LogPakFile, Display, TEXT("Creating signed pak %s."), Filename);
-			Writer = new FSignedArchiveWriter(*Writer, Pair.PublicKey, Pair.PrivateKey);
+			Writer = new FSignedArchiveWriter(*Writer, Filename, Pair.PublicKey, Pair.PrivateKey);
 		}
 		else
 		{
@@ -1374,6 +1378,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak GenerateKeys=<KeyFilename>"));
 		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak GeneratePrimeTable=<KeyFilename> [-TableMax=<N>]"));
 		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename1> <PakFilename2> -diff"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak -TestEncryption"));
 		UE_LOG(LogPakFile, Error, TEXT("  Options:"));
 		UE_LOG(LogPakFile, Error, TEXT("    -blocksize=<BlockSize>"));
 		UE_LOG(LogPakFile, Error, TEXT("    -compress"));
@@ -1395,6 +1400,11 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		int64 MaxPrimeValue = 10000;
 		FParse::Value(FCommandLine::Get(), TEXT("TableMax="), MaxPrimeValue);
 		GeneratePrimeNumberTable(MaxPrimeValue, *KeyFilename);
+	}
+	else if (FParse::Param(FCommandLine::Get(), TEXT("TestEncryption")))
+	{
+		void TestEncryption();
+		TestEncryption();
 	}
 	else 
 	{

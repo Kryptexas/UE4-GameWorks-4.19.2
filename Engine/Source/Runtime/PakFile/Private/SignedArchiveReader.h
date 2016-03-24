@@ -99,9 +99,9 @@ class FChunkCacheWorker : public FRunnable
 	};
 
 	/** Encrypted signatures */
-	TArray<FEncryptedSignature<GPakFileChunkHashSize>> EncryptedSignatures;
+	TArray<FEncryptedSignature> EncryptedSignatures;
 	/** Decrypted signatures */
-	TArray<FDecryptedSignature<GPakFileChunkHashSize>> DecryptedSignatures;
+	TArray<FDecryptedSignature> DecryptedSignatures;
 	/** Thread to run the worker FRunnable on */
 	FRunnableThread* Thread;
 	/** Archive reader */
@@ -124,7 +124,7 @@ class FChunkCacheWorker : public FRunnable
 	FEncryptionKey DecryptionKey;
 	/** The time at which the chunk cache worker started, for debugging purposes */
 	double StartTime;
-	
+
 	/** 
 	 * Process requested chunks 
 	 *
@@ -136,10 +136,6 @@ class FChunkCacheWorker : public FRunnable
 	 */
 	bool CheckSignature(const FChunkRequest& ChunkInfo);
 	/** 
-	 * Decrypts a signature [*]
-	 */
-	void Decrypt(uint8* DecryptedData, const int256* Data, const int64 DataLength);
-	/**
 	* Decrypts multiple signature [*]
 	*/
 	void DecryptSignatures(int32 NextIndexToDecrypt);
@@ -162,7 +158,7 @@ class FChunkCacheWorker : public FRunnable
 
 public:
 
-	FChunkCacheWorker(FArchive* InReader);
+	FChunkCacheWorker(FArchive* InReader, const TCHAR* Filename);
 	virtual ~FChunkCacheWorker();
 
 	//~ Begin FRunnable Interface.
@@ -184,12 +180,6 @@ public:
 	 * Releases the requested chunk buffer
 	 */
 	void ReleaseChunk(FChunkRequest& Chunk);
-	/**
-	 * Attach this chunck cache worker to the given archive [*]
- 	 * @param Archive to attach to
-	 * @return End position in the archive of the actual file data, ignoring signature data 
-	 */
-	int64 AttachToArchive(FArchive& InAr);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -265,7 +255,7 @@ class FSignedArchiveReader : public FArchive
 	int64 CalculateChunkSize(int64 ChunkIndex) const;
 
 	/** 
-	 * Queues chunks on the worker thread
+	 * Queues chunks on the worker thread 
 	 * @return Number of chunks in the output array which are actually required for the requested length. The rest are precache chunks 
 	 */
 	int64 PrecacheChunks(TArray<FReadInfo>& Chunks, int64 Length);

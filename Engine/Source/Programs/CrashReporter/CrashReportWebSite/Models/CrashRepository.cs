@@ -345,7 +345,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 							Results = NewResult;
 						}
 					}
-				}				
+				}
 
 				// Get UserGroup ResultCounts
 				Dictionary<string, int> GroupCounts = GetCountsByGroupFromCrashes( Results );
@@ -459,7 +459,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						UserIdToGroupName.Add( UserIds.UserId, UserGroupName );
 					}
 
+                    //Get list of user Ids foreach crash range
 					List<int> UserIdCrashes = EnumerableCrashes.Select( Crash => Crash.UserNameId.Value ).ToList();
+
+                    //count the number of crashes in each group using the mapping of user id to crash.
 					foreach( int UserId in UserIdCrashes )
 					{
 						string UserGroupName = UserIdToGroupName[UserId];
@@ -642,28 +645,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			NewCrash.CommandLine = NewCrashInfo.CommandLine;
 			NewCrash.EngineMode = NewCrashInfo.EngineMode;
 			NewCrash.MachineId = NewCrashInfo.MachineGuid;
+            
+            //if there's a valid username assign the associated UserNameId else use "anonymous"
+            NewCrash.UserNameId = FRepository.Get(this).FindOrAddUser(!string.IsNullOrEmpty(NewCrashInfo.UserName) ? NewCrashInfo.UserName : UserNameAnonymous);
 
-			// Valid MachineID and UserName, updated crash from non-UE4 release
-			if(!string.IsNullOrEmpty(NewCrashInfo.UserName))
-			{
-				NewCrash.UserNameId = FRepository.Get( this ).FindOrAddUser( NewCrashInfo.UserName );
-			}
-			// Valid MachineID and EpicAccountId, updated crash from UE4 release
-			else if(!string.IsNullOrEmpty( NewCrashInfo.EpicAccountId ))
-			{
-				NewCrash.EpicAccountId = NewCrashInfo.EpicAccountId;
-				NewCrash.UserNameId = FRepository.Get( this ).FindOrAddUser( UserNameAnonymous );
-			}
-			// Crash from an older version.
-			else
-			{
-				// MachineGuid for older crashes is obsolete, so ignore it.
-				//NewCrash.ComputerName = NewCrashInfo.MachineGuid;
-				NewCrash.UserNameId = FRepository.Get( this ).FindOrAddUser
-				(
-					!string.IsNullOrEmpty( NewCrashInfo.UserName ) ? NewCrashInfo.UserName : UserNameAnonymous
-				);
-			}
+            //If there's a valid EpicAccountId assign that.
+            if (!string.IsNullOrEmpty(NewCrashInfo.EpicAccountId))
+            {
+                NewCrash.EpicAccountId = NewCrashInfo.EpicAccountId;
+            }
 			
 			NewCrash.Description = "";
 			if( NewCrashInfo.UserDescription != null )

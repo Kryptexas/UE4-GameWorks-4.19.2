@@ -252,14 +252,24 @@ void DumpHistoryFrame(FStatsThreadState const& StatsData, int64 TargetFrame, flo
 	}
 }
 
-void DumpNonFrame(FStatsThreadState const& StatsData)
+void DumpNonFrame(FStatsThreadState const& StatsData, const FName OptionalGroup)
 {
-	UE_LOG(LogStats, Log, TEXT("Full non-frame data ---------------------------------"));
+	if (OptionalGroup == NAME_None)
+	{
+		UE_LOG(LogStats, Log, TEXT("Full non-frame data ---------------------------------"));
+	}
+	else
+	{
+		UE_LOG(LogStats, Log, TEXT("Filtered non-frame data ---------------------------------"));
+	}
 
 	TArray<FStatMessage> Stats;
 	for (auto It = StatsData.NotClearedEveryFrame.CreateConstIterator(); It; ++It)
 	{
-		Stats.Add(It.Value());
+		if (OptionalGroup == NAME_None || OptionalGroup == It.Value().NameAndInfo.GetGroupName())
+		{
+			Stats.Add(It.Value());
+		}
 	}
 	Stats.Sort(FGroupSort());
 	FName LastGroup = NAME_None;
@@ -1724,7 +1734,10 @@ static void StatCmd(FString InCmd, bool bStatCommand)
 		}
 		else if (FParse::Command(&Cmd, TEXT("DUMPNONFRAME")))
 		{
-			DumpNonFrame(Stats);
+			FString MaybeGroup;
+			FParse::Token(Cmd, MaybeGroup, false);
+
+			DumpNonFrame(Stats, MaybeGroup.Len() == 0 ? NAME_None : FName(*(FString(TEXT("STATGROUP_")) + MaybeGroup)));
 		}
 		else if (FParse::Command(&Cmd, TEXT("DUMPCPU")))
 		{

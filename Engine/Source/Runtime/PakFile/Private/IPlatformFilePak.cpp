@@ -240,7 +240,7 @@ bool FPakEntry::VerifyPakEntriesMatch(const FPakEntry& FileEntryA, const FPakEnt
 
 bool FPakPlatformFile::IsFilenameAllowed(const FString& InFilename)
 {
-	if (!bSecurityEnabled)
+	if (bForceSecurityBypass || !bSecurityEnabled)
 	{
 		return true;
 	}
@@ -253,8 +253,6 @@ bool FPakPlatformFile::IsFilenameAllowed(const FString& InFilename)
 		return false;
 	}
 #endif
-
-	static TSet<FName> AllowedExtensions;
 
 	if (AllowedExtensions.Num() == 0)
 	{
@@ -327,26 +325,29 @@ FPakFile::~FPakFile()
 FArchive* FPakFile::CreatePakReader(const TCHAR* Filename)
 {
 	FArchive* ReaderArchive = IFileManager::Get().CreateFileReader(Filename);
-	return SetupSignedPakReader(ReaderArchive);
+	return SetupSignedPakReader(ReaderArchive, Filename);
 }
 
 FArchive* FPakFile::CreatePakReader(IFileHandle& InHandle, const TCHAR* Filename)
 {
 	FArchive* ReaderArchive = new FArchiveFileReaderGeneric(&InHandle, Filename, InHandle.Size());
-	return SetupSignedPakReader(ReaderArchive);
+	return SetupSignedPakReader(ReaderArchive, Filename);
 }
 
-FArchive* FPakFile::SetupSignedPakReader(FArchive* ReaderArchive)
+FArchive* FPakFile::SetupSignedPakReader(FArchive* ReaderArchive, const TCHAR* Filename)
 {
+	if (FPlatformProperties::RequiresCookedData())
+	{
 #if !USING_SIGNED_CONTENT
-	if (bSigned || FParse::Param(FCommandLine::Get(), TEXT("signedpak")) || FParse::Param(FCommandLine::Get(), TEXT("signed")))
+		if (bSigned || FParse::Param(FCommandLine::Get(), TEXT("signedpak")) || FParse::Param(FCommandLine::Get(), TEXT("signed")))
 #endif
-	{	
-		if (!Decryptor.IsValid())
 		{
-			Decryptor = new FChunkCacheWorker(ReaderArchive);
+			if (!Decryptor.IsValid())
+			{
+				Decryptor = new FChunkCacheWorker(ReaderArchive, Filename);
+			}
+			ReaderArchive = new FSignedArchiveReader(ReaderArchive, Decryptor);
 		}
-		ReaderArchive = new FSignedArchiveReader(ReaderArchive, Decryptor);
 	}
 	return ReaderArchive;
 }
@@ -559,6 +560,7 @@ void FPakPlatformFile::HandlePakListCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 FPakPlatformFile::FPakPlatformFile()
 	: LowerLevel(NULL)
 	, bSigned(false)
+	, bForceSecurityBypass(false)
 {
 
 #if PLATFORM_DESKTOP && UE_BUILD_SHIPPING
@@ -707,7 +709,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 		// Even if -signed is not provided in the command line, use signed reader if the hardcoded key is non-zero.
 		FEncryptionKey DecryptionKey;
 		DecryptionKey.Exponent.Parse(DECRYPTION_KEY_EXPONENT);
-		DecryptionKey.Modulus.Parse(DECYRPTION_KEY_MODULUS);
+		DecryptionKey.Modulus.Parse(DECRYPTION_KEY_MODULUS);
 		bSigned = !DecryptionKey.Exponent.IsZero() && !DecryptionKey.Modulus.IsZero();
 	}
 #else
@@ -971,13 +973,9 @@ bool FPakPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
 	return Result;
 }
 
-void ComputePakChunkHash(const uint8* InData, const int64 InDataSize, uint8* OutHash)
+uint32 ComputePakChunkHash(const uint8* InData, const int64 InDataSize)
 {
-#if PAKFILE_USE_CRC_FOR_CHUNK_HASHES
-	*(reinterpret_cast<uint32*>(OutHash)) = FCrc::MemCrc32(InData, InDataSize);
-#else
-	FSHA1::HashBuffer(InData, InDataSize, OutHash);
-#endif
+	return FCrc::MemCrc32(InData, InDataSize);
 }
 
 /**

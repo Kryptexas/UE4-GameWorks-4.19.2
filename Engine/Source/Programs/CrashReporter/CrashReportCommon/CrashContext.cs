@@ -620,6 +620,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 		[XmlElement]
 		public bool bAllowToBeContacted = false;
 
+		/// <summary> Warning info for missing data or failed processing in the Crash Report Processor. </summary>
+		[XmlElement]
+		public string ProcessorFailedMessage;
+
 		/// <summary>A simple default constructor to allow Xml serialization.</summary>
 		public FPrimaryCrashProperties()
 		{ }

@@ -565,11 +565,11 @@ namespace AutomationTool
 
 			LogVerbose("Updating {0} with:", VerFile);
 			LogVerbose(" #define DECRYPTION_KEY_EXPONENT {0}", PublicKeyExponent);
-			LogVerbose(" #define DECYRPTION_KEY_MODULUS {0}", Modulus);
+			LogVerbose(" #define DECRYPTION_KEY_MODULUS {0}", Modulus);
 
 			VersionFileUpdater PublicKeyInl = new VersionFileUpdater(VerFile);
 			PublicKeyInl.ReplaceLine("#define DECRYPTION_KEY_EXPONENT ", PublicKeyExponent);
-			PublicKeyInl.ReplaceLine("#define DECYRPTION_KEY_MODULUS ", Modulus);
+			PublicKeyInl.ReplaceLine("#define DECRYPTION_KEY_MODULUS ", Modulus);
 			PublicKeyInl.Commit();
 		}
 
@@ -1232,9 +1232,6 @@ namespace AutomationTool
 			{
 				UpdateVersionFiles(ActuallyUpdateVersionFiles: true, ChangelistNumberOverride: InChangelistNumberOverride);
 			}
-
-			var EncryptionKeyFilename = ParseParamValue("SignPak");
-			UpdatePublicKey(EncryptionKeyFilename);
 
 			//////////////////////////////////////
 

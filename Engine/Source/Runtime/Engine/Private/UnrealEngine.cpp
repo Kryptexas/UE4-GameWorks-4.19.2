@@ -4536,7 +4536,7 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	if (FParse::Command(&Cmd, TEXT("RESETLOADERS")))
 	{
-		ResetLoaders(NULL);
+		ResetLoaders( NULL );
 		return true;
 	}
 
@@ -6200,6 +6200,12 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		for(;;)
 		{
 		}
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("SLEEP")))
+	{
+		Ar.Log(TEXT("Sleep for 1 hour. This should crash after a few seconds in cooked builds."));
+		FPlatformProcess::Sleep(3600);
 		return true;
 	}
 

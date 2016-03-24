@@ -307,11 +307,29 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString(), bCreateNewLog: true ) )
 			{
-				FormHelper FormData = new FormHelper( Request, Form, "JustReport" );
-				CSV_ViewModel Results = GetResults( FormData );
-				Results.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
-				return View( "Index", Results );
+			    var model = new CSV_ViewModel();
+			    model.DateTimeFrom = DateTime.Now.AddDays(-7);
+			    model.DateTimeTo = DateTime.Now;
+			    model.DateFrom = (long) (model.DateTimeFrom - CrashesViewModel.Epoch).TotalMilliseconds;
+			    model.DateTo = (long) (model.DateTimeTo - CrashesViewModel.Epoch).TotalMilliseconds;
+                return View("Index", model);
 			}
 		}
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="Form"></param>
+        /// <returns></returns>
+	    public ActionResult GenerateCSV(FormCollection Form)
+        {
+            using (FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer(this.GetType().ToString(), bCreateNewLog: true))
+            {
+                FormHelper FormData = new FormHelper(Request, Form, "JustReport");
+                CSV_ViewModel Results = GetResults(FormData);
+                Results.GenerationTime = LogTimer.GetElapsedSeconds().ToString("F2");
+                return View("CSV", Results);
+            }
+        }
 	}
 }

@@ -30,7 +30,6 @@
 #include "VarargsHelper.h"
 
 #if !FORCE_ANSI_ALLOCATOR
-	#include "MallocBinned2.h"
 	#include "AllowWindowsPlatformTypes.h"
 		#include <psapi.h>
 	#include "HideWindowsPlatformTypes.h"
@@ -2124,6 +2123,13 @@ void FWindowsPlatformMisc::PromptForRemoteDebugging(bool bIsEnsure)
 			return;
 		}
 
+		if (GIsCriticalError && !GIsGuarded)
+		{
+			// A fatal error occurred.
+			// We have not ability to debug, this does not make sense to ask.
+			return;
+		}
+
 		// Upload locally compiled files for remote debugging
 		FPlatformStackWalk::UploadLocalSymbols();
 
@@ -2408,7 +2414,7 @@ FString FWindowsPlatformMisc::GetPrimaryGPUBrand()
 	}
 
 	return PrimaryGPUBrand;
-}
+	}
 
 static void GetVideoDriverDetails(const FString& Key, FGPUDriverInfo& Out)
 {
@@ -2865,10 +2871,10 @@ IPlatformChunkInstall* FWindowsPlatformMisc::GetPlatformChunkInstall()
 		{
 			PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
 			if (PlatformChunkInstallModule != nullptr)
-			{
-				// Attempt to grab the platform installer
-				ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
-			}
+		{
+			// Attempt to grab the platform installer
+			ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+		}
 		}
 
 		if (PlatformChunkInstallModule == nullptr)

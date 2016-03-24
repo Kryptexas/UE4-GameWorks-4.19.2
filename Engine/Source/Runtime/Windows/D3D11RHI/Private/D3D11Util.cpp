@@ -156,7 +156,14 @@ static void TerminateOnDeviceRemoved(HRESULT D3DResult)
 {
 	if (D3DResult == DXGI_ERROR_DEVICE_REMOVED)
 	{
-		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *LOCTEXT("DeviceRemoved", "Video driver crashed and was reset!  Make sure your video drivers are up to date.  Exiting...").ToString(), TEXT("Error"));
+		if (!FApp::IsUnattended())
+		{
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *LOCTEXT("DeviceRemoved", "Video driver crashed and was reset!  Make sure your video drivers are up to date.  Exiting...").ToString(), TEXT("Error"));
+		}
+		else
+		{
+			UE_LOG(LogD3D11RHI, Error, TEXT("%s"), *LOCTEXT("DeviceRemoved", "Video driver crashed and was reset!  Make sure your video drivers are up to date.  Exiting...").ToString());
+		}
 		FPlatformMisc::RequestExit(true);
 	}
 }

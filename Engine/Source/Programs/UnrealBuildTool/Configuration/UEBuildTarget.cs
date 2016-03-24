@@ -3609,7 +3609,7 @@ namespace UnrealBuildTool
 				LinkEnvironmentConfiguration RulesLinkEnvConfig = GlobalLinkEnvironment.Config;
 				CPPEnvironmentConfiguration RulesCPPEnvConfig = GlobalCompileEnvironment.Config;
 
-				if (!bUseSharedBuildEnvironment)
+                if (!bUseSharedBuildEnvironment)
 				{
 					Rules.SetupGlobalEnvironment(
 						TargetInfo,
@@ -3622,6 +3622,21 @@ namespace UnrealBuildTool
 					GlobalCompileEnvironment.Config = RulesCPPEnvConfig;
 				}
 				GlobalCompileEnvironment.Config.Definitions.Add(String.Format("IS_PROGRAM={0}", TargetType == TargetRules.TargetType.Program ? "1" : "0"));
+			}
+
+			// See if the target rules defined any signing keys and add the appropriate defines
+			if (!string.IsNullOrEmpty(Rules.PakSigningKeysFile))
+			{
+				string FullFilename = Path.Combine(ProjectDirectory.FullName, Rules.PakSigningKeysFile);
+				if (File.Exists(FullFilename))
+				{
+					string[] Lines = File.ReadAllLines(FullFilename);
+					if (Lines.Length == 3)
+					{
+						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_MODULUS=\"" + Lines[1] + "\"");
+						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_EXPONENT=\"" + Lines[2] + "\"");
+					}
+				}
 			}
 
 			// Validate UE configuration - needs to happen before setting any environment mojo and after argument parsing.

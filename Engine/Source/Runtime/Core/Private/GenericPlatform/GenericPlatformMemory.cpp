@@ -226,7 +226,7 @@ void FGenericPlatformMemory::DumpPlatformAndAllocatorStats( class FOutputDevice&
 	GMalloc->DumpAllocatorStats( Ar );
 }
 
-void FGenericPlatformMemory::MemswapImpl( void* RESTRICT Ptr1, void* RESTRICT Ptr2, SIZE_T Size )
+void FGenericPlatformMemory::MemswapGreaterThan8( void* RESTRICT Ptr1, void* RESTRICT Ptr2, SIZE_T Size )
 {
 	union PtrUnion
 	{
@@ -238,40 +238,27 @@ void FGenericPlatformMemory::MemswapImpl( void* RESTRICT Ptr1, void* RESTRICT Pt
 		UPTRINT PtrUint;
 	};
 
-	if (!Size)
-	{
-		return;
-	}
-
 	PtrUnion Union1 = { Ptr1 };
 	PtrUnion Union2 = { Ptr2 };
+
+	// We may skip up to 7 bytes below, so better make sure that we're swapping more than that
+	// (8 is a common case that we also want to inline before we this call, so skip that too)
+	check(Size > 8);
 
 	if (Union1.PtrUint & 1)
 	{
 		Valswap(*Union1.Ptr8++, *Union2.Ptr8++);
 		Size -= 1;
-		if (!Size)
-		{
-			return;
-		}
 	}
 	if (Union1.PtrUint & 2)
 	{
 		Valswap(*Union1.Ptr16++, *Union2.Ptr16++);
 		Size -= 2;
-		if (!Size)
-		{
-			return;
-		}
 	}
 	if (Union1.PtrUint & 4)
 	{
 		Valswap(*Union1.Ptr32++, *Union2.Ptr32++);
 		Size -= 4;
-		if (!Size)
-		{
-			return;
-		}
 	}
 
 	uint32 CommonAlignment = FMath::Min(FMath::CountTrailingZeros(Union1.PtrUint - Union2.PtrUint), 3u);

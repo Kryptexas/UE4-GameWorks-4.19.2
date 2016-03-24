@@ -751,7 +751,7 @@ public partial class Project : CommandUtils
 
 		var UnrealPakResponseFile = CreatePakResponseFileFromStagingManifest(SC);
 
-		CreatePak(Params, SC, UnrealPakResponseFile, SC.ShortProjectName);
+		CreatePak(Params, SC, UnrealPakResponseFile, SC.ShortProjectName, Params.SignPak);
 	}
 
 	/// <summary>
@@ -844,7 +844,7 @@ public partial class Project : CommandUtils
 	/// <param name="SC"></param>
 	/// <param name="UnrealPakResponseFile"></param>
 	/// <param name="PakName"></param>
-	private static void CreatePak(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> UnrealPakResponseFile, string PakName)
+	private static void CreatePak(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> UnrealPakResponseFile, string PakName, string EncryptionKeys)
 	{
         bool bShouldGeneratePatch = Params.IsGeneratingPatch && SC.StageTargetPlatform.GetPlatformPatchesWithDiffPak(Params, SC);
 
@@ -930,7 +930,7 @@ public partial class Project : CommandUtils
 			}
 			if (!bCopiedExistingPak)
 			{
-				RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, PatchSourceContentPath);
+				RunUnrealPak(UnrealPakResponseFile, OutputLocation, EncryptionKeys, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, PatchSourceContentPath);
 			}
 		}
 
@@ -1102,7 +1102,7 @@ public partial class Project : CommandUtils
 		System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
 		{
 			var ChunkName = Path.GetFileNameWithoutExtension(PakPair.Item2);
-			CreatePak(Params, SC, PakPair.Item1, ChunkName);
+			CreatePak(Params, SC, PakPair.Item1, ChunkName, Params.SignPak);
 		});
 
 		String ChunkLayerFilename = CombinePaths(GetTmpPackagingPath(Params, SC), GetChunkPakLayerListName());

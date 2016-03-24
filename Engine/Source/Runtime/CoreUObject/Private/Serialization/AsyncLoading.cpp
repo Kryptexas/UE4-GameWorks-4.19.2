@@ -14,6 +14,7 @@
 #include "ExclusiveLoadPackageTimeTracker.h"
 #include "AssetRegistryInterface.h"
 #include "BlueprintSupport.h"
+#include "HAL/ThreadHeartBeat.h"
 #include "HAL/ExceptionHandling.h"
 
 #define FIND_MEMORY_STOMPS (1 && PLATFORM_WINDOWS && !WITH_EDITORONLY_DATA)
@@ -637,6 +638,9 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 {
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncLoadingThread_ProcessAsyncLoading);
 	
+	// If we're not multithreaded and flushing async loading, update the thread heartbeat
+	const bool bNeedsHeartbeatTick = !bUseTimeLimit && !FAsyncLoadingThread::IsMultithreaded();
+
 	EAsyncPackageState::Type LoadingState = EAsyncPackageState::Complete;
 	OutPackagesProcessed = 0;
 
@@ -689,6 +693,12 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 		if (bPackageFullyLoaded)
 		{
 			AsyncPackagesCounter.Decrement();
+		}
+
+		if (bNeedsHeartbeatTick)
+		{
+			// Update heartbeat after each package has been processed
+			FThreadHeartBeat::Get().HeartBeat();
 		}
 	}
 
@@ -2260,6 +2270,8 @@ void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 
 				if (AsyncThread.IsMultithreaded())
 				{
+					// Update the heartbeat and sleep. If we're not multithreading, the heartbeat is updated after each package has been processed
+					FThreadHeartBeat::Get().HeartBeat();
 					FPlatformProcess::SleepNoStats(0.0001f);
 				}
 			}
@@ -2309,11 +2321,13 @@ bool IsAsyncLoadingMultithreadedCoreUObjectInternal()
 
 void SuspendAsyncLoadingInternal()
 {
+	check(IsInGameThread() && !IsInSlateThread());
 	FAsyncLoadingThread::Get().SuspendLoading();
 }
 
 void ResumeAsyncLoadingInternal()
 {
+	check(IsInGameThread() && !IsInSlateThread());
 	FAsyncLoadingThread::Get().ResumeLoading();
 }
 

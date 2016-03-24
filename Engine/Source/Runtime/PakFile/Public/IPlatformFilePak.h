@@ -7,20 +7,7 @@ DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Total pak file read time"), STAT_Pak
 
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num open pak file handles"), STAT_PakFile_NumOpenHandles, STATGROUP_PakFile, PAKFILE_API);
 
-// Whether to use CRC (1) for chunk hashes, or SHA1 (0)
-#define PAKFILE_USE_CRC_FOR_CHUNK_HASHES 1
-#if PAKFILE_USE_CRC_FOR_CHUNK_HASHES
-static const int64 GPakFileChunkHashSize = 4;
-#else
-static const int64 GPakFileChunkHashSize = 20;
-#endif
-
 #define PAKFILE_TRACK_SECURITY_EXCLUDED_FILES 0
-
-/**
-* Compute a hash for a given block of data, as used for pak chunk signing
-*/
-void PAKFILE_API ComputePakChunkHash(const uint8* InData, const int64 InDataSize, uint8* OutHash);
 
 /**
  * Struct which holds pak file info (version, index offset, hash value).
@@ -293,7 +280,7 @@ class PAKFILE_API FPakFile : FNoncopyable
 
 	FArchive* CreatePakReader(const TCHAR* Filename);
 	FArchive* CreatePakReader(IFileHandle& InHandle, const TCHAR* Filename);
-	FArchive* SetupSignedPakReader(FArchive* Reader);
+	FArchive* SetupSignedPakReader(FArchive* Reader, const TCHAR* Filename);
 
 public:
 
@@ -831,10 +818,14 @@ class PAKFILE_API FPakPlatformFile : public IPlatformFile
 	FCriticalSection PakListCritical;
 	/** true if we aren't allowing loose files. */
 	bool bSecurityEnabled;
+	/** External override of pak file security */
+	bool bForceSecurityBypass;
 #if PAKFILE_TRACK_SECURITY_EXCLUDED_FILES
 	/** List of files already excluded by the pak security system */
 	TSet<FName> SecurityExcludedFiles;
 #endif
+	/** List of allowed extension when security is enabled */
+	TSet<FName> AllowedExtensions;
 
 	/**
 	 * Gets mounted pak files
@@ -938,6 +929,15 @@ public:
 	 * Gets all pak file locations.
 	 */
 	static void GetPakFolders(const TCHAR* CmdLine, TArray<FString>& OutPakFolders);
+
+	/**
+	 * Allows bypassing of loose file security
+	 */
+	virtual void BypassSecurity(bool bInBypassed) override
+	{
+		bForceSecurityBypass = bInBypassed;
+		IPlatformFile::BypassSecurity(bInBypassed);
+	}
 
 	/**
 	 * Constructor.
@@ -1231,11 +1231,7 @@ public:
 			return nullptr;
 		}
 		// Use lower level to handle writing.
-		if (IsFilenameAllowed(Filename))
-		{
-			return LowerLevel->OpenWrite(Filename, bAppend, bAllowRead);
-		}
-		return nullptr;
+		return LowerLevel->OpenWrite(Filename, bAppend, bAllowRead);
 	}
 
 	virtual bool DirectoryExists(const TCHAR* Directory) override

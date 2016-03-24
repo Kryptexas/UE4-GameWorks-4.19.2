@@ -176,6 +176,19 @@ void FWindowsPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString,
 	InitStackWalking();
 	FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, Context);
 }
+
+void FWindowsPlatformStackWalk::ThreadStackWalkAndDump(ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, uint32 ThreadId)
+{
+	InitStackWalking();
+	HANDLE ThreadHandle = OpenThread(THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_TERMINATE | THREAD_SUSPEND_RESUME, false, ThreadId);
+	CONTEXT ThreadContext;
+	ThreadContext.ContextFlags = CONTEXT_CONTROL;
+	if (GetThreadContext(ThreadHandle, &ThreadContext))
+	{
+		FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, &ThreadContext);
+	}
+}
+
 // #CrashReport: 2014-09-05 Switch to TArray<uint64,TFixedAllocator<100>>>
 /**
  * Capture a stack backtrace and optionally use the passed in exception pointers.

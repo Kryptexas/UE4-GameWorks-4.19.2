@@ -54,7 +54,7 @@ void FLoadTimeTracker::DumpLoadTimes()
 
 void FLoadTimeTracker::ResetLoadTimes()
 {
-	static bool bActuallyReset = !FParse::Param(FCommandLine::Get(), TEXT("-NoLoadTrackClear"));
+	static bool bActuallyReset = !FParse::Param(FCommandLine::Get(), TEXT("NoLoadTrackClear"));
 	if(bActuallyReset)
 	{
 		TimeInfo.Reset();

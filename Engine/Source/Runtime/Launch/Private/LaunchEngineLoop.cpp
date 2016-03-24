@@ -17,6 +17,7 @@
 #include "../Resources/Version.h"
 #include "VersionManifest.h"
 #include "UObject/DevObjectVersion.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #if WITH_EDITOR
 	#include "EditorStyle.h"
@@ -2567,6 +2568,10 @@ void FEngineLoop::Tick()
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	FScopedSampleMallocChurn ChurnTracker;
 #endif
+
+	// Send a heartbeat for the diagnostics thread
+	FThreadHeartBeat::Get().HeartBeat();
+
 	// Ensure we aren't starting a frame while loading or playing a loading movie
 	ensure(GetMoviePlayer()->IsLoadingFinished() && !GetMoviePlayer()->IsMovieCurrentlyPlaying());
 
@@ -2785,7 +2790,7 @@ void FEngineLoop::Tick()
 
 			FTicker::GetCoreTicker().Tick(FApp::GetDeltaTime());
 
-			FSingleThreadManager::Get().Tick();
+			FThreadManager::Get().Tick();
 
 			GEngine->TickDeferredCommands();		
 		}
@@ -2806,7 +2811,7 @@ void FEngineLoop::Tick()
 #if UE_GC_TRACK_OBJ_AVAILABLE
 		SET_DWORD_STAT(STAT_Hash_NumObjects, GUObjectArray.GetObjectArrayNumMinusAvailable());
 #endif
-	}
+	}	
 }
 
 
@@ -3158,7 +3163,7 @@ bool FEngineLoop::AppInit( )
 	UE_LOG(LogInit, Log, TEXT("Installed Engine Build: %d"), FApp::IsEngineInstalled() ? 1 : 0);
 
 	// if a logging build, clear out old log files
-#if !NO_LOGGING && !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !NO_LOGGING
 	FMaintenance::DeleteOldLogs();
 #endif
 

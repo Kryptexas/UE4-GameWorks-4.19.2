@@ -14,6 +14,7 @@
 #include "GatherableTextData.h"
 #include "Serialization/AsyncLoading.h"
 #include "ModuleManager.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #define LOCTEXT_NAMESPACE "LinkerLoad"
 
@@ -2867,6 +2868,9 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 		MetaDataIndex = LoadMetaDataFromExportMap(bForcePreload);
 	}
 	
+	// Tick the heartbeat if we're loading on the game thread
+	const bool bShouldTickHeartBeat = IsInGameThread();
+
 	for(int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 	{
 #if WITH_EDITOR
@@ -2896,6 +2900,12 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 		CreateExportAndPreload(ExportIndex, bForcePreload);
+
+		// If needed send a heartbeat, but no need to do it too often
+		if (bShouldTickHeartBeat && (ExportIndex % 10) == 0)
+		{
+			FThreadHeartBeat::Get().HeartBeat();
+		}
 	}
 
 	// Mark package as having been fully loaded.
