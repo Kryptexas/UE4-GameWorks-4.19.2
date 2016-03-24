@@ -148,7 +148,8 @@ namespace UnrealBuildTool
 					switch (MinVersion)
 					{
 						case "IOS_61":
-							RunTimeIOSVersion = "6.1";
+							Log.TraceWarning("IOS 6 is no longer supported in UE4 as 4.11");
+							RunTimeIOSVersion = "7.0";
 							break;
 						case "IOS_7":
 							RunTimeIOSVersion = "7.0";
