@@ -809,9 +809,6 @@ private:
 
 	/** Whether or not this audio device is in audio-focus */
 	bool bHasAudioFocus;
-
-	/** Whether or not this viewport is active*/
-	bool bActive;
 };
 
 
