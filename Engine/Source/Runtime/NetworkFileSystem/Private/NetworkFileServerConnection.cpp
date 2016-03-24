@@ -253,25 +253,34 @@ bool FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar)
 		{
 			Out << NumUnsolictedFiles;
 		}
+		int32 MaxAllowedSize = 50 * 1024 * 1024; // only return 50mb of unsolicited files
 
 		UE_LOG(LogFileServer, Verbose, TEXT("Returning payload with %d bytes"), Out.Num());
 
 		// send back a reply
 		Result &= SendPayload( Out );
 
+		TArray<FString> UnprocessedUnsolictedFiles;
+		UnprocessedUnsolictedFiles.Empty(NumUnsolictedFiles);
+
 		if (bSendUnsolicitedFiles && Result )
 		{
 			for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
 			{
 				FBufferArchive OutUnsolicitedFile;
-				PackageFile(UnsolictedFiles[Index], OutUnsolicitedFile);
+				if (PackageFile(UnsolictedFiles[Index], OutUnsolicitedFile, &MaxAllowedSize))
+				{
+					int32 UnprocessedIndex = UnprocessedUnsolictedFiles.AddZeroed();
+					Swap(UnprocessedUnsolictedFiles[UnprocessedIndex], UnsolictedFiles[Index]);
+				}
 
 				UE_LOG(LogFileServer, Display, TEXT("Returning unsolicited file %s with %d bytes"), *UnsolictedFiles[Index], OutUnsolicitedFile.Num());
 
 				Result &= SendPayload(OutUnsolicitedFile);
 			}
 
-			UnsolictedFiles.Empty();
+			//UnsolictedFiles.Empty();
+			Swap(UnsolictedFiles, UnprocessedUnsolictedFiles);
 		}
 	}
 
@@ -891,7 +900,7 @@ void FNetworkFileServerClientConnection::ProcessHeartbeat( FArchive& In, FArchiv
 /* FStreamingNetworkFileServerConnection callbacks
  *****************************************************************************/
 
-void FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchive& Out )
+bool FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchive& Out, int32* MaxAllowedSize )
 {
 	// get file timestamp and send it to client
 	FDateTime ServerTimeStamp = Sandbox->GetTimeStamp(*Filename);
@@ -908,6 +917,11 @@ void FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchiv
 	}
 	else
 	{
+		if ((MaxAllowedSize) && (File->Size() > *MaxAllowedSize))
+		{
+			return false;
+		}
+		*MaxAllowedSize -= File->Size();
 		if (!File->Size())
 		{
 			UE_LOG(LogFileServer, Warning, TEXT("Sending empty file %s...."), *Filename);
@@ -930,6 +944,7 @@ void FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchiv
 	uint64 FileSize = Contents.Num();
 	Out << FileSize;
 	Out.Serialize(Contents.GetData(), FileSize);
+	return true;
 }
 
 
