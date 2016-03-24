@@ -6191,24 +6191,10 @@ void UEngine::OnLostFocusPause(bool EnablePause)
 
 void UEngine::InitHardwareSurvey()
 {
-	bool bEnabled = true;
-#if !WITH_EDITORONLY_DATA
-	bEnabled = AreGameAnalyticsEnabled();
-#endif
-
 	// The hardware survey costs time and we don't want to slow down debug builds.
 	// This is mostly because of the CPU benchmark running in the survey and the results in debug are not being valid.
-#if UE_BUILD_DEBUG
-	bEnabled = false;
-#endif
-
-	if (bEnabled)
-	{
-		if (IsHardwareSurveyRequired())
-		{
-			bPendingHardwareSurveyResults = true;
-		}
-	}	
+	// Never run the survey in games, only in the editor.
+	bPendingHardwareSurveyResults = WITH_EDITOR && GIsEditor && !IsRunningCommandlet() && FEngineAnalytics::IsAvailable() && IsHardwareSurveyRequired();
 }
 
 void UEngine::TickHardwareSurvey()
