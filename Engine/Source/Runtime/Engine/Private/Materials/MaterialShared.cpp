@@ -1751,7 +1751,10 @@ FMaterialRenderProxy::FMaterialRenderProxy()
 	: bSelected(false)
 	, bHovered(false)
 	, SubsurfaceProfileRT(0)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	, DeletedFlag(0)
+	, bIsStaticDrawListReferenced(0)
+#endif
 {
 }
 
@@ -1759,19 +1762,26 @@ FMaterialRenderProxy::FMaterialRenderProxy(bool bInSelected, bool bInHovered)
 	: bSelected(bInSelected)
 	, bHovered(bInHovered)
 	, SubsurfaceProfileRT(0)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	, DeletedFlag(0)
+	, bIsStaticDrawListReferenced(0)
+#endif
 {
 }
 
 FMaterialRenderProxy::~FMaterialRenderProxy()
 {
+	check(!IsReferencedInDrawList());
+
 	if(IsInitialized())
 	{
 		check(IsInRenderingThread());
 		ReleaseResource();
 	}
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	DeletedFlag = 1;
+#endif
 }
 
 void FMaterialRenderProxy::InitDynamicRHI()
