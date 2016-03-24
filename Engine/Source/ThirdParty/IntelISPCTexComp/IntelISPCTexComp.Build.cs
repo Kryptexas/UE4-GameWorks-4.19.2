@@ -12,10 +12,6 @@ public class IntelISPCTexComp : ModuleRules
 		PublicIncludePaths.Add(libraryPath);
 
 		bool bUseDebugBuild = false;
-		if ( Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT )
-		{
-			bUseDebugBuild = true;
-		}
 
 		if ( (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32) )
 		{
@@ -25,7 +21,8 @@ public class IntelISPCTexComp : ModuleRules
 
 			PublicAdditionalLibraries.Add("ispc_texcomp.lib");
 			PublicDelayLoadDLLs.Add("ispc_texcomp.dll");
-		}
-	}
-}
 
+            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/IntelISPCTexComp/" + platformName + "-" + configName + "/ispc_texcomp.dll"));
+        }
+    }
+}
