@@ -1808,10 +1808,16 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 	}
 	else
 	{
-		// The index is not valid. We will report this as an error (it is fatal in C++ conversions) but otherwise let the Blueprint handle the issue.
-		const int32 PropertySize = ArrayProperty->Inner->ElementSize * ArrayProperty->Inner->ArrayDim;
-		ArrayProperty->Inner->InitializeValue(Stack.MostRecentPropertyAddress);
-		FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to get an item from array %s out of bounds [%d/%d]!"), *ArrayProperty->GetName(), ArrayIndex, ArrayHelper.Num()? ArrayHelper.Num() - 1 : 0), ELogVerbosity::Warning);
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AccessViolation,
+			FText::Format(
+				LOCTEXT("ArrayGetOutofBounds", "Attempted to get an item from array {0} out of bounds [{1}/{2}]!"),
+				FText::FromString(*ArrayProperty->GetName()), 
+				FText::AsNumber(ArrayIndex), 
+				FText::AsNumber(ArrayHelper.Num() ? ArrayHelper.Num() - 1 : 0)
+			)
+		);
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 	}
 }
 IMPLEMENT_VM_FUNCTION(EX_ArrayGetByRef, execArrayGetByRef);
