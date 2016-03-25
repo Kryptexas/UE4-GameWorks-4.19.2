@@ -92,11 +92,16 @@ FPlatformOpenGLDevice::FPlatformOpenGLDevice()
 {
 }
 
+// call out to JNI to see if the application was packaged for GearVR
+extern bool AndroidThunkCpp_IsGearVRApplication();
+
 void FPlatformOpenGLDevice::Init()
 {
 	extern void InitDebugContext();
 
-	AndroidEGL::GetInstance()->InitSurface(false, true);
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("FPlatformOpenGLDevice:Init"));
+	bool bCreateSurface = !AndroidThunkCpp_IsGearVRApplication();
+	AndroidEGL::GetInstance()->InitSurface(false, bCreateSurface);
 	PlatformRenderingContextSetup(this);
 
 	LoadEXT();
