@@ -129,7 +129,7 @@ protected:
 		return OpenFile ? *OpenFile : NULL;
 	}
 
-	bool PackageFile( FString& Filename, FArchive& Out, int32* MaxAllowedSize = nullptr);
+	bool PackageFile( FString& Filename, FArchive& Out);
 
 	/**
 	 * Processes a RecompileShaders message.

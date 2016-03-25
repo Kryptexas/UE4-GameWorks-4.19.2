@@ -248,13 +248,30 @@ bool FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar)
 	// send back a reply if the command wrote anything back out
 	if (Out.Num() && Result )
 	{
-		int32 NumUnsolictedFiles = UnsolictedFiles.Num();
+		int32 NumUnsolictedFiles = 0;
+
+
 		if (bSendUnsolicitedFiles)
 		{
+			int64 MaxMemoryAllowed = 50 * 1024 * 1024;
+			for (const auto& Filename : UnsolictedFiles)
+			{
+				// get file timestamp and send it to client
+				FDateTime ServerTimeStamp = Sandbox->GetTimeStamp(*Filename);
+
+				TArray<uint8> Contents;
+				// open file
+				int64 FileSize = Sandbox->FileSize(*Filename);
+
+				if (MaxMemoryAllowed > FileSize)
+				{
+					MaxMemoryAllowed -= FileSize;
+					++NumUnsolictedFiles;
+				}
+			}
 			Out << NumUnsolictedFiles;
 		}
-		int32 MaxAllowedSize = 50 * 1024 * 1024; // only return 50mb of unsolicited files
-
+		
 		UE_LOG(LogFileServer, Verbose, TEXT("Returning payload with %d bytes"), Out.Num());
 
 		// send back a reply
@@ -268,19 +285,13 @@ bool FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar)
 			for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
 			{
 				FBufferArchive OutUnsolicitedFile;
-				if (PackageFile(UnsolictedFiles[Index], OutUnsolicitedFile, &MaxAllowedSize))
-				{
-					int32 UnprocessedIndex = UnprocessedUnsolictedFiles.AddZeroed();
-					Swap(UnprocessedUnsolictedFiles[UnprocessedIndex], UnsolictedFiles[Index]);
-				}
+				PackageFile(UnsolictedFiles[Index], OutUnsolicitedFile);
 
 				UE_LOG(LogFileServer, Display, TEXT("Returning unsolicited file %s with %d bytes"), *UnsolictedFiles[Index], OutUnsolicitedFile.Num());
 
 				Result &= SendPayload(OutUnsolicitedFile);
 			}
-
-			//UnsolictedFiles.Empty();
-			Swap(UnsolictedFiles, UnprocessedUnsolictedFiles);
+			UnsolictedFiles.RemoveAt(0, NumUnsolictedFiles);
 		}
 	}
 
@@ -900,7 +911,7 @@ void FNetworkFileServerClientConnection::ProcessHeartbeat( FArchive& In, FArchiv
 /* FStreamingNetworkFileServerConnection callbacks
  *****************************************************************************/
 
-bool FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchive& Out, int32* MaxAllowedSize )
+bool FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchive& Out )
 {
 	// get file timestamp and send it to client
 	FDateTime ServerTimeStamp = Sandbox->GetTimeStamp(*Filename);
@@ -917,11 +928,6 @@ bool FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchiv
 	}
 	else
 	{
-		if ((MaxAllowedSize) && (File->Size() > *MaxAllowedSize))
-		{
-			return false;
-		}
-		*MaxAllowedSize -= File->Size();
 		if (!File->Size())
 		{
 			UE_LOG(LogFileServer, Warning, TEXT("Sending empty file %s...."), *Filename);
