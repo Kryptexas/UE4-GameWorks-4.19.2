@@ -22,12 +22,10 @@ FSearchEntry* FSearchEntry::MakeCategoryEntry(const FString & InTitle)
 FSuperSearchModule::FSuperSearchModule()
 	: SearchEngine(ESearchEngine::Google)
 {
-	printf("ok");
 }
 
 void FSuperSearchModule::StartupModule()
 {
-	printf("ok");
 }
 
 void FSuperSearchModule::ShutdownModule()
