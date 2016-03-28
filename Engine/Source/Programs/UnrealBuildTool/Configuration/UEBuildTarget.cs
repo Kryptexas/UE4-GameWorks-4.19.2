@@ -3635,21 +3635,6 @@ namespace UnrealBuildTool
 				BuildPlugins = new List<PluginInfo>(EnabledPlugins);
 			}
 
-			// @todo vreditor urgent: Don't build Oculus plugins that are disabled (for separable distribution)
-			{
-				for( int PluginIndex = 0; PluginIndex < BuildPlugins.Count; ++PluginIndex )
-				{
-					PluginInfo PluginInfo = BuildPlugins[ PluginIndex ];
-					if( PluginInfo.Name.StartsWith( "Oculus", StringComparison.InvariantCultureIgnoreCase ) )
-					{
-						if( !EnabledPlugins.Contains( PluginInfo ) )
-						{
-							BuildPlugins.RemoveAt( PluginIndex-- );
-						}
-					}
-				}
-			}
-
 			// Add any foreign plugins to the list
 			if (ForeignPlugins != null)
 			{
