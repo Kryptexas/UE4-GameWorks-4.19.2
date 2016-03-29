@@ -33,7 +33,7 @@ Now that you can detect your projectile's collision interactions, you can determ
 
 		// Called when projectile hits something
 		UFUNCTION()
-		void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+		void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 1.	`FPSProjectile.h` should now look like the following:
 
@@ -75,14 +75,14 @@ Now that you can detect your projectile's collision interactions, you can determ
 		
 			// Called when projectile hits something
 			UFUNCTION()
-			void OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+			void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 		};
 
 1.	Locate the `FPSProjectile` class implementation file in the **Solution Explorer** and open `FPSProjectile.cpp`.
 
 1.	Add the following code to the `OnHit` function definition:
 
-		void AFPSProjectile::OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+		void AFPSProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != NULL && OtherActor != this && OtherComp != NULL)
 			{
@@ -163,7 +163,7 @@ Now that you can detect your projectile's collision interactions, you can determ
 			}
 		}
 		
-		void AFPSProjectile::OnHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+		void AFPSProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 		{
 			if (OtherActor != NULL && OtherActor != this && OtherComp != NULL)
 			{

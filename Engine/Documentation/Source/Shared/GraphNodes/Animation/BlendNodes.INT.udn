@@ -209,3 +209,17 @@ Modifies a bone transform to look at another bone along a specified axis, or to 
 Handles re-targeting of an IK Bone chain. Moves IK bone chain to meet FK hand bones, based on HandFKWeight (to favor either side). (0 = favor left hand, 1 = favor right hand, 0.5 = equal weight).
 
 [/EXCERPT:UAnimGraphNode_HandIKRetargeting]
+
+[EXCERPT:GraphNode_FastPathInfo]
+
+Animation nodes can use the 'fast path', avoiding somewhat slower Blueprint usage by ensuring that they either:
+- Access member variables directly.
+- Access a negated boolean member variable.
+- Access members of a nested struct.
+- Access some "Break Struct" cases as well (Break Transform being a notable exception).
+
+[VAR:ToolTipFullLink]
+Engine/Animation/Optimization/FastPath
+[/VAR]
+
+[/EXCERPT:GraphNode_FastPathInfo]
