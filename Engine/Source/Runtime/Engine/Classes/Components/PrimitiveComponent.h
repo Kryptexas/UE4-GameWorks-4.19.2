@@ -99,15 +99,15 @@ struct FSpriteCategoryInfo
  * Delegate for notification of blocking collision against a specific component.  
  * NormalImpulse will be filled in for physics-simulating bodies, but will be zero for swept-component blocking collisions. 
  */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FComponentHitSignature, class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, FVector, NormalImpulse, const FHitResult&, Hit );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams( FComponentHitSignature, UPrimitiveComponent*, HitComponent, AActor*, OtherActor, UPrimitiveComponent*, OtherComp, FVector, NormalImpulse, const FHitResult&, Hit );
 /** Delegate for notification of start of overlap with a specific component */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams( FComponentBeginOverlapSignature,class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex, bool, bFromSweep, const FHitResult &, SweepResult);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_SixParams( FComponentBeginOverlapSignature, UPrimitiveComponent*, OverlappedComponent, AActor*, OtherActor, UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex, bool, bFromSweep, const FHitResult &, SweepResult);
 /** Delegate for notification of end of overlap with a specific component */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FComponentEndOverlapSignature, class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FComponentEndOverlapSignature, UPrimitiveComponent*, OverlappedComponent, AActor*, OtherActor, UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex);
 /** Delegate for notification when a wake event is fired by physics*/
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FComponentWakeSignature, FName, BoneName);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FComponentWakeSignature, UPrimitiveComponent*, WakingComponent, FName, BoneName);
 /** Delegate for notification when a sleep event is fired by physics*/
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FComponentSleepSignature, FName, BoneName);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FComponentSleepSignature, UPrimitiveComponent*, SleepingComponent, FName, BoneName);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FComponentBeginCursorOverSignature, UPrimitiveComponent*, TouchedComponent );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FComponentEndCursorOverSignature, UPrimitiveComponent*, TouchedComponent );
@@ -516,7 +516,8 @@ public:
 	 * Does not affect movement of this component when simulating physics.
 	 * @see IgnoreActorWhenMoving()
 	 */
-	TArray<TWeakObjectPtr<AActor> > MoveIgnoreActors;
+	UPROPERTY(Transient, DuplicateTransient)
+	TArray<AActor*> MoveIgnoreActors;
 
 	/**
 	 * Tells this component whether to ignore collision with all components of a specific Actor when this component is moved.
@@ -535,7 +536,7 @@ public:
 	/**
 	 * Returns the list of actors (as WeakObjectPtr) we currently ignore when moving.
 	 */
-	TArray<TWeakObjectPtr<AActor> > & GetMoveIgnoreActors();
+	const TArray<AActor*>& GetMoveIgnoreActors() const { return MoveIgnoreActors; }
 
 	/**
 	 * Clear the list of actors we ignore when moving.
@@ -621,7 +622,14 @@ public:
 	 * @param ClassFilter			[optional] If set, only returns actors of this class or subclasses
 	 */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
-	void GetOverlappingActors(TArray<AActor*>& OverlappingActors, UClass* ClassFilter=NULL) const;
+	void GetOverlappingActors(TArray<AActor*>& OverlappingActors, TSubclassOf<AActor> ClassFilter=nullptr) const;
+
+	/** 
+	* Returns the set of actors that this component is overlapping.
+	* @param OverlappingActors		[out] Returned list of overlapping actors
+	* @param ClassFilter			[optional] If set, only returns actors of this class or subclasses
+	*/
+	void GetOverlappingActors(TSet<AActor*>& OverlappingActors, TSubclassOf<AActor> ClassFilter=nullptr) const;
 
 	/** Returns list of components this component is overlapping. */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))

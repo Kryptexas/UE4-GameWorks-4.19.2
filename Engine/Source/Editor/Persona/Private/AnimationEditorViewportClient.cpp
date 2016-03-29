@@ -134,7 +134,7 @@ FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene&
 	bDrawUVs = false;
 	UVChannelToDraw = 0;
 
-	bAutoAlignFloor = true;
+	bAutoAlignFloor = ConfigOption->bAutoAlignFloorToMesh;
 
 	// Set audio mute option
 	UWorld* World = PreviewScene->GetWorld();
@@ -260,6 +260,8 @@ void FAnimationViewportClient::OnToggleAutoAlignFloor()
 {
 	bAutoAlignFloor = !bAutoAlignFloor;
 	UpdateCameraSetup();
+
+	ConfigOption->SetAutoAlignFloorToMesh(bAutoAlignFloor);
 }
 
 bool FAnimationViewportClient::IsAutoAlignFloor() const

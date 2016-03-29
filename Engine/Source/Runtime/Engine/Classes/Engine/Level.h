@@ -2,6 +2,7 @@
 
 #pragma once
 #include "Engine/World.h"
+#include "MaterialMerging.h"
 #include "Level.generated.h"
 
 class ALevelBounds;

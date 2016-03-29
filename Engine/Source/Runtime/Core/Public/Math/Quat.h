@@ -130,8 +130,8 @@ public:
 	 * Checks whether another Quaternion is equal to this, within specified tolerance.
 	 *
 	 * @param Q The other Quaternion.
-	 * @param Tolerance Error Tolerance.
-	 * @return true if two Quaternion are equal, within specified tolerance, otherwise false.
+	 * @param Tolerance Error tolerance for comparison with other Quaternion.
+	 * @return true if two Quaternions are equal, within specified tolerance, otherwise false.
 	 */
 	FORCEINLINE bool Equals(const FQuat& Q, float Tolerance=KINDA_SMALL_NUMBER) const;
 
@@ -139,9 +139,10 @@ public:
 	 * Checks whether this Quaternion is an Identity Quaternion.
 	 * Assumes Quaternion tested is normalized.
 	 *
+	 * @param Tolerance Error tolerance for comparison with Identity Quaternion.
 	 * @return true if Quaternion is a normalized Identity Quaternion.
 	 */
-	FORCEINLINE bool IsIdentity() const;
+	FORCEINLINE bool IsIdentity(float Tolerance=SMALL_NUMBER) const;
 
 	/**
 	 * Subtracts another quaternion from this.
@@ -680,7 +681,7 @@ FORCEINLINE FQuat::FQuat( const FQuat& Q )
 
 FORCEINLINE FString FQuat::ToString() const
 {
-	return FString::Printf(TEXT("X=%.6f Y=%.6f Z=%.6f W=%.6f"), X, Y, Z, W);
+	return FString::Printf(TEXT("X=%.9f Y=%.9f Z=%.9f W=%.9f"), X, Y, Z, W);
 }
 
 
@@ -753,9 +754,9 @@ FORCEINLINE bool FQuat::Equals(const FQuat& Q, float Tolerance) const
 #endif // PLATFORM_ENABLE_VECTORINTRINSICS
 }
 
-FORCEINLINE bool FQuat::IsIdentity() const
+FORCEINLINE bool FQuat::IsIdentity(float Tolerance) const
 {
-	return ((W * W) > ((1.f - DELTA) * (1.f - DELTA)));
+	return Equals(FQuat::Identity, Tolerance);
 }
 
 FORCEINLINE FQuat FQuat::operator-=(const FQuat& Q)

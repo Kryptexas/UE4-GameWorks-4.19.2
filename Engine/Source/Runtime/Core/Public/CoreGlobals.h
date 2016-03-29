@@ -213,9 +213,6 @@ extern CORE_API int32 GPlayInEditorID;
 /** Whether or not PIE was attempting to play from PlayerStart */
 extern CORE_API bool GIsPIEUsingPlayerStart;
 
-/** Proxy class that allows verification on FApp::IsGame() accesses. */
-extern CORE_API bool IsInGameThread();
-
 /** true if the runtime needs textures to be powers of two */
 extern CORE_API bool GPlatformNeedsPowerOfTwoTextures;
 

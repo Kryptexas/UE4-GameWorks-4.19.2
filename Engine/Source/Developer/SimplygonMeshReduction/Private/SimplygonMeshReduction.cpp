@@ -221,7 +221,7 @@ public:
 	bool ReduceLODModel(
 		FStaticLODModel * SrcModel,
 		FStaticLODModel *& OutModel, 
-		FBoxSphereBounds & Bounds, 
+		const FBoxSphereBounds & Bounds, 
 		float &MaxDeviation, 
 		const FReferenceSkeleton& RefSkeleton, 
 		const FSkeletalMeshOptimizationSettings& Settings
@@ -355,7 +355,7 @@ public:
 		LODModels[LODIndex] = NewModel;
 
 		// Reduce LOD model with SrcMesh
-		if (ReduceLODModel(SrcModel, NewModel, SkeletalMesh->Bounds, MaxDeviation, SkeletalMesh->RefSkeleton, Settings))
+		if (ReduceLODModel(SrcModel, NewModel, SkeletalMesh->GetImportedBounds(), MaxDeviation, SkeletalMesh->RefSkeleton, Settings))
 		{
 			if (bCalcLODDistance)
 			{

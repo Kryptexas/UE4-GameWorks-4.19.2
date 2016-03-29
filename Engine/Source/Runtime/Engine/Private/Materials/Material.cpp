@@ -33,6 +33,7 @@
 #include "ShaderCompiler.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "MaterialShaderQualitySettings.h"
+#include "LoadTimeTracker.h"
 #if WITH_EDITOR
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -415,6 +416,8 @@ static TAutoConsoleVariable<int32> CVarDiscardUnusedQualityLevels(
 
 void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*, TArray<FMaterialResource*>>* PlatformMaterialResourcesToSavePtr, FArchive& Ar, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num])
 {
+	SCOPED_LOADTIMER(SerializeInlineShaderMaps);
+
 	if (Ar.IsSaving())
 	{
 		int32 NumResourcesToSave = 0;
@@ -2128,6 +2131,8 @@ const FMaterialResource* UMaterial::GetMaterialResource(ERHIFeatureLevel::Type I
 
 void UMaterial::Serialize(FArchive& Ar)
 {
+	SCOPED_LOADTIMER(MaterialSerializeTime);
+
 	Super::Serialize(Ar);
 
 	if (FPlatformProperties::RequiresCookedData() && Ar.IsLoading())
@@ -2358,6 +2363,8 @@ TMap<FGuid, UMaterialInterface*> LightingGuidFixupMap;
 
 void UMaterial::PostLoad()
 {
+	SCOPED_LOADTIMER(MaterialPostLoad);
+
 	Super::PostLoad();
 
 	if (!IsDefaultMaterial())
@@ -3205,7 +3212,7 @@ void UMaterial::FinishDestroy()
 
 SIZE_T UMaterial::GetResourceSize(EResourceSizeMode::Type Mode)
 {
-	int32 ResourceSize = 0;
+	int32 ResourceSize = Super::GetResourceSize(Mode);
 
 	for (int32 InstanceIndex = 0; InstanceIndex < 3; ++InstanceIndex)
 	{

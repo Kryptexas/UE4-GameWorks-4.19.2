@@ -2542,7 +2542,7 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ShowL10NFolderOption", "Show Localized Assets"),
-			LOCTEXT("ShowFoldersOptionToolTip", "Show assets within the localized asset directory."),
+			LOCTEXT("ShowL10NFolderOptionToolTip", "Show assets within the localized asset directory."),
 			FSlateIcon(),
 			FUIAction(
 			FExecuteAction::CreateSP(this, &SAssetView::ToggleShowL10NFolder),

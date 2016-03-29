@@ -468,6 +468,13 @@ class ENGINE_API UAnimInstance : public UObject
 	UPROPERTY()
 	bool bCanUseParallelUpdateAnimation;
 
+	/**
+	 * Selecting this option will cause the compiler to emit warnings whenever a call into Blueprint
+	 * is made from the animation graph. This can help track down optimizations that need to be made.
+	 */
+	UPROPERTY(Category = Optimization, EditDefaultsOnly)
+	bool bWarnAboutBlueprintUsage;
+
 	/** Flag to check back on the game thread that indicates we need to run PostUpdateAnimation() in the post-eval call */
 	bool bNeedsUpdate;
 

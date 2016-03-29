@@ -46,6 +46,8 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	SectionTimingNodeColor = FLinearColor(0.0f, 1.0f, 0.0f);
 	NotifyTimingNodeColor = FLinearColor(1.0f, 0.0f, 0.0f);
 	BranchingPointTimingNodeColor = FLinearColor(0.5f, 1.0f, 1.0f);
+
+	bAutoAlignFloorToMesh = true;
 }
 
 void UPersonaOptions::SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor)
@@ -83,6 +85,13 @@ void UPersonaOptions::SetShowFloor( bool bInShowFloor )
 	bShowFloor = bInShowFloor;
 	SaveConfig();
 }
+
+void UPersonaOptions::SetAutoAlignFloorToMesh(bool bInAutoAlignFloorToMesh)
+{
+	bAutoAlignFloorToMesh = bInAutoAlignFloorToMesh;
+	SaveConfig();
+}
+
 void UPersonaOptions::SetShowSky( bool bInShowSky )
 {
 	bShowSky = bInShowSky;

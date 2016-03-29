@@ -567,7 +567,7 @@ public:
 	FORCEINLINE FVector		GetScaledAxis(EAxis::Type InAxis) const;
 	FORCEINLINE FVector		GetUnitAxis(EAxis::Type InAxis) const;
 	FORCEINLINE void		Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis);
-	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale, float Tolerance=0.0f) const;
+	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale, float Tolerance=SMALL_NUMBER) const;
 
 
 	FORCEINLINE FVector GetLocation() const
@@ -1330,7 +1330,7 @@ private:
 	 * also returning BIG_NUMBER causes sequential NaN issues by multiplying 
 	 * so we hardcode as 0
 	 */
-	static FORCEINLINE VectorRegister		GetSafeScaleReciprocal(const VectorRegister& InScale, const ScalarRegister& Tolerance = ScalarRegister(VectorZero()))
+	static FORCEINLINE VectorRegister		GetSafeScaleReciprocal(const VectorRegister& InScale, const ScalarRegister& Tolerance = ScalarRegister(GlobalVectorConstants::SmallNumber))
 	{		
 		// SafeReciprocalScale.X = (InScale.X == 0) ? 0.f : 1/InScale.X; // same for YZW
 		VectorRegister SafeReciprocalScale;

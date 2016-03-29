@@ -952,7 +952,7 @@ TRange<float> FSequencer::GetInOutRange() const
 
 void FSequencer::SetInOutRange(TRange<float> Range)
 {
-	const FScopedTransaction Transaction(LOCTEXT("SetPlaybackRange_Transaction", "Set In/Out Range"));
+	const FScopedTransaction Transaction(LOCTEXT("SetInOutRange_Transaction", "Set In/Out Range"));
 	UMovieScene* FocusedMovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
 
 	FocusedMovieScene->SetInOutRange(Range);
@@ -2411,7 +2411,7 @@ void FSequencer::OnEndScrubbing()
 
 void FSequencer::OnBeginPlaybackRangeDrag()
 {
-	GEditor->BeginTransaction(LOCTEXT("SetPlaybackRange_Transaction", "Set playback range"));
+	GEditor->BeginTransaction(LOCTEXT("SetPlaybackRange_Transaction", "Set Playback Range"));
 }
 
 
@@ -2423,7 +2423,7 @@ void FSequencer::OnEndPlaybackRangeDrag()
 
 void FSequencer::OnBeginInOutRangeDrag()
 {
-	GEditor->BeginTransaction(LOCTEXT("SetSelectionRange_Transaction", "Set selection range"));
+	GEditor->BeginTransaction(LOCTEXT("SetSelectionRange_Transaction", "Set Selection Range"));
 }
 
 
@@ -3732,7 +3732,7 @@ bool FSequencer::IsNodeLocked() const
 
 void FSequencer::ConvertToSpawnable(TSharedRef<FSequencerObjectBindingNode> NodeToBeConverted)
 {
-	const FScopedTransaction Transaction( LOCTEXT("ConvertSelectedSpawnable", "Convert Node to Spawnables") );
+	const FScopedTransaction Transaction( LOCTEXT("ConvertSelectedNodeSpawnable", "Convert Node to Spawnables") );
 
 	// Ensure we're in a non-possessed state
 	RootMovieSceneSequenceInstance->RestoreState(*this);
@@ -3744,7 +3744,7 @@ void FSequencer::ConvertToSpawnable(TSharedRef<FSequencerObjectBindingNode> Node
 void FSequencer::ConvertSelectedNodesToSpawnables()
 {
 	// @todo sequencer: Undo doesn't seem to be working at all
-	const FScopedTransaction Transaction( LOCTEXT("ConvertSelectedSpawnable", "Convert Selected Nodes to Spawnables") );
+	const FScopedTransaction Transaction( LOCTEXT("ConvertSelectedNodesSpawnable", "Convert Selected Nodes to Spawnables") );
 
 	UMovieScene* MovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
 

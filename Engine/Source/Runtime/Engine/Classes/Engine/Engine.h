@@ -1149,7 +1149,7 @@ public:
 	uint32 bUseFixedFrameRate : 1;
 	
 	/** The fixed framerate to use. */
-	UPROPERTY(config, EditAnywhere, Category = Framerate, meta=(EditCondition="bUseFixedFrameRate"))
+	UPROPERTY(config, EditAnywhere, Category = Framerate, meta=(EditCondition="bUseFixedFrameRate", ClampMin = "15.0"))
 	float FixedFrameRate;
 
 	/** Range of framerates in which smoothing will kick in */
@@ -1300,10 +1300,6 @@ public:
 	/** Number of times to tick each client per second */
 	UPROPERTY(globalconfig)
 	float NetClientTicksPerSecond;
-
-	/** true if the engine needs to perform a delayed global component reregister (really just for editor) */
-	UPROPERTY(transient)
-	uint32 bHasPendingGlobalReregister:1;
 
 	/** Current display gamma setting */
 	UPROPERTY(config)

@@ -409,7 +409,7 @@ namespace LocalizationConfigurationScript
 			// Do not use culture subdirectories if importing a single culture from a specific directory.
 			if (CultureName.IsSet() && ImportPathOverride.IsSet())
 			{
-				ConfigSection.Add( TEXT("bUseCultureDirectory"), "false" );
+				ConfigSection.Add( TEXT("bUseCultureDirectory"), TEXT("false") );
 			}
 
 			ConfigSection.Add( TEXT("ManifestName"), GetManifestFileName(Target) );
@@ -522,7 +522,7 @@ namespace LocalizationConfigurationScript
 			// Do not use culture subdirectories if exporting a single culture to a specific directory.
 			if (CultureName.IsSet() && ExportPathOverride.IsSet())
 			{
-				ConfigSection.Add( TEXT("bUseCultureDirectory"), "false" );
+				ConfigSection.Add( TEXT("bUseCultureDirectory"), TEXT("false") );
 			}
 
 			ConfigSection.Add( TEXT("ManifestName"), GetManifestFileName(Target) );
@@ -640,7 +640,7 @@ namespace LocalizationConfigurationScript
 			// Do not use culture subdirectories if importing a single culture from a specific directory.
 			if (CultureName.IsSet() && ImportPathOverride.IsSet())
 			{
-				ConfigSection.Add(TEXT("bUseCultureDirectory"), "false");
+				ConfigSection.Add(TEXT("bUseCultureDirectory"), TEXT("false"));
 			}
 
 			ConfigSection.Add(TEXT("ManifestName"), GetManifestFileName(Target));
@@ -751,7 +751,7 @@ namespace LocalizationConfigurationScript
 			// Do not use culture subdirectories if exporting a single culture to a specific directory.
 			if (CultureName.IsSet() && ExportPathOverride.IsSet())
 			{
-				ConfigSection.Add(TEXT("bUseCultureDirectory"), "false");
+				ConfigSection.Add(TEXT("bUseCultureDirectory"), TEXT("false"));
 			}
 
 			ConfigSection.Add(TEXT("ManifestName"), GetManifestFileName(Target));

@@ -1068,19 +1068,19 @@ UGameplayTasksComponent* UGameplayAbility::GetGameplayTasksComponent(const UGame
 	return GetCurrentActorInfo() ? GetCurrentActorInfo()->AbilitySystemComponent.Get() : nullptr;
 }
 
-AActor* UGameplayAbility::GetOwnerActor(const UGameplayTask* Task) const
+AActor* UGameplayAbility::GetGameplayTaskOwner(const UGameplayTask* Task) const
 {
 	const FGameplayAbilityActorInfo* Info = GetCurrentActorInfo();
 	return Info ? Info->OwnerActor.Get() : nullptr;
 }
 
-AActor* UGameplayAbility::GetAvatarActor(const UGameplayTask* Task) const
+AActor* UGameplayAbility::GetGameplayTaskAvatar(const UGameplayTask* Task) const
 {
 	const FGameplayAbilityActorInfo* Info = GetCurrentActorInfo();
 	return Info ? Info->AvatarActor.Get() : nullptr;
 }
 
-void UGameplayAbility::OnTaskInitialized(UGameplayTask& Task)
+void UGameplayAbility::OnGameplayTaskInitialized(UGameplayTask& Task)
 {
 	UAbilityTask* AbilityTask = Cast<UAbilityTask>(&Task);
 	if (AbilityTask)
@@ -1090,11 +1090,23 @@ void UGameplayAbility::OnTaskInitialized(UGameplayTask& Task)
 	}
 }
 
-void UGameplayAbility::OnTaskActivated(UGameplayTask& Task)
+void UGameplayAbility::OnGameplayTaskActivated(UGameplayTask& Task)
 {
 	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Started %s"), *Task.GetName());
 
 	ActiveTasks.Add(&Task);
+}
+
+void UGameplayAbility::OnGameplayTaskDeactivated(UGameplayTask& Task)
+{
+	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Ended %s"), *Task.GetName());
+
+	ActiveTasks.Remove(&Task);
+
+	if (ENABLE_ABILITYTASK_DEBUGMSG)
+	{
+		AddAbilityTaskDebugMessage(&Task, TEXT("Ended."));
+	}
 }
 
 void UGameplayAbility::ConfirmTaskByInstanceName(FName InstanceName, bool bEndTask)
@@ -1201,18 +1213,6 @@ void UGameplayAbility::EndAbilityState(FName OptionalStateNameToEnd)
 	if (OnGameplayAbilityStateEnded.IsBound())
 	{
 		OnGameplayAbilityStateEnded.Broadcast(OptionalStateNameToEnd);
-	}
-}
-
-void UGameplayAbility::OnTaskDeactivated(UGameplayTask& Task)
-{
-	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Ended %s"), *Task.GetName());
-
-	ActiveTasks.Remove(&Task);
-
-	if (ENABLE_ABILITYTASK_DEBUGMSG)
-	{
-		AddAbilityTaskDebugMessage(&Task, TEXT("Ended."));
 	}
 }
 

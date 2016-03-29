@@ -8209,7 +8209,7 @@ void UCharacterMovementComponent::ClientAckGoodMove_Implementation(float TimeSta
 	ClientData->AckMove(MoveIndex);
 }
 
-void UCharacterMovementComponent::CapsuleTouched( AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult )
+void UCharacterMovementComponent::CapsuleTouched(UPrimitiveComponent* OverlappedComp, AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult )
 {
 	if (!bEnablePhysicsInteraction)
 	{

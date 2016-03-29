@@ -1303,7 +1303,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	//BEN const int32 CoordToTuck = bAssumeMayaCoordinates ? 1 : 2;
 	//BEN BoundingBox.Min[CoordToTuck]	= Temp.Min[CoordToTuck] + 0.1f*(Temp.Min[CoordToTuck] - MidMesh[CoordToTuck]);
 	BoundingBox.Min[2]	= Temp.Min[2] + 0.1f*(Temp.Min[2] - MidMesh[2]);
-	SkeletalMesh->Bounds= FBoxSphereBounds(BoundingBox);
+	SkeletalMesh->SetImportedBounds(FBoxSphereBounds(BoundingBox));
 
 	// Store whether or not this mesh has vertex colors
 	SkeletalMesh->bHasVertexColors = SkelMeshImportDataPtr->bHasVertexColors;

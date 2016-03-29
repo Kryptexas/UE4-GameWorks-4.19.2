@@ -10,6 +10,7 @@
 #include "LinkerPlaceholderClass.h"
 #include "LinkerPlaceholderFunction.h"
 #include "StructScriptLoader.h"
+#include "LoadTimeTracker.h"
 
 // This flag enables some expensive class tree validation that is meant to catch mutations of 
 // the class tree outside of SetSuperStruct. It has been disabled because loading blueprints 
@@ -849,9 +850,9 @@ void UStruct::InitTaggedPropertyRedirectsMap()
 				FName OldPropertyName = NAME_None;
 				FName NewPropertyName = NAME_None;
 
-				FParse::Value( *It.Value(), TEXT("ClassName="), ClassName );
-				FParse::Value( *It.Value(), TEXT("OldPropertyName="), OldPropertyName );
-				FParse::Value( *It.Value(), TEXT("NewPropertyName="), NewPropertyName );
+				FParse::Value( *It.Value().GetValue(), TEXT("ClassName="), ClassName );
+				FParse::Value( *It.Value().GetValue(), TEXT("OldPropertyName="), OldPropertyName );
+				FParse::Value( *It.Value().GetValue(), TEXT("NewPropertyName="), NewPropertyName );
 
 				check(ClassName != NAME_None && OldPropertyName != NAME_None && NewPropertyName != NAME_None );
 				TaggedPropertyRedirects.FindOrAdd(ClassName).Add(OldPropertyName, NewPropertyName);
@@ -866,6 +867,8 @@ void UStruct::InitTaggedPropertyRedirectsMap()
 
 void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad) const
 {
+	//SCOPED_LOADTIMER(SerializeTaggedPropertiesTime);
+	
 	check(Ar.IsLoading() || Ar.IsSaving());
 
 	UClass* DefaultsClass = dynamic_cast<UClass*>(DefaultsStruct);

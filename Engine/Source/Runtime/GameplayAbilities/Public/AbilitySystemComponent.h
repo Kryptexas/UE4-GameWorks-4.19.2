@@ -1365,10 +1365,8 @@ public:
 
 	const FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle) const;
 
-	// -
-	// UGameplayTasksComponent
-	// -
-	virtual AActor* GetAvatarActor(const UGameplayTask* Task) const override;
+	virtual AActor* GetGameplayTaskAvatar(const UGameplayTask* Task) const override;
+	AActor* GetAvatarActor() const;
 
 	/** Suppress all ability granting through GEs on this component */
 	bool bSuppressGrantAbility;

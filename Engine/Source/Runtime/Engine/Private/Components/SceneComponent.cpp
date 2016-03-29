@@ -2923,10 +2923,10 @@ void USceneComponent::UpdateNavigationData()
 {
 	SCOPE_CYCLE_COUNTER(STAT_ComponentUpdateNavData);
 
-	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() &&
-		IsRegistered() && World && World->IsGameWorld() &&
-		World->GetNetMode() < ENetMode::NM_Client)
+	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() && IsRegistered() && 
+		((World == nullptr) || !World->IsGameWorld() || World->GetNetMode() < ENetMode::NM_Client))
 	{
+		// use propagated component's transform update in editor OR server game with additional navsys check
 		UNavigationSystem::UpdateComponentInNavOctree(*this);
 	}
 }
@@ -2935,10 +2935,10 @@ void USceneComponent::PostUpdateNavigationData()
 {
 	SCOPE_CYCLE_COUNTER(STAT_ComponentPostUpdateNavData);
 
-	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() &&
-		IsRegistered() && World && World->IsGameWorld() &&
-		World->GetNetMode() < ENetMode::NM_Client)
+	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() && IsRegistered() &&
+		((World == nullptr) || !World->IsGameWorld() || World->GetNetMode() < ENetMode::NM_Client))
 	{
+		// use propagated component's transform update in editor OR server game with additional navsys check
 		UNavigationSystem::UpdateNavOctreeAfterMove(this);
 	}
 }

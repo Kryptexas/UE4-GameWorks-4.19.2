@@ -489,12 +489,19 @@ void EnsureSleepingActorsStaySleeping_AssumesLocked(PxRigidActor* PActor1, PxRig
 	{
 		if (PActor1 && !IsRigidBodyKinematic_AssumesLocked(PActor1->isRigidDynamic()))
 		{
-			PActor1->isRigidDynamic()->putToSleep();
+			if(PActor1->isRigidDynamic())
+			{
+				PActor1->isRigidDynamic()->putToSleep();
+			}
 		}
 
 		if (PActor2 && !IsRigidBodyKinematic_AssumesLocked(PActor2->isRigidDynamic()))
 		{
-			PActor2->isRigidDynamic()->putToSleep();
+			if(PActor2->isRigidDynamic())
+			{
+				PActor2->isRigidDynamic()->putToSleep();
+			}
+			
 		}
 	}
 }

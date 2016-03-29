@@ -11,15 +11,103 @@ CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogConfig, Warning, All);
 // Server builds should be tweakable even in Shipping
 #define ALLOW_INI_OVERRIDE_FROM_COMMANDLINE			(UE_SERVER || !(UE_BUILD_SHIPPING))
 
-typedef TMultiMap<FName,FString> FConfigSectionMap;
+struct FConfigValue
+{
+public:
+	FConfigValue() { }
+	FConfigValue(const TCHAR* InValue)
+		: SavedValue(InValue)
+	{
+		ExpandValue();
+	}
+
+	FConfigValue(FString InValue)
+		: SavedValue(MoveTemp(InValue))
+	{
+		ExpandValue();
+	}
+
+	// Returns the ini setting with any macros expanded out
+	const FString& GetValue() const { return (ExpandedValue.Len() > 0 ? ExpandedValue : SavedValue); }
+
+	// Returns the original ini setting without macro expansion
+	const FString& GetSavedValue() const { return SavedValue; }
+
+	DEPRECATED(4.12, "Please switch to explicitly doing a GetValue() or GetSavedValue()")
+	operator const FString& () const { return GetValue(); }
+
+	DEPRECATED(4.12, "Please switch to explicitly doing a GetValue() or GetSavedValue()")
+	const TCHAR* operator*() const { return *GetValue(); }
+
+	bool operator==(const FConfigValue& Other) const { return (SavedValue.Compare(Other.SavedValue) == 0); }
+	bool operator!=(const FConfigValue& Other) const { return !(FConfigValue::operator==(Other)); }
+
+	friend FArchive& operator<<(FArchive& Ar, FConfigValue& ConfigSection)
+	{
+		Ar << ConfigSection.SavedValue;
+
+		if (Ar.IsLoading())
+		{
+			ConfigSection.ExpandValue();
+		}
+
+		return Ar;
+	}
+
+
+private:
+
+	CORE_API void ExpandValue();
+
+	FString SavedValue;
+	FString ExpandedValue;
+};
+
+typedef TMultiMap<FName,FConfigValue> FConfigSectionMap;
 
 // One section in a config file.
 class FConfigSection : public FConfigSectionMap
 {
 public:
-	bool HasQuotes( const FString& Test ) const;
+	static bool HasQuotes( const FString& Test );
 	bool operator==( const FConfigSection& Other ) const;
 	bool operator!=( const FConfigSection& Other ) const;
+
+	void ReplaceOrAdd(const FName Key, FString Value)
+	{
+		if (FConfigValue* ConfigValue = FConfigSectionMap::Find(Key))
+		{
+			*ConfigValue = FConfigValue(MoveTemp(Value));
+		}
+		else
+		{
+			Add(Key, MoveTemp(Value));
+		}
+	}
+
+	template<typename Allocator> 
+	void MultiFind(const FName Key, TArray<FConfigValue, Allocator>& OutValues, const bool bMaintainOrder = false) const
+	{
+		FConfigSectionMap::MultiFind(Key, OutValues, bMaintainOrder);
+	}
+
+	template<typename Allocator> 
+	void MultiFind(const FName Key, TArray<FString, Allocator>& OutValues, const bool bMaintainOrder = false) const
+	{
+		for (const TPair<FName, FConfigValue>& Pair : Pairs)
+		{
+			if (Pair.Key == Key)
+			{
+				OutValues.Add(Pair.Value.GetValue());
+			}
+		}
+
+		if (bMaintainOrder)
+		{
+			Algo::Reverse(OutValues);
+		}
+	}
+
 };
 
 /**
@@ -203,7 +291,7 @@ private:
 	 * @param SectionName - The section name the array property is being written to
 	 * @param PropertyName - The property name of the array
 	 */
-	void ProcessPropertyAndWriteForDefaults(const TArray< FString >& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName);
+	void ProcessPropertyAndWriteForDefaults(const TArray<FConfigValue>& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName);
 
 };
 

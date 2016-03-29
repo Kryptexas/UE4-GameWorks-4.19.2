@@ -14,6 +14,7 @@
 #include "Animation/AnimMontage.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/DamageType.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAvatar, Log, All);
@@ -561,10 +562,22 @@ namespace MovementBaseUtility
 						return true;
 					}
 
+					const USkeletalMeshSocket* Socket = SkeletalBase->GetSocketByName(BoneName);
+					if (Socket != nullptr)
+					{
+						const FTransform SocketTransform = Socket->GetSocketTransform(SkeletalBase);
+						OutLocation = SocketTransform.GetLocation();
+						OutQuat = SocketTransform.GetRotation();
+						return true;
+					}
+
 					UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Invalid bone '%s' for SkeletalMeshComponent base %s"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
 					return false;
 				}
-				// TODO: warn if not a skeletal mesh but providing bone index.
+				else
+				{
+					UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Requested bone '%s' for non-SkeletalMeshComponent base %s"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
+				}
 			}
 
 			// No bone supplied

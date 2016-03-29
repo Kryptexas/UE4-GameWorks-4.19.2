@@ -3,6 +3,7 @@
 #pragma once
 #include "GameFramework/Info.h"
 #include "Sound/AudioVolume.h"
+#include "Engine/MeshMerging.h"
 #include "WorldSettings.generated.h"
 
 class UNetConnection;

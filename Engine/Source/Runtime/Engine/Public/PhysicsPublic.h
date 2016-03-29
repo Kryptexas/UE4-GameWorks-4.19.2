@@ -405,8 +405,8 @@ public:
 		return PhysicsSceneCompletion;
 	}
 
-	/** Set rather we're doing a static load and want to stall, or are during gameplay and want to distribute over many frames */
-	ENGINE_API void SetIsStaticLoading(bool bStaticLoading);
+	/** Ensures that the collision tree is built. */
+	ENGINE_API void EnsureCollisionTreeIsBuilt(UWorld* World);
 
 	/** Waits for all physics scenes to complete */
 	ENGINE_API void WaitPhysScenes();
@@ -565,6 +565,9 @@ private:
 
 	/** Task created from TickPhysScene so we can substep without blocking */
 	bool SubstepSimulation(uint32 SceneType, FGraphEventRef& InOutCompletionEvent);
+
+	/** Set whether we're doing a static load and want to stall, or are during gameplay and want to distribute over many frames */
+	void SetIsStaticLoading(bool bStaticLoading);
 
 #if WITH_PHYSX
 	/** User data wrapper passed to physx */

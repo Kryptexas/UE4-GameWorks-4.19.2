@@ -21,23 +21,23 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);
  
 
 // Delegate signatures
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FTakeAnyDamageSignature, float, Damage, const class UDamageType*, DamageType, class AController*, InstigatedBy, AActor*, DamageCauser );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_EightParams( FTakePointDamageSignature, float, Damage, class AController*, InstigatedBy, FVector, HitLocation, class UPrimitiveComponent*, FHitComponent, FName, BoneName, FVector, ShotFromDirection, const class UDamageType*, DamageType, AActor*, DamageCauser );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorBeginOverlapSignature, AActor*, OtherActor );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorEndOverlapSignature, AActor*, OtherActor );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams( FTakeAnyDamageSignature, AActor*, DamagedActor, float, Damage, const class UDamageType*, DamageType, class AController*, InstigatedBy, AActor*, DamageCauser );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_NineParams( FTakePointDamageSignature, AActor*, DamagedActor, float, Damage, class AController*, InstigatedBy, FVector, HitLocation, class UPrimitiveComponent*, FHitComponent, FName, BoneName, FVector, ShotFromDirection, const class UDamageType*, DamageType, AActor*, DamageCauser );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FActorBeginOverlapSignature, AActor*, OverlappedActor, AActor*, OtherActor );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FActorEndOverlapSignature, AActor*, OverlappedActor, AActor*, OtherActor );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FActorHitSignature, AActor*, SelfActor, AActor*, OtherActor, FVector, NormalImpulse, const FHitResult&, Hit );
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE( FActorBeginCursorOverSignature );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE( FActorEndCursorOverSignature );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorOnClickedSignature, FKey, ButtonPressed );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorOnReleasedSignature, FKey, ButtonReleased );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorOnInputTouchBeginSignature, ETouchIndex::Type, FingerIndex );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorOnInputTouchEndSignature, ETouchIndex::Type, FingerIndex );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorBeginTouchOverSignature, ETouchIndex::Type, FingerIndex );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorEndTouchOverSignature, ETouchIndex::Type, FingerIndex );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorBeginCursorOverSignature, AActor*, TouchedActor );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorEndCursorOverSignature, AActor*, TouchedActor );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FActorOnClickedSignature, AActor*, TouchedActor , FKey, ButtonPressed );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FActorOnReleasedSignature, AActor*, TouchedActor , FKey, ButtonReleased );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FActorOnInputTouchBeginSignature, ETouchIndex::Type, FingerIndex, AActor*, TouchedActor );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FActorOnInputTouchEndSignature, ETouchIndex::Type, FingerIndex, AActor*, TouchedActor );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FActorBeginTouchOverSignature, ETouchIndex::Type, FingerIndex, AActor*, TouchedActor );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FActorEndTouchOverSignature, ETouchIndex::Type, FingerIndex, AActor*, TouchedActor );
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActorDestroyedSignature);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorEndPlaySignature, EEndPlayReason::Type, EndPlayReason);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorDestroyedSignature, AActor*, DestroyedActor );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FActorEndPlaySignature, AActor*, Actor , EEndPlayReason::Type, EndPlayReason);
 
 DECLARE_DELEGATE_SixParams(FMakeNoiseDelegate, AActor*, float /*Loudness*/, class APawn*, const FVector&, float /*MaxRange*/, FName /*Tag*/);
 
@@ -562,7 +562,7 @@ public:
 	UPROPERTY()
 	uint8 bActorSeamlessTraveled:1;
 
-	/** Whether this actor should no be affected by world origin shifting. */
+	/** Whether this actor should not be affected by world origin shifting. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Actor)
 	uint8 bIgnoresOriginShifting:1;
 	
@@ -1166,6 +1166,10 @@ public:
 	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage="Use PrimitiveComponent.CreateAndSetMaterialInstanceDynamic instead.", BlueprintProtected = "true"), Category="Rendering|Material")
 	class UMaterialInstanceDynamic* MakeMIDForMaterial(class UMaterialInterface* Parent);
 
+	/** The number of seconds (in game time) since this Actor was created, relative to Get Game Time In Seconds. */
+	UFUNCTION(BlueprintPure, Category = Actor)
+	float GetGameTimeSinceCreation();
+
 	//~=============================================================================
 	// AI functions.
 	
@@ -1307,11 +1311,21 @@ public:
 	 * @param ClassFilter			[optional] If set, only returns actors of this class or subclasses
 	 */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
-	void GetOverlappingActors(TArray<AActor*>& OverlappingActors, UClass* ClassFilter=NULL) const;
+	void GetOverlappingActors(TArray<AActor*>& OverlappingActors, TSubclassOf<AActor> ClassFilter=nullptr) const;
+
+	/** 
+	 * Returns set of actors this actor is overlapping (any component overlapping any component). Does not return itself.
+	 * @param OverlappingActors		[out] Returned list of overlapping actors
+	 * @param ClassFilter			[optional] If set, only returns actors of this class or subclasses
+	 */
+	void GetOverlappingActors(TSet<AActor*>& OverlappingActors, TSubclassOf<AActor> ClassFilter=nullptr) const;
 
 	/** Returns list of components this actor is overlapping. */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
 	void GetOverlappingComponents(TArray<UPrimitiveComponent*>& OverlappingComponents) const;
+
+	/** Returns set of components this actor is overlapping. */
+	void GetOverlappingComponents(TSet<UPrimitiveComponent*>& OverlappingComponents) const;
 
 	/** 
 	 * Event when this actor bumps into a blocking object, or blocks another actor that bumps into it.
@@ -1391,7 +1405,6 @@ public:
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual bool Rename( const TCHAR* NewName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) override;
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -2046,6 +2059,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Actor")
 	bool IsChildActor() const;
 
+	/** Returns a list of all child actors, including children of children */
+	UFUNCTION(BlueprintCallable, Category="Actor")
+	void GetAllChildActors(TArray<AActor*>& ChildActors, bool bIncludeDescendants = true) const;
+
 	UFUNCTION(BlueprintCallable, Category="Actor")
 	UChildActorComponent* GetParentComponent() const;
 
@@ -2577,11 +2594,11 @@ public:
 	}
 
 	/**
-	 * Get a direct reference to the Components array rather than a copy with the null pointers removed.
+	 * Get a direct reference to the Components set rather than a copy with the null pointers removed.
 	 * WARNING: anything that could cause the component to change ownership or be destroyed will invalidate
-	 * this array, so use caution when iterating this list!
+	 * this array, so use caution when iterating this set!
 	 */
-	const TArray<UActorComponent*>& GetComponents() const
+	const TSet<UActorComponent*>& GetComponents() const
 	{
 		return OwnedComponents;
 	}
@@ -2615,19 +2632,22 @@ public:
 	 */
 	void UpdateAllReplicatedComponents();
 
-	/** Returns a constant reference to the replicated components array
+	/** Returns a constant reference to the replicated components set
 	 */
-	const TArray<UActorComponent*>& GetReplicatedComponents() const;
+	const TSet<UActorComponent*>& GetReplicatedComponents() const 
+	{ 
+		return ReplicatedComponents; 
+	}
 
 private:
 	/**
 	 * All ActorComponents owned by this Actor.
 	 * @see GetComponents()
 	 */
-	TArray<UActorComponent*> OwnedComponents;
+	TSet<UActorComponent*> OwnedComponents;
 
-	/** List of replicated components. */
-	TArray<UActorComponent*> ReplicatedComponents;
+	/** Set of replicated components. */
+	TSet<UActorComponent*> ReplicatedComponents;
 
 #if WITH_EDITOR
 	/** Maps natively-constructed components to properties that reference them. */

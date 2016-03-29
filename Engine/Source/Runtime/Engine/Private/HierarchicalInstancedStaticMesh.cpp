@@ -1714,15 +1714,6 @@ void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 	}
 }
 
-SIZE_T UHierarchicalInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type Mode )
-{
-	SIZE_T ResSize = Super::GetResourceSize(Mode);
-
-	ResSize += SortedInstances.GetAllocatedSize();
-
-	return ResSize;
-}
-
 void UHierarchicalInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex)
 {
 	PartialNavigationUpdate(InstanceIndex);

@@ -2619,7 +2619,7 @@ FText FPersona::GetRecordMenuLabel() const
 		return LOCTEXT("Persona_StopRecordAnimationMenuLabel", "Stop Record Animation");
 	}
 
-	return LOCTEXT("Persona_StartRecordAnimationLabel", "Start Record Animation");
+	return LOCTEXT("Persona_StartRecordAnimationMenuLabel", "Start Record Animation");
 }
 
 FText FPersona::GetRecordStatusLabel() const
@@ -2974,7 +2974,7 @@ void FPersona::RemoveUnusedBones()
 		
 		if(FMessageDialog::Open( EAppMsgType::YesNo, TimeTakenMessage ) == EAppReturnType::Yes)
 		{
-			const FText StatusUpdate = FText::Format(LOCTEXT("RemoveUnusedBones_ProcessingAssets", "Processing Skeletal Meshes for {0}"), FText::FromString(TargetSkeleton->GetName()) );
+			const FText StatusUpdate = FText::Format(LOCTEXT("RemoveUnusedBones_ProcessingAssetsFor", "Processing Skeletal Meshes for {0}"), FText::FromString(TargetSkeleton->GetName()) );
 			GWarn->BeginSlowTask(StatusUpdate, true );
 
 			// Loop through all SkeletalMeshes and remove the bones they use from our list

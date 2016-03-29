@@ -11,17 +11,11 @@ DECLARE_CYCLE_STAT(TEXT("ClearTimer"), STAT_ClearTimer, STATGROUP_Engine);
 
 void FTimerHandle::MakeValid()
 {
-	static int LastAssignedHandle = -1;
-
-	if (!IsValid())
+	if (GWorld)
 	{
-		++LastAssignedHandle;
-		Handle = LastAssignedHandle;
+		GWorld->GetTimerManager().ValidateHandle(*this);
 	}
-
-	check(IsValid());
 }
-
 
 
 FString FTimerUnifiedDelegate::ToString() const
@@ -165,7 +159,7 @@ void FTimerManager::InternalSetTimer(FTimerHandle& InOutHandle, FTimerUnifiedDel
 
 	if (InRate > 0.f)
 	{
-		InOutHandle.MakeValid();
+		ValidateHandle(InOutHandle);
 
 		// set up the new timer
 		FTimerData NewTimerData;
@@ -555,6 +549,17 @@ void FTimerManager::ListTimers() const
 	}
 
 	UE_LOG(LogEngine, Log, TEXT("------- %d Total Timers -------"), PendingTimerList.Num() + PausedTimerList.Num() + ActiveTimerHeap.Num());
+}
+
+void FTimerManager::ValidateHandle(FTimerHandle& InOutHandle)
+{
+	if (!InOutHandle.IsValid())
+	{
+		++LastAssignedHandle;
+		InOutHandle.Handle = LastAssignedHandle;
+	}
+
+	checkf(InOutHandle.IsValid(), TEXT("Timer handle has wrapped around to 0!"));
 }
 
 // Handler for ListTimers console command

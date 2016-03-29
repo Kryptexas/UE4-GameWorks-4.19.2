@@ -9,19 +9,6 @@ UVertexAnimation::UVertexAnimation(const FObjectInitializer& ObjectInitializer)
 {
 }
 
-void UVertexAnimation::Serialize( FArchive& Ar )
-{
-	Super::Serialize( Ar );
-
-	//Ar << VertexAnimData;
-}
-
-
-SIZE_T UVertexAnimation::GetResourceSize(EResourceSizeMode::Type Mode)
-{
-	return 0;
-}
-
 int32 UVertexAnimation::GetNumFrames()
 {
 	return VertexAnimData.Num();

@@ -2800,7 +2800,7 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 					continue;
 				}
 
-				FString ProcessedIniValue = IniValue.Value;
+				FString ProcessedIniValue = IniValue.Value.GetValue();
 				// get rid of shit we don't care about
 				ProcessedIniValue.ReplaceInline(TEXT("{"), TEXT(""));
 				ProcessedIniValue.ReplaceInline(TEXT("}"), TEXT(""));

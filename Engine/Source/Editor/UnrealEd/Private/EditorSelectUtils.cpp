@@ -250,9 +250,9 @@ void UUnrealEdEngine::SetActorSelectionFlags (AActor* InActor)
 		{
 			// If we have a 'child actor' component, want to update its visible selection state
 			UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(Component);
-			if(ChildActorComponent != NULL && ChildActorComponent->ChildActor != NULL)
+			if(ChildActorComponent != NULL && ChildActorComponent->GetChildActor() != NULL)
 			{
-				SetActorSelectionFlags(ChildActorComponent->ChildActor);
+				SetActorSelectionFlags(ChildActorComponent->GetChildActor());
 			}
 
 			UPrimitiveComponent* PrimComponent = Cast<UPrimitiveComponent>(Component);

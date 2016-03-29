@@ -1207,7 +1207,16 @@ private:
 
 
 /** @return True if called from the game thread. */
-extern CORE_API bool IsInGameThread();
+FORCEINLINE bool IsInGameThread()
+{
+	if(GIsGameThreadIdInitialized)
+	{
+		const uint32 CurrentThreadId = FPlatformTLS::GetCurrentThreadId();
+		return CurrentThreadId == GGameThreadId || CurrentThreadId == GSlateLoadingThreadId;
+	}
+
+	return true;
+}
 
 /** @return True if called from the slate thread, and not merely a thread calling slate functions. */
 extern CORE_API bool IsInSlateThread();

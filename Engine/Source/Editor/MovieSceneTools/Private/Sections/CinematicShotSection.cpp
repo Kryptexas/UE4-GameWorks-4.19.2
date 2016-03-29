@@ -210,7 +210,7 @@ void FCinematicShotSection::AddTakesMenu(FMenuBuilder& MenuBuilder)
 
 FText FCinematicShotSection::GetDisplayName() const
 {
-	return NSLOCTEXT("FCinematicShotSection", "", "Shot");
+	return NSLOCTEXT("FCinematicShotSection", "Shot", "Shot");
 }
 
 /* FCinematicShotSection callbacks

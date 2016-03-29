@@ -2426,11 +2426,12 @@ void UGameViewportClient::ToggleShowCollision()
 				{
 					PC->ClientMessage(FString::Printf(TEXT("Base %s"), *PC->GetPawn()->GetMovementBase()->GetName()));
 				}
-				TArray<AActor*> Touching;
-				PC->GetPawn()->GetOverlappingActors(Touching);
-				for (int32 i = 0; i < Touching.Num(); i++)
+				TSet<AActor*> TouchingActors;
+				PC->GetPawn()->GetOverlappingActors(TouchingActors);
+				int32 i = 0;
+				for (AActor* TouchingActor : TouchingActors)
 				{
-					PC->ClientMessage(FString::Printf(TEXT("Touching %d: %s"), i, *Touching[i]->GetName()));
+					PC->ClientMessage(FString::Printf(TEXT("Touching %d: %s"), i++, *TouchingActor->GetName()));
 				}
 			}
 		}

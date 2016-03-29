@@ -1286,7 +1286,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 				{
 					ComponentsToExport.Add(Component);
 				}
-				else if (ChildActorComp && ChildActorComp->ChildActor)
+				else if (ChildActorComp && ChildActorComp->GetChildActor())
 				{
 					ComponentsToExport.Add(ChildActorComp);
 				}
@@ -1370,10 +1370,10 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 					FillFbxLightAttribute(Light, ActorNode, Cast<ULightComponent>(Component));
 					ExportNode->SetNodeAttribute(Light);
 				}
-				else if (ChildActorComp && ChildActorComp->ChildActor)
+				else if (ChildActorComp && ChildActorComp->GetChildActor())
 				{
-					FbxNode* ChildActorNode = ExportActor(ChildActorComp->ChildActor, InMatineeActor, true);
-					FbxActors.Add(ChildActorComp->ChildActor, ChildActorNode);
+					FbxNode* ChildActorNode = ExportActor(ChildActorComp->GetChildActor(), InMatineeActor, true);
+					FbxActors.Add(ChildActorComp->GetChildActor(), ChildActorNode);
 				}
 			}
 		}

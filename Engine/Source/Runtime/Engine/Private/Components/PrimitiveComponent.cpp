@@ -529,15 +529,19 @@ void UPrimitiveComponent::CreatePhysicsState()
 		if(BodySetup)
 		{
 			// Create new BodyInstance at given location.
-			if(FMath::Abs(ComponentToWorld.GetDeterminant()) < SMALL_NUMBER)
+			FTransform BodyTransform = ComponentToWorld;
+
+			// Here we make sure we don't have zero scale. This still results in a body being made and placed in
+			// world (very small) but is consistent with a body scaled to zero.
+			const FVector BodyScale = BodyTransform.GetScale3D();
+			if(BodyScale.IsNearlyZero())
 			{
-				UE_LOG(LogPrimitiveComponent, Log, TEXT("Zero scaling not supported (%s)"), *GetPathName());
-				return;
+				BodyTransform.SetScale3D(FVector(KINDA_SMALL_NUMBER));
 			}
 
 #if UE_WITH_PHYSICS
 			// Create the body.
-			BodyInstance.InitBody(BodySetup, ComponentToWorld, this, World->GetPhysicsScene());
+			BodyInstance.InitBody(BodySetup, BodyTransform, this, World->GetPhysicsScene());
 #endif //UE_WITH_PHYSICS
 
 #if WITH_EDITOR
@@ -1840,10 +1844,10 @@ void UPrimitiveComponent::DispatchWakeEvents(int32 WakeEvent, FName BoneName)
 		{
 			if (WakeEvent == SleepEvent::SET_Wakeup)
 			{
-				OnComponentWake.Broadcast(BoneName);
+				OnComponentWake.Broadcast(this, BoneName);
 			}else
 			{
-				OnComponentSleep.Broadcast(BoneName);
+				OnComponentSleep.Broadcast(this, BoneName);
 			}
 		}
 	}
@@ -2082,13 +2086,13 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 				// first execute component delegates
 				if (!IsPendingKill())
 				{
-					OnComponentBeginOverlap.Broadcast(OtherActor, OtherComp, OtherOverlap.GetBodyIndex(), OtherOverlap.bFromSweep, OtherOverlap.OverlapInfo);
+					OnComponentBeginOverlap.Broadcast(this, OtherActor, OtherComp, OtherOverlap.GetBodyIndex(), OtherOverlap.bFromSweep, OtherOverlap.OverlapInfo);
 				}
 
 				if (!OtherComp->IsPendingKill())
 				{
 					// Reverse normals for other component. When it's a sweep, we are the one that moved.
-					OtherComp->OnComponentBeginOverlap.Broadcast(MyActor, this, INDEX_NONE, OtherOverlap.bFromSweep, OtherOverlap.bFromSweep ? FHitResult::GetReversedHit(OtherOverlap.OverlapInfo) : OtherOverlap.OverlapInfo);
+					OtherComp->OnComponentBeginOverlap.Broadcast(OtherComp, MyActor, this, INDEX_NONE, OtherOverlap.bFromSweep, OtherOverlap.bFromSweep ? FHitResult::GetReversedHit(OtherOverlap.OverlapInfo) : OtherOverlap.OverlapInfo);
 				}
 
 				// then execute actor notification if this is a new actor touch
@@ -2108,12 +2112,12 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 					// Then level-script delegates
 					if (IsActorValidToNotify(MyActor))
 					{
-						MyActor->OnActorBeginOverlap.Broadcast(OtherActor);
+						MyActor->OnActorBeginOverlap.Broadcast(MyActor, OtherActor);
 					}
 
 					if (IsActorValidToNotify(OtherActor))
 					{
-						OtherActor->OnActorBeginOverlap.Broadcast(MyActor);
+						OtherActor->OnActorBeginOverlap.Broadcast(OtherActor, MyActor);
 					}
 				}
 			}
@@ -2151,12 +2155,12 @@ void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, 
 			{
 				if (!bSkipNotifySelf && IsPrimCompValidAndAlive(this))
 				{
-					OnComponentEndOverlap.Broadcast(OtherActor, OtherComp, OtherOverlap.GetBodyIndex());
+					OnComponentEndOverlap.Broadcast(this, OtherActor, OtherComp, OtherOverlap.GetBodyIndex());
 				}
 
 				if (IsPrimCompValidAndAlive(OtherComp))
 				{
-					OtherComp->OnComponentEndOverlap.Broadcast(MyActor, this, INDEX_NONE);
+					OtherComp->OnComponentEndOverlap.Broadcast(OtherComp, MyActor, this, INDEX_NONE);
 				}
 	
 				// if this was the last touch on the other actor by this actor, notify that we've untouched the actor as well
@@ -2165,13 +2169,13 @@ void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, 
 					if (IsActorValidToNotify(MyActor))
 					{
 						MyActor->NotifyActorEndOverlap(OtherActor);
-						MyActor->OnActorEndOverlap.Broadcast(OtherActor);
+						MyActor->OnActorEndOverlap.Broadcast(MyActor, OtherActor);
 					}
 
 					if (IsActorValidToNotify(OtherActor))
 					{
 						OtherActor->NotifyActorEndOverlap(MyActor);
-						OtherActor->OnActorEndOverlap.Broadcast(MyActor);
+						OtherActor->OnActorEndOverlap.Broadcast(OtherActor, MyActor);
 					}
 				}
 			}
@@ -2179,45 +2183,54 @@ void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, 
 	}
 }
 
+void UPrimitiveComponent::GetOverlappingActors(TArray<AActor*>& OutOverlappingActors, TSubclassOf<AActor> ClassFilter) const
+{
+	TSet<AActor*> OverlappingActors;
+	GetOverlappingActors(OverlappingActors, ClassFilter);
 
+	OutOverlappingActors.Reset(OverlappingActors.Num());
 
-void UPrimitiveComponent::GetOverlappingActors(TArray<AActor*>& OutOverlappingActors, UClass* ClassFilter) const
+	for (AActor* OverlappingActor : OverlappingActors)
+	{
+		OutOverlappingActors.Add(OverlappingActor);
+	}
+
+}
+
+void UPrimitiveComponent::GetOverlappingActors(TSet<AActor*>& OutOverlappingActors, TSubclassOf<AActor> ClassFilter) const
 {
 	OutOverlappingActors.Reset();
+	OutOverlappingActors.Reserve(OverlappingComponents.Num());
 
-	for (auto CompIt = OverlappingComponents.CreateConstIterator(); CompIt; ++CompIt)
+	for (const FOverlapInfo& OtherOverlap : OverlappingComponents)
 	{
-		const FOverlapInfo& OtherOvelap = *CompIt;
-		
-		if (OtherOvelap.OverlapInfo.Component.IsValid())
+		if (UPrimitiveComponent* OtherComponent = OtherOverlap.OverlapInfo.Component.Get())
 		{
-			AActor* OtherActor = OtherOvelap.OverlapInfo.Component->GetOwner();
+			AActor* OtherActor = OtherComponent->GetOwner();
 			if (OtherActor)
 			{
-				if ( !ClassFilter || OtherActor->IsA(ClassFilter) )
+				if ( (*ClassFilter) == nullptr || OtherActor->IsA(ClassFilter) )
 				{
-					OutOverlappingActors.AddUnique(OtherActor);
+					OutOverlappingActors.Add(OtherActor);
 				}
 			}
 		}
 	}
 }
 
-
 void UPrimitiveComponent::GetOverlappingComponents(TArray<UPrimitiveComponent*>& OutOverlappingComponents) const
 {
 	OutOverlappingComponents.Reset( OverlappingComponents.Num() );
 
-	for (auto CompIt = OverlappingComponents.CreateConstIterator(); CompIt; ++CompIt)
+	for (const FOverlapInfo& OtherOverlap : OverlappingComponents)
 	{
-		UPrimitiveComponent* const OtherComp = (*CompIt).OverlapInfo.Component.Get();
+		UPrimitiveComponent* const OtherComp = OtherOverlap.OverlapInfo.Component.Get();
 		if (OtherComp)
 		{
 			OutOverlappingComponents.Add(OtherComp);
 		}
 	}
 }
-
 
 const TArray<FOverlapInfo>* UPrimitiveComponent::ConvertSweptOverlapsToCurrentOverlaps(
 	TArray<FOverlapInfo>& OverlapsAtEndLocation, const TArray<FOverlapInfo>& SweptOverlaps, int32 SweptOverlapsIndex,
@@ -2363,7 +2376,7 @@ void UPrimitiveComponent::BeginPlay()
 void UPrimitiveComponent::IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore)
 {
 	// Clean up stale references
-	MoveIgnoreActors.RemoveSwap(NULL);
+	MoveIgnoreActors.RemoveSwap(nullptr);
 
 	// Add/Remove the actor from the list
 	if (Actor)
@@ -2381,28 +2394,14 @@ void UPrimitiveComponent::IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnor
 
 TArray<AActor*> UPrimitiveComponent::CopyArrayOfMoveIgnoreActors()
 {
-	TArray<AActor*> TempMoveIgnoreActors;
-	for (int32 Idx = 0; Idx < MoveIgnoreActors.Num();)
+	for (int32 Index = MoveIgnoreActors.Num() - 1; Index >=0; --Index)
 	{
-		AActor* Actor = MoveIgnoreActors[Idx].Get();
-		if (Actor)
+		const AActor* const MoveIgnoreActor = MoveIgnoreActors[Index];
+		if (MoveIgnoreActor == nullptr || MoveIgnoreActor->IsPendingKill())
 		{
-			TempMoveIgnoreActors.Add(Actor);
-			Idx++;
-		}
-		else
-		{
-			MoveIgnoreActors.RemoveAtSwap(Idx, 1, false);
+			MoveIgnoreActors.RemoveAtSwap(Index,1,false);
 		}
 	}
-	MoveIgnoreActors.Shrink();
-	return TempMoveIgnoreActors;
-}
-
-TArray<TWeakObjectPtr<AActor> > & UPrimitiveComponent::GetMoveIgnoreActors()
-{
-	// Clean up stale references
-	MoveIgnoreActors.RemoveSwap(NULL);
 	return MoveIgnoreActors;
 }
 
@@ -2410,7 +2409,6 @@ void UPrimitiveComponent::ClearMoveIgnoreActors()
 {
 	MoveIgnoreActors.Empty();
 }
-
 
 void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
 {
@@ -2664,7 +2662,7 @@ void UPrimitiveComponent::DispatchMouseOverEvents(UPrimitiveComponent* CurrentCo
 					CurrentOwner->NotifyActorEndCursorOver();
 					if (IsActorValidToNotify(CurrentOwner))
 					{
-						CurrentOwner->OnEndCursorOver.Broadcast();
+						CurrentOwner->OnEndCursorOver.Broadcast(CurrentOwner);
 					}
 				}
 			}
@@ -2677,7 +2675,7 @@ void UPrimitiveComponent::DispatchMouseOverEvents(UPrimitiveComponent* CurrentCo
 				NewOwner->NotifyActorBeginCursorOver();
 				if (IsActorValidToNotify(NewOwner))
 				{
-					NewOwner->OnBeginCursorOver.Broadcast();
+					NewOwner->OnBeginCursorOver.Broadcast(NewOwner);
 				}
 			}
 			if (!NewComponent->IsPendingKill())
@@ -2700,7 +2698,7 @@ void UPrimitiveComponent::DispatchMouseOverEvents(UPrimitiveComponent* CurrentCo
 			CurrentOwner->NotifyActorEndCursorOver();
 			if (IsActorValidToNotify(CurrentOwner))
 			{
-				CurrentOwner->OnEndCursorOver.Broadcast();
+				CurrentOwner->OnEndCursorOver.Broadcast(CurrentOwner);
 			}
 		}
 	}
@@ -2735,7 +2733,7 @@ void UPrimitiveComponent::DispatchTouchOverEvents(ETouchIndex::Type FingerIndex,
 					CurrentOwner->NotifyActorOnInputTouchLeave(FingerIndex);
 					if (IsActorValidToNotify(CurrentOwner))
 					{
-						CurrentOwner->OnInputTouchLeave.Broadcast(FingerIndex);
+						CurrentOwner->OnInputTouchLeave.Broadcast(FingerIndex, CurrentOwner);
 					}
 				}
 			}
@@ -2748,7 +2746,7 @@ void UPrimitiveComponent::DispatchTouchOverEvents(ETouchIndex::Type FingerIndex,
 				NewOwner->NotifyActorOnInputTouchEnter(FingerIndex);
 				if (IsActorValidToNotify(NewOwner))
 				{
-					NewOwner->OnInputTouchEnter.Broadcast(FingerIndex);
+					NewOwner->OnInputTouchEnter.Broadcast(FingerIndex, NewOwner);
 				}
 			}
 			if (!NewComponent->IsPendingKill())
@@ -2771,7 +2769,7 @@ void UPrimitiveComponent::DispatchTouchOverEvents(ETouchIndex::Type FingerIndex,
 			CurrentOwner->NotifyActorOnInputTouchLeave(FingerIndex);
 			if (IsActorValidToNotify(CurrentOwner))
 			{
-				CurrentOwner->OnInputTouchLeave.Broadcast(FingerIndex);
+				CurrentOwner->OnInputTouchLeave.Broadcast(FingerIndex, CurrentOwner);
 			}
 		}
 	}
@@ -2784,7 +2782,7 @@ void UPrimitiveComponent::DispatchOnClicked(FKey ButtonPressed)
 		GetOwner()->NotifyActorOnClicked(ButtonPressed);
 		if (IsActorValidToNotify(GetOwner()))
 		{
-			GetOwner()->OnClicked.Broadcast(ButtonPressed);
+			GetOwner()->OnClicked.Broadcast(GetOwner(), ButtonPressed);
 		}
 	}
 
@@ -2801,7 +2799,7 @@ void UPrimitiveComponent::DispatchOnReleased(FKey ButtonReleased)
 		GetOwner()->NotifyActorOnReleased(ButtonReleased);
 		if (IsActorValidToNotify(GetOwner()))
 		{
-			GetOwner()->OnReleased.Broadcast(ButtonReleased);
+			GetOwner()->OnReleased.Broadcast(GetOwner(), ButtonReleased);
 		}
 	}
 
@@ -2818,7 +2816,7 @@ void UPrimitiveComponent::DispatchOnInputTouchBegin(const ETouchIndex::Type Fing
 		GetOwner()->NotifyActorOnInputTouchBegin(FingerIndex);
 		if (IsActorValidToNotify(GetOwner()))
 		{
-			GetOwner()->OnInputTouchBegin.Broadcast(FingerIndex);
+			GetOwner()->OnInputTouchBegin.Broadcast(FingerIndex, GetOwner());
 		}
 	}
 
@@ -2835,7 +2833,7 @@ void UPrimitiveComponent::DispatchOnInputTouchEnd(const ETouchIndex::Type Finger
 		GetOwner()->NotifyActorOnInputTouchEnd(FingerIndex);
 		if (IsActorValidToNotify(GetOwner()))
 		{
-			GetOwner()->OnInputTouchEnd.Broadcast(FingerIndex);
+			GetOwner()->OnInputTouchEnd.Broadcast(FingerIndex, GetOwner());
 		}
 	}
 
@@ -2847,7 +2845,7 @@ void UPrimitiveComponent::DispatchOnInputTouchEnd(const ETouchIndex::Type Finger
 
 SIZE_T UPrimitiveComponent::GetResourceSize( EResourceSizeMode::Type Mode )
 {
-	SIZE_T ResSize = 0;
+	SIZE_T ResSize = Super::GetResourceSize(Mode);
 
 	if (BodyInstance.IsValidBodyInstance())
 	{

@@ -146,7 +146,7 @@ void FTransform::SetToRelativeTransform(const FTransform& ParentTransform)
 	checkSlow(ParentTransform.IsRotationNormalized());
 
 	// Scale = S(A)/S(B)	
-	VectorRegister VSafeScale3D	= VectorSet_W0(GetSafeScaleReciprocal(ParentTransform.Scale3D));
+	VectorRegister VSafeScale3D	= VectorSet_W0(GetSafeScaleReciprocal(ParentTransform.Scale3D, ScalarRegister(SMALL_NUMBER)));
 	Scale3D = VectorMultiply(Scale3D, VSafeScale3D);
 	
 	//VQTranslation = (  ( T(A).X - T(B).X ),  ( T(A).Y - T(B).Y ), ( T(A).Z - T(B).Z), 0.f );

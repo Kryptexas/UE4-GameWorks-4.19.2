@@ -2009,7 +2009,6 @@ USkeletalMesh::USkeletalMesh(const FObjectInitializer& ObjectInitializer)
 	ImportedResource = MakeShareable(new FSkeletalMeshResource());
 }
 
-
 void USkeletalMesh::PostInitProperties()
 {
 #if WITH_EDITORONLY_DATA
@@ -2021,7 +2020,66 @@ void USkeletalMesh::PostInitProperties()
 	Super::PostInitProperties();
 }
 
+FBoxSphereBounds USkeletalMesh::GetBounds()
+{
+	return ExtendedBounds;
+}
 
+FBoxSphereBounds USkeletalMesh::GetImportedBounds()
+{
+	return ImportedBounds;
+}
+
+void USkeletalMesh::SetImportedBounds(const FBoxSphereBounds& InBounds)
+{
+	ImportedBounds = InBounds;
+	CalculateExtendedBounds();
+}
+
+void USkeletalMesh::SetPositiveBoundsExtension(const FVector& InExtension)
+{
+	PositiveBoundsExtension = InExtension;
+	CalculateExtendedBounds();
+}
+
+void USkeletalMesh::SetNegativeBoundsExtension(const FVector& InExtension)
+{
+	NegativeBoundsExtension = InExtension;
+	CalculateExtendedBounds();
+}
+PRAGMA_DISABLE_OPTIMIZATION
+void USkeletalMesh::CalculateExtendedBounds()
+{
+	FBoxSphereBounds CalculatedBounds = ImportedBounds;
+
+	// Convert to Min and Max
+	FVector Min = CalculatedBounds.Origin - CalculatedBounds.BoxExtent;
+	FVector Max = CalculatedBounds.Origin + CalculatedBounds.BoxExtent;
+	// Apply bound extensions
+	Min -= NegativeBoundsExtension;
+	Max += PositiveBoundsExtension;
+	// Convert back to Origin, Extent and update SphereRadius
+	CalculatedBounds.Origin = (Min + Max) / 2;
+	CalculatedBounds.BoxExtent = (Max - Min) / 2;
+	CalculatedBounds.SphereRadius = CalculatedBounds.BoxExtent.GetAbsMax();
+
+	ExtendedBounds = CalculatedBounds;
+}
+
+void USkeletalMesh::ValidateBoundsExtension()
+{
+	FVector HalfExtent = ImportedBounds.BoxExtent;
+
+	PositiveBoundsExtension.X = FMath::Clamp(PositiveBoundsExtension.X, -HalfExtent.X, MAX_flt);
+	PositiveBoundsExtension.Y = FMath::Clamp(PositiveBoundsExtension.Y, -HalfExtent.Y, MAX_flt);
+	PositiveBoundsExtension.Z = FMath::Clamp(PositiveBoundsExtension.Z, -HalfExtent.Z, MAX_flt);
+
+	NegativeBoundsExtension.X = FMath::Clamp(NegativeBoundsExtension.X, -HalfExtent.X, MAX_flt);
+	NegativeBoundsExtension.Y = FMath::Clamp(NegativeBoundsExtension.Y, -HalfExtent.Y, MAX_flt);
+	NegativeBoundsExtension.Z = FMath::Clamp(NegativeBoundsExtension.Z, -HalfExtent.Z, MAX_flt);
+}
+
+PRAGMA_ENABLE_OPTIMIZATION
 void USkeletalMesh::InitResources()
 {
 	ImportedResource->InitResources(bHasVertexColors);
@@ -2358,6 +2416,17 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		BuildPhysicsData();
 	}
 
+	if(UProperty* MemberProperty = PropertyChangedEvent.MemberProperty)
+	{
+		if(MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(USkeletalMesh, PositiveBoundsExtension) ||
+			MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(USkeletalMesh, NegativeBoundsExtension))
+		{
+			// If the bounds extensions change, recalculate extended bounds.
+			ValidateBoundsExtension();
+			CalculateExtendedBounds();
+		}
+	}
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
@@ -2461,7 +2530,7 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 
 	FStripDataFlags StripFlags( Ar );
 
-	Ar << Bounds;
+	Ar << ImportedBounds;
 	Ar << Materials;
 
 	Ar << RefSkeleton;
@@ -2917,6 +2986,9 @@ void USkeletalMesh::PostLoad()
 		RetargetBasePose = RefSkeleton.GetRefBonePose();
 	}
 #endif
+
+	// Bounds have been loaded - apply extensions.
+	CalculateExtendedBounds();
 }
 
 void USkeletalMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const

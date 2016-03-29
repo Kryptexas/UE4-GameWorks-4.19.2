@@ -1337,12 +1337,12 @@ bool UKismetSystemLibrary::ComponentOverlapComponents_NEW(UPrimitiveComponent* C
 static const float KISMET_TRACE_DEBUG_DRAW_DURATION = 5.f;
 static const float KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE = 16.f;
 
-bool UKismetSystemLibrary::LineTraceSingle_NEW(UObject* WorldContextObject, const FVector Start, const FVector End, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf)
+bool UKismetSystemLibrary::LineTraceSingle_NEW(UObject* WorldContextObject, const FVector Start, const FVector End, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
-	return LineTraceSingle_DEPRECATED(WorldContextObject, Start, End, UEngineTypes::ConvertToCollisionChannel(TraceChannel), bTraceComplex, ActorsToIgnore, DrawDebugType, OutHit, bIgnoreSelf);
+	return LineTraceSingle_DEPRECATED(WorldContextObject, Start, End, UEngineTypes::ConvertToCollisionChannel(TraceChannel), bTraceComplex, ActorsToIgnore, DrawDebugType, OutHit, bIgnoreSelf, TraceColor, TraceHitColor, DrawTime);
 }
 
-bool UKismetSystemLibrary::LineTraceSingle_DEPRECATED(UObject* WorldContextObject, const FVector Start, const FVector End, ECollisionChannel TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf)
+bool UKismetSystemLibrary::LineTraceSingle_DEPRECATED(UObject* WorldContextObject, const FVector Start, const FVector End, ECollisionChannel TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
 	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
 
@@ -1380,32 +1380,32 @@ bool UKismetSystemLibrary::LineTraceSingle_DEPRECATED(UObject* WorldContextObjec
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration)? KISMET_TRACE_DEBUG_DRAW_DURATION: 0.f;
+		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration)? DrawTime : 0.f;
 
 		// @fixme, draw line with thickness = 2.f?
 		if (bHit && OutHit.bBlockingHit)
 		{
 			// Red up to the blocking hit, green thereafter
-			::DrawDebugLine(World, Start, OutHit.ImpactPoint, FColor::Red, bPersistent, LifeTime);
-			::DrawDebugLine(World, OutHit.ImpactPoint, End, FColor::Green, bPersistent, LifeTime);
-			::DrawDebugPoint(World, OutHit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, FColor::Red, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, OutHit.ImpactPoint, TraceColor.ToFColor(true), bPersistent, LifeTime);
+			::DrawDebugLine(World, OutHit.ImpactPoint, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
+			::DrawDebugPoint(World, OutHit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, TraceColor.ToFColor(true), bPersistent, LifeTime);
 		}
 		else
 		{
 			// no hit means all red
-			::DrawDebugLine(World, Start, End, FColor::Red, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
 		}
 	}
 
 	return bHit;
 }
 
-bool UKismetSystemLibrary::LineTraceMulti_NEW(UObject* WorldContextObject, const FVector Start, const FVector End, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf)
+bool UKismetSystemLibrary::LineTraceMulti_NEW(UObject* WorldContextObject, const FVector Start, const FVector End, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
-	return LineTraceMulti_DEPRECATED(WorldContextObject, Start, End, UEngineTypes::ConvertToCollisionChannel(TraceChannel), bTraceComplex, ActorsToIgnore, DrawDebugType, OutHits, bIgnoreSelf);
+	return LineTraceMulti_DEPRECATED(WorldContextObject, Start, End, UEngineTypes::ConvertToCollisionChannel(TraceChannel), bTraceComplex, ActorsToIgnore, DrawDebugType, OutHits, bIgnoreSelf, TraceColor, TraceHitColor, DrawTime);
 }
 
-bool UKismetSystemLibrary::LineTraceMulti_DEPRECATED(UObject* WorldContextObject, const FVector Start, const FVector End, ECollisionChannel TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf)
+bool UKismetSystemLibrary::LineTraceMulti_DEPRECATED(UObject* WorldContextObject, const FVector Start, const FVector End, ECollisionChannel TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
 	static const FName LineTraceMultiName(TEXT("LineTraceMulti"));
 
@@ -1443,27 +1443,27 @@ bool UKismetSystemLibrary::LineTraceMulti_DEPRECATED(UObject* WorldContextObject
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration)? KISMET_TRACE_DEBUG_DRAW_DURATION: 0.f;
+		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration)? DrawTime : 0.f;
 
 		// @fixme, draw line with thickness = 2.f?
 		if (bHit && OutHits.Last().bBlockingHit)
 		{
 			// Red up to the blocking hit, green thereafter
 			FVector const BlockingHitPoint = OutHits.Last().ImpactPoint;
-			::DrawDebugLine(World, Start, BlockingHitPoint , FColor::Red, bPersistent, LifeTime);
-			::DrawDebugLine(World, BlockingHitPoint, End, FColor::Green, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, BlockingHitPoint , TraceColor.ToFColor(true), bPersistent, LifeTime);
+			::DrawDebugLine(World, BlockingHitPoint, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
 		}
 		else
 		{
 			// no hit means all red
-			::DrawDebugLine(World, Start, End, FColor::Red, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
 		}
 
 		// draw hits
 		for (int32 HitIdx=0; HitIdx<OutHits.Num(); ++HitIdx)
 		{
 			FHitResult const& Hit = OutHits[HitIdx];
-			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? FColor::Red : FColor::Green), bPersistent, LifeTime);
+			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
 		}
 	}
 
@@ -1907,7 +1907,7 @@ bool UKismetSystemLibrary::CapsuleTraceMulti_DEPRECATED(UObject* WorldContextObj
 }
 
 /** Object Query functions **/
-bool UKismetSystemLibrary::LineTraceSingleForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf)
+bool UKismetSystemLibrary::LineTraceSingleForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
 
 	TArray<TEnumAsByte<ECollisionChannel>> CollisionObjectTraces;
@@ -1918,10 +1918,10 @@ bool UKismetSystemLibrary::LineTraceSingleForObjects(UObject* WorldContextObject
 		CollisionObjectTraces[Iter.GetIndex()] = UEngineTypes::ConvertToCollisionChannel(*Iter);
 	}
 
-	return LineTraceSingleByObject_DEPRECATED(WorldContextObject, Start, End, CollisionObjectTraces, bTraceComplex, ActorsToIgnore, DrawDebugType, OutHit, bIgnoreSelf);
+	return LineTraceSingleByObject_DEPRECATED(WorldContextObject, Start, End, CollisionObjectTraces, bTraceComplex, ActorsToIgnore, DrawDebugType, OutHit, bIgnoreSelf, TraceColor, TraceHitColor, DrawTime);
 }
 
-bool UKismetSystemLibrary::LineTraceSingleByObject_DEPRECATED(UObject* WorldContextObject, const FVector Start, const FVector End, const TArray<TEnumAsByte<ECollisionChannel> > & ObjectsToTrace, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf)
+bool UKismetSystemLibrary::LineTraceSingleByObject_DEPRECATED(UObject* WorldContextObject, const FVector Start, const FVector End, const TArray<TEnumAsByte<ECollisionChannel> > & ObjectsToTrace, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
 	static const FName LineTraceSingleName(TEXT("LineTraceSingle"));
 
@@ -1979,27 +1979,27 @@ bool UKismetSystemLibrary::LineTraceSingleByObject_DEPRECATED(UObject* WorldCont
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration)? KISMET_TRACE_DEBUG_DRAW_DURATION: 0.f;
+		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration)? DrawTime : 0.f;
 
 		// @fixme, draw line with thickness = 2.f?
 		if (bHit && OutHit.bBlockingHit)
 		{
 			// Red up to the blocking hit, green thereafter
-			::DrawDebugLine(World, Start, OutHit.ImpactPoint, FColor::Red, bPersistent, LifeTime);
-			::DrawDebugLine(World, OutHit.ImpactPoint, End, FColor::Green, bPersistent, LifeTime);
-			::DrawDebugPoint(World, OutHit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, FColor::Red, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, OutHit.ImpactPoint, TraceColor.ToFColor(true), bPersistent, LifeTime);
+			::DrawDebugLine(World, OutHit.ImpactPoint, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
+			::DrawDebugPoint(World, OutHit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, TraceColor.ToFColor(true), bPersistent, LifeTime);
 		}
 		else
 		{
 			// no hit means all red
-			::DrawDebugLine(World, Start, End, FColor::Red, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
 		}
 	}
 
 	return bHit;
 }
 
-bool UKismetSystemLibrary::LineTraceMultiForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf)
+bool UKismetSystemLibrary::LineTraceMultiForObjects(UObject* WorldContextObject, const FVector Start, const FVector End, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
 	TArray<TEnumAsByte<ECollisionChannel>> CollisionObjectTraces;
 	CollisionObjectTraces.AddUninitialized(ObjectTypes.Num());
@@ -2009,10 +2009,10 @@ bool UKismetSystemLibrary::LineTraceMultiForObjects(UObject* WorldContextObject,
 		CollisionObjectTraces[Iter.GetIndex()] = UEngineTypes::ConvertToCollisionChannel(*Iter);
 	}
 
-	return LineTraceMultiByObject_DEPRECATED(WorldContextObject, Start, End, CollisionObjectTraces, bTraceComplex, ActorsToIgnore, DrawDebugType, OutHits, bIgnoreSelf);
+	return LineTraceMultiByObject_DEPRECATED(WorldContextObject, Start, End, CollisionObjectTraces, bTraceComplex, ActorsToIgnore, DrawDebugType, OutHits, bIgnoreSelf, TraceColor, TraceHitColor, DrawTime);
 }
 
-bool UKismetSystemLibrary::LineTraceMultiByObject_DEPRECATED(UObject* WorldContextObject, const FVector Start, const FVector End, const TArray<TEnumAsByte<ECollisionChannel> > & ObjectsToTrace, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf)
+bool UKismetSystemLibrary::LineTraceMultiByObject_DEPRECATED(UObject* WorldContextObject, const FVector Start, const FVector End, const TArray<TEnumAsByte<ECollisionChannel> > & ObjectsToTrace, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf, FLinearColor TraceColor, FLinearColor TraceHitColor, float DrawTime)
 {
 	static const FName LineTraceMultiName(TEXT("LineTraceMulti"));
 
@@ -2070,27 +2070,27 @@ bool UKismetSystemLibrary::LineTraceMultiByObject_DEPRECATED(UObject* WorldConte
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration)? KISMET_TRACE_DEBUG_DRAW_DURATION: 0.f;
+		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration)? DrawTime : 0.f;
 
 		// @fixme, draw line with thickness = 2.f?
 		if (bHit && OutHits.Last().bBlockingHit)
 		{
 			// Red up to the blocking hit, green thereafter
 			FVector const BlockingHitPoint = OutHits.Last().ImpactPoint;
-			::DrawDebugLine(World, Start, BlockingHitPoint , FColor::Red, bPersistent, LifeTime);
-			::DrawDebugLine(World, BlockingHitPoint, End, FColor::Green, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, BlockingHitPoint , TraceColor.ToFColor(true), bPersistent, LifeTime);
+			::DrawDebugLine(World, BlockingHitPoint, End, TraceHitColor.ToFColor(true), bPersistent, LifeTime);
 		}
 		else
 		{
 			// no hit means all red
-			::DrawDebugLine(World, Start, End, FColor::Red, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
 		}
 
 		// draw hits
 		for (int32 HitIdx=0; HitIdx<OutHits.Num(); ++HitIdx)
 		{
 			FHitResult const& Hit = OutHits[HitIdx];
-			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? FColor::Red : FColor::Green), bPersistent, LifeTime);
+			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
 		}
 	}
 

@@ -44,6 +44,7 @@
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 
 #include "Materials/MaterialParameterCollectionInstance.h"
+#include "LoadTimeTracker.h"
 
 #if WITH_EDITOR
 	#include "DerivedDataCacheInterface.h"
@@ -1496,17 +1497,7 @@ void UWorld::EnsureCollisionTreeIsBuilt()
 	// Set physics to static loading mode
 	if (PhysicsScene)
 	{
-		PhysicsScene->SetIsStaticLoading(true);
-
-		for (int Iteration = 0; Iteration < 6; ++Iteration)
-		{
-			SetupPhysicsTickFunctions(0.1f);
-			PhysicsScene->StartFrame();
-			PhysicsScene->WaitPhysScenes();
-			PhysicsScene->EndFrame(NULL);
-		}
-
-		PhysicsScene->SetIsStaticLoading(false);
+		PhysicsScene->EnsureCollisionTreeIsBuilt(this);
 	}
 
     bIsBuilt = true;
@@ -4493,6 +4484,7 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 	}
 	else
 	{
+		FLoadTimeTracker::Get().ResetRawLoadTimes();
 		UE_LOG(LogWorld, Log, TEXT("SeamlessTravel to: %s"), *InURL.Map);
 		FString MapName = UWorld::RemovePIEPrefix(InURL.Map);
 		if (!FPackageName::DoesPackageExist(MapName, InGuid.IsValid() ? &InGuid : NULL))
@@ -5078,6 +5070,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				
 				double TotalSeamlessTravelTime = FPlatformTime::Seconds() - SeamlessTravelStartTime;
 				UE_LOG(LogWorld, Log, TEXT("----SeamlessTravel finished in %.2f seconds ------"), TotalSeamlessTravelTime );
+				FLoadTimeTracker::Get().DumpRawLoadTimes();
 
 				AGameMode* const GameMode = LoadedWorld->GetAuthGameMode();
 				if (GameMode)

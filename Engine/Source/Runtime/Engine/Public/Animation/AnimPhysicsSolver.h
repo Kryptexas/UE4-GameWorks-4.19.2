@@ -460,7 +460,7 @@ public:
 	*  @param NumPreIterations Number of times to iterate the limits before performing the integration
 	*  @param NumPostIterations Number of times to iterae the limits after performing the integration
 	*/
-	static void PhysicsUpdate(float DeltaTime, TArray<FAnimPhysRigidBody*>& Bodies, TArray<FAnimPhysLinearLimit>& LinearLimits, TArray<FAnimPhysAngularLimit>& AngularLimits, TArray<FAnimPhysSpring>& Springs, int32 NumPreIterations = 8, int32 NumPostIterations = 2);
+	static void PhysicsUpdate(float DeltaTime, TArray<FAnimPhysRigidBody*>& Bodies, TArray<FAnimPhysLinearLimit>& LinearLimits, TArray<FAnimPhysAngularLimit>& AngularLimits, TArray<FAnimPhysSpring>& Springs, const FVector& GravityDirection, const FVector& ExternalForce, int32 NumPreIterations = 8, int32 NumPostIterations = 2);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Constraint functions
@@ -552,7 +552,7 @@ private:
 	/** Initialize the velocity for a given body
 	 *  @param InBody Body to initialize
 	 */
-	static void InitializeBodyVelocity(float DeltaTime, FAnimPhysRigidBody *InBody);
+	static void InitializeBodyVelocity(float DeltaTime, FAnimPhysRigidBody *InBody, const FVector& GravityDirection);
 
 	/** Using calculated linear and angular momentum, integrate the position and orientation of a body
 	 *  @param InBody Body to integrate

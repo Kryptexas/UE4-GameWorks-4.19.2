@@ -49,9 +49,8 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ChildActorComponent, meta=(OnlyPlaceable, AllowPrivateAccess="true"))
 	TSubclassOf<AActor>	ChildActorClass;
 
-public:
 	/** The actor that we spawned and own */
-	UPROPERTY(BlueprintReadOnly, Category=ChildActorComponent, TextExportTransient, NonPIEDuplicateTransient)
+	UPROPERTY(BlueprintReadOnly, Category=ChildActorComponent, TextExportTransient, NonPIEDuplicateTransient, meta=(AllowPrivateAccess="true"))
 	AActor*	ChildActor;
 
 	/** We try to keep the child actor's name as best we can, so we store it off here when destroying */
@@ -59,6 +58,8 @@ public:
 
 	/** Cached copy of the instance data when the ChildActor is destroyed to be available when needed */
 	mutable FChildActorComponentInstanceData* CachedInstanceData;
+
+public:
 
 	//~ Begin Object Interface.
 #if WITH_EDITOR
@@ -82,6 +83,10 @@ public:
 
 	/** Create the child actor */
 	void CreateChildActor();
+
+	AActor* GetChildActor() const { return ChildActor; }
+
+	FName GetChildActorName() const { return ChildActorName; }
 
 	/** Kill any currently present child actor */
 	void DestroyChildActor(const bool bRequiresRename = true);

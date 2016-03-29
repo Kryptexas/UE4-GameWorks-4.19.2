@@ -17,13 +17,6 @@ FQueuedThreadPool* GThreadPool = nullptr;
 FQueuedThreadPool* GLargeThreadPool = nullptr;
 #endif
 
-CORE_API bool IsInGameThread()
-{
-	// if the game thread is uninitialized, then we are calling this VERY early before other threads will have started up, so it will be the game thread
-	return !GIsGameThreadIdInitialized || FPlatformTLS::GetCurrentThreadId() == GGameThreadId ||
-		FPlatformTLS::GetCurrentThreadId() == GSlateLoadingThreadId;
-}
-
 CORE_API bool IsInSlateThread()
 {
 	// If this explicitly is a slate thread, not just the main thread running slate

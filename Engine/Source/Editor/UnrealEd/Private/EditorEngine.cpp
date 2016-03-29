@@ -935,19 +935,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	FWorldContext& EditorContext = GetEditorWorldContext();
 	check( CurrentGWorld == EditorContext.World() );
 
-	// was there a reregister requested last frame?
-	if (bHasPendingGlobalReregister)
-	{
-		// make sure outstanding deletion has completed before the reregister
-		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
-
-		//Only reregister actors whose replacement primitive is a child of the global reregister list
-		FGlobalComponentReregisterContext Reregister(ActorsForGlobalReregister);
-		ActorsForGlobalReregister.Empty();
-
-		bHasPendingGlobalReregister = false;
-	}
-
 	// early in the Tick() to get the callbacks for cvar changes called
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
@@ -2526,7 +2513,7 @@ void UEditorEngine::LoadMapListFromIni(const FString& InSectionName, TArray<FStr
 		for (FConfigSectionMap::TConstIterator It(*MapListList) ; It ; ++It)
 		{
 			FName EntryType = It.Key();
-			const FString& EntryValue = It.Value();
+			const FString& EntryValue = It.Value().GetValue();
 
 			if (EntryType == NAME_Map)
 			{

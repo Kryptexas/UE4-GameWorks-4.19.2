@@ -56,13 +56,13 @@ namespace SceneOutliner
 				switch(World->GetNetMode())
 				{
 					case NM_Client:
-						if(WorldContext)
+						if (WorldContext)
 						{
 							PostFix = FText::Format(LOCTEXT("ClientPostfixFormat", "(Client {0})"), FText::AsNumber(WorldContext->PIEInstance - 1));
 						}
 						else
 						{
-							PostFix = LOCTEXT("ClientPostfixFormat", "(Client)");
+							PostFix = LOCTEXT("ClientPostfix", "(Client)");
 						}
 						break;
 					case NM_DedicatedServer:

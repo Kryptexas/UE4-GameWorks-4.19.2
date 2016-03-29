@@ -146,7 +146,7 @@ void UCameraAnim::CalcLocalAABB()
 
 SIZE_T UCameraAnim::GetResourceSize(EResourceSizeMode::Type Mode)
 {
-	int32 ResourceSize = 0;
+	int32 ResourceSize = Super::GetResourceSize(Mode);
 
 	if (Mode == EResourceSizeMode::Inclusive && CameraInterpGroup)
 	{

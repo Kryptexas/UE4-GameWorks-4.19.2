@@ -2678,6 +2678,11 @@ void FPImplRecastNavMesh::RemoveTileCacheLayer(int32 TileX, int32 TileY, int32 L
 		if (ExistingLayersList->IsValidIndex(LayerIdx))
 		{
 			ExistingLayersList->RemoveAt(LayerIdx);
+
+			for (int32 Idx = LayerIdx; Idx < ExistingLayersList->Num(); Idx++)
+			{
+				(*ExistingLayersList)[Idx].LayerIndex = Idx;
+			}
 		}
 		
 		if (ExistingLayersList->Num() == 0)

@@ -81,7 +81,7 @@ void FMatineeImportTools::SetOrAddKey( FRichCurve& Curve, float Time, float Valu
 
 void FMatineeImportTools::CopyInterpFloatTrack( TSharedRef<ISequencer> Sequencer, UInterpTrackFloatBase* MatineeFloatTrack, UMovieSceneFloatTrack* FloatTrack )
 {
-	const FScopedTransaction Transaction( NSLOCTEXT( "Sequencer", "PasteMatineeFloatTrack", "Paste Matinee float track" ) );
+	const FScopedTransaction Transaction( NSLOCTEXT( "Sequencer", "PasteMatineeFloatTrack", "Paste Matinee Float Track" ) );
 	bool bSectionCreated = false;
 
 	FloatTrack->Modify();

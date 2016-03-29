@@ -921,7 +921,7 @@ void FConsoleManager::LoadHistoryIfNeeded()
 
 			if(Key == History)
 			{
-				HistoryEntries.Add(It.Value);
+				HistoryEntries.Add(It.Value.GetValue());
 			}
 		}
 	}

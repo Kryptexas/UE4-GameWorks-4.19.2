@@ -15,6 +15,11 @@ FGraphNodeClassData::FGraphNodeClassData(UClass* InClass, const FString& InDepre
 	DeprecatedMessage(InDeprecatedMessage)
 {
 	Category = GetCategory();
+
+	if (InClass)
+	{
+		ClassName = InClass->GetName();
+	}
 }
 
 FGraphNodeClassData::FGraphNodeClassData(const FString& InAssetName, const FString& InGeneratedClassPackage, const FString& InClassName, UClass* InClass) :

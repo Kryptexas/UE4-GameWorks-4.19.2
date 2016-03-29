@@ -120,7 +120,6 @@ ANavigationData::ANavigationData(const FObjectInitializer& ObjectInitializer)
 	, FindPathImplementation(NULL)
 	, FindHierarchicalPathImplementation(NULL)
 	, bRegistered(false)
-	, bWantsUpdate(true)
 	, NavDataUniqueID(GetNextUniqueID())
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -179,12 +178,6 @@ void ANavigationData::PostInitializeComponents()
 		(MyWorld->GetNetMode() == NM_Client && !bNetLoadOnClient))
 	{
 		CleanUpAndMarkPendingKill();
-	}
-	else
-	{
-		// note: this is not a final fix for world composition's issues with navmesh generation
-		// but it's good for now, and navmesh creation is going to get a face-lift soon anyway
-		bWantsUpdate |= MyWorld->GetWorldSettings()->bEnableWorldComposition;
 	}
 }
 
@@ -338,11 +331,13 @@ void ANavigationData::InstantiateAndRegisterRenderingComponent()
 		if (RenderingComp)
 		{
 			// rename the old rendering component out of the way
-			RenderingComp->Rename(NULL, NULL, REN_DontCreateRedirectors | REN_ForceGlobalUnique | REN_DoNotDirty | REN_NonTransactional);
+			RenderingComp->Rename(NULL, NULL, REN_DontCreateRedirectors | REN_ForceGlobalUnique | REN_DoNotDirty | REN_NonTransactional | REN_ForceNoResetLoaders);
 		}
 
 		RenderingComp = ConstructRenderingComponent();
-		if (RenderingComp != NULL)
+
+		UWorld* World = GetWorld();
+		if (World && World->bIsWorldInitialized && RenderingComp)
 		{
 			RenderingComp->RegisterComponent();
 		}
@@ -505,14 +500,10 @@ void ANavigationData::TickAsyncBuild(float DeltaSeconds)
 
 void ANavigationData::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas)
 {
-	// the 'bWantsUpdate' mechanics allows us to skip first requested update after data is loaded
-	// Can be also used to manually control navigation rebuilding, by for example forcing bWantsUpdate 
-	//	to false in Tick function effectively suppressing rebuilding
-	if (bWantsUpdate == true && NavDataGenerator.IsValid())
+	if (NavDataGenerator.IsValid())
 	{
 		NavDataGenerator->RebuildDirtyAreas(DirtyAreas);
 	}
-	bWantsUpdate = true;
 }
 
 TArray<FBox> ANavigationData::GetNavigableBounds() const

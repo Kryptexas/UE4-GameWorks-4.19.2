@@ -7026,6 +7026,7 @@ FHeaderParser::FHeaderParser(FFeedbackContext* InWarn, FUHTMakefile& InUHTMakefi
 	DelegateParameterCountStrings.Add(TEXT("_SixParams"));
 	DelegateParameterCountStrings.Add(TEXT("_SevenParams"));
 	DelegateParameterCountStrings.Add(TEXT("_EightParams"));
+	DelegateParameterCountStrings.Add(TEXT("_NineParams"));
 
 	FString Version;
 	if (GConfig->GetString(TEXT("GeneratedCodeVersion"), TEXT("UnrealHeaderTool"), Version, GEngineIni))

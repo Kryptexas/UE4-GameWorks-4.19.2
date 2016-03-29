@@ -3671,3 +3671,410 @@
 #undef FUNC_PARAM_PARMS_PASSIN
 #undef FUNC_PARAM_INITIALIZER_LIST
 #undef FUNC_IS_VOID
+
+#define FUNC_SUFFIX NineParams
+#define FUNC_RETVAL_TYPEDEF 
+#define FUNC_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type
+#define FUNC_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type
+#define FUNC_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, typename Param9TypeNoShadow
+#define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type
+#define FUNC_HAS_PARAMS 1
+#define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5, Param6Type InParam6, Param7Type InParam7, Param8Type InParam8, Param9Type InParam9
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4; Param5Type Param5; Param6Type Param6; Param7Type Param7; Param8Type Param8; Param9Type Param9;
+#define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4, InParam5, InParam6, InParam7, InParam8, InParam9
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4, Parms.Param5, Parms.Param6, Parms.Param7, Parms.Param8, Params.Param9
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 ), Param5( InParam5 ), Param6( InParam6 ), Param7( InParam7 ), Param8( InParam8 ), Param9( InParam9 )
+#define FUNC_IS_VOID 1
+#include "DelegateInstanceInterfaceImpl.inl"
+
+#define FUNC_HAS_PAYLOAD 0
+#define FUNC_PAYLOAD_SUFFIX NineParams
+#define FUNC_PAYLOAD_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, typename Param9TypeNoShadow
+#define FUNC_PAYLOAD_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type
+#define FUNC_PAYLOAD_MEMBERS 
+#define FUNC_PAYLOAD_LIST
+#define FUNC_PAYLOAD_PASSTHRU
+#define FUNC_PAYLOAD_PASSIN
+#define FUNC_PAYLOAD_INITIALIZER_LIST
+#define FUNC_IS_CONST 0
+#define FUNC_CONST_SUFFIX 
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+#define FUNC_IS_CONST 1
+#define FUNC_CONST_SUFFIX _Const
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+
+#undef FUNC_HAS_PAYLOAD
+#undef FUNC_PAYLOAD_SUFFIX
+#undef FUNC_PAYLOAD_TEMPLATE_DECL
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_PAYLOAD_TEMPLATE_ARGS
+#undef FUNC_PAYLOAD_MEMBERS
+#undef FUNC_PAYLOAD_LIST
+#undef FUNC_PAYLOAD_PASSTHRU
+#undef FUNC_PAYLOAD_PASSIN
+#undef FUNC_PAYLOAD_INITIALIZER_LIST
+
+#define FUNC_HAS_PAYLOAD 1
+#define FUNC_PAYLOAD_SUFFIX NineParams_OneVar
+#define FUNC_PAYLOAD_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type, typename Var1Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, typename Param9TypeNoShadow,typename Var1TypeNoShadow
+#define FUNC_PAYLOAD_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type
+#define FUNC_PAYLOAD_MEMBERS Var1Type Var1; 
+#define FUNC_PAYLOAD_LIST Var1Type InVar1
+#define FUNC_PAYLOAD_PASSTHRU InVar1
+#define FUNC_PAYLOAD_PASSIN Var1
+#define FUNC_PAYLOAD_INITIALIZER_LIST Var1( InVar1 )
+#define FUNC_IS_CONST 0
+#define FUNC_CONST_SUFFIX 
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+#define FUNC_IS_CONST 1
+#define FUNC_CONST_SUFFIX _Const
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+
+#undef FUNC_HAS_PAYLOAD
+#undef FUNC_PAYLOAD_SUFFIX
+#undef FUNC_PAYLOAD_TEMPLATE_DECL
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_PAYLOAD_TEMPLATE_ARGS
+#undef FUNC_PAYLOAD_MEMBERS
+#undef FUNC_PAYLOAD_LIST
+#undef FUNC_PAYLOAD_PASSTHRU
+#undef FUNC_PAYLOAD_PASSIN
+#undef FUNC_PAYLOAD_INITIALIZER_LIST
+
+#define FUNC_HAS_PAYLOAD 1
+#define FUNC_PAYLOAD_SUFFIX NineParams_TwoVars
+#define FUNC_PAYLOAD_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type, typename Var1Type, typename Var2Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, typename Param9TypeNoShadow, typename Var1TypeNoShadow, typename Var2TypeNoShadow
+#define FUNC_PAYLOAD_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type
+#define FUNC_PAYLOAD_MEMBERS Var1Type Var1; Var2Type Var2; 
+#define FUNC_PAYLOAD_LIST Var1Type InVar1, Var2Type InVar2
+#define FUNC_PAYLOAD_PASSTHRU InVar1, InVar2
+#define FUNC_PAYLOAD_PASSIN Var1, Var2
+#define FUNC_PAYLOAD_INITIALIZER_LIST Var1( InVar1 ), Var2( InVar2 )
+#define FUNC_IS_CONST 0
+#define FUNC_CONST_SUFFIX 
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+#define FUNC_IS_CONST 1
+#define FUNC_CONST_SUFFIX _Const
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+
+#undef FUNC_HAS_PAYLOAD
+#undef FUNC_PAYLOAD_SUFFIX
+#undef FUNC_PAYLOAD_TEMPLATE_DECL
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_PAYLOAD_TEMPLATE_ARGS
+#undef FUNC_PAYLOAD_MEMBERS
+#undef FUNC_PAYLOAD_LIST
+#undef FUNC_PAYLOAD_PASSTHRU
+#undef FUNC_PAYLOAD_PASSIN
+#undef FUNC_PAYLOAD_INITIALIZER_LIST
+
+#define FUNC_HAS_PAYLOAD 1
+#define FUNC_PAYLOAD_SUFFIX NineParams_ThreeVars
+#define FUNC_PAYLOAD_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type, Var3Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type, typename Var1Type, typename Var2Type, typename Var3Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, typename Param9TypeNoShadow, typename Var1TypeNoShadow, typename Var2TypeNoShadow, typename Var3TypeNoShadow
+#define FUNC_PAYLOAD_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type, Var3Type
+#define FUNC_PAYLOAD_MEMBERS Var1Type Var1; Var2Type Var2; Var3Type Var3; 
+#define FUNC_PAYLOAD_LIST Var1Type InVar1, Var2Type InVar2, Var3Type InVar3
+#define FUNC_PAYLOAD_PASSTHRU InVar1, InVar2, InVar3
+#define FUNC_PAYLOAD_PASSIN Var1, Var2, Var3
+#define FUNC_PAYLOAD_INITIALIZER_LIST Var1( InVar1 ), Var2( InVar2 ), Var3( InVar3 )
+#define FUNC_IS_CONST 0
+#define FUNC_CONST_SUFFIX 
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+#define FUNC_IS_CONST 1
+#define FUNC_CONST_SUFFIX _Const
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+
+#undef FUNC_HAS_PAYLOAD
+#undef FUNC_PAYLOAD_SUFFIX
+#undef FUNC_PAYLOAD_TEMPLATE_DECL
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_PAYLOAD_TEMPLATE_ARGS
+#undef FUNC_PAYLOAD_MEMBERS
+#undef FUNC_PAYLOAD_LIST
+#undef FUNC_PAYLOAD_PASSTHRU
+#undef FUNC_PAYLOAD_PASSIN
+#undef FUNC_PAYLOAD_INITIALIZER_LIST
+
+#define FUNC_HAS_PAYLOAD 1
+#define FUNC_PAYLOAD_SUFFIX NineParams_FourVars
+#define FUNC_PAYLOAD_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type, Var3Type, Var4Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type, typename Var1Type, typename Var2Type, typename Var3Type, typename Var4Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, typename Param9TypeNoShadow, typename Var1TypeNoShadow, typename Var2TypeNoShadow, typename Var3TypeNoShadow, typename Var4TypeNoShadow
+#define FUNC_PAYLOAD_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type, Var3Type, Var4Type
+#define FUNC_PAYLOAD_MEMBERS Var1Type Var1; Var2Type Var2; Var3Type Var3; Var4Type Var4; 
+#define FUNC_PAYLOAD_LIST Var1Type InVar1, Var2Type InVar2, Var3Type InVar3, Var4Type InVar4
+#define FUNC_PAYLOAD_PASSTHRU InVar1, InVar2, InVar3, InVar4
+#define FUNC_PAYLOAD_PASSIN Var1, Var2, Var3, Var4
+#define FUNC_PAYLOAD_INITIALIZER_LIST Var1( InVar1 ), Var2( InVar2 ), Var3( InVar3 ), Var4( InVar4 )
+#define FUNC_IS_CONST 0
+#define FUNC_CONST_SUFFIX 
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+#define FUNC_IS_CONST 1
+#define FUNC_CONST_SUFFIX _Const
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+
+#undef FUNC_HAS_PAYLOAD
+#undef FUNC_PAYLOAD_SUFFIX
+#undef FUNC_PAYLOAD_TEMPLATE_DECL
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_PAYLOAD_TEMPLATE_ARGS
+#undef FUNC_PAYLOAD_MEMBERS
+#undef FUNC_PAYLOAD_LIST
+#undef FUNC_PAYLOAD_PASSTHRU
+#undef FUNC_PAYLOAD_PASSIN
+#undef FUNC_PAYLOAD_INITIALIZER_LIST
+
+#include "DelegateSignatureImpl.inl"
+
+#define DECLARE_DELEGATE_NineParams( DelegateName, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type ) FUNC_DECLARE_DELEGATE( NineParams, DelegateName, void, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type )
+#define DECLARE_MULTICAST_DELEGATE_NineParams( DelegateName, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type ) FUNC_DECLARE_MULTICAST_DELEGATE( NineParams, DelegateName, void, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type )
+#define DECLARE_EVENT_NineParams( OwningType, EventName, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type ) FUNC_DECLARE_EVENT( OwningType, EventName, NineParams, void, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type )
+#define DECLARE_DYNAMIC_DELEGATE_NineParams( DelegateName, Param1Type, Param1Name, Param2Type, Param2Name, Param3Type, Param3Name, Param4Type, Param4Name, Param5Type, Param5Name, Param6Type, Param6Name, Param7Type, Param7Name, Param8Type, Param8Name, Param9Type, Param9Name ) BODY_MACRO_COMBINE(CURRENT_FILE_ID,_,__LINE__,_DELEGATE) FUNC_DECLARE_DYNAMIC_DELEGATE( FWeakObjectPtr, NineParams, DelegateName, DelegateName##_DelegateWrapper, FUNC_CONCAT( Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5, Param6Type InParam6, Param7Type InParam7, Param8Type InParam8, Param9Type InParam9 ), FUNC_CONCAT( *this, InParam1, InParam2, InParam3, InParam4, InParam5, InParam6, InParam7, InParam8, InParam9 ), void, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type )
+#define DECLARE_DYNAMIC_MULTICAST_DELEGATE_NineParams( DelegateName, Param1Type, Param1Name, Param2Type, Param2Name, Param3Type, Param3Name, Param4Type, Param4Name, Param5Type, Param5Name, Param6Type, Param6Name, Param7Type, Param7Name, Param8Type, Param8Name, Param9Type, Param9Name ) BODY_MACRO_COMBINE(CURRENT_FILE_ID,_,__LINE__,_DELEGATE) FUNC_DECLARE_DYNAMIC_MULTICAST_DELEGATE( FWeakObjectPtr, NineParams, DelegateName, DelegateName##_DelegateWrapper, FUNC_CONCAT( Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5, Param6Type InParam6, Param7Type InParam7, Param8Type InParam8, Param9Type InParam9 ), FUNC_CONCAT( *this, InParam1, InParam2, InParam3, InParam4, InParam5, InParam6, InParam7, InParam8, InParam9 ), void, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type )
+#undef FUNC_SUFFIX
+#undef FUNC_TEMPLATE_DECL
+#undef FUNC_TEMPLATE_DECL_TYPENAME
+#undef FUNC_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_TEMPLATE_ARGS
+#undef FUNC_HAS_PARAMS
+#undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
+#undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
+#undef FUNC_IS_VOID
+
+#define FUNC_SUFFIX RetVal_NineParams
+#define FUNC_RETVAL_TYPEDEF  typedef RetValType RetValType;
+#define FUNC_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type
+#define FUNC_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type
+#define FUNC_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, typename Param9TypeNoShadow
+#define FUNC_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type
+#define FUNC_HAS_PARAMS 1
+#define FUNC_PARAM_LIST Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5, Param6Type InParam6, Param7Type InParam7, Param8Type InParam8, Param9Type InParam9
+#define FUNC_PARAM_MEMBERS Param1Type Param1; Param2Type Param2; Param3Type Param3; Param4Type Param4; Param5Type Param5; Param6Type Param6; Param7Type Param7; Param8Type Param8; Param9Type Param9;
+#define FUNC_PARAM_PASSTHRU InParam1, InParam2, InParam3, InParam4, InParam5, InParam6, InParam7, InParam8, InParam9
+#define FUNC_PARAM_PARMS_PASSIN Parms.Param1, Parms.Param2, Parms.Param3, Parms.Param4, Parms.Param5, Parms.Param6, Parms.Param7, Parms.Param8, Parms.Param9
+#define FUNC_PARAM_INITIALIZER_LIST Param1( InParam1 ), Param2( InParam2 ), Param3( InParam3 ), Param4( InParam4 ), Param5( InParam5 ), Param6( InParam6 ), Param7( InParam7 ), Param8( InParam8 ), Param9( InParam9 )
+#define FUNC_IS_VOID 0
+#include "DelegateInstanceInterfaceImpl.inl"
+
+#define FUNC_HAS_PAYLOAD 0
+#define FUNC_PAYLOAD_SUFFIX RetVal_NineParams
+#define FUNC_PAYLOAD_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, typename Param9TypeNoShadow
+#define FUNC_PAYLOAD_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type
+#define FUNC_PAYLOAD_MEMBERS 
+#define FUNC_PAYLOAD_LIST
+#define FUNC_PAYLOAD_PASSTHRU
+#define FUNC_PAYLOAD_PASSIN
+#define FUNC_PAYLOAD_INITIALIZER_LIST
+#define FUNC_IS_CONST 0
+#define FUNC_CONST_SUFFIX 
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+#define FUNC_IS_CONST 1
+#define FUNC_CONST_SUFFIX _Const
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+
+#undef FUNC_HAS_PAYLOAD
+#undef FUNC_PAYLOAD_SUFFIX
+#undef FUNC_PAYLOAD_TEMPLATE_DECL
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_PAYLOAD_TEMPLATE_ARGS
+#undef FUNC_PAYLOAD_MEMBERS
+#undef FUNC_PAYLOAD_LIST
+#undef FUNC_PAYLOAD_PASSTHRU
+#undef FUNC_PAYLOAD_PASSIN
+#undef FUNC_PAYLOAD_INITIALIZER_LIST
+
+#define FUNC_HAS_PAYLOAD 1
+#define FUNC_PAYLOAD_SUFFIX RetVal_NineParams_OneVar
+#define FUNC_PAYLOAD_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type, typename Var1Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, typename Param9TypeNoShadow, typename Var1TypeNoShadow
+#define FUNC_PAYLOAD_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type
+#define FUNC_PAYLOAD_MEMBERS Var1Type Var1; 
+#define FUNC_PAYLOAD_LIST Var1Type InVar1
+#define FUNC_PAYLOAD_PASSTHRU InVar1
+#define FUNC_PAYLOAD_PASSIN Var1
+#define FUNC_PAYLOAD_INITIALIZER_LIST Var1( InVar1 )
+#define FUNC_IS_CONST 0
+#define FUNC_CONST_SUFFIX 
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+#define FUNC_IS_CONST 1
+#define FUNC_CONST_SUFFIX _Const
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+
+#undef FUNC_HAS_PAYLOAD
+#undef FUNC_PAYLOAD_SUFFIX
+#undef FUNC_PAYLOAD_TEMPLATE_DECL
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_PAYLOAD_TEMPLATE_ARGS
+#undef FUNC_PAYLOAD_MEMBERS
+#undef FUNC_PAYLOAD_LIST
+#undef FUNC_PAYLOAD_PASSTHRU
+#undef FUNC_PAYLOAD_PASSIN
+#undef FUNC_PAYLOAD_INITIALIZER_LIST
+
+#define FUNC_HAS_PAYLOAD 1
+#define FUNC_PAYLOAD_SUFFIX RetVal_NineParams_TwoVars
+#define FUNC_PAYLOAD_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type, typename Var1Type, typename Var2Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, typename Param9TypeNoShadow, typename Var1TypeNoShadow, typename Var2TypeNoShadow
+#define FUNC_PAYLOAD_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type
+#define FUNC_PAYLOAD_MEMBERS Var1Type Var1; Var2Type Var2; 
+#define FUNC_PAYLOAD_LIST Var1Type InVar1, Var2Type InVar2
+#define FUNC_PAYLOAD_PASSTHRU InVar1, InVar2
+#define FUNC_PAYLOAD_PASSIN Var1, Var2
+#define FUNC_PAYLOAD_INITIALIZER_LIST Var1( InVar1 ), Var2( InVar2 )
+#define FUNC_IS_CONST 0
+#define FUNC_CONST_SUFFIX 
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+#define FUNC_IS_CONST 1
+#define FUNC_CONST_SUFFIX _Const
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+
+#undef FUNC_HAS_PAYLOAD
+#undef FUNC_PAYLOAD_SUFFIX
+#undef FUNC_PAYLOAD_TEMPLATE_DECL
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_PAYLOAD_TEMPLATE_ARGS
+#undef FUNC_PAYLOAD_MEMBERS
+#undef FUNC_PAYLOAD_LIST
+#undef FUNC_PAYLOAD_PASSTHRU
+#undef FUNC_PAYLOAD_PASSIN
+#undef FUNC_PAYLOAD_INITIALIZER_LIST
+
+#define FUNC_HAS_PAYLOAD 1
+#define FUNC_PAYLOAD_SUFFIX RetVal_NineParams_ThreeVars
+#define FUNC_PAYLOAD_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type, Var3Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type, typename Var1Type, typename Var2Type, typename Var3Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, typename Param9TypeNoShadow, typename Var1TypeNoShadow, typename Var2TypeNoShadow, typename Var3TypeNoShadow
+#define FUNC_PAYLOAD_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type, Var3Type
+#define FUNC_PAYLOAD_MEMBERS Var1Type Var1; Var2Type Var2; Var3Type Var3; 
+#define FUNC_PAYLOAD_LIST Var1Type InVar1, Var2Type InVar2, Var3Type InVar3
+#define FUNC_PAYLOAD_PASSTHRU InVar1, InVar2, InVar3
+#define FUNC_PAYLOAD_PASSIN Var1, Var2, Var3
+#define FUNC_PAYLOAD_INITIALIZER_LIST Var1( InVar1 ), Var2( InVar2 ), Var3( InVar3 )
+#define FUNC_IS_CONST 0
+#define FUNC_CONST_SUFFIX 
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+#define FUNC_IS_CONST 1
+#define FUNC_CONST_SUFFIX _Const
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+
+#undef FUNC_HAS_PAYLOAD
+#undef FUNC_PAYLOAD_SUFFIX
+#undef FUNC_PAYLOAD_TEMPLATE_DECL
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_PAYLOAD_TEMPLATE_ARGS
+#undef FUNC_PAYLOAD_MEMBERS
+#undef FUNC_PAYLOAD_LIST
+#undef FUNC_PAYLOAD_PASSTHRU
+#undef FUNC_PAYLOAD_PASSIN
+#undef FUNC_PAYLOAD_INITIALIZER_LIST
+
+#define FUNC_HAS_PAYLOAD 1
+#define FUNC_PAYLOAD_SUFFIX RetVal_NineParams_FourVars
+#define FUNC_PAYLOAD_TEMPLATE_DECL RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type, Var3Type, Var4Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME typename RetValType, typename Param1Type, typename Param2Type, typename Param3Type, typename Param4Type, typename Param5Type, typename Param6Type, typename Param7Type, typename Param8Type, typename Param9Type, typename Var1Type, typename Var2Type, typename Var3Type, typename Var4Type
+#define FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW typename RetValTypeNoShadow, typename Param1TypeNoShadow, typename Param2TypeNoShadow, typename Param3TypeNoShadow, typename Param4TypeNoShadow, typename Param5TypeNoShadow, typename Param6TypeNoShadow, typename Param7TypeNoShadow, typename Param8TypeNoShadow, type Param9TypeNoShadow, typename Var1TypeNoShadow, typename Var2TypeNoShadow, typename Var3TypeNoShadow, typename Var4TypeNoShadow
+#define FUNC_PAYLOAD_TEMPLATE_ARGS RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type, Var1Type, Var2Type, Var3Type, Var4Type
+#define FUNC_PAYLOAD_MEMBERS Var1Type Var1; Var2Type Var2; Var3Type Var3; Var4Type Var4; 
+#define FUNC_PAYLOAD_LIST Var1Type InVar1, Var2Type InVar2, Var3Type InVar3, Var4Type InVar4
+#define FUNC_PAYLOAD_PASSTHRU InVar1, InVar2, InVar3, InVar4
+#define FUNC_PAYLOAD_PASSIN Var1, Var2, Var3, Var4
+#define FUNC_PAYLOAD_INITIALIZER_LIST Var1( InVar1 ), Var2( InVar2 ), Var3( InVar3 ), Var4( InVar4 )
+#define FUNC_IS_CONST 0
+#define FUNC_CONST_SUFFIX 
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+#define FUNC_IS_CONST 1
+#define FUNC_CONST_SUFFIX _Const
+#include "DelegateInstancesImpl.inl"
+#undef FUNC_IS_CONST
+#undef FUNC_CONST_SUFFIX
+
+#undef FUNC_HAS_PAYLOAD
+#undef FUNC_PAYLOAD_SUFFIX
+#undef FUNC_PAYLOAD_TEMPLATE_DECL
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME
+#undef FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_PAYLOAD_TEMPLATE_ARGS
+#undef FUNC_PAYLOAD_MEMBERS
+#undef FUNC_PAYLOAD_LIST
+#undef FUNC_PAYLOAD_PASSTHRU
+#undef FUNC_PAYLOAD_PASSIN
+#undef FUNC_PAYLOAD_INITIALIZER_LIST
+
+#include "DelegateSignatureImpl.inl"
+
+#define DECLARE_DELEGATE_RetVal_NineParams( RetValType, DelegateName, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type ) FUNC_DECLARE_DELEGATE( RetVal_NineParams, DelegateName, RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type )
+#define DECLARE_DYNAMIC_DELEGATE_RetVal_NineParams( RetValType, DelegateName, Param1Type, Param1Name, Param2Type, Param2Name, Param3Type, Param3Name, Param4Type, Param4Name, Param5Type, Param5Name, Param6Type, Param6Name, Param7Type, Param7Name, Param8Type, Param8Name, Param9Type, Param9Name ) BODY_MACRO_COMBINE(CURRENT_FILE_ID,_,__LINE__,_DELEGATE) FUNC_DECLARE_DYNAMIC_DELEGATE_RETVAL( FWeakObjectPtr, RetVal_NineParams, DelegateName, DelegateName##_DelegateWrapper, RetValType, FUNC_CONCAT( Param1Type InParam1, Param2Type InParam2, Param3Type InParam3, Param4Type InParam4, Param5Type InParam5, Param6Type InParam6, Param7Type InParam7, Param8Type InParam8, Param9Type InParam9 ), FUNC_CONCAT( *this, InParam1, InParam2, InParam3, InParam4, InParam5, InParam6, InParam7, InParam8, InParam9 ), RetValType, Param1Type, Param2Type, Param3Type, Param4Type, Param5Type, Param6Type, Param7Type, Param8Type, Param9Type )
+#undef FUNC_SUFFIX
+#undef FUNC_TEMPLATE_DECL
+#undef FUNC_TEMPLATE_DECL_TYPENAME
+#undef FUNC_TEMPLATE_DECL_NO_SHADOW
+#undef FUNC_TEMPLATE_ARGS
+#undef FUNC_HAS_PARAMS
+#undef FUNC_PARAM_LIST
+#undef FUNC_PARAM_MEMBERS
+#undef FUNC_PARAM_PASSTHRU
+#undef FUNC_PARAM_PARMS_PASSIN
+#undef FUNC_PARAM_INITIALIZER_LIST
+#undef FUNC_IS_VOID

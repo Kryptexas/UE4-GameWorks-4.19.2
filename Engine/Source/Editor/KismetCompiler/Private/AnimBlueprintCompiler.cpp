@@ -571,6 +571,9 @@ void FAnimBlueprintCompiler::ProcessAllAnimationNodes()
 	for (auto SourceNodeIt = AnimNodeList.CreateIterator(); SourceNodeIt; ++SourceNodeIt)
 	{
 		UAnimGraphNode_Base* SourceNode = *SourceNodeIt;
+		UAnimGraphNode_Base* TrueNode = MessageLog.FindSourceObjectTypeChecked<UAnimGraphNode_Base>(SourceNode);
+		TrueNode->BlueprintUsage = EBlueprintUsage::NoProperties;
+
 		if (UAnimGraphNode_Root* PossibleRoot = Cast<UAnimGraphNode_Root>(SourceNode))
 		{
 			if (UAnimGraphNode_Root* Root = ExactCast<UAnimGraphNode_Root>(PossibleRoot))
@@ -1339,6 +1342,29 @@ void FAnimBlueprintCompiler::PostCompile()
 						MessageLog.Warning(*LOCTEXT("HasNonNativeMemberAccess", "Found non-native or non-member access in node @@ in blend graph. Parallel update will be disabled.").ToString(), Node);
 					}
 				}
+			}
+		}
+	}
+
+	for (const FEffectiveConstantRecord& ConstantRecord : ValidAnimNodePinConstants)
+	{
+		UAnimGraphNode_Base* Node = CastChecked<UAnimGraphNode_Base>(ConstantRecord.LiteralSourcePin->GetOwningNode());
+		UAnimGraphNode_Base* TrueNode = MessageLog.FindSourceObjectTypeChecked<UAnimGraphNode_Base>(Node);
+		TrueNode->BlueprintUsage = EBlueprintUsage::DoesNotUseBlueprint;
+	}
+
+	for(const FEvaluationHandlerRecord& EvaluationHandler : ValidEvaluationHandlerList)
+	{
+		if(EvaluationHandler.ServicedProperties.Num() > 0)
+		{
+			const FAnimNodeSinglePropertyHandler& Handler = EvaluationHandler.ServicedProperties.CreateConstIterator()->Value;
+			UAnimGraphNode_Base* Node = CastChecked<UAnimGraphNode_Base>(Handler.ArrayPins.Num() > 0 ? Handler.ArrayPins[0]->GetOwningNode() : Handler.SinglePin->GetOwningNode());
+			UAnimGraphNode_Base* TrueNode = MessageLog.FindSourceObjectTypeChecked<UAnimGraphNode_Base>(Node);	
+			TrueNode->BlueprintUsage = EvaluationHandler.HandlerFunctionName != NAME_None ? EBlueprintUsage::UsesBlueprint : EBlueprintUsage::DoesNotUseBlueprint;
+
+			if(TrueNode->BlueprintUsage == EBlueprintUsage::UsesBlueprint && DefaultAnimInstance->bWarnAboutBlueprintUsage)
+			{
+				MessageLog.Warning(*LOCTEXT("BlueprintUsageWarning", "Node @@ uses Blueprint to update its values, access member variables directly or use a constant value for better performance.").ToString(), Node);
 			}
 		}
 	}

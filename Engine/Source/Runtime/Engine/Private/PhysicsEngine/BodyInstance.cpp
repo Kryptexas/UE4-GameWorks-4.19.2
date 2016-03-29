@@ -4454,7 +4454,8 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 		{
 			PxVec3 POutDirection;
 			float OutDistance;
-			if (PxGeometryQuery::computePenetration(POutDirection, OutDistance, PGeom, ShapePose, PShape->getGeometry().any(), PxShapeExt::getGlobalPose(*PShape, *RigidBody)))
+			//TODO: this 0 check is a temp fix because physx is reporting contacts with distance 0 which gives us nan
+			if (PxGeometryQuery::computePenetration(POutDirection, OutDistance, PGeom, ShapePose, PShape->getGeometry().any(), PxShapeExt::getGlobalPose(*PShape, *RigidBody)) && !FMath::IsNearlyZero(OutDistance))
 			{
 				if(OutMTD)
 				{
@@ -4527,6 +4528,7 @@ void FBodyInstance::LoadProfileData(bool bVerifyProfile)
 				const FBodyInstance& ExternalBodyInstance = ExternalCollisionProfileBodySetup->DefaultInstance;
 				CollisionProfileName = ExternalBodyInstance.CollisionProfileName;
 				ObjectType = ExternalBodyInstance.ObjectType;
+				CollisionEnabled = ExternalBodyInstance.CollisionEnabled;
 				CollisionResponses.SetCollisionResponseContainer(ExternalBodyInstance.CollisionResponses.ResponseToChannels);
 			}
 			else

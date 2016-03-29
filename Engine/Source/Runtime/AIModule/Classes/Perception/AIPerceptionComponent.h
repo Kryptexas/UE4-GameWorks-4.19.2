@@ -188,7 +188,7 @@ public:
 	virtual void OnUnregister() override;
 
 	UFUNCTION()
-	void OnOwnerEndPlay(EEndPlayReason::Type EndPlayReason);
+	void OnOwnerEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason);
 	
 	void GetLocationAndDirection(FVector& Location, FVector& Direction) const;
 	const AActor* GetBodyActor() const;

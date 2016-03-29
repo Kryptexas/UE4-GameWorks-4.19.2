@@ -14,6 +14,7 @@
 #include "ExclusiveLoadPackageTimeTracker.h"
 #include "AssetRegistryInterface.h"
 #include "BlueprintSupport.h"
+#include "LoadTimeTracker.h"
 #include "HAL/ThreadHeartBeat.h"
 #include "HAL/ExceptionHandling.h"
 
@@ -545,6 +546,7 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 {
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_CreateAsyncPackagesFromQueue);
+	SCOPED_LOADTIMER(CreateAsyncPackagesFromQueueTime);
 
 	FAsyncLoadingTickScope InAsyncLoadingTick;
 
@@ -637,6 +639,7 @@ void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package, EAsyncPackageIns
 EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPackagesProcessed, bool bUseTimeLimit /*= false*/, bool bUseFullTimeLimit /*= false*/, float TimeLimit /*= 0.0f*/)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncLoadingThread_ProcessAsyncLoading);
+	SCOPED_LOADTIMER(AsyncLoadingTime);
 	
 	// If we're not multithreaded and flushing async loading, update the thread heartbeat
 	const bool bNeedsHeartbeatTick = !bUseTimeLimit && !FAsyncLoadingThread::IsMultithreaded();
@@ -648,6 +651,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 	// like e.g. when called from FlushAsyncLoading.
 	for (int32 PackageIndex = 0; LoadingState != EAsyncPackageState::TimeOut && PackageIndex < AsyncPackages.Num(); ++PackageIndex)
 	{
+		SCOPED_LOADTIMER(ProcessAsyncLoadingTime);
 		OutPackagesProcessed++;
 
 		// Package to be loaded.
@@ -708,7 +712,10 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 
 EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, int32 WaitForRequestID /*= INDEX_NONE*/)
 {
+	SCOPED_LOADTIMER(TickAsyncLoading_ProcessLoadedPackages);
+
 	EAsyncPackageState::Type Result = EAsyncPackageState::Complete;
+
 
 	double TickStartTime = FPlatformTime::Seconds();
 	{
@@ -722,6 +729,8 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 		
 	for (int32 PackageIndex = 0; PackageIndex < LoadedPackagesToProcess.Num() && !IsAsyncLoadingSuspended(); ++PackageIndex)
 	{
+		SCOPED_LOADTIMER(ProcessLoadedPackagesTime);
+
 		if (PackageIndex % 20 == 0 && IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("ProcessLoadedPackages")))
 		{
 			break;
@@ -1226,6 +1235,7 @@ void FAsyncPackage::EndAsyncLoad()
 EAsyncPackageState::Type FAsyncPackage::Tick(bool InbUseTimeLimit, bool InbUseFullTimeLimit, float& InOutTimeLimit)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_Tick);
+	SCOPED_LOADTIMER(Package_Tick);
 
 	// Whether we should execute the next step.
 	EAsyncPackageState::Type LoadingState = EAsyncPackageState::Complete;
@@ -1273,42 +1283,49 @@ EAsyncPackageState::Type FAsyncPackage::Tick(bool InbUseTimeLimit, bool InbUseFu
 		// Create raw linker. Needs to be async created via ticking before it can be used.
 		if (LoadingState == EAsyncPackageState::Complete)
 		{
+			SCOPED_LOADTIMER(Package_CreateLinker);
 			LoadingState = CreateLinker();
 		}
 
 		// Async create linker.
 		if (LoadingState == EAsyncPackageState::Complete)
 		{
+			SCOPED_LOADTIMER(Package_FinishLinker);
 			LoadingState = FinishLinker();
 		}
 
 		// Load imports from linker import table asynchronously.
 		if (LoadingState == EAsyncPackageState::Complete)
 		{
+			SCOPED_LOADTIMER(Package_LoadImports);
 			LoadingState = LoadImports();
 		}
 
 		// Create imports from linker import table.
 		if (LoadingState == EAsyncPackageState::Complete)
 		{
+			SCOPED_LOADTIMER(Package_CreateImports);
 			LoadingState = CreateImports();
 		}
 
 		// Finish all async texture allocations.
 		if (LoadingState == EAsyncPackageState::Complete)
 		{
+			SCOPED_LOADTIMER(Package_FinishTextureAllocations);
 			LoadingState = FinishTextureAllocations();
 		}
 
 		// Create exports from linker export table and also preload them.
 		if (LoadingState == EAsyncPackageState::Complete)
 		{
+			SCOPED_LOADTIMER(Package_CreateExports);
 			LoadingState = CreateExports();
 		}
 
 		// Call Preload on the linker for all loaded objects which causes actual serialization.
 		if (LoadingState == EAsyncPackageState::Complete)
 		{
+			SCOPED_LOADTIMER(Package_PreLoadObjects);
 			LoadingState = PreLoadObjects();
 		}
 
@@ -1316,6 +1333,7 @@ EAsyncPackageState::Type FAsyncPackage::Tick(bool InbUseTimeLimit, bool InbUseFu
 		// another iteration of the PreLoad loop.
 		if (LoadingState == EAsyncPackageState::Complete)
 		{
+			SCOPED_LOADTIMER(Package_PostLoadObjects);
 			LoadingState = PostLoadObjects();
 		}
 
@@ -1356,6 +1374,7 @@ EAsyncPackageState::Type FAsyncPackage::Tick(bool InbUseTimeLimit, bool InbUseFu
  */
 EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 {
+	SCOPED_LOADTIMER(CreateLinkerTime);
 	if (Linker == nullptr)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_CreateLinker);
@@ -1463,6 +1482,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
  */
 EAsyncPackageState::Type FAsyncPackage::FinishLinker()
 {
+	SCOPED_LOADTIMER(FinishLinkerTime);
 	EAsyncPackageState::Type Result = EAsyncPackageState::Complete;
 	if (Linker && !Linker->HasFinishedInitialization())
 	{
@@ -1727,6 +1747,7 @@ void FAsyncPackage::ImportFullyLoadedCallback(const FName& InPackageName, UPacka
  */
 EAsyncPackageState::Type FAsyncPackage::CreateImports()
 {
+	SCOPED_LOADTIMER(CreateImportsTime);
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_CreateImports);
 
 	// GC can't run in here
@@ -1785,6 +1806,7 @@ EAsyncPackageState::Type FAsyncPackage::FinishTextureAllocations()
  */
 EAsyncPackageState::Type FAsyncPackage::CreateExports()
 {
+	SCOPED_LOADTIMER(CreateExportsTime);
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_CreateExports);
 
 	// GC can't run in here
@@ -1854,6 +1876,7 @@ void FAsyncPackage::FreeReferencedImports()
  */
 EAsyncPackageState::Type FAsyncPackage::PreLoadObjects()
 {
+	SCOPED_LOADTIMER(PreLoadObjectsTime);
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_PreLoadObjects);
 
 	// GC can't run in here
@@ -1884,6 +1907,8 @@ EAsyncPackageState::Type FAsyncPackage::PreLoadObjects()
 EAsyncPackageState::Type FAsyncPackage::PostLoadObjects()
 {
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_PostLoadObjects);
+	
+	SCOPED_LOADTIMER(PostLoadObjectsTime);
 	
 	// GC can't run in here
 	FGCScopeGuard GCGuard;
@@ -1928,6 +1953,7 @@ void CreateClustersFromPackage(FLinkerLoad* PackageLinker);
 EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickStartTime, bool bInUseTimeLimit, float& InOutTimeLimit)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_PostLoadObjectsGameThread);
+	SCOPED_LOADTIMER(PostLoadDeferredObjectsTime);
 
 	EAsyncPackageState::Type Result = EAsyncPackageState::Complete;
 	TGuardValue<bool> GuardIsRoutingPostLoad(FUObjectThreadContext::Get().IsRoutingPostLoad, true);
@@ -2023,6 +2049,8 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
  */
 EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 {
+	SCOPED_LOADTIMER(FinishObjectsTime);
+
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_FinishObjects);
 	LastObjectWorkWasPerformedOn	= nullptr;
 	LastTypeOfWorkPerformed			= TEXT("finishing all objects");

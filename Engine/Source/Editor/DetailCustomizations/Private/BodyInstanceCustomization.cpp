@@ -808,9 +808,9 @@ void FBodyInstanceCustomization::OnCollisionProfileChanged( TSharedPtr<FString> 
 				// trigget transaction before UpdateCollisionProfile
 				const FScopedTransaction Transaction( LOCTEXT( "ChangeCollisionProfile", "Change Collision Profile" ) );
 				// set profile set up
+				MarkAllBodiesDefaultCollision(BodyInstances, false);
 				ensure ( CollisionProfileNameHandle->SetValue(NewValue) ==  FPropertyAccess::Result::Success );
 				UpdateCollisionProfile();
-				MarkAllBodiesDefaultCollision(BodyInstances, false);
 				return;
 			}
 		}

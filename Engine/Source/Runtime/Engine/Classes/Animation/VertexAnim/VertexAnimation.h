@@ -36,11 +36,6 @@ class UVertexAnimation : public UVertexAnimBase
 	/** Raw vertex anim data */
 	TArray<FVertexAnimFrame>	VertexAnimData;
 
-	//~ Begin UObject Interface.
-	virtual void Serialize( FArchive& Ar ) override;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	//~ Begin UObject Interface.
-
 	//~ Begin UVertexAnimBase Interface
 	virtual FVertexAnimEvalStateBase* InitEval() override;
 	virtual void TermEval(FVertexAnimEvalStateBase* State) override;

@@ -29,7 +29,7 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	virtual bool HandlesEvent(EGameplayCueEvent::Type EventType) const;
 
 	UFUNCTION()
-	virtual void OnOwnerDestroyed();
+	virtual void OnOwnerDestroyed(AActor* DestroyedActor);
 
 	virtual void BeginPlay() override;
 

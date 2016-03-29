@@ -872,11 +872,11 @@ void FStaticMeshLODSettings::Initialize(const FConfigFile& IniFile)
 	const FConfigSection* Section = IniFile.Find(IniSection);
 	if (Section)
 	{
-		for (TMultiMap<FName,FString>::TConstIterator It(*Section); It; ++It)
+		for (TMultiMap<FName,FConfigValue>::TConstIterator It(*Section); It; ++It)
 		{
 			FName GroupName = It.Key();
 			FStaticMeshLODGroup& Group = Groups.FindOrAdd(GroupName);
-			ReadEntry(Group, It.Value());
+			ReadEntry(Group, It.Value().GetValue());
 		};
 	}
 
@@ -1713,6 +1713,8 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	int32 NumVertices = 0;
 	int32 NumUVChannels = 0;
 	int32 NumLODs = 0;
+	int32 NumSectionsWithCollision = 0;
+
 	if (RenderData && RenderData->LODResources.Num() > 0)
 	{
 		const FStaticMeshLODResources& LOD = RenderData->LODResources[0];
@@ -1720,6 +1722,19 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		NumVertices = LOD.VertexBuffer.GetNumVertices();
 		NumUVChannels = LOD.VertexBuffer.GetNumTexCoords();
 		NumLODs = RenderData->LODResources.Num();
+
+#if WITH_EDITORONLY_DATA
+		// Find how many sections have collision enabled
+		const int32 UseLODIndex = FMath::Clamp(LODForCollision, 0, RenderData->LODResources.Num() - 1);
+		FStaticMeshLODResources& CollisionLOD = RenderData->LODResources[UseLODIndex];
+		for (int32 SectionIndex = 0; SectionIndex < CollisionLOD.Sections.Num(); ++SectionIndex)
+		{
+			if (SectionInfoMap.Get(UseLODIndex, SectionIndex).bEnableCollision)
+			{
+				NumSectionsWithCollision++;
+			}
+		}
+#endif
 	}
 
 	int32 NumCollisionPrims = 0;
@@ -1735,6 +1750,13 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	}
 	const FString ApproxSizeStr = FString::Printf(TEXT("%dx%dx%d"), FMath::RoundToInt(Bounds.BoxExtent.X * 2.0f), FMath::RoundToInt(Bounds.BoxExtent.Y * 2.0f), FMath::RoundToInt(Bounds.BoxExtent.Z * 2.0f));
 
+	// Get name of default collision profile
+	FName DefaultCollisionName = NAME_None;
+	if(BodySetup != nullptr)
+	{
+		DefaultCollisionName = BodySetup->DefaultInstance.GetCollisionProfileName();
+	}
+
 	OutTags.Add( FAssetRegistryTag("Triangles", FString::FromInt(NumTriangles), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("Vertices", FString::FromInt(NumVertices), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("UVChannels", FString::FromInt(NumUVChannels), FAssetRegistryTag::TT_Numerical) );
@@ -1742,6 +1764,8 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	OutTags.Add( FAssetRegistryTag("ApproxSize", ApproxSizeStr, FAssetRegistryTag::TT_Dimensional) );
 	OutTags.Add( FAssetRegistryTag("CollisionPrims", FString::FromInt(NumCollisionPrims), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add( FAssetRegistryTag("LODs", FString::FromInt(NumLODs), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add( FAssetRegistryTag("SectionsWithCollision", FString::FromInt(NumSectionsWithCollision), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add( FAssetRegistryTag("DefaultCollision", DefaultCollisionName.ToString(), FAssetRegistryTag::TT_Alphabetical));
 
 #if WITH_EDITORONLY_DATA
 	if (AssetImportData)
@@ -2349,7 +2373,7 @@ bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionD
 	{
 		const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
 
-		if (bInUseAllTriData || SectionInfoMap.Get(0,SectionIndex).bEnableCollision)
+		if (bInUseAllTriData || SectionInfoMap.Get(UseLODIndex,SectionIndex).bEnableCollision)
 		{
 			const uint32 OnePastLastIndex  = Section.FirstIndex + Section.NumTriangles*3;
 

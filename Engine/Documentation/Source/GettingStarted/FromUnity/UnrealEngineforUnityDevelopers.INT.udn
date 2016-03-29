@@ -897,28 +897,9 @@ UE4 C++:
 			Trigger.SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		}
 
-		void BeginPlay()
-		{
-			// Register to find out when an overlap occurs
-			OnActorBeginOverlap.AddDynamic(this, &AMyActor::OnTriggerEnter);
-			OnActorEndOverlap.AddDynamic(this, &AMyActor::OnTriggerExit);
+		virtual void NotifyActorBeginOverlap(AActor* Other) override;
 
-			Super::BeginPlay();
-		}
-
-		void EndPlay(const EEndPlayReason::Type EndPlayReason)
-		{
-			OnActorBeginOverlap.RemoveDynamic(this, &AMyActor::OnTriggerEnter);
-			OnActorEndOverlap.RemoveDynamic(this, &AMyActor::OnTriggerExit);
-
-			Super:EndPlay(EndPlayReason);
-		}
-
-		UFUNCTION()
-		void OnTriggerEnter(AActor* Other);
-
-		UFUNCTION()
-		void OnTriggerExit(AActor* Other);
+		virtual void NotifyActorEndOverlap(AActor* Other) override;
 	};
 
 UE4 Blueprint:

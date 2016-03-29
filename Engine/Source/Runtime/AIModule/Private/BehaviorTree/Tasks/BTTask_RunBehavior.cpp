@@ -173,7 +173,7 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent& OwnerComp, uint8* 
 			{
 				UBTDecorator* InstancedOb = Cast<UBTDecorator>(OwnerComp.NodeInstances[FirstNodeIdx + Idx]);
 				InstancedOb->InitializeFromAsset(*BehaviorAsset);
-				InstancedOb->InitializeDecorator(ChildIdx);
+				InstancedOb->InitializeParentLink(ChildIdx);
 
 				if (!bAlreadyInjected)
 				{

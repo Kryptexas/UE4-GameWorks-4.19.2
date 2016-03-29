@@ -705,13 +705,13 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 	// if not visible, or we were told to use fixed bounds, use skelmesh bounds
 	if ( (!bVisible || bComponentUseFixedSkelBounds) && SkeletalMesh ) 
 	{
-		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->Bounds;
+		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->GetBounds();
 		RootAdjustedBounds.Origin += RootOffset; // Adjust bounds by root bone translation
 		NewBounds = RootAdjustedBounds.TransformBy(LocalToWorld);
 	}
 	else if(MasterPoseComponentInst && MasterPoseComponentInst->SkeletalMesh && MasterPoseComponentInst->bComponentUseFixedSkelBounds)
 	{
-		FBoxSphereBounds RootAdjustedBounds = MasterPoseComponentInst->SkeletalMesh->Bounds;
+		FBoxSphereBounds RootAdjustedBounds = MasterPoseComponentInst->SkeletalMesh->GetBounds();
 		RootAdjustedBounds.Origin += RootOffset; // Adjust bounds by root bone translation
 		NewBounds = RootAdjustedBounds.TransformBy(LocalToWorld);
 	}
@@ -740,7 +740,7 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 	// Fallback is to use the one from the skeletal mesh. Usually pretty bad in terms of Accuracy of where the SkelMesh Bounds are located (i.e. usually bigger than it needs to be)
 	else if( SkeletalMesh )
 	{
-		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->Bounds;
+		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->GetBounds();
 
 		// Adjust bounds by root bone translation
 		RootAdjustedBounds.Origin += RootOffset;

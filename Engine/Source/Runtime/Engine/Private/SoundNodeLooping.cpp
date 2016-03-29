@@ -103,17 +103,17 @@ void USoundNodeLooping::ResetChildren(const UPTRINT NodeWaveInstanceHash, FActiv
 
 	for (int32 ResetNodeIndex = 0; ResetNodeIndex < NodesToReset.Num(); ++ResetNodeIndex)
 	{
-		const FNodeHashPairs& NodeHashPair = NodesToReset[ResetNodeIndex];
+		// cache both fields, ref to NodesToReset[ResetNodeIndex] can become invalid after NodesToReset.Add due to memory reallocation
+		const UPTRINT ResetNodeWaveInstanceHash = NodesToReset[ResetNodeIndex].NodeWaveInstanceHash;
+		USoundNode* ResetNode = NodesToReset[ResetNodeIndex].Node;
 
 		// Reset all child nodes so they are initialized again.
-		uint32* Offset = ActiveSound.SoundNodeOffsetMap.Find(NodeHashPair.NodeWaveInstanceHash);
+		uint32* Offset = ActiveSound.SoundNodeOffsetMap.Find(ResetNodeWaveInstanceHash);
 		if (Offset)
 		{
 			bool* bRequiresInitialization = (bool*)&ActiveSound.SoundNodeData[*Offset];
 			*bRequiresInitialization = true;
 		}
-
-		USoundNode* ResetNode = NodeHashPair.Node;
 
 		if (ResetNode->ChildNodes.Num())
 		{
@@ -122,13 +122,13 @@ void USoundNodeLooping::ResetChildren(const UPTRINT NodeWaveInstanceHash, FActiv
 				USoundNode* ResetChildNode = ResetNode->ChildNodes[ResetChildIndex];
 				if (ResetChildNode)
 				{
-					NodesToReset.Add(FNodeHashPairs(ResetChildNode, GetNodeWaveInstanceHash(NodeHashPair.NodeWaveInstanceHash, ResetChildNode, ResetChildIndex)));
+					NodesToReset.Add(FNodeHashPairs(ResetChildNode, GetNodeWaveInstanceHash(ResetNodeWaveInstanceHash, ResetChildNode, ResetChildIndex)));
 				}
 			}
 		}
 		else if (ResetNode->IsA<USoundNodeWavePlayer>())
 		{
-			FWaveInstance* WaveInstance = ActiveSound.FindWaveInstance(NodeHashPair.NodeWaveInstanceHash);
+			FWaveInstance* WaveInstance = ActiveSound.FindWaveInstance(ResetNodeWaveInstanceHash);
 			if (WaveInstance)
 			{
 				WaveInstance->bAlreadyNotifiedHook = true;

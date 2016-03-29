@@ -896,6 +896,7 @@ void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase
 		NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
 
 		NewActiveSound.bIsUISound = true;
+		NewActiveSound.bAllowSpatialization = false;
 		NewActiveSound.ConcurrencySettings = ConcurrencySettings;
 		NewActiveSound.Priority = Sound->Priority;
 
@@ -1237,6 +1238,26 @@ void UGameplayStatics::DeactivateReverbEffect(UObject* WorldContextObject, FName
 	{
 		AudioDevice->DeactivateReverbEffect(TagName);
 	}
+}
+
+class UReverbEffect* UGameplayStatics::GetCurrentReverbEffect(UObject* WorldContextObject)
+{
+	if (GEngine == nullptr || !GEngine->UseSound())
+	{
+		return nullptr;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
+	{
+		return nullptr;
+	}
+
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	{
+		return AudioDevice->GetCurrentReverbEffect();
+	}
+	return nullptr;
 }
 
 UDecalComponent* CreateDecalComponent(class UMaterialInterface* DecalMaterial, FVector DecalSize, UWorld* World, AActor* Actor, float LifeSpan)

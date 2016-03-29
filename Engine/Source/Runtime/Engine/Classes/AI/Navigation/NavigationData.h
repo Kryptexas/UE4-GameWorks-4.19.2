@@ -535,8 +535,6 @@ public:
 
 	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const;
 
-	FORCEINLINE void MarkAsNeedingUpdate() { bWantsUpdate = true; }
-
 	virtual void RestrictBuildingToActiveTiles(bool InRestrictBuildingToActiveTiles) {}
 
 	bool CanBeMainNavData() const { return bCanBeMainNavData; }
@@ -917,8 +915,7 @@ protected:
 	/** was it generated for default agent (SupportedAgents[0]) */
 	uint32 bSupportsDefaultAgent:1;
 
-	/** controls whether this NavigationData will accept navigation building requests resulting from dirty areas
-	 *	true by default, set to false on successful serialization to skip initial rebuild */
+	DEPRECATED(4.12, "This flag is now deprecated, initial rebuild ignore should be handled by discarding dirty areas in UNavigationSystem::ConditionalPopulateNavOctree.")
 	uint32 bWantsUpdate:1;
 
 private:
@@ -929,6 +926,8 @@ private:
 public:
 	DEPRECATED(4.8, "GetRandomPointInRadius is deprecated, please use GetRandomReachablePointInRadius")
 	virtual bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, FSharedConstNavQueryFilter Filter = NULL, const UObject* Querier = NULL) const PURE_VIRTUAL(ANavigationData::GetRandomPointInRadius, return false;);
+	DEPRECATED(4.12, "This function is now deprecated, initial rebuild ignore should be handled by discarding dirty areas in UNavigationSystem::ConditionalPopulateNavOctree.")
+	void MarkAsNeedingUpdate() { }
 };
 
 struct FAsyncPathFindingQuery : public FPathFindingQuery

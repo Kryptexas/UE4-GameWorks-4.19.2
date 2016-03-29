@@ -194,7 +194,7 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 	}
 }
 
-void AGameplayCueNotify_Actor::OnOwnerDestroyed()
+void AGameplayCueNotify_Actor::OnOwnerDestroyed(AActor* DestroyedActor)
 {
 	if (bInRecycleQueue)
 	{

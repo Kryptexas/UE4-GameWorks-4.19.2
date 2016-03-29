@@ -307,8 +307,8 @@ bool FGenericPlatformMisc::SetStoredValue(const FString& InStoreId, const FStrin
 
 	FConfigSection& Section = ConfigFile.FindOrAdd(InSectionName);
 
-	FString& KeyValue = Section.FindOrAdd(*InKeyName);
-	KeyValue = InValue;
+	FConfigValue& KeyValue = Section.FindOrAdd(*InKeyName);
+	KeyValue = FConfigValue(InValue);
 
 	ConfigFile.Dirty = true;
 	return ConfigFile.Write(ConfigPath);
@@ -329,10 +329,10 @@ bool FGenericPlatformMisc::GetStoredValue(const FString& InStoreId, const FStrin
 	const FConfigSection* const Section = ConfigFile.Find(InSectionName);
 	if(Section)
 	{
-		const FString* const KeyValue = Section->Find(*InKeyName);
+		const FConfigValue* const KeyValue = Section->Find(*InKeyName);
 		if(KeyValue)
 		{
-			OutValue = *KeyValue;
+			OutValue = KeyValue->GetValue();
 			return true;
 		}
 	}

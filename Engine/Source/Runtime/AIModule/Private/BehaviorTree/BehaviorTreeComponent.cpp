@@ -749,7 +749,8 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 	if (bSwitchToHigherPriority)
 	{
 		// check if decorators allow execution on requesting link
-		const bool bShouldCheckDecorators = (RequestedByChildIndex >= 0);
+		// unless it's branch restart (abort result within current branch), when it can't be skipped because branch can be no longer valid
+		const bool bShouldCheckDecorators = (RequestedByChildIndex >= 0) && !IsExecutingBranch(RequestedBy, RequestedByChildIndex);
 		const bool bCanExecute = !bShouldCheckDecorators || RequestedOn->DoDecoratorsAllowExecution(*this, InstanceIdx, RequestedByChildIndex);
 		if (!bCanExecute)
 		{
@@ -856,7 +857,7 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 
 	ExecutionRequest.SearchStart = ExecutionIdx;
 	ExecutionRequest.ContinueWithResult = ContinueWithResult;
-	ExecutionRequest.bTryNextChild = !bSwitchToHigherPriority;
+	ExecutionRequest.bTryNextChild = !bSwitchToHigherPriority && !PendingExecution.bAborting;
 	ExecutionRequest.bIsRestart = (RequestedBy != GetActiveNode());
 	PendingExecution.Lock();
 	
@@ -1280,7 +1281,11 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 		// abort task if needed
 		if (InstanceStack.Last().ActiveNodeType == EBTActiveNode::ActiveTask)
 		{
+			PendingExecution.OnAbortStart();
+
 			AbortCurrentTask();
+
+			PendingExecution.OnAbortProcessed();
 		}
 
 		// set next task to execute
@@ -1440,6 +1445,19 @@ void UBehaviorTreeComponent::ExecuteTask(UBTTaskNode* TaskNode)
 	SCOPE_CYCLE_COUNTER(STAT_AI_BehaviorTree_ExecutionTime);
 
 	FBehaviorTreeInstance& ActiveInstance = InstanceStack[ActiveInstanceIdx];
+
+	// task service activation is not part of search update (although deactivation is, through DeactivateUpTo), start them before execution
+	for (int32 ServiceIndex = 0; ServiceIndex < TaskNode->Services.Num(); ServiceIndex++)
+	{
+		UBTService* ServiceNode = TaskNode->Services[ServiceIndex];
+		uint8* NodeMemory = (uint8*)ServiceNode->GetNodeMemory<uint8>(ActiveInstance);
+
+		ActiveInstance.ActiveAuxNodes.Add(ServiceNode);
+
+		UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("Activating task service: %s"), *UBehaviorTreeTypes::DescribeNodeHelper(ServiceNode));
+		ServiceNode->WrappedOnBecomeRelevant(*this, NodeMemory);
+	}
+
 	ActiveInstance.ActiveNode = TaskNode;
 	ActiveInstance.ActiveNodeType = EBTActiveNode::ActiveTask;
 
@@ -1788,9 +1806,20 @@ UBTNode* UBehaviorTreeComponent::FindTemplateNode(const UBTNode* Node) const
 	{
 		FBTCompositeChild& ChildInfo = ParentNode->Children[ChildIndex];
 
-		if (ChildInfo.ChildTask && ChildInfo.ChildTask->GetExecutionIndex() == Node->GetExecutionIndex())
+		if (ChildInfo.ChildTask)
 		{
-			return ChildInfo.ChildTask;
+			if (ChildInfo.ChildTask->GetExecutionIndex() == Node->GetExecutionIndex())
+			{
+				return ChildInfo.ChildTask;
+			}
+
+			for (int32 ServiceIndex = 0; ServiceIndex < ChildInfo.ChildTask->Services.Num(); ServiceIndex++)
+			{
+				if (ChildInfo.ChildTask->Services[ServiceIndex]->GetExecutionIndex() == Node->GetExecutionIndex())
+				{
+					return ChildInfo.ChildTask->Services[ServiceIndex];
+				}
+			}
 		}
 
 		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)

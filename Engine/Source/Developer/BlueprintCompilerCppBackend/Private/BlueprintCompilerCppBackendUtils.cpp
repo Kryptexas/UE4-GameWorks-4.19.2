@@ -732,6 +732,7 @@ int32 FEmitHelper::ParseDelegateDetails(FEmitterLocalContext& EmitterContext, UF
 	case 6: ParamNumberStr = TEXT("_SixParams");	break;
 	case 7: ParamNumberStr = TEXT("_SevenParams");	break;
 	case 8: ParamNumberStr = TEXT("_EightParams");	break;
+	case 9: ParamNumberStr = TEXT("_NineParams");   break;
 	default: ParamNumberStr = TEXT("_TooMany");		break;
 	}
 

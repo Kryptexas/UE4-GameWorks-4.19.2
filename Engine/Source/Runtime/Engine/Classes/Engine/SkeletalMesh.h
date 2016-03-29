@@ -599,8 +599,52 @@ public:
 	UPROPERTY(Category=Mesh, AssetRegistrySearchable, VisibleAnywhere, BlueprintReadOnly)
 	USkeleton* Skeleton;
 
+private:
+	/** Original imported mesh bounds */
 	UPROPERTY(transient, duplicatetransient)
-	FBoxSphereBounds Bounds;
+	FBoxSphereBounds ImportedBounds;
+
+	/** Bounds extended by user values below */
+	UPROPERTY(transient, duplicatetransient)
+	FBoxSphereBounds ExtendedBounds;
+
+protected:
+	// The properties below are protected to force the use of the Set* methods for this data
+	// in code so we can keep the extended bounds up to date after changing the data.
+	// Property editors will trigger property events to correctly recalculate the extended bounds.
+
+	/** Bound extension values in the positive direction of XYZ, positive value increases bound size */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mesh)
+	FVector PositiveBoundsExtension;
+
+	/** Bound extension values in the negative direction of XYZ, positive value increases bound size */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mesh)
+	FVector NegativeBoundsExtension;
+
+public:
+
+	/** Get the extended bounds of this mesh (imported bounds plus bounds extension) */
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+	ENGINE_API FBoxSphereBounds GetBounds();
+
+	/** Get the original imported bounds of the skel mesh */
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+	ENGINE_API FBoxSphereBounds GetImportedBounds();
+
+	/** Set the original imported bounds of the skel mesh, will recalculate extended bounds */
+	ENGINE_API void SetImportedBounds(const FBoxSphereBounds& InBounds);
+
+	/** Set bound extension values in the positive direction of XYZ, positive value increases bound size */
+	ENGINE_API void SetPositiveBoundsExtension(const FVector& InExtension);
+
+	/** Set bound extension values in the negative direction of XYZ, positive value increases bound size */
+	ENGINE_API void SetNegativeBoundsExtension(const FVector& InExtension);
+
+	/** Calculate the extended bounds based on the imported bounds and the extension values */
+	void CalculateExtendedBounds();
+
+	/** Alters the bounds extension values to fit correctly into the current bounds (so negative values never extend the bounds etc.) */
+	void ValidateBoundsExtension();
 
 	/** List of materials applied to this mesh. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, transient, duplicatetransient, Category=SkeletalMesh)
@@ -788,6 +832,7 @@ public:
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+
 	virtual void PostEditUndo() override;
 	virtual void GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override;
 #endif // WITH_EDITOR
@@ -971,6 +1016,7 @@ private:
 	* Test whether all the flags in an array are identical (could be moved to Array.h?)
 	*/
 	bool AreAllFlagsIdentical( const TArray<bool>& BoolArray ) const;
+
 };
 
 

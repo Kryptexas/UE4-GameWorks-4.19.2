@@ -315,7 +315,7 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 	if (InOnNewAssetRequested.IsBound())
 	{
 		// Add Basic Asset
-		MenuBuilder.BeginSection("ContentBrowserNewBasicAsset", LOCTEXT("BasicAssetsMenuHeading", "Create Basic Asset") );
+		MenuBuilder.BeginSection("ContentBrowserNewBasicAsset", LOCTEXT("CreateBasicAssetsMenuHeading", "Create Basic Asset") );
 		{
 			CreateNewAssetMenuCategory(
 				MenuBuilder, 
@@ -328,7 +328,7 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 		MenuBuilder.EndSection(); //ContentBrowserNewBasicAsset
 
 		// Add Advanced Asset
-		MenuBuilder.BeginSection("ContentBrowserNewAdvancedAsset", LOCTEXT("AdvancedAssetsMenuHeading", "Create Advanced Asset"));
+		MenuBuilder.BeginSection("ContentBrowserNewAdvancedAsset", LOCTEXT("CreateAdvancedAssetsMenuHeading", "Create Advanced Asset"));
 		{
 			FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
 

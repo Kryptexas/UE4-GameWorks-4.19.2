@@ -140,14 +140,17 @@ void UActorRecording::GetSceneComponents(TArray<USceneComponent*>& OutArray, boo
 			auto ShouldRemovePredicate = [&](UActorComponent* PossiblyRemovedComponent)
 				{
 					// try to find a component with this name in the CDO
-					UActorComponent* const* FoundComponent = CDO->GetComponents().FindByPredicate([&](UActorComponent* SearchComponent) 
-					{ 
-						return SearchComponent->GetClass() == PossiblyRemovedComponent->GetClass() &&
-							   SearchComponent->GetFName() == PossiblyRemovedComponent->GetFName(); 
-					} );
+					for (UActorComponent* SearchComponent : CDO->GetComponents())
+					{
+						if (SearchComponent->GetClass() == PossiblyRemovedComponent->GetClass() &&
+							SearchComponent->GetFName() == PossiblyRemovedComponent->GetFName())
+						{
+							return false;
+						}
+					}
 
 					// remove if its not found
-					return FoundComponent == nullptr;
+					return true;
 				};
 
 			OutArray.RemoveAllSwap(ShouldRemovePredicate);

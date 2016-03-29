@@ -201,8 +201,7 @@ void AActor::ResetOwnedComponents()
 	// Identify any natively-constructed components referenced by properties that either failed to serialize or came in as NULL.
 	if(HasAnyFlags(RF_WasLoaded) && NativeConstructedComponentToPropertyMap.Num() > 0)
 	{
-		TInlineComponentArray<UActorComponent*> ComponentsToDestroy;
-		for (auto Component : OwnedComponents)
+		for (UActorComponent* Component : OwnedComponents)
 		{
 			// Only consider native components
 			if (Component && Component->CreationMethod == EComponentCreationMethod::Native)
@@ -212,7 +211,7 @@ void AActor::ResetOwnedComponents()
 				NativeConstructedComponentToPropertyMap.MultiFind(Component->GetFName(), Properties);
 
 				// Determine if the property or properties are no longer valid references (either it got serialized out that way or something failed during load)
-				for (auto ObjProp : Properties)
+				for (UObjectProperty* ObjProp : Properties)
 				{
 					check(ObjProp != nullptr);
 					UActorComponent* ActorComponent = Cast<UActorComponent>(ObjProp->GetObjectPropertyValue_InContainer(this));
@@ -231,8 +230,8 @@ void AActor::ResetOwnedComponents()
 #endif
 
 	TArray<UObject*> ActorChildren;
-	OwnedComponents.Empty();
-	ReplicatedComponents.Empty();
+	OwnedComponents.Reset();
+	ReplicatedComponents.Reset();
 	GetObjectsWithOuter(this, ActorChildren, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
 
 	for (UObject* Child : ActorChildren)
@@ -262,13 +261,6 @@ void AActor::PostInitProperties()
 	{
 		ResetOwnedComponents();
 	}
-}
-
-void AActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	AActor* This = CastChecked<AActor>(InThis);
-	Collector.AddReferencedObjects(This->OwnedComponents);
-	Super::AddReferencedObjects(InThis, Collector);
 }
 
 UWorld* AActor::GetWorld() const
@@ -479,7 +471,8 @@ void AActor::Serialize(FArchive& Ar)
 	{
 		if (const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(GetClass()))
 		{
-			NativeConstructedComponentToPropertyMap.Empty(OwnedComponents.Num());
+			NativeConstructedComponentToPropertyMap.Reset();
+			NativeConstructedComponentToPropertyMap.Reserve(OwnedComponents.Num());
 			for(TFieldIterator<UObjectProperty> PropertyIt(BPGC, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 			{
 				UObjectProperty* ObjProp = *PropertyIt;
@@ -533,7 +526,7 @@ void AActor::PostLoad()
 		TInlineComponentArray<UChildActorComponent*> ParentChildActorComponents(ParentActor);
 		for (UChildActorComponent* ChildActorComponent : ParentChildActorComponents)
 		{
-			if (ChildActorComponent->ChildActor == this)
+			if (ChildActorComponent->GetChildActor() == this)
 			{
 				ParentComponent = ChildActorComponent;
 				break;
@@ -626,8 +619,7 @@ void AActor::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 	}
 
 	// Shift UActorComponent derived components, but not USceneComponents
-	const TArray<UActorComponent*>& AllActorComponents = GetComponents();
- 	for (UActorComponent* ActorComponent : AllActorComponents)
+ 	for (UActorComponent* ActorComponent : GetComponents())
  	{
  		if (IsValid(ActorComponent) && !ActorComponent->IsA<USceneComponent>())
  		{
@@ -881,10 +873,10 @@ void AActor::CallPreReplication(UNetDriver* NetDriver)
 	PreReplication(*NetDriver->FindOrCreateRepChangedPropertyTracker(this).Get());
 
 	// Call PreReplication on all owned components that are replicated
-	for (UActorComponent* Component : OwnedComponents)
+	for (UActorComponent* Component : ReplicatedComponents)
 	{
 		// Only call on components that aren't pending kill
-		if (Component && !Component->IsPendingKill() && Component->GetIsReplicated())
+		if (Component && !Component->IsPendingKill())
 		{
 			Component->PreReplication(*NetDriver->FindOrCreateRepChangedPropertyTracker(Component).Get());
 		}
@@ -1129,11 +1121,25 @@ bool AActor::IsOverlappingActor(const AActor* Other) const
 	return false;
 }
 
-void AActor::GetOverlappingActors(TArray<AActor*>& OutOverlappingActors, UClass* ClassFilter) const
+void AActor::GetOverlappingActors(TArray<AActor*>& OutOverlappingActors, TSubclassOf<AActor> ClassFilter) const
+{
+	// prepare output
+	TSet<AActor*> OverlappingActors;
+	GetOverlappingActors(OverlappingActors, ClassFilter);
+
+	OutOverlappingActors.Reset(OverlappingActors.Num());
+
+	for (AActor* OverlappingActor : OverlappingActors)
+	{
+		OutOverlappingActors.Add(OverlappingActor);
+	}
+}
+
+void AActor::GetOverlappingActors(TSet<AActor*>& OutOverlappingActors, TSubclassOf<AActor> ClassFilter) const
 {
 	// prepare output
 	OutOverlappingActors.Reset();
-	TArray<AActor*> OverlappingActorsForCurrentComponent;
+	TSet<AActor*> OverlappingActorsForCurrentComponent;
 
 	for(UActorComponent* OwnedComp : OwnedComponents)
 	{
@@ -1141,13 +1147,14 @@ void AActor::GetOverlappingActors(TArray<AActor*>& OutOverlappingActors, UClass*
 		{
 			PrimComp->GetOverlappingActors(OverlappingActorsForCurrentComponent, ClassFilter);
 
+			OutOverlappingActors.Reserve(OutOverlappingActors.Num() + OverlappingActorsForCurrentComponent.Num());
+
 			// then merge it into our final list
-			for (auto CompIt = OverlappingActorsForCurrentComponent.CreateIterator(); CompIt; ++CompIt)
+			for (AActor* OverlappingActor : OverlappingActorsForCurrentComponent)
 			{
-				AActor* OverlappingActor = *CompIt;
-				if(OverlappingActor != this)
+				if (OverlappingActor != this)
 				{
-					OutOverlappingActors.AddUnique(OverlappingActor);
+					OutOverlappingActors.Add(OverlappingActor);
 				}
 			}
 		}
@@ -1155,6 +1162,19 @@ void AActor::GetOverlappingActors(TArray<AActor*>& OutOverlappingActors, UClass*
 }
 
 void AActor::GetOverlappingComponents(TArray<UPrimitiveComponent*>& OutOverlappingComponents) const
+{
+	TSet<UPrimitiveComponent*> OverlappingComponents;
+	GetOverlappingComponents(OverlappingComponents);
+
+	OutOverlappingComponents.Reset(OverlappingComponents.Num());
+
+	for (UPrimitiveComponent* OverlappingComponent : OverlappingComponents)
+	{
+		OutOverlappingComponents.Add(OverlappingComponent);
+	}
+}
+
+void AActor::GetOverlappingComponents(TSet<UPrimitiveComponent*>& OutOverlappingComponents) const
 {
 	OutOverlappingComponents.Reset();
 	TArray<UPrimitiveComponent*> OverlappingComponentsForCurrentComponent;
@@ -1166,15 +1186,16 @@ void AActor::GetOverlappingComponents(TArray<UPrimitiveComponent*>& OutOverlappi
 			// get list of components from the component
 			PrimComp->GetOverlappingComponents(OverlappingComponentsForCurrentComponent);
 
+			OutOverlappingComponents.Reserve(OutOverlappingComponents.Num() + OverlappingComponentsForCurrentComponent.Num());
+
 			// then merge it into our final list
-			for (auto CompIt = OverlappingComponentsForCurrentComponent.CreateIterator(); CompIt; ++CompIt)
+			for (UPrimitiveComponent* OverlappingComponent : OverlappingComponentsForCurrentComponent)
 			{
-				OutOverlappingComponents.AddUnique(*CompIt);
+				OutOverlappingComponents.Add(OverlappingComponent);
 			}
 		}
 	}
 }
-
 
 void AActor::NotifyActorBeginOverlap(AActor* OtherActor)
 {
@@ -1703,7 +1724,7 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 		// Dispatch the blueprint events
 		ReceiveEndPlay(EndPlayReason);
-		OnEndPlay.Broadcast(EndPlayReason);
+		OnEndPlay.Broadcast(this, EndPlayReason);
 
 		TInlineComponentArray<UActorComponent*> Components;
 		GetComponents(Components);
@@ -1771,7 +1792,7 @@ void AActor::Destroyed()
 	RouteEndPlay(EEndPlayReason::Destroyed);
 
 	ReceiveDestroyed();
-	OnDestroyed.Broadcast();
+	OnDestroyed.Broadcast(this);
 	UWorld* ActorWorld = GetWorld();
 
 	if( ActorWorld )
@@ -1852,7 +1873,7 @@ float AActor::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AC
 		if (ActualDamage != 0.f)
 		{
 			ReceivePointDamage(ActualDamage, DamageTypeCDO, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->HitInfo.ImpactNormal, PointDamageEvent->HitInfo.Component.Get(), PointDamageEvent->HitInfo.BoneName, PointDamageEvent->ShotDirection, EventInstigator, DamageCauser);
-			OnTakePointDamage.Broadcast(ActualDamage, EventInstigator, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->HitInfo.Component.Get(), PointDamageEvent->HitInfo.BoneName, PointDamageEvent->ShotDirection, DamageTypeCDO, DamageCauser);
+			OnTakePointDamage.Broadcast(this, ActualDamage, EventInstigator, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->HitInfo.Component.Get(), PointDamageEvent->HitInfo.BoneName, PointDamageEvent->ShotDirection, DamageTypeCDO, DamageCauser);
 
 			// Notify the component
 			UPrimitiveComponent* const PrimComp = PointDamageEvent->HitInfo.Component.Get();
@@ -1892,7 +1913,7 @@ float AActor::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AC
 	if (ActualDamage != 0.f)
 	{
 		ReceiveAnyDamage(ActualDamage, DamageTypeCDO, EventInstigator, DamageCauser);
-		OnTakeAnyDamage.Broadcast(ActualDamage, DamageTypeCDO, EventInstigator, DamageCauser);
+		OnTakeAnyDamage.Broadcast(this, ActualDamage, DamageTypeCDO, EventInstigator, DamageCauser);
 		if (EventInstigator != NULL)
 		{
 			EventInstigator->InstigatedAnyDamage(ActualDamage, DamageTypeCDO, this, DamageCauser);
@@ -1967,7 +1988,7 @@ void AActor::InternalDispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitive
 		// If component is still alive, call delegate on component
 		if(!MyComp->IsPendingKill())
 		{
-			MyComp->OnComponentHit.Broadcast(OtherActor, OtherComp, FVector(0,0,0), Hit);
+			MyComp->OnComponentHit.Broadcast(MyComp, OtherActor, OtherComp, FVector(0,0,0), Hit);
 		}
 	}
 }
@@ -2036,18 +2057,15 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 
 		T = FString(TEXT("Overlapping "));
 
-		TArray<AActor*> TouchingActors;
+		TSet<AActor*> TouchingActors;
 		GetOverlappingActors(TouchingActors);
 		bool bFoundAnyOverlaps = false;
-		for (int32 iTouching = 0; iTouching<TouchingActors.Num(); ++iTouching)
+		for (AActor* const TestActor : TouchingActors)
 		{
-			AActor* const TestActor = TouchingActors[iTouching];
 			if (TestActor &&
-				!TestActor->IsPendingKill() &&
-				TestActor->IsA<AActor>())
+				!TestActor->IsPendingKill())
 			{
-				AActor* A = TestActor;
-				T = T + A->GetName() + " ";
+				T = T + TestActor->GetName() + " ";
 				bFoundAnyOverlaps = true;
 			}
 		}
@@ -2230,51 +2248,40 @@ enum ECollisionResponse AActor::GetComponentsCollisionResponseToChannel(enum ECo
 void AActor::AddOwnedComponent(UActorComponent* Component)
 {
 	check(Component->GetOwner() == this);
-	OwnedComponents.AddUnique(Component);
 
-	if (Component->GetIsReplicated())
-	{
-		ReplicatedComponents.AddUnique(Component);
-	}
+	bool bAlreadyInSet = false;
+	OwnedComponents.Add(Component, &bAlreadyInSet);
 
-	if (Component->IsCreatedByConstructionScript())
+	if (!bAlreadyInSet)
 	{
-		BlueprintCreatedComponents.AddUnique(Component);
-	}
-	else if (Component->CreationMethod == EComponentCreationMethod::Instance)
-	{
-		InstanceComponents.AddUnique(Component);
+		if (Component->GetIsReplicated())
+		{
+			ReplicatedComponents.Add(Component);
+		}
+
+		if (Component->IsCreatedByConstructionScript())
+		{
+			BlueprintCreatedComponents.Add(Component);
+		}
+		else if (Component->CreationMethod == EComponentCreationMethod::Instance)
+		{
+			InstanceComponents.Add(Component);
+		}
 	}
 }
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component)
 {
-	if (OwnedComponents.RemoveSwap(Component) > 0)
+	if (OwnedComponents.Remove(Component) > 0)
 	{
-		ReplicatedComponents.RemoveSwap(Component);
+		ReplicatedComponents.Remove(Component);
 		if (Component->IsCreatedByConstructionScript())
 		{
-			BlueprintCreatedComponents.RemoveSwap(Component);
+			BlueprintCreatedComponents.RemoveSingleSwap(Component);
 		}
 		else if (Component->CreationMethod == EComponentCreationMethod::Instance)
 		{
-			InstanceComponents.RemoveSwap(Component);
-		}
-	}
-	else
-	{
-		// If we didn't remove something we expected to then it probably got NULL through the
-		// property system so take the time to pull them out now
-		OwnedComponents.RemoveSwap(nullptr);
-
-		ReplicatedComponents.RemoveSwap(nullptr);
-		if (Component->IsCreatedByConstructionScript())
-		{
-			BlueprintCreatedComponents.RemoveSwap(nullptr);
-		}
-		else if (Component->CreationMethod == EComponentCreationMethod::Instance)
-		{
-			InstanceComponents.RemoveSwap(nullptr);
+			InstanceComponents.RemoveSingleSwap(Component);
 		}
 	}
 }
@@ -2286,27 +2293,22 @@ bool AActor::OwnsComponent(UActorComponent* Component) const
 }
 #endif
 
-const TArray<UActorComponent*>& AActor::GetReplicatedComponents() const
-{
-	return ReplicatedComponents;
-}
-
 void AActor::UpdateReplicatedComponent(UActorComponent* Component)
 {
 	checkf(Component->GetOwner() == this, TEXT("UE-9568: Component %s being updated for Actor %s"), *Component->GetPathName(), *GetPathName() );
 	if (Component->GetIsReplicated())
 	{
-		ReplicatedComponents.AddUnique(Component);
+		ReplicatedComponents.Add(Component);
 	}
 	else
 	{
-		ReplicatedComponents.RemoveSwap(Component);
+		ReplicatedComponents.Remove(Component);
 	}
 }
 
 void AActor::UpdateAllReplicatedComponents()
 {
-	ReplicatedComponents.Empty();
+	ReplicatedComponents.Reset();
 
 	for (UActorComponent* Component : OwnedComponents)
 	{
@@ -2348,7 +2350,7 @@ void AActor::ClearInstanceComponents(const bool bDestroyComponents)
 	}
 	else
 	{
-		InstanceComponents.Empty();
+		InstanceComponents.Reset();
 	}
 }
 
@@ -3644,14 +3646,15 @@ void AActor::DispatchPhysicsCollisionHit(const FRigidBodyCollisionInfo& MyInfo, 
 
 	// Execute delegates if bound
 
-	if(OnActorHit.IsBound())
+	if (OnActorHit.IsBound())
 	{
 		OnActorHit.Broadcast(this, OtherInfo.Actor.Get(), RigidCollisionData.TotalNormalImpulse, Result);
 	}
 
-	if(MyInfo.Component.IsValid() && MyInfo.Component.Get()->OnComponentHit.IsBound())
+	UPrimitiveComponent* MyInfoComponent = MyInfo.Component.Get();
+	if (MyInfoComponent && MyInfoComponent->OnComponentHit.IsBound())
 	{
-		MyInfo.Component.Get()->OnComponentHit.Broadcast(OtherInfo.Actor.Get(), OtherInfo.Component.Get(), RigidCollisionData.TotalNormalImpulse, Result);
+		MyInfoComponent->OnComponentHit.Broadcast(MyInfoComponent, OtherInfo.Actor.Get(), OtherInfo.Component.Get(), RigidCollisionData.TotalNormalImpulse, Result);
 	}
 }
 
@@ -3684,6 +3687,25 @@ UChildActorComponent* AActor::GetParentComponent() const
 {
 	return ParentComponent.Get();
 }
+
+void AActor::GetAllChildActors(TArray<AActor*>& ChildActors, bool bIncludeDescendants) const
+{
+	TInlineComponentArray<UChildActorComponent*> ChildActorComponents(this);
+
+	ChildActors.Reserve(ChildActors.Num() + ChildActorComponents.Num());
+	for (UChildActorComponent* CAC : ChildActorComponents)
+	{
+		if (AActor* ChildActor = CAC->GetChildActor())
+		{
+			ChildActors.Add(ChildActor);
+			if (bIncludeDescendants)
+			{
+				ChildActor->GetAllChildActors(ChildActors, true);
+			}
+		}
+	}
+}
+
 
 // COMPONENTS
 
@@ -3880,9 +3902,9 @@ void AActor::MarkComponentsRenderStateDirty()
 			ActorComp->MarkRenderStateDirty();
 			if (UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(ActorComp))
 			{
-				if (ChildActorComponent->ChildActor)
+				if (ChildActorComponent->GetChildActor())
 				{
-					ChildActorComponent->ChildActor->MarkComponentsRenderStateDirty();
+					ChildActorComponent->GetChildActor()->MarkComponentsRenderStateDirty();
 				}
 			}
 		}
@@ -4245,6 +4267,17 @@ void AActor::K2_SetActorRelativeTransform(const FTransform& NewRelativeTransform
 	SetActorRelativeTransform(NewRelativeTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-
+float AActor::GetGameTimeSinceCreation()
+{
+	if(GetWorld() != nullptr)
+	{
+		return GetWorld()->GetTimeSeconds() - CreationTime;		
+	}
+	// return 0.f if GetWorld return's null
+	else
+	{
+		return 0.f;
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

@@ -624,44 +624,38 @@ void FPhysScene::FlushDeferredCollisionDisableTableQueue()
 	DeferredCollisionDisableTableQueue.Empty();
 }
 
-void GatherPhysXStats(PxScene* PScene, uint32 SceneType)
+void GatherPhysXStats_AssumesLocked(PxScene* PSyncScene, PxScene* PAsyncScene)
 {
 	/** Gather PhysX stats */
-	if (SceneType == 0)
+	if (PSyncScene)
 	{
-		if (PScene)
-		{
-			SCOPED_SCENE_READ_LOCK(PScene);
-			PxSimulationStatistics SimStats;
-			PScene->getSimulationStatistics(SimStats);
+		PxSimulationStatistics SimStats;
+		PSyncScene->getSimulationStatistics(SimStats);
 
-			SET_DWORD_STAT(STAT_NumActiveConstraints, SimStats.nbActiveConstraints);
-			SET_DWORD_STAT(STAT_NumActiveSimulatedBodies, SimStats.nbActiveDynamicBodies);
-			SET_DWORD_STAT(STAT_NumActiveKinematicBodies, SimStats.nbActiveKinematicBodies);
-			SET_DWORD_STAT(STAT_NumStaticBodies, SimStats.nbStaticBodies);
-			SET_DWORD_STAT(STAT_NumMobileBodies, SimStats.nbDynamicBodies);
+		SET_DWORD_STAT(STAT_NumActiveConstraints, SimStats.nbActiveConstraints);
+		SET_DWORD_STAT(STAT_NumActiveSimulatedBodies, SimStats.nbActiveDynamicBodies);
+		SET_DWORD_STAT(STAT_NumActiveKinematicBodies, SimStats.nbActiveKinematicBodies);
+		SET_DWORD_STAT(STAT_NumStaticBodies, SimStats.nbStaticBodies);
+		SET_DWORD_STAT(STAT_NumMobileBodies, SimStats.nbDynamicBodies);
 			
-			SET_DWORD_STAT(STAT_NumBroadphaseAdds, SimStats.getNbBroadPhaseAdds(PxSimulationStatistics::VolumeType::eRIGID_BODY));
-			SET_DWORD_STAT(STAT_NumBroadphaseRemoves, SimStats.getNbBroadPhaseRemoves(PxSimulationStatistics::VolumeType::eRIGID_BODY));
+		//SET_DWORD_STAT(STAT_NumBroadphaseAdds, SimStats.getNbBroadPhaseAdds(PxSimulationStatistics::VolumeType::eRIGID_BODY));	//TODO: These do not seem to work
+		//SET_DWORD_STAT(STAT_NumBroadphaseRemoves, SimStats.getNbBroadPhaseRemoves(PxSimulationStatistics::VolumeType::eRIGID_BODY));
 
-			uint32 NumShapes = 0;
-			for (int32 GeomType = 0; GeomType < PxGeometryType::eGEOMETRY_COUNT; ++GeomType)
-			{
-				NumShapes += SimStats.nbShapes[GeomType];
-			}
-
-			SET_DWORD_STAT(STAT_NumShapes, NumShapes);
-
+		uint32 NumShapes = 0;
+		for (int32 GeomType = 0; GeomType < PxGeometryType::eGEOMETRY_COUNT; ++GeomType)
+		{
+			NumShapes += SimStats.nbShapes[GeomType];
 		}
+
+		SET_DWORD_STAT(STAT_NumShapes, NumShapes);
 
 	}
 
-#if 0	//this is not reliable right now
-	else if (SceneType == 1 & UPhysicsSettings::Get()->bEnableAsyncScene)
+	if(PAsyncScene)
 	{
 		//Having to duplicate because of macros. In theory we can fix this but need to get this quickly
 		PxSimulationStatistics SimStats;
-		PScene->getSimulationStatistics(SimStats);
+		PAsyncScene->getSimulationStatistics(SimStats);
 
 		SET_DWORD_STAT(STAT_NumActiveConstraintsAsync, SimStats.nbActiveConstraints);
 		SET_DWORD_STAT(STAT_NumActiveSimulatedBodiesAsync, SimStats.nbActiveDynamicBodies);
@@ -669,8 +663,8 @@ void GatherPhysXStats(PxScene* PScene, uint32 SceneType)
 		SET_DWORD_STAT(STAT_NumStaticBodiesAsync, SimStats.nbStaticBodies);
 		SET_DWORD_STAT(STAT_NumMobileBodiesAsync, SimStats.nbDynamicBodies);
 
-		SET_DWORD_STAT(STAT_NumBroadphaseAddsAsync, SimStats.getNbBroadPhaseAdds(PxSimulationStatistics::VolumeType::eRIGID_BODY));
-		SET_DWORD_STAT(STAT_NumBroadphaseRemovesAsync, SimStats.getNbBroadPhaseRemoves(PxSimulationStatistics::VolumeType::eRIGID_BODY));
+		//SET_DWORD_STAT(STAT_NumBroadphaseAddsAsync, SimStats.getNbBroadPhaseAdds(PxSimulationStatistics::VolumeType::eRIGID_BODY)); //TODO: These do not seem to work
+		//SET_DWORD_STAT(STAT_NumBroadphaseRemovesAsync, SimStats.getNbBroadPhaseRemoves(PxSimulationStatistics::VolumeType::eRIGID_BODY));
 
 		uint32 NumShapes = 0;
 		for (int32 GeomType = 0; GeomType < PxGeometryType::eGEOMETRY_COUNT; ++GeomType)
@@ -680,7 +674,6 @@ void GatherPhysXStats(PxScene* PScene, uint32 SceneType)
 
 		SET_DWORD_STAT(STAT_NumShapesAsync, NumShapes);
 	}
-#endif
 }
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Sync Sim Time (ms)"), STAT_PhysSyncSim, STATGROUP_Physics);
@@ -855,11 +848,6 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 		}
 		return;
 	}
-
-#if ( WITH_PHYSX  && !(UE_BUILD_SHIPPING || WITH_PHYSX_RELEASE))
-	GatherPhysXStats(GetPhysXScene(SceneType), SceneType);
-#endif
-
 
 	/**
 	* Weight frame time according to PhysScene settings.
@@ -1369,6 +1357,10 @@ void FPhysScene::EndFrame(ULineBatchComponent* InLineBatcher)
 	SCOPED_SCENE_WRITE_LOCK(GetPhysXScene(PST_Sync));
 	SCOPED_SCENE_WRITE_LOCK(bAsyncSceneEnabled ? GetPhysXScene(PST_Async) : nullptr);
 
+#if ( WITH_PHYSX  && !(UE_BUILD_SHIPPING || WITH_PHYSX_RELEASE))
+	GatherPhysXStats_AssumesLocked(GetPhysXScene(PST_Sync), HasAsyncScene() ? GetPhysXScene(PST_Async) : nullptr);
+#endif
+
 	if (bAsyncSceneEnabled)
 	{
 		SyncComponentsToBodies_AssumesLocked(PST_Async);
@@ -1392,6 +1384,96 @@ void FPhysScene::EndFrame(ULineBatchComponent* InLineBatcher)
 
 	}
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST || WITH_PHYSX_RELEASE)
+}
+
+#if WITH_PHYSX
+/** Helper struct that puts all awake actors to sleep and then later wakes them back up */
+struct FHelpEnsureCollisionTreeIsBuilt
+{
+	FHelpEnsureCollisionTreeIsBuilt(PxScene* InPScene)
+	: PScene(InPScene)
+	{
+		if(PScene)
+		{
+			SCOPED_SCENE_WRITE_LOCK(PScene);
+			const int32 NumActors = PScene->getNbActors(PxActorTypeFlag::eRIGID_DYNAMIC);
+
+			if (NumActors)
+			{
+				ActorBuffer.AddUninitialized(NumActors);
+				PScene->getActors(PxActorTypeFlag::eRIGID_DYNAMIC, &ActorBuffer[0], NumActors);
+
+				for (PxActor*& PActor : ActorBuffer)
+				{
+					if (PActor)
+					{
+						if (PxRigidDynamic* PDynamic = PActor->isRigidDynamic())
+						{
+							if (PDynamic->isSleeping() == false)
+							{
+								PDynamic->putToSleep();
+							}
+							else
+							{
+								PActor = nullptr;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	~FHelpEnsureCollisionTreeIsBuilt()
+	{
+		SCOPED_SCENE_WRITE_LOCK(PScene);
+		for (PxActor* PActor : ActorBuffer)
+		{
+			if (PActor)
+			{
+				if (PxRigidDynamic* PDynamic = PActor->isRigidDynamic())
+				{
+					PDynamic->wakeUp();
+				}
+			}
+		}
+	}
+
+private:
+
+	TArray<PxActor*> ActorBuffer;
+	PxScene* PScene;
+};
+
+#endif
+
+
+DECLARE_CYCLE_STAT(TEXT("EnsureCollisionTreeIsBuilt"), STAT_PhysicsEnsureCollisionTreeIsBuilt, STATGROUP_Physics);
+
+void FPhysScene::EnsureCollisionTreeIsBuilt(UWorld* World)
+{
+	check(IsInGameThread());
+	
+
+	SCOPE_CYCLE_COUNTER(STAT_PhysicsEnsureCollisionTreeIsBuilt);
+	//We have to call fetchResults several times to update the internal data structures. PhysX doesn't have an API for this so we have to make all actors sleep before doing this
+
+	SetIsStaticLoading(true);
+
+#if WITH_PHYSX
+	FHelpEnsureCollisionTreeIsBuilt SyncSceneHelper(GetPhysXScene(PST_Sync));
+	FHelpEnsureCollisionTreeIsBuilt AsyncSceneHelper(HasAsyncScene() ? GetPhysXScene(PST_Async) : nullptr);
+#endif
+
+	for (int Iteration = 0; Iteration < 6; ++Iteration)
+	{
+		World->SetupPhysicsTickFunctions(0.1f);
+		StartFrame();
+		WaitPhysScenes();
+		EndFrame(nullptr);
+	}
+
+	SetIsStaticLoading(false);
 }
 
 void FPhysScene::SetIsStaticLoading(bool bStaticLoading)

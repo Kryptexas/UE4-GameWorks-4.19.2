@@ -159,7 +159,7 @@ void UGameplayCueManager::EndGameplayCuesFor(AActor* TargetActor)
 			AGameplayCueNotify_Actor* InstancedCue = It.Value().Get();
 			if (InstancedCue)
 			{
-				InstancedCue->OnOwnerDestroyed();
+				InstancedCue->OnOwnerDestroyed(TargetActor);
 			}
 			It.RemoveCurrent();
 		}

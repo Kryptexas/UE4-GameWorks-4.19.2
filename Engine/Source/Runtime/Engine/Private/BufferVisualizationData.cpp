@@ -35,7 +35,7 @@ void FBufferVisualizationData::Initialize()
 				for (FConfigSection::TIterator It(*MaterialSection); It; ++It)
 				{
 					FString MaterialName;
-					if( FParse::Value( *It.Value(), TEXT("Material="), MaterialName, true ) )
+					if( FParse::Value( *It.Value().GetValue(), TEXT("Material="), MaterialName, true ) )
 					{
 						UMaterial* Material = LoadObject<UMaterial>(NULL, *MaterialName);
 			
@@ -46,7 +46,7 @@ void FBufferVisualizationData::Initialize()
 							Rec.Name = It.Key().GetPlainNameString();
 							Rec.Material = Material;
 							FText DisplayName;
-							FParse::Value( *It.Value(), TEXT("Name="), DisplayName, TEXT("Engine.BufferVisualizationMaterials") );
+							FParse::Value( *It.Value().GetValue(), TEXT("Name="), DisplayName, TEXT("Engine.BufferVisualizationMaterials") );
 							Rec.DisplayName = DisplayName;
 						}
 					}

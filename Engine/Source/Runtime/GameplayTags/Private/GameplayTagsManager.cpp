@@ -233,9 +233,9 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 				FName OldTagName = NAME_None;
 				FName NewTagName;
 
-				if (FParse::Value(*It.Value(), TEXT("OldTagName="), OldTagName))
+				if (FParse::Value(*It.Value().GetValue(), TEXT("OldTagName="), OldTagName))
 				{
-					if (FParse::Value(*It.Value(), TEXT("NewTagName="), NewTagName))
+					if (FParse::Value(*It.Value().GetValue(), TEXT("NewTagName="), NewTagName))
 					{
 						if (ensureMsgf(!TagRedirects.Contains(OldTagName), TEXT("Old tag %s is being redirected to more than one tag. Please remove all the redirections except for one."), *OldTagName.ToString()))
 						{

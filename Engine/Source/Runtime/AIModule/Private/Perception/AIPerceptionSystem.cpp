@@ -592,7 +592,7 @@ void UAIPerceptionSystem::RegisterSourceForSenseClass(TSubclassOf<UAISense> Sens
 	RegisterSource(SenseID, Target);
 }
 
-void UAIPerceptionSystem::OnPerceptionStimuliSourceEndPlay(EEndPlayReason::Type EndPlayReason)
+void UAIPerceptionSystem::OnPerceptionStimuliSourceEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason)
 {
 	// this tells us just that _a_ source has been removed. We need to parse through all sources and find which one was it
 	// this is a fall-back behavior, if source gets unregistered manually this function won't get called 

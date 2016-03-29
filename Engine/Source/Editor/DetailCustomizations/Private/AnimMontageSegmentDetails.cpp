@@ -235,7 +235,7 @@ void SAnimationSegmentViewport::InitSkeleton()
 				//Place the camera at a good viewer position
 				FVector NewPosition = LevelViewportClient->GetViewLocation();
 				NewPosition.Normalize();
-				LevelViewportClient->SetViewLocation(NewPosition * (PreviewMesh->Bounds.SphereRadius*1.5f));
+				LevelViewportClient->SetViewLocation(NewPosition * (PreviewMesh->GetImportedBounds().SphereRadius*1.5f));
 			}
 		}
 	}

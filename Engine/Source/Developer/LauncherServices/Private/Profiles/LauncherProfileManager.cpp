@@ -419,7 +419,7 @@ void FLauncherProfileManager::LoadDeviceGroups( )
 			{
 				if (It.Key() == TEXT("DeviceGroup"))
 				{
-					DeviceGroups.Add(ParseDeviceGroup(*It.Value()));
+					DeviceGroups.Add(ParseDeviceGroup(It.Value().GetValue()));
 				}
 			}
 		}

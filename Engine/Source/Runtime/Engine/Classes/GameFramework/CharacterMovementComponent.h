@@ -1648,7 +1648,7 @@ protected:
 
 	/** Called when the collision capsule touches another primitive component */
 	UFUNCTION()
-	virtual void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	virtual void CapsuleTouched(UPrimitiveComponent* OverlappedComp, AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	// Enum used to control GetPawnCapsuleExtent behavior
 	enum EShrinkCapsuleExtent

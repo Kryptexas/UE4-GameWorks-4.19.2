@@ -945,11 +945,12 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 			PreviewComponent->EnablePreview(true, Asset, nullptr);
 			PreviewComponent->PreviewInstance->PlayAnim(true);
 
+			FBoxSphereBounds MeshImportedBounds = MeshToUse->GetImportedBounds();
 			float HalfFov = FMath::DegreesToRadians(ViewportClient->ViewFOV) / 2.0f;
-			float TargetDist = MeshToUse->Bounds.SphereRadius / FMath::Tan(HalfFov);
+			float TargetDist = MeshImportedBounds.SphereRadius / FMath::Tan(HalfFov);
 
 			ViewportClient->SetViewRotation(FRotator(0.0f, -45.0f, 0.0f));
-			ViewportClient->SetViewLocationForOrbiting(FVector(0.0f, 0.0f, MeshToUse->Bounds.BoxExtent.Z / 2.0f), TargetDist);
+			ViewportClient->SetViewLocationForOrbiting(FVector(0.0f, 0.0f, MeshImportedBounds.BoxExtent.Z / 2.0f), TargetDist);
 
 			ViewportWidget->SetVisibility(EVisibility::Visible);
 			

@@ -435,6 +435,11 @@ public:
 	 */
 	void SetReverbSettings(AAudioVolume* Volume, const FReverbSettings& ReverbSettings);
 
+	/** 
+	 * Returns the currently applied reverb effect if there is one.
+	 */
+	class UReverbEffect* GetCurrentReverbEffect();
+
 	/**
 	 * Creates an audio component to handle playing a sound.
 	 * Plays a sound at the given location without creating an audio component.

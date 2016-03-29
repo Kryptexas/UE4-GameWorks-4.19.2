@@ -3073,7 +3073,6 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh& InDestNavMesh)
 	{
 		// recreate navmesh from scratch if no data was loaded
 		ConstructTiledNavMesh();
-		InDestNavMesh.MarkAsNeedingUpdate();
 	}
 	else
 	{

@@ -449,9 +449,9 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			// Build the list of content folders
 				if (Plugin->Descriptor.bCanContainContent)
 				{
-					if (auto EngineConfigFile = GConfig->Find(GEngineIni, false))
+					if (FConfigFile* EngineConfigFile = GConfig->Find(GEngineIni, false))
 					{
-						if (auto CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
+						if (FConfigSection* CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
 						{
 							CoreSystemSection->AddUnique("Paths", Plugin->GetContentDir());
 						}
@@ -489,7 +489,7 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				{
 					FoundPaks.Reset();
 					PlatformFile.IterateDirectoryRecursively(*(ContentDir / TEXT("Paks") / FPlatformProperties::PlatformName()), PakVisitor);
-					for (const auto& PakPath : FoundPaks)
+					for (const FString& PakPath : FoundPaks)
 					{
 						if (FCoreDelegates::OnMountPak.IsBound())
 						{
@@ -540,8 +540,8 @@ bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 			FText FailureMessage;
 			for( auto FailureIt( ModuleLoadFailures.CreateConstIterator() ); FailureIt; ++FailureIt )
 			{
-				const auto ModuleNameThatFailedToLoad = FailureIt.Key();
-				const auto FailureReason = FailureIt.Value();
+				const FName ModuleNameThatFailedToLoad = FailureIt.Key();
+				const EModuleLoadResult FailureReason = FailureIt.Value();
 
 				if( FailureReason != EModuleLoadResult::Success )
 				{

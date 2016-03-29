@@ -477,9 +477,9 @@ UK2Node::ERedirectType UK2Node_BaseAsyncTask::DoPinsMatchForReconstruction(const
 					FString OldPinString;
 					FString NewPinString;
 
-					FParse::Value(*It.Value(), TEXT("ProxyClassName="), ProxyClassString);
-					FParse::Value(*It.Value(), TEXT("OldPinName="), OldPinString);
-					FParse::Value(*It.Value(), TEXT("NewPinName="), NewPinString);
+					FParse::Value(*It.Value().GetValue(), TEXT("ProxyClassName="), ProxyClassString);
+					FParse::Value(*It.Value().GetValue(), TEXT("OldPinName="), OldPinString);
+					FParse::Value(*It.Value().GetValue(), TEXT("NewPinName="), NewPinString);
 
 					UClass* RedirectProxyClass = FindObject<UClass>(ANY_PACKAGE, *ProxyClassString);
 					if (RedirectProxyClass)

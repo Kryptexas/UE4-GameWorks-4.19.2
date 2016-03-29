@@ -1,5 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "PhATPrivatePCH.h"
 #include "PhATModule.h"
 #include "PhysicsPublic.h"
 #include "EditorSupportDelegates.h"
@@ -931,8 +932,8 @@ void FPhATSharedData::InitConstraintSetup(UPhysicsConstraintTemplate* Constraint
 
 	ConstraintSetup->DefaultInstance.ConstraintBone2 = ParentBodySetup->BoneName;
 	ConstraintSetup->DefaultInstance.Pos2 = RelTM.GetOrigin();
-	ConstraintSetup->DefaultInstance.PriAxis2 = RelTM.GetScaledAxis( EAxis::X );
-	ConstraintSetup->DefaultInstance.SecAxis2 = RelTM.GetScaledAxis( EAxis::Y );
+	ConstraintSetup->DefaultInstance.PriAxis2 = RelTM.GetUnitAxis( EAxis::X );
+	ConstraintSetup->DefaultInstance.SecAxis2 = RelTM.GetUnitAxis( EAxis::Y );
 
 	// Disable collision between constrained bodies by default.
 	SetCollisionBetween(ChildBodyIndex, ParentBodyIndex, false);

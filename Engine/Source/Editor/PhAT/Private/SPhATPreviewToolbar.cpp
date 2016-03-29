@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhATModule.h"
+#include "PhATPrivatePCH.h"
 #include "PhAT.h"
 #include "Editor/UnrealEd/Public/SViewportToolBar.h"
 #include "Editor/UnrealEd/Public/STransformViewportToolbar.h"

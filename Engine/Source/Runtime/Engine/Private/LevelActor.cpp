@@ -563,9 +563,9 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 			AActor* ChildActor = *AttachedActorIt;
 			if (ChildActor != NULL)
 			{
-				for (auto SceneCompIter = SceneComponents.CreateIterator(); SceneCompIter; ++SceneCompIter)
+				for (USceneComponent* SceneComponent : SceneComponents)
 				{
-					ChildActor->DetachSceneComponentsFromParent(*SceneCompIter, true);
+					ChildActor->DetachSceneComponentsFromParent(SceneComponent, true);
 				}
 #if WITH_EDITOR
 				if( GIsEditor )
@@ -756,8 +756,10 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 	return !EncroachingBlockingGeometry(TestActor, TestLocation, TestRotation, &Adjust);
 }
 
+static FName NAME_ComponentEncroachesBlockingGeometry_NoAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_NoAdjustment"));
+
 /** Tests shape components more efficiently than the with-adjustment case, but does less-efficient ppr-poly collision for meshes. */
-static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform)
+static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, const TArray<AActor*>& IgnoreActors)
 {	
 	float const Epsilon = CVarEncroachEpsilon.GetValueOnGameThread();
 	
@@ -765,7 +767,6 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 	{
 		bool bFoundBlockingHit = false;
 		
-		static FName NAME_ComponentEncroachesBlockingGeometry_NoAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_NoAdjustment"));
 		ECollisionChannel const BlockingChannel = PrimComp->GetCollisionObjectType();
 		FCollisionShape const CollisionShape = PrimComp->GetCollisionShape(-Epsilon);
 
@@ -780,6 +781,7 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, TestActor);
 				FCollisionResponseParams ResponseParams;
 				PrimComp->InitSweepCollisionParams(Params, ResponseParams);
+				Params.AddIgnoredActors(IgnoreActors);
 				return World->ComponentOverlapMultiByChannel(Overlaps, PrimComp, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, Params);
 			}
 			else
@@ -793,6 +795,7 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_NoAdjustment, false, TestActor);
 			FCollisionResponseParams ResponseParams;
 			PrimComp->InitSweepCollisionParams(Params, ResponseParams);
+			Params.AddIgnoredActors(IgnoreActors);
 			return World->OverlapBlockingTestByChannel(TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params, ResponseParams);
 		}
 	}
@@ -800,8 +803,10 @@ static bool ComponentEncroachesBlockingGeometry_NoAdjustment(UWorld const* World
 	return false;
 }
 
+static FName NAME_ComponentEncroachesBlockingGeometry_WithAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_WithAdjustment"));
+
 /** Tests shape components less efficiently than the no-adjustment case, but does quicker aabb collision for meshes. */
-static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, FVector& OutProposedAdjustment)
+static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, FVector& OutProposedAdjustment, const TArray<AActor*>& IgnoreActors)
 {
 	// init our output
 	OutProposedAdjustment = FVector::ZeroVector;
@@ -814,7 +819,6 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 		bool bComputePenetrationAdjustment = true;
 		
 		TArray<FOverlapResult> Overlaps;
-		static FName NAME_ComponentEncroachesBlockingGeometry_WithAdjustment = FName(TEXT("ComponentEncroachesBlockingGeometry_WithAdjustment"));
 		ECollisionChannel const BlockingChannel = PrimComp->GetCollisionObjectType();
 		FCollisionShape const CollisionShape = PrimComp->GetCollisionShape(-Epsilon);
 
@@ -829,6 +833,7 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 				FComponentQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, TestActor);
 				FCollisionResponseParams ResponseParams;
 				PrimComp->InitSweepCollisionParams(Params, ResponseParams);
+				Params.AddIgnoredActors(IgnoreActors);
 				bFoundBlockingHit = World->ComponentOverlapMultiByChannel(Overlaps, PrimComp, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, Params);
 				bComputePenetrationAdjustment = false;
 			}
@@ -843,6 +848,7 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 			FCollisionQueryParams Params(NAME_ComponentEncroachesBlockingGeometry_WithAdjustment, false, TestActor);
 			FCollisionResponseParams ResponseParams;
 			PrimComp->InitSweepCollisionParams(Params, ResponseParams);
+			Params.AddIgnoredActors(IgnoreActors);
 			bFoundBlockingHit = World->OverlapMultiByChannel(Overlaps, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation(), BlockingChannel, CollisionShape, Params, ResponseParams);
 		}
 
@@ -851,12 +857,14 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 		{
 			// if encroaching, add up all the MTDs of overlapping shapes
 			FMTDResult MTDResult;
+			uint32 NumBlockingHits = 0;
 			for (int32 HitIdx = 0; HitIdx < Overlaps.Num(); HitIdx++)
 			{
 				UPrimitiveComponent* const OverlapComponent = Overlaps[HitIdx].Component.Get();
 				// first determine closest impact point along each axis
 				if (OverlapComponent && OverlapComponent->GetCollisionResponseToChannel(BlockingChannel) == ECR_Block)
 				{
+					NumBlockingHits++;
 					FCollisionShape const NonShrunkenCollisionShape = PrimComp->GetCollisionShape();
 					bool bSuccess = OverlapComponent->ComputePenetration(MTDResult, NonShrunkenCollisionShape, TestWorldTransform.GetLocation(), TestWorldTransform.GetRotation());
 					if (bSuccess)
@@ -884,13 +892,20 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 						}
 						else
 						{
-							UE_LOG(LogPhysics, Log, TEXT("OverlapTest says we are overlapping, yet MTD says we're not (with smaller shape). Something is wrong"));
-							// It's not safe to use a partial result, that could push us out to an invalid location.
-							OutProposedAdjustment = FVector::ZeroVector;
-							return true;
+							// Ignore this overlap.
+							UE_LOG(LogPhysics, Log, TEXT("OverlapTest says we are overlapping, yet MTD says we're not (with smaller shape). Ignoring this overlap."));
+							NumBlockingHits--;
+							continue;
 						}
 					}
 				}
+			}
+
+			// See if we chose to invalidate all of our supposed "blocking hits".
+			if (NumBlockingHits == 0)
+			{
+				OutProposedAdjustment = FVector::ZeroVector;
+				bFoundBlockingHit = false;
 			}
 		}
 
@@ -901,11 +916,11 @@ static bool ComponentEncroachesBlockingGeometry_WithAdjustment(UWorld const* Wor
 }
 
 /** Tests if the given component overlaps any blocking geometry if it were placed at the given world transform, optionally returns a suggested translation to get the component away from its overlaps. */
-static bool ComponentEncroachesBlockingGeometry(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, FVector* OutProposedAdjustment)
+static bool ComponentEncroachesBlockingGeometry(UWorld const* World, AActor const* TestActor, UPrimitiveComponent const* PrimComp, FTransform const& TestWorldTransform, FVector* OutProposedAdjustment, const TArray<AActor*>& IgnoreActors)
 {
 	return OutProposedAdjustment
-		? ComponentEncroachesBlockingGeometry_WithAdjustment(World, TestActor, PrimComp, TestWorldTransform, *OutProposedAdjustment)
-		: ComponentEncroachesBlockingGeometry_NoAdjustment(World, TestActor, PrimComp, TestWorldTransform);
+		? ComponentEncroachesBlockingGeometry_WithAdjustment(World, TestActor, PrimComp, TestWorldTransform, *OutProposedAdjustment, IgnoreActors)
+		: ComponentEncroachesBlockingGeometry_NoAdjustment(World, TestActor, PrimComp, TestWorldTransform, IgnoreActors);
 }
 
 
@@ -957,7 +972,10 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 			FTransform const CompToRoot = MovedPrimComp->GetComponentToWorld() * WorldToOldRoot;
 			FTransform const CompToNewWorld = CompToRoot * TestRootToWorld;
 
-			if (ComponentEncroachesBlockingGeometry(this, TestActor, MovedPrimComp, CompToNewWorld, ProposedAdjustment))
+			TArray<AActor*> ChildActors;
+			TestActor->GetAllChildActors(ChildActors);
+
+			if (ComponentEncroachesBlockingGeometry(this, TestActor, MovedPrimComp, CompToNewWorld, ProposedAdjustment, ChildActors))
 			{
 				if (ProposedAdjustment == nullptr)
 				{
@@ -975,11 +993,17 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 	}
 	else
 	{
+		bool bFetchedChildActors = false;
+		TArray<AActor*> ChildActors;
+
 		// This actor does not have a movement component, so we'll assume all components are potentially important to keep out of the world
 		UPrimitiveComponent* const RootPrimComp = Cast<UPrimitiveComponent>(RootComponent);
 		if (RootPrimComp && RootPrimComp->IsQueryCollisionEnabled())
 		{
-			if (ComponentEncroachesBlockingGeometry(this, TestActor, RootPrimComp, TestRootToWorld, ProposedAdjustment))
+			TestActor->GetAllChildActors(ChildActors);
+			bFetchedChildActors = true;
+
+			if (ComponentEncroachesBlockingGeometry(this, TestActor, RootPrimComp, TestRootToWorld, ProposedAdjustment, ChildActors))
 			{
 				if (ProposedAdjustment == nullptr)
 				{
@@ -999,7 +1023,7 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 		TArray<USceneComponent*> Children;
 		RootComponent->GetChildrenComponents(true, Children);
 
-		for (auto Child : Children)
+		for (USceneComponent* Child : Children)
 		{
 			if (Child->IsQueryCollisionEnabled())
 			{
@@ -1009,7 +1033,13 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 					FTransform const CompToRoot = Child->GetComponentToWorld() * WorldToOldRoot;
 					FTransform const CompToNewWorld = CompToRoot * TestRootToWorld;
 
-					if (ComponentEncroachesBlockingGeometry(this, TestActor, PrimComp, CompToNewWorld, ProposedAdjustment))
+					if (!bFetchedChildActors)
+					{
+						TestActor->GetAllChildActors(ChildActors);
+						bFetchedChildActors = true;
+					}
+
+					if (ComponentEncroachesBlockingGeometry(this, TestActor, PrimComp, CompToNewWorld, ProposedAdjustment, ChildActors))
 					{
 						if (ProposedAdjustment == nullptr)
 						{
@@ -1269,7 +1299,7 @@ FAudioDevice* UWorld::GetAudioDevice()
  */
 void UWorld::SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects)
 {
-	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+	static const TConsoleVariableData<int32>* AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
 
 	AWorldSettings* WorldSettings = GetWorldSettings();

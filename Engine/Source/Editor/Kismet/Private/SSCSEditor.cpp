@@ -5612,8 +5612,7 @@ void SSCSEditor::OnApplyChangesToBlueprint() const
 			Actor->Modify();
 
 			// Mark components that are either native or from the SCS as modified so they will be restored
-			const TArray<UActorComponent*> Components = Actor->GetComponents();
-			for (UActorComponent* ActorComponent : Components)
+			for (UActorComponent* ActorComponent : Actor->GetComponents())
 			{
 				if (ActorComponent->CreationMethod == EComponentCreationMethod::SimpleConstructionScript || ActorComponent->CreationMethod == EComponentCreationMethod::Native)
 				{

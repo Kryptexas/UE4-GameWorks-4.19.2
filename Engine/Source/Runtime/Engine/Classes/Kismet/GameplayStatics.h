@@ -587,6 +587,12 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext = "WorldContextObject"))
 	static void DeactivateReverbEffect(UObject* WorldContextObject, FName TagName);
 
+	/** 
+	 * Returns the highest priority reverb settings currently active from any source (volumes or manual setting).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Audio", meta = (WorldContext = "WorldContextObject"))
+	static class UReverbEffect* GetCurrentReverbEffect(UObject* WorldContextObject);
+
 	// --- Decal functions ------------------------------
 
 	/** Spawns a decal at the given location and rotation, fire and forget. Does not replicate.

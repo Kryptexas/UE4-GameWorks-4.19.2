@@ -7,6 +7,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
+#include "Engine/Console.h"
 
 #if !UE_BUILD_SHIPPING
 #include "ISlateReflectorModule.h"
@@ -338,7 +339,7 @@ void UCheatManager::DestroyPawns(TSubclassOf<APawn> aClass)
 
 void UCheatManager::Summon( const FString& ClassName )
 {
-	UE_LOG(LogCheatManager, Log,  TEXT("Fabricate %s"), *ClassName );
+	UE_LOG(LogCheatManager, Log, TEXT("Fabricate %s"), *ClassName );
 
 	bool bIsValidClassName = true;
 	FString FailureReason;
@@ -1176,6 +1177,41 @@ void UCheatManager::InvertMouse()
 	}
 }
 
+void UCheatManager::CheatScript(FString ScriptName)
+{
+	APlayerController* const PlayerController = GetOuterAPlayerController();
+	ULocalPlayer* const LocalPlayer = PlayerController ? Cast<ULocalPlayer>(PlayerController->Player) : nullptr;
+
+	if (LocalPlayer)
+	{
+		// Run commands from the ini
+		FConfigSection const* const CommandsToRun = GConfig->GetSectionPrivate(*FString::Printf(TEXT("CheatScript.%s"), *ScriptName), 0, 1, GGameIni);
+
+		if (CommandsToRun)
+		{
+			for (FConfigSectionMap::TConstIterator It(*CommandsToRun); It; ++It)
+			{
+				// show user what commands ran
+				if (LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
+				{
+					FString const S = FString::Printf(TEXT("> %s"), *It.Value().GetValue());
+					LocalPlayer->ViewportClient->ViewportConsole->OutputText(S);
+				}
+
+				LocalPlayer->Exec(GetWorld(), *It.Value().GetValue(), *GLog);
+			}
+		}
+		else
+		{
+			UE_LOG(LogCheatManager, Warning, TEXT("Can't find section 'CheatScript.%s' in DefaultGame.ini"), *ScriptName);
+		}
+	}
+	else
+	{
+		UE_LOG(LogCheatManager, Warning, TEXT("Can't find local player!"));
+	}
+}
+
 void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InGoString, const FString& InLocString )
 {
 #if ALLOW_DEBUG_FILES
@@ -1219,5 +1255,6 @@ void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, con
 	SendDataToPCViaUnrealConsole( TEXT("UE_PROFILER!BUGIT:"), *(FullFileName) );
 #endif // ALLOW_DEBUG_FILES
 }
+
 
 #undef LOCTEXT_NAMESPACE

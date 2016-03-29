@@ -93,6 +93,14 @@ protected:
 	int32 ChildPropertyIndex;
 };
 
+UENUM()
+enum class EBlueprintUsage : uint8
+{
+	NoProperties,
+	DoesNotUseBlueprint,
+	UsesBlueprint
+};
+
 /**
   * This is the base class for any animation graph nodes that generate or consume an animation pose in
   * the animation blend graph.
@@ -106,6 +114,9 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PinOptions, EditFixedSize)
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;
+
+	UPROPERTY(Transient)
+	EBlueprintUsage BlueprintUsage;
 
 	// UObject interface
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

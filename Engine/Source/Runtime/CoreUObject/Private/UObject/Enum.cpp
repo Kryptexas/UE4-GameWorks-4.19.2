@@ -734,7 +734,7 @@ void UEnum::InitEnumRedirectsMap()
 		{
 			if( It.Key() == TEXT("EnumRedirects") )
 			{
-				FString ConfigValue = It.Value();
+				const FString& ConfigValue = It.Value().GetValue();
 				FName EnumName = NAME_None;
 				FName OldEnumEntry = NAME_None;
 				FName NewEnumEntry = NAME_None;

@@ -394,10 +394,6 @@ public:
 	UPROPERTY()
 	TArray<class UActorFactory*> ActorFactories;
 
-	/** Actors that are being deleted and should processed in the global re-attach */
-	UPROPERTY()
-	TArray<class AActor*> ActorsForGlobalReregister;
-
 	/** The name of the file currently being opened in the editor. "" if no file is being opened. */
 	UPROPERTY()
 	FString UserOpenedFile;

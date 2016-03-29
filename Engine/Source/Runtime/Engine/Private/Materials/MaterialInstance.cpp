@@ -15,6 +15,7 @@
 #include "TargetPlatform.h"
 #include "Engine/Font.h"
 #include "Engine/SubsurfaceProfile.h"
+#include "LoadTimeTracker.h"
 
 /**
  * Cache uniform expressions for the given material.
@@ -1830,6 +1831,7 @@ void UMaterialInstance::ClearAllCachedCookedPlatformData()
 
 void UMaterialInstance::Serialize(FArchive& Ar)
 {
+	SCOPED_LOADTIMER(MaterialInstanceSerializeTime);
 	Super::Serialize(Ar);
 
 	// Only serialize the static permutation resource if one exists
@@ -1911,6 +1913,7 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 
 void UMaterialInstance::PostLoad()
 {
+	SCOPED_LOADTIMER(MaterialInstancePostLoad);
 	Super::PostLoad();
 
 	AssertDefaultMaterialsPostLoaded();
@@ -2485,7 +2488,7 @@ bool UMaterialInstance::GetTexturesInPropertyChain(EMaterialProperty InProperty,
 
 SIZE_T UMaterialInstance::GetResourceSize(EResourceSizeMode::Type Mode)
 {
-	SIZE_T ResourceSize = 0;
+	SIZE_T ResourceSize = Super::GetResourceSize(Mode);
 
 	if (bHasStaticPermutationResource)
 	{

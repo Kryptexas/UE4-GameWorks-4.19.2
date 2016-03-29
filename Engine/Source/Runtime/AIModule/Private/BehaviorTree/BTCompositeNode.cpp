@@ -85,6 +85,9 @@ void UBTCompositeNode::OnChildActivation(FBehaviorTreeSearchData& SearchData, in
 	// so they can access previously executed one if needed
 	NotifyDecoratorsOnActivation(SearchData, ChildIndex);
 
+	// don't activate task services here, it's applied BEFORE aborting (e.g. abort lower pri decorator)
+	// use UBehaviorTreeComponent::ExecuteTask instead
+
 	// pass to child composite
 	if (ChildInfo.ChildComposite)
 	{
@@ -107,8 +110,16 @@ void UBTCompositeNode::OnChildDeactivation(FBehaviorTreeSearchData& SearchData, 
 	// pass to decorators
 	NotifyDecoratorsOnDeactivation(SearchData, ChildIndex, NodeResult);
 
+	// pass to task services
+	if (ChildInfo.ChildTask)
+	{
+		for (int32 ServiceIndex = 0; ServiceIndex < ChildInfo.ChildTask->Services.Num(); ServiceIndex++)
+		{
+			SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(ChildInfo.ChildTask->Services[ServiceIndex], SearchData.OwnerComp.GetActiveInstanceIdx(), EBTNodeUpdateMode::Remove));
+		}
+	}
 	// pass to child composite
-	if (ChildInfo.ChildComposite)
+	else if (ChildInfo.ChildComposite)
 	{
 		ChildInfo.ChildComposite->OnNodeDeactivation(SearchData, NodeResult);
 	}

@@ -1380,7 +1380,13 @@ TArray<UGameplayTask*>&	UAbilitySystemComponent::GetAbilityActiveTasks(UGameplay
 	return Ability->ActiveTasks;
 }
 
-AActor* UAbilitySystemComponent::GetAvatarActor(const UGameplayTask* Task) const
+AActor* UAbilitySystemComponent::GetGameplayTaskAvatar(const UGameplayTask* Task) const
+{
+	check(AbilityActorInfo.IsValid());
+	return AbilityActorInfo->AvatarActor.Get();
+}
+
+AActor* UAbilitySystemComponent::GetAvatarActor() const
 {
 	check(AbilityActorInfo.IsValid());
 	return AbilityActorInfo->AvatarActor.Get();

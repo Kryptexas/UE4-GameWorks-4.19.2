@@ -83,15 +83,16 @@ void UDestructibleComponent::PostEditChangeProperty( struct FPropertyChangedEven
 FBoxSphereBounds UDestructibleComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 #if WITH_APEX
-	if( ApexDestructibleActor == NULL )
+	if(ApexDestructibleActor == NULL || ApexDestructibleActor->getBounds().isEmpty())
 	{
-		// Fallback if we don't have physics
+		// Fallback if we don't have physics, or we have empty bounds (all chunks inactive/not visible)
 		return Super::CalcBounds(LocalToWorld);
 	}
 
 	const PxBounds3& PBounds = ApexDestructibleActor->getBounds();
 
-	return FBoxSphereBounds( FBox( P2UVector(PBounds.minimum), P2UVector(PBounds.maximum) ) );
+	return FBoxSphereBounds(FBox(P2UVector(PBounds.minimum), P2UVector(PBounds.maximum)));
+
 #else	// #if WITH_APEX
 	return Super::CalcBounds(LocalToWorld);
 #endif	// #if WITH_APEX

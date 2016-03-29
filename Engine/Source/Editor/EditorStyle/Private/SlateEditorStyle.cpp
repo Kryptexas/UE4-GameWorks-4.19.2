@@ -3914,6 +3914,7 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 
 		{
 			Set( "Graph.AnimationResultNode.Body", new IMAGE_BRUSH( "/Graph/Animation/AnimationNode_Result_128x", FVector2D(128, 128) ) );
+			Set( "Graph.AnimationFastPathIndicator", new IMAGE_BRUSH( "/Graph/Animation/AnimationNode_FastPath", Icon32x32 ) );
 		}
 
 		// SoundCueEditor Graph Nodes

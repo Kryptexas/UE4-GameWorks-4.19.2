@@ -3,6 +3,7 @@
 #pragma once
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Interfaces/Interface_AssetUserData.h"
+#include "MeshMerging.h"
 #include "StaticMesh.generated.h"
 
 /** The maximum number of static mesh LODs allowed. */

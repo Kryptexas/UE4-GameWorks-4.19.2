@@ -108,12 +108,12 @@ void UChildActorComponent::OnUnregister()
 
 FChildActorComponentInstanceData::FChildActorComponentInstanceData(const UChildActorComponent* Component)
 	: FSceneComponentInstanceData(Component)
-	, ChildActorName(Component->ChildActorName)
+	, ChildActorName(Component->GetChildActorName())
 	, ComponentInstanceData(nullptr)
 {
-	if (Component->ChildActor)
+	if (Component->GetChildActor())
 	{
-		ComponentInstanceData = new FComponentInstanceDataCache(Component->ChildActor);
+		ComponentInstanceData = new FComponentInstanceDataCache(Component->GetChildActor());
 		// If it is empty dump it
 		if (!ComponentInstanceData->HasInstanceData())
 		{
@@ -121,7 +121,7 @@ FChildActorComponentInstanceData::FChildActorComponentInstanceData(const UChildA
 			ComponentInstanceData = nullptr;
 		}
 
-		USceneComponent* ChildRootComponent = Component->ChildActor->GetRootComponent();
+		USceneComponent* ChildRootComponent = Component->GetChildActor()->GetRootComponent();
 		if (ChildRootComponent)
 		{
 			for (USceneComponent* AttachedComponent : ChildRootComponent->AttachChildren)
@@ -129,7 +129,7 @@ FChildActorComponentInstanceData::FChildActorComponentInstanceData(const UChildA
 				if (AttachedComponent)
 				{
 					AActor* AttachedActor = AttachedComponent->GetOwner();
-					if (AttachedActor != Component->ChildActor)
+					if (AttachedActor != Component->GetChildActor())
 					{
 						FAttachedActorInfo Info;
 						Info.Actor = AttachedActor;

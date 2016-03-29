@@ -912,7 +912,7 @@ bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		for (FConfigSectionMap::TIterator It(*TrackedFolders); It; ++It)
 		{
-			FString SoundFolder = *It.Value();
+			const FString& SoundFolder = *It.Value().GetValue();
 			SoundWaveGroupSizes.Add(SoundFolder, FSoundWaveGroupInfo());
 			SoundWaveGroupFolders.Add(SoundFolder);
 		}
@@ -2186,6 +2186,10 @@ void FAudioDevice::SetReverbSettings(class AAudioVolume* Volume, const FReverbSe
 	Effects->SetReverbSettings(*ActivatedReverb);
 }
 
+UReverbEffect* FAudioDevice::GetCurrentReverbEffect()
+{
+	return Effects->GetCurrentReverbEffect();
+}
 
 void* FAudioDevice::InitEffect(FSoundSource* Source)
 {

@@ -202,7 +202,7 @@ void UAIPerceptionComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
-void UAIPerceptionComponent::OnOwnerEndPlay(EEndPlayReason::Type EndPlayReason)
+void UAIPerceptionComponent::OnOwnerEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason)
 {
 	if (EndPlayReason != EEndPlayReason::EndPlayInEditor && EndPlayReason != EEndPlayReason::Quit)
 	{

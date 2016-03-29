@@ -461,7 +461,7 @@ public:
 		{
 			for( FConfigSectionMap::TIterator It(*RefTypes); It; ++It )
 			{
-				ProcessCmdString(It.Key().ToString() + TEXT(" ") + It.Value(), true);
+				ProcessCmdString(It.Key().ToString() + TEXT(" ") + It.Value().GetValue(), true);
 			}
 		}
 #if !UE_BUILD_SHIPPING

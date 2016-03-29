@@ -2386,12 +2386,6 @@ void UParticleSystem::PostLoad()
 	SetupSoloing();
 }
 
-
-SIZE_T UParticleSystem::GetResourceSize(EResourceSizeMode::Type Mode)
-{
-	return 0;
-}
-
 void UParticleSystem::UpdateColorModuleClampAlpha(UParticleModuleColorBase* ColorModule)
 {
 	if (ColorModule)
@@ -3409,7 +3403,7 @@ void UParticleSystemComponent::FinishDestroy()
 SIZE_T UParticleSystemComponent::GetResourceSize(EResourceSizeMode::Type Mode)
 {
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
-	int32 ResSize = 0;
+	int32 ResSize = Super::GetResourceSize(Mode);
 	for (int32 EmitterIdx = 0; EmitterIdx < EmitterInstances.Num(); EmitterIdx++)
 	{
 		FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIdx];

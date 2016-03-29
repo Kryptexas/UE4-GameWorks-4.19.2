@@ -708,21 +708,6 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystemRunMode Mode)
 				}
 			}
 		}
-
-		if (!World->IsGameWorld() && World->GetLevels().Num() > 1)
-		{
-			// this is a bit of a @hack for the time being until we reorganize navigation data instances (4.9?)
-			// the point of this hack is to force editor-time navmesh rebuilding if we have any sublevels
-			// since currently there's no information regarding whether we already have all navigation built 
-			// for all the actors in sublevels
-			for (ANavigationData* NavData : NavDataSet)
-			{
-				if (NavData)
-				{
-					NavData->MarkAsNeedingUpdate();
-				}
-			}
-		}
 	}
 
 	if (Mode == FNavigationSystemRunMode::EditorMode && bGenerateNavigationOnlyAroundNavigationInvokers)
@@ -2500,7 +2485,7 @@ void UNavigationSystem::UpdateComponentInNavOctree(UActorComponent& Comp)
 		if (NavElement)
 		{
 			AActor* OwnerActor = Comp.GetOwner();
-			if (ensure(OwnerActor))
+			if (OwnerActor)
 			{
 				UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerActor->GetWorld());
 				if (NavSys)

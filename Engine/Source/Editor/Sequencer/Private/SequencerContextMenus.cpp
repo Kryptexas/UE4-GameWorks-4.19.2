@@ -1474,7 +1474,7 @@ void FPasteFromHistoryContextMenu::PopulateMenu(FMenuBuilder& MenuBuilder)
 	// Copy a reference to the context menu by value into each lambda handler to ensure the type stays alive until the menu is closed
 	TSharedRef<FPasteFromHistoryContextMenu> Shared = AsShared();
 
-	MenuBuilder.BeginSection("SequencerPasteHistory", LOCTEXT("PasteFromHistory", "Paste History"));
+	MenuBuilder.BeginSection("SequencerPasteHistory", LOCTEXT("PasteFromHistory", "Paste From History"));
 
 	for (int32 Index = Sequencer->GetClipboardStack().Num() - 1; Index >= 0; --Index)
 	{

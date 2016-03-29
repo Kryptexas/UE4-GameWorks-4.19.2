@@ -201,7 +201,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				if (Obj->HasAllFlags(RF_ClassDefaultObject))
 				{
 					IsEnabledAttribute.Set(false);
-					TooltipAttribute.Set(LOCTEXT("VariableHasDisableEditOnTemplate", "Editing this value in a Class Default Object is not allowed"));
+					TooltipAttribute.Set(LOCTEXT("VariableHasDisableEditOnTemplateTooltip", "Editing this value in a Class Default Object is not allowed"));
 					break;
 				}
 
