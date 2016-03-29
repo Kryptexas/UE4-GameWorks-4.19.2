@@ -26,9 +26,9 @@ TWeakPtr< IToolkitHost > FAssetEditorToolkit::PreviousWorldCentricToolkitHostFor
 const FName FAssetEditorToolkit::ToolbarTabId( TEXT( "AssetEditorToolkit_Toolbar" ) );
 
 FAssetEditorToolkit::FAssetEditorToolkit()
-	: bCheckDirtyOnAssetSave(false)
+	: GCEditingObjects(*this)
+	, bCheckDirtyOnAssetSave(false)
 	, bIsToolbarFocusable(false)
-	, GCEditingObjects(*this)
 {
 	WorkspaceMenuCategory = FWorkspaceItem::NewGroup(LOCTEXT("WorkspaceMenu_BaseAssetEditor", "Asset Editor"));
 }
