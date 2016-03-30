@@ -2353,7 +2353,7 @@ float UAnimInstance::CalculateDirection(const FVector& Velocity, const FRotator&
 void UAnimInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UAnimInstance* This = CastChecked<UAnimInstance>(InThis);
-	if (This)
+	if (This && !This->IsTemplate())
 	{
 		// go through all montage instances, and update them
 		// and make sure their weight is updated properly
@@ -2363,6 +2363,11 @@ void UAnimInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 			{
 				This->MontageInstances[I]->AddReferencedObjects(Collector);
 			}
+		}
+
+		if (This->AnimInstanceProxy)
+		{
+			This->AnimInstanceProxy->AddReferencedObjects(Collector);
 		}
 	}
 

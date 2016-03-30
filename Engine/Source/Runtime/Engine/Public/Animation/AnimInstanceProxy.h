@@ -454,6 +454,8 @@ protected:
 	/** Initialize the root node - split into a separate function for backwards compatibility (initialization order) reasons */
 	void InitializeRootNode();
 
+	// garbage collection
+	virtual void AddReferencedObjects(FReferenceCollector& Collector);
 
 private:
 	/** Object ptr to our UAnimInstance */

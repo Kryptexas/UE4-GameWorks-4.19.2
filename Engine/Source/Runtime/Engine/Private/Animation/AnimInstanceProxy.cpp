@@ -1435,4 +1435,16 @@ int32 FAnimInstanceProxy::GetInstanceAssetPlayerIndex(FName MachineName, FName S
 	return INDEX_NONE;
 }
 
+void FAnimInstanceProxy::AddReferencedObjects(FReferenceCollector& Collector) 
+{
+	if (Skeleton)
+	{
+		Collector.AddReferencedObject(Skeleton);
+	}
+
+	if (SkeletalMeshComponent)
+	{
+		Collector.AddReferencedObject(SkeletalMeshComponent);
+	}
+}
 #undef LOCTEXT_NAMESPACE

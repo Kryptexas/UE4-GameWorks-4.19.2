@@ -434,3 +434,17 @@ void FAnimSingleNodeInstanceProxy::SetBlendSpaceInput(const FVector& InBlendInpu
 {
 	BlendSpaceInput = InBlendInput;
 }
+
+void FAnimSingleNodeInstanceProxy::AddReferencedObjects(FReferenceCollector& Collector) 
+{
+	FAnimInstanceProxy::AddReferencedObjects(Collector);
+
+ 	if (CurrentAsset)
+ 	{
+ 		Collector.AddReferencedObject(CurrentAsset);
+ 	}
+ 	if (CurrentVertexAnim)
+ 	{
+		Collector.AddReferencedObject(CurrentVertexAnim);
+ 	}
+}
