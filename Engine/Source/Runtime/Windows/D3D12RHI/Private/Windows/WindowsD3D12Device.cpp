@@ -27,15 +27,6 @@ static TAutoConsoleVariable<int32> CVarGraphicsAdapter(
 	TEXT("  1: Adpater #1, ..."),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarHmdGraphicsAdapter(
-	TEXT("hmd.D3D12GraphicsAdapter"),
-	-1,
-	TEXT("Specifies the index of the graphics adapter where the HMD is connected.  Overrides r.D3D12GraphicsAdapter when the Hmd is enabled.\n")
-	TEXT(" -1: Unknown\n")
-	TEXT("  0: Adpater #0\n")
-	TEXT("  1: Adpater #1, ..."),
-	ECVF_RenderThreadSafe);
-
 namespace D3D12RHI
 {
 
@@ -257,10 +248,9 @@ void FD3D12DynamicRHIModule::FindAdapter()
 #endif
 
 	// Allow HMD to override which graphics adapter is chosen, so we pick the adapter where the HMD is connected
-	bool bUseHmdGraphicsAdapter = CVarHmdGraphicsAdapter.GetValueOnGameThread() >= 0 && 
-		IModularFeatures::Get().IsModularFeatureAvailable(IHeadMountedDisplayModule::GetModularFeatureName());
-
-	int32 CVarValue = bUseHmdGraphicsAdapter ? CVarHmdGraphicsAdapter.GetValueOnGameThread() : CVarGraphicsAdapter.GetValueOnGameThread();
+	int32 HmdGraphicsAdapter  = IHeadMountedDisplayModule::IsAvailable() ? IHeadMountedDisplayModule::Get().GetGraphicsAdapter() : -1;
+	bool bUseHmdGraphicsAdapter = HmdGraphicsAdapter >= 0;
+	int32 CVarValue = bUseHmdGraphicsAdapter ? HmdGraphicsAdapter : CVarGraphicsAdapter.GetValueOnGameThread();
 
 	const bool bFavorNonIntegrated = CVarValue == -1;
 
