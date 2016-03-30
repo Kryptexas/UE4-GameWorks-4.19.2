@@ -1,7 +1,7 @@
 /********************************************************************************//**
 \file      OVR_CAPI_D3D.h
 \brief     D3D specific structures used by the CAPI interface.
-\copyright Copyright 2014 Oculus VR, LLC All Rights reserved.
+\copyright Copyright 2014-2016 Oculus VR, LLC All Rights reserved.
 ************************************************************************************/
 
 #ifndef OVR_CAPI_D3D_h
