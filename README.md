@@ -23,7 +23,6 @@ We publish source for the engine in three rolling branches:
 
 The **[release branch](https://github.com/EpicGames/UnrealEngine/tree/release)** is extensively tested by our QA team and makes a great starting point for learning the engine or
 making your own games. We work hard to make releases stable and reliable, and aim to publish new releases every few months.
->**Important**: The Release branch has unintentionally been overwritten with code from the 4.11 Previews, and is *not* currently the latest and stable release. Please use Tags to grab the latest 4.10 release for our most stable version. This message will be removed when this matter has been resolved. 
 
 The **[promoted branch](https://github.com/EpicGames/UnrealEngine/tree/promoted)** is updated with builds for our artists and designers to use. We try to update it daily 
 (though we often catch things that prevent us from doing so) and it's a good balance between getting the latest cool stuff and knowing most things work.
