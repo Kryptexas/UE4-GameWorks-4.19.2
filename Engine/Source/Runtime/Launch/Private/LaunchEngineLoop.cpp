@@ -20,7 +20,7 @@
 #include "HAL/ThreadHeartBeat.h"
 
 #if WITH_COREUOBJECT
-	#include "CoreUObject/Public/Internationalization/PackageLocalizationManager.h"
+	#include "Internationalization/PackageLocalizationManager.h"
 #endif
 
 #if WITH_EDITOR
