@@ -1136,10 +1136,10 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 	FApp::UpdateLastTime();
 
 	// Calculate delta time and update time.
-	if( bUseFixedTimeStep || bUseFixedFrameRate )
+	if( bUseFixedTimeStep )
 	{
 		bTimeWasManipulated = true;
-		const float FrameRate = bUseFixedTimeStep ? FApp::GetFixedDeltaTime() : (1.f / FixedFrameRate);
+		const float FrameRate = FApp::GetFixedDeltaTime();
 		FApp::SetDeltaTime(FrameRate);
 		LastTime = FApp::GetCurrentTime();
 		FApp::SetCurrentTime(FApp::GetCurrentTime() + FApp::GetDeltaTime());
@@ -1149,7 +1149,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		FApp::SetCurrentTime(FPlatformTime::Seconds());
 		// Did we just switch from a fixed time step to real-time?  If so, then we'll update our
 		// cached 'last time' so our current interval isn't huge (or negative!)
-		if( bTimeWasManipulated )
+		if( bTimeWasManipulated && !bUseFixedFrameRate )
 		{
 			LastTime = FApp::GetCurrentTime() - FApp::GetDeltaTime();
 			bTimeWasManipulated = false;
@@ -1212,6 +1212,14 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 				}
 			}
 			FApp::SetCurrentTime(FPlatformTime::Seconds());
+		}
+		else if (bUseFixedFrameRate)
+		{
+			//We are doing fixed framerate and the real delta time is bigger than our desired delta time. In this case we start falling behind real time (and that's ok)
+			const float FrameRate = 1.f / FixedFrameRate;
+			FApp::SetDeltaTime(FrameRate);
+			FApp::SetCurrentTime(LastTime + FApp::GetDeltaTime());
+			bTimeWasManipulated = true;
 		}
 
 
@@ -6183,24 +6191,10 @@ void UEngine::OnLostFocusPause(bool EnablePause)
 
 void UEngine::InitHardwareSurvey()
 {
-	bool bEnabled = true;
-#if !WITH_EDITORONLY_DATA
-	bEnabled = AreGameAnalyticsEnabled();
-#endif
-
 	// The hardware survey costs time and we don't want to slow down debug builds.
 	// This is mostly because of the CPU benchmark running in the survey and the results in debug are not being valid.
-#if UE_BUILD_DEBUG
-	bEnabled = false;
-#endif
-
-	if (bEnabled)
-	{
-		if (IsHardwareSurveyRequired())
-		{
-			bPendingHardwareSurveyResults = true;
-		}
-	}	
+	// Never run the survey in games, only in the editor.
+	bPendingHardwareSurveyResults = WITH_EDITOR && GIsEditor && !IsRunningCommandlet() && FEngineAnalytics::IsAvailable() && IsHardwareSurveyRequired();
 }
 
 void UEngine::TickHardwareSurvey()
@@ -6588,6 +6582,11 @@ float UEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) co
 		{
 			MaxTickRate = FMath::Min( MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue() );
 		}
+	}
+
+	if (bUseFixedFrameRate)
+	{
+		MaxTickRate = FixedFrameRate;
 	}
 
 	if (CVarCauseHitches.GetValueOnGameThread())

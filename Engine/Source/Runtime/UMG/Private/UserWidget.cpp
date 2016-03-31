@@ -1136,11 +1136,6 @@ void UUserWidget::PostLoad()
 {
 	Super::PostLoad();
 
-	if ( GetLinkerUE4Version() < VER_UE4_USERWIDGET_DEFAULT_FOCUSABLE_FALSE )
-	{
-		bIsFocusable = bSupportsKeyboardFocus_DEPRECATED;
-	}
-
 #if WITH_EDITORONLY_DATA
 
 	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_USER_WIDGET_DESIGN_SIZE )
@@ -1156,6 +1151,19 @@ void UUserWidget::PostLoad()
 	}
 
 #endif
+}
+
+void UUserWidget::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if ( Ar.IsLoading() )
+	{
+		if ( Ar.UE4Ver() < VER_UE4_USERWIDGET_DEFAULT_FOCUSABLE_FALSE )
+		{
+			bIsFocusable = bSupportsKeyboardFocus_DEPRECATED;
+		}
+	}
 }
 
 /////////////////////////////////////////////////////

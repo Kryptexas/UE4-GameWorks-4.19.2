@@ -225,8 +225,8 @@ public:
 
 	/** Use SetCanAffectNavigationGeneration to change this value at runtime.
 	 *	Note that calling this function at runtime will result in any navigation change only if runtime navigation generation is enabled. */
-	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	void SetCanAffectNavigationGeneration(bool bNewValue);
+	UFUNCTION(BlueprintCallable, Category="AI|Navigation", meta=(AdvancedDisplay="bForceUpdate"))
+	void SetCanAffectNavigationGeneration(bool bNewValue, bool bForceUpdate = false);
 
 	/** update all components relevant for navigation generators to match bCanAffectNavigationGeneration flag */
 	virtual void UpdateNavigationRelevance() {}
@@ -248,6 +248,7 @@ public:
 
 #if WITH_EDITOR
 	virtual void EditorApplyRotation(const FRotator& DeltaRotation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 	/** @return vector direction of gravity */

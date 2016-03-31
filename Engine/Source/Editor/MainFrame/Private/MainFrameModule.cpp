@@ -504,7 +504,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 					SNew(SBox)
 					.Padding( FMargin( 4.0f, 0.0f, 0.0f, 0.0f ) )
 					[
-						bUseSuperSearch ? SuperSearchModule.MakeSearchBox( ExposedEditableTextBox, GEditorSettingsIni ) : OutputLogModule.MakeConsoleInputBox( ExposedEditableTextBox )
+						bUseSuperSearch ? SuperSearchModule.MakeSearchBox( ExposedEditableTextBox ) : OutputLogModule.MakeConsoleInputBox( ExposedEditableTextBox )
 					]
 				]
 			// Editor live streaming toggle button

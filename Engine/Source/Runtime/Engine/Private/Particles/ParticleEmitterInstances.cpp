@@ -783,10 +783,10 @@ void FParticleEmitterInstance::CheckEmitterFinished()
 			const UParticleModuleRequired* RequiredModule = LODLevel->RequiredModule;
 			check(RequiredModule);
 
-			if (SpawnModule->GetMaximumSpawnRate() == 0
+			if (HasCompleted() ||
+				(SpawnModule->GetMaximumSpawnRate() == 0
 				&& RequiredModule->EmitterDuration == 0
-				&& RequiredModule->EmitterLoops == 0
-				)
+				&& RequiredModule->EmitterLoops == 0))
 			{
 				bEmitterIsDone = true;
 			}

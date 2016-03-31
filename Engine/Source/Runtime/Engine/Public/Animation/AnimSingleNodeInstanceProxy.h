@@ -113,6 +113,8 @@ public:
 
 	void SetBlendSpaceInput(const FVector& InBlendInput);
 
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+
 private:
 	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext);
 

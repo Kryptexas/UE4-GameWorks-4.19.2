@@ -310,7 +310,7 @@ void SGameLayerManager::AddOrUpdatePlayerLayers(const FGeometry& AllottedGeometr
 			FVector2D AspectRatioInset = GetAspectRatioInset(Player);
 
 			Size = ( Size * AllottedGeometry.GetLocalSize() + ( AspectRatioInset * 2.0f ) ) * InverseDPIScale;
-			Position = ( Position * AllottedGeometry.GetLocalSize() - AspectRatioInset ) * InverseDPIScale;
+			Position = ( Position * AllottedGeometry.GetLocalSize() + AspectRatioInset ) * InverseDPIScale;
 
 			PlayerLayer->Slot->Size(Size);
 			PlayerLayer->Slot->Position(Position);
@@ -338,11 +338,9 @@ FVector2D SGameLayerManager::GetAspectRatioInset(ULocalPlayer* LocalPlayer) cons
 
 		if ( SceneView )
 		{
-			Offset.X = ( SceneView->ViewRect.Min.X - SceneView->UnscaledViewRect.Min.X ) // This accounts for the borders when the aspect ratio is locked
-				- SceneView->UnscaledViewRect.Min.X;									 // And this will deal with the viewport offset if its a split screen
-
-			Offset.Y = ( SceneView->ViewRect.Min.Y - SceneView->UnscaledViewRect.Min.Y )
-				- SceneView->UnscaledViewRect.Min.Y;
+			// This accounts for the borders when the aspect ratio is locked
+			Offset.X = ( SceneView->UnscaledViewRect.Min.X - SceneView->UnconstrainedViewRect.Min.X );
+			Offset.Y = ( SceneView->UnscaledViewRect.Min.Y - SceneView->UnconstrainedViewRect.Min.Y );
 		}
 	}
 
