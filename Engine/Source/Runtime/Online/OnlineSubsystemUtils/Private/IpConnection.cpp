@@ -22,7 +22,6 @@ Notes:
 // Size of a UDP header.
 #define IP_HEADER_SIZE     (20)
 #define UDP_HEADER_SIZE    (IP_HEADER_SIZE+8)
-#define SLIP_HEADER_SIZE   (UDP_HEADER_SIZE+4)
 
 UIpConnection::UIpConnection(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
@@ -38,7 +37,7 @@ void UIpConnection::InitBase(UNetDriver* InDriver, class FSocket* InSocket, cons
 	Super::InitBase(InDriver, InSocket, InURL, InState, 
 		// Use the default packet size/overhead unless overridden by a child class
 		(InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket,
-		InPacketOverhead == 0 ? SLIP_HEADER_SIZE : InPacketOverhead);
+		InPacketOverhead == 0 ? UDP_HEADER_SIZE : InPacketOverhead);
 
 	Socket = InSocket;
 	ResolveInfo = NULL;
@@ -49,7 +48,7 @@ void UIpConnection::InitLocalConnection(UNetDriver* InDriver, class FSocket* InS
 	InitBase(InDriver, InSocket, InURL, InState, 
 		// Use the default packet size/overhead unless overridden by a child class
 		(InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket,
-		InPacketOverhead == 0 ? SLIP_HEADER_SIZE : InPacketOverhead);
+		InPacketOverhead == 0 ? UDP_HEADER_SIZE : InPacketOverhead);
 
 	// Figure out IP address from the host URL
 	bool bIsValid = false;
@@ -79,7 +78,7 @@ void UIpConnection::InitRemoteConnection(UNetDriver* InDriver, class FSocket* In
 	InitBase(InDriver, InSocket, InURL, InState, 
 		// Use the default packet size/overhead unless overridden by a child class
 		(InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket,
-		InPacketOverhead == 0 ? SLIP_HEADER_SIZE : InPacketOverhead);
+		InPacketOverhead == 0 ? UDP_HEADER_SIZE : InPacketOverhead);
 
 	// Copy the remote IPAddress passed in
 	bool bIsValid = false;

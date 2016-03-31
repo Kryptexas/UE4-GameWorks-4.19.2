@@ -62,6 +62,21 @@ struct AIMODULE_API FActorPerceptionInfo
 		return Location;
 	}
 
+	/** it includes both currently live (visible) stimulus, as well as "remembered" ones */
+	bool HasAnyKnownStimulus() const
+	{
+		for (const FAIStimulus& Stimulus : LastSensedStimuli)
+		{
+			// not that WasSuccessfullySensed will return 'false' for expired stimuli
+			if (Stimulus.IsValid() && (Stimulus.WasSuccessfullySensed() == true || Stimulus.IsExpired() == false))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	/** @note will return FAISystem::InvalidLocation if given sense has never registered related Target actor */
 	FORCEINLINE FVector GetStimulusLocation(FAISenseID Sense) const
 	{
@@ -76,6 +91,11 @@ struct AIMODULE_API FActorPerceptionInfo
 	FORCEINLINE bool IsSenseRegistered(FAISenseID Sense) const
 	{
 		return LastSensedStimuli.IsValidIndex(Sense) && LastSensedStimuli[Sense].WasSuccessfullySensed() && (LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge);
+	}
+
+	FORCEINLINE bool IsSenseActive(FAISenseID Sense) const
+	{
+		return LastSensedStimuli.IsValidIndex(Sense) && LastSensedStimuli[Sense].IsActive();
 	}
 	
 	/** takes all "newer" info from Other and absorbs it */

@@ -477,7 +477,7 @@ void UGameplayTasksComponent::SetCurrentlyClaimedResources(FGameplayResourceSet 
 //----------------------------------------------------------------------//
 // debugging
 //----------------------------------------------------------------------//
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && ENABLE_VISUAL_LOG
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 FString UGameplayTasksComponent::GetTickingTasksDescription() const
 {
 	FString TasksDescription;
@@ -511,6 +511,13 @@ FString UGameplayTasksComponent::GetTasksPriorityQueueDescription() const
 	}
 	return TasksDescription;
 }
+
+FString UGameplayTasksComponent::GetTaskStateName(EGameplayTaskState Value)
+{
+	static const UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayTaskState"));
+	check(Enum);
+	return Enum->GetEnumName(int32(Value));
+}
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 FConstGameplayTaskIterator UGameplayTasksComponent::GetTickingTaskIterator() const
@@ -541,13 +548,6 @@ void UGameplayTasksComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) co
 	StatusCategory.Add(PriorityQueueName, GetTasksPriorityQueueDescription());
 
 	Snapshot->Status.Add(StatusCategory);
-}
-
-FString UGameplayTasksComponent::GetTaskStateName(EGameplayTaskState Value)
-{
-	static const UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayTaskState"));
-	check(Enum);
-	return Enum->GetEnumName(int32(Value));
 }
 #endif // ENABLE_VISUAL_LOG
 

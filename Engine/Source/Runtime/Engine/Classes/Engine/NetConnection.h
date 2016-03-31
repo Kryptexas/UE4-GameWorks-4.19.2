@@ -286,8 +286,12 @@ public:
 	int32			CountedFrames;
 	/** bytes sent/received on this connection (accumulated during a StatPeriod) */
 	int32 InBytes, OutBytes;
+	/** packets sent/received on this connection (accumulated during a StatPeriod) */
+	int32 InPackets, OutPackets;
 	/** bytes sent/received on this connection (per second) - these are from previous StatPeriod interval */
 	int32 InBytesPerSecond, OutBytesPerSecond;
+	/** packets sent/received on this connection (per second) - these are from previous StatPeriod interval */
+	int32 InPacketsPerSecond, OutPacketsPerSecond;
 	/** packets lost on this connection */
 	int32 InPacketsLost, OutPacketsLost;
 

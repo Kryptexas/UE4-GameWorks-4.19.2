@@ -22,6 +22,13 @@ enum class EHotfixResult : uint8
 };
 
 /**
+ * Delegate fired when a check for hotfix files (but not application) completes
+ *
+ * @param EHotfixResult status on what happened
+ */
+DECLARE_DELEGATE_OneParam(FOnHotfixAvailableComplete, EHotfixResult);
+
+/**
  * Delegate fired when the hotfix process has completed
  *
  * @param EHotfixResult status on what happened
@@ -70,6 +77,7 @@ protected:
 	FOnReadFileProgressDelegate OnReadFileProgressDelegate;
 	FOnReadFileCompleteDelegate OnReadFileCompleteDelegate;
 	FDelegateHandle OnEnumerateFilesCompleteDelegateHandle;
+	FDelegateHandle OnEnumerateFilesForAvailabilityCompleteDelegateHandle;
 	FDelegateHandle OnReadFileProgressDelegateHandle;
 	FDelegateHandle OnReadFileCompleteDelegateHandle;
 
@@ -169,6 +177,8 @@ protected:
 
 	/** Called once the list of hotfix files has been retrieved */
 	void OnEnumerateFilesComplete(bool bWasSuccessful);
+	/** Called once the list of hotfix files has been retrieved and we only want to see if a hotfix is necessary */
+	void OnEnumerateFilesForAvailabilityComplete(bool bWasSuccessful, FOnHotfixAvailableComplete InCompletionDelegate);
 	/** Called as files are downloaded to determine when to apply the hotfix data */
 	void OnReadFileComplete(bool bWasSuccessful, const FString& FileName);
 	/** Called as files are downloaded to provide progress notifications */
@@ -259,9 +269,6 @@ protected:
 	/** Fires the progress delegate with our updated progress */
 	void UpdateProgress(uint32 FileCount, uint64 UpdateSize);
 
-	/** Determines if they last version of the hotfix file matches the current version */
-	bool DoesHotfixFileMatchLastVersion(const FCloudFileHeader& Header);
-
 public:
 	UOnlineHotfixManager();
 
@@ -280,6 +287,13 @@ public:
 	/** Starts the fetching of hotfix data from the OnlineTitleFileInterface that is registered for this game */
 	UFUNCTION(BlueprintCallable, Category="Hotfix")
 	virtual void StartHotfixProcess();
+
+	/** 
+	 * Check for available hotfix files (but do not apply them) 
+	 *
+	 * @param InCompletionDelegate delegate to fire when the check is complete
+	 */
+	virtual void CheckAvailability(FOnHotfixAvailableComplete& InCompletionDelegate);
 
 	/** Factory method that returns the configured hotfix manager */
 	static UOnlineHotfixManager* Get(UWorld* World);

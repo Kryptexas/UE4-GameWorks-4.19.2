@@ -121,15 +121,15 @@ public:
 
 	static EGameplayTaskRunResult RunGameplayTask(IGameplayTaskOwnerInterface& TaskOwner, UGameplayTask& Task, uint8 Priority, FGameplayResourceSet AdditionalRequiredResources, FGameplayResourceSet AdditionalClaimedResources);
 	
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && ENABLE_VISUAL_LOG
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FString GetTickingTasksDescription() const;
 	FString GetTasksPriorityQueueDescription() const;
+	static FString GetTaskStateName(EGameplayTaskState Value);
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FConstGameplayTaskIterator GetTickingTaskIterator() const;
 	FConstGameplayTaskIterator GetPriorityQueueIterator() const;
 
 #if ENABLE_VISUAL_LOG
-	static FString GetTaskStateName(EGameplayTaskState Value);
 	void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
 

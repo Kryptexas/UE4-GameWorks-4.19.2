@@ -309,89 +309,124 @@ namespace EpicGames.MCP.Automation
 			Platform = InPlatform;
 			CloudDir = InCloudDir;
 		}
+
+		/// <summary>
+		/// Constructor which sets all values directly, without assuming any default paths.
+		/// </summary>
+		public BuildPatchToolStagingInfo(BuildCommand InOwnerCommand, string InAppName, int InAppID, string InBuildVersion, MCPPlatform InPlatform, DirectoryReference InStagingDir, DirectoryReference InCloudDir)
+		{
+			OwnerCommand = InOwnerCommand;
+			AppName = InAppName;
+			AppID = InAppID;
+			BuildVersion = InBuildVersion;
+			Platform = InPlatform;
+			if(InStagingDir != null)
+			{
+				StagingDir = InStagingDir.FullName;
+			}
+			if(InCloudDir != null)
+			{
+				DirectoryReference BuildRootDir = new DirectoryReference(GetBuildRootPath());
+				if(!InCloudDir.IsUnderDirectory(BuildRootDir))
+				{
+					throw new AutomationException("Cloud directory must be under build root path ({0})", BuildRootDir.FullName);
+				}
+				CloudDir = InCloudDir.FullName;
+				CloudDirRelativePath = InCloudDir.MakeRelativeTo(BuildRootDir).Replace('\\', '/');
+			}
+		}
     }
 
-    /// <summary>
-    /// Class that provides programmatic access to the BuildPatchTool
-    /// </summary>
-    public abstract class BuildPatchToolBase
-    {
-        /// <summary>
-        /// Controls the chunking type used by the buildinfo server (nochunks parameter)
-        /// </summary>
-        public enum ChunkType
-        {
-            /// <summary>
-            /// Chunk the files
-            /// </summary>
-            Chunk,
-            /// <summary>
-            /// Don't chunk the files, just build a file manifest.
-            /// </summary>
-            NoChunk,
-        }
+	/// <summary>
+	/// Class that provides programmatic access to the BuildPatchTool
+	/// </summary>
+	public abstract class BuildPatchToolBase
+	{
+		/// <summary>
+		/// Obsolete: BuildPatchTool will now only use chunked patch generation.
+		/// </summary>
+		public enum ChunkType { Chunk }
 
+		/// <summary>
+		/// Controls which version of BPT to use when executing.
+		/// </summary>
+		public enum ToolVersion
+		{
+			/// <summary>
+			/// The current live, tested build.
+			/// </summary>
+			Live,
+			/// <summary>
+			/// The latest published build, may be untested.
+			/// </summary>
+			Next,
+			/// <summary>
+			/// Use local build from source of BuildPatchTool.
+			/// </summary>
+			Source
+		}
 
-        public class PatchGenerationOptions
-        {
-            /// <summary>
-            /// By default, we will only consider data referenced from manifests modified within five days to be reusable.
-            /// </summary>
-            private const int DEFAULT_DATA_AGE_THRESHOLD = 5;
+		public class PatchGenerationOptions
+		{
+			/// <summary>
+			/// By default, we will only consider data referenced from manifests modified within five days to be reusable.
+			/// </summary>
+			private const int DEFAULT_DATA_AGE_THRESHOLD = 5;
 
-            public PatchGenerationOptions()
-            {
-                DataAgeThreshold = DEFAULT_DATA_AGE_THRESHOLD;
-            }
+			public PatchGenerationOptions()
+			{
+				DataAgeThreshold = DEFAULT_DATA_AGE_THRESHOLD;
+			}
 
-            /// <summary>
-            /// Staging information
-            /// </summary>
-            public BuildPatchToolStagingInfo StagingInfo;
-            /// <summary>
-            /// Matches the corresponding BuildPatchTool command line argument.
-            /// </summary>
-            public string BuildRoot;
-            /// <summary>
-            /// Matches the corresponding BuildPatchTool command line argument.
-            /// </summary>
-            public string FileIgnoreList;
-            /// <summary>
-            /// Matches the corresponding BuildPatchTool command line argument.
-            /// </summary>
-            public string FileAttributeList;
-            /// <summary>
-            /// Matches the corresponding BuildPatchTool command line argument.
-            /// </summary>
-            public string AppLaunchCmd;
-            /// <summary>
-            /// Matches the corresponding BuildPatchTool command line argument.
-            /// </summary>
-            public string AppLaunchCmdArgs;
-            /// <summary>
-            /// Matches the corresponding BuildPatchTool command line argument.
-            /// </summary>
-            public string PrereqPath;
-            /// <summary>
-            /// Matches the corresponding BuildPatchTool command line argument.
-            /// </summary>
-            public string PrereqArgs;
-            /// <summary>
-            /// Corresponds to the -nochunks parameter
-            /// </summary>
-            public ChunkType AppChunkType;
-            /// <summary>
-            /// Used as part of manifest filename and build version strings.
-            /// </summary>
-            public MCPPlatform Platform;
-            /// <summary>
-            /// When identifying existing patch data to reuse in this build, only
-            /// files referenced from a manifest file modified within this number of days will be considered for reuse.
-            /// IMPORTANT: This should always be smaller than the minimum age at which manifest files can be deleted by any cleanup process, to ensure
-            /// that we do not reuse any files which could be deleted by a concurrently running compactify. It is recommended that this number be at least
-            /// two days less than the cleanup data age threshold.
-            /// </summary>
-            public int DataAgeThreshold;
+			/// <summary>
+			/// Staging information
+			/// </summary>
+			public BuildPatchToolStagingInfo StagingInfo;
+			/// <summary>
+			/// The directory containing the build image to be read.
+			/// </summary>
+			public string BuildRoot;
+			/// <summary>
+			/// A path to a text file containing BuildRoot relative files, separated by \r\n line endings, to not be included in the build.
+			/// </summary>
+			public string FileIgnoreList;
+			/// <summary>
+			/// A path to a text file containing quoted BuildRoot relative files followed by optional attributes such as readonly compressed executable tag:mytag, separated by \r\n line endings.
+			/// These attribute will be applied when build is installed client side.
+			/// </summary>
+			public string FileAttributeList;
+			/// <summary>
+			/// The path to the app executable, must be relative to, and inside of BuildRoot.
+			/// </summary>
+			public string AppLaunchCmd;
+			/// <summary>
+			/// The commandline to send to the app on launch.
+			/// </summary>
+			public string AppLaunchCmdArgs;
+			/// <summary>
+			/// The prerequisites installer to launch on successful product install, must be relative to, and inside of BuildRoot.
+			/// </summary>
+			public string PrereqPath;
+			/// <summary>
+			/// The commandline to send to prerequisites installer on launch.
+			/// </summary>
+			public string PrereqArgs;
+			/// <summary>
+			/// An override for the output manifest filename.
+			/// </summary>
+			public string OutputFilename;
+			/// <summary>
+			/// Used as part of manifest filename and build version strings.
+			/// </summary>
+			public MCPPlatform Platform;
+			/// <summary>
+			/// When identifying existing patch data to reuse in this build, only
+			/// files referenced from a manifest file modified within this number of days will be considered for reuse.
+			/// IMPORTANT: This should always be smaller than the minimum age at which manifest files can be deleted by any cleanup process, to ensure
+			/// that we do not reuse any files which could be deleted by a concurrently running compactify. It is recommended that this number be at least
+			/// two days less than the cleanup data age threshold.
+			/// </summary>
+			public int DataAgeThreshold;
 			/// <summary>
 			/// Contains a list of custom string arguments to be embedded in the generated manifest file.
 			/// </summary>
@@ -404,6 +439,11 @@ namespace EpicGames.MCP.Automation
 			/// Contains a list of custom float arguments to be embedded in the generated manifest file.
 			/// </summary>
 			public List<KeyValuePair<string, float>> CustomFloatArgs;
+
+			/// <summary>
+			/// Obsolete: BuildPatchTool will now only use chunked patch generation.
+			/// </summary>
+			public ChunkType AppChunkType;
 		}
 
 		/// <summary>
@@ -446,65 +486,102 @@ namespace EpicGames.MCP.Automation
 		public class DataEnumerationOptions
 		{
 			/// <summary>
-			/// Matches the corresponding BuildPatchTool command line argument.
+			/// The file path to the manifest to enumerate from.
 			/// </summary>
 			public string ManifestFile;
 			/// <summary>
-			/// Matches the corresponding BuildPatchTool command line argument.
+			/// The file path to where the list will be saved out, containing \r\n separated cloud relative file paths.
 			/// </summary>
 			public string OutputFile;
 			/// <summary>
-			/// When true, the output will include the size of individual files
+			/// When true, the output will include the size of each file on each line, separated by \t
 			/// </summary>
 			public bool bIncludeSize;
 		}
 
-        static BuildPatchToolBase Handler = null;
+		public class ManifestMergeOptions
+		{
+			/// <summary>
+			/// The file path to the base manifest.
+			/// </summary>
+			public string ManifestA;
+			/// <summary>
+			/// The file path to the update manifest.
+			/// </summary>
+			public string ManifestB;
+			/// <summary>
+			/// The file path to the output manifest.
+			/// </summary>
+			public string ManifestC;
+			/// <summary>
+			/// The new version string for the build being produced.
+			/// </summary>
+			public string BuildVersion;
+			/// <summary>
+			/// Optional. The set of files that should be kept from ManifestA.
+			/// </summary>
+			public HashSet<string> FilesToKeepFromA;
+			/// <summary>
+			/// Optional. The set of files that should be kept from ManifestB.
+			/// </summary>
+			public HashSet<string> FilesToKeepFromB;
+		}
 
-        public static BuildPatchToolBase Get()
-        {
-            if (Handler == null)
-            {
-                Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-                foreach (var Dll in LoadedAssemblies)
-                {
-                    Type[] AllTypes = Dll.GetTypes();
-                    foreach (var PotentialConfigType in AllTypes)
-                    {
-                        if (PotentialConfigType != typeof(BuildPatchToolBase) && typeof(BuildPatchToolBase).IsAssignableFrom(PotentialConfigType))
-                        {
-                            Handler = Activator.CreateInstance(PotentialConfigType) as BuildPatchToolBase;
-                            break;
-                        }
-                    }
-                }
-                if (Handler == null)
-                {
-                    throw new AutomationException("Attempt to use BuildPatchToolBase.Get() and it doesn't appear that there are any modules that implement this class.");
-                }
-            }
-            return Handler;
-        }
+		static BuildPatchToolBase Handler = null;
 
-        /// <summary>
-        /// Runs the Build Patch Tool executable to generate patch data using the supplied parameters.
-        /// </summary>
-		/// <param name="Opts">Parameters which will be passed to the patch tool generation process</param>
-		public abstract void Execute(PatchGenerationOptions Opts);
+		public static BuildPatchToolBase Get()
+		{
+			if (Handler == null)
+			{
+				Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+				foreach (var Dll in LoadedAssemblies)
+				{
+					Type[] AllTypes = Dll.GetTypes();
+					foreach (var PotentialConfigType in AllTypes)
+					{
+						if (PotentialConfigType != typeof(BuildPatchToolBase) && typeof(BuildPatchToolBase).IsAssignableFrom(PotentialConfigType))
+						{
+							Handler = Activator.CreateInstance(PotentialConfigType) as BuildPatchToolBase;
+							break;
+						}
+					}
+				}
+				if (Handler == null)
+				{
+					throw new AutomationException("Attempt to use BuildPatchToolBase.Get() and it doesn't appear that there are any modules that implement this class.");
+				}
+			}
+			return Handler;
+		}
+
+		/// <summary>
+		/// Runs the Build Patch Tool executable to generate patch data using the supplied parameters.
+		/// </summary>
+		/// <param name="Opts">Parameters which will be passed to the patch tool generation process.</param>
+		/// <param name="Version">Which version of BuildPatchTool is desired.</param>
+		public abstract void Execute(PatchGenerationOptions Opts, ToolVersion Version = ToolVersion.Live);
 
 		/// <summary>
 		/// Runs the Build Patch Tool executable to compactify a cloud directory using the supplied parameters.
 		/// </summary>
-		/// <param name="Opts">Parameters which will be passed to the patch tool generation process</param>
-		public abstract void Execute(CompactifyOptions Opts);
+		/// <param name="Opts">Parameters which will be passed to the patch tool compactify process.</param>
+		/// <param name="Version">Which version of BuildPatchTool is desired.</param>
+		public abstract void Execute(CompactifyOptions Opts, ToolVersion Version = ToolVersion.Live);
 
 		/// <summary>
 		/// Runs the Build Patch Tool executable to enumerate patch data files referenced by a manifest using the supplied parameters.
 		/// </summary>
-		/// <param name="Opts">Parameters which will be passed to the patch tool enumeration process</param>
-		public abstract void Execute(DataEnumerationOptions Opts);
+		/// <param name="Opts">Parameters which will be passed to the patch tool enumeration process.</param>
+		/// <param name="Version">Which version of BuildPatchTool is desired.</param>
+		public abstract void Execute(DataEnumerationOptions Opts, ToolVersion Version = ToolVersion.Live);
 
-    }
+		/// <summary>
+		/// Runs the Build Patch Tool executable to merge two manifest files producing a hotfix manifest.
+		/// </summary>
+		/// <param name="Opts">Parameters which will be passed to the patch tool manifest merge process.</param>
+		/// <param name="Version">Which version of BuildPatchTool is desired.</param>
+		public abstract void Execute(ManifestMergeOptions Opts, ToolVersion Version = ToolVersion.Live);
+	}
 
 
     /// <summary>

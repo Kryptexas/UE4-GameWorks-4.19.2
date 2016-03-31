@@ -1664,8 +1664,7 @@ public:
 #endif
 
 #if WITH_PROFILEGPU
-	bool HandleProfileGPUCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleShowMaterialDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleProfileGPUCommand( const TCHAR* Cmd, FOutputDevice& Ar );	
 #endif
 
 	// Compile in Debug or Development
@@ -1683,8 +1682,7 @@ public:
 	bool HandleFreezeStreamingCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );		// Smedis
 	bool HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );			// Smedis
 	bool HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar );						// Smedis
-	bool HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleToggleRHIThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );	
 	bool HandleToggleAsyncComputeCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleRecompileShadersCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleRecompileGlobalShadersCommand( const TCHAR* Cmd, FOutputDevice& Ar );

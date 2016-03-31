@@ -27,6 +27,13 @@ static TAutoConsoleVariable<int32> GRoundChartingFPSBeforeBinning(
 	TEXT("Should we round raw FPS values before thresholding them into bins when doing a FPS chart?\n")
 	TEXT(" default: 0"));
 
+// Should we exclude FPS values before thresholding them into bins?
+static TAutoConsoleVariable<int32> GFPSChartExcludeIdleTime(
+	TEXT("t.FPSChart.ExcludeIdleTime"),
+	0,
+	TEXT("Should we exclude idle time (i.e. one which we spent sleeping) when doing a FPS chart?\n")
+	TEXT(" default: 0"));
+
 float GMaximumFrameTimeToConsiderForHitchesAndBinning = 1.0f;
 
 static FAutoConsoleVariableRef GMaximumFrameTimeToConsiderForHitchesAndBinningCVar(
@@ -135,7 +142,11 @@ protected:
 	FString CPUVendor;
 	FString CPUBrand;
 
-	FString PrimaryGPUBrand;
+	// The primary GPU for the desktop (may not be the one we ended up using, e.g., in an optimus laptop)
+	FString DesktopGPUBrand;
+
+	// The actual GPU adapter we initialized
+	FString ActualGPUBrand;
 
 protected:
 	virtual void PrintToEndpoint(const FString& Text) = 0;
@@ -193,7 +204,14 @@ protected:
 		PrintToEndpoint(TEXT("Machine info:"));
 		PrintToEndpoint(FString::Printf(TEXT("\tOS: %s %s"), *OSMajor, *OSMinor));
 		PrintToEndpoint(FString::Printf(TEXT("\tCPU: %s %s"), *CPUVendor, *CPUBrand));
-		PrintToEndpoint(FString::Printf(TEXT("\tGPU: %s"), *PrimaryGPUBrand));
+
+		FString CompositeGPUString = FString::Printf(TEXT("\tGPU: %s"), *ActualGPUBrand);
+		if (ActualGPUBrand != DesktopGPUBrand)
+		{
+			CompositeGPUString += FString::Printf(TEXT(" (desktop adapter %s)"), *DesktopGPUBrand);
+		}
+		PrintToEndpoint(CompositeGPUString);
+
 		PrintToEndpoint(FString::Printf(TEXT("\tResolution Quality: %.2f"), ScalabilityQuality.ResolutionQuality));
 		PrintToEndpoint(FString::Printf(TEXT("\tView Distance Quality: %d"), ScalabilityQuality.ViewDistanceQuality));
 		PrintToEndpoint(FString::Printf(TEXT("\tAnti-Aliasing Quality: %d"), ScalabilityQuality.AntiAliasingQuality));
@@ -211,6 +229,7 @@ protected:
 		PrintToEndpoint(FString::Printf(TEXT("BoundGameThreadPct: %4.2f"), BoundGameThreadPct));
 		PrintToEndpoint(FString::Printf(TEXT("BoundRenderThreadPct: %4.2f"), BoundRenderThreadPct));
 		PrintToEndpoint(FString::Printf(TEXT("BoundGPUPct: %4.2f"), BoundGPUPct));
+		PrintToEndpoint(FString::Printf(TEXT("ExcludeIdleTime: %d"), GFPSChartExcludeIdleTime.GetValueOnGameThread()));		
 	}
 };
 
@@ -270,7 +289,8 @@ void FDumpFPSChartToEndpoint::DumpChart(float InTotalTime, float InDeltaTime, in
 	// Get CPU/GPU info
 	CPUVendor = FPlatformMisc::GetCPUVendor().Trim().TrimTrailing();
 	CPUBrand = FPlatformMisc::GetCPUBrand().Trim().TrimTrailing();
-	PrimaryGPUBrand = FPlatformMisc::GetPrimaryGPUBrand().Trim().TrimTrailing();
+	DesktopGPUBrand = FPlatformMisc::GetPrimaryGPUBrand().Trim().TrimTrailing();
+	ActualGPUBrand = GRHIAdapterName.Trim().TrimTrailing();
 
 	// Get settings info
 	UGameUserSettings* UserSettingsObj = GEngine->GetGameUserSettings();
@@ -420,7 +440,9 @@ protected:
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), FString::Printf(TEXT("%s"), ANSI_TO_TCHAR(FPlatformProperties::PlatformName()))));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("OS"), FString::Printf(TEXT("%s %s"), *OSMajor, *OSMinor)));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("CPU"), FString::Printf(TEXT("%s %s"), *CPUVendor, *CPUBrand)));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("GPU"), PrimaryGPUBrand));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("DesktopGPU"), DesktopGPUBrand));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUAdapter"), ActualGPUBrand));
+
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ResolutionQuality"), ScalabilityQuality.ResolutionQuality));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ViewDistanceQuality"), ScalabilityQuality.ViewDistanceQuality));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("AntiAliasingQuality"), ScalabilityQuality.AntiAliasingQuality));
@@ -438,6 +460,8 @@ protected:
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("PercentGameThreadBound"), FString::Printf(TEXT("%4.2f"), BoundGameThreadPct)));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("PercentRenderThreadBound"), FString::Printf(TEXT("%4.2f"), BoundRenderThreadPct)));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("PercentGPUBound"), FString::Printf(TEXT("%4.2f"), BoundGPUPct)));
+
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ExcludeIdleTime"), FString::Printf(TEXT("%d"), GFPSChartExcludeIdleTime.GetValueOnGameThread())));
 	}
 };
 
@@ -547,7 +571,7 @@ protected:
 
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_OS"), *FString::Printf(TEXT("%s %s"), *OSMajor, *OSMinor), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_CPU"), *FString::Printf(TEXT("%s %s"), *CPUVendor, *CPUBrand), ESearchCase::CaseSensitive);
-		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_GPU"), *FString::Printf(TEXT("%s"), *PrimaryGPUBrand), ESearchCase::CaseSensitive);
+		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_GPU"), *FString::Printf(TEXT("%s"), *ActualGPUBrand), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_SETTINGS_RES"), *FString::Printf(TEXT("%.2f"), ScalabilityQuality.ResolutionQuality), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_SETTINGS_VD"), *FString::Printf(TEXT("%d"), ScalabilityQuality.ViewDistanceQuality), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_SETTINGS_AA"), *FString::Printf(TEXT("%d"), ScalabilityQuality.AntiAliasingQuality), ESearchCase::CaseSensitive);
@@ -647,6 +671,20 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 		DeltaSeconds = CurrentTime - GLastTimeChartCreationTicked;
 	}
 	GLastTimeChartCreationTicked = CurrentTime;
+
+	// subtract idle time (FPS chart is ticked after UpdateTimeAndHandleMaxTickRate(), so we know time we spent sleeping this frame)
+	if (GFPSChartExcludeIdleTime.GetValueOnGameThread() != 0)
+	{
+		double ThisFrameIdleTime = FApp::GetIdleTime();
+		if (LIKELY(ThisFrameIdleTime < DeltaSeconds))
+		{
+			DeltaSeconds -= ThisFrameIdleTime;
+		}
+		else
+		{
+			UE_LOG(LogChartCreation, Warning, TEXT("Idle time for this frame (%f) is larger than delta between FPSChart ticks (%f)"), ThisFrameIdleTime, DeltaSeconds);
+		}
+	}
 
 	// now gather some stats on what this frame was bound by (game, render, gpu)
 

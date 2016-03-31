@@ -56,6 +56,12 @@ namespace BuildGraph.Tasks
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public bool EnumerateOnly;
+
+		/// <summary>
+		/// Tag to be applied to build products of this task
+		/// </summary>
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		public string Tag;
 	}
 
 	/// <summary>
@@ -132,6 +138,12 @@ namespace BuildGraph.Tasks
 			if(!FindBuildProducts(ProjectFiles, Properties, out ProjectBuildProducts))
 			{
 				return false;
+			}
+
+			// Apply the optional tag to the produced archive
+			if(!String.IsNullOrEmpty(Parameters.Tag))
+			{
+				FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).UnionWith(ProjectBuildProducts);
 			}
 
 			// Merge them into the standard set of build products

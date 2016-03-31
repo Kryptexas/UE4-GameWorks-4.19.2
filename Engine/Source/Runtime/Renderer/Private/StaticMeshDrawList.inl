@@ -935,7 +935,26 @@ FDrawListStats TStaticMeshDrawList<DrawingPolicyType>::GetStats() const
 		Stats.NumDrawingPolicies++;
 		Stats.NumMeshes += NumMeshes;
 		MeshCounts.Add(NumMeshes);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (NumMeshes == 1)
+		{
+			CollectClosestMatchingPolicies(PolicyIt, Stats.SingleMeshPolicyMatchFailedReasons);
+			
+			auto VertexFactoryName = DrawingPolicyLink->DrawingPolicy.GetVertexFactory()->GetType()->GetFName();
+
+			if (Stats.SingleMeshPolicyVertexFactoryFrequency.Contains(VertexFactoryName))
+			{
+				++Stats.SingleMeshPolicyVertexFactoryFrequency[VertexFactoryName];
+			}
+			else
+			{
+				Stats.SingleMeshPolicyVertexFactoryFrequency.Add(VertexFactoryName, 1);
+			}
+		}
+#endif
 	}
+
 	if (MeshCounts.Num())
 	{
 		MeshCounts.Sort();
@@ -966,3 +985,51 @@ void TStaticMeshDrawList<DrawingPolicyType>::ApplyWorldOffset(FVector InOffset)
 	}
 }
 
+template<typename DrawingPolicyType>
+void TStaticMeshDrawList<DrawingPolicyType>::CollectClosestMatchingPolicies(
+	typename TArray<FSetElementId>::TConstIterator DrawingPolicyIter, 
+	TMap<FString, int32>& MatchFailedReasons
+	) const
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	int32 ClosestMatchCount = -1;
+	FDrawingPolicyMatchResult ClosestMatch;
+
+	const FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[*DrawingPolicyIter];
+
+	for (auto It = OrderedDrawingPolicies.CreateConstIterator(); It; ++It)
+	{
+		if (It == DrawingPolicyIter)
+		{
+			continue;
+		}
+
+		const auto* OtherPolicyLink = &DrawingPolicySet[*It];
+		auto Res = DrawingPolicyLink->DrawingPolicy.Matches(OtherPolicyLink->DrawingPolicy);
+
+		if (Res.MatchCount() > ClosestMatchCount)
+		{
+			ClosestMatchCount = Res.MatchCount();
+			ClosestMatch = Res;
+		}
+	}
+
+	if (ClosestMatchCount > -1)
+	{
+		for (int32 i = 0; i < ClosestMatch.TestResults.Num(); ++i)
+		{
+			if (!ClosestMatch.TestResults[i])
+			{
+				if (MatchFailedReasons.Contains(ClosestMatch.TestCondition[i]))
+				{
+					++MatchFailedReasons[ClosestMatch.TestCondition[i]];
+				}
+				else
+				{
+					MatchFailedReasons.Add(ClosestMatch.TestCondition[i], 1);
+				}
+			}
+		}
+	}
+#endif
+}

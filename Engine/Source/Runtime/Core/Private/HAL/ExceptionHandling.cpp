@@ -20,14 +20,24 @@ CORE_API TCHAR MiniDumpFilenameW[1024] = TEXT("");
 
 
 volatile int32 GImageIntegrityCompromised = 0;
-CORE_API void CheckImageIntegrity()
+void CheckImageIntegrity()
 {
 	FPlatformMisc::MemoryBarrier();
-	UE_CLOG(!!GImageIntegrityCompromised, LogCore, Fatal, TEXT("Image integrity compromised (%d)"), GImageIntegrityCompromised);
+	UE_CLOG(GImageIntegrityCompromised > 0, LogCore, Fatal, TEXT("Image integrity compromised (%d)"), GImageIntegrityCompromised);
 }
 
-CORE_API void CheckImageIntegrityAtRuntime()
+void CheckImageIntegrityAtRuntime()
 {
 	FPlatformMisc::MemoryBarrier();
-	UE_CLOG(!!GImageIntegrityCompromised, LogCore, Fatal, TEXT("Image integrity compromised at runtime (%d)"), GImageIntegrityCompromised);
+	UE_CLOG(GImageIntegrityCompromised > 0, LogCore, Fatal, TEXT("Image integrity compromised at runtime (%d)"), GImageIntegrityCompromised);
+}
+
+void SetImageIntegrtiryStatus(int32 Status)
+{
+	GImageIntegrityCompromised = Status;
+}
+
+int32 GetImageIntegrityStatus()
+{
+	return GImageIntegrityCompromised;
 }

@@ -371,8 +371,8 @@ enum class ENetworkSmoothingMode : uint8
 	/** Exponential. Faster as you are further from target. */
 	Exponential		UMETA(DisplayName="Exponential"),
 
-	/** Special linear interpolation designed specifically for replays. */
-	Replay			UMETA( DisplayName="Replay" ),
+	/** Special linear interpolation designed specifically for replays. Not intended as a selectable mode in-editor. */
+	Replay			UMETA(Hidden, DisplayName="Replay"),
 };
 
 /** This filter allows us to refine queries (channel, object) with an additional level of ignore by tagging entire classes of objects (e.g. "Red team", "Blue team")

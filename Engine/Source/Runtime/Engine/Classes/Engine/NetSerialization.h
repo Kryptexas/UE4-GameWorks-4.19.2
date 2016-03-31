@@ -1346,8 +1346,8 @@ struct TStructOpsTypeTraits< FVector_NetQuantizeNormal > : public TStructOpsType
  *			Ar << MyVectors;
  *			
  *			// Do this instead:
- *			SafeNetSerializeTArray_Default<32>(Ar, MyFloats);
- *			SafeNetSerializeTArray_WithNetSerialize<32>(Ar, MyVectors, Map);
+ *			SafeNetSerializeTArray_Default<31>(Ar, MyFloats);
+ *			SafeNetSerializeTArray_WithNetSerialize<31>(Ar, MyVectors, Map);
  *		}
  *	}	
  *	
@@ -1356,7 +1356,7 @@ struct TStructOpsTypeTraits< FVector_NetQuantizeNormal > : public TStructOpsType
 template<int32 MaxNum, typename T>
 int32 SafeNetSerializeTArray_HeaderOnly(FArchive& Ar, TArray<T>& Array, bool& bOutSuccess)
 {
-	const uint32 NumBits = FMath::CeilLogTwo(MaxNum);
+	const uint32 NumBits = FMath::CeilLogTwo(MaxNum)+1;
 	
 	int32 ArrayNum = 0;
 

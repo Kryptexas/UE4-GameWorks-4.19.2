@@ -582,14 +582,17 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	//	But this will also be where we need to merge in context tags? (Headshot, executing ability, etc?)
 	//	Or do we push these tags into (our copy of the spec)?
 
-	static FGameplayTagContainer MyTags;
-	MyTags.Reset();
-
-	GetOwnedGameplayTags(MyTags);
-
-	if (Spec.Def->ApplicationTagRequirements.RequirementsMet(MyTags) == false)
 	{
-		return FActiveGameplayEffectHandle();
+		// Note: static is ok here since the scope is so limited, but wider usage of MyTags is not safe since this function can be recursively called
+		static FGameplayTagContainer MyTags;
+		MyTags.Reset();
+
+		GetOwnedGameplayTags(MyTags);
+
+		if (Spec.Def->ApplicationTagRequirements.RequirementsMet(MyTags) == false)
+		{
+			return FActiveGameplayEffectHandle();
+		}
 	}
 
 	// Custom application requirement check

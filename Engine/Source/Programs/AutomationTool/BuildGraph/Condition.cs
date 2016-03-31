@@ -185,14 +185,14 @@ namespace AutomationTool
 				// Check whether file or directory exists. Evaluate the argument as a subexpression.
 				Idx++;
 				string Argument = EvaluateScalar(Tokens, ref Idx);
-				Result = File.Exists(Argument)? "true" : "false";
+				Result = (File.Exists(Argument) || Directory.Exists(Argument))? "true" : "false";
 			}
 			else if(String.Compare(Tokens[Idx], "HasTrailingSlash", true) == 0 && Tokens[Idx + 1] == "(")
 			{
 				// Check whether the given string ends with a slash
 				Idx++;
 				string Argument = EvaluateScalar(Tokens, ref Idx);
-				Result = (Argument.Last() == Path.DirectorySeparatorChar || Argument.Last() == Path.AltDirectorySeparatorChar)? "true" : "false";
+				Result = (Argument.Length > 0 && (Argument[Argument.Length - 1] == Path.DirectorySeparatorChar || Argument[Argument.Length - 1] == Path.AltDirectorySeparatorChar))? "true" : "false";
 			}
 			else
 			{

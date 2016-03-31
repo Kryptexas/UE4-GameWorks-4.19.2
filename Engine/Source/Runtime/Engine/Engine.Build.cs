@@ -392,5 +392,11 @@ public class Engine : ModuleRules
 			// module, so it's definitions won't propagate to modules that import Engine.
 			Definitions.Add("WITH_RECAST=0");
 		}
+
+		// Add a reference to the stats HTML files referenced by UEngine::DumpFPSChartToHTML. Previously staged by CopyBuildToStagingDirectory.
+		if(UEBuildConfiguration.bBuildEditor || Target.Configuration != UnrealTargetConfiguration.Shipping)
+		{
+			RuntimeDependencies.Add("$(EngineDir)/Content/Stats/...", StagedFileType.UFS);
+		}
 	}
 }

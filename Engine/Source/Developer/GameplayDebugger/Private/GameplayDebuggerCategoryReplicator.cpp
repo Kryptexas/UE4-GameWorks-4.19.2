@@ -579,6 +579,12 @@ void AGameplayDebuggerCategoryReplicator::TickActor(float DeltaTime, enum ELevel
 					{
 						CategoryOb.OnDataPackReplicated(DataPackIdx);
 					}
+
+					if (CategoryOb.bHasAuthority)
+					{
+						// update sync counter for local & auth packs (no data replication), otherwise they can be reset
+						DataPack.Header.SyncCounter = DebugActor.SyncCounter;
+					}
 				}
 				else
 				{

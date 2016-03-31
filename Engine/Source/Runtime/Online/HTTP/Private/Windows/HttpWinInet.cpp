@@ -1080,7 +1080,7 @@ void FHttpResponseWinInet::ProcessResponseHeaders()
 					{
 						NewValue = (*PreviousValue) + TEXT(", ");
 					}
-					NewValue += HeaderValue;
+					NewValue += HeaderValue.Trim();
 					ResponseHeaders.Add(HeaderKey, NewValue);
 				}
 			}

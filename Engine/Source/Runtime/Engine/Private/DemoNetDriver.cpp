@@ -43,6 +43,7 @@ static TAutoConsoleVariable<int32> CVarDemoFastForwardSkipRepNotifies( TEXT( "de
 static TAutoConsoleVariable<int32> CVarDemoQueueCheckpointChannels( TEXT( "demo.QueueCheckpointChannels" ), 1, TEXT( "If true, the driver will put all channels created during checkpoint loading into queuing mode, to amortize the cost of spawning new actors across multiple frames." ) );
 static TAutoConsoleVariable<int32> CVarUseAdaptiveReplayUpdateFrequency( TEXT( "demo.UseAdaptiveReplayUpdateFrequency" ), 0, TEXT( "If 1, NetUpdateFrequency will be calculated based on how often actors actually write something when recording to a replay" ) );
 static TAutoConsoleVariable<int32> CVarDemoAsyncLoadWorld( TEXT( "demo.AsyncLoadWorld" ), 0, TEXT( "If 1, we will use seamless server travel to load the replay world asynchronously" ) );
+static TAutoConsoleVariable<float> CVarCheckpointUploadDelayInSeconds( TEXT( "demo.CheckpointUploadDelayInSeconds" ), 30.0f, TEXT( "" ) );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarDemoForceFailure( TEXT( "demo.ForceFailure" ), 0, TEXT( "" ) );
@@ -1534,7 +1535,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	// Save a checkpoint if it's time
 	if ( CVarEnableCheckpoints.GetValueOnGameThread() == 1 )
 	{
-		const double CHECKPOINT_DELAY = 30.0;
+		const double CHECKPOINT_DELAY = CVarCheckpointUploadDelayInSeconds.GetValueOnGameThread();
 
 		if ( DemoCurrentTime - LastCheckpointTime > CHECKPOINT_DELAY )
 		{

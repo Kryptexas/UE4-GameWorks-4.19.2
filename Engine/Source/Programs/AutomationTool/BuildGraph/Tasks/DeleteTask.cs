@@ -15,20 +15,15 @@ namespace BuildGraph.Tasks
 	public class DeleteTaskParameters
 	{
 		/// <summary>
-		/// The directory to delete from
-		/// </summary>
-		[TaskParameter]
-		public string Dir;
-
-		/// <summary>
 		/// List of file specifications separated by semicolons (eg. *.cpp;Engine/.../*.bat), or the name of a tag set
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter]
 		public string Files;
 
 		/// <summary>
 		/// Whether to delete empty directories after deleting the files
 		/// </summary>
+		[TaskParameter(Optional = true)]
 		public bool DeleteEmptyDirectories = true;
 	}
 
@@ -61,20 +56,8 @@ namespace BuildGraph.Tasks
 		/// <returns>True if the task succeeded</returns>
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			DirectoryReference BaseDirectory = ResolveDirectory(Parameters.Dir);
-
-			// Find all the referenced files
-			IEnumerable<FileReference> Files;
-			if(Parameters.Files == null)
-			{
-				Files = BaseDirectory.EnumerateFileReferences("*", System.IO.SearchOption.AllDirectories);
-			}
-			else
-			{
-				Files = ResolveFilespec(BaseDirectory, Parameters.Files, TagNameToFileSet);
-			}
-
-			// Delete them all
+			// Find all the referenced files and delete them
+			HashSet<FileReference> Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet);
 			foreach(FileReference File in Files)
 			{
 				InternalUtils.SafeDeleteFile(File.FullName, true);
@@ -93,7 +76,7 @@ namespace BuildGraph.Tasks
 				// Recurse back up from each of those directories to the root folder
 				foreach(DirectoryReference ParentDirectory in ParentDirectories)
 				{
-					for(DirectoryReference CurrentDirectory = ParentDirectory; CurrentDirectory != BaseDirectory; CurrentDirectory = CurrentDirectory.ParentDirectory)
+					for(DirectoryReference CurrentDirectory = ParentDirectory; CurrentDirectory != CommandUtils.RootDirectory; CurrentDirectory = CurrentDirectory.ParentDirectory)
 					{
 						if(!TryDeleteEmptyDirectory(CurrentDirectory))
 						{
@@ -101,9 +84,6 @@ namespace BuildGraph.Tasks
 						}
 					}
 				}
-
-				// Try to delete the base directory
-				TryDeleteEmptyDirectory(BaseDirectory);
 			}
 			return true;
 		}

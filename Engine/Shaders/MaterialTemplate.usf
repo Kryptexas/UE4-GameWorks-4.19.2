@@ -1150,7 +1150,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 	else if (SceneTextureIndex == 23)	return ScreenSpaceData.AmbientOcclusion;
 	else if (SceneTextureIndex == 24)	return ScreenSpaceData.GBuffer.CustomStencil;
 	else if (SceneTextureIndex == 25)	return float4(ScreenSpaceData.GBuffer.StoredBaseColor, 0);
-	else if (SceneTextureIndex == 26)	return float4(ScreenSpaceData.GBuffer.StoredSpecular, 0);
+	else if (SceneTextureIndex == 26)	return float4(ScreenSpaceData.GBuffer.StoredSpecular.rrr, 0);
 #else
 	switch(SceneTextureIndex)
 	{
@@ -1211,7 +1211,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		// PPI_StoredBaseColor
 		case 25: return float4(ScreenSpaceData.GBuffer.StoredBaseColor, 0);
 		// PPI_StoredSpecular
-		case 26: return float4(ScreenSpaceData.GBuffer.StoredSpecular, 0);
+		case 26: return float4(ScreenSpaceData.GBuffer.StoredSpecular.rrr, 0);
 		default:
 			return float4(0, 0, 0, 0);
 	}

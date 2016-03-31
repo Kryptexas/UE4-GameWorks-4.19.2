@@ -415,6 +415,14 @@ public:
 	void RegisterGameViewport( TSharedRef<SViewport> InViewport );
 
 	/**
+	 * Registers a viewport with the Slate application so that specific messages can be routed directly to a viewport
+	 * This is for all viewports, there can be multiple of these as opposed to the singular "Game Viewport"
+	 * 
+	 * @param InViewport	The viewport to register.  Note there is currently only one registered viewport
+	 */
+	void RegisterViewport(TSharedRef<SViewport> InViewport);
+
+	/**
 	 * Returns the game viewport registered with the slate application
 	 *
 	 * @return registered game viewport

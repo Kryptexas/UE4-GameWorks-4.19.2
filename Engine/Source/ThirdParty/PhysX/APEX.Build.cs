@@ -136,8 +136,8 @@ public class APEX : ModuleRules
 			foreach(string RuntimeDependency in RuntimeDependenciesX64)
 			{
 				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
-				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(FileName + ".pdb", true));
+				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);
+				RuntimeDependencies.Add(FileName + ".pdb", StagedFileType.DebugNonUFS);
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
@@ -160,8 +160,8 @@ public class APEX : ModuleRules
 			foreach(string RuntimeDependency in RuntimeDependenciesX86)
 			{
 				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
-				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(FileName + ".pdb", true));
+				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);
+				RuntimeDependencies.Add(FileName + ".pdb", StagedFileType.DebugNonUFS);
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)

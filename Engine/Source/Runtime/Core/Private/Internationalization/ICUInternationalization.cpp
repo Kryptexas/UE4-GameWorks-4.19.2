@@ -602,6 +602,18 @@ TArray<FString> FICUInternationalization::GetPrioritizedCultureNames(const FStri
 		}
 	}
 
+	// Remove any cultures that are explicitly disabled
+	PrioritizedCultureNames.RemoveAll([&](const FString& InPrioritizedCultureName) -> bool
+	{
+		return IsCultureDisabled(InPrioritizedCultureName);
+	});
+
+	// If we have no cultures, fallback to using English
+	if (PrioritizedCultureNames.Num() == 0)
+	{
+		PrioritizedCultureNames.Add(TEXT("en"));
+	}
+
 	return PrioritizedCultureNames;
 }
 

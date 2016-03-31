@@ -3975,7 +3975,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				if (!ErrorMsg.IsEmpty())
 				{
 					UE_LOG(LogNet, Log, TEXT("PreLogin failure: %s"), *ErrorMsg);
-					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("RRELOGIN FAILURE"), *ErrorMsg, Connection));
+					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("PRELOGIN FAILURE"), *ErrorMsg, Connection));
 					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 					Connection->FlushNet(true);
 					//@todo sz - can't close the connection here since it will leave the failure message 

@@ -1491,7 +1491,7 @@ void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bRe
 		State.bIsTwoSided,
 		State.Mesh->ReverseCulling);
 	// Verify that SharedDrawingPolicy can be used to draw this mesh without artifacts by checking the comparison functions that static draw lists use
-	checkSlow(DebugPolicy.Matches(SharedDrawingPolicy));
+	checkSlow(DebugPolicy.Matches(SharedDrawingPolicy).Result());
 	checkSlow(CompareDrawingPolicy(DebugPolicy, SharedDrawingPolicy) == 0);
 #endif
 

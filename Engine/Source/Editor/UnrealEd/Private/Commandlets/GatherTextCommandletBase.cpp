@@ -1002,7 +1002,7 @@ bool FLocalizedAssetSCCUtil::SaveAssetWithSCC(const TSharedPtr<FGatherTextSCC>& 
 
 bool FLocalizedAssetSCCUtil::SavePackageWithSCC(const TSharedPtr<FGatherTextSCC>& InSourceControlInfo, UPackage* InPackage)
 {
-	const FString PackageFileName = FPackageName::LongPackageNameToFilename(InPackage->GetPathName(), FPackageName::GetAssetPackageExtension(), false);
+	const FString PackageFileName = FPackageName::LongPackageNameToFilename(InPackage->GetPathName(), FPackageName::GetAssetPackageExtension());
 	return SavePackageWithSCC(InSourceControlInfo, InPackage, PackageFileName);
 }
 

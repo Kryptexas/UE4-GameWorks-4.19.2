@@ -17,6 +17,9 @@ void FAssetRegistryModule::StartupModule()
 	ConsoleCommands = new FAssetRegistryConsoleCommands(*this);
 
 #if WITH_UNREAL_DEVELOPER_TOOLS
+	// MessageLog needs EditorStyle to be loaded, and we might be being initialized before that has happened
+	FModuleManager::LoadModuleChecked<IModuleInterface>("EditorStyle");
+
 	// create a message log for the asset registry to use
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	FMessageLogInitializationOptions InitOptions;

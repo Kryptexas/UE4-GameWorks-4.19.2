@@ -410,6 +410,11 @@ bool SEditableText::ShouldClearKeyboardFocusOnCommit() const
 	return bClearKeyboardFocusOnCommit.Get(false);
 }
 
+bool SEditableText::ShouldSelectAllTextOnCommit() const
+{
+	return bSelectAllTextOnCommit.Get(false);
+}
+
 bool SEditableText::CanInsertCarriageReturn() const
 {
 	return false;

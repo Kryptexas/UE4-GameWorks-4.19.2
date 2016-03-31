@@ -180,10 +180,10 @@ public class PhysX : ModuleRules
 			foreach(string DLL in RuntimeDependenciesX64)
 			{
 				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
-				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb"), true));
+				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);
+				RuntimeDependencies.Add(Path.ChangeExtension(FileName, ".pdb"), StagedFileType.DebugNonUFS);
 			}
-			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt64_1.dll"));
+			RuntimeDependencies.Add(PhysXBinariesDir + "nvToolsExt64_1.dll", StagedFileType.NonUFS);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
@@ -230,10 +230,10 @@ public class PhysX : ModuleRules
 			foreach(string DLL in RuntimeDependenciesX86)
 			{
 				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
-				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb"), true));
+				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);
+				RuntimeDependencies.Add(Path.ChangeExtension(FileName, ".pdb"), StagedFileType.DebugNonUFS);
 			}
-			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt32_1.dll"));
+			RuntimeDependencies.Add(PhysXBinariesDir + "nvToolsExt32_1.dll", StagedFileType.NonUFS);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{

@@ -83,6 +83,9 @@ int32 GuardedMain( const TCHAR* CmdLine, HINSTANCE hInInstance, HINSTANCE hPrevI
 int32 GuardedMain( const TCHAR* CmdLine )
 #endif
 {
+	// Super early init code. DO NOT MOVE THIS ANYWHERE ELSE!
+	FCoreDelegates::GetPreMainInitDelegate().Broadcast();
+
 	// make sure GEngineLoop::Exit() is always called.
 	struct EngineLoopCleanupGuard 
 	{ 

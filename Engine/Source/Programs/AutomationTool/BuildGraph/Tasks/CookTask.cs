@@ -42,6 +42,12 @@ namespace BuildGraph.Tasks
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public string Arguments = "";
+
+		/// <summary>
+		/// Tag to be applied to build products of this task
+		/// </summary>
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		public string Tag;
 	}
 
 	/// <summary>
@@ -104,6 +110,12 @@ namespace BuildGraph.Tasks
 			{
 				CommandUtils.LogError("Cooking did not produce any files in {0}", CookedDirectory.FullName);
 				return false;
+			}
+
+			// Apply the optional tag to the build products
+			if(!String.IsNullOrEmpty(Parameters.Tag))
+			{
+				FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).UnionWith(CookedFiles);
 			}
 
 			// Add them to the set of build products

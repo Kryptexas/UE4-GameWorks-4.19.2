@@ -351,7 +351,7 @@ bool UImportLocalizedDialogueCommandlet::ImportDialogueForCulture(UDialogueWave*
 	if (bImportAsSource)
 	{
 		LocalizedDialogueWave = DialogueWave;
-		LocalizedDialogueWaveFileName = FPackageName::LongPackageNameToFilename(DialogueWave->GetOutermost()->GetPathName(), FPackageName::GetAssetPackageExtension(), false);
+		LocalizedDialogueWaveFileName = FPackageName::LongPackageNameToFilename(DialogueWave->GetOutermost()->GetPathName(), FPackageName::GetAssetPackageExtension());
 	}
 	else
 	{

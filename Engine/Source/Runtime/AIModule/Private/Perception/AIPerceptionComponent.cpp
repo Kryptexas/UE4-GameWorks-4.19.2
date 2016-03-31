@@ -261,7 +261,7 @@ void UAIPerceptionComponent::GetHostileActors(TArray<AActor*>& OutActors) const
 	OutActors.Reserve(PerceptualData.Num());
 	for (TActorPerceptionContainer::TConstIterator DataIt = GetPerceptualDataConstIterator(); DataIt; ++DataIt)
 	{
-		if (DataIt->Value.bIsHostile)
+		if (DataIt->Value.bIsHostile && DataIt->Value.HasAnyKnownStimulus())
 		{
 			if (DataIt->Value.Target.IsValid())
 			{
@@ -431,7 +431,8 @@ void UAIPerceptionComponent::ProcessStimuli()
 		check(SourcedStimulus->Stimulus.Type.IsValid());
 
 		FAIStimulus& StimulusStore = PerceptualInfo->LastSensedStimuli[SourcedStimulus->Stimulus.Type];
-		const bool bActorInfoUpdated = SourcedStimulus->Stimulus.WantsToNotifyOnlyOnPerceptionChange() == false || SourcedStimulus->Stimulus.WasSuccessfullySensed() != StimulusStore.WasSuccessfullySensed();
+		const bool bActorInfoUpdated = SourcedStimulus->Stimulus.WantsToNotifyOnlyOnPerceptionChange() == false 
+			|| SourcedStimulus->Stimulus.WasSuccessfullySensed() != StimulusStore.WasSuccessfullySensed();
 
 		if (SourcedStimulus->Stimulus.WasSuccessfullySensed())
 		{
@@ -447,7 +448,7 @@ void UAIPerceptionComponent::ProcessStimuli()
 				StimulusStore.SetStimulusAge(0);
 			}
 		}
-		else if (StimulusStore.GetAge() != FAIStimulus::NeverHappenedAge)
+		else
 		{
 			HandleExpiredStimulus(StimulusStore);
 		}
@@ -491,7 +492,6 @@ void UAIPerceptionComponent::RefreshStimulus(FAIStimulus& StimulusStore, const F
 void UAIPerceptionComponent::HandleExpiredStimulus(FAIStimulus& StimulusStore)
 {
 	ensure(StimulusStore.IsExpired() == true);
-	StimulusStore = FAIStimulus();
 }
 
 bool UAIPerceptionComponent::AgeStimuli(const float ConstPerceptionAgingRate)
@@ -583,17 +583,7 @@ bool UAIPerceptionComponent::HasAnyActiveStimulus(const AActor& Source) const
 		return false;
 	}
 
-	for (uint32 SenseID = 0; SenseID < FAISenseID::GetSize(); ++SenseID)
-	{
-		if (Info->LastSensedStimuli[SenseID].WasSuccessfullySensed() &&
-			Info->LastSensedStimuli[SenseID].GetAge() < FAIStimulus::NeverHappenedAge &&
-			(Info->LastSensedStimuli[SenseID].GetAge() <= MaxActiveAge[SenseID] || MaxActiveAge[SenseID] == 0.f))
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return Info->HasAnyKnownStimulus();
 }
 
 bool UAIPerceptionComponent::HasActiveStimulus(const AActor& Source, FAISenseID Sense) const
@@ -678,7 +668,7 @@ void UAIPerceptionComponent::DescribeSelfToGameplayDebugger(FGameplayDebuggerCat
 			for (const FAIStimulus& Stimulus : ActorPerceptionInfo.LastSensedStimuli)
 			{
 				const UAISenseConfig* SenseConfig = GetSenseConfig(Stimulus.Type);
-				if (Stimulus.Strength >= 0 && SenseConfig)
+				if (Stimulus.IsValid() && (Stimulus.IsExpired() == false) && SenseConfig)
 				{
 					const FString Description = FString::Printf(TEXT("%s: %.2f age:%.2f"), *SenseConfig->GetSenseName(), Stimulus.Strength, Stimulus.GetAge());
 					const FColor DebugColor = SenseConfig->GetDebugColor();

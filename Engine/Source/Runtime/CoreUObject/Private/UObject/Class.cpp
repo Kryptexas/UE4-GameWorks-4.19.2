@@ -1046,7 +1046,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			// check for valid array index
 			else if( Tag.ArrayIndex >= Property->ArrayDim || Tag.ArrayIndex < 0 )
 			{
-				UE_LOG(LogClass, Warning, TEXT("Array bounds in %s of %s: %i/%i for package:  %s"), *Tag.Name.ToString(), *GetName(), Tag.ArrayIndex, Property->ArrayDim, *Ar.GetArchiveName() );
+				UE_LOG(LogClass, Warning, TEXT("Array bound exceeded (var %s=%d, exceeds %s [0-%d] in package:  %s"), 
+					*Tag.Name.ToString(), Tag.ArrayIndex, *GetName(), Property->ArrayDim-1, *Ar.GetArchiveName());
 			}
 
 			// Convert properties from old type to new type automatically if types are compatible

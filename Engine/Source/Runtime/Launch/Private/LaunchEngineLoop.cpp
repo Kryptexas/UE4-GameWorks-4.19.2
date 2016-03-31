@@ -19,6 +19,10 @@
 #include "UObject/DevObjectVersion.h"
 #include "HAL/ThreadHeartBeat.h"
 
+#if WITH_COREUOBJECT
+	#include "CoreUObject/Public/Internationalization/PackageLocalizationManager.h"
+#endif
+
 #if WITH_EDITOR
 	#include "EditorStyle.h"
 	#include "ProfilerClient.h"
@@ -53,6 +57,7 @@
 	#include "ISessionService.h"
 	#include "ISessionServicesModule.h"
 	#include "Engine/GameInstance.h"
+	#include "Internationalization/EnginePackageLocalizationCache.h"
 
 #if !UE_SERVER
 	#include "HeadMountedDisplay.h"
@@ -97,6 +102,14 @@
 
 #if WITH_LAUNCHERCHECK
 	#include "LauncherCheck.h"
+#endif
+
+#if WITH_COREUOBJECT
+	#ifndef USE_LOCALIZED_PACKAGE_CACHE
+		#define USE_LOCALIZED_PACKAGE_CACHE 1
+	#endif
+#else
+	#define USE_LOCALIZED_PACKAGE_CACHE 0
 #endif
 
 // Pipe output to std output
@@ -1423,6 +1436,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	SlowTask.EnterProgressFrame(10);
 
+#if USE_LOCALIZED_PACKAGE_CACHE
+	FPackageLocalizationManager::Get().InitializeFromCache(MakeShareable(new FEnginePackageLocalizationCache()));
+#endif	// USE_LOCALIZED_PACKAGE_CACHE
+
 	// Initialize the RHI.
 	RHIInit(bHasEditorToken);
 
@@ -1447,7 +1464,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// if (!IsRunningCommandlet()) 
 		// hack: don't load global shaders if we are cooking we will load the shaders for the correct platform later
 		FString Commandline = FCommandLine::Get();
-		if (Commandline.Contains(TEXT("cookcommandlet")) == false &&
+		if (!IsRunningDedicatedServer() &&
+			Commandline.Contains(TEXT("cookcommandlet")) == false &&
 			Commandline.Contains(TEXT("run=cook")) == false )
 		// if (FParse::Param(FCommandLine::Get(), TEXT("Multiprocess")) == false)
 		{
@@ -1901,6 +1919,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 #else // WITH_ENGINE
 	EndInitTextLocalization();
+#if USE_LOCALIZED_PACKAGE_CACHE
+	FPackageLocalizationManager::Get().InitializeFromDefaultCache();
+#endif	// USE_LOCALIZED_PACKAGE_CACHE
 	FPlatformMisc::PlatformPostInit();
 #endif // WITH_ENGINE
 

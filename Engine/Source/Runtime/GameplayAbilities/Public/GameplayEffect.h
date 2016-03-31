@@ -1827,7 +1827,7 @@ private:
 
 	void OnMagnitudeDependencyChange(FActiveGameplayEffectHandle Handle, const FAggregator* ChangedAgg);
 
-	void OnStackCountChange(FActiveGameplayEffect& ActiveEffect, int32 OldStackCount);
+	void OnStackCountChange(FActiveGameplayEffect& ActiveEffect, int32 OldStackCount, int32 NewStackCount);
 
 	void UpdateAllAggregatorModMagnitudes(FActiveGameplayEffect& ActiveEffect);
 

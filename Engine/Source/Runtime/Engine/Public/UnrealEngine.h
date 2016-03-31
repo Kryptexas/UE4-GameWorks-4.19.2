@@ -59,7 +59,7 @@ public:
 };
 
 //	PlayerControllerIterators
-//	This is the safest, most effecient way to iterate over player controllers.
+//	This is the safest, most efficient way to iterate over player controllers.
 //
 //	Examples:
 //

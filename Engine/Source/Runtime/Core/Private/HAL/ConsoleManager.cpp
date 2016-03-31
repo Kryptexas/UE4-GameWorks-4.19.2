@@ -860,6 +860,7 @@ void FConsoleManager::UnregisterConsoleObject(IConsoleObject* CVar, bool bKeepSt
 	{
 		return;
 	}
+	FScopeLock ScopeLock(&ConsoleObjectsSynchronizationObject);
 
 	// Slow search for console object
 	const FString ObjName = FindConsoleObjectName( CVar );
@@ -872,12 +873,12 @@ void FConsoleManager::UnregisterConsoleObject(IConsoleObject* CVar, bool bKeepSt
 
 void FConsoleManager::UnregisterConsoleObject(const TCHAR* Name, bool bKeepState)
 {
+	FScopeLock ScopeLock(&ConsoleObjectsSynchronizationObject);
+
 	IConsoleObject* Object = FindConsoleObject(Name);
 
 	if(Object)
 	{
-		FScopeLock ScopeLock(&ConsoleObjectsSynchronizationObject);
-
 		IConsoleVariable* CVar = Object->AsVariable();
 
 		if(CVar && bKeepState)
@@ -2198,9 +2199,3 @@ static TAutoConsoleVariable<int32> CVarCheckSRVTransitions(
 	0,
 	TEXT("Tests that render targets are properly transitioned to SRV when SRVs are set."),
 	ECVF_RenderThreadSafe);  
-
-static TAutoConsoleVariable<int32> CVarHLODSystemEnabled(
-	TEXT("r.HLODEnabled"), 
-	1,
-	TEXT("Toggles whether or not the Hierarchical LOD system is enabled."),
-	ECVF_Scalability | ECVF_RenderThreadSafe);

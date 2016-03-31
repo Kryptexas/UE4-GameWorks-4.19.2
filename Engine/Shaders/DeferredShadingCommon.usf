@@ -347,7 +347,7 @@ struct FGBufferData
 	// 0..1, only needed by SHADINGMODELID_SUBSURFACE_PROFILE which applies BaseColor later
 	float3 StoredBaseColor;
 	// 0..1, only needed by SHADINGMODELID_SUBSURFACE_PROFILE which applies Specular later
-	float3 StoredSpecular;
+	float StoredSpecular;
 };
 
 bool HasDistanceFieldRepresentation(FGBufferData GBufferData)

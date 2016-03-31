@@ -276,37 +276,40 @@ void FMaterialInstanceResource::GameThread_SetParent(UMaterialInterface* ParentM
 	}
 }
 
-ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER_DECLARE_TEMPLATE(
-	SetMIParameterValue,ParameterType,
-	const UMaterialInstance*,Instance,Instance,
-	FName,ParameterName,Parameter.ParameterName,
-	typename ParameterType::ValueType,Value,ParameterType::GetValue(Parameter),
-{
-	Instance->Resources[0]->RenderThread_UpdateParameter(ParameterName, Value);
-	if (Instance->Resources[1])
+ENQUEUE_UNIQUE_RENDER_COMMAND_FIVEPARAMETER_DECLARE_TEMPLATE(
+	SetMIParameterValue, ParameterType,
+	FMaterialInstanceResource*, Resource0, Resource0,
+	FMaterialInstanceResource*, Resource1, Resource1,
+	FMaterialInstanceResource*, Resource2, Resource2,
+	FName, ParameterName, Parameter.ParameterName,
+	typename ParameterType::ValueType, Value, ParameterType::GetValue(Parameter),
 	{
-		Instance->Resources[1]->RenderThread_UpdateParameter(ParameterName, Value);
-	}
-	if (Instance->Resources[2])
-	{
-		Instance->Resources[2]->RenderThread_UpdateParameter(ParameterName, Value);
-	}
-});
+		Resource0->RenderThread_UpdateParameter(ParameterName, Value);
+		if (Resource1)
+		{
+			Resource1->RenderThread_UpdateParameter(ParameterName, Value);
+		}
+		if (Resource2)
+		{
+			Resource2->RenderThread_UpdateParameter(ParameterName, Value);
+		}
+	});
 
 /**
- * Updates a parameter on the material instance from the game thread.
- */
+* Updates a parameter on the material instance from the game thread.
+*/
 template <typename ParameterType>
 void GameThread_UpdateMIParameter(const UMaterialInstance* Instance, const ParameterType& Parameter)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER_CREATE_TEMPLATE(
-		SetMIParameterValue,ParameterType,
-		const UMaterialInstance*,Instance,
-		FName,Parameter.ParameterName,
-		typename ParameterType::ValueType,ParameterType::GetValue(Parameter)
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FIVEPARAMETER_CREATE_TEMPLATE(
+		SetMIParameterValue, ParameterType,
+		FMaterialInstanceResource*, Instance->Resources[0],
+		FMaterialInstanceResource*, Instance->Resources[1],
+		FMaterialInstanceResource*, Instance->Resources[2],
+		FName, Parameter.ParameterName,
+		typename ParameterType::ValueType, ParameterType::GetValue(Parameter)
 		);
 }
-
 
 bool UMaterialInstance::UpdateParameters()
 {

@@ -262,8 +262,8 @@ namespace AutomationTool
 					case "Local":
 						ReadLocalProperty(Element);
 						break;
-					case "Group":
-						ReadGroup(Element, null);
+					case "Agent":
+						ReadAgent(Element, null);
 						break;
 					case "Aggregate":
 						ReadAggregate(Element);
@@ -273,6 +273,12 @@ namespace AutomationTool
 						break;
 					case "Trigger":
 						ReadTrigger(Element);
+						break;
+					case "Warning":
+						ReadDiagnostic(Element, LogEventType.Warning, null, null, null);
+						break;
+					case "Error":
+						ReadDiagnostic(Element, LogEventType.Error, null, null, null);
 						break;
 					default:
 						LogError(Element, "Invalid element '{0}'", Element.Name);
@@ -372,14 +378,20 @@ namespace AutomationTool
 						case "Local":
 							ReadLocalProperty(ChildElement);
 							break;
-						case "Group":
-							ReadGroup(ChildElement, Trigger);
+						case "Agent":
+							ReadAgent(ChildElement, Trigger);
 							break;
 						case "Aggregate":
 							ReadAggregate(ChildElement);
 							break;
 						case "Notifier":
 							ReadNotifier(ChildElement);
+							break;
+						case "Warning":
+							ReadDiagnostic(ChildElement, LogEventType.Warning, null, null, Trigger);
+							break;
+						case "Error":
+							ReadDiagnostic(ChildElement, LogEventType.Error, null, null, Trigger);
 							break;
 						default:
 							LogError(ChildElement, "Invalid element '{0}'", ChildElement.Name);
@@ -419,8 +431,11 @@ namespace AutomationTool
 		{
 			if(EvaluateCondition(Element))
 			{
-				string Name = Element.GetAttribute("Name");
-				GlobalProperties[Name] = ReadAttribute(Element, "Value");
+				string Name = ReadAttribute(Element, "Name");
+				if(ValidateName(Element, Name))
+				{
+					GlobalProperties[Name] = ReadAttribute(Element, "Value");
+				}
 			}
 		}
 
@@ -432,8 +447,11 @@ namespace AutomationTool
 		{
 			if(EvaluateCondition(Element))
 			{
-				string Name = Element.GetAttribute("Name");
-				ScopedProperties[ScopedProperties.Count - 1][Name] = ReadAttribute(Element, "Value");
+				string Name = ReadAttribute(Element, "Name");
+				if(ValidateName(Element, Name))
+				{
+					ScopedProperties[ScopedProperties.Count - 1][Name] = ReadAttribute(Element, "Value");
+				}
 			}
 		}
 
@@ -442,29 +460,35 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Element">Xml element to read the definition from</param>
 		/// <param name="Trigger">The controlling trigger for nodes in this group</param>
-		void ReadGroup(ScriptElement Element, ManualTrigger Trigger)
+		void ReadAgent(ScriptElement Element, ManualTrigger Trigger)
 		{
 			string Name;
 			if(EvaluateCondition(Element) && TryReadObjectName(Element, out Name))
 			{
+				// Read the valid agent types. This may be omitted if we're continuing an existing group.
+				string[] Types = ReadListAttribute(Element, "Type");
+
 				// Create the group object, or continue an existing one
 				AgentGroup Group;
 				if(NameToGroup.TryGetValue(Name, out Group))
 				{
-					if(Element.HasAttribute("Agent"))
+					if(Types.Length > 0 && Group.PossibleTypes.Length > 0)
 					{
-						LogError(Element, "Agent may only be specified for first definition of a group");
+						string[] NewTypes = Group.PossibleTypes.Intersect(Types, StringComparer.InvariantCultureIgnoreCase).ToArray();
+						if(NewTypes.Length == 0)
+						{
+							LogError(Element, "No common agent types with previous agent definition");
+						}
+						Group.PossibleTypes = NewTypes;
 					}
 				}
 				else
 				{
-					string[] AgentTypes = ReadListAttribute(Element, "Agent");
-					if(AgentTypes.Length == 0)
+					if(Types.Length == 0)
 					{
 						LogError(Element, "Missing agent type for group '{0}'", Name);
 					}
-
-					Group = new AgentGroup(Name, AgentTypes);
+					Group = new AgentGroup(Name, Types);
 					NameToGroup.Add(Name, Group);
 					Graph.Groups.Add(Group);
 				}
@@ -487,6 +511,12 @@ namespace AutomationTool
 						case "Aggregate":
 							ReadAggregate(ChildElement);
 							break;
+						case "Warning":
+							ReadDiagnostic(ChildElement, LogEventType.Warning, null, Group, Trigger);
+							break;
+						case "Error":
+							ReadDiagnostic(ChildElement, LogEventType.Error, null, Group, Trigger);
+							break;
 						default:
 							LogError(ChildElement, "Unexpected element type '{0}'", ChildElement.Name);
 							break;
@@ -505,7 +535,7 @@ namespace AutomationTool
 			string Name;
 			if(EvaluateCondition(Element) && TryReadObjectName(Element, out Name) && CheckNameIsUnique(Element, Name))
 			{
-				string[] RequiredNames = ReadTagListAttribute(Element, "Requires");
+				string[] RequiredNames = ReadListAttribute(Element, "Requires");
 				Graph.AggregateNameToNodes.Add(Name, ResolveReferences(Element, RequiredNames).ToArray());
 			}
 		}
@@ -521,55 +551,24 @@ namespace AutomationTool
 			string Name;
 			if(EvaluateCondition(Element) && TryReadObjectName(Element, out Name))
 			{
-				string[] InputNames = ReadTagListAttribute(Element, "Requires");
-				string[] OutputNames = ReadTagListAttribute(Element, "Produces");
-				string[] AfterNames = ReadTagListAttribute(Element, "After");
+				string[] RequiresNames = ReadListAttribute(Element, "Requires");
+				string[] ProducesNames = ReadListAttribute(Element, "Produces");
+				string[] AfterNames = ReadListAttribute(Element, "After");
 
-				// Add all the tasks
-				EnterScope();
-				List<CustomTask> Tasks = new List<CustomTask>();
-				foreach(ScriptElement ChildElement in Element.ChildNodes.OfType<ScriptElement>())
-				{
-					switch(ChildElement.Name)
-					{
-						case "Property":
-							ReadProperty(ChildElement);
-							break;
-						case "Local":
-							ReadLocalProperty(ChildElement);
-							break;
-						default:
-							ReadTask(ChildElement, Tasks);
-							break;
-					}
-				}
-				LeaveScope();
+				// Resolve all the inputs we depend on
+				HashSet<NodeOutput> Inputs = ResolveInputReferences(Element, RequiresNames);
 
-				// Expand every node name in the list of inputs to include all of that node's inputs, recursively, plus its named outputs.
-				HashSet<string> ExpandedInputNames = new HashSet<string>(InputNames, StringComparer.InvariantCultureIgnoreCase);
-				foreach(string InputName in InputNames)
-				{
-					Node InputNode;
-					if(Graph.NameToNode.TryGetValue(InputName, out InputNode))
-					{
-						ExpandedInputNames.UnionWith(InputNode.InputNames);
-						ExpandedInputNames.UnionWith(InputNode.OutputNames);
-					}
-				}
-				InputNames = ExpandedInputNames.ToArray();
-
-				// Add the name of the node itself to the list of outputs.
-				OutputNames = OutputNames.Union(new string[]{ Name }, StringComparer.InvariantCultureIgnoreCase).ToArray();
-
-				// Gather up all the input dependencies
-				HashSet<Node> InputDependencies = ResolveReferences(Element, InputNames);
-
-				// Check they're all upstream of the current node
-				foreach(Node InputDependency in InputDependencies)
+				// Gather up all the input dependencies, and check they're all upstream of the current node
+				HashSet<Node> InputDependencies = new HashSet<Node>();
+				foreach(Node InputDependency in Inputs.Select(x => x.ProducingNode).Distinct())
 				{
 					if(InputDependency.ControllingTrigger != null && InputDependency.ControllingTrigger != ControllingTrigger && !InputDependency.ControllingTrigger.IsUpstreamFrom(ControllingTrigger))
 					{
 						LogError(Element, "'{0}' is dependent on '{1}', which is behind a different controlling trigger ({2})", Name, InputDependency.Name, InputDependency.ControllingTrigger.QualifiedName);
+					}
+					else
+					{
+						InputDependencies.Add(InputDependency);
 					}
 				}
 
@@ -579,25 +578,81 @@ namespace AutomationTool
 					InputDependencies.UnionWith(InputDependency.InputDependencies);
 				}
 
+				// Add the name of the node itself to the list of outputs.
+				List<string> OutputNames = new List<string>();
+				foreach(string ProducesName in ProducesNames)
+				{
+					if(ProducesName.StartsWith("#"))
+					{
+						OutputNames.Add(ProducesName.Substring(1));
+					}
+					else
+					{
+						LogError(Element, "Output tag names must begin with a '#' character ('{0}')", ProducesName);
+					}
+				}
+				OutputNames.Add(Name);
+
 				// Gather up all the order dependencies
-				HashSet<Node> OrderDependencies = ResolveReferences(Element, AfterNames);
-				OrderDependencies.UnionWith(InputDependencies);
+				HashSet<Node> OrderDependencies = new HashSet<Node>(InputDependencies);
+				OrderDependencies.UnionWith(ResolveReferences(Element, AfterNames));
+
+				// Recursively include all their order dependencies too
+				foreach(Node OrderDependency in OrderDependencies.ToArray())
+				{
+					OrderDependencies.UnionWith(OrderDependency.OrderDependencies);
+				}
+
+				// Check that we're not dependent on anything completing that is declared after the initial declaration of this group.
+				int GroupIdx = Graph.Groups.IndexOf(Group);
+				for(int Idx = GroupIdx + 1; Idx < Graph.Groups.Count; Idx++)
+				{
+					foreach(Node Node in Graph.Groups[Idx].Nodes.Where(x => OrderDependencies.Contains(x)))
+					{
+						LogError(Element, "Node '{0}' has a dependency on '{1}', which was declared after the initial definition of '{2}'.", Name, Node.Name, Group.Name);
+					}
+				}
 
 				// Construct and register the node
 				if(CheckNameIsUnique(Element, Name))
 				{
 					// Add it to the node lookup
-					Node NewNode = new Node(Name, InputNames, OutputNames, InputDependencies.ToArray(), OrderDependencies.ToArray(), ControllingTrigger, Tasks);
+					Node NewNode = new Node(Name, Inputs.ToArray(), OutputNames.ToArray(), InputDependencies.ToArray(), OrderDependencies.ToArray(), ControllingTrigger);
 					Graph.NameToNode.Add(Name, NewNode);
 
 					// Register each of the outputs as a reference to this node
-					foreach(string OutputName in OutputNames)
+					foreach(NodeOutput Output in NewNode.Outputs)
 					{
-						if(String.Compare(OutputName, Name, StringComparison.InvariantCultureIgnoreCase) == 0 || CheckNameIsUnique(Element, OutputName))
+						if(Output.Name == Name || CheckNameIsUnique(Element, Output.Name))
 						{
-							Graph.OutputNameToNode.Add(OutputName, NewNode);
+							Graph.NameToNodeOutput.Add(Output.Name, Output);
 						}
 					}
+
+					// Add all the tasks
+					EnterScope();
+					foreach(ScriptElement ChildElement in Element.ChildNodes.OfType<ScriptElement>())
+					{
+						switch(ChildElement.Name)
+						{
+							case "Property":
+								ReadProperty(ChildElement);
+								break;
+							case "Local":
+								ReadLocalProperty(ChildElement);
+								break;
+							case "Warning":
+								ReadDiagnostic(ChildElement, LogEventType.Warning, NewNode, Group, ControllingTrigger);
+								break;
+							case "Error":
+								ReadDiagnostic(ChildElement, LogEventType.Error, NewNode, Group, ControllingTrigger);
+								break;
+							default:
+								ReadTask(ChildElement, NewNode.Tasks);
+								break;
+						}
+					}
+					LeaveScope();
 
 					// Add it to the current agent group
 					Group.Nodes.Add(NewNode);
@@ -684,10 +739,10 @@ namespace AutomationTool
 		{
 			if(EvaluateCondition(Element))
 			{
-				string[] TargetNames = ReadTagListAttribute(Element, "Targets");
-				string[] ExceptNames = ReadTagListAttribute(Element, "Except");
-				string[] IndividualNodeNames = ReadTagListAttribute(Element, "Nodes");
-				string[] TriggerNames = ReadTagListAttribute(Element, "Triggers");
+				string[] TargetNames = ReadListAttribute(Element, "Targets");
+				string[] ExceptNames = ReadListAttribute(Element, "Except");
+				string[] IndividualNodeNames = ReadListAttribute(Element, "Nodes");
+				string[] TriggerNames = ReadListAttribute(Element, "Triggers");
 				string[] Users = ReadListAttribute(Element, "Users");
 				string[] Submitters = ReadListAttribute(Element, "Submitters");
 				bool? bWarnings = Element.HasAttribute("Warnings")? (bool?)ReadBooleanAttribute(Element, "Warnings", true) : null;
@@ -755,6 +810,28 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Reads a warning from the given element, evaluates the condition on it, and writes it to the log if the condition passes.
+		/// </summary>
+		/// <param name="Element">Xml element to read the definition from</param>
+		/// <param name="EventType">The diagnostic event type</param>
+		/// <param name="EnclosingObject">The enclosing object instance</param>
+		void ReadDiagnostic(ScriptElement Element, LogEventType EventType, Node EnclosingNode, AgentGroup EnclosingGroup, ManualTrigger EnclosingTrigger)
+		{
+			if(EvaluateCondition(Element))
+			{
+				string Message = ReadAttribute(Element, "Message");
+
+				GraphDiagnostic Diagnostic = new GraphDiagnostic();
+				Diagnostic.EventType = EventType;
+				Diagnostic.Message = String.Format("{0}({1}): {2}", Element.File.FullName, Element.LineNumber, Message);
+				Diagnostic.EnclosingNode = EnclosingNode;
+				Diagnostic.EnclosingGroup = EnclosingGroup;
+				Diagnostic.EnclosingTrigger = EnclosingTrigger;
+				Graph.Diagnostics.Add(Diagnostic);
+			}
+		}
+
+		/// <summary>
 		/// Checks that the given name does not already used to refer to a node, and print an error if it is.
 		/// </summary>
 		/// <param name="Element">Xml element to read from</param>
@@ -764,8 +841,7 @@ namespace AutomationTool
 		bool CheckNameIsUnique(ScriptElement Element, string Name)
 		{
 			// Get the nodes that it maps to
-			Node[] OtherNodes;
-			if(Graph.TryResolveReference(Name, out OtherNodes))
+			if(Graph.ContainsName(Name))
 			{
 				LogError(Element, "'{0}' is already defined; cannot add a second time", Name);
 				return false;
@@ -777,24 +853,56 @@ namespace AutomationTool
 		/// Resolve a list of references to a set of nodes
 		/// </summary>
 		/// <param name="Element">Element used to locate any errors</param>
-		/// <param name="ReferencedNames">Sequence of names to look up</param>
+		/// <param name="ReferenceNames">Sequence of names to look up</param>
 		/// <returns>Hashset of all the nodes included by the given names</returns>
-		HashSet<Node> ResolveReferences(ScriptElement Element, IEnumerable<string> ReferencedNames)
+		HashSet<Node> ResolveReferences(ScriptElement Element, IEnumerable<string> ReferenceNames)
 		{
 			HashSet<Node> Nodes = new HashSet<Node>();
-			foreach(string ReferencedName in ReferencedNames)
+			foreach(string ReferenceName in ReferenceNames)
 			{
 				Node[] OtherNodes;
-				if(Graph.TryResolveReference(ReferencedName, out OtherNodes))
+				if(Graph.TryResolveReference(ReferenceName, out OtherNodes))
 				{
 					Nodes.UnionWith(OtherNodes);
 				}
+				else if(!ReferenceName.StartsWith("#") && Graph.NameToNodeOutput.ContainsKey(ReferenceName))
+				{
+					LogError(Element, "Reference to '{0}' cannot be resolved; did you mean '#{0}'?", ReferenceName);
+				}
 				else
 				{
-					LogError(Element, "Reference to '{0}' cannot be resolved; check it has been defined.", ReferencedName);
+					LogError(Element, "Reference to '{0}' cannot be resolved; check it has been defined.", ReferenceName);
 				}
 			}
 			return Nodes;
+		}
+
+		/// <summary>
+		/// Resolve a list of references to a set of nodes
+		/// </summary>
+		/// <param name="Element">Element used to locate any errors</param>
+		/// <param name="ReferenceNames">Sequence of names to look up</param>
+		/// <returns>Set of all the nodes included by the given names</returns>
+		HashSet<NodeOutput> ResolveInputReferences(ScriptElement Element, IEnumerable<string> ReferenceNames)
+		{
+			HashSet<NodeOutput> Inputs = new HashSet<NodeOutput>();
+			foreach(string ReferenceName in ReferenceNames)
+			{
+				NodeOutput[] ReferenceInputs;
+				if(Graph.TryResolveInputReference(ReferenceName, out ReferenceInputs))
+				{
+					Inputs.UnionWith(ReferenceInputs);
+				}
+				else if(!ReferenceName.StartsWith("#") && Graph.NameToNodeOutput.ContainsKey(ReferenceName))
+				{
+					LogError(Element, "Reference to '{0}' cannot be resolved; did you mean '#{0}'?", ReferenceName);
+				}
+				else
+				{
+					LogError(Element, "Reference to '{0}' cannot be resolved; check it has been defined.", ReferenceName);
+				}
+			}
+			return Inputs;
 		}
 
 		/// <summary>
@@ -911,18 +1019,6 @@ namespace AutomationTool
 		{
 			string Value = ReadAttribute(Element, Name);
 			return Value.Split(new char[]{ ';' }).Select(x => x.Trim()).Where(x => x.Length > 0).ToArray();
-		}
-
-		/// <summary>
-		/// Expands any properties and reads a list of tag names from an attribute, separated by semi-colon characters. Strips leading '#' characters from each name.
-		/// </summary>
-		/// <param name="Element">Element to read the attribute from</param>
-		/// <param name="Name">Name of the attribute</param>
-		/// <returns>Array of tag names, with all leading and trailing whitespace, and any initial '#' character removed</returns>
-		string[] ReadTagListAttribute(ScriptElement Element, string Name)
-		{
-			string[] Values = ReadListAttribute(Element, Name);
-			return Values.Select(x => x.StartsWith("#")? x.Substring(1) : x).ToArray();
 		}
 
 		/// <summary>

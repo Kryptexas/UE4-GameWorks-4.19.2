@@ -124,13 +124,14 @@ void UOnlineHotfixManager::StartHotfixProcess()
 	bool bShouldHotfix = IsRunningGame() || IsRunningDedicatedServer() || IsRunningClientOnly();
 	if (!bShouldHotfix)
 	{
-		UE_LOG(LogHotfixManager, Warning, TEXT("Hotfixing skipped due to IsRunningGame() == false"));
+		UE_LOG(LogHotfixManager, Warning, TEXT("Hotfixing skipped when not running game/server"));
 		TriggerHotfixComplete(EHotfixResult::SuccessNoChange);
 		return;
 	}
 
 	if (bHotfixingInProgress)
 	{
+		UE_LOG(LogHotfixManager, Warning, TEXT("Hotfixing already in progress"));
 		return;
 	}
 
@@ -263,6 +264,97 @@ void UOnlineHotfixManager::OnEnumerateFilesComplete(bool bWasSuccessful)
 		UE_LOG(LogHotfixManager, Error, TEXT("Enumeration of hotfix files failed"));
 		TriggerHotfixComplete(EHotfixResult::Failed);
 	}
+}
+
+void UOnlineHotfixManager::CheckAvailability(FOnHotfixAvailableComplete& InCompletionDelegate)
+{
+	// Checking for hotfixes in editor is not supported
+	bool bShouldHotfix = IsRunningGame() || IsRunningDedicatedServer() || IsRunningClientOnly();
+	if (!bShouldHotfix)
+	{
+		UE_LOG(LogHotfixManager, Warning, TEXT("Hotfixing availability skipped when not running game/server"));
+		InCompletionDelegate.ExecuteIfBound(EHotfixResult::SuccessNoChange);
+		return;
+	}
+
+	if (bHotfixingInProgress)
+	{
+		UE_LOG(LogHotfixManager, Warning, TEXT("Hotfixing availability skipped because hotfix in progress"));
+		InCompletionDelegate.ExecuteIfBound(EHotfixResult::Failed);
+		return;
+	}
+
+	OnlineTitleFile = Online::GetTitleFileInterface(OSSName.Len() ? FName(*OSSName, FNAME_Find) : NAME_None);
+
+	FOnEnumerateFilesCompleteDelegate OnEnumerateFilesForAvailabilityCompleteDelegate;
+	OnEnumerateFilesForAvailabilityCompleteDelegate.BindUObject(this, &UOnlineHotfixManager::OnEnumerateFilesForAvailabilityComplete, InCompletionDelegate);
+	OnEnumerateFilesForAvailabilityCompleteDelegateHandle = OnlineTitleFile->AddOnEnumerateFilesCompleteDelegate_Handle(OnEnumerateFilesForAvailabilityCompleteDelegate);
+
+	bHotfixingInProgress = true;
+
+	// Kick off an enumeration of the files that are available to download
+	if (OnlineTitleFile.IsValid())
+	{
+		OnlineTitleFile->EnumerateFiles();
+	}
+	else
+	{
+		UE_LOG(LogHotfixManager, Error, TEXT("Failed to start the hotfix check process due to no OnlineTitleInterface present for OSS(%s)"), *OSSName);
+		TriggerHotfixComplete(EHotfixResult::Failed);
+	}
+}
+
+void UOnlineHotfixManager::OnEnumerateFilesForAvailabilityComplete(bool bWasSuccessful, FOnHotfixAvailableComplete InCompletionDelegate)
+{
+	if (OnlineTitleFile.IsValid())
+	{
+		OnlineTitleFile->ClearOnEnumerateFilesCompleteDelegate_Handle(OnEnumerateFilesForAvailabilityCompleteDelegateHandle);
+	}
+	
+	EHotfixResult Result = EHotfixResult::Failed;
+	if (bWasSuccessful)
+	{
+		TArray<FCloudFileHeader> TmpHotfixFileList;
+		TArray<FCloudFileHeader> TmpLastHotfixFileList;
+
+		TmpHotfixFileList = HotfixFileList;
+		TmpLastHotfixFileList = LastHotfixFileList;
+
+		// Cache our current set so we can compare for differences
+		LastHotfixFileList = HotfixFileList;
+		HotfixFileList.Empty();
+		// Get the new header data
+		OnlineTitleFile->GetFileList(HotfixFileList);
+		FilterHotfixFiles();
+		// Reduce the set of work to just the files that changed since last run
+		BuildHotfixFileListDeltas();
+
+		// Read any changed files
+		if (ChangedHotfixFileList.Num() > 0 || RemovedHotfixFileList.Num() > 0)
+		{
+			UE_LOG(LogHotfixManager, Display, TEXT("Hotfix files available"));
+			Result = EHotfixResult::Success;
+		}
+		else
+		{
+			UE_LOG(LogHotfixManager, Display, TEXT("Returned hotfix data is the same as last application, returning nothing to do"));
+			Result = EHotfixResult::SuccessNoChange;
+		}
+
+		// Restore state to before the check
+		RemovedHotfixFileList.Empty();
+		ChangedHotfixFileList.Empty();
+		HotfixFileList = TmpHotfixFileList;
+		LastHotfixFileList = TmpLastHotfixFileList;
+	}
+	else
+	{
+		UE_LOG(LogHotfixManager, Error, TEXT("Enumeration of hotfix files failed"));
+	}
+
+	OnlineTitleFile = nullptr;
+	bHotfixingInProgress = false;
+	InCompletionDelegate.ExecuteIfBound(Result);
 }
 
 void UOnlineHotfixManager::BuildHotfixFileListDeltas()
@@ -853,20 +945,6 @@ void UOnlineHotfixManager::RestoreBackupIniFiles()
 	}
 	UE_LOG(LogHotfixManager, Log, TEXT("Restoring config for %d changed INI files took %f seconds reloading %d objects"),
 		RestoredInis.Num(), FPlatformTime::Seconds() - StartTime, NumObjectsReloaded);
-}
-
-bool UOnlineHotfixManager::DoesHotfixFileMatchLastVersion(const FCloudFileHeader& Header)
-{
-	// Searches the last hotfix file array to determine if this header matches the previous
-	// This is an optimization to avoid applying files that haven't changed
-	for (auto& LastFileHeader : LastHotfixFileList)
-	{
-		if (Header.FileName == LastFileHeader.FileName && Header.Hash == LastFileHeader.Hash)
-		{
-			return true;
-		}
-	}
-	return false;
 }
 
 struct FHotfixManagerExec :

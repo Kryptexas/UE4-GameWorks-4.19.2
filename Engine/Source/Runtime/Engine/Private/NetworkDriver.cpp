@@ -33,15 +33,22 @@
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);
 DEFINE_STAT(STAT_Channels);
+DEFINE_STAT(STAT_MaxPacketOverhead);
 DEFINE_STAT(STAT_InRate);
 DEFINE_STAT(STAT_OutRate);
 DEFINE_STAT(STAT_OutSaturation);
 DEFINE_STAT(STAT_InRateClientMax);
 DEFINE_STAT(STAT_InRateClientMin);
 DEFINE_STAT(STAT_InRateClientAvg);
+DEFINE_STAT(STAT_InPacketsClientMax);
+DEFINE_STAT(STAT_InPacketsClientMin);
+DEFINE_STAT(STAT_InPacketsClientAvg);
 DEFINE_STAT(STAT_OutRateClientMax);
 DEFINE_STAT(STAT_OutRateClientMin);
 DEFINE_STAT(STAT_OutRateClientAvg);
+DEFINE_STAT(STAT_OutPacketsClientMax);
+DEFINE_STAT(STAT_OutPacketsClientMin);
+DEFINE_STAT(STAT_OutPacketsClientAvg);
 DEFINE_STAT(STAT_NetNumClients);
 DEFINE_STAT(STAT_InPackets);
 DEFINE_STAT(STAT_OutPackets);
@@ -313,10 +320,17 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		int32 ClientInBytesMax = 0;
 		int32 ClientInBytesMin = 0;
 		int32 ClientInBytesAvg = 0;
+		int32 ClientInPacketsMax = 0;
+		int32 ClientInPacketsMin = 0;
+		int32 ClientInPacketsAvg = 0;
 		int32 ClientOutBytesMax = 0;
 		int32 ClientOutBytesMin = 0;
 		int32 ClientOutBytesAvg = 0;
+		int32 ClientOutPacketsMax = 0;
+		int32 ClientOutPacketsMin = 0;
+		int32 ClientOutPacketsAvg = 0;
 		int NumClients = 0;
+		int32 MaxPacketOverhead = 0;
 		float RemoteSaturationMax = 0.0f;
 
 		// these need to be updated even if we are not collecting stats, since they get reported to analytics/QoS
@@ -324,19 +338,22 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		{
 			if (Client)
 			{
-				ClientInBytesMax = FMath::Max(ClientInBytesMax, Client->InBytesPerSecond);
-				if (ClientInBytesMin == 0 || Client->InBytesPerSecond < ClientInBytesMin)
-				{
-					ClientInBytesMin = Client->InBytesPerSecond;
-				}
-				ClientInBytesAvg += Client->InBytesPerSecond;
+#define UpdatePerClientMinMaxAvg(VariableName) \
+				Client##VariableName##Max = FMath::Max(Client##VariableName##Max, Client->VariableName##PerSecond); \
+				if (Client##VariableName##Min == 0 || Client->VariableName##PerSecond < Client##VariableName##Min) \
+				{ \
+					Client##VariableName##Min = Client->VariableName##PerSecond; \
+				} \
+				Client##VariableName##Avg += Client->VariableName##PerSecond; \
 
-				ClientOutBytesMax = FMath::Max(ClientOutBytesMax, Client->OutBytesPerSecond);
-				if (ClientOutBytesMin == 0 || Client->OutBytesPerSecond < ClientOutBytesMin)
-				{
-					ClientOutBytesMin = Client->OutBytesPerSecond;
-				}
-				ClientOutBytesAvg += Client->OutBytesPerSecond;
+				UpdatePerClientMinMaxAvg(InBytes);
+				UpdatePerClientMinMaxAvg(OutBytes);
+				UpdatePerClientMinMaxAvg(InPackets);
+				UpdatePerClientMinMaxAvg(OutPackets);
+
+				MaxPacketOverhead = FMath::Max(Client->PacketOverhead, MaxPacketOverhead);
+
+#undef UpdatePerClientMinMaxAvg
 
 				++NumClients;
 			}
@@ -345,7 +362,9 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		if (NumClients > 1)
 		{
 			ClientInBytesAvg /= NumClients;
+			ClientInPacketsAvg /= NumClients;
 			ClientOutBytesAvg /= NumClients;
+			ClientOutPacketsAvg /= NumClients;
 		}
 
 #if STATS
@@ -442,6 +461,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		// Copy the net status values over
 		SET_DWORD_STAT(STAT_Ping, Ping);
 		SET_DWORD_STAT(STAT_Channels, NumOpenChannels);
+		SET_DWORD_STAT(STAT_MaxPacketOverhead, MaxPacketOverhead);
 
 		SET_DWORD_STAT(STAT_OutLoss, OutPacketsLost);
 		SET_DWORD_STAT(STAT_InLoss, InPacketsLost);
@@ -451,9 +471,15 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		SET_DWORD_STAT(STAT_InRateClientMax, ClientInBytesMax);
 		SET_DWORD_STAT(STAT_InRateClientMin, ClientInBytesMin);
 		SET_DWORD_STAT(STAT_InRateClientAvg, ClientInBytesAvg);
+		SET_DWORD_STAT(STAT_InPacketsClientMax, ClientInPacketsMax);
+		SET_DWORD_STAT(STAT_InPacketsClientMin, ClientInPacketsMin);
+		SET_DWORD_STAT(STAT_InPacketsClientAvg, ClientInPacketsAvg);
 		SET_DWORD_STAT(STAT_OutRateClientMax, ClientOutBytesMax);
 		SET_DWORD_STAT(STAT_OutRateClientMin, ClientOutBytesMin);
 		SET_DWORD_STAT(STAT_OutRateClientAvg, ClientOutBytesAvg);
+		SET_DWORD_STAT(STAT_OutPacketsClientMax, ClientOutPacketsMax);
+		SET_DWORD_STAT(STAT_OutPacketsClientMin, ClientOutPacketsMin);
+		SET_DWORD_STAT(STAT_OutPacketsClientAvg, ClientOutPacketsAvg);
 
 		SET_DWORD_STAT(STAT_NetNumClients, NumClients);
 		SET_DWORD_STAT(STAT_InPackets, InPackets);
@@ -562,12 +588,19 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			// set the per connection stats (these are calculated earlier).
 			// Note that NumClients may be != NumConnections. Also, if NumClients is 0, the rest of counters should be 0 as well
 			PerfCounters->Set(TEXT("NumClients"), NumClients);
+			PerfCounters->Set(TEXT("MaxPacketOverhead"), MaxPacketOverhead);
 			PerfCounters->Set(TEXT("InRateClientMax"), ClientInBytesMax);
 			PerfCounters->Set(TEXT("InRateClientMin"), ClientInBytesMin);
 			PerfCounters->Set(TEXT("InRateClientAvg"), ClientInBytesAvg);
+			PerfCounters->Set(TEXT("InPacketsClientMax"), ClientInPacketsMax);
+			PerfCounters->Set(TEXT("InPacketsClientMin"), ClientInPacketsMin);
+			PerfCounters->Set(TEXT("InPacketsClientAvg"), ClientInPacketsAvg);
 			PerfCounters->Set(TEXT("OutRateClientMax"), ClientOutBytesMax);
 			PerfCounters->Set(TEXT("OutRateClientMin"), ClientOutBytesMin);
 			PerfCounters->Set(TEXT("OutRateClientAvg"), ClientOutBytesAvg);
+			PerfCounters->Set(TEXT("OutPacketsClientMax"), ClientOutPacketsMax);
+			PerfCounters->Set(TEXT("OutPacketsClientMin"), ClientOutPacketsMin);
+			PerfCounters->Set(TEXT("OutPacketsClientAvg"), ClientOutPacketsAvg);
 
 			PerfCounters->Set(TEXT("InRate"), InBytes);
 			PerfCounters->Set(TEXT("OutRate"), OutBytes);

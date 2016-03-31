@@ -339,7 +339,7 @@ public:
 	* @param Other - draw policy to compare
 	* @return true if the draw policies are a match
 	*/
-	bool Matches(const TDistortionMeshDrawingPolicy& Other) const;
+	FDrawingPolicyMatchResult Matches(const TDistortionMeshDrawingPolicy& Other) const;
 
 	/**
 	* Executes the draw commands which can be shared between any meshes using this drawer.
@@ -438,17 +438,19 @@ TDistortionMeshDrawingPolicy<DistortMeshPolicy>::TDistortionMeshDrawingPolicy(
 * @return true if the draw policies are a match
 */
 template<class DistortMeshPolicy>
-bool TDistortionMeshDrawingPolicy<DistortMeshPolicy>::Matches(
+FDrawingPolicyMatchResult TDistortionMeshDrawingPolicy<DistortMeshPolicy>::Matches(
 	const TDistortionMeshDrawingPolicy& Other
 	) const
 {
-	return FMeshDrawingPolicy::Matches(Other) &&
-		VertexShader == Other.VertexShader &&
-		HullShader == Other.HullShader &&
-		DomainShader == Other.DomainShader &&
-		bInitializeOffsets == Other.bInitializeOffsets &&
-		DistortPixelShader == Other.DistortPixelShader; //&&
+	DRAWING_POLICY_MATCH_BEGIN
+		DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+		DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
+		DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
+		DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
+		DRAWING_POLICY_MATCH(bInitializeOffsets == Other.bInitializeOffsets) &&
+		DRAWING_POLICY_MATCH(DistortPixelShader == Other.DistortPixelShader); //&&
 	//later	InitializePixelShader == Other.InitializePixelShader;
+	DRAWING_POLICY_MATCH_END
 }
 
 /**

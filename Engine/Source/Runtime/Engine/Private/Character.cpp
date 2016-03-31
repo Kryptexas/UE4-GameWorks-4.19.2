@@ -1457,31 +1457,37 @@ class UAnimMontage * ACharacter::GetCurrentMontage()
 
 void ACharacter::ClientCheatWalk_Implementation()
 {
+#if !UE_BUILD_SHIPPING
 	SetActorEnableCollision(true);
 	if (CharacterMovement)
 	{
 		CharacterMovement->bCheatFlying = false;
 		CharacterMovement->SetMovementMode(MOVE_Falling);
 	}
+#endif
 }
 
 void ACharacter::ClientCheatFly_Implementation()
 {
+#if !UE_BUILD_SHIPPING
 	SetActorEnableCollision(true);
 	if (CharacterMovement)
 	{
 		CharacterMovement->bCheatFlying = true;
 		CharacterMovement->SetMovementMode(MOVE_Flying);
 	}
+#endif
 }
 
 void ACharacter::ClientCheatGhost_Implementation()
 {
+#if !UE_BUILD_SHIPPING
 	SetActorEnableCollision(false);
 	if (CharacterMovement)
 	{
 		CharacterMovement->bCheatFlying = true;
 		CharacterMovement->SetMovementMode(MOVE_Flying);
 	}
+#endif
 }
 

@@ -740,6 +740,194 @@ void FRootMotionSource_MoveToForce::AddReferencedObjects(class FReferenceCollect
 }
 
 //
+// FRootMotionSource_MoveToDynamicForce
+//
+
+FRootMotionSource_MoveToDynamicForce::FRootMotionSource_MoveToDynamicForce()
+	: StartLocation(EForceInit::ForceInitToZero)
+	, InitialTargetLocation(EForceInit::ForceInitToZero)
+	, TargetLocation(EForceInit::ForceInitToZero)
+	, bRestrictSpeedToExpected(false)
+	, PathOffsetCurve(nullptr)
+{
+}
+
+void FRootMotionSource_MoveToDynamicForce::SetTargetLocation(FVector NewTargetLocation)
+{
+	TargetLocation = NewTargetLocation;
+}
+
+FRootMotionSource* FRootMotionSource_MoveToDynamicForce::Clone() const
+{
+	FRootMotionSource_MoveToDynamicForce* CopyPtr = new FRootMotionSource_MoveToDynamicForce(*this);
+	return CopyPtr;
+}
+
+bool FRootMotionSource_MoveToDynamicForce::Matches(const FRootMotionSource* Other) const
+{
+	if (!FRootMotionSource::Matches(Other))
+	{
+		return false;
+	}
+
+	// We can cast safely here since in FRootMotionSource::Matches() we ensured ScriptStruct equality
+	const FRootMotionSource_MoveToDynamicForce* OtherCast = static_cast<const FRootMotionSource_MoveToDynamicForce*>(Other);
+
+	return bRestrictSpeedToExpected == OtherCast->bRestrictSpeedToExpected &&
+		PathOffsetCurve == OtherCast->PathOffsetCurve;
+}
+
+bool FRootMotionSource_MoveToDynamicForce::MatchesAndHasSameState(const FRootMotionSource* Other) const
+{
+	// Check that it matches
+	if (!FRootMotionSource::MatchesAndHasSameState(Other))
+	{
+		return false;
+	}
+
+	return true; // MoveToDynamicForce has no unique state
+}
+
+bool FRootMotionSource_MoveToDynamicForce::UpdateStateFrom(const FRootMotionSource* SourceToTakeStateFrom, bool bMarkForSimulatedCatchup)
+{
+	if (!FRootMotionSource::UpdateStateFrom(SourceToTakeStateFrom, bMarkForSimulatedCatchup))
+	{
+		return false;
+	}
+
+	return true; // MoveToDynamicForce has no unique state other than Time which is handled by FRootMotionSource
+}
+
+void FRootMotionSource_MoveToDynamicForce::SetTime(float NewTime)
+{
+	FRootMotionSource::SetTime(NewTime);
+
+	// TODO-RootMotionSource: Check if reached destination?
+}
+
+FVector FRootMotionSource_MoveToDynamicForce::GetPathOffsetInWorldSpace(float MoveFraction) const
+{
+	if (PathOffsetCurve)
+	{
+		// Calculate path offset
+		const FVector PathOffsetInFacingSpace = PathOffsetCurve->GetVectorValue(MoveFraction);
+		FRotator FacingRotation((TargetLocation-StartLocation).Rotation());
+		FacingRotation.Pitch = 0.f; // By default we don't include pitch in the offset, but an option could be added if necessary
+		return FacingRotation.RotateVector(PathOffsetInFacingSpace);
+	}
+
+	return FVector::ZeroVector;
+}
+
+void FRootMotionSource_MoveToDynamicForce::PrepareRootMotion
+	(
+		float SimulationTime, 
+		float MovementTickTime,
+		const ACharacter& Character, 
+		const UCharacterMovementComponent& MoveComponent
+	)
+{
+	RootMotionParams.Clear();
+
+	if (Duration > SMALL_NUMBER && MovementTickTime > SMALL_NUMBER)
+	{
+		const float MoveFraction = (GetTime() + SimulationTime) / Duration;
+
+		FVector CurrentTargetLocation = FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction);
+		CurrentTargetLocation += GetPathOffsetInWorldSpace(MoveFraction);
+
+		const FVector CurrentLocation = Character.GetActorLocation();
+
+		FVector Force = (CurrentTargetLocation - CurrentLocation) / MovementTickTime;
+
+		if (bRestrictSpeedToExpected && !Force.IsNearlyZero(KINDA_SMALL_NUMBER))
+		{
+			// Calculate expected current location (if we didn't have collision and moved exactly where our velocity should have taken us)
+			const float PreviousMoveFraction = GetTime() / Duration;
+			FVector CurrentExpectedLocation = FMath::Lerp<FVector, float>(StartLocation, TargetLocation, PreviousMoveFraction);
+			CurrentExpectedLocation += GetPathOffsetInWorldSpace(PreviousMoveFraction);
+
+			// Restrict speed to the expected speed, allowing some small amount of error
+			const FVector ExpectedForce = (CurrentTargetLocation - CurrentExpectedLocation) / MovementTickTime;
+			const float ExpectedSpeed = ExpectedForce.Size();
+			const float CurrentSpeedSqr = Force.SizeSquared();
+
+			const float ErrorAllowance = 0.5f; // in cm/s
+			if (CurrentSpeedSqr > FMath::Square(ExpectedSpeed + ErrorAllowance))
+			{
+				Force.Normalize();
+				Force *= ExpectedSpeed;
+			}
+		}
+
+		// Debug
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (CVarDebugRootMotionSources.GetValueOnGameThread() != 0)
+		{
+			const FVector LocDiff = MoveComponent.UpdatedComponent->GetComponentLocation() - CurrentLocation;
+			const float DebugLifetime = CVarDebugRootMotionSourcesLifetime.GetValueOnGameThread();
+
+			// Current
+			DrawDebugCapsule(Character.GetWorld(), MoveComponent.UpdatedComponent->GetComponentLocation(), Character.GetSimpleCollisionHalfHeight(), Character.GetSimpleCollisionRadius(), FQuat::Identity, FColor::Red, true, DebugLifetime);
+
+			// Current Target
+			DrawDebugCapsule(Character.GetWorld(), CurrentTargetLocation + LocDiff, Character.GetSimpleCollisionHalfHeight(), Character.GetSimpleCollisionRadius(), FQuat::Identity, FColor::Green, true, DebugLifetime);
+
+			// Target
+			DrawDebugCapsule(Character.GetWorld(), TargetLocation + LocDiff, Character.GetSimpleCollisionHalfHeight(), Character.GetSimpleCollisionRadius(), FQuat::Identity, FColor::Blue, true, DebugLifetime);
+
+			// Force
+			DrawDebugLine(Character.GetWorld(), CurrentLocation, CurrentLocation+Force, FColor::Blue, true, DebugLifetime);
+		}
+#endif
+
+		FTransform NewTransform(Force);
+		RootMotionParams.Set(NewTransform);
+	}
+	else
+	{
+		checkf(Duration > SMALL_NUMBER, TEXT("FRootMotionSource_MoveToDynamicForce prepared with invalid duration."));
+	}
+
+	SetTime(GetTime() + SimulationTime);
+}
+
+bool FRootMotionSource_MoveToDynamicForce::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
+{
+	if (!FRootMotionSource::NetSerialize(Ar, Map, bOutSuccess))
+	{
+		return false;
+	}
+
+	Ar << StartLocation; // TODO-RootMotionSource: Quantization
+	Ar << InitialTargetLocation; // TODO-RootMotionSource: Quantization
+	Ar << TargetLocation; // TODO-RootMotionSource: Quantization
+	Ar << bRestrictSpeedToExpected;
+	Ar << PathOffsetCurve;
+
+	bOutSuccess = true;
+	return true;
+}
+
+UScriptStruct* FRootMotionSource_MoveToDynamicForce::GetScriptStruct() const
+{
+	return FRootMotionSource_MoveToDynamicForce::StaticStruct();
+}
+
+FString FRootMotionSource_MoveToDynamicForce::ToSimpleString() const
+{
+	return FString::Printf(TEXT("[ID:%u]FRootMotionSource_MoveToDynamicForce %s"), LocalID, *InstanceName.GetPlainNameString());
+}
+
+void FRootMotionSource_MoveToDynamicForce::AddReferencedObjects(class FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObject(PathOffsetCurve);
+
+	FRootMotionSource::AddReferencedObjects(Collector);
+}
+
+
+//
 // FRootMotionSource_JumpForce
 //
 

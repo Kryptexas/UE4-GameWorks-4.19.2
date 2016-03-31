@@ -31,7 +31,7 @@ namespace AutomationTool
 		NameList,
 
 		/// <summary>
-		/// A tag name (a regular name with an optional '#' prefix)
+		/// A tag name (a regular name with '#' prefix)
 		/// </summary>
 		Tag,
 
@@ -39,6 +39,16 @@ namespace AutomationTool
 		/// A list of tag names separated by semicolons
 		/// </summary>
 		TagList,
+
+		/// <summary>
+		/// A standard name or tag name
+		/// </summary>
+		NameOrTag,
+
+		/// <summary>
+		/// A list of standard name or tag names separated by semicolons
+		/// </summary>
+		NameOrTagList,
 	}
 
 	/// <summary>
@@ -196,16 +206,8 @@ namespace AutomationTool
 		/// <returns>Set of matching files.</returns>
 		public static HashSet<FileReference> ResolveFilespec(DirectoryReference DefaultDirectory, string DelimitedPatterns, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			// Find all the files and directories that are referenced
-			HashSet<DirectoryReference> Directories = new HashSet<DirectoryReference>();
-			HashSet<FileReference> Files = ResolveFilespec(DefaultDirectory, DelimitedPatterns, Directories, TagNameToFileSet);
-
-			// Include all the files underneath the directories
-			foreach(DirectoryReference Directory in Directories)
-			{
-				Files.UnionWith(Directory.EnumerateFileReferences("*", SearchOption.AllDirectories));
-			}
-			return Files;
+			List<string> ExcludePatterns = new List<string>();
+			return ResolveFilespecWithExcludePatterns(DefaultDirectory, DelimitedPatterns, ExcludePatterns, TagNameToFileSet);
 		}
 
 		/// <summary>
@@ -213,10 +215,10 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="DefaultDirectory">The default directory to resolve relative paths to</param>
 		/// <param name="DelimitedPatterns">List of files, tag names, or file specifications to include separated by semicolons.</param>
-		/// <param name="Directories">Set of directories which are referenced using directory wildcards. Files under these directories are not added to the output set.</param>
+		/// <param name="ExcludePatterns">Set of patterns to apply to directory searches. This can greatly speed up enumeration by earlying out of recursive directory searches if large directories are excluded (eg. .../Intermediate/...).</param>
 		/// <param name="TagNameToFileSet">Mapping of tag name to fileset, as passed to the Execute() method</param>
 		/// <returns>Set of matching files.</returns>
-		public static HashSet<FileReference> ResolveFilespec(DirectoryReference DefaultDirectory, string DelimitedPatterns, HashSet<DirectoryReference> Directories, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
+		public static HashSet<FileReference> ResolveFilespecWithExcludePatterns(DirectoryReference DefaultDirectory, string DelimitedPatterns, List<string> ExcludePatterns, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Split the argument into a list of patterns
 			string[] Patterns = SplitDelimitedList(DelimitedPatterns);
@@ -232,62 +234,38 @@ namespace AutomationTool
 					continue;
 				}
 
-				// List of all wildcards
-				string[] Wildcards = { "?", "*", "..." };
-
-				// Find the first index of a wildcard in the given pattern
-				int WildcardIdx = -1;
-				foreach(string Wildcard in Wildcards)
-				{
-					int Idx = Pattern.IndexOf(Wildcard);
-					if(Idx != -1 && (WildcardIdx == -1 || Idx < WildcardIdx))
-					{
-						WildcardIdx = Idx;
-					}
-				}
-
-				// If we didn't find any wildcards, we can just add the pattern directly.
+				// If it doesn't contain any wildcards, just add the pattern directly
+				int WildcardIdx = FileFilter.FindWildcardIndex(Pattern);
 				if(WildcardIdx == -1)
 				{
 					Files.Add(FileReference.Combine(DefaultDirectory, Pattern));
 					continue;
 				}
 
-				// Check the wildcard is in the last fragment of the path.
-				int LastDirectoryIdx = Pattern.LastIndexOfAny(new char[]{ Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar });
-				if(LastDirectoryIdx != -1 && LastDirectoryIdx > WildcardIdx)
-				{
-					CommandUtils.LogWarning("Invalid pattern '{0}': Path wildcard can only match files");
-					continue;
-				}
+				// Find the base directory for the search. We construct this in a very deliberate way including the directory separator itself, so matches
+				// against the OS root directory will resolve correctly both on Mac (where / is the filesystem root) and Windows (where / refers to the current drive).
+				int LastDirectoryIdx = Pattern.LastIndexOfAny(new char[]{ Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, WildcardIdx);
+				DirectoryReference BaseDir = DirectoryReference.Combine(DefaultDirectory, Pattern.Substring(0, LastDirectoryIdx + 1));
 
-				// Check if it's a directory reference (ends with ...) or file reference.
-				int PathWildcardIdx = Pattern.IndexOf("...");
-				if(PathWildcardIdx != -1)
+				// Construct the absolute include pattern to match against, re-inserting the resolved base directory to construct a canonical path.
+				string IncludePattern = BaseDir.FullName.TrimEnd(new char[]{ Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }) + "/" + Pattern.Substring(LastDirectoryIdx + 1);
+
+				// Construct a filter and apply it to the directory
+				if(BaseDir.Exists())
 				{
-					// Add the base directory to the list of results
-					if(PathWildcardIdx + 3 != Pattern.Length)
-					{
-						CommandUtils.LogWarning("Invalid pattern '{0}': Path wildcard must appear at end of pattern.");
-					}
-					else if(PathWildcardIdx != LastDirectoryIdx + 1)
-					{
-						CommandUtils.LogWarning("Invalid pattern '{0}': Path wildcard cannot partially match a name.");
-					}
-					else
-					{
-						Directories.Add(DirectoryReference.Combine(DefaultDirectory, Pattern.Substring(0, PathWildcardIdx)));
-					}
-				}
-				else
-				{
-					// Construct a file filter and apply it to files in the directory. Don't use the default file enumeration logic for consistency; search patterns
-					// passed to Directory.EnumerateFiles et al have special cases for backwards compatibility that we don't want.
 					FileFilter Filter = new FileFilter();
-					Filter.AddRule("/" + Pattern.Substring(LastDirectoryIdx + 1), FileFilterType.Include);
-					DirectoryReference BaseDir = DirectoryReference.Combine(DefaultDirectory, Pattern.Substring(0, LastDirectoryIdx + 1));
-					Files.UnionWith(Filter.ApplyToDirectory(BaseDir, true));
+					Filter.AddRule(IncludePattern, FileFilterType.Include);
+					Filter.AddRules(ExcludePatterns, FileFilterType.Exclude);
+					Files.UnionWith(Filter.ApplyToDirectory(BaseDir, BaseDir.FullName, true));
 				}
+			}
+
+			// If we have exclude rules, create and run a filter against all the output files to catch things that weren't added from an include
+			if(ExcludePatterns.Count > 0)
+			{
+				FileFilter Filter = new FileFilter(FileFilterType.Include);
+				Filter.AddRules(ExcludePatterns, FileFilterType.Exclude);
+				Files.RemoveWhere(x => !Filter.Matches(x.FullName));
 			}
 			return Files;
 		}

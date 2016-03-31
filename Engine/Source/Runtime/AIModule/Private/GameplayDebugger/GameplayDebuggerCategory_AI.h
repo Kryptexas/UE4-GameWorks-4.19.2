@@ -31,17 +31,25 @@ protected:
 		FString MovementModeInfo;
 		FString PathFollowingInfo;
 		int32 NextPathPointIndex;
+		FVector PathGoalLocation;
 		FString CurrentAITask;
 		FString CurrentAIState;
 		FString CurrentAIAssets;
 		FString NavDataInfo;
 		FString MontageInfo;
+		FString GameplayTaskInfo;
 		uint32 bHasController : 1;
+		uint32 bPathHasGoalActor : 1;
 		uint32 bIsUsingPathFollowing : 1;
 		uint32 bIsUsingCharacter : 1;
 		uint32 bIsUsingBehaviorTree : 1;
+		uint32 bIsUsingGameplayTasks : 1;
 
-		FRepData() : NextPathPointIndex(0), bHasController(false), bIsUsingPathFollowing(false), bIsUsingCharacter(false), bIsUsingBehaviorTree(false) {}
+		FRepData() : NextPathPointIndex(0), bHasController(false), bPathHasGoalActor(false),
+			bIsUsingPathFollowing(false), bIsUsingCharacter(false), bIsUsingBehaviorTree(false), bIsUsingGameplayTasks(false)
+		{
+		}
+
 		void Serialize(FArchive& Ar);
 	};
 	FRepData DataPack;
@@ -65,6 +73,7 @@ protected:
 private:
 	// do NOT read from this pointer, it's only for validating if path has changed and can be invalid!
 	FNavigationPath* RawLastPath;
+	float LastPathUpdateTime;
 };
 
 #endif // WITH_GAMEPLAY_DEBUGGER

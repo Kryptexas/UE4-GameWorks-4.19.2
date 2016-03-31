@@ -36,6 +36,12 @@ namespace BuildGraph.Tasks
 		/// </summary>
 		[TaskParameter]
 		public string OutputDir;
+
+		/// <summary>
+		/// Tag to be applied to build products of this task
+		/// </summary>
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		public string Tag;
 	}
 
 	/// <summary>
@@ -94,6 +100,12 @@ namespace BuildGraph.Tasks
 				TargetFiles[Idx].Directory.CreateDirectory();
 				CommandUtils.Log("Stripping symbols: {0} -> {1}", SourceFiles[Idx].FullName, TargetFiles[Idx].FullName);
 				ToolChain.StripSymbols(SourceFiles[Idx].FullName, TargetFiles[Idx].FullName);
+			}
+
+			// Apply the optional tag to the build products
+			if(!String.IsNullOrEmpty(Parameters.Tag))
+			{
+				FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).UnionWith(TargetFiles);
 			}
 
 			// Add the target files to the set of build products

@@ -448,29 +448,33 @@ bool FRepLayout::CompareProperties(
 
 	for ( const uint16* RESTRICT pLifeProp = FirstProp; pLifeProp < LastProp; ++pLifeProp )
 	{
-		const FRepParentCmd& ParentCmd = Parents[*pLifeProp];
+		const uint16 LifeProp = *pLifeProp;
+		const FRepParentCmd& ParentCmd = Parents[LifeProp];
 
 		// We store changed properties on each parent, so we can build a final sorted change list later
-		TArray< uint16 > & Changed = OutChangedParents[*pLifeProp].Changed;
+		TArray< uint16 > & Changed = OutChangedParents[LifeProp].Changed;
 
-		check( Changed.Num() == 0 );
+		// some games ship checks() in Shipping so we cannot rely on DO_CHECK here, and this check is in an extremely hot path
+		check( UE_BUILD_SHIPPING || UE_BUILD_TEST || Changed.Num() == 0 );
 
 		// Loop over the block of child properties that are children of this parent
-		for ( int32 i = ParentCmd.CmdStart; i < ParentCmd.CmdEnd; i++ )
+		for ( int32 i = ParentCmd.CmdStart, ParentCmd_CmdEnd = ParentCmd.CmdEnd; i < ParentCmd_CmdEnd; ++i )
 		{
 			const FRepLayoutCmd& Cmd = Cmds[i];
+			const int32 Cmd_Offset = Cmd.Offset;
 
-			check( Cmd.Type != REPCMD_Return );		// REPCMD_Return's are markers we shouldn't hit
+			// some games ship checks() in Shipping so we cannot rely on DO_CHECK here, and this check is in an extremely hot path
+			check( UE_BUILD_SHIPPING || UE_BUILD_TEST || Cmd.Type != REPCMD_Return );		// REPCMD_Return's are markers we shouldn't hit
 
-			if ( Cmd.Type == REPCMD_DynamicArray )
+			if ( UNLIKELY( Cmd.Type == REPCMD_DynamicArray ) )
 			{
 				// Once we hit an array, start using a recursive based approach
-				CompareProperties_Array_r( CompareData + Cmd.Offset, Data + Cmd.Offset, Changed, i, Cmd.RelativeHandle );
+				CompareProperties_Array_r( CompareData + Cmd_Offset, Data + Cmd_Offset, Changed, i, Cmd.RelativeHandle );
 				i = Cmd.EndCmd - 1;		// Jump past properties under array, we've already checked them (the -1 because of the ++ in the for loop)
 				continue;
 			}
 
-			if ( !PropertiesAreIdentical( Cmd, (void*)( CompareData + Cmd.Offset ), (const void*)( Data + Cmd.Offset ) ) )
+			if ( !PropertiesAreIdentical( Cmd, (void*)( CompareData + Cmd_Offset ), (const void*)( Data + Cmd_Offset ) ) )
 			{
 				// Add this properties handle to the change list
 				Changed.Add( Cmd.RelativeHandle );
@@ -708,16 +712,18 @@ bool FRepLayout::ReplicateProperties(
 		{
 			// Initialize the history item change list with the parent change lists
 			// We do it in the order of the parents so that the final change list will be fully sorted
-			for ( int32 i = 0; i < Parents.Num(); i++ )
+			for ( int32 i = 0, Parents_Num = Parents.Num(); i < Parents_Num; ++i )
 			{
-				if ( ChangeTracker->Parents[i].Changed.Num() > 0 )
+				TArray<uint16>& Parents_Changed = ChangeTracker->Parents[i].Changed;
+
+				if ( Parents_Changed.Num() > 0 )
 				{
-					Changed.Append( ChangeTracker->Parents[i].Changed );
+					Changed.Append( Parents_Changed );
 
 					if ( Parents[i].Flags & PARENT_IsConditional )
 					{
 						// Reset properties that don't share information across connections
-						ChangeTracker->Parents[i].Changed.Empty();
+						Parents_Changed.Empty();
 					}
 				}
 			}

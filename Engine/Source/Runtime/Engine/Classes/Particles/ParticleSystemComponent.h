@@ -341,6 +341,9 @@ public:
 	/** True if this was active before being unregistered or otherwise reset, if so reactivate it */
 	uint32 bWasActive:1;
 
+	/** If true, someone has requested this component reset. */
+	uint32 bResetTriggered : 1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Particles)
 	uint32 bResetOnDetach:1;
 
@@ -392,6 +395,11 @@ private:
 	void CancelAutoAttachment(bool bDetachFromParent);
 
 public:
+
+	void ResetNextTick()
+	{
+		bResetTriggered = true;
+	}
 
 	/**
 	 *	Array holding name instance parameters for this ParticleSystemComponent.

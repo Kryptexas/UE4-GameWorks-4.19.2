@@ -68,6 +68,8 @@ struct FDrawListStats
 	int32 MedianMeshesPerDrawingPolicy;
 	int32 MaxMeshesPerDrawingPolicy;
 	int32 NumSingleMeshDrawingPolicies;
+	TMap<FString, int32> SingleMeshPolicyMatchFailedReasons;
+	TMap<FName, int32> SingleMeshPolicyVertexFactoryFrequency;
 };
 
 /** Fields in the key used to sort mesh elements in a draw list. */
@@ -270,7 +272,7 @@ private:
 
 		static bool Matches(const DrawingPolicyType& A,const DrawingPolicyType& B)
 		{
-			return A.Matches(B);
+			return A.Matches(B).Result();
 		}
 
 		static uint32 GetKeyHash(const DrawingPolicyType& DrawingPolicy)
@@ -458,6 +460,11 @@ public:
 	FDrawListStats GetStats() const;
 
 private:
+	void CollectClosestMatchingPolicies(
+		typename TArray<FSetElementId>::TConstIterator DrawingPolicyIter,
+		TMap<FString, int32>& MatchFailedReasons
+		) const;
+
 	/** All drawing policies in the draw list, in rendering order. */
 	TArray<FSetElementId> OrderedDrawingPolicies;
 	

@@ -7,13 +7,6 @@ using System.Reflection;
 using AutomationTool;
 using UnrealBuildTool;
 
-public enum StagedFileType
-{
-	UFS,
-	NonUFS,
-	DebugNonUFS
-}
-
 public struct StageTarget
 {
 	public TargetReceipt Receipt;
@@ -419,22 +412,29 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public void StageRuntimeDependenciesFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist)
+	public void StageRuntimeDependenciesFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist, bool bUsingPakFile)
 	{
+		// Patterns to exclude from wildcard searches. Any maps and assets must be cooked. 
+		List<string> ExcludePatterns = new List<string>();
+		ExcludePatterns.Add(".../*.umap");
+		ExcludePatterns.Add(".../*.uasset");
+
 		// Also stage any additional runtime dependencies, like ThirdParty DLLs
 		foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies)
 		{
-			// allow missing files if needed
-			if ((RequireDependenciesToExist == false || RuntimeDependency.bIgnoreIfMissing) && File.Exists(RuntimeDependency.Path) == false)
+			foreach(FileReference File in CommandUtils.ResolveFilespec(CommandUtils.RootDirectory, RuntimeDependency.Path, ExcludePatterns))
 			{
-				continue;
+				// allow missing files if needed
+				if ((RequireDependenciesToExist && RuntimeDependency.Type != StagedFileType.DebugNonUFS) || File.Exists())
+				{
+					bool bRemap = RuntimeDependency.Type == StagedFileType.UFS && !bUsingPakFile;
+					StageFile(RuntimeDependency.Type, File.FullName, bRemap: bRemap);
+				}
 			}
-
-			StageFile(StagedFileType.NonUFS, RuntimeDependency.Path, RuntimeDependency.StagePath);
 		}
 	}
 
-    public int StageFiles(StagedFileType FileType, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true)
+    public void StageFiles(StagedFileType FileType, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null, bool bAllowNotForLicenseesFiles = true, bool bStripFilesForOtherPlatforms = true)
 	{
 		int FilesAdded = 0;
 		// make sure any ..'s are removed
@@ -605,7 +605,6 @@ public class DeploymentContext //: ProjectParams
 			throw new AutomationException(ExitCode.Error_StageMissingFile, "No files found to deploy for {0} with wildcard {1} and exclusions {2}", InPath, Wildcard, ExcludeWildcard);
 		}
 
-		return FilesAdded;
 	}
 
 	private void AddUniqueStagingFile(Dictionary<string, string> FilesToStage, string FileToCopy, string Dest)

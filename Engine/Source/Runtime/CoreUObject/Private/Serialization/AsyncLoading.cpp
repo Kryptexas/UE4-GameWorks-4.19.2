@@ -1411,36 +1411,17 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 
 		if (!Linker)
 		{
-			const FString NameToLoad = Desc.NameToLoad.ToString();
+			// The editor must not redirect packages for localization.
+			FString NameToLoad = Desc.NameToLoad.ToString();
+			if (!GIsEditor)
+			{
+				NameToLoad = FPackageName::GetLocalizedPackagePath(NameToLoad);
+			}
+
 			const FGuid* const Guid = Desc.Guid.IsValid() ? &Desc.Guid : nullptr;
-			FString NativeFilename, LocalizedFilename;
-			FPackageName::DoesPackageExistWithLocalization(NameToLoad, Guid, &NativeFilename, &LocalizedFilename);
-			const bool DoesNativePackageExist = NativeFilename.Len() > 0;
-			const bool DoesLocalizedPackageExist = LocalizedFilename.Len() > 0;
 
 			FString PackageFileName;
-			bool DoesPackageExist = false;
-			// The editor must not redirect packages for localization.
-			if (GIsEditor)
-			{
-				PackageFileName = NativeFilename;
-				DoesPackageExist = DoesNativePackageExist;
-			}
-			else
-			{
-				// Use the localized package if possible.
-				if (DoesLocalizedPackageExist)
-				{
-					PackageFileName = LocalizedFilename;
-					DoesPackageExist = DoesLocalizedPackageExist;
-				}
-				// If we are the game, we can fallback to the native package.
-				else
-				{
-					PackageFileName = NativeFilename;
-					DoesPackageExist = DoesNativePackageExist;
-				}
-			}
+			const bool DoesPackageExist = FPackageName::DoesPackageExist(NameToLoad, Guid, &PackageFileName);
 
 			if (Desc.NameToLoad == NAME_None ||
 				(!GetConvertedDynamicPackageNameToTypeName().Contains(Desc.Name) &&

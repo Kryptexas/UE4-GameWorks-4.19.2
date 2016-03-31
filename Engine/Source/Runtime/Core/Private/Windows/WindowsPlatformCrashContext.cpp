@@ -6,6 +6,7 @@
 #include "WindowsPlatformCrashContext.h"
 #include "EngineVersion.h"
 #include "EngineBuildSettings.h"
+#include "HAL/ExceptionHandling.h"
 
 #include "AllowWindowsPlatformTypes.h"
 
@@ -19,6 +20,12 @@
 
 #pragma comment( lib, "version.lib" )
 #pragma comment( lib, "Shlwapi.lib" )
+
+void FWindowsPlatformCrashContext::AddPlatformSpecificProperties()
+{
+	AddCrashProperty(TEXT("PlatformIsRunningWindows"), 1);
+	AddCrashProperty(TEXT("BuildIntegrityStatus"), GetImageIntegrityStatus());
+}
 
 namespace
 {

@@ -918,11 +918,14 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 		return false;
 	}
 
-	check( Object );
-	check( OwningChannel );
-	check( RepLayout.IsValid() );
-	check( RepState )
-	check( RepState->StaticBuffer.Num() );
+	// some games ship checks() in Shipping so we cannot rely on DO_CHECK here, and these checks are in an extremely hot path
+	if (!UE_BUILD_SHIPPING && !UE_BUILD_TEST)
+	{
+		check( OwningChannel );
+		check( RepLayout.IsValid() );
+		check( RepState )
+		check( RepState->StaticBuffer.Num() );
+	}
 
 	UNetConnection* OwningChannelConnection = OwningChannel->Connection;
 
@@ -945,7 +948,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 	{
 		static const auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt( TEXT( "net.RPC.Debug" ) );
 
-		if ( CVar && CVar->GetValueOnGameThread() == 1 )
+		if ( UNLIKELY( CVar && CVar->GetValueOnGameThread() == 1 ) )
 		{
 			UE_LOG( LogRepTraffic, Warning,	TEXT("      Sending queued RPCs: %s. Channel[%d] [%.1f bytes]"), *Object->GetName(), OwningChannel->ChIndex, RemoteFunctions->GetNumBits() / 8.f );
 		}

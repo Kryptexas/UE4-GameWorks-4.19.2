@@ -35,7 +35,7 @@ IMPLEMENT_APPLICATION(CrashReportClient, "CrashReportClient");
 DEFINE_LOG_CATEGORY(CrashReportClientLog);
 
 /** Directory containing the report */
-static FString ReportDirectoryAbsolutePath;
+static TArray<FString> FoundReportDirectoryAbsolutePaths;
 
 /** Name of the game passed via the command line. */
 static FString GameNameFromCmd;
@@ -46,6 +46,8 @@ static FString GameNameFromCmd;
 void ParseCommandLine(const TCHAR* CommandLine)
 {
 	const TCHAR* CommandLineAfterExe = FCommandLine::RemoveExeName(CommandLine);
+
+	FoundReportDirectoryAbsolutePaths.Empty();
 
 	// Use the first argument if present and it's not a flag
 	if (*CommandLineAfterExe)
@@ -81,15 +83,15 @@ void ParseCommandLine(const TCHAR* CommandLine)
 
 		if (Tokens.Num() > 0)
 		{
-			ReportDirectoryAbsolutePath = Tokens[0];
+			FoundReportDirectoryAbsolutePaths.Add(Tokens[0]);
 		}
 
 		GameNameFromCmd = Params.FindRef("AppName");
 	}
 
-	if (ReportDirectoryAbsolutePath.IsEmpty())
+	if (FoundReportDirectoryAbsolutePaths.Num() == 0)
 	{
-		ReportDirectoryAbsolutePath = FPlatformErrorReport::FindMostRecentErrorReport();
+		FPlatformErrorReport::FindMostRecentErrorReports(FoundReportDirectoryAbsolutePaths, FTimespan::FromMinutes(30));
 	}
 }
 
@@ -98,40 +100,45 @@ void ParseCommandLine(const TCHAR* CommandLine)
  */
 FPlatformErrorReport LoadErrorReport()
 {
-	if (ReportDirectoryAbsolutePath.IsEmpty())
+	if (FoundReportDirectoryAbsolutePaths.Num() == 0)
 	{
 		UE_LOG(CrashReportClientLog, Warning, TEXT("No error report found"));
 		return FPlatformErrorReport();
 	}
 
-	FPlatformErrorReport ErrorReport(ReportDirectoryAbsolutePath);
+	for (const FString& ReportDirectoryAbsolutePath : FoundReportDirectoryAbsolutePaths)
+	{
+		FPlatformErrorReport ErrorReport(ReportDirectoryAbsolutePath);
 
-	FString Filename;
-	// CrashContext.runtime-xml has the precedence over the WER
-	if (ErrorReport.FindFirstReportFileWithExtension( Filename, *FGenericCrashContext::CrashContextExtension ))
-	{
-		FPrimaryCrashProperties::Set( new FCrashContext( ReportDirectoryAbsolutePath / Filename ) );
-	}
-	else if (ErrorReport.FindFirstReportFileWithExtension( Filename, TEXT( ".xml" ) ))
-	{
-		FPrimaryCrashProperties::Set( new FCrashWERContext( ReportDirectoryAbsolutePath / Filename ) );
-	}
-	else
-	{
-		UE_LOG(CrashReportClientLog, Warning, TEXT("No error report found"));
-		return FPlatformErrorReport();
-	}
+		FString Filename;
+		// CrashContext.runtime-xml has the precedence over the WER
+		if (ErrorReport.FindFirstReportFileWithExtension(Filename, *FGenericCrashContext::CrashContextExtension))
+		{
+			FPrimaryCrashProperties::Set(new FCrashContext(ReportDirectoryAbsolutePath / Filename));
+		}
+		else if (ErrorReport.FindFirstReportFileWithExtension(Filename, TEXT(".xml")))
+		{
+			FPrimaryCrashProperties::Set(new FCrashWERContext(ReportDirectoryAbsolutePath / Filename));
+		}
+		else
+		{
+			UE_LOG(CrashReportClientLog, Warning, TEXT("No error report found"));
+			return FPlatformErrorReport();
+		}
 
 #if CRASH_REPORT_UNATTENDED_ONLY
-	return ErrorReport;
+		return ErrorReport;
 #else
-	if (!GameNameFromCmd.IsEmpty() && GameNameFromCmd != FPrimaryCrashProperties::Get()->GameName)
-	{
-		// Don't display or upload anything if it's not the report we expected
-		ErrorReport = FPlatformErrorReport();
-	}
-	return ErrorReport;
+		if (GameNameFromCmd.IsEmpty() || GameNameFromCmd == FPrimaryCrashProperties::Get()->GameName)
+		{
+			return ErrorReport;
+		}
+		
 #endif
+	}
+
+	// Don't display or upload anything if we can't find the report we expected
+	return FPlatformErrorReport();
 }
 
 

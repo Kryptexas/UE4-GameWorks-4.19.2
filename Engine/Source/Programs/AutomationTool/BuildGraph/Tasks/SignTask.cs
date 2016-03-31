@@ -14,16 +14,16 @@ namespace BuildGraph.Tasks
 	public class SignTaskParameters
 	{
 		/// <summary>
-		/// The directory to find files in
-		/// </summary>
-		[TaskParameter(Optional = true)]
-		public string BaseDir;
-
-		/// <summary>
 		/// List of file specifications separated by semicolons (eg. *.cpp;Engine/.../*.bat), or the name of a tag set
 		/// </summary>
 		[TaskParameter]
 		public string Files;
+
+		/// <summary>
+		/// Tag to be applied to build products of this task
+		/// </summary>
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		public string Tag;
 	}
 
 	/// <summary>
@@ -55,14 +55,20 @@ namespace BuildGraph.Tasks
 		/// <returns>True if the task succeeded</returns>
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			// Get the base directory
-			DirectoryReference BaseDir = ResolveDirectory(Parameters.BaseDir);
-
 			// Find the matching files
-			FileReference[] Files = ResolveFilespec(BaseDir, Parameters.Files, TagNameToFileSet).OrderBy(x => x.FullName).ToArray();
+			FileReference[] Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet).OrderBy(x => x.FullName).ToArray();
 
 			// Sign all the files
 			CodeSign.SignMultipleFilesIfEXEOrDLL(Files.Select(x => x.FullName).ToList(), true);
+
+			// Apply the optional tag to the build products
+			if(!String.IsNullOrEmpty(Parameters.Tag))
+			{
+				FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).UnionWith(Files);
+			}
+
+			// Add them to the list of build products
+			BuildProducts.UnionWith(Files);
 			return true;
 		}
 	}

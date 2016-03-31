@@ -4344,6 +4344,9 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		return;
 	}
 
+	bool bRequiresReset = bResetTriggered;
+	bResetTriggered = false;
+
 	// System settings may have been lowered. Support late deactivation.
 	int32 DetailModeCVar = GetCurrentDetailMode();
 	const bool bDetailModeAllowsRendering	= DetailMode <= DetailModeCVar;
@@ -4359,37 +4362,44 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	// See if DetailMode has changed since the last time we checked
 	else if (bWarmingUp == false && LastCheckedDetailMode != DetailModeCVar)
 	{
-		SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_CheckForReset);
-		bool bRequiresReset = false;
-		for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
+		// Save the detail mode we've checked
+		LastCheckedDetailMode = DetailModeCVar;
+
+		if (!bRequiresReset)
 		{
-			FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
-			if (Instance && Instance->SpriteTemplate)
+			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_CheckForReset);
+			for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); ++EmitterIndex)
 			{
-				if(Instance->SpriteTemplate->DetailMode > DetailModeCVar)
+				FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
+				if (Instance && Instance->SpriteTemplate)
 				{
-					bRequiresReset = true;
-					break;
+					if (Instance->SpriteTemplate->DetailMode > DetailModeCVar)
+					{
+						bRequiresReset = true;
+						break;
+					}
 				}
 			}
 		}
+	}
+	
+	if (bRequiresReset)
+	{
+#if WITH_EDITOR
+		//If we're resetting in the editor, cached emitter values may now be invalid.
+		Template->UpdateAllModuleLists();
+#endif
 
-		if (bRequiresReset)
+		bool bOldActive = bIsActive;
+		ResetParticles(true);
+		if (bOldActive)
 		{
-			bool bOldActive = bIsActive;
-			ResetParticles(true);
-			if (bOldActive)
-			{
-				ActivateSystem();
-			}
-			else
-			{
-				InitializeSystem();
-			}
+			ActivateSystem();
 		}
-
-		// Save the detail mode we just checked
-		LastCheckedDetailMode = DetailModeCVar;
+		else
+		{
+			InitializeSystem();
+		}
 	}
 
 	// Bail out if MaxSecondsBeforeInactive > 0 and we haven't been rendered the last MaxSecondsBeforeInactive seconds.
@@ -6977,6 +6987,44 @@ bool AEmitterCameraLensEffectBase::IsLooping() const
 	}
 
 	return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+void FParticleResetContext::AddTemplate(UParticleSystem* Template)
+{
+	check(Template);
+	SystemsToReset.AddUnique(Template);
+}
+
+void FParticleResetContext::AddTemplate(UParticleModule* Module)
+{
+	check(Module);
+	UParticleSystem* Template = Module->GetTypedOuter<UParticleSystem>();
+	check(Template);
+	SystemsToReset.Add(Template);
+}
+
+void FParticleResetContext::AddTemplate(UParticleEmitter* Emitter)
+{
+	check(Emitter);
+	UParticleSystem* Template = Emitter->GetTypedOuter<UParticleSystem>();
+	check(Template);
+	SystemsToReset.Add(Template);
+}
+
+FParticleResetContext::~FParticleResetContext()
+{
+	for (TObjectIterator<UParticleSystemComponent> PSCIt; PSCIt; ++PSCIt)
+	{
+		UParticleSystemComponent* PSC = *PSCIt;
+		check(PSC);
+
+		if (SystemsToReset.Contains(PSC->Template))
+		{
+			PSC->ResetNextTick();
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

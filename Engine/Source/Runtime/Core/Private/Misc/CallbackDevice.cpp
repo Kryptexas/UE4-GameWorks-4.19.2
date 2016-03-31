@@ -26,6 +26,12 @@ FCoreDelegates::FObjectArrayForDebugVisualizersDelegate& FCoreDelegates::GetObje
 	return StaticDelegate;
 }
 
+FCoreDelegates::FOnPreMainInit& FCoreDelegates::GetPreMainInitDelegate()
+{
+	static FOnPreMainInit StaticDelegate;
+	return StaticDelegate;
+}
+
 FCoreDelegates::FOnMountPak FCoreDelegates::OnMountPak;
 FCoreDelegates::FOnUnmountPak FCoreDelegates::OnUnmountPak;
 FCoreDelegates::FOnUserLoginChangedEvent FCoreDelegates::OnUserLoginChangedEvent; 

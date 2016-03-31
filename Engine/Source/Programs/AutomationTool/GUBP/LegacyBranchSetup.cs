@@ -717,14 +717,6 @@ partial class GUBP
 										BranchConfig.AddNode(new GamePlatformMonolithicsNode(BranchConfig, HostPlatform, ActivePlatforms, Branch.BaseEngineProject, Plat, true));
 									}
 	                            }
-								if (!BranchConfig.HasNode(GamePlatformMonolithicsKindNode.StaticGetFullName(HostPlatform, Branch.BaseEngineProject, Plat, Kind)))
-								{
-									if (GamePlatformMonolithicsKindNode.HasPrecompiledTargets(Branch.BaseEngineProject, HostPlatform, Plat, Kind))
-									{
-										BranchConfig.AddNode(new GamePlatformMonolithicsKindNode(BranchConfig, HostPlatform, ActivePlatforms, Branch.BaseEngineProject, Plat, Kind, InPrecompiled: true));
-									}
-									BranchConfig.AddNode(new GamePlatformMonolithicsKindNode(BranchConfig, HostPlatform, ActivePlatforms, Branch.BaseEngineProject, Plat, Kind));
-								}
 							}
                         }
                     }
@@ -1012,14 +1004,6 @@ partial class GUBP
 									}
                                     BranchConfig.AddNode(new GamePlatformMonolithicsNode(BranchConfig, HostPlatform, ActivePlatforms, CodeProj, Plat));
                                 }
-								if (!BranchConfig.HasNode(GamePlatformMonolithicsKindNode.StaticGetFullName(HostPlatform, CodeProj, Plat, Kind)))
-								{
-									if (GamePlatformMonolithicsKindNode.HasPrecompiledTargets(CodeProj, HostPlatform, Plat, Kind))
-									{
-										BranchConfig.AddNode(new GamePlatformMonolithicsKindNode(BranchConfig, HostPlatform, ActivePlatforms, CodeProj, Plat, Kind, InPrecompiled: true));
-									}
-									BranchConfig.AddNode(new GamePlatformMonolithicsKindNode(BranchConfig, HostPlatform, ActivePlatforms, CodeProj, Plat, Kind));
-								}
 								var FormalBuildConfigs = Target.Rules.GUBP_GetConfigsForFormalBuilds_MonolithicOnly(HostPlatform);
 								if (!AdditionalPlatforms.Contains(Plat) && (BranchOptions.ProjectsToCook.Contains(CodeProj.GameName) || BranchOptions.ProjectsToCook.Count == 0))
 								{

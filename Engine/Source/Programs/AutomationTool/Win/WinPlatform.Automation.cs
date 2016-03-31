@@ -15,24 +15,19 @@ public abstract class BaseWinPlatform : Platform
 	{
 	}
 
-	private int StageExecutable(string Ext, DeploymentContext SC, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, StagedFileType InStageFileType = StagedFileType.NonUFS, string NewName = null)
-	{
-		int Result = SC.StageFiles(InStageFileType, InPath, Wildcard + Ext, bRecursive, ExcludeWildcard, NewPath, bAllowNone, true, (NewName == null) ? null : (NewName + Ext));
-		if (Result > 0)
-		{
-			SC.StageFiles(StagedFileType.DebugNonUFS, InPath, Wildcard + "pdb", bRecursive, ExcludeWildcard, NewPath, true, true, (NewName == null) ? null : (NewName + "pdb"));
-			SC.StageFiles(StagedFileType.DebugNonUFS, InPath, Wildcard + "map", bRecursive, ExcludeWildcard, NewPath, true, true, (NewName == null) ? null : (NewName + "map"));
-		}
-		return Result;
-	}
-
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
 		// Engine non-ufs (binaries)
 
 		if (SC.bStageCrashReporter)
 		{
-			StageExecutable("exe", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "CrashReportClient.");
+			string ReceiptFileName = TargetReceipt.GetDefaultPath(UnrealBuildTool.UnrealBuildTool.EngineDirectory.FullName, "CrashReportClient", SC.StageTargetPlatform.PlatformType, UnrealTargetConfiguration.Shipping, null);
+			if(File.Exists(ReceiptFileName))
+			{
+				TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
+				Receipt.ExpandPathVariables(UnrealBuildTool.UnrealBuildTool.EngineDirectory, (Params.RawProjectPath == null)? UnrealBuildTool.UnrealBuildTool.EngineDirectory : Params.RawProjectPath.Directory);
+				SC.StageBuildProductsFromReceipt(Receipt, true, false);
+			}
 		}
 
 		// Stage all the build products

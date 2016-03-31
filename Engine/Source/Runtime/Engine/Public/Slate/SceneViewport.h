@@ -215,6 +215,7 @@ public:
 	virtual FReply OnFocusReceived( const FFocusEvent& InFocusEvent ) override;
 	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 	virtual void OnViewportClosed() override;
+	virtual TWeakPtr<SWidget> GetWidget() override;
 	virtual FReply OnViewportActivated(const FWindowActivateEvent& InActivateEvent) override;
 	virtual void OnViewportDeactivated(const FWindowActivateEvent& InActivateEvent) override;
 	virtual FIntPoint GetSize() const override { return GetSizeXY(); }
@@ -229,6 +230,9 @@ public:
 	virtual FIntPoint GetRenderTargetTextureSizeXY() const { return (RTTSize.X != 0) ? RTTSize : GetSizeXY(); }
 
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() override;
+
+	/** Utility function to create an FReply that properly gets Focus and capture based on the settings*/
+	FReply AcquireFocusAndCapture(FIntPoint MousePosition);
 
 private:
 	/**
@@ -292,9 +296,6 @@ private:
 	 * @param InKeysState	The key state containing the states of the modifier keys
 	 */
 	void ApplyModifierKeys( const FModifierKeysState& InKeysState );
-
-	/** Utility function to create an FReply that properly gets Focus and capture based on the settings*/
-	FReply AcquireFocusAndCapture(FIntPoint MousePosition);
 
 	/** Utility function to figure out if we are currently a game viewport */
 	bool IsCurrentlyGameViewport();

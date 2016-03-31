@@ -238,6 +238,7 @@ private:
 
 	static const FString ChangelistName;
 
+	static FString UnescapeLiteralCharacterEscapeSequences(const FString& InString);
 	static FString RemoveStringFromTextMacro(const FString& TextMacro, const FString& IdentForLogging, bool& Error);
 	static FString StripCommentsFromToken(const FString& InToken, FSourceFileParseContext& Context);
 	static bool ParseSourceText(const FString& Text, const TArray<FParsableDescriptor*>& Parsables, FSourceFileParseContext& ParseCtxt);

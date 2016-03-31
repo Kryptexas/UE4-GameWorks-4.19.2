@@ -90,6 +90,16 @@ public:
 	}
 
 	/**
+	 * Sets the interface to be used by this viewport for rendering and I/O
+	 *
+	 * @param InViewportInterface The interface to use
+	 */
+	TWeakPtr<ISlateViewport> GetViewportInterface()
+	{
+		return ViewportInterface;
+	}
+
+	/**
 	 * Sets the content for this widget
 	 *
 	 * @param InContent	The new content (can be null)

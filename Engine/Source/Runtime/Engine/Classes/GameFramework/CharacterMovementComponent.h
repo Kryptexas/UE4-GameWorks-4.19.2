@@ -1500,7 +1500,7 @@ protected:
 	virtual void MoveAlongFloor(const FVector& InVelocity, float DeltaSeconds, FStepDownResult* OutStepDownResult = NULL);
 
 	/** Notification that the character is stuck in geometry.  Only called during walking movement. */
-	virtual void OnCharacterStuckInGeometry();
+	virtual void OnCharacterStuckInGeometry(const FHitResult* Hit);
 
 	/**
 	 * Adjusts velocity when walking so that Z velocity is zero.
@@ -2053,6 +2053,7 @@ protected:
 	/** called in Tick to update data in RVO avoidance manager */
 	void UpdateDefaultAvoidance();
 
+public:
 	/** lock avoidance velocity */
 	void SetAvoidanceVelocityLock(class UAvoidanceManager* Avoidance, float Duration);
 

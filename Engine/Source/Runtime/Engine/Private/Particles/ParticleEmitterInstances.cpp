@@ -2966,6 +2966,42 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MeshTickTime);
 
+	if (bEnabled && MeshMotionBlurOffset)
+	{
+		for (int32 i = 0; i < ActiveParticles; i++)
+		{
+			DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
+
+			FMeshRotationPayloadData* RotationPayloadData = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
+			FMeshMotionBlurPayloadData* MotionBlurPayloadData = (FMeshMotionBlurPayloadData*)((uint8*)&Particle + MeshMotionBlurOffset);
+
+			MotionBlurPayloadData->BaseParticlePrevRotation = Particle.Rotation;
+			MotionBlurPayloadData->BaseParticlePrevVelocity = Particle.Velocity;
+			MotionBlurPayloadData->BaseParticlePrevSize = Particle.Size;
+			MotionBlurPayloadData->PayloadPrevRotation = RotationPayloadData->Rotation;
+
+			if (CameraPayloadOffset)
+			{
+				const FCameraOffsetParticlePayload* CameraPayload = (const FCameraOffsetParticlePayload*)((const uint8*)&Particle + CameraPayloadOffset);
+				MotionBlurPayloadData->PayloadPrevCameraOffset = CameraPayload->Offset;
+			}
+			else
+			{
+				MotionBlurPayloadData->PayloadPrevCameraOffset = 0.0f;
+			}
+
+			if (OrbitModuleOffset)
+			{
+				const FOrbitChainModuleInstancePayload* OrbitPayload = (const FOrbitChainModuleInstancePayload*)((const uint8*)&Particle + OrbitModuleOffset);
+				MotionBlurPayloadData->PayloadPrevOrbitOffset = OrbitPayload->Offset;
+			}
+			else
+			{
+				MotionBlurPayloadData->PayloadPrevOrbitOffset = FVector::ZeroVector;
+			}
+		}
+	}
+
 	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
 	// See if we are handling mesh rotation
 	if (MeshRotationActive && bEnabled)
@@ -3158,36 +3194,6 @@ void FParticleMeshEmitterInstance::UpdateBoundingBox(float DeltaTime)
 			FPlatformMisc::Prefetch(ParticleData, ParticleStride * ParticleIndices[i+1]);
 			FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 
-			if (MeshMotionBlurOffset)
-			{
-				FMeshRotationPayloadData* RotationPayloadData = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
-				FMeshMotionBlurPayloadData* MotionBlurPayloadData = (FMeshMotionBlurPayloadData*)((uint8*)&Particle + MeshRotationOffset);
-				MotionBlurPayloadData->BaseParticlePrevRotation = Particle.Rotation;
-				MotionBlurPayloadData->BaseParticlePrevVelocity = Particle.Velocity;
-				MotionBlurPayloadData->BaseParticlePrevSize = Particle.Size;
-				MotionBlurPayloadData->PayloadPrevRotation = RotationPayloadData->Rotation;
-
-				if (CameraPayloadOffset)
-				{
-					const FCameraOffsetParticlePayload* CameraPayload = (const FCameraOffsetParticlePayload*)((const uint8*)&Particle + CameraPayloadOffset);
-					MotionBlurPayloadData->PayloadPrevCameraOffset = CameraPayload->Offset;
-				}
-				else
-				{
-					MotionBlurPayloadData->PayloadPrevCameraOffset = 0.0f;
-				}
-
-				if (OrbitModuleOffset)
-				{
-					const FOrbitChainModuleInstancePayload* OrbitPayload = (const FOrbitChainModuleInstancePayload*)((const uint8*)&Particle + OrbitModuleOffset);
-					MotionBlurPayloadData->PayloadPrevOrbitOffset = OrbitPayload->Offset;
-				}
-				else
-				{
-					MotionBlurPayloadData->PayloadPrevOrbitOffset = FVector::ZeroVector;
-				}
-			}
-
 			// Do linear integrator and update bounding box
 			Particle.OldLocation = Particle.Location;
 			if ((Particle.Flags & STATE_Particle_Freeze) == 0)
@@ -3266,7 +3272,7 @@ uint32 FParticleMeshEmitterInstance::RequiredBytes()
 	if (MeshTypeData)
 	{
 		const auto* MeshTD = static_cast<const UParticleModuleTypeDataMesh*>(MeshTypeData);
-		if (MeshTypeData->bEnableMotionBlur)
+		if (MeshTypeData->IsMotionBlurEnabled())
 		{
 			MeshMotionBlurOffset = PayloadOffset + uiBytes;
 			uiBytes += sizeof(FMeshMotionBlurPayloadData);

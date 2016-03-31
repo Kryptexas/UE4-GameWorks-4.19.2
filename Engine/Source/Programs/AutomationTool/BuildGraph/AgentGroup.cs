@@ -22,7 +22,7 @@ namespace AutomationTool
 		/// Array of valid agent types that these nodes may run on. When running in the build system, this determines the class of machine that should
 		/// be selected to run these nodes. The first defined agent type for this branch will be used.
 		/// </summary>
-		public string[] AgentTypes;
+		public string[] PossibleTypes;
 
 		/// <summary>
 		/// List of nodes in this agent group.
@@ -33,11 +33,11 @@ namespace AutomationTool
 		/// Constructor
 		/// </summary>
 		/// <param name="InName">Name of this agent group</param>
-		/// <param name="InAgentTypes">Array of valid agent types. See comment for AgentTypes member.</param>
-		public AgentGroup(string InName, string[] InAgentTypes)
+		/// <param name="InPossibleTypes">Array of valid agent types. See comment for AgentTypes member.</param>
+		public AgentGroup(string InName, string[] InPossibleTypes)
 		{
 			Name = InName;
-			AgentTypes = InAgentTypes;
+			PossibleTypes = InPossibleTypes;
 		}
 	}
 }

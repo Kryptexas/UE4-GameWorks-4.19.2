@@ -3134,16 +3134,24 @@ UMorphTarget* USkeletalMesh::FindMorphTarget( FName MorphTargetName ) const
 
 USkeletalMeshSocket* USkeletalMesh::FindSocket(FName InSocketName) const
 {
-	if(InSocketName == NAME_None)
+	int32 DummyIdx;
+	return FindSocketAndIndex(InSocketName, DummyIdx);
+}
+
+USkeletalMeshSocket* USkeletalMesh::FindSocketAndIndex(FName InSocketName, int32& OutIndex) const
+{
+	OutIndex = INDEX_NONE;
+	if (InSocketName == NAME_None)
 	{
 		return NULL;
 	}
 
-	for(int32 i=0; i<Sockets.Num(); i++)
+	for (int32 i = 0; i < Sockets.Num(); i++)
 	{
 		USkeletalMeshSocket* Socket = Sockets[i];
-		if(Socket && Socket->SocketName == InSocketName)
+		if (Socket && Socket->SocketName == InSocketName)
 		{
+			OutIndex = i;
 			return Socket;
 		}
 	}
@@ -3154,8 +3162,9 @@ USkeletalMeshSocket* USkeletalMesh::FindSocket(FName InSocketName) const
 		for (int32 i = 0; i < Skeleton->Sockets.Num(); ++i)
 		{
 			USkeletalMeshSocket* Socket = Skeleton->Sockets[i];
-			if(Socket && Socket->SocketName == InSocketName)
+			if (Socket && Socket->SocketName == InSocketName)
 			{
+				OutIndex = Sockets.Num() + i;
 				return Socket;
 			}
 		}
@@ -3163,6 +3172,28 @@ USkeletalMeshSocket* USkeletalMesh::FindSocket(FName InSocketName) const
 
 	return NULL;
 }
+
+int32 USkeletalMesh::NumSockets() const
+{
+	return Sockets.Num() + (Skeleton ? Skeleton->Sockets.Num() : 0);
+}
+
+USkeletalMeshSocket* USkeletalMesh::GetSocketByIndex(int32 Index) const
+{
+	if (Index < Sockets.Num())
+	{
+		return Sockets[Index];
+	}
+
+	if (Skeleton && Index < Skeleton->Sockets.Num())
+	{
+		return Skeleton->Sockets[Index];
+	}
+
+	return nullptr;
+}
+
+
 
 /**
  * This will return detail info about this specific object. (e.g. AudioComponent will return the name of the cue,

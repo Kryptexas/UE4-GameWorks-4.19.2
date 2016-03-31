@@ -64,8 +64,7 @@ struct FPreallocationInfo
 	UPROPERTY(transient)
 	TArray<AGameplayCueNotify_Actor*>	ClassesNeedingPreallocation;
 
-	UPROPERTY(transient)
-	UWorld* OwningWorld;
+	FObjectKey OwningWorldKey;
 };
 
 /** Struct that is used by the gameplaycue manager to tie an instanced gameplaycue to the calling gamecode. Usually this is just the target actor, but can also be unique per instigator/sourceobject */

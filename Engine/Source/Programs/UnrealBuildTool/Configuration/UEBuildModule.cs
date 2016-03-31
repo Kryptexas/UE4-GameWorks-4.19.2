@@ -200,7 +200,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Files which this module depends on at runtime.
 		/// </summary>
-		public List<RuntimeDependency> RuntimeDependencies;
+		public RuntimeDependencyList RuntimeDependencies;
 
 		/// <summary>
 		/// Returns a list of this module's immediate dependencies.
@@ -240,7 +240,7 @@ namespace UnrealBuildTool
 			PublicAdditionalBundleResources = InRules.AdditionalBundleResources == null ? new HashSet<UEBuildBundleResource>() : new HashSet<UEBuildBundleResource>(InRules.AdditionalBundleResources);
 			PublicDelayLoadDLLs = HashSetFromOptionalEnumerableStringParameter(InRules.PublicDelayLoadDLLs);
 			PrivateIncludePaths = HashSetFromOptionalEnumerableStringParameter(InRules.PrivateIncludePaths);
-			RuntimeDependencies = (InRules.RuntimeDependencies == null) ? new List<RuntimeDependency>() : new List<RuntimeDependency>(InRules.RuntimeDependencies);
+			RuntimeDependencies = (InRules.RuntimeDependencies == null) ? new RuntimeDependencyList() : new RuntimeDependencyList(InRules.RuntimeDependencies);
 			IsRedistributableOverride = InRules.IsRedistributableOverride;
 		}
 

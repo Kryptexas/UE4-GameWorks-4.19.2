@@ -346,20 +346,22 @@ public:
 	}
 
 	//~ Begin FMeshDrawingPolicy Interface.
-	bool Matches(const FShadowDepthDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const FShadowDepthDrawingPolicy& Other) const
 	{
-		return FMeshDrawingPolicy::Matches(Other) 
-			&& VertexShader == Other.VertexShader
-			&& GeometryShader == Other.GeometryShader
-			&& HullShader == Other.HullShader
-			&& DomainShader == Other.DomainShader
-			&& PixelShader == Other.PixelShader
-			&& bDirectionalLight == Other.bDirectionalLight
-			&& bReverseCulling == Other.bReverseCulling
-			&& bOnePassPointLightShadow == Other.bOnePassPointLightShadow
-			&& bUsePositionOnlyVS == Other.bUsePositionOnlyVS
-			&& bPreShadow == Other.bPreShadow
-			&& FeatureLevel == Other.FeatureLevel;
+		DRAWING_POLICY_MATCH_BEGIN
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) && 
+			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
+			DRAWING_POLICY_MATCH(GeometryShader == Other.GeometryShader) &&
+			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
+			DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
+			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
+			DRAWING_POLICY_MATCH(bDirectionalLight == Other.bDirectionalLight) &&
+			DRAWING_POLICY_MATCH(bReverseCulling == Other.bReverseCulling) &&
+			DRAWING_POLICY_MATCH(bOnePassPointLightShadow == Other.bOnePassPointLightShadow) &&
+			DRAWING_POLICY_MATCH(bUsePositionOnlyVS == Other.bUsePositionOnlyVS) &&
+			DRAWING_POLICY_MATCH(bPreShadow == Other.bPreShadow) &&
+			DRAWING_POLICY_MATCH(FeatureLevel == Other.FeatureLevel);
+		DRAWING_POLICY_MATCH_END
 	}
 	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
 

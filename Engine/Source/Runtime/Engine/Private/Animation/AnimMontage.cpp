@@ -605,8 +605,8 @@ void UAnimMontage::AddBranchingPointMarker(FBranchingPointMarker TickMarker, TMa
 	FAnimNotifyEvent** FoundNotifyEventPtr = TriggerTimes.Find(TickMarker.TriggerTime);
 	if (FoundNotifyEventPtr)
 	{
-		UE_LOG(LogAnimMontage, Warning, TEXT("Branching Point '%s' overlaps with '%s' at time: %f. One of them will not get triggered!"),
-			*Notifies[TickMarker.NotifyIndex].NotifyName.ToString(), *(*FoundNotifyEventPtr)->NotifyName.ToString(), TickMarker.TriggerTime);
+		UE_LOG(LogAnimMontage, Warning, TEXT("Branching Point '%s' overlaps with '%s' at time: %f. One of them will not get triggered! (%s)"),
+			*Notifies[TickMarker.NotifyIndex].NotifyName.ToString(), *(*FoundNotifyEventPtr)->NotifyName.ToString(), TickMarker.TriggerTime, *GetPathName());
 	}
 	else
 	{

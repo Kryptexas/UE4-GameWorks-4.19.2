@@ -424,7 +424,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// List of files which this module depends on at runtime. These files will be staged along with the target.
 		/// </summary>
-		public List<RuntimeDependency> RuntimeDependencies = new List<RuntimeDependency>();
+		public RuntimeDependencyList RuntimeDependencies = new RuntimeDependencyList();
 
 		/// <summary>
 		/// List of additional properties to be added to the build receipt

@@ -766,6 +766,7 @@ void APlayerController::Possess(APawn* PawnToPossess)
 			LOCTEXT("PlayerControllerPossessAuthorityOnly", "Possess function should only be used by the network authority for {0}"),
 			FText::FromName(GetFName())
 			));
+		UE_LOG(LogPlayerController, Warning, TEXT("Trying to possess %s without network authority! Request will be ignored."), *GetNameSafe(PawnToPossess));
 		return;
 	}
 

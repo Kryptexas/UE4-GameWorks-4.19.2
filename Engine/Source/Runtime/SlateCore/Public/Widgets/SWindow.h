@@ -3,7 +3,7 @@
 #pragma once
 
 class FHittestGrid;
-
+class ISlateViewport;
 
 /** Notification that a window has been activated */
 DECLARE_DELEGATE( FOnWindowActivated );
@@ -738,6 +738,16 @@ public:
 		ViewportSize = VP;
 	}
 
+	void SetViewport(TSharedRef<ISlateViewport> ViewportRef)
+	{
+		Viewport = ViewportRef;
+	}
+
+	TSharedPtr<ISlateViewport> GetViewport()
+	{
+		return Viewport.Pin();
+	}
+
 	/**
 	 * Access the hittest acceleration data structure for this window.
 	 * The grid is filled out every time the window is painted.
@@ -862,6 +872,9 @@ protected:
 
 	/** Size of the viewport. If (0,0) then it is equal to Size */
 	FVector2D ViewportSize;
+
+	/** Pointer to the viewport registered with this window if any */
+	TWeakPtr<ISlateViewport> Viewport;
 
 	/** Size of this window's title bar.  Can be zero.  Set at construction and should not be changed afterwards. */
 	float TitleBarSize;

@@ -350,6 +350,12 @@ namespace UnrealBuildTool
 				}
 			}
 
+            // Optionally include the folder name in the project
+            if (Environment.GetEnvironmentVariable("UE_NAME_PROJECT_AFTER_FOLDER") == "1")
+            {
+                MasterProjectName += "_" + Path.GetFileName(MasterProjectPath.ToString());
+            }
+
 			bool bCleanProjectFiles = UnrealBuildTool.CommandLineContains( "-CleanProjects" );
 			if (bCleanProjectFiles)
 			{

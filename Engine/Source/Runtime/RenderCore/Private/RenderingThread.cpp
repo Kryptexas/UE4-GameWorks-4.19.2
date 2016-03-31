@@ -977,3 +977,48 @@ FPendingCleanupObjects* GetPendingCleanupObjects()
 {
 	return new FPendingCleanupObjects;
 }
+
+void SetRHIThreadEnabled(bool bEnable)
+{
+	if (bEnable != GUseRHIThread)
+	{
+		if (GRHISupportsRHIThread)
+		{
+			if (!GIsThreadedRendering)
+			{
+				check(!GRHIThread);
+				UE_LOG(LogRendererCore, Display, TEXT("Can't switch to RHI thread mode when we are not running a multithreaded renderer."));
+			}
+			else
+			{
+				StopRenderingThread();
+				GUseRHIThread = bEnable;
+				StartRenderingThread();
+			}
+			UE_LOG(LogRendererCore, Display, TEXT("RHIThread is now %s."), GRHIThread ? TEXT("active") : TEXT("inactive"));
+		}
+		else
+		{
+			UE_LOG(LogRendererCore, Display, TEXT("This RHI does not support the RHI thread."));
+		}
+	}
+}
+
+static void HandleRHIThreadEnableChanged(const TArray<FString>& Args)
+{
+	if (Args.Num() > 0)
+	{
+		const bool bUseRHIThread = Args[0].ToBool();
+		SetRHIThreadEnabled(bUseRHIThread);
+	}
+	else
+	{
+		UE_LOG(LogRendererCore, Display, TEXT("Usage: r.RHIThread.Enable 0/1"));
+	}
+}
+
+static FAutoConsoleCommand CVarRHIThreadEnable(
+	TEXT("r.RHIThread.Enable"),
+	TEXT("Enables/disabled the RHI Thread\n"),	
+	FConsoleCommandWithArgsDelegate::CreateStatic(&HandleRHIThreadEnableChanged)
+	);

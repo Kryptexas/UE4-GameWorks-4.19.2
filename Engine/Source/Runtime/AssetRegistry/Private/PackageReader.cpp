@@ -307,7 +307,7 @@ bool FPackageReader::ReadAssetRegistryDataIfCookedPackage(TArray<FAssetData*>& A
 						ObjectClassName = ClassImport.ObjectName;
 					}
 
-					new(AssetDataList) FAssetData(FName(*PackageName), FName(*PackagePath), FName(*GroupNames), Export.ObjectName, ObjectClassName, Tags, ChunkIDs, GetPackageFlags());
+					AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), FName(*GroupNames), Export.ObjectName, ObjectClassName, Tags, ChunkIDs, GetPackageFlags()));
 					bFoundAtLeastOneAsset = true;
 				}
 			}

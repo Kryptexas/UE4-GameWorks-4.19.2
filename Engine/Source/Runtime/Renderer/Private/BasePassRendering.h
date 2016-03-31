@@ -765,18 +765,19 @@ public:
 
 	// FMeshDrawingPolicy interface.
 
-	bool Matches(const TBasePassDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const TBasePassDrawingPolicy& Other) const
 	{
-		return FMeshDrawingPolicy::Matches(Other) &&
-			VertexShader == Other.VertexShader &&
-			PixelShader == Other.PixelShader &&
-			HullShader == Other.HullShader &&
-			DomainShader == Other.DomainShader &&
-			SceneTextureMode == Other.SceneTextureMode &&
-			bAllowGlobalFog == Other.bAllowGlobalFog &&
-			bEnableSkyLight == Other.bEnableSkyLight && 
-
-			LightMapPolicy == Other.LightMapPolicy;
+		DRAWING_POLICY_MATCH_BEGIN
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
+			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
+			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
+			DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
+			DRAWING_POLICY_MATCH(SceneTextureMode == Other.SceneTextureMode) &&
+			DRAWING_POLICY_MATCH(bAllowGlobalFog == Other.bAllowGlobalFog) &&
+			DRAWING_POLICY_MATCH(bEnableSkyLight == Other.bEnableSkyLight) && 
+			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy);
+		DRAWING_POLICY_MATCH_END
 	}
 
 	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext, float ScreenTextureScaleFactor = 1.0f) const

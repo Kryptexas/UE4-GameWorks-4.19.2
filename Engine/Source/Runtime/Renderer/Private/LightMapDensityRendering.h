@@ -287,14 +287,16 @@ public:
 	}
 
 	// FMeshDrawingPolicy interface.
-	bool Matches(const TLightMapDensityDrawingPolicy& Other) const
+	FDrawingPolicyMatchResult Matches(const TLightMapDensityDrawingPolicy& Other) const
 	{
-		return FMeshDrawingPolicy::Matches(Other) &&
-			VertexShader == Other.VertexShader &&
-			PixelShader == Other.PixelShader &&
-			HullShader == Other.HullShader &&
-			DomainShader == Other.DomainShader &&
-			LightMapPolicy == Other.LightMapPolicy;
+		DRAWING_POLICY_MATCH_BEGIN
+			DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
+			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
+			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
+			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
+			DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
+			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy);
+		DRAWING_POLICY_MATCH_END
 	}
 
 	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType) const

@@ -74,8 +74,12 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	CountedFrames		( 0 )
 ,	InBytes				( 0 )
 ,	OutBytes			( 0 )
+,	InPackets			( 0 )
+,	OutPackets			( 0 )
 ,	InBytesPerSecond	( 0 )
 ,	OutBytesPerSecond	( 0 )
+,	InPacketsPerSecond	( 0 )
+,	OutPacketsPerSecond	( 0 )
 
 ,	SendBuffer			( 0 )
 ,	InPacketId			( -1 )
@@ -534,6 +538,7 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 	UE_LOG(LogNetTraffic, Verbose, TEXT("%6.3f: Received %i"), FPlatformTime::Seconds() - GStartTime, Count );
 	int32 PacketBytes = Count + PacketOverhead;
 	InBytes += PacketBytes;
+	++InPackets;
 	Driver->InBytes += PacketBytes;
 	Driver->InPackets++;
 	if( Count>0 )
@@ -665,6 +670,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 		OutBytesPerSecondHistory[Index]	= OutBytesPerSecond / 1024;
 
 		OutPacketId++;
+		++OutPackets;
 		Driver->OutPackets++;
 		LastSendTime = Driver->Time;
 		const int32 PacketBytes = SendBuffer.GetNumBytes() + PacketOverhead;
@@ -1512,6 +1518,8 @@ void UNetConnection::Tick()
 
 		InBytesPerSecond = FMath::TruncToInt(static_cast<float>(InBytes) / RealTime);
 		OutBytesPerSecond = FMath::TruncToInt(static_cast<float>(OutBytes) / RealTime);
+		InPacketsPerSecond = FMath::TruncToInt(static_cast<float>(InPackets) / RealTime);
+		OutPacketsPerSecond = FMath::TruncToInt(static_cast<float>(OutPackets) / RealTime);
 
 		// Init counters.
 		LagAcc = 0;
@@ -1522,6 +1530,8 @@ void UNetConnection::Tick()
 		OutPacketsLost = 0;
 		InBytes = 0;
 		OutBytes = 0;
+		InPackets = 0;
+		OutPackets = 0;
 	}
 
 	// Compute time passed since last update.

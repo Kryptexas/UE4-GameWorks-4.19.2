@@ -109,7 +109,7 @@ static TAutoConsoleVariable<float> CVarNetProxyShrinkHalfHeight(
 	TEXT("<= 0: disabled, > 0: shrink by this amount."),
 	ECVF_Default);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 static TAutoConsoleVariable<int32> CVarNetShowCorrections(
 	TEXT("p.NetShowCorrections"),
 	0,
@@ -123,7 +123,9 @@ static TAutoConsoleVariable<float> CVarNetCorrectionLifetime(
 	TEXT("How long a visualized network correction persists.\n")
 	TEXT("Time in seconds each visualized network correction persists."),
 	ECVF_Cheat);
+#endif // !UI_BUILD_SHIPPING
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarNetForceClientAdjustmentPercent(
 	TEXT("p.NetForceClientAdjustmentPercent"),
 	0.f,
@@ -1136,8 +1138,11 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 	SCOPE_CYCLE_COUNTER(STAT_CharacterMovementSimulated);
 	checkSlow(CharacterOwner != nullptr);
 
-	if ( NetworkSmoothingMode == ENetworkSmoothingMode::Replay )
+	if (NetworkSmoothingMode == ENetworkSmoothingMode::Replay)
 	{
+		const FVector OldLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
+		const FVector OldVelocity = Velocity;
+
 		// Interpolate between appropriate samples
 		{
 			SCOPE_CYCLE_COUNTER( STAT_CharacterMovementSmoothClientPosition );
@@ -1152,14 +1157,14 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 
 		CharacterOwner->RootMotionRepMoves.Empty();
 
+		// Note: we do not call the Super implementation, that runs prediction.
+		// We do still need to call these though
+		OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
+		CallMovementUpdateDelegate(DeltaSeconds, OldLocation, OldVelocity);
+
 		LastUpdateLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
 		LastUpdateRotation = UpdatedComponent ? UpdatedComponent->GetComponentQuat() : FQuat::Identity;
 		LastUpdateVelocity = Velocity;
-
-		// Note: we do not call the Super implementation, that runs prediction.
-		// We do still need to call these though
-		OnMovementUpdated( DeltaSeconds, LastUpdateLocation, Velocity );
-		CallMovementUpdateDelegate( DeltaSeconds, LastUpdateLocation, Velocity );
 
 		//TickCharacterPose( DeltaSeconds );
 		return;
@@ -3884,9 +3889,25 @@ FVector UCharacterMovementComponent::ComputeGroundMovementDelta(const FVector& D
 	return Delta;
 }
 
-void UCharacterMovementComponent::OnCharacterStuckInGeometry()
+void UCharacterMovementComponent::OnCharacterStuckInGeometry(const FHitResult* Hit)
 {
-	UE_LOG(LogCharacterMovement, Log, TEXT("%s is stuck and failed to move!"), *CharacterOwner->GetName());
+	if (Hit == nullptr)
+	{
+		UE_LOG(LogCharacterMovement, Log, TEXT("%s is stuck and failed to move!"), *CharacterOwner->GetName());
+	}
+	else
+	{
+		UE_LOG(LogCharacterMovement, Log, TEXT("%s is stuck and failed to move! Velocity: X=%3.3f Y=%3.3f Z=%3.3f Location: X=%3.3f Y=%3.3f Z=%3.3f Normal: X=%3.3f Y=%3.3f Z=%3.3f PenetrationDepth:%.3f Actor:%s Component:%s BoneName:%s"),
+			   *GetNameSafe(CharacterOwner),
+			   Velocity.X, Velocity.Y, Velocity.Z,
+			   Hit->Location.X, Hit->Location.Y, Hit->Location.Z,
+			   Hit->Normal.X, Hit->Normal.Y, Hit->Normal.Z,
+			   Hit->PenetrationDepth,
+			   *GetNameSafe(Hit->GetActor()),
+			   *GetNameSafe(Hit->GetComponent()),
+			   Hit->BoneName.IsValid() ? *Hit->BoneName.ToString() : TEXT("None")
+			   );
+	}
 
 	// Don't update velocity based on our (failed) change in position this update since we're stuck.
 	bJustTeleported = true;
@@ -3894,7 +3915,6 @@ void UCharacterMovementComponent::OnCharacterStuckInGeometry()
 
 void UCharacterMovementComponent::MoveAlongFloor(const FVector& InVelocity, float DeltaSeconds, FStepDownResult* OutStepDownResult)
 {
-
 	if (!CurrentFloor.IsWalkableFloor())
 	{
 		return;
@@ -3915,7 +3935,7 @@ void UCharacterMovementComponent::MoveAlongFloor(const FVector& InVelocity, floa
 
 		if (Hit.bStartPenetrating)
 		{
-			OnCharacterStuckInGeometry();
+			OnCharacterStuckInGeometry(&Hit);
 		}
 	}
 	else if (Hit.IsValidBlockingHit())
@@ -6713,6 +6733,12 @@ bool UCharacterMovementComponent::ClientUpdatePositionAfterServerUpdate()
 
 	if (bIgnoreClientMovementErrorChecksAndCorrection)
 	{
+#if !UE_BUILD_SHIPPING
+		if (CVarNetShowCorrections.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogNetPlayerMovement, Warning, TEXT("*** Client: %s is set to ignore error checks and corrections with %d saved moves in queue."), *GetNameSafe(CharacterOwner), ClientData->SavedMoves.Num());
+		}
+#endif // !UE_BUILD_SHIPPING
 		return false;
 	}
 
@@ -7636,12 +7662,13 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float ClientTimeSt
 		}
 
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !UE_BUILD_SHIPPING
 		if (CVarNetShowCorrections.GetValueOnGameThread() != 0)
 		{
 			const FVector LocDiff = UpdatedComponent->GetComponentLocation() - ClientLoc;
-			UE_LOG(LogNetPlayerMovement, Warning, TEXT("******** Client Error at %f is %f Accel %s LocDiff %s ClientLoc %s, ServerLoc: %s, Base: %s, Bone: %s"),
-				ClientTimeStamp, LocDiff.Size(), *Accel.ToString(), *LocDiff.ToString(), *ClientLoc.ToString(), *UpdatedComponent->GetComponentLocation().ToString(), *GetNameSafe(MovementBase), *ServerData->PendingAdjustment.NewBaseBoneName.ToString());
+			const FString BaseString = MovementBase ? MovementBase->GetPathName(MovementBase->GetOutermost()) : TEXT("None");
+			UE_LOG(LogNetPlayerMovement, Warning, TEXT("*** Server: Error for %s at Time=%.3f is %3.3f LocDiff(%s) ClientLoc(%s) ServerLoc(%s) Base: %s Bone: %s Accel(%s) Velocity(%s)"),
+				*GetNameSafe(CharacterOwner), ClientTimeStamp, LocDiff.Size(), *LocDiff.ToString(), *ClientLoc.ToString(), *UpdatedComponent->GetComponentLocation().ToString(), *BaseString, *ServerData->PendingAdjustment.NewBaseBoneName.ToString(), *Accel.ToString(), *Velocity.ToString());
 			const float DebugLifetime = CVarNetCorrectionLifetime.GetValueOnGameThread();
 			DrawDebugCapsule(GetWorld(), UpdatedComponent->GetComponentLocation(), CharacterOwner->GetSimpleCollisionHalfHeight(), CharacterOwner->GetSimpleCollisionRadius(), FQuat::Identity, FColor(100, 255, 100), true, DebugLifetime);
 			DrawDebugCapsule(GetWorld(), ClientLoc                    , CharacterOwner->GetSimpleCollisionHalfHeight(), CharacterOwner->GetSimpleCollisionRadius(), FQuat::Identity, FColor(255, 100, 100), true, DebugLifetime);
@@ -7708,6 +7735,15 @@ bool UCharacterMovementComponent::ServerCheckClientError(float ClientTimeStamp, 
 			}
 		}
 #endif
+	}
+	else
+	{
+#if !UE_BUILD_SHIPPING
+		if (CVarNetShowCorrections.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogNetPlayerMovement, Warning, TEXT("*** Server: %s is set to ignore error checks and corrections."), *GetNameSafe(CharacterOwner));
+		}
+#endif // !UE_BUILD_SHIPPING
 	}
 
 	// Check for disagreement in movement mode
@@ -7973,17 +8009,18 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 		NewLocation += BaseLocation;
 	}
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	static const auto CVarShowCorrections = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("p.NetShowCorrections"));
-	if (CVarShowCorrections && CVarShowCorrections->GetValueOnGameThread() != 0)
+#if !UE_BUILD_SHIPPING
+	if (CVarNetShowCorrections.GetValueOnGameThread() != 0)
 	{
-		UE_LOG(LogNetPlayerMovement, Warning, TEXT("******** ClientAdjustPosition Time %f velocity %s position %s NewBase: %s NewBone: %s SavedMoves %d"), TimeStamp, *NewVelocity.ToString(), *NewLocation.ToString(), *GetNameSafe(NewBase), *NewBaseBoneName.ToString(), ClientData->SavedMoves.Num());
-		static const auto CVarCorrectionLifetime = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.NetCorrectionLifetime"));
-		const float DebugLifetime = CVarCorrectionLifetime ? CVarCorrectionLifetime->GetValueOnGameThread() : 1.f;
+		const FVector LocDiff = UpdatedComponent->GetComponentLocation() - NewLocation;
+		const FString NewBaseString = NewBase ? NewBase->GetPathName(NewBase->GetOutermost()) : TEXT("None");
+		UE_LOG(LogNetPlayerMovement, Warning, TEXT("*** Client: Error for %s at Time=%.3f is %3.3f LocDiff(%s) ClientLoc(%s) ServerLoc(%s) NewBase: %s NewBone: %s ClientVel(%s) ServerVel(%s) SavedMoves %d"),
+			*GetNameSafe(CharacterOwner), TimeStamp, LocDiff.Size(), *LocDiff.ToString(), *UpdatedComponent->GetComponentLocation().ToString(), *NewLocation.ToString(), *NewBaseString, *NewBaseBoneName.ToString(), *Velocity.ToString(), *NewVelocity.ToString(), ClientData->SavedMoves.Num());
+		const float DebugLifetime = CVarNetCorrectionLifetime.GetValueOnGameThread();
 		DrawDebugCapsule(GetWorld(), UpdatedComponent->GetComponentLocation()	, CharacterOwner->GetSimpleCollisionHalfHeight(), CharacterOwner->GetSimpleCollisionRadius(), FQuat::Identity, FColor(255, 100, 100), true, DebugLifetime);
 		DrawDebugCapsule(GetWorld(), NewLocation						, CharacterOwner->GetSimpleCollisionHalfHeight(), CharacterOwner->GetSimpleCollisionRadius(), FQuat::Identity, FColor(100, 255, 100), true, DebugLifetime);
 	}
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif //!UE_BUILD_SHIPPING
 
 	// Trust the server's positioning.
 	UpdatedComponent->SetWorldLocation(NewLocation, false);	

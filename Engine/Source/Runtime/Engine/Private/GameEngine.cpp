@@ -391,15 +391,9 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 			SceneViewport->ResizeFrame((uint32)GSystemResolution.ResX, (uint32)GSystemResolution.ResY, GSystemResolution.WindowMode, 0, 0);
 		}
 
-		// Move the registration of the game viewport to that messages are correctly received.
-		if (!FPlatformProperties::SupportsWindowedMode())
-		{
-			FSlateApplication::Get().RegisterGameViewport(GameViewportWidgetRef);
-		}
-		else
-		{
-			FSlateApplication::Get().ActivateGameViewport();
-		}
+		// Registration of the game viewport to that messages are correctly received.
+		// Could be a re-register, however it's necessary after the window is set.
+		FSlateApplication::Get().RegisterGameViewport(GameViewportWidgetRef);
 	}
 }
 

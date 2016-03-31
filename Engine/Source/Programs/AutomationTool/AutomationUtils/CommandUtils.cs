@@ -2168,6 +2168,60 @@ namespace AutomationTool
 				return OutputFileNames;
 			}
 		}
+
+		/// <summary>
+		/// Resolve an arbitrary file specification against a directory. May contain any number of p4 wildcard operators (?, *, ...).
+		/// </summary>
+		/// <param name="DefaultDir">Base directory for relative paths</param>
+		/// <param name="Pattern">Pattern to match</param>
+		/// <param name="ExcludePatterns">List of patterns to be excluded. May be null.</param>
+		/// <returns>Sequence of file references matching the given pattern</returns>
+		public static IEnumerable<FileReference> ResolveFilespec(DirectoryReference DefaultDir, string Pattern, IEnumerable<string> ExcludePatterns)
+		{
+			List<FileReference> Files = new List<FileReference>();
+
+			// Check if it contains any wildcards. If not, we can just add the pattern directly without searching.
+			int WildcardIdx = FileFilter.FindWildcardIndex(Pattern);
+			if(WildcardIdx == -1)
+			{
+				// Construct a filter which removes all the excluded filetypes
+				FileFilter Filter = new FileFilter(FileFilterType.Include);
+				if(ExcludePatterns != null)
+				{
+					Filter.AddRules(ExcludePatterns, FileFilterType.Exclude);
+				}
+
+				// Match it against the given file
+				FileReference File = FileReference.Combine(DefaultDir, Pattern);
+				if(Filter.Matches(File.FullName))
+				{
+					Files.Add(File);
+				}
+			}
+			else
+			{
+				// Find the base directory for the search. We construct this in a very deliberate way including the directory separator itself, so matches
+				// against the OS root directory will resolve correctly both on Mac (where / is the filesystem root) and Windows (where / refers to the current drive).
+				int LastDirectoryIdx = Pattern.LastIndexOfAny(new char[]{ Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, WildcardIdx);
+				DirectoryReference BaseDir = DirectoryReference.Combine(DefaultDir, Pattern.Substring(0, LastDirectoryIdx + 1));
+
+				// Construct the absolute include pattern to match against, re-inserting the resolved base directory to construct a canonical path.
+				string IncludePattern = BaseDir.FullName.TrimEnd(new char[]{ Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }) + "/" + Pattern.Substring(LastDirectoryIdx + 1);
+
+				// Construct a filter and apply it to the directory
+				if(BaseDir.Exists())
+				{
+					FileFilter Filter = new FileFilter();
+					Filter.AddRule(IncludePattern, FileFilterType.Include);
+					if(ExcludePatterns != null)
+					{
+						Filter.AddRules(ExcludePatterns, FileFilterType.Exclude);
+					}
+					Files.AddRange(Filter.ApplyToDirectory(BaseDir, BaseDir.FullName, true));
+				}
+			}
+			return Files;
+		}
 	}
 
     /// <summary>

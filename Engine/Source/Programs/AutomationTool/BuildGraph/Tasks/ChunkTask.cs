@@ -10,7 +10,7 @@ using UnrealBuildTool;
 namespace AutomationTool.Tasks
 {
 	/// <summary>
-	/// Parameters for a task which calls another UAT command
+	/// Parameters for a task which splits a build into chunks
 	/// </summary>
 	public class ChunkTaskParameters
 	{
@@ -47,13 +47,13 @@ namespace AutomationTool.Tasks
 		/// <summary>
 		/// The executable to run to launch this application.
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(Optional = true)]
 		public string Launch;
 
 		/// <summary>
 		/// Parameters that the application should be launched with.
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(Optional = true)]
 		public string LaunchArgs;
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace AutomationTool.Tasks
 	}
 
 	/// <summary>
-	/// Implements a task which calls another UAT command
+	/// Implements a task which splits a build into chunks
 	/// </summary>
 	[TaskElement("Chunk", typeof(ChunkTaskParameters))]
 	public class ChunkTask : CustomTask
@@ -124,8 +124,8 @@ namespace AutomationTool.Tasks
 			Options.StagingInfo = StagingInfo;
 			Options.BuildRoot = ResolveDirectory(Parameters.InputDir).FullName;
 			Options.FileIgnoreList = (IgnoreList != null)? IgnoreList.FullName : null;
-			Options.AppLaunchCmd = Parameters.Launch;
-			Options.AppLaunchCmdArgs = Parameters.LaunchArgs;
+			Options.AppLaunchCmd = Parameters.Launch ?? "";
+			Options.AppLaunchCmdArgs = Parameters.LaunchArgs ?? "";
 			Options.AppChunkType = BuildPatchToolBase.ChunkType.Chunk;
 
 			// Run the chunking

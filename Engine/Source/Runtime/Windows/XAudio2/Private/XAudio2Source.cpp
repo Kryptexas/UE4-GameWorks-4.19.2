@@ -1413,6 +1413,9 @@ void FXAudio2SoundSource::Stop()
 			}
 		}
 
+		Paused = false;
+		Playing = false;
+
 		if (Source && Playing)
 		{
 			AudioDevice->ValidateAPICall(TEXT("FlushSourceBuffers"),
@@ -1421,9 +1424,6 @@ void FXAudio2SoundSource::Stop()
 			AudioDevice->ValidateAPICall(TEXT("Stop"),
 										 Source->Stop(0));
 		}
-
-		Paused = false;
-		Playing = false;
 
 		// Free resources
 		FreeResources();

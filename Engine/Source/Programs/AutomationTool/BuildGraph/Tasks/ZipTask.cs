@@ -17,7 +17,7 @@ namespace BuildGraph.Tasks
 		/// The directory to copy from
 		/// </summary>
 		[TaskParameter]
-		public string BaseDir;
+		public string FromDir;
 
 		/// <summary>
 		/// List of file specifications separated by semicolons (eg. *.cpp;Engine/.../*.bat), or the name of a tag set
@@ -30,6 +30,12 @@ namespace BuildGraph.Tasks
 		/// </summary>
 		[TaskParameter]
 		public string ZipFile;
+
+		/// <summary>
+		/// Tag to be applied to build products of this task
+		/// </summary>
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		public string Tag;
 	}
 
 	/// <summary>
@@ -61,22 +67,31 @@ namespace BuildGraph.Tasks
 		/// <returns>True if the task succeeded</returns>
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
-			DirectoryReference BaseDirectory = ResolveDirectory(Parameters.BaseDir);
+			DirectoryReference FromDir = ResolveDirectory(Parameters.FromDir);
 
 			// Find all the input files
 			IEnumerable<FileReference> Files;
 			if(Parameters.Files == null)
 			{
-				Files = BaseDirectory.EnumerateFileReferences("*", System.IO.SearchOption.AllDirectories);
+				Files = FromDir.EnumerateFileReferences("*", System.IO.SearchOption.AllDirectories);
 			}
 			else
 			{
-				Files = ResolveFilespec(BaseDirectory, Parameters.Files, TagNameToFileSet);
+				Files = ResolveFilespec(FromDir, Parameters.Files, TagNameToFileSet);
 			}
 
 			// Create the zip file
 			FileReference ArchiveFile = ResolveFile(Parameters.ZipFile);
-			CommandUtils.ZipFiles(ArchiveFile, BaseDirectory, Files);
+			CommandUtils.ZipFiles(ArchiveFile, FromDir, Files);
+
+			// Apply the optional tag to the produced archive
+			if(!String.IsNullOrEmpty(Parameters.Tag))
+			{
+				FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).Add(ArchiveFile);
+			}
+
+			// Add the archive to the set of build products
+			BuildProducts.Add(ArchiveFile);
 			return true;
 		}
 	}

@@ -125,13 +125,17 @@ namespace AutomationTool
 			// Add any additional custom parameters from the command line (of the form -Set:X=Y)
 			foreach(string Param in Params)
 			{
-				const string Prefix = "-Set:";
+				const string Prefix = "set:";
 				if(Param.StartsWith(Prefix, StringComparison.InvariantCultureIgnoreCase))
 				{
 					int EqualsIdx = Param.IndexOf('=');
 					if(EqualsIdx >= 0)
 					{
 						DefaultProperties[Param.Substring(Prefix.Length, EqualsIdx - Prefix.Length)] = Param.Substring(EqualsIdx + 1);
+					}
+					else
+					{
+						LogWarning("Missing value for '{0}'", Param.Substring(Prefix.Length));
 					}
 				}
 			}
@@ -140,7 +144,7 @@ namespace AutomationTool
 			DefaultProperties["Branch"] = P4Enabled? P4Env.BuildRootP4 : "Unknown";
 			DefaultProperties["EscapedBranch"] = P4Enabled? P4Env.BuildRootEscaped : "Unknown";
 			DefaultProperties["Change"] = P4Enabled? P4Env.Changelist.ToString() : "0";
-			DefaultProperties["RootDir"] = new DirectoryReference(CommandUtils.CmdEnv.LocalRoot).FullName;
+			DefaultProperties["RootDir"] = CommandUtils.RootDirectory.FullName;
 			DefaultProperties["IsBuildMachine"] = IsBuildMachine? "true" : "false";
 			DefaultProperties["HostPlatform"] = HostPlatform.Current.HostEditorPlatform.ToString();
 
@@ -222,6 +226,27 @@ namespace AutomationTool
 				return ExitCode.Error_Unknown;
 			}
 
+			// Print out all the diagnostic messages which still apply, unless we're running a step as part of a build system. 
+			if(SingleNode == null)
+			{
+				IEnumerable<GraphDiagnostic> Diagnostics = Graph.Diagnostics.Where(x => x.EnclosingTrigger == null || Triggers.Contains(x.EnclosingTrigger));
+				foreach(GraphDiagnostic Diagnostic in Diagnostics)
+				{
+					if(Diagnostic.EventType == LogEventType.Warning)
+					{
+						CommandUtils.LogWarning(Diagnostic.Message);
+					}
+					else
+					{
+						CommandUtils.LogError(Diagnostic.Message);
+					}
+				}
+				if(Diagnostics.Any(x => x.EventType == LogEventType.Error))
+				{
+					return ExitCode.Error_Unknown;
+				}
+			}
+
 			// Execute the command
 			if(bListOnly)
 			{ 
@@ -236,7 +261,7 @@ namespace AutomationTool
 			}
 			else if(SingleNode != null)
 			{
-				if(!BuildSingleNode(new JobContext(this), Graph, SingleNode, Storage))
+				if(!BuildNode(new JobContext(this), Graph, SingleNode, Storage, bWithBanner: true))
 				{
 					return ExitCode.Error_Unknown;
 				}
@@ -340,7 +365,7 @@ namespace AutomationTool
 			HashSet<Node> CleanedNodes = new HashSet<Node>();
 			foreach(Node NodeToExecute in NodesToExecute)
 			{
-				if(NodeToExecute.InputDependencies.Any(x => CleanedNodes.Contains(x)) || !Storage.CheckLocalIntegrity(NodeToExecute.Name, NodeToExecute.OutputNames))
+				if(NodeToExecute.InputDependencies.Any(x => CleanedNodes.Contains(x)) || !Storage.CheckLocalIntegrity(NodeToExecute.Name, NodeToExecute.Outputs.Select(x => x.Name)))
 				{
 					Storage.CleanLocalNode(NodeToExecute.Name);
 					CleanedNodes.Add(NodeToExecute);
@@ -351,11 +376,11 @@ namespace AutomationTool
 			int NodeIdx = 0;
 			foreach(Node NodeToExecute in NodesToExecute)
 			{
-				Log("****** [{0}/{1}] {2} ******", ++NodeIdx, NodesToExecute.Length, NodeToExecute.Name);
+				Log("****** [{0}/{1}] {2}", ++NodeIdx, NodesToExecute.Length, NodeToExecute.Name);
 				if(!Storage.IsComplete(NodeToExecute.Name))
 				{
 					Log("");
-					if(!BuildSingleNode(Job, Graph, NodeToExecute, Storage))
+					if(!BuildNode(Job, Graph, NodeToExecute, Storage, false))
 					{
 						return false;
 					} 
@@ -366,44 +391,53 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Build a single node
+		/// Build a node
 		/// </summary>
 		/// <param name="Job">Information about the current job</param>
 		/// <param name="Graph">The graph to which the node belongs. Used to determine which outputs need to be transferred to temp storage.</param>
 		/// <param name="Node">The node to build</param>
 		/// <returns>True if the node built successfully, false otherwise.</returns>
-		bool BuildSingleNode(JobContext Job, Graph Graph, Node Node, TempStorage Storage)
+		bool BuildNode(JobContext Job, Graph Graph, Node Node, TempStorage Storage, bool bWithBanner)
 		{
 			// Create a mapping from tag name to the files it contains, and seed it with invalid entries for everything in the graph
 			Dictionary<string, HashSet<FileReference>> TagNameToFileSet = new Dictionary<string,HashSet<FileReference>>();
-			foreach(string OutputName in Graph.Groups.SelectMany(x => x.Nodes).SelectMany(x => x.OutputNames))
+			foreach(NodeOutput Output in Graph.Groups.SelectMany(x => x.Nodes).SelectMany(x => x.Outputs))
 			{
-				TagNameToFileSet[OutputName] = null;
+				TagNameToFileSet[Output.Name] = null;
 			}
 
 			// Fetch all the input dependencies for this node, and fill in the tag names with those files
 			DirectoryReference RootDir = new DirectoryReference(CommandUtils.CmdEnv.LocalRoot);
-			foreach(string InputName in Node.InputNames)
+			foreach(NodeOutput Input in Node.Inputs)
 			{
-				Node InputNode = Graph.OutputNameToNode[InputName];
-				TempStorageManifest Manifest = Storage.Retreive(InputNode.Name, InputName);
-				TagNameToFileSet[InputName] = new HashSet<FileReference>(Manifest.Files.Select(x => x.ToFileReference(RootDir)));
+				TempStorageManifest Manifest = Storage.Retreive(Input.ProducingNode.Name, Input.Name);
+				TagNameToFileSet[Input.Name] = new HashSet<FileReference>(Manifest.Files.Select(x => x.ToFileReference(RootDir)));
 			}
 
 			// Add placeholder outputs for the current node
-			foreach(string OutputName in Node.OutputNames)
+			foreach(NodeOutput Output in Node.Outputs)
 			{
-				TagNameToFileSet[OutputName] = new HashSet<FileReference>();
+				TagNameToFileSet[Output.Name] = new HashSet<FileReference>();
 			}
 
 			// Execute the node
+			if(bWithBanner)
+			{
+				Console.WriteLine();
+				CommandUtils.Log("========== Starting: {0} ==========", Node.Name);
+			}
 			if(!Node.Build(Job, TagNameToFileSet))
 			{
 				return false;
 			}
+			if(bWithBanner)
+			{
+				CommandUtils.Log("========== Finished: {0} ==========", Node.Name);
+				Console.WriteLine();
+			}
 
 			// Determine all the outputs which are required to be copied to temp storage (because they're referenced by nodes in another agent group)
-			HashSet<string> ReferencedOutputs = new HashSet<string>();
+			HashSet<NodeOutput> ReferencedOutputs = new HashSet<NodeOutput>();
 			foreach(AgentGroup Group in Graph.Groups)
 			{
 				bool bSameGroup = Group.Nodes.Contains(Node);
@@ -411,51 +445,20 @@ namespace AutomationTool
 				{
 					if(!bSameGroup || Node.ControllingTrigger != OtherNode.ControllingTrigger)
 					{
-						ReferencedOutputs.UnionWith(OtherNode.InputNames);
+						ReferencedOutputs.UnionWith(OtherNode.Inputs);
 					}
 				}
 			}
 
 			// Publish all the outputs
-			foreach(string OutputName in Node.OutputNames)
+			foreach(NodeOutput Output in Node.Outputs)
 			{
-				Storage.Archive(Node.Name, OutputName, TagNameToFileSet[OutputName].ToArray(), ReferencedOutputs.Contains(OutputName));
+				Storage.Archive(Node.Name, Output.Name, TagNameToFileSet[Output.Name].ToArray(), ReferencedOutputs.Contains(Output));
 			}
 
 			// Mark the node as succeeded
 			Storage.MarkAsComplete(Node.Name);
 			return true;
-		}
-
-		/// <summary>
-		/// Build a list of output files to their output name
-		/// </summary>
-		/// <param name="Node"></param>
-		/// <param name="TagNameToFileSet"></param>
-		/// <param name="FileToOutputName"></param>
-		/// <returns></returns>
-		static bool FindFileToOutputNameMapping(Node Node, Dictionary<string, HashSet<FileReference>> TagNameToFileSet, Dictionary<FileReference, string> FileToOutputName)
-		{
-			bool bResult = true;
-			foreach(string OutputName in Node.OutputNames)
-			{
-				HashSet<FileReference> FileSet;
-				if(TagNameToFileSet.TryGetValue(OutputName, out FileSet))
-				{
-					foreach(FileReference File in FileSet)
-					{
-						string ExistingOutputName;
-						if(FileToOutputName.TryGetValue(File, out ExistingOutputName))
-						{
-							CommandUtils.LogError("Build product is added to multiple outputs; {0} added to {1} and {2}", File.MakeRelativeTo(new DirectoryReference(CommandUtils.CmdEnv.LocalRoot)), ExistingOutputName, OutputName);
-							bResult = false;
-							continue;
-						}
-						FileToOutputName.Add(File, OutputName);
-					}
-				}
-			}
-			return bResult;
 		}
 	}
 }

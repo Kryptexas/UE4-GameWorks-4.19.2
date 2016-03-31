@@ -328,8 +328,10 @@ void FParallelCommandListSet::AddParallelCommandList(FRHICommandList* CmdList, F
 
 void FParallelCommandListSet::WaitForTasks()
 {
-	check(GOutstandingParallelCommandListSet);
-	GOutstandingParallelCommandListSet->WaitForTasksInternal();
+	if (GOutstandingParallelCommandListSet)
+	{
+		GOutstandingParallelCommandListSet->WaitForTasksInternal();
+	}
 }
 
 void FParallelCommandListSet::WaitForTasksInternal()

@@ -1891,10 +1891,14 @@ void FActiveGameplayEffectsContainer::OnMagnitudeDependencyChange(FActiveGamepla
 	}
 }
 
-void FActiveGameplayEffectsContainer::OnStackCountChange(FActiveGameplayEffect& ActiveEffect, int32 OldStackCount)
+void FActiveGameplayEffectsContainer::OnStackCountChange(FActiveGameplayEffect& ActiveEffect, int32 OldStackCount, int32 NewStackCount)
 {
 	MarkItemDirty(ActiveEffect);
-	UpdateAllAggregatorModMagnitudes(ActiveEffect);
+	if (OldStackCount != NewStackCount)
+	{
+		// Only update attributes if stack count actually changed.
+		UpdateAllAggregatorModMagnitudes(ActiveEffect);
+	}
 	Owner->NotifyTagMap_StackCountChange(ActiveEffect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags);
 	Owner->NotifyTagMap_StackCountChange(ActiveEffect.Spec.DynamicGrantedTags);
 
@@ -2546,10 +2550,8 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 	// as a result of stacking. In reality it could in complicated cases with differing sets of dynamically-granted tags.
 	if (ExistingStackableGE)
 	{
-		if (NewStackCount != StartingStackCount)
-		{
-			OnStackCountChange(*ExistingStackableGE, StartingStackCount);
-		}
+		OnStackCountChange(*ExistingStackableGE, StartingStackCount, NewStackCount);
+		
 	}
 	else
 	{
@@ -2733,7 +2735,7 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 			// This won't be a full remove, only a change in StackCount.
 			int32 StartingStackCount = Effect.Spec.StackCount;
 			Effect.Spec.StackCount -= StacksToRemove;
-			OnStackCountChange(Effect, StartingStackCount);
+			OnStackCountChange(Effect, StartingStackCount, Effect.Spec.StackCount);
 			return false;
 		}
 

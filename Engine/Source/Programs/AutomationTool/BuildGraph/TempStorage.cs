@@ -366,7 +366,7 @@ namespace AutomationTool
 		/// <param name="NodeName">The node to retrieve build products for</param>
 		/// <param name="OutputNames">List of output names from this node.</param>
 		/// <returns>True if the node is complete and valid, false if not (and typically followed by a call to CleanNode()).</returns>
-		public bool CheckLocalIntegrity(string NodeName, string[] OutputNames)
+		public bool CheckLocalIntegrity(string NodeName, IEnumerable<string> OutputNames)
 		{
 			// If the node is not locally complete, fail immediately.
 			FileReference CompleteMarkerFile = GetCompleteMarkerFile(LocalDir, NodeName);

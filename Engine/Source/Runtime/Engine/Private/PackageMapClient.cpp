@@ -1450,10 +1450,13 @@ void FNetGUIDCache::CleanReferences()
 		checkf( !It.Value().Object.IsValid() || NetGUIDLookup.FindRef( It.Value().Object ) == It.Key() || It.Value().ReadOnlyTimestamp != 0, TEXT( "Failed to validate ObjectLookup map in UPackageMap. Object '%s' was not in the NetGUIDLookup map with with value '%s'." ), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString() );
 	}
 
-	for ( auto It = NetGUIDLookup.CreateIterator(); It; ++It )
+	if (!UE_BUILD_SHIPPING || !UE_BUILD_TEST)
 	{
-		check( It.Key().IsValid() );
-		checkf( ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
+		for ( auto It = NetGUIDLookup.CreateIterator(); It; ++It )
+		{
+			check( It.Key().IsValid() );
+			checkf( ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
+		}
 	}
 
 	FArchiveCountMemGUID CountBytesAr;

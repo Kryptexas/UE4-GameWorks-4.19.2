@@ -26,6 +26,7 @@
 #include "Engine/GeneratedMeshAreaLight.h"
 #include "Components/SkyLightComponent.h"
 #include "UnrealEngine.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
 
@@ -2919,7 +2920,7 @@ bool FLightmassProcessor::CompleteRun()
 			{
 				// Detach all components
 				// This must be done globally because different mappings will
-				FGlobalComponentReregisterContext ReregisterContext;
+				FGlobalComponentRecreateRenderStateContext ReregisterContext;
 
 				// Block until the RT processes the unregister before modifying variables that it may need to access
 				FlushRenderingCommands();

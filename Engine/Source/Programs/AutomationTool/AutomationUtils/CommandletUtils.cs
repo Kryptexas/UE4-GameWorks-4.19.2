@@ -349,7 +349,7 @@ namespace AutomationTool
 
 			if (RunResult.ExitCode != 0)
 			{
-				throw new AutomationException("BUILD FAILED: Failed while running {0} for {1}; see log {2}", Commandlet, ProjectName, DestLogFile);
+				throw new AutomationException(DestLogFile, RunResult.ExitCode, "BUILD FAILED: Failed while running {0} for {1}; see log {2}", Commandlet, ProjectName, DestLogFile);
 			}
 		}
 		

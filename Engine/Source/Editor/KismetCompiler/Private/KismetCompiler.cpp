@@ -4,6 +4,7 @@
 	KismetCompiler.cpp
 =============================================================================*/
 
+
 #include "KismetCompilerPrivatePCH.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "KismetCompilerBackend.h"
@@ -28,7 +29,6 @@
 #include "Components/TimelineComponent.h"
 
 static bool bDebugPropertyPropagation = false;
-
 
 #define LOCTEXT_NAMESPACE "KismetCompiler"
 
@@ -3225,13 +3225,10 @@ void FKismetCompilerContext::Compile()
 	if (OldLinker)
 	{
 		// Cache linker addresses so we can fixup linker for old CDO
-		FName GeneratedName, SkeletonName;
-		Blueprint->GetBlueprintCDONames(GeneratedName, SkeletonName);
-
-		for( int32 i = 0; i < OldLinker->ExportMap.Num(); i++ )
+		for (int32 i = 0; i < OldLinker->ExportMap.Num(); i++)
 		{
 			FObjectExport& ThisExport = OldLinker->ExportMap[i];
-			if( ThisExport.ObjectName == GeneratedName )
+			if (ThisExport.ObjectFlags & RF_ClassDefaultObject)
 			{
 				OldGenLinkerIdx = i;
 				break;

@@ -9,6 +9,42 @@ using AutomationTool;
 namespace AutomationTool
 {
 	/// <summary>
+	/// Reference to a node's output
+	/// </summary>
+	class NodeOutput
+	{
+		/// <summary>
+		/// The node which produces the given output
+		/// </summary>
+		public Node ProducingNode;
+
+		/// <summary>
+		/// Name of the output
+		/// </summary>
+		public string Name;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="InProducingNode">Node which produces the given output</param>
+		/// <param name="InName">Name of the output</param>
+		public NodeOutput(Node InProducingNode, string InName)
+		{
+			ProducingNode = InProducingNode;
+			Name = InName;
+		}
+
+		/// <summary>
+		/// Returns a string representation of this output for debugging purposes
+		/// </summary>
+		/// <returns>The name of this output</returns>
+		public override string ToString()
+		{
+			return (ProducingNode.Name == Name)? Name : String.Format("{0}: {1}", ProducingNode.Name, Name);
+		}
+	}
+
+	/// <summary>
 	/// Defines a node, a container for tasks and the smallest unit of execution that can be run as part of a build graph.
 	/// </summary>
 	class Node
@@ -19,14 +55,14 @@ namespace AutomationTool
 		public string Name;
 
 		/// <summary>
-		/// Array of input names which this node requires to run
+		/// Array of inputs which this node requires to run
 		/// </summary>
-		public string[] InputNames;
+		public NodeOutput[] Inputs;
 
 		/// <summary>
 		/// Array of output names produced by this node
 		/// </summary>
-		public string[] OutputNames;
+		public NodeOutput[] Outputs;
 
 		/// <summary>
 		/// Nodes which this node has input dependencies on
@@ -46,7 +82,7 @@ namespace AutomationTool
 		/// <summary>
 		/// List of tasks to execute
 		/// </summary>
-		public List<CustomTask> Tasks;
+		public List<CustomTask> Tasks = new List<CustomTask>();
 
 		/// <summary>
 		/// List of email addresses to notify if this node fails.
@@ -67,20 +103,19 @@ namespace AutomationTool
 		/// Constructor
 		/// </summary>
 		/// <param name="InName">The name of this node</param>
-		/// <param name="InInputNames">Names of inputs that this node depends on</param>
-		/// <param name="InOutputNames">Names of outputs that this node produces</param>
+		/// <param name="InInputs">Inputs that this node depends on</param>
+		/// <param name="InOutputNames">Names of the outputs that this node produces</param>
 		/// <param name="InInputDependencies">Nodes which this node is dependent on for its inputs</param>
 		/// <param name="InOrderDependencies">Nodes which this node needs to run after. Should include all input dependencies.</param>
 		/// <param name="InControllingTrigger">The trigger which this node is behind</param>
-		public Node(string InName, string[] InInputNames, string[] InOutputNames, Node[] InInputDependencies, Node[] InOrderDependencies, ManualTrigger InControllingTrigger, List<CustomTask> InTasks)
+		public Node(string InName, NodeOutput[] InInputs, string[] InOutputNames, Node[] InInputDependencies, Node[] InOrderDependencies, ManualTrigger InControllingTrigger)
 		{
 			Name = InName;
-			InputNames = InInputNames;
-			OutputNames = InOutputNames;
+			Inputs = InInputs;
+			Outputs = InOutputNames.Select(x => new NodeOutput(this, x)).ToArray();
 			InputDependencies = InInputDependencies;
 			OrderDependencies = InOrderDependencies;
 			ControllingTrigger = InControllingTrigger;
-			Tasks = new List<CustomTask>(InTasks);
 		}
 
 		/// <summary>
@@ -109,25 +144,34 @@ namespace AutomationTool
 			}
 
 			// Build a mapping of build product to the outputs it belongs to, using the filesets created by the tasks.
-			Dictionary<FileReference, string> FileToOutputName = new Dictionary<FileReference,string>();
-			foreach(string OutputName in OutputNames)
+			Dictionary<FileReference, NodeOutput> FileToOutput = new Dictionary<FileReference,NodeOutput>();
+			foreach(NodeOutput Output in Outputs)
 			{
-				HashSet<FileReference> FileSet = TagNameToFileSet[OutputName];
+				HashSet<FileReference> FileSet = TagNameToFileSet[Output.Name];
 				foreach(FileReference File in FileSet)
 				{
-					string ExistingOutputName;
-					if(FileToOutputName.TryGetValue(File, out ExistingOutputName))
+					NodeOutput ExistingOutput;
+					if(FileToOutput.TryGetValue(File, out ExistingOutput))
 					{
-						CommandUtils.LogError("Build product is added to multiple outputs; {0} added to {1} and {2}", File.MakeRelativeTo(new DirectoryReference(CommandUtils.CmdEnv.LocalRoot)), ExistingOutputName, OutputName);
+						CommandUtils.LogError("Build product is added to multiple outputs; {0} added to {1} and {2}", File.MakeRelativeTo(new DirectoryReference(CommandUtils.CmdEnv.LocalRoot)), ExistingOutput.Name, Output.Name);
 						bResult = false;
 						continue;
 					}
-					FileToOutputName.Add(File, OutputName);
+					FileToOutput.Add(File, Output);
 				}
 			}
 
-			// Any build products left over can be added to the default output.
-			TagNameToFileSet[Name].UnionWith(BuildProducts.Where(x => !FileToOutputName.ContainsKey(x)));
+			// Add any remaining valid build products into the output channel for this node. Since it's a catch-all output whose build products were not explicitly specified by the user, we can remove 
+			// those which are outside the root directory or which no longer exist (they may have been removed by downstream tasks).
+			HashSet<FileReference> DefaultOutputs = TagNameToFileSet[Name];
+			foreach(FileReference BuildProduct in BuildProducts)
+			{
+				if(!FileToOutput.ContainsKey(BuildProduct) && BuildProduct.IsUnderDirectory(CommandUtils.RootDirectory) && BuildProduct.Exists())
+				{
+					DefaultOutputs.Add(BuildProduct);
+				}
+			}
+
 			return bResult;
 		}
 

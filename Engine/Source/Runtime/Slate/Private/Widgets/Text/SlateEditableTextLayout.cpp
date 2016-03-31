@@ -185,16 +185,23 @@ void FSlateEditableTextLayout::SetText(const TAttribute<FText>& InText)
 {
 	BoundText = InText;
 
-	const bool bShouldAppearFocused = OwnerWidget->GetSlateWidget()->HasKeyboardFocus() || HasActiveContextMenu();
-	if (!bShouldAppearFocused)
+	const FText& TextToSet = BoundText.Get(FText::GetEmpty());
+
+	// We need to force an update if the text doesn't match the editable text, as the editable 
+	// text may not match the current bound text since it may have been changed by the user
+	const FText EditableText = GetEditableText();
+	const bool bForceRefresh = !EditableText.ToString().Equals(TextToSet.ToString(), ESearchCase::CaseSensitive);
+
+	if (RefreshImpl(&TextToSet, bForceRefresh))
 	{
-		// We don't have focus, so we can perform an immediate update
-		const FText& TextToSet = BoundText.Get(FText::GetEmpty());
-		if (RefreshImpl(&TextToSet))
+		// Make sure we move the cursor to the end of the new text if we had keyboard focus
+		if (OwnerWidget->GetSlateWidget()->HasKeyboardFocus())
 		{
-			// Let outsiders know that the text content has been changed
-			OwnerWidget->OnTextChanged(TextToSet);
+			JumpTo(ETextLocation::EndOfDocument, ECursorAction::MoveCursor);
 		}
+
+		// Let outsiders know that the text content has been changed
+		OwnerWidget->OnTextChanged(TextToSet);
 	}
 }
 
@@ -412,17 +419,17 @@ bool FSlateEditableTextLayout::Refresh()
 	return RefreshImpl(&TextToSet);
 }
 
-bool FSlateEditableTextLayout::RefreshImpl(const FText* InTextToSet)
+bool FSlateEditableTextLayout::RefreshImpl(const FText* InTextToSet, const bool bForce)
 {
 	bool bHasSetText = false;
 
 	const bool bIsPassword = OwnerWidget->IsTextPassword();
 	TextLayout->SetIsPassword(bIsPassword);
 
-	if (InTextToSet && !BoundTextLastTick.IdenticalTo(*InTextToSet))
+	if (InTextToSet && (bForce || !BoundTextLastTick.IdenticalTo(*InTextToSet)))
 	{
 		// The pointer used by the bound text has changed, however the text may still be the same - check that now
-		if (!BoundTextLastTick.IsDisplayStringEqualTo(*InTextToSet))
+		if (bForce || !BoundTextLastTick.IsDisplayStringEqualTo(*InTextToSet))
 		{
 			// The source text has changed, so update the internal editable text
 			bHasSetText = SetEditableText(*InTextToSet, true);
@@ -510,6 +517,9 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 			TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
 		}
 	}
+
+	// Make sure we have the correct text (we might have been collapsed and have missed updates due to not being ticked)
+	LoadText();
 
 	// Store undo state to use for escape key reverts
 	MakeUndoState(OriginalText);
@@ -1219,7 +1229,13 @@ bool FSlateEditableTextLayout::HandleCarriageReturn()
 		// so it can be re-displayed in the edit box if it retains focus
 		LoadText();
 
-		// Release input focus
+		// Select all text?
+		if (OwnerWidget->ShouldSelectAllTextOnCommit())
+		{
+			SelectAllText();
+		}
+
+		// Release input focus?
 		if (OwnerWidget->ShouldClearKeyboardFocusOnCommit())
 		{
 			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Cleared);

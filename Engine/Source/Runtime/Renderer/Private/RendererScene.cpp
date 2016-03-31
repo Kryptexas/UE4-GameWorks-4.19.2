@@ -2129,19 +2129,45 @@ static void LogDrawListStats(FDrawListStats Stats, const TCHAR* DrawListName)
 	}
 	else
 	{
+		FString MatchFailedReasons;
+		for (auto& It : Stats.SingleMeshPolicyMatchFailedReasons)
+		{
+			TArray<FStringFormatArg> Args;
+			Args.Emplace(It.Value);
+			Args.Emplace(*It.Key);
+
+			MatchFailedReasons.Append(FString::Format(TEXT("      - {0} ({1})\n"), Args));
+		}
+
+		FString VertexFactoryFreq;
+		for (auto& It : Stats.SingleMeshPolicyVertexFactoryFrequency)
+		{
+			TArray<FStringFormatArg> Args;
+			auto KeyStr = It.Key.ToString();
+
+			Args.Emplace(It.Value);
+			Args.Emplace(*KeyStr);
+
+			VertexFactoryFreq.Append(FString::Format(TEXT("      - {0} ({1})\n"), Args));
+		}
+
 		UE_LOG(LogRenderer,Log,
 			TEXT("%s: %d policies %d meshes\n")
 			TEXT("  - %d median meshes/policy\n")
 			TEXT("  - %f mean meshes/policy\n")
 			TEXT("  - %d max meshes/policy\n")
-			TEXT("  - %d policies with one mesh"),
+			TEXT("  - %d policies with one mesh\n")
+			TEXT("    One mesh policy closest match failure reason:\n%s\n")
+			TEXT("    One mesh policy vertex factory frequencies:\n%s"),
 			DrawListName,
 			Stats.NumDrawingPolicies,
 			Stats.NumMeshes,
 			Stats.MedianMeshesPerDrawingPolicy,
 			(float)Stats.NumMeshes / (float)Stats.NumDrawingPolicies,
 			Stats.MaxMeshesPerDrawingPolicy,
-			Stats.NumSingleMeshDrawingPolicies
+			Stats.NumSingleMeshDrawingPolicies,
+			*MatchFailedReasons,
+			*VertexFactoryFreq
 			);
 	}
 }

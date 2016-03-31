@@ -133,6 +133,7 @@
 #if !UE_BUILD_SHIPPING
 #include "AutomationTest.h"
 #include "IAutomationWorkerModule.h"
+#include "HAL/ExceptionHandling.h"
 #endif	// UE_BUILD_SHIPPING
 
 DEFINE_LOG_CATEGORY(LogEngine);
@@ -166,7 +167,13 @@ ENGINE_API bool GShowDebugSelectedLightmap = false;
 	 * true if we debug material names with SCOPED_DRAW_EVENT.
 	 * Toggle with "ShowMaterialDrawEvents" console command.
 	 */
-	bool GShowMaterialDrawEvents = false;
+	int32 GShowMaterialDrawEvents = 0;	
+	static FAutoConsoleVariableRef CVARShowMaterialDrawEvents(
+		TEXT("r.ShowMaterialDrawEvents"),
+		GShowMaterialDrawEvents,
+		TEXT("Enables a draw event around each material draw if supported by the platform"),
+		ECVF_Default
+		);
 #endif
 
 ENGINE_API uint32 GGPUFrameTime = 0;
@@ -1254,11 +1261,12 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		}
 
 		// Enforce maximum framerate and smooth framerate by waiting.
-		STAT( double ActualWaitTime = 0.f ); 
+		double ActualWaitTime = 0.f;
 		if( WaitTime > 0 )
 		{
+			FSimpleScopeSecondsCounter ActualWaitTimeCounter(ActualWaitTime);
 			double WaitEndTime = FApp::GetCurrentTime() + WaitTime;
-			SCOPE_SECONDS_COUNTER(ActualWaitTime);
+
 			SCOPE_CYCLE_COUNTER(STAT_GameTickWaitTime);
 			SCOPE_CYCLE_COUNTER(STAT_GameIdleTime);
 
@@ -1298,6 +1306,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		SET_FLOAT_STAT(STAT_GameTickAdditionalWaitTime,FMath::Max<float>((ActualWaitTime-WaitTime)*1000.f,0.f));
 
 		FApp::SetDeltaTime(FApp::GetCurrentTime() - LastTime);
+		FApp::SetIdleTime(ActualWaitTime);
 
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
 		if( FApp::GetDeltaTime() < 0 )
@@ -2586,11 +2595,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if( FParse::Command(&Cmd,TEXT("PROFILEGPU")) )
 	{
 		return HandleProfileGPUCommand( Cmd, Ar );
-	}
-	else if( FParse::Command(&Cmd,TEXT("SHOWMATERIALDRAWEVENTS")) )
-	{
-		return HandleShowMaterialDrawEventsCommand( Cmd, Ar );
-	}
+	}	
 #endif // #if !UE_BUILD_SHIPPING
 
 #if	!(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_HOT_RELOAD
@@ -2637,11 +2642,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if( FParse::Command(&Cmd,TEXT("ToggleRenderingThread")) )
 	{
 		return HandleToggleRenderingThreadCommand( Cmd, Ar );
-	}
-	else if( FParse::Command(&Cmd,TEXT("ToggleRHIThread")) )
-	{
-		return HandleToggleRHIThreadCommand( Cmd, Ar );
-	}
+	}	
 	else if (FParse::Command(&Cmd, TEXT("ToggleAsyncCompute")))
 	{
 		return HandleToggleAsyncComputeCommand(Cmd, Ar);
@@ -3351,31 +3352,6 @@ bool UEngine::HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevic
 	return true;
 }
 
-bool UEngine::HandleToggleRHIThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	if (GRHISupportsRHIThread)
-	{
-		if (!GIsThreadedRendering)
-		{
-			check(!GRHIThread);
-			Ar.Logf( TEXT("Can't switch to RHI thread mode when we are not running a multithreaded renderer."));
-		}
-		else
-		{
-			bool bWasRHIThread = !!GRHIThread;
-			StopRenderingThread();
-			GUseRHIThread = !bWasRHIThread;
-			StartRenderingThread();
-		}
-		Ar.Logf( TEXT("RHIThread is now %s."), GRHIThread ? TEXT("active") : TEXT("inactive"));
-	}
-	else
-	{
-		Ar.Logf( TEXT("This RHI does not support the RHI thread."));
-	}
-	return true;
-}
-
 bool UEngine::HandleToggleAsyncComputeCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
 	if (GDynamicRHI)
@@ -3495,12 +3471,6 @@ bool UEngine::HandleProfileGPUCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	return true;
 }
 
-bool UEngine::HandleShowMaterialDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	GShowMaterialDrawEvents = !GShowMaterialDrawEvents;
-	UE_LOG(LogEngine, Warning, TEXT("Show material names in SCOPED_DRAW_EVENT: %s"), GShowMaterialDrawEvents ? TEXT("true") : TEXT("false") );
-	return true;
-}
 #endif // WITH_PROFILEGPU
 
 #if !UE_BUILD_SHIPPING
@@ -5892,9 +5862,10 @@ FORCENOINLINE void StackOverflowFunction(int32* DummyArg)
 
 bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 {
+#if !UE_BUILD_SHIPPING
 	if (FParse::Command(&Cmd, TEXT("RENDERCRASH")))
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); UE_LOG(LogEngine, Fatal, TEXT("Crashing the renderthread at your request")); });
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetImageIntegrtiryStatus(-1); UE_LOG(LogEngine, Fatal, TEXT("Crashing the renderthread at your request")); });
 		return true;
 	}
 	if (FParse::Command(&Cmd, TEXT("RENDERCHECK")))
@@ -5902,8 +5873,9 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		struct FRender
 		{
 			static void Check()
-			{
+			{				
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+				SetImageIntegrtiryStatus(-1);
 				check(!"Crashing the renderthread via check(0) at your request");
 			}
 		};
@@ -5912,7 +5884,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	}
 	if (FParse::Command(&Cmd, TEXT("RENDERGPF")))
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); *(int32 *)3 = 123; });
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetImageIntegrtiryStatus(-1); *(int32 *)3 = 123; });
 		return true;
 	}
 	if (FParse::Command(&Cmd, TEXT("RENDERFATAL")))
@@ -5920,6 +5892,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash,
 		{
 			UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+			SetImageIntegrtiryStatus(-1);
 			LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
 		});
 		return true;
@@ -5943,6 +5916,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void Crash(ENamedThreads::Type, const  FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+				SetImageIntegrtiryStatus(-1);
 				UE_LOG(LogEngine, Fatal, TEXT("Crashing the worker thread at your request"));
 			}
 		};
@@ -5967,6 +5941,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void Check(ENamedThreads::Type, const FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+				SetImageIntegrtiryStatus(-1);
 				check(!"Crashing a worker thread via check(0) at your request");
 			}
 		};
@@ -5991,6 +5966,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void GPF(ENamedThreads::Type, const FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+				SetImageIntegrtiryStatus(-1);
 				*(int32 *)3 = 123;
 			}
 		};
@@ -6038,6 +6014,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void Fatal(ENamedThreads::Type, const FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+				SetImageIntegrtiryStatus(-1);
 				LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
 			}
 		};
@@ -6057,12 +6034,14 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("CRASH")))
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+		SetImageIntegrtiryStatus(-1);
 		UE_LOG(LogEngine, Fatal, TEXT("%s"), TEXT("Crashing the gamethread at your request"));
 		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("CHECK")))
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+		SetImageIntegrtiryStatus(-1);
 		check(!"Crashing the game thread via check(0) at your request");
 		return true;
 	}
@@ -6070,6 +6049,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
 		Ar.Log(TEXT("Crashing with voluntary GPF"));
+		SetImageIntegrtiryStatus(-1);
 		// changed to 3 from NULL because clang noticed writing to NULL and warned about it
 		*(int32 *)3 = 123;
 		return true;
@@ -6093,6 +6073,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("FATAL")))
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+		SetImageIntegrtiryStatus(-1);
 		LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
 		return true;
 	}
@@ -6100,11 +6081,13 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		// stack overflow test - this case should be caught by /GS (Buffer Overflow Check) compile option
 		ANSICHAR SrcBuffer[] = "12345678901234567890123456789012345678901234567890";
+		SetImageIntegrtiryStatus(-1);
 		BufferOverflowFunction(ARRAY_COUNT(SrcBuffer), SrcBuffer);
 		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("CRTINVALID")))
 	{
+		SetImageIntegrtiryStatus(-1);
 		FString::Printf(NULL);
 		return true;
 	}
@@ -6127,6 +6110,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		Ar.Logf(TEXT("Recursing to create a very deep callstack."));
 		GLog->Flush();
+		SetImageIntegrtiryStatus(-1);
 		InfiniteRecursionFunction(1);
 		Ar.Logf(TEXT("You will never see this log line."));
 		return true;
@@ -6138,6 +6122,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			static void InfiniteRecursion(ENamedThreads::Type, const FGraphEventRef&)
 			{
+				SetImageIntegrtiryStatus(-1);
 				InfiniteRecursionFunction(1);
 			}
 		};
@@ -6157,6 +6142,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("EATMEM")))
 	{
 		Ar.Log(TEXT("Eating up all available memory"));
+		SetImageIntegrtiryStatus(-1);
 		while (1)
 		{
 			void* Eat = FMemory::Malloc(65536);
@@ -6173,6 +6159,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("STACKOVERFLOW")))
 	{
 		Ar.Log(TEXT("Infinite recursion to cause stack overflow"));
+		SetImageIntegrtiryStatus(-1);
 		StackOverflowFunction(nullptr);
 		return true;
 	}
@@ -6183,6 +6170,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			static void StackOverflow(ENamedThreads::Type, const FGraphEventRef&)
 			{
+				SetImageIntegrtiryStatus(-1);
 				StackOverflowFunction(nullptr);
 			}
 		};
@@ -6202,6 +6190,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("SOFTLOCK")))
 	{
 		Ar.Log(TEXT("Hanging the current thread"));
+		SetImageIntegrtiryStatus(-1);
 		while (1)
 		{
 			FPlatformProcess::Sleep(1.0f);
@@ -6211,6 +6200,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("INFINITELOOP")))
 	{
 		Ar.Log(TEXT("Hanging the current thread (CPU-intensive)"));
+		SetImageIntegrtiryStatus(-1);
 		for(;;)
 		{
 		}
@@ -6222,7 +6212,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		FPlatformProcess::Sleep(3600);
 		return true;
 	}
-
+#endif // !UE_BUILD_SHIPPING
 	return false;
 }
 

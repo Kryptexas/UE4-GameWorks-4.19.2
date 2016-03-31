@@ -120,6 +120,8 @@ namespace UnrealBuildTool
 	{
 		public readonly List<string> BuildProducts = new List<string>();
 
+		public readonly List<string> LibraryBuildProducts = new List<string>();
+
 		public BuildManifest()
 		{
 		}
@@ -139,6 +141,15 @@ namespace UnrealBuildTool
 			if (!String.IsNullOrEmpty(DebugInfoExtension))
 			{
 				AddBuildProduct(Path.ChangeExtension(FileName, DebugInfoExtension));
+			}
+		}
+
+		public void AddLibraryBuildProduct(string FileName)
+		{
+			string FullFileName = Path.GetFullPath(FileName);
+			if (!LibraryBuildProducts.Contains(FullFileName))
+			{
+				LibraryBuildProducts.Add(FullFileName);
 			}
 		}
 	}
@@ -1794,27 +1805,42 @@ namespace UnrealBuildTool
 		/// </summary>
 		public void ListThirdPartySoftware()
 		{
-			List<string> UnsupportedSubstrings =
-				// Make a list of all the directories to exclude
-				Utils.MakeListOfUnsupportedPlatforms(new List<UnrealTargetPlatform> { Platform })
-				// convert to to a directory string.
-				.Select(x => Path.DirectorySeparatorChar + x + Path.DirectorySeparatorChar)
-				.ToList();
+			var Start = DateTime.UtcNow;
+			// Make a list of all the directories to exclude
+			List<string> UnsupportedPlatforms = Utils.MakeListOfUnsupportedPlatforms(new List<UnrealTargetPlatform> { Platform });
 
-			string FileListPath = "../Intermediate/Build/ThirdPartySoftware.txt";
+			// Convert it to a list of substrings
+			List<string> UnsupportedSubstrings = UnsupportedPlatforms.Select(x => Path.DirectorySeparatorChar + x + Path.DirectorySeparatorChar).ToList();
+
 			// Find all the external modules
-			File.WriteAllLines(FileListPath, AppBinaries
-				.SelectMany(Binary => Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: true, bForceCircular: false)) // Flatten the list of modules for all the binaries
-				.Where(Module => !string.IsNullOrEmpty(Module.ModuleDirectory.FullName)) // skip modules with an empty directory
-				.Select(Module => Module.ModuleDirectory.FullName) // Pull out the directory name
-				.Distinct() // remove duplicate directories
-				.SelectMany(ModuleDir => { Log.TraceLog(ModuleDir); return Directory.EnumerateFiles(ModuleDir, "*.tps", SearchOption.AllDirectories); }) // flatten the list of TPS files in all the modules
-				.Where(TpsFile => UnsupportedSubstrings.All(SubStr => TpsFile.IndexOf(SubStr, StringComparison.InvariantCultureIgnoreCase) < 0)) // remove any directories with unsupported platforms
-				.Distinct() // remove duplicate TPS files.
-				.Select(x => new FileReference(x).MakeRelativeTo(UnrealBuildTool.EngineDirectory)) // make the file relative to engine
-				.OrderBy(x => x) // sort all files by path.
-				);
+			HashSet<FileReference> TpsFiles = new HashSet<FileReference>();
+			foreach (UEBuildBinary Binary in AppBinaries)
+			{
+				foreach (UEBuildModule Module in Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: true, bForceCircular: false))
+				{
+					if (Module.RulesFile != null)
+					{
+						DirectoryReference ModuleDirectory = Module.RulesFile.Directory;
+						foreach (FileReference TpsFile in ModuleDirectory.EnumerateFileReferences("*.tps", SearchOption.AllDirectories))
+						{
+							// Check it's not under an unsupported platform directory
+							int Index = UnsupportedSubstrings.Max(x => TpsFile.FullName.IndexOf(x, StringComparison.InvariantCultureIgnoreCase));
+							if (Index < ModuleDirectory.FullName.Length)
+							{
+								TpsFiles.Add(TpsFile);
+							}
+						}
+					}
+				}
+			}
+
+			// Write out the list of files
+			string FileListPath = "../Intermediate/Build/ThirdPartySoftware.txt";
+			File.WriteAllLines(FileListPath, TpsFiles.Select(x => x.MakeRelativeTo(UnrealBuildTool.EngineDirectory)).OrderBy(x => x).ToArray());
 			Console.WriteLine("Written {0}", FileListPath);
+
+			var Finish = DateTime.UtcNow;
+			Console.WriteLine("Took {0} sec to list TPS.", (Finish - Start).TotalSeconds);
 		}
 
 		/// <summary>
@@ -1854,11 +1880,12 @@ namespace UnrealBuildTool
 				// Don't add static libraries into the manifest unless we're explicitly building them; we don't submit them to Perforce.
 				if (!UEBuildConfiguration.bCleanProject && !bPrecompile && (BuildProduct.Type == BuildProductType.StaticLibrary || BuildProduct.Type == BuildProductType.ImportLibrary))
 				{
-					continue;
+					Manifest.LibraryBuildProducts.Add(BuildProduct.Path);
 				}
-
-				// Otherwise add it
-				Manifest.AddBuildProduct(BuildProduct.Path);
+				else
+				{
+					Manifest.AddBuildProduct(BuildProduct.Path);
+				}
 			}
 
 			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
@@ -1911,6 +1938,34 @@ namespace UnrealBuildTool
 				}
 			}
 
+			// Add the project file
+			if(ProjectFile != null)
+			{
+				string NormalizedPath = TargetReceipt.InsertPathVariables(ProjectFile, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+				Receipt.RuntimeDependencies.Add(NormalizedPath, StagedFileType.UFS);
+			}
+
+			// Add the descriptors for all enabled plugins
+			foreach(PluginInfo EnabledPlugin in EnabledPlugins)
+			{
+				string SourcePath = TargetReceipt.InsertPathVariables(EnabledPlugin.File, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+				Receipt.RuntimeDependencies.Add(SourcePath, StagedFileType.UFS);
+			}
+
+			// Add slate runtime dependencies
+            if (Rules.bUsesSlate)
+            {
+				Receipt.RuntimeDependencies.Add("$(EngineDir)/Content/Slate/...", StagedFileType.UFS);
+				if(ProjectFile != null)
+				{
+					Receipt.RuntimeDependencies.Add("$(ProjectDir)/Content/Slate/...", StagedFileType.UFS);
+				}
+				if (Rules.bUsesSlateEditorStyle)
+				{
+					Receipt.RuntimeDependencies.Add("$(EngineDir)/Content/Editor/Slate/...", StagedFileType.UFS);
+				}
+			}
+
 			// Find all the modules which are part of this target
 			HashSet<UEBuildModule> UniqueLinkedModules = new HashSet<UEBuildModule>();
 			foreach (UEBuildBinaryCPP Binary in AppBinaries.OfType<UEBuildBinaryCPP>())
@@ -1924,8 +1979,7 @@ namespace UnrealBuildTool
 							foreach (RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
 							{
 								string SourcePath = TargetReceipt.InsertPathVariables(RuntimeDependency.Path, UnrealBuildTool.EngineDirectory, ProjectDirectory);
-								string TargetPath = TargetReceipt.InsertPathVariables(RuntimeDependency.StagePath, UnrealBuildTool.EngineDirectory, ProjectDirectory);
-								Receipt.AddRuntimeDependency(SourcePath, TargetPath, RuntimeDependency.bIgnoreIfMissing);
+								Receipt.RuntimeDependencies.Add(SourcePath, RuntimeDependency.Type);
 							}
 							Receipt.AdditionalProperties.AddRange(Module.Rules.AdditionalPropertiesForReceipt);
 						}

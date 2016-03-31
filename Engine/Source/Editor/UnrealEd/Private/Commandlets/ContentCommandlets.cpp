@@ -70,7 +70,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		if( FParse::Value( *CurrentSwitch, TEXT( "PACKAGE="), Package ) )
 		{
 			FString PackageFile;
-			FPackageName::SearchForPackageOnDisk( Package, NULL, &PackageFile, false );
+			FPackageName::SearchForPackageOnDisk( Package, NULL, &PackageFile );
 			PackageNames.Add( *PackageFile );
 			bExplicitPackages = true;
 		}
@@ -95,7 +95,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 				if (NextMap.Len() > 0)
 				{
 					FString MapFile;
-					FPackageName::SearchForPackageOnDisk(NextMap, NULL, &MapFile, false);
+					FPackageName::SearchForPackageOnDisk(NextMap, NULL, &MapFile);
 					PackageNames.Add(*MapFile);
 					bExplicitPackages = true;
 				}
@@ -103,7 +103,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 				Maps = Maps.Right(Maps.Len() - (PlusIdx + 1));
 			}
 			FString MapFile;
-			FPackageName::SearchForPackageOnDisk(Maps, NULL, &MapFile, false);
+			FPackageName::SearchForPackageOnDisk(Maps, NULL, &MapFile);
 			PackageNames.Add(*MapFile);
 			bExplicitPackages = true;
 		}
@@ -122,7 +122,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 				for (auto Line : Lines)
 				{
 					FString PackageFile;
-					if (FPackageName::SearchForPackageOnDisk(Line, NULL, &PackageFile, false))
+					if (FPackageName::SearchForPackageOnDisk(Line, NULL, &PackageFile))
 					{
 						PackageNames.AddUnique(*PackageFile);
 					}

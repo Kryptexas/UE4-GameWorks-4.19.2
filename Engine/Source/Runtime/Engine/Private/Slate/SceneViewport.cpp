@@ -900,13 +900,24 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 
 void FSceneViewport::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
-	bShouldCaptureMouseOnActivate = false;
-
+	bCursorHiddenDueToCapture = false;
 	KeyStateMap.Empty();
 	if (ViewportClient != nullptr)
 	{
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 		ViewportClient->LostFocus( this );
+
+		TSharedPtr<SWidget> ViewportWidgetPin = ViewportWidget.Pin();
+		if( ViewportWidgetPin.IsValid() )
+		{
+			for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
+			{
+				if (FSlateApplication::Get().GetUserFocusedWidget(UserIndex) == ViewportWidgetPin)
+				{
+					FSlateApplication::Get().ClearUserFocus(UserIndex);
+				}
+			}
+		}
 	}
 }
 
@@ -917,6 +928,11 @@ void FSceneViewport::OnViewportClosed()
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 		ViewportClient->CloseRequested( this );
 	}
+}
+
+TWeakPtr<SWidget> FSceneViewport::GetWidget()
+{
+	return GetViewportWidget();
 }
 
 FReply FSceneViewport::OnViewportActivated(const FWindowActivateEvent& InActivateEvent)

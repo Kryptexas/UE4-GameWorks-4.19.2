@@ -201,10 +201,8 @@ public partial class Project : CommandUtils
 		}
 	}
 
-    private static int StageLocalizationDataForCulture(DeploymentContext SC, string CultureName, string SourceDirectory, string DestinationDirectory = null, bool bRemap = true)
+    private static void StageLocalizationDataForCulture(DeploymentContext SC, string CultureName, string SourceDirectory, string DestinationDirectory = null, bool bRemap = true)
     {
-        int FilesAdded = 0;
-
         CultureName = CultureName.Replace('-', '_');
 
         string[] LocaleTags = CultureName.Replace('-', '_').Split('_');
@@ -236,11 +234,9 @@ public partial class Project : CommandUtils
 
             if (PotentialParentCultures.Contains(CanonicalizedPotentialCulture))
             {
-                FilesAdded += SC.StageFiles(StagedFileType.UFS, CombinePaths(SourceDirectory, DirectoryName), "*.locres", true, null, DestinationDirectory != null ? CombinePaths(DestinationDirectory, DirectoryName) : null, true, bRemap);
+                SC.StageFiles(StagedFileType.UFS, CombinePaths(SourceDirectory, DirectoryName), "*.locres", true, null, DestinationDirectory != null ? CombinePaths(DestinationDirectory, DirectoryName) : null, true, bRemap);
             }
         }
-
-        return FilesAdded;
     }
 
 	public static void CreateStagingManifest(ProjectParams Params, DeploymentContext SC)
@@ -293,7 +289,7 @@ public partial class Project : CommandUtils
 		// Stage any extra runtime dependencies from the receipts
 		foreach(StageTarget Target in SC.StageTargets)
 		{
-			SC.StageRuntimeDependenciesFromReceipt(Target.Receipt, Target.RequireFilesExist);
+			SC.StageRuntimeDependenciesFromReceipt(Target.Receipt, Target.RequireFilesExist, Params.UsePak(SC.StageTargetPlatform));
 		}
 
 		// Get the build.properties file
@@ -378,42 +374,13 @@ public partial class Project : CommandUtils
             // Engine ufs (content)
             SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
 
-            // Stat prefix/suffix files (used for FPSChart, etc...)
-            //@TODO: Avoid packaging stat files in shipping builds (only 6 KB, but still more than zero)
-            SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Stats"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
-
-            if (Params.bUsesSlate)
-            {
-                if (Params.bUsesSlateEditorStyle)
-                {
-                    SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Editor/Slate"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
-                }
-                SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
-                SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Slate"), "*", true, new string[] { "*.uasset" }, CombinePaths(SC.RelativeProjectRootForStage, "Content/Slate"), true, !Params.UsePak(SC.StageTargetPlatform));
-            }
             foreach (string Culture in CulturesToStage)
             {
                 StageLocalizationDataForCulture(SC, Culture, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine"), null, !Params.UsePak(SC.StageTargetPlatform));
             }
 			
-			// Engine & Game Plugins. Push the Engine/Source working directory so UBT code has a correct RelativeEnginePath in ReadAvailablePlugins
-			ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath.FullName);
-			LogLog("Searching for plugins with CurrentWorkingDir: " + Directory.GetCurrentDirectory());
-			LogLog("Searching for plugins in: " + SC.RawProjectPath);
-			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(CombinePaths(SC.LocalRoot, "Engine")), SC.RawProjectPath);
-			foreach (PluginInfo Plugin in AvailablePlugins)
-			{
-				LogLog("Considering Plugin for Stage: " + Plugin.File.FullName);
-				if (UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType, TargetRules.TargetType.Game))
-				{
-					LogLog("EnabledPlugin: " + Plugin.File.FullName);
-					SC.StageFiles(StagedFileType.UFS, Plugin.Directory.FullName, "*.uplugin", false, null, null, true, !Params.UsePak(SC.StageTargetPlatform), null, true, false);
-				}
-			}
-
             // Game ufs (content)
 
-            SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot), "*.uproject", false, null, CombinePaths(SC.RelativeProjectRootForStage), true, !Params.UsePak(SC.StageTargetPlatform));
 			if (SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.HTML5 && SC.bUseWebsocketNetDriver)
 			{
 				var EngineIniPath = Path.Combine(SC.ProjectRoot, "Config", "DefaultEngine.ini");
@@ -499,9 +466,6 @@ public partial class Project : CommandUtils
                 SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths(SC.RelativeProjectRootForStage, "Content/Movies"), true, !Params.UsePak(SC.StageTargetPlatform));
             }
 
-			// if we have oodle stuff 
-			SC.StageFiles( StagedFileType.UFS, CombinePaths( SC.ProjectRoot, "Content/Oodle" ), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths( SC.RelativeProjectRootForStage, "Content/Oodle" ), true, !Params.UsePak( SC.StageTargetPlatform ) );
-			
             // eliminate the sand box
             SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform));
 
@@ -1229,7 +1193,7 @@ public partial class Project : CommandUtils
 		{
 			return;
 		}
-		DumpManifest(SC, CombinePaths(CmdEnv.LogFolder, "FinalCopy" + (SC.DedicatedServer ? "_Server" : "")), !Params.UsePak(SC.StageTargetPlatform));
+		DumpManifest(SC, CombinePaths(CmdEnv.LogFolder, "FinalCopy" + (SC.DedicatedServer ? "_Server" : ""))/*, !Params.UsePak(SC.StageTargetPlatform)*/);
 		CopyUsingStagingManifest(Params, SC);
 
 		var ThisPlatform = SC.StageTargetPlatform;

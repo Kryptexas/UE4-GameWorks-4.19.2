@@ -2980,6 +2980,8 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				TSharedPtr<ILevelViewport> LevelViewportRef = SlatePlayInEditorSession.DestinationSlateViewport.Pin();
 
 				LevelViewportRef->StartPlayInEditorSession( ViewportClient, bInSimulateInEditor );
+
+				//SlatePlayInEditorSession.SlatePlayInEditorWindowViewport = MakeShareable<FSceneViewport>((FSceneViewport*)LevelViewportRef->GetActiveViewport());
 			}
 			else
 			{		
@@ -3142,7 +3144,9 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport = MakeShareable( new FSceneViewport( ViewportClient, PieViewportWidget ) );
 				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport->SetPlayInEditorGetsMouseControl(GetDefault<ULevelEditorPlaySettings>()->GameGetsMouseControl);
 				PieViewportWidget->SetViewportInterface( SlatePlayInEditorSession.SlatePlayInEditorWindowViewport.ToSharedRef() );
-
+				
+				FSlateApplication::Get().RegisterViewport(PieViewportWidget.ToSharedRef());
+				
 				SlatePlayInEditorSession.SlatePlayInEditorWindow = PieWindow;
 
 				// Let the viewport client know what viewport is using it.  We need to set the Viewport Frame as 
@@ -3773,16 +3777,23 @@ void UEditorEngine::FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous)
 	
 	if (WorldList[CurrentIdx % WorldList.Num()].World())
 	{
-		FSlatePlayInEditorInfo * SlateInfoPtr = SlatePlayInEditorMap.Find(WorldList[CurrentIdx % WorldList.Num()].ContextHandle);
-		if (SlateInfoPtr && SlateInfoPtr->SlatePlayInEditorWindow.IsValid())
+		// Bring new window to front and activate new viewport
+		FSlatePlayInEditorInfo* SlateInfoPtr = SlatePlayInEditorMap.Find(WorldList[CurrentIdx % WorldList.Num()].ContextHandle);
+		if (SlateInfoPtr && SlateInfoPtr->SlatePlayInEditorWindowViewport.IsValid())
 		{
+			FSceneViewport* SceneViewport = SlateInfoPtr->SlatePlayInEditorWindowViewport.Get();
+
+			FSlateApplication& SlateApp = FSlateApplication::Get();
+			TSharedRef<SViewport> ViewportWidget = SceneViewport->GetViewportWidget().Pin().ToSharedRef();
+
+			FWidgetPath WindowWidgetPath;
+			TSharedPtr<SWindow> ViewportWindow = SlateApp.FindWidgetWindow(ViewportWidget, WindowWidgetPath);
+			check(ViewportWindow.IsValid());
+
 			// Force window to front
-			SlateInfoPtr->SlatePlayInEditorWindow.Pin()->BringToFront();
+			ViewportWindow->BringToFront();
 
-			// Set viewport widget to have keyboard focus
-			FSlateApplication::Get().SetKeyboardFocus(SlateInfoPtr->SlatePlayInEditorWindowViewport->GetViewportWidget().Pin(), EFocusCause::Navigation);
-
-			// Execute notifcation delegate incase game code has to do anything else
+			// Execute notification delegate in case game code has to do anything else
 			PIEInstanceWindowSwitchDelegate.ExecuteIfBound();
 		}
 	}

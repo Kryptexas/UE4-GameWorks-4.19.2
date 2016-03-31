@@ -817,6 +817,7 @@ bool FD3D11DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 			{
 				if (HResult == DXGI_ERROR_NOT_FOUND)
 				{
+					UE_LOG(LogD3D11RHI, Warning, TEXT("RHIGetAvailableResolutions failed with generic error."));
 					continue;
 				}
 				else if (HResult == DXGI_ERROR_MORE_DATA)

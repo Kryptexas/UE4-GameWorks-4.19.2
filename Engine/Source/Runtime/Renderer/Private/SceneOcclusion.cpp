@@ -1033,7 +1033,7 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 	FIntPoint SrcSize = HZBSize;
 	FIntPoint DstSize = SrcSize / 2;
 	
-	SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, TEXT("HZB SetupMips 1..%d %dx%d Mips:%d"), NumMips - 1, DstSize.X, DstSize.Y);	
+	SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, TEXT("HZB SetupMips Mips:1..%d %dx%d"), NumMips - 1, DstSize.X, DstSize.Y);	
 
 	// Downsampling...
 	for( uint8 MipIndex = 1; MipIndex < NumMips; MipIndex++ )

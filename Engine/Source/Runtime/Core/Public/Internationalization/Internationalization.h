@@ -19,6 +19,9 @@ class FInternationalization
 public:
 	static CORE_API FInternationalization& Get();
 
+	/** Checks to see that an internationalization instance exists, and has been initialized. Usually you would use Get(), however this may be used to work out whether TearDown() has been called when cleaning up on shutdown. */
+	static CORE_API bool IsAvailable();
+
 	static CORE_API void TearDown();
 
 	static CORE_API FText ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(const TCHAR* InTextLiteral, const TCHAR* InNamespace, const TCHAR* InKey);

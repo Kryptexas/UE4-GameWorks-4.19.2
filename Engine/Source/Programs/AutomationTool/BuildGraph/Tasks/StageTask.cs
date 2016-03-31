@@ -59,7 +59,13 @@ namespace BuildGraph.Tasks
 		/// Directory the receipt files should be staged to
 		/// </summary>
 		[TaskParameter]
-		public string To;
+		public string ToDir;
+
+		/// <summary>
+		/// Tag to be applied to build products of this task
+		/// </summary>
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		public string Tag;
 	}
 
 	/// <summary>
@@ -108,7 +114,7 @@ namespace BuildGraph.Tasks
 			DirectoryReference SourceProjectDir = (ProjectFile == null)? SourceEngineDir : ProjectFile.Directory;
 
 			// Get the output directories. We flatten the directory structure on output.
-			DirectoryReference TargetDir = ResolveDirectory(Parameters.To);
+			DirectoryReference TargetDir = ResolveDirectory(Parameters.ToDir);
 			DirectoryReference TargetEngineDir = DirectoryReference.Combine(TargetDir, "Engine");
 			DirectoryReference TargetProjectDir = DirectoryReference.Combine(TargetDir, ProjectFile.GetFileNameWithoutExtension());
 
@@ -128,16 +134,17 @@ namespace BuildGraph.Tasks
 			
 			// Stage all the build products needed at runtime
 			HashSet<FileReference> SourceFiles = new HashSet<FileReference>();
-			foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
+			foreach(BuildProduct BuildProduct in Receipt.BuildProducts.Where(x => x.Type != BuildProductType.StaticLibrary && x.Type != BuildProductType.ImportLibrary))
 			{
 				SourceFiles.Add(new FileReference(BuildProduct.Path));
 			}
-			foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies)
+			foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies.Where(x => x.Type != StagedFileType.UFS))
 			{
-				SourceFiles.Add(new FileReference(RuntimeDependency.Path));
+				SourceFiles.UnionWith(CommandUtils.ResolveFilespec(CommandUtils.RootDirectory, RuntimeDependency.Path, new string[]{ ".../*.umap", ".../*.uasset" }));
 			}
 
-			// Copy them all to the output directory
+			// Get all the target files
+			List<FileReference> TargetFiles = new List<FileReference>();
 			foreach(FileReference SourceFile in SourceFiles)
 			{
 				// Get the destination file to copy to, mapping to the new engine and project directories as appropriate
@@ -157,7 +164,19 @@ namespace BuildGraph.Tasks
 					TargetFile.Directory.CreateDirectory();
 					CommandUtils.CopyFile(SourceFile.FullName, TargetFile.FullName);
 				}
+
+				// Add it to the list of target files
+				TargetFiles.Add(TargetFile);
 			}
+
+			// Apply the optional tag to the build products
+			if(!String.IsNullOrEmpty(Parameters.Tag))
+			{
+				FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).UnionWith(TargetFiles);
+			}
+
+			// Add the target file to the list of build products
+			BuildProducts.UnionWith(TargetFiles);
 			return true;
 		}
 	}

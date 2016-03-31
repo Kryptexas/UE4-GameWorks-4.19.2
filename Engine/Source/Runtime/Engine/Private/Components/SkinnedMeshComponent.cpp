@@ -864,6 +864,10 @@ FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx, const FTransfo
 	}
 }
 
+int32 USkinnedMeshComponent::GetNumBones()const
+{
+	return SkeletalMesh ? SkeletalMesh->RefSkeleton.GetNum() : 0;
+}
 
 int32 USkinnedMeshComponent::GetBoneIndex( FName BoneName) const
 {

@@ -14,7 +14,13 @@ namespace BuildGraph.Tasks
 	public class CopyTaskParameters
 	{
 		/// <summary>
-		/// The directory to copy from
+		/// List of file specifications separated by semicolons (eg. *.cpp;Engine/.../*.bat), or the name of a tag set. Relative paths are based at FromDir.
+		/// </summary>
+		[TaskParameter]
+		public string Files;
+
+		/// <summary>
+		/// The base directory to copy from. 
 		/// </summary>
 		[TaskParameter]
 		public string FromDir;
@@ -26,10 +32,10 @@ namespace BuildGraph.Tasks
 		public string ToDir;
 
 		/// <summary>
-		/// List of file specifications separated by semicolons (eg. *.cpp;Engine/.../*.bat), or the name of a tag set
+		/// Tag to be applied to build products of this task
 		/// </summary>
-		[TaskParameter(Optional = true)]
-		public string Files;
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		public string Tag;
 	}
 
 	/// <summary>
@@ -65,20 +71,17 @@ namespace BuildGraph.Tasks
 			DirectoryReference ToDir = ResolveDirectory(Parameters.ToDir);
 			if(FromDir != ToDir)
 			{
-				// Get the source files to copy
-				IEnumerable<FileReference> SourceFiles;
-				if(Parameters.Files == null)
-				{
-					SourceFiles = FromDir.EnumerateFileReferences("*", System.IO.SearchOption.AllDirectories);
-				}
-				else
-				{
-					SourceFiles = ResolveFilespec(FromDir, Parameters.Files, TagNameToFileSet);
-				}
-
-				// Figure out matching target files
+				// Copy all the files
+				IEnumerable<FileReference> SourceFiles = ResolveFilespec(FromDir, Parameters.Files, TagNameToFileSet);
 				IEnumerable<FileReference> TargetFiles = SourceFiles.Select(x => FileReference.Combine(ToDir, x.MakeRelativeTo(FromDir)));
 				CommandUtils.ThreadedCopyFiles(SourceFiles.Select(x => x.FullName).ToList(), TargetFiles.Select(x => x.FullName).ToList());
+				BuildProducts.UnionWith(TargetFiles);
+
+				// Apply the optional output tag to them
+				if(!String.IsNullOrEmpty(Parameters.Tag))
+				{
+					FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).UnionWith(TargetFiles);
+				}
 			}
 			return true;
 		}

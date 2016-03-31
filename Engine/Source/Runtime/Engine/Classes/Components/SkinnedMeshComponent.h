@@ -404,6 +404,12 @@ public:
 	void SetForcedLOD(int32 InNewForcedLOD);
 
 	/**
+	*  Returns the number of bones in the skeleton.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+	int32 GetNumBones() const;
+
+	/**
 	 * Find the index of bone by name. Looks in the current SkeletalMesh being used by this SkeletalMeshComponent.
 	 * 
 	 * @param BoneName Name of bone to look up

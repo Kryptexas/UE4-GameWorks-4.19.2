@@ -35,6 +35,12 @@ namespace AutomationTool.Tasks
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public bool SkipWrite;
+
+		/// <summary>
+		/// Tag to be applied to build products of this task
+		/// </summary>
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
+		public string Tag;
 	}
 
 	/// <summary>
@@ -66,8 +72,18 @@ namespace AutomationTool.Tasks
 		/// <returns>True if the task succeeded</returns>
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
+			// Update the version files
 			List<string> FileNames = UE4Build.StaticUpdateVersionFiles(Parameters.Change, Parameters.Branch, Parameters.Licensee, !Parameters.SkipWrite);
-			BuildProducts.UnionWith(FileNames.Select(x => new FileReference(x)));
+			List<FileReference> VersionFiles = FileNames.Select(x => new FileReference(x)).ToList();
+
+			// Apply the optional tag to them
+			if(!String.IsNullOrEmpty(Parameters.Tag))
+			{
+				FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).UnionWith(VersionFiles);
+			}
+
+			// Add them to the list of build products
+			BuildProducts.UnionWith(VersionFiles);
 			return true;
 		}
 	}

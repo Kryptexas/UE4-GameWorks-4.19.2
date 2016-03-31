@@ -109,17 +109,21 @@ namespace AutomationTool
 	{
 		Graph,
 		Trigger,
-		Group,
+		Agent,
 		Node,
 		Aggregate,
 		Notify,
 		Include,
 		Property,
 		Local,
+		Warning,
+		Error,
 		Name,
 		NameList,
 		Tag,
 		TagList,
+		NameOrTag,
+		NameOrTagList,
 		QualifiedName,
 		BalancedString,
 		Boolean,
@@ -167,14 +171,24 @@ namespace AutomationTool
 		const string NameListPattern = NamePattern + "(;" + NamePattern + ")*";
 
 		/// <summary>
-		/// Pattern which matches any tag name; a name with optional leading '#' character
+		/// Pattern which matches any tag name; a name with a leading '#' character
 		/// </summary>
-		const string TagPattern = "#?" + NamePattern;
+		const string TagPattern = "#" + NamePattern;
 
 		/// <summary>
 		/// Pattern which matches a list of tag names, separated by semicolons;
 		/// </summary>
 		const string TagListPattern = TagPattern + "(;" + TagPattern + ")*";
+
+		/// <summary>
+		/// Pattern which matches any name or tag name; a name with a leading '#' character
+		/// </summary>
+		const string NameOrTagPattern = "#?" + NamePattern;
+
+		/// <summary>
+		/// Pattern which matches a list of names or tag names, separated by semicolons;
+		/// </summary>
+		const string NameOrTagListPattern = NameOrTagPattern + "(;" + NameOrTagPattern + ")*";
 
 		/// <summary>
 		/// Pattern which matches a qualified name.
@@ -253,17 +267,21 @@ namespace AutomationTool
 			NewSchema.Items.Add(CreateSchemaElement(RootElementName, ScriptSchemaStandardType.Graph));
 			NewSchema.Items.Add(CreateGraphType());
 			NewSchema.Items.Add(CreateTriggerType());
-			NewSchema.Items.Add(CreateGroupType());
+			NewSchema.Items.Add(CreateAgentType());
 			NewSchema.Items.Add(CreateNodeType(TaskNameToType));
 			NewSchema.Items.Add(CreateAggregateType());
 			NewSchema.Items.Add(CreateNotifyType());
 			NewSchema.Items.Add(CreateIncludeType());
 			NewSchema.Items.Add(CreatePropertyType(ScriptSchemaStandardType.Property));
 			NewSchema.Items.Add(CreatePropertyType(ScriptSchemaStandardType.Local));
+			NewSchema.Items.Add(CreateDiagnosticType(ScriptSchemaStandardType.Warning));
+			NewSchema.Items.Add(CreateDiagnosticType(ScriptSchemaStandardType.Error));
 			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.Name, "(" + NamePattern + "|" + StringWithPropertiesPattern + ")"));
 			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.NameList, "(" + NameListPattern + "|" + StringWithPropertiesPattern + ")"));
 			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.Tag, "(" + TagPattern + "|" + StringWithPropertiesPattern + ")"));
 			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.TagList, "(" + TagListPattern + "|" + StringWithPropertiesPattern + ")"));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.NameOrTag, "(" + NameOrTagPattern + "|" + StringWithPropertiesPattern + ")"));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.NameOrTagList, "(" + NameOrTagListPattern + "|" + StringWithPropertiesPattern + ")"));
 			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.QualifiedName, "(" + QualifiedNamePattern + "|" + StringWithPropertiesPattern + ")"));
 			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.BalancedString, BalancedStringPattern));
 			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.Boolean, "(" + "true" + "|" + "false" + "|" + StringWithPropertiesPattern + ")"));
@@ -351,6 +369,10 @@ namespace AutomationTool
 					return GetQualifiedTypeName(ScriptSchemaStandardType.Tag);
 				case TaskParameterValidationType.TagList:
 					return GetQualifiedTypeName(ScriptSchemaStandardType.TagList);
+				case TaskParameterValidationType.NameOrTag:
+					return GetQualifiedTypeName(ScriptSchemaStandardType.NameOrTag);
+				case TaskParameterValidationType.NameOrTagList:
+					return GetQualifiedTypeName(ScriptSchemaStandardType.NameOrTagList);
 			}
 			return null;
 		}
@@ -367,10 +389,12 @@ namespace AutomationTool
 			GraphChoice.Items.Add(CreateSchemaElement("Include", ScriptSchemaStandardType.Include));
 			GraphChoice.Items.Add(CreateSchemaElement("Property", ScriptSchemaStandardType.Property));
 			GraphChoice.Items.Add(CreateSchemaElement("Local", ScriptSchemaStandardType.Local));
-			GraphChoice.Items.Add(CreateSchemaElement("Group", ScriptSchemaStandardType.Group));
+			GraphChoice.Items.Add(CreateSchemaElement("Agent", ScriptSchemaStandardType.Agent));
 			GraphChoice.Items.Add(CreateSchemaElement("Trigger", ScriptSchemaStandardType.Trigger));
 			GraphChoice.Items.Add(CreateSchemaElement("Aggregate", ScriptSchemaStandardType.Aggregate));
 			GraphChoice.Items.Add(CreateSchemaElement("Notify", ScriptSchemaStandardType.Notify));
+			GraphChoice.Items.Add(CreateSchemaElement("Warning", ScriptSchemaStandardType.Warning));
+			GraphChoice.Items.Add(CreateSchemaElement("Error", ScriptSchemaStandardType.Error));
 
 			XmlSchemaComplexType GraphType = new XmlSchemaComplexType();
 			GraphType.Name = GetTypeName(ScriptSchemaStandardType.Graph);
@@ -388,8 +412,10 @@ namespace AutomationTool
 			TriggerChoice.MaxOccursString = "unbounded";
 			TriggerChoice.Items.Add(CreateSchemaElement("Property", ScriptSchemaStandardType.Property));
 			TriggerChoice.Items.Add(CreateSchemaElement("Local", ScriptSchemaStandardType.Local));
-			TriggerChoice.Items.Add(CreateSchemaElement("Group", ScriptSchemaStandardType.Group));
+			TriggerChoice.Items.Add(CreateSchemaElement("Agent", ScriptSchemaStandardType.Agent));
 			TriggerChoice.Items.Add(CreateSchemaElement("Aggregate", ScriptSchemaStandardType.Aggregate));
+			TriggerChoice.Items.Add(CreateSchemaElement("Warning", ScriptSchemaStandardType.Warning));
+			TriggerChoice.Items.Add(CreateSchemaElement("Error", ScriptSchemaStandardType.Error));
 
 			XmlSchemaComplexType TriggerType = new XmlSchemaComplexType();
 			TriggerType.Name = GetTypeName(ScriptSchemaStandardType.Trigger);
@@ -400,10 +426,10 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Creates the schema type representing the group type
+		/// Creates the schema type representing the agent type
 		/// </summary>
-		/// <returns>Type definition for a group</returns>
-		static XmlSchemaType CreateGroupType()
+		/// <returns>Type definition for an agent</returns>
+		static XmlSchemaType CreateAgentType()
 		{
 			XmlSchemaChoice GroupChoice = new XmlSchemaChoice();
 			GroupChoice.MinOccurs = 0;
@@ -411,12 +437,14 @@ namespace AutomationTool
 			GroupChoice.Items.Add(CreateSchemaElement("Property", ScriptSchemaStandardType.Property));
 			GroupChoice.Items.Add(CreateSchemaElement("Local", ScriptSchemaStandardType.Local));
 			GroupChoice.Items.Add(CreateSchemaElement("Node", ScriptSchemaStandardType.Node));
+			GroupChoice.Items.Add(CreateSchemaElement("Warning", ScriptSchemaStandardType.Warning));
+			GroupChoice.Items.Add(CreateSchemaElement("Error", ScriptSchemaStandardType.Error));
 
 			XmlSchemaComplexType GroupType = new XmlSchemaComplexType();
-			GroupType.Name = GetTypeName(ScriptSchemaStandardType.Group);
+			GroupType.Name = GetTypeName(ScriptSchemaStandardType.Agent);
 			GroupType.Particle = GroupChoice;
 			GroupType.Attributes.Add(CreateSchemaAttribute("Name", StringTypeName, XmlSchemaUse.Required));
-			GroupType.Attributes.Add(CreateSchemaAttribute("Agent", ScriptSchemaStandardType.NameList, XmlSchemaUse.Optional));
+			GroupType.Attributes.Add(CreateSchemaAttribute("Type", ScriptSchemaStandardType.NameList, XmlSchemaUse.Optional));
 			GroupType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
 			return GroupType;
 		}
@@ -432,6 +460,8 @@ namespace AutomationTool
 			NodeChoice.MaxOccursString = "unbounded";
 			NodeChoice.Items.Add(CreateSchemaElement("Property", ScriptSchemaStandardType.Property));
 			NodeChoice.Items.Add(CreateSchemaElement("Local", ScriptSchemaStandardType.Local));
+			NodeChoice.Items.Add(CreateSchemaElement("Warning", ScriptSchemaStandardType.Warning));
+			NodeChoice.Items.Add(CreateSchemaElement("Error", ScriptSchemaStandardType.Error));
 			foreach(KeyValuePair<string, XmlSchemaComplexType> Pair in TaskNameToType.OrderBy(x => x.Key))
 			{
 				NodeChoice.Items.Add(CreateSchemaElement(Pair.Key, new XmlQualifiedName(Pair.Value.Name, NamespaceURI)));
@@ -441,9 +471,9 @@ namespace AutomationTool
 			NodeType.Name = GetTypeName(ScriptSchemaStandardType.Node);
 			NodeType.Particle = NodeChoice;
 			NodeType.Attributes.Add(CreateSchemaAttribute("Name", ScriptSchemaStandardType.Name, XmlSchemaUse.Required));
-			NodeType.Attributes.Add(CreateSchemaAttribute("Requires", ScriptSchemaStandardType.TagList, XmlSchemaUse.Optional));
+			NodeType.Attributes.Add(CreateSchemaAttribute("Requires", ScriptSchemaStandardType.NameOrTagList, XmlSchemaUse.Optional));
 			NodeType.Attributes.Add(CreateSchemaAttribute("Produces", ScriptSchemaStandardType.TagList, XmlSchemaUse.Optional));
-			NodeType.Attributes.Add(CreateSchemaAttribute("After", ScriptSchemaStandardType.TagList, XmlSchemaUse.Optional));
+			NodeType.Attributes.Add(CreateSchemaAttribute("After", ScriptSchemaStandardType.NameOrTagList, XmlSchemaUse.Optional));
 			NodeType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
 			return NodeType;
 		}
@@ -457,7 +487,7 @@ namespace AutomationTool
 			XmlSchemaComplexType AggregateType = new XmlSchemaComplexType();
 			AggregateType.Name = GetTypeName(ScriptSchemaStandardType.Aggregate);
 			AggregateType.Attributes.Add(CreateSchemaAttribute("Name", ScriptSchemaStandardType.Name, XmlSchemaUse.Required));
-			AggregateType.Attributes.Add(CreateSchemaAttribute("Requires", ScriptSchemaStandardType.TagList, XmlSchemaUse.Required));
+			AggregateType.Attributes.Add(CreateSchemaAttribute("Requires", ScriptSchemaStandardType.NameOrTagList, XmlSchemaUse.Required));
 			AggregateType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
 			return AggregateType;
 		}
@@ -470,9 +500,9 @@ namespace AutomationTool
 		{
 			XmlSchemaComplexType AggregateType = new XmlSchemaComplexType();
 			AggregateType.Name = GetTypeName(ScriptSchemaStandardType.Notify);
-			AggregateType.Attributes.Add(CreateSchemaAttribute("Targets", ScriptSchemaStandardType.TagList, XmlSchemaUse.Optional));
-			AggregateType.Attributes.Add(CreateSchemaAttribute("Except", ScriptSchemaStandardType.TagList, XmlSchemaUse.Optional));
-			AggregateType.Attributes.Add(CreateSchemaAttribute("Nodes", ScriptSchemaStandardType.TagList, XmlSchemaUse.Optional));
+			AggregateType.Attributes.Add(CreateSchemaAttribute("Targets", ScriptSchemaStandardType.NameOrTagList, XmlSchemaUse.Optional));
+			AggregateType.Attributes.Add(CreateSchemaAttribute("Except", ScriptSchemaStandardType.NameOrTagList, XmlSchemaUse.Optional));
+			AggregateType.Attributes.Add(CreateSchemaAttribute("Nodes", ScriptSchemaStandardType.NameOrTagList, XmlSchemaUse.Optional));
 			AggregateType.Attributes.Add(CreateSchemaAttribute("Triggers", ScriptSchemaStandardType.NameList, XmlSchemaUse.Optional));
 			AggregateType.Attributes.Add(CreateSchemaAttribute("Users", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
 			AggregateType.Attributes.Add(CreateSchemaAttribute("Submitters", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
@@ -504,6 +534,19 @@ namespace AutomationTool
 			PropertyType.Name = GetTypeName(StandardType);
 			PropertyType.Attributes.Add(CreateSchemaAttribute("Name", ScriptSchemaStandardType.Name, XmlSchemaUse.Required));
 			PropertyType.Attributes.Add(CreateSchemaAttribute("Value", StringTypeName, XmlSchemaUse.Required));
+			PropertyType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
+			return PropertyType;
+		}
+
+		/// <summary>
+		/// Creates the schema type representing a warning or error type
+		/// </summary>
+		/// <returns>Type definition for a warning</returns>
+		static XmlSchemaType CreateDiagnosticType(ScriptSchemaStandardType StandardType)
+		{
+			XmlSchemaComplexType PropertyType = new XmlSchemaComplexType();
+			PropertyType.Name = GetTypeName(StandardType);
+			PropertyType.Attributes.Add(CreateSchemaAttribute("Message", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Required));
 			PropertyType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
 			return PropertyType;
 		}

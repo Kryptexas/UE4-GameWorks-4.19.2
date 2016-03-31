@@ -209,7 +209,7 @@ void FStaticMeshStaticLightingTextureMapping::Apply(FQuantizedLightmapData* Quan
 	if (StaticMeshComponent)
 	{
 		// Should have happened at a higher level
-		check(!StaticMeshComponent->IsRegistered());
+		check(!StaticMeshComponent->IsRenderStateCreated());
 		// The rendering thread reads from LODData and IrrelevantLights, therefore
 		// the component must have finished detaching from the scene on the rendering
 		// thread before it is safe to continue.
