@@ -86,6 +86,7 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bBuildEditor = false;
 			UEBuildConfiguration.bBuildDeveloperTools = false;
 			UEBuildConfiguration.bCompileSimplygon = false;
+            UEBuildConfiguration.bCompileSimplygonSSF = false;
 
 			UEBuildConfiguration.bCompileRecast = true;
 
@@ -180,6 +181,7 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("cxa_demangle");
 
 			UEBuildConfiguration.bCompileSimplygon = false;
+            UEBuildConfiguration.bCompileSimplygonSSF = false;
 			BuildConfiguration.bDeployAfterCompile = true;
 
 			//!! RONIN need to fix this

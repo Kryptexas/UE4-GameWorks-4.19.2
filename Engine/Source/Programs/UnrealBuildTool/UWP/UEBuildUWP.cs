@@ -139,6 +139,7 @@ namespace UnrealBuildTool
 			if (InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("USE_NULL_RHI=1"))
 			{
 				UEBuildConfiguration.bCompileSimplygon = false;
+                UEBuildConfiguration.bCompileSimplygonSSF = false;
 			}
 		}
 

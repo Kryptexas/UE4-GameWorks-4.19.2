@@ -806,6 +806,7 @@ namespace UnrealBuildTool
 				else if (LowercaseArg == "-nosimplygon")
 				{
 					UEBuildConfiguration.bCompileSimplygon = false;
+                    UEBuildConfiguration.bCompileSimplygonSSF = false;
 				}
 				else if (LowercaseArg == "-nospeedtree")
 				{

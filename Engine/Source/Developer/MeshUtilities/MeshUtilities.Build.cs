@@ -31,25 +31,28 @@ public class MeshUtilities : ModuleRules
 			}
 		);
 
-        AddEngineThirdPartyPrivateStaticDependencies(Target, "nvTriStrip");
-		AddEngineThirdPartyPrivateStaticDependencies(Target, "ForsythTriOptimizer");
-		AddEngineThirdPartyPrivateStaticDependencies(Target, "MeshSimplifier");
-		AddEngineThirdPartyPrivateStaticDependencies(Target, "MikkTSpace");
+        AddThirdPartyPrivateStaticDependencies(Target, "nvTriStrip");
+		AddThirdPartyPrivateStaticDependencies(Target, "ForsythTriOptimizer");
+		AddThirdPartyPrivateStaticDependencies(Target, "MeshSimplifier");
+		AddThirdPartyPrivateStaticDependencies(Target, "MikkTSpace");
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX9");
+			AddThirdPartyPrivateStaticDependencies(Target, "DX9");
 		}
 
 		if (UEBuildConfiguration.bCompileSimplygon == true)
 		{
-			DynamicallyLoadedModuleNames.AddRange(
-				new string[] {
-                "SimplygonSwarm"
+			AddThirdPartyPrivateDynamicDependencies(Target, "SimplygonMeshReduction");
+            
+            if (UEBuildConfiguration.bCompileSimplygonSSF == true)
+            {
+                DynamicallyLoadedModuleNames.AddRange(
+                    new string[] {
+                    "SimplygonSwarm"
+                }
+                );
             }
-			);
-
-			AddEngineThirdPartyPrivateDynamicDependencies(Target, "SimplygonMeshReduction");
 		}
 	}
 }

@@ -93,6 +93,12 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileSimplygon;
 
+        /// <summary>
+        /// Whether we should compile in support for Simplygon's SSF library or not.
+        /// </summary>
+        [XmlConfig]
+        public static bool bCompileSimplygonSSF;
+
 		/// <summary>
 		/// Whether we should compile in support for Steam OnlineSubsystem or not. [RCL] FIXME 2014-Apr-17: bCompileSteamOSS means "bHasSteamworksInstalled" for some code, these meanings need to be untangled
 		/// </summary>
@@ -341,6 +347,7 @@ namespace UnrealBuildTool
 			bForceBuildTargetPlatforms = false;
 			bForceBuildShaderFormats = false;
 			bCompileSimplygon = true;
+            bCompileSimplygonSSF = true;
 			bCompileLeanAndMeanUE = false;
 			bCompileAgainstEngine = true;
 			bCompileAgainstCoreUObject = true;
@@ -388,6 +395,10 @@ namespace UnrealBuildTool
 				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees") == true
 				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon") == true
 				&& Directory.Exists("Developer/SimplygonMeshReduction") == true;
+
+            bCompileSimplygonSSF = bCompileSimplygonSSF
+            && Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees") == true
+            && Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/SSF");
 		}
 
 		/// <summary>
@@ -402,6 +413,7 @@ namespace UnrealBuildTool
 				bBuildEditor = false;
 				bBuildDeveloperTools = false;
 				bCompileSimplygon = false;
+                bCompileSimplygonSSF = false;
 				bCompileSpeedTree = false;
 			}
 		}

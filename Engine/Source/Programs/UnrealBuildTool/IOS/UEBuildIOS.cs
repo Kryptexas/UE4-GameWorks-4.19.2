@@ -262,6 +262,7 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bCompileAPEX = false;
 			UEBuildConfiguration.bRuntimePhysicsCooking = false;
 			UEBuildConfiguration.bCompileSimplygon = false;
+            UEBuildConfiguration.bCompileSimplygonSSF = false;
 			UEBuildConfiguration.bBuildDeveloperTools = false;
 
 			// we currently don't have any simulator libs for PhysX
