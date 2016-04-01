@@ -201,6 +201,12 @@ namespace UnrealBuildTool
 					UEBuildConfiguration.bCompileSimplygon = bValue;
 				}
 
+                bValue = UEBuildConfiguration.bCompileSimplygonSSF;
+                if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileSimplygonSSF", out bValue))
+                {
+                    UEBuildConfiguration.bCompileSimplygonSSF = bValue;
+                }
+
 				bValue = UEBuildConfiguration.bCompileLeanAndMeanUE;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileLeanAndMeanUE", out bValue))
 				{
@@ -795,7 +801,7 @@ namespace UnrealBuildTool
 		public virtual bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName)
 		{
 			string[] BoolKeys = new string[] {
-				"bCompileApex", "bCompileBox2D", "bCompileICU", "bCompileSimplygon", 
+				"bCompileApex", "bCompileBox2D", "bCompileICU", "bCompileSimplygon", "bCompileSimplygonSSF",
 				"bCompileLeanAndMeanUE", "bIncludeADO", "bCompileRecast", "bCompileSpeedTree", 
 				"bCompileWithPluginSupport", "bCompilePhysXVehicle", "bCompileFreeType", 
 				"bCompileForSize", "bCompileCEF3"

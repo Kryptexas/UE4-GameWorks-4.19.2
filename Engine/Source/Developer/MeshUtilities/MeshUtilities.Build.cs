@@ -42,13 +42,16 @@ public class MeshUtilities : ModuleRules
 
 		if (UEBuildConfiguration.bCompileSimplygon == true)
 		{
-			DynamicallyLoadedModuleNames.AddRange(
-				new string[] {
-                "SimplygonSwarm"
-            }
-			);
-
 			AddThirdPartyPrivateDynamicDependencies(Target, "SimplygonMeshReduction");
+            
+            if (UEBuildConfiguration.bCompileSimplygonSSF == true)
+            {
+                DynamicallyLoadedModuleNames.AddRange(
+                    new string[] {
+                    "SimplygonSwarm"
+                }
+                );
+            }
 		}
 	}
 }
