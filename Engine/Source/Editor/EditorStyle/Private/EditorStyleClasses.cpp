@@ -16,9 +16,6 @@ UEditorStyleSettings::UEditorStyleSettings( const FObjectInitializer& ObjectInit
 
 	bShowFriendlyNames = true;
 	LogTimestampMode = ELogTimes::None;
-	
-	bShowProjectMenus = true;
-	bShowLaunchMenus = true;
 }
 
 FLinearColor UEditorStyleSettings::GetSubduedSelectionColor() const
