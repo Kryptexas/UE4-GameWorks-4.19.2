@@ -43,7 +43,7 @@ public class MeshUtilities : ModuleRules
 
 		if (UEBuildConfiguration.bCompileSimplygon == true)
 		{
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "SimplygonMeshReduction");
+            AddEngineThirdPartyPrivateDynamicDependencies(Target, "SimplygonMeshReduction");
             
             if (UEBuildConfiguration.bCompileSimplygonSSF == true)
             {
