@@ -229,6 +229,21 @@ ENGINE_API float GAverageFPS = 0.0f;
 ENGINE_API float GAverageMS = 0.0f;
 ENGINE_API double GLastMemoryWarningTime = 0.f;
 
+// HACK:  REMOVE ME.  Support for hotfixing Oculus 1.3
+TMap<IHeadMountedDisplayModule*, FHeadMountedDisplayModuleExt*> FHeadMountedDisplayModuleExt::ModuleToExtMap;
+
+void FHeadMountedDisplayModuleExt::RegisterModule(IHeadMountedDisplayModule* InHMDModule, FHeadMountedDisplayModuleExt* InHMDModuleExt)
+{
+	ModuleToExtMap.Add(InHMDModule, InHMDModuleExt);
+}
+
+FHeadMountedDisplayModuleExt* FHeadMountedDisplayModuleExt::GetExtendedInterface(IHeadMountedDisplayModule* InModule)
+{
+	FHeadMountedDisplayModuleExt** RetVal = ModuleToExtMap.Find(InModule);
+
+	return RetVal ? *RetVal : nullptr;
+}
+
 static FCachedSystemScalabilityCVars GCachedScalabilityCVars;
 
 const FCachedSystemScalabilityCVars& GetCachedScalabilityCVars()

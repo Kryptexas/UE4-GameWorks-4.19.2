@@ -133,7 +133,8 @@ bool FXAudio2Device::InitializeHardware()
 	// Allow HMD to specify audio device, if one was not specified in settings
 	if (WindowsAudioDeviceName.IsEmpty() && IHeadMountedDisplayModule::IsAvailable())
 	{
-		WindowsAudioDeviceName = IHeadMountedDisplayModule::Get().GetAudioOutputDevice();
+		FHeadMountedDisplayModuleExt* const HmdEx = FHeadMountedDisplayModuleExt::GetExtendedInterface(&IHeadMountedDisplayModule::Get());
+		WindowsAudioDeviceName = HmdEx ? HmdEx->GetAudioOutputDevice() : FString();
 	}
 	
 	// If an audio device was specified, try to find it

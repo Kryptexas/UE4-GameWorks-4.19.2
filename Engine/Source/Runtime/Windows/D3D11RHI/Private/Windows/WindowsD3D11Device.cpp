@@ -242,7 +242,13 @@ void FD3D11DynamicRHIModule::FindAdapter()
 #endif
 
 	// Allow HMD to override which graphics adapter is chosen, so we pick the adapter where the HMD is connected
-	int32 HmdGraphicsAdapter  = IHeadMountedDisplayModule::IsAvailable() ? IHeadMountedDisplayModule::Get().GetGraphicsAdapter() : -1;
+	int32 HmdGraphicsAdapter = -1;
+	if (IHeadMountedDisplayModule::IsAvailable())
+	{
+		FHeadMountedDisplayModuleExt* const HmdEx = FHeadMountedDisplayModuleExt::GetExtendedInterface(&IHeadMountedDisplayModule::Get());
+		HmdGraphicsAdapter = HmdEx ? HmdEx->GetGraphicsAdapter() : -1;
+	}
+
 	bool bUseHmdGraphicsAdapter = HmdGraphicsAdapter >= 0;
 	int32 CVarValue = bUseHmdGraphicsAdapter ? HmdGraphicsAdapter : CVarGraphicsAdapter.GetValueOnGameThread();
 

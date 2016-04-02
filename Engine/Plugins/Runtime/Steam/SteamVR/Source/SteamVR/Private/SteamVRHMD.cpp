@@ -37,7 +37,7 @@ FSceneViewport* FindSceneViewport()
 // SteamVR Plugin Implementation
 //---------------------------------------------------
 
-class FSteamVRPlugin : public ISteamVRPlugin
+class FSteamVRPlugin : public ISteamVRPlugin, public FHeadMountedDisplayModuleExt
 {
 	/** IHeadMountedDisplayModule implementation */
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
@@ -51,6 +51,12 @@ public:
 	FSteamVRPlugin::FSteamVRPlugin()
 		: VRSystem(nullptr)
 	{
+	}
+
+	virtual void StartupModule() override
+	{
+		IHeadMountedDisplayModule::StartupModule();
+		FHeadMountedDisplayModuleExt::RegisterModule((IHeadMountedDisplayModule*)this, (FHeadMountedDisplayModuleExt*)this);
 	}
 
 	virtual vr::IVRSystem* GetVRSystem() const override

@@ -136,6 +136,12 @@ void FOculusRiftPlugin::DestroySession(ovrSession session)
 	ovr_Destroy(session);
 }
 
+void FOculusRiftPlugin::StartupModule()
+{
+	IHeadMountedDisplayModule::StartupModule();
+	FHeadMountedDisplayModuleExt::RegisterModule((IHeadMountedDisplayModule*)this, (FHeadMountedDisplayModuleExt*)this);
+}
+
 void FOculusRiftPlugin::ShutdownModule()
 {
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS

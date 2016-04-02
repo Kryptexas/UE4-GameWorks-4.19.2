@@ -18,6 +18,38 @@ class IPortalRpcLocator;
 class IPortalServiceLocator;
 #endif
 
+class IHeadMountedDisplayModule;
+
+// HACK:  REMOVE ME.  Moving virtual method additions to IHeadMountedDisplayModule to this extension struct to allow for 4.11.1 to hot fix in the update
+struct ENGINE_API FHeadMountedDisplayModuleExt
+{
+	/*
+	* Test to see whether HMD is connected.  Used to guide which plug-in to select.
+	*/
+	virtual bool IsHMDConnected() { return false; }
+
+	/**
+	* Get index of graphics adapter where the HMD was last connected
+	*/
+	virtual int32 GetGraphicsAdapter() { return -1; }
+
+	/**
+	* Get name of audio input device where the HMD was last connected
+	*/
+	virtual FString GetAudioInputDevice() { return FString(); }
+
+	/**
+	* Get name of audio output device where the HMD was last connected
+	*/
+	virtual FString GetAudioOutputDevice() { return FString(); }
+
+	static void RegisterModule(IHeadMountedDisplayModule* InHMDModule, FHeadMountedDisplayModuleExt* InHMDModuleExt);
+	static FHeadMountedDisplayModuleExt* GetExtendedInterface(IHeadMountedDisplayModule* InModule);
+
+private:
+	static TMap<IHeadMountedDisplayModule*, FHeadMountedDisplayModuleExt*> ModuleToExtMap;
+};
+
 /**
  * Enumerates types of fully loaded packages.
  */

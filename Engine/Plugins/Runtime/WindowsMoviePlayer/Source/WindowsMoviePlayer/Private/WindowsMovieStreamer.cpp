@@ -412,7 +412,12 @@ FIntPoint FVideoPlayer::AddStreamToTopology(IMFTopology* Topology, IMFPresentati
 			// Allow HMD, if present, to override audio output device
 			if (IHeadMountedDisplayModule::IsAvailable())
 			{
-				FString AudioOutputDevice = IHeadMountedDisplayModule::Get().GetAudioOutputDevice();
+				FString AudioOutputDevice;
+				FHeadMountedDisplayModuleExt* const HmdEx = FHeadMountedDisplayModuleExt::GetExtendedInterface(&IHeadMountedDisplayModule::Get());
+				if (HmdEx)
+				{
+					AudioOutputDevice = HmdEx->GetAudioOutputDevice();
+				}
 
 				if(!AudioOutputDevice.IsEmpty())
 				{

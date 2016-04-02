@@ -6,6 +6,7 @@
 #include "VoiceCodecOpus.h"
 #include "Voice.h"
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
+#include "Engine/Engine.h"
 
 static TAutoConsoleVariable<int32> CVarHmdDirectSoundVoiceCaptureDeviceIndex(
 	TEXT("hmd.DirectSoundVoiceCaptureDeviceIndex"),
@@ -261,9 +262,10 @@ bool FVoiceCaptureDeviceWindows::Init()
 		return false;
 	}
 
-	if(IHeadMountedDisplayModule::IsAvailable())
+	if (IHeadMountedDisplayModule::IsAvailable())
 	{
-		HMDAudioInputDevice = IHeadMountedDisplayModule::Get().GetAudioInputDevice();
+		FHeadMountedDisplayModuleExt* const HmdEx = FHeadMountedDisplayModuleExt::GetExtendedInterface(&IHeadMountedDisplayModule::Get());
+		HMDAudioInputDevice = HmdEx ? HmdEx->GetAudioInputDevice() : FString();
 	}
 
 	VoiceCaptureDeviceGuid = DSDEVID_DefaultVoiceCapture;

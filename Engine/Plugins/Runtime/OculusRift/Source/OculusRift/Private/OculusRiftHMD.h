@@ -91,7 +91,7 @@ FORCEINLINE OVR::Recti ToOVRRecti(const FIntRect& rect)
 // FOculusRiftPlugin
 //-------------------------------------------------------------------------------------------------
 
-class FOculusRiftPlugin : public IOculusRiftPlugin
+class FOculusRiftPlugin : public IOculusRiftPlugin, public FHeadMountedDisplayModuleExt
 {
 public:
 	FOculusRiftPlugin();
@@ -115,11 +115,12 @@ public:
 
 public:
 	/** IModuleInterface */
+	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
 	/** IHeadMountedDisplayModule */
 	virtual FString GetModulePriorityKeyName() const override;
-	virtual bool PreInit() override;
+	virtual bool PreInit();
 	virtual bool IsHMDConnected() override;
 	virtual int GetGraphicsAdapter() override;
 	virtual FString GetAudioInputDevice() override;
