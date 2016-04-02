@@ -84,6 +84,7 @@ bool FOculusRiftPlugin::Initialize()
 	return bInitialized;
 }
 
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 ovrResult FOculusRiftPlugin::CreateSession(ovrSession* session, ovrGraphicsLuid* luid)
 {
 	ovrResult result;
@@ -135,6 +136,7 @@ void FOculusRiftPlugin::DestroySession(ovrSession session)
 {
 	ovr_Destroy(session);
 }
+#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 void FOculusRiftPlugin::StartupModule()
 {
@@ -233,12 +235,12 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FOculusRiftPlugin::
 	return NULL;
 }
 
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 bool FOculusRiftPlugin::PoseToOrientationAndPosition(const ovrPosef& Pose, FQuat& OutOrientation, FVector& OutPosition) const
 {
 	check(IsInGameThread());
 	bool bRetVal = false;
 
-#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	IHeadMountedDisplay* HMD = HeadMountedDisplay.Pin().Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
 	{
@@ -251,7 +253,7 @@ bool FOculusRiftPlugin::PoseToOrientationAndPosition(const ovrPosef& Pose, FQuat
 			bRetVal = true;
 		}
 	}
-#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
+
 	return bRetVal;
 }
 
@@ -259,14 +261,13 @@ class FOvrSessionShared* FOculusRiftPlugin::GetSession()
 {
 	check(IsInGameThread());
 
-#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	IHeadMountedDisplay* HMD = HeadMountedDisplay.Pin().Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
 	{
 		FOculusRiftHMD* OculusHMD = static_cast<FOculusRiftHMD*>(HMD);
 		return OculusHMD->Session.Get();
 	}
-#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
+
 	return nullptr;
 }
 
@@ -275,7 +276,6 @@ bool FOculusRiftPlugin::GetCurrentTrackingState(ovrTrackingState* TrackingState)
 	check(IsInGameThread());
 	bool bRetVal = false;
 
-#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	IHeadMountedDisplay* HMD = HeadMountedDisplay.Pin().Get();
 	if (TrackingState && HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
 	{
@@ -287,9 +287,10 @@ bool FOculusRiftPlugin::GetCurrentTrackingState(ovrTrackingState* TrackingState)
 			bRetVal = true;
 		}
 	}
-#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
+
 	return bRetVal;
 }
+#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 IMPLEMENT_MODULE( FOculusRiftPlugin, OculusRift )
 
