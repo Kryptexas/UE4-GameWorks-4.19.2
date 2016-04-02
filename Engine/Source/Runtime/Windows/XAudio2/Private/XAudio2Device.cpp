@@ -199,7 +199,7 @@ bool FXAudio2Device::InitializeHardware()
 
 	// Create the final output voice with either 2 or 6 channels
 	if (!ValidateAPICall(TEXT("CreateMasteringVoice"), 
-		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, FXAudioDeviceProperties::NumSpeakers, SampleRate, 0, DeviceIndex, nullptr)))
+		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, FXAudioDeviceProperties::NumSpeakers, SampleRate, 0, 0, nullptr)))
 	{
 		UE_LOG(LogInit, Warning, TEXT( "Failed to create the mastering voice for XAudio2" ) );
 		DeviceProperties->XAudio2 = nullptr;
