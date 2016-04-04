@@ -35,8 +35,11 @@ public:
 	{
 		bool operator()(IHeadMountedDisplayModule& A, IHeadMountedDisplayModule& B) const
 		{
-			bool IsHMDConnectedA = A.IsHMDConnected();
-			bool IsHMDConnectedB = B.IsHMDConnected();
+			FHeadMountedDisplayModuleExt* AExt = FHeadMountedDisplayModuleExt::GetExtendedInterface(&A);
+			FHeadMountedDisplayModuleExt* BExt = FHeadMountedDisplayModuleExt::GetExtendedInterface(&B);
+
+			bool IsHMDConnectedA = AExt ? AExt->IsHMDConnected() : false;
+			bool IsHMDConnectedB = BExt ? BExt->IsHMDConnected() : false;
 
 			if(IsHMDConnectedA && !IsHMDConnectedB)
 				return true;
@@ -81,26 +84,6 @@ public:
 	* Optionally pre-initialize the HMD module.  Return false on failure.
 	*/
 	virtual bool PreInit() { return true; }
-
-	/**
-	 * Test to see whether HMD is connected.  Used to guide which plug-in to select.
-	 */
-	virtual bool IsHMDConnected() { return false; }
-
-	/**
-	 * Get index of graphics adapter where the HMD was last connected
-	 */
-	virtual int32 GetGraphicsAdapter() { return -1; }
-
-	/**
-	 * Get name of audio input device where the HMD was last connected
-	 */
-	virtual FString GetAudioInputDevice() { return FString(); }
-
-	/**
-	 * Get name of audio output device where the HMD was last connected
-	 */
-	virtual FString GetAudioOutputDevice() { return FString(); }
 
 	/**
 	 * Attempts to create a new head tracking device interface
