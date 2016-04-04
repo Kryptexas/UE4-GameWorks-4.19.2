@@ -1549,6 +1549,8 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 	TArray<UObject *> ObjectsInOuter;
 	GetObjectsWithOuter(this, ObjectsInOuter);
 
+	FStreamingTextureLevelContext LevelContext(this);
+
 	for( int32 Index = 0; Index < ObjectsInOuter.Num(); Index++ )
 	{
 		UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(ObjectsInOuter[Index]);
@@ -1563,7 +1565,7 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 				TArray<FStreamingTexturePrimitiveInfo> PrimitiveStreamingTextures;
 
 				// Ask the primitive to enumerate the streaming textures it uses.
-				Primitive->GetStreamingTextureInfoWithNULLRemoval(PrimitiveStreamingTextures);
+				Primitive->GetStreamingTextureInfoWithNULLRemoval(LevelContext, PrimitiveStreamingTextures);
 
 				for(int32 TextureIndex = 0;TextureIndex < PrimitiveStreamingTextures.Num();TextureIndex++)
 				{

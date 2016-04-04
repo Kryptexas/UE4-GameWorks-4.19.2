@@ -13,6 +13,7 @@
 #include "RendererInterface.h"
 #include "RHIStaticStates.h"
 #include "GlobalDistanceFieldParameters.h"
+#include "DebugViewModeHelpers.h"
 
 class FSceneViewStateInterface;
 class FViewUniformShaderParameters;
@@ -355,28 +356,6 @@ enum ETranslucencyVolumeCascade
 	TVC_MAX,
 };
 
-/** 
- * Enumeration for different Quad Overdraw visualization mode.
- */
-enum EDebugViewShaderMode
-{
-	DVSM_None,						// No debug view.
-	DVSM_ShaderComplexity,			// Default shader complexity viewmode
-	DVSM_ShaderComplexityContainedQuadOverhead,	// Show shader complexity with quad overdraw scaling the PS instruction count.
-	DVSM_ShaderComplexityBleedingQuadOverhead,	// Show shader complexity with quad overdraw bleeding the PS instruction count over the quad.
-	DVSM_QuadComplexity,			// Show quad overdraw only.
-	DVSM_WantedMipsAccuracy,		// Accuraty of the wanted mips computed by the texture streamer.
-	DVSM_TexelFactorAccuracy,		// Accuraty of the texel factor computed on each mesh.
-	DVSM_TexCoordScaleAnalysis,		// To view the material texture coordinate scale used to sample each texture.
-	DVSM_MAX
-};
-
-// This defines for what shader platform the FDebugViewModeVS/DS/HS will be compiled.
-FORCEINLINE bool AllowDebugViewModeShader(EShaderPlatform Platform)
-{
-	return Platform == SP_PCD3D_SM5;
-}
-
 /** The view dependent uniform shader parameters associated with a view. */
 BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters, ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, TranslatedWorldToClip)
@@ -416,6 +395,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters, ENGIN
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevInvViewProj)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevScreenToTranslatedWorld)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ClipToPrevClip)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, GlobalClippingPlane)
 END_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters)
 
 /** Copy of the view dependent uniform shader parameters associated with a view for instanced stereo. */
@@ -457,6 +437,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FInstancedViewUniformShaderParamete
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevInvViewProj)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, PrevScreenToTranslatedWorld)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, ClipToPrevClip)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, GlobalClippingPlane)
 END_UNIFORM_BUFFER_STRUCT(FInstancedViewUniformShaderParameters)
 
 /** The view independent uniform shader parameters associated with a view. */
@@ -733,12 +714,9 @@ public:
 	/** Whether this view is being used to render a reflection capture. */
 	bool bIsReflectionCapture;
 
-	/** Whether this view is being used to render a planar reflection capture. */
-	bool bIsPlanarReflectionCapture;
+	/** Whether this view is being used to render a planar reflection. */
+	bool bIsPlanarReflection;
 
-	/** World space reflection plane normal and origin height. Used when rendering a planar reflection capture. */
-	FVector4 ReflectionPlane;
-	
 	/** Whether this view was created from a locked viewpoint. */
 	bool bIsLocked;
 
@@ -750,6 +728,9 @@ public:
 
 	/** True if instanced stereo is enabled. */
 	bool bIsInstancedStereoEnabled;
+
+	/** Global clipping plane being applied to the scene, or all 0's if disabled.  This is used when rendering the planar reflection pass. */
+	FPlane GlobalClippingPlane;
 
 	/** Aspect ratio constrained view rect. In the editor, when attached to a camera actor and the camera black bar showflag is enabled, the normal viewrect 
 	  * remains as the full viewport, and the black bars are just simulated by drawing black bars. This member stores the effective constrained area within the

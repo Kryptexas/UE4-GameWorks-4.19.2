@@ -15,10 +15,13 @@ bool bNeedsInstancedStereoBias;
 void Main(
 	FPositionOnlyVertexFactoryInput Input,
 	out float4 OutPosition : SV_POSITION
+#if USE_GLOBAL_CLIP_PLANE
+	, out float OutGlobalClipPlaneDistance : SV_ClipDistance
+#endif
 #if INSTANCED_STEREO
 	, uint InstanceId : SV_InstanceID
-	, out float4 OutClipDistance : SV_ClipDistance
-	, out float4 OutCullDistance : SV_CullDistance
+	, out float OutClipDistance : SV_ClipDistance1
+	, out float OutCullDistance : SV_CullDistance1
 #endif
 	)
 {
@@ -53,4 +56,8 @@ void Main(
 		OutPosition.z += InstancedStereoDepthBias * OutPosition.w * (float)bNeedsInstancedStereoBias;
 		#endif
 	}
+
+#if USE_GLOBAL_CLIP_PLANE
+	OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(WorldPos.xyz - ResolvedView.PreViewTranslation.xyz, 1));
+#endif
 }

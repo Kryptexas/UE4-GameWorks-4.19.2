@@ -13,17 +13,45 @@
 #include "MeshUtilities.h"
 #endif
 
+static TAutoConsoleVariable<int32> CVarDistField(
+	TEXT("r.GenerateMeshDistanceFields"),
+	0,	
+	TEXT("Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows.\n")
+	TEXT("Enabling will increase mesh build times and memory usage.  Changing this value will cause a rebuild of all static meshes."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarDistFieldRes(
+	TEXT("r.DistanceFields.MaxPerMeshResolution"),
+	128,	
+	TEXT("Highest resolution (in one dimension) allowed for a single static mesh asset, used to cap the memory usage of meshes with a large scale.\n")
+	TEXT("Changing this will cause all distance fields to be rebuilt.  Large values such as 512 can consume memory very quickly! (128Mb for one asset at 512)"),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<float> CVarDistFieldResScale(
+	TEXT("r.DistanceFields.DefaultVoxelDensity"),
+	.1f,	
+	TEXT("Determines how the default scale of a mesh converts into distance field voxel dimensions.\n")
+	TEXT("Changing this will cause all distance fields to be rebuilt.  Large values can consume memory very quickly!"),
+	ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> CVarDistFieldAtlasResXY(
 	TEXT("r.DistanceFields.AtlasSizeXY"),
-	512,
+	512,	
 	TEXT("Size of the global mesh distance field atlas volume texture in X and Y."),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarDistFieldAtlasResZ(
 	TEXT("r.DistanceFields.AtlasSizeZ"),
-	1024,
+	1024,	
 	TEXT("Size of the global mesh distance field atlas volume texture in Z."),
 	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarLandscapeGI(
+	TEXT("r.GenerateLandscapeGIData"),
+	1,
+	TEXT("Whether to generate a low-resolution base color texture for landscapes for rendering real-time global illumination.\n")
+	TEXT("This feature requires GenerateMeshDistanceFields is also enabled, and will increase mesh build times and memory usage.\n"),
+	ECVF_Default);
 
 TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas = TGlobalResource<FDistanceFieldVolumeTextureAtlas>(PF_R16F);
 

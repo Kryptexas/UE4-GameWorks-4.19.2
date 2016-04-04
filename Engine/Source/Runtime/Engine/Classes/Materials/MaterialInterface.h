@@ -274,6 +274,13 @@ public:
 	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const
 		PURE_VIRTUAL(UMaterialInterface::GetUsedTextures,);
 
+	/** 
+	* Return the textures used to render this material and the material indices bound to each. 
+	* Because material indices can change for each shader, this is limited to a single platform and quality level.
+	* An empty array in OutIndices means the index is undefined.
+	*/
+	ENGINE_API virtual void GetUsedTexturesAndIndices(TArray<UTexture*>& OutTextures, TArray< TArray<int32> >& OutIndices, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) const;
+
 	/**
 	 * Override a specific texture (transient)
 	 *

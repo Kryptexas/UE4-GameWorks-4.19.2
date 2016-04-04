@@ -174,5 +174,5 @@ void FVulkanCommandListContext::RHIEndOcclusionQueryBatch()
 
 void FVulkanCommandListContext::RHISubmitCommandsHint()
 {
-	//#todo-rco: Submit at this point if possible
+	SubmitCurrentCommands();
 }

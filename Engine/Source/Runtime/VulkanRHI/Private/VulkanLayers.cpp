@@ -16,7 +16,7 @@ TAutoConsoleVariable<int32> GValidationCvar(
 // List of validation layers which we want to activate for the (device)-instance (used in VulkanRHI.cpp)
 static const ANSICHAR* GValidationLayersInstance[] =
 {
-#if UE_VK_API_VERSION >= VK_MAKE_VERSION(1, 0, 5)
+#if VK_API_VERSION >= VK_MAKE_VERSION(1, 0, 5)
 	"VK_LAYER_GOOGLE_threading",
 #else
 	"VK_LAYER_LUNARG_threading",
@@ -38,7 +38,7 @@ static const ANSICHAR* GValidationLayersInstance[] =
 // List of validation layers which we want to activate for the device
 static const ANSICHAR* GValidationLayersDevice[] =
 {
-#if UE_VK_API_VERSION >= VK_MAKE_VERSION(1, 0, 5)
+#if VK_API_VERSION >= VK_MAKE_VERSION(1, 0, 5)
 	"VK_LAYER_GOOGLE_threading",
 #else
 	"VK_LAYER_LUNARG_threading",

@@ -401,10 +401,12 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 FTextureRHIRef& FMaterialShader::GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View)
 {
 	IPooledRenderTarget* EyeAdaptationRT = NULL;
-	if( View.bIsViewInfo )
+	if (View.bIsViewInfo)
 	{
 		const FViewInfo& ViewInfo = static_cast<const FViewInfo&>(View);
-		EyeAdaptationRT = ViewInfo.GetEyeAdaptation(RHICmdList);
+		if (ViewInfo.HasValidEyeAdaptation()) {
+			EyeAdaptationRT = ViewInfo.GetEyeAdaptation(RHICmdList);
+		}
 	}
 
 	if( EyeAdaptationRT )

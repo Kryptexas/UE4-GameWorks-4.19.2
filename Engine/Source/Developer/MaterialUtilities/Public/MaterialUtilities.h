@@ -8,6 +8,7 @@
 #include "Runtime/Engine/Classes/Engine/Texture.h"
 #include "Runtime/Engine/Public/SceneTypes.h"
 #include "Runtime/Engine/Classes/Materials/Material.h"
+#include "Runtime/Engine/Classes/Engine/TextureStreamingTypes.h"
 #include "RawMesh.h"
 
 /** Structure used for storing intermediate baked down material data/samples*/
@@ -325,6 +326,18 @@ public:
 	* @param InFlattenMaterial				Flatten material to optimize
 	*/
 	static void ResizeFlattenMaterial(FFlattenMaterial& InFlattenMaterial, const struct FMeshProxySettings& InMeshProxySettings);
+
+	/**
+	* Get the material texcoord scales applied on each textures
+	*
+	* @param InMaterial			Target material
+	* @param QualityLevel		Quality level used for the shader profiling.
+	* @param FeatureLevel		Feature level used for the shader profiling.
+	* @param OutScales			TheOutput array of rendered samples	
+	* @return					Whether operation was successful
+	*/
+	static bool ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales);
+
 private:
 	
 	/**

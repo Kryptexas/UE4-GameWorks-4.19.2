@@ -186,14 +186,8 @@ static TAutoConsoleVariable<int32> GEnablePipelineCacheLoadCvar(
 
 FVulkanPipelineStateCache::FDiskEntry::~FDiskEntry()
 {
-	if (bLoaded)
-	{
-		//free DescriptorSetLayouts;
-		//free PipelineLayout;
-		//free ShaderModules[SF_Compute];
-
-		delete RenderPass;
-	}
+	check(!bLoaded);
+	check(!RenderPass);
 }
 
 FVulkanPipelineStateCache::FVulkanPipelineStateCache(FVulkanDevice* InDevice)
@@ -204,6 +198,8 @@ FVulkanPipelineStateCache::FVulkanPipelineStateCache(FVulkanDevice* InDevice)
 
 FVulkanPipelineStateCache::~FVulkanPipelineStateCache()
 {
+	DestroyCache();
+
 	vkDestroyPipelineCache(Device->GetInstanceHandle(), PipelineCache, nullptr);
 	PipelineCache = VK_NULL_HANDLE;
 }
@@ -244,7 +240,8 @@ bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames, TArr
 				FVulkanPipelineStateKey CreateInfo(DiskEntry->GraphicsKey, DiskEntry->VertexInputKey, DiskEntry->ShaderHashes);
 
 				// Add to the cache
-				Cache.Add(CreateInfo, Pipeline);
+				KeyToPipelineMap.Add(CreateInfo, Pipeline);
+				CreatedPipelines.Add(DiskEntry, Pipeline);
 			}
 
 			Ar << OutDeviceCache;
@@ -349,7 +346,7 @@ void FVulkanPipelineStateCache::CreateAndAdd(const FVulkanPipelineStateKey& Crea
 	//UE_LOG(LogVulkanRHI, Display, TEXT("PK: Added Entry %llx Index %d"), CreateInfo.PipelineKey, DiskEntries.Num());
 
 	// Add to the cache
-	Cache.Add(CreateInfo, Pipeline);
+	KeyToPipelineMap.Add(CreateInfo, Pipeline);
 	DiskEntries.Add(DiskEntry);
 }
 
@@ -864,6 +861,7 @@ void FVulkanPipelineStateCache::CreatePipelineFromDiskEntry(const FDiskEntry* Di
 
 	PipelineInfo.pDynamicState = &DynamicState;
 
+	//#todo-rco: Group the pipelines and create multiple (derived) pipelines at once
 	VERIFYVULKANRESULT(vkCreateGraphicsPipelines(Device->GetInstanceHandle(), PipelineCache, 1, &PipelineInfo, nullptr, &Pipeline->Pipeline));
 }
 
@@ -999,9 +997,47 @@ TLinkedList<FVulkanBoundShaderState*>*& FVulkanPipelineStateCache::GetBSSList()
 	return GBSSList;
 }
 
-void FVulkanPipelineStateCache::RebuildCache()
+void FVulkanPipelineStateCache::DestroyCache()
 {
-	UE_LOG(LogVulkanRHI, Warning, TEXT("Rebuilding pipeline cache; ditching %d entries"), DiskEntries.Num());
+	VkDevice DeviceHandle = Device->GetInstanceHandle();
+	auto DestroyDiskEntry = [DeviceHandle](FDiskEntry& DiskEntry)
+	{
+		for (int32 Index = 0; Index < ARRAY_COUNT(DiskEntry.ShaderModules); ++Index)
+		{
+			if (DiskEntry.ShaderModules[Index] != VK_NULL_HANDLE)
+			{
+				vkDestroyShaderModule(DeviceHandle, DiskEntry.ShaderModules[Index], nullptr);
+			}
+		}
+
+		vkDestroyPipelineLayout(DeviceHandle, DiskEntry.PipelineLayout, nullptr);
+
+		for (int32 Index = 0; Index < DiskEntry.DescriptorSetLayouts.Num(); ++Index)
+		{
+			vkDestroyDescriptorSetLayout(DeviceHandle, DiskEntry.DescriptorSetLayouts[Index], nullptr);
+		}
+
+		delete DiskEntry.RenderPass;
+		DiskEntry.RenderPass = nullptr;
+	};
+
+	for (FDiskEntry& Entry : DiskEntries)
+	{
+		if (Entry.bLoaded)
+		{
+			DestroyDiskEntry(Entry);
+			Entry.bLoaded = false;
+
+			FVulkanPipeline* Pipeline = CreatedPipelines.FindAndRemoveChecked(&Entry);
+			check(Pipeline);
+			Pipeline->Destroy();
+			delete Pipeline;
+		}
+		else
+		{
+			Entry.RenderPass = nullptr;
+		}
+	}
 
 	DiskEntries.Empty();
 	for (TLinkedList<FVulkanBoundShaderState*>::TIterator It(GetBSSList()); It; It.Next())
@@ -1011,7 +1047,16 @@ void FVulkanPipelineStateCache::RebuildCache()
 		//BSS->DestroyPipelineCache();
 		BSS->PipelineCache.Empty(0);
 	}
-	Cache.Empty();
+
+	KeyToPipelineMap.Empty();
+	CreatedPipelines.Empty();
+}
+
+void FVulkanPipelineStateCache::RebuildCache()
+{
+	UE_LOG(LogVulkanRHI, Warning, TEXT("Rebuilding pipeline cache; ditching %d entries"), DiskEntries.Num());
+
+	DestroyCache();
 }
 
 #endif	// VULKAN_ENABLE_PIPELINE_CACHE

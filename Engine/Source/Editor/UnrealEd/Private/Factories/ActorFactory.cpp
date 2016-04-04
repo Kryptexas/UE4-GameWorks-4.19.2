@@ -66,6 +66,8 @@ ActorFactory.cpp:
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "Kismet2/ComponentEditorUtils.h"
 #include "Components/BillboardComponent.h"
+#include "Classes/ActorFactories/ActorFactoryPlanarReflection.h"
+#include "Engine/PlanarReflection.h"
 
 #include "LevelSequence.h"
 #include "LevelSequenceActor.h"
@@ -1599,6 +1601,18 @@ UActorFactoryBoxReflectionCapture::UActorFactoryBoxReflectionCapture(const FObje
 	NewActorClass = ABoxReflectionCapture::StaticClass();
 	SpawnPositionOffset = FVector(50, 0, 0);
 	bUseSurfaceOrientation = true;
+}
+
+/*-----------------------------------------------------------------------------
+UActorFactoryPlanarReflection
+-----------------------------------------------------------------------------*/
+UActorFactoryPlanarReflection::UActorFactoryPlanarReflection(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("PlanarReflectionDisplayName", "Planar Reflection");
+	NewActorClass = APlanarReflection::StaticClass();
+	SpawnPositionOffset = FVector(0, 0, 0);
+	bUseSurfaceOrientation = false;
 }
 
 /*-----------------------------------------------------------------------------

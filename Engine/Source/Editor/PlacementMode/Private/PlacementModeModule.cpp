@@ -5,7 +5,7 @@
 #include "PlacementMode.h"
 #include "AssetToolsModule.h"
 #include "KismetEditorUtilities.h"
-
+#include "Classes/ActorFactories/ActorFactoryPlanarReflection.h"
 
 struct FPlacementCategory : FPlacementCategoryInfo
 {
@@ -162,6 +162,7 @@ public:
 			Category->Items.Add(CreateID(), MakeShareable( new FPlaceableItem(*UActorFactoryExponentialHeightFog::StaticClass(), SortOrder+=10)) );
 			Category->Items.Add(CreateID(), MakeShareable( new FPlaceableItem(*UActorFactorySphereReflectionCapture::StaticClass(), SortOrder+=10)) );
 			Category->Items.Add(CreateID(), MakeShareable( new FPlaceableItem(*UActorFactoryBoxReflectionCapture::StaticClass(), SortOrder+=10)) );
+			Category->Items.Add(CreateID(), MakeShareable( new FPlaceableItem(*UActorFactoryPlanarReflection::StaticClass(), SortOrder += 10)));
 			Category->Items.Add(CreateID(), MakeShareable( new FPlaceableItem(*UActorFactoryDeferredDecal::StaticClass(), SortOrder+=10)) );
 		}
 

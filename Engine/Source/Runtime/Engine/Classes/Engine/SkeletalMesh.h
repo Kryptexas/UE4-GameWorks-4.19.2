@@ -547,13 +547,15 @@ struct FSkeletalMaterial
 	FSkeletalMaterial()
 		: MaterialInterface( NULL )
 		, bEnableShadowCasting( true )
+		, bRecomputeTangent( false )
 	{
 
 	}
 
-	FSkeletalMaterial( class UMaterialInterface* InMaterialInterface, bool bInEnableShadowCasting = true )
+	FSkeletalMaterial( class UMaterialInterface* InMaterialInterface, bool bInEnableShadowCasting = true, bool bInRecomputeTangent = false )
 		: MaterialInterface( InMaterialInterface )
 		, bEnableShadowCasting( bInEnableShadowCasting )
+		, bRecomputeTangent( bInRecomputeTangent )
 	{
 
 	}
@@ -568,6 +570,8 @@ struct FSkeletalMaterial
 	class UMaterialInterface *	MaterialInterface;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=SkeletalMesh, Category=SkeletalMesh)
 	bool						bEnableShadowCasting;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SkeletalMesh, Category = SkeletalMesh)
+	bool						bRecomputeTangent;
 };
 
 class FSkeletalMeshResource;

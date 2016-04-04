@@ -10,11 +10,12 @@
 #include "BoundShaderStateCache.h"
 #include "VulkanShaderResources.h"
 #include "VulkanState.h"
+#include "VulkanMemory.h"
 
-struct FVulkanDevice;
-struct FVulkanQueue;
+class FVulkanDevice;
+class FVulkanQueue;
 class FVulkanDescriptorPool;
-struct FVulkanDescriptorSetsLayout;
+class FVulkanDescriptorSetsLayout;
 struct FVulkanDescriptorSets;
 class FVulkanCmdBuffer;
 class FVulkanGlobalUniformPool;
@@ -27,7 +28,7 @@ struct FVulkanBufferView;
 namespace VulkanRHI
 {
 	class FDeviceMemoryAllocation;
-	class FResourceAllocationInfo;
+	class FResourceAllocation;
 }
 
 /** This represents a vertex declaration that hasn't been combined with a specific shader to create a bound shader. */
@@ -42,8 +43,9 @@ public:
 };
 
 
-struct FVulkanShader
+class FVulkanShader
 {
+public:
 	FVulkanShader(FVulkanDevice* InDevice) :
 		ShaderModule(VK_NULL_HANDLE),
 		Code(nullptr),
@@ -226,8 +228,13 @@ public:
 	uint8 FormatKey;
 private:
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	// Used to clear render-target objects on creation
-	void ClearBlocking(const FClearValueBinding& ClearValueBinding);
+	void Clear(const FClearValueBinding& ClearValueBinding, bool bTransitionToPresentable);
+#else
+	// Used to clear render-target objects on creation
+	void ClearBlocking(const FClearValueBinding& ClearValueBinding, bool bTransitionToPresentable);
+#endif
 
 private:
 	// Linear or Optimal. Based on tiling, map/unmap is handled differently.
@@ -246,12 +253,7 @@ private:
 	VkImageViewType	ViewType;	// 2D, CUBE, 2DArray and etc..
 
 	bool bIsImageOwner;
-#if VULKAN_USE_MEMORY_SYSTEM
 	VulkanRHI::FDeviceMemoryAllocation* Allocation;
-#else
-	VkDeviceMemory DeviceMemory;
-#endif
-
 
 	// Used for optimal tiling mode
 	// Intermediate buffer, used to copy image data into the optimal image-buffer.
@@ -593,22 +595,14 @@ public:
 	void Unlock();
 
 	// By not providing a pending state, the copy is occuring immediately and is blocking..
-	void CopyTo(FVulkanSurface& Surface, const VkBufferImageCopy& CopyDesc, struct FVulkanPendingState* State = nullptr);
+	void CopyTo(FVulkanSurface& Surface, const VkBufferImageCopy& CopyDesc, class FVulkanPendingState* State = nullptr);
 
 	inline const VkFlags& GetFlags() const { return Usage; }
 
 private:
 	FVulkanDevice& Device;
 	VkBuffer Buf;
-#if VULKAN_USE_MEMORY_SYSTEM
-	#if VULKAN_USE_BUFFER_HEAPS
-		VulkanRHI::FResourceAllocationInfo* MemoryInfo;
-	#else
-		VulkanRHI::FDeviceMemoryAllocation* Allocation;
-	#endif
-#else
-	VkDeviceMemory Mem;
-#endif
+	VulkanRHI::FDeviceMemoryAllocation* Allocation;
 	uint32 Size;
 	VkFlags Usage;
 
@@ -673,6 +667,60 @@ protected:
 	uint64 RingBufferOffset;
 };
 
+
+#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+
+class FVulkanBuffer2 : public VulkanRHI::FDeviceChild, public VulkanRHI::FRefCount
+{
+public:
+	FVulkanBuffer2(FVulkanDevice* InDevice, VkBuffer InBuffer, VulkanRHI::FResourceAllocation* InResourceAllocation);
+	virtual ~FVulkanBuffer2();
+
+	inline VkBuffer GetBuffer() const
+	{
+		return Buffer;
+	}
+
+	inline VulkanRHI::FResourceAllocation* GetResourceAllocation()
+	{
+		return ResourceAllocation;
+	}
+
+	static VulkanRHI::FResourceAllocation* FVulkanBuffer2::CreateResourceAllocationAndBuffer(FVulkanDevice* Device, VkDeviceSize Size, uint32 InUsage, VkBufferUsageFlags BufferUsageFlags, VkBuffer& OutBuffer);
+
+	static VkBuffer CreateVulkanBuffer(FVulkanDevice* Device, VkDeviceSize Size, VkBufferUsageFlags BufferUsageFlags, VkMemoryRequirements& OutMemoryRequirements);
+
+protected:
+	VkBuffer Buffer;
+	TRefCountPtr<VulkanRHI::FResourceAllocation> ResourceAllocation;
+};
+
+class FVulkanIndexBuffer : public FRHIIndexBuffer/*, public FVulkanBuffer2*/
+{
+public:
+	FVulkanIndexBuffer(FVulkanDevice* InDevice, VkBuffer InBuffer, VulkanRHI::FResourceAllocation* InResourceAllocation, uint32 InStride, uint32 InSize, uint32 InUsage);
+
+	inline VkIndexType GetIndexType() const
+	{
+		return IndexType;
+	}
+
+	inline FVulkanBuffer2* GetBuffer()
+	{
+		return Buffer;
+	}
+
+	inline VulkanRHI::FResourceAllocation* GetResourceAllocation()
+	{
+		return Buffer->GetResourceAllocation();
+	}
+
+private:
+	VkIndexType IndexType;
+	TRefCountPtr<FVulkanBuffer2> Buffer;
+	friend class FVulkanCommandListContext;
+};
+#else
 /** Index buffer resource class that stores stride information. */
 class FVulkanIndexBuffer : public FRHIIndexBuffer, public FVulkanMultiBuffer
 {
@@ -681,6 +729,7 @@ public:
 
 	VkIndexType IndexType;
 };
+#endif
 
 struct FVulkanDynamicLockInfo
 {
@@ -739,6 +788,8 @@ protected:
 	TArray<FPoolElement> Elements;
 };
 
+#if 0//VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+#else
 /** Vertex buffer resource class that stores usage type. */
 class FVulkanVertexBuffer : public FRHIVertexBuffer, public FVulkanMultiBuffer
 {
@@ -750,6 +801,7 @@ public:
 private:
 	VkFlags Flags;
 };
+#endif
 
 class FVulkanUniformBuffer : public FRHIUniformBuffer
 {

@@ -17,12 +17,14 @@
 
 #include "TargetPlatform.h"
 #include "ContentStreaming.h"
+#include "Streaming/StreamingManagerTexture.h"
 
 UTexture2D::UTexture2D(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bHasCancelationPending = false;
-	StreamingIndex = -1;
+	StreamingIndex = INDEX_NONE;
+	LevelIndex = INDEX_NONE;
 	SRGB = true;
 }
 

@@ -4,18 +4,9 @@
 TextureInstanceManager.h: Definitions of classes used for texture streaming.
 =============================================================================*/
 
-class UTexture2D;
-class UPrimitiveComponent;
+#pragma once
 
-/**
-	* Checks whether a UTexture2D is supposed to be streaming.
-	* @param Texture	Texture to check
-	* @return			true if the UTexture2D is supposed to be streaming
-	*/
-static bool IsStreamingTexture( const UTexture2D* Texture2D )
-{
-	return Texture2D && Texture2D->bIsStreamable && Texture2D->NeverStream == false && Texture2D->GetNumMips() > UTexture2D::GetMinTextureResidentMipCount();
-}
+#include "TextureStreamingHelpers.h"
 
 // Main Thread Job Requirement : find all instance of a component and update it's bound.
 // Threaded Job Requirement : get the list of instance texture easily from the list of 

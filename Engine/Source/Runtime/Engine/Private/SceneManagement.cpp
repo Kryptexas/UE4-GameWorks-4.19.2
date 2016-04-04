@@ -373,27 +373,15 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 	FLODMask LODToRender;
 
 	// Handle forced LOD level first
-	if (ForcedLODLevel >= 0 || View.bIsPlanarReflectionCapture)
+	if (ForcedLODLevel >= 0)
 	{
-		// Note: starting at -1 which is the default LODIndex, for cases where LODIndex didn't get set
-		int8 MinLOD = 127, MaxLOD = -1;
-		for(int32 MeshIndex = 0 ; MeshIndex < StaticMeshes.Num() ; ++MeshIndex)
+		int8 MaxLOD = 0;
+		for (int32 MeshIndex = 0; MeshIndex < StaticMeshes.Num(); ++MeshIndex)
 		{
 			const FStaticMesh&  Mesh = StaticMeshes[MeshIndex];
-			MinLOD = FMath::Min(MinLOD, Mesh.LODIndex);
 			MaxLOD = FMath::Max(MaxLOD, Mesh.LODIndex);
 		}
-
-		//@todo Ronin
-		// Planar reflections always use the highest available LOD level
-		if (View.bIsPlanarReflectionCapture)
-		{
-			LODToRender.SetLOD(MaxLOD);
-		}
-		else
-		{
-			LODToRender.SetLOD(FMath::Clamp<int8>(ForcedLODLevel, MinLOD, MaxLOD));
-		}
+		LODToRender.SetLOD(FMath::Clamp<int8>(ForcedLODLevel, 0, MaxLOD));
 	}
 	else if (View.Family->EngineShowFlags.LOD)
 	{

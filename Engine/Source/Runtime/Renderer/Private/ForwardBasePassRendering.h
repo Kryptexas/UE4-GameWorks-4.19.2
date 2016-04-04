@@ -60,7 +60,6 @@ protected:
 	{
 		VertexParametersType::Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
-		PlanarReflectionCaptureDataParameter.Bind(Initializer.ParameterMap, TEXT("PlanarReflectionCaptureData"));
 	}
 
 public:
@@ -77,7 +76,6 @@ public:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		VertexParametersType::Serialize(Ar);
 		Ar << HeightFogParameters;
-		Ar << PlanarReflectionCaptureDataParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -92,11 +90,6 @@ public:
 	{
 		HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
 		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,InMaterialResource,View,TextureMode);
-
-		if (PlanarReflectionCaptureDataParameter.IsBound())
-		{
-			SetShaderValue(RHICmdList, GetVertexShader(), PlanarReflectionCaptureDataParameter, View.ReflectionPlane);
-		}
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
@@ -106,7 +99,6 @@ public:
 
 private:
 	FHeightFogShaderParameters HeightFogParameters;
-	FShaderParameter PlanarReflectionCaptureDataParameter;
 };
 
 template<typename LightMapPolicyType>
@@ -222,7 +214,6 @@ public:
 		ReflectionSampler1.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler1"));
 		ReflectionCubemap2.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemap2"));
 		ReflectionSampler2.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler2"));
-		PlanarReflectionCaptureDataParameter.Bind(Initializer.ParameterMap, TEXT("PlanarReflectionCaptureData"));
 	}
 	TBasePassForForwardShadingPSPolicyParamType() {}
 
@@ -230,12 +221,6 @@ public:
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,TextureMode);
 		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
-
-		if (PlanarReflectionCaptureDataParameter.IsBound())
-		{
-			check(View != nullptr);
-			SetShaderValue(RHICmdList, GetPixelShader(), PlanarReflectionCaptureDataParameter, View->ReflectionPlane);
-		}
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
@@ -336,7 +321,6 @@ public:
 		Ar << ReflectionPositionsAndRadii;
 		Ar << ReflectionSampler1;
 		Ar << ReflectionSampler2;
-		Ar << PlanarReflectionCaptureDataParameter;
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -359,7 +343,6 @@ private:
 	FShaderResourceParameter ReflectionCubemap2;
 	FShaderResourceParameter ReflectionSampler2;
 	FShaderParameter ReflectionPositionsAndRadii;
-	FShaderParameter PlanarReflectionCaptureDataParameter;
 };
 
 template<typename LightMapPolicyType, int32 NumDynamicPointLights>

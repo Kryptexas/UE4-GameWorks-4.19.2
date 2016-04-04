@@ -11,6 +11,7 @@
 #include "VertexFactory.usf"
 #include "LightmapCommon.usf"  
 #include "ReflectionEnvironmentShared.usf"
+#include "PlanarReflectionShared.usf"
 #include "BRDF.usf"
 #include "Random.usf"
 #include "LightAccumulator.usf"
@@ -143,7 +144,19 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	half NoV = saturate(dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector));
 	SpecularColor = EnvBRDFApprox(SpecularColor, Roughness, NoV);
 
-	return SpecularIBL.rgb * SpecularColor;
+	float3 SpecularLighting = SpecularIBL.rgb;
+
+	// Plane normal will be zero if the feature is disabled
+	BRANCH
+	if (abs(dot(ReflectionPlane.xyz, 1)) > .0001f)
+	{
+		// Reuse ReflectionCubemapSampler to avoid reducing the sampler count available to artists
+		float4 PlanarReflection = ComputePlanarReflections(MaterialParameters.AbsoluteWorldPosition, MaterialParameters.WorldNormal, ReflectionCubemapSampler);
+		// Planar reflections win over SSR and reflection environment
+		SpecularLighting = lerp(SpecularLighting, PlanarReflection.rgb, PlanarReflection.a);
+	}
+
+	return SpecularLighting * SpecularColor;
 }
 
 #endif

@@ -42,7 +42,6 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,   bAffectDynamicIndirectLighting(InComponent->bAffectDynamicIndirectLighting)
 ,   bAffectDistanceFieldLighting(InComponent->bAffectDistanceFieldLighting)
 ,	bCastStaticShadow(InComponent->CastShadow && InComponent->bCastStaticShadow)
-,	bVisibleInPlanarReflection(InComponent->bVisibleInPlanarReflection)
 ,	bCastVolumetricTranslucentShadow(InComponent->bCastDynamicShadow && InComponent->CastShadow && InComponent->bCastVolumetricTranslucentShadow)
 ,	bCastCapsuleDirectShadow(false)
 ,	bCastCapsuleIndirectShadow(false)

@@ -6,6 +6,7 @@
 
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
+#include "PlanarReflectionSceneProxy.h"
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarSelectiveBasePassOutputs(
@@ -16,6 +17,12 @@ static TAutoConsoleVariable<int32> CVarSelectiveBasePassOutputs(
 	TEXT(" 1: Export only into relevant rendertarget.\n"),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
+// Changing this causes a full shader recompile
+static TAutoConsoleVariable<int32> CVarGlobalClipPlane(
+	TEXT("r.AllowGlobalClipPlane"),
+	0,
+	TEXT("Enables mesh shaders to support a global clip plane, needed for planar reflections, which adds about 15% BasePass GPU cost on PS4."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
 bool UseSelectiveBasePassOutputs()
 {
@@ -114,20 +121,49 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(
 	}
 }
 
-void FReflectionParameters::Set(FRHICommandList& RHICmdList, FShader* Shader, const FViewInfo* View)
+void FPlanarReflectionParameters::SetParameters(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef ShaderRHI, const FPlanarReflectionSceneProxy* ReflectionSceneProxy)
 {
-	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	auto PixelShader = Shader->GetPixelShader();
+	// Degenerate plane causes shader to branch around the reflection lookup
+	FPlane ReflectionPlaneValue(FVector4(0, 0, 0, 0));
+	FTexture* PlanarReflectionTextureValue = GBlackTexture;
 
-	SkyLightReflectionParameters.SetParameters(RHICmdList, Shader->GetPixelShader(), (const FScene*)(View->Family->Scene), true);
+	if (ReflectionSceneProxy)
+	{
+		ReflectionPlaneValue = ReflectionSceneProxy->ReflectionPlane;
+		PlanarReflectionTextureValue = ReflectionSceneProxy->RenderTarget;
+			
+		SetShaderValue(RHICmdList, ShaderRHI, InverseTransposeMirrorMatrix, ReflectionSceneProxy->InverseTransposeMirrorMatrix);
+		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionParameters, ReflectionSceneProxy->PlanarReflectionParameters);
+		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionParameters2, ReflectionSceneProxy->PlanarReflectionParameters2);
+		SetShaderValue(RHICmdList, ShaderRHI, ProjectionWithExtraFOV, ReflectionSceneProxy->ProjectionWithExtraFOV);
+	}
+
+	SetShaderValue(RHICmdList, ShaderRHI, ReflectionPlane, ReflectionPlaneValue);
+	SetTextureParameter(RHICmdList, ShaderRHI, PlanarReflectionTexture, PlanarReflectionSampler, PlanarReflectionTextureValue);
 }
 
-void FReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel)
+void FBasePassReflectionParameters::Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View)
 {
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+	SkyLightReflectionParameters.SetParameters(RHICmdList, PixelShaderRHI, (const FScene*)(View->Family->Scene), true);
+}
+
+void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel)
+{
+	const FPrimitiveSceneInfo* PrimitiveSceneInfo = Proxy ? Proxy->GetPrimitiveSceneInfo() : NULL;
+	const FPlanarReflectionSceneProxy* ReflectionSceneProxy = NULL;
+
+	if (PrimitiveSceneInfo && PrimitiveSceneInfo->CachedPlanarReflectionProxy)
+	{
+		ReflectionSceneProxy = PrimitiveSceneInfo->CachedPlanarReflectionProxy;
+	}
+
+	PlanarReflectionParameters.SetParameters(RHICmdList, PixelShaderRHI, ReflectionSceneProxy);
+
 	// Note: GBlackCubeArrayTexture has an alpha of 0, which is needed to represent invalid data so the sky cubemap can still be applied
 	FTextureRHIParamRef CubeArrayTexture = FeatureLevel >= ERHIFeatureLevel::SM5 ? GBlackCubeArrayTexture->TextureRHI : GBlackTextureCube->TextureRHI;
 	int32 ArrayIndex = 0;
-	const FPrimitiveSceneInfo* PrimitiveSceneInfo = Proxy ? Proxy->GetPrimitiveSceneInfo() : NULL;
 
 	if (PrimitiveSceneInfo && PrimitiveSceneInfo->CachedReflectionCaptureProxy)
 	{
@@ -136,27 +172,26 @@ void FReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader
 
 	SetTextureParameter(
 		RHICmdList, 
-		Shader->GetPixelShader(), 
+		PixelShaderRHI, 
 		ReflectionCubemap, 
 		ReflectionCubemapSampler, 
 		TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 		CubeArrayTexture);
 
-	SetShaderValue(RHICmdList, Shader->GetPixelShader(), CubemapArrayIndex, ArrayIndex);
+	SetShaderValue(RHICmdList, PixelShaderRHI, CubemapArrayIndex, ArrayIndex);
 }
 
-void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* Shader, const FViewInfo* View)
+void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	auto PixelShader = Shader->GetPixelShader();
 
-	TranslucentLightingVolumeParameters.Set(RHICmdList, PixelShader);
+	TranslucentLightingVolumeParameters.Set(RHICmdList, PixelShaderRHI);
 
 	if (View->HZB)
 	{
 		SetTextureParameter(
 			RHICmdList, 
-			PixelShader, 
+			PixelShaderRHI, 
 			HZBTexture, 
 			HZBSampler, 
 			TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
@@ -172,7 +207,7 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 
 		SetTextureParameter(
 			RHICmdList, 
-			PixelShader, 
+			PixelShaderRHI, 
 			PrevSceneColor, 
 			PrevSceneColorSampler, 
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
@@ -189,14 +224,14 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 			1.0f / HZBUvFactor.Y
 			);
 			
-		SetShaderValue(RHICmdList, PixelShader, HZBUvFactorAndInvFactor, HZBUvFactorAndInvFactorValue);
+		SetShaderValue(RHICmdList, PixelShaderRHI, HZBUvFactorAndInvFactor, HZBUvFactorAndInvFactorValue);
 	}
 	else
 	{
 		//set dummies for platforms that require bound resources.
 		SetTextureParameter(
 			RHICmdList,
-			PixelShader,
+			PixelShaderRHI,
 			HZBTexture,
 			HZBSampler,
 			TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(),
@@ -204,7 +239,7 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 
 		SetTextureParameter(
 			RHICmdList,
-			PixelShader,
+			PixelShaderRHI,
 			PrevSceneColor,
 			PrevSceneColorSampler,
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(),

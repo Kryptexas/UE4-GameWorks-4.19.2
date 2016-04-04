@@ -1335,7 +1335,8 @@ FDynamicMeshEmitterData::~FDynamicMeshEmitterData()
 /** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
 void FDynamicMeshEmitterData::Init( bool bInSelected,
 									const FParticleMeshEmitterInstance* InEmitterInstance,
-									UStaticMesh* InStaticMesh )
+									UStaticMesh* InStaticMesh,
+									ERHIFeatureLevel::Type InFeatureLevel )
 {
 	bSelected = bInSelected;
 
@@ -1351,8 +1352,8 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 
 	InEmitterInstance->GetMeshMaterials(
 		MeshMaterials,
-		InEmitterInstance->SpriteTemplate->LODLevels[InEmitterInstance->CurrentLODLevelIndex]
-		);
+		InEmitterInstance->SpriteTemplate->LODLevels[InEmitterInstance->CurrentLODLevelIndex],
+		InFeatureLevel);
 
 	for (int32 i = 0; i < MeshMaterials.Num(); ++i)
 	{
@@ -7032,7 +7033,7 @@ FPrimitiveSceneProxy* UParticleSystemComponent::CreateSceneProxy()
 		}
 
 		// Create the dynamic data for rendering this particle system.
-		FParticleDynamicData* ParticleDynamicData = CreateDynamicData();
+		FParticleDynamicData* ParticleDynamicData = CreateDynamicData(GetScene()->GetFeatureLevel());
 
 		if (CanBeOccluded())
 		{

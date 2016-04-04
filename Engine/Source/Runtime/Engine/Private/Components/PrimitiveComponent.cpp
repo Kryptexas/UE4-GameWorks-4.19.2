@@ -73,7 +73,6 @@ static int32 bEnableFastOverlapCheck = 1;
 static FAutoConsoleVariableRef CVarEnableFastOverlapCheck(TEXT("p.EnableFastOverlapCheck"), bEnableFastOverlapCheck, TEXT("Enable fast overlap check against sweep hits, avoiding UpdateOverlaps (for the swept component)."));
 DECLARE_CYCLE_STAT(TEXT("MoveComponent FastOverlap"), STAT_MoveComponent_FastOverlap, STATGROUP_Game);
 
-
 // Predicate to determine if an overlap is with a certain AActor.
 struct FPredicateOverlapHasSameActor
 {
@@ -242,9 +241,9 @@ bool UPrimitiveComponent::HasStaticLighting() const
 	return ((Mobility == EComponentMobility::Static) || bLightAsIfStatic) && SupportsStaticLighting();
 }
 
-void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(TArray<struct FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextureLevelContext& LevelContext, TArray<struct FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
-	GetStreamingTextureInfo(OutStreamingTextures);
+	GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
 	for (int32 Index = 0; Index < OutStreamingTextures.Num(); Index++)
 	{
 		if (!OutStreamingTextures[Index].Texture || !Cast<UTexture2D>(OutStreamingTextures[Index].Texture))

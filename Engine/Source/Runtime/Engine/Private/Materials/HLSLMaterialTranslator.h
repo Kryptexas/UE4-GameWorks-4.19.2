@@ -3079,6 +3079,11 @@ protected:
 		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterName, TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
 	}
 
+	virtual int32 GetTextureReferenceIndex(UTexture* TextureValue)
+	{
+		return Material->GetReferencedTextures().Find(TextureValue);
+	}
+
 	virtual int32 StaticBool(bool bValue) override
 	{
 		return AddInlinedCodeChunk(MCT_StaticBool,(bValue ? TEXT("true") : TEXT("false")));

@@ -242,8 +242,9 @@ void FTextureInstanceManager::RemoveElement(int32 ElementIndex, int32& NextCompo
 
 void FTextureInstanceManager::AddComponent(const UPrimitiveComponent* Component)
 {
+	FStreamingTextureLevelContext LevelContext;
 	TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
-	Component->GetStreamingTextureInfoWithNULLRemoval(TextureInstanceInfos);
+	Component->GetStreamingTextureInfoWithNULLRemoval(LevelContext, TextureInstanceInfos);
 
 	bool bHasEntries = false;
 

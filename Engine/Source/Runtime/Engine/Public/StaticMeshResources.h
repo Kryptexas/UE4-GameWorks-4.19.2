@@ -786,8 +786,8 @@ public:
 	/** Sets up a wireframe FMeshBatch for a specific LOD. */
 	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	virtual bool GetStreamingTextureInfo(struct FStreamingTexturePrimitiveInfo& OutInfo, int32 LODIndex, int32 ElementIndex) const override;
+#if WITH_EDITORONLY_DATA
+	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(int32 LODIndex, int32 ElementIndex) const override;
 #endif
 
 protected:
@@ -912,17 +912,14 @@ protected:
 	FCollisionResponseContainer CollisionResponse;
 
 #if WITH_EDITORONLY_DATA
+	/** Data shared with the component */
+	TSharedPtr<TArray<FStreamingSectionBuildInfo>, ESPMode::NotThreadSafe> StreamingSectionData;
+
 	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
 	int32 SectionIndexPreview;
 #endif
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	/** The precise streaming info for each LOD and Section. */
-	TArray<struct FStreamingTexturePrimitiveInfo> StreamingTextureInfos;
-	/** Texture streaming factor used for lightmap textures */
-	float WorldTexelFactor;
-	float WorldLightmapFactor;
-
 	/** LOD used for collision */
 	int32 LODForCollision;
 	/** If we want to draw the mesh collision for debugging */

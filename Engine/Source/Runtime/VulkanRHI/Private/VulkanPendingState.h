@@ -10,8 +10,9 @@
 #include "VulkanRHI.h"
 #include "VulkanPipeline.h"
 
-struct FVulkanPendingState
+class FVulkanPendingState
 {
+public:
 	typedef TMap<FStateKey, FVulkanRenderPass*> FMapRenderRass;
 	typedef TMap<FStateKey, TArray<FVulkanFramebuffer*> > FMapFrameBufferArray;
 
@@ -28,6 +29,13 @@ struct FVulkanPendingState
 
 	void Reset();
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	void RenderPassBegin(FVulkanCmdBuffer* CmdBuffer);
+
+	void PrepareDraw(FVulkanCmdBuffer* CmdBuffer, VkPrimitiveTopology Topology);
+
+	void RenderPassEnd(FVulkanCmdBuffer* CmdBuffer);
+#else
 	// Needs to be called before "PrepareDraw" and also starts writing in to the command buffer
 	void RenderPassBegin();
 
@@ -38,6 +46,7 @@ struct FVulkanPendingState
 	// Is currently linked to the command buffer
 	// Will get called in RHIEndDrawingViewport through SubmitPendingCommandBuffers
 	void RenderPassEnd();
+#endif
 
 	inline bool IsRenderPassActive() const
 	{
@@ -67,12 +76,35 @@ struct FVulkanPendingState
 	// Retuns constructed render pass
 	FVulkanRenderPass& GetRenderPass();
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 	// Returns currently bound command buffer
 	VkCommandBuffer& GetCommandBuffer();
 	const VkBool32 GetIsCommandBufferEmpty() const;
-
+#endif
 	FVulkanFramebuffer* GetFrameBuffer();
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	inline void UpdateRenderPass(FVulkanCmdBuffer* CmdBuffer)
+	{
+		//#todo-rco: Don't test here, move earlier to SetRenderTarget
+		if (bChangeRenderTarget)
+		{
+			if (bBeginRenderPass)
+			{
+				RenderPassEnd(CmdBuffer);
+			}
+
+			RenderPassBegin(CmdBuffer);
+			bChangeRenderTarget = false;
+		}
+		if (!bBeginRenderPass)
+		{
+			RenderPassBegin(CmdBuffer);
+			bChangeRenderTarget = false;
+		}
+	}
+#else
 	inline void UpdateRenderPass()
 	{
 		//#todo-rco: Don't test here, move earlier to SetRenderTarget
@@ -87,6 +119,7 @@ struct FVulkanPendingState
 			bChangeRenderTarget = false;
 		}
 	}
+#endif
 
 	inline const FVulkanPipelineGraphicsKey& GetCurrentKey() const
 	{
@@ -117,6 +150,8 @@ struct FVulkanPendingState
 
 	void InitFrame();
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 	inline FVulkanCmdBuffer& GetCommandBuffer(uint32 Index)
 	{
 		check(Index<VULKAN_NUM_COMMAND_BUFFERS);
@@ -144,7 +179,7 @@ struct FVulkanPendingState
 		check(CmdBuffers[CurrentCmdBufferIndex]);
 		return *CmdBuffers[CurrentCmdBufferIndex];
 	}
-
+#endif
 private:
 	FVulkanRenderPass* GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout);
 	FVulkanFramebuffer* GetOrCreateFramebuffer(const FRHISetRenderTargetsInfo& RHIRTInfo,
@@ -166,9 +201,13 @@ private:
 	//@TODO: probably needs to go somewhere else
 	FRHISetRenderTargetsInfo PrevRenderTargetsInfo;
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	friend class FVulkanCommandListContext;
+#else
 	//#todo-rco: FIX ME! ASAP!!!
 	FVulkanCmdBuffer* CmdBuffers[VULKAN_NUM_COMMAND_BUFFERS];
 	uint32	CurrentCmdBufferIndex;
+#endif
 	
 	FRHISetRenderTargetsInfo RTInfo;
 

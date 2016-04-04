@@ -9,9 +9,9 @@
 #include "RHIDefinitions.h"
 
 #if PLATFORM_WINDOWS
-	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 3)
+	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 5)
 #elif PLATFORM_ANDROID
-	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
+	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 3)
 #else
 	#error Unsupported platform!
 #endif
@@ -50,17 +50,6 @@ enum class EDescriptorSetStage
 	Invalid		= -1,
 };
 
-// VULKAN_HLSLCC_GEN_GLSL_IN_OUT_WITHOUT_STRUCTURES:
-//	0:		"layout(location=%d) struct { vec4 Data; } varname;"
-//	1:		"layout(location=%d) vec4 varname;"
-//
-//	Originally, in/outs are generated with structures, which is fine. However,
-//	when the next shader stage has a compiled-out location and is first location is not starting with "0",
-//	the input is getting messed up. Therefore, we generate in/outs without structures.
-//
-//	NOTE: Changing the flag requires a full shader-rebuild.
-#define VULKAN_HLSLCC_GEN_GLSL_IN_OUT_WITHOUT_STRUCTURES		1
-
 inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 {
 	switch (Stage)
@@ -91,10 +80,10 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #if PLATFORM_WINDOWS
 	#define VULKAN_DISABLE_DEBUG_CALLBACK						0	/* Disable the DebugReportFunction() callback in VulkanDebug.cpp */
 	#define VULKAN_CLEAR_SURFACE_ON_CREATE						1
-	#define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS					1	/* 1 = use resolve attachments, 0 = Use a command buffer vkResolveImage for MSAA resolve */
+	#define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS					0	/* 1 = use resolve attachments, 0 = Use a command buffer vkResolveImage for MSAA resolve */
 	#define VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS				0	/* For some reason, using this on PC renders black - it may need lock/unlock all the time */
 	#define VULKAN_STRICT_TEXTURE_FLAGS							0	/* Checks the format feature flags when determining usage & flags for surfaces */
-	#define VULKAN_FORCE_WAIT_FOR_QUEUE							0	/* Ensures all work is finished inside the queue, before proceeding to the next frame. This should be only used to test for stability issues. The performance will be garbage, since we are not making use of any double/tripple buffering. */
+	#define VULKAN_FORCE_WAIT_FOR_QUEUE							0	/* Ensures all work is finished inside the queue, before proceeding to the next frame. This should be only used to test for stability issues. The performance will be garbage, since we are not making use of any double/triple buffering. */
 #else
 	#define VULKAN_DISABLE_DEBUG_CALLBACK						1	/* Disable the DebugReportFunction() callback in VulkanDebug.cpp */
 	#define VULKAN_CLEAR_SURFACE_ON_CREATE						0
@@ -109,16 +98,10 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #define VULKAN_ENABLE_PIPELINE_CACHE							1
 
 //#todo-rco: Test on Android
-#define VULKAN_USE_MEMORY_SYSTEM								PLATFORM_WINDOWS	// Enables all vkAllocateMemory/vkFreeMemory to go through one system
+#define VULKAN_USE_NEW_RESOURCE_MANAGEMENT						0//PLATFORM_WINDOWS
 
 //#todo-rco: Test on Android
-#define VULKAN_USE_RESOURCE_ALLOCATIONS							0//PLATFORM_WINDOWS	// Does not directly allocate memory for buffers, instead partitions buffer ranges without reallocating memory
-
-//#todo-rco: Test on Android
-#define VULKAN_USE_NEW_STAGING_BUFFERS							PLATFORM_WINDOWS	// Enables reusing staging buffer memory
-
-//#todo-rco: Test on Android
-#define VULKAN_USE_FENCE_MANAGER								PLATFORM_WINDOWS
+#define VULKAN_USE_NEW_COMMAND_BUFFERS							0//PLATFORM_WINDOWS
 
 #define VULKAN_ENABLE_RHI_DEBUGGING								1
 
@@ -142,15 +125,5 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 	#ifdef VULKAN_DISABLE_DEBUG_CALLBACK
 		#undef VULKAN_DISABLE_DEBUG_CALLBACK
 		#define VULKAN_DISABLE_DEBUG_CALLBACK 0
-	#endif
-#endif
-
-
-#if !VULKAN_USE_MEMORY_SYSTEM
-	#if VULKAN_USE_NEW_STAGING_BUFFERS
-		#error VULKAN_USE_NEW_STAGING_BUFFERS requires VULKAN_USE_MEMORY_SYSTEM enabled!
-	#endif
-	#if VULKAN_USE_BUFFER_HEAPS
-		#error VULKAN_USE_BUFFER_HEAPS requires VULKAN_USE_MEMORY_SYSTEM enabled!
 	#endif
 #endif

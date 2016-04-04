@@ -16,7 +16,8 @@ public:
 	enum
 	{
 		// Up to this number of chunks, we can use on the GPU skinning cache; no point in using TArray as it's using int16 elements
-		MAX_GPUSKINCACHE_CHUNKS_PER_LOD = 16,
+		// 32 is the conservative size needed for Senua in CharDemo with NinjaTheory (this should be a cvar and project specific or dynamic, with only using the feature on RecomputeTangents it can be much less)
+		MAX_GPUSKINCACHE_CHUNKS_PER_LOD = 32,
 	};
 
 	FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type FeatureLevel);
@@ -41,6 +42,13 @@ public:
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims) = 0;
 
 	/**
+	* Called by the game thread for any update on RecomputeTangent
+	* @param	MaterialIndex : Material Index for the update
+	* @param	bRecomputeTangent : the new flag
+	*/
+	virtual void UpdateRecomputeTangent(int32 MaterialIndex, bool bRecomputeTangent) = 0;
+
+	/**
 	 * Called by FSkeletalMeshObject prior to GDME. This allows the GPU skin version to update bones etc now that we know we are going to render
 	 * @param FrameNumber from GFrameNumber
 	 */
@@ -49,11 +57,12 @@ public:
 	}
 
 	/**
+	 * @param	View - View, must not be 0, allows to cull depending on showflags (normally not needed/used in SHIPPING)
 	 * @param	LODIndex - each LOD has its own vertex data
 	 * @param	ChunkIdx - not used
-	 * @return	vertex factory for rendering the LOD
+	 * @return	vertex factory for rendering the LOD, 0 to suppress rendering
 	 */
-	virtual const FVertexFactory* GetVertexFactory(int32 LODIndex,int32 ChunkIdx) const = 0;
+	virtual const FVertexFactory* GetSkinVertexFactory(const FSceneView* View, int32 LODIndex,int32 ChunkIdx) const = 0;
 
 	/**
 	 * Re-skin cached vertices for an LOD and update the vertex buffer. Note that this

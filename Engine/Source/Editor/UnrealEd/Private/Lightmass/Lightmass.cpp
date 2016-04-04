@@ -4063,7 +4063,7 @@ bool FLightmassProcessor::ImportTextureMapping(int32 Channel, FTextureMappingImp
 
 	if (TMImport.QuantizedData->Data.Num() > 0)
 	{
-		TMImport.UnmappedTexelsPercentage = (float)NumUnmappedTexels / (float)TMImport.QuantizedData->Data.Num();
+		TMImport.UnmappedTexelsPercentage = 100.0f * (float)NumUnmappedTexels / (float)TMImport.QuantizedData->Data.Num();
 	}
 	else
 	{

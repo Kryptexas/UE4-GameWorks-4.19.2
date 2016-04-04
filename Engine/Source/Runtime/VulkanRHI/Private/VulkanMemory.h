@@ -8,14 +8,19 @@
 
 #define VULKAN_TRACK_MEMORY_USAGE	1
 
+class FVulkanQueue;
+class FVulkanCmdBuffer;
+
 namespace VulkanRHI
 {
+	class FFenceManager;
+
 	// Custom ref counting
-	class FVulkanRefCount
+	class FRefCount
 	{
 	public:
-		FVulkanRefCount() {}
-		virtual ~FVulkanRefCount()
+		FRefCount() {}
+		virtual ~FRefCount()
 		{
 			check(NumRefs.GetValue() == 0);
 		}
@@ -49,10 +54,10 @@ namespace VulkanRHI
 		FThreadSafeCounter NumRefs;
 	};
 
-	class FVulkanDeviceChild
+	class FDeviceChild
 	{
 	public:
-		FVulkanDeviceChild(FVulkanDevice* InDevice = nullptr) :
+		FDeviceChild(FVulkanDevice* InDevice = nullptr) :
 			Device(InDevice)
 		{
 		}
@@ -74,6 +79,7 @@ namespace VulkanRHI
 		FVulkanDevice* Device;
 	};
 
+	// An Allocation of a Device Heap. Lowest level of allocations and bounded by VkPhysicalDeviceLimits::maxMemoryAllocationCount.
 	class FDeviceMemoryAllocation
 	{
 	public:
@@ -83,7 +89,7 @@ namespace VulkanRHI
 			, Size(0)
 			, MemoryTypeIndex(0)
 			, bCanBeMapped(0)
-			, bIsMapped(0)
+			, MappedPointer(nullptr)
 			, bIsCoherent(0)
 			, bIsCached(0)
 			, bFreedBySystem(false)
@@ -97,17 +103,22 @@ namespace VulkanRHI
 		void* Map(VkDeviceSize Size, VkDeviceSize Offset);
 		void Unmap();
 
-		bool CanBeMapped() const
+		inline void* GetMappedPointer()
+		{
+			return MappedPointer;
+		}
+
+		inline bool CanBeMapped() const
 		{
 			return bCanBeMapped != 0;
 		}
 
-		bool IsMapped() const
+		inline bool IsMapped() const
 		{
-			return bIsMapped != 0;
+			return !!MappedPointer;
 		}
 
-		bool IsCoherent() const
+		inline bool IsCoherent() const
 		{
 			return bIsCoherent != 0;
 		}
@@ -148,13 +159,18 @@ namespace VulkanRHI
 			return Size;
 		}
 
+		inline uint32 GetMemoryTypeIndex() const
+		{
+			return MemoryTypeIndex;
+		}
+
 	protected:
 		VkDeviceSize Size;
 		VkDevice DeviceHandle;
 		VkDeviceMemory Handle;
+		void* MappedPointer;
 		uint32 MemoryTypeIndex : 8;
 		uint32 bCanBeMapped : 1;
-		uint32 bIsMapped : 1;
 		uint32 bIsCoherent : 1;
 		uint32 bIsCached : 1;
 		uint32 bFreedBySystem : 1;
@@ -170,18 +186,14 @@ namespace VulkanRHI
 		friend class FDeviceMemoryManager;
 	};
 
+	// Manager of Device Heap Allocations. Calling Alloc/Free is expensive!
 	class FDeviceMemoryManager
 	{
 	public:
 		FDeviceMemoryManager();
 		~FDeviceMemoryManager();
 
-		void Init(struct FVulkanDevice* InDevice);
-
-		void SetDevice(VkDevice InDevice)
-		{
-			DeviceHandle = InDevice;
-		}
+		void Init(FVulkanDevice* InDevice);
 
 		void Deinit();
 
@@ -190,6 +202,7 @@ namespace VulkanRHI
 			return MemoryProperties.memoryTypeCount;
 		}
 
+		//#todo-rco: Might need to revisit based on https://gitlab.khronos.org/vulkan/vulkan/merge_requests/1165
 		inline VkResult GetMemoryTypeFromProperties(uint32 TypeBits, VkMemoryPropertyFlags Properties, uint32* OutTypeIndex)
 		{
 			// Search memtypes to find first index with those properties
@@ -228,9 +241,12 @@ namespace VulkanRHI
 		// Sets the Allocation to nullptr
 		void Free(FDeviceMemoryAllocation*& Allocation);
 
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		void DumpMemory();
+#endif
+
 	protected:
 		VkPhysicalDeviceMemoryProperties MemoryProperties;
-		VkPhysicalDevice PhysicalDeviceHandle;
 		VkDevice DeviceHandle;
 		FVulkanDevice* Device;
 		uint32 NumAllocations;
@@ -252,90 +268,166 @@ namespace VulkanRHI
 		TArray<FHeapInfo> HeapInfos;
 	};
 
-	class FResourceAllocationInfo
+	class FResourceHeap;
+	class FResourceHeapPage;
+	class FResourceHeapManager;
+
+	// A sub allocation for a specific memory type
+	class FResourceAllocation : public FRefCount
 	{
 	public:
-		inline VkDeviceMemory GetHandle() const
+		FResourceAllocation(FResourceHeapPage* InOwner, FDeviceMemoryAllocation* InDeviceMemoryAllocation, uint32 InSize, uint32 InOffset, char* File, uint32 Line);
+		virtual ~FResourceAllocation();
+
+		inline uint32 GetSize() const
 		{
-			return Allocation->GetHandle();
+			return Size;
 		}
 
-		inline VkDeviceSize GetOffset() const
+		inline uint32 GetOffset() const
 		{
 			return Offset;
 		}
 
-		FResourceAllocationInfo()
-			: Allocation(nullptr)
-			, Offset(~(VkDeviceSize)0)
-			, MemoryTypeIndex(~0)
-			, bReleased(true)
+		inline VkDeviceMemory GetHandle() const
 		{
+			return DeviceMemoryAllocation->GetHandle();
 		}
 
-		~FResourceAllocationInfo()
+		void* GetMappedPointer();
+
+		inline uint32 GetMemoryTypeIndex() const
 		{
-			check(bReleased);
+			return DeviceMemoryAllocation->GetMemoryTypeIndex();
 		}
 
-		void* Map(VkDeviceSize Size, VkDeviceSize Offset);
-		void Unmap();
+	private:
+		FResourceHeapPage* Owner;
+		uint32 Size;
+		uint32 Offset;
+		FDeviceMemoryAllocation* DeviceMemoryAllocation;
 
-	protected:
-		FDeviceMemoryAllocation* Allocation;
-		VkDeviceSize Offset;
-		uint32 MemoryTypeIndex;
-		bool bReleased;
+#if VULKAN_TRACK_MEMORY_USAGE
+		char* File;
+		uint32 Line;
+#endif
 
-		FResourceAllocationInfo(uint32 InMemoryTypeIndex,
-			FDeviceMemoryAllocation* InAllocation,
-			VkDeviceSize InOffset)
-			: Allocation(InAllocation)
-			, Offset(InOffset)
-			, MemoryTypeIndex(InMemoryTypeIndex)
-			, bReleased(false)
-		{
-		}
-
-		friend class FResourceAllocationManager;
+		friend class FResourceHeapPage;
 	};
 
-	class FResourceAllocationManager
+	// One device allocation that is shared amongst different resources
+	class FResourceHeapPage
 	{
 	public:
-		FResourceAllocationManager();
-		~FResourceAllocationManager();
+		FResourceHeapPage(FResourceHeap* InOwner, FDeviceMemoryAllocation* InDeviceMemoryAllocation, uint32 InSize)
+			: Owner(InOwner)
+			, DeviceMemoryAllocation(InDeviceMemoryAllocation)
+			, MaxSize(InSize)
+			, UsedSize(0)
+			, PeakNumAllocations(0)
+		{
+			FPair Pair;
+			Pair.Offset = 0;
+			Pair.Size = MaxSize;
+			FreeList.Add(Pair);
+		}
 
-		void Init(FVulkanDevice* InDevice);
-		void Deinit();
+		~FResourceHeapPage();
 
-		FResourceAllocationInfo* AllocateBuffer(const VkMemoryRequirements& MemoryRequirements, VkMemoryPropertyFlags MemPropertyFlags);
-		// Sets to null
-		void FreeBuffer(FResourceAllocationInfo*& Info);
+		FResourceAllocation* TryAllocate(uint32 Size, uint32 Alignment, char* File, uint32 Line);
+
+		FResourceAllocation* Allocate(uint32 Size, uint32 Alignment, char* File, uint32 Line)
+		{
+			FResourceAllocation* ResourceAllocation = TryAllocate(Size, Alignment, File, Line);
+			check(ResourceAllocation);
+			return ResourceAllocation;
+		}
+
+		void ReleaseAllocation(FResourceAllocation* Allocation);
 
 	protected:
-		enum
-		{
-			/*Host*/PageSize = 1 * 1024 * 1024,
-			//LocalPageSize = 1 * 1024 * 1024,
-		};
-		FVulkanDevice* Device;
+		FResourceHeap* Owner;
+		FDeviceMemoryAllocation* DeviceMemoryAllocation;
+		uint32 MaxSize;
+		uint32 UsedSize;
+		int32 PeakNumAllocations;
+		TArray<FResourceAllocation*>  ResourceAllocations;
 
-		struct FResourceEntry
+		bool JoinFreeBlocks();
+
+		struct FPair
 		{
-			FResourceEntry(FDeviceMemoryAllocation* InAllocation)
-				: Allocation(InAllocation)
-				, FreeOffset(0)
+			uint32 Offset;
+			uint32 Size;
+
+			bool operator<(const FPair& In) const
 			{
+				return Offset < In.Offset;
 			}
-
-			bool TryAllocate(VkDeviceSize Size, VkDeviceSize Alignment, VkDeviceSize* OutOffset);
-
-			FDeviceMemoryAllocation* Allocation;
-			VkDeviceSize FreeOffset;
 		};
-		// Array of entries per memory type
-		TArray< TArray<FResourceEntry*> > /*Free*/Entries;
+		TArray<FPair> FreeList;
+		friend class FResourceHeap;
+	};
+
+	// A set of Device Allocations (Heap Pages) for a specific memory type. This handles pooling allocations inside memory pages to avoid
+	// doing allocations directly off the device's heaps
+	class FResourceHeap
+	{
+	public:
+		FResourceHeap(FResourceHeapManager* InOwner, uint32 InMemoryTypeIndex, uint32 InPageSize);
+		~FResourceHeap();
+
+		void FreePage(FResourceHeapPage* InPage);
+
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		void DumpMemory();
+#endif
+
+	protected:
+		FResourceHeapManager* Owner;
+		uint32 MemoryTypeIndex;
+
+		uint32 DefaultPageSize;
+		uint32 PeakPageSize;
+		uint64 UsedMemory;
+
+		TArray<FResourceHeapPage*> UsedPages;
+		TArray<FResourceHeapPage*> FreePages;
+
+		FResourceAllocation* AllocateResource(uint32 Size, uint32 Alignment, bool bMapAllocation, char* File, uint32 Line);
+
+		FCriticalSection CriticalSection;
+
+		friend class FResourceHeapManager;
+	};
+
+	// Manages heaps and their interactions
+	class FResourceHeapManager : public FDeviceChild
+	{
+	public:
+		FResourceHeapManager(FVulkanDevice* InDevice);
+		~FResourceHeapManager();
+
+		void Init();
+		void Deinit();
+
+		inline FResourceAllocation* AllocateGPUOnlyResource(uint32 Size, uint32 Alignment, char* File, uint32 Line)
+		{
+			return GPUOnlyHeap->AllocateResource(Size, Alignment, false, File, Line);
+		}
+
+		inline FResourceAllocation* AllocateCPUStagingResource(uint32 Size, uint32 Alignment, char* File, uint32 Line)
+		{
+			return CPUStagingHeap->AllocateResource(Size, Alignment, true, File, Line);
+		}
+
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		void DumpMemory();
+#endif
+
+	protected:
+		FResourceHeap* GPUOnlyHeap;
+		FResourceHeap* CPUStagingHeap;
 	};
 
 	class FStagingResource
@@ -438,18 +530,41 @@ namespace VulkanRHI
 
 		FStagingBuffer* AcquireBuffer(uint32 Size);
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+		// Sets pointer to nullptr
+		void ReleaseImage(FVulkanCmdBuffer* CmdBuffer, FStagingImage*& StagingImage);
+
+		// Sets pointer to nullptr
+		void ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingBuffer*& StagingBuffer);
+#else
 		// Sets pointer to nullptr
 		void ReleaseImage(FStagingImage*& StagingImage);
 
 		// Sets pointer to nullptr
 		void ReleaseBuffer(FStagingBuffer*& StagingBuffer);
+#endif
+
+		void ProcessPendingFree();
 
 	protected:
-		TArray<FStagingImage*> FreeStagingImages;
-		TArray<FStagingImage*> UsedStagingImages;
+		struct FPendingItem
+		{
+			FVulkanCmdBuffer* CmdBuffer;
+			uint64 FenceCounter;
+			FStagingResource* Resource;
+		};
 
-		TArray<FStagingBuffer*> FreeStagingBuffers;
+		TArray<FStagingImage*> UsedStagingImages;
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+		TArray<FPendingItem> PendingFreeStagingImages;
+#endif
+		TArray<FStagingImage*> FreeStagingImages;
+
 		TArray<FStagingBuffer*> UsedStagingBuffers;
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+		TArray<FPendingItem> PendingFreeStagingBuffers;
+#endif
+		TArray<FStagingBuffer*> FreeStagingBuffers;
 
 		FVulkanDevice* Device;
 		FVulkanQueue* Queue;
@@ -458,12 +573,25 @@ namespace VulkanRHI
 	class FFence
 	{
 	public:
-		FFence(FVulkanDevice* Device);
+		FFence(FVulkanDevice* InDevice, FFenceManager* InOwner);
 
 		inline VkFence GetHandle() const
 		{
 			return Handle;
 		}
+
+		inline bool IsSignaled() const
+		{
+			return State == EState::Signaled;
+		}
+
+		FFenceManager* GetOwner()
+		{
+			return Owner;
+		}
+
+	protected:
+		VkFence Handle;
 
 		enum class EState
 		{
@@ -474,14 +602,9 @@ namespace VulkanRHI
 			Signaled,
 		};
 
-		inline EState GetState() const
-		{
-			return State;
-		}
-
-	protected:
-		VkFence Handle;
 		EState State;
+
+		FFenceManager* Owner;
 
 		// Only owner can delete!
 		~FFence();
@@ -502,11 +625,11 @@ namespace VulkanRHI
 
 		FFence* AllocateFence();
 
-		inline FFence::EState GetFenceState(FFence* Fence)
+		inline bool IsFenceSignaled(FFence* Fence)
 		{
-			if (Fence->GetState() == FFence::EState::Signaled)
+			if (Fence->IsSignaled())
 			{
-				return FFence::EState::Signaled;
+				return true;
 			}
 
 			return CheckFenceState(Fence);
@@ -520,124 +643,35 @@ namespace VulkanRHI
 		// Sets it to nullptr
 		void ReleaseFence(FFence*& Fence);
 
+		// Sets it to nullptr
+		void WaitAndReleaseFence(FFence*& Fence, uint64 TimeInNanoseconds);
+
 	protected:
 		FVulkanDevice* Device;
 		TArray<FFence*> FreeFences;
 		TArray<FFence*> UsedFences;
 
-		FFence::EState CheckFenceState(FFence* Fence);
+		// Returns true if signaled
+		bool CheckFenceState(FFence* Fence);
 	};
 
-	struct FVulkanResource : public FVulkanRefCount
+	class FDeferredDeletionQueue : public FDeviceChild
 	{
-	};
-
-	//#todo-rco: Move to common RHI?
-	/**
-	 * The base class of threadsafe reference counted objects.
-	 */
-	template <class Type>
-	struct FThreadsafeQueue
-	{
-	private:
-		mutable FCriticalSection	SynchronizationObject; // made this mutable so this class can have const functions and still be thread safe
-		TQueue<Type>				Items;
-	public:
-		void Enqueue(const Type& Item)
-		{
-			FScopeLock ScopeLock(&SynchronizationObject);
-			Items.Enqueue(Item);
-		}
-
-		bool Dequeue(Type& Result)
-		{
-			FScopeLock ScopeLock(&SynchronizationObject);
-
-			return Items.Dequeue(Result);
-		}
-
-		template <typename CompareFunc>
-		bool Dequeue(Type& Result, CompareFunc Func)
-		{
-			FScopeLock ScopeLock(&SynchronizationObject);
-
-			if (Items.Peek(Result))
-			{
-				if (Func(Result))
-				{
-					Items.Dequeue(Result);
-
-					return true;
-				}
-			}
-
-			return false;
-		}
-
-		template <typename CompareFunc>
-		bool BatchDequeue(TQueue<Type>* Result, CompareFunc Func, uint32 MaxItems)
-		{
-			FScopeLock ScopeLock(&SynchronizationObject);
-
-			uint32 i = 0;
-			Type Item;
-			while (Items.Peek(Item) && i <= MaxItems)
-			{
-				if (Func(Item))
-				{
-					Items.Dequeue(Item);
-
-					Result->Enqueue(Item);
-
-					i++;
-				}
-				else
-				{
-					break;
-				}
-			}
-
-			return i > 0;
-		}
-
-		bool Peek(Type& Result) const
-		{
-			FScopeLock ScopeLock(&SynchronizationObject);
-			return Items.Peek(Result);
-		}
-
-		bool IsEmpty() const
-		{
-			FScopeLock ScopeLock(&SynchronizationObject);
-			return Items.IsEmpty();
-		}
-
-		void Empty()
-		{
-			FScopeLock ScopeLock(&SynchronizationObject);
-
-			Type Result;
-			while (Items.Dequeue(Result)) {}
-		}
-	};
-
-	class FVulkanDeferredDeletionQueue : public FVulkanDeviceChild
-	{
-		typedef TPair<FVulkanResource*, uint64> FFencedObject;
-		FThreadsafeQueue<FFencedObject> DeferredReleaseQueue;
+		//typedef TPair<FRefCountedObject*, uint64> FFencedObject;
+		//FThreadsafeQueue<FFencedObject> DeferredReleaseQueue;
 
 	public:
-		FVulkanDeferredDeletionQueue(FVulkanDevice* InDevice);
-		~FVulkanDeferredDeletionQueue();
+		FDeferredDeletionQueue(FVulkanDevice* InDevice);
+		~FDeferredDeletionQueue();
 
-		void EnqueueResource(FVulkanResource* Resource);
-		void ReleaseResources(bool bDeleteImmediately = false);
+		void EnqueueResource(FVulkanCmdBuffer* CmdBuffer, FRefCount* Resource);
+		void ReleaseResources(/*bool bDeleteImmediately = false*/);
 
-		void Clear()
+		inline void Clear()
 		{
-			ReleaseResources(true);
+			ReleaseResources(/*true*/);
 		}
-
+/*
 		class FVulkanAsyncDeletionWorker : public FVulkanDeviceChild, FNonAbandonableTask
 		{
 		public:
@@ -648,8 +682,16 @@ namespace VulkanRHI
 		private:
 			TQueue<FFencedObject> Queue;
 		};
-
+*/
 	private:
-		TQueue<FAsyncTask<FVulkanAsyncDeletionWorker>*> DeleteTasks;
+		//TQueue<FAsyncTask<FVulkanAsyncDeletionWorker>*> DeleteTasks;
+		struct FEntry
+		{
+			uint64 FenceCounter;
+			FVulkanCmdBuffer* CmdBuffer;
+			FRefCount* Resource;
+		};
+		FCriticalSection CS;
+		TArray<FEntry> Entries;
 	};
 }

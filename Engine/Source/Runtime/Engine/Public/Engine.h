@@ -97,6 +97,7 @@
 #include "Engine/TargetPoint.h"
 #include "VectorField/VectorFieldVolume.h"
 #include "Engine/DataAsset.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "GameFramework/SpectatorPawnMovement.h"
 #include "Vehicles/VehicleWheel.h"
 #include "Vehicles/WheeledVehicleMovementComponent.h"

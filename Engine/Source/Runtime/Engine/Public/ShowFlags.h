@@ -192,6 +192,8 @@ struct FEngineShowFlags
 		SetStereoRendering(false);
 		SetDistanceFieldAO(false);
 		SetDistanceFieldGI(false);
+		// hiding the SkinCache would break thumbnail caching
+		SetSkinCache(true);
 	}
 
 	// ---------------------------------------------------------
@@ -355,6 +357,7 @@ private:
 		SetWantedMipsAccuracy(false);
 		SetTexelFactorAccuracy(false);
 		SetTexCoordScaleAccuracy(false);
+		SetTexCoordAnalysis(false);
 	}
 
 

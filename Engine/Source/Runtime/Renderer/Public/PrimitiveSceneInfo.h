@@ -207,6 +207,11 @@ public:
 	FUniformBufferRHIRef IndirectLightingCacheUniformBuffer;
 
 	/** 
+	 * Planar reflection that was closest to this primitive, used for forward reflections.
+	 */
+	const class FPlanarReflectionSceneProxy* CachedPlanarReflectionProxy;
+
+	/** 
 	 * Reflection capture proxy that was closest to this primitive, used for the forward shading rendering path. 
 	 */
 	const FReflectionCaptureProxy* CachedReflectionCaptureProxy;

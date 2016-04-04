@@ -7,6 +7,7 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanPendingState.h"
 #include "VulkanPipeline.h"
+#include "VulkanContext.h"
 
 // RTs 0-3
 #define NUMBITS_BLEND_STATE				4 //(x4=16) = 16 ++
@@ -261,16 +262,23 @@ FVulkanPendingState::FVulkanPendingState(FVulkanDevice* InDevice)
 	, bBeginRenderPass(false)
 	, bChangeRenderTarget(false)
 	, GlobalUniformPool(nullptr)
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 	, CurrentCmdBufferIndex(0)
+#endif
 	, bScissorEnable(false)
 {
 	check(Device);
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	// State doesn't own or manage cmd buffers
+#else
 	for (uint32 CmdBufferIndex = 0; CmdBufferIndex < VULKAN_NUM_COMMAND_BUFFERS; ++CmdBufferIndex)
 	{
 		//#todo-rco: FIX ME!
 		CmdBuffers[CmdBufferIndex] = Device->GetImmediateContext().GetCommandBufferManager()->Create();
 	}
+#endif
 
 	Reset();
 
@@ -282,13 +290,16 @@ FVulkanPendingState::~FVulkanPendingState()
 {
 	check(Device);
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	// State doesn't own or manage cmd buffers
+#else
 	for (uint32 CmdBufferIndex = 0; CmdBufferIndex < VULKAN_NUM_COMMAND_BUFFERS; ++CmdBufferIndex)
 	{
 		//#todo-rco: FIX ME!
 		Device->GetImmediateContext().GetCommandBufferManager()->Destroy(CmdBuffers[CmdBufferIndex]);
 		CmdBuffers[CmdBufferIndex] = nullptr;
 	}
-
+#endif
 	//Reset();
 
 	/*
@@ -338,7 +349,11 @@ FVulkanGlobalUniformPool& FVulkanPendingState::GetGlobalUniformPool()
     return *GlobalUniformPool;
 }
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+void FVulkanPendingState::RenderPassBegin(FVulkanCmdBuffer* CmdBuffer)
+#else
 void FVulkanPendingState::RenderPassBegin()
+#endif
 {
 	check(!bBeginRenderPass);
 
@@ -408,16 +423,29 @@ void FVulkanPendingState::RenderPassBegin()
 		// if either bit is set that we have a depth buffer attached
 	}
 		
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	CmdBuffer->BeginRenderPass(CurrentState.RenderPass->GetLayout(), CurrentState.RenderPass->GetHandle(), CurrentState.FrameBuffer->GetHandle(), ClearValues);
+#else
 	CurrentState.RenderPass->Begin(GetCurrentCommandBuffer(), CurrentState.FrameBuffer->GetHandle(), ClearValues);
+#endif
 	bBeginRenderPass = true;
 }
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+void FVulkanPendingState::RenderPassEnd(FVulkanCmdBuffer* CmdBuffer)
+{
+	check(bBeginRenderPass);
+	CmdBuffer->EndRenderPass();
+	bBeginRenderPass = false;
+}
+#else
 void FVulkanPendingState::RenderPassEnd()
 {
 	check(bBeginRenderPass);
 	CurrentState.RenderPass->End(GetCurrentCommandBuffer());
 	bBeginRenderPass = false;
 }
+#endif
 
 // Expected to be called after render pass has been ended
 // and only from "FVulkanDynamicRHI::RHIEndDrawingViewport()"
@@ -427,11 +455,14 @@ void FVulkanPendingState::Reset()
 
 	CurrentState.Reset();
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	// State doesn't own or manage cmd buffers
+#else
 	CurrentCmdBufferIndex = (CurrentCmdBufferIndex + 1) % VULKAN_NUM_COMMAND_BUFFERS;
 
 	GetCurrentCommandBuffer().Reset();
 	GetCurrentCommandBuffer().Begin();
-
+#endif
 	FMemory::Memzero(PendingStreams);
 }
 
@@ -452,10 +483,21 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	FMemory::Memzero(PeakAllocatedTypes);
 
 	//#todo-rco: Get some initial values
-	const uint32 LimitMaxUniformBuffers = 1 * 1024 * 1024;
-	const uint32 LimitMaxSamplers = 1 * 1024 * 1024;
-	const uint32 LimitMaxCombinedImageSamplers = 1 * 1024 * 1024;
-	const uint32 LimitMaxUniformTexelBuffers = 1 * 1024 * 1024;
+	uint32 LimitMaxUniformBuffers = 512 * 1024;
+	uint32 LimitMaxSamplers = FMath::Min(Limits.maxSamplerAllocationCount, (uint32)64 * 1024);
+	uint32 LimitMaxCombinedImageSamplers = 256 * 1024;
+	uint32 LimitMaxUniformTexelBuffers = 64 * 1024;
+
+#if VULKAN_HAS_DEBUGGING_ENABLED
+	if (GValidationCvar.GetValueOnAnyThread() != 0)
+	{
+		 //#todo-rco: Make sure this doesn't overflow the validation layers as of 1.0.5.0
+		LimitMaxUniformBuffers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxUniformBuffers);
+		LimitMaxSamplers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxSamplers);
+		LimitMaxCombinedImageSamplers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxCombinedImageSamplers);
+		LimitMaxUniformTexelBuffers = FMath::Min(MAX_uint32 / MaxDescriptorSets, LimitMaxUniformTexelBuffers);
+	}
+#endif
 
 	TArray<VkDescriptorPoolSize> Types;
 	auto* Type = new(Types) VkDescriptorPoolSize;
@@ -498,8 +540,8 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 
 	for (int32 Index = 0; Index < Types.Num(); ++Index)
 	{
-		auto& Type = Types[Index];
-		MaxAllocatedTypes[Type.type] =Type.descriptorCount;
+		auto& Type2 = Types[Index];
+		MaxAllocatedTypes[Type2.type] = Type2.descriptorCount;
 	}
 }
 
@@ -582,7 +624,11 @@ inline void FVulkanBoundShaderState::BindDescriptorSets(FVulkanCmdBuffer* Cmd)
 	CurrDescriptorSets->Bind(Cmd, this);
 }
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+void FVulkanPendingState::PrepareDraw(FVulkanCmdBuffer* Cmd, VkPrimitiveTopology Topology)
+#else
 void FVulkanPendingState::PrepareDraw(VkPrimitiveTopology Topology)
+#endif
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallPrepareTime);
 
@@ -590,7 +636,11 @@ void FVulkanPendingState::PrepareDraw(VkPrimitiveTopology Topology)
 	SetKeyBits(CurrentKey, OFFSET_POLYTYPE, NUMBITS_POLYTYPE, Topology);
 
 	//@TODO: let's try not to do this per draw call?
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	UpdateRenderPass(Cmd);
+#else
 	UpdateRenderPass();
+#endif
 
 	check(CurrentState.Shader);
     CurrentState.Shader->UpdateDescriptorSets(GlobalUniformPool);
@@ -603,7 +653,10 @@ void FVulkanPendingState::PrepareDraw(VkPrimitiveTopology Topology)
 
 	{
 		SCOPE_CYCLE_COUNTER(STAT_VulkanPipelineBind);
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 		auto* Cmd = &GetCurrentCommandBuffer();
+#endif
 		Pipeline->UpdateDynamicStates(Cmd, CurrentState);
 
 		VkPipeline NewPipeline = Pipeline->GetHandle();
@@ -632,6 +685,9 @@ void FVulkanPendingState::PrepareDraw(VkPrimitiveTopology Topology)
 
 void FVulkanPendingState::SubmitPendingCommandBuffers(FVulkanPendingState::TCallback* Callback, void* CallbackUserData)
 {
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	check(0);
+#else
 	if (IsRenderPassActive())
 	{
 		RenderPassEnd();
@@ -645,20 +701,28 @@ void FVulkanPendingState::SubmitPendingCommandBuffers(FVulkanPendingState::TCall
 	check(Device);
 	//#todo-rco: FIX ME!
 	Device->GetImmediateContext().GetCommandBufferManager()->Submit(&GetCurrentCommandBuffer());
+#endif
 }
 
 void FVulkanPendingState::SubmitPendingCommandBuffersBlockingNoRenderPass()
 {
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	check(0);
+#else
 	check(Device);
 	Device->GetQueue()->SubmitBlocking(&GetCurrentCommandBuffer());
+#endif
 }
 
 void FVulkanPendingState::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& InRTInfo)
 {
+	//#todo-rco: Check perf
+#if !VULKAN_USE_NEW_COMMAND_BUFFERS
 	if (NeedsToSetRenderTarget(InRTInfo) == false)
 	{
 		return;
 	}
+#endif
 
 	//@NOTE: this is only needed for the work-around below
 	FRHISetRenderTargetsInfo PrevRTInfo = RTInfo;
@@ -668,6 +732,7 @@ void FVulkanPendingState::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& I
 	RTInfo = InRTInfo; // probably don't need both of these
 	bChangeRenderTarget = true;
 
+	//#todo-rco: FIX THIS!!!
 	//@NOTE: this is an awkward work-around for not supporting a null color attachment properly
 	for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; Index++)
 	{
@@ -781,6 +846,8 @@ FVulkanRenderPass& FVulkanPendingState::GetRenderPass()
 	return *CurrentState.RenderPass;
 }
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 VkCommandBuffer& FVulkanPendingState::GetCommandBuffer()
 {
 	return GetCurrentCommandBuffer().GetHandle();
@@ -790,6 +857,7 @@ const VkBool32 FVulkanPendingState::GetIsCommandBufferEmpty() const
 {
 	return GetCurrentCommandBuffer().GetIsEmpty();
 }
+#endif
 
 void FVulkanPendingState::SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
 {

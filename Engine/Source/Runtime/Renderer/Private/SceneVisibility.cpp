@@ -10,6 +10,7 @@
 #include "FXSystem.h"
 #include "SceneUtils.h"
 #include "PostProcessing.h"
+#include "PlanarReflectionSceneProxy.h"
 
 /*------------------------------------------------------------------------------
 	Globals
@@ -304,7 +305,7 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 				uint32 Mask = 0x1;
 				uint32 VisBits = 0;
 				uint32 FadingBits = 0;
-				for(int32 BitSubIndex = 0; BitSubIndex < NumBitsPerDWORD && WordIndex * NumBitsPerDWORD + BitSubIndex < BitArrayNumInner; BitSubIndex++, Mask <<= 1)
+				for (int32 BitSubIndex = 0; BitSubIndex < NumBitsPerDWORD && WordIndex * NumBitsPerDWORD + BitSubIndex < BitArrayNumInner; BitSubIndex++, Mask <<= 1)
 				{
 					int32 Index = WordIndex * NumBitsPerDWORD + BitSubIndex;
 					const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[Index];
@@ -325,16 +326,11 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 						MaxDrawDistance = FLT_MAX;
 					}
 
-					// The primitive is always culled if it exceeds the max fade distance or lay outside the view frustum.
-					const bool bShouldCull = 
-						(DistanceSquared > FMath::Square(MaxDrawDistance + FadeRadius) ||
-						DistanceSquared < Bounds.MinDrawDistanceSq || 
+					if (DistanceSquared > FMath::Square(MaxDrawDistance + FadeRadius) ||
+						DistanceSquared < Bounds.MinDrawDistanceSq ||
 						(UseCustomCulling && !View.CustomVisibilityQuery->IsVisible(VisibilityId, FBoxSphereBounds(Bounds.Origin, Bounds.BoxExtent, Bounds.SphereRadius))) ||
 						(bAlsoUseSphereTest && View.ViewFrustum.IntersectSphere(Bounds.Origin, Bounds.SphereRadius) == false) ||
-						View.ViewFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent) == false);
-
-					// Don't cull primitives when rendering planar reflections. The reflection of the primitive may be visible when the primitive isn't.
-					if (bShouldCull && !View.bIsPlanarReflectionCapture)
+						View.ViewFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent) == false)
 					{
 						STAT(NumCulledPrimitives.Increment());
 					}
@@ -1551,6 +1547,7 @@ struct FRelevancePacket
 				&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance || bHasClearCoat))
 			{
 				PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIndex].Origin);
+				PrimitiveSceneInfo->CachedPlanarReflectionProxy = Scene->FindClosestPlanarReflection(Scene->PrimitiveBounds[BitIndex].Origin);
 
 				if (!Scene->ShouldUseDeferredRenderer())
 				{
@@ -2487,18 +2484,6 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 			{
 				// Reflection captures should only capture objects that won't move, since reflection captures won't update at runtime
 				if (!Scene->Primitives[BitIt.GetIndex()]->Proxy->HasStaticLighting())
-				{
-					View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
-				}
-			}
-		}
-
-		// When rendering a planar reflection capture, hide primitives not flagged as visible in the reflection.
-		if (View.bIsPlanarReflectionCapture)
-		{
-			for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
-			{
-				if (!Scene->Primitives[BitIt.GetIndex()]->Proxy->IsVisibleInPlanarReflection())
 				{
 					View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
 				}

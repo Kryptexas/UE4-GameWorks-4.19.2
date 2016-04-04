@@ -6,7 +6,7 @@
 
 #pragma once
 
-struct FVulkanDevice;
+class FVulkanDevice;
 
 class FVulkanSamplerState : public FRHISamplerState
 {

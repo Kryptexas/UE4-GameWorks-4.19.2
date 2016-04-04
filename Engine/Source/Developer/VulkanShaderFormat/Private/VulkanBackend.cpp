@@ -964,29 +964,15 @@ class vulkan_ir_gen_glsl_visitor : public ir_visitor
 					check(inner_type->length == 1);
 					const glsl_struct_field* field = &inner_type->fields.structure[0];
 
-					#if VULKAN_HLSLCC_GEN_GLSL_IN_OUT_WITHOUT_STRUCTURES
-						ralloc_asprintf_append(
-							buffer,
-							"layout(location=%d) %s",
-							var->location,				// location number
-							mode_str[var->mode]			// in / out
-							);
+					ralloc_asprintf_append(
+						buffer,
+						"layout(location=%d) %s",
+						var->location,				// location number
+						mode_str[var->mode]			// in / out
+						);
 
-						// Append type to the buffer string
-						print_type_pre(field->type); // float, vec2, vec3 and etc..
-					#else
-						ralloc_asprintf_append(
-							buffer,
-							"layout(location=%d) %s struct { ",
-							var->location,
-							mode_str[var->mode]);
-						ralloc_asprintf_append(buffer, " ");
-						check(strcmp(field->name, "Data") == 0);
-						print_type_pre(field->type);
-						ralloc_asprintf_append(buffer, " Data");
-						print_type_post(field->type);
-						ralloc_asprintf_append(buffer, "; }");
-					#endif
+					// Append type to the buffer string
+					print_type_pre(field->type); // float, vec2, vec3 and etc..
 				}
 				else
 				{
@@ -3844,77 +3830,39 @@ static ir_rvalue* GenShaderInputSemantic(
 	}
 	else if (SemanticArrayIndex == 0)
 	{
-		#if VULKAN_HLSLCC_GEN_GLSL_IN_OUT_WITHOUT_STRUCTURES
-			// This code-section replaces "layout(location=0) in struct { vec4 Data; } in_ATTRIBUTE0;" pattern to
-			// "layout(location=0) in vec4 in_ATTRIBUTE0;".
+		// This code-section replaces "layout(location=0) in struct { vec4 Data; } in_ATTRIBUTE0;" pattern to
+		// "layout(location=0) in vec4 in_ATTRIBUTE0;".
 
-			if (/*Frequency == HSF_GeometryShader && */SemanticArraySize != 0)
-			{
-				Type = glsl_type::get_array_instance(Type, SemanticArraySize);
-			}
+		if (/*Frequency == HSF_GeometryShader && */SemanticArraySize != 0)
+		{
+			Type = glsl_type::get_array_instance(Type, SemanticArraySize);
+		}
 
-			// Regular attribute
-			Variable = new(ParseState)ir_variable(
-				Type,
-				ralloc_asprintf(ParseState, "in_%s", Semantic),
-				ir_var_in
-				);
-			Variable->read_only = true;
-			Variable->centroid = InputQualifier.Fields.bCentroid;
-			Variable->interpolation = InputQualifier.Fields.InterpolationMode;
-			Variable->is_patch_constant = InputQualifier.Fields.bIsPatchConstant;
+		// Regular attribute
+		Variable = new(ParseState)ir_variable(
+			Type,
+			ralloc_asprintf(ParseState, "in_%s", Semantic),
+			ir_var_in
+			);
+		Variable->read_only = true;
+		Variable->centroid = InputQualifier.Fields.bCentroid;
+		Variable->interpolation = InputQualifier.Fields.InterpolationMode;
+		Variable->is_patch_constant = InputQualifier.Fields.bIsPatchConstant;
 
-			if (ParseState->bGenerateLayoutLocations && !InputQualifier.Fields.bIsPatchConstant)
-			{
-				ConfigureInOutVariableLayout(Frequency, ParseState, Semantic, Variable, ir_var_in);
-			}
+		if (ParseState->bGenerateLayoutLocations && !InputQualifier.Fields.bIsPatchConstant)
+		{
+			ConfigureInOutVariableLayout(Frequency, ParseState, Semantic, Variable, ir_var_in);
+		}
 
-			DeclInstructions->push_tail(Variable);
-			ParseState->symbols->add_variable(Variable);
+		DeclInstructions->push_tail(Variable);
+		ParseState->symbols->add_variable(Variable);
 
-			ir_dereference* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
-			if (SemanticArraySize > 0)
-			{
-				// Deref inside array first
-				VariableDeref = new(ParseState) ir_dereference_array(VariableDeref, new(ParseState) ir_constant((unsigned)SemanticArrayIndex));
-			}
-
-		#else
-			glsl_struct_field *StructField = ralloc_array(ParseState, glsl_struct_field, 1);
-			memset(StructField, 0, sizeof(glsl_struct_field));
-			StructField[0].type = Type;
-			StructField[0].name = ralloc_strdup(ParseState, "Data");
-
-			const glsl_type* VariableType = glsl_type::get_record_instance(StructField, 1, ralloc_strdup(ParseState, Semantic));
-			if (SemanticArraySize)
-			{
-				// Pack it into an array too
-				VariableType = glsl_type::get_array_instance(VariableType, SemanticArraySize);
-			}
-
-			Variable = new(ParseState)ir_variable(VariableType, ralloc_asprintf(ParseState, "in_%s", Semantic), ir_var_in);
-			Variable->read_only = true;
-			Variable->is_interface_block = true;
-			Variable->centroid = InputQualifier.Fields.bCentroid;
-			Variable->interpolation = InputQualifier.Fields.InterpolationMode;
-			Variable->is_patch_constant = InputQualifier.Fields.bIsPatchConstant;
-			DeclInstructions->push_tail(Variable);
-			ParseState->symbols->add_variable(Variable);
-
-			if (ParseState->bGenerateLayoutLocations && !Variable->is_patch_constant)
-			{
-				ConfigureInOutVariableLayout(Frequency, ParseState, Semantic, Variable, ir_var_in);
-			}
-
-			ir_rvalue* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
-			if (SemanticArraySize)
-			{
-				// Deref inside array first
-				VariableDeref = new(ParseState)ir_dereference_array(VariableDeref, new(ParseState)ir_constant((unsigned)SemanticArrayIndex)
-					);
-			}
-			VariableDeref = new(ParseState)ir_dereference_record(VariableDeref, ralloc_strdup(ParseState, "Data"));
-		#endif
+		ir_dereference* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
+		if (SemanticArraySize > 0)
+		{
+			// Deref inside array first
+			VariableDeref = new(ParseState) ir_dereference_array(VariableDeref, new(ParseState) ir_constant((unsigned)SemanticArrayIndex));
+		}
 
 		return VariableDeref;
 	}
@@ -4088,69 +4036,29 @@ static ir_rvalue* GenShaderOutputSemantic(
 
 	*DestVariableType = Type;
 
-	#if VULKAN_HLSLCC_GEN_GLSL_IN_OUT_WITHOUT_STRUCTURES
 	// This code-section replacces "layout(location=0) out struct { vec4 Data; } out_TEXCOORD0;" pattern to
-		// "layout(location=0) out vec4 out_TEXCOORD0;".
+	// "layout(location=0) out vec4 out_TEXCOORD0;".
 
-		// Regular attribute
-		Variable = new(ParseState)ir_variable(
-			Type,
-			ralloc_asprintf(ParseState, "%s_%s", "out", Semantic),
-			ir_var_out
-			);
-		Variable->read_only = true;
-		Variable->centroid = OutputQualifier.Fields.bCentroid;
-		Variable->interpolation = OutputQualifier.Fields.InterpolationMode;
-		Variable->is_patch_constant = OutputQualifier.Fields.bIsPatchConstant;
+	// Regular attribute
+	Variable = new(ParseState)ir_variable(
+		Type,
+		ralloc_asprintf(ParseState, "%s_%s", "out", Semantic),
+		ir_var_out
+		);
+	Variable->read_only = true;
+	Variable->centroid = OutputQualifier.Fields.bCentroid;
+	Variable->interpolation = OutputQualifier.Fields.InterpolationMode;
+	Variable->is_patch_constant = OutputQualifier.Fields.bIsPatchConstant;
 
-		if (ParseState->bGenerateLayoutLocations && !OutputQualifier.Fields.bIsPatchConstant)
-		{
-			ConfigureInOutVariableLayout(Frequency, ParseState, Semantic, Variable, ir_var_out);
-		}
+	if (ParseState->bGenerateLayoutLocations && !OutputQualifier.Fields.bIsPatchConstant)
+	{
+		ConfigureInOutVariableLayout(Frequency, ParseState, Semantic, Variable, ir_var_out);
+	}
 
-		DeclInstructions->push_tail(Variable);
-		ParseState->symbols->add_variable(Variable);
+	DeclInstructions->push_tail(Variable);
+	ParseState->symbols->add_variable(Variable);
 
-		ir_dereference_variable* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
-	#else
-		// Create variable
-		glsl_struct_field *StructField = ralloc_array(ParseState, glsl_struct_field, 1);
-
-		memset(StructField, 0, sizeof(glsl_struct_field));
-		StructField[0].type = Type;
-		StructField[0].name = ralloc_strdup(ParseState, "Data");
-
-		const glsl_type* VariableType = glsl_type::get_record_instance(StructField, 1, ralloc_strdup(ParseState, Semantic));
-
-		if (Frequency == HSF_HullShader && !OutputQualifier.Fields.bIsPatchConstant)
-		{
-			VariableType = glsl_type::get_array_instance(VariableType, ParseState->tessellation.outputcontrolpoints);
-		}
-		Variable = new(ParseState)ir_variable(VariableType, ralloc_asprintf(ParseState, "out_%s", Semantic), ir_var_out);
-
-		Variable->centroid = OutputQualifier.Fields.bCentroid;
-		Variable->interpolation = OutputQualifier.Fields.InterpolationMode;
-		Variable->is_interface_block = true;
-		Variable->is_patch_constant = OutputQualifier.Fields.bIsPatchConstant;
-
-		if (ParseState->bGenerateLayoutLocations && !Variable->is_patch_constant)
-		{
-			ConfigureInOutVariableLayout(Frequency, ParseState, Semantic, Variable, ir_var_out);
-		}
-
-		DeclInstructions->push_tail(Variable);
-		ParseState->symbols->add_variable(Variable);
-
-		ir_rvalue* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
-
-		if (Frequency == HSF_HullShader && !OutputQualifier.Fields.bIsPatchConstant)
-		{
-			VariableDeref = new(ParseState)ir_dereference_array(VariableDeref, new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("gl_InvocationID")));
-		}
-
-		VariableDeref = new(ParseState)ir_dereference_record(VariableDeref, ralloc_strdup(ParseState, "Data"));
-	#endif
-
+	ir_dereference_variable* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
 	return VariableDeref;
 }
 

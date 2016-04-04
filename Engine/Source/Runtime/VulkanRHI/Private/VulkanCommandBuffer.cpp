@@ -7,12 +7,18 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanCommandBuffer.h"
 
-FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferManager* InCommandBufferManager) :
-	Device(InDevice),
-	CommandBufferManager(InCommandBufferManager),
-	CommandBufferHandle(VK_NULL_HANDLE),
-	IsWriting(VK_FALSE),
-	IsEmpty(VK_TRUE)
+FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferManager* InCommandBufferManager)
+	: Device(InDevice)
+	, CommandBufferManager(InCommandBufferManager)
+	, CommandBufferHandle(VK_NULL_HANDLE)
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	, State(EState::ReadyForBegin)
+	, Fence(nullptr)
+	, FenceSignaledCounter(0)
+#else
+	, IsWriting(VK_FALSE)
+	, IsEmpty(VK_TRUE)
+#endif
 {
 	check(Device);
 
@@ -25,42 +31,97 @@ FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBuffer
 	CreateCmdBufInfo.commandPool = CommandBufferManager->GetHandle();
 
 	VERIFYVULKANRESULT(vkAllocateCommandBuffers(Device->GetInstanceHandle(), &CreateCmdBufInfo, &CommandBufferHandle));
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	Fence = Device->GetFenceManager().AllocateFence();
+#endif
 }
 
 FVulkanCmdBuffer::~FVulkanCmdBuffer()
 {
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	auto& FenceManager = Device->GetFenceManager();
+	FenceManager.WaitAndReleaseFence(Fence, 0xffffffff);
+#else
 	check(IsWriting == VK_FALSE);
 	if (CommandBufferHandle != VK_NULL_HANDLE)
+#endif
 	{
 		vkFreeCommandBuffers(Device->GetInstanceHandle(), CommandBufferManager->GetHandle(), 1, &CommandBufferHandle);
 		CommandBufferHandle = VK_NULL_HANDLE;
 	}
 }
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, VkRenderPass RenderPass, VkFramebuffer Framebuffer, const VkClearValue* AttachmentClearValues)
+{
+	check(IsOutsideRenderPass());
+
+	VkRenderPassBeginInfo Info;
+	FMemory::Memzero(Info);
+	Info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	Info.renderPass = RenderPass;
+	Info.framebuffer = Framebuffer;
+	Info.renderArea.offset.x = 0;
+	Info.renderArea.offset.y = 0;
+	Info.renderArea.extent = Layout.GetExtent2D();
+	Info.clearValueCount = Layout.GetNumAttachments();
+	Info.pClearValues = AttachmentClearValues;
+
+	vkCmdBeginRenderPass(CommandBufferHandle, &Info, VK_SUBPASS_CONTENTS_INLINE);
+
+	State = EState::IsInsideRenderPass;
+}
+#else
 VkCommandBuffer& FVulkanCmdBuffer::GetHandle(const VkBool32 WritingToCommandBuffer /* = true */)
 {
 	check(CommandBufferHandle != VK_NULL_HANDLE);
 	IsEmpty &= !WritingToCommandBuffer;
 	return CommandBufferHandle;
 }
+#endif
+
 
 void FVulkanCmdBuffer::Begin()
 {
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	check(State == EState::ReadyForBegin);
+#else
 	check(!IsWriting);
 	check(IsEmpty);
-
+#endif
 	VkCommandBufferBeginInfo CmdBufBeginInfo;
 	FMemory::Memzero(CmdBufBeginInfo);
 	CmdBufBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	CmdBufBeginInfo.pNext = nullptr;
 	CmdBufBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	CmdBufBeginInfo.pInheritanceInfo = nullptr;
 
-	VERIFYVULKANRESULT(vkBeginCommandBuffer(GetHandle(false), &CmdBufBeginInfo));
+	VERIFYVULKANRESULT(vkBeginCommandBuffer(CommandBufferHandle, &CmdBufBeginInfo));
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	State = EState::IsInsideBegin;
+#else
 	IsWriting = VK_TRUE;
+#endif
 }
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+void FVulkanCmdBuffer::RefreshFenceStatus()
+{
+	if (State == EState::Submitted)
+	{
+		if (Fence->GetOwner()->IsFenceSignaled(Fence))
+		{
+			State = EState::ReadyForBegin;
+			vkResetCommandBuffer(CommandBufferHandle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+			Fence->GetOwner()->ResetFence(Fence);
+			++FenceSignaledCounter;
+		}
+	}
+	else
+	{
+		check(!Fence->IsSignaled());
+	}
+}
+#else
 VkBool32 FVulkanCmdBuffer::GetIsWriting() const
 {
 	return IsWriting;
@@ -89,26 +150,41 @@ void FVulkanCmdBuffer::End()
 	IsWriting = VK_FALSE;
 	IsEmpty = VK_TRUE;
 }
+#endif
 
-FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice):
-	Device(InDevice),
-	Handle(VK_NULL_HANDLE)
+FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice)
+	: Device(InDevice)
+	, Handle(VK_NULL_HANDLE)
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	, ActiveCmdBuffer(nullptr)
+#else
+#endif
 {
 	check(Device);
 
 	VkCommandPoolCreateInfo CmdPoolInfo;
 	FMemory::Memzero(CmdPoolInfo);
 	CmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	CmdPoolInfo.pNext = nullptr;
-	CmdPoolInfo.queueFamilyIndex = Device->GetQueue()->GetNodeIndex();
+	CmdPoolInfo.queueFamilyIndex = Device->GetQueue()->GetFamilyIndex();
+	//#todo-rco: Should we use VK_COMMAND_POOL_CREATE_TRANSIENT_BIT?
 	CmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	VERIFYVULKANRESULT(vkCreateCommandPool(Device->GetInstanceHandle(), &CmdPoolInfo, nullptr, &Handle));
+
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	ActiveCmdBuffer = Create();
+	ActiveCmdBuffer->Begin();
+#else
+#endif
 }
 
 FVulkanCommandBufferManager::~FVulkanCommandBufferManager()
 {
-	check(Device);
-	check(Handle != VK_NULL_HANDLE);
+	for (int32 Index = 0; Index < CmdBuffers.Num(); ++Index)
+	{
+		FVulkanCmdBuffer* CmdBuffer = CmdBuffers[Index];
+		delete CmdBuffer;
+	}
+
 	vkDestroyCommandPool(Device->GetInstanceHandle(), Handle, nullptr);
 }
 
@@ -121,6 +197,39 @@ FVulkanCmdBuffer* FVulkanCommandBufferManager::Create()
 	return CmdBuffer;
 }
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+void FVulkanCommandBufferManager::RefreshFenceStatus()
+{
+	for (int32 Index = 0; Index < CmdBuffers.Num(); ++Index)
+	{
+		FVulkanCmdBuffer* CmdBuffer = CmdBuffers[Index];
+		CmdBuffer->RefreshFenceStatus();
+	}
+}
+
+void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
+{
+	for (int32 Index = 0; Index < CmdBuffers.Num(); ++Index)
+	{
+		FVulkanCmdBuffer* CmdBuffer = CmdBuffers[Index];
+		CmdBuffer->RefreshFenceStatus();
+		if (CmdBuffer->State == FVulkanCmdBuffer::EState::ReadyForBegin)
+		{
+			ActiveCmdBuffer = CmdBuffer;
+			ActiveCmdBuffer->Begin();
+			return;
+		}
+		else
+		{
+			check(CmdBuffer->State == FVulkanCmdBuffer::EState::Submitted);
+		}
+	}
+
+	// All cmd buffers are being executed still
+	ActiveCmdBuffer = Create();
+	ActiveCmdBuffer->Begin();
+}
+#else
 void FVulkanCommandBufferManager::Destroy(FVulkanCmdBuffer* CmdBuffer)
 {
 	CmdBuffers.Remove(CmdBuffer);
@@ -138,3 +247,4 @@ void FVulkanCommandBufferManager::Submit(FVulkanCmdBuffer* CmdBuffer)
 {
 	Device->GetQueue()->Submit(CmdBuffer);
 }
+#endif

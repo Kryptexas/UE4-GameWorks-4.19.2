@@ -974,7 +974,7 @@ FString GenerateCmdLineForNextPieInstance(FIntPoint &WinPos, int32 &InstanceNum,
 		{
 			WindowBorderSize = TopLevelWindow->GetWindowBorderSize(true);
 		}
-
+		
 		// Get the size of the window based on the type
 		FIntPoint WinSize(0,0);
 		GetWindowSizeForInstanceType(WinSize, PlayInSettings);
@@ -1300,7 +1300,7 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 		GameNameOrProjectFile = FApp::GetGameName();
 	}
 
-	FString AdditionalParameters(TEXT(" -messaging -SessionName=\"Play in Standalone Game\""));
+	FString AdditionalParameters(TEXT(" -windowed -messaging -SessionName=\"Play in Standalone Game\""));
 	bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
 	if (bRunningDebug)
 	{

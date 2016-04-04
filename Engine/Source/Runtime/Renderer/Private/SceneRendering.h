@@ -935,6 +935,7 @@ protected:
 	void UpdatePrimitivePrecomputedLightingBuffers();
 	void ClearPrimitiveSingleFramePrecomputedLightingBuffers();
 
+	void RenderPlanarReflection(class FPlanarReflectionSceneProxy* ReflectionSceneProxy);
 };
 
 /**

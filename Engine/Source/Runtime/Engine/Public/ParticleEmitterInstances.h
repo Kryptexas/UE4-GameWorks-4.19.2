@@ -549,21 +549,9 @@ public:
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected)
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		return NULL;
-	}
-
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected)
-	{
-		// Base class does nothing...
-		return false;
 	}
 
 	/**
@@ -795,15 +783,7 @@ struct FParticleSpriteEmitterInstance : public FParticleEmitterInstance
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
-
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected) override;
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/**
 	 *	Retrieves replay data for the emitter
@@ -864,17 +844,10 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	virtual void UpdateBoundingBox(float DeltaTime) override;
 	virtual uint32 RequiredBytes() override;
 	virtual void PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime) override;
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 	virtual bool IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel) override;
 
 	virtual bool Tick_MaterialOverrides() override;
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected) override;
 
 	/**
 	 *	Retrieves replay data for the emitter
@@ -931,7 +904,7 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	/**
 	 * Gets the materials applied to each section of a mesh.
 	 */
-	void GetMeshMaterials(TArray<UMaterialInterface*,TInlineAllocator<2> >& OutMaterials, const UParticleLODLevel* LODLevel) const;
+	void GetMeshMaterials(TArray<UMaterialInterface*,TInlineAllocator<2> >& OutMaterials, const UParticleLODLevel* LODLevel, ERHIFeatureLevel::Type InFeatureLevel, bool bLogWarnings = false) const;
 
 protected:
 
@@ -1065,15 +1038,7 @@ struct FParticleBeam2EmitterInstance : public FParticleEmitterInstance
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
-
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected) override;
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/**
 	 *	Retrieves replay data for the emitter
@@ -1585,15 +1550,7 @@ struct FParticleRibbonEmitterInstance : public FParticleTrailsEmitterInstance_Ba
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
-
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected) override;
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/**
 	 *	Retrieves replay data for the emitter
@@ -1756,15 +1713,7 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
-
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected) override;
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/**
 	 *	Retrieves replay data for the emitter

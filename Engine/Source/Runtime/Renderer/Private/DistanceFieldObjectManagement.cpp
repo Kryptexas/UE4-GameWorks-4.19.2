@@ -935,8 +935,6 @@ void FDeferredShadingSceneRenderer::UpdateGlobalDistanceFieldObjectBuffers(FRHIC
 {
 	FDistanceFieldSceneData& DistanceFieldSceneData = Scene->DistanceFieldSceneData;
 
-	DistanceFieldSceneData.PrimitiveModifiedBounds.Reset();
-
 	if (GDistanceFieldVolumeTextureAtlas.VolumeTextureRHI
 		&& (DistanceFieldSceneData.HasPendingOperations() || DistanceFieldSceneData.AtlasGeneration != GDistanceFieldVolumeTextureAtlas.GetGeneration()))
 	{

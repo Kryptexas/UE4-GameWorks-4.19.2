@@ -97,11 +97,10 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	, MaterialRelevance(InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 #if WITH_EDITORONLY_DATA
+	, StreamingSectionData(InComponent->StreamingSectionData)
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	, WorldTexelFactor(0)
-	, WorldLightmapFactor(0)
 	, LODForCollision(InComponent->StaticMesh->LODForCollision)
 	, bDrawMeshCollisionWireframe(InComponent->bDrawMeshCollisionWireframe)
 #endif
@@ -186,22 +185,6 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	else if (InComponent->GetLODParentPrimitive())
 	{		
 		HierarchicalLODIndex = 1;
-	}
-#endif
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (AllowDebugViewmodes())
-	{
-		// Update texture streaming factors
-		StreamingTextureInfos = InComponent->StreamingTextureInfos;
-
-		FBoxSphereBounds DummyBounds;
-		InComponent->GetStreamingTextureFactors(WorldTexelFactor, WorldLightmapFactor, DummyBounds, INDEX_NONE, INDEX_NONE);
-	}
-	else
-	{
-		WorldTexelFactor = 0;
-		WorldLightmapFactor = 0;
 	}
 #endif
 
@@ -419,31 +402,20 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchI
 	return OutBatchElement.NumPrimitives > 0;
 }
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-bool FStaticMeshSceneProxy::GetStreamingTextureInfo(struct FStreamingTexturePrimitiveInfo& OutInfo, int32 LODIndex, int32 ElementIndex) const
+#if WITH_EDITORONLY_DATA
+const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData(int32 LODIndex, int32 ElementIndex) const
 {
-	int32 DebugIndex = ElementIndex;
-	if (StreamingTextureInfos.Num() && RenderData->LODResources.IsValidIndex(LODIndex) && RenderData->LODResources[LODIndex].Sections.IsValidIndex(ElementIndex))
+	if (StreamingSectionData.IsValid())
 	{
-		int32 DebugLODIndex = 0;
-		while (DebugLODIndex < LODIndex)
+		for (const FStreamingSectionBuildInfo& SectionData : *StreamingSectionData)
 		{
-			DebugIndex += RenderData->LODResources[DebugLODIndex].Sections.Num();
-			++DebugLODIndex;
+			if (SectionData.LODIndex == LODIndex && SectionData.ElementIndex == ElementIndex)
+			{
+				return &SectionData;
+			}
 		}
 	}
-
-	if (StreamingTextureInfos.IsValidIndex(DebugIndex))
-	{
-		OutInfo = StreamingTextureInfos[DebugIndex];
-		return true;
-	}
-	else
-	{
-		OutInfo.Bounds = GetBounds();
-		OutInfo.TexelFactor = WorldTexelFactor;
-		return WorldTexelFactor != 0;
-	}
+	return nullptr;
 }
 #endif
 
@@ -1438,14 +1410,8 @@ FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
 	FLODMask Result;
 	int32 CVarForcedLODLevel = GetCVarForceLOD();
 
-	// Planar reflections always use the highest available LOD level
-	if (View->bIsPlanarReflectionCapture && RenderData->LODResources.Num() > 0)
-	{
-		Result.SetLOD(RenderData->LODResources.Num() - 1);
-	}
-
 	//If a LOD is being forced, use that one
-	else if (CVarForcedLODLevel >= 0)
+	if (CVarForcedLODLevel >= 0)
 	{
 		Result.SetLOD(FMath::Clamp<int32>(CVarForcedLODLevel, 0, RenderData->LODResources.Num() - 1));
 	}

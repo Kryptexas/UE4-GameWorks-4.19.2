@@ -282,14 +282,31 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 						Menu.AddMenuEntry( BaseViewportCommands.LightmapDensityMode, NAME_None, LOCTEXT("LightmapDensityViewModeDisplayName", "Lightmap Density") );
 						Menu.AddMenuEntry( BaseViewportCommands.StationaryLightOverlapMode, NAME_None, LOCTEXT("StationaryLightOverlapViewModeDisplayName", "Stationary Light Overlap") );
 						Menu.AddMenuEntry( BaseViewportCommands.ShaderComplexityMode, NAME_None, LOCTEXT("ShaderComplexityViewModeDisplayName", "Shader Complexity") );
-						Menu.AddMenuEntry( BaseViewportCommands.ShaderComplexityWithQuadOverdrawMode, NAME_None, LOCTEXT("ShaderComplexityWithQuadOverdrawViewModeDisplayName", "Shader Complexity & Quads") );
-						Menu.AddMenuEntry( BaseViewportCommands.QuadOverdrawMode, NAME_None, LOCTEXT("QuadOverdrawViewModeDisplayName", "Quad Overdraw") );
+
+						if ( AllowDebugViewShaderMode(DVSM_ShaderComplexityBleedingQuadOverhead, GMaxRHIFeatureLevel) || AllowDebugViewShaderMode(DVSM_ShaderComplexityContainedQuadOverhead, GMaxRHIFeatureLevel) )
+						{
+							Menu.AddMenuEntry( BaseViewportCommands.ShaderComplexityWithQuadOverdrawMode, NAME_None, LOCTEXT("ShaderComplexityWithQuadOverdrawViewModeDisplayName", "Shader Complexity & Quads") );
+						}
+						if ( AllowDebugViewShaderMode(DVSM_QuadComplexity, GMaxRHIFeatureLevel) )
+						{
+							Menu.AddMenuEntry( BaseViewportCommands.QuadOverdrawMode, NAME_None, LOCTEXT("QuadOverdrawViewModeDisplayName", "Quad Overdraw") );
+						}
+
 						Menu.AddMenuEntry( BaseViewportCommands.LODColorationMode, NAME_None, LOCTEXT("LODColorationViewModeDisplayName", "LOD Coloration") );
 
 						Menu.BeginSection("TextureStreaming", LOCTEXT("TextureStreamingHeader", "Texture Streaming") );
-						Menu.AddMenuEntry( BaseViewportCommands.WantedMipsAccuracyMode, NAME_None, LOCTEXT("WantedMipsAccuracyDisplayName", "Wanted Mips Accuracy") );
-						Menu.AddMenuEntry( BaseViewportCommands.TexelFactorAccuracyMode, NAME_None, LOCTEXT("TexelFactorAccuracyDisplayName", "Texel Factor Accuracy") );
-						Menu.AddMenuEntry( BaseViewportCommands.TexCoordScaleAccuracyMode, NAME_None, LOCTEXT("TexCoordScaleAccuracyDisplayName", "TexCoord Scale Accuracy") );
+						if ( AllowDebugViewShaderMode(DVSM_WantedMipsAccuracy, GMaxRHIFeatureLevel) )
+						{
+							Menu.AddMenuEntry( BaseViewportCommands.WantedMipsAccuracyMode, NAME_None, LOCTEXT("WantedMipsAccuracyDisplayName", "Wanted Mips Accuracy") );
+						}
+						if ( AllowDebugViewShaderMode(DVSM_WantedMipsAccuracy, GMaxRHIFeatureLevel) )
+						{
+							Menu.AddMenuEntry( BaseViewportCommands.TexelFactorAccuracyMode, NAME_None, LOCTEXT("TexelFactorAccuracyDisplayName", "Texel Factor Accuracy") );
+						}
+						if ( AllowDebugViewShaderMode(DVSM_TexCoordScaleAccuracy, GMaxRHIFeatureLevel) )
+						{
+							Menu.AddMenuEntry( BaseViewportCommands.TexCoordScaleAccuracyMode, NAME_None, LOCTEXT("TexCoordScaleAccuracyDisplayName", "TexCoord Scale Accuracy") );
+						}
 						Menu.EndSection();
 					}
 				};

@@ -169,9 +169,12 @@ float4 ComputeControlPoint(float4 PositionA, float4 PositionB, float4 NormalA)
 		FHullShaderConstantOutput HSConstantData,
 		const OutputPatch<FPNTessellationHSToDS, OUT_CONTROL_POINTS> I,
 		float3 BarycentricCoords : SV_DomainLocation
+#if USE_GLOBAL_CLIP_PLANE
+		, out float OutGlobalClipPlaneDistance : SV_ClipDistance
+#endif
 #if INSTANCED_STEREO
-		, out float4 OutClipDistance : SV_ClipDistance
-		, out float4 OutCullDistance : SV_CullDistance
+		, out float OutClipDistance : SV_ClipDistance1
+		, out float OutCullDistance : SV_CullDistance1
 #endif
 		)
 	{
@@ -264,7 +267,11 @@ float4 ComputeControlPoint(float4 PositionA, float4 PositionB, float4 NormalA)
 		// world space displacement value.  This will likely use the tangent2world transform.
 		float3 WorldDisplacement = GetMaterialWorldDisplacement(DisplacementMaterialParameters);
 		WorldPosition.xyz += WorldDisplacement;
-																									
+										
+		#if USE_GLOBAL_CLIP_PLANE
+			OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(WorldPosition.xyz - ResolvedView.PreViewTranslation.xyz, 1));
+		#endif
+
 		FPassSpecificVSToPS Result = PassFinalizeTessellationOutput(Interp, WorldPosition, MaterialParameters);
 
 		#if INSTANCED_STEREO

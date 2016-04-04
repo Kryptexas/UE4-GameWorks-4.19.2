@@ -220,6 +220,10 @@ MaterialFloat StoreTexSample(float4 C, uint TextureReferenceIndex)
 // @todo metal mrt: No reason this can't work with Metal, once cross compiler is fixed
 #define SUPPORTS_INDEPENDENT_SAMPLERS (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE)
 
+// Whether the platform supports a global clip plane through SV_ClipDistance
+// Ideally this would just be enabled for all SM4 and above feature level platforms, but not tested everywhere yet
+#define SUPPORT_GLOBAL_CLIP_PLANE (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE)
+
 // This would need to be a #define in GLSL to ignore the SamplerState, however, it is currently a function call in HLSL
 // for type checking of the parameters - ironically the type checking is really only needed in GLSL!
 MaterialFloat4 Texture1DSample(Texture1D Tex, SamplerState Sampler, float UV)
@@ -1397,7 +1401,8 @@ MaterialFloat3 TransformTangentVectorToWorld(MaterialFloat3x3 TangentToWorld, Ma
 /** Transforms a vector from world space to tangent space */
 MaterialFloat3 TransformWorldVectorToTangent(MaterialFloat3x3 TangentToWorld, MaterialFloat3 InWorldVector)
 {
-	// Transform from world to tangent space
+	// Transform from world to tangent space with the transpose of TangentToWorld (achieved by swapping vector / matrix multiply order)
+	// Note that the transpose is only equal to the inverse for orthonormal matrices - aka only uniform scaling
 	return mul(TangentToWorld, InWorldVector);
 }
 

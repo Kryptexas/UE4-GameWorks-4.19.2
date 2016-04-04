@@ -524,9 +524,14 @@ void FVulkanCommandListContext::RHIDrawPrimitive(uint32 PrimitiveType, uint32 Ba
 	if (!BSS.HasError())
 #endif
 	{
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+		auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+		State.PrepareDraw(CmdBuffer, UEToVulkanType((EPrimitiveType)PrimitiveType));
+		vkCmdDraw(CmdBuffer->GetHandle(), NumVertices, NumInstances, BaseVertexIndex, 0);
+#else
 		State.PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
-
 		vkCmdDraw(Device->GetPendingState().GetCommandBuffer(), NumVertices, NumInstances, BaseVertexIndex, 0);
+#endif
 	}
 
 	//if (IsImmediate())
@@ -542,7 +547,7 @@ void FVulkanCommandListContext::RHIDrawPrimitiveIndirect(uint32 PrimitiveType, F
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallTime);
 
 	//@NOTE: don't prepare draw without actually drawing
-#if !PLATFORM_ANDROID
+#if 0//!PLATFORM_ANDROID
 	Device->GetPendingState().PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
 	FVulkanVertexBuffer* ArgumentBuffer = ResourceCast(ArgumentBufferRHI);
 #endif
@@ -559,7 +564,6 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef 
 	uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances)
 {
 	check(Device);
-
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallTime);
 
 	FVulkanPendingState& State = Device->GetPendingState();
@@ -569,14 +573,23 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef 
 		if(!BSS.HasError())
 	#endif
 	{
-		State.PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
-
 		FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
-		vkCmdBindIndexBuffer(State.GetCommandBuffer(),
-			IndexBuffer->GetBuffer()->GetBufferHandle(), IndexBuffer->GetOffset(), IndexBuffer->IndexType);
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+		FVulkanCmdBuffer* Cmd = CommandBufferManager->GetActiveCmdBuffer();
+		VkCommandBuffer CmdBuffer = Cmd->GetHandle();
+		State.PrepareDraw(Cmd, UEToVulkanType((EPrimitiveType)PrimitiveType));
+#else
+		VkCommandBuffer CmdBuffer = State.GetCommandBuffer();
+		State.PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
+#endif
+#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+		vkCmdBindIndexBuffer(CmdBuffer, IndexBuffer->GetBuffer()->GetBuffer(), 0, IndexBuffer->IndexType);
+#else
+		vkCmdBindIndexBuffer(CmdBuffer, IndexBuffer->GetBuffer()->GetBufferHandle(), IndexBuffer->GetOffset(), IndexBuffer->IndexType);
+#endif
 
 		uint32 NumIndices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
-		vkCmdDrawIndexed(Device->GetPendingState().GetCommandBuffer(), NumIndices, NumInstances, StartIndex, 0, FirstInstance);
+		vkCmdDrawIndexed(CmdBuffer, NumIndices, NumInstances, StartIndex, 0, FirstInstance);
 	}
 
 	//if (IsImmediate())
@@ -591,12 +604,14 @@ void FVulkanCommandListContext::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef I
 
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallTime);
 
+#if 0
 	//@NOTE: don't prepare draw without actually drawing
 #if !PLATFORM_ANDROID
 	Device->GetPendingState().PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
 	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 #if 0
 	FVulkanStructuredBuffer* ArgumentsBuffer = ResourceCast(ArgumentsBufferRHI);
+#endif
 #endif
 #endif
 	VULKAN_SIGNAL_UNIMPLEMENTED();
@@ -612,13 +627,14 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitiveIndirect(uint32 Primitive
 	check(Device);
 
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallTime);
-
+#if 0
 	//@NOTE: don't prepare draw without actually drawing
 #if !PLATFORM_ANDROID
 	Device->GetPendingState().PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
 	FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 #if 0
 	FVulkanVertexBuffer* ArgumentBuffer = ResourceCast(ArgumentBufferRHI);
+#endif
 #endif
 #endif
 	VULKAN_SIGNAL_UNIMPLEMENTED();
@@ -666,9 +682,14 @@ void FVulkanCommandListContext::RHIEndDrawPrimitiveUP()
 		if(!Shader.HasError())
 	#endif
 	{
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+		auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+		State.PrepareDraw(CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
+		vkCmdDraw(CmdBuffer->GetHandle(), PendingNumVertices, 1, PendingMinVertexIndex, 0);
+#else
 		State.PrepareDraw(UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
-
 		vkCmdDraw(State.GetCommandBuffer(), PendingNumVertices, 1, PendingMinVertexIndex, 0);
+#endif
 	}
 
 	//if (IsImmediate())
@@ -715,11 +736,18 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 		if(!Shader.HasError())
 	#endif
 	{
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+		FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+		VkCommandBuffer Cmd = CmdBuffer->GetHandle();
+		State.PrepareDraw(CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
+#else
+		VkCommandBuffer Cmd = State.GetCommandBuffer();
 		State.PrepareDraw(UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
+#endif
 		uint32 NumIndices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
-		vkCmdBindIndexBuffer(State.GetCommandBuffer(), PendingDrawPrimitiveUPIndexData.Buffer->GetBufferHandle(), PendingDrawPrimitiveUPIndexData.Offset, PendingPrimitiveIndexType);
+		vkCmdBindIndexBuffer(Cmd, PendingDrawPrimitiveUPIndexData.Buffer->GetBufferHandle(), PendingDrawPrimitiveUPIndexData.Offset, PendingPrimitiveIndexType);
 
-		vkCmdDrawIndexed(State.GetCommandBuffer(), NumIndices, 1, PendingMinVertexIndex, 0, 0);
+		vkCmdDrawIndexed(Cmd, NumIndices, 1, PendingMinVertexIndex, 0, 0);
 	}
 
 	//if (IsImmediate())
@@ -748,7 +776,11 @@ void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColo
 	check(bClearColor ? NumClearColors > 0 : true);
 
 	FVulkanPendingState& State = Device->GetPendingState();
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	State.UpdateRenderPass(CommandBufferManager->GetActiveCmdBuffer());
+#else
 	State.UpdateRenderPass();
+#endif
 	
 #if VULKAN_ALLOW_MIDPASS_CLEAR
 	VkClearRect Rect;
@@ -843,4 +875,12 @@ void FVulkanDynamicRHI::RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex)
 void FVulkanCommandListContext::RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth)
 {
 	VULKAN_SIGNAL_UNIMPLEMENTED();
+}
+
+void FVulkanCommandListContext::SubmitCurrentCommands()
+{
+	if (IsImmediate())
+	{
+		//#todo-rco: Will submit the cmd buffers at this point
+	}
 }

@@ -1696,6 +1696,247 @@ void FMaterialUtilities::ResizeFlattenMaterial(FFlattenMaterial& InFlattenMateri
 	}
 }
 
+/** Computes the uniform scale from the input scales,  if one exists. */
+static bool GetUniformScale(const TArray<float> Scales, float& UniformScale)
+{
+	if (Scales.Num())
+	{
+		float Average = 0;
+		float Mean = 0;
+
+		for (float V : Scales)
+		{
+			Average += V;
+		}
+		Average /= (float)Scales.Num();
+
+		for (float V : Scales)
+		{
+			Mean += FMath::Abs(V - Average);
+		}
+		Mean /= (float)Scales.Num();
+
+		if (Mean * 15.f < Average) // If they are almost all the same
+		{
+			UniformScale = Average;
+			return true;
+		}
+		else // Otherwise do a much more expensive test by counting the number of similar values
+		{
+			// Try to find a small range where 80% of values fit within.
+			const int32 TryThreshold = FMath::CeilToInt(.80f * (float)Scales.Num());
+
+			int32 NextTryDomain = Scales.Num();
+
+			float NextTryMinV = 1024;
+			for (float V : Scales)
+			{
+				NextTryMinV = FMath::Min<float>(V, NextTryMinV);
+			}
+
+			while (NextTryDomain >= TryThreshold) // Stop the search it is garantied to fail.
+			{
+				float TryMinV = NextTryMinV;
+				float TryMaxV = TryMinV * 1.25f;
+				int32 TryMatches = 0;
+				NextTryMinV = 1024;
+				NextTryDomain = 0;
+				for (float V : Scales)
+				{
+					if (TryMinV <= V && V <= TryMaxV)
+					{
+						++TryMatches;
+					}
+
+					if (V > TryMinV)
+					{
+						NextTryMinV = FMath::Min<float>(V, NextTryMinV);
+						++NextTryDomain;
+					}
+				}
+
+				if (TryMatches >= TryThreshold)
+				{
+					UniformScale = TryMinV;
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales)
+{
+	TArray<FFloat16Color> RenderedVectors;
+
+	TArray<UTexture*> Textures;
+	TArray< TArray<int32> > Indices;
+	InMaterial->GetUsedTexturesAndIndices(Textures, Indices, QualityLevel, FeatureLevel);
+
+	check(Textures.Num() >= Indices.Num()); // Can't have indices if no texture.
+
+	// Clear any entry not related to UTexture2D
+	for (int32 Index = 0; Index < Textures.Num(); ++Index)
+	{
+		if (!Cast<UTexture2D>(Textures[Index]))
+		{
+			Indices[Index].Empty(); 
+		}
+	}
+
+	const int32 SCALE_PRECISION = 64.f;
+	const int32 TILE_RESOLUTION = FMaterialTexCoordBuildInfo::TILE_RESOLUTION;
+	const int32 INITIAL_GPU_SCALE = FMaterialTexCoordBuildInfo::INITIAL_GPU_SCALE;
+	const int32 MAX_NUM_TEX_COORD = FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD;
+	const int32 MAX_NUM_TEXTURE_REGISTER = FMaterialTexCoordBuildInfo::MAX_NUM_TEXTURE_REGISTER;
+
+	const bool bUseMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
+
+	int32 MaxRegisterIndex = INDEX_NONE;
+
+	for (const TArray<int32>& TextureIndices : Indices)
+	{
+		for (int32 RegisterIndex : TextureIndices)
+		{
+			MaxRegisterIndex = FMath::Max<int32>(RegisterIndex, MaxRegisterIndex);
+		}
+	}
+
+	if (MaxRegisterIndex == INDEX_NONE)
+	{
+		return false;
+	}
+
+	TBitArray<> RegisterInUse(false, MaxRegisterIndex + 1);
+
+	// Set the validity flag.
+	for (const TArray<int32>& TextureIndices : Indices)
+	{
+		for (int32 RegisterIndex : TextureIndices)
+		{
+			RegisterInUse[RegisterIndex] = true;
+		}
+	}
+
+
+	const int32 NumTileX = (MaxRegisterIndex / 4 + 1);
+	const int32 NumTileY = MAX_NUM_TEX_COORD;
+	FIntPoint RenderTargetSize(TILE_RESOLUTION * NumTileX, TILE_RESOLUTION * NumTileY);
+
+	// Render the vectors
+	{
+		// The rendertarget contain factors stored in XYZW. Every X tile maps to another group : (0, 1, 2, 3), (4, 5, 6, 7), ...
+		UTextureRenderTarget2D* RenderTarget = CreateRenderTarget(true, false, PF_FloatRGBA, RenderTargetSize);
+
+		// Allocate the render output.
+		RenderedVectors.Empty(RenderTargetSize.X * RenderTargetSize.Y);
+
+		FMaterialRenderProxy* MaterialProxy = InMaterial->GetRenderProxy(false, false);
+		if (!MaterialProxy)
+		{
+			return false;
+		}
+
+		FBox2D DummyBounds(FVector2D(0, 0), FVector2D(1, 1));
+		TArray<FVector2D> EmptyTexCoords;
+		FMaterialMergeData MaterialData(InMaterial, nullptr, nullptr, 0, DummyBounds, EmptyTexCoords);
+
+		CurrentlyRendering = true;
+		bool bResult = FMeshRenderer::RenderMaterialTexCoordScales(MaterialData, MaterialProxy, RenderTarget, RenderedVectors);
+		CurrentlyRendering = false;
+
+		if (!bResult)
+		{
+			return false;
+		}
+	}
+
+	OutScales.AddDefaulted(MaxRegisterIndex + 1);
+
+	TArray<float> TextureIndexScales;
+
+	// Now compute the scale for each
+	for (int32 RegisterIndex = 0; RegisterIndex <= MaxRegisterIndex; ++RegisterIndex)
+	{
+		if (!RegisterInUse[RegisterIndex]) continue;
+
+		// If nothing works, this will fallback to 1.f
+		OutScales[RegisterIndex].Scale = 1.f;
+		OutScales[RegisterIndex].Index = 0;
+
+		if (!bUseMetrics) continue; // Old metrics would always use 1.f
+
+		int32 TextureTile = RegisterIndex / 4;
+		int32 ComponentIndex = RegisterIndex % 4;
+
+		bool bSuccess = false;
+		for (int32 CoordIndex = 0; CoordIndex < MAX_NUM_TEX_COORD && !bSuccess; ++CoordIndex)
+		{
+			TextureIndexScales.Empty(TILE_RESOLUTION * TILE_RESOLUTION);
+			for (int32 TexelX = 0; TexelX < TILE_RESOLUTION; ++TexelX)
+			{
+				for (int32 TexelY = 0; TexelY < TILE_RESOLUTION; ++TexelY)
+				{
+					int32 TexelIndex = TextureTile * TILE_RESOLUTION + TexelX + (TexelY + CoordIndex * TILE_RESOLUTION) * RenderTargetSize.X;
+					FFloat16Color& Scale16 = RenderedVectors[TexelIndex];
+
+					float TexelScale = 0;
+					if (ComponentIndex == 0) TexelScale = Scale16.R.GetFloat();
+					if (ComponentIndex == 1) TexelScale = Scale16.G.GetFloat();
+					if (ComponentIndex == 2) TexelScale = Scale16.B.GetFloat();
+					if (ComponentIndex == 3) TexelScale = Scale16.A.GetFloat();
+
+					// Quantize scale to converge faster in the TryLogic
+					TexelScale = FMath::RoundToFloat(TexelScale * SCALE_PRECISION) / SCALE_PRECISION;
+
+					if (TexelScale > 0 && TexelScale < INITIAL_GPU_SCALE)
+					{
+						TextureIndexScales.Push(TexelScale);
+					}
+				}
+			}
+
+			if (GetUniformScale(TextureIndexScales, OutScales[RegisterIndex].Scale))
+			{
+				OutScales[RegisterIndex].Index = CoordIndex;
+				bSuccess = true;
+			}
+		}
+
+		// If we couldn't find the scale, then output a warning detailing which index, texture, material is having an issue.
+		if (!bSuccess)
+		{
+			UTexture* FailedTexture = nullptr;
+			for (int32 Index = 0; Index < Indices.Num() && !FailedTexture; ++Index)
+			{
+				for (int32 SubIndex : Indices[Index])
+				{
+					if (SubIndex == RegisterIndex)
+					{
+						FailedTexture = Textures[Index];
+						break;
+					}
+				}
+			}
+
+			if (FailedTexture)
+			{
+				if (TextureIndexScales.Num())
+				{
+					UE_LOG(LogMaterialUtilities, Warning, TEXT("ExportMaterialTexCoordScales: Failed to find constant scale for texture index %d of material %s (bound to texture %s)"), RegisterIndex, *InMaterial->GetName(), *FailedTexture->GetName());
+				}
+				else
+				{
+					UE_LOG(LogMaterialUtilities, Warning, TEXT("ExportMaterialTexCoordScales: Failed to generate scales for texture index %d of material %s (bound to texture %s)"), RegisterIndex, *InMaterial->GetName(), *FailedTexture->GetName());
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
 bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialData, FFlattenMaterial& OutFlattenMaterial, struct FExportMaterialProxyCache* ProxyCache)
 {
 	UMaterialInterface* Material = InMaterialData.Material;

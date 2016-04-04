@@ -224,6 +224,8 @@ public:
 
 	friend FArchive& operator<<(FArchive& Ar,class FMaterialUniformExpressionTexture*& Ref);
 
+	int32 GetTextureIndex() const { return TextureIndex; }
+
 protected:
 	/** Index into FMaterial::GetReferencedTextures */
 	int32 TextureIndex;
@@ -910,7 +912,8 @@ public:
 		QualityLevel(EMaterialQualityLevel::High),
 		bHasQualityLevelUsage(false),
 		FeatureLevel(ERHIFeatureLevel::SM4),
-		bContainsInlineShaders(false)
+		bContainsInlineShaders(false),
+		bLoadedCookedShaderMapId(false)
 	{}
 
 	/**
@@ -986,7 +989,6 @@ public:
 	virtual bool IsAdaptiveTessellationEnabled() const { return false; }
 	virtual bool IsFullyRough() const { return false; }
 	virtual bool IsUsingHQForwardReflections() const { return false; }
-	virtual bool IsUsingPlanarReflection() const { return false; }
 	virtual bool OutputsVelocityOnBasePass() const { return true; }
 	virtual bool IsNonmetal() const { return false; }
 	virtual bool UseLmDirectionality() const { return true; }
@@ -1108,6 +1110,9 @@ public:
 		checkSlow(IsInGameThread() || IsInAsyncLoadingThread());
 		GameThreadShaderMap = InMaterialShaderMap;
 		bContainsInlineShaders = true;
+		bLoadedCookedShaderMapId = true;
+		CookedShaderMapId = InMaterialShaderMap->GetShaderMapId();
+
 	}
 
 	ENGINE_API class FMaterialShaderMap* GetRenderingThreadShaderMap() const;
@@ -1274,6 +1279,9 @@ private:
 	 * If true, GameThreadShaderMap will contain a reference to the inlined shader map between Serialize and PostLoad.
 	 */
 	uint32 bContainsInlineShaders : 1;
+	uint32 bLoadedCookedShaderMapId : 1;
+
+	FMaterialShaderMapId CookedShaderMapId;
 
 	/**
 	* Compiles this material for Platform, storing the result in OutShaderMap if the compile was synchronous
@@ -1560,7 +1568,6 @@ public:
 	ENGINE_API virtual bool IsAdaptiveTessellationEnabled() const override;
 	ENGINE_API virtual bool IsFullyRough() const override;
 	ENGINE_API virtual bool IsUsingHQForwardReflections() const override;
-	ENGINE_API virtual bool IsUsingPlanarReflection() const override;
 	ENGINE_API virtual bool OutputsVelocityOnBasePass() const override;
 	ENGINE_API virtual bool IsNonmetal() const override;
 	ENGINE_API virtual bool UseLmDirectionality() const override;

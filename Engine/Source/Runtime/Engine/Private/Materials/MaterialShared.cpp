@@ -370,18 +370,25 @@ void FMaterialCompilationOutput::Serialize(FArchive& Ar)
 
 void FMaterial::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
 { 
-	TArray<FShaderType*> ShaderTypes;
-	TArray<FVertexFactoryType*> VFTypes;
-	TArray<const FShaderPipelineType*> ShaderPipelineTypes;
+	if (bLoadedCookedShaderMapId)
+	{
+		OutId = CookedShaderMapId;
+	}
+	else
+	{
+		TArray<FShaderType*> ShaderTypes;
+		TArray<FVertexFactoryType*> VFTypes;
+		TArray<const FShaderPipelineType*> ShaderPipelineTypes;
 
-	GetDependentShaderAndVFTypes(Platform, ShaderTypes, ShaderPipelineTypes, VFTypes);
+		GetDependentShaderAndVFTypes(Platform, ShaderTypes, ShaderPipelineTypes, VFTypes);
 
-	OutId.Usage = GetShaderMapUsage();
-	OutId.BaseMaterialId = GetMaterialId();
-	OutId.QualityLevel = GetQualityLevelForShaderMapId();
-	OutId.FeatureLevel = GetFeatureLevel();
-	OutId.SetShaderDependencies(ShaderTypes, ShaderPipelineTypes, VFTypes);
-	GetReferencedTexturesHash(Platform, OutId.TextureReferencesHash);
+		OutId.Usage = GetShaderMapUsage();
+		OutId.BaseMaterialId = GetMaterialId();
+		OutId.QualityLevel = GetQualityLevelForShaderMapId();
+		OutId.FeatureLevel = GetFeatureLevel();
+		OutId.SetShaderDependencies(ShaderTypes, ShaderPipelineTypes, VFTypes);
+		GetReferencedTexturesHash(Platform, OutId.TextureReferencesHash);
+	}
 }
 
 EMaterialTessellationMode FMaterial::GetTessellationMode() const 
@@ -896,11 +903,6 @@ bool FMaterialResource::IsUsingHQForwardReflections() const
 	return Material->bUseHQForwardReflections;
 }
 
-bool FMaterialResource::IsUsingPlanarReflection() const
-{
-	return Material->bAcceptsPlanarReflection;
-}
-
 bool FMaterialResource::OutputsVelocityOnBasePass() const
 {
 	return Material->bOutputVelocityOnBasePass && !IsUIMaterial();
@@ -1371,7 +1373,6 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USES_SCENE_COLOR_COPY"), RequiresSceneColorCopy_GameThread() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_FULLY_ROUGH"), IsFullyRough() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_HQ_FORWARD_REFLECTIONS"), IsUsingHQForwardReflections() ? TEXT("1") : TEXT("0"));
-	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_PLANAR_REFLECTION"), IsUsingPlanarReflection() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_NONMETAL"), IsNonmetal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_LM_DIRECTIONALITY"), UseLmDirectionality() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_INJECT_EMISSIVE_INTO_LPV"), ShouldInjectEmissiveIntoLPV() ? TEXT("1") : TEXT("0"));

@@ -12,6 +12,10 @@
 #include "Engine/SceneCaptureCube.h"
 #include "Components/SceneCaptureComponentCube.h"
 #include "Components/DrawFrustumComponent.h"
+#include "Engine/PlanarReflection.h"
+#include "Components/PlanarReflectionComponent.h"
+#include "PlanarReflectionSceneProxy.h"
+#include "Components/BoxComponent.h"
 
 ASceneCapture::ASceneCapture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -269,7 +273,6 @@ bool USceneCaptureComponent::GetSettingForShowFlag(FString FlagName, FEngineShow
 
 USceneCaptureComponent2D::USceneCaptureComponent2D(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, ReflectionPlaneNormal(0.0f, 0.0f, 1.0f) // World space up vector
 {
 	FOVAngle = 90.0f;
 	bAutoActivate = true;
@@ -364,6 +367,164 @@ void USceneCaptureComponent2D::Serialize(FArchive& Ar)
 	if(Ar.IsLoading())
 	{
 		PostProcessSettings.OnAfterLoad();
+	}
+}
+
+// -----------------------------------------------
+
+APlanarReflection::APlanarReflection(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	PlanarReflectionComponent = CreateDefaultSubobject<UPlanarReflectionComponent>(TEXT("NewPlanarReflectionComponent"));
+	RootComponent = PlanarReflectionComponent;
+
+	UBoxComponent* DrawInfluenceBox = CreateDefaultSubobject<UBoxComponent>(TEXT("DrawBox0"));
+	DrawInfluenceBox->AttachParent = PlanarReflectionComponent;
+	DrawInfluenceBox->bUseEditorCompositing = true;
+	DrawInfluenceBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	PlanarReflectionComponent->PreviewBox = DrawInfluenceBox;
+
+	GetMeshComp()->SetWorldRotation(FRotator(0, 0, 0));
+	GetMeshComp()->SetWorldScale3D(FVector(4, 4, 1));
+	GetMeshComp()->AttachParent = PlanarReflectionComponent;
+}
+
+void APlanarReflection::OnInterpToggle(bool bEnable)
+{
+	PlanarReflectionComponent->SetVisibility(bEnable);
+}
+
+void APlanarReflection::PostActorCreated()
+{
+	Super::PostActorCreated();
+
+	// no need load the editor mesh when there is no editor
+#if WITH_EDITOR
+	if(GetMeshComp())
+	{
+		if (!IsRunningCommandlet())
+		{
+			if( !GetMeshComp()->StaticMesh)
+			{
+				UStaticMesh* PlaneMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/PlanarReflectionPlane.PlanarReflectionPlane"), NULL, LOAD_None, NULL);
+				GetMeshComp()->SetStaticMesh(PlaneMesh);
+				UMaterial* PlaneMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorMeshes/ColorCalibrator/M_ChromeBall.M_ChromeBall"), NULL, LOAD_None, NULL);
+				GetMeshComp()->SetMaterial(0, PlaneMaterial);
+			}
+		}
+	}
+#endif
+}
+
+#if WITH_EDITOR
+void APlanarReflection::EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown)
+{
+	Super::EditorApplyScale(FVector(DeltaScale.X, DeltaScale.Y, 0), PivotLocation, bAltDown, bShiftDown, bCtrlDown);
+
+	UPlanarReflectionComponent* ReflectionComponent = Cast<UPlanarReflectionComponent>(GetPlanarReflectionComponent());
+	check(ReflectionComponent);
+	const FVector ModifiedScale = FVector(0, 0, DeltaScale.Z) * ( AActor::bUsePercentageBasedScaling ? 5000.0f : 50.0f );
+	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeStart, ModifiedScale);
+	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeEnd, ModifiedScale);
+	PostEditChange();
+}
+#endif
+
+// -----------------------------------------------
+
+UPlanarReflectionComponent::UPlanarReflectionComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bCaptureEveryFrame = true;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
+	// Tick in the editor so that bCaptureEveryFrame preview works
+	bTickInEditor = true;
+	RenderTarget = NULL;
+	NormalDistortionStrength = 500;
+	DistanceFromPlaneFadeStart = 400;
+	DistanceFromPlaneFadeEnd = 600;
+	AngleFromPlaneFadeStart = 20;
+	AngleFromPlaneFadeEnd = 30;
+	ProjectionWithExtraFOV = FMatrix::Identity;
+}
+
+void UPlanarReflectionComponent::CreateRenderState_Concurrent()
+{
+	UpdatePreviewShape();
+
+	Super::CreateRenderState_Concurrent();
+
+	if (ShouldComponentAddToScene() && ShouldRender())
+	{
+		SceneProxy = new FPlanarReflectionSceneProxy(this, RenderTarget);
+		World->Scene->AddPlanarReflection(this);
+	}
+}
+
+void UPlanarReflectionComponent::SendRenderTransform_Concurrent()
+{	
+	UpdatePreviewShape();
+
+	if (SceneProxy)
+	{
+		World->Scene->UpdatePlanarReflectionTransform(this);
+	}
+
+	Super::SendRenderTransform_Concurrent();
+}
+
+void UPlanarReflectionComponent::DestroyRenderState_Concurrent()
+{
+	Super::DestroyRenderState_Concurrent();
+
+	if (SceneProxy)
+	{
+		World->Scene->RemovePlanarReflection(this);
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+			FDestroyPlanarReflectionCommand,
+			FPlanarReflectionSceneProxy*,SceneProxy,SceneProxy,
+		{
+			delete SceneProxy;
+		});
+
+		SceneProxy = NULL;
+	}
+}
+
+void UPlanarReflectionComponent::BeginDestroy()
+{
+	if (RenderTarget)
+	{
+		BeginReleaseResource(RenderTarget);
+	}
+	
+	// Begin a fence to track the progress of the BeginReleaseResource being processed by the RT
+	ReleaseResourcesFence.BeginFence();
+
+	Super::BeginDestroy();
+}
+
+bool UPlanarReflectionComponent::IsReadyForFinishDestroy()
+{
+	// Wait until the fence is complete before allowing destruction
+	return Super::IsReadyForFinishDestroy() && ReleaseResourcesFence.IsFenceComplete();
+}
+
+void UPlanarReflectionComponent::FinishDestroy()
+{
+	Super::FinishDestroy();
+
+	delete RenderTarget;
+	RenderTarget = NULL;
+}
+
+void UPlanarReflectionComponent::UpdatePreviewShape()
+{
+	if (PreviewBox)
+	{
+		PreviewBox->InitBoxExtent(FVector(500 * 4, 500 * 4, DistanceFromPlaneFadeEnd));
 	}
 }
 

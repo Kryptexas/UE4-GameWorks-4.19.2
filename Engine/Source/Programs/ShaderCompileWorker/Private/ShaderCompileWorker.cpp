@@ -594,56 +594,58 @@ static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormat
 	FCommandLine::Parse(FCommandLine::Get(), Tokens, Switches);
 
 	FString InputFile;
-	if (Tokens.Num() < 1)
-	{
-		return;
-	}
-
-	for (int32 Index = 0; Index < Tokens.Num(); ++Index)
-	{
-		if (!Switches.Contains(Tokens[Index]))
-		{
-			InputFile = Tokens[Index];
-			break;
-		}
-	}
 
 	FName FormatName;
 	FString Entry = TEXT("Main");
+	bool bPipeline = false;
 	EShaderFrequency Frequency = SF_Pixel;
-	for (const FString& Switch : Switches)
+	for (const FString& Token : Tokens)
 	{
-		if (Switch.StartsWith(TEXT("format=")))
+		if (Switches.Contains(Token))
 		{
-			FormatName = FName(*Switch.RightChop(7));
+			if (Token.StartsWith(TEXT("format=")))
+			{
+				FormatName = FName(*Token.RightChop(7));
+			}
+			else if (Token.StartsWith(TEXT("entry=")))
+			{
+				Entry = Token.RightChop(6);
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("ps")))
+			{
+				Frequency = SF_Pixel;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("vs")))
+			{
+				Frequency = SF_Vertex;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("hs")))
+			{
+				Frequency = SF_Hull;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("ds")))
+			{
+				Frequency = SF_Domain;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("gs")))
+			{
+				Frequency = SF_Geometry;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("cs")))
+			{
+				Frequency = SF_Compute;
+			}
+			else if (!FCString::Strcmp(*Token, TEXT("pipeline")))
+			{
+				bPipeline = true;
+			}
 		}
-		else if (Switch.StartsWith(TEXT("entry=")))
+		else
 		{
-			Entry = Switch.RightChop(6);
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("ps")))
-		{
-			Frequency = SF_Pixel;
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("vs")))
-		{
-			Frequency = SF_Vertex;
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("hs")))
-		{
-			Frequency = SF_Hull;
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("ds")))
-		{
-			Frequency = SF_Domain;
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("gs")))
-		{
-			Frequency = SF_Geometry;
-		}
-		else if (!FCString::Strcmp(*Switch, TEXT("cs")))
-		{
-			Frequency = SF_Compute;
+			if (InputFile.Len() == 0)
+			{
+				InputFile = Token;
+			}
 		}
 	}
 
@@ -656,6 +658,8 @@ static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormat
 	Input.Target.Platform =  FormatNameToEnum(FormatName);
 	Input.Target.Frequency = Frequency;
 	Input.bSkipPreprocessedCache = true;
+
+	Input.bCompilingForShaderPipeline = bPipeline;
 
 	FShaderCompilerOutput Output;
 

@@ -508,6 +508,9 @@ void FilterHistoryPS(
 #define IRRADIANCE_TARGET SV_Target1
 #endif
 
+Texture2D SpecularOcclusionTexture;
+SamplerState SpecularOcclusionSampler;
+
 float MinIndirectDiffuseOcclusion;
 
 /** Upsamples the AO results to full resolution using a bilateral filter. */
@@ -525,6 +528,7 @@ void AOUpsamplePS(
 	// Distance field AO was computed at 0,0 regardless of viewrect min
 	float2 DistanceFieldUVs = UVAndScreenPos.xy - Frame.ViewRectMin.xy * Frame.BufferSizeAndInvSize.zw;
 	float3 Irradiance = 0;
+	float SpecularOcclusion = 1;
 
 #define BILATERAL_UPSAMPLE 1
 #if BILATERAL_UPSAMPLE
@@ -576,11 +580,29 @@ void AOUpsamplePS(
 			* InvWeight;
 	#endif
 
+	#if SUPPORT_SPECULAR_OCCLUSION
+		float SpecularOcclusionValues00 = Texture2DSampleLevel(SpecularOcclusionTexture, SpecularOcclusionSampler, Corner00UV, 0).x;
+		float SpecularOcclusionValues10 = Texture2DSampleLevel(SpecularOcclusionTexture, SpecularOcclusionSampler, Corner00UV + float2(LowResTexelSize.x, 0), 0).x;
+		float SpecularOcclusionValues01 = Texture2DSampleLevel(SpecularOcclusionTexture, SpecularOcclusionSampler, Corner00UV + float2(0, LowResTexelSize.y), 0).x;
+		float SpecularOcclusionValues11 = Texture2DSampleLevel(SpecularOcclusionTexture, SpecularOcclusionSampler, Corner00UV + LowResTexelSize, 0).x;
+
+		SpecularOcclusion = 
+			(FinalWeights.x * SpecularOcclusionValues00 
+			+ FinalWeights.y * SpecularOcclusionValues10
+			+ FinalWeights.z * SpecularOcclusionValues01 
+			+ FinalWeights.w * SpecularOcclusionValues11)
+			* InvWeight;
+	#endif
+
 #else
 	float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, DistanceFieldUVs, 0).xyz;
 
 	#if SUPPORT_IRRADIANCE
 		Irradiance = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, DistanceFieldUVs, 0).xyz;
+	#endif
+
+	#if SUPPORT_SPECULAR_OCCLUSION
+		SpecularOcclusion = Texture2DSampleLevel(SpecularOcclusionTexture, SpecularOcclusionSampler, DistanceFieldUVs, 0).x;
 	#endif
 #endif
 
@@ -594,7 +616,7 @@ void AOUpsamplePS(
 	//OutBentNormal = float4(BentNormal, 1);
 #else
 	#if OUTPUT_BENT_NORMAL
-		OutBentNormal = float4(BentNormal, 1);
+		OutBentNormal = float4(BentNormal, SpecularOcclusion);
 		#if SUPPORT_IRRADIANCE
 			OutIrradiance = float4(Irradiance, 1);
 		#endif

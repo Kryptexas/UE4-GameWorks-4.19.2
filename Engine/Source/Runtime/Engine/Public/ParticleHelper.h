@@ -1792,7 +1792,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	FParticleVertexFactoryBase *CreateVertexFactory() override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
-	void Init(bool bInSelected,const FParticleMeshEmitterInstance* InEmitterInstance,UStaticMesh* InStaticMesh);
+	void Init(bool bInSelected,const FParticleMeshEmitterInstance* InEmitterInstance,UStaticMesh* InStaticMesh, ERHIFeatureLevel::Type InFeatureLevel );
 
 	/**
 	 *	Create the render thread resources for this emitter data

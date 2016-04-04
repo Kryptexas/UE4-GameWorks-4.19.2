@@ -316,7 +316,7 @@ void UModelComponent::SelectAllSurfaces()
 }
 #endif // WITH_EDITOR
 
-void UModelComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+void UModelComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
 	if( Model )
 	{

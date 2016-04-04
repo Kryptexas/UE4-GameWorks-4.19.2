@@ -18,9 +18,9 @@ typedef uint32 FStateKey;
 #include "VulkanViewport.h"
 
 class FVulkanTexture2D;
-struct FVulkanFramebuffer;
-struct FVulkanDevice;
-struct FVulkanQueue;
+class FVulkanFramebuffer;
+class FVulkanDevice;
+class FVulkanQueue;
 
 
 #if VULKAN_ENABLE_DRAW_MARKERS
@@ -186,11 +186,33 @@ protected:
 	static void RebuildPipelineCache();
 #endif
 
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	IConsoleObject* DumpMemoryCmd;
+	static void DumpMemory();
+#endif
+
 #if VULKAN_HAS_DEBUGGING_ENABLED
 	VkDebugReportCallbackEXT MsgCallback;
 	void SetupDebugLayerCallback();
 	void RemoveDebugLayerCallback();
 #endif
+
+	inline bool ShouldDeferBufferLockOperation(FRHICommandList* RHICmdList)
+	{
+		if (RHICmdList == nullptr)
+		{
+			return false;
+		}
+
+		if (RHICmdList->Bypass() || !GRHIThread)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	FCriticalSection LockBufferCS;
 
 	uint32 PresentCount;
 };

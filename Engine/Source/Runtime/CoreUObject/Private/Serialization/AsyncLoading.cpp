@@ -270,6 +270,22 @@ static FAutoConsoleVariableRef CVarPreloadPackageDependencies(
 	ECVF_Default
 	);
 
+uint32 FAsyncLoadingThread::AsyncLoadingThreadID = 0;
+
+static void IsTimeLimitExceededPrint(double InTickStartTime, double CurrentTime, float InTimeLimit, const TCHAR* InLastTypeOfWorkPerformed = nullptr, UObject* InLastObjectWorkWasPerformedOn = nullptr)
+{
+	// Log single operations that take longer than time limit (but only in cooked builds)
+	if (
+		(CurrentTime - InTickStartTime) > GTimeLimitExceededMinTime &&
+		(CurrentTime - InTickStartTime) > (GTimeLimitExceededMultiplier * InTimeLimit))
+	{
+		UE_LOG(LogStreaming, Warning, TEXT("IsTimeLimitExceeded: %s %s took (less than) %5.2f ms"),
+			InLastTypeOfWorkPerformed ? InLastTypeOfWorkPerformed : TEXT("unknown"),
+			InLastObjectWorkWasPerformedOn ? *InLastObjectWorkWasPerformedOn->GetFullName() : TEXT("nullptr"),
+			(CurrentTime - InTickStartTime) * 1000);
+	}
+}
+
 static FORCEINLINE bool IsTimeLimitExceeded(double InTickStartTime, bool bUseTimeLimit, float InTimeLimit, const TCHAR* InLastTypeOfWorkPerformed = nullptr, UObject* InLastObjectWorkWasPerformedOn = nullptr)
 {
 	bool bTimeLimitExceeded = false;
@@ -278,21 +294,17 @@ static FORCEINLINE bool IsTimeLimitExceeded(double InTickStartTime, bool bUseTim
 		double CurrentTime = FPlatformTime::Seconds();
 		bTimeLimitExceeded = CurrentTime - InTickStartTime > InTimeLimit;
 
-		// Log single operations that take longer than time limit (but only in cooked builds)
-		if (GWarnIfTimeLimitExceeded && 
-			(CurrentTime - InTickStartTime) > GTimeLimitExceededMinTime &&
-			(CurrentTime - InTickStartTime) > (GTimeLimitExceededMultiplier * InTimeLimit))
-		{			
-			UE_LOG(LogStreaming, Warning, TEXT("IsTimeLimitExceeded: %s %s took (less than) %5.2f ms"),
-				InLastTypeOfWorkPerformed ? InLastTypeOfWorkPerformed : TEXT("unknown"),
-				InLastObjectWorkWasPerformedOn ? *InLastObjectWorkWasPerformedOn->GetFullName() : TEXT("nullptr"),
-				(CurrentTime - InTickStartTime) * 1000);
+		if (GWarnIfTimeLimitExceeded)
+		{
+			IsTimeLimitExceededPrint(InTickStartTime, CurrentTime, InTimeLimit, InLastTypeOfWorkPerformed, InLastObjectWorkWasPerformedOn);
 		}
 	}
 	return bTimeLimitExceeded;
 }
-
-uint32 FAsyncLoadingThread::AsyncLoadingThreadID = 0;
+FORCEINLINE bool FAsyncPackage::IsTimeLimitExceeded()
+{
+	return AsyncLoadingThread.IsAsyncLoadingSuspended() || ::IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, LastTypeOfWorkPerformed, LastObjectWorkWasPerformedOn);
+}
 
 #if LOOKING_FOR_PERF_ISSUES
 FThreadSafeCounter FAsyncLoadingThread::BlockingCycles = 0;
@@ -1151,16 +1163,6 @@ void FAsyncPackage::DetachLinker()
 		Linker->AsyncRoot = nullptr;
 		Linker = nullptr;
 	}
-}
-
-/**
- * Returns whether time limit has been exceeded.
- *
- * @return true if time limit has been exceeded (and is used), false otherwise
- */
-bool FAsyncPackage::IsTimeLimitExceeded()
-{
-	return AsyncLoadingThread.IsAsyncLoadingSuspended() || ::IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, LastTypeOfWorkPerformed, LastObjectWorkWasPerformedOn);
 }
 
 /**

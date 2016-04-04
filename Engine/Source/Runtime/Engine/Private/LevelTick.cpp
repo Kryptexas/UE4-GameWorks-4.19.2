@@ -29,6 +29,7 @@
 #include "Engine/CoreSettings.h"
 
 #include "InGamePerformanceTracker.h"
+#include "Streaming/TextureStreamingHelpers.h"
 
 // this will log out all of the objects that were ticked in the FDetailedTickStats struct so you can isolate what is expensive
 #define LOG_DETAILED_DUMPSTATS 0

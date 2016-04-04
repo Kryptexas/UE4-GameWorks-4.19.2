@@ -13,6 +13,7 @@
 #include "EngineModule.h"
 #include "ShaderCompiler.h"
 #include "RendererInterface.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
@@ -1111,6 +1112,7 @@ FShaderCompilingManager::FShaderCompilingManager() :
 {
 	WorkersBusyTime = 0;
 	bFallBackToDirectCompiles = false;
+	bRecreateComponentRenderStateOutstanding = false;
 
 	// Threads must use absolute paths on Windows in case the current directory is changed on another thread!
 	ShaderCompileWorkerName = FPaths::ConvertRelativePathToFull(ShaderCompileWorkerName);
@@ -1223,7 +1225,7 @@ FShaderCompilingManager::FShaderCompilingManager() :
 	Thread->StartThread();
 }
 
-void FShaderCompilingManager::AddJobs(TArray<FShaderCommonCompileJob*>& NewJobs, bool bApplyCompletedShaderMapForRendering, bool bOptimizeForLowLatency)
+void FShaderCompilingManager::AddJobs(TArray<FShaderCommonCompileJob*>& NewJobs, bool bApplyCompletedShaderMapForRendering, bool bOptimizeForLowLatency, bool bRecreateComponentRenderStateOnCompletion)
 {
 	check(!FPlatformProperties::RequiresCookedData());
 
@@ -1265,6 +1267,7 @@ void FShaderCompilingManager::AddJobs(TArray<FShaderCommonCompileJob*>& NewJobs,
 		NewJobs[JobIndex]->bOptimizeForLowLatency = bOptimizeForLowLatency;
 		FShaderMapCompileResults& ShaderMapInfo = ShaderMapJobs.FindOrAdd(NewJobs[JobIndex]->Id);
 		ShaderMapInfo.bApplyCompletedShaderMapForRendering = bApplyCompletedShaderMapForRendering;
+		ShaderMapInfo.bRecreateComponentRenderStateOnCompletion = bRecreateComponentRenderStateOnCompletion;
 		auto* PipelineJob = NewJobs[JobIndex]->GetShaderPipelineJob();
 		if (PipelineJob)
 		{
@@ -1455,7 +1458,8 @@ void FShaderCompilingManager::BlockOnAllShaderMapCompletion(TMap<int32, FShaderM
 
 void FShaderCompilingManager::ProcessCompiledShaderMaps(
 	TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps, 
-	float TimeBudget)
+	float TimeBudget,
+	bool bRecreateComponentRenderState)
 {
 	// Keeps shader maps alive as they are passed from the shader compiler and applied to the owning FMaterial
 	TArray<TRefCountPtr<FMaterialShaderMap> > LocalShaderMapReferences;
@@ -1650,6 +1654,14 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 			FMaterial* Material = It.Key();
 
 			Material->NotifyCompilationFinished();
+		}
+
+		if (bRecreateComponentRenderState)
+		{
+			// This is necessary because scene proxies cache material / shadermap state, like material view relevance
+			//@todo - find a way to only recreate the components referencing materials that have been updated
+			FGlobalComponentRecreateRenderStateContext Context;
+			bRecreateComponentRenderStateOutstanding = false;
 		}
 
 #if WITH_EDITOR
@@ -1850,7 +1862,7 @@ bool FShaderCompilingManager::HandlePotentialRetryOnError(TMap<int32, FShaderMap
 				}
 
 				// Send all the shaders from this shader map through the compiler again
-				AddJobs(Results.FinishedJobs, Results.bApplyCompletedShaderMapForRendering, true);
+				AddJobs(Results.FinishedJobs, Results.bApplyCompletedShaderMapForRendering, true, Results.bRecreateComponentRenderStateOnCompletion);
 			}
 		}
 
@@ -1958,7 +1970,7 @@ void FShaderCompilingManager::FinishCompilation(const TCHAR* MaterialName, const
 	} 
 	while (bRetry);
 
-	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX);
+	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX, false);
 	check(CompiledShaderMaps.Num() == 0);
 
 	const double EndTime = FPlatformTime::Seconds();
@@ -1984,7 +1996,7 @@ void FShaderCompilingManager::FinishAllCompilation()
 	} 
 	while (bRetry);
 
-	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX);
+	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX, false);
 	check(CompiledShaderMaps.Num() == 0);
 
 	const double EndTime = FPlatformTime::Seconds();
@@ -2012,6 +2024,7 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 			}
 
 			int32 NumCompilingShaderMaps = 0;
+
 			{
 				// Lock CompileQueueSection so we can access the input and output queues
 				FScopeLock Lock(&CompileQueueSection);
@@ -2029,6 +2042,11 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 
 					if (GetNumTotalJobs(Results.FinishedJobs) == Results.NumJobsQueued)
 					{
+						if (Results.bRecreateComponentRenderStateOnCompletion)
+						{
+							bRecreateComponentRenderStateOutstanding = true;
+						}
+
 						PendingFinalizeShaderMaps.Add(It.Key(), FShaderMapFinalizeResults(Results));
 						ShaderMapsToRemove.Add(It.Key());
 					}
@@ -2054,7 +2072,9 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 				while (bRetry);
 
 				const float TimeBudget = bLimitExecutionTime ? ProcessGameThreadTargetTime : FLT_MAX;
-				ProcessCompiledShaderMaps(PendingFinalizeShaderMaps, TimeBudget);
+				// Only do the recreate when we are finished all compiling, to limit the number of hitchy global render state recreates
+				const bool bRecreateComponentRenderState = bRecreateComponentRenderStateOutstanding && NumCompilingShaderMaps == 0;
+				ProcessCompiledShaderMaps(PendingFinalizeShaderMaps, TimeBudget, bRecreateComponentRenderState);
 				check(bLimitExecutionTime || PendingFinalizeShaderMaps.Num() == 0);
 			}
 
@@ -2313,6 +2333,11 @@ void GlobalBeginCompileShader(
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DBuffer"));
 		Input.Environment.SetDefine(TEXT("USE_DBUFFER"), CVar ? CVar->GetInt() : 0);
+	}
+
+	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowGlobalClipPlane"));
+		Input.Environment.SetDefine(TEXT("PROJECT_ALLOW_GLOBAL_CLIP_PLANE"), CVar ? (CVar->GetInt() != 0) : 0);
 	}
 
 	NewJobs.Add(NewJob);

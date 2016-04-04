@@ -2128,7 +2128,7 @@ public:
 	float GetGridSize();
 
 	/** 
-	 * @return - if the grid size is part of the 1,2,48,16,.. list or not
+	 * @return - if the grid size is part of the 1,2,4,8,16,.. list or not
 	 */
 	bool IsGridSizePowerOfTwo() const;
 

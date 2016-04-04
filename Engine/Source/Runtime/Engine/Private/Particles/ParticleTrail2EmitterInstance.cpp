@@ -2592,7 +2592,7 @@ bool FParticleRibbonEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* Cu
 /**
  *	Retrieves the dynamic data for the emitter
  */
-FDynamicEmitterDataBase* FParticleRibbonEmitterInstance::GetDynamicData(bool bSelected)
+FDynamicEmitterDataBase* FParticleRibbonEmitterInstance::GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleRibbonEmitterInstance_GetDynamicData);
 
@@ -2640,47 +2640,6 @@ FDynamicEmitterDataBase* FParticleRibbonEmitterInstance::GetDynamicData(bool bSe
 	NewEmitterData->Init(bSelected);
 
 	return NewEmitterData;
-}
-
-/**
- *	Updates the dynamic data for the instance
- *
- *	@param	DynamicData		The dynamic data to fill in
- *	@param	bSelected		true if the particle system component is selected
- */
-bool FParticleRibbonEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleRibbonEmitterInstance_UpdateDynamicData);
-
-	if (ActiveParticles <= 0 || !bEnabled)
-	{
-		return false;
-	}
-
-	if (DynamicData->GetSource().eEmitterType != DET_Ribbon)
-	{
-		UE_LOG(LogParticles, Warning, TEXT("UpdateDynamicData> NOT A TRAILS EMITTER!"));
-		return false;
-	}
-
-	FDynamicRibbonEmitterData* TrailDynamicData = (FDynamicRibbonEmitterData*)DynamicData;
-	// Now fill in the source data
-	if (!FillReplayData(TrailDynamicData->Source))
-	{
-		return false;
-	}
-
-	TrailDynamicData->bRenderGeometry = TrailTypeData->bRenderGeometry;
-	TrailDynamicData->bRenderParticles = TrailTypeData->bRenderSpawnPoints;
-	TrailDynamicData->bRenderTangents = TrailTypeData->bRenderTangents;
-	TrailDynamicData->bRenderTessellation = TrailTypeData->bRenderTessellation;
-	TrailDynamicData->DistanceTessellationStepSize = TrailTypeData->DistanceTessellationStepSize;
-	TrailDynamicData->TangentTessellationScalar = TrailTypeData->TangentTessellationScalar;
-
-	// Setup dynamic render data.  Only call this AFTER filling in source data for the emitter.
-	TrailDynamicData->Init(bSelected);
-
-	return true;
 }
 
 /**
@@ -3926,7 +3885,7 @@ bool FParticleAnimTrailEmitterInstance::HasCompleted()
 /**
  *	Retrieves the dynamic data for the emitter
  */
-FDynamicEmitterDataBase* FParticleAnimTrailEmitterInstance::GetDynamicData(bool bSelected)
+FDynamicEmitterDataBase* FParticleAnimTrailEmitterInstance::GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleAnimTrailEmitterInstance_GetDynamicData);
 
@@ -3983,52 +3942,6 @@ FDynamicEmitterDataBase* FParticleAnimTrailEmitterInstance::GetDynamicData(bool 
 	NewEmitterData->Init(bSelected);
 
 	return NewEmitterData;
-}
-
-/**
- *	Updates the dynamic data for the instance
- *
- *	@param	DynamicData		The dynamic data to fill in
- *	@param	bSelected		true if the particle system component is selected
- */
-bool FParticleAnimTrailEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleAnimTrailEmitterInstance_UpdateDynamicData);
-
-	if (ActiveParticles <= 0 || !bEnabled)
-	{
-		return false;
-	}
-
-	if (DynamicData->GetSource().eEmitterType != DET_AnimTrail)
-	{
-		UE_LOG(LogParticles, Warning, TEXT("UpdateDynamicData> NOT A TRAILS EMITTER!"));
-		return false;
-	}
-
-	FDynamicAnimTrailEmitterData* TrailDynamicData = (FDynamicAnimTrailEmitterData*)DynamicData;
-	// Now fill in the source data
-	if (!FillReplayData(TrailDynamicData->Source))
-	{
-		return false;
-	}
-
-#if WITH_EDITORONLY_DATA
-	TrailDynamicData->bRenderGeometry = bRenderGeometry;
-	TrailDynamicData->bRenderParticles = bRenderSpawnPoints;
-	TrailDynamicData->bRenderTangents = bRenderTangents;
-	TrailDynamicData->bRenderTessellation = bRenderTessellation;
-#else
-	TrailDynamicData->bRenderGeometry = true;
-	TrailDynamicData->bRenderParticles = false;
-	TrailDynamicData->bRenderTangents = false;
-	TrailDynamicData->bRenderTessellation = false;
-#endif
-
-	// Setup dynamic render data.  Only call this AFTER filling in source data for the emitter.
-	TrailDynamicData->Init(bSelected);
-
-	return true;
 }
 
 /**

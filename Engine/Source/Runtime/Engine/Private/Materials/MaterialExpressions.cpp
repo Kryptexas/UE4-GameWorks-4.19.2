@@ -1370,6 +1370,8 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				EffectiveTexture = TextureObjectParameter->Texture;
 				EffectiveSamplerType = TextureObjectParameter->SamplerType;
 			}
+
+			TextureReferenceIndex = Compiler->GetTextureReferenceIndex(EffectiveTexture);
 		}
 
 		if (EffectiveTexture && VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("TextureSample")), EffectiveTexture, EffectiveSamplerType))

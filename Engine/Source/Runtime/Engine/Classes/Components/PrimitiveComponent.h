@@ -8,7 +8,6 @@
 #include "SceneTypes.h"
 #include "Engine/EngineTypes.h"
 #include "AI/Navigation/NavRelevantInterface.h"
-
 #include "PrimitiveComponent.generated.h"
 
 class FPrimitiveSceneProxy;
@@ -17,29 +16,8 @@ class UTexture;
 struct FEngineShowFlags;
 struct FConvexVolume;
 struct FNavigableGeometryExport;
-
-/** Information about a streaming texture that a primitive uses for rendering. */
-USTRUCT()
-struct FStreamingTexturePrimitiveInfo
-{
-	GENERATED_USTRUCT_BODY()
-
-	FStreamingTexturePrimitiveInfo()
-		: Texture(nullptr)
-		, Bounds(ForceInit)
-		, TexelFactor(1.0f)
-	{
-	}
-
-	UPROPERTY()
-	UTexture* Texture;
-
-	UPROPERTY()
-	FBoxSphereBounds Bounds;
-
-	UPROPERTY()
-	float TexelFactor;
-};
+struct FStreamingTexturePrimitiveInfo;
+class FStreamingTextureLevelContext;
 
 /** Determines whether a Character can attempt to step up onto a component when they walk in to it. */
 UENUM()
@@ -289,10 +267,6 @@ public:
 	/** Whether the object should cast a static shadow from shadow casting lights.  This flag is only used if CastShadow is true. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, AdvancedDisplay, meta=(EditCondition="CastShadow", DisplayName = "Static Shadow"))
 	uint32 bCastStaticShadow:1;
-
-	/** Whether the object should be rendered into the planar refelction pass. */
-	UPROPERTY(EditAnywhere, Category=Lighting)
-	uint32 bVisibleInPlanarReflection:1;
 
 	/** 
 	 * Whether the object should cast a volumetric translucent shadow.
@@ -1186,17 +1160,17 @@ public:
 
 	/**
 	 * Enumerates the streaming textures used by the primitive.
+	 * @param LevelContext - Level scope context used to process texture streaming build data.
 	 * @param OutStreamingTextures - Upon return, contains a list of the streaming textures used by the primitive.
 	 */
-	virtual void GetStreamingTextureInfo(TArray<struct FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
-	{
-	}
+	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const {}
 
 	/**
 	 * Call GetStreamingTextureInfo and remove the elements with a NULL texture
 	 * @param OutStreamingTextures - Upon return, contains a list of the non-null streaming textures used by the primitive.
 	 */
-	void GetStreamingTextureInfoWithNULLRemoval(TArray<struct FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const;
+	void GetStreamingTextureInfoWithNULLRemoval(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const;
+
 
 	/**
 	 * Determines the DPG the primitive's primary elements are drawn in.

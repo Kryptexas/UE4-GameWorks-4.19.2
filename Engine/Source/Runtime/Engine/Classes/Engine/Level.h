@@ -394,6 +394,10 @@ public:
 	UPROPERTY()
 	TArray<FVector> StaticNavigableGeometry;
 
+	/** The Guid of each texture refered by FStreamingTextureBuildInfo::TextureLevelIndex	*/
+	UPROPERTY()
+	TArray<FGuid> StreamingTextureGuids;
+
 	/** Static information used by texture streaming code, generated during PreSave									*/
 	TMap<UTexture2D*,TArray<FStreamableTextureInstance> >	TextureToInstancesMap;
 
@@ -433,10 +437,14 @@ public:
 	/** Has texture streaming been built */
 	uint32										bTextureStreamingBuilt:1;
 
+	/** Whether a level transform rotation was applied since the texture streaming builds. Invalidates the precomputed streaming bounds. */
+	UPROPERTY()
+	uint32 										bTextureStreamingRotationChanged : 1;
+
 	/** Whether the level is currently visible/ associated with the world */
 	UPROPERTY(transient)
-	uint32										bIsVisible:1;
-	
+	uint32										bIsVisible:1;	
+
 	/** Whether this level is locked; that is, its actors are read-only 
 	 *	Used by WorldBrowser to lock a level when corresponding ULevelStreaming does not exist
 	 */

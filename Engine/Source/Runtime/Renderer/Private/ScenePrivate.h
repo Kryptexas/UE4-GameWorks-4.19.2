@@ -321,11 +321,13 @@ public:
 	{
 		FullUpdateOrigin = FIntVector::ZeroValue;
 		LastPartialUpdateOrigin = FIntVector::ZeroValue;
+		CachedMaxOcclusionDistance = 0;
 	}
 
 	FIntVector FullUpdateOrigin;
 	FIntVector LastPartialUpdateOrigin;
 	TArray<FVector4> PrimitiveModifiedBounds;
+	float CachedMaxOcclusionDistance;
 	TRefCountPtr<IPooledRenderTarget> VolumeTexture;
 };
 
@@ -1703,6 +1705,9 @@ public:
 	/** Potential capsule shadow casters registered to the scene. */
 	TArray<FPrimitiveSceneInfo*> CapsuleIndirectCasterPrimitives; 
 
+	TArray<class FPlanarReflectionSceneProxy*> PlanarReflections;
+	TArray<class UPlanarReflectionComponent*> PlanarReflections_GameThread;
+
 	/** State needed for the reflection environment feature. */
 	FReflectionEnvironmentSceneData ReflectionSceneData;
 
@@ -1775,6 +1780,8 @@ public:
 	/** LOD Tree Holder for massive LOD system */
 	FLODSceneTree SceneLODHierarchy;
 
+	float DefaultMaxDistanceFieldOcclusionDistance;
+
 	/** Initialization constructor. */
 	FScene(UWorld* InWorld, bool bInRequiresHitProxies,bool bInIsEditorScene, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel);
 
@@ -1800,8 +1807,12 @@ public:
 	virtual void GetReflectionCaptureData(UReflectionCaptureComponent* Component, class FReflectionCaptureFullHDRDerivedData& OutDerivedData) override;
 	virtual void UpdateReflectionCaptureTransform(UReflectionCaptureComponent* Component) override;
 	virtual void ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureComponent) override;
+	virtual void AddPlanarReflection(class UPlanarReflectionComponent* Component) override;
+	virtual void RemovePlanarReflection(UPlanarReflectionComponent* Component) override;
+	virtual void UpdatePlanarReflectionTransform(UPlanarReflectionComponent* Component) override;
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponent2D* CaptureComponent) override;
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponentCube* CaptureComponent) override;
+	virtual void UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureComponent, FSceneRenderer& MainSceneRenderer) override;
 	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures) override;
 	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, UTextureCube* SourceCubemap, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap) override; 
 	virtual void PreCullStaticMeshes(const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes) override;
@@ -1866,6 +1877,7 @@ public:
 	/** Finds the closest reflection capture to a point in space. */
 	const FReflectionCaptureProxy* FindClosestReflectionCapture(FVector Position) const;
 
+	const class FPlanarReflectionSceneProxy* FindClosestPlanarReflection(FVector Position) const;
 
 	void FindClosestReflectionCaptures(FVector Position, const FReflectionCaptureProxy* (&SortedByDistanceOUT)[FPrimitiveSceneInfo::MaxCachedReflectionCaptureProxies]) const;
 	
@@ -1894,6 +1906,8 @@ public:
 	{
 		return this;
 	}
+
+	virtual void UpdateSceneSettings(AWorldSettings* WorldSettings) override;
 
 	/**
 	 * Sets the FX system associated with the scene.
@@ -2030,22 +2044,6 @@ private:
 	 * @param	InLevelName		Level name
 	 */
 	void OnLevelAddedToWorld_RenderThread(FName InLevelName);
-
-	/**
-	 * Builds a FSceneRenderer instance for a given view and render target. Helper function for Scene capture code.
-	 *
-	 * @param	SceneCaptureComponent - The scene capture component for which to create a scene renderer.
-	 * @param	TextureTarget - render target to draw to.
-	 * @param	ViewRotationMatrix - Camera rotation matrix.
-	 * @param	ViewLocation - Camera location.
-	 * @param	FOV - Camera field of view.
-	 * @param	MaxViewDistance - Far draw distance.
-	 * @param	bCaptureSceneColour if true the returned scenerenderer will ignore post process operations as only the raw scene color is used.
-	 * @param	PostProcessSettings - pointer to post process structure, NULL for no effect.
-	 * @param	PostProcessBlendWeight - Blendweight for PostProcessSettings.
-	 * @return	pointer to a configured SceneRenderer instance.
-	 */
-	FSceneRenderer* CreateSceneRenderer(USceneCaptureComponent* SceneCaptureComponent, UTextureRenderTarget* TextureTarget, const FMatrix& ViewRotationMatrix, const FVector& ViewLocation, float FOV, float MaxViewDistance, bool bCaptureSceneColour = true, FPostProcessSettings* PostProcessSettings = NULL, float PostProcessBlendWeight = 0);
 
 private:
 	/** 

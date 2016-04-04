@@ -375,6 +375,10 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=World, AdvancedDisplay)
 	FVector DefaultColorScale;
 
+	/** Max occlusion distance used by mesh distance fields, overridden if there is a movable skylight. */
+	UPROPERTY(EditAnywhere, Category=World, meta=(DisplayName = "Default Max DistanceField Occlusion Distance"))
+	float DefaultMaxDistanceFieldOcclusionDistance;
+
 	/************************************/
 	
 	/** PRECOMPUTED VISIBILITY SETTINGS **/

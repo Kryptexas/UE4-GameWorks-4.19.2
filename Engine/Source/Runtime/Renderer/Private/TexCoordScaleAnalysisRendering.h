@@ -17,11 +17,13 @@ class FTexCoordScaleAnalysisPS : public FMeshMaterialShader, public IDebugViewMo
 	DECLARE_SHADER_TYPE(FTexCoordScaleAnalysisPS,MeshMaterial);
 
 public:
+	enum { MAX_NUM_TEXTURE_REGISTER = FMaterialTexCoordBuildInfo::MAX_NUM_TEXTURE_REGISTER };
 
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
-		// Debug viewmode pixel shaders have predefined interpolants, so we only need to compile it for one vertex factory.
-		return Material->GetFriendlyName().Contains(TEXT("FDebugViewModeMaterialProxy")) &&  AllowDebugViewModeShader(Platform) && VertexFactoryType == FindVertexFactoryType(FName(TEXT("FLocalVertexFactory"), FNAME_Find));
+		return AllowDebugViewShaderMode(DVSM_TexCoordScaleAnalysis, Platform) && 
+			Material->GetFriendlyName().Contains(TEXT("FDebugViewModeMaterialProxy")) && 
+			VertexFactoryType == FindVertexFactoryType(FName(TEXT("FLocalVertexFactory"), FNAME_Find));
 	}
 
 	FTexCoordScaleAnalysisPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -29,7 +31,8 @@ public:
 	{
 		AccuracyColorsParameter.Bind(Initializer.ParameterMap,TEXT("AccuracyColors"));
 		TextureAnalysisIndexParameter.Bind(Initializer.ParameterMap,TEXT("TextureAnalysisIndex"));
-		CPUScaleParameter.Bind(Initializer.ParameterMap,TEXT("CPUScale"));
+		OneOverCPUTexCoordScalesParameter.Bind(Initializer.ParameterMap,TEXT("OneOverCPUTexCoordScales"));
+		TexCoordIndicesParameter.Bind(Initializer.ParameterMap,TEXT("TexCoordIndices"));
 	}
 
 	FTexCoordScaleAnalysisPS() {}
@@ -39,12 +42,17 @@ public:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		Ar << AccuracyColorsParameter;
 		Ar << TextureAnalysisIndexParameter;
-		Ar << CPUScaleParameter;
+		Ar << OneOverCPUTexCoordScalesParameter;
+		Ar << TexCoordIndicesParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		OutEnvironment.SetDefine(TEXT("MAX_NUM_TEX_COORD"), (uint32)FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD);
+		OutEnvironment.SetDefine(TEXT("INITIAL_GPU_SCALE"), (uint32)FMaterialTexCoordBuildInfo::INITIAL_GPU_SCALE);
+		OutEnvironment.SetDefine(TEXT("TILE_RESOLUTION"), (uint32)FMaterialTexCoordBuildInfo::TILE_RESOLUTION);
+		OutEnvironment.SetDefine(TEXT("MAX_NUM_TEXTURE_REGISTER"), (uint32)FMaterialTexCoordBuildInfo::MAX_NUM_TEXTURE_REGISTER);
 		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
@@ -75,5 +83,6 @@ private:
 
 	FShaderParameter AccuracyColorsParameter;
 	FShaderParameter TextureAnalysisIndexParameter;
-	FShaderParameter CPUScaleParameter;
+	FShaderParameter OneOverCPUTexCoordScalesParameter;
+	FShaderParameter TexCoordIndicesParameter;
 };

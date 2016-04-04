@@ -211,7 +211,7 @@ uint64					GFrameCounter					= 0;
 uint64					GLastGCFrame					= 0;
 /** Incremented once per frame before the scene is being rendered. In split screen mode this is incremented once for all views (not for each view). */
 uint32					GFrameNumber					= 1;
-/** Render Thread copy of the frame number. */
+/** NEED TO RENAME, for RT version of GFrameTime use View.ViewFamily->FrameNumber or pass down from RT from GFrameTime). */
 uint32					GFrameNumberRenderThread		= 1;
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
 // We cannot count on this variable to be accurate in a shipped game, so make sure no code tries to use it

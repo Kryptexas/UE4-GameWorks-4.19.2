@@ -1137,6 +1137,31 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshChunk& C)
 	FSkelMeshSection
 -----------------------------------------------------------------------------*/
 
+// Custom serialization version for RecomputeTangent
+struct FRecomputeTangentCustomVersion
+{
+	enum Type
+	{
+		// Before any version changes were made in the plugin
+		BeforeCustomVersionWasAdded = 0,
+		// We serialize the RecomputeTangent Option
+		RuntimeRecomputeTangent = 1,
+		// -----<new versions can be added above this line>-------------------------------------------------
+		VersionPlusOne,
+		LatestVersion = VersionPlusOne - 1
+	};
+
+	// The GUID for this custom version number
+	const static FGuid GUID;
+
+private:
+	FRecomputeTangentCustomVersion() {}
+};
+
+const FGuid FRecomputeTangentCustomVersion::GUID(0x5579F886, 0x933A4C1F, 0x83BA087B, 0x6361B92F);
+// Register the custom version with core
+FCustomVersionRegistration GRegisterRecomputeTangentCustomVersion(FRecomputeTangentCustomVersion::GUID, FRecomputeTangentCustomVersion::LatestVersion, TEXT("RecomputeTangentCustomVer"));
+
 // Serialization.
 FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 {		
@@ -1169,6 +1194,12 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 	if( Ar.UE4Ver() >= VER_UE4_APEX_CLOTH_LOD )
 	{
 		Ar << S.bEnableClothLOD_DEPRECATED;
+	}
+
+	Ar.UsingCustomVersion(FRecomputeTangentCustomVersion::GUID);
+	if (Ar.CustomVer(FRecomputeTangentCustomVersion::GUID) >= FRecomputeTangentCustomVersion::RuntimeRecomputeTangent)
+	{
+		Ar << S.bRecomputeTangent;
 	}
 
 	return Ar;
@@ -1582,18 +1613,14 @@ void FStaticLODModel::ReleaseCPUResources()
 	{
 		if(MultiSizeIndexContainer.IsIndexBufferValid())
 		{
-			int32 MemorySize = MultiSizeIndexContainer.GetIndexBuffer()->Num() * MultiSizeIndexContainer.GetDataTypeSize();
-			DEC_DWORD_STAT_BY( STAT_SkeletalMeshIndexMemory, MemorySize);
 			MultiSizeIndexContainer.GetIndexBuffer()->Empty();
 		}
 		if(AdjacencyMultiSizeIndexContainer.IsIndexBufferValid())
 		{
-			DEC_DWORD_STAT_BY( STAT_SkeletalMeshIndexMemory, AdjacencyMultiSizeIndexContainer.GetIndexBuffer()->Num() * AdjacencyMultiSizeIndexContainer.GetDataTypeSize());
 			AdjacencyMultiSizeIndexContainer.GetIndexBuffer()->Empty();
 		}
 		if(VertexBufferGPUSkin.IsVertexDataValid())
 		{
-			DEC_DWORD_STAT_BY( STAT_SkeletalMeshVertexMemory, VertexBufferGPUSkin.GetVertexDataSize() );
 			VertexBufferGPUSkin.CleanUp();
 		}
 	}
@@ -3382,6 +3409,12 @@ FArchive& operator<<( FArchive& Ar, FSkeletalMaterial& Elem )
 		Ar << Elem.bEnableShadowCasting;
 	}
 
+	Ar.UsingCustomVersion(FRecomputeTangentCustomVersion::GUID);
+	if (Ar.CustomVer(FRecomputeTangentCustomVersion::GUID) >= FRecomputeTangentCustomVersion::RuntimeRecomputeTangent)
+	{
+		Ar << Elem.bRecomputeTangent;
+	}
+
 	return Ar;
 }
 
@@ -4769,14 +4802,28 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 			Mesh.LCI = NULL;
 			Mesh.bWireframe |= bForceWireframe;
 			Mesh.Type = PT_TriangleList;
-			Mesh.VertexFactory = MeshObject->GetVertexFactory(LODIndex,Section.ChunkIndex);
+			Mesh.VertexFactory = MeshObject->GetSkinVertexFactory(View, LODIndex, Section.ChunkIndex);
+			
+			if(!Mesh.VertexFactory)
+			{
+				// hide this part
+				continue;
+			}
+
 			Mesh.bSelectable = bSelectable;
 			BatchElement.FirstIndex = Section.BaseIndex;
 
 			BatchElement.IndexBuffer = LODModel.MultiSizeIndexContainer.GetIndexBuffer();
 			BatchElement.MaxVertexIndex = LODModel.NumVertices - 1;
-
-			BatchElement.UserIndex = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
+	
+			if(Section.ChunkIndex < FSkeletalMeshObject::MAX_GPUSKINCACHE_CHUNKS_PER_LOD)
+			{
+				BatchElement.UserIndex = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
+			}
+			else
+			{
+				BatchElement.UserIndex = -1;
+			}
 
 			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( SectionElementInfo.Material, Mesh.VertexFactory->GetType(), ViewFamily.GetFeatureLevel() );
 			if ( bRequiresAdjacencyInformation )

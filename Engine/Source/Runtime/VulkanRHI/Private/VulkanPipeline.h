@@ -6,8 +6,8 @@
 
 #pragma once
 
-struct FVulkanDevice;
-struct FVulkanFramebuffer;
+class FVulkanDevice;
+class FVulkanFramebuffer;
 
 // High level description of the state
 struct FVulkanPipelineState
@@ -124,7 +124,7 @@ class FVulkanPipelineStateCache
 public:
 	FVulkanPipeline* Find(const FVulkanPipelineStateKey& CreateInfo)
 	{
-		auto** Found = Cache.Find(CreateInfo);
+		auto** Found = KeyToPipelineMap.Find(CreateInfo);
 #if 0
 		if (Found)
 		{
@@ -504,7 +504,11 @@ public:
 private:
 	FVulkanDevice* Device;
 
-	TMap<FVulkanPipelineStateKey, FVulkanPipeline*> Cache;
+	// Map the runtime key to a pipeline pointer
+	TMap<FVulkanPipelineStateKey, FVulkanPipeline*> KeyToPipelineMap;
+
+	// Map used to delete the created pipelines
+	TMap<FDiskEntry*, FVulkanPipeline*> CreatedPipelines;
 
 	TIndirectArray<FDiskEntry> DiskEntries;
 
@@ -514,6 +518,7 @@ private:
 	void PopulateDiskEntry(const FVulkanPipelineState& State, const FVulkanRenderPass* RenderPass, FDiskEntry* OutDiskEntry);
 	void CreateDiskEntryRuntimeObjects(FDiskEntry* DiskEntry);
 	bool Load(const TArray<FString>& CacheFilenames, TArray<uint8>& OutDeviceCache);
+	void DestroyCache();
 };
 
 #endif	// VULKAN_ENABLE_PIPELINE_CACHE

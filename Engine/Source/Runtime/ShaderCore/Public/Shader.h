@@ -758,6 +758,13 @@ public:
 class SHADERCORE_API FShaderType
 {
 public:
+	enum class EShaderTypeForDynamicCast : uint32
+	{
+		Global,
+		Material,
+		MeshMaterial
+	};
+
 	typedef class FShader* (*ConstructSerializedType)();
 	typedef void (*GetStreamOutElementsType)(FStreamOutElementList& ElementList, TArray<uint32>& StreamStrides, int32& RasterizedStream);
 
@@ -784,6 +791,7 @@ public:
 
 	/** Minimal initialization constructor. */
 	FShaderType(
+		EShaderTypeForDynamicCast InShaderTypeForDynamicCast,
 		const TCHAR* InName,
 		const TCHAR* InSourceFilename,
 		const TCHAR* InFunctionName,
@@ -815,13 +823,31 @@ public:
 	}
 
 	// Dynamic casts.
-	virtual FGlobalShaderType* GetGlobalShaderType() { return nullptr; }
-	virtual const FGlobalShaderType* GetGlobalShaderType() const { return nullptr; }
-	virtual FMaterialShaderType* GetMaterialShaderType() { return nullptr; }
-	virtual const FMaterialShaderType* GetMaterialShaderType() const { return nullptr; }
-	virtual FMeshMaterialShaderType* GetMeshMaterialShaderType() { return nullptr; }
-	virtual const FMeshMaterialShaderType* GetMeshMaterialShaderType() const { return nullptr; }
-	
+	FORCEINLINE FGlobalShaderType* GetGlobalShaderType() 
+	{ 
+		return (ShaderTypeForDynamicCast == EShaderTypeForDynamicCast::Global) ? reinterpret_cast<FGlobalShaderType*>(this) : nullptr;
+	}
+	FORCEINLINE const FGlobalShaderType* GetGlobalShaderType() const
+	{
+		return (ShaderTypeForDynamicCast == EShaderTypeForDynamicCast::Global) ? reinterpret_cast<const FGlobalShaderType*>(this) : nullptr;
+	}
+	FORCEINLINE FMaterialShaderType* GetMaterialShaderType()
+	{
+		return (ShaderTypeForDynamicCast == EShaderTypeForDynamicCast::Material) ? reinterpret_cast<FMaterialShaderType*>(this) : nullptr;
+	}
+	FORCEINLINE const FMaterialShaderType* GetMaterialShaderType() const
+	{
+		return (ShaderTypeForDynamicCast == EShaderTypeForDynamicCast::Material) ? reinterpret_cast<const FMaterialShaderType*>(this) : nullptr;
+	}
+	FORCEINLINE FMeshMaterialShaderType* GetMeshMaterialShaderType()
+	{
+		return (ShaderTypeForDynamicCast == EShaderTypeForDynamicCast::MeshMaterial) ? reinterpret_cast<FMeshMaterialShaderType*>(this) : nullptr;
+	}
+	FORCEINLINE const FMeshMaterialShaderType* GetMeshMaterialShaderType() const
+	{
+		return (ShaderTypeForDynamicCast == EShaderTypeForDynamicCast::MeshMaterial) ? reinterpret_cast<const FMeshMaterialShaderType*>(this) : nullptr;
+	}
+
 	// Accessors.
 	inline EShaderFrequency GetFrequency() const
 	{ 
@@ -905,6 +931,7 @@ public:
 	}
 
 private:
+	EShaderTypeForDynamicCast ShaderTypeForDynamicCast;
 	uint32 HashIndex;
 	const TCHAR* Name;
 	FName TypeName;
@@ -1360,6 +1387,12 @@ public:
 	/** Default constructor. */
 	TShaderMap() {}
 
+	/** Destructor ensures pipelines cleared up. */
+	~TShaderMap()
+	{
+		EmptyShaderPipelines();
+	}
+
 	/** Finds the shader with the given type.  Asserts on failure. */
 	template<typename ShaderType>
 	ShaderType* GetShader() const
@@ -1669,11 +1702,11 @@ public:
 		return ShaderPipelines.Num();
 	}
 
-	/** clears out all shaders held in the map */
+	/** clears out all shaders and deletes shader pipelines held in the map */
 	void Empty()
 	{
 		Shaders.Empty();
-		ShaderPipelines.Empty();
+		EmptyShaderPipelines();
 	}
 
 	inline FShaderPipeline* GetShaderPipeline(const FShaderPipelineType* PipelineType)
@@ -1724,6 +1757,19 @@ public:
 	}
 
 protected:
+	inline void EmptyShaderPipelines()
+	{
+		for (auto& Pair : ShaderPipelines)
+		{
+			if (FShaderPipeline* Pipeline = Pair.Value)
+			{
+				delete Pipeline;
+				Pipeline = nullptr;
+			}
+		}
+		ShaderPipelines.Empty();
+	}
+
 	TMap<FShaderType*, TRefCountPtr<FShader> > Shaders;
 	TMap<const FShaderPipelineType*, FShaderPipeline*> ShaderPipelines;
 };

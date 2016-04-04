@@ -497,9 +497,13 @@ struct FSkelMeshSection
 
 	/** Is this mesh selected? */
 	uint8 bSelected:1;
+	
+	/** This section will recompute tangent in runtime */
+	bool bRecomputeTangent;
 
 	/** This Section can be disabled for cloth simulation and corresponding Cloth Section will be enabled*/
 	bool bDisabled;
+	
 	/** Corresponding Section Index will be enabled when this section is disabled 
 		because corresponding cloth section will be showed instead of this
 		or disabled section index when this section is enabled for cloth simulation
@@ -517,6 +521,7 @@ struct FSkelMeshSection
 		, NumTriangles(0)
 		, TriangleSorting(0)
 		, bSelected(false)
+		, bRecomputeTangent(false)
 		, bDisabled(false)
 		, CorrespondClothSectionIndex(-1)
 	{}
@@ -1680,18 +1685,22 @@ public:
 		return false;
 	}
 
+	// O(1)
 	// @return -1 if not found
 	uint32 FindChunkIndex(const FSkelMeshChunk& Chunk) const
 	{
-		uint32 Ret = -1;
+		const FSkelMeshChunk* Start = Chunks.GetData();
 
-		for(int32 ChunkIdx = 0; ChunkIdx < Chunks.Num(); ++ChunkIdx)
+		if(Start == nullptr)
 		{
-			if(&Chunks[ChunkIdx] == &Chunk)
+			return -1;
+		}
+
+		uint32 Ret = &Chunk - Start;
+
+		if(Ret >= (uint32)Chunks.Num())
 			{
-				Ret = ChunkIdx;
-				break;
-			}
+			Ret = -1;
 		}
 
 		return Ret;

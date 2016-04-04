@@ -3028,7 +3028,7 @@ void FDeferredShadingSceneRenderer::RenderDFAOAsIndirectShadowing(
 	if (GDistanceFieldAOApplyToStaticIndirect && ShouldRenderDistanceFieldAO())
 	{
 		// Use the skylight's max distance if there is one, to be consistent with DFAO shadowing on the skylight
-		const float OcclusionMaxDistance = Scene->SkyLight && !Scene->SkyLight->bWantsStaticShadowing ? Scene->SkyLight->OcclusionMaxDistance : GDefaultDFAOMaxOcclusionDistance;
+		const float OcclusionMaxDistance = Scene->SkyLight && !Scene->SkyLight->bWantsStaticShadowing ? Scene->SkyLight->OcclusionMaxDistance : Scene->DefaultMaxDistanceFieldOcclusionDistance;
 		TRefCountPtr<IPooledRenderTarget> DummyOutput;
 		RenderDistanceFieldLighting(RHICmdList, FDistanceFieldAOParameters(OcclusionMaxDistance), VelocityTexture, DynamicBentNormalAO, DummyOutput, true, false, false);
 	}
@@ -3154,6 +3154,9 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 
 			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, BentNormalOutput);
 
+			TRefCountPtr<IPooledRenderTarget> SpecularOcclusion;
+			RenderDistanceFieldSpecularOcclusion(RHICmdList, View, TileListGroupSize, Parameters, DistanceFieldNormal, SpecularOcclusion);
+
 			if (bVisualizeAmbientOcclusion || bVisualizeGlobalIllumination)
 			{
 				SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilNop);
@@ -3196,7 +3199,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 			}
 
 			// Upsample to full resolution, write to output
-			UpsampleBentNormalAO(RHICmdList, Views, BentNormalOutput, IrradianceOutput, bModulateToSceneColor, bVisualizeAmbientOcclusion, bVisualizeGlobalIllumination);
+			UpsampleBentNormalAO(RHICmdList, Views, BentNormalOutput, IrradianceOutput, SpecularOcclusion, bModulateToSceneColor, bVisualizeAmbientOcclusion, bVisualizeGlobalIllumination);
 
 			if (!bVisualizeAmbientOcclusion && !bVisualizeGlobalIllumination)
 			{

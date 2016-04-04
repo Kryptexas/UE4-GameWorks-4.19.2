@@ -9,8 +9,9 @@
 #include "BoundShaderStateCache.h"
 #include "CrossCompilerCommon.h"
 
-struct FVulkanShaderVarying
+class FVulkanShaderVarying
 {
+public:
 	FVulkanShaderVarying():
 		Location(0),
 		Components(0)
@@ -60,8 +61,9 @@ static void ClearBindings(CrossCompiler::FShaderBindings& Bindings)
 	Bindings.bHasRegularUniformBuffers = 0;
 }
 
-struct FVulkanShaderSerializedBindings : public CrossCompiler::FShaderBindings
+class FVulkanShaderSerializedBindings : public CrossCompiler::FShaderBindings
 {
+public:
 	FVulkanShaderSerializedBindings():
 		bFlattenUB(false)
 	{
@@ -175,8 +177,9 @@ inline FArchive& operator<<(FArchive& Ar, FVulkanCodeHeader& Header)
 }
 
 
-struct FVulkanShaderBindingTable
+class FVulkanShaderBindingTable
 {
+public:
 	TArray<uint32> SamplerBindingIndices;
 	//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
 	TArray<uint32> SamplerBufferBindingIndices;

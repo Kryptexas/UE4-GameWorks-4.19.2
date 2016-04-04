@@ -704,6 +704,50 @@ void UMaterial::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQuality
 	}
 }
 
+void UMaterial::GetUsedTexturesAndIndices(TArray<UTexture*>& OutTextures, TArray< TArray<int32> >& OutIndices, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) const
+{
+	OutTextures.Empty();
+	OutIndices.Empty();
+
+	if (!FPlatformProperties::IsServerOnly())
+	{
+		const FMaterialResource* CurrentResource = MaterialResources[QualityLevel][FeatureLevel];
+
+		if (CurrentResource)
+		{
+			const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >* ExpressionsByType[2] =
+			{
+				&CurrentResource->GetUniform2DTextureExpressions(),
+				&CurrentResource->GetUniformCubeTextureExpressions()
+			};
+
+			// Try to prevent resizing since this would be expensive.
+			OutIndices.Empty(ExpressionsByType[0]->Num() + ExpressionsByType[1]->Num());
+
+			for (int32 TypeIndex = 0; TypeIndex < ARRAY_COUNT(ExpressionsByType); TypeIndex++)
+			{
+				// Iterate over each of the material's texture expressions.
+				for (FMaterialUniformExpressionTexture* Expression : *ExpressionsByType[TypeIndex])
+				{
+					const bool bAllowOverride = false;
+					UTexture* Texture = NULL;
+					Expression->GetGameThreadTextureValue(this, *CurrentResource, Texture, bAllowOverride);
+
+					if (Texture)
+					{
+						int32 InsertIndex = OutTextures.AddUnique(Texture);
+						if (InsertIndex >= OutIndices.Num())
+						{
+							OutIndices.AddDefaulted(InsertIndex - OutIndices.Num() + 1);
+						}
+						OutIndices[InsertIndex].Add(Expression->GetTextureIndex());
+					}
+				}
+			}
+		}
+	}
+}
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 void UMaterial::LogMaterialsAndTextures(FOutputDevice& Ar, int32 Indent) const
 {
@@ -2775,6 +2819,10 @@ void UMaterial::PreEditChange(UProperty* PropertyThatChanged)
 
 void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	// If the material changes, then the debug view material must reset to prevent parameters mismatch
+	void ClearAllDebugViewMaterials();
+	ClearAllDebugViewMaterials();
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;

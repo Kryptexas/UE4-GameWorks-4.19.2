@@ -58,7 +58,7 @@ public:
 		ShouldCacheType InShouldCacheRef,
 		GetStreamOutElementsType InGetStreamOutElementsRef
 		):
-		FShaderType(InName,InSourceFilename,InFunctionName,InFrequency,InConstructSerializedRef,InGetStreamOutElementsRef),
+		FShaderType(EShaderTypeForDynamicCast::Global, InName, InSourceFilename, InFunctionName, InFrequency, InConstructSerializedRef, InGetStreamOutElementsRef),
 		ConstructCompiledRef(InConstructCompiledRef),
 		ShouldCacheRef(InShouldCacheRef),
 		ModifyCompilationEnvironmentRef(InModifyCompilationEnvironmentRef)
@@ -97,10 +97,6 @@ public:
 		// Allow the shader type to modify its compile environment.
 		(*ModifyCompilationEnvironmentRef)(Platform, Environment);
 	}
-
-	// Dynamic casting.
-	virtual FGlobalShaderType* GetGlobalShaderType() override { return this; }
-	virtual const FGlobalShaderType* GetGlobalShaderType() const override { return this; }
 
 private:
 	ConstructCompiledType ConstructCompiledRef;

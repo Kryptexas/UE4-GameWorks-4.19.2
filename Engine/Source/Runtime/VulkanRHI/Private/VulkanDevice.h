@@ -9,9 +9,11 @@
 #include "VulkanMemory.h"
 
 class FVulkanDescriptorPool;
+class FVulkanCommandListContext;
 
-struct FVulkanDevice
+class FVulkanDevice
 {
+public:
 	enum
 	{
 		NumTimestampPools = 3,	// Must be the same size as the number of the backbuffer images
@@ -26,7 +28,7 @@ struct FVulkanDevice
 
 	void InitGPU(int32 DeviceIndex);
 
-	void InitDevice();
+	void CreateDevice();
 
 	void Destroy();
 
@@ -38,7 +40,10 @@ struct FVulkanDevice
 		return *PendingState;
 	}
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 	void EndCommandBufferBlock(FVulkanCmdBuffer* CmdBuffer);
+#endif
 
 	inline FVulkanQueue* GetQueue()
 	{
@@ -110,10 +115,19 @@ struct FVulkanDevice
 		return MemoryManager;
 	}
 
-	VulkanRHI::FResourceAllocationManager& GetResourceAllocationManager()
+#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+	VulkanRHI::FResourceHeapManager& GetResourceHeapManager()
 	{
-		return ResourceAllocationManager;
+		return ResourceHeapManager;
 	}
+#endif
+
+#if VULKAN_USE_NEW_COMMAND_BUFFERS && VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+	VulkanRHI::FDeferredDeletionQueue& GetDeferredDeletionQueue()
+	{
+		return DeferredDeletionQueue;
+	}
+#endif
 
 	VulkanRHI::FStagingManager& GetStagingManager()
 	{
@@ -125,12 +139,10 @@ struct FVulkanDevice
 		return DescriptorPool;
 	}
 
-#if VULKAN_USE_FENCE_MANAGER
 	VulkanRHI::FFenceManager& GetFenceManager()
 	{
 		return FenceManager;
 	}
-#endif
 
 	FVulkanCommandListContext& GetImmediateContext()
 	{
@@ -158,21 +170,24 @@ private:
 	VkPhysicalDeviceProperties GpuProps;
 	VkPhysicalDeviceFeatures Features;
 	
+	VkDevice Device;
+
 	VulkanRHI::FDeviceMemoryManager MemoryManager;
-	VulkanRHI::FResourceAllocationManager ResourceAllocationManager;
+#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+	VulkanRHI::FResourceHeapManager ResourceHeapManager;
+#endif
+#if VULKAN_USE_NEW_COMMAND_BUFFERS && VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+	VulkanRHI::FDeferredDeletionQueue DeferredDeletionQueue;
+#endif
 	VulkanRHI::FStagingManager StagingManager;
 
-#if VULKAN_USE_FENCE_MANAGER
 	VulkanRHI::FFenceManager FenceManager;
-#endif
-
-	VkDevice Device;
 
 	FVulkanDescriptorPool* DescriptorPool;
 
 	FVulkanSamplerState* DefaultSampler;
 
-	TArray<VkQueueFamilyProperties> QueueProps;
+	TArray<VkQueueFamilyProperties> QueueFamilyProps;
 	VkFormatProperties FormatProperties[VK_FORMAT_RANGE_SIZE];
 
 	// Nullptr if not supported
@@ -183,12 +198,13 @@ private:
 	FVulkanPendingState* PendingState;
 	VkComponentMapping PixelFormatComponentMapping[PF_MAX];
 
-	class FVulkanCommandListContext* ImmediateContext;
+	FVulkanCommandListContext* ImmediateContext;
 
 	FVulkanRingBuffer* VBIBRingBuffer;
 	FVulkanRingBuffer* UBRingBuffer;
 
 	void GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers);
+	void SetupFormats();
 
 #if VULKAN_ENABLE_DRAW_MARKERS
 	PFN_vkCmdDbgMarkerBegin VkCmdDbgMarkerBegin;

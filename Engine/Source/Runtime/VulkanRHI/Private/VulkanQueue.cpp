@@ -7,59 +7,54 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanQueue.h"
 #include "VulkanSwapChain.h"
+#include "VulkanMemory.h"
 
-#if !VULKAN_USE_FENCE_MANAGER
-static inline void CreateFence(VkDevice Device, VkFence& Fence)
-{
-	VkFenceCreateInfo FenceCreateInfo;
-	FMemory::Memzero(FenceCreateInfo);
-	FenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	VERIFYVULKANRESULT(vkCreateFence(Device, &FenceCreateInfo, nullptr, &Fence));
-}
-#endif
-
-FVulkanQueue::FVulkanQueue(FVulkanDevice* InDevice, uint32 InNodeIndex)
-	: AcquireNextImageKHR(VK_NULL_HANDLE)
+FVulkanQueue::FVulkanQueue(FVulkanDevice* InDevice, uint32 InFamilyIndex, uint32 InQueueIndex)
+	: 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
+	AcquireNextImageKHR(VK_NULL_HANDLE)
 	, QueuePresentKHR(VK_NULL_HANDLE)
 	, CurrentFenceIndex(0)
 	, CurrentImageIndex(-1)
-	, Queue(VK_NULL_HANDLE)
-	, NodeIndex(InNodeIndex)
+	, 
+#endif
+	Queue(VK_NULL_HANDLE)
+	, FamilyIndex(InFamilyIndex)
+	, QueueIndex(InQueueIndex)
 	, Device(InDevice)
 {
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 	check(Device);
-
 	for (int BufferIndex = 0; BufferIndex < VULKAN_NUM_IMAGE_BUFFERS; ++BufferIndex)
 	{
 		ImageAcquiredSemaphore[BufferIndex] = new FVulkanSemaphore(*Device);
 		RenderingCompletedSemaphore[BufferIndex] = new FVulkanSemaphore(*Device);
-#if VULKAN_USE_FENCE_MANAGER
 		Fences[BufferIndex] = nullptr;
-#else
-		Fences[BufferIndex] = VK_NULL_HANDLE;
-#endif
 	}
+#endif
+	vkGetDeviceQueue(Device->GetInstanceHandle(), FamilyIndex, InQueueIndex, &Queue);
 
-	vkGetDeviceQueue(Device->GetInstanceHandle(), NodeIndex, 0, &Queue);
-
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 	AcquireNextImageKHR = (PFN_vkAcquireNextImageKHR)(void*)vkGetDeviceProcAddr(Device->GetInstanceHandle(), "vkAcquireNextImageKHR");
 	check(AcquireNextImageKHR);
 
 	QueuePresentKHR = (PFN_vkQueuePresentKHR)(void*)vkGetDeviceProcAddr(Device->GetInstanceHandle(), "vkQueuePresentKHR");
 	check(QueuePresentKHR);
+#endif
 }
 
 FVulkanQueue::~FVulkanQueue()
 {
 	check(Device);
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 	if (Fences[CurrentFenceIndex] != VK_NULL_HANDLE)
 	{
-#if VULKAN_USE_FENCE_MANAGER
 		Device->GetFenceManager().WaitForFence(Fences[CurrentFenceIndex], UINT32_MAX);
-#else
-		VERIFYVULKANRESULT(vkWaitForFences(Device->GetInstanceHandle(), 1, &Fences[CurrentFenceIndex], VK_TRUE, UINT64_MAX));
-#endif
 	}
 
 	for (int BufferIndex = 0; BufferIndex < VULKAN_NUM_IMAGE_BUFFERS; ++BufferIndex)
@@ -69,22 +64,17 @@ FVulkanQueue::~FVulkanQueue()
 		delete RenderingCompletedSemaphore[BufferIndex];
 		RenderingCompletedSemaphore[BufferIndex] = nullptr;
 
-#if VULKAN_USE_FENCE_MANAGER
 		if (Fences[BufferIndex])
 		{
 			Device->GetFenceManager().ReleaseFence(Fences[BufferIndex]);
 			Fences[BufferIndex] = nullptr;
 		}
-#else
-		if (Fences[BufferIndex] != VK_NULL_HANDLE)
-		{
-			vkDestroyFence(Device->GetInstanceHandle(), Fences[BufferIndex], nullptr);
-			Fences[BufferIndex] = VK_NULL_HANDLE;
-		}
-#endif
 	}
+#endif
 }
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 uint32 FVulkanQueue::AquireImageIndex(FVulkanSwapChain* Swapchain)
 {	
 	check(Device);
@@ -104,13 +94,8 @@ uint32 FVulkanQueue::AquireImageIndex(FVulkanSwapChain* Swapchain)
 		#endif
 		{
 			// Grab the next fence and re-use it.
-#if VULKAN_USE_FENCE_MANAGER
 			Device->GetFenceManager().WaitForFence(Fences[CurrentFenceIndex], UINT32_MAX);
 			Device->GetFenceManager().ResetFence(Fences[CurrentFenceIndex]);
-#else
-			VERIFYVULKANRESULT(vkWaitForFences(Device->GetInstanceHandle(), 1, &Fences[CurrentFenceIndex], VK_TRUE, UINT64_MAX));
-			VERIFYVULKANRESULT(vkResetFences(Device->GetInstanceHandle(), 1, &Fences[CurrentFenceIndex]));
-#endif
 		}
 	}
 
@@ -131,7 +116,31 @@ uint32 FVulkanQueue::AquireImageIndex(FVulkanSwapChain* Swapchain)
 
 	return CurrentImageIndex;
 }
+#endif
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer)
+{
+	check(CmdBuffer->HasEnded());
+
+	VkSubmitInfo SubmitInfo;
+	FMemory::Memzero(SubmitInfo);
+
+	auto* Fence = CmdBuffer->GetFence();
+	check(!Fence->IsSignaled());
+
+	const VkCommandBuffer CmdBuffers[] = { CmdBuffer->GetHandle() };
+
+	SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	SubmitInfo.commandBufferCount = 1;
+	SubmitInfo.pCommandBuffers = CmdBuffers;
+	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
+
+	CmdBuffer->State = FVulkanCmdBuffer::EState::Submitted;
+
+	CmdBuffer->GetOwner()->RefreshFenceStatus();
+}
+#else
 void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer)
 {
 	check(CmdBuffer);
@@ -156,27 +165,40 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer)
 	SubmitInfo.commandBufferCount = 1;
 	SubmitInfo.pCommandBuffers = CmdBuffers;
 
-#if VULKAN_USE_FENCE_MANAGER
 	if (!Fences[CurrentFenceIndex])
 	{
 		Fences[CurrentFenceIndex] = Device->GetFenceManager().AllocateFence();
 	}
 	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fences[CurrentFenceIndex]->GetHandle()));
-#else
-	if(Fences[CurrentFenceIndex] == VK_NULL_HANDLE)
-	{
-		CreateFence(Device->GetInstanceHandle(), Fences[CurrentFenceIndex]);
-	}
-	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fences[CurrentFenceIndex]));
-#endif
 
 #if VULKAN_FORCE_WAIT_FOR_QUEUE
 	VERIFYVULKANRESULT(vkQueueWaitIdle(Queue));
 #endif
 }
+#endif
+
+#if !VULKAN_USE_NEW_COMMAND_BUFFERS
+void FVulkanQueue::Submit2(VkCommandBuffer CmdBuffer, VulkanRHI::FFence* Fence)
+{
+	VkSubmitInfo SubmitInfo;
+	FMemory::Memzero(SubmitInfo);
+	SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	SubmitInfo.commandBufferCount = 1;
+	SubmitInfo.pCommandBuffers = &CmdBuffer;
+	check(!Fence || !Fence->IsSignaled());
+	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fence ? Fence->GetHandle() : VK_NULL_HANDLE));
+
+#if VULKAN_FORCE_WAIT_FOR_QUEUE
+	VERIFYVULKANRESULT(vkQueueWaitIdle(Queue));
+#endif
+}
+#endif
 
 void FVulkanQueue::SubmitBlocking(FVulkanCmdBuffer* CmdBuffer)
 {
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	check(0);
+#else
 	check(CmdBuffer);
 	CmdBuffer->End();
 
@@ -188,7 +210,6 @@ void FVulkanQueue::SubmitBlocking(FVulkanCmdBuffer* CmdBuffer)
 	SubmitInfo.commandBufferCount = 1;
 	SubmitInfo.pCommandBuffers = CmdBufs;
 
-#if VULKAN_USE_FENCE_MANAGER
 	auto* Fence = Device->GetFenceManager().AllocateFence();
 	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
 
@@ -196,23 +217,11 @@ void FVulkanQueue::SubmitBlocking(FVulkanCmdBuffer* CmdBuffer)
 	check(bSuccess);
 
 	Device->GetFenceManager().ReleaseFence(Fence);
-#else
-	VkFence Fence = { VK_NULL_HANDLE };
-	VkFenceCreateInfo FenceCreateInfo;
-	FMemory::Memzero(FenceCreateInfo);
-	FenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	VERIFYVULKANRESULT(vkCreateFence(Device->GetInstanceHandle(), &FenceCreateInfo, nullptr, &Fence));
-
-	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fence));
-
-	VERIFYVULKANRESULT(vkWaitForFences(Device->GetInstanceHandle(), 1, &Fence, true, 0xFFFFFFFF));
-
-	VERIFYVULKANRESULT(vkResetFences(Device->GetInstanceHandle(), 1, &Fence));
-
-	vkDestroyFence(Device->GetInstanceHandle(), Fence, nullptr);
 #endif
 }
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 void FVulkanQueue::Present(FVulkanSwapChain* Swapchain, uint32 ImageIndex)
 {
 	check(Swapchain);
@@ -220,8 +229,6 @@ void FVulkanQueue::Present(FVulkanSwapChain* Swapchain, uint32 ImageIndex)
 	VkPresentInfoKHR Info;
 	FMemory::Memzero(Info);
 	Info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-	Info.pNext = nullptr;
-
 	Info.waitSemaphoreCount = 1;	// 0;	// 1;
 	VkSemaphore Local = RenderingCompletedSemaphore[CurrentFenceIndex]->GetHandle();
 	Info.pWaitSemaphores = &Local;
@@ -231,3 +238,4 @@ void FVulkanQueue::Present(FVulkanSwapChain* Swapchain, uint32 ImageIndex)
 
 	VERIFYVULKANRESULT(QueuePresentKHR(Queue, &Info));
 }
+#endif

@@ -870,8 +870,14 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 		TArray<FString> UsedOutputs = Input.UsedOutputs;
 		UsedOutputs.AddUnique(TEXT("SV_POSITION"));
 
+		// We can't remove any of the output-only system semantics
+		//@todo - there are a bunch of tessellation ones as well
+		TArray<FString> Exceptions;
+		Exceptions.AddUnique(TEXT("SV_ClipDistance"));
+		Exceptions.AddUnique(TEXT("SV_CullDistance"));
+
 		TArray<FString> Errors;
-		if (!RemoveUnusedOutputs(PreprocessedShaderSource, UsedOutputs, EntryPointName, Errors))
+		if (!RemoveUnusedOutputs(PreprocessedShaderSource, UsedOutputs, Exceptions, EntryPointName, Errors))
 		{
 			UE_LOG(LogD3D11ShaderCompiler, Warning, TEXT("Failed to Remove unused outputs [%s]!"), *Input.DumpDebugInfoPath);
 			for (int32 Index = 0; Index < Errors.Num(); ++Index)

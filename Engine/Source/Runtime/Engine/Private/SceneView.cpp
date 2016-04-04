@@ -134,6 +134,34 @@ static TAutoConsoleVariable<int32> CVarScreenPercentageEditor(
 	TEXT("1: allow upsample (blurry but faster) and downsample (cripser but slower)"),
 	ECVF_Default);
 
+static TAutoConsoleVariable<float> CVarDepthOfFieldDepthBlurAmount(
+	TEXT("r.DepthOfField.DepthBlur.Amount"),
+	1.0f,
+	TEXT("This scale multiplier only affects the CircleDOF DepthBlur feature (value defines in how many km the radius goes to 50%).\n")
+	TEXT(" x: Multiply the existing Depth Blur Amount with x\n")
+	TEXT("-x: Override the existing Depth Blur Amount with x (in km)\n")
+	TEXT(" 1: No adjustments (default)"),
+	ECVF_RenderThreadSafe | ECVF_Cheat);
+
+static TAutoConsoleVariable<float> CVarDepthOfFieldDepthBlurScale(
+	TEXT("r.DepthOfField.DepthBlur.Scale"),
+	1.0f,
+	TEXT("This scale multiplier only affects the CircleDOF DepthBlur feature. This is applied after r.DepthOfField.DepthBlur.ResolutionScale.\n")
+	TEXT(" 0: Disable Depth Blur\n")
+	TEXT(" x: Multiply the existing Depth Blur Radius with x\n")
+	TEXT("-x: Override the existing Depth Blur Radius with x\n")
+	TEXT(" 1: No adjustments (default)"),
+	ECVF_RenderThreadSafe | ECVF_Cheat);
+
+static TAutoConsoleVariable<float> CVarDepthOfFieldDepthBlurResolutionScale(
+	TEXT("r.DepthOfField.DepthBlur.ResolutionScale"),
+	1.0f,
+	TEXT("This scale multiplier only affects the CircleDOF DepthBlur feature. It's a temporary hack.\n")
+	TEXT("It lineary scale the DepthBlur by the resolution increase over 1920 (in width), does only affect resolution larger than that.\n")
+	TEXT("Actual math: float Factor = max(ViewWidth / 1920 - 1, 0); DepthBlurRadius *= 1 + Factor * (CVar - 1)\n")
+	TEXT(" 1: No adjustments (default)\n")
+	TEXT(" x: if the resolution is 1920 there is no change, if 2x larger than 1920 it scale the radius by x"),
+	ECVF_RenderThreadSafe | ECVF_Cheat);
 #endif
 
 static TAutoConsoleVariable<float> CVarSSAOFadeRadiusScale(
@@ -381,11 +409,11 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsViewInfo(false)
 	, bIsSceneCapture(false)
 	, bIsReflectionCapture(false)
-	, bIsPlanarReflectionCapture(false)
-	, ReflectionPlane(0.0f)
+	, bIsPlanarReflection(false)
 	, bIsLocked(false)
 	, bStaticSceneOnly(false)
 	, bIsInstancedStereoEnabled(false)
+	, GlobalClippingPlane(FPlane(0, 0, 0, 0))
 #if WITH_EDITOR
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
 	, bAllowTranslucentPrimitivesInHitProxy( true )
@@ -1462,6 +1490,30 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		float Value = CVarExposureOffset.GetValueOnGameThread();
 		FinalPostProcessSettings.AutoExposureBias += Value;
 	}
+
+	{
+		float& DepthBlurAmount = FinalPostProcessSettings.DepthOfFieldDepthBlurAmount;
+
+		float CVarAmount = CVarDepthOfFieldDepthBlurAmount.GetValueOnGameThread();
+
+		DepthBlurAmount = (CVarAmount > 0.0f) ? (DepthBlurAmount * CVarAmount) : -CVarAmount;
+	}
+
+	{
+		float& DepthBlurRadius = FinalPostProcessSettings.DepthOfFieldDepthBlurRadius;
+		{
+			float CVarResScale = FMath::Max(1.0f, CVarDepthOfFieldDepthBlurResolutionScale.GetValueOnGameThread());
+			
+			float Factor = FMath::Max(ViewRect.Width() / 1920.0f - 1.0f, 0.0f);
+
+			DepthBlurRadius *= 1.0f + Factor * (CVarResScale - 1.0f);
+		}
+		{
+			float CVarScale = CVarDepthOfFieldDepthBlurScale.GetValueOnGameThread();
+
+			DepthBlurRadius = (CVarScale > 0.0f) ? (DepthBlurRadius * CVarScale) : -CVarScale;
+		}
+	}
 #endif
 
 	if(FinalPostProcessSettings.DepthOfFieldMethod == DOFM_CircleDOF)
@@ -1808,6 +1860,10 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	}
 
 	DebugViewShaderMode = ChooseDebugViewShaderMode();
+	if (!AllowDebugViewShaderMode(DebugViewShaderMode, GetFeatureLevel()))
+	{
+		DebugViewShaderMode = DVSM_None;
+	}
 #endif
 
 #if !WITH_EDITOR
@@ -1908,49 +1964,6 @@ ERHIFeatureLevel::Type FSceneViewFamily::GetFeatureLevel() const
 	}
 }
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-EDebugViewShaderMode FSceneViewFamily::ChooseDebugViewShaderMode() const
-{
-	const bool bDebugViewShaderExists = AllowDebugViewModeShader(GetFeatureLevelShaderPlatform(GetFeatureLevel()));
-
-	if (bDebugViewShaderExists)
-	{
-		if (EngineShowFlags.ShaderComplexity)
-		{
-			if (EngineShowFlags.QuadOverdraw)
-			{
-				return DVSM_QuadComplexity;
-			}
-			else if (EngineShowFlags.ShaderComplexityWithQuadOverdraw)
-			{
-				return DVSM_ShaderComplexityContainedQuadOverhead;
-			}
-			else
-			{
-				return DVSM_ShaderComplexity;
-			}
-		}
-		else if (EngineShowFlags.WantedMipsAccuracy)
-		{
-			return DVSM_WantedMipsAccuracy;
-		}
-		else if (EngineShowFlags.TexelFactorAccuracy)
-		{
-			return DVSM_TexelFactorAccuracy;
-		}
-		else if (EngineShowFlags.TexCoordScaleAccuracy)
-		{
-			return DVSM_TexCoordScaleAnalysis;
-		}
-	}
-	else if (EngineShowFlags.ShaderComplexity && !EngineShowFlags.QuadOverdraw)
-	{
-		return DVSM_ShaderComplexity;
-	}
-	return DVSM_None;
-};
-#endif
-
 const FSceneView& FSceneViewFamily::GetStereoEyeView(const EStereoscopicPass Eye) const
 {
 	const int32 EyeIndex = static_cast<int32>(Eye);
@@ -1977,4 +1990,126 @@ FSceneViewFamilyContext::~FSceneViewFamilyContext()
 		delete Views[ViewIndex];
 	}
 }
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+namespace
+{
+	struct FDebugViewModeOptions
+	{
+		FDebugViewModeOptions() : bEnableQuadOverdraw(false), bEnableStreamingAccuracy(false), bEnableTextureStreamingBuild(false)
+		{
+			// OpenGL shares the same settings as DX on Windows, but some shaders do not compile yet.
+			//@TODO : if (!IsOpenGLPlatform(GMaxRHIShaderPlatform))
+			if (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_PCD3D_SM4)
+			{
+				GConfig->GetBool(TEXT("DebugViewModes"), TEXT("bEnableQuadOverdraw"), bEnableQuadOverdraw, GEngineIni);
+				GConfig->GetBool(TEXT("DebugViewModes"), TEXT("bEnableStreamingAccuracy"), bEnableStreamingAccuracy, GEngineIni);
+				GConfig->GetBool(TEXT("DebugViewModes"), TEXT("bEnableTextureStreamingBuild"), bEnableTextureStreamingBuild, GEngineIni);
+			}			
+
+			ERHIFeatureLevel::Type QuadOverdrawFeature = bEnableQuadOverdraw ? ERHIFeatureLevel::SM5 : ERHIFeatureLevel::Num;
+			ERHIFeatureLevel::Type StreamingAccuracyFeature = bEnableStreamingAccuracy ? ERHIFeatureLevel::SM4 : ERHIFeatureLevel::Num;
+			ERHIFeatureLevel::Type TexCoordScaleFeature = bEnableTextureStreamingBuild ? ERHIFeatureLevel::SM4 : ERHIFeatureLevel::Num;
+
+			static_assert(DVSM_MAX == 9, "Wrong DebugViewShaderMode Count");
+			MinFeatureLevels[DVSM_None] = ERHIFeatureLevel::Num;
+
+			MinFeatureLevels[DVSM_ShaderComplexity] = ERHIFeatureLevel::SM4;
+
+			MinFeatureLevels[DVSM_ShaderComplexityContainedQuadOverhead] = QuadOverdrawFeature;
+			MinFeatureLevels[DVSM_ShaderComplexityBleedingQuadOverhead] = QuadOverdrawFeature;			
+			MinFeatureLevels[DVSM_QuadComplexity] = QuadOverdrawFeature;
+
+			MinFeatureLevels[DVSM_WantedMipsAccuracy] = StreamingAccuracyFeature;
+			MinFeatureLevels[DVSM_TexelFactorAccuracy] = StreamingAccuracyFeature;
+
+			MinFeatureLevels[DVSM_TexCoordScaleAccuracy] = TexCoordScaleFeature;
+			MinFeatureLevels[DVSM_TexCoordScaleAnalysis] = TexCoordScaleFeature;
+		}
+
+		bool bEnableQuadOverdraw;
+		bool bEnableStreamingAccuracy;
+		bool bEnableTextureStreamingBuild;
+
+		ERHIFeatureLevel::Type MinFeatureLevels[DVSM_MAX];
+	};
+}
+
+EDebugViewShaderMode FSceneViewFamily::ChooseDebugViewShaderMode() const
+{
+	if (EngineShowFlags.ShaderComplexity)
+	{
+		if (EngineShowFlags.QuadOverdraw)
+		{
+			return DVSM_QuadComplexity;
+		}
+		else if (EngineShowFlags.ShaderComplexityWithQuadOverdraw)
+		{
+			return DVSM_ShaderComplexityContainedQuadOverhead;
+		}
+		else
+		{
+			return DVSM_ShaderComplexity;
+		}
+	}
+	else if (EngineShowFlags.WantedMipsAccuracy)
+	{
+		return DVSM_WantedMipsAccuracy;
+	}
+	else if (EngineShowFlags.TexelFactorAccuracy)
+	{
+		return DVSM_TexelFactorAccuracy;
+	}
+	else if (EngineShowFlags.TexCoordAnalysis) // Test before accuracy is set since accuracy could also be set.
+	{
+		return DVSM_TexCoordScaleAnalysis;
+	}
+	else if (EngineShowFlags.TexCoordScaleAccuracy)
+	{
+		return DVSM_TexCoordScaleAccuracy;
+	}
+	return DVSM_None;
+}
+
+bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode, ERHIFeatureLevel::Type FeatureLevel)
+{
+#if WITH_EDITOR
+	static const FDebugViewModeOptions Options;
+	check(ShaderMode < DVSM_MAX && FeatureLevel < ERHIFeatureLevel::Num);
+	return FeatureLevel >= Options.MinFeatureLevels[ShaderMode]; 
+#else
+	return ShaderMode == DVSM_ShaderComplexity && FeatureLevel >= ERHIFeatureLevel::SM4;
+#endif
+}
+
+bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform)
+{
+	if (ShaderMode == DVSM_None)
+	{
+		return false; // This must always return false as it used to know if there is a debug viewmode enabled.
+	}
+	//@TODO : else if (!IsPCPlatform(Platform))
+	else if (Platform != SP_PCD3D_SM5 && Platform != SP_PCD3D_SM4)
+	{
+		return ShaderMode == DVSM_ShaderComplexity && GetMaxSupportedFeatureLevel(Platform) >= ERHIFeatureLevel::SM4; // Only shader complexity is available on non shader platforms.
+	}
+	else // Otherwise, this will be valid only for the current platform.
+	{
+		return AllowDebugViewShaderMode(ShaderMode, GetMaxSupportedFeatureLevel(Platform));
+	}
+}
+
+bool AllowDebugViewVSDSHS(ERHIFeatureLevel::Type FeatureLevel)
+{
+	return AllowDebugViewShaderMode(DVSM_QuadComplexity, FeatureLevel) || AllowDebugViewShaderMode(DVSM_WantedMipsAccuracy, FeatureLevel) || AllowDebugViewShaderMode(DVSM_TexCoordScaleAnalysis, FeatureLevel);
+}
+
+bool AllowDebugViewVSDSHS(EShaderPlatform Platform)
+{
+	return AllowDebugViewShaderMode(DVSM_QuadComplexity, Platform) || AllowDebugViewShaderMode(DVSM_WantedMipsAccuracy, Platform) || AllowDebugViewShaderMode(DVSM_TexCoordScaleAnalysis, Platform);
+}
+
+#endif
+
 

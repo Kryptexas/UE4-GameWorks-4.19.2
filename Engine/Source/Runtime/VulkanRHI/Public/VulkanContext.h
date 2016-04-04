@@ -8,8 +8,8 @@
 
 #include "VulkanResources.h"
 
-struct FVulkanDevice;
-struct FVulkanCommandBufferManager;
+class FVulkanDevice;
+class FVulkanCommandBufferManager;
 
 class FVulkanCommandListContext : public IRHICommandContext
 {
@@ -87,6 +87,7 @@ public:
 	virtual void RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data) final override;
 	virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override;
 	virtual void RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture, FTextureRHIParamRef DestTexture, bool bKeepOriginalSurface, const FResolveParams& ResolveParams) final override;
+	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InRenderTargets, int32 NumTextures) final override;
 
 	// Render time measurement
 	virtual void RHIBeginRenderQuery(FRenderQueryRHIParamRef RenderQuery) final override;
@@ -145,4 +146,6 @@ protected:
 	TArray<FString> EventStack;
 
 	FVulkanCommandBufferManager* CommandBufferManager;
+
+	void SubmitCurrentCommands();
 };

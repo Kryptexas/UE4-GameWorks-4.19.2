@@ -22,7 +22,7 @@ public:
 		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 	}
 
-	FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialShaderMapUsage::Type InUsage);
+	FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage);
 
 	virtual bool RequiresSynchronousCompilation() const override { return false; };
 
@@ -92,7 +92,7 @@ public:
 
 	////////////////
 
-	static void AddShader(UMaterialInterface* InMaterialInterface, EMaterialShaderMapUsage::Type InUsage);
+	static void AddShader(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage);
 	static const FMaterial* GetShader(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material);
 	static void ClearAllShaders();
 

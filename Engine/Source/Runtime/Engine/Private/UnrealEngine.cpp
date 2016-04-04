@@ -758,7 +758,7 @@ void EngineMemoryWarningHandler(const FGenericMemoryWarningContext& GenericConte
 		Stats.AvailablePhysical / 1048576.0f);
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-	const auto OOMMemReportVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Debug.OOMMemReport")); 
+	static const auto OOMMemReportVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Debug.OOMMemReport")); 
 	const int32 OOMMemReport = OOMMemReportVar ? OOMMemReportVar->GetValueOnAnyThread() : false;
 	if( OOMMemReport )
 	{
@@ -3574,8 +3574,9 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		// Use the existing texture streaming functionality to gather referenced textures. Worth noting
 		// that GetStreamingTextureInfo doesn't check whether a texture is actually streamable or not
 		// and is also implemented for skeletal meshes and such.
+		FStreamingTextureLevelContext LevelContext;
 		TArray<FStreamingTexturePrimitiveInfo> StreamingTextures;
-		PrimitiveComponent->GetStreamingTextureInfoWithNULLRemoval( StreamingTextures );
+		PrimitiveComponent->GetStreamingTextureInfo( LevelContext, StreamingTextures );
 
 		// Increase usage count for all referenced textures
 		for( int32 TextureIndex=0; TextureIndex<StreamingTextures.Num(); TextureIndex++ )
@@ -4526,7 +4527,7 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 	// Handle "DEBUG CRASH" etc. 
 	return PerformError(Cmd, Ar);
-	}
+}
 
 
 bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
@@ -6338,7 +6339,7 @@ void UEngine::StartHardwareSurvey()
 #endif
 
 	if (bEnabled && FEngineAnalytics::IsAvailable())
-		{
+	{
 		IHardwareSurveyModule::Get().StartHardwareSurvey(FEngineAnalytics::GetProvider());
 		}
 	}	
@@ -11045,7 +11046,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 				if (!bContainedInsideNewInstance)
 				{
 					// A bad thing has happened and cannot be reasonably fixed at this point
-					UE_LOG(LogEngine, Log, TEXT("Warning: The CDO '%s' references a component that does not have the CDO in its outer chain!"), *NewObject->GetFullName(), *NewInstance->GetFullName()); 	
+					UE_LOG(LogEngine, Log, TEXT("Warning: The CDO '%s' references a component that does not have the CDO in its outer chain!"), *NewObject->GetFullName(), *NewInstance->GetFullName());
 				}
 			}
 		}
@@ -12117,22 +12118,22 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 			if (WaveInstance->GetActualVolume() >= 0.01f)
 			{
 				++ActiveInstances;
-			ActiveSounds.Add(WaveInstance->ActiveSound);
+				ActiveSounds.Add(WaveInstance->ActiveSound);
 
-			UAudioComponent* AudioComponent = WaveInstance->ActiveSound->GetAudioComponent();
-			AActor* SoundOwner = AudioComponent ? AudioComponent->GetOwner() : nullptr;
-			USoundClass* SoundClass = WaveInstance->SoundClass;
+				UAudioComponent* AudioComponent = WaveInstance->ActiveSound->GetAudioComponent();
+				AActor* SoundOwner = AudioComponent ? AudioComponent->GetOwner() : nullptr;
+				USoundClass* SoundClass = WaveInstance->SoundClass;
 
-			FString TheString = *FString::Printf(TEXT("%4i.    %6.2f  %s   Owner: %s   SoundClass: %s"),
-				InstanceIndex,
-				WaveInstance->GetActualVolume(),
-				*WaveInstance->WaveData->GetPathName(),
-				SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
-				SoundClass ? *SoundClass->GetName() : TEXT("None"));
+				FString TheString = *FString::Printf(TEXT("%4i.    %6.2f  %s   Owner: %s   SoundClass: %s"),
+													 InstanceIndex,
+													 WaveInstance->GetActualVolume(),
+													 *WaveInstance->WaveData->GetPathName(),
+													 SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
+													 SoundClass ? *SoundClass->GetName() : TEXT("None"));
 
-			Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
-			Y += 12;
-		}
+				Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
+				Y += 12;
+			}
 		}
 
 		int32 Max = AudioDevice->MaxChannels / 2;
@@ -12171,9 +12172,9 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 			FWaveInstance* WaveInstance = WaveInstances[InstanceIndex];
 			if (WaveInstance->GetActualVolume() >= 0.01f)
 			{
-			ActiveSounds.Add(WaveInstance->ActiveSound);
+				ActiveSounds.Add(WaveInstance->ActiveSound);
+			}
 		}
-	}
 	}
 
 	Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Cues:"), GetSmallFont(), FColor::Green);

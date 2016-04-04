@@ -44,6 +44,7 @@ struct ViewDependentState {
 	float4x4 PrevInvViewProj;
 	float4x4 PrevScreenToTranslatedWorld;
 	float4x4 ClipToPrevClip;
+	float4 GlobalClippingPlane;
 };
 
 // Used when instanced stereo is disabled and for shaders which don't support or need it.
@@ -89,6 +90,7 @@ ViewDependentState ResolveView()
 	Result.PrevInvViewProj = View.PrevInvViewProj;
 	Result.PrevScreenToTranslatedWorld = View.PrevScreenToTranslatedWorld;
 	Result.ClipToPrevClip = View.ClipToPrevClip;
+	Result.GlobalClippingPlane = View.GlobalClippingPlane;
 
 	return Result;
 }
@@ -168,6 +170,7 @@ ViewDependentState ResolveView(uint ViewIndex)
 		Result.PrevInvViewProj = View.PrevInvViewProj;
 		Result.PrevScreenToTranslatedWorld = View.PrevScreenToTranslatedWorld;
 		Result.ClipToPrevClip = View.ClipToPrevClip;
+		Result.GlobalClippingPlane = View.GlobalClippingPlane;
 	}
 	else
 	{
@@ -208,6 +211,7 @@ ViewDependentState ResolveView(uint ViewIndex)
 		Result.PrevInvViewProj = InstancedView.PrevInvViewProj;
 		Result.PrevScreenToTranslatedWorld = InstancedView.PrevScreenToTranslatedWorld;
 		Result.ClipToPrevClip = InstancedView.ClipToPrevClip;
+		Result.GlobalClippingPlane = View.GlobalClippingPlane;
 	}
 
 	return Result;

@@ -37,17 +37,17 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 // Default is 1 (which is aniso off), the number is adjusted after the limits are queried.
 static int32 GMaxVulkanTextureFilterAnisotropic = 1;
 
-struct FVulkanQueue;
+class FVulkanQueue;
 class FVulkanCmdBuffer;
-struct FVulkanShader;
-struct FVulkanDescriptorSetsLayout;
+class FVulkanShader;
+class FVulkanDescriptorSetsLayout;
 class FVulkanBlendState;
 class FVulkanDepthStencilState;
 class FVulkanBoundShaderState;
 class FVulkanPipeline;
-struct FVulkanRenderPass;
-struct FVulkanCommandBufferManager;
-struct FVulkanPendingState;
+class FVulkanRenderPass;
+class FVulkanCommandBufferManager;
+class FVulkanPendingState;
 
 inline VkShaderStageFlagBits UEFrequencyToVKStageBit(EShaderFrequency InStage)
 {
@@ -165,54 +165,9 @@ private:
 #include "VulkanQueue.h"
 #include "VulkanCommandBuffer.h"
 
-struct FVulkanDepthStencilView
+class FVulkanFramebuffer
 {
-	FVulkanDepthStencilView() :
-#if 0
-		View(VK_NULL_HANDLE),
-#endif
-		Format(VK_FORMAT_UNDEFINED)
-	{
-	}
-
-	void Create(FVulkanDevice& Device, FVulkanTexture2D& Texture)
-	{
-		check(0);
-#if 0
-		VkDepthStencilViewCreateInfo ViewInfo;
-		ViewInfo.sType = VK_STRUCTURE_TYPE_DEPTH_STENCIL_VIEW_CREATE_INFO;
-		ViewInfo.pNext = nullptr;
-		ViewInfo.image = Texture.Surface.Image;
-		ViewInfo.mipLevel = 0;
-		ViewInfo.baseArraySlice = 0;
-		ViewInfo.arraySize = 1;
-		ViewInfo.flags = 0;
-		VERIFYVULKANRESULT(vkCreateDepthStencilView(Device.Device, &ViewInfo, &View));
-
-		Format = Texture.Surface.InternalFormat;
-#endif
-	}
-
-	void Destroy(FVulkanDevice& Device)
-	{
-		check(0);
-#if 0
-		if (View != VK_NULL_HANDLE)
-		{
-			vkDestroyObject(Device.Device, VK_OBJECT_TYPE_DEPTH_STENCIL_VIEW, View);
-			View = VK_NULL_HANDLE;
-		}
-#endif
-	}
-
-#if 0
-	VkDepthStencilView View;
-#endif
-	VkFormat Format;
-};
-
-struct FVulkanFramebuffer
-{
+public:
 	FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRenderTargetsInfo& RTInfo, const FVulkanRenderTargetLayout& RTLayout, const FVulkanRenderPass& RenderPass);
 
 	bool Matches(const FRHISetRenderTargetsInfo& RTInfo) const;
@@ -230,7 +185,11 @@ struct FVulkanFramebuffer
 	TArray<VkImageView> Attachments;
 	TArray<VkImageSubresourceRange> SubresourceRanges;
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	void InsertWriteBarrier(FVulkanCmdBuffer* CmdBuffer);
+#else
 	void InsertWriteBarrier(VkCommandBuffer cmd);
+#endif
 
 private:
 	VkFramebuffer Framebuffer;
@@ -244,13 +203,14 @@ private:
 	TArray<VkImageMemoryBarrier> WriteBarriers;
 };
 
-struct FVulkanRenderPass
+class FVulkanRenderPass
 {
+public:
 	const FVulkanRenderTargetLayout& GetLayout() const { return Layout; }
 	VkRenderPass GetHandle() const { check(RenderPass != VK_NULL_HANDLE); return RenderPass; }
 
 private:
-	friend struct FVulkanPendingState;
+	friend class FVulkanPendingState;
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	friend class FVulkanPipelineStateCache;
@@ -259,11 +219,14 @@ private:
 	FVulkanRenderPass(FVulkanDevice& Device, const FVulkanRenderTargetLayout& RTLayout);
 	~FVulkanRenderPass();
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 	void Begin(FVulkanCmdBuffer& CmdBuf, const VkFramebuffer& Framebuffer, const VkClearValue* AttachmentClearValues);
 	void End(FVulkanCmdBuffer& CmdBuf)
 	{
 		vkCmdEndRenderPass(CmdBuf.GetHandle());
 	}
+#endif
 
 private:
 	FVulkanRenderTargetLayout Layout;
@@ -271,8 +234,9 @@ private:
 	FVulkanDevice& Device;
 };
 
-struct FVulkanDescriptorSetsLayout
+class FVulkanDescriptorSetsLayout
 {
+public:
 	FVulkanDescriptorSetsLayout(FVulkanDevice* InDevice);
 	~FVulkanDescriptorSetsLayout();
 
@@ -355,7 +319,7 @@ struct FVulkanDescriptorSets
 
 private:
 	friend class FVulkanDescriptorPool;
-	friend struct FVulkanPendingState;
+	friend class FVulkanPendingState;
 
 	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanBoundShaderState* InState, FVulkanDescriptorPool* InPool);
 	~FVulkanDescriptorSets();
@@ -366,10 +330,14 @@ private:
 	TArray<VkDescriptorSet> Sets;
 };
 
+void VulkanSetImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageSubresourceRange SubresourceRange);
 
-void VulkanSetImageLayout(VkCommandBuffer CmdBuffer, VkImage image, VkImageAspectFlags aspectMask, VkImageLayout old_image_layout, VkImageLayout new_image_layout);
-
-void VulkanImageCopy(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI);
+// Transitions Color Images's first mip/layer/face
+inline void VulkanSetImageLayoutSimple(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect = VK_IMAGE_ASPECT_COLOR_BIT)
+{
+	VkImageSubresourceRange SubresourceRange = { Aspect, 0, 1, 0, 1 };
+	VulkanSetImageLayout(CmdBuffer, Image, OldLayout, NewLayout, SubresourceRange);
+}
 
 void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI);
 
@@ -455,6 +423,50 @@ public:
 		FVulkanDynamicPooledBuffer::Unlock(LockInfo);
 	}
 };
+
+
+#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+namespace VulkanRHI
+{
+	struct FStagingBuffer2 : public VulkanRHI::FDeviceChild, public VulkanRHI::FRefCount
+	{
+		VkBuffer Buffer;
+		VkMemoryRequirements MemoryRequirements;
+		TRefCountPtr<VulkanRHI::FResourceAllocation> ResourceAllocation;
+
+		FStagingBuffer2(FVulkanDevice* InDevice, uint32 Size)
+			: FDeviceChild(InDevice)
+		{
+			Buffer = FVulkanBuffer2::CreateVulkanBuffer(InDevice, Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryRequirements);
+		}
+
+		uint32 GetAlignment() const
+		{
+			return (uint32)MemoryRequirements.alignment;
+		}
+
+		void BindAllocation(TRefCountPtr<VulkanRHI::FResourceAllocation> InResourceAllocation)
+		{
+			ResourceAllocation = InResourceAllocation;
+			check(Align(ResourceAllocation->GetOffset(), MemoryRequirements.alignment) == ResourceAllocation->GetOffset());
+			VERIFYVULKANRESULT(vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, ResourceAllocation->GetHandle(), ResourceAllocation->GetOffset()));
+		}
+
+		~FStagingBuffer2()
+		{
+			vkDestroyBuffer(Device->GetInstanceHandle(), Buffer, nullptr);
+		}
+	};
+
+	struct FPendingBuffer2Lock
+	{
+		VulkanRHI::FResourceAllocation* ResourceAllocation;
+		TRefCountPtr<FStagingBuffer2> StagingBuffer;
+		uint32 Offset;
+		uint32 Size;
+	};
+}
+#endif
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
 extern TAutoConsoleVariable<int32> GValidationCvar;

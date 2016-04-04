@@ -3625,7 +3625,7 @@ void UParticleSystemComponent::DestroyRenderState_Concurrent()
 
 
 FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( FParticleEmitterInstance* EmitterInstance, 
-	const FDynamicEmitterReplayDataBase* EmitterReplayData, bool bSelected )
+	const FDynamicEmitterReplayDataBase* EmitterReplayData, bool bSelected, ERHIFeatureLevel::Type InFeatureLevel )
 {
 	checkSlow(EmitterInstance && EmitterInstance->CurrentLODLevel);
 	check( EmitterReplayData != NULL );
@@ -3679,8 +3679,8 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 					NewEmitterData->Init(
 						bSelected,
 						MeshEmitterInstance,
-						MeshEmitterInstance->MeshTypeData->Mesh
-						);
+						MeshEmitterInstance->MeshTypeData->Mesh,
+						InFeatureLevel);
 					EmitterData = NewEmitterData;
 				}
 			}
@@ -3748,7 +3748,7 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 
 
 
-FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
+FParticleDynamicData* UParticleSystemComponent::CreateDynamicData(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	//SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData);
 
@@ -3820,7 +3820,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 						// Fill dynamic data from the replay frame data for this emitter so we can render it
 						// Grab the original emitter instance for that this replay was generated from
 						FDynamicEmitterDataBase* NewDynamicEmitterData =
-							CreateDynamicDataFromReplay( EmitterInstances[ CurEmitter.OriginalEmitterIndex ], CurEmitterReplay, IsOwnerSelected() );
+							CreateDynamicDataFromReplay( EmitterInstances[ CurEmitter.OriginalEmitterIndex ], CurEmitterReplay, IsOwnerSelected(), InFeatureLevel );
 
 
 						if( NewDynamicEmitterData != NULL )
@@ -3896,7 +3896,7 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 							bIsOwnerSeleted = IsOwnerSelected();
 						}
 #endif
-						NewDynamicEmitterData = EmitterInst->GetDynamicData(bIsOwnerSeleted);
+						NewDynamicEmitterData = EmitterInst->GetDynamicData(bIsOwnerSeleted, InFeatureLevel);
 					}
 					if( NewDynamicEmitterData != NULL )
 					{
@@ -4003,7 +4003,7 @@ void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Prox
 	if (SceneProxy)
 	{
 		// Create the dynamic data for rendering this particle system
-		FParticleDynamicData* ParticleDynamicData = CreateDynamicData();
+		FParticleDynamicData* ParticleDynamicData = CreateDynamicData(Proxy->GetScene().GetFeatureLevel());
 		// Render the particles
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		//@todo.SAS. Remove thisline  - it is used for debugging purposes...

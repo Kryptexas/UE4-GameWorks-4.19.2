@@ -64,6 +64,7 @@
 
 #include "EngineModule.h"
 #include "ContentStreaming.h"
+#include "Streaming/TextureStreamingHelpers.h"
 #include "RendererInterface.h"
 #include "DataChannel.h"
 #include "ShaderCompiler.h"
@@ -2649,6 +2650,17 @@ void UWorld::TriggerStreamingDataRebuild()
 
 void UWorld::ConditionallyBuildStreamingData()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	// This code is to trigger an update to the a streaming data update when the console variable is changed.
+	static int32 LastMetricsUsed = CVarStreamingUseNewMetrics.GetValueOnGameThread();
+	if (CVarStreamingUseNewMetrics.GetValueOnGameThread() != LastMetricsUsed)
+	{
+		LastMetricsUsed = CVarStreamingUseNewMetrics.GetValueOnGameThread();
+		bStreamingDataDirty = true;
+		BuildStreamingDataTimer = FPlatformTime::Seconds() - 1.0;
+	}
+#endif
+
 	if ( bStreamingDataDirty && FPlatformTime::Seconds() > BuildStreamingDataTimer )
 	{
 		bStreamingDataDirty = false;

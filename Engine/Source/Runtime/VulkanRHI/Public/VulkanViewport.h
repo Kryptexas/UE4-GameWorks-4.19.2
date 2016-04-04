@@ -9,8 +9,8 @@
 #include "VulkanResources.h"
 
 class FVulkanDynamicRHI;
-struct FVulkanSwapChain;
-struct FVulkanQueue;
+class FVulkanSwapChain;
+class FVulkanQueue;
 
 class FVulkanViewport : public FRHIViewport
 {
@@ -21,7 +21,7 @@ public:
 	~FVulkanViewport();
 
 	FVulkanTexture2D* GetBackBuffer() const { return BackBuffers[CurrentBackBuffer]; }
-	uint32 GetBackBufferIndex() const { return CurrentBackBuffer; }
+	int32 GetBackBufferIndex() const { return CurrentBackBuffer; }
 
 	//bool Present(VkImage& Image, VkQueue& Queue, bool bLockToVsync);
 
@@ -33,6 +33,18 @@ public:
 
 	FIntPoint GetSizeXY() const { return FIntPoint(SizeX, SizeY); }
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	FVulkanSwapChain* GetSwapChain()
+	{
+		return SwapChain;
+	}
+
+	void AcquireBackBuffer(FVulkanCmdBuffer* CmdBuffer);
+	void PrepareBackBufferForPresent(FVulkanCmdBuffer* CmdBuffer);
+#else
+#endif
+
+
 protected:
 	TRefCountPtr<FVulkanTexture2D> BackBuffers[NUM_BUFFERS];
 	FVulkanDynamicRHI* RHI;
@@ -40,7 +52,7 @@ protected:
 	uint32 SizeY;
 	bool bIsFullscreen;
 	EPixelFormat PixelFormat;
-	int CurrentBackBuffer;
+	int32 CurrentBackBuffer;
 	FVulkanSwapChain* SwapChain;
 
 	friend class FVulkanDynamicRHI;

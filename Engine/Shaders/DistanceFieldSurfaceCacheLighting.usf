@@ -441,7 +441,8 @@ void RayTraceThroughGlobalDistanceField(
 	OutMaxRayTime = 1;
 
 	float3 GlobalVolumeCenter = GlobalVolumeCenterAndExtent[ClipmapIndex].xyz;
-	float GlobalVolumeExtent = GlobalVolumeCenterAndExtent[ClipmapIndex].w;
+	// Subtract one texel from the extent to avoid filtering from invalid texels
+	float GlobalVolumeExtent = GlobalVolumeCenterAndExtent[ClipmapIndex].w - GlobalVolumeCenterAndExtent[ClipmapIndex].w * GlobalVolumeTexelSize;
 	float3 VolumeRayStart = WorldRayStart - GlobalVolumeCenter;
 	float3 VolumeRayEnd = WorldRayEnd - GlobalVolumeCenter;
 	float3 VolumeRayDirection = VolumeRayEnd - VolumeRayStart;

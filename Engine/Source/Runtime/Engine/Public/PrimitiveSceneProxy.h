@@ -18,6 +18,8 @@ class FLightSceneProxy;
 class FLightSceneInfo;
 class FPrimitiveDrawInterface;
 
+struct FStreamingSectionBuildInfo;
+
 /** Data for a simple dynamic light. */
 class FSimpleLightEntry
 {
@@ -393,7 +395,6 @@ public:
 	inline bool HasStaticLighting() const { return bStaticLighting; }
 	inline bool NeedsUnbuiltPreviewLighting() const { return bNeedsUnbuiltPreviewLighting; }
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
-	inline bool IsVisibleInPlanarReflection() const { return bVisibleInPlanarReflection; }
 	inline bool CastsDynamicShadow() const { return bCastDynamicShadow; }
 	inline bool AffectsDynamicIndirectLighting() const { return bAffectDynamicIndirectLighting; }
 	inline bool AffectsDistanceFieldLighting() const { return bAffectDistanceFieldLighting; }
@@ -519,9 +520,12 @@ public:
 	ENGINE_API virtual void GetLCIs(FLCIArray& LCIs) {}
 
 	/**
-	 * Get the texture streaming texel factor and bound for this primitive.
+	 * Get the temp data used in the texture streaming build. Used to debug accuracy.
+	 * @param LODIndex			LOD index of the query. INDEX_NONE for a value for all LODs.
+	 * @param ElementIndex		Element index of the query. INDEX_NONE for a value for all elements.
+	 * @return					The section data built in the texture streaming build.
 	 */
-	virtual bool GetStreamingTextureInfo(struct FStreamingTexturePrimitiveInfo& OutInfo, int32 LODIndex, int32 ElementIndex) const { return false; }
+	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(int32 LODIndex, int32 ElementIndex) const { return nullptr; }
 
 protected:
 
@@ -608,9 +612,6 @@ protected:
 
 	/** True if the primitive casts static shadows. */
 	uint32 bCastStaticShadow : 1;
-
-	/** True if the primitive is rendered into the planar reflection pass. */
-	uint32 bVisibleInPlanarReflection : 1;
 
 	/** 
 	 * Whether the object should cast a volumetric translucent shadow.

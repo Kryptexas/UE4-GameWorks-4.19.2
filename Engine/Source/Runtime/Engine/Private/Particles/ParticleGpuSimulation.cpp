@@ -896,14 +896,8 @@ public:
 	{
 		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
 		OutEnvironment.SetDefine(TEXT("TILES_PER_INSTANCE"), TILES_PER_INSTANCE);
-		OutEnvironment.SetFloatDefine(
-			TEXT("TILE_SIZE_X"),
-			(float)GParticleSimulationTileSize / (float)GParticleSimulationTextureSizeX
-			);
-		OutEnvironment.SetFloatDefine(
-			TEXT("TILE_SIZE_Y"),
-			(float)GParticleSimulationTileSize / (float)GParticleSimulationTextureSizeY
-			);
+		OutEnvironment.SetDefine(TEXT("TILE_SIZE_X"), (float)GParticleSimulationTileSize / (float)GParticleSimulationTextureSizeX);
+		OutEnvironment.SetDefine(TEXT("TILE_SIZE_Y"), (float)GParticleSimulationTileSize / (float)GParticleSimulationTextureSizeY);
 
 		if (Platform == SP_OPENGL_ES2_ANDROID)
 		{
@@ -3127,7 +3121,7 @@ public:
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDynamicEmitterDataBase_GetDynamicData);
 		check(Component);

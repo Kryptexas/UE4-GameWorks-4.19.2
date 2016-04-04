@@ -9,6 +9,7 @@
 #include "VulkanPendingState.h"
 #include "VulkanManager.h"
 #include "VulkanContext.h"
+#include "VulkanMemory.h"
 
 static FVulkanTimestampQueryPool* GTimestampQueryPool = nullptr;
 
@@ -67,7 +68,11 @@ void FVulkanGPUTiming::StartTiming()
 		if (StartTimestamp >= 0 && EndTimestamp >= 0)
 		{
 			auto& State = GTimestampQueryPool->Device->GetPendingState();
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+			check(0);
+#else
 			GTimestampQueryPool->WriteTimestamp(State.GetCommandBuffer(), StartTimestamp, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+#endif
 		}
 		bIsTiming = true;
 	}
@@ -85,7 +90,11 @@ void FVulkanGPUTiming::EndTiming()
 		if (StartTimestamp >= 0 && EndTimestamp >= 0)
 		{
 			auto& State = GTimestampQueryPool->Device->GetPendingState();
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+			check(0);
+#else
 			GTimestampQueryPool->WriteTimestamp(State.GetCommandBuffer(), EndTimestamp, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+#endif
 		}
 		bIsTiming = false;
 		bEndTimestampIssued = true;
@@ -362,6 +371,76 @@ void FVulkanDynamicRHI::IssueLongGPUTask()
 		// RHICmdList flushes on destruction
 	}
 }
+
+#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+FVulkanBuffer2::FVulkanBuffer2(FVulkanDevice* InDevice, VkBuffer InBuffer, VulkanRHI::FResourceAllocation* InResourceAllocation)
+	: FDeviceChild(InDevice)
+	, Buffer(InBuffer)
+	, ResourceAllocation(InResourceAllocation)
+{
+	check(Buffer != VK_NULL_HANDLE);
+	VERIFYVULKANRESULT(vkBindBufferMemory(InDevice->GetInstanceHandle(), Buffer, ResourceAllocation->GetHandle(), ResourceAllocation->GetOffset()));
+}
+
+FVulkanBuffer2::~FVulkanBuffer2()
+{
+	vkDestroyBuffer(Device->GetInstanceHandle(), Buffer, nullptr);
+	ResourceAllocation = nullptr;
+}
+
+
+VkBuffer FVulkanBuffer2::CreateVulkanBuffer(FVulkanDevice* InDevice, VkDeviceSize Size, VkBufferUsageFlags BufferUsageFlags, VkMemoryRequirements& OutMemoryRequirements)
+{
+	VkDevice Device = InDevice->GetInstanceHandle();
+	VkBuffer Buffer = VK_NULL_HANDLE;
+
+	VkBufferCreateInfo BufferCreateInfo;
+	FMemory::Memzero(BufferCreateInfo);
+	BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	BufferCreateInfo.size = Size;
+	BufferCreateInfo.usage = BufferUsageFlags;
+	VERIFYVULKANRESULT_EXPANDED(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &Buffer));
+
+	vkGetBufferMemoryRequirements(Device, Buffer, &OutMemoryRequirements);
+
+	return Buffer;
+}
+
+VulkanRHI::FResourceAllocation* FVulkanBuffer2::CreateResourceAllocationAndBuffer(FVulkanDevice* Device, VkDeviceSize Size, uint32 InUsage, VkBufferUsageFlags BufferUsageFlags, VkBuffer& OutBuffer)
+{
+	check(Size > 0);
+
+	VkMemoryRequirements MemoryRequirements;
+	OutBuffer = FVulkanBuffer2::CreateVulkanBuffer(Device, Size, BufferUsageFlags, MemoryRequirements);
+
+	const bool bStatic = (InUsage & BUF_Static) != 0;
+	const bool bDynamic = (InUsage & BUF_Dynamic) != 0;
+	const bool bVolatile = (InUsage & BUF_Volatile) != 0;
+
+	//#todo-rco: Not implemented yet
+	check((InUsage & BUF_KeepCPUAccessible) == 0);
+	VulkanRHI::FResourceAllocation* ResourceAllocation = nullptr;
+	if (bDynamic)
+	{
+		//#todo-rco: Allocate in the CPU staging heap
+		ResourceAllocation = Device->GetResourceHeapManager().AllocateCPUStagingResource(MemoryRequirements.size, MemoryRequirements.alignment, __FILE__, __LINE__);
+	}
+#if 0
+	else if (bVolatile)
+	{
+		check(0);
+	}
+#endif
+	else
+	{
+		// Static buffer path
+		ensure(bStatic);
+		ResourceAllocation = Device->GetResourceHeapManager().AllocateGPUOnlyResource(MemoryRequirements.size, MemoryRequirements.alignment, __FILE__, __LINE__);
+	}
+
+	return ResourceAllocation;
+}
+#endif
 
 
 namespace VulkanRHI

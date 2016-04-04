@@ -37,27 +37,34 @@ FVulkanViewport::FVulkanViewport(FVulkanDynamicRHI* InRHI, void* WindowHandle, u
 
 	check(Images.Num() == NUM_BUFFERS);
 
-	//#todo-rco: FIX ME!
-	FVulkanCmdBuffer* cmd = RHI->Device->GetImmediateContext().GetCommandBufferManager()->Create();
-	cmd->Begin();
-
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	FVulkanCmdBuffer* CmdBuffer = RHI->Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer();
+	check(CmdBuffer->IsOutsideRenderPass());
+#else
+	FVulkanCmdBuffer* CmdBuffer = RHI->Device->GetImmediateContext().GetCommandBufferManager()->Create();
+	CmdBuffer->Begin();
+#endif
 	for (int32 Index = 0, Count = Images.Num(); Index < Count; ++Index)
 	{
-		VkImage img = Images[Index];
+		VkImage Image = Images[Index];
 
-		VulkanSetImageLayout(
-			cmd->GetHandle(),
-			img,
-			VK_IMAGE_ASPECT_COLOR_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		// Constructor will set to color optimal
+		BackBuffers[Index] = new FVulkanTexture2D(*RHI->Device, PixelFormat, InSizeX, InSizeY, Image, TexCreate_Presentable | TexCreate_RenderTargetable, FClearValueBinding());
 
-		BackBuffers[Index] = new FVulkanTexture2D(
-			*RHI->Device, PixelFormat, InSizeX, InSizeY,
-			img, TexCreate_Presentable | TexCreate_RenderTargetable, FClearValueBinding());
+		FName Name = FName(*FString::Printf(TEXT("BackBuffer%d"), Index));
+		BackBuffers[Index]->SetName(Name);
+
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
+		// Set to present src as the next calls will transition to color optimal
+		check(BackBuffers[Index]->Surface.ImageLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+#endif
 	}
 
-	RHI->Device->EndCommandBufferBlock(cmd);
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
+	RHI->Device->EndCommandBufferBlock(CmdBuffer);
+#endif
 }
 
 FVulkanViewport::~FVulkanViewport()
@@ -92,6 +99,9 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	#if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
 		if (Texture->MSAASurface)
 		{
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+			check(0);
+#endif
 			Attachments.Add(Texture->MSAAView.View);
 
 		    // Create a write-barrier
@@ -113,6 +123,8 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	#endif
 		Attachments.Add(Texture->View.View);
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 		// Create a write-barrier
 		WriteBarriers.AddZeroed();
 		VkImageMemoryBarrier& barrier = WriteBarriers.Last();
@@ -120,15 +132,15 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		barrier.pNext = NULL;
 		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-		barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+		barrier.oldLayout = Texture->Surface.ImageLayout;
+		barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		barrier.image = Texture->Surface.Image;
 		barrier.subresourceRange.aspectMask = Texture->Surface.GetAspectMask();
 		barrier.subresourceRange.baseMipLevel = 0;
 		barrier.subresourceRange.levelCount = 1;
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = 1;
-
+#endif
 		NumColorAttachments++;
 	}
 
@@ -149,6 +161,8 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 
 		Attachments.Add(Texture->View.View);
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#else
 		// Create a write-barrier
 		WriteBarriers.AddZeroed();
 		VkImageMemoryBarrier& barrier = WriteBarriers.Last();
@@ -157,7 +171,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 		barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-		barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		barrier.image = Texture->Surface.Image;
 
 		barrier.subresourceRange.aspectMask = Texture->Surface.GetAspectMask();
@@ -165,6 +179,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		barrier.subresourceRange.levelCount = 1;
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = 1;
+#endif
 	}
 
 	VkFramebufferCreateInfo Info;
@@ -230,6 +245,34 @@ bool FVulkanFramebuffer::Matches(const FRHISetRenderTargetsInfo& InRTInfo) const
 	return true;
 }
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+void FVulkanViewport::AcquireBackBuffer(FVulkanCmdBuffer* CmdBuffer)
+{
+	CurrentBackBuffer = SwapChain->AcquireImageIndex();
+	check(CurrentBackBuffer != -1);
+	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+}
+
+void FVulkanViewport::PrepareBackBufferForPresent(FVulkanCmdBuffer* CmdBuffer)
+{
+	check(CurrentBackBuffer != -1);
+	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+}
+
+void FVulkanFramebuffer::InsertWriteBarrier(FVulkanCmdBuffer* CmdBuffer)
+{
+	if (WriteBarriers.Num() == 0)
+	{
+		return;
+	}
+
+	const VkPipelineStageFlags SrcStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	const VkPipelineStageFlags DestStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+	check(CmdBuffer->IsOutsideRenderPass());
+	vkCmdPipelineBarrier(CmdBuffer->GetHandle(), SrcStages, DestStages, 0, 0, nullptr, 0, nullptr, WriteBarriers.Num(), WriteBarriers.GetData());
+}
+#else
 void FVulkanFramebuffer::InsertWriteBarrier(VkCommandBuffer cmd)
 {
 	if (WriteBarriers.Num() == 0)
@@ -237,12 +280,13 @@ void FVulkanFramebuffer::InsertWriteBarrier(VkCommandBuffer cmd)
 		return;
 	}
 
-	const VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	const VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	const VkPipelineStageFlags SrcStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	const VkPipelineStageFlags DestStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 
-	vkCmdPipelineBarrier(cmd, src_stages, dest_stages,
+	vkCmdPipelineBarrier(cmd, SrcStages, DestStages,
 		0, 0, nullptr, 0, nullptr, WriteBarriers.Num(), WriteBarriers.GetData());
 }
+#endif
 
 /*=============================================================================
  *	The following RHI functions must be called from the main thread.
@@ -272,8 +316,13 @@ void FVulkanDynamicRHI::WriteEndFrameTimestamp(void* Data)
 		auto* TimestampQueryPool = This->Device->GetTimestampQueryPool(This->PresentCount % (uint32)FVulkanDevice::NumTimestampPools);
 		if (TimestampQueryPool)
 		{
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+			auto* CmdBuffer = This->Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer();
+			TimestampQueryPool->WriteEndFrame(CmdBuffer->GetHandle());
+#else
 			auto& PendingState = This->Device->GetPendingState();
 			TimestampQueryPool->WriteEndFrame(PendingState.GetCommandBuffer());
+#endif
 		}
 	}
 
@@ -288,9 +337,26 @@ void FVulkanDynamicRHI::Present()
 
 	check(Device);
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	auto* CmdBufferManager = Device->GetImmediateContext().GetCommandBufferManager();
+	auto* CmdBuffer = CmdBufferManager->GetActiveCmdBuffer();
+	if (PendingState.IsRenderPassActive())
+	{
+		PendingState.RenderPassEnd(CmdBuffer);
+	}
+	DrawingViewport->PrepareBackBufferForPresent(CmdBuffer);
+	WriteEndFrameTimestamp(this);
+	CmdBuffer->End();
+	Device->GetQueue()->Submit(CmdBuffer);
+#else
 	PendingState.SubmitPendingCommandBuffers(&WriteEndFrameTimestamp, this);
+#endif
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	DrawingViewport->GetSwapChain()->Present(Device->GetQueue());
+#else
 	Device->GetQueue()->Present(DrawingViewport->SwapChain, DrawingViewport->CurrentBackBuffer);
+#endif
 
 	bool bNativelyPresented = true;
 	if (bNativelyPresented)
@@ -323,6 +389,10 @@ void FVulkanDynamicRHI::Present()
 	//#todo-rco: This needs to go on RHIEndFrame but the CmdBuffer index is not the correct one to read the stats out!
 	VulkanRHI::GManager.GPUProfilingData.EndFrame();
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	Device->GetImmediateContext().GetCommandBufferManager()->PrepareForNewActiveCommandBuffer();
+#endif
+
 	DrawingViewport->CurrentBackBuffer = -1;
 	DrawingViewport = nullptr;
 	PendingState.Reset();
@@ -339,7 +409,11 @@ void FVulkanDynamicRHI::Present()
 			TimestampQueryPool->CalculateFrameTime();
 		}
 
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+		Device->GetTimestampQueryPool(QueryNextFrameIndex)->WriteStartFrame(CmdBufferManager->GetActiveCmdBuffer()->GetHandle());
+#else
 		Device->GetTimestampQueryPool(QueryNextFrameIndex)->WriteStartFrame(PendingState.GetCommandBuffer());
+#endif
 	}
 
 	PresentCount++;
@@ -350,14 +424,22 @@ FTexture2DRHIRef FVulkanDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRe
 	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
 	if (Viewport->CurrentBackBuffer < 0)
 	{
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+		Viewport->AcquireBackBuffer(Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer());
+#else
 		// SMEDIS: Acquire a new backbuffer now, in case RHIBeginDrawingViewport() hasn't been called yet.
 		Viewport->CurrentBackBuffer = Device->GetQueue()->AquireImageIndex(Viewport->SwapChain);
+#endif
 	}
 	return Viewport->GetBackBuffer();
 }
 
 void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 {
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	//#todo-rco: Do a pass to clear unused or expired elements in managers
+#else
+#endif
 }
 
 void FVulkanCommandListContext::RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)

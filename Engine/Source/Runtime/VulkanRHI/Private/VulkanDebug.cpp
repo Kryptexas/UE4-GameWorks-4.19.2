@@ -56,19 +56,6 @@ static VkBool32 DebugReportFunction(
 	}
 	else if (msgFlags & VK_DEBUG_REPORT_WARN_BIT_EXT)
 	{
-		if (FCStringAnsi::Strstr(pMsg, "in output interface has no Location or Builtin decoration"))
-		{
-			return VK_FALSE;
-		}
-
-		#if VULKAN_HLSLCC_GEN_GLSL_IN_OUT_WITHOUT_STRUCTURES
-			if(FCStringAnsi::Strstr(pLayerPrefix, "SC") && msgCode == 3 && msgFlags == 2 && objType == VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT)
-			{
-				// We are aware that some of the outputs may not used or are compiled out...
-				return VK_FALSE;
-			}
-		#endif
-
 		FString Message = FString::Printf(TEXT("VulkanRHI: VK WARNING: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(pLayerPrefix), msgCode, ANSI_TO_TCHAR(pMsg));
 		FPlatformMisc::LowLevelOutputDebugString(*Message);
 	}
@@ -77,6 +64,7 @@ static VkBool32 DebugReportFunction(
 	{
 		FString Message = FString::Printf(TEXT("VulkanRHI: VK INFO: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(pLayerPrefix), msgCode, ANSI_TO_TCHAR(pMsg));
 		FPlatformMisc::LowLevelOutputDebugString(*Message);
+		return VK_FALSE;
 	}
 #endif
 

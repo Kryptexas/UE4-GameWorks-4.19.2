@@ -64,6 +64,12 @@ void UMaterialInterface::PostLoad()
 	PostLoadDefaultMaterials();
 }
 
+void UMaterialInterface::GetUsedTexturesAndIndices(TArray<UTexture*>& OutTextures, TArray< TArray<int32> >& OutIndices, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) const
+{
+	GetUsedTextures(OutTextures, QualityLevel, false, FeatureLevel, false);
+	OutIndices.AddDefaulted(OutTextures.Num());
+}
+
 FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Material, ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	if(Material)

@@ -586,7 +586,7 @@ bool USkinnedMeshComponent::ShouldCPUSkin()
 	return false;
 }
 
-void USkinnedMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+void USkinnedMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
 	if( SkeletalMesh )
 	{
@@ -1998,6 +1998,14 @@ void USkinnedMeshComponent::SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBl
 	else
 	{
 		CurrentEditableSpaceBases = CurrentReadSpaceBases;
+	}
+}
+
+void USkinnedMeshComponent::UpdateRecomputeTangent(int32 MaterialIndex)
+{
+	if (ensure(SkeletalMesh) && MeshObject)
+	{
+		MeshObject->UpdateRecomputeTangent(MaterialIndex, SkeletalMesh->Materials[MaterialIndex].bRecomputeTangent);
 	}
 }
 

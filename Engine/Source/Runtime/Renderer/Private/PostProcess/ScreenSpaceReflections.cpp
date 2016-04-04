@@ -48,7 +48,7 @@ static TAutoConsoleVariable<int32> CVarSSRCone(
 	TEXT(" 0 is off (default), 1 is on"),
 	ECVF_RenderThreadSafe);
 
-bool DoScreenSpaceReflections(const FViewInfo& View)
+bool ShouldRenderScreenSpaceReflections(const FViewInfo& View)
 {
 	if(!View.Family->EngineShowFlags.ScreenSpaceReflections)
 	{
@@ -439,7 +439,7 @@ FPooledRenderTargetDesc FRCPassPostProcessScreenSpaceReflections::ComputeOutputD
 	return Ret;
 }
 
-void ScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput)
+void RenderScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput)
 {
 	FRenderingCompositePassContext CompositeContext(RHICmdList, View);	
 	FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View );

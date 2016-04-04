@@ -30,8 +30,8 @@ void Main(
 	{
 		float3 WorldPosition = SvPositionToResolvedTranslatedWorld(DebugInputs.SvPosition);
 
-		float2 CoordDDX = ddx(DebugInputs.TexCoord0.xy);
-		float2 CoordDDY = ddy(DebugInputs.TexCoord0.xy);
+		float2 CoordDDX = ddx(DebugInputs.TexCoord01.xy);
+		float2 CoordDDY = ddy(DebugInputs.TexCoord01.xy);
 		float3 WorldPosDDX = ddx(WorldPosition);
 		float3 WorldPosDDY = ddy(WorldPosition);
 

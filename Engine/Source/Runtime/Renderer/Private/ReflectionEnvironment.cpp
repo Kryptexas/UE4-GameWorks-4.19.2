@@ -909,13 +909,15 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 	{
 		FViewInfo& View = Views[ViewIndex];
 
-		const uint32 bSSR = DoScreenSpaceReflections(Views[ViewIndex]);
+		const uint32 bSSR = ShouldRenderScreenSpaceReflections(Views[ViewIndex]);
 
 		TRefCountPtr<IPooledRenderTarget> SSROutput = GSystemTextures.BlackDummy;
 		if( bSSR )
 		{
-			ScreenSpaceReflections(RHICmdList, View, SSROutput);
+			RenderScreenSpaceReflections(RHICmdList, View, SSROutput);
 		}
+
+		RenderDeferredPlanarReflections(RHICmdList, false, SSROutput);
 
 		// ReflectionEnv is assumed to be on when going into this method
 		{
@@ -1067,14 +1069,19 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			// If Reflection Environment is active and mixed with indirect lighting (Ambient + LPV), apply is required!
 			|| (View.Family->EngineShowFlags.ReflectionEnvironment && (bReflectionEnv || bEnvironmentMixing) );
 
-		const bool bSSR = DoScreenSpaceReflections(View);
+		const bool bSSR = ShouldRenderScreenSpaceReflections(View);
 
 		TRefCountPtr<IPooledRenderTarget> SSROutput = GSystemTextures.BlackDummy;
 		if (bSSR)
 		{
 			bRequiresApply = true;
 
-			ScreenSpaceReflections(RHICmdList, View, SSROutput);
+			RenderScreenSpaceReflections(RHICmdList, View, SSROutput);
+		}
+
+		if (RenderDeferredPlanarReflections(RHICmdList, true, SSROutput))
+		{
+			bRequiresApply = true;
 		}
 
 	    /* Light Accumulation moved to SceneRenderTargets */

@@ -654,12 +654,9 @@ void FLevelEditorActionCallbacks::BuildLODsOnly_Execute()
 	FEditorBuildUtils::EditorBuild(GetWorld(), FBuildOptions::BuildHierarchicalLOD);
 }
 
-ENGINE_API void BuildTextureStreamingData(UWorld*);
-
 void FLevelEditorActionCallbacks::BuildTextureStreamingOnly_Execute()
 {
-	// Build TexCoord Scale Shaders
-	BuildTextureStreamingData(GetWorld());
+	FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld());
 }
 
 bool FLevelEditorActionCallbacks::IsLightingQualityChecked( ELightingBuildQuality TestQuality )

@@ -23,10 +23,6 @@ float4 LightPositionAndInvRadius[MAX_DYNAMIC_POINT_LIGHTS];
 float4 LightColorAndFalloffExponent[MAX_DYNAMIC_POINT_LIGHTS];
 #endif
 
-// xyz: Reflection plane normal in world space. Zero vector if this is not a planar reflection capture.
-// w: Reflection plane height.
-float4 PlanarReflectionCaptureData;
-
 #ifndef FORWARD_QL_FORCE_FULLY_ROUGH
 #define FORWARD_QL_FORCE_FULLY_ROUGH 0
 #endif
@@ -77,15 +73,6 @@ half PhongApprox( half Roughness, half RoL )
 	half c = 0.72134752 * rcp_a2 + 0.39674113;	// 1 mad
 	return rcp_a2 * exp2( c * RoL - c );		// 2 mad, 1 exp2, 1 mul
 	// Total 7 instr
-}
-
-// Returns 1 if the position is below the reflection plane, 0 if it is above.
-half GetPlanarReflectionMask(half3 WorldPosition) {
-	const half3 PlaneOrigin = half3(PlanarReflectionCaptureData.xyz * PlanarReflectionCaptureData.w);
-	const half3 PlaneNormal = PlanarReflectionCaptureData.xyz;
-	const half3 V = WorldPosition - PlaneOrigin;
-	const half D = dot(PlaneNormal, V);
-	return (half)(D <= 0.0);
 }
 
 #if !FULLY_ROUGH
@@ -463,16 +450,8 @@ void Main(
 		#else
 			Color += (Shadow * NoL) * Frame.DirectionalLightColor.rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, RoL));
 			half3 SpecularIBL = GetImageBasedReflectionLighting(MaterialParameters, Roughness);
-
-			#if MATERIAL_USE_PLANAR_REFLECTION	
-				//!! Ronin Hack to reuse emissive
-				const half3 EnvironmentReflection = SpecularIBL * IndirectIrradiance * SpecularColor; // Environment map has been prenormalized, scale by lightmap luminance
-				const half3 PlanarReflection = GetMaterialEmissive(PixelMaterialInputs) * SpecularColor;
-				const half PlanarReflectionMask = GetMaterialAmbientOcclusion(PixelMaterialInputs); // RT Alpha, 0 where there's reflection data
-				Color += lerp(PlanarReflection, EnvironmentReflection, PlanarReflectionMask);
-			#else
-				Color += SpecularIBL * IndirectIrradiance * SpecularColor;
-			#endif
+			// Environment map has been prenormalized, scale by lightmap luminance
+			Color += SpecularIBL * IndirectIrradiance * SpecularColor;
 		#endif
 
 		#if ENABLE_SKY_LIGHT
@@ -532,12 +511,9 @@ void Main(
 
 	#endif /* !MATERIAL_SHADINGMODEL_UNLIT */
 		 
+	half3 Emissive = GetMaterialEmissive(PixelMaterialInputs);
 
-	// Emissive is used for planar reflection contribution and applied with reflections.
-	#if !MATERIAL_USE_PLANAR_REFLECTION
-		half3 Emissive = GetMaterialEmissive(PixelMaterialInputs);
-		Color += Emissive;
-	#endif
+	Color += Emissive;
 
 	half4 VertexFog = half4(0, 0, 0, 1);
 
@@ -607,14 +583,4 @@ void Main(
 		OutColor *= ClipForEditorPrimitives(MaterialParameters);
 		clip(OutColor.a - GetMaterialOpacityMaskClipValue());
 	#endif
-
-	// Apply planar reflection pass mask
-	BRANCH
-	if (any(PlanarReflectionCaptureData.xyz))
-	{
-		// Ronin TODO: make this use view-relative position
-		const half PlanarReflectionMask = GetPlanarReflectionMask(MaterialParameters.AbsoluteWorldPosition);
-		OutColor.rgb *= PlanarReflectionMask;
-		OutColor.a = 1.0 - PlanarReflectionMask; // Alpha is cleared to 1
-	}
 }

@@ -19,6 +19,7 @@
 #include "SceneUtils.h"
 #include "LightGrid.h"
 #include "AtmosphereRendering.h"
+#include "Components/PlanarReflectionComponent.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -71,11 +72,6 @@ static TAutoConsoleVariable<int32> CVarInstancedStereo(
 	0,
 	TEXT("0 to disable instanced stereo (default), 1 to enable."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarEnablePlanarReflections(
-	TEXT("r.EnablePlanarReflections"),
-	1,
-	TEXT("0: Disable planar reflection captures. 1: Enable (Default)"));
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarGeneralPurposeTweak(
@@ -671,6 +667,7 @@ void FViewInfo::CreateUniformBuffer(
 	// can be optimized
 	ViewUniformShaderParameters.PrevInvViewProj = PrevViewProjMatrix.Inverse();
 	ViewUniformShaderParameters.ScreenPositionScaleBias = ScreenPositionScaleBias;
+	ViewUniformShaderParameters.GlobalClippingPlane = FVector4(GlobalClippingPlane.X, GlobalClippingPlane.Y, GlobalClippingPlane.Z, -GlobalClippingPlane.W);
 
 	FrameUniformShaderParameters.FieldOfViewWideAngles = 2.f * ViewMatrices.GetHalfFieldOfViewPerAxis();
 	FrameUniformShaderParameters.PrevFieldOfViewWideAngles = 2.f * PrevViewMatrices.GetHalfFieldOfViewPerAxis();
@@ -1538,6 +1535,17 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 			bShowPrecomputedVisibilityWarning = !bUsedPrecomputedVisibility;
 		}
 
+		bool bShowGlobalClipPlaneWarning = false;
+
+		if (Scene->PlanarReflections.Num() > 0)
+		{
+			static const auto* CVarClipPlane = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowGlobalClipPlane"));
+			if (CVarClipPlane && CVarClipPlane->GetValueOnRenderThread() == 0)
+			{
+				bShowGlobalClipPlaneWarning = true;
+			}
+		}
+
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{	
 			FViewInfo& View = Views[ViewIndex];
@@ -1548,7 +1556,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 				FSceneViewState* ViewState = (FSceneViewState*)View.State;
 				bool bViewParentOrFrozen = ViewState && (ViewState->HasViewParent() || ViewState->bIsFrozen);
 				bool bLocked = View.bIsLocked;
-				if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning || bLocked)
+				if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning || bLocked || bShowGlobalClipPlaneWarning)
 				{
 					// this is a helper class for FCanvas to be able to get screen size
 					class FRenderTargetTemp : public FRenderTarget
@@ -1586,6 +1594,12 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 					if (bShowPrecomputedVisibilityWarning)
 					{
 						const FText Message = NSLOCTEXT("Renderer", "NoPrecomputedVisibility", "NO PRECOMPUTED VISIBILITY");
+						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+						Y += 14;
+					}
+					if (bShowGlobalClipPlaneWarning)
+					{
+						const FText Message = NSLOCTEXT("Renderer", "NoGlobalClipPlane", "GLOBAL CLIP PLANE PROJECT SETTING NOT ENABLED");
 						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
 						Y += 14;
 					}
@@ -1913,6 +1927,9 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 			SceneRenderer->Render(RHICmdList);
 		}
 
+		// Only reset per-frame scene state once all views have processed their frame, including those in planar reflections
+		SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds.Reset();
+
 #if STATS
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderViewFamily_RenderThread_MemStats);
@@ -2004,6 +2021,12 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,FSceneViewFamily*
 	
 		// Construct the scene renderer.  This copies the view family attributes into its own structures.
 		FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily, Canvas->GetHitProxyConsumer());
+
+		for (int32 ReflectionIndex = 0; ReflectionIndex < SceneRenderer->Scene->PlanarReflections_GameThread.Num(); ReflectionIndex++)
+		{
+			UPlanarReflectionComponent* ReflectionComponent = SceneRenderer->Scene->PlanarReflections_GameThread[ReflectionIndex];
+			SceneRenderer->Scene->UpdatePlanarReflectionContents(ReflectionComponent, *SceneRenderer);
+		}
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			FDrawSceneCommand,

@@ -5,6 +5,12 @@
 =============================================================================*/
 
 #include "Common.usf"
+
+// This is required to pass the 4 texcoords to the pixel shaders, no matter what the material actually use.
+// This fits with FDebugVSToPS which supports 4 tex coords.
+#define MIN_MATERIAL_TEXCOORDS 4
+
+
 #include "Material.usf"
 #include "VertexFactory.usf"
 
@@ -56,9 +62,18 @@
 		Output.TangentToWorld2 = TangentToWorld[2];
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX > 0
-		Output.TexCoord0 = MaterialParameters.TexCoords[0];
+		Output.TexCoord23 = Output.TexCoord01 = MaterialParameters.TexCoords[0].xyxy;
 #else
-		Output.TexCoord0 = 0;
+		Output.TexCoord23 = Output.TexCoord01 = 0;
+#endif
+#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
+		Output.TexCoord01.zw = MaterialParameters.TexCoords[1];
+#endif
+#if NUM_MATERIAL_TEXCOORDS_VERTEX > 2
+		Output.TexCoord23.xy = MaterialParameters.TexCoords[2];
+#endif
+#if NUM_MATERIAL_TEXCOORDS_VERTEX > 3
+		Output.TexCoord23.zw = MaterialParameters.TexCoords[3];
 #endif
 
 #if INSTANCED_STEREO
@@ -77,10 +92,13 @@ void Main(
 	FVertexFactoryInput Input,
 	OPTIONAL_VertexID
 	out FDebugVSOutput Output
+#if USE_GLOBAL_CLIP_PLANE && !USING_TESSELLATION
+	, out float OutGlobalClipPlaneDistance : SV_ClipDistance
+#endif
 #if INSTANCED_STEREO
 	, uint InstanceId : SV_InstanceID
-	, out float4 OutClipDistance : SV_ClipDistance
-	, out float4 OutCullDistance : SV_CullDistance
+	, out float OutClipDistance : SV_ClipDistance1
+	, out float OutCullDistance : SV_CullDistance1
 #endif
 	)
 {
@@ -138,6 +156,10 @@ void Main(
 		#endif
 	}
 
+#if USE_GLOBAL_CLIP_PLANE
+	OutGlobalClipPlaneDistance = dot(ResolvedView.GlobalClippingPlane, float4(WorldPos.xyz - ResolvedView.PreViewTranslation.xyz, 1));
+#endif
+
 	Output.VertexColor = VertexParameters.VertexColor;
 
 	float3x3 TangentToWorld = VertexParameters.TangentToWorld;
@@ -146,9 +168,18 @@ void Main(
 	Output.TangentToWorld2 = float3(TangentToWorld[2]);
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX > 0
-	Output.TexCoord0 = VertexParameters.TexCoords[0];
+		Output.TexCoord23 = Output.TexCoord01 = VertexParameters.TexCoords[0].xyxy;
 #else
-	Output.TexCoord0 = 0;
+		Output.TexCoord23 = Output.TexCoord01 = 0;
+#endif
+#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1
+		Output.TexCoord01.zw = VertexParameters.TexCoords[1];
+#endif
+#if NUM_MATERIAL_TEXCOORDS_VERTEX > 2
+		Output.TexCoord23.xy = VertexParameters.TexCoords[2];
+#endif
+#if NUM_MATERIAL_TEXCOORDS_VERTEX > 3
+		Output.TexCoord23.zw = VertexParameters.TexCoords[3];
 #endif
 
 #if INSTANCED_STEREO
