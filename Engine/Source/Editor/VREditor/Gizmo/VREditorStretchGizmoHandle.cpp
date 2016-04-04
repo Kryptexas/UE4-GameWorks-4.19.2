@@ -37,10 +37,7 @@ UVREditorStretchGizmoHandleGroup::UVREditorStretchGizmoHandleGroup()
 		{
 			for (int32 Z = 0; Z < 3; ++Z)
 			{
-				FTransformGizmoHandlePlacement HandlePlacement;
-				HandlePlacement.Axes[0] = (ETransformGizmoHandleDirection)X;
-				HandlePlacement.Axes[1] = (ETransformGizmoHandleDirection)Y;
-				HandlePlacement.Axes[2] = (ETransformGizmoHandleDirection)Z;
+				FTransformGizmoHandlePlacement HandlePlacement = GetHandlePlacement( X, Y, Z );
 
 				int32 CenterHandleCount, FacingAxisIndex, CenterAxisIndex;
 				HandlePlacement.GetCenterHandleCountAndFacingAxisIndex( /* Out */ CenterHandleCount, /* Out */ FacingAxisIndex, /* Out */ CenterAxisIndex );
@@ -55,41 +52,22 @@ UVREditorStretchGizmoHandleGroup::UVREditorStretchGizmoHandleGroup()
 					{
 						FString ComponentName = HandleName + TEXT( "StretchingHandle" );
 
-						UStaticMeshComponent* StretchingHandle = CreateDefaultSubobject<UStaticMeshComponent>( *ComponentName );
-						check( StretchingHandle != nullptr );
+						UStaticMesh* Mesh = nullptr;
 
 						if (CenterHandleCount == 0)	// Corner?
 						{
-							StretchingHandle->SetStaticMesh( BoundingBoxCornerMesh );
+							Mesh = BoundingBoxCornerMesh;
 						}
 						else if (CenterHandleCount == 1)	// Edge?
 						{
-							StretchingHandle->SetStaticMesh( BoundingBoxEdgeMesh );
+							Mesh = BoundingBoxEdgeMesh;
 						}
 						else  // Face
 						{
-							StretchingHandle->SetStaticMesh( StretchingHandleMesh );
+							Mesh = StretchingHandleMesh;
 						}
-						StretchingHandle->SetMobility( EComponentMobility::Movable );
-						StretchingHandle->AttachTo( this );
 
-						StretchingHandle->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-						StretchingHandle->SetCollisionResponseToAllChannels( ECR_Ignore );
-						StretchingHandle->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
-
-						StretchingHandle->bGenerateOverlapEvents = false;
-						StretchingHandle->SetCanEverAffectNavigation( false );
-						StretchingHandle->bCastDynamicShadow = bAllowGizmoLighting;
-						StretchingHandle->bCastStaticShadow = false;
-						StretchingHandle->bAffectDistanceFieldLighting = bAllowGizmoLighting;
-						StretchingHandle->bAffectDynamicIndirectLighting = bAllowGizmoLighting;
-
-						int32 HandleIndex = MakeHandleIndex( HandlePlacement );
-						if (Handles.Num() < (HandleIndex + 1))
-						{
-							Handles.SetNumZeroed( HandleIndex + 1 );
-						}
-						Handles[HandleIndex].HandleMesh = StretchingHandle;
+						CreateAndAddMeshHandle( Mesh, ComponentName, HandlePlacement );
 					}
 				}
 			}

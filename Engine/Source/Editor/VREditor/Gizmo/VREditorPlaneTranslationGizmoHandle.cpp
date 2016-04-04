@@ -23,10 +23,7 @@ UVREditorPlaneTranslationGizmoHandleGroup::UVREditorPlaneTranslationGizmoHandleG
 		{
 			for (int32 Z = 0; Z < 3; ++Z)
 			{
-				FTransformGizmoHandlePlacement HandlePlacement;
-				HandlePlacement.Axes[0] = (ETransformGizmoHandleDirection)X;
-				HandlePlacement.Axes[1] = (ETransformGizmoHandleDirection)Y;
-				HandlePlacement.Axes[2] = (ETransformGizmoHandleDirection)Z;
+				FTransformGizmoHandlePlacement HandlePlacement = GetHandlePlacement( X, Y, Z );
 
 				int32 CenterHandleCount, FacingAxisIndex, CenterAxisIndex;
 				HandlePlacement.GetCenterHandleCountAndFacingAxisIndex( /* Out */ CenterHandleCount, /* Out */ FacingAxisIndex, /* Out */ CenterAxisIndex );
@@ -40,34 +37,8 @@ UVREditorPlaneTranslationGizmoHandleGroup::UVREditorPlaneTranslationGizmoHandleG
 					if (CenterHandleCount == 2 && HandlePlacement.Axes[FacingAxisIndex] == ETransformGizmoHandleDirection::Positive)
 					{
 						// Plane translation handle
-						{
-							FString ComponentName = HandleName + TEXT( "PlaneTranslationHandle" );
-
-							UStaticMeshComponent* PlaneTranslationHandle = CreateDefaultSubobject<UStaticMeshComponent>( *ComponentName );
-							check( PlaneTranslationHandle != nullptr );
-
-							PlaneTranslationHandle->SetStaticMesh( PlaneTranslationHandleMesh );
-							PlaneTranslationHandle->SetMobility( EComponentMobility::Movable );
-							PlaneTranslationHandle->AttachTo( this );
-
-							PlaneTranslationHandle->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-							PlaneTranslationHandle->SetCollisionResponseToAllChannels( ECR_Ignore );
-							PlaneTranslationHandle->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
-
-							PlaneTranslationHandle->bGenerateOverlapEvents = false;
-							PlaneTranslationHandle->SetCanEverAffectNavigation( false );
-							PlaneTranslationHandle->bCastDynamicShadow = bAllowGizmoLighting;
-							PlaneTranslationHandle->bCastStaticShadow = false;
-							PlaneTranslationHandle->bAffectDistanceFieldLighting = bAllowGizmoLighting;
-							PlaneTranslationHandle->bAffectDynamicIndirectLighting = bAllowGizmoLighting;
-
-							int32 HandleIndex = MakeHandleIndex( HandlePlacement );
-							if (Handles.Num() < (HandleIndex + 1))
-							{
-								Handles.SetNumZeroed( HandleIndex + 1 );
-							}
-							Handles[HandleIndex].HandleMesh = PlaneTranslationHandle;
-						}
+						FString ComponentName = HandleName + TEXT( "PlaneTranslationHandle" );
+						CreateAndAddMeshHandle( PlaneTranslationHandleMesh, ComponentName, HandlePlacement );
 					}
 				}
 			}

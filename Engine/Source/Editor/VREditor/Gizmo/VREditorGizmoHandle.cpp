@@ -114,26 +114,8 @@ ETransformGizmoInteractionType UVREditorGizmoHandleGroup::GetInteractionType() c
 
 void UVREditorGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
-	bOutIsHoveringOrDraggingThisHandleGroup = false;
-
-	// Update hover animation
-	for( FVREditorGizmoHandle& Handle : Handles )
-	{
-		const bool bIsHoveringOverHandle = HoveringOverHandles.Contains( Handle.HandleMesh ) || ( DraggingHandle != nullptr && DraggingHandle == Handle.HandleMesh );
-
-		if( bIsHoveringOverHandle )
-		{
-			Handle.HoverAlpha += GetWorld()->GetDeltaSeconds() / GizmoHoverAnimationDuration;
-			bOutIsHoveringOrDraggingThisHandleGroup = true;
-		}
-		else
-		{
-			Handle.HoverAlpha -= GetWorld()->GetDeltaSeconds() / GizmoHoverAnimationDuration;
-		}
-		Handle.HoverAlpha = FMath::Clamp( Handle.HoverAlpha, 0.0f, 1.0f );
-	}
+	UpdateHoverAnimation( DraggingHandle, HoveringOverHandles, GizmoHoverAnimationDuration, bOutIsHoveringOrDraggingThisHandleGroup );
 }
-
 
 int32 UVREditorGizmoHandleGroup::GetDraggedHandleIndex( class UStaticMeshComponent* DraggedMesh )
 {
@@ -222,5 +204,82 @@ void UVREditorGizmoHandleGroup::UpdateHandleColor( const int32 AxisIndex, FVREdi
 			MID0->SetVectorParameterValue( StaticHandleColorParameter, HandleColor );
 			MID1->SetVectorParameterValue( StaticHandleColorParameter, HandleColor );
 		}
+	}
+}
+
+class UStaticMeshComponent* UVREditorGizmoHandleGroup::CreateMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName )
+{
+	const bool bAllowGizmoLighting = false;	// @todo vreditor: Not sure if we want this for gizmos or not yet.  Needs feedback.  Also they're translucent right now.
+
+	UStaticMeshComponent* HandleComponent = CreateDefaultSubobject<UStaticMeshComponent>( *ComponentName );
+	check( HandleComponent != nullptr );
+
+	HandleComponent->SetStaticMesh( HandleMesh );
+	HandleComponent->SetMobility( EComponentMobility::Movable );
+	HandleComponent->AttachTo( this );
+
+	// @todo vreditor: We added a new engine collision channel "ECC_EditorGizmo" so that we could trace only
+	// against gizmos and nothing else.  This allows you to "click thru" solid objects to hit a ghosted gizmo.
+	// However, we need to look out for backwards compatibility issues with adding a new engine collision
+	// channel.  When I tested this with an existing project, all of the engine collision channels had been
+	// duplicated into the game's DefaultEngine.ini and were not updated to filter out the ECC_EditorGizmo
+	// like the stock collision channels that I updated in BaseEngine.ini when adding this feature.
+	HandleComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
+	HandleComponent->SetCollisionResponseToAllChannels( ECR_Ignore );
+	HandleComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
+
+	HandleComponent->bGenerateOverlapEvents = false;
+	HandleComponent->SetCanEverAffectNavigation( false );
+	HandleComponent->bCastDynamicShadow = bAllowGizmoLighting;
+	HandleComponent->bCastStaticShadow = false;
+	HandleComponent->bAffectDistanceFieldLighting = bAllowGizmoLighting;
+	HandleComponent->bAffectDynamicIndirectLighting = bAllowGizmoLighting;
+
+	return HandleComponent;
+}
+
+UStaticMeshComponent* UVREditorGizmoHandleGroup::CreateAndAddMeshHandle( UStaticMesh* HandleMesh, const FString& ComponentName, const FTransformGizmoHandlePlacement& HandlePlacement )
+{
+	UStaticMeshComponent* HandleComponent = CreateMeshHandle( HandleMesh, ComponentName );
+	AddMeshToHandles( HandleComponent, HandlePlacement );
+	return HandleComponent;
+}
+
+void UVREditorGizmoHandleGroup::AddMeshToHandles( UStaticMeshComponent* HandleMeshComponent, const FTransformGizmoHandlePlacement& HandlePlacement )
+{
+	int32 HandleIndex = MakeHandleIndex( HandlePlacement );
+	if (Handles.Num() < (HandleIndex + 1))
+	{
+		Handles.SetNumZeroed( HandleIndex + 1 );
+	}
+	Handles[HandleIndex].HandleMesh = HandleMeshComponent;
+}
+
+FTransformGizmoHandlePlacement UVREditorGizmoHandleGroup::GetHandlePlacement( const int32 X, const int32 Y, const int32 Z ) const
+{
+	FTransformGizmoHandlePlacement HandlePlacement;
+	HandlePlacement.Axes[0] = (ETransformGizmoHandleDirection)X;
+	HandlePlacement.Axes[1] = (ETransformGizmoHandleDirection)Y;
+	HandlePlacement.Axes[2] = (ETransformGizmoHandleDirection)Z;
+
+	return HandlePlacement;
+}
+
+void UVREditorGizmoHandleGroup::UpdateHoverAnimation( UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
+{
+	for (FVREditorGizmoHandle& Handle : Handles)
+	{
+		const bool bIsHoveringOverHandle = HoveringOverHandles.Contains( Handle.HandleMesh ) || (DraggingHandle != nullptr && DraggingHandle == Handle.HandleMesh);
+
+		if (bIsHoveringOverHandle)
+		{
+			Handle.HoverAlpha += GetWorld()->GetDeltaSeconds() / GizmoHoverAnimationDuration;
+			bOutIsHoveringOrDraggingThisHandleGroup = true;
+		}
+		else
+		{
+			Handle.HoverAlpha -= GetWorld()->GetDeltaSeconds() / GizmoHoverAnimationDuration;
+		}
+		Handle.HoverAlpha = FMath::Clamp( Handle.HoverAlpha, 0.0f, 1.0f );
 	}
 }

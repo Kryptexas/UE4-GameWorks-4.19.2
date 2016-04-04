@@ -23,10 +23,7 @@ UVREditorRotationGizmoHandleGroup::UVREditorRotationGizmoHandleGroup()
 		{
 			for (int32 Z = 0; Z < 3; ++Z)
 			{
-				FTransformGizmoHandlePlacement HandlePlacement;
-				HandlePlacement.Axes[0] = (ETransformGizmoHandleDirection)X;
-				HandlePlacement.Axes[1] = (ETransformGizmoHandleDirection)Y;
-				HandlePlacement.Axes[2] = (ETransformGizmoHandleDirection)Z;
+				FTransformGizmoHandlePlacement HandlePlacement = GetHandlePlacement( X, Y, Z );
 
 				int32 CenterHandleCount, FacingAxisIndex, CenterAxisIndex;
 				HandlePlacement.GetCenterHandleCountAndFacingAxisIndex( /* Out */ CenterHandleCount, /* Out */ FacingAxisIndex, /* Out */ CenterAxisIndex );
@@ -41,34 +38,7 @@ UVREditorRotationGizmoHandleGroup::UVREditorRotationGizmoHandleGroup()
 					if (CenterHandleCount == 1)	// Edge?
 					{
 						FString ComponentName = HandleName + TEXT( "RotationHandle" );
-
-						UStaticMeshComponent* RotationHandle = CreateDefaultSubobject<UStaticMeshComponent>( *ComponentName );
-						check( RotationHandle != nullptr );
-
-						RotationHandle->SetStaticMesh( RotationHandleMesh );
-
-						RotationHandle->SetMobility( EComponentMobility::Movable );
-						RotationHandle->AttachTo( this );
-
-						RotationHandle->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-						RotationHandle->SetCollisionResponseToAllChannels( ECR_Ignore );
-						RotationHandle->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
-
-						RotationHandle->bGenerateOverlapEvents = false;
-						RotationHandle->SetCanEverAffectNavigation( false );
-						RotationHandle->bCastDynamicShadow = bAllowGizmoLighting;
-						RotationHandle->bCastStaticShadow = false;
-						RotationHandle->bAffectDistanceFieldLighting = bAllowGizmoLighting;
-						RotationHandle->bAffectDynamicIndirectLighting = bAllowGizmoLighting;
-
-						int32 HandleIndex = MakeHandleIndex( HandlePlacement );
-						if (Handles.Num() < (HandleIndex + 1))
-						{
-							Handles.SetNumZeroed( HandleIndex + 1 );
-						}
-						Handles[HandleIndex].HandleMesh = RotationHandle;
-
-						check( CenterAxisIndex != INDEX_NONE );
+						CreateAndAddMeshHandle( RotationHandleMesh, ComponentName, HandlePlacement );
 					}
 				}
 			}

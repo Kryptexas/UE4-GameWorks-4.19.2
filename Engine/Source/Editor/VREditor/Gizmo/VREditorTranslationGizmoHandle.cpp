@@ -23,10 +23,7 @@ UVREditorTranslationGizmoHandleGroup::UVREditorTranslationGizmoHandleGroup()
 		{
 			for (int32 Z = 0; Z < 3; ++Z)
 			{
-				FTransformGizmoHandlePlacement HandlePlacement;
-				HandlePlacement.Axes[0] = (ETransformGizmoHandleDirection)X;
-				HandlePlacement.Axes[1] = (ETransformGizmoHandleDirection)Y;
-				HandlePlacement.Axes[2] = (ETransformGizmoHandleDirection)Z;
+				FTransformGizmoHandlePlacement HandlePlacement = GetHandlePlacement( X, Y, Z );
 
 				int32 CenterHandleCount, FacingAxisIndex, CenterAxisIndex;
 				HandlePlacement.GetCenterHandleCountAndFacingAxisIndex( /* Out */ CenterHandleCount, /* Out */ FacingAxisIndex, /* Out */ CenterAxisIndex );
@@ -40,41 +37,8 @@ UVREditorTranslationGizmoHandleGroup::UVREditorTranslationGizmoHandleGroup()
 					if (CenterHandleCount == 2)
 					{
 						// Translation handle
-						{
-							FString ComponentName = HandleName + TEXT( "TranslationHandle" );
-
-							UStaticMeshComponent* TranslationHandle = CreateDefaultSubobject<UStaticMeshComponent>( *ComponentName );
-							check( TranslationHandle != nullptr );
-
-							TranslationHandle->SetStaticMesh( TranslationHandleMesh );
-							TranslationHandle->SetMobility( EComponentMobility::Movable );
-							TranslationHandle->AttachTo( this );
-
-							// @todo vreditor: We added a new engine collision channel "ECC_EditorGizmo" so that we could trace only
-							// against gizmos and nothing else.  This allows you to "click thru" solid objects to hit a ghosted gizmo.
-							// However, we need to look out for backwards compatibility issues with adding a new engine collision
-							// channel.  When I tested this with an existing project, all of the engine collision channels had been
-							// duplicated into the game's DefaultEngine.ini and were not updated to filter out the ECC_EditorGizmo
-							// like the stock collision channels that I updated in BaseEngine.ini when adding this feature.
-
-							TranslationHandle->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-							TranslationHandle->SetCollisionResponseToAllChannels( ECR_Ignore );
-							TranslationHandle->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
-
-							TranslationHandle->bGenerateOverlapEvents = false;
-							TranslationHandle->SetCanEverAffectNavigation( false );
-							TranslationHandle->bCastDynamicShadow = bAllowGizmoLighting;
-							TranslationHandle->bCastStaticShadow = false;
-							TranslationHandle->bAffectDistanceFieldLighting = bAllowGizmoLighting;
-							TranslationHandle->bAffectDynamicIndirectLighting = bAllowGizmoLighting;
-
-							int32 HandleIndex = MakeHandleIndex( HandlePlacement );
-							if (Handles.Num() < (HandleIndex + 1))
-							{
-								Handles.SetNumZeroed( HandleIndex + 1 );
-							}
-							Handles[HandleIndex].HandleMesh = TranslationHandle;
-						}
+						FString ComponentName = HandleName + TEXT( "TranslationHandle" );
+						CreateAndAddMeshHandle( TranslationHandleMesh, ComponentName, HandlePlacement );
 					}
 				}
 			}

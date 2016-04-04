@@ -95,6 +95,18 @@ protected:
 	/** Updates the colors of the dynamic material instances for the handle passed using its axis index */	
 	void UpdateHandleColor( const int32 AxisIndex, FVREditorGizmoHandle& Handle, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles );
 
+	/** Helper function to create gizmo handle meshes */
+	class UStaticMeshComponent* CreateMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName );
+
+	/** Creates handle meshcomponent and adds it to the Handles list */
+	class UStaticMeshComponent* CreateAndAddMeshHandle( class UStaticMesh* HandleMesh, const FString& ComponentName, const FTransformGizmoHandlePlacement& HandlePlacement );
+
+	/** Adds the HandleMeshComponent to the Handles list */
+	void AddMeshToHandles( class UStaticMeshComponent* HandleMeshComponent, const FTransformGizmoHandlePlacement& HandlePlacement );
+
+	/** Gets the handleplacement axes */
+	FTransformGizmoHandlePlacement GetHandlePlacement( const int32 X, const int32 Y, const int32 Z ) const;
+
 	/** Gizmo material (opaque) */
 	UPROPERTY()
 	UMaterialInterface* GizmoMaterial;
@@ -106,4 +118,9 @@ protected:
 	/** All the StaticMeshes for this handle type */
 	UPROPERTY()
 	TArray< FVREditorGizmoHandle > Handles;
+
+private:
+
+	/** Updates the hover animation for the HoveringOverHandles */
+	void UpdateHoverAnimation( class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup );
 };
