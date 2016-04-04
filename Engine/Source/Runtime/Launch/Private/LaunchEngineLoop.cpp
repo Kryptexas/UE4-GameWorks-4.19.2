@@ -3249,8 +3249,9 @@ void FEngineLoop::PreInitHMDDevice()
 		for (auto HMDModuleIt = HMDModules.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
 		{
 			IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
+			FHeadMountedDisplayModuleExt* HMDModuleExt = FHeadMountedDisplayModuleExt::GetExtendedInterface(HMDModule);
 
-			if (!HMDModule->PreInit())
+			if (HMDModuleExt && !HMDModuleExt->PreInitEx())
 			{
 				// Unregister modules which fail PreInit
 				ModularFeatures.UnregisterModularFeature(Type, HMDModule);

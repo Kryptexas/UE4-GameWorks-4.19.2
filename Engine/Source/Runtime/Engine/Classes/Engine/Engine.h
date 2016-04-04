@@ -23,6 +23,8 @@ class IHeadMountedDisplayModule;
 // HACK:  REMOVE ME.  Moving virtual method additions to IHeadMountedDisplayModule to this extension struct to allow for 4.11.1 to hot fix in the update
 struct ENGINE_API FHeadMountedDisplayModuleExt
 {
+	virtual bool PreInitEx() { return true; }
+
 	/*
 	* Test to see whether HMD is connected.  Used to guide which plug-in to select.
 	*/

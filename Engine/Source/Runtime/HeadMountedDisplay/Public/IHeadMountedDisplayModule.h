@@ -20,9 +20,9 @@ public:
 
 	/** Returns the key into the HMDPluginPriority section of the config file for this module */
 	virtual FString GetModulePriorityKeyName() const = 0;
-	
+
 	/** Returns the priority of this module from INI file configuration */
-	float GetModulePriority() const
+	float GetHMDPriority() const
 	{
 		float ModulePriority = 0.f;
 		FString KeyName = GetModulePriorityKeyName();
@@ -41,15 +41,15 @@ public:
 			bool IsHMDConnectedA = AExt ? AExt->IsHMDConnected() : false;
 			bool IsHMDConnectedB = BExt ? BExt->IsHMDConnected() : false;
 
-			if(IsHMDConnectedA && !IsHMDConnectedB)
+			if (IsHMDConnectedA && !IsHMDConnectedB)
 				return true;
-			if(!IsHMDConnectedA && IsHMDConnectedB)
+			if (!IsHMDConnectedA && IsHMDConnectedB)
 				return false;
 
-			return A.GetModulePriority() > B.GetModulePriority();
+			return A.GetHMDPriority() > B.GetHMDPriority();
 		}
 	};
-
+	
 	/**
 	 * Singleton-like access to IHeadMountedDisplayModule
 	 *
@@ -83,7 +83,7 @@ public:
 	/**
 	* Optionally pre-initialize the HMD module.  Return false on failure.
 	*/
-	virtual bool PreInit() { return true; }
+	virtual void PreInit() {};
 
 	/**
 	 * Attempts to create a new head tracking device interface
@@ -91,4 +91,16 @@ public:
 	 * @return	Interface to the new head tracking device, if we were able to successfully create one
 	 */
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() = 0;
+};
+
+/** DEADCODE:  Binary compat for 4.11.  Sorting method for which plugin should be given priority */
+struct FHMDPluginSorter
+{
+	FHMDPluginSorter() {}
+
+	// Sort predicate operator
+	bool operator()(IHeadMountedDisplayModule& LHS, IHeadMountedDisplayModule& RHS) const
+	{
+		return LHS.GetHMDPriority() > RHS.GetHMDPriority();
+	}
 };

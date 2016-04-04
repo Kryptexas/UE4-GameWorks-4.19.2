@@ -121,7 +121,7 @@ public:
 
 	/** IHeadMountedDisplayModule */
 	virtual FString GetModulePriorityKeyName() const override;
-	virtual bool PreInit();
+	virtual bool PreInitEx();
 	virtual bool IsHMDConnected() override;
 	virtual int GetGraphicsAdapter() override;
 	virtual FString GetAudioInputDevice() override;

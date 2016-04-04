@@ -163,7 +163,7 @@ FString FOculusRiftPlugin::GetModulePriorityKeyName() const
 	return FString(TEXT("OculusRift"));
 }
 
-bool FOculusRiftPlugin::PreInit()
+bool FOculusRiftPlugin::PreInitEx()
 {
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	if (Initialize())
