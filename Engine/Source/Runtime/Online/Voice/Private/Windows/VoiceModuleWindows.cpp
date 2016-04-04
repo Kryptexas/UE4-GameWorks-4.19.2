@@ -5,6 +5,7 @@
 #include "VoiceCaptureWindows.h"
 #include "VoiceCodecOpus.h"
 #include "Voice.h"
+#include "Engine.h"
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
 
 static TAutoConsoleVariable<int32> CVarHmdDirectSoundVoiceCaptureDeviceIndex(
