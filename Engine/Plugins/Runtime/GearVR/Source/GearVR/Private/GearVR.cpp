@@ -31,7 +31,7 @@ class FGearVRPlugin : public IGearVRPlugin
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
 
 	// Pre-init the HMD module
-	virtual bool PreInit() override;
+	virtual void PreInit() override;
 
 	FString GetModulePriorityKeyName() const
 	{
@@ -89,12 +89,11 @@ bool FGearVRPlugin::PreInit()
 	if (AndroidThunkCpp_IsGearVRApplication())
 	{
 		UE_LOG(LogHMD, Log, TEXT("GearVR: it is packaged for GearVR!"));
-		return true;
+		return;
 	}
 	UE_LOG(LogHMD, Log, TEXT("GearVR: not packaged for GearVR"));
 	// don't do anything if we aren't packaged for GearVR
 #endif//GEARVR_SUPPORTED_PLATFORMS
-	return false;
 }
 
 
