@@ -83,7 +83,7 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FGearVRPlugin::Crea
 	return NULL;
 }
 
-bool FGearVRPlugin::PreInit()
+void FGearVRPlugin::PreInit()
 {
 #if GEARVR_SUPPORTED_PLATFORMS
 	if (AndroidThunkCpp_IsGearVRApplication())
