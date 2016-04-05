@@ -4,11 +4,18 @@
 
 FThreadHeartBeat::FThreadHeartBeat()
 : Thread(nullptr)
+, bReadyToCheckHeartbeat(false)
+, HangDuration(25.0)
 {
 	// We don't care about programs for now so no point in spawning the extra thread
 #if !IS_PROGRAM
 	Thread = FRunnableThread::Create(this, TEXT("FHeartBeatThread"), 0, TPri_BelowNormal);
 #endif
+
+	if (GConfig)
+	{
+		GConfig->GetDouble(TEXT("Core.System"), TEXT("HangDuration"), HangDuration, GEngineIni);
+	}
 }
 
 FThreadHeartBeat::~FThreadHeartBeat()
@@ -62,7 +69,7 @@ uint32 FThreadHeartBeat::Run()
 				StackTrimmed += StackLines[LineIndex];
 				StackTrimmed += TEXT("\n");
 			}
-			UE_LOG(LogCore, Fatal, TEXT("Infinite stall detected on %s:\n%s"), *ThreadName, *StackTrimmed);
+			UE_LOG(LogCore, Fatal, TEXT("Hang detected on %s:\n%s"), *ThreadName, *StackTrimmed);
 		}
 		FPlatformProcess::SleepNoStats(0.5f);
 	}
@@ -73,6 +80,11 @@ uint32 FThreadHeartBeat::Run()
 void FThreadHeartBeat::Stop()
 {
 	StopTaskCounter.Increment();
+}
+
+void FThreadHeartBeat::Start()
+{
+	bReadyToCheckHeartbeat = true;
 }
 
 void FThreadHeartBeat::HeartBeat()
@@ -87,7 +99,7 @@ uint32 FThreadHeartBeat::CheckHeartBeat()
 {
 	// Editor and debug builds run too slow to measure them correctly
 #if !WITH_EDITORONLY_DATA && !IS_PROGRAM && !UE_BUILD_DEBUG
-	if (!GIsRequestingExit && !FPlatformMisc::IsDebuggerPresent())
+	if (HangDuration > 0.0 && bReadyToCheckHeartbeat && !GIsRequestingExit && !FPlatformMisc::IsDebuggerPresent())
 	{
 		const double HangDuration = 25.0;
 		const double CurrentTime = FPlatformTime::Seconds();

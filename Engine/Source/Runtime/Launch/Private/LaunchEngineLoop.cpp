@@ -2289,6 +2289,9 @@ int32 FEngineLoop::Init()
 
 	FCoreDelegates::StarvedGameLoop.BindStatic(&GameLoopIsStarved);
 
+	// Ready to measure thread heartbeat
+	FThreadHeartBeat::Get().Start();
+
 	return 0;
 }
 

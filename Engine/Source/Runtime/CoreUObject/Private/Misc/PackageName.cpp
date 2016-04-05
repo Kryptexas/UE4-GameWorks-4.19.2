@@ -7,6 +7,7 @@
 #include "CoreUObjectPrivate.h"
 #include "Projects.h"
 #include "PackageLocalizationManager.h"
+#include "HAL/ThreadHeartBeat.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPackageName, Log, All);
 
@@ -728,6 +729,12 @@ bool FPackageName::DoesPackageExist(const FString& LongPackageName, const FGuid*
 bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* OutLongPackageName, FString* OutFilename)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FPackageName::SearchForPackageOnDisk"), STAT_PackageName_SearchForPackageOnDisk, STATGROUP_LoadTime);
+	
+	// This function may take a long time to complete so make sure the heartbeat is reset
+	if (IsInGameThread())
+	{
+		FThreadHeartBeat::Get().HeartBeat();
+	}
 
 	bool bResult = false;
 	double StartTime = FPlatformTime::Seconds();
@@ -770,6 +777,12 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 		{
 			// Search directly on disk. Very slow!
 			IFileManager::Get().FindFilesRecursive(Results, *Paths[PathIndex], *PackageWildcard, true, false);
+
+			// Send a heartbeat now too
+			if (IsInGameThread())
+			{
+				FThreadHeartBeat::Get().HeartBeat();
+			}
 
 			for (int32 FileIndex = 0; FileIndex < Results.Num(); ++FileIndex)
 			{			
