@@ -19,7 +19,7 @@ class LEVELEDITOR_API FLevelViewportTabContent : public TSharedFromThis<FLevelVi
 {
 public:
 	/** Starts the tab content object and creates the initial layout based on the layout string */
-	void Initialize(TSharedPtr<class SLevelEditor> InParentLevelEditor, TSharedPtr<SDockTab> InParentTab, const FString& InLayoutString);
+	void Initialize(TSharedPtr<ILevelEditor> InParentLevelEditor, TSharedPtr<SDockTab> InParentTab, const FString& InLayoutString);
 
 	/** Returns whether the tab is currently shown */
 	bool IsVisible() const;
@@ -71,7 +71,7 @@ private:
 
 private:
 	TWeakPtr<class SDockTab> ParentTab;
-	TWeakPtr<class SLevelEditor> ParentLevelEditor;
+	TWeakPtr<ILevelEditor> ParentLevelEditor;
 	FString LayoutString;
 
 	/** Current layout */

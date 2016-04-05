@@ -15,6 +15,7 @@
 #include "GlobalDistanceField.h"
 #include "RHICommandList.h"
 #include "SceneUtils.h"
+#include "HeightfieldLighting.h"
 
 int32 GAOGlobalDistanceField = 1;
 FAutoConsoleVariableRef CVarAOGlobalDistanceField(
@@ -38,6 +39,14 @@ FAutoConsoleVariableRef CVarAOGlobalDistanceFieldPartialUpdates(
 	TEXT("r.AOGlobalDistanceFieldPartialUpdates"),
 	GAOGlobalDistanceFieldPartialUpdates,
 	TEXT("Whether to allow partial updates of the global distance field.  When profiling it's useful to disable this and get the worst case composition time that happens on camera cuts."),
+	ECVF_Cheat | ECVF_RenderThreadSafe
+	);
+
+int32 GAOGlobalDistanceFieldStaggeredUpdates = 1;
+FAutoConsoleVariableRef CVarAOGlobalDistanceFieldStaggeredUpdatess(
+	TEXT("r.AOGlobalDistanceFieldStaggeredUpdates"),
+	GAOGlobalDistanceFieldStaggeredUpdates,
+	TEXT("Whether to allow the larger clipmaps to be updated less frequently."),
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
@@ -122,7 +131,10 @@ void FGlobalDistanceFieldInfo::UpdateParameterData(float MaxOcclusionDistance)
 		}
 
 		ParameterData.GlobalDFResolution = GAOGlobalDFResolution;
-		ParameterData.MaxDistance = MaxOcclusionDistance;
+
+		extern float GAOConeHalfAngle;
+		const float GlobalMaxSphereQueryRadius = MaxOcclusionDistance / (1 + FMath::Tan(GAOConeHalfAngle));
+		ParameterData.MaxDistance = GlobalMaxSphereQueryRadius;
 	}
 	else
 	{
@@ -485,6 +497,196 @@ private:
 
 IMPLEMENT_SHADER_TYPE(,FCompositeObjectDistanceFieldsCS,TEXT("GlobalDistanceField"),TEXT("CompositeObjectDistanceFieldsCS"),SF_Compute);
 
+const int32 HeightfieldCompositeTileSize = 8;
+
+class FCompositeHeightfieldsIntoGlobalDistanceFieldCS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FCompositeHeightfieldsIntoGlobalDistanceFieldCS, Global)
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("COMPOSITE_HEIGHTFIELDS_THREADGROUP_SIZE"), HeightfieldCompositeTileSize);
+	}
+
+	FCompositeHeightfieldsIntoGlobalDistanceFieldCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		GlobalDistanceFieldParameters.Bind(Initializer.ParameterMap);
+		GlobalDistanceFieldTexture.Bind(Initializer.ParameterMap, TEXT("GlobalDistanceFieldTexture"));
+		UpdateRegionSize.Bind(Initializer.ParameterMap, TEXT("UpdateRegionSize"));
+		VolumeTexelSize.Bind(Initializer.ParameterMap, TEXT("VolumeTexelSize"));
+		UpdateRegionVolumeMin.Bind(Initializer.ParameterMap, TEXT("UpdateRegionVolumeMin"));
+		ClipmapIndex.Bind(Initializer.ParameterMap, TEXT("ClipmapIndex"));
+		AOGlobalMaxSphereQueryRadius.Bind(Initializer.ParameterMap, TEXT("AOGlobalMaxSphereQueryRadius"));
+		HeightfieldDescriptionParameters.Bind(Initializer.ParameterMap);
+		HeightfieldTextureParameters.Bind(Initializer.ParameterMap);
+	}
+
+	FCompositeHeightfieldsIntoGlobalDistanceFieldCS()
+	{
+	}
+
+	void SetParameters(
+		FRHICommandList& RHICmdList,
+		const FScene* Scene,
+		const FSceneView& View,
+		float MaxOcclusionDistance,
+		const FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo,
+		int32 ClipmapIndexValue,
+		const FVolumeUpdateRegion& UpdateRegion,
+		UTexture2D* HeightfieldTextureValue,
+		int32 NumHeightfieldsValue)
+	{
+		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
+		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
+		GlobalDistanceFieldParameters.Set(RHICmdList, ShaderRHI, GlobalDistanceFieldInfo.ParameterData);
+
+		const FSceneRenderTargetItem& ClipMapRTI = GlobalDistanceFieldInfo.Clipmaps[ClipmapIndexValue].RenderTarget->GetRenderTargetItem();
+		RHICmdList.TransitionResource(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, ClipMapRTI.UAV);
+		GlobalDistanceFieldTexture.SetTexture(RHICmdList, ShaderRHI, ClipMapRTI.ShaderResourceTexture, ClipMapRTI.UAV);
+
+		SetShaderValue(RHICmdList, ShaderRHI, UpdateRegionSize, UpdateRegion.CellsSize);
+		SetShaderValue(RHICmdList, ShaderRHI, VolumeTexelSize, FVector(1.0f / GAOGlobalDFResolution));
+		SetShaderValue(RHICmdList, ShaderRHI, UpdateRegionVolumeMin, UpdateRegion.Bounds.Min);
+		SetShaderValue(RHICmdList, ShaderRHI, ClipmapIndex, ClipmapIndexValue);
+
+		extern float GAOConeHalfAngle;
+		const float GlobalMaxSphereQueryRadius = MaxOcclusionDistance / (1 + FMath::Tan(GAOConeHalfAngle));
+		SetShaderValue(RHICmdList, ShaderRHI, AOGlobalMaxSphereQueryRadius, GlobalMaxSphereQueryRadius);
+
+		HeightfieldDescriptionParameters.Set(RHICmdList, ShaderRHI, GetHeightfieldDescriptionsSRV(), NumHeightfieldsValue);
+		HeightfieldTextureParameters.Set(RHICmdList, ShaderRHI, HeightfieldTextureValue, NULL);
+	}
+
+	void UnsetParameters(FRHICommandList& RHICmdList, const FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo, int32 ClipmapIndexValue)
+	{
+		GlobalDistanceFieldTexture.UnsetUAV(RHICmdList, GetComputeShader());
+
+		const FSceneRenderTargetItem& ClipMapRTI = GlobalDistanceFieldInfo.Clipmaps[ClipmapIndexValue].RenderTarget->GetRenderTargetItem();
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EComputeToCompute, ClipMapRTI.UAV);
+	}
+
+	virtual bool Serialize(FArchive& Ar)
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << GlobalDistanceFieldParameters;
+		Ar << GlobalDistanceFieldTexture;
+		Ar << UpdateRegionSize;
+		Ar << VolumeTexelSize;
+		Ar << UpdateRegionVolumeMin;
+		Ar << ClipmapIndex;
+		Ar << AOGlobalMaxSphereQueryRadius;
+		Ar << HeightfieldDescriptionParameters;
+		Ar << HeightfieldTextureParameters;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+
+	FGlobalDistanceFieldParameters GlobalDistanceFieldParameters;
+	FRWShaderParameter GlobalDistanceFieldTexture;
+	FShaderParameter UpdateRegionSize;
+	FShaderParameter VolumeTexelSize;
+	FShaderParameter UpdateRegionVolumeMin;
+	FShaderParameter ClipmapIndex;
+	FShaderParameter AOGlobalMaxSphereQueryRadius;
+	FHeightfieldDescriptionParameters HeightfieldDescriptionParameters;
+	FHeightfieldTextureParameters HeightfieldTextureParameters;
+};
+
+IMPLEMENT_SHADER_TYPE(, FCompositeHeightfieldsIntoGlobalDistanceFieldCS, TEXT("GlobalDistanceField"), TEXT("CompositeHeightfieldsIntoGlobalDistanceFieldCS"), SF_Compute);
+
+extern int32 GAOHeightfieldOcclusion;
+extern void UploadHeightfieldDescriptions(const TArray<FHeightfieldComponentDescription>& HeightfieldDescriptions, FVector2D InvLightingAtlasSize, float InvDownsampleFactor);
+
+void FHeightfieldLightingViewInfo::CompositeHeightfieldsIntoGlobalDistanceField(
+	FRHICommandList& RHICmdList,
+	const FScene* Scene,
+	const FViewInfo& View,
+	float MaxOcclusionDistance,
+	const FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo,
+	int32 ClipmapIndexValue,
+	const FVolumeUpdateRegion& UpdateRegion) const
+{
+	const int32 NumPrimitives = Scene->DistanceFieldSceneData.HeightfieldPrimitives.Num();
+
+	if (GAOHeightfieldOcclusion
+		&& NumPrimitives > 0
+		&& SupportsDistanceFieldAO(Scene->GetFeatureLevel(), Scene->GetShaderPlatform()))
+	{
+		FHeightfieldDescription UpdateRegionHeightfield;
+		float LocalToWorldScale = 1;
+
+		for (int32 HeightfieldPrimitiveIndex = 0; HeightfieldPrimitiveIndex < NumPrimitives; HeightfieldPrimitiveIndex++)
+		{
+			const FPrimitiveSceneInfo* HeightfieldPrimitive = Scene->DistanceFieldSceneData.HeightfieldPrimitives[HeightfieldPrimitiveIndex];
+			const FBoxSphereBounds& PrimitiveBounds = HeightfieldPrimitive->Proxy->GetBounds();
+			const float DistanceToPrimitiveSq = (PrimitiveBounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
+
+			if (UpdateRegion.Bounds.Intersect(PrimitiveBounds.GetBox()))
+			{
+				UTexture2D* HeightfieldTexture = NULL;
+				UTexture2D* DiffuseColorTexture = NULL;
+				FHeightfieldComponentDescription NewComponentDescription(HeightfieldPrimitive->Proxy->GetLocalToWorld());
+				HeightfieldPrimitive->Proxy->GetHeightfieldRepresentation(HeightfieldTexture, DiffuseColorTexture, NewComponentDescription);
+
+				if (HeightfieldTexture && HeightfieldTexture->Resource->TextureRHI)
+				{
+					const FIntPoint HeightfieldSize = NewComponentDescription.HeightfieldRect.Size();
+
+					if (UpdateRegionHeightfield.Rect.Area() == 0)
+					{
+						UpdateRegionHeightfield.Rect = NewComponentDescription.HeightfieldRect;
+						LocalToWorldScale = NewComponentDescription.LocalToWorld.GetScaleVector().X;
+					}
+					else
+					{
+						UpdateRegionHeightfield.Rect.Union(NewComponentDescription.HeightfieldRect);
+					}
+
+					TArray<FHeightfieldComponentDescription>& ComponentDescriptions = UpdateRegionHeightfield.ComponentDescriptions.FindOrAdd(FHeightfieldComponentTextures(HeightfieldTexture, DiffuseColorTexture));
+					ComponentDescriptions.Add(NewComponentDescription);
+				}
+			}
+		}
+
+		if (UpdateRegionHeightfield.ComponentDescriptions.Num() > 0)
+		{
+			SCOPED_DRAW_EVENT(RHICmdList, CompositeHeightfields);
+
+			for (TMap<FHeightfieldComponentTextures, TArray<FHeightfieldComponentDescription>>::TConstIterator It(UpdateRegionHeightfield.ComponentDescriptions); It; ++It)
+			{
+				const TArray<FHeightfieldComponentDescription>& HeightfieldDescriptions = It.Value();
+
+				if (HeightfieldDescriptions.Num() > 0)
+				{
+					UploadHeightfieldDescriptions(HeightfieldDescriptions, FVector2D(1, 1), 1.0f / UpdateRegionHeightfield.DownsampleFactor);
+
+					UTexture2D* HeightfieldTexture = It.Key().HeightAndNormal;
+
+					TShaderMapRef<FCompositeHeightfieldsIntoGlobalDistanceFieldCS> ComputeShader(View.ShaderMap);
+					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+					ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo, ClipmapIndexValue, UpdateRegion, HeightfieldTexture, HeightfieldDescriptions.Num());
+
+					//@todo - match typical update sizes.  Camera movement creates narrow slabs.
+					const uint32 NumGroupsX = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.X, HeightfieldCompositeTileSize);
+					const uint32 NumGroupsY = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Y, HeightfieldCompositeTileSize);
+
+					DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, 1);
+					ComputeShader->UnsetParameters(RHICmdList, GlobalDistanceFieldInfo, ClipmapIndexValue);
+				}
+			}
+		}
+	}
+}
+
 /** Constructs and adds an update region based on camera movement for the given axis. */
 void AddUpdateRegionForAxis(FIntVector Movement, const FBox& ClipmapBounds, float CellSize, int32 ComponentIndex, TArray<FVolumeUpdateRegion, TInlineAllocator<3> >& UpdateRegions)
 {
@@ -581,7 +783,7 @@ void AllocateClipmapTexture(FRHICommandListImmediate& RHICmdList, int32 ClipmapI
 /** Staggers clipmap updates so there are only 2 per frame */
 bool ShouldUpdateClipmapThisFrame(int32 ClipmapIndex, int32 GlobalDistanceFieldUpdateIndex)
 {
-	if (ClipmapIndex == 0)
+	if (ClipmapIndex == 0 || !GAOGlobalDistanceFieldStaggeredUpdates)
 	{
 		return true;
 	}
@@ -639,9 +841,13 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
 			// Accumulate primitive modifications in the viewstate in case we don't update the clipmap this frame
 			ClipmapViewState.PrimitiveModifiedBounds.Append(PrimitiveModifiedBounds);
 
-			if (ShouldUpdateClipmapThisFrame(ClipmapIndex, View.ViewState->GlobalDistanceFieldUpdateIndex)
+			const bool bForceFullUpdate = bReallocated
 				|| !View.ViewState->bIntializedGlobalDistanceFieldOrigins
-				|| bReallocated)
+				// Detect when max occlusion distance has changed
+				|| ClipmapViewState.CachedMaxOcclusionDistance != MaxOcclusionDistance;
+
+			if (ShouldUpdateClipmapThisFrame(ClipmapIndex, View.ViewState->GlobalDistanceFieldUpdateIndex)
+				|| bForceFullUpdate)
 			{
 				const FVector NewCenter = View.ViewMatrices.ViewOrigin;
 
@@ -654,8 +860,7 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
 				const FBox ClipmapBounds(SnappedCenter - Extent, SnappedCenter + Extent);
 
 				bool bUsePartialUpdates = GAOGlobalDistanceFieldPartialUpdates
-					&& View.ViewState->bIntializedGlobalDistanceFieldOrigins 
-					&& !bReallocated
+					&& !bForceFullUpdate
 					// Only use partial updates with small numbers of primitive modifications
 					&& ClipmapViewState.PrimitiveModifiedBounds.Num() < 100;
 
@@ -667,7 +872,7 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
 					AddUpdateRegionForAxis(Movement, ClipmapBounds, CellSize, 0, Clipmap.UpdateRegions);
 					AddUpdateRegionForAxis(Movement, ClipmapBounds, CellSize, 1, Clipmap.UpdateRegions);
 					AddUpdateRegionForAxis(Movement, ClipmapBounds, CellSize, 2, Clipmap.UpdateRegions);
-
+					
 					extern float GAOConeHalfAngle;
 					const float GlobalMaxSphereQueryRadius = MaxOcclusionDistance / (1 + FMath::Tan(GAOConeHalfAngle));
 
@@ -711,7 +916,7 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
 						}
 					}
 
-					if (TotalTexelsBeingUpdated > GAOGlobalDFResolution * GAOGlobalDFResolution * GAOGlobalDFResolution)
+					if (TotalTexelsBeingUpdated >= GAOGlobalDFResolution * GAOGlobalDFResolution * GAOGlobalDFResolution)
 					{
 						// Fall back to a full update if the partial updates were going to do more work
 						bUsePartialUpdates = false;
@@ -742,6 +947,8 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
 			Clipmap.Bounds = FBox(Center - Extent, Center + Extent);
 			// Scroll offset so the contents of the global distance field don't have to be moved as the camera moves around, only updated in slabs
 			Clipmap.ScrollOffset = FVector(ClipmapViewState.LastPartialUpdateOrigin - ClipmapViewState.FullUpdateOrigin) * CellSize;
+
+			ClipmapViewState.CachedMaxOcclusionDistance = MaxOcclusionDistance;
 		}
 	}
 	else
@@ -784,7 +991,7 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
  **/
 void UpdateGlobalDistanceFieldVolume(
 	FRHICommandListImmediate& RHICmdList, 
-	const FViewInfo& View, 
+	FViewInfo& View, 
 	const FScene* Scene, 
 	float MaxOcclusionDistance, 
 	FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo)
@@ -792,6 +999,10 @@ void UpdateGlobalDistanceFieldVolume(
 	if (Scene->DistanceFieldSceneData.NumObjectsInBuffer > 0)
 	{
 		ComputeUpdateRegionsAndUpdateViewState(RHICmdList, View, GlobalDistanceFieldInfo, GMaxGlobalDistanceFieldClipmaps, Scene->DistanceFieldSceneData.PrimitiveModifiedBounds, MaxOcclusionDistance);
+
+		// Recreate the view uniform buffer now that we have updated GlobalDistanceFieldInfo
+		//@todo - minimal recreate
+		View.InitRHIResources(nullptr);
 
 		bool bHasUpdateRegions = false;
 
@@ -877,6 +1088,8 @@ void UpdateGlobalDistanceFieldVolume(
 						DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
 						ComputeShader->UnsetParameters(RHICmdList, GlobalDistanceFieldInfo, ClipmapIndex);
 					}
+
+					View.HeightfieldLightingViewInfo.CompositeHeightfieldsIntoGlobalDistanceField(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo, ClipmapIndex, UpdateRegion);
 				}
 			}
 		}

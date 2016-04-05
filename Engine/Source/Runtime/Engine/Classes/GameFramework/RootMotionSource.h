@@ -114,6 +114,16 @@ struct ENGINE_API FRootMotionSourceSettings
 	FRootMotionSourceSettings& operator+=(const FRootMotionSourceSettings& Other);
 };
 
+UENUM()
+enum class ERootMotionFinishVelocityMode : uint8
+{
+	// Maintain the last velocity root motion gave to the character
+	MaintainLastRootMotionVelocity = 0,
+	// Set Velocity to the specified value (for example, 0,0,0 to stop the character)
+	SetVelocity,
+};
+
+
 /** 
 *	Generalized source of Root Motion to a CharacterMovementComponent.
 *	
@@ -337,6 +347,7 @@ struct TStructOpsTypeTraits< FRootMotionSource > : public TStructOpsTypeTraitsBa
 	};
 };
 
+/** ConstantForce applies a fixed force to the target */
 USTRUCT()
 struct ENGINE_API FRootMotionSource_ConstantForce : public FRootMotionSource
 {
@@ -348,6 +359,9 @@ struct ENGINE_API FRootMotionSource_ConstantForce : public FRootMotionSource
 
 	UPROPERTY()
 	FVector Force;
+
+	UPROPERTY()
+	UCurveFloat* StrengthOverTime;
 
 	virtual FRootMotionSource* Clone() const override;
 
@@ -369,6 +383,8 @@ struct ENGINE_API FRootMotionSource_ConstantForce : public FRootMotionSource
 	virtual UScriptStruct* GetScriptStruct() const override;
 
 	virtual FString ToSimpleString() const override;
+
+	virtual void AddReferencedObjects(class FReferenceCollector& Collector) override;
 };
 
 template<>
@@ -382,6 +398,7 @@ struct TStructOpsTypeTraits< FRootMotionSource_ConstantForce > : public TStructO
 };
 
 
+/** RadialForce applies a force pulling or pushing away from a given world location to the target */
 USTRUCT()
 struct ENGINE_API FRootMotionSource_RadialForce : public FRootMotionSource
 {
@@ -450,6 +467,7 @@ struct TStructOpsTypeTraits< FRootMotionSource_RadialForce > : public TStructOps
 };
 
 
+/** MoveToForce moves the target to a given fixed location in world space over the duration */
 USTRUCT()
 struct ENGINE_API FRootMotionSource_MoveToForce : public FRootMotionSource
 {
@@ -510,6 +528,76 @@ struct TStructOpsTypeTraits< FRootMotionSource_MoveToForce > : public TStructOps
 };
 
 
+/** 
+ * MoveToDynamicForce moves the target to a given location in world space over the duration, where the end location
+ * is dynamic and can change during the move (meant to be used for things like moving to a moving target)
+ */
+USTRUCT()
+struct ENGINE_API FRootMotionSource_MoveToDynamicForce : public FRootMotionSource
+{
+	GENERATED_USTRUCT_BODY()
+
+	FRootMotionSource_MoveToDynamicForce();
+
+	virtual ~FRootMotionSource_MoveToDynamicForce() {}
+
+	UPROPERTY()
+	FVector StartLocation;
+
+	UPROPERTY()
+	FVector InitialTargetLocation;
+
+	UPROPERTY()
+	FVector TargetLocation;
+
+	UPROPERTY()
+	bool bRestrictSpeedToExpected;
+
+	UPROPERTY()
+	UCurveVector* PathOffsetCurve;
+
+	void SetTargetLocation(FVector NewTargetLocation);
+
+	FVector GetPathOffsetInWorldSpace(float MoveFraction) const;
+
+	virtual FRootMotionSource* Clone() const override;
+
+	virtual bool Matches(const FRootMotionSource* Other) const override;
+
+	virtual bool MatchesAndHasSameState(const FRootMotionSource* Other) const override;
+
+	virtual bool UpdateStateFrom(const FRootMotionSource* SourceToTakeStateFrom, bool bMarkForSimulatedCatchup = false) override;
+
+	virtual void SetTime(float NewTime) override;
+
+	virtual void PrepareRootMotion(
+		float SimulationTime, 
+		float MovementTickTime,
+		const ACharacter& Character, 
+		const UCharacterMovementComponent& MoveComponent
+		) override;
+
+	virtual bool NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess) override;
+
+	virtual UScriptStruct* GetScriptStruct() const override;
+
+	virtual FString ToSimpleString() const override;
+
+	virtual void AddReferencedObjects(class FReferenceCollector& Collector) override;
+};
+
+template<>
+struct TStructOpsTypeTraits< FRootMotionSource_MoveToDynamicForce > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetSerializer = true,
+		WithCopy = true
+	};
+};
+
+
+/** JumpForce moves the target in a jump-like manner (ends when landing, applied force is relative) */
 USTRUCT()
 struct ENGINE_API FRootMotionSource_JumpForce : public FRootMotionSource
 {
@@ -616,7 +704,7 @@ struct ENGINE_API FRootMotionSourceGroup
 	 *  the velocity that we added heading into the wall last tick would make you go backwards. With
 	 *  this method we override that resulting Velocity due to obstructions */
 	UPROPERTY()
-	FVector LastPreAdditiveVelocity;
+	FVector_NetQuantize10 LastPreAdditiveVelocity;
 
 	/** True when we had additive velocity applied last tick, checked to know if we should restore
 	 *  LastPreAdditiveVelocity before a Velocity computation */

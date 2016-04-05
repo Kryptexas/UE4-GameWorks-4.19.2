@@ -16,6 +16,9 @@ struct CORE_API FFrameworkObjectVersion
 		// missing graphs that appear read only when edited
 		AnimBlueprintSubgraphFix,
 
+		// Static and skeletal mesh sockets now use the specified scale
+		MeshSocketScaleUtilization,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

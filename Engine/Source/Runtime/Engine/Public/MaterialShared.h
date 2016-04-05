@@ -224,6 +224,8 @@ public:
 
 	friend FArchive& operator<<(FArchive& Ar,class FMaterialUniformExpressionTexture*& Ref);
 
+	int32 GetTextureIndex() const { return TextureIndex; }
+
 protected:
 	/** Index into FMaterial::GetReferencedTextures */
 	int32 TextureIndex;
@@ -910,7 +912,8 @@ public:
 		QualityLevel(EMaterialQualityLevel::High),
 		bHasQualityLevelUsage(false),
 		FeatureLevel(ERHIFeatureLevel::SM4),
-		bContainsInlineShaders(false)
+		bContainsInlineShaders(false),
+		bLoadedCookedShaderMapId(false)
 	{}
 
 	/**
@@ -1003,6 +1006,7 @@ public:
 	virtual float GetTranslucentSelfShadowSecondOpacity() const { return 1.0f; }
 	virtual float GetTranslucentBackscatteringExponent() const { return 1.0f; }
 	virtual bool IsSeparateTranslucencyEnabled() const { return false; }
+	virtual bool IsMobileSeparateTranslucencyEnabled() const { return false; }
 	virtual FLinearColor GetTranslucentMultipleScatteringExtinction() const { return FLinearColor::White; }
 	virtual float GetTranslucentShadowStartOffset() const { return 0.0f; }
 	virtual float GetRefractionDepthBiasValue() const { return 0.0f; }
@@ -1043,14 +1047,14 @@ public:
 	 * 
 	 * @return returns true if compilation is complete false otherwise
 	 */
-	ENGINE_API bool IsCompilationFinished();
+	ENGINE_API bool IsCompilationFinished() const;
 
 	/**
 	* Checks if there is a valid GameThreadShaderMap, that is, the material can be rendered as intended.
 	*
 	* @return returns true if there is a GameThreadShaderMap.
 	*/
-	ENGINE_API bool HasValidGameThreadShaderMap();
+	ENGINE_API bool HasValidGameThreadShaderMap() const;
 
 
 	EMaterialQualityLevel::Type GetQualityLevel() const 
@@ -1106,6 +1110,9 @@ public:
 		checkSlow(IsInGameThread() || IsInAsyncLoadingThread());
 		GameThreadShaderMap = InMaterialShaderMap;
 		bContainsInlineShaders = true;
+		bLoadedCookedShaderMapId = true;
+		CookedShaderMapId = InMaterialShaderMap->GetShaderMapId();
+
 	}
 
 	ENGINE_API class FMaterialShaderMap* GetRenderingThreadShaderMap() const;
@@ -1272,6 +1279,9 @@ private:
 	 * If true, GameThreadShaderMap will contain a reference to the inlined shader map between Serialize and PostLoad.
 	 */
 	uint32 bContainsInlineShaders : 1;
+	uint32 bLoadedCookedShaderMapId : 1;
+
+	FMaterialShaderMapId CookedShaderMapId;
 
 	/**
 	* Compiles this material for Platform, storing the result in OutShaderMap if the compile was synchronous
@@ -1576,6 +1586,7 @@ public:
 	ENGINE_API virtual float GetTranslucentSelfShadowSecondOpacity() const override;
 	ENGINE_API virtual float GetTranslucentBackscatteringExponent() const override;
 	ENGINE_API virtual bool IsSeparateTranslucencyEnabled() const override;
+	ENGINE_API virtual bool IsMobileSeparateTranslucencyEnabled() const override;
 	ENGINE_API virtual FLinearColor GetTranslucentMultipleScatteringExtinction() const override;
 	ENGINE_API virtual float GetTranslucentShadowStartOffset() const override;
 	ENGINE_API virtual bool IsMasked() const override;
@@ -1682,6 +1693,9 @@ public:
 
 	/** Adds a material instance that has been updated to the context. */
 	ENGINE_API void AddMaterialInstance(UMaterialInstance* Instance);
+
+	/** Adds a material interface that has been updated to the context. */
+	ENGINE_API void AddMaterialInterface(UMaterialInterface* Instance);
 };
 
 /**

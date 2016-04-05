@@ -190,7 +190,7 @@ namespace PackFactoryHelper
 				if (SettingPair.Key.ToString().Contains("ActionMappings"))
 				{
 					FInputActionKeyMapping ActionKeyMapping;
-					ActionMappingsProp->Inner->ImportText(*SettingPair.Value, &ActionKeyMapping, PPF_None, nullptr);
+					ActionMappingsProp->Inner->ImportText(*SettingPair.Value.GetValue(), &ActionKeyMapping, PPF_None, nullptr);
 
 					if (InputSettingsCDO->ActionMappings.FindByPredicate(FMatchMappingByName(ActionKeyMapping.ActionName)) == nullptr)
 					{
@@ -200,7 +200,7 @@ namespace PackFactoryHelper
 				else if (SettingPair.Key.ToString().Contains("AxisMappings"))
 				{
 					FInputAxisKeyMapping AxisKeyMapping;
-					AxisMappingsProp->Inner->ImportText(*SettingPair.Value, &AxisKeyMapping, PPF_None, nullptr);
+					AxisMappingsProp->Inner->ImportText(*SettingPair.Value.GetValue(), &AxisKeyMapping, PPF_None, nullptr);
 
 					if (InputSettingsCDO->AxisMappings.FindByPredicate(FMatchMappingByName(AxisKeyMapping.AxisName)) == nullptr)
 					{
@@ -239,9 +239,9 @@ namespace PackFactoryHelper
 		FConfigSection* RedirectsSection = PackConfig.Find("Redirects");
 		if (RedirectsSection)
 		{	
-			if (FString* GameName = RedirectsSection->Find("GameName"))
+			if (FConfigValue* GameName = RedirectsSection->Find("GameName"))
 			{
-				ConfigParameters.GameName = *GameName;
+				ConfigParameters.GameName = GameName->GetValue();
 			}
 		}
 
@@ -252,8 +252,8 @@ namespace PackFactoryHelper
 			{
 				if (FilePair.Key.ToString().Contains("Files"))
 				{
-					FString Filename = FPaths::GetCleanFilename(FilePair.Value);
-					FString Directory = FPaths::RootDir() / FPaths::GetPath(FilePair.Value);
+					FString Filename = FPaths::GetCleanFilename(FilePair.Value.GetValue());
+					FString Directory = FPaths::RootDir() / FPaths::GetPath(FilePair.Value.GetValue());
 					FPaths::MakeStandardFilename(Directory);
 					FPakFile::MakeDirectoryFromPath(Directory);
 

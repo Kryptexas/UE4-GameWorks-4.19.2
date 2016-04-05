@@ -495,80 +495,238 @@ void UStaticMeshComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
-void UStaticMeshComponent::UpdateStreamingTextureInfos(bool bForce)
-{
-	// Only rebuild the data in editor 
 #if WITH_EDITORONLY_DATA
-	StreamingTextureInfos.Empty();
 
-	if ((bForce || (!bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static)) && StaticMesh && StaticMesh->RenderData)
+/** Return the total number of LOD sections in the LOD resources */
+static int32 GetNumberOfElements(const TIndirectArray<FStaticMeshLODResources>& LODResources)
+{
+	int32 Count = 0;
+	for (int32 LODIndex = 0; LODIndex < LODResources.Num(); ++LODIndex)
 	{
-		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
+		Count += LODResources[LODIndex].Sections.Num();
+	}
+	return Count;
+}
+
+/**
+ *	Set this struct to match the unpacked params.
+ *
+ *	@param	LevelTextures			[in,out]	The list of textures referred by all component of a level. The array index maps to UTexture2D::LevelIndex.
+ *	@param	UnpackedData			[in,out]	The unpacked data, emptied after the function executes.
+ *	@param	StreamingTextureData	[out]		The resulting packed data.
+ *	@param	RefBounds				[in]		The reference bounds used to packed the relative bounds.
+ */
+static void PackStreamingTextureData(TArray<UTexture2D*>& LevelTextures, TArray<FStreamingTexturePrimitiveInfo>& UnpackedData, TArray<FStreamingTextureBuildInfo>& StreamingTextureData, const FBoxSphereBounds& RefBounds)
+{
+	StreamingTextureData.Empty();
+
+	while (UnpackedData.Num())
+	{
+		FStreamingTexturePrimitiveInfo Info = UnpackedData[0];
+		UnpackedData.RemoveAtSwap(0);
+
+		// Merge with any other lod section using the same texture.
+		for (int32 Index = 0; Index < UnpackedData.Num(); ++Index)
 		{
-			const FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODIndex];
+			const FStreamingTexturePrimitiveInfo& CurrInfo = UnpackedData[Index];
 
-			for( int32 ElementIndex = 0; ElementIndex < LOD.Sections.Num(); ElementIndex++ )
+			if (CurrInfo.Texture == Info.Texture)
 			{
-				FStreamingTexturePrimitiveInfo Info;
+				Info.Bounds = Union(Info.Bounds, CurrInfo.Bounds);
+				// Take the max scale since it relates to higher texture resolution.
+				Info.TexelFactor = FMath::Max<float>(Info.TexelFactor, CurrInfo.TexelFactor);
 
-				if (StaticMesh->GetStreamingTextureFactor(Info.TexelFactor, Info.Bounds, 0, LODIndex, ElementIndex, ComponentToWorld))
+				UnpackedData.RemoveAtSwap(Index);
+				--Index;
+			}
+		}
+
+		FStreamingTextureBuildInfo PackedInfo;
+		PackedInfo.PackFrom(LevelTextures, RefBounds, Info);
+		StreamingTextureData.Push(PackedInfo);
+	}
+}
+
+#endif
+
+void UStaticMeshComponent::UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel)
+{
+#if WITH_EDITORONLY_DATA // Only rebuild the data in editor 
+	const bool bUseMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
+	const bool bNeedsPrecomputedData = !bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static && StaticMesh && StaticMesh->RenderData;
+
+	if (bUseMetrics && bNeedsPrecomputedData)
+	{
+		UpdateStreamingSectionData(TexCoordScales);
+
+		TArray<FStreamingTexturePrimitiveInfo> UnpackedData;
+
+		TArray<UTexture*> Textures;
+		TArray< TArray<int32> > Indices;
+
+		for (const FStreamingSectionBuildInfo& SectionData : *StreamingSectionData)
+		{
+			if (SectionData.MaterialIndex == INDEX_NONE) continue; // Skip the fallback data.
+
+			UMaterialInterface* Material = GetMaterial(SectionData.MaterialIndex);
+
+			Textures.Empty();
+			Indices.Empty();
+
+			// Get the texture register indices used by each textures. 
+			// Must be using the same quality and feature level as the one used to compute scales
+			// in order to remap to the correct texture register index.
+			Material->GetUsedTexturesAndIndices(Textures, Indices, QualityLevel, FeatureLevel);
+
+			for (int32 TextureIndex = 0; TextureIndex < Textures.Num(); ++TextureIndex)
+			{
+				UTexture2D* Texture = Cast<UTexture2D>(Textures[TextureIndex]);
+				if (!Texture) continue;
+
+				bool bMaxValid = false;
+				float MaxTexeFactor = 0;
+
+				if (Indices.IsValidIndex(TextureIndex))
 				{
-					Info.TexelFactor *= FMath::Max(0.0f, StreamingDistanceMultiplier);
-					StreamingTextureInfos.Push(Info);
+					for (int32 TextureRegisterIndex : Indices[TextureIndex])
+					{
+						if (SectionData.TexCoordData.IsValidIndex(TextureRegisterIndex))
+						{
+							const FMaterialTexCoordBuildInfo& TexCoordInfo = SectionData.TexCoordData[TextureRegisterIndex];
+							 // 0 would indicate that this register index is irrelevant (not used). Also could cause divide by 0
+							if (TexCoordInfo.Scale > 0)
+							{
+								float TexelFactor = SectionData.TexelFactors[0];
+								if (TexCoordInfo.Index >= 0 && TexCoordInfo.Index < FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD && SectionData.TexelFactors[TexCoordInfo.Index] > 0)
+								{
+									TexelFactor = SectionData.TexelFactors[TexCoordInfo.Index];
+								}
+								MaxTexeFactor = FMath::Max<float>(MaxTexeFactor, TexelFactor / TexCoordInfo.Scale);
+								bMaxValid = true;
+							}
+						}
+					}
 				}
-				else
+
+				FStreamingTexturePrimitiveInfo& Info = *new(UnpackedData) FStreamingTexturePrimitiveInfo();
+				Info.Texture = Texture;
+				Info.TexelFactor = bMaxValid ? MaxTexeFactor : SectionData.TexelFactors[0];
+				Info.Bounds.Origin = SectionData.BoxOrigin;
+				Info.Bounds.BoxExtent = SectionData.BoxExtent;
+				Info.Bounds.SphereRadius = SectionData.BoxExtent.Size();
+			}
+		}
+
+		PackStreamingTextureData(LevelTextures, UnpackedData, StreamingTextureData, Bounds);
+	}
+	else if (!bUseMetrics && bNeedsPrecomputedData)
+	{
+		StreamingTextureData.Empty();
+		StreamingSectionData.Reset();
+
+		StreamingSectionData = TSharedPtr<TArray<FStreamingSectionBuildInfo>, ESPMode::NotThreadSafe>(new TArray<FStreamingSectionBuildInfo>());
+
+		FStreamingSectionBuildInfo& SectionData = *new(*StreamingSectionData) FStreamingSectionBuildInfo();
+		SectionData.BoxOrigin = Bounds.Origin;
+		SectionData.BoxExtent = Bounds.BoxExtent;
+		SectionData.TexelFactors[0] = StaticMesh ? StaticMesh->GetStreamingTextureFactor(0) : 0.f;
+	}
+	else
+	{
+		StreamingTextureData.Empty();
+		StreamingSectionData.Reset();
+	}
+#endif
+}
+
+void UStaticMeshComponent::UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales)
+{
+#if WITH_EDITORONLY_DATA
+	StreamingSectionData.Reset();
+
+	if (StaticMesh && StaticMesh->RenderData)
+	{
+		StreamingSectionData = TSharedPtr<TArray<FStreamingSectionBuildInfo>, ESPMode::NotThreadSafe>(new TArray<FStreamingSectionBuildInfo>());
+
+		const TIndirectArray<FStaticMeshLODResources>& LODResources = StaticMesh->RenderData->LODResources;
+		StreamingSectionData->Reserve(GetNumberOfElements(LODResources) + 1);
+
+		// First section holds fallback data used to compare old streaming results with new one
+		{
+			FStreamingSectionBuildInfo& FallbackData = *new(*StreamingSectionData) FStreamingSectionBuildInfo();
+			FallbackData.BoxOrigin = Bounds.Origin;
+			FallbackData.BoxExtent = Bounds.BoxExtent;
+			FallbackData.TexelFactors[0] = StaticMesh ? StaticMesh->GetStreamingTextureFactor(0) : 0.f;
+		}
+
+		for (int32 LODIndex = 0; LODIndex < LODResources.Num(); ++LODIndex)
+		{
+			const FStaticMeshLODResources& LOD = LODResources[LODIndex];
+			for (int32 ElementIndex = 0; ElementIndex < LOD.Sections.Num(); ++ElementIndex)
+			{
+				// If the streaming factors are not valid, this section can be ignored. Could be related to 0 area size.
+				float LODElementTexelFactor;
+				FBoxSphereBounds LODElementBounds;
+				if (!StaticMesh->GetStreamingTextureFactor(LODElementTexelFactor, LODElementBounds, 0, LODIndex, ElementIndex, ComponentToWorld))
+					continue;
+
+				const FStaticMeshSection& Element = LOD.Sections[ElementIndex];
+				UMaterialInterface* Material = GetMaterial(Element.MaterialIndex);
+				if (!Material) continue;
+
+				FStreamingSectionBuildInfo& SectionData = *new(*StreamingSectionData) FStreamingSectionBuildInfo();
+				SectionData.LODIndex = LODIndex;
+				SectionData.ElementIndex = ElementIndex;
+				SectionData.MaterialIndex = Element.MaterialIndex;
+				SectionData.BoxOrigin = LODElementBounds.Origin;
+				SectionData.BoxExtent = LODElementBounds.BoxExtent;
+				SectionData.TexelFactors[0] = LODElementTexelFactor;
+
+				const TArray<FMaterialTexCoordBuildInfo>* TexCoordData = TexCoordScales.Find(Material);
+				int32 MaxTexCoordIndex = MaxTexCoordIndex = FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD - 1;
+				if (TexCoordData)
 				{
-					StreamingTextureInfos.Empty();
-					return;
+					SectionData.TexCoordData = *TexCoordData;
+					MaxTexCoordIndex = 0;
+					for (const FMaterialTexCoordBuildInfo& TexCoordInfo : *TexCoordData)
+					{
+						MaxTexCoordIndex = FMath::Max<int32>(TexCoordInfo.Index, MaxTexCoordIndex);
+					}
+					MaxTexCoordIndex = FMath::Min<int32>(MaxTexCoordIndex, FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD - 1);
 				}
+
+				for (int32 TexCoordIndex = 1; TexCoordIndex <= MaxTexCoordIndex; ++TexCoordIndex)
+				{
+					if (StaticMesh->GetStreamingTextureFactor(LODElementTexelFactor, LODElementBounds, TexCoordIndex, LODIndex, ElementIndex, ComponentToWorld))
+					{
+						SectionData.TexelFactors[TexCoordIndex] = LODElementTexelFactor;
+					}
+				}
+
 			}
 		}
 	}
 #endif
 }
 
-extern ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics;
-
-bool UStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor, FBoxSphereBounds& OutBounds, int32 LODIndex, int32 ElementIndex) const
+bool UStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const
 {
-	bool bUsePreciseStreamingBounds = false;
-
-	if (StaticMesh && StaticMesh->RenderData && LODIndex < StaticMesh->RenderData->LODResources.Num())
+	if (StaticMesh && StaticMesh->RenderData && StaticMesh->RenderData->LODResources.Num() > 0)
 	{
+		OutWorldTexelFactor = OutWorldLightmapFactor = ComponentToWorld.GetMaximumAxisScale();
+
+		OutWorldTexelFactor *= StaticMesh->GetStreamingTextureFactor(0);
+
 		TIndirectArray<FStaticMeshLODResources>& LODResources = StaticMesh->RenderData->LODResources;
-
-		const ERHIFeatureLevel::Type FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
-
-		const bool bHasValidLightmapCoordinates = StaticMesh->LightMapCoordinateIndex >= 0 &&
-			(uint32)StaticMesh->LightMapCoordinateIndex < LODResources[0].VertexBuffer.GetNumTexCoords();
-
-		// Because there is a single array for each sections and lods, the index needs to be computed depending on the number of section per lod.
-		int32 InfoIndex = ElementIndex;
-		if (StreamingTextureInfos.Num() && LODResources.IsValidIndex(LODIndex) && LODResources[LODIndex].Sections.IsValidIndex(ElementIndex))
+		const bool bHasValidLightmapCoordinates = StaticMesh->LightMapCoordinateIndex >= 0 && (uint32)StaticMesh->LightMapCoordinateIndex < LODResources[0].VertexBuffer.GetNumTexCoords();
+		if (bHasValidLightmapCoordinates)
 		{
-			int32 DebugLODIndex = 0;
-			while (DebugLODIndex < LODIndex)
-			{
-				InfoIndex += LODResources[DebugLODIndex].Sections.Num();
-				++DebugLODIndex;
-			}
-		}
-
-		if (StreamingTextureInfos.IsValidIndex(InfoIndex) && CVarStreamingUseNewMetrics.GetValueOnAnyThread() > 0)
-		{
-			OutBounds = StreamingTextureInfos[InfoIndex].Bounds;
-			OutWorldTexelFactor = StreamingTextureInfos[InfoIndex].TexelFactor;
+			OutWorldLightmapFactor *= StaticMesh->GetStreamingTextureFactor(StaticMesh->LightMapCoordinateIndex);
 		}
 		else
 		{
-			float LocalTexelFactor = StaticMesh->GetStreamingTextureFactor(0) * FMath::Max(0.0f, StreamingDistanceMultiplier);
-			OutWorldTexelFactor	= LocalTexelFactor * ComponentToWorld.GetMaximumAxisScale();
-			OutBounds = Bounds;
+			OutWorldLightmapFactor = 0;
 		}
-
-		const float LocalLightmapFactor	= bHasValidLightmapCoordinates ? StaticMesh->GetStreamingTextureFactor(StaticMesh->LightMapCoordinateIndex) : 1.0f;
-		OutWorldLightmapFactor = LocalLightmapFactor * ComponentToWorld.GetMaximumAxisScale();
-
 		return true;
 	}
 	else
@@ -578,17 +736,17 @@ bool UStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor
 }
 
 
-void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+void UStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
 	float WorldTexelFactor = 1.f;
 	float WorldLightmapFactor = 1.f;
 
-	if (!bIgnoreInstanceForTextureStreaming && StaticMesh && StaticMesh->RenderData)
+	if (!bIgnoreInstanceForTextureStreaming && GetStreamingTextureFactors(WorldTexelFactor, WorldLightmapFactor))
 	{
 		const ERHIFeatureLevel::Type FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+		const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
 
-		const bool bHasValidLightmapCoordinates = ((StaticMesh->LightMapCoordinateIndex >= 0)
-			&& ((uint32)StaticMesh->LightMapCoordinateIndex < StaticMesh->RenderData->LODResources[0].VertexBuffer.GetNumTexCoords()));
+		LevelContext.BindComponent(bUseNewMetrics ? &StreamingTextureData : nullptr, Bounds, WorldTexelFactor, FMath::Max(0.0f, StreamingDistanceMultiplier));
 
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{
@@ -604,28 +762,15 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 					Material = UMaterial::GetDefaultMaterial(MD_Surface);
 				}
 
-				FBoxSphereBounds SectionBounds;
-				if (!GetStreamingTextureFactors(WorldTexelFactor, WorldLightmapFactor, SectionBounds, LODIndex, ElementIndex))
-					continue;
-
 				// Enumerate the textures used by the material.
 				TArray<UTexture*> Textures;
-
 				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
 
-				// Add each texture to the output with the appropriate parameters.
-				// TODO: Take into account which UVIndex is being used.
-				for(int32 TextureIndex = 0;TextureIndex < Textures.Num();TextureIndex++)
-				{
-					FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
-					StreamingTexture.Bounds = SectionBounds;
-					StreamingTexture.TexelFactor = WorldTexelFactor;
-					StreamingTexture.Texture = Textures[TextureIndex];
-				}
+				LevelContext.Process(Textures, OutStreamingTextures);
 			}
 
 			// Add in the lightmaps and shadowmaps.
-			if ( LODData.IsValidIndex(LODIndex) && bHasValidLightmapCoordinates )
+			if ( LODData.IsValidIndex(LODIndex) && WorldLightmapFactor != 0)
 			{
 				const FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
 				FLightMap2D* Lightmap = LODInfo.LightMap ? LODInfo.LightMap->GetLightMap2D() : NULL;
@@ -645,7 +790,6 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 				}
 
 				FShadowMap2D* Shadowmap = LODInfo.ShadowMap ? LODInfo.ShadowMap->GetShadowMap2D() : NULL;
-
 				if ( Shadowmap != NULL && Shadowmap->IsValid() )
 				{
 					const FVector2D& Scale = Shadowmap->GetCoordinateScale();
@@ -1683,7 +1827,7 @@ UMaterialInterface* UStaticMeshComponent::GetMaterial(int32 MaterialIndex) const
 	// Otherwise get from static mesh
 	else
 	{
-		return StaticMesh ? StaticMesh->GetMaterial(MaterialIndex) : NULL;
+		return StaticMesh ? StaticMesh->GetMaterial(MaterialIndex) : nullptr;
 	}
 }
 

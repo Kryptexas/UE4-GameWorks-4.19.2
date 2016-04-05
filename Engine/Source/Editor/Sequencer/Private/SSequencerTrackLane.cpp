@@ -23,7 +23,6 @@ void DrawLaneRecursive(const TSharedRef<FSequencerDisplayNode>& DisplayNode, con
 {
 	static const FName BorderName("Sequencer.AnimationOutliner.DefaultBorder");
 	static const FName SelectionColorName("SelectionColor");
-	static const FName SelectionColorInactiveName("SelectionColor_Inactive");
 
 	if (DisplayNode->IsHidden())
 	{
@@ -37,11 +36,7 @@ void DrawLaneRecursive(const TSharedRef<FSequencerDisplayNode>& DisplayNode, con
 
 	if (SequencerSelection.IsSelected(DisplayNode))
 	{
-		FLinearColor SelectionColor = FEditorStyle::GetSlateColor(
-			(SequencerSelection.GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode)
-				? SelectionColorName
-				: SelectionColorInactiveName
-		).GetColor(InWidgetStyle);
+		FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorName).GetColor(InWidgetStyle);
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
@@ -57,21 +52,37 @@ void DrawLaneRecursive(const TSharedRef<FSequencerDisplayNode>& DisplayNode, con
 		);
 	}
 
-	// draw hover border
-	else if (DisplayNode->IsHovered())
+	// draw hovered or node has keys or sections selected border
+	else
 	{
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(
-				FVector2D(0, YOffs),
-				FVector2D(AllottedGeometry.Size.X, TotalNodeHeight)
-			),
-			FEditorStyle::GetBrush(BorderName),
-			MyClippingRect,
-			ESlateDrawEffect::None,
-			FLinearColor(1.0f, 1.0f, 1.0f, 0.05f)
-		);
+		FLinearColor HighlightColor;
+		bool bDrawHighlight = false;
+		if (SequencerSelection.NodeHasSelectedKeysOrSections(DisplayNode))
+		{
+			bDrawHighlight = true;
+			HighlightColor = FLinearColor(1.0f, 1.0f, 1.0f, 0.15f);
+		}
+		else if (DisplayNode->IsHovered())
+		{
+			bDrawHighlight = true;
+			HighlightColor = FLinearColor(1.0f, 1.0f, 1.0f, 0.05f);
+		}
+
+		if (bDrawHighlight)
+		{
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId,
+				AllottedGeometry.ToPaintGeometry(
+					FVector2D(0, YOffs),
+					FVector2D(AllottedGeometry.Size.X, TotalNodeHeight)
+				),
+				FEditorStyle::GetBrush(BorderName),
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				HighlightColor
+			);
+		}
 	}
 
 	YOffs += TotalNodeHeight;
@@ -112,6 +123,22 @@ int32 SSequencerTrackLane::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 	DrawLaneRecursive(DisplayNode.ToSharedRef(), AllottedGeometry, YOffs, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle);
 
 	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 1, InWidgetStyle, bParentEnabled);
+}
+
+void SSequencerTrackLane::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	FVector2D ThisFrameDesiredSize = GetDesiredSize();
+
+	if (LastDesiredSize.IsSet() && ThisFrameDesiredSize.Y != LastDesiredSize.GetValue().Y)
+	{
+		TSharedPtr<SSequencerTreeView> PinnedTree = TreeView.Pin();
+		if (PinnedTree.IsValid())
+		{
+			PinnedTree->RequestTreeRefresh();
+		}
+	}
+
+	LastDesiredSize = ThisFrameDesiredSize;
 }
 
 FVector2D SSequencerTrackLane::ComputeDesiredSize(float LayoutScale) const

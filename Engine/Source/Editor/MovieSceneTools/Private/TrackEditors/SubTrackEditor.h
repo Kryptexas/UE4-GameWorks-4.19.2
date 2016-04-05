@@ -72,4 +72,13 @@ private:
 
 	/** Callback for AnimatablePropertyChanged in HandleAssetAdded. */
 	bool HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence);
+
+	/** Check if we can record a new sequence (deny it if one is already primed) */
+	bool CanRecordNewSequence() const;
+
+	/** Handle recording new sequence into a sub track */
+	void HandleRecordNewSequence();
+
+	/** Actually handles the adding of the section */
+	bool HandleRecordNewSequenceInternal(float KeyTime);
 };

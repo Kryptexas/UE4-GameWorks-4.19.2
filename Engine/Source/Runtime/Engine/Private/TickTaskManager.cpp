@@ -56,6 +56,11 @@ static TAutoConsoleVariable<int32> CVarAllowAsyncTickDispatch(
 	0,
 	TEXT("If true, ticks are dispatched in a task thread."));
 
+static TAutoConsoleVariable<int32> CVarAllowAsyncTickCleanup(
+	TEXT("tick.AllowAsyncTickCleanup"),
+	1,
+	TEXT("If true, ticks are cleaned up in a task thread."));
+
 FAutoConsoleTaskPriority CPrio_DispatchTaskPriority(
 	TEXT("TaskGraph.TaskPriorities.TickDispatchTaskPriority"),
 	TEXT("Task and thread priority for tick tasks dispatch."),
@@ -433,7 +438,7 @@ public:
 	/** Add a completion handle to a tick group, parallel version **/
 	FORCEINLINE void AddTickTaskCompletionParallel(ETickingGroup StartTickGroup, ETickingGroup EndTickGroup, TGraphTask<FTickFunctionTask>* Task, bool bHiPri)
 	{
-		checkSlow(StartTickGroup >=0 && StartTickGroup < TG_MAX && EndTickGroup >=0 && EndTickGroup < TG_MAX && StartTickGroup <= EndTickGroup);
+		check(StartTickGroup >= 0 && StartTickGroup < TG_NewlySpawned && EndTickGroup >= 0 && EndTickGroup < TG_NewlySpawned && StartTickGroup <= EndTickGroup);
 		if (bHiPri)
 		{
 			HiPriTickTasks[StartTickGroup][EndTickGroup].AddThreadsafe(Task);
@@ -522,7 +527,7 @@ public:
 				if (TickCompletionEvents[Block].Num())
 				{
 					FTaskGraphInterface::Get().WaitUntilTasksComplete(TickCompletionEvents[Block], ENamedThreads::GameThread);
-					if (SingleThreadedMode() || WorldTickGroup == TG_NewlySpawned)
+					if (SingleThreadedMode() || Block == TG_NewlySpawned || CVarAllowAsyncTickCleanup.GetValueOnGameThread() == 0)
 					{
 						ResetTickGroup(Block);
 					}
@@ -698,7 +703,7 @@ public:
 	int32 StartFrame(const FTickContext& InContext)
 	{
 		check(!NewlySpawnedTickFunctions.Num()); // There shouldn't be any in here at this point in the frame
-		Context.TickGroup = TG_PrePhysics; // reset this to the start tick group
+		Context.TickGroup = ETickingGroup(0); // reset this to the start tick group
 		Context.DeltaSeconds = InContext.DeltaSeconds;
 		Context.TickType = InContext.TickType;
 		Context.Thread = ENamedThreads::GameThread;
@@ -735,7 +740,7 @@ public:
 	void StartFrameParallel(const FTickContext& InContext, TArray<FTickFunction*>& AllTickFunctions)
 	{
 		check(!NewlySpawnedTickFunctions.Num()); // There shouldn't be any in here at this point in the frame
-		Context.TickGroup = TG_PrePhysics; // reset this to the start tick group
+		Context.TickGroup = ETickingGroup(0); // reset this to the start tick group
 		Context.DeltaSeconds = InContext.DeltaSeconds;
 		Context.TickType = InContext.TickType;
 		Context.Thread = ENamedThreads::GameThread;
@@ -1325,7 +1330,7 @@ public:
 		}
 #endif
 		World = InWorld;
-		Context.TickGroup = TG_PrePhysics; // reset this to the start tick group
+		Context.TickGroup = ETickingGroup(0); // reset this to the start tick group
 		Context.DeltaSeconds = InDeltaSeconds;
 		Context.TickType = InTickType;
 		Context.Thread = ENamedThreads::GameThread;
@@ -1397,7 +1402,7 @@ public:
 	virtual void RunPauseFrame(UWorld* InWorld, float InDeltaSeconds, ELevelTick InTickType) override
 	{
 		bTickNewlySpawned = true; // we don't support new spawns, but lets at least catch them.
-		Context.TickGroup = TG_PrePhysics; // reset this to the start tick group
+		Context.TickGroup = ETickingGroup(0); // reset this to the start tick group
 		Context.DeltaSeconds = InDeltaSeconds;
 		Context.TickType = InTickType;
 		Context.Thread = ENamedThreads::GameThread;

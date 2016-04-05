@@ -14,6 +14,9 @@
 #include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "ParticleHelper.h"
 
+//Temporary define to allow switching on and off of some trail optimizations until bugs can be worked out.
+#define ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION (0)
+
 /*-----------------------------------------------------------------------------
 	Forward declarations
 -----------------------------------------------------------------------------*/
@@ -546,21 +549,9 @@ public:
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected)
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		return NULL;
-	}
-
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected)
-	{
-		// Base class does nothing...
-		return false;
 	}
 
 	/**
@@ -792,15 +783,7 @@ struct FParticleSpriteEmitterInstance : public FParticleEmitterInstance
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
-
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected) override;
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/**
 	 *	Retrieves replay data for the emitter
@@ -861,17 +844,10 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	virtual void UpdateBoundingBox(float DeltaTime) override;
 	virtual uint32 RequiredBytes() override;
 	virtual void PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime) override;
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 	virtual bool IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel) override;
 
 	virtual bool Tick_MaterialOverrides() override;
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected) override;
 
 	/**
 	 *	Retrieves replay data for the emitter
@@ -928,7 +904,7 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	/**
 	 * Gets the materials applied to each section of a mesh.
 	 */
-	void GetMeshMaterials(TArray<UMaterialInterface*,TInlineAllocator<2> >& OutMaterials, const UParticleLODLevel* LODLevel) const;
+	void GetMeshMaterials(TArray<UMaterialInterface*,TInlineAllocator<2> >& OutMaterials, const UParticleLODLevel* LODLevel, ERHIFeatureLevel::Type InFeatureLevel, bool bLogWarnings = false) const;
 
 protected:
 
@@ -1062,15 +1038,7 @@ struct FParticleBeam2EmitterInstance : public FParticleEmitterInstance
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
-
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected) override;
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/**
 	 *	Retrieves replay data for the emitter
@@ -1161,13 +1129,11 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 	 */
 	uint32 bEnableInactiveTimeTracking:1;
 
+#if ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION
 	/** The direct index of the particle that is the start of each ribbon */
 	int32 CurrentStartIndices[128];
 	/** The direct index of the particle that is the end of each ribbon */
 	int32 CurrentEndIndices[128];
-
-
-
 
 	void SetStartIndex(int32 TrailIndex, int32 ParticleIndex)
 	{
@@ -1283,6 +1249,54 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 #endif
 	}
 
+#else //ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION
+
+template<typename TrailDataType> void GetTrailStart(const int32 TrailIdx, int32 &OutStartIndex, TrailDataType *&OutTrailData, FBaseParticle *&OutParticle)
+{
+	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
+	{
+		int32 CheckIndex = ParticleIndices[FindTrailIdx];
+		DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckIndex);
+		TrailDataType* CheckTrailData = ((TrailDataType*)((uint8*)CheckParticle + TypeDataOffset));
+		if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+		{
+			if (CheckTrailData->TrailIndex == TrailIdx)
+			{
+				OutStartIndex = CheckIndex;
+				OutParticle = CheckParticle;
+				OutTrailData = CheckTrailData;				
+				break;
+			}
+		}
+	}
+}
+template<typename TrailDataType> void GetTrailEnd(const int32 TrailIdx, int32 &OutEndIndex, TrailDataType *&OutTrailData, FBaseParticle *&OutParticle)
+{
+	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
+	{
+		int32 CheckIndex = ParticleIndices[FindTrailIdx];
+		DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckIndex);
+		TrailDataType* CheckTrailData = ((TrailDataType*)((uint8*)CheckParticle + TypeDataOffset));
+		if (TRAIL_EMITTER_IS_END(CheckTrailData->Flags))
+		{
+			if (CheckTrailData->TrailIndex == TrailIdx)
+			{
+				OutEndIndex = CheckIndex;
+				OutParticle = CheckParticle;
+				OutTrailData = CheckTrailData;
+				break;
+			}
+		}
+	}
+}
+void SetStartIndex(int32 TrailIndex, int32 ParticleIndex){}
+void SetEndIndex(int32 TrailIndex, int32 ParticleIndex){}
+void SetDeadIndex(int32 TrailIndex, int32 ParticleIndex){}
+void ClearIndices(int32 TrailIndex, int32 ParticleIndex){}
+void CheckIndices(int32 TrailIdx){}
+void CheckAllIndices(){}
+
+#endif
 
 	/** Constructor	*/
 	FParticleTrailsEmitterInstance_Base() :
@@ -1304,8 +1318,10 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 
 		for (int32 TrailIdx = 0; TrailIdx < 128; TrailIdx++)
 		{
+#if ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION
 			CurrentStartIndices[TrailIdx] = INDEX_NONE;
 			CurrentEndIndices[TrailIdx] = INDEX_NONE;
+#endif
 		}
 	}
 
@@ -1534,15 +1550,7 @@ struct FParticleRibbonEmitterInstance : public FParticleTrailsEmitterInstance_Ba
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
-
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected) override;
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/**
 	 *	Retrieves replay data for the emitter
@@ -1705,15 +1713,7 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override;
-
-	/**
-	 *	Updates the dynamic data for the instance
-	 *
-	 *	@param	DynamicData		The dynamic data to fill in
-	 *	@param	bSelected		true if the particle system component is selected
-	 */
-	virtual bool UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected) override;
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel) override;
 
 	/**
 	 *	Retrieves replay data for the emitter

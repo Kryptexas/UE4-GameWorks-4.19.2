@@ -137,7 +137,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	void SetNumericAttributeBase(const FGameplayAttribute &Attribute, float NewBaseValue);
 
 	/** Gets the base value of an attribute. That is, the value of the attribute with no stateful modifiers */
-	float GetNumericAttributeBase(const FGameplayAttribute &Attribute);
+	float GetNumericAttributeBase(const FGameplayAttribute &Attribute) const;
 
 	/**
 	 *	Applies an inplace mod to the given attribute. This correctly update the attribute's aggregator, updates the attribute set property,
@@ -305,6 +305,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	/** Create an EffectContext for the owner of this AbilitySystemComponent */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	FGameplayEffectContextHandle MakeEffectContext() const;
+
+	/** Deprecated. Use MakeEffectContext instead. */
+	DEPRECATED(4.12, "GetEffectContext is deprecated, use MakeEffectContext")
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(DeprecatedFunction, DeprecationMessage = "Use new MakeEffectContext"))
 	FGameplayEffectContextHandle GetEffectContext() const;
 
 	/**
@@ -418,12 +423,19 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGameplayEffectAppliedDelegate, UAbilitySystemComponent*, const FGameplayEffectSpec&, FActiveGameplayEffectHandle);
 
+	/** Called on server whenever a GE is applied to self. This includes instant and duration based GEs. */
 	FOnGameplayEffectAppliedDelegate OnGameplayEffectAppliedDelegateToSelf;
 
+	/** Called on server whenever a GE is applied to someone else. This includes instant and duration based GEs. */
 	FOnGameplayEffectAppliedDelegate OnGameplayEffectAppliedDelegateToTarget;
 
+	/** Called on both client and server whenever a duraton based GE is added (E.g., instant GEs do not trigger this). */
+	FOnGameplayEffectAppliedDelegate OnActiveGameplayEffectAddedDelegateToSelf;
+
+	/** Called on server whenever a periodic GE executes on self */
 	FOnGameplayEffectAppliedDelegate OnPeriodicGameplayEffectExecuteDelegateOnSelf;
 
+	/** Called on server whenever a periodic GE executes on target */
 	FOnGameplayEffectAppliedDelegate OnPeriodicGameplayEffectExecuteDelegateOnTarget;
 
 	// --------------------------------------------
@@ -475,6 +487,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	FORCEINLINE void RemoveLooseGameplayTags(const FGameplayTagContainer& GameplayTags, int32 Count = 1)
 	{
 		UpdateTagMap(GameplayTags, -Count);
+	}
+
+	FORCEINLINE void SetLooseGameplayTagCount(const FGameplayTag& GameplayTag, int32 NewCount)
+	{
+		SetTagMapCount(GameplayTag, NewCount);
 	}
 
 	/** 	 
@@ -588,6 +605,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use version that takes FGameplayEffectQuery")
 	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
 	TArray<float> GetActiveEffectsDuration(const FGameplayEffectQuery& Query) const;
+
+	TArray<TPair<float,float>> GetActiveEffectsTimeRemainingAndDuration(const FGameplayEffectQuery& Query) const;
 
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use version that takes FGameplayEffectQuery")
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FActiveGameplayEffectQuery Query) const;
@@ -771,7 +790,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	 * For example, Behavior Trees can use various decorators to test an ability fetched using this mechanism as well
 	 * as the Task to execute the ability without needing to know that there even is more than one such ability.
 	 */
-	void GetActivatableGameplayAbilitySpecsByAllMatchingTags(const FGameplayTagContainer& GameplayTagContainer, TArray < struct FGameplayAbilitySpec* >& MatchingGameplayAbilities) const;
+	void GetActivatableGameplayAbilitySpecsByAllMatchingTags(const FGameplayTagContainer& GameplayTagContainer, TArray < struct FGameplayAbilitySpec* >& MatchingGameplayAbilities, bool bOnlyAbilitiesThatSatisfyTagRequirements = true) const;
 
 	/** 
 	 * Attempts to activate every gameplay ability that matches the given tag and DoesAbilitySatisfyTagRequirements().
@@ -850,6 +869,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	/** Returns the list of all activatable abilities */
 	const TArray<FGameplayAbilitySpec>& GetActivatableAbilities() const;
 
+	/** Returns local world time that an ability was activated. Valid on authority (server) and autonomous proxy (controlling client).  */
+	float GetAbilityLastActivatedTime() const { return AbilityLastActivatedTime; }
+
 	/** Returns an ability spec from a handle. If modifying call MarkAbilitySpecDirty */
 	FGameplayAbilitySpec* FindAbilitySpecFromHandle(FGameplayAbilitySpecHandle Handle);
 	
@@ -909,6 +931,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 		bool Accumulate;
 		TArray<FString>	Strings;
+
+		int32 GameFlags; // arbitrary flags for games to set/read in Debug_Internal
 	};
 
 	virtual void DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
@@ -923,10 +947,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	void ServerPrintDebug_Request();
 
 	UFUNCTION(Client, reliable)
-	void ClientPrintDebug_Response(const TArray<FString>& Strings);
+	void ClientPrintDebug_Response(const TArray<FString>& Strings, int32 GameFlags);
+	virtual void OnClientPrintDebug_Response(const TArray<FString>& Strings, int32 GameFlags);
 
 	/** Called when the ability is forced cancelled due to replication */
-	void	ForceCancelAbilityDueToReplication(UGameplayAbility* Instance);
+	void ForceCancelAbilityDueToReplication(UGameplayAbility* Instance);
 
 protected:
 
@@ -968,6 +993,10 @@ protected:
 	int32 AbilityScopeLockCount;
 	TArray<FGameplayAbilitySpecHandle, TInlineAllocator<2> > AbilityPendingRemoves;
 	TArray<FGameplayAbilitySpec, TInlineAllocator<2> > AbilityPendingAdds;
+
+	/** Local World time of the last ability activation. This is used for AFK/idle detection */
+	float AbilityLastActivatedTime;
+
 	UFUNCTION()
 	void	OnRep_ActivateAbilities();
 
@@ -998,8 +1027,8 @@ protected:
 	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey);
 
-	/** Called by prediction system when an ability has failed to activate */
-	void	OnClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey::KeyType PredictionKey);
+	
+	void	OnClientActivateAbilityCaughtUp(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey::KeyType PredictionKey);
 
 	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilitySucceed(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey PredictionKey);
@@ -1150,6 +1179,9 @@ protected:
 	UPROPERTY(ReplicatedUsing=OnRep_ReplicatedAnimMontage)
 	FGameplayAbilityRepAnimMontage RepAnimMontageInfo;
 
+	/** Set if montage rep happens while we don't have the animinstance associated with us yet */
+	bool bPendingMontagerep;
+
 	/** Data structure for montages that were instigated locally (everything if server, predictive if client. replicated if simulated proxy) */
 	UPROPERTY()
 	FGameplayAbilityLocalAnimMontage LocalAnimMontageInfo;
@@ -1238,10 +1270,10 @@ public:
 	void ClientSetReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
 	/** Calls local callbacks that are registered with the given Generic Replicated Event */
-	bool InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
+	bool InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FPredictionKey CurrentPredictionKey = FPredictionKey());
 
 	/** Calls local callbacks that are registered with the given Generic Replicated Event */
-	bool InvokeReplicatedEventWithPayload(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FVector_NetQuantize100 VectorPayload);
+	bool InvokeReplicatedEventWithPayload(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FPredictionKey CurrentPredictionKey, FVector_NetQuantize100 VectorPayload);
 	
 	/**  */
 	UFUNCTION(Server, reliable, WithValidation)
@@ -1333,10 +1365,8 @@ public:
 
 	const FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle) const;
 
-	// -
-	// UGameplayTasksComponent
-	// -
-	virtual AActor* GetAvatarActor(const UGameplayTask* Task) const override;
+	virtual AActor* GetGameplayTaskAvatar(const UGameplayTask* Task) const override;
+	AActor* GetAvatarActor() const;
 
 	/** Suppress all ability granting through GEs on this component */
 	bool bSuppressGrantAbility;

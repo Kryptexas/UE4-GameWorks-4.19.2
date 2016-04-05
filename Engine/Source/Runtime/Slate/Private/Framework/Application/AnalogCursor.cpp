@@ -243,6 +243,12 @@ void FAnalogCursor::SetMode(AnalogCursorMode::Type NewMode)
 	CurrentSpeed = FVector2D::ZeroVector;
 }
 
+void FAnalogCursor::ClearAnalogValues()
+{
+	AnalogValues[static_cast<uint8>(EAnalogStick::Left)] = FVector2D::ZeroVector;
+	AnalogValues[static_cast<uint8>(EAnalogStick::Right)] = FVector2D::ZeroVector;
+}
+
 void FAnalogCursor::UpdateCursorPosition(FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor, const FVector2D& NewPosition)
 {
 	//grab the old position

@@ -166,6 +166,9 @@ public:
 	/** See Justification attribute */
 	void SetJustification(const TAttribute<ETextJustify::Type>& InJustification);
 
+	/** See TextStyle argument */
+	void SetTextStyle(const FTextBlockStyle& InTextStyle);
+
 	/**
 	 * Causes the text to reflow it's layout
 	 */

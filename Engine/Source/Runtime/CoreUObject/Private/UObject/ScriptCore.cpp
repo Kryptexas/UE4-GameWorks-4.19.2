@@ -129,6 +129,12 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 	// cant fire arbitrary delegates here off the game thread
 	if (IsInGameThread())
 	{
+		// If nothing is bound, show warnings so something is left in the log.
+		if (OnScriptException.IsBound() == false)
+		{
+			UE_LOG(LogScript, Warning, TEXT("%s"), *StackFrame.GetStackTrace());
+		}
+
 		OnScriptException.Broadcast(ActiveObject, StackFrame, Info);
 	}
 
@@ -835,9 +841,6 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 		}
 		else if (++FBlueprintExceptionTracker::Get().Recurse == RECURSE_LIMIT)
 		{
-			// We've hit the recursion limit, so print out the stack, warn, and then continue with a zeroed return value.
-			UE_LOG(LogScriptCore, Log, TEXT("%s"), *Stack.GetStackTrace());
-
 			// If we have a return property, return a zeroed value in it, to try and save execution as much as possible
 			UProperty* ReturnProp = (Function)->GetReturnProperty();
 			ClearReturnValue(ReturnProp, RESULT_PARAM);
@@ -865,9 +868,6 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 #if DO_BLUEPRINT_GUARD
 			if( FBlueprintExceptionTracker::Get().Runaway > GMaximumScriptLoopIterations )
 			{
-				// We've hit the recursion limit, so print out the stack, warn, and then continue with a zeroed return value.
-				UE_LOG(LogScriptCore, Log, TEXT("%s"), *Stack.GetStackTrace());
-
 				// If we have a return property, return a zeroed value in it, to try and save execution as much as possible
 				UProperty* ReturnProp = (Function)->GetReturnProperty();
 				ClearReturnValue(ReturnProp, RESULT_PARAM);
@@ -1128,7 +1128,8 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GetClass()->HasInstrumentation())
 	{
-		EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Event, this, Function->GetFName());
+		const EScriptInstrumentation::Type EventType = Function->HasAnyFunctionFlags(FUNC_Event|FUNC_BlueprintEvent) ? EScriptInstrumentation::Event : EScriptInstrumentation::ResumeEvent;
+		EScriptInstrumentationEvent EventInstrumentationInfo(EventType, this, Function->GetFName());
 		FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
 	}
 #endif
@@ -1290,11 +1291,21 @@ void UObject::execLocalVariable(FFrame& Stack, RESULT_DECL)
 	checkSlow(Stack.Locals != NULL);
 
 	UProperty* VarProperty = Stack.ReadProperty();
-	Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(Stack.Locals);
-
-	if (RESULT_PARAM)
+	if (VarProperty == nullptr)
 	{
-		VarProperty->CopyCompleteValueToScriptVM( RESULT_PARAM, Stack.MostRecentPropertyAddress );
+		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("MissingLocalVariable", "Attempted to access missing local variable. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+		Stack.MostRecentPropertyAddress = nullptr;
+	}
+	else
+	{
+		Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(Stack.Locals);
+
+		if (RESULT_PARAM)
+		{
+			VarProperty->CopyCompleteValueToScriptVM(RESULT_PARAM, Stack.MostRecentPropertyAddress);
+		}
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_LocalVariable, execLocalVariable );
@@ -1797,10 +1808,16 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 	}
 	else
 	{
-		// The index is not valid. We will report this as an error (it is fatal in C++ conversions) but otherwise let the Blueprint handle the issue.
-		const int32 PropertySize = ArrayProperty->Inner->ElementSize * ArrayProperty->Inner->ArrayDim;
-		ArrayProperty->Inner->InitializeValue(Stack.MostRecentPropertyAddress);
-		FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to get an item from array %s out of bounds [%d/%d]!"), *ArrayProperty->GetName(), ArrayIndex, ArrayHelper.Num()? ArrayHelper.Num() - 1 : 0), ELogVerbosity::Warning);
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AccessViolation,
+			FText::Format(
+				LOCTEXT("ArrayGetOutofBounds", "Attempted to get an item from array {0} out of bounds [{1}/{2}]!"),
+				FText::FromString(*ArrayProperty->GetName()), 
+				FText::AsNumber(ArrayIndex), 
+				FText::AsNumber(ArrayHelper.Num() ? ArrayHelper.Num() - 1 : 0)
+			)
+		);
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 	}
 }
 IMPLEMENT_VM_FUNCTION(EX_ArrayGetByRef, execArrayGetByRef);

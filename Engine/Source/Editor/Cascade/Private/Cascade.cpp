@@ -182,6 +182,7 @@ void FCascade::OnComponentActivationChange(UParticleSystemComponent* PSC, bool b
 	{
 		if (FCascade* Cascade = CPSC->CascadePreviewViewportPtr->GetCascade())
 		{
+			PSC->SetManagingSignificance(true);
 			PSC->SetRequiredSignificance(Cascade->GetRequiredSignificance());
 		}
 	}
@@ -2626,6 +2627,7 @@ void FCascade::RestartParticleSystem()
 	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->ResetParticles();
+		ParticleSystemComponent->SetManagingSignificance(true);
 		ParticleSystemComponent->SetRequiredSignificance(RequiredSignificance);
 		ParticleSystemComponent->ActivateSystem();
 		if (ParticleSystemComponent->Template)
@@ -3734,6 +3736,7 @@ void FCascade::OnRestartInLevel()
 				PSysComp->ActivateSystem();
 				PSysComp->ConditionalCacheViewRelevanceFlags();
 				PSysComp->MarkRenderStateDirty();
+				PSysComp->SetManagingSignificance(true);
 				PSysComp->SetRequiredSignificance(RequiredSignificance);
 			}
 		}
@@ -4093,6 +4096,7 @@ void FCascade::OnSignificance(EParticleSignificanceLevel InSignificance)
 		{
 			if (It->Template == ParticleSystemComponent->Template)
 			{
+				It->SetManagingSignificance(true);
 				It->SetRequiredSignificance(InSignificance);
 			}
 		}

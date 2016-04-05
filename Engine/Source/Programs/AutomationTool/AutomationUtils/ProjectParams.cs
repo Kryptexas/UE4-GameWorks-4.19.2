@@ -298,6 +298,7 @@ namespace AutomationTool
 			this.bCodeSign = InParams.bCodeSign;
 			this.UploadSymbols = InParams.UploadSymbols;
 			this.TitleID = InParams.TitleID;
+			this.bTreatNonShippingBinariesAsDebugFiles = InParams.bTreatNonShippingBinariesAsDebugFiles;
 			this.RunAssetNativization = InParams.RunAssetNativization;
 		}
 
@@ -406,6 +407,7 @@ namespace AutomationTool
 			bool? IgnoreCookErrors = null,
             bool? RunAssetNativization = null,
 			bool? CodeSign = null,
+			bool? TreatNonShippingBinariesAsDebugFiles = null,
 			bool? UploadSymbols = null,
 			string Provision = null,
 			string Certificate = null,
@@ -496,6 +498,14 @@ namespace AutomationTool
 			this.Clean = GetOptionalParamValueIfNotSpecified(Command, Clean, this.Clean, "clean", null);
 			this.SignPak = ParseParamValueIfNotSpecified(Command, SignPak, "signpak", String.Empty);
 			this.SignedPak = !String.IsNullOrEmpty(this.SignPak) || GetParamValueIfNotSpecified(Command, SignedPak, this.SignedPak, "signedpak");
+			if (string.IsNullOrEmpty(this.SignPak))
+			{
+				this.SignPak = Path.Combine(RawProjectPath.Directory.FullName, @"Build\NoRedist\Keys.txt");
+				if (!File.Exists(this.SignPak))
+				{
+					this.SignPak = null;
+				}
+			}
 			this.Pak = this.SignedPak || GetParamValueIfNotSpecified(Command, Pak, this.Pak, "pak");
 			this.SkipPak = GetParamValueIfNotSpecified(Command, SkipPak, this.SkipPak, "skippak");
 			if (this.SkipPak)
@@ -542,6 +552,7 @@ namespace AutomationTool
 			}
 			this.StageDirectoryParam = ParseParamValueIfNotSpecified(Command, StageDirectoryParam, "stagingdirectory", String.Empty, true);
 			this.bCodeSign = GetParamValueIfNotSpecified(Command, CodeSign, CommandUtils.IsBuildMachine, "CodeSign");
+			this.bTreatNonShippingBinariesAsDebugFiles = GetParamValueIfNotSpecified(Command, TreatNonShippingBinariesAsDebugFiles, false, "TreatNonShippingBinariesAsDebugFiles");
 			this.Manifests = GetParamValueIfNotSpecified(Command, Manifests, this.Manifests, "manifests");
             this.CreateChunkInstall = GetParamValueIfNotSpecified(Command, CreateChunkInstall, this.CreateChunkInstall, "createchunkinstall");
 			this.ChunkInstallDirectory = ParseParamValueIfNotSpecified(Command, ChunkInstallDirectory, "chunkinstalldirectory", String.Empty, true);
@@ -875,11 +886,30 @@ namespace AutomationTool
 			return Pak || PlatformToCheck.RequiresPak(this) == Platform.PakType.Always;
 		}
 
+		private string SignPakInternal { get; set; }
+
 		/// <summary>
 		/// Shared: Encryption keys used for signing the pak file.
 		/// </summary>
 		[Help("signpak=keys", "sign the generated pak file with the specified key, i.e. -signpak=C:\\Encryption.keys. Also implies -signedpak.")]
-		public string SignPak { private set; get; }
+		public string SignPak 
+		{ 
+			private set
+			{
+				if (string.IsNullOrEmpty(value) || value.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase))
+				{
+					SignPakInternal = value;
+				}
+				else
+				{
+					SignPakInternal = Path.GetFullPath(value);
+				}
+			}
+			get
+			{
+				return SignPakInternal;
+			}
+		}
 
 		/// <summary>
 		/// Shared: the game will use only signed content.
@@ -1323,6 +1353,11 @@ namespace AutomationTool
 		/// </summary>
 		public ParamList<string> TitleID = new ParamList<string>();
 
+		/// <summary>
+		/// If true, non-shipping binaries will be considered DebugUFS files and will appear on the debugfiles manifest
+		/// </summary>
+		public bool bTreatNonShippingBinariesAsDebugFiles = false;
+
 		#endregion
 
 		#region Run
@@ -1559,50 +1594,7 @@ namespace AutomationTool
 			var ProgramTarget = String.Empty;
 			var ProjectType = TargetRules.TargetType.Game;
 
-			if (Automation.RunningRocket())
-			{
-				if (!CommandUtils.CmdEnv.HasCapabilityToCompile || !bIsCodeBasedProject)
-				{
-					if (bIsCodeBasedProject)
-					{
-						var ShortName = ProjectUtils.GetShortProjectName(RawProjectPath);
-						GameTarget = ShortName;
-						EditorTarget = ShortName + "Editor";
-						ServerTarget = ShortName + "Server";
-					}
-					else
-					{
-						GameTarget = "UE4Game";
-						EditorTarget = "UE4Editor";
-						//ServerTarget = "RocketServer";
-
-						Build = false;
-					}
-				}
-				else
-				{
-					SingleTargetProperties TargetData;
-					if (DetectedTargets.TryGetValue(TargetRules.TargetType.Editor, out TargetData))
-					{
-						EditorTarget = TargetData.TargetName;
-					}
-
-					if (DetectedTargets.TryGetValue(TargetRules.TargetType.Program, out TargetData))
-					{
-						ProgramTarget = TargetData.TargetName;
-					}
-					//DetectedTargets.TryGetValue(TargetRules.TargetType.Server, out ServerTarget);
-
-					if (string.IsNullOrEmpty(GameTarget))
-					{
-						if (DetectedTargets.TryGetValue(TargetRules.TargetType.Game, out TargetData))
-						{
-							GameTarget = TargetData.TargetName;
-						}
-					}
-				}
-			}
-			else if (!bIsCodeBasedProject)
+			if (!bIsCodeBasedProject)
 			{
 				GameTarget = "UE4Game";
 				EditorTarget = "UE4Editor";
@@ -1694,7 +1686,7 @@ namespace AutomationTool
 
 			IsProgramTarget = ProjectType == TargetRules.TargetType.Program;
 
-			if (String.IsNullOrEmpty(EditorTarget) && ProjectType != TargetRules.TargetType.Program && CommandUtils.IsNullOrEmpty(EditorTargetsList) && !Automation.RunningRocket())
+			if (String.IsNullOrEmpty(EditorTarget) && ProjectType != TargetRules.TargetType.Program && CommandUtils.IsNullOrEmpty(EditorTargetsList))
 			{
 				if (Properties.bWasGenerated)
 				{
@@ -1705,7 +1697,7 @@ namespace AutomationTool
 					throw new AutomationException("Editor target not found!");
 				}
 			}
-			if (String.IsNullOrEmpty(GameTarget) && Run && !NoClient && (Cook || CookOnTheFly) && CommandUtils.IsNullOrEmpty(ClientCookedTargetsList) && !Automation.RunningRocket())
+			if (String.IsNullOrEmpty(GameTarget) && Run && !NoClient && (Cook || CookOnTheFly) && CommandUtils.IsNullOrEmpty(ClientCookedTargetsList))
 			{
 				throw new AutomationException("Game target not found. Game target is required with -cook or -cookonthefly");
 			}
@@ -2284,7 +2276,6 @@ namespace AutomationTool
 				CommandUtils.LogLog("Prereqs={0}", Prereqs);
 				CommandUtils.LogLog("NoBootstrapExe={0}", NoBootstrapExe);
 				CommandUtils.LogLog("RawProjectPath={0}", RawProjectPath);
-				CommandUtils.LogLog("Rocket={0}", Automation.RunningRocket());
 				CommandUtils.LogLog("Run={0}", Run);
 				CommandUtils.LogLog("ServerConfigsToBuild={0}", string.Join(",", ServerConfigsToBuild));
 				CommandUtils.LogLog("ServerCookedTargets={0}", ServerCookedTargets.ToString());
@@ -2301,6 +2292,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("bUsesCEF3={0}", bUsesCEF3);
 				CommandUtils.LogLog("bUsesSlate={0}", bUsesSlate);
                 CommandUtils.LogLog("bDebugBuildsActuallyUseDebugCRT={0}", bDebugBuildsActuallyUseDebugCRT);
+				CommandUtils.LogLog("bTreatNonShippingBinariesAsDebugFiles={0}", bTreatNonShippingBinariesAsDebugFiles);
 				CommandUtils.LogLog("UploadSymbols={0}", UploadSymbols);
                 CommandUtils.LogLog("NativizeAssets={0}", RunAssetNativization);
 				CommandUtils.LogLog("Project Params **************");

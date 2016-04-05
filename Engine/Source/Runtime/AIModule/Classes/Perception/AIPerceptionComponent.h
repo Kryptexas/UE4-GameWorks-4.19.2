@@ -62,6 +62,21 @@ struct AIMODULE_API FActorPerceptionInfo
 		return Location;
 	}
 
+	/** it includes both currently live (visible) stimulus, as well as "remembered" ones */
+	bool HasAnyKnownStimulus() const
+	{
+		for (const FAIStimulus& Stimulus : LastSensedStimuli)
+		{
+			// not that WasSuccessfullySensed will return 'false' for expired stimuli
+			if (Stimulus.IsValid() && (Stimulus.WasSuccessfullySensed() == true || Stimulus.IsExpired() == false))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	/** @note will return FAISystem::InvalidLocation if given sense has never registered related Target actor */
 	FORCEINLINE FVector GetStimulusLocation(FAISenseID Sense) const
 	{
@@ -76,6 +91,11 @@ struct AIMODULE_API FActorPerceptionInfo
 	FORCEINLINE bool IsSenseRegistered(FAISenseID Sense) const
 	{
 		return LastSensedStimuli.IsValidIndex(Sense) && LastSensedStimuli[Sense].WasSuccessfullySensed() && (LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge);
+	}
+
+	FORCEINLINE bool IsSenseActive(FAISenseID Sense) const
+	{
+		return LastSensedStimuli.IsValidIndex(Sense) && LastSensedStimuli[Sense].IsActive();
 	}
 	
 	/** takes all "newer" info from Other and absorbs it */
@@ -153,6 +173,7 @@ protected:
 	UPROPERTY(Transient)
 	AAIController* AIOwner;
 
+	/** @todo this field is misnamed. It's a whitelist. */
 	FPerceptionChannelWhitelist PerceptionFilter;
 
 private:
@@ -187,7 +208,7 @@ public:
 	virtual void OnUnregister() override;
 
 	UFUNCTION()
-	void OnOwnerEndPlay(EEndPlayReason::Type EndPlayReason);
+	void OnOwnerEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason);
 	
 	void GetLocationAndDirection(FVector& Location, FVector& Direction) const;
 	const AActor* GetBodyActor() const;
@@ -218,6 +239,9 @@ public:
 	/** Notifies AIPerceptionSystem to update properties for this "stimuli listener" */
 	UFUNCTION(BlueprintCallable, Category="AI|Perception")
 	void RequestStimuliListenerUpdate();
+
+	/** Allows toggling senses on and off */
+	void UpdatePerceptionWhitelist(const FAISenseID Channel, const bool bNewValue);
 
 	void RegisterStimulus(AActor* Source, const FAIStimulus& Stimulus);
 	void ProcessStimuli();
@@ -264,8 +288,9 @@ public:
 	FActorPerceptionUpdatedDelegate OnTargetPerceptionUpdated;
 
 protected:
-
+	DEPRECATED(4.11, "Function has been renamed and made public. Please use UpdatePerceptionWhitelist instead")
 	void UpdatePerceptionFilter(FAISenseID Channel, bool bNewValue);
+
 	TActorPerceptionContainer& GetPerceptualData() { return PerceptualData; }
 
 	/** called to clean up on owner's end play or destruction */

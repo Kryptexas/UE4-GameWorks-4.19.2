@@ -49,6 +49,7 @@ FMacApplication::FMacApplication()
 ,	bSystemModalMode(false)
 ,	ModifierKeysFlags(0)
 ,	CurrentModifierFlags(0)
+,	bIsRightClickEmulationEnabled(true)
 ,	bEmulatingRightClick(false)
 ,	bIgnoreMouseMoveDelta(false)
 ,	bIsWorkspaceSessionActive(true)
@@ -359,7 +360,7 @@ void FMacApplication::DeferEvent(NSObject* Object)
 			case NSOtherMouseUp:
 				DeferredEvent.ButtonNumber = [Event buttonNumber];
 				DeferredEvent.ClickCount = [Event clickCount];
-				if (DeferredEvent.Type == NSLeftMouseDown && (DeferredEvent.ModifierFlags & NSControlKeyMask))
+				if (bIsRightClickEmulationEnabled && DeferredEvent.Type == NSLeftMouseDown && (DeferredEvent.ModifierFlags & NSControlKeyMask))
 				{
 					bEmulatingRightClick = true;
 					DeferredEvent.Type = NSRightMouseDown;
@@ -884,7 +885,7 @@ void FMacApplication::ProcessScrollWheelEvent(const FDeferredMacEvent& Event, TS
 		const FVector2D ScrollDelta(Event.ScrollingDelta.X, Event.ScrollingDelta.Y);
 
 		// This is actually a scroll gesture from trackpad
-		MessageHandler->OnTouchGesture(EGestureEvent::Scroll, Event.IsDirectionInvertedFromDevice ? -ScrollDelta : ScrollDelta, DeltaY);
+		MessageHandler->OnTouchGesture(EGestureEvent::Scroll, ScrollDelta, DeltaY, Event.IsDirectionInvertedFromDevice);
 		RecordUsage(EGestureEvent::Scroll);
 	}
 	else
@@ -914,7 +915,7 @@ void FMacApplication::ProcessGestureEvent(const FDeferredMacEvent& Event)
 	else
 	{
 		const EGestureEvent::Type GestureType = Event.Type == NSEventTypeMagnify ? EGestureEvent::Magnify : (Event.Type == NSEventTypeSwipe ? EGestureEvent::Swipe : EGestureEvent::Rotate);
-		MessageHandler->OnTouchGesture(GestureType, Event.Delta, 0);
+		MessageHandler->OnTouchGesture(GestureType, Event.Delta, 0, Event.IsDirectionInvertedFromDevice);
 		RecordUsage(GestureType);
 	}
 }

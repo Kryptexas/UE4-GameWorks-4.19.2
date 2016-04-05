@@ -12,6 +12,7 @@ DECLARE_CYCLE_STAT( TEXT( "Http replay compress time" ), STAT_HttpReplay_Compres
 DECLARE_CYCLE_STAT( TEXT( "Http replay decompress time" ), STAT_HttpReplay_DecompressTime, STATGROUP_HttpReplay );
 
 static TAutoConsoleVariable<FString> CVarMetaFilterOverride( TEXT( "httpReplay.MetaFilterOverride" ), TEXT( "" ), TEXT( "" ) );
+static TAutoConsoleVariable<float> CVarChunkUploadDelayInSeconds( TEXT( "httpReplay.ChunkUploadDelayInSeconds" ), 10.0f, TEXT( "" ) );
 
 class FNetworkReplayListItem : public FOnlineJsonSerializable
 {
@@ -182,7 +183,8 @@ FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() :
 	HighPriorityEndTime( 0 ),
 	StreamerLastError( ENetworkReplayError::None ),
 	DownloadCheckpointIndex( -1 ),
-	LastGotoTimeInMS( -1 )
+	LastGotoTimeInMS( -1 ),
+	TotalUploadBytes( 0 )
 {
 	// Initialize the server URL
 	GConfig->GetString( TEXT( "HttpNetworkReplayStreaming" ), TEXT( "ServerURL" ), ServerURL, GEngineIni );
@@ -234,9 +236,11 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 	EventGroupSet.Empty();
 
 	// Create the Http request and add to pending request list
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	StreamChunkIndex = 0;
+
+	TotalUploadBytes = 0;
 
 	if ( !bRecord )
 	{
@@ -456,10 +460,10 @@ void FHttpNetworkReplayStreamer::UploadHeader()
 	check( StreamChunkIndex == 0 );
 
 	// First upload the header
-	UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::UploadHeader. Header. StreamChunkIndex: %i, Size: %i" ), StreamChunkIndex, StreamArchive.Buffer.Num() );
+	UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::UploadHeader. Header. StreamChunkIndex: %i, Size: %i" ), StreamChunkIndex, HeaderArchive.Buffer.Num() );
 
 	// Create the Http request and add to pending request list
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpHeaderUploadFinished );
 
@@ -498,13 +502,9 @@ void FHttpNetworkReplayStreamer::FlushStream()
 	UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::FlushStream. StreamChunkIndex: %i, Size: %i" ), StreamChunkIndex, StreamArchive.Buffer.Num() );
 
 	// Create the Http request and add to pending request list
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpUploadStreamFinished );
-
-	HttpRequest->SetURL(FString::Printf(TEXT("%sreplay/%s/file/stream.%i?numChunks=%i&time=%i&mTime1=%i&mTime2=%i"), *ServerURL, *SessionName, StreamChunkIndex, StreamChunkIndex + 1, TotalDemoTimeInMS, StreamTimeRangeStart, StreamTimeRangeEnd));
-	HttpRequest->SetVerb( TEXT( "POST" ) );
-	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 
 	if ( SupportsCompression() )
 	{
@@ -524,11 +524,18 @@ void FHttpNetworkReplayStreamer::FlushStream()
 		UE_LOG( LogHttpReplay, VeryVerbose, TEXT( "Compressed stream. Original: %i, Compressed: %i, Time: %2.2f MS" ), StreamArchive.Buffer.Num(), Compressed.Buffer.Num(), ( EndTime - StartTime ) * 1000.0f );
 
 		HttpRequest->SetContent( Compressed.Buffer );
+
+		TotalUploadBytes += Compressed.Buffer.Num();
 	}
 	else
 	{
 		HttpRequest->SetContent( StreamArchive.Buffer );
+		TotalUploadBytes += StreamArchive.Buffer.Num();
 	}
+
+	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/file/stream.%i?numChunks=%i&time=%i&mTime1=%i&mTime2=%i&absSize=%i" ), *ServerURL, *SessionName, StreamChunkIndex, StreamChunkIndex + 1, TotalDemoTimeInMS, StreamTimeRangeStart, StreamTimeRangeEnd, TotalUploadBytes ) );
+	HttpRequest->SetVerb( TEXT( "POST" ) );
+	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 
 	StreamArchive.Buffer.Empty();
 	StreamArchive.Pos = 0;
@@ -550,7 +557,7 @@ void FHttpNetworkReplayStreamer::ConditionallyFlushStream()
 		return;
 	}
 	
-	const double FLUSH_TIME_IN_SECONDS = 10;
+	const float FLUSH_TIME_IN_SECONDS = CVarChunkUploadDelayInSeconds.GetValueOnGameThread();
 
 	if ( FPlatformTime::Seconds() - LastChunkTime > FLUSH_TIME_IN_SECONDS )
 	{
@@ -565,7 +572,7 @@ void FHttpNetworkReplayStreamer::StopUploading()
 
 	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpStopUploadingFinished );
 
-	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/stopUploading?numChunks=%i&time=%i" ), *ServerURL, *SessionName, StreamChunkIndex, TotalDemoTimeInMS ) );
+	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/stopUploading?numChunks=%i&time=%i&absSize=%i" ), *ServerURL, *SessionName, StreamChunkIndex, TotalDemoTimeInMS, TotalUploadBytes ) );
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 
@@ -643,7 +650,7 @@ void FHttpNetworkReplayStreamer::GotoCheckpointIndex( const int32 CheckpointInde
 		return;
 	}
 
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Download the next stream chunk
 	HttpRequest->SetURL( FString::Printf( TEXT( "%sevent/%s" ), *ServerURL,  *CheckpointList.ReplayEvents[CheckpointIndex].ID ) );
@@ -659,7 +666,7 @@ void FHttpNetworkReplayStreamer::GotoCheckpointIndex( const int32 CheckpointInde
 
 void FHttpNetworkReplayStreamer::SearchEvents(const FString& EventGroup, const FOnEnumerateStreamsComplete& Delegate)
 {
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	HttpRequest->SetURL(FString::Printf(TEXT("%sevent?group=%s"), *ServerURL, *EventGroup));
 	HttpRequest->SetVerb(TEXT("GET"));
@@ -671,7 +678,7 @@ void FHttpNetworkReplayStreamer::SearchEvents(const FString& EventGroup, const F
 
 void FHttpNetworkReplayStreamer::RequestEventData(const FString& EventID, const FOnRequestEventDataComplete& Delegate)
 {
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Download the next stream chunk
 	HttpRequest->SetURL(FString::Printf(TEXT("%sevent/%s"), *ServerURL, *EventID));
@@ -765,11 +772,11 @@ void FHttpNetworkReplayStreamer::FlushCheckpointInternal( uint32 TimeInMS )
 	UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::FlushCheckpointInternal. Size: %i, StreamChunkIndex: %i" ), CheckpointArchive.Buffer.Num(), StreamChunkIndex );
 
 	// Create the Http request and add to pending request list
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpUploadCheckpointFinished );
 
-	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=checkpoint&time1=%i&time2=%i&meta=%i" ), *ServerURL, *SessionName, TimeInMS, TimeInMS, StreamChunkIndex ) );
+	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=checkpoint&time1=%i&time2=%i&meta=%i&incrementSize=false" ), *ServerURL, *SessionName, TimeInMS, TimeInMS, StreamChunkIndex ) );
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 
@@ -828,11 +835,11 @@ bool FQueuedHttpRequestAddEvent::PreProcess( FHttpNetworkReplayStreamer* Streame
 	{
 		// Add or update existing event
 		const FString EventName = SessionName + TEXT( "_" ) + Name;
-		Request->SetURL( FString::Printf( TEXT( "%sreplay/%s/event/%s?group=%s&time1=%i&time2=%i&meta=%s" ), *ServerURL, *SessionName, *EventName, *Group, TimeInMS, TimeInMS, *FGenericPlatformHttp::UrlEncode( Meta ) ) );
+		Request->SetURL( FString::Printf( TEXT( "%sreplay/%s/event/%s?group=%s&time1=%i&time2=%i&meta=%s&incrementSize=false" ), *ServerURL, *SessionName, *EventName, *Group, TimeInMS, TimeInMS, *FGenericPlatformHttp::UrlEncode( Meta ) ) );
 	}
 	else
 	{
-		Request->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=%s&time1=%i&time2=%i&meta=%s" ), *ServerURL, *SessionName, *Group, TimeInMS, TimeInMS, *FGenericPlatformHttp::UrlEncode( Meta ) ) );
+		Request->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=%s&time1=%i&time2=%i&meta=%s&incrementSize=false" ), *ServerURL, *SessionName, *Group, TimeInMS, TimeInMS, *FGenericPlatformHttp::UrlEncode( Meta ) ) );
 	}
 
 	return true;
@@ -879,7 +886,7 @@ void FHttpNetworkReplayStreamer::AddEvent( const uint32 TimeInMS, const FString&
 void FHttpNetworkReplayStreamer::DownloadHeader()
 {
 	// Download header first
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/file/replay.header" ), *ServerURL, *SessionName, *ViewerName ) );
 	HttpRequest->SetVerb( TEXT( "GET" ) );
@@ -950,25 +957,46 @@ void FHttpNetworkReplayStreamer::ConditionallyDownloadNextChunk()
 	}
 
 	// Determine if it's time to download the next chunk
-	const double CHECK_FOR_NEXT_CHUNK_IN_SECONDS = 5;
-
-	const bool bTimeToDownloadChunk			= ( FPlatformTime::Seconds() - LastChunkTime > CHECK_FOR_NEXT_CHUNK_IN_SECONDS );	// Enough time has passed
 	const bool bApproachingEnd				= StreamArchive.Pos >= StreamArchive.Buffer.Num();									// We're getting close to the end
 	const bool bHighPriorityMode			= ( HighPriorityEndTime > 0 && StreamTimeRangeEnd < HighPriorityEndTime );			// We're within the high priority time range
 	const bool bReallyNeedToDownloadChunk	= ( bApproachingEnd || bHighPriorityMode ) && bMoreChunksDefinitelyAvilable;
 
-	// If it's either time to download the next chunk, or we need to for high priority reasons, download it now
-	// NOTE - bTimeToDownloadChunk may be true, even though bMoreChunksDefinitelyAvilable is false
-	//	This is because bMoreChunksMayBeAvilable is true, and we need to try and see if a new piece of the live stream is ready for download
-	if ( !bTimeToDownloadChunk && !bReallyNeedToDownloadChunk )
+	// If it's not critical to download the next chunk (i.e. we're not scrubbing or at the end already), then check to see if we should grab the next chunk
+	if ( !bReallyNeedToDownloadChunk )
 	{
-		// Not time yet
-		return;
+		// If things aren't critical, then don't grab more than 1 chunk every 5 seconds
+		const double MIN_WAIT_FOR_NEXT_CHUNK_IN_SECONDS = 5;
+		const double MAX_WAIT_FOR_NEXT_CHUNK_IN_SECONDS = 30;
+
+		const double DownloadElapsedTime = FPlatformTime::Seconds() - LastChunkTime;
+
+		if ( DownloadElapsedTime < MIN_WAIT_FOR_NEXT_CHUNK_IN_SECONDS )
+		{
+			return;		// Not enough time has passed
+		}
+
+		// Don't stream ahead by more than 15 seconds
+		if ( DownloadElapsedTime < MAX_WAIT_FOR_NEXT_CHUNK_IN_SECONDS && ( StreamTimeRangeEnd - StreamTimeRangeStart ) > 0 && StreamArchive.Buffer.Num() > 0 )
+		{
+			// Make a guess on how far we're in, and then determine if we have enough buffer to stop streaming for now
+			const float PercentIn		= ( float )StreamArchive.Pos / ( float )StreamArchive.Buffer.Num();
+			const float TotalStreamTime	= ( float )( StreamTimeRangeEnd - StreamTimeRangeStart ) / 1000.0f;
+			const float CurrentTime		= TotalStreamTime * PercentIn;
+			const float TimeLeft		= TotalStreamTime - CurrentTime;
+
+			const float MAX_BUFFERED_TIME = 15.0f;
+
+			if ( TimeLeft > MAX_BUFFERED_TIME )
+			{
+				UE_LOG( LogHttpReplay, VeryVerbose, TEXT( "FHttpNetworkReplayStreamer::ConditionallyDownloadNextChunk. Cancelling due buffer being large enough. TotalStreamTime: %2.2f, PercentIn: %2.2f, TimeLeft: %2.2f" ), TotalStreamTime, PercentIn, TimeLeft );
+				return;
+			}
+		}
 	}
 
 	check( bMoreChunksDefinitelyAvilable || bMoreChunksMayBeAvilable );
 
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Download the next stream chunk
 	const FString URL = FString::Printf( TEXT( "%sreplay/%s/file/stream.%i" ), *ServerURL, *SessionName, StreamChunkIndex );
@@ -987,7 +1015,7 @@ void FHttpNetworkReplayStreamer::ConditionallyDownloadNextChunk()
 
 void FHttpNetworkReplayStreamer::KeepReplay( const FString& ReplayName, const bool bKeep )
 {
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Download the next stream chunk
 	if ( bKeep )
@@ -1019,7 +1047,7 @@ void FHttpNetworkReplayStreamer::KeepReplayFinished( FHttpRequestPtr HttpRequest
 
 void FHttpNetworkReplayStreamer::RefreshViewer( const bool bFinal )
 {
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Download the next stream chunk
 	if ( bFinal )
@@ -1186,7 +1214,7 @@ void FHttpNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 
 void FHttpNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& InReplayVersion, const FString& UserString, const FString& MetaString, const TArray< FString >& ExtraParms, const FOnEnumerateStreamsComplete& Delegate )
 {
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Build base URL
 	FString URL = FString::Printf( TEXT( "%sreplay?app=%s" ), *ServerURL, *InReplayVersion.AppString );
@@ -1233,7 +1261,7 @@ void FHttpNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 
 void FHttpNetworkReplayStreamer::EnumerateRecentStreams( const FNetworkReplayVersion& InReplayVersion, const FString& InRecentViewer, const FOnEnumerateStreamsComplete& Delegate )
 {
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Enumerate all of the sessions
 	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay?app=%s&version=%u&cl=%u&recent=%s" ), *ServerURL, *InReplayVersion.AppString, InReplayVersion.NetworkVersion, InReplayVersion.Changelist, *InRecentViewer ) );
@@ -1297,7 +1325,7 @@ void FHttpNetworkReplayStreamer::AddUserToReplay(const FString& UserString)
 
 void FHttpNetworkReplayStreamer::EnumerateCheckpoints()
 {
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Enumerate all of the sessions
 	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=checkpoint" ), *ServerURL, *SessionName ) );
@@ -1339,7 +1367,7 @@ void FHttpNetworkReplayStreamer::EnumerateEvents(const FString& Group, const FEn
 
 void FHttpNetworkReplayStreamer::EnumerateEvents( const FString& ReplayName, const FString& Group, const FEnumerateEventsCompleteDelegate& EnumerationCompleteDelegate )
 {
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Enumerate all of the events
 	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=%s" ), *ServerURL, *ReplayName, *Group ) );
@@ -1434,7 +1462,12 @@ void FHttpNetworkReplayStreamer::HttpHeaderUploadFinished( FHttpRequestPtr HttpR
 
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::NoContent )
 	{
-		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpHeaderUploadFinished." ) );
+		if ( HttpRequest.IsValid() )
+		{
+			TotalUploadBytes += HttpRequest->GetContentLength();
+		}
+
+		UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::HttpHeaderUploadFinished. TotalUploadBytes: %i" ), TotalUploadBytes );
 
 		StartStreamingDelegate.ExecuteIfBound( true, true );
 	}
@@ -1484,7 +1517,12 @@ void FHttpNetworkReplayStreamer::HttpUploadCheckpointFinished( FHttpRequestPtr H
 
 	if ( bSucceeded && ( HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok || HttpResponse->GetResponseCode() == EHttpResponseCodes::NoContent ) )
 	{
-		UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::HttpUploadCheckpointFinished." ) );
+		if ( HttpRequest.IsValid() )
+		{
+			TotalUploadBytes += HttpRequest->GetContentLength();
+		}
+
+		UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::HttpUploadCheckpointFinished. TotalUploadBytes: %i" ), TotalUploadBytes );
 	}
 	else
 	{
@@ -1504,7 +1542,12 @@ void FHttpNetworkReplayStreamer::HttpUploadCustomEventFinished(FHttpRequestPtr H
 
 	if ( bSucceeded && ( HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok || HttpResponse->GetResponseCode() == EHttpResponseCodes::NoContent ) )
 	{
-		UE_LOG(LogHttpReplay, Verbose, TEXT("FHttpNetworkReplayStreamer::HttpUploadCustomEventFinished."));
+		if ( HttpRequest.IsValid() )
+		{
+			TotalUploadBytes += HttpRequest->GetContentLength();
+		}
+
+		UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::HttpUploadCustomEventFinished. TotalUploadBytes: %i" ), TotalUploadBytes );
 	}
 	else
 	{

@@ -230,6 +230,17 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameSessionIDChange, const FString&);
 	static FOnGameSessionIDChange GameSessionIDChanged;
 	
+		// Callback for platform specific very early init code.
+	DECLARE_MULTICAST_DELEGATE(FOnPreMainInit);
+	static FOnPreMainInit& GetPreMainInitDelegate();
+	
+	/** Callback for notifications regarding changes of the rendering thread. */
+	DECLARE_MULTICAST_DELEGATE(FRenderingThreadChanged)
+
+	/** Sent just after the rendering thread has been created. */
+	static FRenderingThreadChanged PostRenderingThreadCreated;
+	/* Sent just before the rendering thread is destroyed. */
+	static FRenderingThreadChanged PreRenderingThreadDestroyed;
 
 private:
 

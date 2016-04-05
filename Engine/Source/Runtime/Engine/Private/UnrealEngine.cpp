@@ -58,6 +58,7 @@
 #include "Engine/LevelScriptActor.h"
 #include "Vehicles/TireType.h"
 #include "RHICommandList.h"
+#include "HardwareSurvey.h"
 
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
@@ -132,6 +133,7 @@
 #if !UE_BUILD_SHIPPING
 #include "AutomationTest.h"
 #include "IAutomationWorkerModule.h"
+#include "HAL/ExceptionHandling.h"
 #endif	// UE_BUILD_SHIPPING
 
 DEFINE_LOG_CATEGORY(LogEngine);
@@ -165,7 +167,13 @@ ENGINE_API bool GShowDebugSelectedLightmap = false;
 	 * true if we debug material names with SCOPED_DRAW_EVENT.
 	 * Toggle with "ShowMaterialDrawEvents" console command.
 	 */
-	bool GShowMaterialDrawEvents = false;
+	int32 GShowMaterialDrawEvents = 0;	
+	static FAutoConsoleVariableRef CVARShowMaterialDrawEvents(
+		TEXT("r.ShowMaterialDrawEvents"),
+		GShowMaterialDrawEvents,
+		TEXT("Enables a draw event around each material draw if supported by the platform"),
+		ECVF_Default
+		);
 #endif
 
 ENGINE_API uint32 GGPUFrameTime = 0;
@@ -750,7 +758,7 @@ void EngineMemoryWarningHandler(const FGenericMemoryWarningContext& GenericConte
 		Stats.AvailablePhysical / 1048576.0f);
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-	const auto OOMMemReportVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Debug.OOMMemReport")); 
+	static const auto OOMMemReportVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Debug.OOMMemReport")); 
 	const int32 OOMMemReport = OOMMemReportVar ? OOMMemReportVar->GetValueOnAnyThread() : false;
 	if( OOMMemReport )
 	{
@@ -966,7 +974,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 #if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	// Initialize Portal services
-	if (!IsRunningCommandlet())
+	if (!IsRunningCommandlet() && !IsRunningDedicatedServer())
 	{
 		InitializePortalServices();
 	}
@@ -1207,10 +1215,10 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 	FApp::UpdateLastTime();
 
 	// Calculate delta time and update time.
-	if( bUseFixedTimeStep || bUseFixedFrameRate )
+	if( bUseFixedTimeStep )
 	{
 		bTimeWasManipulated = true;
-		const float FrameRate = bUseFixedTimeStep ? FApp::GetFixedDeltaTime() : (1.f / FixedFrameRate);
+		const float FrameRate = FApp::GetFixedDeltaTime();
 		FApp::SetDeltaTime(FrameRate);
 		LastTime = FApp::GetCurrentTime();
 		FApp::SetCurrentTime(FApp::GetCurrentTime() + FApp::GetDeltaTime());
@@ -1220,7 +1228,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		FApp::SetCurrentTime(FPlatformTime::Seconds());
 		// Did we just switch from a fixed time step to real-time?  If so, then we'll update our
 		// cached 'last time' so our current interval isn't huge (or negative!)
-		if( bTimeWasManipulated )
+		if( bTimeWasManipulated && !bUseFixedFrameRate )
 		{
 			LastTime = FApp::GetCurrentTime() - FApp::GetDeltaTime();
 			bTimeWasManipulated = false;
@@ -1254,11 +1262,12 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		}
 
 		// Enforce maximum framerate and smooth framerate by waiting.
-		STAT( double ActualWaitTime = 0.f ); 
+		double ActualWaitTime = 0.f;
 		if( WaitTime > 0 )
 		{
+			FSimpleScopeSecondsCounter ActualWaitTimeCounter(ActualWaitTime);
 			double WaitEndTime = FApp::GetCurrentTime() + WaitTime;
-			SCOPE_SECONDS_COUNTER(ActualWaitTime);
+
 			SCOPE_CYCLE_COUNTER(STAT_GameTickWaitTime);
 			SCOPE_CYCLE_COUNTER(STAT_GameIdleTime);
 
@@ -1284,12 +1293,21 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 			}
 			FApp::SetCurrentTime(FPlatformTime::Seconds());
 		}
+		else if(bUseFixedFrameRate)
+		{
+			//We are doing fixed framerate and the real delta time is bigger than our desired delta time. In this case we start falling behind real time (and that's ok)
+			const float FrameRate = 1.f / FixedFrameRate;
+			FApp::SetDeltaTime(FrameRate);
+			FApp::SetCurrentTime(LastTime + FApp::GetDeltaTime());
+			bTimeWasManipulated = true;
+		}
 
 
 		SET_FLOAT_STAT(STAT_GameTickWantedWaitTime,WaitTime * 1000.f);
 		SET_FLOAT_STAT(STAT_GameTickAdditionalWaitTime,FMath::Max<float>((ActualWaitTime-WaitTime)*1000.f,0.f));
 
 		FApp::SetDeltaTime(FApp::GetCurrentTime() - LastTime);
+		FApp::SetIdleTime(ActualWaitTime);
 
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
 		if( FApp::GetDeltaTime() < 0 )
@@ -1639,9 +1657,15 @@ void UEngine::InitializeObjectReferences()
 #if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 void UEngine::InitializePortalServices()
 {
-	TSharedPtr<IMessagingRpcModule> MessagingRpcModule = StaticCastSharedPtr<IMessagingRpcModule>(FModuleManager::Get().LoadModule("MessagingRpc"));
-	TSharedPtr<IPortalRpcModule> PortalRpcModule = StaticCastSharedPtr<IPortalRpcModule>(FModuleManager::Get().LoadModule("PortalRpc"));
-	TSharedPtr<IPortalServicesModule> PortalServicesModule = StaticCastSharedPtr<IPortalServicesModule>(FModuleManager::Get().LoadModule("PortalServices"));
+	TSharedPtr<IMessagingRpcModule> MessagingRpcModule;
+	TSharedPtr<IPortalRpcModule> PortalRpcModule;
+	TSharedPtr<IPortalServicesModule> PortalServicesModule;
+
+#if WITH_PORTAL_SERVICES
+	MessagingRpcModule = StaticCastSharedPtr<IMessagingRpcModule>(FModuleManager::Get().LoadModule("MessagingRpc"));
+	PortalRpcModule = StaticCastSharedPtr<IPortalRpcModule>(FModuleManager::Get().LoadModule("PortalRpc"));
+	PortalServicesModule = StaticCastSharedPtr<IPortalServicesModule>(FModuleManager::Get().LoadModule("PortalServices"));
+#endif
 
 	if (MessagingRpcModule.IsValid() &&
 		PortalRpcModule.IsValid() &&
@@ -2561,11 +2585,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if( FParse::Command(&Cmd,TEXT("PROFILEGPU")) )
 	{
 		return HandleProfileGPUCommand( Cmd, Ar );
-	}
-	else if( FParse::Command(&Cmd,TEXT("SHOWMATERIALDRAWEVENTS")) )
-	{
-		return HandleShowMaterialDrawEventsCommand( Cmd, Ar );
-	}
+	}	
 #endif // #if !UE_BUILD_SHIPPING
 
 #if	!(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_HOT_RELOAD
@@ -2612,11 +2632,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if( FParse::Command(&Cmd,TEXT("ToggleRenderingThread")) )
 	{
 		return HandleToggleRenderingThreadCommand( Cmd, Ar );
-	}
-	else if( FParse::Command(&Cmd,TEXT("ToggleRHIThread")) )
-	{
-		return HandleToggleRHIThreadCommand( Cmd, Ar );
-	}
+	}	
 	else if (FParse::Command(&Cmd, TEXT("ToggleAsyncCompute")))
 	{
 		return HandleToggleAsyncComputeCommand(Cmd, Ar);
@@ -3326,31 +3342,6 @@ bool UEngine::HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevic
 	return true;
 }
 
-bool UEngine::HandleToggleRHIThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	if (GRHISupportsRHIThread)
-	{
-		if (!GIsThreadedRendering)
-		{
-			check(!GRHIThread);
-			Ar.Logf( TEXT("Can't switch to RHI thread mode when we are not running a multithreaded renderer."));
-		}
-		else
-		{
-			bool bWasRHIThread = !!GRHIThread;
-			StopRenderingThread();
-			GUseRHIThread = !bWasRHIThread;
-			StartRenderingThread();
-		}
-		Ar.Logf( TEXT("RHIThread is now %s."), GRHIThread ? TEXT("active") : TEXT("inactive"));
-	}
-	else
-	{
-		Ar.Logf( TEXT("This RHI does not support the RHI thread."));
-	}
-	return true;
-}
-
 bool UEngine::HandleToggleAsyncComputeCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
 	if (GDynamicRHI)
@@ -3470,20 +3461,14 @@ bool UEngine::HandleProfileGPUCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	return true;
 }
 
-bool UEngine::HandleShowMaterialDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	GShowMaterialDrawEvents = !GShowMaterialDrawEvents;
-	UE_LOG(LogEngine, Warning, TEXT("Show material names in SCOPED_DRAW_EVENT: %s"), GShowMaterialDrawEvents ? TEXT("true") : TEXT("false") );
-	return true;
-}
 #endif // WITH_PROFILEGPU
 
 #if !UE_BUILD_SHIPPING
 bool UEngine::HandleStartFPSChartCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	// start the chart data capture
-	FString Label = FParse::Token(Cmd, 0);
-	StartFPSChart( Label );
+	const FString Label = FParse::Token(Cmd, 0);
+	StartFPSChart( Label, /*bRecordPerFrameTimes=*/ true );
 	return true;
 }
 
@@ -3493,8 +3478,8 @@ bool UEngine::HandleStopFPSChartCommand( const TCHAR* Cmd, FOutputDevice& Ar, UW
 	StopFPSChart();
 
 	// save out to disk
-	FString MapName = InWorld ? InWorld->GetMapName() : TEXT("None");
-	DumpFPSChart( MapName, true );
+	const FString MapName = InWorld ? InWorld->GetMapName() : TEXT("None");
+	DumpFPSChart( MapName, /*bForceDump=*/ true );
 	return true;
 }
 
@@ -3564,10 +3549,11 @@ bool UEngine::HandleKismetEventCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	const bool bShouldOnlyListStreaming = FParse::Command(&Cmd, TEXT("STREAMING"));
-	const bool bShouldOnlyListNonStreaming = FParse::Command(&Cmd, TEXT("NONSTREAMING"));
+	const bool bShouldOnlyListNonStreaming = FParse::Command(&Cmd, TEXT("NONSTREAMING")) && !bShouldOnlyListStreaming;
+	const bool bShouldOnlyListForced = FParse::Command(&Cmd, TEXT("FORCED")) && !bShouldOnlyListStreaming && !bShouldOnlyListNonStreaming;
 	const bool bAlphaSort = FParse::Param( Cmd, TEXT("ALPHASORT") );
 
-	Ar.Logf( TEXT("Listing %s textures."), bShouldOnlyListNonStreaming ? TEXT("non streaming") : bShouldOnlyListStreaming ? TEXT("streaming") : TEXT("all")  );
+	Ar.Logf( TEXT("Listing %s textures."), bShouldOnlyListForced ? TEXT("forced") : bShouldOnlyListNonStreaming ? TEXT("non streaming") : bShouldOnlyListStreaming ? TEXT("streaming") : TEXT("all")  );
 
 	// Find out how many times a texture is referenced by primitive components.
 	TMap<UTexture2D*,int32> TextureToUsageMap;
@@ -3578,8 +3564,9 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		// Use the existing texture streaming functionality to gather referenced textures. Worth noting
 		// that GetStreamingTextureInfo doesn't check whether a texture is actually streamable or not
 		// and is also implemented for skeletal meshes and such.
+		FStreamingTextureLevelContext LevelContext;
 		TArray<FStreamingTexturePrimitiveInfo> StreamingTextures;
-		PrimitiveComponent->GetStreamingTextureInfoWithNULLRemoval( StreamingTextures );
+		PrimitiveComponent->GetStreamingTextureInfo( LevelContext, StreamingTextures );
 
 		// Increase usage count for all referenced textures
 		for( int32 TextureIndex=0; TextureIndex<StreamingTextures.Num(); TextureIndex++ )
@@ -3615,10 +3602,12 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		int32				MaxSize				= Texture->CalcTextureMemorySizeEnum( TMC_AllMips );
 		int32				CurrentSize			= Texture->CalcTextureMemorySizeEnum( TMC_ResidentMips );
 		int32				UsageCount			= TextureToUsageMap.FindRef( Texture );
+		bool				bIsForced			= Texture->bForceMiplevelsToBeResident && bIsStreamingTexture;
 
-		if( (bShouldOnlyListStreaming && bIsStreamingTexture) 
-			||	(bShouldOnlyListNonStreaming && !bIsStreamingTexture) 
-			||	(!bShouldOnlyListStreaming && !bShouldOnlyListNonStreaming) )
+		if( (bShouldOnlyListStreaming && bIsStreamingTexture) ||	
+			(bShouldOnlyListNonStreaming && !bIsStreamingTexture) ||
+			(bShouldOnlyListForced && bIsForced) ||   
+			(!bShouldOnlyListStreaming && !bShouldOnlyListNonStreaming && !bShouldOnlyListForced) )
 		{
 			new(SortedTextures) FSortedTexture( 
 				OrigSizeX, 
@@ -4064,7 +4053,7 @@ bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& A
 	{
 		for (FConfigSectionMap::TIterator It(*CommandsToRun); It; ++It)
 		{
-			Exec( InWorld, *It.Value(), *ReportAr );
+			Exec( InWorld, *It.Value().GetValue(), *ReportAr );
 			ReportAr->Logf( LINE_TERMINATOR );
 		}
 	}
@@ -4077,7 +4066,7 @@ bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& A
 		{
 			for (FConfigSectionMap::TIterator It(*CommandsToRun); It; ++It)
 			{
-				Exec( InWorld, *It.Value(), *ReportAr );
+				Exec( InWorld, *It.Value().GetValue(), *ReportAr );
 				ReportAr->Logf( LINE_TERMINATOR );
 			}
 		}
@@ -4518,338 +4507,18 @@ bool UEngine::HandleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	return true;
 }
 
-// debug flag to allocate memory every frame, to trigger an OOM condition
-static bool GDebugAllocMemEveryFrame = false;
-
-/** Helper function to cause a stack overflow crash */
-FORCENOINLINE void StackOverflowFunction(int32* DummyArg)
-{
-	int32 StackArray[8196];
-	FMemory::Memset(StackArray, 0, sizeof(StackArray));
-	if (StackArray[0] == 0)
-	{
-		UE_LOG(LogEngine, VeryVerbose, TEXT("StackOverflowFunction(%d)"), DummyArg ? DummyArg[0] : 0);
-		StackOverflowFunction(StackArray);
-	}
-}
-
 bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	if( FParse::Command(&Cmd,TEXT("RENDERCRASH")) )
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND( CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") ); UE_LOG(LogEngine, Fatal, TEXT("Crashing the renderthread at your request") ); } );
-		return true;
-	}
-	if( FParse::Command(&Cmd,TEXT("RENDERCHECK")) )
-	{
-		struct FRender
-		{
-			static void Check()
-			{
-				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
-				check(!"Crashing the renderthread via check(0) at your request");
-			}
-		};			
-		ENQUEUE_UNIQUE_RENDER_COMMAND( CauseRenderThreadCrash, { FRender::Check();});
-		return true;
-	}
-	if( FParse::Command(&Cmd,TEXT("RENDERGPF")) )
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND( CauseRenderThreadCrash, {UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") ); *(int32 *)3 = 123;} );
-		return true;
-	}
-	if( FParse::Command( &Cmd, TEXT( "RENDERFATAL" ) ) )
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND( CauseRenderThreadCrash, 
-		{
-			UE_LOG( LogEngine, Warning, TEXT( "Printed warning to log." ) );
-			LowLevelFatalError( TEXT( "FError::LowLevelFatal test" ) ); 
-		} );
-		return true;
-	}
-	if (FParse::Command(&Cmd, TEXT("RENDERENSURE")))
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadEnsure,
-		{
-			UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-			if (!ensure(0))
-			{
-				UE_LOG(LogEngine, Warning, TEXT("Ensure condition failed (this is the expected behavior)."));
-			}
-		});
-		return true;
-	}
-	if( FParse::Command(&Cmd,TEXT("THREADCRASH")) )
-	{
-		struct FThread
-		{
-			static void Crash(ENamedThreads::Type, const  FGraphEventRef&)
-			{
-				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
-				UE_LOG(LogEngine, Fatal, TEXT("Crashing the worker thread at your request") );
-			}
-		};
-
-		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::Crash"),
-			STAT_FDelegateGraphTask_FThread__Crash,
-			STATGROUP_TaskGraphTasks);
-
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
-			FDelegateGraphTask::CreateAndDispatchWhenReady(
-				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Crash),
-				GET_STATID(STAT_FDelegateGraphTask_FThread__Crash)
-			),
-			ENamedThreads::GameThread
-		);
-		return true;
-	}
-	if( FParse::Command(&Cmd,TEXT("THREADCHECK")) )
-	{
-		struct FThread
-		{
-			static void Check(ENamedThreads::Type, const FGraphEventRef&)
-			{
-				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
-				check(!"Crashing a worker thread via check(0) at your request");
-			}
-		};
-
-		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::Check"),
-			STAT_FDelegateGraphTask_FThread__Check,
-			STATGROUP_TaskGraphTasks);
-
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
-			FDelegateGraphTask::CreateAndDispatchWhenReady(
-				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Check),
-				GET_STATID(STAT_FDelegateGraphTask_FThread__Check)
-			),
-			ENamedThreads::GameThread
-		);
-		return true;
-	}
-	if( FParse::Command(&Cmd,TEXT("THREADGPF")) )
-	{
-		struct FThread
-		{
-			static void GPF(ENamedThreads::Type, const FGraphEventRef&)
-			{
-				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
-				*(int32 *)3 = 123;
-			}
-		};
-
-		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::GPF"),
-			STAT_FDelegateGraphTask_FThread__GPF,
-			STATGROUP_TaskGraphTasks);
-
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
-			FDelegateGraphTask::CreateAndDispatchWhenReady(
-				FDelegateGraphTask::FDelegate::CreateStatic(FThread::GPF),
-				GET_STATID(STAT_FDelegateGraphTask_FThread__GPF)
-			),
-			ENamedThreads::GameThread
-		);
-		return true;
-	}
-	else if( FParse::Command( &Cmd, TEXT( "THREADENSURE" ) ) )
-	{
-		struct FThread
-		{
-			static void Ensure( ENamedThreads::Type, const FGraphEventRef& )
-			{
-				UE_LOG( LogEngine, Warning, TEXT( "Printed warning to log." ) );
-				ensure( 0 );
-			}
-		};
-
-		DECLARE_CYCLE_STAT(TEXT("FThread::Ensure"),
-			STAT_FThread__Ensure,
-			STATGROUP_TaskGraphTasks);
-
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
-			FDelegateGraphTask::CreateAndDispatchWhenReady(
-				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Ensure),
-				GET_STATID(STAT_FThread__Ensure)),
-			ENamedThreads::GameThread
-		);
-		return true;
-	}
-	else if( FParse::Command( &Cmd, TEXT( "THREADFATAL" ) ) )
-	{
-		struct FThread
-		{
-			static void Fatal( ENamedThreads::Type, const FGraphEventRef& )
-			{
-				UE_LOG( LogEngine, Warning, TEXT( "Printed warning to log." ) );
-				LowLevelFatalError( TEXT( "FError::LowLevelFatal test" ) );
-			}
-		};
-
-		DECLARE_CYCLE_STAT(TEXT("FThread::Fatal"),
-			STAT_FThread__Fatal,
-			STATGROUP_TaskGraphTasks);
-
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
-			FDelegateGraphTask::CreateAndDispatchWhenReady(
-				FDelegateGraphTask::FDelegate::CreateStatic(FThread::Fatal),
-				GET_STATID(STAT_FThread__Fatal)),
-			ENamedThreads::GameThread
-		);
-		return true;
-	}
-	else if( FParse::Command(&Cmd,TEXT("CRASH")) )
-	{
-		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
-		UE_LOG(LogEngine, Fatal, TEXT("%s"), TEXT("Crashing the gamethread at your request") );
-		return true;
-	}
-	else if( FParse::Command(&Cmd,TEXT("CHECK")) )
-	{
-		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
-		check(!"Crashing the game thread via check(0) at your request");
-		return true;
-	}
-	else if( FParse::Command( &Cmd, TEXT("GPF") ) )
-	{
-		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
-		Ar.Log( TEXT("Crashing with voluntary GPF") );
-		// changed to 3 from NULL because clang noticed writing to NULL and warned about it
-		*(int32 *)3 = 123;
-		return true;
-	}
-	else if( FParse::Command( &Cmd, TEXT("ENSURE") ) )
-	{
-		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
-		if (!ensure(0))
-		{
-			return true;
-		}
-	}
-	else if( FParse::Command( &Cmd, TEXT("ENSUREALWAYS") ) )
-	{
-		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.") );
-		if( !ensureAlways( 0 ) )
-		{
-			return true;
-		}
-	}
-	else if( FParse::Command( &Cmd, TEXT( "FATAL" ) ) )
-	{
-		UE_LOG( LogEngine, Warning, TEXT( "Printed warning to log." ) );
-		LowLevelFatalError( TEXT( "FError::LowLevelFatal test" ) );
-		return true;
-	}
-	else if( FParse::Command( &Cmd, TEXT("RESETLOADERS") ) )
+	if (FParse::Command(&Cmd, TEXT("RESETLOADERS")))
 	{
 		ResetLoaders( NULL );
 		return true;
 	}
-	else if( FParse::Command( &Cmd, TEXT("BUFFEROVERRUN") ) )
-	{
-		// stack overflow test - this case should be caught by /GS (Buffer Overflow Check) compile option
-		ANSICHAR SrcBuffer[] = "12345678901234567890123456789012345678901234567890";
-		BufferOverflowFunction(ARRAY_COUNT(SrcBuffer),SrcBuffer);
-		return true;
-	}
-	else if( FParse::Command(&Cmd, TEXT("CRTINVALID")) )
-	{
-		FString::Printf(NULL);
-		return true;
-	}
-	else if( FParse::Command(&Cmd, TEXT("HITCH")) )
-	{
-		SCOPE_CYCLE_COUNTER(STAT_IntentionalHitch);
-		FPlatformProcess::Sleep(1.0f);
-		return true;
-	}
-	else if( FParse::Command(&Cmd, TEXT("RENDERHITCH")) )
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND( CauseRenderThreadHitch, { SCOPE_CYCLE_COUNTER(STAT_IntentionalHitch); FPlatformProcess::Sleep(1.0f); } );
-		return true;
-	}
-	else if ( FParse::Command(&Cmd,TEXT("LONGLOG")) )
-	{
-		UE_LOG(LogEngine, Log, TEXT("This is going to be a really long log message to test the code to resize the buffer used to log with. %02048s"), TEXT("HAHA, this isn't really a long string, but it sure has a lot of zeros!"));
-	}
-	else if( FParse::Command( &Cmd, TEXT("RECURSE") ) )
-	{
-		Ar.Logf( TEXT("Recursing to create a very deep callstack.") );
-		GLog->Flush();
-		InfiniteRecursionFunction(1);
-		Ar.Logf(TEXT("You will never see this log line."));
-		return true;
-	}
-	else if (FParse::Command(&Cmd, TEXT("THREADRECURSE")))
-	{
-		Ar.Log(TEXT("Recursing to create a very deep callstack (in a separate thread)."));
-		struct FThread
-		{
-			static void InfiniteRecursion(ENamedThreads::Type, const FGraphEventRef&)
-			{
-				InfiniteRecursionFunction(1);
-			}
-		};
 
-		DECLARE_CYCLE_STAT(TEXT("FThread::InfiniteRecursion"),
-		STAT_FThread__InfiniteRecursion,
-			STATGROUP_TaskGraphTasks);
-
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
-			FDelegateGraphTask::CreateAndDispatchWhenReady(
-			FDelegateGraphTask::FDelegate::CreateStatic(FThread::InfiniteRecursion),
-			GET_STATID(STAT_FThread__InfiniteRecursion)),
-			ENamedThreads::GameThread
-			);
-		return true;
-	}
-	else if( FParse::Command( &Cmd, TEXT("EATMEM") ) )
-	{
-		Ar.Log( TEXT("Eating up all available memory") );
-		while( 1 )
-		{
-			void* Eat = FMemory::Malloc(65536);
-			FMemory::Memset( Eat, 0, 65536 );
-		}
-		return true;
-	}
-	else if( FParse::Command( &Cmd, TEXT("OOM") ) )
-	{
-		Ar.Log( TEXT("Will continuously allocate 1MB per frame until we hit OOM") );
-		GDebugAllocMemEveryFrame = true;
-		return true;
-	}
-	else if (FParse::Command(&Cmd, TEXT("STACKOVERFLOW")))
-	{
-		Ar.Log(TEXT("Infinite recursion to cause stack overflow"));
-		StackOverflowFunction(nullptr);
-		return true;
-	}
-	else if (FParse::Command(&Cmd, TEXT("THREADSTACKOVERFLOW")))
-	{
-		Ar.Log(TEXT("Infinite recursion to cause stack overflow will happen in a separate thread."));
-		struct FThread
-		{
-			static void StackOverflow(ENamedThreads::Type, const FGraphEventRef&)
-			{
-				StackOverflowFunction(nullptr);
-			}
-		};
-
-		DECLARE_CYCLE_STAT(TEXT("FThread::StackOverflow"),
-		STAT_FThread__StackOverflow,
-			STATGROUP_TaskGraphTasks);
-
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
-			FDelegateGraphTask::CreateAndDispatchWhenReady(
-			FDelegateGraphTask::FDelegate::CreateStatic(FThread::StackOverflow),
-			GET_STATID(STAT_FThread__StackOverflow)),
-			ENamedThreads::GameThread
-			);
-		return true;
-	}
-
-	return false;
+	// Handle "DEBUG CRASH" etc. 
+	return PerformError(Cmd, Ar);
 }
+
 
 bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
@@ -6167,6 +5836,378 @@ bool UEngine::HandleGetIniCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 #endif // !UE_BUILD_SHIPPING
 
 
+// debug flag to allocate memory every frame, to trigger an OOM condition
+static bool GDebugAllocMemEveryFrame = false;
+
+/** Helper function to cause a stack overflow crash */
+FORCENOINLINE void StackOverflowFunction(int32* DummyArg)
+{
+	int32 StackArray[8196];
+	FMemory::Memset(StackArray, 0, sizeof(StackArray));
+	if (StackArray[0] == 0)
+	{
+		UE_LOG(LogEngine, VeryVerbose, TEXT("StackOverflowFunction(%d)"), DummyArg ? DummyArg[0] : 0);
+		StackOverflowFunction(StackArray);
+	}
+}
+
+bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+#if !UE_BUILD_SHIPPING
+	if (FParse::Command(&Cmd, TEXT("RENDERCRASH")))
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetImageIntegrtiryStatus(-1); UE_LOG(LogEngine, Fatal, TEXT("Crashing the renderthread at your request")); });
+		return true;
+	}
+	if (FParse::Command(&Cmd, TEXT("RENDERCHECK")))
+	{
+		struct FRender
+		{
+			static void Check()
+			{				
+				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+				SetImageIntegrtiryStatus(-1);
+				check(!"Crashing the renderthread via check(0) at your request");
+			}
+		};
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { FRender::Check(); });
+		return true;
+	}
+	if (FParse::Command(&Cmd, TEXT("RENDERGPF")))
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetImageIntegrtiryStatus(-1); *(int32 *)3 = 123; });
+		return true;
+	}
+	if (FParse::Command(&Cmd, TEXT("RENDERFATAL")))
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash,
+		{
+			UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+			SetImageIntegrtiryStatus(-1);
+			LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
+		});
+		return true;
+	}
+	if (FParse::Command(&Cmd, TEXT("RENDERENSURE")))
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadEnsure,
+		{
+			UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+			if (!ensure(0))
+			{
+				UE_LOG(LogEngine, Warning, TEXT("Ensure condition failed (this is the expected behavior)."));
+			}
+		});
+		return true;
+	}
+	if (FParse::Command(&Cmd, TEXT("THREADCRASH")))
+	{
+		struct FThread
+		{
+			static void Crash(ENamedThreads::Type, const  FGraphEventRef&)
+			{
+				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+				SetImageIntegrtiryStatus(-1);
+				UE_LOG(LogEngine, Fatal, TEXT("Crashing the worker thread at your request"));
+			}
+		};
+
+		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::Crash"),
+		STAT_FDelegateGraphTask_FThread__Crash,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+			FDelegateGraphTask::FDelegate::CreateStatic(FThread::Crash),
+			GET_STATID(STAT_FDelegateGraphTask_FThread__Crash)
+			),
+			ENamedThreads::GameThread
+			);
+		return true;
+	}
+	if (FParse::Command(&Cmd, TEXT("THREADCHECK")))
+	{
+		struct FThread
+		{
+			static void Check(ENamedThreads::Type, const FGraphEventRef&)
+			{
+				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+				SetImageIntegrtiryStatus(-1);
+				check(!"Crashing a worker thread via check(0) at your request");
+			}
+		};
+
+		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::Check"),
+		STAT_FDelegateGraphTask_FThread__Check,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+			FDelegateGraphTask::FDelegate::CreateStatic(FThread::Check),
+			GET_STATID(STAT_FDelegateGraphTask_FThread__Check)
+			),
+			ENamedThreads::GameThread
+			);
+		return true;
+	}
+	if (FParse::Command(&Cmd, TEXT("THREADGPF")))
+	{
+		struct FThread
+		{
+			static void GPF(ENamedThreads::Type, const FGraphEventRef&)
+			{
+				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+				SetImageIntegrtiryStatus(-1);
+				*(int32 *)3 = 123;
+			}
+		};
+
+		DECLARE_CYCLE_STAT(TEXT("FDelegateGraphTask.FThread::GPF"),
+		STAT_FDelegateGraphTask_FThread__GPF,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+			FDelegateGraphTask::FDelegate::CreateStatic(FThread::GPF),
+			GET_STATID(STAT_FDelegateGraphTask_FThread__GPF)
+			),
+			ENamedThreads::GameThread
+			);
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("THREADENSURE")))
+	{
+		struct FThread
+		{
+			static void Ensure(ENamedThreads::Type, const FGraphEventRef&)
+			{
+				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+				ensure(0);
+			}
+		};
+
+		DECLARE_CYCLE_STAT(TEXT("FThread::Ensure"),
+		STAT_FThread__Ensure,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+			FDelegateGraphTask::FDelegate::CreateStatic(FThread::Ensure),
+			GET_STATID(STAT_FThread__Ensure)),
+			ENamedThreads::GameThread
+			);
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("THREADFATAL")))
+	{
+		struct FThread
+		{
+			static void Fatal(ENamedThreads::Type, const FGraphEventRef&)
+			{
+				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+				SetImageIntegrtiryStatus(-1);
+				LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
+			}
+		};
+
+		DECLARE_CYCLE_STAT(TEXT("FThread::Fatal"),
+		STAT_FThread__Fatal,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+			FDelegateGraphTask::FDelegate::CreateStatic(FThread::Fatal),
+			GET_STATID(STAT_FThread__Fatal)),
+			ENamedThreads::GameThread
+			);
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("CRASH")))
+	{
+		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+		SetImageIntegrtiryStatus(-1);
+		UE_LOG(LogEngine, Fatal, TEXT("%s"), TEXT("Crashing the gamethread at your request"));
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("CHECK")))
+	{
+		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+		SetImageIntegrtiryStatus(-1);
+		check(!"Crashing the game thread via check(0) at your request");
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("GPF")))
+	{
+		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+		Ar.Log(TEXT("Crashing with voluntary GPF"));
+		SetImageIntegrtiryStatus(-1);
+		// changed to 3 from NULL because clang noticed writing to NULL and warned about it
+		*(int32 *)3 = 123;
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("ENSURE")))
+	{
+		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+		if (!ensure(0))
+		{
+			return true;
+		}
+	}
+	else if (FParse::Command(&Cmd, TEXT("ENSUREALWAYS")))
+	{
+		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+		if (!ensureAlways(0))
+		{
+			return true;
+		}
+	}
+	else if (FParse::Command(&Cmd, TEXT("FATAL")))
+	{
+		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
+		SetImageIntegrtiryStatus(-1);
+		LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("BUFFEROVERRUN")))
+	{
+		// stack overflow test - this case should be caught by /GS (Buffer Overflow Check) compile option
+		ANSICHAR SrcBuffer[] = "12345678901234567890123456789012345678901234567890";
+		SetImageIntegrtiryStatus(-1);
+		BufferOverflowFunction(ARRAY_COUNT(SrcBuffer), SrcBuffer);
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("CRTINVALID")))
+	{
+		SetImageIntegrtiryStatus(-1);
+		FString::Printf(NULL);
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("HITCH")))
+	{
+		SCOPE_CYCLE_COUNTER(STAT_IntentionalHitch);
+		FPlatformProcess::Sleep(1.0f);
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("RENDERHITCH")))
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadHitch, { SCOPE_CYCLE_COUNTER(STAT_IntentionalHitch); FPlatformProcess::Sleep(1.0f); });
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("LONGLOG")))
+	{
+		UE_LOG(LogEngine, Log, TEXT("This is going to be a really long log message to test the code to resize the buffer used to log with. %02048s"), TEXT("HAHA, this isn't really a long string, but it sure has a lot of zeros!"));
+	}
+	else if (FParse::Command(&Cmd, TEXT("RECURSE")))
+	{
+		Ar.Logf(TEXT("Recursing to create a very deep callstack."));
+		GLog->Flush();
+		SetImageIntegrtiryStatus(-1);
+		InfiniteRecursionFunction(1);
+		Ar.Logf(TEXT("You will never see this log line."));
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("THREADRECURSE")))
+	{
+		Ar.Log(TEXT("Recursing to create a very deep callstack (in a separate thread)."));
+		struct FThread
+		{
+			static void InfiniteRecursion(ENamedThreads::Type, const FGraphEventRef&)
+			{
+				SetImageIntegrtiryStatus(-1);
+				InfiniteRecursionFunction(1);
+			}
+		};
+
+		DECLARE_CYCLE_STAT(TEXT("FThread::InfiniteRecursion"),
+		STAT_FThread__InfiniteRecursion,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+			FDelegateGraphTask::FDelegate::CreateStatic(FThread::InfiniteRecursion),
+			GET_STATID(STAT_FThread__InfiniteRecursion)),
+			ENamedThreads::GameThread
+			);
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("EATMEM")))
+	{
+		Ar.Log(TEXT("Eating up all available memory"));
+		SetImageIntegrtiryStatus(-1);
+		while (1)
+		{
+			void* Eat = FMemory::Malloc(65536);
+			FMemory::Memset(Eat, 0, 65536);
+		}
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("OOM")))
+	{
+		Ar.Log(TEXT("Will continuously allocate 1MB per frame until we hit OOM"));
+		GDebugAllocMemEveryFrame = true;
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("STACKOVERFLOW")))
+	{
+		Ar.Log(TEXT("Infinite recursion to cause stack overflow"));
+		SetImageIntegrtiryStatus(-1);
+		StackOverflowFunction(nullptr);
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("THREADSTACKOVERFLOW")))
+	{
+		Ar.Log(TEXT("Infinite recursion to cause stack overflow will happen in a separate thread."));
+		struct FThread
+		{
+			static void StackOverflow(ENamedThreads::Type, const FGraphEventRef&)
+			{
+				SetImageIntegrtiryStatus(-1);
+				StackOverflowFunction(nullptr);
+			}
+		};
+
+		DECLARE_CYCLE_STAT(TEXT("FThread::StackOverflow"),
+		STAT_FThread__StackOverflow,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+			FDelegateGraphTask::FDelegate::CreateStatic(FThread::StackOverflow),
+			GET_STATID(STAT_FThread__StackOverflow)),
+			ENamedThreads::GameThread
+			);
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("SOFTLOCK")))
+	{
+		Ar.Log(TEXT("Hanging the current thread"));
+		SetImageIntegrtiryStatus(-1);
+		while (1)
+		{
+			FPlatformProcess::Sleep(1.0f);
+		}
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("INFINITELOOP")))
+	{
+		Ar.Log(TEXT("Hanging the current thread (CPU-intensive)"));
+		SetImageIntegrtiryStatus(-1);
+		for(;;)
+		{
+		}
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("SLEEP")))
+	{
+		Ar.Log(TEXT("Sleep for 1 hour. This should crash after a few seconds in cooked builds."));
+		FPlatformProcess::Sleep(3600);
+		return true;
+	}
+#endif // !UE_BUILD_SHIPPING
+	return false;
+}
+
+
 /**
  * Computes a color to use for property coloration for the given object.
  *
@@ -6274,7 +6315,7 @@ void UEngine::OnLostFocusPause(bool EnablePause)
 	}
 }
 
-void UEngine::InitHardwareSurvey()
+void UEngine::StartHardwareSurvey()
 {
 	bool bEnabled = true;
 #if !WITH_EDITORONLY_DATA
@@ -6287,38 +6328,21 @@ void UEngine::InitHardwareSurvey()
 	bEnabled = false;
 #endif
 
-	if (bEnabled)
+	if (bEnabled && FEngineAnalytics::IsAvailable())
 	{
-		if (IsHardwareSurveyRequired())
-		{
-			bPendingHardwareSurveyResults = true;
+		IHardwareSurveyModule::Get().StartHardwareSurvey(FEngineAnalytics::GetProvider());
 		}
 	}	
+
+void UEngine::InitHardwareSurvey()
+{
+	StartHardwareSurvey();
+
 }
 
 void UEngine::TickHardwareSurvey()
 {
-#if !UE_BUILD_SHIPPING
-	// Debug routine to eat 1MB of memory every frame
-	if (GDebugAllocMemEveryFrame)
-	{
-		for( int32 i=0;i<16;i++ )
-		{
-			void* Eat = FMemory::Malloc(65536);
-			FMemory::Memset( Eat, 0, 65536 );
-		}
-	}
-#endif
 
-	if (bPendingHardwareSurveyResults)
-	{
-		FHardwareSurveyResults HardwareSurveyResults;
-		if (FPlatformSurvey::GetSurveyResults(HardwareSurveyResults))
-		{
-			OnHardwareSurveyComplete(HardwareSurveyResults);
-			bPendingHardwareSurveyResults = false;
-		}
-	}
 }
 
 bool UEngine::IsHardwareSurveyRequired()
@@ -6471,143 +6495,6 @@ FString UEngine::HardwareSurveyGetResolutionClass(uint32 LargestDisplayHeight)
 
 void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResults)
 {
-#if PLATFORM_IOS || PLATFORM_ANDROID || PLATFORM_DESKTOP
-	if (FEngineAnalytics::IsAvailable())
-	{
-		IAnalyticsProvider& Analytics = FEngineAnalytics::GetProvider();
-
-		// remember last time we did a survey
-		FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Hardware Survey"), TEXT("HardwareSurveyDateTime"), FDateTime::UtcNow().ToString());
-
-#if PLATFORM_IOS || PLATFORM_ANDROID
-
-		TArray<FAnalyticsEventAttribute> HardwareStatsAttribs;
-		// copy from what IOSPlatformSurvey has filled out
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("Model"), SurveyResults.Platform));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Version"), SurveyResults.OSVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Bits"), FString::Printf(TEXT("%d-bit"), SurveyResults.OSBits)));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Language"), SurveyResults.OSLanguage));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("RenderingAPI"), SurveyResults.MultimediaAPI));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("CPU.Count"), FString::Printf(TEXT("%d"), SurveyResults.CPUCount)));
-		FString DisplayResolution = FString::Printf(TEXT("%dx%d"), SurveyResults.Displays[0].CurrentModeWidth, SurveyResults.Displays[0].CurrentModeHeight);
-		FString ViewResolution = FString::Printf(TEXT("%dx%d"), SurveyResults.Displays[0].CurrentModeWidth, SurveyResults.Displays[0].CurrentModeHeight);
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("DisplayResolution"), DisplayResolution));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("ViewResolution"), ViewResolution));
-	
-#if PLATFORM_ANDROID
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("GPUModel"), SurveyResults.Displays[0].GPUCardName));
-#endif
-
-		Analytics.RecordEvent(*FString::Printf(TEXT("%sHardwareStats"), FPlatformProperties::IniPlatformName()), HardwareStatsAttribs);
-
-#elif PLATFORM_DESKTOP
-
-		TArray<FAnalyticsEventAttribute> HardwareWEIAttribs;
-		HardwareWEIAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.CPUPerformanceIndex )));
-		HardwareWEIAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.GPUPerformanceIndex )));
-		HardwareWEIAttribs.Add(FAnalyticsEventAttribute(TEXT( "Memory.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.RAMPerformanceIndex )));
-
-		Analytics.RecordEvent(TEXT( "Hardware.WEI.1" ), HardwareWEIAttribs);
-
-		FString MainGPUName(TEXT("Unknown"));
-		float MainGPUVRAMMB = 0.0f;
-		FString MainGPUDriverVer(TEXT("UnknownVersion"));
-		if (SurveyResults.DisplayCount > 0)
-		{
-			MainGPUName = &SurveyResults.Displays[0].GPUCardName[0];
-			MainGPUVRAMMB = SurveyResults.Displays[0].GPUDedicatedMemoryMB;
-			MainGPUDriverVer = &SurveyResults.Displays[0].GPUDriverVersion[0];
-		}
-
-		uint32 LargestDisplayHeight = 0;
-		FString DisplaySize[3];
-		if (SurveyResults.DisplayCount > 0)
-		{
-			DisplaySize[0] = HardwareSurveyBucketResolution(SurveyResults.Displays[0].CurrentModeWidth, SurveyResults.Displays[0].CurrentModeHeight);
-			LargestDisplayHeight = FMath::Max(LargestDisplayHeight, SurveyResults.Displays[0].CurrentModeHeight);
-		}
-		if (SurveyResults.DisplayCount > 1)
-		{
-			DisplaySize[1] = HardwareSurveyBucketResolution(SurveyResults.Displays[1].CurrentModeWidth, SurveyResults.Displays[1].CurrentModeHeight);
-			LargestDisplayHeight = FMath::Max(LargestDisplayHeight, SurveyResults.Displays[1].CurrentModeHeight);
-		}
-		if (SurveyResults.DisplayCount > 2)
-		{
-			DisplaySize[2] = HardwareSurveyBucketResolution(SurveyResults.Displays[2].CurrentModeWidth, SurveyResults.Displays[2].CurrentModeHeight);
-			LargestDisplayHeight = FMath::Max(LargestDisplayHeight, SurveyResults.Displays[2].CurrentModeHeight);
-		}
-
-		// Resolution Class
-		FString ResolutionClass;
-		if (LargestDisplayHeight < 700)
-		{
-			ResolutionClass = TEXT("<720");
-		}
-		else if (LargestDisplayHeight < 1024)
-		{
-			ResolutionClass = TEXT("720");
-		}
-		else
-		{
-			ResolutionClass = TEXT("1080+");
-		}
-
-		// Bucket RAM
-		FString BucketedRAM = HardwareSurveyBucketRAM(SurveyResults.MemoryMB);
-
-		// Bucket VRAM
-		FString BucketedVRAM = HardwareSurveyBucketVRAM(MainGPUVRAMMB);
-
-		TArray<FAnalyticsEventAttribute> HardwareStatsAttribs;
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "Platform" ), SurveyResults.Platform ));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.CPUPerformanceIndex )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Brand" ), SurveyResults.CPUBrand));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Speed" ), FString::Printf( TEXT( "%.1fGHz" ), SurveyResults.CPUClockGHz )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Count" ), FString::Printf( TEXT( "%d" ), SurveyResults.CPUCount )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Name" ), SurveyResults.CPUNameString));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Info" ), FString::Printf( TEXT( "0x%08x" ), SurveyResults.CPUInfo )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.GPUPerformanceIndex )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.Name" ), MainGPUName));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.VRAM" ), BucketedVRAM));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.DriverVersion" ), MainGPUDriverVer));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterName" ), SurveyResults.RHIAdpater.AdapterName));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterInternalDriverVersion" ), SurveyResults.RHIAdpater.AdapterInternalDriverVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterUserDriverVersion" ), SurveyResults.RHIAdpater.AdapterUserDriverVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterDriverDate" ), SurveyResults.RHIAdpater.AdapterDriverDate));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "RAM" ), BucketedRAM));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "RAM.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.RAMPerformanceIndex )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "NumberOfMonitors" ), FString::Printf( TEXT( "%d" ), SurveyResults.DisplayCount )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "MonitorResolution.0" ), DisplaySize[0]));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "MonitorResolution.1" ), DisplaySize[1]));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "MonitorResolution.2" ), DisplaySize[2]));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "ResolutionClass" ), ResolutionClass));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "OS.Version" ), SurveyResults.OSVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "OS.SubVersion" ), SurveyResults.OSSubVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "OS.Bits" ), FString::Printf( TEXT( "%d-bit" ), SurveyResults.OSBits)));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "OS.Language" ), SurveyResults.OSLanguage));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "IsLaptop" ), SurveyResults.bIsLaptopComputer ? TEXT("true") : TEXT("false")));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "IsRemoteSession" ), SurveyResults.bIsRemoteSession ? TEXT("true") : TEXT("false")));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.CPU0" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.CPUStats[0].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.CPU1" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.CPUStats[1].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.GPU0" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.GPUStats[0].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.GPU1" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.GPUStats[1].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.GPU2" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.GPUStats[2].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.GPU3" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.GPUStats[3].ComputePerfIndex() )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.GPU4" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.GPUStats[4].ComputePerfIndex() )));
-
-		Analytics.RecordEvent(TEXT( "HardwareStats.1" ), HardwareStatsAttribs);
-
-		TArray<FAnalyticsEventAttribute> HardwareStatErrorsAttribs;
-		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "ErrorCount" ), FString::Printf( TEXT( "%d" ), SurveyResults.ErrorCount )));
-		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "LastError" ), SurveyResults.LastSurveyError));
-		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "LastError.Detail" ), SurveyResults.LastSurveyErrorDetail));			
-		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "LastError.WEI" ), SurveyResults.LastPerformanceIndexError));
-		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "LastError.WEI.Detail" ), SurveyResults.LastPerformanceIndexErrorDetail));
-
-		Analytics.RecordEvent(TEXT( "HardwareStatErrors.1" ), HardwareStatErrorsAttribs);
-#endif // PLATFORM_DESKTOP
-	}
-#endif
 }
 
 static TAutoConsoleVariable<float> CVarMaxFPS(
@@ -6683,6 +6570,11 @@ float UEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) co
 		}
 	}
 
+	if(bUseFixedFrameRate)
+	{
+		MaxTickRate = FixedFrameRate;
+	}
+
 	if (CVarCauseHitches.GetValueOnGameThread())
 	{
 		static float RunningHitchTimer = 0.f;
@@ -6711,12 +6603,12 @@ float UEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) co
 	return MaxTickRate;
 }
 
-int32 UEngine::GetMaxFPS() const
+float UEngine::GetMaxFPS() const
 {
 	return CVarMaxFPS.GetValueOnAnyThread();
 }
 
-void UEngine::SetMaxFPS(const int32 MaxFPS)
+void UEngine::SetMaxFPS(const float MaxFPS)
 {
 	IConsoleVariable* ConsoleVariable = CVarMaxFPS.AsVariable();
 	ConsoleVariable->Set(MaxFPS);
@@ -9644,6 +9536,25 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	UPackage* WorldPackage = NULL;
 	UWorld*	NewWorld = NULL;
 	
+	// If this world is a PIE instance, we need to check if we are travelling to another PIE instance's world.
+	// If we are, we need to set the PIERemapPrefix so that we load a copy of that world, instead of loading the
+	// PIE world directly.
+	if (!WorldContext.PIEPrefix.IsEmpty())
+	{
+		for (const FWorldContext& WorldContextFromList : WorldList)
+		{
+			// We want to ignore our own PIE instance so that we don't unnecessarily set the PIERemapPrefix if we are not travelling to
+			// a server.
+			if (WorldContextFromList.World() != WorldContext.World())
+			{
+				if (!WorldContextFromList.PIEPrefix.IsEmpty() && URL.Map.Contains(WorldContextFromList.PIEPrefix))
+				{
+					WorldContext.PIERemapPrefix = WorldContextFromList.PIEPrefix;
+				}
+			}
+		}
+	}
+
 	// Is this a PIE networking thing?
 	if (!WorldContext.PIERemapPrefix.IsEmpty())
 	{
@@ -12029,7 +11940,25 @@ static void SetupThreadAffinity(const TArray<FString>& Args)
 	{
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 			FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
-			TStatId(), NULL, ENamedThreads::AnyThread);
+			TStatId(), NULL, ENamedThreads::AnyNormalThreadHiPriTask);
+	}
+	if (ENamedThreads::bHasHighPriorityThreads)
+	{
+		for (int32 Index = 0; Index < FTaskGraphInterface::Get().GetNumWorkerThreads(); Index++)
+		{
+			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
+				TStatId(), NULL, ENamedThreads::AnyHiPriThreadHiPriTask);
+		}
+	}
+	if (ENamedThreads::bHasBackgroundThreads)
+	{
+		for (int32 Index = 0; Index < FTaskGraphInterface::Get().GetNumWorkerThreads(); Index++)
+		{
+			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
+				TStatId(), NULL, ENamedThreads::AnyBackgroundHiPriTask);
+		}
 	}
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 		FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
@@ -12170,29 +12099,33 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 	{
 		TArray<FWaveInstance*> WaveInstances;
 		int32 FirstActiveIndex = AudioDevice->GetSortedActiveWaveInstances(WaveInstances, ESortedActiveWaveGetType::QueryOnly);
+		int32 ActiveInstances = 0;
 
 		for (int32 InstanceIndex = FirstActiveIndex; InstanceIndex < WaveInstances.Num(); InstanceIndex++)
 		{
 			FWaveInstance* WaveInstance = WaveInstances[InstanceIndex];
 
-			ActiveSounds.Add(WaveInstance->ActiveSound);
+			if (WaveInstance->GetActualVolume() >= 0.01f)
+			{
+				++ActiveInstances;
+				ActiveSounds.Add(WaveInstance->ActiveSound);
 
-			UAudioComponent* AudioComponent = WaveInstance->ActiveSound->GetAudioComponent();
-			AActor* SoundOwner = AudioComponent ? AudioComponent->GetOwner() : nullptr;
-			USoundClass* SoundClass = WaveInstance->SoundClass;
+				UAudioComponent* AudioComponent = WaveInstance->ActiveSound->GetAudioComponent();
+				AActor* SoundOwner = AudioComponent ? AudioComponent->GetOwner() : nullptr;
+				USoundClass* SoundClass = WaveInstance->SoundClass;
 
-			FString TheString = *FString::Printf(TEXT("%4i.    %6.2f  %s   Owner: %s   SoundClass: %s"),
-				InstanceIndex,
-				WaveInstance->GetActualVolume(),
-				*WaveInstance->WaveData->GetPathName(),
-				SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
-				SoundClass ? *SoundClass->GetName() : TEXT("None"));
+				FString TheString = *FString::Printf(TEXT("%4i.    %6.2f  %s   Owner: %s   SoundClass: %s"),
+													 InstanceIndex,
+													 WaveInstance->GetActualVolume(),
+													 *WaveInstance->WaveData->GetPathName(),
+													 SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
+													 SoundClass ? *SoundClass->GetName() : TEXT("None"));
 
-			Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
-			Y += 12;
+				Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
+				Y += 12;
+			}
 		}
 
-		int32 ActiveInstances = WaveInstances.Num() - FirstActiveIndex;
 		int32 Max = AudioDevice->MaxChannels / 2;
 		float f = FMath::Clamp<float>((float)(ActiveInstances - Max) / (float)Max, 0.f, 1.f);
 		int32 R = FMath::TruncToInt(f * 255);
@@ -12227,8 +12160,10 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 		for (int32 InstanceIndex = FirstActiveIndex; InstanceIndex < WaveInstances.Num(); InstanceIndex++)
 		{
 			FWaveInstance* WaveInstance = WaveInstances[InstanceIndex];
-
-			ActiveSounds.Add(WaveInstance->ActiveSound);
+			if (WaveInstance->GetActualVolume() >= 0.01f)
+			{
+				ActiveSounds.Add(WaveInstance->ActiveSound);
+			}
 		}
 	}
 

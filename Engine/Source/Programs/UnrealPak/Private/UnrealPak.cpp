@@ -719,13 +719,17 @@ FArchive* CreatePakWriter(const TCHAR* Filename)
 		else if (!ReadKeysFromFile(*KeyFilename, Pair))
 		{
 			UE_LOG(LogPakFile, Error, TEXT("Unable to load signature keys %s."), *KeyFilename);
+		}
+
+		if (!TestKeys(Pair))
+		{
 			Pair.PrivateKey.Exponent.Zero();
 		}
 
 		if (!Pair.PrivateKey.Exponent.IsZero())
 		{
 			UE_LOG(LogPakFile, Display, TEXT("Creating signed pak %s."), Filename);
-			Writer = new FSignedArchiveWriter(*Writer, Pair.PublicKey, Pair.PrivateKey);
+			Writer = new FSignedArchiveWriter(*Writer, Filename, Pair.PublicKey, Pair.PrivateKey);
 		}
 		else
 		{
@@ -1100,6 +1104,9 @@ bool DiffFilesInPaks(const FString InPakFilename1, const FString InPakFilename2)
 	int32 NumDifferentContents = 0;
 	int32 NumEqualContents = 0;
 
+	TGuardValue<ELogTimes::Type> DisableLogTimes(GPrintLogTimes, ELogTimes::None);
+	UE_LOG(LogPakFile, Log, TEXT("FileEventType, FileName, Size1, Size2"));
+
 	// Allow the suppression of unique file logging for one or both files
 	const bool bLogUniques = !FParse::Param(FCommandLine::Get(), TEXT("nouniques"));
 	const bool bLogUniques1 = bLogUniques && !FParse::Param(FCommandLine::Get(), TEXT("nouniquesfile1"));
@@ -1133,7 +1140,7 @@ bool DiffFilesInPaks(const FString InPakFilename1, const FString InPakFilename2)
 
 			if (EntryInfo1 != Entry1)
 			{
-				UE_LOG(LogPakFile, Log, TEXT("PakEntry1 Invalid: %s"), *PAK1FileName);
+				UE_LOG(LogPakFile, Log, TEXT("PakEntry1Invalid, %s, 0, 0"), *PAK1FileName);
 				continue;
 			}
 			
@@ -1144,7 +1151,7 @@ bool DiffFilesInPaks(const FString InPakFilename1, const FString InPakFilename2)
 				++NumUniquePAK1;
 				if (bLogUniques1)
 				{
-					UE_LOG(LogPakFile, Log, TEXT("Unique to first pak: %s"), *PAK1FileName);
+					UE_LOG(LogPakFile, Log, TEXT("UniqueToFirstPak, %s, %i, 0"), *PAK1FileName, EntryInfo1.UncompressedSize);
 				}
 				continue;
 			}
@@ -1155,14 +1162,14 @@ bool DiffFilesInPaks(const FString InPakFilename1, const FString InPakFilename2)
 			EntryInfo2.Serialize(PakReader2, PakFile2.GetInfo().Version);
 			if (EntryInfo2 != *Entry2)
 			{
-				UE_LOG(LogPakFile, Log, TEXT("PakEntry2 Invalid: %s"), *PAK1FileName);
+				UE_LOG(LogPakFile, Log, TEXT("PakEntry2Invalid, %s, 0, 0"), *PAK1FileName);
 				continue;;
 			}
 
 			//check sizes first as quick compare.
 			if (EntryInfo1.UncompressedSize != EntryInfo2.UncompressedSize)
 			{
-				UE_LOG(LogPakFile, Log, TEXT("Filesize different: %s, %i, %i"), *PAK1FileName, EntryInfo1.UncompressedSize, EntryInfo2.UncompressedSize);
+				UE_LOG(LogPakFile, Log, TEXT("FilesizeDifferent, %s, %i, %i"), *PAK1FileName, EntryInfo1.UncompressedSize, EntryInfo2.UncompressedSize);
 				continue;
 			}
 			
@@ -1194,7 +1201,7 @@ bool DiffFilesInPaks(const FString InPakFilename1, const FString InPakFilename2)
 				if (FMemory::Memcmp(PAKDATA1, PAKDATA2, EntryInfo1.UncompressedSize) != 0)
 				{
 					++NumDifferentContents;
-					UE_LOG(LogPakFile, Log, TEXT("Contents different: %s"), *PAK1FileName);
+					UE_LOG(LogPakFile, Log, TEXT("ContentsDifferent, %s, %i, %i"), *PAK1FileName, EntryInfo1.UncompressedSize, EntryInfo2.UncompressedSize);
 				}
 				else
 				{
@@ -1223,7 +1230,7 @@ bool DiffFilesInPaks(const FString InPakFilename1, const FString InPakFilename2)
 					++NumUniquePAK2;
 					if (bLogUniques2)
 					{
-						UE_LOG(LogPakFile, Log, TEXT("Unique to second pak: %s"), *PAK2FileName);
+						UE_LOG(LogPakFile, Log, TEXT("UniqueToSecondPak, %s, 0, %i"), *PAK2FileName, Entry2.UncompressedSize);
 					}
 					continue;
 				}
@@ -1370,11 +1377,14 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename> -Dest=<MountPoint>"));
 		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak GenerateKeys=<KeyFilename>"));
 		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak GeneratePrimeTable=<KeyFilename> [-TableMax=<N>]"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename1> <PakFilename2> -diff"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak -TestEncryption"));
 		UE_LOG(LogPakFile, Error, TEXT("  Options:"));
 		UE_LOG(LogPakFile, Error, TEXT("    -blocksize=<BlockSize>"));
 		UE_LOG(LogPakFile, Error, TEXT("    -compress"));
 		UE_LOG(LogPakFile, Error, TEXT("    -encrypt"));
 		UE_LOG(LogPakFile, Error, TEXT("    -order=<OrderingFile>"));
+		UE_LOG(LogPakFile, Error, TEXT("    -diff (requires 2 filenames first)"));
 		return 1;
 	}
 
@@ -1390,6 +1400,11 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		int64 MaxPrimeValue = 10000;
 		FParse::Value(FCommandLine::Get(), TEXT("TableMax="), MaxPrimeValue);
 		GeneratePrimeNumberTable(MaxPrimeValue, *KeyFilename);
+	}
+	else if (FParse::Param(FCommandLine::Get(), TEXT("TestEncryption")))
+	{
+		void TestEncryption();
+		TestEncryption();
 	}
 	else 
 	{

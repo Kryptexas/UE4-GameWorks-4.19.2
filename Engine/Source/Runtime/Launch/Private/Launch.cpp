@@ -4,6 +4,7 @@
 #include "PhysicsPublic.h"
 #include "ExceptionHandling.h"
 #include "ModuleManager.h"
+#include "LoadTimeTracker.h"
 
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, Launch);
@@ -82,6 +83,9 @@ int32 GuardedMain( const TCHAR* CmdLine, HINSTANCE hInInstance, HINSTANCE hPrevI
 int32 GuardedMain( const TCHAR* CmdLine )
 #endif
 {
+	// Super early init code. DO NOT MOVE THIS ANYWHERE ELSE!
+	FCoreDelegates::GetPreMainInitDelegate().Broadcast();
+
 	// make sure GEngineLoop::Exit() is always called.
 	struct EngineLoopCleanupGuard 
 	{ 
@@ -137,7 +141,9 @@ int32 GuardedMain( const TCHAR* CmdLine )
 		}
 	}
 
-	UE_LOG(LogLoad, Log, TEXT("Full Startup: %.2f seconds (BP compile: %.2f seconds)"), FPlatformTime::Seconds() - GStartTime, GBlueprintCompileTime);
+	double EngineInitializationTime = FPlatformTime::Seconds() - GStartTime;
+	UE_LOG(LogLoad, Log, TEXT("Full Startup: %.2f seconds (BP compile: %.2f seconds)"), EngineInitializationTime, GBlueprintCompileTime);
+	ACCUM_LOADTIME(TEXT("EngineInitialization"), EngineInitializationTime);
 
 	while( !GIsRequestingExit )
 	{

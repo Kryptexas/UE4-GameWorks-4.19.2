@@ -425,9 +425,14 @@ inline void RHICreateTargetableShaderResource2D(
 	}
 	else
 	{
+		uint32 ResolveTargetableTextureFlags = TexCreate_ResolveTargetable;
+		if (TargetableTextureFlags & TexCreate_DepthStencilTargetable)
+		{
+			ResolveTargetableTextureFlags |= TexCreate_DepthStencilResolveTarget;
+		}
 		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
 		OutTargetableTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, NumSamples, Flags | TargetableTextureFlags, CreateInfo);
-		OutShaderResourceTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, 1, Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource, CreateInfo);
+		OutShaderResourceTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, 1, Flags | ResolveTargetableTextureFlags | TexCreate_ShaderResource, CreateInfo);
 	}
 }
 

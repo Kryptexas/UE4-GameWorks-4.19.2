@@ -78,7 +78,7 @@ bool FNetworkVersion::IsNetworkCompatible( const uint32 LocalNetworkVersion, con
 
 FNetworkReplayVersion FNetworkVersion::GetReplayVersion()
 {
-	return FNetworkReplayVersion( FApp::GetGameName(), GetLocalNetworkVersion(), FEngineVersion::Current().GetChangelist() );
+	return FNetworkReplayVersion(FApp::GetGameName(), GetLocalNetworkVersion(), GEngineNetVersion);
 }
 
 

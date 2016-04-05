@@ -183,3 +183,22 @@ bool FSequencerCurveOwner::IsValidCurve( FRichCurveEditInfo CurveInfo )
 {
 	return EditInfoToSectionMap.Contains(CurveInfo);
 }
+
+FLinearColor FSequencerCurveOwner::GetCurveColor( FRichCurveEditInfo CurveInfo ) const
+{
+	FString CurveName = CurveInfo.CurveName.ToString();
+	if (CurveName.EndsWith(TEXT("- X")) || CurveName.EndsWith(TEXT("- Red")))
+	{
+		return FLinearColor(1.0f, 0.0f, 0.0f);
+	}
+	else if (CurveName.EndsWith(TEXT("- Y")) || CurveName.EndsWith(TEXT("- Green")))
+	{
+		return FLinearColor(0.0f, 1.0f, 0.0f);
+	}
+	else if (CurveName.EndsWith(TEXT("- Z")) || CurveName.EndsWith(TEXT("- Blue")))
+	{
+		return FLinearColor(0.05f, 0.05f, 1.0f);
+	}
+
+	return FCurveOwnerInterface::GetCurveColor(CurveInfo);
+}

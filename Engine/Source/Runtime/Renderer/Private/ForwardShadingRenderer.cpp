@@ -163,6 +163,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Notify the FX system that opaque primitives have been rendered.
 	if (Scene->FXSystem)
 	{
+		//#todo-rco: This is switching to another RT!
 		Scene->FXSystem->PostRenderOpaque(RHICmdList);
 	}
 
@@ -173,7 +174,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TranslucencyDrawTime);
 
-		// Note: Forward pass has no SeparateTranslucency, so refraction effect order with Transluency is different.
+		// Note: Forward pass has no SeparateTranslucency, so refraction effect order with Translucency is different.
 		// Having the distortion applied between two different translucency passes would make it consistent with the deferred pass.
 		// This is not done yet.
 

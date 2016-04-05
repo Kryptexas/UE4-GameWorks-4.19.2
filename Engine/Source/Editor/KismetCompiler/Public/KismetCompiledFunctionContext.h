@@ -234,6 +234,17 @@ public:
 		return Blueprint;
 	}
 
+	FBlueprintCompiledStatement& PrependStatementForNode(UEdGraphNode* Node)
+	{
+		FBlueprintCompiledStatement* Result = new FBlueprintCompiledStatement();
+		AllGeneratedStatements.Add(Result);
+
+		TArray<FBlueprintCompiledStatement*>& StatementList = StatementsPerNode.FindOrAdd(Node);
+		StatementList.Insert(Result, 0);
+
+		return *Result;
+	}
+
 	/** Enqueue a statement to be executed when the specified Node is triggered */
 	FBlueprintCompiledStatement& AppendStatementForNode(UEdGraphNode* Node)
 	{

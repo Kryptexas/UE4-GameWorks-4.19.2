@@ -108,7 +108,7 @@ public:
 	virtual void SetUndoBarrier() override;
 	virtual void RemoveUndoBarrier() override;
 	virtual void ClearUndoBarriers() override;
-	virtual bool Undo() override;
+	virtual bool Undo(bool bCanRedo = true) override;
 	virtual bool Redo() override;
 	virtual bool EnableObjectSerialization() override;
 	virtual bool DisableObjectSerialization() override;

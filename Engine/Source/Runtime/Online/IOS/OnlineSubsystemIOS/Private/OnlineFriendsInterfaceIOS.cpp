@@ -304,3 +304,7 @@ bool FOnlineFriendsIOS::GetBlockedPlayers(const FUniqueNetId& UserId, TArray< TS
 {
 	return false;
 }
+
+void FOnlineFriendsIOS::DumpBlockedPlayers() const
+{
+}

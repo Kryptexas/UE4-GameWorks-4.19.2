@@ -258,4 +258,14 @@ EVisibility SStructureDetailsView::GetPropertyEditingVisibility() const
 	return StructData.IsValid() && StructData->IsValid() && RootNode.IsValid() && RootNode->IsValid() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+void SStructureDetailsView::RegisterInstancedCustomPropertyLayout(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate)
+{
+	RegisterInstancedCustomPropertyLayoutInternal(Class, DetailLayoutDelegate);
+}
+
+void SStructureDetailsView::UnregisterInstancedCustomPropertyLayout(UStruct* Class)
+{
+	UnregisterInstancedCustomPropertyLayoutInternal(Class);
+}
+
 #undef LOCTEXT_NAMESPACE

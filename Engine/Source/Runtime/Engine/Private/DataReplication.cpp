@@ -196,7 +196,7 @@ void FObjectReplicator::InitWithObject( UObject* InObject, UNetConnection * InCo
 	RepLayout = Connection->Driver->GetObjectClassRepLayout( ObjectClass );
 
 	// Make a copy of the net properties
-	uint8* Source = bUseDefaultState ? (uint8*)GetObject()->GetClass()->GetDefaultObject() : (uint8*)InObject;
+	uint8* Source = bUseDefaultState ? (uint8*)GetObject()->GetArchetype() : (uint8*)InObject;
 
 	InitRecentProperties( Source );
 
@@ -827,8 +827,10 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, FRepl
 	ConditionMap[COND_OwnerOnly] = bIsOwner;
 	ConditionMap[COND_SkipOwner] = !bIsOwner;
 	ConditionMap[COND_SimulatedOnly] = bIsSimulated;
+	ConditionMap[COND_SimulatedOnlyNoReplay] = bIsSimulated && !bIsReplay;
 	ConditionMap[COND_AutonomousOnly] = !bIsSimulated;
 	ConditionMap[COND_SimulatedOrPhysics] = bIsSimulated || bIsPhysics;
+	ConditionMap[COND_SimulatedOrPhysicsNoReplay] = ( bIsSimulated || bIsPhysics ) && !bIsReplay;
 	ConditionMap[COND_InitialOrOwner] = bIsInitial || bIsOwner;
 	ConditionMap[COND_Custom] = true;
 	ConditionMap[COND_ReplayOrOwner] = bIsReplay || bIsOwner;
@@ -916,11 +918,14 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 		return false;
 	}
 
-	check( Object );
-	check( OwningChannel );
-	check( RepLayout.IsValid() );
-	check( RepState )
-	check( RepState->StaticBuffer.Num() );
+	// some games ship checks() in Shipping so we cannot rely on DO_CHECK here, and these checks are in an extremely hot path
+	if (!UE_BUILD_SHIPPING && !UE_BUILD_TEST)
+	{
+		check( OwningChannel );
+		check( RepLayout.IsValid() );
+		check( RepState )
+		check( RepState->StaticBuffer.Num() );
+	}
 
 	UNetConnection* OwningChannelConnection = OwningChannel->Connection;
 
@@ -943,7 +948,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 	{
 		static const auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt( TEXT( "net.RPC.Debug" ) );
 
-		if ( CVar && CVar->GetValueOnGameThread() == 1 )
+		if ( UNLIKELY( CVar && CVar->GetValueOnGameThread() == 1 ) )
 		{
 			UE_LOG( LogRepTraffic, Warning,	TEXT("      Sending queued RPCs: %s. Channel[%d] [%.1f bytes]"), *Object->GetName(), OwningChannel->ChIndex, RemoteFunctions->GetNumBits() / 8.f );
 		}
@@ -1162,7 +1167,14 @@ void FObjectReplicator::CallRepNotifies(bool bSkipIfChannelHasQueuedBunches)
 		{
 			//UE_LOG(LogRep, Log,  TEXT("Calling Object->%s with %s"), *RepNotifies(RepNotifyIdx)->RepNotifyFunc.ToString(), *RepNotifies(RepNotifyIdx)->GetName()); 						
 			UProperty* RepProperty = RepNotifies[RepNotifyIdx];
-			UFunction* RepNotifyFunc = Object->FindFunctionChecked(RepProperty->RepNotifyFunc);
+			UFunction* RepNotifyFunc = Object->FindFunction(RepProperty->RepNotifyFunc);
+
+			if (RepNotifyFunc == nullptr)
+			{
+				UE_LOG(LogRep, Warning, TEXT("FObjectReplicator::CallRepNotifies: Can't find RepNotify function %s for property %s on object %s."),
+					*RepProperty->RepNotifyFunc.ToString(), *RepProperty->GetName(), *Object->GetName());
+				continue;
+			}
 
 			if (RepNotifyFunc->NumParms == 0)
 			{
@@ -1226,7 +1238,7 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 
 	if ( Connection->State == USOCK_Closed )
 	{
-		UE_LOG(LogNet, Warning, TEXT("FObjectReplicator::UpdateUnmappedObjects: Connection->State == USOCK_Closed"));
+		UE_LOG(LogNet, Verbose, TEXT("FObjectReplicator::UpdateUnmappedObjects: Connection->State == USOCK_Closed"));
 		return;
 	}
 

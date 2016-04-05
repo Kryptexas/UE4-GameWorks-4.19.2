@@ -2,8 +2,11 @@
 #pragma once
 
 #include "ModuleManager.h"
+#include "Editor.h"
+#include "ActorFactories/ActorFactory.h"
 #include "ActorPlacementInfo.h"
 #include "IPlacementMode.h"
+
 
 /**
  * Struct that defines an identifier for a particular placeable item in this module.

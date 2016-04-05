@@ -495,6 +495,7 @@ public:
 	/** Set a resource on texture target of a specific real OpenGL stage. Goes through cache to eliminate redundant calls. */
 	void CachedSetupTextureStage(FOpenGLContextState& ContextState, GLint TextureIndex, GLenum Target, GLuint Resource, GLint BaseMip, GLint NumMips);
 	void CachedSetupUAVStage(FOpenGLContextState& ContextState, GLint UAVIndex, GLenum Format, GLuint Resource);
+	void UpdateSRV(FOpenGLShaderResourceView* SRV);
 	FOpenGLContextState& GetContextStateForCurrentContext();
 
 	void CachedBindArrayBuffer( FOpenGLContextState& ContextState, GLuint Buffer )

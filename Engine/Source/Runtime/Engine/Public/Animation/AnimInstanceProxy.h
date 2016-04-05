@@ -165,6 +165,12 @@ public:
 		return RequiredBones;
 	}
 
+	/** Access to LODLevel */
+	int32 GetLODLevel() const
+	{
+		return LODLevel;
+	}
+
 	/** Get the current skeleton we are using */
 	USkeleton* GetSkeleton() 
 	{ 
@@ -338,11 +344,8 @@ protected:
 	 */
 	void RecalcRequiredBones(USkeletalMeshComponent* Component, UObject* Asset);
 
-	/** Update morph target curves for external map (from USkeletalMeshComponent) */
-	void UpdateMorphTargetCurves(const TMap<FName, float>& InMorphTargetCurves);
-
 	/** Update the material parameters of the supplied component from this instance */
-	void UpdateComponentsMaterialParameters(UPrimitiveComponent* Component);
+	void UpdateCurvesToComponents(USkeletalMeshComponent* Component=nullptr);
 
 	/** Get Currently active montage evaluation state.
 		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
@@ -535,6 +538,9 @@ private:
 
 	/** Temporary array of bone indices required this frame. Should be subset of Skeleton and Mesh's RequiredBones */
 	FBoneContainer RequiredBones;
+
+	/** LODLevel used by RequiredBones */
+	int32 LODLevel;
 
 	/** When RequiredBones mapping has changed, AnimNodes need to update their bones caches. */
 	bool bBoneCachesInvalidated;

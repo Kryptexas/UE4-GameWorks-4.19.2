@@ -38,6 +38,7 @@ public:
 
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
+	virtual const FSlateBrush* GetIconBrush() const override;
 	virtual void BuildAddTrackMenu( FMenuBuilder& MenuBuilder ) override;
 	TSharedPtr<SWidget> BuildOutlinerEditWidget( const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params ) override;
 

@@ -419,7 +419,10 @@ void SGraphNodeMakeStruct::CreatePinWidgets()
 	{
 		UEdGraphPin* CurPin = GraphNode->Pins[PinIndex];
 
-		AddPin(CreatePinWidget(CurPin).ToSharedRef());
+		if (ShouldPinBeHidden(CurPin))
+		{
+			AddPin(CreatePinWidget(CurPin).ToSharedRef());
+		}
 	}
 }
 

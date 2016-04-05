@@ -205,7 +205,8 @@ void UAbilitySystemGlobals::InitGameplayCueParameters(FGameplayCueParameters& Cu
 {
 	CueParameters.AggregatedSourceTags = Spec.AggregatedSourceTags;
 	CueParameters.AggregatedTargetTags = Spec.AggregatedTargetTags;
-
+	CueParameters.GameplayEffectLevel = Spec.GetLevel();
+	CueParameters.AbilityLevel = Spec.GetAbilityLevel();
 	InitGameplayCueParameters(CueParameters, Spec.GetContext());
 }
 
@@ -235,6 +236,9 @@ void UAbilitySystemGlobals::InitGameplayCueParameters_GESpec(FGameplayCueParamet
 			}
 		}
 	}
+
+	CueParameters.GameplayEffectLevel = Spec.GetLevel();
+	CueParameters.AbilityLevel = Spec.GetEffectContext().GetAbilityLevel();
 
 	InitGameplayCueParameters(CueParameters, Spec.GetContext());
 }

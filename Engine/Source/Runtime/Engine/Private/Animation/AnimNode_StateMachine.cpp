@@ -331,13 +331,16 @@ const FAnimationTransitionBetweenStates& FAnimNode_StateMachine::GetTransitionIn
 	return PRIVATE_MachineDescription->Transitions[TransIndex];
 }
 
+// Temporarily turned off while we track down and fix https://jira.ol.epicgames.net/browse/OR-17066
+TAutoConsoleVariable<int32> CVarAnimStateMachineRelevancyReset(TEXT("a.AnimNode.StateMachine.EnableRelevancyReset"), 1, TEXT("Reset State Machine when it becomes relevant"));
+
 void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 {
 	// If we just became relevant and haven't been initialized yet, then reinitialize state machine.
-	bool bShouldReinitialize = false;
-	if (!bFirstUpdate && (UpdateCounter.Get() != INDEX_NONE) && !UpdateCounter.WasSynchronizedInTheLastFrame(Context.AnimInstanceProxy->GetUpdateCounter()))
+	if (!bFirstUpdate && (UpdateCounter.Get() != INDEX_NONE) && !UpdateCounter.WasSynchronizedInTheLastFrame(Context.AnimInstanceProxy->GetUpdateCounter()) && (CVarAnimStateMachineRelevancyReset.GetValueOnAnyThread() == 1))
 	{
-		bShouldReinitialize = true;
+		FAnimationInitializeContext InitializationContext(Context.AnimInstanceProxy);
+		Initialize(InitializationContext);
 	}
 	UpdateCounter.SynchronizeWith(Context.AnimInstanceProxy->GetUpdateCounter());
 
@@ -405,7 +408,7 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 			const int32 NextState = PotentialTransition.TargetState;
 
 			// Fire off Notifies for state transition
-			if (!bFirstUpdate)
+			if (!bFirstUpdate || !bSkipFirstUpdateTransition)
 			{
 				Context.AnimInstanceProxy->AddAnimNotifyFromGeneratedClass(GetStateInfo(PreviousState).EndNotify);
 				Context.AnimInstanceProxy->AddAnimNotifyFromGeneratedClass(GetStateInfo(NextState).StartNotify);
@@ -448,11 +451,14 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 
 	if (bFirstUpdate)
 	{
-		//Handle enter notify for "first" (after initial transitions) state
-		Context.AnimInstanceProxy->AddAnimNotifyFromGeneratedClass(GetStateInfo().StartNotify);
-		// in the first update, we don't like to transition from entry state
-		// so we throw out any transition data at the first update
-		ActiveTransitionArray.Reset();
+		if (bSkipFirstUpdateTransition)
+		{
+			//Handle enter notify for "first" (after initial transitions) state
+			Context.AnimInstanceProxy->AddAnimNotifyFromGeneratedClass(GetStateInfo().StartNotify);
+			// in the first update, we don't like to transition from entry state
+			// so we throw out any transition data at the first update
+			ActiveTransitionArray.Reset();
+		}
 		bFirstUpdate = false;
 	}
 
@@ -501,14 +507,7 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 	// Update the only active state if there are no transitions still in flight
 	if (ActiveTransitionArray.Num() == 0 && !IsAConduitState(CurrentState) && !StatesUpdated.Contains(CurrentState))
 	{
-		if (bShouldReinitialize)
-		{
-			FAnimationInitializeContext InitializationContext(Context.AnimInstanceProxy);
-			StatePoseLinks[CurrentState].Initialize(InitializationContext);
-		}
-
 		StatePoseLinks[CurrentState].Update(Context);
-
 		Context.AnimInstanceProxy->RecordStateWeight(StateMachineIndexInClass, CurrentState, GetStateWeight(CurrentState));
 	}
 

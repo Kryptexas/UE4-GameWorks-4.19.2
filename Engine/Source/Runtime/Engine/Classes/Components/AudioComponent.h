@@ -287,6 +287,9 @@ public:
 	/** Whether or not this sound class forces sounds to the center channel */
 	uint32 bCenterChannelOnly:1;
 
+	/** Whether or not this sound is a preview sound */
+	uint32 bIsPreviewSound:1;
+
 	/** Used by the subtitle manager to prioritize subtitles wave instances spawned by this component. */
 	float SubtitlePriority;
 

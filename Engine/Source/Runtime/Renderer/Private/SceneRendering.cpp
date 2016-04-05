@@ -19,6 +19,7 @@
 #include "SceneUtils.h"
 #include "LightGrid.h"
 #include "AtmosphereRendering.h"
+#include "Components/PlanarReflectionComponent.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -187,6 +188,8 @@ static TAutoConsoleVariable<int32> CVarRHICmdMinDrawsPerParallelCmdList(
 	64,
 	TEXT("The minimum number of draws per cmdlist. If the total number of draws is less than this, then no parallel work will be done at all. This can't always be honored or done correctly. More effective with RHICmdBalanceParallelLists."));
 
+static FParallelCommandListSet* GOutstandingParallelCommandListSet = nullptr;
+
 FParallelCommandListSet::FParallelCommandListSet(TStatId InExecuteStat, const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
 	: View(InView)
 	, ParentCmdList(InParentCmdList)
@@ -205,6 +208,8 @@ FParallelCommandListSet::FParallelCommandListSet(TStatId InExecuteStat, const FV
 	CommandLists.Reserve(Width * 8);
 	Events.Reserve(Width * 8);
 	NumDrawsIfKnown.Reserve(Width * 8);
+	check(!GOutstandingParallelCommandListSet);
+	GOutstandingParallelCommandListSet = this;
 }
 
 FRHICommandList* FParallelCommandListSet::AllocCommandList()
@@ -281,6 +286,9 @@ void FParallelCommandListSet::Dispatch(bool bHighPriority)
 
 FParallelCommandListSet::~FParallelCommandListSet()
 {
+	check(GOutstandingParallelCommandListSet == this);
+	GOutstandingParallelCommandListSet = nullptr;
+
 	check(IsInRenderingThread() && FMemStack::Get().GetNumMarks() == 1); // we do not want this popped before the end of the scene and it better be the scene allocator
 	checkf(CommandLists.Num() == 0, TEXT("Derived class of FParallelCommandListSet did not call Dispatch in virtual destructor"));
 	checkf(NumAlloc == 0, TEXT("Derived class of FParallelCommandListSet did not call Dispatch in virtual destructor"));
@@ -312,6 +320,33 @@ void FParallelCommandListSet::AddParallelCommandList(FRHICommandList* CmdList, F
 	CommandLists.Add(CmdList);
 	Events.Add(CompletionEvent);
 	NumDrawsIfKnown.Add(InNumDrawsIfKnown);
+}
+
+void FParallelCommandListSet::WaitForTasks()
+{
+	if (GOutstandingParallelCommandListSet)
+	{
+		GOutstandingParallelCommandListSet->WaitForTasksInternal();
+	}
+}
+
+void FParallelCommandListSet::WaitForTasksInternal()
+{
+	check(IsInRenderingThread());
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FParallelCommandListSet_WaitForTasks);
+	FGraphEventArray WaitOutstandingTasks;
+	for (int32 Index = 0; Index < Events.Num(); Index++)
+	{
+		if (!Events[Index]->IsComplete())
+		{
+			WaitOutstandingTasks.Add(Events[Index]);
+		}
+	}
+	if (WaitOutstandingTasks.Num())
+	{
+		check(!FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local));
+		FTaskGraphInterface::Get().WaitUntilTasksComplete(WaitOutstandingTasks, ENamedThreads::RenderThread_Local);
+	}
 }
 
 
@@ -509,6 +544,25 @@ static void SetBlack3DIfNull(FTextureRHIParamRef& Tex)
 	}
 }
 
+void UpdateNoiseTextureParameters(FFrameUniformShaderParameters& FrameUniformShaderParameters)
+{
+	if (GSystemTextures.PerlinNoiseGradient.GetReference())
+	{
+		FrameUniformShaderParameters.PerlinNoiseGradientTexture = (FTexture2DRHIRef&)GSystemTextures.PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture;
+		SetBlack2DIfNull(FrameUniformShaderParameters.PerlinNoiseGradientTexture);
+	}
+	check(FrameUniformShaderParameters.PerlinNoiseGradientTexture);
+	FrameUniformShaderParameters.PerlinNoiseGradientTextureSampler = TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+
+	if (GSystemTextures.PerlinNoise3D.GetReference())
+	{
+		FrameUniformShaderParameters.PerlinNoise3DTexture = (FTexture3DRHIRef&)GSystemTextures.PerlinNoise3D->GetRenderTargetItem().ShaderResourceTexture;
+		SetBlack3DIfNull(FrameUniformShaderParameters.PerlinNoise3DTexture);
+	}
+	check(FrameUniformShaderParameters.PerlinNoise3DTexture);
+	FrameUniformShaderParameters.PerlinNoise3DTextureSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+}
+
 
 /** Creates the view's uniform buffers given a set of view transforms. */
 void FViewInfo::CreateUniformBuffer(
@@ -613,6 +667,7 @@ void FViewInfo::CreateUniformBuffer(
 	// can be optimized
 	ViewUniformShaderParameters.PrevInvViewProj = PrevViewProjMatrix.Inverse();
 	ViewUniformShaderParameters.ScreenPositionScaleBias = ScreenPositionScaleBias;
+	ViewUniformShaderParameters.GlobalClippingPlane = FVector4(GlobalClippingPlane.X, GlobalClippingPlane.Y, GlobalClippingPlane.Z, -GlobalClippingPlane.W);
 
 	FrameUniformShaderParameters.FieldOfViewWideAngles = 2.f * ViewMatrices.GetHalfFieldOfViewPerAxis();
 	FrameUniformShaderParameters.PrevFieldOfViewWideAngles = 2.f * PrevViewMatrices.GetHalfFieldOfViewPerAxis();
@@ -818,21 +873,8 @@ void FViewInfo::CreateUniformBuffer(
 	FrameUniformShaderParameters.AtmosphereIrradianceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
 	FrameUniformShaderParameters.AtmosphereInscatterTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
 
-	if (GSystemTextures.PerlinNoiseGradient.GetReference())
-	{
-		FrameUniformShaderParameters.PerlinNoiseGradientTexture = (FTexture2DRHIRef&)GSystemTextures.PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture;
-		SetBlack2DIfNull(FrameUniformShaderParameters.PerlinNoiseGradientTexture);
-	}
-	check(FrameUniformShaderParameters.PerlinNoiseGradientTexture);
-	FrameUniformShaderParameters.PerlinNoiseGradientTextureSampler = TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
-
-	if (GSystemTextures.PerlinNoise3D.GetReference())
-	{
-		FrameUniformShaderParameters.PerlinNoise3DTexture = (FTexture3DRHIRef&)GSystemTextures.PerlinNoise3D->GetRenderTargetItem().ShaderResourceTexture;
-		SetBlack3DIfNull(FrameUniformShaderParameters.PerlinNoise3DTexture);
-	}
-	check(FrameUniformShaderParameters.PerlinNoise3DTexture);
-	FrameUniformShaderParameters.PerlinNoise3DTextureSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	// Update the Texture Parameters used for noise
+	UpdateNoiseTextureParameters(FrameUniformShaderParameters);
 
 	for (int32 Index = 0; Index < GMaxGlobalDistanceFieldClipmaps; Index++)
 	{
@@ -915,6 +957,7 @@ void FViewInfo::CreateUniformBuffer(
 	float ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue( *this );
 	FrameUniformShaderParameters.ExposureScale = FVector4(ExposureScale, ExposureScale, ExposureScale, 1.0f);
 	FrameUniformShaderParameters.DepthOfFieldFocalDistance = FinalPostProcessSettings.DepthOfFieldFocalDistance;
+	FrameUniformShaderParameters.DepthOfFieldSensorWidth = FinalPostProcessSettings.DepthOfFieldSensorWidth;
 	FrameUniformShaderParameters.DepthOfFieldFocalRegion = FinalPostProcessSettings.DepthOfFieldFocalRegion;
 	// clamped to avoid div by 0 in shader
 	FrameUniformShaderParameters.DepthOfFieldNearTransitionRegion = FMath::Max(0.01f, FinalPostProcessSettings.DepthOfFieldNearTransitionRegion);
@@ -997,7 +1040,7 @@ void FViewInfo::CreateUniformBuffer(
 		GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1) ? 1.0f : 0.0f;
 
 	// Padding between the left and right eye may be introduced by an HMD, which instanced stereo needs to account for.
-	if (Family != nullptr && StereoPass == eSSP_LEFT_EYE)
+	if ((Family != nullptr) && (StereoPass == eSSP_LEFT_EYE) && (Family->Views.Num() > 1))
 	{
 		check(Family->Views.Num() == 2);
 		const float FamilySizeX = static_cast<float>(Family->FamilySizeX);
@@ -1433,6 +1476,9 @@ bool FSceneRenderer::DoOcclusionQueries(ERHIFeatureLevel::Type InFeatureLevel) c
 
 FSceneRenderer::~FSceneRenderer()
 {
+	// To prevent keeping persistent references to single frame buffers, clear any such reference at this point.
+	ClearPrimitiveSingleFramePrecomputedLightingBuffers();
+
 	if(Scene)
 	{
 		// Destruct the projected shadow infos.
@@ -1489,6 +1535,17 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 			bShowPrecomputedVisibilityWarning = !bUsedPrecomputedVisibility;
 		}
 
+		bool bShowGlobalClipPlaneWarning = false;
+
+		if (Scene->PlanarReflections.Num() > 0)
+		{
+			static const auto* CVarClipPlane = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowGlobalClipPlane"));
+			if (CVarClipPlane && CVarClipPlane->GetValueOnRenderThread() == 0)
+			{
+				bShowGlobalClipPlaneWarning = true;
+			}
+		}
+
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{	
 			FViewInfo& View = Views[ViewIndex];
@@ -1499,7 +1556,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 				FSceneViewState* ViewState = (FSceneViewState*)View.State;
 				bool bViewParentOrFrozen = ViewState && (ViewState->HasViewParent() || ViewState->bIsFrozen);
 				bool bLocked = View.bIsLocked;
-				if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning || bLocked)
+				if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning || bLocked || bShowGlobalClipPlaneWarning)
 				{
 					// this is a helper class for FCanvas to be able to get screen size
 					class FRenderTargetTemp : public FRenderTarget
@@ -1537,6 +1594,12 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 					if (bShowPrecomputedVisibilityWarning)
 					{
 						const FText Message = NSLOCTEXT("Renderer", "NoPrecomputedVisibility", "NO PRECOMPUTED VISIBILITY");
+						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+						Y += 14;
+					}
+					if (bShowGlobalClipPlaneWarning)
+					{
+						const FText Message = NSLOCTEXT("Renderer", "NoGlobalClipPlane", "GLOBAL CLIP PLANE PROJECT SETTING NOT ENABLED");
 						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
 						Y += 14;
 					}
@@ -1608,9 +1671,6 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 	}
 
 #endif
-
-	// To prevent keeping persistent references to single frame buffers, clear any such reference at this point.
-	ClearPrimitiveSingleFramePrecomputedLightingBuffers();
 
 	// Notify the RHI we are done rendering a scene.
 	RHICmdList.EndScene();
@@ -1867,6 +1927,9 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 			SceneRenderer->Render(RHICmdList);
 		}
 
+		// Only reset per-frame scene state once all views have processed their frame, including those in planar reflections
+		SceneRenderer->Scene->DistanceFieldSceneData.PrimitiveModifiedBounds.Reset();
+
 #if STATS
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderViewFamily_RenderThread_MemStats);
@@ -1959,6 +2022,12 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,FSceneViewFamily*
 		// Construct the scene renderer.  This copies the view family attributes into its own structures.
 		FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily, Canvas->GetHitProxyConsumer());
 
+		for (int32 ReflectionIndex = 0; ReflectionIndex < SceneRenderer->Scene->PlanarReflections_GameThread.Num(); ReflectionIndex++)
+		{
+			UPlanarReflectionComponent* ReflectionComponent = SceneRenderer->Scene->PlanarReflections_GameThread[ReflectionIndex];
+			SceneRenderer->Scene->UpdatePlanarReflectionContents(ReflectionComponent, *SceneRenderer);
+		}
+
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			FDrawSceneCommand,
 			FSceneRenderer*,SceneRenderer,SceneRenderer,
@@ -2039,33 +2108,4 @@ void FRendererModule::RenderOverlayExtensions(const FSceneView& View, FRHIComman
 
 	RenderParameters.Uid=(void*)(&View);
 	OverlayRenderDelegate.ExecuteIfBound(RenderParameters);
-}
-
-bool IsMobileHDR()
-{
-	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
-	return MobileHDRCvar->GetValueOnAnyThread() == 1;
-}
-
-bool IsMobileHDR32bpp()
-{
-	static auto* MobileHDR32bppModeCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
-	return IsMobileHDR() && (GSupportsRenderTargetFormat_PF_FloatRGBA == false || MobileHDR32bppModeCvar->GetValueOnRenderThread() != 0);
-}
-
-bool IsMobileHDRMosaic()
-{
-	if (!IsMobileHDR32bpp())
-		return false;
-
-	static auto* MobileHDR32bppMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
-	switch (MobileHDR32bppMode->GetValueOnRenderThread())
-	{
-		case 1:
-			return true;
-		case 2:
-			return false;
-		default:
-			return !(GSupportsHDR32bppEncodeModeIntrinsic && GSupportsShaderFramebufferFetch);
-	}
 }

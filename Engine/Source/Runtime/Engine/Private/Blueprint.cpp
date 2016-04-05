@@ -615,18 +615,6 @@ void UBlueprint::PostLoad()
 		}
 	}
 
-#if WITH_EDITOR
-	if (UpgradeNotesLog.IsValid() && GetLinker())
-	{
-		const FCustomVersion* CustomVersion = GetLinker()->GetCustomVersions().GetVersion(FBlueprintsObjectVersion::GUID);
-		if (CustomVersion == nullptr || CustomVersion->Version < FBlueprintsObjectVersion::ArrayGetByRefUpgrade)
-		{
-			UpgradeNotesLog->Note(TEXT("Auto-Upgrade Note: Updated all array \"Get\" nodes in Blueprint Class \'@@\' to return a reference. Nodes have been injected to ensure they continue to work as they always have."), this);
-			UpgradeNotesLog->Note(TEXT("Auto-Upgrade Note: To remove these upgrade notes, resave @@. Be sure to verify nothing has broken in the upgrade process."), this);
-		}
-	}
-#endif
-
 	FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(this);
 
 

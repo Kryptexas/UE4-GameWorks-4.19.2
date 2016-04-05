@@ -749,7 +749,8 @@ bool FGameplayTagContainer::Serialize(FArchive& Ar)
 		Ar << GameplayTags;
 	}
 	
-	if (Ar.IsLoading())
+	// Only do redirects for real loads, not for duplicates or recompiles
+	if (Ar.IsLoading() && Ar.IsPersistent() && !(Ar.GetPortFlags() & PPF_Duplicate) && !(Ar.GetPortFlags() & PPF_DuplicateForPIE))
 	{
 		UGameplayTagsManager& TagManager = IGameplayTagsModule::GetGameplayTagsManager();
 
@@ -778,7 +779,7 @@ bool FGameplayTagContainer::Serialize(FArchive& Ar)
 
 		// Rename any tags that may have changed by the ini file.  Redirects can happen regardless of version.
 		// Regardless of version, want loading to have a chance to handle redirects
-		TagManager.RedirectTagsForContainer(*this, DeprecatedTagNamesNotFoundInTagMap);
+		TagManager.RedirectTagsForContainer(*this, DeprecatedTagNamesNotFoundInTagMap, Ar.GetSerializedProperty());
 	}
 
 	return true;
@@ -993,6 +994,19 @@ bool FGameplayTag::NetSerialize_Packed(FArchive& Ar, class UPackageMap* Map, boo
 
 	bOutSuccess = true;
 	return true;
+}
+
+void FGameplayTag::PostSerialize(const FArchive& Ar)
+{
+	// This only happens for tags that are not nested inside a container, containers handle redirectors themselves
+	// Only do redirects for real loads, not for duplicates or recompiles
+	if (Ar.IsLoading() && Ar.IsPersistent() && !(Ar.GetPortFlags() & PPF_Duplicate) && !(Ar.GetPortFlags() & PPF_DuplicateForPIE))
+	{
+		UGameplayTagsManager& TagManager = IGameplayTagsModule::GetGameplayTagsManager();
+
+		// Rename any tags that may have changed by the ini file.
+		TagManager.RedirectSingleGameplayTag(*this, Ar.GetSerializedProperty());
+	}
 }
 
 FGameplayTagQuery::FGameplayTagQuery()

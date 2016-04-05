@@ -928,6 +928,9 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 		{
 			Ar.Logf(TEXT("%s $%X: Array Get-by-Ref Index"), *Indents, (int32)Opcode);
 			AddIndent();
+			SerializeExpr(ScriptIndex);
+			SerializeExpr(ScriptIndex);
+			DropIndent();
 			break;
 		}
 	default:

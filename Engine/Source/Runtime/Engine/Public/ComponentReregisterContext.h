@@ -186,15 +186,6 @@ public:
 	*/
 	FGlobalComponentReregisterContext(const TArray<UClass*>& ExcludeComponents);
 
-	/**
-	 * Initialization constructor
-	 * Only reregister those components whose replacement primitive is in a direct child of one of the InParentActors
-	 * 
-	 * @param InParentActors - list of actors called out for reregistering
-	 */
-	ENGINE_API FGlobalComponentReregisterContext(const TArray<AActor*>& InParentActors);
-
-
 	/** Destructor */
 	ENGINE_API ~FGlobalComponentReregisterContext();
 

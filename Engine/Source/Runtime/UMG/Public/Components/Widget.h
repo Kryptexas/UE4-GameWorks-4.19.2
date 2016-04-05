@@ -10,6 +10,8 @@
 #include "Widget.generated.h"
 
 class UPanelSlot;
+class UUserWidget;
+class SObjectWidget;
 
 /**
  * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget
@@ -115,6 +117,8 @@ public:
 	// Events
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FEventReply, FOnReply);
 	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FEventReply, FOnPointerEvent, FGeometry, MyGeometry, const FPointerEvent&, MouseEvent);
+
+	typedef TFunctionRef<TSharedPtr<SObjectWidget>( UUserWidget*, TSharedRef<SWidget> )> ConstructMethodType;
 
 	/**
 	 * Allows controls to be exposed as variables in a blueprint.  Not all controls need to be exposed
@@ -383,6 +387,35 @@ public:
 	 */
 	TSharedRef<SWidget> TakeWidget();
 
+	/**
+	 * Gets the underlying slate widget or constructs it if it doesn't exist.
+	 * 
+	 * @param ConstructMethod allows the caller to specify a custom constructor that will be provided the 
+	 *						  default parameters we use to construct the slate widget, this allows the caller 
+	 *						  to construct derived types of SObjectWidget in cases where additional 
+	 *						  functionality at the slate level is desirable.  
+	 * @example
+	 *		class SObjectWidgetCustom : public SObjectWidget, public IMixinBehavior
+	 *      { }
+	 * 
+	 *      Widget->TakeDerivedWidget<SObjectWidgetCustom>( []( UUserWidget* Widget, TSharedRef<SWidget> Content ) {
+	 *			return SNew( SObjectWidgetCustom, Widget ) 
+	 *					[
+	 *						Content
+	 *					];
+	 *		});
+	 * 
+	 */
+	template <class WidgetType, class = typename TEnableIf<TIsDerivedFrom<WidgetType, SObjectWidget>::IsDerived, WidgetType>::Type>
+	TSharedRef<WidgetType> TakeDerivedWidget( ConstructMethodType ConstructMethod )
+	{
+		return StaticCastSharedRef<WidgetType>( TakeWidget_Private( ConstructMethod ) );
+	}
+	
+private:
+	TSharedRef<SWidget> TakeWidget_Private( ConstructMethodType ConstructMethod );
+public:
+
 	/** Gets the last created widget does not recreate the gc container for the widget if one is needed. */
 	TSharedPtr<SWidget> GetCachedWidget() const;
 
@@ -567,7 +600,7 @@ protected:
 	TWeakPtr<SWidget> MyWidget;
 
 	/** The underlying SWidget contained in a SObjectWidget */
-	TWeakPtr<class SObjectWidget> MyGCWidget;
+	TWeakPtr<SObjectWidget> MyGCWidget;
 
 	/** Native property bindings. */
 	UPROPERTY(Transient)

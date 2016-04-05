@@ -176,6 +176,9 @@ public:
 	void ClearValue(FBlackboard::FKey KeyID);
 
 	template<class TDataClass>
+	bool IsKeyOfType(FBlackboard::FKey KeyID) const;
+
+	template<class TDataClass>
 	bool SetValue(const FName& KeyName, typename TDataClass::FDataType Value);
 
 	template<class TDataClass>
@@ -269,6 +272,13 @@ protected:
 FORCEINLINE bool UBlackboardComponent::HasValidAsset() const
 {
 	return BlackboardAsset && BlackboardAsset->IsValid();
+}
+
+template<class TDataClass>
+bool UBlackboardComponent::IsKeyOfType(FBlackboard::FKey KeyID) const
+{
+	const FBlackboardEntry* EntryInfo = BlackboardAsset ? BlackboardAsset->GetKey(KeyID) : nullptr;
+	return (EntryInfo != nullptr) && (EntryInfo->KeyType != nullptr) && (EntryInfo->KeyType->GetClass() == TDataClass::StaticClass());
 }
 
 template<class TDataClass>

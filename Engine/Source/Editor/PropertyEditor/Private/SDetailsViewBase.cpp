@@ -594,7 +594,7 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutBuilderImpl& CustomD
 				for (FClassInstanceToPropertyMap::TIterator InstanceIt(InstancedPropertyMap); InstanceIt; ++InstanceIt)
 				{
 					FName Key = InstanceIt.Key();
-					CustomDetailLayout.SetCurrentCustomizationClass(CastChecked<UClass>(Class), Key);
+					CustomDetailLayout.SetCurrentCustomizationClass(Class, Key);
 
 					const FOnGetDetailCustomizationInstance& DetailDelegate = LayoutIt.Value()->DetailLayoutDelegate;
 
@@ -1206,3 +1206,21 @@ void SDetailsViewBase::UpdatePropertyMap()
 	DetailLayout->GenerateDetailLayout();
 }
 
+void SDetailsViewBase::RegisterInstancedCustomPropertyLayoutInternal(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate)
+{
+	check( Class );
+
+	FDetailLayoutCallback Callback;
+	Callback.DetailLayoutDelegate = DetailLayoutDelegate;
+	// @todo: DetailsView: Fix me: this specifies the order in which detail layouts should be queried
+	Callback.Order = InstancedClassToDetailLayoutMap.Num();
+
+	InstancedClassToDetailLayoutMap.Add( Class, Callback );	
+}
+
+void SDetailsViewBase::UnregisterInstancedCustomPropertyLayoutInternal(UStruct* Class)
+{
+	check( Class );
+
+	InstancedClassToDetailLayoutMap.Remove( Class );	
+}

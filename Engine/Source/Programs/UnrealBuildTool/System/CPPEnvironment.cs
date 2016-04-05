@@ -362,11 +362,11 @@ namespace UnrealBuildTool
 		/// A list of additional frameworks whose include paths are needed.
 		/// </summary>
 		public List<UEBuildFramework> AdditionalFrameworks = new List<UEBuildFramework>();
-
-		/// <summary>
-		/// Default constructor.
-		/// </summary>
-		public CPPEnvironmentConfiguration()
+		
+        /// <summary>
+        /// Default constructor.
+        /// </summary>
+        public CPPEnvironmentConfiguration()
 		{
 		}
 

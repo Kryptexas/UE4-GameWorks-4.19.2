@@ -6,9 +6,9 @@
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 
-static TAutoConsoleVariable<int32> CVarResolutionQuality(
+static TAutoConsoleVariable<float> CVarResolutionQuality(
 	TEXT("sg.ResolutionQuality"),
-	100,
+	100.0f,
 	TEXT("Scalability quality state (internally used by scalability system, ini load/save or using SCALABILITY console command)\n")
 	TEXT(" 10..100, default: 100"),
 	ECVF_ScalabilityGroup);
@@ -199,11 +199,11 @@ static void SetGroupQualityLevel(const TCHAR* InGroupName, int32 InQualityLevel)
 	ApplyCVarSettingsGroupFromIni(InGroupName, InQualityLevel, *GScalabilityIni, ECVF_SetByScalability);
 }
 
-static void SetResolutionQualityLevel(int32 InResolutionQualityLevel)
+static void SetResolutionQualityLevel(float InResolutionQualityLevel)
 {
 	InResolutionQualityLevel = FMath::Clamp(InResolutionQualityLevel, Scalability::MinResolutionScale, Scalability::MaxResolutionScale);
 
-//	UE_LOG(LogConsoleResponse, Display, TEXT("  ResolutionQuality %d"), "", InResolutionQualityLevel);
+//	UE_LOG(LogConsoleResponse, Display, TEXT("  ResolutionQuality %.2f"), "", InResolutionQualityLevel);
 
 	static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
 
@@ -215,7 +215,7 @@ static void SetResolutionQualityLevel(int32 InResolutionQualityLevel)
 
 void OnChangeResolutionQuality(IConsoleVariable* Var)
 {
-	SetResolutionQualityLevel(Var->GetInt());
+	SetResolutionQualityLevel(Var->GetFloat());
 }
 void OnChangeViewDistanceQuality(IConsoleVariable* Var)
 {
@@ -273,17 +273,19 @@ static int32 GetRenderScaleLevelFromQualityLevel(int32 InQualityLevel)
 	return ScalesForQuality[InQualityLevel];
 }
 
-FQualityLevels BenchmarkQualityLevels(uint32 WorkScale)
+FQualityLevels BenchmarkQualityLevels(uint32 WorkScale, float CPUMultiplier, float GPUMultiplier)
 {
+	ensure((CPUMultiplier > 0.0f) && (GPUMultiplier > 0.0f));
+
 	// benchmark the system
 
 	FQualityLevels Results;
 
 	FSynthBenchmarkResults SynthBenchmark;
-	ISynthBenchmark::Get().Run(SynthBenchmark, true, WorkScale );
+	ISynthBenchmark::Get().Run(SynthBenchmark, true, WorkScale);
 
-	const float CPUPerfIndex = SynthBenchmark.ComputeCPUPerfIndex();
-	const float GPUPerfIndex = SynthBenchmark.ComputeGPUPerfIndex();
+	const float CPUPerfIndex = SynthBenchmark.ComputeCPUPerfIndex() * CPUMultiplier;
+	const float GPUPerfIndex = SynthBenchmark.ComputeGPUPerfIndex() * GPUMultiplier;
 
 	// decide on the actual quality needed
 	Results.ResolutionQuality = GetRenderScaleLevelFromQualityLevel(ComputeOptionFromPerfIndex(TEXT("ResolutionQuality"), CPUPerfIndex, GPUPerfIndex));
@@ -430,7 +432,7 @@ FQualityLevels GetQualityLevels()
 void FQualityLevels::SetBenchmarkFallback()
 {
 	GetRenderScaleLevelFromQualityLevel(2);
-	ResolutionQuality = 100;
+	ResolutionQuality = 100.0f;
 }
 
 void FQualityLevels::SetDefaults()
@@ -482,7 +484,7 @@ void LoadState(const FString& IniName)
 	const TCHAR* Section = TEXT("ScalabilityGroups");
 
 	// looks like cvars but here we just use the name for the ini
-	GConfig->GetInt(Section, TEXT("sg.ResolutionQuality"), State.ResolutionQuality, IniName);
+	GConfig->GetFloat(Section, TEXT("sg.ResolutionQuality"), State.ResolutionQuality, IniName);
 	GConfig->GetInt(Section, TEXT("sg.ViewDistanceQuality"), State.ViewDistanceQuality, IniName);
 	GConfig->GetInt(Section, TEXT("sg.AntiAliasingQuality"), State.AntiAliasingQuality, IniName);
 	GConfig->GetInt(Section, TEXT("sg.ShadowQuality"), State.ShadowQuality, IniName);
@@ -502,7 +504,7 @@ void SaveState(const FString& IniName)
 	const TCHAR* Section = TEXT("ScalabilityGroups");
 
 	// looks like cvars but here we just use the name for the ini
-	GConfig->SetInt(Section, TEXT("sg.ResolutionQuality"), State.ResolutionQuality, IniName);
+	GConfig->SetFloat(Section, TEXT("sg.ResolutionQuality"), State.ResolutionQuality, IniName);
 	GConfig->SetInt(Section, TEXT("sg.ViewDistanceQuality"), State.ViewDistanceQuality, IniName);
 	GConfig->SetInt(Section, TEXT("sg.AntiAliasingQuality"), State.AntiAliasingQuality, IniName);
 	GConfig->SetInt(Section, TEXT("sg.ShadowQuality"), State.ShadowQuality, IniName);
@@ -530,8 +532,6 @@ void RecordQualityLevelsAnalytics(bool bAutoApplied)
 
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Performance.ScalabiltySettings"), Attributes);
 	}
-
-
 }
 
 }

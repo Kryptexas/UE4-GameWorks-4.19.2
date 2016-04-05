@@ -22,10 +22,7 @@ public:
 	}
 	virtual ~FRHIResource() 
 	{
-		if (!PlatformNeedsExtraDeletionLatency())
-		{
-			check(NumRefs.GetValue() == 0 && (CurrentlyDeleting == this || bDoNotDeferDelete || Bypass())); // this should not have any outstanding refs
-		}
+		check(PlatformNeedsExtraDeletionLatency() || (NumRefs.GetValue() == 0 && (CurrentlyDeleting == this || bDoNotDeferDelete || Bypass()))); // this should not have any outstanding refs
 	}
 	FORCEINLINE_DEBUGGABLE uint32 AddRef() const
 	{
@@ -38,7 +35,7 @@ public:
 		int32 NewValue = NumRefs.Decrement();
 		if (NewValue == 0)
 		{
-			if (bDoNotDeferDelete || Bypass())
+			if (!DeferDelete())
 			{ 
 				delete this;
 			}
@@ -69,19 +66,12 @@ public:
 
 	static void FlushPendingDeletes();
 
-	static bool PlatformNeedsExtraDeletionLatency()
+	FORCEINLINE static bool PlatformNeedsExtraDeletionLatency()
 	{
-		return (PLATFORM_XBOXONE == 1);
+		return GRHINeedsExtraDeletionLatency && GIsRHIInitialized;
 	}
 
-#if DISABLE_RHI_DEFFERED_DELETE
-	FORCEINLINE static bool Bypass()
-	{
-		return true;
-	}
-#else
 	static bool Bypass();
-#endif
 
 private:
 	mutable FThreadSafeCounter NumRefs;
@@ -90,31 +80,31 @@ private:
 	static TLockFreePointerListUnordered<FRHIResource, PLATFORM_CACHE_LINE_SIZE> PendingDeletes;
 	static FRHIResource* CurrentlyDeleting;
 
+	FORCEINLINE bool DeferDelete() const
+	{
+#if DISABLE_RHI_DEFFERED_DELETE
+		return false;
+#else
+		// Defer if GRHINeedsExtraDeletionLatency or we are doing threaded rendering (unless otherwise requested).
+		return !bDoNotDeferDelete && (GRHINeedsExtraDeletionLatency || !Bypass());
+#endif
+	}
+
 	// Some APIs don't do internal reference counting, so we have to wait an extra couple of frames before deleting resources
 	// to ensure the GPU has completely finished with them. This avoids expensive fences, etc.
-	struct ResourceToDelete
+	struct ResourcesToDelete
 	{
-		ResourceToDelete()
-			: Resource(nullptr)
-			, FrameDeleted(0)
+		ResourcesToDelete(uint32 InFrameDeleted = 0)
+			: FrameDeleted(InFrameDeleted)
 		{
 
 		}
 
-		ResourceToDelete(
-			FRHIResource* InResource,
-			uint32 InFrameDeleted)
-			: Resource(InResource)
-			, FrameDeleted(InFrameDeleted)
-		{
-
-		}
-
-		FRHIResource*	Resource;
-		uint32			FrameDeleted;
+		TArray<FRHIResource*>	Resources;
+		uint32					FrameDeleted;
 	};
 
-	static TQueue<ResourceToDelete> DeferredDeletionQueue;
+	static TArray<ResourcesToDelete> DeferredDeletionQueue;
 	static uint32 CurrentFrame;
 };
 
@@ -420,11 +410,11 @@ public:
 		// Override this in derived classes to expose access to the native texture resource
 		return nullptr;
 	}
-
+	
 	/**
-	* Returns access to the platform-specific RHI texture baseclass.  This is designed to provide the RHI with fast access to its base classes in the face of multiple inheritance.
-	* @return	The pointer to the platform-specific RHI texture baseclass or NULL if it not initialized or not supported for this RHI
-	*/
+	 * Returns access to the platform-specific RHI texture baseclass.  This is designed to provide the RHI with fast access to its base classes in the face of multiple inheritance.
+	 * @return	The pointer to the platform-specific RHI texture baseclass or NULL if it not initialized or not supported for this RHI
+	 */
 	virtual void* GetTextureBaseRHI()
 	{
 		// Override this in derived classes to expose access to the native texture resource
@@ -1147,7 +1137,7 @@ public:
 		ensureMsgf(DepthStencilAccess.IsStencilWrite() || StencilStoreAction == ERenderTargetStoreAction::ENoAction, TEXT("Stencil is read-only, but we are performing a store.  This is a waste on mobile.  If stencil can't change, we don't need to store it out again"));
 	}
 
-	bool operator==(const FRHIDepthRenderTargetView& Other)
+	bool operator==(const FRHIDepthRenderTargetView& Other) const
 	{
 		return
 			Texture == Other.Texture &&
@@ -1211,6 +1201,65 @@ public:
 		}
 		bClearDepth = bInClearDepth;		
 		bClearStencil = bInClearStencil;		
+	}
+
+	uint32 CalculateHash() const
+	{
+		// Need a separate struct so we can memzero/remove dependencies on reference counts
+		struct FHashableStruct
+		{
+			// Depth goes in the last slot
+			FRHITexture* Texture[MaxSimultaneousRenderTargets + 1];
+			uint32 MipIndex[MaxSimultaneousRenderTargets];
+			uint32 ArraySliceIndex[MaxSimultaneousRenderTargets];
+			ERenderTargetLoadAction LoadAction[MaxSimultaneousRenderTargets];
+			ERenderTargetStoreAction StoreAction[MaxSimultaneousRenderTargets];
+
+			ERenderTargetLoadAction		DepthLoadAction;
+			ERenderTargetStoreAction	DepthStoreAction;
+			ERenderTargetLoadAction		StencilLoadAction;
+			ERenderTargetStoreAction	StencilStoreAction;
+			FExclusiveDepthStencil		DepthStencilAccess;
+
+			bool bClearDepth;
+			bool bClearStencil;
+			bool bClearColor;
+			FRHIUnorderedAccessView* UnorderedAccessView[MaxSimultaneousUAVs];
+
+			void Set(const FRHISetRenderTargetsInfo& RTInfo)
+			{
+				FMemory::Memzero(*this);
+				for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
+				{
+					Texture[Index] = RTInfo.ColorRenderTarget[Index].Texture;
+					MipIndex[Index] = RTInfo.ColorRenderTarget[Index].MipIndex;
+					ArraySliceIndex[Index] = RTInfo.ColorRenderTarget[Index].ArraySliceIndex;
+					LoadAction[Index] = RTInfo.ColorRenderTarget[Index].LoadAction;
+					StoreAction[Index] = RTInfo.ColorRenderTarget[Index].StoreAction;
+				}
+
+				Texture[MaxSimultaneousRenderTargets] = RTInfo.DepthStencilRenderTarget.Texture;
+				DepthLoadAction = RTInfo.DepthStencilRenderTarget.DepthLoadAction;
+				DepthStoreAction = RTInfo.DepthStencilRenderTarget.DepthStoreAction;
+				StencilLoadAction = RTInfo.DepthStencilRenderTarget.StencilLoadAction;
+				StencilStoreAction = RTInfo.DepthStencilRenderTarget.GetStencilStoreAction();
+				DepthStencilAccess = RTInfo.DepthStencilRenderTarget.GetDepthStencilAccess();
+
+				bClearDepth = RTInfo.bClearDepth;
+				bClearStencil = RTInfo.bClearStencil;
+				bClearColor = RTInfo.bClearColor;
+
+				for (int32 Index = 0; Index < MaxSimultaneousUAVs; ++Index)
+				{
+					UnorderedAccessView[Index] = RTInfo.UnorderedAccessView[Index];
+				}
+			}
+		};
+
+		FHashableStruct RTHash;
+		FMemory::Memzero(RTHash);
+		RTHash.Set(*this);
+		return FCrc::MemCrc32(&RTHash, sizeof(RTHash));
 	}
 };
 

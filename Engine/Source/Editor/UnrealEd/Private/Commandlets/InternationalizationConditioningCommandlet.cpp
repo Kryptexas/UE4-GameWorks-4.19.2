@@ -69,22 +69,22 @@ void UInternationalizationConditioningCommandlet::FLocalizationFile::CompareToCo
 			for ( FConfigSection::TIterator It(MySection); It; ++It )
 			{
 				const FName Propname = It.Key();
-				const FString& PropValue = It.Value();
+				const FString& PropValue = It.Value().GetValue();
 
 				FString EscapedPropValue = PropValue.ReplaceQuotesWithEscapedQuotes();
 
 				// Find this key in the counterpart loc file
-				FString* OtherValue = OtherSection->Find(Propname);
+				FConfigValue* OtherValue = OtherSection->Find(Propname);
 				if ( OtherValue != NULL )
 				{
-					FString EscapedOtherValue = *OtherValue->ReplaceQuotesWithEscapedQuotes();
+					FString EscapedOtherValue = OtherValue->GetValue().ReplaceQuotesWithEscapedQuotes();
 
 					// If the counterpart has the same value as we do or is empty, the value is untranslated
-					if( OtherValue->IsEmpty() )
+					if( OtherValue->GetValue().IsEmpty() )
 					{
 						// If the entry is empty we do nothing for the time being.
 					}
-					else if ( PropValue == *OtherValue )
+					else if ( PropValue == OtherValue->GetValue() )
 					{
 						new(IdenticalProperties) FLocalizationFileEntry( Other->GetFilename(), LocSectionName, Propname.ToString(), EscapedPropValue, EscapedPropValue );
 					}

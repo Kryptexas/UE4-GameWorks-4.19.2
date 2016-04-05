@@ -228,7 +228,7 @@ void FMapPakDownloader::Cache(FString& Map, FString& InLastMap, void* InDynData)
 		FString OutLongPackageName;
 		FString OutFileName;
 
-		if (!FPackageName::SearchForPackageOnDisk(Map, &OutLongPackageName, &OutFileName, false))
+		if (!FPackageName::SearchForPackageOnDisk(Map, &OutLongPackageName, &OutFileName))
 		{
 			UE_LOG(LogMapPakDownloader, Warning, TEXT("Caching.... %s"), *Map);
 			CachePak();

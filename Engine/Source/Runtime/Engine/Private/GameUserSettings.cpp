@@ -170,6 +170,7 @@ void UGameUserSettings::SetToDefaults()
 	FullscreenMode = GetDefaultWindowMode();
 	FrameRateLimit = 0.0f;
 	MinResolutionScale = Scalability::MinResolutionScale;
+	DesiredScreenWidth = 1280;
 	DesiredScreenHeight = 720;
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
@@ -196,44 +197,61 @@ void UGameUserSettings::UpdateVersion()
 void UGameUserSettings::UpdateResolutionQuality()
 {
 	const int32 MinHeight = UKismetSystemLibrary::GetMinYResolutionFor3DView();
-	const int32 ScreenHeight = FullscreenMode == EWindowMode::WindowedFullscreen ? GetDesktopResolution().Y : ResolutionSizeY;
-	MinResolutionScale = FMath::Max<int32>(Scalability::MinResolutionScale, ((float)MinHeight / (float)ScreenHeight) * 100);
-	if (DesiredScreenHeight > ScreenHeight && ScreenHeight > 0)
+	const int32 ScreenWidth = (FullscreenMode == EWindowMode::WindowedFullscreen) ? GetDesktopResolution().X : ResolutionSizeX;
+	const int32 ScreenHeight = (FullscreenMode == EWindowMode::WindowedFullscreen) ? GetDesktopResolution().Y : ResolutionSizeY;
+	MinResolutionScale = FMath::Max<float>(Scalability::MinResolutionScale, ((float)MinHeight / (float)ScreenHeight) * 100.0f);
+
+	// Clamp the desired width to the actual window width
+	if (ScreenWidth > 0 && DesiredScreenWidth > ScreenWidth)
+	{
+		DesiredScreenWidth = ScreenWidth;
+	}
+
+	// Clamp the desired height to the actual window height
+	if (ScreenHeight > 0 && DesiredScreenHeight > ScreenHeight)
 	{
 		DesiredScreenHeight = ScreenHeight;
 	}
-	ScalabilityQuality.ResolutionQuality = FindResolutionQualityForScreenHeight(DesiredScreenHeight);
-	ScalabilityQuality.ResolutionQuality = FMath::Max(ScalabilityQuality.ResolutionQuality, MinResolutionScale);
+
+	ScalabilityQuality.ResolutionQuality = UGameUserSettings::GetDefaultResolutionScale();
 
 	OnGameUserSettingsUINeedsUpdate.Broadcast();
 }
 
-int32 UGameUserSettings::FindResolutionQualityForScreenHeight(int32 ScreenHeight)
+float UGameUserSettings::GetDefaultResolutionScale()
 {
-	int32 ResolutionQuality = 100;
+	const float DesiredResQuality = FindResolutionQualityForScreenSize(DesiredScreenWidth, DesiredScreenHeight);
 
-	const FIntPoint ScreenSize = FullscreenMode == EWindowMode::WindowedFullscreen ? GetDesktopResolution() : FIntPoint(ResolutionSizeX, ResolutionSizeY);
-	const float AspectRatio = (float)ScreenSize.X / (float)ScreenSize.Y;
-	const float Ratio16by9 = 16.0f / 9.0f;
+	return FMath::Max(DesiredResQuality, MinResolutionScale);
+}
 
-	// ScreenHeight values are based on 16:9 screens. If the screen aspect ratio is different, we need to adjust the target height
-	if (!FMath::IsNearlyEqual(AspectRatio, Ratio16by9))
+float UGameUserSettings::FindResolutionQualityForScreenSize(int32 Width, int32 Height)
+{
+	float ResolutionQuality = 100.0f;
+
+	const FIntPoint ScreenSize = (FullscreenMode == EWindowMode::WindowedFullscreen) ? GetDesktopResolution() : FIntPoint(ResolutionSizeX, ResolutionSizeY);
+	const float ScreenAspectRatio = (float)ScreenSize.X / (float)ScreenSize.Y;
+	const float AspectRatio = (float)Width / (float)Height;
+
+	// If the screen aspect ratio is different than the target resolution's aspect ratio, we need to adjust the target width and height
+	if (!FMath::IsNearlyEqual(ScreenAspectRatio, AspectRatio))
 	{
-		if (AspectRatio < Ratio16by9)
+		if (ScreenAspectRatio < AspectRatio)
 		{
-			// For smaller aspect ratios (16:10, 4:3) we allow more vertical space so that the screen width matches the width 16:9 mode would have
-			ScreenHeight = (ScreenHeight * Ratio16by9) / AspectRatio;
+			// For smaller aspect ratios we allow more vertical space so that the screen width matches the width of the original mode
+			Height = (Height * AspectRatio) / ScreenAspectRatio;
 		}
 		else
 		{
-			// For wider screens we try to choose a screen size that'd have similar total number of pixels as the target 16:9 mode
-			ScreenHeight = FMath::Sqrt((ScreenHeight * ScreenHeight * Ratio16by9) / AspectRatio);
+			// For wider screens we try to choose a screen size that'd have similar total number of pixels as the original mode
+			Height = FMath::Sqrt((Height * Height * AspectRatio) / ScreenAspectRatio);
 		}
+		Width = Height * AspectRatio;
 	}
 
-	if (ScreenHeight < ScreenSize.Y)
+	if (Height < ScreenSize.Y)
 	{
-		ResolutionQuality = ((float)ScreenHeight / (float)ScreenSize.Y) * 100;
+		ResolutionQuality = ((float)Height / (float)ScreenSize.Y) * 100.0f;
 	}
 
 	return ResolutionQuality;
@@ -366,7 +384,6 @@ void UGameUserSettings::LoadSettings( bool bForceReload/*=false*/ )
 		LoadConfigIni( bForceReload );
 	}
 	LoadConfig(GetClass(), *GGameUserSettingsIni);
-
 
 	// Note: Scalability::LoadState() should not be needed as we already loaded the settings earlier (needed so the engine can startup with that before the game is initialized)
 	ScalabilityQuality = Scalability::GetQualityLevels();
@@ -544,17 +561,32 @@ void UGameUserSettings::GetResolutionScaleInformation(float& CurrentScaleNormali
 	CurrentScaleNormalized = ((float)CurrentScaleValue - (float)MinScaleValue) / (float)(MaxScaleValue - MinScaleValue);
 }
 
+void UGameUserSettings::GetResolutionScaleInformationEx(float& CurrentScaleNormalized, float& CurrentScaleValue, float& MinScaleValue, float& MaxScaleValue) const
+{
+	CurrentScaleValue = ScalabilityQuality.ResolutionQuality;
+	MinScaleValue = MinResolutionScale;
+	MaxScaleValue = Scalability::MaxResolutionScale;
+	CurrentScaleNormalized = ((float)CurrentScaleValue - (float)MinScaleValue) / (float)(MaxScaleValue - MinScaleValue);
+}
+
 void UGameUserSettings::SetResolutionScaleValue(int32 NewScaleValue)
 {
+	SetResolutionScaleValueEx((float)NewScaleValue);
+}
+
+void UGameUserSettings::SetResolutionScaleValueEx(float NewScaleValue)
+{
 	ScalabilityQuality.ResolutionQuality = FMath::Clamp(NewScaleValue, MinResolutionScale, Scalability::MaxResolutionScale);
-	const int32 ScreenHeight = FullscreenMode == EWindowMode::WindowedFullscreen ? GetDesktopResolution().Y : ResolutionSizeY;
+	const int32 ScreenWidth = (FullscreenMode == EWindowMode::WindowedFullscreen) ? GetDesktopResolution().X : ResolutionSizeX;
+	const int32 ScreenHeight = (FullscreenMode == EWindowMode::WindowedFullscreen) ? GetDesktopResolution().Y : ResolutionSizeY;
+	DesiredScreenWidth = ScreenWidth * ScalabilityQuality.ResolutionQuality / 100;
 	DesiredScreenHeight = ScreenHeight * ScalabilityQuality.ResolutionQuality / 100;
 }
 
 void UGameUserSettings::SetResolutionScaleNormalized(float NewScaleNormalized)
 {
-	const int32 RemappedValue = (int32)FMath::Lerp((float)MinResolutionScale, (float)Scalability::MaxResolutionScale, NewScaleNormalized);
-	SetResolutionScaleValue(RemappedValue);
+	const float RemappedValue = FMath::Lerp((float)MinResolutionScale, (float)Scalability::MaxResolutionScale, NewScaleNormalized);
+	SetResolutionScaleValueEx(RemappedValue);
 }
 
 void UGameUserSettings::SetViewDistanceQuality(int32 Value)

@@ -20,6 +20,9 @@ UPhysicsSettings::UPhysicsSettings(const FObjectInitializer& ObjectInitializer)
 	, LockedAxis_DEPRECATED(ESettingsLockedAxis::Invalid)
 	, BounceThresholdVelocity(200.f)
 	, MaxAngularVelocity(3600)	//10 revolutions per second
+	, ContactOffsetMultiplier(0.01f)	//TODO: these values likely need tuning, but for now maintaining what we had in BodySetup
+	, MinContactOffset(0.0001f)
+	, MaxContactOffset(1.f)
 	, bSimulateSkeletalMeshOnDedicatedServer(true)
 	, bDefaultHasComplexCollision(true)
 	, bSuppressFaceRemapTable(false)

@@ -450,7 +450,7 @@ void SubsurfaceRecombinePS(noperspective float4 UVAndScreenPos : TEXCOORD0, floa
 
 	// we multiply the base color later in to get more crips human skin textures (scanned data always has Subsurface included)
 	float3 StoredBaseColor = ScreenSpaceData.GBuffer.StoredBaseColor;
-	float3 StoredSpecular = ScreenSpaceData.GBuffer.StoredSpecular;
+	float StoredSpecular = ScreenSpaceData.GBuffer.StoredSpecular;
 
 	uint ReconstructDiffuseMethod = RECOMBINE_QUALITY ? 3 : 1;
 

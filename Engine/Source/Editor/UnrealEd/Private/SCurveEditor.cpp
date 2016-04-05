@@ -80,11 +80,6 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 
 	MovementAxisLock = EMovementAxisLock::None;
 
-	//Simple r/g/b for now
-	CurveColors.Add(FLinearColor(1.0f, 0.0f, 0.0f));
-	CurveColors.Add(FLinearColor(0.0f, 1.0f, 0.0f));
-	CurveColors.Add(FLinearColor(0.05f, 0.05f, 1.0f));
-
 	TransactionIndex = -1;
 
 	ReduceTolerance = 0.001;
@@ -1194,7 +1189,7 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 		int curveIndex = 0;
 		for (auto CurveInfo : CurveOwner->GetCurves())
 		{
-			CurveViewModels.Add(TSharedPtr<FCurveViewModel>(new FCurveViewModel(CurveInfo, CurveColors[curveIndex % CurveColors.Num()], !bCanEdit)));
+			CurveViewModels.Add(TSharedPtr<FCurveViewModel>(new FCurveViewModel(CurveInfo, CurveOwner->GetCurveColor(CurveInfo), !bCanEdit)));
 			curveIndex++;
 		}
 		CurveOwner->MakeTransactional();
@@ -2105,28 +2100,29 @@ SCurveEditor::FSelectedCurveKey SCurveEditor::HitTestKeys(const FGeometry& InMyG
 
 	if( AreCurvesVisible() )
 	{
+		bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+
 		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
 
 		const FVector2D HitPosition = InMyGeometry.AbsoluteToLocal( HitScreenPosition );
 
-
 		for(auto CurveViewModel : CurveViewModels)
 		{
-			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
-		{
-				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
-			if(Curve != NULL)
+			if (IsCurveSelectable(CurveViewModel))
 			{
-				for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
+				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
+				if(Curve != NULL)
 				{
-					float KeyScreenX = ScaleInfo.InputToLocalX(Curve->GetKeyTime(It.Key()));
-					float KeyScreenY = ScaleInfo.OutputToLocalY(Curve->GetKeyValue(It.Key()));
-
-					if(	HitPosition.X > (KeyScreenX - (0.5f * CONST_KeySize.X)) && 
-						HitPosition.X < (KeyScreenX + (0.5f * CONST_KeySize.X)) &&
-						HitPosition.Y > (KeyScreenY - (0.5f * CONST_KeySize.Y)) &&
-						HitPosition.Y < (KeyScreenY + (0.5f * CONST_KeySize.Y)) )
+					for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
 					{
+						float KeyScreenX = ScaleInfo.InputToLocalX(Curve->GetKeyTime(It.Key()));
+						float KeyScreenY = ScaleInfo.OutputToLocalY(Curve->GetKeyValue(It.Key()));
+
+						if(	HitPosition.X > (KeyScreenX - (0.5f * CONST_KeySize.X)) && 
+							HitPosition.X < (KeyScreenX + (0.5f * CONST_KeySize.X)) &&
+							HitPosition.Y > (KeyScreenY - (0.5f * CONST_KeySize.Y)) &&
+							HitPosition.Y < (KeyScreenY + (0.5f * CONST_KeySize.Y)) )
+						{
 							return  FSelectedCurveKey(Curve, It.Key());
 						}
 					}
@@ -2820,19 +2816,28 @@ TSharedPtr<FCurveViewModel> SCurveEditor::HitTestCurves(  const FGeometry& InMyG
 	return TSharedPtr<FCurveViewModel>();
 }
 
+bool SCurveEditor::IsCurveSelectable(TSharedPtr<FCurveViewModel> CurveViewModel) const
+{		
+	bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+	bool bDisabled = bAnyCurveViewModelsSelected && !CurveViewModel->bIsSelected;
+
+	return !CurveViewModel->bIsLocked && CurveViewModel->bIsVisible && !bDisabled;
+}
+
 SCurveEditor::FSelectedTangent SCurveEditor::HitTestCubicTangents( const FGeometry& InMyGeometry, const FVector2D& HitScreenPosition )
 {
 	FSelectedTangent Tangent;
 
 	if( AreCurvesVisible() )
 	{
+
 		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(),  ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
 
 		const FVector2D HitPosition = InMyGeometry.AbsoluteToLocal( HitScreenPosition);
 
 		for (auto CurveViewModel : CurveViewModels)
 		{
-			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
+			if (IsCurveSelectable(CurveViewModel))
 			{
 				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
 				if (Curve != NULL)
@@ -2981,6 +2986,7 @@ void SCurveEditor::OnFlattenOrStraightenTangents(bool bFlattenTangents)
 
 			Key.Curve->GetKey(Key.KeyHandle).LeaveTangent = LeaveTangent;
 			Key.Curve->GetKey(Key.KeyHandle).ArriveTangent = ArriveTangent;
+			Key.Curve->GetKey(Key.KeyHandle).TangentMode = RCTM_User;
 		}
 				
 		for(auto It = SelectedTangents.CreateIterator();It;++It)
@@ -3004,6 +3010,7 @@ void SCurveEditor::OnFlattenOrStraightenTangents(bool bFlattenTangents)
 
 			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).LeaveTangent = LeaveTangent;
 			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).ArriveTangent = ArriveTangent;
+			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).TangentMode = RCTM_User;
 		}
 
 		TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
@@ -3399,7 +3406,7 @@ TArray<SCurveEditor::FSelectedCurveKey> SCurveEditor::GetEditableKeysWithinMarqu
 		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
 		for (auto CurveViewModel : CurveViewModels)
 		{
-			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
+			if (IsCurveSelectable(CurveViewModel))
 			{
 				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
 				if (Curve != NULL)
@@ -3437,7 +3444,7 @@ TArray<SCurveEditor::FSelectedTangent> SCurveEditor::GetEditableTangentsWithinMa
 		FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), ViewMinOutput.Get(), ViewMaxOutput.Get(), InMyGeometry.Size);
 		for (auto CurveViewModel : CurveViewModels)
 		{
-			if (!CurveViewModel->bIsLocked && CurveViewModel->bIsVisible)
+			if (IsCurveSelectable(CurveViewModel))
 			{
 				FRichCurve* Curve = CurveViewModel->CurveInfo.CurveToEdit;
 				if (Curve != NULL)

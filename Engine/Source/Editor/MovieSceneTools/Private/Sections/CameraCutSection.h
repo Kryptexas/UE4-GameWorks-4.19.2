@@ -2,7 +2,6 @@
 
 #pragma once
 
-class FThumbnailSection;
 class FTrackEditorThumbnail;
 class FTrackEditorThumbnailPool;
 class IMenu;
@@ -27,7 +26,7 @@ public:
 public:
 
 	// ISequencerSection interface
-
+	virtual void Tick(const FGeometry& AllottedGeometry, const FGeometry& ClippedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding) override;
 	virtual FText GetDisplayName() const override;
 	virtual float GetSectionHeight() const override;
@@ -35,10 +34,13 @@ public:
 	virtual FMargin GetContentPadding() const override;
 	// FThumbnail interface
 
-	virtual AActor* GetCameraObject() const override;
+	virtual void SetSingleTime(float GlobalTime) override;
 	virtual FText HandleThumbnailTextBlockText() const override;
 
 private:
+
+	/** Get a representative camera for the given time */
+	const AActor* GetCameraForFrame(float Time) const;
 
 	/** Callback for executing a "Set Camera" menu entry in the context menu. */
 	void HandleSetCameraMenuEntryExecute(AActor* InCamera);

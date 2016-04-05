@@ -912,7 +912,7 @@ bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		for (FConfigSectionMap::TIterator It(*TrackedFolders); It; ++It)
 		{
-			FString SoundFolder = *It.Value();
+			const FString& SoundFolder = *It.Value().GetValue();
 			SoundWaveGroupSizes.Add(SoundFolder, FSoundWaveGroupInfo());
 			SoundWaveGroupFolders.Add(SoundFolder);
 		}
@@ -1296,11 +1296,12 @@ void FAudioDevice::RecurseIntoSoundClasses(USoundClass* CurrentClass, FSoundClas
 
 void FAudioDevice::UpdateHighestPriorityReverb()
 {
-	for (auto It = ActivatedReverbs.CreateConstIterator(); It; ++It)
+	HighestPriorityReverb = nullptr;
+	for (const TPair<FName, FActivatedReverb>& ActivatedReverb : ActivatedReverbs)
 	{
-		if (!HighestPriorityReverb || It.Value().Priority > HighestPriorityReverb->Priority)
+		if (HighestPriorityReverb == nullptr || ActivatedReverb.Value.Priority > HighestPriorityReverb->Priority)
 		{
-			HighestPriorityReverb = &It.Value();
+			HighestPriorityReverb = &ActivatedReverb.Value;
 		}
 	}
 }
@@ -1639,6 +1640,16 @@ static void UpdateClassAdjustorOverrideEntry(FSoundClassAdjuster& ClassAdjustor,
 	// Reset the flags on the override adjuster
 	ClassAdjusterOverride.bOverrideApplied = true;
 	ClassAdjusterOverride.bOverrideChanged = false;
+
+	// Check if we're clearing and check the terminating condition
+	if (ClassAdjusterOverride.bIsClearing)
+	{
+		// If our override dynamic parameter is done, then we've finished clearing
+		if (ClassAdjusterOverride.VolumeOverride.IsDone())
+		{
+			ClassAdjusterOverride.bIsCleared = true;
+		}
+	}
 }
 
 void FAudioDevice::ApplyClassAdjusters(USoundMix* SoundMix, float InterpValue, float DeltaTime)
@@ -1678,11 +1689,19 @@ void FAudioDevice::ApplyClassAdjusters(USoundMix* SoundMix, float InterpValue, f
 			}
 		}
 
-		for (auto& SoundMixOverrideEntry : *SoundMixOverrideMap)
+		TArray<USoundClass*> SoundClassesToRemove;
+		for (TPair<USoundClass*, FSoundMixClassOverride>& SoundMixOverrideEntry : *SoundMixOverrideMap)
 		{
 			// Get the sound class object of the override
 			FSoundMixClassOverride& ClassAdjusterOverride = SoundMixOverrideEntry.Value;
 			USoundClass* SoundClassObject = ClassAdjusterOverride.SoundClassAdjustor.SoundClassObject;
+
+			// If the override has successfully cleared, then just remove it and continue iterating
+			if (ClassAdjusterOverride.bIsCleared)
+			{
+				SoundClassesToRemove.Add(SoundClassObject);
+				continue;
+			}
 
 			// Look for it in the adjusters copy 
 			bool bSoundClassAdjustorExisted = false;
@@ -1710,6 +1729,17 @@ void FAudioDevice::ApplyClassAdjusters(USoundMix* SoundMix, float InterpValue, f
 
 				// Add the new sound class adjuster entry to the array
 				SoundClassAdjusters->Add(NewEntry);
+			}
+		}
+
+		for (USoundClass* SoundClassToRemove : SoundClassesToRemove)
+		{
+			SoundMixOverrideMap->Remove(SoundClassToRemove);
+
+			// If there are no more overrides, remove the sound mix override entry
+			if (SoundMixOverrideMap->Num() == 0)
+			{
+				SoundMixClassEffectOverrides.Remove(SoundMix);
 			}
 		}
 	}
@@ -1992,6 +2022,7 @@ void FAudioDevice::SetSoundMixClassOverride(USoundMix* InSoundMix, USoundClass* 
 
 		// Flag that we've changed so that the update will interpolate to new values
 		ClassOverride->bOverrideChanged = true;
+		ClassOverride->bIsClearing = false;
 		ClassOverride->FadeInTime = FadeInTime;
 	}
 	else
@@ -2003,11 +2034,70 @@ void FAudioDevice::SetSoundMixClassOverride(USoundMix* InSoundMix, USoundClass* 
 		NewClassOverride.SoundClassAdjustor.PitchAdjuster = Pitch;
 		NewClassOverride.SoundClassAdjustor.bApplyToChildren = bApplyToChildren;
 		NewClassOverride.FadeInTime = FadeInTime;
-		NewClassOverride.bOverrideApplied = false;
-		NewClassOverride.bOverrideChanged = false;
 
 		SoundMixClassOverrideMap.Add(InSoundClass, NewClassOverride);
 	}
+}
+
+void FAudioDevice::ClearSoundMixClassOverride(USoundMix* InSoundMix, USoundClass* InSoundClass, float FadeOutTime)
+{
+	if (!InSoundMix || !InSoundClass)
+	{
+		return;
+	}
+
+	// Get the sound mix class override map for the sound mix. If this doesn't exist, then nobody overrode the sound mix
+	FSoundMixClassOverrideMap* SoundMixClassOverrideMap = SoundMixClassEffectOverrides.Find(InSoundMix);
+	if (!SoundMixClassOverrideMap)
+	{
+		return;
+	}
+
+	// Get the sound class override. If this doesn't exist, then the sound class wasn't previously overridden.
+	FSoundMixClassOverride* SoundClassOverride = SoundMixClassOverrideMap->Find(InSoundClass);
+	if (!SoundClassOverride)
+	{
+		return;
+	}
+
+	// If the override is currently applied, then we need to "fade out" the override
+	if (SoundClassOverride->bOverrideApplied)
+	{
+		// Get the new target values that sound mix would be if it weren't overridden. 
+		// If this was a pure add to the sound mix, then the target values will be 1.0f (i.e. not applied)
+		float VolumeAdjuster = 1.0f;
+		float PitchAdjuster = 1.0f;
+
+		// Loop through the sound mix class adjusters and set the volume adjuster to the value that would be in the sound mix
+		for (const FSoundClassAdjuster& Adjustor : InSoundMix->SoundClassEffects)
+		{
+			if (Adjustor.SoundClassObject == InSoundClass)
+			{
+				VolumeAdjuster = Adjustor.VolumeAdjuster;
+				PitchAdjuster = Adjustor.PitchAdjuster;
+				break;
+			}
+		}
+
+		SoundClassOverride->bIsClearing = true;
+		SoundClassOverride->bIsCleared = false;
+		SoundClassOverride->bOverrideChanged = true;
+		SoundClassOverride->FadeInTime = FadeOutTime;
+		SoundClassOverride->SoundClassAdjustor.VolumeAdjuster = VolumeAdjuster;
+		SoundClassOverride->SoundClassAdjustor.PitchAdjuster = PitchAdjuster;
+	}
+	else
+	{
+		// Otherwise, we just simply remove the sound class override in the sound class override map
+		SoundMixClassOverrideMap->Remove(InSoundClass);
+
+		// If there are no more overrides, remove the sound mix override entry
+		if (!SoundMixClassOverrideMap->Num())
+		{
+			SoundMixClassEffectOverrides.Remove(InSoundMix);
+		}
+	}
+
 }
 
 void FAudioDevice::PopSoundMixModifier(USoundMix* SoundMix, bool bIsPassive)
@@ -2067,49 +2157,21 @@ void FAudioDevice::ClearSoundMixModifiers()
 
 void FAudioDevice::ActivateReverbEffect(UReverbEffect* ReverbEffect, FName TagName, float Priority, float Volume, float FadeTime)
 {
-	FActivatedReverb* ExistingReverb = ActivatedReverbs.Find(TagName);
+	FActivatedReverb& ActivatedReverb = ActivatedReverbs.FindOrAdd(TagName);
 
-	if (ExistingReverb)
-	{
-		float OldPriority = ExistingReverb->Priority;
-		ExistingReverb->ReverbSettings.ReverbEffect = ReverbEffect;
-		ExistingReverb->ReverbSettings.Volume = Volume;
-		ExistingReverb->ReverbSettings.FadeTime = FadeTime;
-		ExistingReverb->Priority = Priority;
+	ActivatedReverb.ReverbSettings.ReverbEffect = ReverbEffect;
+	ActivatedReverb.ReverbSettings.Volume = Volume;
+	ActivatedReverb.ReverbSettings.FadeTime = FadeTime;
+	ActivatedReverb.Priority = Priority;
 
-		if (OldPriority != Priority)
-		{
-			UpdateHighestPriorityReverb();
-		}
-	}
-	else
-	{
-		ExistingReverb = &ActivatedReverbs.Add(TagName, FActivatedReverb());
-		ExistingReverb->ReverbSettings.ReverbEffect = ReverbEffect;
-		ExistingReverb->ReverbSettings.Volume = Volume;
-		ExistingReverb->ReverbSettings.FadeTime = FadeTime;
-		ExistingReverb->Priority = Priority;
-
-		UpdateHighestPriorityReverb();
-	}
+	UpdateHighestPriorityReverb();
 }
 
 void FAudioDevice::DeactivateReverbEffect(FName TagName)
 {
-	FActivatedReverb* ExistingReverb = ActivatedReverbs.Find(TagName);
-	if (ExistingReverb)
+	if (ActivatedReverbs.Remove(TagName) > 0)
 	{
-		if (ExistingReverb == HighestPriorityReverb)
-		{
-			HighestPriorityReverb = nullptr;
-		}
-
-		ActivatedReverbs.Remove(TagName);
-
-		if (HighestPriorityReverb == nullptr)
-		{
-			UpdateHighestPriorityReverb();
-		}
+		UpdateHighestPriorityReverb();
 	}
 }
 
@@ -2124,6 +2186,10 @@ void FAudioDevice::SetReverbSettings(class AAudioVolume* Volume, const FReverbSe
 	Effects->SetReverbSettings(*ActivatedReverb);
 }
 
+UReverbEffect* FAudioDevice::GetCurrentReverbEffect()
+{
+	return Effects->GetCurrentReverbEffect();
+}
 
 void* FAudioDevice::InitEffect(FSoundSource* Source)
 {
@@ -2204,41 +2270,28 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 			UWorld* ActiveSoundWorldPtr = ActiveSound->World.Get();
 			if (ActiveSoundWorldPtr == nullptr || ActiveSoundWorldPtr->AllowAudioPlayback())
 			{
+				const float Duration = ActiveSound->Sound->GetDuration();
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				if (!ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("ActiveSound with INVALID sound. AudioComponent=%s. DebugOriginalSoundName=%s"),
-					 ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetPathName() : TEXT("NO COMPONENT"),
-					 *ActiveSound->DebugOriginalSoundName.ToString()))
+				// Divide by minimum pitch for longest possible duration
+				if (Duration < INDEFINITELY_LOOPING_DURATION && ActiveSound->PlaybackTime > Duration / MIN_PITCH)
 				{
-					// Sound was not valid, stop playing it.
+					UE_LOG(LogAudio, Log, TEXT("Sound stopped due to duration: %g > %g : %s %s"),
+						ActiveSound->PlaybackTime,
+						Duration,
+						*ActiveSound->Sound->GetName(),
+						(ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetName() : TEXT("NO COMPONENT")));
 					AddSoundToStop(ActiveSound);
 				}
 				else
-#endif
 				{
-					const float Duration = ActiveSound->Sound->GetDuration();
-
-					// Divide by minimum pitch for longest possible duration
-					if (Duration < INDEFINITELY_LOOPING_DURATION && ActiveSound->PlaybackTime > Duration / MIN_PITCH)
+					// If not in game, do not advance sounds unless they are UI sounds.
+					float UsedDeltaTime = FApp::GetDeltaTime();
+					if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
 					{
-						UE_LOG(LogAudio, Log, TEXT("Sound stopped due to duration: %g > %g : %s %s"),
-							ActiveSound->PlaybackTime,
-							Duration,
-							*ActiveSound->Sound->GetName(),
-							(ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetName() : TEXT("NO COMPONENT")));
-						AddSoundToStop(ActiveSound);
+						UsedDeltaTime = 0.0f;
 					}
-					else
-					{
-						// If not in game, do not advance sounds unless they are UI sounds.
-						float UsedDeltaTime = FApp::GetDeltaTime();
-						if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
-						{
-							UsedDeltaTime = 0.0f;
-						}
 
-						ActiveSound->UpdateWaveInstances(WaveInstances, UsedDeltaTime);
-					}
+					ActiveSound->UpdateWaveInstances(WaveInstances, UsedDeltaTime);
 				}
 			}
 		}
@@ -2387,7 +2440,11 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 						if (bSuccess)
 						{
 							check(Source->IsInitialized());
-							Source->Play();
+							// If the source didn't get paused while initializing, then play it
+							if (!Source->IsPaused())
+							{
+								Source->Play();
+							}
 							Source->Update();
 						}
 					}
@@ -2584,13 +2641,7 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (ActiveSound->Sound)
 	{
-		if (!ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("AddNewActiveSound with INVALID sound. AudioComponent=%s"),
-			AudioComponent ? *AudioComponent->GetPathName() : TEXT("NO COMPONENT")))
-		{
-			static FName InvalidSoundName(TEXT("INVALID_Sound"));
-			ActiveSound->DebugOriginalSoundName = InvalidSoundName;
-		}
-		else if (!ensureMsgf(ActiveSound->Sound->GetFName() != NAME_None, TEXT("AddNewActiveSound with DESTROYED sound %s. AudioComponent=%s. IsPendingKill=%d. BeginDestroy=%d"),
+		if (!ensureMsgf(ActiveSound->Sound->GetFName() != NAME_None, TEXT("AddNewActiveSound with DESTROYED sound %s. AudioComponent=%s. IsPendingKill=%d. BeginDestroy=%d"),
 			*ActiveSound->Sound->GetPathName(),
 			AudioComponent ? *AudioComponent->GetPathName() : TEXT("NO COMPONENT"),
 			(int32)ActiveSound->Sound->IsPendingKill(),
@@ -3032,7 +3083,7 @@ void FAudioDevice::Flush(UWorld* WorldToFlush, bool bClearActivatedReverb)
 	{
 		FActiveSound* ActiveSound = ActiveSounds[Index];
 		// if we are in the editor we want to always flush the ActiveSounds
-		if (ActiveSound->bIgnoreForFlushing)
+		if (WorldToFlush && ActiveSound->bIgnoreForFlushing)
 		{
 			bFoundIgnoredComponent = true;
 		}

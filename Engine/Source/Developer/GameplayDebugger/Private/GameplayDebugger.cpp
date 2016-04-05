@@ -29,62 +29,15 @@ FGameplayDebuggerSettings GameplayDebuggerSettings(class AGameplayDebuggingRepli
 	return FGameplayDebuggerSettings(Replicator == NULL ? Settings : Replicator->DebuggerShowFlags);
 }
 
-class FGameplayDebuggerCompat : public FSelfRegisteringExec, public GameplayDebugger
-{
-public:
-	// Begin IModuleInterface
-	virtual void StartupModule() override;
-	virtual void ShutdownModule() override;
-	// End IModuleInterface
-
-	void WorldAdded(UWorld* InWorld);
-	void WorldDestroyed(UWorld* InWorld);
-#if WITH_EDITOR
-	void OnLevelActorAdded(AActor* InActor);
-	void OnLevelActorDeleted(AActor* InActor);
-	TSharedRef<FExtender> OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList);
-	void CreateSnappingOptionsMenu(FMenuBuilder& Builder);
-	void CreateSettingSubMenu(FMenuBuilder& Builder);
-	void HandleSettingChanged(FName PropertyName);
-#endif
-
-	TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> >& GetAllReplicators(UWorld* InWorld);
-	void AddReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator);
-	void RemoveReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator);
-
-	// Begin FExec Interface
-	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-	// End FExec Interface
-
-private:
-	virtual bool CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController) override;
-	virtual bool IsGameplayDebuggerActiveForPlayerController(APlayerController* PlayerController) override;
-
-	virtual void RegisterCategory(FName CategoryName, FOnGetCategory MakeInstanceDelegate, EGameplayDebuggerCategoryState CategoryState = EGameplayDebuggerCategoryState::Disabled, int32 SlotIdx = INDEX_NONE) {}
-	virtual void UnregisterCategory(FName CategoryName) {}
-	virtual void NotifyCategoriesChanged() {}
-	virtual void RegisterExtension(FName ExtensionName, IGameplayDebugger::FOnGetExtension MakeInstanceDelegate) {}
-	virtual void UnregisterExtension(FName ExtensionName) {}
-	virtual void NotifyExtensionsChanged() {}
-
-	bool DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController);
-
-	TMap<TWeakObjectPtr<UWorld>, TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> > > AllReplicatorsPerWorlds;
-
-#if WITH_EDITOR
-	FLevelEditorModule::FLevelEditorMenuExtender ViewMenuExtender;
-#endif
-};
+#include "GameplayDebuggerCompat.h"
 
 IMPLEMENT_MODULE(FGameplayDebuggerCompat, GameplayDebugger)
 
 // This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
 void FGameplayDebuggerCompat::StartupModule()
 { 
-	//EMIT_CUSTOM_WARNING("/Engine/Source/Developer/GameplayDebugger module is deprecated and it's going to be removed with next UE4 version. Please use GameplayDebuggerPlugin instead.");
-	//UE_LOG(LogGameplayDebugger, Warning, TEXT("/Engine/Source/Developer/GameplayDebugger module is deprecated and it's going to be removed with next UE4 version. Please use GameplayDebuggerPlugin instead."));
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bNewDebuggerEnabled = false;
 	if (GEngine)
 	{
 		GEngine->OnWorldAdded().AddRaw(this, &FGameplayDebuggerCompat::WorldAdded);
@@ -165,6 +118,12 @@ void FGameplayDebuggerCompat::HandleSettingChanged(FName PropertyName)
 void FGameplayDebuggerCompat::ShutdownModule()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (bNewDebuggerEnabled)
+	{
+		ShutdownNewDebugger();
+		return;
+	}
+
 	if (GEngine)
 	{
 		GEngine->OnWorldAdded().RemoveAll(this);
@@ -493,6 +452,10 @@ bool FGameplayDebuggerCompat::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDev
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool bHandled = false;
+	if (bNewDebuggerEnabled)
+	{
+		return false;
+	}
 
 	if (FParse::Command(&Cmd, TEXT("RunEQS")) && InWorld)
 	{
@@ -695,6 +658,19 @@ bool FGameplayDebuggerCompat::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDev
 	return bHandled;
 #else
 	return false;
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+
+void FGameplayDebuggerCompat::UseNewGameplayDebugger()
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (!bNewDebuggerEnabled)
+	{
+		ShutdownModule();
+		bNewDebuggerEnabled = true;
+
+		StartupNewDebugger();
+	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 

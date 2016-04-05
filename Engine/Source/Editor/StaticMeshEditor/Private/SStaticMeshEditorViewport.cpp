@@ -281,7 +281,7 @@ void SStaticMeshEditorViewport::UpdatePreviewMesh(UStaticMesh* InStaticMesh)
 	PreviewMeshComponent->SetStaticMesh(InStaticMesh);
 
 	// Update streaming data for debug viewmode feedback
-	PreviewMeshComponent->UpdateStreamingTextureInfos(true);
+	PreviewMeshComponent->UpdateStreamingSectionData(FTexCoordScaleMap());
 
 	PreviewScene.AddComponent(PreviewMeshComponent,FTransform::Identity);
 

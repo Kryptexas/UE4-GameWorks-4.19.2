@@ -51,6 +51,8 @@ public:
 	virtual bool CanRenameNode() const override;
 	virtual TSharedRef<SWidget> GetCustomOutlinerContent() override;
 	virtual FText GetDisplayName() const override;
+	virtual FLinearColor GetDisplayNameColor() const override;
+	virtual FText GetDisplayNameToolTipText() const override;
 	virtual const FSlateBrush* GetIconBrush() const override;
 	virtual const FSlateBrush* GetIconOverlayBrush() const override;
 	virtual FText GetIconToolTipText() const override;
@@ -58,6 +60,7 @@ public:
 	virtual FNodePadding GetNodePadding() const override;
 	virtual ESequencerNode::Type GetType() const override;
 	virtual void SetDisplayName(const FText& NewDisplayName) override;
+	virtual bool CanDrag() const override;
 
 protected:
 

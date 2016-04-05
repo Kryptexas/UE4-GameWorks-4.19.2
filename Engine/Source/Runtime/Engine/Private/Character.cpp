@@ -14,6 +14,7 @@
 #include "Animation/AnimMontage.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/DamageType.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAvatar, Log, All);
@@ -561,10 +562,22 @@ namespace MovementBaseUtility
 						return true;
 					}
 
+					const USkeletalMeshSocket* Socket = SkeletalBase->GetSocketByName(BoneName);
+					if (Socket != nullptr)
+					{
+						const FTransform SocketTransform = Socket->GetSocketTransform(SkeletalBase);
+						OutLocation = SocketTransform.GetLocation();
+						OutQuat = SocketTransform.GetRotation();
+						return true;
+					}
+
 					UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Invalid bone '%s' for SkeletalMeshComponent base %s"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
 					return false;
 				}
-				// TODO: warn if not a skeletal mesh but providing bone index.
+				else
+				{
+					UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Requested bone '%s' for non-SkeletalMeshComponent base %s"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
+				}
 			}
 
 			// No bone supplied
@@ -1324,18 +1337,39 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 			ReplicatedBasedMovement.Rotation = GetActorRotation();
 		}
 	}
+
+	if ( ChangedPropertyTracker.IsReplay() )
+	{
+		// If this is a replay, we save out certain values we need to runtime to do smooth interpolation
+		// We'll be able to look ahead in the replay to have these ahead of time for smoother playback
+		FCharacterReplaySample ReplaySample;
+
+		ReplaySample.Location			= GetActorLocation();
+		ReplaySample.Rotation			= GetActorRotation();
+		ReplaySample.Velocity			= GetVelocity();
+		ReplaySample.Acceleration		= CharacterMovement->GetCurrentAcceleration();
+		ReplaySample.RemoteViewPitch	= RemoteViewPitch;
+
+		FBitWriter Writer( 0, true );
+		Writer << ReplaySample;
+
+		ChangedPropertyTracker.SetExternalData( Writer.GetData(), Writer.GetNumBits() );
+	}
 }
 
 void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
-	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,						COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,						COND_SimulatedOnlyNoReplay );
 	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedBasedMovement,			COND_SimulatedOnly );
-	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedServerLastTransformUpdateTimeStamp, COND_SimulatedOnly);
+	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedServerLastTransformUpdateTimeStamp, COND_SimulatedOnlyNoReplay );
 	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode,			COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,						COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, AnimRootMotionTranslationScale,	COND_SimulatedOnly );
+
+	// Change the condition of the replicated movement property to not replicate in replays since we handle this specifically via saving this out in external replay data
+	DOREPLIFETIME_CHANGE_CONDITION( AActor, ReplicatedMovement,				COND_SimulatedOrPhysicsNoReplay );
 }
 
 bool ACharacter::IsPlayingRootMotion() const
@@ -1423,31 +1457,37 @@ class UAnimMontage * ACharacter::GetCurrentMontage()
 
 void ACharacter::ClientCheatWalk_Implementation()
 {
+#if !UE_BUILD_SHIPPING
 	SetActorEnableCollision(true);
 	if (CharacterMovement)
 	{
 		CharacterMovement->bCheatFlying = false;
 		CharacterMovement->SetMovementMode(MOVE_Falling);
 	}
+#endif
 }
 
 void ACharacter::ClientCheatFly_Implementation()
 {
+#if !UE_BUILD_SHIPPING
 	SetActorEnableCollision(true);
 	if (CharacterMovement)
 	{
 		CharacterMovement->bCheatFlying = true;
 		CharacterMovement->SetMovementMode(MOVE_Flying);
 	}
+#endif
 }
 
 void ACharacter::ClientCheatGhost_Implementation()
 {
+#if !UE_BUILD_SHIPPING
 	SetActorEnableCollision(false);
 	if (CharacterMovement)
 	{
 		CharacterMovement->bCheatFlying = true;
 		CharacterMovement->SetMovementMode(MOVE_Flying);
 	}
+#endif
 }
 

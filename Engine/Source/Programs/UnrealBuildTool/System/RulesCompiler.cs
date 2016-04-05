@@ -424,7 +424,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// List of files which this module depends on at runtime. These files will be staged along with the target.
 		/// </summary>
-		public List<RuntimeDependency> RuntimeDependencies = new List<RuntimeDependency>();
+		public RuntimeDependencyList RuntimeDependencies = new RuntimeDependencyList();
 
 		/// <summary>
 		/// List of additional properties to be added to the build receipt
@@ -657,6 +657,11 @@ namespace UnrealBuildTool
 		public List<string> AdditionalPlugins = new List<string>();
 
 		/// <summary>
+		/// Path to the set of pak signing keys to embed in the executable
+		/// </summary>
+		public string PakSigningKeysFile = "";
+
+		/// <summary>
 		/// Is the given type a 'game' type (Game/Editor/Server) wrt building?
 		/// </summary>
 		/// <param name="InType">The target type of interest</param>
@@ -764,6 +769,16 @@ namespace UnrealBuildTool
 			}
 
 			return false;
+		}
+
+		/// <summary>
+		/// Give the target an opportunity to override toolchain settings
+		/// </summary>
+		/// <param name="Target">The target currently being setup</param>
+		/// <returns>true if successful, false if not</returns>
+		public virtual bool ConfigureToolchain(TargetInfo Target)
+		{
+			return true;
 		}
 
 		/// <summary>
@@ -976,7 +991,7 @@ namespace UnrealBuildTool
 		/// <returns>a list of target platforms for the monolithic</returns>        
 		public virtual List<UnrealTargetPlatform> GUBP_GetPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
 		{
-			var Result = new List<UnrealTargetPlatform> { HostPlatform };
+			List<UnrealTargetPlatform> Result = new List<UnrealTargetPlatform> { HostPlatform };
 			// hack to set up the templates without adding anything to their .targets.cs files
 			if (!String.IsNullOrEmpty(TargetName) && TargetName.StartsWith("TP_"))
 			{
@@ -1000,7 +1015,7 @@ namespace UnrealBuildTool
 		/// <returns>a list of target platforms for the monolithic without cook</returns>        
 		public virtual List<UnrealTargetPlatform> GUBP_GetBuildOnlyPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
 		{
-			var Result = new List<UnrealTargetPlatform> { };
+			List<UnrealTargetPlatform> Result = new List<UnrealTargetPlatform> { };
 			return Result;
 		}
 		/// <summary>
@@ -1071,7 +1086,7 @@ namespace UnrealBuildTool
 		}
 		public virtual GUBPProjectOptions GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
 		{
-			var Result = new GUBPProjectOptions();
+			GUBPProjectOptions Result = new GUBPProjectOptions();
 			// hack to set up the templates without adding anything to their .targets.cs files
 			// tweaked to include FP_ folders too - which are temporary
 			if (!String.IsNullOrEmpty(TargetName) && (TargetName.StartsWith("TP_") || TargetName.StartsWith("FP_")))
@@ -1112,8 +1127,8 @@ namespace UnrealBuildTool
 		/// </summary>
 		public virtual Dictionary<string, string> GUBP_GetEditorTests_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
 		{
-			var MacOption = HostPlatform == UnrealTargetPlatform.Mac ? " -Mac" : "";
-			var Result = new Dictionary<string, string>();
+			string MacOption = HostPlatform == UnrealTargetPlatform.Mac ? " -Mac" : "";
+			Dictionary<string, string> Result = new Dictionary<string, string>();
 			Result.Add("EditorTest", "BuildCookRun -run -editortest -unattended -nullrhi -NoP4" + MacOption);
 			Result.Add("GameTest", "BuildCookRun -run -unattended -nullrhi -NoP4" + MacOption);
 			Result.Add("EditorAutomationTest", "BuildCookRun -run -editortest -RunAutomationTests -unattended -nullrhi -NoP4" + MacOption);
@@ -1145,7 +1160,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public virtual Dictionary<string, string> GUBP_GetGameTests_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform AltHostPlatform, UnrealTargetPlatform Platform)
 		{
-			var Result = new Dictionary<string, string>();
+			Dictionary<string, string> Result = new Dictionary<string, string>();
 			if ((Platform == HostPlatform || Platform == AltHostPlatform) && Type == TargetType.Game)  // for now, we will only run these for the dev config of the host platform
 			{
 				Result.Add("CookedGameTest", "BuildCookRun -run -skipcook -stage -pak -deploy -unattended -nullrhi -NoP4 -platform=" + Platform.ToString());
@@ -1158,7 +1173,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public virtual Dictionary<string, string> GUBP_GetClientServerTests_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform AltHostPlatform, UnrealTargetPlatform ServerPlatform, UnrealTargetPlatform ClientPlatform)
 		{
-			var Result = new Dictionary<string, string>();
+			Dictionary<string, string> Result = new Dictionary<string, string>();
 #if false // needs work
             if ((ServerPlatform == HostPlatform || ServerPlatform == AltHostPlatform) &&
                 (ClientPlatform == HostPlatform || ClientPlatform == AltHostPlatform) && 
@@ -1389,7 +1404,7 @@ namespace UnrealBuildTool
 		public ModuleRules CreateModuleRules(string ModuleName, TargetInfo Target, out FileReference ModuleFileName)
 		{
 			// Currently, we expect the user's rules object type name to be the same as the module name
-			var ModuleTypeName = ModuleName;
+			string ModuleTypeName = ModuleName;
 
 			// Make sure the module file is known to us
 			if (!ModuleNameToModuleFile.TryGetValue(ModuleName, out ModuleFileName))
@@ -1409,7 +1424,7 @@ namespace UnrealBuildTool
 			TargetInfo LocalTarget = new TargetInfo(LocalPlatform, LocalConfiguration, Target.Architecture, Target.Type.Value, Target.bIsMonolithic.Value);
 
 			// The build module must define a type named 'Rules' that derives from our 'ModuleRules' type.  
-			var RulesObjectType = CompiledAssembly.GetType(ModuleName);
+			Type RulesObjectType = CompiledAssembly.GetType(ModuleName);
 
 			if (RulesObjectType == null)
 			{
@@ -1435,7 +1450,7 @@ namespace UnrealBuildTool
 			}
 
 			// Update the run-time dependencies path to remove $(PluginDir) and replace with a full path. When the receipt is saved it'll be converted to a $(ProjectDir) or $(EngineDir) equivalent.
-			foreach (var Dependency in RulesObject.RuntimeDependencies)
+			foreach (RuntimeDependency Dependency in RulesObject.RuntimeDependencies)
 			{
 				const string PluginDirVariable = "$(PluginDir)";
 				if (Dependency.Path.StartsWith(PluginDirVariable, StringComparison.InvariantCultureIgnoreCase))
@@ -1478,7 +1493,7 @@ namespace UnrealBuildTool
 			}
 			catch (Exception Ex)
 			{
-				var AssemblyFileName = Path.GetFileNameWithoutExtension(CompiledAssembly.Location);
+				string AssemblyFileName = Path.GetFileNameWithoutExtension(CompiledAssembly.Location);
 				throw new BuildException(Ex,
 					"Unable to instantiate instance of '{0}' object type from compiled assembly '{1}'.  Unreal Build Tool creates an instance of your module's 'Rules' object in order to find out about your module's requirements.  The CLR exception details may provide more information:  {2}",
 					InTargetName, AssemblyFileName, Ex.ToString());
@@ -1749,7 +1764,7 @@ namespace UnrealBuildTool
 			// Process the additional search path, if sent in
 			if (AdditionalSearchPaths != null)
 			{
-				foreach (var AdditionalSearchPath in AdditionalSearchPaths)
+				foreach (DirectoryReference AdditionalSearchPath in AdditionalSearchPaths)
 				{
 					if (AdditionalSearchPath != null)
 					{

@@ -43,21 +43,18 @@ struct TStructOpsTypeTraits<FGameplayDebuggerNetPack> : public TStructOpsTypeTra
 };
 
 USTRUCT()
-struct FGameplayDebuggerDataPacketRequest
+struct FGameplayDebuggerDebugActor
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	int32 CategoryId;
+	AActor* Actor;
 
 	UPROPERTY()
-	int32 DataPackId;
+	FName ActorName;
 
 	UPROPERTY()
-	int32 DataVersion;
-
-	UPROPERTY()
-	int32 DataOffset;
+	int32 SyncCounter;
 };
 
 UCLASS(NotBlueprintable, NotBlueprintType, notplaceable, noteditinlinenew, hidedropdown, Transient)
@@ -67,7 +64,6 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggerCategoryReplicator : public AActor
 
 	virtual class UNetConnection* GetNetConnection() const override;
 	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
-	virtual void PostNetReceive() override;
 	virtual void BeginPlay() override;
 	virtual void Destroyed() override;
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
@@ -85,8 +81,14 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggerCategoryReplicator : public AActor
 	void SetDebugActor(AActor* Actor);
 
 	/** get current debug actor */
-	AActor* GetDebugActor() const { return DebugActor; }
+	AActor* GetDebugActor() const { return IsValid(DebugActor.Actor) ? DebugActor.Actor : nullptr; }
 	
+	/** get name of debug actor */
+	FName GetDebugActorName() const { return DebugActor.ActorName; }
+
+	/** get sync counter, increased with every change of DebugActor */
+	int16 GetDebugActorCounter() const { return DebugActor.SyncCounter; }
+
 	/** get player controller owning this replicator */
 	APlayerController* GetReplicationOwner() const { return OwnerPC; }
 
@@ -95,6 +97,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggerCategoryReplicator : public AActor
 
 	/** get category state */
 	bool IsCategoryEnabled(int32 CategoryId) const;
+
+	/** check if debug actor was selected */
+	bool HasDebugActor() const { return DebugActor.ActorName != NAME_None; }
 
 	/** get category count */
 	int32 GetNumCategories() const { return Categories.Num(); }
@@ -110,13 +115,13 @@ protected:
 	APlayerController* OwnerPC;
 
 	UPROPERTY(Replicated)
-	AActor*	DebugActor;
-
-	UPROPERTY(Replicated)
 	bool bIsEnabled;
 
 	UPROPERTY(Replicated)
 	FGameplayDebuggerNetPack ReplicatedData;
+
+	UPROPERTY(Replicated)
+	FGameplayDebuggerDebugActor	DebugActor;
 
 	/** rendering component needs to attached to some actor, and this is as good as any */
 	UPROPERTY()
@@ -124,9 +129,6 @@ protected:
 
 	/** category objects */
 	TArray<TSharedRef<FGameplayDebuggerCategory> > Categories;
-
-	/** pending data pack replication requests */
-	TArray<FGameplayDebuggerDataPacketRequest> PendingReplicationRequests;
 
 	uint32 bHasAuthority : 1;
 	uint32 bIsLocal : 1;
@@ -142,9 +144,6 @@ protected:
 
 	UFUNCTION(Server, Reliable, WithValidation, meta = (CallInEditor = "true"))
 	void ServerSetCategoryEnabled(int32 CategoryId, bool bEnable);
-
-	UFUNCTION(Server, Reliable, WithValidation, meta = (CallInEditor = "true"))
-	void ServerRequestDataPackets(const TArray<FGameplayDebuggerDataPacketRequest>& RequestList);
 
 	/** [LOCAL] notify from CategoryData replication */
 	void OnReceivedDataPackPacket(int32 CategoryId, int32 DataPackId, const FGameplayDebuggerDataPack& DataPacket);

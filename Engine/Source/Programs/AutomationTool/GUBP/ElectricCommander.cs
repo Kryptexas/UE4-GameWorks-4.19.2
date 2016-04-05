@@ -173,7 +173,7 @@ namespace AutomationTool
 			ECProps.Add("FailEmails/" + NodeToDo.Name + "=" + String.Join(" ", NodeToDo.RecipientsForFailureEmails));
 	
 			string AgentReq = NodeToDo.AgentRequirements;
-			if(Command.ParseParamValue("AgentOverride") != "" && !NodeToDo.Name.Contains("OnMac"))
+			if(Command.ParseParamValue("AgentOverride", "") != "" && !NodeToDo.Name.Contains("OnMac"))
 			{
 				AgentReq = Command.ParseParamValue("AgentOverride");
 			}

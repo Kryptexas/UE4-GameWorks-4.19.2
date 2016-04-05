@@ -11,7 +11,7 @@ UMovieScene2DTransformTrack::UMovieScene2DTransformTrack(const FObjectInitialize
 	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	TrackTint = FColor(48, 227, 255);
+	TrackTint = FColor(48, 227, 255, 65);
 #endif
 }
 

@@ -106,7 +106,7 @@ protected:
 
 	/** Offset in the panel the user started the LMB+RMB zoom from */
 	FVector2D ZoomStartOffset;
-	
+
 	/** Cumulative magnify delta from trackpad gesture */
 	float TotalGestureMagnify;
 

@@ -154,7 +154,7 @@ public:
 protected:
 	
 	UFUNCTION()
-	void OnPerceptionStimuliSourceEndPlay(EEndPlayReason::Type EndPlayReason);
+	void OnPerceptionStimuliSourceEndPlay(AActor* Actor, EEndPlayReason::Type EndPlayReason);
 	
 	/** requests registration of a given actor as a perception data source for specified sense */
 	void RegisterSource(FAISenseID SenseID, AActor& SourceActor);

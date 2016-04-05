@@ -159,7 +159,7 @@ FFXSystem::~FFXSystem()
 
 void FFXSystem::Tick(float DeltaSeconds)
 {
-	if (RHISupportsGPUParticles(FeatureLevel))
+	if (RHISupportsGPUParticles())
 	{
 		// Test GPU sorting if requested.
 		if (FXConsoleVariables::TestGPUSort.GetValueOnGameThread() != 0)
@@ -181,7 +181,7 @@ void FFXSystem::Tick(float DeltaSeconds)
 #if WITH_EDITOR
 void FFXSystem::Suspend()
 {
-	if (!bSuspended && RHISupportsGPUParticles(FeatureLevel))
+	if (!bSuspended && RHISupportsGPUParticles())
 	{
 		ReleaseGPUResources();
 		bSuspended = true;
@@ -190,7 +190,7 @@ void FFXSystem::Suspend()
 
 void FFXSystem::Resume()
 {
-	if (bSuspended && RHISupportsGPUParticles(FeatureLevel))
+	if (bSuspended && RHISupportsGPUParticles())
 	{
 		bSuspended = false;
 		InitGPUResources();
@@ -204,7 +204,7 @@ void FFXSystem::Resume()
 
 void FFXSystem::AddVectorField( UVectorFieldComponent* VectorFieldComponent )
 {
-	if (RHISupportsGPUParticles(FeatureLevel))
+	if (RHISupportsGPUParticles())
 	{
 		check( VectorFieldComponent->VectorFieldInstance == NULL );
 		check( VectorFieldComponent->FXSystem == this );
@@ -234,7 +234,7 @@ void FFXSystem::AddVectorField( UVectorFieldComponent* VectorFieldComponent )
 
 void FFXSystem::RemoveVectorField( UVectorFieldComponent* VectorFieldComponent )
 {
-	if (RHISupportsGPUParticles(FeatureLevel))
+	if (RHISupportsGPUParticles())
 	{
 		check( VectorFieldComponent->FXSystem == this );
 
@@ -260,7 +260,7 @@ void FFXSystem::RemoveVectorField( UVectorFieldComponent* VectorFieldComponent )
 
 void FFXSystem::UpdateVectorField( UVectorFieldComponent* VectorFieldComponent )
 {
-	if (RHISupportsGPUParticles(FeatureLevel))
+	if (RHISupportsGPUParticles())
 	{
 		check( VectorFieldComponent->FXSystem == this );
 
@@ -304,7 +304,7 @@ void FFXSystem::UpdateVectorField( UVectorFieldComponent* VectorFieldComponent )
 void FFXSystem::DrawDebug( FCanvas* Canvas )
 {
 	if (FXConsoleVariables::VisualizeGPUSimulation > 0
-		&& RHISupportsGPUParticles(FeatureLevel))
+		&& RHISupportsGPUParticles())
 	{
 		VisualizeGPUParticles(Canvas);
 	}
@@ -312,7 +312,7 @@ void FFXSystem::DrawDebug( FCanvas* Canvas )
 
 void FFXSystem::PreInitViews()
 {
-	if (RHISupportsGPUParticles(FeatureLevel))
+	if (RHISupportsGPUParticles())
 	{
 		AdvanceGPUParticleFrame();
 	}
@@ -320,7 +320,7 @@ void FFXSystem::PreInitViews()
 
 bool FFXSystem::UsesGlobalDistanceField() const
 {
-	if (RHISupportsGPUParticles(FeatureLevel))
+	if (RHISupportsGPUParticles())
 	{
 		return UsesGlobalDistanceFieldInternal();
 	}
@@ -340,7 +340,7 @@ DECLARE_CYCLE_STAT(TEXT("FXPreRender_FinalizeCDF"), STAT_CLM_FXPreRender_Finaliz
 
 void FFXSystem::PreRender(FRHICommandListImmediate& RHICmdList, const FGlobalDistanceFieldParameterData* GlobalDistanceFieldParameterData)
 {
-	if (RHISupportsGPUParticles(FeatureLevel))
+	if (RHISupportsGPUParticles())
 	{
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_Prepare));
 		PrepareGPUSimulation(RHICmdList);
@@ -351,21 +351,23 @@ void FFXSystem::PreRender(FRHICommandListImmediate& RHICmdList, const FGlobalDis
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_Finalize));
 		FinalizeGPUSimulation(RHICmdList);
 
-		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_PrepareCDF));
-		PrepareGPUSimulation(RHICmdList);
+		if (IsParticleCollisionModeSupported(GetShaderPlatform(), PCM_DistanceField))
+		{
+			RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_PrepareCDF));
+			PrepareGPUSimulation(RHICmdList);
 
-		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_SimulateCDF));
-		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::CollisionDistanceField, NULL, GlobalDistanceFieldParameterData, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());
-
-		//particles rendered during basepass may need to read pos/velocity buffers.  must finalize unless we know for sure that nothing in base pass will read.
-		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_FinalizeCDF));
-		FinalizeGPUSimulation(RHICmdList);
-	}
+			RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_SimulateCDF));
+			SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::CollisionDistanceField, NULL, GlobalDistanceFieldParameterData, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());
+			//particles rendered during basepass may need to read pos/velocity buffers.  must finalize unless we know for sure that nothingin base pass will read.
+			RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_FXPreRender_FinalizeCDF));
+			FinalizeGPUSimulation(RHICmdList);
+		}
+    }
 }
 
 void FFXSystem::PostRenderOpaque(FRHICommandListImmediate& RHICmdList, const class FSceneView* CollisionView, FTexture2DRHIParamRef SceneDepthTexture, FTexture2DRHIParamRef GBufferATexture)
 {
-	if (RHISupportsGPUParticles(FeatureLevel))
+	if (RHISupportsGPUParticles() && IsParticleCollisionModeSupported(GetShaderPlatform(), PCM_DepthBuffer))
 	{
 		PrepareGPUSimulation(RHICmdList);
 

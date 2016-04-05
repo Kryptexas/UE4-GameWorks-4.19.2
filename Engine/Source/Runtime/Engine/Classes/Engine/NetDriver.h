@@ -5,6 +5,9 @@
 #pragma once
 
 #include "EngineTypes.h"
+#include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
+#include "StatelessConnectHandlerComponent.h"
+
 #include "NetDriver.generated.h"
 
 class FRepChangedPropertyTracker;
@@ -180,6 +183,14 @@ public:
 	/** Array of connections to clients (this net driver is a host) */
 	UPROPERTY()
 	TArray<class UNetConnection*> ClientConnections;
+
+
+	/** Serverside PacketHandler for managing connectionless packets */
+	TUniquePtr<PacketHandler> ConnectionlessHandler;
+
+	/** Reference to the PacketHandler component, for managing stateless connection handshakes */
+	TWeakPtr<StatelessConnectHandlerComponent> StatelessConnectComponent;
+
 
 	/** World this net driver is associated with */
 	UPROPERTY()
@@ -416,6 +427,18 @@ public:
 	 */
 	ENGINE_API virtual bool InitListen(class FNetworkNotify* InNotify, FURL& ListenURL, bool bReuseAddressAndPort, FString& Error) PURE_VIRTUAL( UNetDriver::InitListen, return true;);
 
+	/**
+	 * Initialize a PacketHandler for serverside net drivers, for handling connectionless packets
+	 * NOTE: Only triggered by net driver subclasses that support it - from within InitListen.
+	 */
+	ENGINE_API virtual void InitConnectionlessHandler();
+
+	/**
+	 * Flushes all packets queued by the connectionless PacketHandler
+	 * NOTE: This should be called shortly after all calls to PacketHandler::IncomingConnectionless, to minimize packet buffer buildup.
+	 */
+	ENGINE_API virtual void FlushHandler();
+
 
 	/** Initializes the net connection class to use for new connections */
 	ENGINE_API virtual bool InitConnectionClass(void);
@@ -468,6 +491,18 @@ public:
 
 	/** PostTick actions */
 	ENGINE_API virtual void PostTickFlush();
+
+
+	/**
+	 * Sends a 'connectionless' (not associated with a UNetConection) packet, to the specified address.
+	 * NOTE: Address is an abstract format defined by subclasses. Anything calling this, must use an address supplied by the net driver.
+	 *
+	 * @param Address		The address the packet should be sent to (format is abstract, determined by net driver subclasses)
+	 * @param Data			The packet data
+	 * @param CountBits		The size of the packet data, in bits
+	 */
+	ENGINE_API virtual void LowLevelSend(FString Address, void* Data, int32 CountBits)
+		PURE_VIRTUAL(UNetDriver::LowLevelSend,);
 
 	/**
 	 * Process any local talker packets that need to be sent to clients

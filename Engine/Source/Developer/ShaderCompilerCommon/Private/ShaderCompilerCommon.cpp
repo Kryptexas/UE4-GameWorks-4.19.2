@@ -359,7 +359,8 @@ namespace CrossCompiler
 		else if (PLATFORM_LINUX)
 		{
 			BatchFile = TEXT("#!/bin/sh\n");
-			BatchFile += FPaths::RootDir() / FString::Printf(TEXT("Engine/Binaries/Linux/CrossCompilerTool %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, FrequencySwitch, *EntryPoint, *VersionSwitch, *CCTCmdLine);
+			// add an extra '/' to the file name (which is absolute at this point) because CrossCompilerTool will strip out first '/' considering it a legacy DOS-style switch marker.
+			BatchFile += FPaths::RootDir() / FString::Printf(TEXT("Engine/Binaries/Linux/CrossCompilerTool /%s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, FrequencySwitch, *EntryPoint, *VersionSwitch, *CCTCmdLine);
 		}
 		else if (PLATFORM_WINDOWS)
 		{

@@ -155,7 +155,7 @@ namespace iPhonePackager
 			}
 			else
 			{
-				NameDecoration = "-IOS-" + Program.GameConfiguration + Program.Architecture;
+				NameDecoration = "-" + Config.OSString + "-" + Program.GameConfiguration + Program.Architecture;
 			}
 
 			// Copy and un-decorate the binary name

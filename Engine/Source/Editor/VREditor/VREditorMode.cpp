@@ -16,6 +16,7 @@
 #include "IMotionController.h"
 #include "MotionControllerComponent.h"
 #include "EngineAnalytics.h"
+#include "IHeadMountedDisplay.h"
 
 #include "Editor/LevelEditor/Public/LevelEditorActions.h"
 
@@ -387,7 +388,7 @@ void FVREditorMode::Enter()
 			if( bActuallyUsingVR )
 			{
 				SavedEditorState.TrackingOrigin = GEngine->HMDDevice->GetTrackingOrigin();
-				GEngine->HMDDevice->SetTrackingOrigin( IHeadMountedDisplay::Floor );
+				GEngine->HMDDevice->SetTrackingOrigin( EHMDTrackingOrigin::Floor );
 			}
 
 			// Make the new viewport the active level editing viewport right away

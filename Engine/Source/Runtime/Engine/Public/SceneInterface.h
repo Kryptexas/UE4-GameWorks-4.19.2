@@ -112,12 +112,17 @@ public:
 	/** Runs a slow preculling operation on static meshes, removing triangles that are invisible or inside a precull volume. */
 	virtual void PreCullStaticMeshes(const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes) {}
 
+	virtual void AddPlanarReflection(class UPlanarReflectionComponent* Component) {}
+	virtual void RemovePlanarReflection(class UPlanarReflectionComponent* Component) {}
+	virtual void UpdatePlanarReflectionTransform(UPlanarReflectionComponent* Component) {}
+
 	/** 
 	* Updates the contents of the given scene capture by rendering the scene. 
 	* This must be called on the game thread.
 	*/
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponent2D* CaptureComponent) {}
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponentCube* CaptureComponent) {}
+	virtual void UpdatePlanarReflectionContents(class UPlanarReflectionComponent* CaptureComponent, class FSceneRenderer& MainSceneRenderer) {}
 
 	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) {}
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) {}
@@ -264,6 +269,9 @@ public:
 	{
 		return NULL;
 	}
+
+	virtual void UpdateSceneSettings(AWorldSettings* WorldSettings) {}
+
 	/**
 	 * Sets the FX system associated with the scene.
 	 */

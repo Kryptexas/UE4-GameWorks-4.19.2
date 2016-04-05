@@ -112,6 +112,7 @@ void FShaderParameterMap::UpdateHash(FSHA1& HashState) const
 bool FShaderType::bInitializedSerializationHistory = false;
 
 FShaderType::FShaderType(
+	EShaderTypeForDynamicCast InShaderTypeForDynamicCast,
 	const TCHAR* InName,
 	const TCHAR* InSourceFilename,
 	const TCHAR* InFunctionName,
@@ -119,6 +120,7 @@ FShaderType::FShaderType(
 	ConstructSerializedType InConstructSerializedRef,
 	GetStreamOutElementsType InGetStreamOutElementsRef
 	):
+	ShaderTypeForDynamicCast(InShaderTypeForDynamicCast),
 	Name(InName),
 	TypeName(InName),
 	SourceFilename(InSourceFilename),
@@ -1641,6 +1643,11 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	}
 
 	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowGlobalClipPlane"));
+		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_ClipP") : TEXT("");
+	}
+
+	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.KeepDebugInfo"));
 		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("_NoStrip") : TEXT("");
 	}
@@ -1648,6 +1655,11 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.Optimize"));
 		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("") : TEXT("_NoOpt");
+	}
+	
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.FastMath"));
+		KeyString += (CVar && CVar->GetInt() != 0) ? TEXT("") : TEXT("_NoFastMath");
 	}
 	
 	{

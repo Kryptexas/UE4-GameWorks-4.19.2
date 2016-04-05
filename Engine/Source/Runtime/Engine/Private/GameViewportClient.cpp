@@ -275,6 +275,9 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 	// remember our game instance
 	GameInstance = OwningGameInstance;
 
+	// Set the projects default viewport mouse capture mode
+	MouseCaptureMode = GetDefault<UInputSettings>()->DefaultViewportMouseCaptureMode;
+
 	// Create the cursor Widgets
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
 
@@ -591,7 +594,8 @@ bool UGameViewportClient::RequiresUncapturedAxisInput() const
 
 EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X, int32 Y)
 {
-	if (!InViewport->HasMouseCapture() || (ViewportConsole && ViewportConsole->ConsoleActive()))
+	// If the viewport isn't active or the console is active we don't want to override the cursor
+	if (!FSlateApplication::Get().IsActive() || (!InViewport->HasMouseCapture() && !InViewport->HasFocus()) || (ViewportConsole && ViewportConsole->ConsoleActive()))
 	{
 		return EMouseCursor::Default;
 	}
@@ -2422,11 +2426,12 @@ void UGameViewportClient::ToggleShowCollision()
 				{
 					PC->ClientMessage(FString::Printf(TEXT("Base %s"), *PC->GetPawn()->GetMovementBase()->GetName()));
 				}
-				TArray<AActor*> Touching;
-				PC->GetPawn()->GetOverlappingActors(Touching);
-				for (int32 i = 0; i < Touching.Num(); i++)
+				TSet<AActor*> TouchingActors;
+				PC->GetPawn()->GetOverlappingActors(TouchingActors);
+				int32 i = 0;
+				for (AActor* TouchingActor : TouchingActors)
 				{
-					PC->ClientMessage(FString::Printf(TEXT("Touching %d: %s"), i, *Touching[i]->GetName()));
+					PC->ClientMessage(FString::Printf(TEXT("Touching %d: %s"), i++, *TouchingActor->GetName()));
 				}
 			}
 		}
@@ -2713,7 +2718,7 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, E
 
 bool UGameViewportClient::HandleToggleFullscreenCommand()
 {
-	auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
+	static auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
 	check(CVar);
 	auto FullScreenMode = CVar->GetValueOnGameThread() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
 	FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : FullScreenMode;

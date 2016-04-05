@@ -66,7 +66,7 @@ IHttpRequest* FWindowsPlatformHttp::ConstructRequest()
 #if WITH_LIBCURL
 	if (bUseCurl)
 	{
-		return new FCurlHttpRequest(FCurlHttpManager::GMultiHandle);
+		return new FCurlHttpRequest(FCurlHttpManager::GShareHandle);
 	}
 	else
 #endif

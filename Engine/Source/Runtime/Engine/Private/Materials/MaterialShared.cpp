@@ -370,18 +370,25 @@ void FMaterialCompilationOutput::Serialize(FArchive& Ar)
 
 void FMaterial::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
 { 
-	TArray<FShaderType*> ShaderTypes;
-	TArray<FVertexFactoryType*> VFTypes;
-	TArray<const FShaderPipelineType*> ShaderPipelineTypes;
+	if (bLoadedCookedShaderMapId)
+	{
+		OutId = CookedShaderMapId;
+	}
+	else
+	{
+		TArray<FShaderType*> ShaderTypes;
+		TArray<FVertexFactoryType*> VFTypes;
+		TArray<const FShaderPipelineType*> ShaderPipelineTypes;
 
-	GetDependentShaderAndVFTypes(Platform, ShaderTypes, ShaderPipelineTypes, VFTypes);
+		GetDependentShaderAndVFTypes(Platform, ShaderTypes, ShaderPipelineTypes, VFTypes);
 
-	OutId.Usage = GetShaderMapUsage();
-	OutId.BaseMaterialId = GetMaterialId();
-	OutId.QualityLevel = GetQualityLevelForShaderMapId();
-	OutId.FeatureLevel = GetFeatureLevel();
-	OutId.SetShaderDependencies(ShaderTypes, ShaderPipelineTypes, VFTypes);
-	GetReferencedTexturesHash(Platform, OutId.TextureReferencesHash);
+		OutId.Usage = GetShaderMapUsage();
+		OutId.BaseMaterialId = GetMaterialId();
+		OutId.QualityLevel = GetQualityLevelForShaderMapId();
+		OutId.FeatureLevel = GetFeatureLevel();
+		OutId.SetShaderDependencies(ShaderTypes, ShaderPipelineTypes, VFTypes);
+		GetReferencedTexturesHash(Platform, OutId.TextureReferencesHash);
+	}
 }
 
 EMaterialTessellationMode FMaterial::GetTessellationMode() const 
@@ -402,7 +409,7 @@ void FMaterial::GetShaderMapIDsWithUnfinishedCompilation(TArray<int32>& ShaderMa
 	}
 }
 
-bool FMaterial::IsCompilationFinished()
+bool FMaterial::IsCompilationFinished() const
 {
 	// Build an array of the shader map Id's are not finished compiling.
 	if (GameThreadShaderMap && !GameThreadShaderMap->IsCompilationFinalized())
@@ -416,7 +423,7 @@ bool FMaterial::IsCompilationFinished()
 	return true;
 }
 
-bool FMaterial::HasValidGameThreadShaderMap()
+bool FMaterial::HasValidGameThreadShaderMap() const
 {
 	if(!GameThreadShaderMap || !GameThreadShaderMap->IsCompilationFinalized())
 	{
@@ -796,8 +803,8 @@ bool FMaterialResource::IsLightFunction() const { return Material->MaterialDomai
 bool FMaterialResource::IsUsedWithEditorCompositing() const { return Material->bUsedWithEditorCompositing; }
 bool FMaterialResource::IsUsedWithDeferredDecal() const { return Material->MaterialDomain == MD_DeferredDecal; }
 bool FMaterialResource::IsSpecialEngineMaterial() const { return Material->bUsedAsSpecialEngineMaterial; }
-bool FMaterialResource::HasVertexPositionOffsetConnected() const { return !Material->bUseMaterialAttributes && Material->WorldPositionOffset.IsConnected(); }
-bool FMaterialResource::HasPixelDepthOffsetConnected() const { return !Material->bUseMaterialAttributes && Material->PixelDepthOffset.IsConnected(); }
+bool FMaterialResource::HasVertexPositionOffsetConnected() const { return HasMaterialAttributesConnected() || (!Material->bUseMaterialAttributes && Material->WorldPositionOffset.IsConnected()); }
+bool FMaterialResource::HasPixelDepthOffsetConnected() const { return HasMaterialAttributesConnected() || (!Material->bUseMaterialAttributes && Material->PixelDepthOffset.IsConnected()); }
 bool FMaterialResource::HasMaterialAttributesConnected() const { return Material->bUseMaterialAttributes && Material->MaterialAttributes.IsConnected(); }
 FString FMaterialResource::GetBaseMaterialPathName() const { return Material->GetPathName(); }
 
@@ -874,6 +881,11 @@ bool FMaterialResource::IsCrackFreeDisplacementEnabled() const
 bool FMaterialResource::IsSeparateTranslucencyEnabled() const 
 { 
 	return Material->bEnableSeparateTranslucency && !IsUIMaterial();
+}
+
+bool FMaterialResource::IsMobileSeparateTranslucencyEnabled() const
+{
+	return Material->bEnableMobileSeparateTranslucency && !IsUIMaterial();
 }
 
 bool FMaterialResource::IsAdaptiveTessellationEnabled() const
@@ -981,7 +993,7 @@ uint32 FMaterialResource::GetMaterialDecalResponse() const
 
 bool FMaterialResource::HasNormalConnected() const
 {
-	return Material->HasNormalConnected();
+	return HasMaterialAttributesConnected() || Material->HasNormalConnected();
 }
 
 bool FMaterialResource::RequiresSynchronousCompilation() const
@@ -1481,6 +1493,9 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 		}
 	}
 
+	// Log which shader, pipeline or factory is missing when about to have a fatal error
+	const bool bLogShaderMapFailInfo = IsSpecialEngineMaterial() && (bContainsInlineShaders || FPlatformProperties::RequiresCookedData());
+
 	if (GameThreadShaderMap && GameThreadShaderMap->TryToAddToExistingCompilationTask(this))
 	{
 		OutstandingCompileShaderMapIds.Add(GameThreadShaderMap->GetCompilingId());
@@ -1488,7 +1503,7 @@ bool FMaterial::CacheShaders(const FMaterialShaderMapId& ShaderMapId, EShaderPla
 		GameThreadShaderMap = nullptr;
 		bSucceeded = true;
 	}
-	else if (!GameThreadShaderMap || !GameThreadShaderMap->IsComplete(this, true))
+	else if (!GameThreadShaderMap || !GameThreadShaderMap->IsComplete(this, !bLogShaderMapFailInfo))
 	{
 		if (bContainsInlineShaders || FPlatformProperties::RequiresCookedData())
 		{
@@ -1801,11 +1816,11 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 
 			// Do not cache uniform expressions for fallback materials. This step could
 			// be skipped where we don't allow for asynchronous shader compiling.
-			bool bIsFallbackMaterial = (Material != GetMaterialNoFallback(FeatureLevel));
+			bool bIsFallbackMaterial = (Material != MaterialNoFallback);
 
 			if (!bIsFallbackMaterial)
 			{
-				FMaterialRenderContext MaterialRenderContext(this, *Material, nullptr);
+				FMaterialRenderContext MaterialRenderContext(this , *Material, nullptr);
 				MaterialRenderContext.bShowSelection = GIsEditor;
 				EvaluateUniformExpressions(UniformExpressionCache[(int32)FeatureLevel], MaterialRenderContext);
 			}
@@ -2267,6 +2282,12 @@ void FMaterialUpdateContext::AddMaterialInstance(UMaterialInstance* Instance)
 	UpdatedMaterialInterfaces.Add(Instance);
 }
 
+void FMaterialUpdateContext::AddMaterialInterface(UMaterialInterface* Interface)
+{
+	UpdatedMaterials.Add(Interface->GetMaterial());
+	UpdatedMaterialInterfaces.Add(Interface);
+}
+
 FMaterialUpdateContext::~FMaterialUpdateContext()
 {
 	double StartTime = FPlatformTime::Seconds();
@@ -2342,17 +2363,23 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 
 	// Material instances that use this base material must have their uniform expressions recached 
 	// However, some material instances that use this base material may also depend on another MI with static parameters
-	// So we must update the MI's with static parameters first, and do other MI's in a second pass
+	// So we must traverse upwards and ensure all parent instances that need updating are recached first.
 	int32 NumInstancesWithStaticPermutations = 0;
-	for (int32 MIIndex = 0; MIIndex < InstancesToUpdate.Num(); MIIndex++)
-	{
-		UMaterialInstance* CurrentMaterialInstance = InstancesToUpdate[MIIndex];
 
-		if (CurrentMaterialInstance->bHasStaticPermutationResource)
+	TFunction<void(UMaterialInstance* MI)> UpdateInstance = [&](UMaterialInstance* MI)
+	{
+		if (MI->Parent && InstancesToUpdate.Contains(MI->Parent))
+		{
+			if (UMaterialInstance* ParentInst = Cast<UMaterialInstance>(MI->Parent))
+			{
+				UpdateInstance(ParentInst);
+			}
+		}
+
+		MI->InitStaticPermutation();//bHasStaticPermutation can change.
+		if (MI->bHasStaticPermutationResource)
 		{
 			NumInstancesWithStaticPermutations++;
-			CurrentMaterialInstance->InitStaticPermutation();
-
 			// Collect FMaterial's that have been recompiled
 			if (bUpdateStaticDrawLists)
 			{
@@ -2360,23 +2387,18 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 				{
 					for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 					{
-						FMaterialResource* CurrentResource = CurrentMaterialInstance->StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
+						FMaterialResource* CurrentResource = MI->StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
 						MaterialResourcesToUpdate.Add(CurrentResource);
 					}
 				}
 			}
 		}
-	}
+		InstancesToUpdate.Remove(MI);
+	};
 
-	// Recache uniform expressions on dependent MI's without static parameters
-	for (int32 MIIndex = 0; MIIndex < InstancesToUpdate.Num(); MIIndex++)
+	while (InstancesToUpdate.Num() > 0)
 	{
-		UMaterialInstance* CurrentMaterialInstance = InstancesToUpdate[MIIndex];
-
-		if (!CurrentMaterialInstance->bHasStaticPermutationResource)
-		{
-			CurrentMaterialInstance->InitStaticPermutation();
-		}
+		UpdateInstance(InstancesToUpdate.Last());
 	}
 
 	if (bUpdateStaticDrawLists)

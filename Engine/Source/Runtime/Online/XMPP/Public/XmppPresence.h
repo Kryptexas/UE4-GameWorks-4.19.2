@@ -74,6 +74,24 @@ public:
 };
 
 /**
+ * Muc room presence from an Xmpp muc room member
+ */
+class FXmppMucPresence : public FXmppUserPresence
+{
+public:
+	/** constructor */
+	FXmppMucPresence()
+		: FXmppUserPresence()
+	{}
+
+	FString Role;
+	FString Affiliation;
+
+	const FString& GetRoomId() const { return UserJid.Id; }
+	const FString& GetNickName() const { return UserJid.Resource; }
+};
+
+/**
  * Interface for updating presence for current user and for obtaining updates of roster members
  */
 class IXmppPresence
@@ -111,7 +129,7 @@ public:
 	 *
 	 * @param OutMembers [out] members to update
 	 */
-	virtual void GetRosterMembers(TArray<FString>& OutMembers) = 0;
+	virtual void GetRosterMembers(TArray<FXmppUserJid>& OutMembers) = 0;
 
 	/**
 	 * Obtain presence info for a given roster member id

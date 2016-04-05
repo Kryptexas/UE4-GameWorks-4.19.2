@@ -37,7 +37,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const TSharedRef<SWindow>& InParentWindow, const FText& InPluginFriendlyName, const FString& InPluginGuid, TFunction<void()> InAuthorizedCallback);
+	void Construct(const FArguments& InArgs, const TSharedRef<SWindow>& InParentWindow, const FText& InPluginFriendlyName, const FString& InPluginItemId, const FString& InPluginOfferId, TFunction<void()> InAuthorizedCallback);
 
 private:
 
@@ -60,8 +60,11 @@ private:
 	/** The display name of the plug-in used in the auto generated dialog text. */
 	FText PluginFriendlyName;
 
-	/** The unique id of the plug-in on the marketplace. */
-	FString PluginGuid;
+	/** The unique id of the item for the plug-in on the marketplace. */
+	FString PluginItemId;
+
+	/** The unique id of the offer for the plug-in on the marketplace. */
+	FString PluginOfferId;
 
 	/** Flag for tracking user interruption of the process, either with the cancel button or the close button. */
 	bool bUserInterrupted;

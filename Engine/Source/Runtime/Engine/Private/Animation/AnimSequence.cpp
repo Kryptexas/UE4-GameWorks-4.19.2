@@ -25,6 +25,7 @@ DECLARE_CYCLE_STAT(TEXT("AnimSeq GetBonePose"), STAT_AnimSeq_GetBonePose, STATGR
 DECLARE_CYCLE_STAT(TEXT("Build Anim Track Pairs"), STAT_BuildAnimTrackPairs, STATGROUP_Anim);
 DECLARE_CYCLE_STAT(TEXT("Extract Pose From Anim Data"), STAT_ExtractPoseFromAnimData, STATGROUP_Anim);
 
+TAutoConsoleVariable<int32> CVarUseBakedAdditiveAnimations(TEXT("a.UseBakedAdditiveAnimations"), 0, TEXT("If 1, additive delta calculations will be baked into the animation during cook. This improves runtime performance at the expense of significantly increasing cook times"));
 
 /////////////////////////////////////////////////////
 // FRawAnimSequenceTrackNativeDeprecated
@@ -326,7 +327,7 @@ void UAnimSequence::Serialize(FArchive& Ar)
 #if WITH_EDITORONLY_DATA
 	FScopedAnimSequenceCompressedDataCache CompressedDataCache;
 
-	if (!bCompressedOnCook && Ar.IsCooking() && Ar.IsSaving() && CanBakeAdditive())
+	if (!bCompressedOnCook && Ar.IsCooking() && Ar.IsSaving() && CanBakeAdditive() && CVarUseBakedAdditiveAnimations.GetValueOnGameThread() == 1)
 	{
 		CompressedDataCache.InitFrom(this);
 
@@ -2568,8 +2569,8 @@ void UAnimSequence::RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConv
 			{
 				// first calculate component space ref pose to get the relative transform between
 				// two ref poses. It is very important update ref pose before getting here. 
-				TArray<FTransform> NewRotations, NewSpaceBases, OldRotations;
-				TArray<FTransform> NewTranslations, OldSpaceBases, OldTranslations;
+				TArray<FTransform> NewRotations, OldRotations, NewSpaceBases, OldSpaceBases;
+				TArray<FTransform> NewTranslations, OldTranslations;
 				TArray<bool> NewTranslationParentFlags, OldTranslationParentFlags;
 				// get the spacebases transform
 				FillUpTransformBasedOnRig(NewSkeleton, NewSpaceBases, NewRotations, NewTranslations, NewTranslationParentFlags);
@@ -3361,7 +3362,7 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& An
 
 						FQuat ComponentRotation;
 						FTransform ComponentTranslation;
-						FVector ComponentScale = FVector(1.f);
+						FVector ComponentScale;
 
 						// rotation first
 						// this is easy since we just make sure it's evaluated or not
@@ -3414,8 +3415,11 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& An
 								{
 									for(int32 Key = 0; Key < NumKeys; ++Key)
 									{
-										ComponentTranslation = FTransform(RiggingAnimationData->AnimationTracks[NodeIndex].PosKeys[Key]) * AnimationDataInComponentSpace[ParentBoneIndex][Key];
+										const FTransform& AnimCompSpace = AnimationDataInComponentSpace[ParentBoneIndex][Key];
+										ComponentTranslation = FTransform(RiggingAnimationData->AnimationTracks[NodeIndex].PosKeys[Key]) * AnimCompSpace;
 										AnimationDataInComponentSpace[BoneIndex][Key].SetTranslation(ComponentTranslation.GetTranslation());
+
+										ComponentScale = AnimCompSpace.GetScale3D() * RiggingAnimationData->AnimationTracks[NodeIndex].ScaleKeys[Key];
 										AnimationDataInComponentSpace[BoneIndex][Key].SetScale3D(ComponentScale);
 									}
 								}
@@ -3432,6 +3436,8 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& An
 								{
 									ComponentTranslation = FTransform(RiggingAnimationData->AnimationTracks[NodeIndex].PosKeys[Key]);
 									AnimationDataInComponentSpace[BoneIndex][Key].SetTranslation(ComponentTranslation.GetTranslation());
+									
+									ComponentScale = RiggingAnimationData->AnimationTracks[NodeIndex].ScaleKeys[Key];
 									AnimationDataInComponentSpace[BoneIndex][Key].SetScale3D(ComponentScale);
 								}
 							}

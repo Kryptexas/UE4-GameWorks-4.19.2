@@ -1450,10 +1450,13 @@ void FNetGUIDCache::CleanReferences()
 		checkf( !It.Value().Object.IsValid() || NetGUIDLookup.FindRef( It.Value().Object ) == It.Key() || It.Value().ReadOnlyTimestamp != 0, TEXT( "Failed to validate ObjectLookup map in UPackageMap. Object '%s' was not in the NetGUIDLookup map with with value '%s'." ), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString() );
 	}
 
-	for ( auto It = NetGUIDLookup.CreateIterator(); It; ++It )
+	if (!UE_BUILD_SHIPPING || !UE_BUILD_TEST)
 	{
-		check( It.Key().IsValid() );
-		checkf( ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
+		for ( auto It = NetGUIDLookup.CreateIterator(); It; ++It )
+		{
+			check( It.Key().IsValid() );
+			checkf( ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
+		}
 	}
 
 	FArchiveCountMemGUID CountBytesAr;
@@ -2003,7 +2006,20 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 		{
 			if ( CVarAllowAsyncLoading.GetValueOnGameThread() > 0 )
 			{
-				// If this package isn't fully loaded (and we are async loading here), don't complain, assume it will fully load at some point
+				if (Package->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
+				{
+					// Something else is already async loading this package, calling load again will add our callback to the existing load request
+					PendingAsyncPackages.Add(CacheObjectPtr->PathName, NetGUID);
+					CacheObjectPtr->bIsPending = true;
+					LoadPackageAsync(CacheObjectPtr->PathName.ToString(), FLoadPackageAsyncDelegate::CreateRaw(this, &FNetGUIDCache::AsyncPackageCallback));
+
+					UE_LOG(LogNetPackageMap, Log, TEXT("GetObjectFromNetGUID: Listening to existing async load. Path: %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
+				}
+				else
+				{
+					UE_LOG(LogNetPackageMap, Error, TEXT("GetObjectFromNetGUID: Package is not fully loaded, but isn't async loading! Path: %s, NetGUID: %s"), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString());
+				}
+
 				return NULL;
 			}
 			else
@@ -2038,7 +2054,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 
 	if ( Object && !ObjectLevelHasFinishedLoading( Object, Driver ) )
 	{
-		UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Forcing object to NULL since level is not loaded yet." ), *Object->GetFullName() );
+		UE_LOG( LogNetPackageMap, Log, TEXT( "GetObjectFromNetGUID: Forcing object to NULL since level is not loaded yet." ), *Object->GetFullName() );
 		return NULL;
 	}
 

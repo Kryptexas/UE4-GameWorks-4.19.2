@@ -43,5 +43,9 @@ public class HTTP : ModuleRules
                 PrivateDependencyModuleNames.Add("HTML5JS");
             }
         }
+		if (Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.TVOS || Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			PublicFrameworks.Add("Security");
+		}
     }
 }

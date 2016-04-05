@@ -597,15 +597,9 @@ public:
 	*/
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
-		if (GEnableGPUSkinCache)
-		{
-			bool bIsGPUCached = false;
-			check(VertexFactory->GetType() == &FGPUSkinPassthroughVertexFactory::StaticType);
-			if (GGPUSkinCache.SetVertexStreamFromCache(RHICmdList, BatchElement.UserIndex, Shader, (FGPUSkinPassthroughVertexFactory*)VertexFactory, BatchElement.MinVertexIndex, GPUSkinCachePreviousFloatOffset, GPUSkinCachePreviousBuffer))
-			{
-				bIsGPUCached = true;
-			}
-		}
+		check(VertexFactory->GetType() == &FGPUSkinPassthroughVertexFactory::StaticType);
+
+		GGPUSkinCache.SetVertexStreamFromCache(RHICmdList, View.Family->FrameNumber, BatchElement.UserIndex, Shader, (FGPUSkinPassthroughVertexFactory*)VertexFactory, BatchElement.MinVertexIndex, GPUSkinCachePreviousFloatOffset, GPUSkinCachePreviousBuffer);
 	}
 
 	virtual uint32 GetSize() const override { return sizeof(*this); }
@@ -858,7 +852,7 @@ struct FRHICommandUpdateClothBuffer : public FRHICommand<FRHICommandUpdateClothB
 };
 
 bool FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(FRHICommandListImmediate& RHICmdList, const TArray<FVector4>& InSimulPositions,
-	const TArray<FVector4>& InSimulNormals, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel)
+	const TArray<FVector4>& InSimulNormals, uint32 FrameNumberToPrepare, ERHIFeatureLevel::Type FeatureLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FGPUBaseSkinAPEXClothVertexFactory_UpdateClothSimulData);
 
@@ -869,9 +863,8 @@ bool FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(F
 	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		check(IsInRenderingThread());
-
-		// + 1 as the FrameNumber is incremented later that in should be
-		CurrentClothBuffer = &GetClothBufferForWriting(FrameNumber + 1);
+		
+		CurrentClothBuffer = &GetClothBufferForWriting(FrameNumberToPrepare);
 
 		NumSimulVerts = FMath::Min(NumSimulVerts, (uint32)MAX_APEXCLOTH_VERTICES_FOR_VB);
 

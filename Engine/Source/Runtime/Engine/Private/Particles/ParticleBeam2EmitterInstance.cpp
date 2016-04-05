@@ -1007,10 +1007,11 @@ void FParticleBeam2EmitterInstance::DetermineVertexAndTriangleCount()
  *	Retrieves the dynamic data for the emitter
  *	
  *	@param	bSelected					Whether the emitter is selected in the editor
+ *  @param InFeatureLevel				The relevant shader feature level.
  *
  *	@return	FDynamicEmitterDataBase*	The dynamic data, or NULL if it shouldn't be rendered
  */
-FDynamicEmitterDataBase* FParticleBeam2EmitterInstance::GetDynamicData(bool bSelected)
+FDynamicEmitterDataBase* FParticleBeam2EmitterInstance::GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleBeam2EmitterInstance_GetDynamicData);
 
@@ -1067,68 +1068,6 @@ FDynamicEmitterDataBase* FParticleBeam2EmitterInstance::GetDynamicData(bool bSel
 	NewEmitterData->Init( bSelected );
 
 	return NewEmitterData;
-}
-
-/**
- *	Updates the dynamic data for the instance
- *
- *	@param	DynamicData		The dynamic data to fill in
- *	@param	bSelected		true if the particle system component is selected
- */
-bool FParticleBeam2EmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleBeam2EmitterInstance_UpdateDynamicData);
-
-	if (ActiveParticles <= 0 || !bEnabled)
-	{
-		return false;
-	}
-
-	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
-	if ((LODLevel == NULL) || (LODLevel->bEnabled == false))
-	{
-		return false;
-	}
-
-	//@SAS. This removes the need for the assertion in the actual render call...
-	if ((ActiveParticles > FDynamicBeam2EmitterData::MaxBeams) ||	// TTP #33330 - Max of 2048 beams from a single emitter
-		(ParticleStride >
-			((FDynamicBeam2EmitterData::MaxInterpolationPoints + 2) * (sizeof(FVector) + sizeof(float))) + 
-			(FDynamicBeam2EmitterData::MaxNoiseFrequency * (sizeof(FVector) + sizeof(FVector) + sizeof(float) + sizeof(float)))
-		)	// TTP #33330 - Max of 10k per beam (includes interpolation points, noise, etc.)
-		)
-	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (Component && Component->GetWorld())
-		{
-			FString ErrorMessage = 
-				FString::Printf(TEXT("BeamEmitter with too much data: %s"),
-					Component ? 
-						Component->Template ? 
-							*(Component->Template->GetName()) :
-							TEXT("No template") :
-						TEXT("No component"));
-			FColor ErrorColor(255,0,0);
-			GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, ErrorColor,ErrorMessage);
-			UE_LOG(LogParticles, Log, TEXT("%s"), *ErrorMessage);
-		}
-#endif	//#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		return false;
-	}
-
-	checkf((DynamicData->GetSource().eEmitterType == DET_Beam2), TEXT("Beam2::UpdateDynamicData> Invalid DynamicData type!"));
-
-	// Now fill in the source data
-	FDynamicBeam2EmitterData* BeamDynamicData = (FDynamicBeam2EmitterData*)DynamicData;
-	if( !FillReplayData( BeamDynamicData->Source ) )
-	{
-		return false;
-	}
-
-	// Setup dynamic render data.  Only call this AFTER filling in source data for the emitter.
-	BeamDynamicData->Init( bSelected );
-
-	return true;
 }
 
 /**

@@ -1156,39 +1156,58 @@ template< class T >
 DEPRECATED(4.8, "ConstructObject is deprecated. Use NewObject instead")
 T* ConstructObject(UClass* Class, UObject* Outer = (UObject*)GetTransientPackage(), FName Name=NAME_None, EObjectFlags SetFlags=RF_NoFlags, UObject* Template=NULL, bool bCopyTransientsFromClassDefaults=false, struct FObjectInstancingGraph* InstanceGraph=NULL );
 
-/*
- * Check if class is child of another class.
- * 
- * @param Parent	Parent class
- * @param Child		Child class
- * 
- * @return True if Child is a child of Parent, false otherwise.
- *
- **/
-COREUOBJECT_API bool DebugIsClassChildOf_Internal(UClass* Parent, UClass* Child);
+#if DO_CHECK
+/** Called by NewObject to make sure Child is actually a child of Parent */
+COREUOBJECT_API void CheckIsClassChildOf_Internal(UClass* Parent, UClass* Child);
+#endif
 
 /**
  * Convenience template for constructing a gameplay object
  *
  * @param	Outer		the outer for the new object.  If not specified, object will be created in the transient package.
  * @param	Class		the class of object to construct
+ * @param	Name		the name for the new object.  If not specified, the object will be given a transient name via MakeUniqueObjectName
+ * @param	Flags		the object flags to apply to the new object
+ * @param	Template	the object to use for initializing the new object.  If not specified, the class's default object will be used
+ * @param	bCopyTransientsFromClassDefaults	if true, copy transient from the class defaults instead of the pass in archetype ptr (often these are the same)
+ * @param	InInstanceGraph						contains the mappings of instanced objects and components to their templates
+ *
+ * @return	a pointer of type T to a new object of the specified class
  */
 template< class T >
-T* NewObject(UObject* Outer = (UObject*)GetTransientPackage(), UClass* Class = T::StaticClass(), FName Name = NAME_None, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
+T* NewObject(UObject* Outer, UClass* Class, FName Name = NAME_None, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
 {
 	if (Name == NAME_None)
 	{
 		FObjectInitializer::AssertIfInConstructor(Outer, TEXT("NewObject with empty name can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use ObjectInitializer.CreateDefaultSuobject<> instead."));
 	}
-	checkf(Class, TEXT("NewObject called with a nullptr class object"));
-	checkSlow(DebugIsClassChildOf_Internal(T::StaticClass(), Class));
+
+#if DO_CHECK
+	// Class was specified explicitly, so needs to be validated
+	CheckIsClassChildOf_Internal(T::StaticClass(), Class);
+#endif
+
 	return static_cast<T*>(StaticConstructObject_Internal(Class, Outer, Name, Flags, EInternalObjectFlags::None, Template, bCopyTransientsFromClassDefaults, InInstanceGraph));
+}
+
+template< class T >
+T* NewObject(UObject* Outer = (UObject*)GetTransientPackage())
+{
+	// Name is always None for this case
+	FObjectInitializer::AssertIfInConstructor(Outer, TEXT("NewObject with empty name can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use ObjectInitializer.CreateDefaultSuobject<> instead."));
+
+	return static_cast<T*>(StaticConstructObject_Internal(T::StaticClass(), Outer, NAME_None, RF_NoFlags, EInternalObjectFlags::None, nullptr, false, nullptr));
 }
 
 template< class T >
 T* NewObject(UObject* Outer, FName Name, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
 {
-	return NewObject<T>(Outer, T::StaticClass(), Name, Flags, Template, bCopyTransientsFromClassDefaults, InInstanceGraph);
+	if (Name == NAME_None)
+	{
+		FObjectInitializer::AssertIfInConstructor(Outer, TEXT("NewObject with empty name can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use ObjectInitializer.CreateDefaultSuobject<> instead."));
+	}
+
+	return static_cast<T*>(StaticConstructObject_Internal(T::StaticClass(), Outer, Name, Flags, EInternalObjectFlags::None, Template, bCopyTransientsFromClassDefaults, InInstanceGraph));
 }
 
 /**

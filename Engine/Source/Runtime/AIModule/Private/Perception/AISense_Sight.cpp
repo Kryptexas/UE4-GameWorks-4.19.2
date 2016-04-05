@@ -216,11 +216,17 @@ float UAISense_Sight::Update()
 							SightQuery->bLastResult = true;
 							SightQuery->LastSeenLocation = OutSeenLocation;
 						}
-						else
+						// communicate failure only if we've seen give actor before
+						else if (SightQuery->bLastResult == true)
 						{
-							SIGHT_LOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
 							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
 							SightQuery->bLastResult = false;
+							SightQuery->LastSeenLocation = FAISystem::InvalidLocation;
+						}
+
+						if (SightQuery->bLastResult == false)
+						{
+							SIGHT_LOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
 						}
 
 						TracesCount += NumberOfLoSChecksPerformed;
@@ -241,11 +247,17 @@ float UAISense_Sight::Update()
 							SightQuery->bLastResult = true;
 							SightQuery->LastSeenLocation = TargetLocation;
 						}
-						else
+						// communicate failure only if we've seen give actor before
+						else if (SightQuery->bLastResult == true)
 						{
-							SIGHT_LOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
 							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
 							SightQuery->bLastResult = false;
+							SightQuery->LastSeenLocation = FAISystem::InvalidLocation;
+						}
+
+						if (SightQuery->bLastResult == false)
+						{
+							SIGHT_LOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
 						}
 					}
 				}

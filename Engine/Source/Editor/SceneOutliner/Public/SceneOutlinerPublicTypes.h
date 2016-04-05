@@ -162,9 +162,13 @@ namespace SceneOutliner
 		/** The world that we are representing */
 		UWorld* RepresentingWorld;
 
+		/** The world the user has chosen to display */
+		TWeakObjectPtr<UWorld> UserChosenWorld;
+
 		FSharedOutlinerData()
 			: bRepresentingPlayWorld(false)
 			, RepresentingWorld(nullptr)
+			, UserChosenWorld(nullptr)
 		{}
 	};
 

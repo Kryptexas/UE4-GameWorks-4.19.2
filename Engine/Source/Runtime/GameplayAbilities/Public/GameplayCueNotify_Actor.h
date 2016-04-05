@@ -29,9 +29,11 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	virtual bool HandlesEvent(EGameplayCueEvent::Type EventType) const;
 
 	UFUNCTION()
-	virtual void OnOwnerDestroyed();
+	virtual void OnOwnerDestroyed(AActor* DestroyedActor);
 
 	virtual void BeginPlay() override;
+
+	virtual void SetOwner( AActor* NewOwner ) override;
 
 	virtual void PostInitProperties() override;
 
@@ -118,12 +120,18 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	int32 NumPreallocatedInstances;
 
 	FGCNotifyActorKey NotifyKey;
+
+	// Set when the GC actor is in the recycle queue (E.g., not active in world. This is to prevent rentrancy in the recyle code since multiple paths can lead the GC actor there)
+	bool bInRecycleQueue;
 	
 protected:
 	FTimerHandle FinishTimerHandle;
 
+	void ClearOwnerDestroyedDelegate();
+
 	bool bHasHandledOnActiveEvent;
 	bool bHasHandledWhileActiveEvent;
+	bool bHasHandledOnRemoveEvent;
 
 private:
 	virtual void DeriveGameplayCueTagFromAssetName();

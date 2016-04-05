@@ -27,7 +27,7 @@ class UBodySetup : public UObject
 	GENERATED_UCLASS_BODY()
 
 	/** Simplified collision representation of this  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = BodySetup, meta=(DisplayName = "Primitives"))
 	struct FKAggregateGeom AggGeom;
 
 	/** Used in the PhysicsAsset case. Associates this Body with Bone in a skeletal mesh. */

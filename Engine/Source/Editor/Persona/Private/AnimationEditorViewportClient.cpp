@@ -134,7 +134,7 @@ FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene&
 	bDrawUVs = false;
 	UVChannelToDraw = 0;
 
-	bAutoAlignFloor = true;
+	bAutoAlignFloor = ConfigOption->bAutoAlignFloorToMesh;
 
 	// Set audio mute option
 	UWorld* World = PreviewScene->GetWorld();
@@ -260,6 +260,8 @@ void FAnimationViewportClient::OnToggleAutoAlignFloor()
 {
 	bAutoAlignFloor = !bAutoAlignFloor;
 	UpdateCameraSetup();
+
+	ConfigOption->SetAutoAlignFloorToMesh(bAutoAlignFloor);
 }
 
 bool FAnimationViewportClient::IsAutoAlignFloor() const
@@ -990,11 +992,19 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 			NumChunksInUse = LODModel.Chunks.Num();
 			NumSectionsInUse = LODModel.Sections.Num();
 
+			// Calculate polys based on non clothing sections so we don't duplicate the counts.
+			uint32 NumTotalTriangles = 0;
+			int32 NumSections = LODModel.NumNonClothingSections();
+			for(int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
+			{
+				NumTotalTriangles += LODModel.Sections[SectionIndex].NumTriangles;
+			}
+
 			InfoString = FString::Printf(TEXT("LOD: %d, Bones: %d (Mapped to Vertices: %d), Polys: %d"),
 				LODIndex,
 				NumBonesInUse,
 				NumBonesMappedToVerts,
-				LODModel.GetTotalFaces());
+				NumTotalTriangles);
 
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 

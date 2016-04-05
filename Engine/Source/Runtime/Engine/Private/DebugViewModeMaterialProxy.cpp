@@ -28,22 +28,22 @@ ENGINE_API void ClearAllDebugViewMaterials()
 TMap<const FMaterial*, FDebugViewModeMaterialProxy*> FDebugViewModeMaterialProxy::DebugMaterialShaderMap;
 volatile bool FDebugViewModeMaterialProxy::bReentrantCall = false;
 
-void FDebugViewModeMaterialProxy::AddShader(UMaterialInterface* InMaterialInterface, EMaterialShaderMapUsage::Type InUsage)
+void FDebugViewModeMaterialProxy::AddShader(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage)
 {
 	if (!InMaterialInterface) return;
 
-	const FMaterial* Material = InMaterialInterface->GetMaterialResource(GMaxRHIFeatureLevel);
+	const FMaterial* Material = InMaterialInterface->GetMaterialResource(FeatureLevel);
 	if (!Material) return;
 
 	if (!DebugMaterialShaderMap.Contains(Material))
 	{
-		DebugMaterialShaderMap.Add(Material, new FDebugViewModeMaterialProxy(InMaterialInterface, InUsage));
+		DebugMaterialShaderMap.Add(Material, new FDebugViewModeMaterialProxy(InMaterialInterface, QualityLevel, FeatureLevel, InUsage));
 	}
 }
 
 const FMaterial* FDebugViewModeMaterialProxy::GetShader(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material)
 {
-	if (DebugViewShaderMode == DVSM_TexCoordScaleAnalysis)
+	if (DebugViewShaderMode == DVSM_TexCoordScaleAccuracy || DebugViewShaderMode == DVSM_TexCoordScaleAnalysis)
 	{
 		FDebugViewModeMaterialProxy** BoundMaterial = DebugMaterialShaderMap.Find(Material);
 		if (BoundMaterial)
@@ -56,7 +56,9 @@ const FMaterial* FDebugViewModeMaterialProxy::GetShader(EDebugViewShaderMode Deb
 
 void FDebugViewModeMaterialProxy::ClearAllShaders()
 {
-	if (bReentrantCall) return;
+	if (bReentrantCall || DebugMaterialShaderMap.Num() == 0) return;
+
+	FlushRenderingCommands();
 
 	bReentrantCall = true;
 	for (TMap<const FMaterial*, FDebugViewModeMaterialProxy*>::TIterator It(DebugMaterialShaderMap); It; ++It)
@@ -69,17 +71,17 @@ void FDebugViewModeMaterialProxy::ClearAllShaders()
 	bReentrantCall = false;
 }
 
-FDebugViewModeMaterialProxy::FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialShaderMapUsage::Type InUsage)
+FDebugViewModeMaterialProxy::FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage)
 	: FMaterial()
 	, MaterialInterface(InMaterialInterface)
 	, Material(nullptr)
 	, Usage(InUsage)
 {
-	SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
+	SetQualityLevelProperties(QualityLevel, false, FeatureLevel);
 	Material = InMaterialInterface->GetMaterial();
 	Material->AppendReferencedTextures(ReferencedTextures);
 
-	FMaterialResource* Resource = InMaterialInterface->GetMaterialResource(GMaxRHIFeatureLevel);
+	FMaterialResource* Resource = InMaterialInterface->GetMaterialResource(FeatureLevel);
 
 	FMaterialShaderMapId ResourceId;
 	Resource->GetShaderMapId(GMaxRHIShaderPlatform, ResourceId);

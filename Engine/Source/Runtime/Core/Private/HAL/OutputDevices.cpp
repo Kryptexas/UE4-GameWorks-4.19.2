@@ -9,13 +9,6 @@
 #include "Templates/UniquePtr.h"
 #include <stdio.h>
 
-// #if _MSC_VER
-// #pragma warning (push)
-// #pragma warning (disable : 4548) // needed as xlocale does not compile cleanly
-// #include <iostream>
-// #pragma warning (pop)
-// #endif
-
 /** Used by tools which include only core to disable log file creation. */
 #ifndef ALLOW_LOG_FILE
 	#define ALLOW_LOG_FILE 1
@@ -468,7 +461,7 @@ public:
 		{
 			for( FConfigSectionMap::TIterator It(*RefTypes); It; ++It )
 			{
-				ProcessCmdString(It.Key().ToString() + TEXT(" ") + It.Value(), true);
+				ProcessCmdString(It.Key().ToString() + TEXT(" ") + It.Value().GetValue(), true);
 			}
 		}
 #if !UE_BUILD_SHIPPING
@@ -812,7 +805,7 @@ void FOutputDeviceRedirector::FlushThreadedLogs()
 
 void FOutputDeviceRedirector::PanicFlushThreadedLogs()
 {
-	SCOPE_CYCLE_COUNTER(STAT_FlushThreadedLogs);
+//	SCOPE_CYCLE_COUNTER(STAT_FlushThreadedLogs);
 	// Acquire a lock on SynchronizationObject and call the unsynchronized worker function.
 	FScopeLock ScopeLock( &SynchronizationObject );
 	

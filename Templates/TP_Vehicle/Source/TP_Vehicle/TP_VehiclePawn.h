@@ -36,6 +36,7 @@ class ATP_VehiclePawn : public AWheeledVehicle
 	UPROPERTY(Category = Display, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UTextRenderComponent* InCarGear;
 
+	
 public:
 	ATP_VehiclePawn();
 

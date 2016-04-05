@@ -791,6 +791,12 @@ private:
 	uint32 Flags;
 };
 
+/** Unicode character helper functions */
+struct CORE_API FUnicodeChar
+{
+	static bool CodepointToString(const uint32 InCodepoint, FString& OutString);
+};
+
 /**
  * Unicode Bidirectional text support 
  * http://www.unicode.org/reports/tr9/

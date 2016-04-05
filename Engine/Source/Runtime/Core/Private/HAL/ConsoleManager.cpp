@@ -755,6 +755,11 @@ IConsoleVariable* FConsoleManager::RegisterConsoleVariableRef(const TCHAR* Name,
 	return AddConsoleObject(Name, new FConsoleVariableRef<float>(RefValue, Help, (EConsoleVariableFlags)Flags))->AsVariable();
 }
 
+IConsoleVariable* FConsoleManager::RegisterConsoleVariableRef(const TCHAR* Name, bool& RefValue, const TCHAR* Help, uint32 Flags)
+{
+	return AddConsoleObject(Name, new FConsoleVariableRef<bool>(RefValue, Help, (EConsoleVariableFlags)Flags))->AsVariable();
+}
+
 IConsoleCommand* FConsoleManager::RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandDelegate& Command, uint32 Flags)
 {
 	return AddConsoleObject(Name, new FConsoleCommand(Command, Help, (EConsoleVariableFlags)Flags))->AsCommand();
@@ -855,6 +860,7 @@ void FConsoleManager::UnregisterConsoleObject(IConsoleObject* CVar, bool bKeepSt
 	{
 		return;
 	}
+	FScopeLock ScopeLock(&ConsoleObjectsSynchronizationObject);
 
 	// Slow search for console object
 	const FString ObjName = FindConsoleObjectName( CVar );
@@ -867,12 +873,12 @@ void FConsoleManager::UnregisterConsoleObject(IConsoleObject* CVar, bool bKeepSt
 
 void FConsoleManager::UnregisterConsoleObject(const TCHAR* Name, bool bKeepState)
 {
+	FScopeLock ScopeLock(&ConsoleObjectsSynchronizationObject);
+
 	IConsoleObject* Object = FindConsoleObject(Name);
 
 	if(Object)
 	{
-		FScopeLock ScopeLock(&ConsoleObjectsSynchronizationObject);
-
 		IConsoleVariable* CVar = Object->AsVariable();
 
 		if(CVar && bKeepState)
@@ -916,7 +922,7 @@ void FConsoleManager::LoadHistoryIfNeeded()
 
 			if(Key == History)
 			{
-				HistoryEntries.Add(It.Value);
+				HistoryEntries.Add(It.Value.GetValue());
 			}
 		}
 	}
@@ -1768,7 +1774,8 @@ static TAutoConsoleVariable<int32> CVarDepthOfFieldQuality(
 	TEXT(" 0: Off\n")
 	TEXT(" 1: Low\n")
 	TEXT(" 2: high quality (default, adaptive, can be 4x slower)\n")
-	TEXT(" 3: Special mode only affecting CircleDOF for very high quality but slow rendering"),
+	TEXT(" 3: very high quality, intended for non realtime cutscenes, CircleDOF only (slow)\n")
+	TEXT(" 4: extremely high quality, intended for non realtime cutscenes, CircleDOF only (very slow)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarScreenPercentage(
@@ -1841,20 +1848,6 @@ static TAutoConsoleVariable<int32> CVarNumBufferedOcclusionQueries(
 	TEXT("Number of frames to buffer occlusion queries (including the current renderthread frame).\n")
 	TEXT("More frames reduces the chance of stalling the CPU waiting for results, but increases out of date query artifacts."),
 	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarDistField(
-	TEXT("r.GenerateMeshDistanceFields"),
-	0,	
-	TEXT("Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows.\n")
-	TEXT("Enabling will increase mesh build times and memory usage.  Changing this value will cause a rebuild of all static meshes."),
-	ECVF_ReadOnly);
-
-static TAutoConsoleVariable<int32> CVarLandscapeGI(
-	TEXT("r.GenerateLandscapeGIData"),
-	1,
-	TEXT("Whether to generate a low-resolution base color texture for landscapes for rendering real-time global illumination.\n")
-	TEXT("This feature requires GenerateMeshDistanceFields is also enabled, and will increase mesh build times and memory usage.\n"),
-	ECVF_Default);
 
 static TAutoConsoleVariable<int32> CVarMinLogVerbosity(
 	TEXT("con.MinLogVerbosity"),
@@ -2178,9 +2171,3 @@ static TAutoConsoleVariable<int32> CVarCheckSRVTransitions(
 	0,
 	TEXT("Tests that render targets are properly transitioned to SRV when SRVs are set."),
 	ECVF_RenderThreadSafe);  
-
-static TAutoConsoleVariable<int32> CVarHLODSystemEnabled(
-	TEXT("r.HLODEnabled"), 
-	1,
-	TEXT("Toggles whether or not the Hierarchical LOD system is enabled."),
-	ECVF_Scalability | ECVF_RenderThreadSafe);

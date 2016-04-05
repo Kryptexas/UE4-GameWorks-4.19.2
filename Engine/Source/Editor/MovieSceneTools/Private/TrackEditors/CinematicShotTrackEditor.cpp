@@ -155,14 +155,26 @@ bool FCinematicShotTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type)
 
 void FCinematicShotTrackEditor::Tick(float DeltaTime)
 {
-	if (FSlateThrottleManager::Get().IsAllowingExpensiveTasks())
+	TSharedPtr<ISequencer> SequencerPin = GetSequencer();
+	if (!SequencerPin.IsValid())
 	{
-		float SavedTime = GetSequencer()->GetGlobalTime();
+		return;
+	}
 
-		if (ThumbnailPool->DrawThumbnails())
+	EMovieScenePlayerStatus::Type PlaybackState = SequencerPin->GetPlaybackStatus();
+
+	if (FSlateThrottleManager::Get().IsAllowingExpensiveTasks() && PlaybackState != EMovieScenePlayerStatus::Playing && PlaybackState != EMovieScenePlayerStatus::Scrubbing)
+	{
+		SequencerPin->EnterSilentMode();
+
+		float SavedTime = SequencerPin->GetGlobalTime();
+
+		if (DeltaTime > 0.f && ThumbnailPool->DrawThumbnails())
 		{
-			GetSequencer()->SetGlobalTime(SavedTime);
+			SequencerPin->SetGlobalTimeDirectly(SavedTime);
 		}
+
+		SequencerPin->ExitSilentMode();
 	}
 }
 
@@ -205,11 +217,17 @@ UMovieSceneSubSection* FCinematicShotTrackEditor::CreateShotInternal(FString& Ne
 
 	FString NewShotDirectory = MovieSceneToolHelpers::ComposeShotName(NewShotPrefix, NewShotNumber, INDEX_NONE);
 	FString NewShotPath = SequencePath;
-	NewShotPath /= NewShotDirectory; // put this in the shot directory, ie. /Game/cine/max/sht0010
+
+	FString ShotDirectory = ProjectSettings->ShotDirectory;
+	if (!ShotDirectory.IsEmpty())
+	{
+		NewShotPath /= ShotDirectory;
+	}
+	NewShotPath /= NewShotDirectory; // put this in the shot directory, ie. /Game/cine/max/shots/shot0010
 
 	// Make sure this shot path is unique
 	FString NewPackageName = NewShotPath;
-	NewPackageName /= NewShotName; // ie. /Game/cine/max/sht0010/sht0010_001
+	NewPackageName /= NewShotName; // ie. /Game/cine/max/shots/shot0010/shot0010_001
 	if (!IsPackageNameUnique(ObjectList, NewPackageName))
 	{
 		while (1)
@@ -218,6 +236,10 @@ UMovieSceneSubSection* FCinematicShotTrackEditor::CreateShotInternal(FString& Ne
 			NewShotName = MovieSceneToolHelpers::ComposeShotName(NewShotPrefix, NewShotNumber, NewTakeNumber);
 			NewShotDirectory = MovieSceneToolHelpers::ComposeShotName(NewShotPrefix, NewShotNumber, INDEX_NONE);
 			NewShotPath = SequencePath;
+			if (!ShotDirectory.IsEmpty())
+			{
+				NewShotPath /= ShotDirectory;
+			}
 			NewShotPath /= NewShotDirectory;
 
 			NewPackageName = NewShotPath;
@@ -267,15 +289,22 @@ UMovieSceneSubSection* FCinematicShotTrackEditor::CreateShotInternal(FString& Ne
 		Duration = ShotToDuplicate->GetEndTime() - ShotToDuplicate->GetStartTime();
 	}
 
-	// Create a cinematic shot section and set the time to be at the end of this shot. 
 	UMovieSceneCinematicShotTrack* CinematicShotTrack = FindOrCreateCinematicShotTrack();
+
+	// Cut any existing overlapping sections on the top row
+	for (auto ShotSection : CinematicShotTrack->GetAllSections())
+	{
+		if (ShotSection->GetRowIndex() == 0 && NewShotStartTime > ShotSection->GetStartTime() && NewShotStartTime < ShotSection->GetEndTime())
+		{
+			ShotSection->SetEndTime(NewShotStartTime);
+		}
+	}
+
+	// Create a cinematic shot section and set the time to be at the end of this shot. 
 	UMovieSceneSubSection* NewSection = CinematicShotTrack->AddSequence(NewSequence, NewShotStartTime, Duration, bInsertShot);	
 
 	// Update the track instances to generate the new section
 	GetSequencer()->UpdateRuntimeInstances();
-
-	// Focus on the newly created shot
-	//GetSequencer()->FocusSequenceInstance(GetSequencer()->GetSequenceInstanceForSection(*NewSection));
 
 	return NewSection;
 }
@@ -463,14 +492,14 @@ TSharedRef<SWidget> FCinematicShotTrackEditor::HandleAddCinematicShotComboButton
 
 	MenuBuilder.AddMenuEntry(
 			LOCTEXT("InsertShot", "Insert Shot"),
-			LOCTEXT("InsertShotTooltip", "Insert new shot"),
+			LOCTEXT("InsertShotTooltip", "Insert new shot at current time"),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &FCinematicShotTrackEditor::InsertShotAtCurrentTime))
 	);
 
 	MenuBuilder.AddMenuEntry(
 			LOCTEXT("InsertFiller", "Insert Filler"),
-			LOCTEXT("InsertFillerTooltip", "Insert filler"),
+			LOCTEXT("InsertFillerTooltip", "Insert filler at current time"),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &FCinematicShotTrackEditor::InsertFillerAtCurrentTime))
 	);
@@ -631,7 +660,7 @@ bool FCinematicShotTrackEditor::CanAddSubSequence(const UMovieSceneSequence& Seq
 	return !SequenceCinematicShotTrack->ContainsSequence(*FocusedSequence, true);
 }
 
-void FCinematicShotTrackEditor::OnUpdateCameraCut(UObject* CameraObject)
+void FCinematicShotTrackEditor::OnUpdateCameraCut(UObject* CameraObject, bool bJumpCut)
 {
 	// Keep track of the camera when it switches so that the thumbnail can be drawn with the correct camera
 	CinematicShotCamera = Cast<AActor>(CameraObject);

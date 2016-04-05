@@ -45,9 +45,6 @@ private:
 
 	// SWidget interface
 
-	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-
 	void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 
@@ -72,6 +69,16 @@ private:
 	EVisibility GetExpanderVisibility() const;
 
 	/**
+	 * @return The color used to draw the display name.
+	 */
+	FSlateColor GetDisplayNameColor() const;
+
+	/**
+	 * @return The text displayed for the tool tip for the diplay name label. 
+	 */
+	FText GetDisplayNameToolTipText() const;
+
+	/**
 	 * @return The display name for this node.
 	 */
 	FText GetDisplayName() const;
@@ -84,12 +91,6 @@ private:
 
 	/** Get all descendant nodes from the given root node. */
 	void GetAllDescendantNodes(TSharedPtr<FSequencerDisplayNode> RootNode, TArray<TSharedRef<FSequencerDisplayNode> >& AllNodes);
-
-	/** Return the root node given an object node. */
-	TSharedPtr<FSequencerDisplayNode> GetRootNode(TSharedPtr<FSequencerDisplayNode> ObjectNode);
-
-	/** Called when nodes are selected. */
-	void OnSelectionChanged(TArray<TSharedPtr<FSequencerDisplayNode>> AffectedNodes);
 
 	/** Called when the user clicks the track color */
 	TSharedRef<SWidget> OnGetColorPicker() const;

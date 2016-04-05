@@ -199,8 +199,11 @@ FString MovieSceneToolHelpers::GenerateNewShotName(const TArray<UMovieSceneSecti
 		if (ParseShotName(BeforeShot->GetShotDisplayName().ToString(), BeforeShotPrefix, BeforeShotNumber, BeforeTakeNumber) &&
 			ParseShotName(NextShot->GetShotDisplayName().ToString(), NextShotPrefix, NextShotNumber, NextTakeNumber))
 		{
-			uint32 NewShotNumber = BeforeShotNumber + ( (NextShotNumber - BeforeShotNumber) / 2); // what if we can't find one? or conflicts with another?
-			return ComposeShotName(BeforeShotPrefix, NewShotNumber, ProjectSettings->FirstTakeNumber);
+			if (BeforeShotNumber < NextShotNumber)
+			{
+				uint32 NewShotNumber = BeforeShotNumber + ( (NextShotNumber - BeforeShotNumber) / 2); // what if we can't find one? or conflicts with another?
+				return ComposeShotName(BeforeShotPrefix, NewShotNumber, ProjectSettings->FirstTakeNumber);
+			}
 		}
 	}
 
@@ -220,9 +223,6 @@ void MovieSceneToolHelpers::GatherTakes(const UMovieSceneSection* Section, TArra
 	FAssetData ShotData(Shot->GetSequence()->GetOuter());
 
 	FString ShotPackagePath = ShotData.PackagePath.ToString();
-	int32 ShotLastSlashPos = INDEX_NONE;
-	ShotPackagePath.FindLastChar(TCHAR('/'), ShotLastSlashPos);
-	ShotPackagePath = ShotPackagePath.Left(ShotLastSlashPos);
 
 	FString ShotPrefix;
 	uint32 ShotNumber = INDEX_NONE;
@@ -238,9 +238,6 @@ void MovieSceneToolHelpers::GatherTakes(const UMovieSceneSection* Section, TArra
 		for (auto AssetObject : ObjectList)
 		{
 			FString AssetPackagePath = AssetObject.PackagePath.ToString();
-			int32 AssetLastSlashPos = INDEX_NONE;
-			AssetPackagePath.FindLastChar(TCHAR('/'), AssetLastSlashPos);
-			AssetPackagePath = AssetPackagePath.Left(AssetLastSlashPos);
 
 			if (AssetPackagePath == ShotPackagePath)
 			{
@@ -311,4 +308,118 @@ UObject* MovieSceneToolHelpers::GetTake(const UMovieSceneSection* Section, uint3
 	return nullptr;
 }
 
+class SEnumCombobox : public SComboBox<TSharedPtr<int32>>
+{
+public:
+	SLATE_BEGIN_ARGS(SEnumCombobox) {}
 
+	SLATE_ATTRIBUTE(TOptional<uint8>, IntermediateValue)
+	SLATE_ATTRIBUTE(int32, CurrentValue)
+	SLATE_ARGUMENT(FOnEnumSelectionChanged, OnEnumSelectionChanged)
+
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, const UEnum* InEnum)
+	{
+		Enum = InEnum;
+		IntermediateValue = InArgs._IntermediateValue;
+		CurrentValue = InArgs._CurrentValue;
+		check(CurrentValue.IsBound());
+		OnEnumSelectionChangedDelegate = InArgs._OnEnumSelectionChanged;
+
+		bUpdatingSelectionInternally = false;
+
+		for (int32 i = 0; i < Enum->NumEnums() - 1; i++)
+		{
+			if (Enum->HasMetaData( TEXT("Hidden"), i ) == false)
+			{
+				VisibleEnumNameIndices.Add(MakeShareable(new int32(i)));
+			}
+		}
+
+		SComboBox::Construct(SComboBox<TSharedPtr<int32>>::FArguments()
+			.ButtonStyle(FEditorStyle::Get(), "FlatButton.Light")
+			.OptionsSource(&VisibleEnumNameIndices)
+			.OnGenerateWidget_Lambda([this](TSharedPtr<int32> InItem)
+			{
+				return SNew(STextBlock)
+					.Text(Enum->GetDisplayNameText(*InItem));
+			})
+			.OnSelectionChanged(this, &SEnumCombobox::OnComboSelectionChanged)
+			.OnComboBoxOpening(this, &SEnumCombobox::OnComboMenuOpening)
+			.ContentPadding(FMargin(2, 0))
+			[
+				SNew(STextBlock)
+				.Font(FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont"))
+				.Text(this, &SEnumCombobox::GetCurrentValue)
+			]);
+	}
+
+private:
+	FText GetCurrentValue() const
+	{
+		if(IntermediateValue.IsSet() && IntermediateValue.Get().IsSet())
+		{
+			int32 IntermediateNameIndex = Enum->GetIndexByValue(IntermediateValue.Get().GetValue());
+			return Enum->GetDisplayNameText(IntermediateNameIndex);
+		}
+
+		int32 CurrentNameIndex = Enum->GetIndexByValue(CurrentValue.Get());
+		return Enum->GetDisplayNameText(CurrentNameIndex);
+	}
+
+	TSharedRef<SWidget> OnGenerateWidget(TSharedPtr<int32> InItem)
+	{
+		return SNew(STextBlock)
+			.Text(Enum->GetDisplayNameText(*InItem));
+	}
+
+	void OnComboSelectionChanged(TSharedPtr<int32> InSelectedItem, ESelectInfo::Type SelectInfo)
+	{
+		if (bUpdatingSelectionInternally == false)
+		{
+			OnEnumSelectionChangedDelegate.ExecuteIfBound(*InSelectedItem, SelectInfo);
+		}
+	}
+
+	void OnComboMenuOpening()
+	{
+		int32 CurrentNameIndex = Enum->GetIndexByValue(CurrentValue.Get());
+		TSharedPtr<int32> FoundNameIndexItem;
+		for ( int32 i = 0; i < VisibleEnumNameIndices.Num(); i++ )
+		{
+			if ( *VisibleEnumNameIndices[i] == CurrentNameIndex )
+			{
+				FoundNameIndexItem = VisibleEnumNameIndices[i];
+				break;
+			}
+		}
+		if ( FoundNameIndexItem.IsValid() )
+		{
+			bUpdatingSelectionInternally = true;
+			SetSelectedItem(FoundNameIndexItem);
+			bUpdatingSelectionInternally = false;
+		}
+	}	
+
+private:
+	const UEnum* Enum;
+
+	TAttribute<int32> CurrentValue;
+
+	TAttribute<TOptional<uint8>> IntermediateValue;
+
+	TArray<TSharedPtr<int32>> VisibleEnumNameIndices;
+
+	bool bUpdatingSelectionInternally;
+
+	FOnEnumSelectionChanged OnEnumSelectionChangedDelegate;
+};
+
+TSharedRef<SWidget> MovieSceneToolHelpers::MakeEnumComboBox(const UEnum* InEnum, TAttribute<int32> InCurrentValue, FOnEnumSelectionChanged InOnSelectionChanged, TAttribute<TOptional<uint8>> InIntermediateValue)
+{
+	return SNew(SEnumCombobox, InEnum)
+		.CurrentValue(InCurrentValue)
+		.OnEnumSelectionChanged(InOnSelectionChanged)
+		.IntermediateValue(InIntermediateValue);
+}

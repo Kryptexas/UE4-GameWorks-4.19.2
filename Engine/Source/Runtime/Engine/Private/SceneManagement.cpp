@@ -6,6 +6,7 @@
 #include "LightMap.h"
 #include "ShadowMap.h"
 
+bool GDrawListsLocked = false;
 
 static TAutoConsoleVariable<float> CVarLODTemporalLag(
 	TEXT("lod.TemporalLag"),
@@ -372,17 +373,15 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 	FLODMask LODToRender;
 
 	// Handle forced LOD level first
-	if(ForcedLODLevel >= 0)
+	if (ForcedLODLevel >= 0)
 	{
-		// Note: starting at -1 which is the default LODIndex, for cases where LODIndex didn't get set
-		int8 MinLOD = 127, MaxLOD = -1;
-		for(int32 MeshIndex = 0 ; MeshIndex < StaticMeshes.Num() ; ++MeshIndex)
+		int8 MaxLOD = 0;
+		for (int32 MeshIndex = 0; MeshIndex < StaticMeshes.Num(); ++MeshIndex)
 		{
 			const FStaticMesh&  Mesh = StaticMeshes[MeshIndex];
-			MinLOD = FMath::Min(MinLOD, Mesh.LODIndex);
 			MaxLOD = FMath::Max(MaxLOD, Mesh.LODIndex);
 		}
-		LODToRender.SetLOD(FMath::Clamp<int8>(ForcedLODLevel, MinLOD, MaxLOD));
+		LODToRender.SetLOD(FMath::Clamp<int8>(ForcedLODLevel, 0, MaxLOD));
 	}
 	else if (View.Family->EngineShowFlags.LOD)
 	{

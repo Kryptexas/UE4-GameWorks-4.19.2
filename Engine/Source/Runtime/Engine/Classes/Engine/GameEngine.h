@@ -125,12 +125,6 @@ public:
 	bool HandleApplyUserSettingsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif // !UE_BUILD_SHIPPING
 
-	/**
-	 * Called from the first Tick after LoadMap() has been called.
-	 * Turns off the loading movie if it was started by LoadMap().
-	 */
-	virtual void PostLoadMap();
-
 	/** Returns the GameViewport widget */
 	virtual TSharedPtr<SViewport> GetGameViewportWidget() const override
 	{

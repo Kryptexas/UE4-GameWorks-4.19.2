@@ -140,6 +140,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(DynamicShadows, SFG_LightingComponents, LOCTEXT("Dyna
 SHOWFLAG_ALWAYS_ACCESSIBLE(Particles, SFG_Normal, LOCTEXT("ParticlesSF", "Particles Sprite"))
 /** if SkeletalMeshes are getting rendered, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
 SHOWFLAG_ALWAYS_ACCESSIBLE(SkeletalMeshes, SFG_Normal, LOCTEXT("SkeletalMeshesSF", "Skeletal Meshes"))
+/** if elements using the SkinCache are getting rendered (cache is still populated but not rendered, c) */
+SHOWFLAG_FIXED_IN_SHIPPING(1, SkinCache, SFG_Advanced, LOCTEXT("SkinCacheSF", "Skin Cache (GPU vertex cache for skeletal meshes)"))
 /** if the builder brush (editor) is getting rendered */
 SHOWFLAG_FIXED_IN_SHIPPING(0, BuilderBrush, SFG_Hidden, LOCTEXT("BuilderBrushSF", "Builder Brush"))
 /** Render translucency, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
@@ -304,5 +306,7 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, WantedMipsAccuracy, SFG_Hidden, LOCTEXT("WantedMip
 SHOWFLAG_FIXED_IN_SHIPPING(0, TexelFactorAccuracy, SFG_Hidden, LOCTEXT("TexelFactorAccuracy", "Texel Factor Accuracy"))
 /** Visualize the accuracy of the material texture coordinate scale factors */
 SHOWFLAG_FIXED_IN_SHIPPING(0, TexCoordScaleAccuracy, SFG_Hidden, LOCTEXT("TexCoordScaleAccuray", "Texture Coordinate Scale Accuracy"))
+/** Outputs each texture lookup texcoord scale. Used in the texture streaming build. */
+SHOWFLAG_FIXED_IN_SHIPPING(0, TexCoordAnalysis, SFG_Hidden, LOCTEXT("TexCoordScaleAnalysis", "Texture Coordinate Scale Analysis"))
 #undef SHOWFLAG_ALWAYS_ACCESSIBLE
 #undef SHOWFLAG_FIXED_IN_SHIPPING

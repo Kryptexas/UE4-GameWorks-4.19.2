@@ -684,12 +684,17 @@ class FQueuedThreadPool& ThreadPool,
 			SampleDirections.Add(Sample);
 		}
 
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFields.MaxPerMeshResolution"));
+		const int32 PerMeshMax = CVar->GetValueOnAnyThread();
+
 		// Meshes with explicit artist-specified scale can go higher
-		const int32 MaxNumVoxelsOneDim = DistanceFieldResolutionScale <= 1 ? 64 : 128;
+		const int32 MaxNumVoxelsOneDim = DistanceFieldResolutionScale <= 1 ? PerMeshMax / 2 : PerMeshMax;
 		const int32 MinNumVoxelsOneDim = 8;
 
-		//@todo - project setting
-		const float NumVoxelsPerLocalSpaceUnit = .1f * DistanceFieldResolutionScale;
+		static const auto CVarDensity = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.DistanceFields.DefaultVoxelDensity"));
+		const float VoxelDensity = CVarDensity->GetValueOnAnyThread();
+
+		const float NumVoxelsPerLocalSpaceUnit = VoxelDensity * DistanceFieldResolutionScale;
 		FBox MeshBounds(Bounds.GetBox());
 
 		{
@@ -5194,7 +5199,7 @@ static void RetrieveValidStaticMeshComponentsForMerging(AActor* InActor, TArray<
 	TInlineComponentArray<UStaticMeshComponent*> Components;
 	InActor->GetComponents<UStaticMeshComponent>(Components);
 	// TODO: support derived classes from static component
-	Components.RemoveAll([](UStaticMeshComponent* Val){ return !(Val->IsA(UStaticMeshComponent::StaticClass()) || Val->IsA(USplineMeshComponent::StaticClass())); });
+	Components.RemoveAll([](UStaticMeshComponent* Val){ return !(Val->GetClass() == UStaticMeshComponent::StaticClass() || Val->IsA(USplineMeshComponent::StaticClass())); });
 
 	// TODO: support non-opaque materials
 	//Components.RemoveAll(&NonOpaqueMaterialPredicate);
@@ -6974,7 +6979,6 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		}
 	}
 
-#if 0 // TODO AG: The FRawMesh structure has changed
 	if (InSettings.bMergePhysicsData)
 	{
 		for (int32 MeshId = 0; MeshId < ComponentsToMerge.Num(); ++MeshId)
@@ -6989,7 +6993,6 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			}
 		}
 	}
-#endif
 
 	
 
@@ -7225,16 +7228,14 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	}
 
 	// Transform physics primitives to merged mesh pivot
-#if 0 // TODO AG: The FRawMesh structure has changed
-	if (InSettings.bMergePhysicsData && !MergedMesh.Pivot.IsZero())
+	if (InSettings.bMergePhysicsData && !MergedAssetPivot.IsZero())
 	{
-		FTransform PivotTM(-MergedMesh.Pivot);
+		FTransform PivotTM(-MergedAssetPivot);
 		for (auto& SourceMesh : SourceMeshes)
 		{
 			TransformPhysicsGeometry(PivotTM, SourceMesh.AggGeom);
 		}
 	}
-#endif 
 
 	// Compute target lightmap channel for each LOD
 	// User can specify any index, but there are should not be empty gaps in UV channel list
@@ -7318,7 +7319,6 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			StaticMesh->Materials.Add(Material);
 		}
 
-#if 0 // TODO AG: The FRawMesh structure has changed
 		if (InSettings.bMergePhysicsData && BodySetupSource)
 		{
 			StaticMesh->CreateBodySetup();
@@ -7330,7 +7330,6 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 				StaticMesh->BodySetup->AddCollisionFrom(SourceMesh.AggGeom);
 			}
 		}
-#endif
 
 		MainTask.EnterProgressFrame(10, LOCTEXT("MeshUtilities_MergeStaticMeshComponents_BuildingStaticMesh", "Building Static Mesh"));
 

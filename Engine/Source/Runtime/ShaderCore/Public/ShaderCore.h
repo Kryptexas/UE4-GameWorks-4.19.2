@@ -112,6 +112,9 @@ enum ECompilerFlags
 	/** Shader should use on chip memory instead of main memory ring buffer memory. */
 	CFLAG_OnChip,
 	CFLAG_KeepDebugInfo,
+	CFLAG_NoFastMath,
+	// Compile ES2 with ES3.1 features
+	CFLAG_FeatureLevelES31
 };
 
 /**
@@ -339,30 +342,15 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 	
 	/**
 	 * Works for TCHAR
-	 * e.g. SetDefine(TEXT("NUM_SAMPLES"), TEXT("1"));
+	 * e.g. SetDefine(TEXT("NAME"), TEXT("Test"));
+	 * e.g. SetDefine(TEXT("NUM_SAMPLES"), 1);
+	 * e.g. SetDefine(TEXT("DOIT"), true);
 	 */
-	void SetDefine(const TCHAR* Name, const TCHAR* Value)
-	{
-		Definitions.SetDefine(Name, Value);
-	}
-
-	/**
-	 * Works for uint32 and bool
-	 * e.g. OutEnvironment.SetDefine(TEXT("REALLY"), bReally);
-	 * e.g. OutEnvironment.SetDefine(TEXT("NUM_SAMPLES"), NumSamples);
-	 */
-	void SetDefine(const TCHAR* Name, uint32 Value)
-	{
-		Definitions.SetDefine(Name, Value);
-	}
-
-	/**
-	 * Works for float
-	 */
-	void SetFloatDefine(const TCHAR* Name, float Value)
-	{
-		Definitions.SetFloatDefine(Name, Value);
-	}
+	void SetDefine(const TCHAR* Name, const TCHAR* Value)	{ Definitions.SetDefine(Name, Value); }
+	void SetDefine(const TCHAR* Name, uint32 Value)			{ Definitions.SetDefine(Name, Value); }
+	void SetDefine(const TCHAR* Name, int32 Value)			{ Definitions.SetDefine(Name, (uint32)Value); }
+	void SetDefine(const TCHAR* Name, bool Value)			{ Definitions.SetDefine(Name, (uint32)Value); }
+	void SetDefine(const TCHAR* Name, float Value)			{ Definitions.SetFloatDefine(Name, Value); }
 
 	const TMap<FString,FString>& GetDefinitions() const
 	{

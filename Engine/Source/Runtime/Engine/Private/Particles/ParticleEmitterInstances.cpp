@@ -144,84 +144,15 @@ DECLARE_CYCLE_STAT(TEXT("EmitterInstance PrepPerInstanceBlock"), STAT_PrepPerIns
 DECLARE_CYCLE_STAT(TEXT("EmitterInstance Resize"), STAT_ParticleEmitterInstance_Resize, STATGROUP_Particles);
 
 
-/*-----------------------------------------------------------------------------
-	Fast allocators for small block data being sent to the render thread
------------------------------------------------------------------------------*/
-
-static TLockFreeFixedSizeAllocator<256, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc256;
-static TLockFreeFixedSizeAllocator<384, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc384;
-static TLockFreeFixedSizeAllocator<512, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc512;
-static TLockFreeFixedSizeAllocator<768, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc768;
-static TLockFreeFixedSizeAllocator<1024, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc1024;
-static TLockFreeFixedSizeAllocator<1792, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc1792;
-static TLockFreeFixedSizeAllocator<2048, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc2048;
-
 FORCEINLINE static void* FastParticleSmallBlockAlloc(size_t AllocSize)
 {
-	check(AllocSize > 0);
-	if (AllocSize <= 768)
-	{
-		if (AllocSize <= 256)
-		{
-			return FastParticleSmallBlockAlloc256.Allocate();
-		}
-		if (AllocSize <= 384)
-		{
-			return FastParticleSmallBlockAlloc384.Allocate();
-		}
-		if (AllocSize <= 512)
-		{
-			return FastParticleSmallBlockAlloc512.Allocate();
-		}
-		return FastParticleSmallBlockAlloc768.Allocate();
-	}
-	if (AllocSize <= 1024)
-	{
-		return FastParticleSmallBlockAlloc1024.Allocate();
-	}
-	if (AllocSize <= 1792)
-	{
-		return FastParticleSmallBlockAlloc1792.Allocate();
-	}
-	if (AllocSize <= 2048)
-	{
-		return FastParticleSmallBlockAlloc2048.Allocate();
-	}
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
 	return FMemory::Malloc(AllocSize);
 }
 
 FORCEINLINE static void FastParticleSmallBlockFree(void *RawMemory, size_t AllocSize)
 {
-	check(AllocSize > 0);
-	if (AllocSize <= 768)
-	{
-		if (AllocSize <= 256)
-		{
-			return FastParticleSmallBlockAlloc256.Free(RawMemory);
-		}
-		if (AllocSize <= 384)
-		{
-			return FastParticleSmallBlockAlloc384.Free(RawMemory);
-		}
-		if (AllocSize <= 512)
-		{
-			return FastParticleSmallBlockAlloc512.Free(RawMemory);
-		}
-		return FastParticleSmallBlockAlloc768.Free(RawMemory);
-	}
-
-	if (AllocSize <= 1024)
-	{
-		return FastParticleSmallBlockAlloc1024.Free(RawMemory);
-	}
-	if (AllocSize <= 1792)
-	{
-		return FastParticleSmallBlockAlloc1792.Free(RawMemory);
-	}
-	if (AllocSize <= 2048)
-	{
-		return FastParticleSmallBlockAlloc2048.Free(RawMemory);
-	}
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
 	FMemory::Free(RawMemory);
 }
 
@@ -791,9 +722,10 @@ void FParticleEmitterInstance::CheckEmitterFinished()
 			const UParticleModuleRequired* RequiredModule = LODLevel->RequiredModule;
 			check(RequiredModule);
 
-			if (SpawnModule->GetMaximumSpawnRate() == 0
+			if (HasCompleted() || 
+				(SpawnModule->GetMaximumSpawnRate() == 0
 				&& RequiredModule->EmitterDuration == 0
-				&& RequiredModule->EmitterLoops == 0
+				&& RequiredModule->EmitterLoops == 0)
 				)
 			{
 				bEmitterIsDone = true;
@@ -2649,6 +2581,7 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
  * Gathers material relevance flags for this emitter instance.
  * @param OutMaterialRelevance - Pointer to where material relevance flags will be stored.
  * @param LODLevel - The LOD level for which to compute material relevance flags.
+ * @param InFeatureLevel - The relevant shader feature level.
  */
 void FParticleEmitterInstance::GatherMaterialRelevance(FMaterialRelevance* OutMaterialRelevance, const UParticleLODLevel* LODLevel, ERHIFeatureLevel::Type InFeatureLevel) const
 {
@@ -2760,10 +2693,11 @@ FParticleSpriteEmitterInstance::~FParticleSpriteEmitterInstance()
  *	Retrieves the dynamic data for the emitter
  *	
  *	@param	bSelected					Whether the emitter is selected in the editor
+ *  @param InFeatureLevel				The relevant shader feature level.
  *
  *	@return	FDynamicEmitterDataBase*	The dynamic data, or NULL if it shouldn't be rendered
  */
-FDynamicEmitterDataBase* FParticleSpriteEmitterInstance::GetDynamicData(bool bSelected)
+FDynamicEmitterDataBase* FParticleSpriteEmitterInstance::GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSpriteEmitterInstance_GetDynamicData);
 
@@ -2794,41 +2728,6 @@ FDynamicEmitterDataBase* FParticleSpriteEmitterInstance::GetDynamicData(bool bSe
 	NewEmitterData->Init( bSelected );
 
 	return NewEmitterData;
-}
-
-/**
- *	Updates the dynamic data for the instance
- *
- *	@param	DynamicData		The dynamic data to fill in
- *	@param	bSelected		true if the particle system component is selected
- */
-bool FParticleSpriteEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSpriteEmitterInstance_UpdateDynamicData);
-
-	checkf((DynamicData->GetSource().eEmitterType == DET_Sprite), TEXT("Sprite::UpdateDynamicData> Invalid DynamicData type!"));
-
-	if (ActiveParticles <= 0 || !bEnabled)
-	{
-		return false;
-	}
-
-	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
-	if ((LODLevel == NULL) || (LODLevel->bEnabled == false))
-	{
-		return false;
-	}
-	FDynamicSpriteEmitterData* SpriteDynamicData = (FDynamicSpriteEmitterData*)DynamicData;
-	// Now fill in the source data
-	if( !FillReplayData( SpriteDynamicData->Source ) )
-	{
-		return false;
-	}
-
-	// Setup dynamic render data.  Only call this AFTER filling in source data for the emitter.
-	SpriteDynamicData->Init( bSelected );
-
-	return true;
 }
 
 /**
@@ -3034,6 +2933,42 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MeshTickTime);
 
+	if (bEnabled && MeshMotionBlurOffset)
+	{
+		for (int32 i = 0; i < ActiveParticles; i++)
+		{
+			DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
+
+			FMeshRotationPayloadData* RotationPayloadData = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
+			FMeshMotionBlurPayloadData* MotionBlurPayloadData = (FMeshMotionBlurPayloadData*)((uint8*)&Particle + MeshMotionBlurOffset);
+
+			MotionBlurPayloadData->BaseParticlePrevRotation = Particle.Rotation;
+			MotionBlurPayloadData->BaseParticlePrevVelocity = Particle.Velocity;
+			MotionBlurPayloadData->BaseParticlePrevSize = Particle.Size;
+			MotionBlurPayloadData->PayloadPrevRotation = RotationPayloadData->Rotation;
+
+			if (CameraPayloadOffset)
+			{
+				const FCameraOffsetParticlePayload* CameraPayload = (const FCameraOffsetParticlePayload*)((const uint8*)&Particle + CameraPayloadOffset);
+				MotionBlurPayloadData->PayloadPrevCameraOffset = CameraPayload->Offset;
+			}
+			else
+			{
+				MotionBlurPayloadData->PayloadPrevCameraOffset = 0.0f;
+			}
+
+			if (OrbitModuleOffset)
+			{
+				const FOrbitChainModuleInstancePayload* OrbitPayload = (const FOrbitChainModuleInstancePayload*)((const uint8*)&Particle + OrbitModuleOffset);
+				MotionBlurPayloadData->PayloadPrevOrbitOffset = OrbitPayload->Offset;
+			}
+			else
+			{
+				MotionBlurPayloadData->PayloadPrevOrbitOffset = FVector::ZeroVector;
+			}
+		}
+	}
+
 	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
 	// See if we are handling mesh rotation
 	if (MeshRotationActive && bEnabled)
@@ -3226,36 +3161,6 @@ void FParticleMeshEmitterInstance::UpdateBoundingBox(float DeltaTime)
 			FPlatformMisc::Prefetch(ParticleData, ParticleStride * ParticleIndices[i+1]);
 			FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 
-			if (MeshMotionBlurOffset)
-			{
-				FMeshRotationPayloadData* RotationPayloadData = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
-				FMeshMotionBlurPayloadData* MotionBlurPayloadData = (FMeshMotionBlurPayloadData*)((uint8*)&Particle + MeshRotationOffset);
-				MotionBlurPayloadData->BaseParticlePrevRotation = Particle.Rotation;
-				MotionBlurPayloadData->BaseParticlePrevVelocity = Particle.Velocity;
-				MotionBlurPayloadData->BaseParticlePrevSize = Particle.Size;
-				MotionBlurPayloadData->PayloadPrevRotation = RotationPayloadData->Rotation;
-
-				if (CameraPayloadOffset)
-				{
-					const FCameraOffsetParticlePayload* CameraPayload = (const FCameraOffsetParticlePayload*)((const uint8*)&Particle + CameraPayloadOffset);
-					MotionBlurPayloadData->PayloadPrevCameraOffset = CameraPayload->Offset;
-				}
-				else
-				{
-					MotionBlurPayloadData->PayloadPrevCameraOffset = 0.0f;
-				}
-
-				if (OrbitModuleOffset)
-				{
-					const FOrbitChainModuleInstancePayload* OrbitPayload = (const FOrbitChainModuleInstancePayload*)((const uint8*)&Particle + OrbitModuleOffset);
-					MotionBlurPayloadData->PayloadPrevOrbitOffset = OrbitPayload->Offset;
-				}
-				else
-				{
-					MotionBlurPayloadData->PayloadPrevOrbitOffset = FVector::ZeroVector;
-				}
-			}
-
 			// Do linear integrator and update bounding box
 			Particle.OldLocation = Particle.Location;
 			if ((Particle.Flags & STATE_Particle_Freeze) == 0)
@@ -3334,7 +3239,7 @@ uint32 FParticleMeshEmitterInstance::RequiredBytes()
 	if (MeshTypeData)
 	{
 		const auto* MeshTD = static_cast<const UParticleModuleTypeDataMesh*>(MeshTypeData);
-		if (MeshTypeData->bEnableMotionBlur)
+		if (MeshTypeData->IsMotionBlurEnabled())
 		{
 			MeshMotionBlurOffset = PayloadOffset + uiBytes;
 			uiBytes += sizeof(FMeshMotionBlurPayloadData);
@@ -3425,10 +3330,11 @@ bool FParticleMeshEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* Curr
  *	Retrieves the dynamic data for the emitter
  *	
  *	@param	bSelected					Whether the emitter is selected in the editor
+ *  @param InFeatureLevel				The relevant shader feature level.
  *
  *	@return	FDynamicEmitterDataBase*	The dynamic data, or NULL if it shouldn't be rendered
  */
-FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData(bool bSelected)
+FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData(bool bSelected, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleMeshEmitterInstance_GetDynamicData);
 
@@ -3460,50 +3366,11 @@ FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData(bool bSele
 	NewEmitterData->Init(
 		bSelected,
 		this,
-		MeshTypeData->Mesh
+		MeshTypeData->Mesh,
+		InFeatureLevel
 		);
 
 	return NewEmitterData;
-}
-
-/**
- *	Updates the dynamic data for the instance
- *
- *	@param	DynamicData		The dynamic data to fill in
- *	@param	bSelected		true if the particle system component is selected
- */
-bool FParticleMeshEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* DynamicData, bool bSelected)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleMeshEmitterInstance_UpdateDynamicData);
-
-	if (ActiveParticles <= 0 || !bEnabled)
-	{
-		return false;
-	}
-
-	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
-	if ((LODLevel == NULL) || (LODLevel->bEnabled == false))
-	{
-		return false;
-	}
-
-	checkf((DynamicData->GetSource().eEmitterType == DET_Mesh), TEXT("Mesh::UpdateDynamicData> Invalid DynamicData type!"));
-
-	FDynamicMeshEmitterData* MeshDynamicData = (FDynamicMeshEmitterData*)DynamicData;
-	// Now fill in the source data
-	if( !FillReplayData( MeshDynamicData->Source ) )
-	{
-		return false;
-	}
-
-	// Setup dynamic render data.  Only call this AFTER filling in source data for the emitter.
-	MeshDynamicData->Init(
-		bSelected,
-		this,
-		MeshTypeData->Mesh
-		);
-
-	return true;
 }
 
 /**
@@ -3582,11 +3449,12 @@ void FParticleMeshEmitterInstance::SetMeshMaterials( const TArray<UMaterialInter
  * Gathers material relevance flags for this emitter instance.
  * @param OutMaterialRelevance - Pointer to where material relevance flags will be stored.
  * @param LODLevel - The LOD level for which to compute material relevance flags.
+ * @param InFeatureLevel - The relevant shader feature level.
  */
 void FParticleMeshEmitterInstance::GatherMaterialRelevance( FMaterialRelevance* OutMaterialRelevance, const UParticleLODLevel* LODLevel, ERHIFeatureLevel::Type InFeatureLevel ) const
 {
 	TArray<UMaterialInterface*,TInlineAllocator<2> > Materials;
-	GetMeshMaterials(Materials, LODLevel);
+	GetMeshMaterials(Materials, LODLevel, InFeatureLevel, true); // Allow log issues since GatherMaterialRelevance is only called when the proxy is created.
 	for (int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); ++MaterialIndex)
 	{
 		(*OutMaterialRelevance) |= Materials[MaterialIndex]->GetRelevance(InFeatureLevel);
@@ -3595,7 +3463,9 @@ void FParticleMeshEmitterInstance::GatherMaterialRelevance( FMaterialRelevance* 
 
 void FParticleMeshEmitterInstance::GetMeshMaterials(
 	TArray<UMaterialInterface*,TInlineAllocator<2> >& OutMaterials,
-	const UParticleLODLevel* LODLevel
+	const UParticleLODLevel* LODLevel,
+	ERHIFeatureLevel::Type InFeatureLevel,
+	bool bLogWarnings
 	) const
 {
 	if (MeshTypeData && MeshTypeData->Mesh)
@@ -3639,6 +3509,16 @@ void FParticleMeshEmitterInstance::GetMeshMaterials(
 			if (Material == NULL)
 			{
 				Material = MeshTypeData->Mesh->GetMaterial(LODModel.Sections[SectionIndex].MaterialIndex);
+			}
+
+			// Check that adjacency data is not required since the implementation does not support it.
+			if (RequiresAdjacencyInformation(Material, LODModel.VertexFactory.GetType(), InFeatureLevel))
+			{
+				if (bLogWarnings)
+				{
+					UE_LOG(LogParticles, Warning, TEXT("Material %s requires adjacency information because of Crack Free Displacement or PN Triangle Tesselation, which is not supported with particles. Falling back to DefaultMaterial."), *Material->GetName());
+				}
+				Material = NULL;
 			}
 
 			// Use the default material...
@@ -3769,20 +3649,14 @@ void FDynamicEmitterDataBase::operator delete(void *RawMemory, size_t AllocSize)
 	FastParticleSmallBlockFree(RawMemory, AllocSize);
 }	
 
-static TLockFreeFixedSizeAllocator<sizeof(FParticleDynamicData), PLATFORM_CACHE_LINE_SIZE> ParticleDynamicDataAllocator;
-
 void* FParticleDynamicData::operator new(size_t AllocSize)
 {
-	check(AllocSize == sizeof(FParticleDynamicData));
-	return ParticleDynamicDataAllocator.Allocate();
-	//return FMemory::Malloc(AllocSize);
+	return FMemory::Malloc(AllocSize);
 }
 
 void FParticleDynamicData::operator delete(void *RawMemory, size_t AllocSize)
 {
-	check(AllocSize == sizeof(FParticleDynamicData));
-	ParticleDynamicDataAllocator.Free(RawMemory);
-	//FMemory::Free(RawMemory);
+	FMemory::Free(RawMemory);
 }	
 
 FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* RequiredModule)

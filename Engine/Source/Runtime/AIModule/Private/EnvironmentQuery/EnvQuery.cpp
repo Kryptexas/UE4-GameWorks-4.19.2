@@ -139,3 +139,15 @@ void UEnvQuery::PostLoad()
 		QueryName = GetFName();
 	}
 }
+
+#if WITH_EDITOR
+void UEnvQuery::PostDuplicate(bool bDuplicateForPIE)
+{
+	if (bDuplicateForPIE == false)
+	{
+		QueryName = GetFName();
+	}
+
+	Super::PostDuplicate(bDuplicateForPIE);
+}
+#endif // WITH_EDITOR

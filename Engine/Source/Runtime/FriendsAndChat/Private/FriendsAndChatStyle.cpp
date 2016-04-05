@@ -211,7 +211,6 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 			.SetColorAndOpacity(FriendStyle.FriendsChatStyle.PartyHyperlinkChatColor);
 
 		const FTextBlockStyle WhisperChatFont = FTextBlockStyle(DefaultText)
-			.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsChatFont)
 			.SetColorAndOpacity(FriendStyle.FriendsChatStyle.WhisperHyperlinkChatColor);
 
 		const FHyperlinkStyle GlobalChatHyperlink = FHyperlinkStyle()

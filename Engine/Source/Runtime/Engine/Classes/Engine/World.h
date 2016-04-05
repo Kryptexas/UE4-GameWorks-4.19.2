@@ -2659,6 +2659,9 @@ public:
 	/** Returns whether script is executing within a mobile preview window */
 	bool IsPlayInMobilePreview() const;
 
+	/** Returns whether script is executing within a vulkan preview window */
+	bool IsPlayInVulkanPreview() const;
+
 	/** Returns true if this world is any kind of game world (including PIE worlds) */
 	bool IsGameWorld() const;
 
@@ -2775,10 +2778,16 @@ public:
 		return (OwningGameInstance ? OwningGameInstance->GetTimerManager() : *TimerManager);
 	}
 
-	/** Returns LatentActionManager instance for this world. */
+	/**
+	 * Returns LatentActionManager instance, preferring the one allocated by the game instance if a game instance is associated with this.
+	 *
+	 * This pattern is a little bit of a kludge to allow UWorld clients (for instance, preview world in the Blueprint Editor
+ 	 * to not worry about replacing features from GameInstance. Alternatively we could mandate that they implement a game instance
+	 * for their scene.
+	 */
 	inline FLatentActionManager& GetLatentActionManager()
 	{
-		return LatentActionManager;
+		return (OwningGameInstance ? OwningGameInstance->GetLatentActionManager() : LatentActionManager);
 	}
 
 	/** Sets the owning game instance for this world */
@@ -2971,6 +2980,5 @@ FORCEINLINE_DEBUGGABLE bool UWorld::ComponentSweepMulti(TArray<struct FHitResult
 	// Pass through to FQuat version.
 	return ComponentSweepMulti(OutHits, PrimComp, Start, End, Rot.Quaternion(), Params);
 }
-
 
 

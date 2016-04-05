@@ -43,6 +43,8 @@ enum EKismetCompiledStatementType
 	KCST_InstrumentedWireExit,		// Instrumented wiretrace exit
 	KCST_InstrumentedStatePush,		// Instrumented state push
 	KCST_InstrumentedStateRestore,	// Instrumented state restore
+	KCST_InstrumentedStateReset,	// Instrumented state reset
+	KCST_InstrumentedStateSuspend,	// Instrumented state suspend
 	KCST_InstrumentedStatePop,		// Instrumented state pop
 	//
 	KCST_ArrayGetByRef,
@@ -96,6 +98,9 @@ struct FBlueprintCompiledStatement
 
 	// Exec pin about to execute (KCST_WireTraceSite)
 	class UEdGraphPin* ExecContext;
+
+	// Pure node output pin(s) linked to exec node input pins (KCST_InstrumentedPureNodeEntry)
+	TArray<class UEdGraphPin*> PureOutputContextArray;
 
 	// Comment text
 	FString Comment;

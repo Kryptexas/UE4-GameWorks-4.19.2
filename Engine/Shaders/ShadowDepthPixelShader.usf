@@ -22,8 +22,8 @@
 // to increase AO contribution. The AO calculation works best with closed geometry and small-medium scale objects
 #define LPV_GV_BOOST				1
 
-//@todo-rco: Remove this when reenabling for OpenGL & Metal
-#if !COMPILER_GLSL && !COMPILER_METAL
+//@todo-rco: Remove this when reenabling for OpenGL
+#if !COMPILER_HLSLCC
 #if REFLECTIVE_SHADOW_MAP
 	#include "LPVWriteVplCommon.usf"
 
@@ -61,9 +61,13 @@ void Main(
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Inputs.FactoryInterpolants, SvPosition);
 	FPixelMaterialInputs PixelMaterialInputs;
 	#if INTERPOLATE_POSITION
-		{
-			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, SvPosition, ScreenPosition, 1, SvPositionToResolvedTranslatedWorld(SvPosition), SvPosition.xyz);
+	    {
+			float4 ScreenPosition  = SvPositionToScreenPosition(SvPosition);  
+			
+			float3 TranslatedWorld = Inputs.PixelPosition.xyz;
+
+			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, SvPosition, ScreenPosition, 1, TranslatedWorld, TranslatedWorld);
+
 		}
 	#else
 		CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, 1);
@@ -92,8 +96,8 @@ void Main(
 	float3 normal = normalize( MaterialParameters.TangentToWorld[2] ); // Smooth normal
 	float3 flux = GetMaterialBounceColor(PixelMaterialInputs);
 
-//@todo-rco: Remove this when reenabling for OpenGL & Metal
-#if !COMPILER_GLSL && !COMPILER_METAL
+//@todo-rco: Remove this when reenabling for OpenGL
+#if !COMPILER_HLSLCC
 #if MATERIAL_INJECT_EMISSIVE_INTO_LPV
 	float3 emissive = GetMaterialEmissive(PixelMaterialInputs);
 

@@ -156,10 +156,7 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 	ENGINE_API void SetDuration(float NewDuration);
 
 	/** Returns true is this AnimNotify is a BranchingPoint */
-	ENGINE_API bool IsBranchingPoint() const
-	{
-		return (MontageTickType == EMontageNotifyTickType::BranchingPoint) && GetLinkedMontage();
-	}
+	ENGINE_API bool IsBranchingPoint() const;
 
 	/** Returns true if this is blueprint derived notifies **/
 	bool IsBlueprintNotify() const
@@ -334,3 +331,21 @@ struct FMarkerSyncData
 
 // Shortcut for the allocator used by animation nodes.
 class FAnimStackAllocator: public TMemStackAllocator<>{};
+
+/** 
+ * Structure for all Animation Weight helper functions.
+ */
+struct FAnimWeight
+{
+	/** Helper function to determine if a weight is relevant. */
+	static FORCEINLINE bool IsRelevant(float InWeight)
+	{
+		return (InWeight > ZERO_ANIMWEIGHT_THRESH);
+	}
+
+	/** Helper function to determine if a normalized weight is considered full weight. */
+	static FORCEINLINE bool IsFullWeight(float InWeight)
+	{
+		return (InWeight >= (1.f - ZERO_ANIMWEIGHT_THRESH));
+	}
+};

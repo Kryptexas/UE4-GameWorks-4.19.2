@@ -34,6 +34,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	virtual FText GetDefaultDisplayName() const override;
+	virtual bool CanRename() const override { return false; }
 #endif
 
 public:

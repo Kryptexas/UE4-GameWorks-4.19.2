@@ -16,7 +16,7 @@
 
 
 /** A default window size for the color picker which looks nice */
-const FVector2D SColorPicker::DEFAULT_WINDOW_SIZE = FVector2D(308, 458);
+const FVector2D SColorPicker::DEFAULT_WINDOW_SIZE = FVector2D(441, 537);
 
 /** The max time allowed for updating before we shut off auto-updating */
 const double SColorPicker::MAX_ALLOWED_UPDATE_TIME = 0.1;

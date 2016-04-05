@@ -441,6 +441,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "Get PI", CompactNodeTitle = "PI"), Category="Math|Trig")
 	static float GetPI();
 
+	/* Returns the value of TAU (= 2 * PI) */
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Get TAU", CompactNodeTitle = "TAU"), Category="Math|Trig")
+	static float GetTAU();
+
 	/* Returns radians value based on the input degrees */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "Degrees To Radians", CompactNodeTitle = "D2R"), Category="Math|Trig")
 	static float DegreesToRadians(float A);
@@ -772,7 +776,17 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Vector", meta=(Keywords = "ProjectOnTo"))
 	static FVector ProjectVectorOnToVector(FVector V, FVector Target);
 
-	 /**
+	/**
+	* Projects a point onto a plane defined by a point on the plane and a plane normal.
+	*
+	* @param  A1 Start of first line segment
+	* @param  PlaneBase A point on the plane.
+	* @param  PlaneNormal Normal of the plane.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static void FindNearestPointsOnLineSegments(FVector Segment1Start, FVector Segment1End, FVector Segment2Start, FVector Segment2End, FVector& Segment1Point, FVector& Segment2Point);
+	
+	/**
 	 * Projects a point onto a plane defined by a point on the plane and a plane normal.
 	 *
 	 * @param  Point Point to project onto the plane.
@@ -917,6 +931,20 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "LinearColor * Float", CompactNodeTitle = "*", Keywords = "* multiply"), Category="Math|Color")
 	static FLinearColor Multiply_LinearColorFloat(FLinearColor A, float B);
 
+	//
+	// Plane functions.
+	//
+	
+	/** 
+	* Creates a plane with a facing direction of Normal at the given Point
+	* 
+	* @param Point	A point on the plane
+	* @param Normal  The Normal of the plane at Point
+	* @return Plane instance
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Plane", meta=(Keywords="make plane"))
+	static FPlane MakePlaneFromPointAndNormal(FVector Point, FVector Normal);
+	
 	//
 	// DateTime functions.
 	//

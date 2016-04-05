@@ -18,7 +18,7 @@ public:
 protected:
 	struct FRepData
 	{
-		FString TreeName;
+		FString CompName;
 		FString TreeDesc;
 		FString BlackboardDesc;
 

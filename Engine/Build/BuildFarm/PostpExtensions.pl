@@ -16,6 +16,10 @@
 	# Warning from Android monolithic builds about the javac version 
 	".*major version 51 is newer than 50.*",
 	
+	# SignTool errors which we can retry and recover from
+	"SignTool Error: ",
+	
+	
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
 #	".*Sync.VerifyKnownFileInManifest: ERROR:.*",
@@ -98,8 +102,23 @@ unshift @::gMatchers, (
 	},
 	{
 		id =>               "automationException",
-		pattern =>          q{^.* AutomationTool.AutomationException: },
+		pattern =>          q{AutomationTool\\.AutomationException: },
 		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^  at "));}
+	},
+	{
+		id =>				"ubtFatal",
+		pattern =>			q{^FATAL:},
+		action =>			q{incValue("errors"); diagnostic("AutomationTool", "error")}
+	},
+	{
+		id =>				"ubtError",
+		pattern =>			q{^ERROR:},
+		action =>			q{incValue("errors"); diagnostic("AutomationTool", "error")}
+	},
+	{
+		id =>				"ubtWarning",
+		pattern =>			q{^WARNING:},
+		action =>			q{incValue("warnings"); diagnostic("AutomationTool", "warning")}
 	}
 );
 

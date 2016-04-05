@@ -70,7 +70,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		if( FParse::Value( *CurrentSwitch, TEXT( "PACKAGE="), Package ) )
 		{
 			FString PackageFile;
-			FPackageName::SearchForPackageOnDisk( Package, NULL, &PackageFile, false );
+			FPackageName::SearchForPackageOnDisk( Package, NULL, &PackageFile );
 			PackageNames.Add( *PackageFile );
 			bExplicitPackages = true;
 		}
@@ -95,7 +95,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 				if (NextMap.Len() > 0)
 				{
 					FString MapFile;
-					FPackageName::SearchForPackageOnDisk(NextMap, NULL, &MapFile, false);
+					FPackageName::SearchForPackageOnDisk(NextMap, NULL, &MapFile);
 					PackageNames.Add(*MapFile);
 					bExplicitPackages = true;
 				}
@@ -103,7 +103,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 				Maps = Maps.Right(Maps.Len() - (PlusIdx + 1));
 			}
 			FString MapFile;
-			FPackageName::SearchForPackageOnDisk(Maps, NULL, &MapFile, false);
+			FPackageName::SearchForPackageOnDisk(Maps, NULL, &MapFile);
 			PackageNames.Add(*MapFile);
 			bExplicitPackages = true;
 		}
@@ -122,7 +122,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 				for (auto Line : Lines)
 				{
 					FString PackageFile;
-					if (FPackageName::SearchForPackageOnDisk(Line, NULL, &PackageFile, false))
+					if (FPackageName::SearchForPackageOnDisk(Line, NULL, &PackageFile))
 					{
 						PackageNames.AddUnique(*PackageFile);
 					}
@@ -1273,14 +1273,14 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 			{
 				if (It.Key() == TEXT("Package"))
 				{
-					PackagesToFullyLoad.Add(*It.Key().ToString(), *It.Value());
-					if ( FindPackage(NULL, *It.Value()) )
+					PackagesToFullyLoad.Add(*It.Key().ToString(), *It.Value().GetValue());
+					if ( FindPackage(NULL, *It.Value().GetValue()) )
 					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("Startup package '%s' was loaded"), *It.Value());
+						UE_LOG(LogContentCommandlet, Warning, TEXT("Startup package '%s' was loaded"), *It.Value().GetValue());
 					}
 					else
 					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("Startup package '%s' was not loaded during FStartupPackages::LoadAll..."), *It.Value());
+						UE_LOG(LogContentCommandlet, Warning, TEXT("Startup package '%s' was not loaded during FStartupPackages::LoadAll..."), *It.Value().GetValue());
 					}
 				}
 			}
@@ -1310,7 +1310,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 		for (FConfigSectionMap::TIterator PackageIt(PackagesToFullyLoad); PackageIt; ++PackageIt)
 		{
 			// add dependencies for the per-map packages for this map (if any)
-			TArray<FString>* Packages = PerMapCookPackages.Find(PackageIt.Value());
+			TArray<FString>* Packages = PerMapCookPackages.Find(PackageIt.Value().GetValue());
 			if (Packages != NULL)
 			{
 				for (int32 PackageIndex = 0; PackageIndex < Packages->Num(); PackageIndex++)
@@ -1344,7 +1344,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 			// there may be multiple sublevels to load if this package is a persistent level with sublevels
 			TArray<FString> PackagesToLoad;
 			// start off just loading this package (more may be added in the loop)
-			PackagesToLoad.Add(*PackageIt.Value());
+			PackagesToLoad.Add(*PackageIt.Value().GetValue());
 
 			for (int32 PackageIndex = 0; PackageIndex < PackagesToLoad.Num(); PackageIndex++)
 			{

@@ -164,21 +164,49 @@ void FSkeletalMeshObjectCPUSkin::EnableBlendWeightRendering(bool bEnabled, const
 	BonesOfInterest.Append(InBonesOfInterest);
 }
 
+void FSkeletalMeshObjectCPUSkin::UpdateRecomputeTangent(int32 MaterialIndex, bool bRecomputeTangent)
+{
+	// queue a call to update this data
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		SkelMeshObjectUpdateMaterialDataCommand,
+		FSkeletalMeshObjectCPUSkin*, MeshObject, this,
+		int32, MaterialIndex, MaterialIndex,
+		bool, bRecomputeTangent, bRecomputeTangent,
+		{
+			// iterate through section and find the section that matches MaterialIndex, if so, set that flag
+			for (auto& LODModel : MeshObject->SkeletalMeshResource->LODModels)
+			{
+				for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); ++SectionIndex)
+				{
+					// @todo there can be more than one section that can use same material? If not, please break. 
+					if (LODModel.Sections[SectionIndex].MaterialIndex == MaterialIndex)
+					{
+						LODModel.Sections[SectionIndex].bRecomputeTangent = bRecomputeTangent;
+					}
+				}
+			}
+		}
+	);
+}
+
 void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims)
 {
 	// create the new dynamic data for use by the rendering thread
 	// this data is only deleted when another update is sent
 	FDynamicSkelMeshObjectDataCPUSkin* NewDynamicData = new FDynamicSkelMeshObjectDataCPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveVertexAnims);
 
+	// We prepare the next frame but still have the value from the last one
+	uint32 FrameNumberToPrepare = GFrameNumber + 1;
+
 	// queue a call to update this data
 	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		SkelMeshObjectUpdateDataCommand,
 		FSkeletalMeshObjectCPUSkin*, MeshObject, this,
-		uint32, FrameNumber, GFrameNumber,
+		uint32, FrameNumberToPrepare, FrameNumberToPrepare,
 		FDynamicSkelMeshObjectDataCPUSkin*, NewDynamicData, NewDynamicData,
 	{
 		FScopeCycleCounter Context(MeshObject->GetStatId());
-		MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumber);
+		MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumberToPrepare);
 	}
 	);
 
@@ -190,7 +218,7 @@ void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	}
 }
 
-void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumber)
+void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumberToPrepare)
 {
 	// we should be done with the old data at this point
 	delete DynamicData;
@@ -273,7 +301,7 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 	}
 }
 
-const FVertexFactory* FSkeletalMeshObjectCPUSkin::GetVertexFactory(int32 LODIndex,int32 /*ChunkIdx*/) const
+const FVertexFactory* FSkeletalMeshObjectCPUSkin::GetSkinVertexFactory(const FSceneView* View, int32 LODIndex,int32 /*ChunkIdx*/) const
 {
 	check( LODs.IsValidIndex(LODIndex) );
 	return &LODs[LODIndex].VertexFactory;

@@ -44,6 +44,12 @@ void UAnimNotify_PlayParticleEffect::Notify(class USkeletalMeshComponent* MeshCo
 	// Don't call super to avoid unnecessary call in to blueprints
 	if (PSTemplate)
 	{
+		if (PSTemplate->IsImmortal())
+		{
+			UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Anim %s tried to spawn infinitely looping particle system %s. Spawning suppressed."), *GetNameSafe(Animation), *GetNameSafe(PSTemplate));
+			return;
+		}
+
 		if (Attached)
 		{
 			UGameplayStatics::SpawnEmitterAttached(PSTemplate, MeshComp, SocketName, LocationOffset, RotationOffset);

@@ -28,7 +28,7 @@ public:
 	{
 		// if we set the color for warnings or errors, then reset at the end of the function
 		// note, we have to set the colors directly without using the standard SET_WARN_COLOR macro
-		if (Verbosity==ELogVerbosity::Error || Verbosity==ELogVerbosity::Warning)
+		if (Verbosity == ELogVerbosity::Error || Verbosity == ELogVerbosity::Warning)
 		{
 			if (TreatWarningsAsErrors && Verbosity==ELogVerbosity::Warning)
 			{
@@ -49,6 +49,9 @@ public:
 				{
 					Errors.Add(Format);
 				}
+
+				// send errors (warnings are too spammy) to syslog too (for zabbix etc)
+				syslog(LOG_ERR | LOG_USER, "%s", StringCast< char >(*Format).Get());
 			}
 			else
 			{
@@ -58,10 +61,6 @@ public:
 					Warnings.Add(Format);
 				}
 			}
-
-			// send to syslog too (for zabbix etc)
-			int BasePriority = (Verbosity == ELogVerbosity::Error) ? LOG_ERR : LOG_WARNING;
-			syslog(BasePriority | LOG_USER, "%s", StringCast< char >(*Format).Get());
 		}
 
 		if( GLogConsole && IsRunningCommandlet() )

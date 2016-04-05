@@ -94,7 +94,7 @@ namespace UnrealBuildTool
 			public IniSection(IniSection Other)
 				: this()
 			{
-				foreach (var Pair in Other)
+				foreach (KeyValuePair<string, IniValues> Pair in Other)
 				{
 					Add(Pair.Key, new IniValues(Pair.Value));
 				}
@@ -191,14 +191,14 @@ namespace UnrealBuildTool
 
 			if (BaseCache != null)
 			{
-				foreach (var Pair in BaseCache.Sections)
+				foreach (KeyValuePair<string, IniSection> Pair in BaseCache.Sections)
 				{
 					Sections.Add(Pair.Key, new IniSection(Pair.Value));
 				}
 			}
 			if (EngineOnly)
 			{
-				foreach (var IniFileName in EnumerateEngineIniFileNames(EngineDirectory, BaseIniName))
+				foreach (FileReference IniFileName in EnumerateEngineIniFileNames(EngineDirectory, BaseIniName))
 				{
 					if (IniFileName.Exists())
 					{
@@ -208,7 +208,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				foreach (var IniFileName in EnumerateCrossPlatformIniFileNames(ProjectDirectory, EngineDirectory, Platform, BaseIniName, BaseCache != null))
+				foreach (FileReference IniFileName in EnumerateCrossPlatformIniFileNames(ProjectDirectory, EngineDirectory, Platform, BaseIniName, BaseCache != null))
 				{
 					if (IniFileName.Exists())
 					{
@@ -236,7 +236,7 @@ namespace UnrealBuildTool
 		private bool GetList(string SectionName, string Key, out IniValues Value)
 		{
 			bool Result = false;
-			var Section = FindSection(SectionName);
+			IniSection Section = FindSection(SectionName);
 			Value = null;
 			if (Section != null)
 			{
@@ -693,7 +693,7 @@ namespace UnrealBuildTool
 						IniValues Value;
 						if (CurrentSection.TryGetValue(Key, out Value))
 						{
-							var ExistingIndex = Value.FindIndex(X => (String.Compare(SingleValue, X, true) == 0));
+							int ExistingIndex = Value.FindIndex(X => (String.Compare(SingleValue, X, true) == 0));
 							if (ExistingIndex >= 0)
 							{
 								Value.RemoveAt(ExistingIndex);

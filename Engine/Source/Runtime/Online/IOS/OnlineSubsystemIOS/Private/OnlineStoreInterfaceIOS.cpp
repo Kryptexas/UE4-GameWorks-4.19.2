@@ -277,6 +277,17 @@
 #endif
 }
 
+-(void)request:(SKRequest*)request didFailWithError: (NSError *)error
+{
+#ifdef __IPHONE_7_0
+	if ([Request isKindOfClass : [SKReceiptRefreshRequest class]])
+	{
+		[self paymentQueue:[SKPaymentQueue defaultQueue]  restoreCompletedTransactionsFailedWithError: error];
+		[Request release];
+	}
+#endif
+}
+
 -(void)restorePurchases
 {
 #ifdef __IPHONE_7_0

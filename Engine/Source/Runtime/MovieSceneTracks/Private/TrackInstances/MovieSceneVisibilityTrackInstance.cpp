@@ -13,11 +13,11 @@ FMovieSceneVisibilityTrackInstance::FMovieSceneVisibilityTrackInstance(UMovieSce
 }
 
 
-void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
- 	for( UObject* Object : RuntimeObjects )
+ 	for (auto ObjectPtr : RuntimeObjects)
  	{
-		AActor* Actor = Cast<AActor>(Object);
+		AActor* Actor = Cast<AActor>(ObjectPtr.Get());
 
 		if (Actor != nullptr)
 		{
@@ -48,10 +48,12 @@ void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& Runti
 }
 
 
-void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
- 	for( UObject* Object : RuntimeObjects )
+ 	for (auto ObjectPtr : RuntimeObjects)
  	{
+		UObject* Object = ObjectPtr.Get();
+
 		if (!IsValid(Object))
 		{
 			continue;
@@ -98,7 +100,7 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& Ru
 }
 
 
-void FMovieSceneVisibilityTrackInstance::Update( EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
+void FMovieSceneVisibilityTrackInstance::Update( EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
 {
  	bool Visible = false;
  	if( VisibilityTrack->Eval( UpdateData.Position, UpdateData.LastPosition, Visible ) )
@@ -106,8 +108,9 @@ void FMovieSceneVisibilityTrackInstance::Update( EMovieSceneUpdateData& UpdateDa
 		// Invert this evaluation since the property is "bHiddenInGame" and we want the visualization to be the inverse of that. Green means visible.
 		Visible = !Visible;
 
- 		for( UObject* Object : RuntimeObjects )
+ 		for (auto ObjectPtr : RuntimeObjects)
  		{
+			UObject* Object = ObjectPtr.Get();
 			AActor* Actor = Cast<AActor>(Object);
 			USceneComponent* SceneComponent = Cast<USceneComponent>(Object);
 
@@ -148,7 +151,7 @@ void FMovieSceneVisibilityTrackInstance::Update( EMovieSceneUpdateData& UpdateDa
 }
 
 
-void FMovieSceneVisibilityTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
+void FMovieSceneVisibilityTrackInstance::RefreshInstance( const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
 {
 	PropertyBindings->UpdateBindings( RuntimeObjects );
 }

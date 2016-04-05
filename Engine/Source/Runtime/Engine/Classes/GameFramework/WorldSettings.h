@@ -3,6 +3,7 @@
 #pragma once
 #include "GameFramework/Info.h"
 #include "Sound/AudioVolume.h"
+#include "Engine/MeshMerging.h"
 #include "WorldSettings.generated.h"
 
 class UNetConnection;
@@ -373,6 +374,10 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	/** Default color scale for the level */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=World, AdvancedDisplay)
 	FVector DefaultColorScale;
+
+	/** Max occlusion distance used by mesh distance fields, overridden if there is a movable skylight. */
+	UPROPERTY(EditAnywhere, Category=World, meta=(DisplayName = "Default Max DistanceField Occlusion Distance"))
+	float DefaultMaxDistanceFieldOcclusionDistance;
 
 	/************************************/
 	

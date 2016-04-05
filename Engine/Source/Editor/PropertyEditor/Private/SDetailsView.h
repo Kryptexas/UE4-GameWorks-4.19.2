@@ -101,8 +101,8 @@ public:
 		return false; 
 	}
 private:
-	void RegisterInstancedCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate ) override;
-	void UnregisterInstancedCustomPropertyLayout( UClass* Class ) override;
+	void RegisterInstancedCustomPropertyLayout( UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate ) override;
+	void UnregisterInstancedCustomPropertyLayout( UStruct* Class ) override;
 	void SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject > >& InObjects );
 
 	TSharedRef<SDetailTree> ConstructTreeView( TSharedRef<SScrollBar>& ScrollBar );

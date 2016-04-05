@@ -15,10 +15,11 @@ FMovieSceneColorTrackInstance::FMovieSceneColorTrackInstance( UMovieSceneColorTr
 }
 
 
-void FMovieSceneColorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneColorTrackInstance::SaveState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
-	for( UObject* Object : RuntimeObjects )
+	for (auto ObjectPtr : RuntimeObjects)
 	{
+		UObject* Object = ObjectPtr.Get();
 		
 		if( ColorType == EColorType::Slate )
 		{
@@ -55,10 +56,12 @@ void FMovieSceneColorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObj
 }
 
 
-void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneColorTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
-	for( UObject* Object : RuntimeObjects )
+	for (auto ObjectPtr : RuntimeObjects )
 	{
+		UObject* Object = ObjectPtr.Get();
+
 		if (!IsValid(Object))
 		{
 			continue;
@@ -91,10 +94,12 @@ void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 }
 
 
-void FMovieSceneColorTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
+void FMovieSceneColorTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
-	for(UObject* Object : RuntimeObjects)
+	for (auto ObjectPtr : RuntimeObjects)
 	{
+		UObject* Object = ObjectPtr.Get();
+
 		if( ColorType == EColorType::Slate )
 		{
 			FSlateColor ColorValue = PropertyBindings->GetCurrentValue<FSlateColor>(Object);
@@ -124,7 +129,7 @@ void FMovieSceneColorTrackInstance::Update(EMovieSceneUpdateData& UpdateData, co
 }
 
 
-void FMovieSceneColorTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
+void FMovieSceneColorTrackInstance::RefreshInstance( const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
 {
 	if( RuntimeObjects.Num() == 0 )
 	{
@@ -134,9 +139,9 @@ void FMovieSceneColorTrackInstance::RefreshInstance( const TArray<UObject*>& Run
 	PropertyBindings->UpdateBindings( RuntimeObjects );
 
 	// Cache off what type of color this is. Just examine the first object since the property should be the same
-	UProperty* ColorProp = PropertyBindings->GetProperty( RuntimeObjects[0] );
-
+	UProperty* ColorProp = PropertyBindings->GetProperty( RuntimeObjects[0].Get() );
 	const UStructProperty* StructProp = Cast<const UStructProperty>(ColorProp);
+
 	if (StructProp && StructProp->Struct)
 	{
 		FName StructName = StructProp->Struct->GetFName();

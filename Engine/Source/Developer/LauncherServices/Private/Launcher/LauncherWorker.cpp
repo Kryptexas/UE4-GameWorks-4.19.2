@@ -251,11 +251,11 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		{
 			Platforms += TEXT("+Linux");
 		}
-		else if (PlatformInfo->TargetPlatformName == FName("WindowsNoEditor") || PlatformInfo->TargetPlatformName == FName("Windows"))
+		else if (PlatformInfo->TargetPlatformName == FName("WindowsNoEditor") || PlatformInfo->TargetPlatformName == FName("Windows") || PlatformInfo->TargetPlatformName == FName("WindowsClient"))
 		{
 			Platforms += TEXT("+Win64");
 		}
-		else if (PlatformInfo->TargetPlatformName == FName("MacNoEditor"))
+		else if (PlatformInfo->TargetPlatformName == FName("MacNoEditor") || PlatformInfo->TargetPlatformName == FName("MacClient"))
 		{
 			Platforms += TEXT("+Mac");
 		}

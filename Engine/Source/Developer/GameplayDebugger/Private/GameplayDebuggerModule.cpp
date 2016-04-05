@@ -1,7 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#if !ENABLE_OLD_GAMEPLAY_DEBUGGER
-
 #include "GameplayDebuggerPrivatePCH.h"
 #include "GameplayDebugger.h"
 #include "ISettingsModule.h"
@@ -11,6 +9,8 @@
 
 #include "GameplayDebuggerExtension_Spectator.h"
 #include "GameplayDebuggerExtension_HUD.h"
+
+#if !ENABLE_OLD_GAMEPLAY_DEBUGGER
 
 class FGameplayDebuggerModule : public IGameplayDebugger
 {
@@ -34,7 +34,18 @@ public:
 
 IMPLEMENT_MODULE(FGameplayDebuggerModule, GameplayDebugger)
 
+#else
+
+#include "GameplayDebuggerCompat.h"
+#define FGameplayDebuggerModule FGameplayDebuggerCompat
+
+#endif
+
+#if !ENABLE_OLD_GAMEPLAY_DEBUGGER
 void FGameplayDebuggerModule::StartupModule()
+#else
+void FGameplayDebuggerCompat::StartupNewDebugger()
+#endif
 {
 	// This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
 	FWorldDelegates::OnPostWorldInitialization.AddRaw(this, &FGameplayDebuggerModule::OnWorldInitialized);
@@ -65,7 +76,11 @@ void FGameplayDebuggerModule::StartupModule()
 	}
 }
 
+#if !ENABLE_OLD_GAMEPLAY_DEBUGGER
 void FGameplayDebuggerModule::ShutdownModule()
+#else
+void FGameplayDebuggerCompat::ShutdownNewDebugger()
+#endif
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
@@ -160,22 +175,6 @@ void FGameplayDebuggerModule::OnWorldInitialized(UWorld* World, const UWorld::In
 	}
 }
 
-#else // !ENABLE_OLD_GAMEPLAY_DEBUGGER
-
-#include "GameplayDebuggerPrivatePCH.h"
-#include "GameplayDebuggerAddonManager.h"
-#include "GameplayDebuggerPlayerManager.h"
-
-FGameplayDebuggerAddonManager& FGameplayDebuggerAddonManager::GetCurrent()
-{
-	static FGameplayDebuggerAddonManager DummyManager;
-	return DummyManager;
-}
-
-AGameplayDebuggerPlayerManager& AGameplayDebuggerPlayerManager::GetCurrent(UWorld* World)
-{
-	static AGameplayDebuggerPlayerManager DummyManager;
-	return DummyManager;
-}
-
+#if ENABLE_OLD_GAMEPLAY_DEBUGGER
+#undef FGameplayDebuggerModule
 #endif // !ENABLE_OLD_GAMEPLAY_DEBUGGER

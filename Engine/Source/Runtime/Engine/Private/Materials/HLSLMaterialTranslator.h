@@ -3079,6 +3079,11 @@ protected:
 		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterName, TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
 	}
 
+	virtual int32 GetTextureReferenceIndex(UTexture* TextureValue)
+	{
+		return Material->GetReferencedTextures().Find(TextureValue);
+	}
+
 	virtual int32 StaticBool(bool bValue) override
 	{
 		return AddInlinedCodeChunk(MCT_StaticBool,(bValue ? TEXT("true") : TEXT("false")));
@@ -4372,6 +4377,7 @@ protected:
 		return AddInlinedCodeChunk(Type, TEXT("Primitive.%s"), HLSLName);
 	}
 
+	// The compiler can run in a different state and this affects caching of sub expression, Expressions are different (e.g. View.PrevWorldViewOrigin) when using previous frame's values
 	virtual bool IsCurrentlyCompilingForPreviousFrame() const { return bCompilingPreviousFrame; }
 };
 

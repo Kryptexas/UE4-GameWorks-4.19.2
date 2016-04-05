@@ -860,33 +860,6 @@ private:
 	ElementType* Array;
 };
 
-/** ModuleLocationBoneSocket instance payload */
-struct FModuleLocationBoneSocketInstancePayload
-{
-	/** The skeletal mesh component used as the source of the sockets */
-	TWeakObjectPtr<USkeletalMeshComponent> SourceComponent;
-	/** The last selected index into the socket array */
-	int32 LastSelectedIndex;
-	/** The index of the current 'unused' indices */
-	int32 CurrentUnused;
-	/** The position of each bone/socket from the previous tick. Used to calculate the inherited bone velocity when spawning particles. */
-	TPreallocatedArrayProxy<FVector> PrevFrameBoneSocketPositions;
-	/** The velocity of each bone/socket. Used to calculate the inherited bone velocity when spawning particles. */
-	TPreallocatedArrayProxy<FVector> BoneSocketVelocities;
-	
-	/** Initialize array proxies and map to memory that has been allocated in the emitter's instance data buffer */
-	void InitArrayProxies( int32 FixedArraySize )
-	{
-		// Calculate offsets into instance data buffer for the arrays and initialize the buffer proxies. The allocation 
-		// size for these arrays is calculated in RequiredBytesPerInstance.
-		const uint32 StructSize =  sizeof(FModuleLocationBoneSocketInstancePayload);
-		PrevFrameBoneSocketPositions = TPreallocatedArrayProxy<FVector>((uint8*)this + StructSize, FixedArraySize);
-
-		const uint32 StructOffset = StructSize + (FixedArraySize*sizeof(FVector));
-		BoneSocketVelocities = TPreallocatedArrayProxy<FVector>((uint8*)this + StructOffset, FixedArraySize );
-	}
-};
-
 /** ModuleLocationBoneSocket per-particle payload */
 struct FModuleLocationBoneSocketParticlePayload
 {
@@ -1819,7 +1792,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	FParticleVertexFactoryBase *CreateVertexFactory() override;
 
 	/** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
-	void Init(bool bInSelected,const FParticleMeshEmitterInstance* InEmitterInstance,UStaticMesh* InStaticMesh);
+	void Init(bool bInSelected,const FParticleMeshEmitterInstance* InEmitterInstance,UStaticMesh* InStaticMesh, ERHIFeatureLevel::Type InFeatureLevel );
 
 	/**
 	 *	Create the render thread resources for this emitter data
@@ -2824,3 +2797,14 @@ enum class EParticleSystemInsignificanceReaction: uint8
 	Num UMETA(Hidden),
 };
 
+/** Helper class to reset and recreate all PSCs with specific templates on their next tick. */
+class FParticleResetContext
+{
+public:
+
+	TArray<class UParticleSystem*, TInlineAllocator<32>> SystemsToReset;
+	void AddTemplate(class UParticleSystem* Template);
+	void AddTemplate(class UParticleModule* Module);
+	void AddTemplate(class UParticleEmitter* Emitter);
+	~FParticleResetContext();
+};

@@ -37,7 +37,7 @@ bool FGenericPlatformStackWalk::ProgramCounterToHumanReadableString( int32 Curre
 		FProgramCounterSymbolInfo SymbolInfo;
 		FPlatformStackWalk::ProgramCounterToSymbolInfo( ProgramCounter, SymbolInfo );
 
-		return SymbolInfoToHumanReadableString( SymbolInfo, HumanReadableString, HumanReadableStringSize );
+		return FPlatformStackWalk::SymbolInfoToHumanReadableString( SymbolInfo, HumanReadableString, HumanReadableStringSize );
 	}
 	return false;
 }
@@ -143,7 +143,7 @@ void FGenericPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString,
 	int32 CurrentDepth = IgnoreCount;
 	// Allow the first entry to be NULL as the crash could have been caused by a call to a NULL function pointer,
 	// which would mean the top of the callstack is NULL.
-	while( StackTrace[CurrentDepth] || ( CurrentDepth == IgnoreCount ) )
+	while( CurrentDepth < ARRAY_COUNT( StackTrace ) && ( StackTrace[CurrentDepth] || ( CurrentDepth == IgnoreCount ) ) )
 	{
 		FPlatformStackWalk::ProgramCounterToHumanReadableString( CurrentDepth, StackTrace[CurrentDepth], HumanReadableString, HumanReadableStringSize, reinterpret_cast< FGenericCrashContext* >( Context ) );
 		FCStringAnsi::Strncat(HumanReadableString, LINE_TERMINATOR_ANSI, HumanReadableStringSize);
@@ -154,5 +154,5 @@ void FGenericPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString,
 void FGenericPlatformStackWalk::StackWalkAndDumpEx(ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, uint32 Flags, void* Context)
 {
 	// generic implementation ignores extra flags
-	return StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, Context);
+	return FPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, Context);
 }

@@ -663,7 +663,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UObject* Worl
 			PSC->ActivateSystem(true);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if (PSC->Template && PSC->Template->IsPotentiallyImmortal())
+			if (PSC->Template && PSC->Template->IsImmortal())
 			{
 				UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
 					*(PSC->GetPathName()), *(PSC->Template->GetPathName())
@@ -696,7 +696,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UWorld* World
 		PSC->ActivateSystem(true);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (PSC->Template && PSC->Template->IsPotentiallyImmortal())
+		if (PSC->Template && PSC->Template->IsImmortal())
 		{
 			UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
 				*(PSC->GetPathName()), *(PSC->Template->GetPathName())
@@ -747,7 +747,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 				PSC->ActivateSystem(true);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				if (PSC->Template && PSC->Template->IsPotentiallyImmortal())
+				if (PSC->Template && PSC->Template->IsImmortal())
 				{
 					UE_LOG(LogParticles, Log, TEXT("GameplayStatics::SpawnEmitterAttached spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
 						*(PSC->GetPathName()), *(PSC->Template->GetPathName())
@@ -896,6 +896,7 @@ void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase
 		NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
 
 		NewActiveSound.bIsUISound = true;
+		NewActiveSound.bAllowSpatialization = false;
 		NewActiveSound.ConcurrencySettings = ConcurrencySettings;
 		NewActiveSound.Priority = Sound->Priority;
 
@@ -984,7 +985,7 @@ UAudioComponent* UGameplayStatics::SpawnSoundAtLocation(UObject* WorldContextObj
 		AudioComponent->bAllowSpatialization	= bIsInGameWorld;
 		AudioComponent->bIsUISound				= !bIsInGameWorld;
 		AudioComponent->bAutoDestroy			= true;
-		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
+		AudioComponent->SubtitlePriority		= DEFAULT_SUBTITLE_PRIORITY; // Fixme: pass in? Do we want that exposed to blueprints though?
 		AudioComponent->Play(StartTime);
 	}
 
@@ -1008,7 +1009,14 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 	FVector TestLocation = Location;
 	if (LocationType != EAttachLocation::KeepWorldPosition)
 	{
-		TestLocation = AttachToComponent->GetComponentTransform().TransformPosition(Location);
+		if (AttachPointName != NAME_None)
+		{
+			TestLocation = AttachToComponent->GetSocketTransform(AttachPointName).TransformPosition(Location);
+		}
+		else
+		{
+			TestLocation = AttachToComponent->GetComponentTransform().TransformPosition(Location);
+		}
 	}
 
 	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings, ConcurrencySettings);
@@ -1030,7 +1038,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 		AudioComponent->bAllowSpatialization	= bIsInGameWorld;
 		AudioComponent->bIsUISound				= !bIsInGameWorld;
 		AudioComponent->bAutoDestroy			= true;
-		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
+		AudioComponent->SubtitlePriority		= DEFAULT_SUBTITLE_PRIORITY; // Fixme: pass in? Do we want that exposed to blueprints though?
 		AudioComponent->Play(StartTime);
 	}
 
@@ -1137,6 +1145,25 @@ void UGameplayStatics::SetSoundMixClassOverride(UObject* WorldContextObject, cla
 	}
 }
 
+void UGameplayStatics::ClearSoundMixClassOverride(UObject* WorldContextObject, class USoundMix* InSoundMixModifier, class USoundClass* InSoundClass, float FadeOutTime)
+{
+	if (!InSoundMixModifier || !GEngine || !GEngine->UseSound())
+	{
+		return;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
+	{
+		return;
+	}
+
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	{
+		AudioDevice->ClearSoundMixClassOverride(InSoundMixModifier, InSoundClass, FadeOutTime);
+	}
+}
+
 void UGameplayStatics::PopSoundMixModifier(UObject* WorldContextObject, USoundMix* InSoundMixModifier)
 {
 	if (InSoundMixModifier == nullptr || GEngine == nullptr || !GEngine->UseSound())
@@ -1211,6 +1238,26 @@ void UGameplayStatics::DeactivateReverbEffect(UObject* WorldContextObject, FName
 	{
 		AudioDevice->DeactivateReverbEffect(TagName);
 	}
+}
+
+class UReverbEffect* UGameplayStatics::GetCurrentReverbEffect(UObject* WorldContextObject)
+{
+	if (GEngine == nullptr || !GEngine->UseSound())
+	{
+		return nullptr;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
+	{
+		return nullptr;
+	}
+
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	{
+		return AudioDevice->GetCurrentReverbEffect();
+	}
+	return nullptr;
 }
 
 UDecalComponent* CreateDecalComponent(class UMaterialInterface* DecalMaterial, FVector DecalSize, UWorld* World, AActor* Actor, float LifeSpan)

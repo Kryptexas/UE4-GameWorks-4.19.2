@@ -2923,13 +2923,21 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 		const dtPoly* poly = 0;
 		m_nav->getTileAndPolyByRefUnsafe(curRef, &tile, &poly);
 		
+		// Check if poly has valid data, bail out otherwise
+		if (poly == nullptr || poly->vertCount > DT_VERTS_PER_POLYGON)
+		{
+			if (pathCount)
+				*pathCount = n;
+			return DT_FAILURE;
+		}
+
 		// Collect vertices.
 		int nv = 0;
 		for (int i = 0; i < (int)poly->vertCount; ++i)
 		{
 			dtVcopy(&verts[nv*3], &tile->verts[poly->verts[i]*3]);
 			nv++;
-		}		
+		}
 		
 		float tmin, tmax;
 		int segMin, segMax;

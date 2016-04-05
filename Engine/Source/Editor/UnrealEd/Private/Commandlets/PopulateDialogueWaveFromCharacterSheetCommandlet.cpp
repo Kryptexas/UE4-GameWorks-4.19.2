@@ -1,9 +1,8 @@
 #include "UnrealEd.h"
 #include "Commandlets/PopulateDialogueWaveFromCharacterSheetCommandlet.h"
-#include "Commandlets/GatherTextCommandletBase.h" // We use FGatherTextSCC since it's a nice wrapper around the default SCC
+#include "Commandlets/GatherTextCommandletBase.h" // We use some of the nice wrapper and util functions from the loc commandlet
 #include "AssetRegistryModule.h"
 #include "CsvParser.h"
-#include "PackageHelperFunctions.h"
 #include "Sound/DialogueWave.h"
 #include "Sound/SoundWave.h"
 
@@ -82,11 +81,21 @@ int32 UPopulateDialogueWaveFromCharacterSheetCommandlet::Main(const FString& Par
 	// Validate header row?
 	// Character,Section Type,Category,Dialog Line (English),Voice Inflection,Voice Power,Audio File Name,Heard By,Notes,Video Name,Status
 
+	// We only want dialogue wave assets that exist within the Game content directory.
 	TArray<FAssetData> AllDialogueWaves;
-	AssetRegistry.GetAssetsByClass(UDialogueWave::StaticClass()->GetFName(), AllDialogueWaves, true);
+	if (!FLocalizedAssetUtil::GetAssetsByPathAndClass(AssetRegistry, FName("/Game"), UDialogueWave::StaticClass()->GetFName(), /*bIncludeLocalizedAssets*/false, AllDialogueWaves))
+	{
+		UE_LOG(LogPopulateDialogueWaveFromCharacterSheetCommandlet, Error, TEXT("Unable to get dialogue wave asset data from asset registry."));
+		return -1;
+	}
 
+	// We only want sound wave assets that exist within the Game content directory.
 	TArray<FAssetData> AllSoundWaves;
-	AssetRegistry.GetAssetsByClass(USoundWave::StaticClass()->GetFName(), AllSoundWaves, true);
+	if (!FLocalizedAssetUtil::GetAssetsByPathAndClass(AssetRegistry, FName("/Game"), USoundWave::StaticClass()->GetFName(), /*bIncludeLocalizedAssets*/false, AllSoundWaves))
+	{
+		UE_LOG(LogPopulateDialogueWaveFromCharacterSheetCommandlet, Error, TEXT("Unable to get sound wave asset data from asset registry."));
+		return -1;
+	}
 
 	// Iterate over rows of dialogue data.
 	for (int32 i = CharacterDialogueScript::HeaderRowIndex + 1; i < Rows.Num(); ++i)
@@ -258,26 +267,9 @@ int32 UPopulateDialogueWaveFromCharacterSheetCommandlet::Main(const FString& Par
 			continue;
 		}
 
-		// Verify package to save exists.
-		UPackage* const Package = AssetData.GetPackage();
-		if (!Package)
-		{
-			UE_LOG(LogPopulateDialogueWaveFromCharacterSheetCommandlet, Error, TEXT("Unable to find package for dialogue wave (%s)."), *AssetData.AssetName.ToString());
-		}
-
 		// Save package for dialogue wave.
-		const FString PackageFileName = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), FPackageName::GetAssetPackageExtension(), false);
-		if (bEnableSourceControl)
+		if (!FLocalizedAssetSCCUtil::SaveAssetWithSCC(SourceControlInfo, DialogueWave))
 		{
-			FText SCCErrorStr;
-			if (!SourceControlInfo->CheckOutFile(PackageFileName, SCCErrorStr))
-			{
-				UE_LOG(LogPopulateDialogueWaveFromCharacterSheetCommandlet, Error, TEXT("Failed to check-out dialogue wave (%s) at (%s). %s"), *AssetData.AssetName.ToString(), *PackageFileName, *SCCErrorStr.ToString());
-			}
-		}
-		if (!SavePackageHelper(Package, PackageFileName))
-		{
-			UE_LOG(LogPopulateDialogueWaveFromCharacterSheetCommandlet, Error, TEXT("Unable to save package for dialogue wave (%s) at (%s)."), *AssetData.AssetName.ToString(), *PackageFileName);
 			continue;
 		}
 	}

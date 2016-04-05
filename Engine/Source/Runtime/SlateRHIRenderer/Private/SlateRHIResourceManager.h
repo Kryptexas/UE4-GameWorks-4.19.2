@@ -67,28 +67,37 @@ struct FCachedRenderBuffers
 {
 	TSlateElementVertexBuffer<FSlateVertex> VertexBuffer;
 	FSlateElementIndexBuffer IndexBuffer;
+
+	FGraphEventRef ReleaseResourcesFence;
 };
 
 
 /**
  * Stores a mapping of texture names to their RHI texture resource               
  */
-class FSlateRHIResourceManager : public ISlateAtlasProvider, public ISlateRenderDataManager, public FSlateShaderResourceManager, public FGCObject
+class FSlateRHIResourceManager : public ISlateAtlasProvider, public ISlateRenderDataManager, public FSlateShaderResourceManager, public FTickableGameObject, public FGCObject
 {
 public:
 	FSlateRHIResourceManager();
 	virtual ~FSlateRHIResourceManager();
 
-	/** ISlateAtlasProvider */
+	/** ISlateAtlasProvider interface */
 	virtual int32 GetNumAtlasPages() const override;
 	virtual FIntPoint GetAtlasPageSize() const override;
 	virtual FSlateShaderResource* GetAtlasPageResource(const int32 InIndex) const override;
 	virtual bool IsAtlasPageResourceAlphaOnly() const override;
 
-	/** ISlateRenderDataManager */
+	/** ISlateRenderDataManager interface */
 	virtual void BeginReleasingRenderData(const FSlateRenderDataHandle* RenderHandle) override;
 
-	/** FGCObject */
+	/** FTickableGameObject interface */
+	virtual bool IsTickable() const override { return true; }
+	virtual bool IsTickableWhenPaused() const override { return true; }
+	virtual bool IsTickableInEditor() const override { return true; }
+	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FSlateRHIResourceManager, STATGROUP_Tickables); }
+	virtual void Tick(float DeltaSeconds) override;
+
+	/** FGCObject interface */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	/**
@@ -172,7 +181,7 @@ public:
 	/**
 	 * Releases all cached buffers allocated by a given layout cacher.  This would happen when an invalidation panel is destroyed.
 	 */
-	void ReleaseCachingResourcesFor(const ILayoutCache* Cacher);
+	void ReleaseCachingResourcesFor(FRHICommandListImmediate& RHICmdList, const ILayoutCache* Cacher);
 
 	/**
 	 * Releases rendering resources
@@ -187,11 +196,13 @@ public:
 	void ReloadTextures();
 
 private:
+	void ReleaseCachedBuffer(FRHICommandListImmediate& RHICmdList, FCachedRenderBuffers* PooledBuffer);
+
 	/**
 	* Releases the cached render data for a given render handle.  The layout cacher that owned the handle must also be
 	* provided, as render handle is likely no longer a valid object.
 	*/
-	void ReleaseCachedRenderData(const FSlateRenderDataHandle* RenderHandle, const ILayoutCache* LayoutCacher);
+	void ReleaseCachedRenderData(FRHICommandListImmediate& RHICmdList, const FSlateRenderDataHandle* RenderHandle, const ILayoutCache* LayoutCacher);
 
 private:
 	/**
@@ -288,5 +299,11 @@ private:
 
 	typedef TMap< const ILayoutCache*, TArray< FCachedRenderBuffers* > > TCachedBufferPoolMap;
 	TCachedBufferPoolMap CachedBufferPool;
+
+	/**
+	 * Holds onto a list of pooled buffers that are no longer being used but still need 
+	 * to be deleted after the RHI thread is done with them.
+	 */
+	TArray<FCachedRenderBuffers*> PooledBuffersPendingRelease;
 };
 

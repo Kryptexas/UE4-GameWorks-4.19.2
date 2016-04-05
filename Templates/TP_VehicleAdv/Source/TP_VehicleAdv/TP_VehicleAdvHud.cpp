@@ -7,11 +7,9 @@
 #include "Engine/Font.h"
 #include "CanvasItem.h"
 
-#ifdef HMD_INTGERATION
 // Needed for VR Headset
 #include "Engine.h"
 #include "IHeadMountedDisplay.h"
-#endif // HMD_INTGERATION
 
 #define LOCTEXT_NAMESPACE "VehicleHUD"
 
@@ -31,13 +29,11 @@ void ATP_VehicleAdvHud::DrawHUD()
 
 	bool bHMDDeviceActive = false;
 
-#ifdef HMD_INTGERATION
 	// We dont want the onscreen hud when using a HMD device	
 	if (GEngine->HMDDevice.IsValid() == true )
 	{
 		bHMDDeviceActive = GEngine->HMDDevice->IsStereoEnabled();
 	}
-#endif
 	if( bHMDDeviceActive == false )
 	{
 		// Get our vehicle so we can check if we are in car. If we are we don't want onscreen HUD

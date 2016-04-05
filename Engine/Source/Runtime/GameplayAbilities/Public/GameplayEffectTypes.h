@@ -273,12 +273,14 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 
 	FGameplayEffectContext()
 	: Ability(nullptr)
+	, AbilityLevel(1)
 	, bHasWorldOrigin(false)
 	{
 	}
 
 	FGameplayEffectContext(AActor* InInstigator, AActor* InEffectCauser)
 		: Ability(nullptr)
+		, AbilityLevel(1)
 		, bHasWorldOrigin(false)
 	{
 		AddInstigator(InInstigator, InEffectCauser);
@@ -303,7 +305,13 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 		return Instigator.Get();
 	}
 
-	virtual UGameplayAbility* GetAbility() const;
+	/** returns the CDO of the ability used to instigate this context */
+	const UGameplayAbility* GetAbility() const;
+
+	int32 GetAbilityLevel() const
+	{
+		return AbilityLevel;
+	}
 
 	/** Returns the ability system component of the instigator of this effect */
 	virtual UAbilitySystemComponent* GetInstigatorAbilitySystemComponent() const
@@ -315,6 +323,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	virtual AActor* GetEffectCauser() const
 	{
 		return EffectCauser.Get();
+	}
+
+	void SetEffectCauser(AActor* InEffectCauser)
+	{
+		EffectCauser = InEffectCauser;
 	}
 
 	/** Should always return the original instigator that started the whole chain. Subclasses can override what this does */
@@ -415,6 +428,9 @@ protected:
 	/** the ability that is responsible for this effect context */
 	UPROPERTY()
 	TSubclassOf<UGameplayAbility> Ability;
+
+	UPROPERTY()
+	int32 AbilityLevel;
 
 	/** Object this effect was created from, can be an actor or static object. Useful to bind an effect to a gameplay object */
 	UPROPERTY()
@@ -527,14 +543,23 @@ struct FGameplayEffectContextHandle
 		return NULL;
 	}
 
-	/** Returns the Ability that  */
-	virtual UGameplayAbility* GetAbility() const
+	/** Returns the Ability CDO */
+	const UGameplayAbility* GetAbility() const
 	{
 		if (IsValid())
 		{
 			return Data->GetAbility();
 		}
 		return nullptr;
+	}
+
+	int32 GetAbilityLevel() const
+	{
+		if (IsValid())
+		{
+			return Data->GetAbilityLevel();
+		}
+		return 1;
 	}
 
 	/** Returns the ability system component of the instigator of this effect */
@@ -741,6 +766,8 @@ struct GAMEPLAYABILITIES_API FGameplayCueParameters
 	, RawMagnitude(0.0f)
 	, Location(ForceInitToZero)
 	, Normal(ForceInitToZero)
+	, GameplayEffectLevel(1)
+	, AbilityLevel(1)
 	{}
 
 	/** Projects can override this via UAbilitySystemGlobals */
@@ -797,6 +824,14 @@ struct GAMEPLAYABILITIES_API FGameplayCueParameters
 	/** PhysMat of the hit, if there was a hit. */
 	UPROPERTY(BlueprintReadWrite, Category = GameplayCue)
 	TWeakObjectPtr<const UPhysicalMaterial> PhysicalMaterial;
+
+	/** If originating from a GameplayEffect, the level of that GameplayEffect */
+	UPROPERTY(BlueprintReadWrite, Category = GameplayCue)
+	int32 GameplayEffectLevel;
+
+	/** If originating from an ability, this will be the level of that ability */
+	UPROPERTY(BlueprintReadWrite, Category = GameplayCue)
+	int32 AbilityLevel;
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 

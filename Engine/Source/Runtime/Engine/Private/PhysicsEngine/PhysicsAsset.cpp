@@ -185,6 +185,15 @@ FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp, const FTrans
 		Box = FBox( LocalToWorld.GetLocation(), LocalToWorld.GetLocation() );
 	}
 
+	const float MinBoundSize = 30.f;
+	const FVector BoxSize = Box.GetSize();
+
+	if(BoxSize.GetMin() < MinBoundSize)
+	{
+		const FVector ExpandByDelta ( FMath::Max(0.f, MinBoundSize - BoxSize.X), FMath::Max(0.f, MinBoundSize - BoxSize.Y), FMath::Max(0.f, MinBoundSize - BoxSize.Z) );
+		Box = Box.ExpandBy(ExpandByDelta * 0.5f);	//expand by applies to both directions with GetSize applies to total size so divide by 2
+	}
+
 	return Box;
 }
 
@@ -410,7 +419,7 @@ void UPhysicsAsset::BodyFindConstraints(int32 BodyIndex, TArray<int32>& Constrai
 
 SIZE_T UPhysicsAsset::GetResourceSize(EResourceSizeMode::Type Mode)
 {
-	SIZE_T ResourceSize = 0;
+	SIZE_T ResourceSize = Super::GetResourceSize(Mode);
 
 	for (const auto& SingleBody : BodySetup)
 	{

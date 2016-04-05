@@ -5,6 +5,7 @@
 #include "SSequencerTreeView.h"
 #include "SSequencerTrackLane.h"
 #include "SSequencerTrackArea.h"
+#include "SequencerDisplayNodeDragDropOp.h"
 
 static FName TrackAreaName = "TrackArea";
 
@@ -54,7 +55,12 @@ void SSequencerTreeViewRow::Construct(const FArguments& InArgs, const TSharedRef
 	Node = InNode;
 	OnGenerateWidgetForColumn = InArgs._OnGenerateWidgetForColumn;
 
-	SMultiColumnTableRow::Construct(SMultiColumnTableRow::FArguments(), OwnerTableView);
+	SMultiColumnTableRow::Construct(
+		SMultiColumnTableRow::FArguments()
+			.OnDragDetected(this, &SSequencerTreeViewRow::OnDragDetected)
+			.OnCanAcceptDrop(this, &SSequencerTreeViewRow::OnCanAcceptDrop)
+			.OnAcceptDrop(this, &SSequencerTreeViewRow::OnAcceptDrop),
+		OwnerTableView);
 }
 
 TSharedRef<SWidget> SSequencerTreeViewRow::GenerateWidgetForColumn(const FName& ColumnId)
@@ -66,6 +72,60 @@ TSharedRef<SWidget> SSequencerTreeViewRow::GenerateWidgetForColumn(const FName& 
 	}
 
 	return SNullWidget::NullWidget;
+}
+
+FReply SSequencerTreeViewRow::OnDragDetected( const FGeometry& InGeometry, const FPointerEvent& InPointerEvent )
+{
+	TSharedPtr<FSequencerDisplayNode> DisplayNode = Node.Pin();
+	if ( DisplayNode.IsValid() )
+	{
+		FSequencer& Sequencer = DisplayNode->GetParentTree().GetSequencer();
+		if ( Sequencer.GetSelection().GetSelectedOutlinerNodes().Num() > 0 )
+		{
+			TArray<TSharedRef<FSequencerDisplayNode> > DraggableNodes;
+			for ( const TSharedRef<FSequencerDisplayNode> SelectedNode : Sequencer.GetSelection().GetSelectedOutlinerNodes() )
+			{
+				if ( SelectedNode->CanDrag() )
+				{
+					DraggableNodes.Add(SelectedNode);
+				}
+			}
+
+			TSharedRef<FSequencerDisplayNodeDragDropOp> DragDropOp = MakeShareable( new FSequencerDisplayNodeDragDropOp( DraggableNodes ) );
+			DragDropOp->CurrentHoverText = FText::Format( NSLOCTEXT( "SequencerTreeViewRow", "DefaultDragDropFormat", "Move {0} item(s)" ), FText::AsNumber( DraggableNodes.Num() ) );
+			DragDropOp->SetupDefaults();
+			DragDropOp->Construct();
+			return FReply::Handled().BeginDragDrop( DragDropOp );
+		}
+	}
+	return FReply::Unhandled();
+}
+
+TOptional<EItemDropZone> SSequencerTreeViewRow::OnCanAcceptDrop( const FDragDropEvent& DragDropEvent, EItemDropZone ItemDropZone, FDisplayNodeRef DisplayNode )
+{
+	TSharedPtr<FSequencerDisplayNodeDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FSequencerDisplayNodeDragDropOp>();
+	if ( DragDropOp.IsValid() )
+	{
+		DragDropOp->ResetToDefaultToolTip();
+		TOptional<EItemDropZone> AllowedDropZone = DisplayNode->CanDrop( *DragDropOp, ItemDropZone );
+		if ( AllowedDropZone.IsSet() == false )
+		{
+			DragDropOp->CurrentIconBrush = FEditorStyle::GetBrush( TEXT( "Graph.ConnectorFeedback.Error" ) );
+		}
+		return AllowedDropZone;
+	}
+	return TOptional<EItemDropZone>();
+}
+
+FReply SSequencerTreeViewRow::OnAcceptDrop( const FDragDropEvent& DragDropEvent, EItemDropZone ItemDropZone, FDisplayNodeRef DisplayNode )
+{
+	TSharedPtr<FSequencerDisplayNodeDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FSequencerDisplayNodeDragDropOp>();
+	if ( DragDropOp.IsValid())
+	{
+		DisplayNode->Drop( DragDropOp->GetDraggedNodes(), ItemDropZone );
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
 }
 
 TSharedPtr<FSequencerDisplayNode> SSequencerTreeViewRow::GetDisplayNode() const
@@ -87,12 +147,15 @@ void SSequencerTreeView::Construct(const FArguments& InArgs, const TSharedRef<FS
 {
 	SequencerNodeTree = InNodeTree;
 	TrackArea = InTrackArea;
+	bUpdatingSequencerSelection = false;
+	bUpdatingTreeSelection = false;
+	bSequencerSelectionChangeBroadcastWasSupressed = false;
 
 	// We 'leak' these delegates (they'll get cleaned up automatically when the invocation list changes)
 	// It's not safe to attempt their removal in ~SSequencerTreeView because SequencerNodeTree->GetSequencer() may not be valid
 	FSequencer& Sequencer = InNodeTree->GetSequencer();
 	Sequencer.GetSettings()->GetOnShowCurveEditorChanged().AddSP(this, &SSequencerTreeView::UpdateTrackArea);
-	Sequencer.GetSelection().GetOnOutlinerNodeSelectionChanged().AddSP(this, &SSequencerTreeView::OnSequencerSelectionChangedExternally);
+	Sequencer.GetSelection().GetOnOutlinerNodeSelectionChanged().AddSP(this, &SSequencerTreeView::SynchronizeTreeSelectionWithSequencerSelection);
 
 	HeaderRow = SNew(SHeaderRow).Visibility(EVisibility::Collapsed);
 
@@ -102,13 +165,14 @@ void SSequencerTreeView::Construct(const FArguments& InArgs, const TSharedRef<FS
 	(
 		STreeView::FArguments()
 		.TreeItemsSource(&RootNodes)
-		.SelectionMode(ESelectionMode::None)
+		.SelectionMode(ESelectionMode::Multi)
 		.OnGenerateRow(this, &SSequencerTreeView::OnGenerateRow)
 		.OnGetChildren(this, &SSequencerTreeView::OnGetChildren)
 		.HeaderRow(HeaderRow)
 		.ExternalScrollbar(InArgs._ExternalScrollbar)
 		.OnExpansionChanged(this, &SSequencerTreeView::OnExpansionChanged)
 		.AllowOverscroll(EAllowOverscroll::No)
+		.OnContextMenuOpening( this, &SSequencerTreeView::OnContextMenuOpening )
 	);
 }
 
@@ -375,33 +439,124 @@ void SSequencerTreeView::UpdateTrackArea()
 	}
 }
 
-void SSequencerTreeView::OnSequencerSelectionChangedExternally()
+void SSequencerTreeView::SynchronizeTreeSelectionWithSequencerSelection()
 {
-	Private_ClearSelection();
-
-	FSequencer& Sequencer = SequencerNodeTree->GetSequencer();
-	for (auto& Node : Sequencer.GetSelection().GetSelectedOutlinerNodes())
+	if ( bUpdatingSequencerSelection == false )
 	{
-		Private_SetItemSelection(Node, true, false);
-	}
+		bUpdatingTreeSelection = true;
+		{
+			Private_ClearSelection();
 
-	Private_SignalSelectionChanged(ESelectInfo::Direct);
+			FSequencer& Sequencer = SequencerNodeTree->GetSequencer();
+			for ( auto& Node : Sequencer.GetSelection().GetSelectedOutlinerNodes() )
+			{
+				Private_SetItemSelection( Node, true, false );
+			}
+
+			Private_SignalSelectionChanged( ESelectInfo::Direct );
+		}
+		bUpdatingTreeSelection = false;
+	}
+}
+
+void SSequencerTreeView::Private_SetItemSelection( FDisplayNodeRef TheItem, bool bShouldBeSelected, bool bWasUserDirected )
+{
+	STreeView::Private_SetItemSelection( TheItem, bShouldBeSelected, bWasUserDirected );
+	if ( bUpdatingTreeSelection == false )
+	{
+		// Don't broadcast the sequencer selection change on individual tree changes.  Wait for signal selection changed.
+		FSequencerSelection& SequencerSelection = SequencerNodeTree->GetSequencer().GetSelection();
+		SequencerSelection.SuspendBroadcast();
+		bSequencerSelectionChangeBroadcastWasSupressed = true;
+		if ( bShouldBeSelected )
+		{
+			SequencerSelection.AddToSelection( TheItem );
+		}
+		else
+		{
+			SequencerSelection.RemoveFromSelection( TheItem );
+		}
+		SequencerSelection.ResumeBroadcast();
+	}
+}
+
+
+void SSequencerTreeView::Private_ClearSelection()
+{
+	STreeView::Private_ClearSelection();
+	if ( bUpdatingTreeSelection == false )
+	{
+		// Don't broadcast the sequencer selection change on individual tree changes.  Wait for signal selection changed.
+		FSequencerSelection& SequencerSelection = SequencerNodeTree->GetSequencer().GetSelection();
+		SequencerSelection.SuspendBroadcast();
+		bSequencerSelectionChangeBroadcastWasSupressed = true;
+		SequencerSelection.EmptySelectedOutlinerNodes();
+		SequencerSelection.ResumeBroadcast();
+	}
+}
+
+void SSequencerTreeView::Private_SelectRangeFromCurrentTo( FDisplayNodeRef InRangeSelectionEnd )
+{
+	STreeView::Private_SelectRangeFromCurrentTo( InRangeSelectionEnd );
+	if ( bUpdatingTreeSelection == false )
+	{
+		// Don't broadcast the sequencer selection change on individual tree changes.  Wait for signal selection changed.
+		FSequencerSelection& SequencerSelection = SequencerNodeTree->GetSequencer().GetSelection();
+		SequencerSelection.SuspendBroadcast();
+		bSequencerSelectionChangeBroadcastWasSupressed = true;
+		SynchronizeSequencerSelectionWithTreeSelection();
+		SequencerSelection.ResumeBroadcast();
+	}
 }
 
 void SSequencerTreeView::Private_SignalSelectionChanged(ESelectInfo::Type SelectInfo)
 {
-	if (SelectInfo != ESelectInfo::Direct)
+	if ( bUpdatingTreeSelection == false )
+	{
+		bUpdatingSequencerSelection = true;
+		{
+			FSequencerSelection& SequencerSelection = SequencerNodeTree->GetSequencer().GetSelection();
+			SequencerSelection.SuspendBroadcast();
+			bool bSelectionChanged = SynchronizeSequencerSelectionWithTreeSelection();
+			SequencerSelection.ResumeBroadcast();
+			if ( bSequencerSelectionChangeBroadcastWasSupressed || bSelectionChanged )
+			{
+				SequencerSelection.RequestOutlinerNodeSelectionChangedBroadcast();
+				bSequencerSelectionChangeBroadcastWasSupressed = false;
+			}
+		}
+		bUpdatingSequencerSelection = false;
+	}
+
+	STreeView::Private_SignalSelectionChanged(SelectInfo);
+}
+
+bool SSequencerTreeView::SynchronizeSequencerSelectionWithTreeSelection()
+{
+	bool bSelectionChanged = false;
+	const TSet<TSharedRef<FSequencerDisplayNode>>& SequencerSelection = SequencerNodeTree->GetSequencer().GetSelection().GetSelectedOutlinerNodes();
+	if ( SelectedItems.Num() != SequencerSelection.Num() || SelectedItems.Difference( SequencerSelection ).Num() != 0 )
 	{
 		FSequencer& Sequencer = SequencerNodeTree->GetSequencer();
 		FSequencerSelection& Selection = Sequencer.GetSelection();
 		Selection.EmptySelectedOutlinerNodes();
-		for (auto& Item : GetSelectedItems())
+		for ( auto& Item : GetSelectedItems() )
 		{
-			Selection.AddToSelection(Item);
+			Selection.AddToSelection( Item );
 		}
+		bSelectionChanged = true;
 	}
+	return bSelectionChanged;
+}
 
-	STreeView::Private_SignalSelectionChanged(SelectInfo);
+TSharedPtr<SWidget> SSequencerTreeView::OnContextMenuOpening()
+{
+	const TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = SequencerNodeTree->GetSequencer().GetSelection().GetSelectedOutlinerNodes();
+	if ( SelectedNodes.Num() == 1 )
+	{
+		return SelectedNodes.Array()[0]->OnSummonContextMenu();
+	}
+	return TSharedPtr<SWidget>();
 }
 
 void SSequencerTreeView::Refresh()
@@ -420,6 +575,12 @@ void SSequencerTreeView::Refresh()
 			RootNodes.Add(RootNode);
 		}
 	}
+
+	// Force synchronization of selected tree view items here since the tree nodes may have been rebuilt
+	// and the treeview's selection will now be invalid.
+	bUpdatingTreeSelection = true;
+	SynchronizeTreeSelectionWithSequencerSelection();
+	bUpdatingTreeSelection = false;
 
 	RequestTreeRefresh();
 }

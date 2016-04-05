@@ -11,6 +11,7 @@
 #include "VertexFactory.usf"
 #include "LightmapCommon.usf"  
 #include "ReflectionEnvironmentShared.usf"
+#include "PlanarReflectionShared.usf"
 #include "BRDF.usf"
 #include "Random.usf"
 #include "LightAccumulator.usf"
@@ -143,7 +144,19 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	half NoV = saturate(dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector));
 	SpecularColor = EnvBRDFApprox(SpecularColor, Roughness, NoV);
 
-	return SpecularIBL.rgb * SpecularColor;
+	float3 SpecularLighting = SpecularIBL.rgb;
+
+	// Plane normal will be zero if the feature is disabled
+	BRANCH
+	if (abs(dot(ReflectionPlane.xyz, 1)) > .0001f)
+	{
+		// Reuse ReflectionCubemapSampler to avoid reducing the sampler count available to artists
+		float4 PlanarReflection = ComputePlanarReflections(MaterialParameters.AbsoluteWorldPosition, MaterialParameters.WorldNormal, ReflectionCubemapSampler);
+		// Planar reflections win over SSR and reflection environment
+		SpecularLighting = lerp(SpecularLighting, PlanarReflection.rgb, PlanarReflection.a);
+	}
+
+	return SpecularLighting * SpecularColor;
 }
 
 #endif
@@ -748,9 +761,23 @@ void Main(
 	}
 #endif
 
+	float3 LocalBaseColor = BaseColor;
+	float LocalSpecular = Specular;
+
+#if MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE
+	// SubsurfaceProfile applies the BaseColor in a later pass. Any lighting output in the base pass needs
+	// to separate specualar and diffuse lighting in a checkerboard pattern
+	{
+		bool bChecker = CheckerFromPixelPos(MaterialParameters.SvPosition.xy);
+
+		LocalBaseColor = bChecker;
+		LocalSpecular = !bChecker;
+	}
+#endif
+
 	// So that the following code can still use DiffuseColor and SpecularColor.
-	half3 DiffuseColor = BaseColor - BaseColor * Metallic;
-	half3 SpecularColor = lerp( 0.08 * Specular.xxx, BaseColor, Metallic.xxx );
+	half3 DiffuseColor = LocalBaseColor - LocalBaseColor * Metallic;
+	half3 SpecularColor = lerp( 0.08 * LocalSpecular.xxx, LocalBaseColor, Metallic.xxx );
 
 #if USE_DEVELOPMENT_SHADERS
 	{
@@ -949,7 +976,7 @@ void Main(
 
 #if USE_DEVELOPMENT_SHADERS
 	// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-	#if SM5_PROFILE || SM4_PROFILE
+	#if METAL_SM5_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_SM4_PROFILE
 		BRANCH
 		if (Frame.OutOfBoundsMask > 0)
 		{

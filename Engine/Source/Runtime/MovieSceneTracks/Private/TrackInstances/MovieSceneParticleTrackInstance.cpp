@@ -24,7 +24,7 @@ static UParticleSystemComponent* ParticleSystemComponentFromRuntimeObject(UObjec
 	}
 }
 
-void FMovieSceneParticleTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
+void FMovieSceneParticleTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	// @todo Sequencer We need something analagous to Matinee 1's particle replay tracks
 	// What we have here is simple toggling/triggering
@@ -45,7 +45,7 @@ void FMovieSceneParticleTrackInstance::Update(EMovieSceneUpdateData& UpdateData,
 				if ( ParticleKeyCurve.IsKeyHandleValid( PreviousHandle ) )
 				{
 					FIntegralKey& PreviousKey = ParticleKeyCurve.GetKey( PreviousHandle );
-					if ( PreviousKey.Time > UpdateData.LastPosition )
+					if ( PreviousKey.Time >= UpdateData.LastPosition )
 					{
 						ParticleKey = (EParticleKey::Type)PreviousKey.Value;
 						bKeyFound = true;
@@ -58,7 +58,7 @@ void FMovieSceneParticleTrackInstance::Update(EMovieSceneUpdateData& UpdateData,
 		{
 			for (int32 i = 0; i < RuntimeObjects.Num(); ++i)
 			{
-				UParticleSystemComponent* ParticleSystemComponent = ParticleSystemComponentFromRuntimeObject(RuntimeObjects[i]);
+				UParticleSystemComponent* ParticleSystemComponent = ParticleSystemComponentFromRuntimeObject(RuntimeObjects[i].Get());
 
 				if ( ParticleSystemComponent != nullptr )
 				{
@@ -86,12 +86,14 @@ void FMovieSceneParticleTrackInstance::Update(EMovieSceneUpdateData& UpdateData,
 	{
 		for (int32 i = 0; i < RuntimeObjects.Num(); ++i)
 		{
-			AEmitter* Emitter = Cast<AEmitter>(RuntimeObjects[i]);
-			if (Emitter)
+			UObject* Object = RuntimeObjects[i].Get();
+			AEmitter* Emitter = Cast<AEmitter>(Object);
+
+			if (Emitter != nullptr)
 			{
 				Emitter->Deactivate();
 			}
-			else if(UParticleSystemComponent* Component =  Cast<UParticleSystemComponent>(RuntimeObjects[i]))
+			else if (UParticleSystemComponent* Component =  Cast<UParticleSystemComponent>(Object))
 			{
 				Component->SetActive(false, true);
 			}

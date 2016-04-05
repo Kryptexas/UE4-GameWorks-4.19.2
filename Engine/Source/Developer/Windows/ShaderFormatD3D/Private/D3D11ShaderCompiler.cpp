@@ -14,9 +14,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogD3D11ShaderCompiler, Log, All);
 
 // Disable macro redefinition warning for compatibility with Windows SDK 8+
 #pragma warning(push)
-#if _MSC_VER >= 1700
 #pragma warning(disable : 4005)	// macro redefinition
-#endif
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <D3D11.h>
@@ -804,7 +802,7 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 
 		if (Input.Target.Platform == SP_PCD3D_ES2)
 		{
-			if (Output.NumTextureSamplers > 8)
+			if (Output.NumTextureSamplers > 16)
 			{
 				FilteredErrors.Add(FString::Printf(TEXT("Shader uses more than 8 texture samplers which is not supported by ES2!  Used: %u"), Output.NumTextureSamplers));
 				Result = E_FAIL;
@@ -872,8 +870,14 @@ void CompileD3D11Shader(const FShaderCompilerInput& Input,FShaderCompilerOutput&
 		TArray<FString> UsedOutputs = Input.UsedOutputs;
 		UsedOutputs.AddUnique(TEXT("SV_POSITION"));
 
+		// We can't remove any of the output-only system semantics
+		//@todo - there are a bunch of tessellation ones as well
+		TArray<FString> Exceptions;
+		Exceptions.AddUnique(TEXT("SV_ClipDistance"));
+		Exceptions.AddUnique(TEXT("SV_CullDistance"));
+
 		TArray<FString> Errors;
-		if (!RemoveUnusedOutputs(PreprocessedShaderSource, UsedOutputs, EntryPointName, Errors))
+		if (!RemoveUnusedOutputs(PreprocessedShaderSource, UsedOutputs, Exceptions, EntryPointName, Errors))
 		{
 			UE_LOG(LogD3D11ShaderCompiler, Warning, TEXT("Failed to Remove unused outputs [%s]!"), *Input.DumpDebugInfoPath);
 			for (int32 Index = 0; Index < Errors.Num(); ++Index)

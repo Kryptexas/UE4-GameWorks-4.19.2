@@ -104,6 +104,10 @@ public:
 
 	static inline bool IsAlnum(CharType Char);
 	static inline bool IsDigit(CharType Char);
+	static inline bool IsOctDigit(CharType Char)
+	{
+		return Char >= '0' && Char <= '7';
+	}
 	static inline bool IsHexDigit(CharType Char);
 	static inline int32 ConvertCharDigitToInt(CharType Char)
 	{

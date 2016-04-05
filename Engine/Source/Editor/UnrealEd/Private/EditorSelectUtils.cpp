@@ -250,9 +250,9 @@ void UUnrealEdEngine::SetActorSelectionFlags (AActor* InActor)
 		{
 			// If we have a 'child actor' component, want to update its visible selection state
 			UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(Component);
-			if(ChildActorComponent != NULL && ChildActorComponent->ChildActor != NULL)
+			if(ChildActorComponent != NULL && ChildActorComponent->GetChildActor() != NULL)
 			{
-				SetActorSelectionFlags(ChildActorComponent->ChildActor);
+				SetActorSelectionFlags(ChildActorComponent->GetChildActor());
 			}
 
 			UPrimitiveComponent* PrimComponent = Cast<UPrimitiveComponent>(Component);
@@ -464,6 +464,12 @@ bool UUnrealEdEngine::CanSelectActor(AActor* Actor, bool bInSelected, bool bSele
 	{
 		// If the actor is NULL or hidden, leave.
 		if ( !bSelectEvenIfHidden && ( Actor->IsHiddenEd() || !FLevelUtils::IsLevelVisible( Actor->GetLevel() ) ) )
+		{
+			return false;
+		}
+
+		// If the actor explicitly makes itself unselectable, leave.
+		if (!Actor->IsSelectable())
 		{
 			return false;
 		}

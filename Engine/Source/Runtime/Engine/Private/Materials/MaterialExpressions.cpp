@@ -1370,6 +1370,8 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				EffectiveTexture = TextureObjectParameter->Texture;
 				EffectiveSamplerType = TextureObjectParameter->SamplerType;
 			}
+
+			TextureReferenceIndex = Compiler->GetTextureReferenceIndex(EffectiveTexture);
 		}
 
 		if (EffectiveTexture && VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("TextureSample")), EffectiveTexture, EffectiveSamplerType))
@@ -6673,6 +6675,12 @@ void UMaterialExpressionCustom::Serialize(FArchive& Ar)
 			{
 				bDidUpdate = true;
 			}
+		}
+
+		// Look for WorldPosition rename
+		if (Code.ReplaceInline(TEXT("Parameters.WorldPosition"), TEXT("Parameters.AbsoluteWorldPosition"), ESearchCase::CaseSensitive) > 0)
+		{
+			bDidUpdate = true;
 		}
 
 		// If we made changes, copy the original into the description just in case

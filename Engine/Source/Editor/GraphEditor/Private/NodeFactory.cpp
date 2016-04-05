@@ -133,6 +133,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		{
 			return SNew(SGraphNodeLayeredBoneBlend, LayeredBlend);
 		}
+		else
+		{
+			return SNew(SAnimationGraphNode, BaseAnimNode);
+		}
 	}
 
 	if (USoundCueGraphNode_Base* BaseSoundNode = Cast<USoundCueGraphNode_Base>(InNode))

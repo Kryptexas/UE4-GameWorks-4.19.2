@@ -66,16 +66,6 @@ namespace AutomationTool
 					return false;
 				}
 			}
-			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
-			{
-				WindowsSDKDir = FindWindowsSDKInstallationFolder( "v8.0" );
-
-				if (string.IsNullOrEmpty(BaseVSToolPath))
-				{
-					Log.TraceError("Visual Studio 2012 must be installed in order to build this target.");
-					return false;
-				}
-			}
 			else
 			{
 				throw new BuildException("Unexpected WindowsPlatform.Compiler version");

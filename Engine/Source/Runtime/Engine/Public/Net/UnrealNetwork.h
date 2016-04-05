@@ -161,6 +161,25 @@ static UProperty* GetReplicatedProperty(UClass* CallingClass, UClass* PropClass,
 	}																						\
 }
 
+#define DOREPLIFETIME_CHANGE_CONDITION(c,v,cond) \
+{ \
+	static UProperty* sp##v = GetReplicatedProperty(StaticClass(), c::StaticClass(),GET_MEMBER_NAME_CHECKED(c,v));	\
+	bool bFound = false;																							\
+	for ( int32 i = 0; i < OutLifetimeProps.Num(); i++ )															\
+	{																												\
+		if ( OutLifetimeProps[i].RepIndex == sp##v->RepIndex )														\
+		{																											\
+			for ( int32 j = 0; j < sp##v->ArrayDim; j++ )															\
+			{																										\
+				OutLifetimeProps[i + j].Condition = cond;															\
+			}																										\
+			bFound = true;																							\
+			break;																									\
+		}																											\
+	}																												\
+	check( bFound );																								\
+}
+
 /*-----------------------------------------------------------------------------
 	RPC Parameter Validation Helpers
 -----------------------------------------------------------------------------*/

@@ -106,6 +106,9 @@ private:
 	/** Add the specified actors to the sequencer */
 	void AddActorsToSequencer(AActor*const* InActors, int32 NumActors);
 
+	/** Callback for actor added to sequencer. */
+	void HandleActorAddedToSequencer(AActor* Actor, const FGuid Binding);
+
 	/** Add default movie scene tracks for the given actor. */
 	void AddDefaultTracksForActor(AActor& Actor, const FGuid Binding);
 

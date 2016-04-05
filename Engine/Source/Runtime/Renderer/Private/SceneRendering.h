@@ -101,20 +101,23 @@ public:
 	*/
 	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPassType TranslucenyPassType, int32 Index) const;
 
-	/** Draw all the primitives in this set for the forward shading pipeline. */
-	void DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FSceneRenderer& Renderer) const;
+	/** 
+	* Draw all the primitives in this set for the forward shading pipeline. 
+	* @param bRenderSeparateTranslucency - If false, only primitives with materials without mobile separate translucency enabled are rendered. Opposite if true.
+	*/
+	void DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const bool bRenderSeparateTranslucency) const;
 
 	/**
 	* Add a new primitive to the list of sorted prims
 	* @param PrimitiveSceneInfo - primitive info to add. Origin of bounds is used for sort.
 	* @param ViewInfo - used to transform bounds to view space
 	*/
-	void AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency);
+	void AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency);
 
 	/**
 	* Similar to AddScenePrimitive, but we are doing placement news and increasing counts when that happens
 	*/
-	static void PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum);
+	static void PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum);
 
 	/**
 	* Sort any primitives that were added to the set back-to-front
@@ -362,6 +365,9 @@ public:
 	{
 
 	}
+	static void WaitForTasks();
+private:
+	void WaitForTasksInternal();
 };
 
 class FVolumeUpdateRegion
@@ -929,6 +935,7 @@ protected:
 	void UpdatePrimitivePrecomputedLightingBuffers();
 	void ClearPrimitiveSingleFramePrecomputedLightingBuffers();
 
+	void RenderPlanarReflection(class FPlanarReflectionSceneProxy* ReflectionSceneProxy);
 };
 
 /**
@@ -995,3 +1002,6 @@ private:
 	bool bModulatedShadowsInUse;
 	bool bCSMShadowsInUse;
 };
+
+// The noise textures need to be set in Slate too.
+RENDERER_API void UpdateNoiseTextureParameters(FFrameUniformShaderParameters& FrameUniformShaderParameters);

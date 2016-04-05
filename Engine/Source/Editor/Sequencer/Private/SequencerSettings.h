@@ -89,11 +89,6 @@ public:
 	/** Sets whether or not to show frame numbers. */
 	void SetShowFrameNumbers(bool InbShowFrameNumbers);
 
-	/** Gets whether or not to show the goto box. */
-	bool GetShowGotoBox() const;
-	/** Sets whether or not to show the goto box. */
-	void SetShowGotoBox(bool InbShowGotoBox);
-
 	/** Gets whether or not to show the time range slider. */
 	bool GetShowRangeSlider() const;
 	/** Sets whether or not to show frame numbers. */
@@ -128,6 +123,11 @@ public:
 	bool GetSnapSectionTimesToSections() const;
 	/** sets whether or not to snap sections to other sections. */
 	void SetSnapSectionTimesToSections( bool InbSnapSectionTimesToSections );
+
+	/** Gets whether or not to snap the play time to keys while scrubbing. */
+	bool GetSnapPlayTimeToKeys() const;
+	/** Sets whether or not to snap the play time to keys while scrubbing. */
+	void SetSnapPlayTimeToKeys(bool InbSnapPlayTimeToKeys);
 
 	/** Gets whether or not to snap the play time to the interval while scrubbing. */
 	bool GetSnapPlayTimeToInterval() const;
@@ -209,7 +209,22 @@ public:
 	/** @return true if showing combined keyframes at the top node */
 	bool GetShowCombinedKeyframes() const;
 	/** Set whether to show combined keyframes at the top node */ 
-	void SetShowCombinedKeyframes(bool InShowCombinedKeyframes);
+	void SetShowCombinedKeyframes(bool bInShowCombinedKeyframes);
+
+	/** @return true if key areas are infinite */
+	bool GetInfiniteKeyAreas() const;
+	/** Set whether to show channel colors */
+	void SetInfiniteKeyAreas(bool bInInfiniteKeyAreas);
+
+	/** @return true if showing channel colors */
+	bool GetShowChannelColors() const;
+	/** Set whether to show channel colors */
+	void SetShowChannelColors(bool bInShowChannelColors);
+
+	/** @return true if showing transport controls in level editor viewports */
+	bool GetShowViewportTransportControls() const;
+	/** Toggle whether to show transport controls in level editor viewports */
+	void SetShowViewportTransportControls(bool bVisible);
 
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
@@ -238,9 +253,6 @@ protected:
 	bool bShowFrameNumbers;
 
 	UPROPERTY( config )
-	bool bShowGotoBox;
-
-	UPROPERTY( config )
 	bool bShowRangeSlider;
 
 	UPROPERTY( config )
@@ -260,6 +272,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bSnapSectionTimesToSections;
+
+	UPROPERTY( config )
+	bool bSnapPlayTimeToKeys;
 
 	UPROPERTY( config )
 	bool bSnapPlayTimeToInterval;
@@ -308,6 +323,15 @@ protected:
 
 	UPROPERTY( config )
 	bool bShowCombinedKeyframes;
+
+	UPROPERTY( config )
+	bool bInfiniteKeyAreas;
+
+	UPROPERTY( config )
+	bool bShowChannelColors;
+
+	UPROPERTY( config )
+	bool bShowViewportTransportControls;
 
 	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 };

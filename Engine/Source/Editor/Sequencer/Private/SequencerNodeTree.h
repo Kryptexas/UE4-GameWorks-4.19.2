@@ -7,8 +7,11 @@ class ISequencerTrackEditor;
 class UMovieSceneSection;
 class FSequencerDisplayNode;
 class FSequencerObjectBindingNode;
+class FSequencerTrackNode;
+class FSequencerFolderNode;
 class UMovieSceneTrack;
 struct FMovieSceneBinding;
+class UMovieSceneFolder;
 
 
 /**
@@ -109,7 +112,14 @@ private:
 	/**
 	 * Creates a new object binding node and any parent binding nodes.
 	 */
-	TSharedRef<FSequencerObjectBindingNode> AddObjectBinding( const FString& ObjectName, const FGuid& ObjectBinding, TMap<FGuid, const FMovieSceneBinding*>& GuidToBindingMap, TArray< TSharedRef<FSequencerDisplayNode> >& OutNodeList );
+	TSharedRef<FSequencerObjectBindingNode> AddObjectBinding( const FString& ObjectName, const FGuid& ObjectBinding, TMap<FGuid, const FMovieSceneBinding*>& GuidToBindingMap, TArray< TSharedRef<FSequencerObjectBindingNode> >& OutNodeList );
+
+	/**
+	 * Creates the tree of folder nodes and populates it with object and track nodes. 
+	 */
+	void CreateAndPopulateFolderNodes( TArray<TSharedRef<FSequencerTrackNode>>& MasterTrackNodes, TArray<TSharedRef<FSequencerObjectBindingNode>>& ObjectNodes,
+		TArray<UMovieSceneFolder*>& MovieSceneFolders, TArray<TSharedRef<FSequencerDisplayNode>>& GroupedNodes );
+
 private:
 	/** Tools for building movie scene section layouts.  One tool for each track */
 	TMap< UMovieSceneTrack*, TSharedPtr<ISequencerTrackEditor> > EditorMap;

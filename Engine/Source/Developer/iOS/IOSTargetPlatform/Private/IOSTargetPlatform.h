@@ -52,7 +52,7 @@ public:
 
     virtual FString IniPlatformName() const override
     {
-        return bIsTVOS ? "TVOS" : "IOS";
+        return "IOS";
     }
     
 	virtual void EnableDeviceCheck(bool OnOff) override;

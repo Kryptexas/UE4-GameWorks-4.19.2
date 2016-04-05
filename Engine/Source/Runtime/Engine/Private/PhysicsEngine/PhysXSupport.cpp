@@ -471,13 +471,21 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 		check(Shape1);
 
 		// Get materials
-		PxMaterial* Material0 = NULL;
-		Shape0->getMaterials(&Material0, 1);
-		UPhysicalMaterial* PhysMat0 = (Material0 != NULL) ? FPhysxUserData::Get<UPhysicalMaterial>(Material0->userData) : NULL;
+		PxMaterial* Material0 = nullptr;
+		UPhysicalMaterial* PhysMat0  = nullptr;
+		if(Shape0->getNbMaterials() == 1)	//If we have simple geometry or only 1 material we set it here. Otherwise do it per face
+		{
+			Shape0->getMaterials(&Material0, 1);		
+			PhysMat0 = Material0 ? FPhysxUserData::Get<UPhysicalMaterial>(Material0->userData) : nullptr;
+		}
 
-		PxMaterial* Material1 = NULL;
-		Shape1->getMaterials(&Material1, 1);
-		UPhysicalMaterial* PhysMat1 = (Material1 != NULL) ? FPhysxUserData::Get<UPhysicalMaterial>(Material1->userData) : NULL;
+		PxMaterial* Material1 = nullptr;
+		UPhysicalMaterial* PhysMat1  = nullptr;
+		if (Shape1->getNbMaterials() == 1)	//If we have simple geometry or only 1 material we set it here. Otherwise do it per face
+		{
+			Shape1->getMaterials(&Material1, 1);
+			PhysMat1 = Material1 ? FPhysxUserData::Get<UPhysicalMaterial>(Material1->userData) : nullptr;
+		}
 
 		// Iterate over contact points
 		PxContactPairPoint ContactPointBuffer[16];
@@ -490,6 +498,24 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 			ImpactInfo->TotalNormalImpulse += P2UVector(NormalImpulse);
 			ImpactInfo->TotalFrictionImpulse += P2UVector(Point.impulse - NormalImpulse); // friction is component not along contact normal
 
+			// Get per face materials
+			if(!Material0)	//there is complex geometry or multiple materials so resolve the physical material here
+			{
+				if(PxMaterial* Material0PerFace = Shape0->getMaterialFromInternalFaceIndex(Point.internalFaceIndex0))
+				{
+					PhysMat0 = FPhysxUserData::Get<UPhysicalMaterial>(Material0PerFace->userData);
+				}
+			}
+
+			if (!Material1)	//there is complex geometry or multiple materials so resolve the physical material here
+			{
+				if(PxMaterial* Material1PerFace = Shape1->getMaterialFromInternalFaceIndex(Point.internalFaceIndex1))
+				{
+					PhysMat1 = FPhysxUserData::Get<UPhysicalMaterial>(Material1PerFace->userData);
+				}
+				
+			}
+			
 			new(ImpactInfo->ContactInfos) FRigidBodyContactInfo(
 				P2UVector(Point.position), 
 				P2UVector(Point.normal), 
@@ -845,4 +871,46 @@ PxCollection* MakePhysXCollection(const TArray<UPhysicalMaterial*>& PhysicalMate
 	return PCollection;
 }
 
+void FPhysXErrorCallback::reportError(PxErrorCode::Enum e, const char* message, const char* file, int line)
+{
+	// if not in game, ignore Perf warnings - i.e. Moving Static actor in editor will produce this warning
+	if (GIsEditor && e == PxErrorCode::ePERF_WARNING)
+	{
+		return;
+	}
+
+	// @MASSIVE HACK - muting 'triangle too big' warning :(
+	if (line == 223)
+	{
+		return;
+	}
+
+	// Make string to print out, include physx file/line
+	FString ErrorString = FString::Printf(TEXT("PHYSX: %s (%d) %d : %s"), ANSI_TO_TCHAR(file), line, (int32)e, ANSI_TO_TCHAR(message));
+
+	if (e == PxErrorCode::eOUT_OF_MEMORY || e == PxErrorCode::eINTERNAL_ERROR || e == PxErrorCode::eABORT)
+	{
+		UE_LOG(LogPhysics, Error, TEXT("%s"), *ErrorString);
+		ensureMsgf(false, TEXT("%s"), *ErrorString);
+	}
+	else if (e == PxErrorCode::eINVALID_PARAMETER || e == PxErrorCode::eINVALID_OPERATION)
+	{
+		UE_LOG(LogPhysics, Error, TEXT("%s"), *ErrorString);
+		ensureMsgf(false, TEXT("%s"), *ErrorString);
+	}
+	else if (e == PxErrorCode::ePERF_WARNING)
+	{
+		UE_LOG(LogPhysics, Warning, TEXT("%s"), *ErrorString);
+	}
+#if UE_BUILD_DEBUG
+	else if (e == PxErrorCode::eDEBUG_WARNING)
+	{
+		UE_LOG(LogPhysics, Warning, TEXT("%s"), *ErrorString);
+	}
+#endif
+	else
+	{
+		UE_LOG(LogPhysics, Log, TEXT("%s"), *ErrorString);
+	}
+}
 #endif // WITH_PHYSX

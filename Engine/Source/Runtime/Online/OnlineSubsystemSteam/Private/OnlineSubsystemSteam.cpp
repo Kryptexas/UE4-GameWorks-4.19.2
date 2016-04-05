@@ -89,16 +89,24 @@ static void WriteSteamAppIdToDisk(int32 SteamAppId)
 	{
 		// Turn off sandbox temporarily to make sure file is where it's always expected
 		FScopeSandboxContext ScopedSandbox(false);
-		FArchive* AppIdFile = IFileManager::Get().CreateFileWriter(*GetSteamAppIdFilename());
-		
-		if (AppIdFile)
+
+		// Access the physical file writer directly so that we still write next to the executable in CotF builds.
+		FString SteamAppIdFilename = GetSteamAppIdFilename();
+		IFileHandle* Handle = IPlatformFile::GetPlatformPhysical().OpenWrite(*SteamAppIdFilename, false, false);
+		if (!Handle)
+		{
+			UE_LOG_ONLINE(Fatal, TEXT("Failed to create file: %s"), *SteamAppIdFilename);
+		}
+		else
 		{
 			FString AppId = FString::Printf(TEXT("%d"), SteamAppId);
-			AppIdFile->Serialize((void*)TCHAR_TO_ANSI(*AppId), AppId.Len());
 
-			// Close the file
-			delete AppIdFile;
-			AppIdFile = nullptr;
+			FBufferArchive Archive;
+			Archive.Serialize((void*)TCHAR_TO_ANSI(*AppId), AppId.Len());
+
+			Handle->Write(Archive.GetData(), Archive.Num());
+			delete Handle;
+			Handle = nullptr;
 		}
 	}
 }
@@ -160,11 +168,6 @@ IOnlineSessionPtr FOnlineSubsystemSteam::GetSessionInterface() const
 IOnlineFriendsPtr FOnlineSubsystemSteam::GetFriendsInterface() const
 {
 	return FriendInterface;
-}
-
-IMessageSanitizerPtr FOnlineSubsystemSteam::GetMessageSanitizerInterface() const
-{
-	return nullptr;
 }
 
 IOnlineGroupsPtr FOnlineSubsystemSteam::GetGroupsInterface() const
@@ -718,6 +721,12 @@ static void DeleteFromEnumerateUserFilesComplete(bool bWasSuccessful, const FUni
 
 bool FOnlineSubsystemSteam::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) 
 {
+	if (FOnlineSubsystemImpl::Exec(InWorld, Cmd, Ar))
+	{
+		return true;
+	}
+
+	bool bWasHandled = false;
 	if (FParse::Command(&Cmd, TEXT("DELETECLOUDFILES")))
 	{
 		IOnlineUserCloudPtr UserCloud = GetUserCloudInterface();
@@ -727,18 +736,18 @@ bool FOnlineSubsystemSteam::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevic
 		FOnEnumerateUserFilesCompleteDelegate Delegate = FOnEnumerateUserFilesCompleteDelegate::CreateStatic(&DeleteFromEnumerateUserFilesComplete);
 		GPerCloudDeleteFromEnumerateUserFilesCompleteDelegateHandles.Add(UserCloud.Get(), UserCloud->AddOnEnumerateUserFilesCompleteDelegate_Handle(Delegate));
 		UserCloud->EnumerateUserFiles(SteamId);
-		return true;
+		bWasHandled = true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("SYNCLOBBIES")))
 	{
 		if (SessionInterface.IsValid())
 		{
 			SessionInterface->SyncLobbies();
-			return true;
+			bWasHandled = true;
 		}
 	}
 
-	return false;
+	return bWasHandled;
 }
 
 FString FOnlineSubsystemSteam::GetAppId() const

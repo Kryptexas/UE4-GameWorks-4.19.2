@@ -13,6 +13,7 @@ public class TVOSPlatform : IOSPlatform
 	public TVOSPlatform()
 		:base(UnrealTargetPlatform.TVOS)
 	{
+		TargetIniPlatformType = UnrealTargetPlatform.IOS;
 	}
 
 	public override UnrealBuildTool.UEDeployIOS GetDeployHandler()

@@ -24,6 +24,7 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 #endif
 	VolumeMultiplier = 1.f;
 	bOverridePriority = false;
+	bIsPreviewSound = false;
 	Priority = 1.f;
 	PitchMultiplier = 1.f;
 	VolumeModulationMin = 1.f;
@@ -216,7 +217,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 				NewActiveSound.bAlwaysPlay = bAlwaysPlay;
 				NewActiveSound.bReverb = bReverb;
 				NewActiveSound.bCenterChannelOnly = bCenterChannelOnly;
-
+				NewActiveSound.bIsPreviewSound = bIsPreviewSound;
 				NewActiveSound.bLocationDefined = !bPreviewComponent;
 				if (NewActiveSound.bLocationDefined)
 				{

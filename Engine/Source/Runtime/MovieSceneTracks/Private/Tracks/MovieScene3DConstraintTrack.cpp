@@ -14,7 +14,7 @@ UMovieScene3DConstraintTrack::UMovieScene3DConstraintTrack( const FObjectInitial
 	: Super( ObjectInitializer )
 {
 #if WITH_EDITORONLY_DATA
-	TrackTint = FColor(128, 90, 0);
+	TrackTint = FColor(128, 90, 0, 65);
 #endif
 }
 
@@ -66,14 +66,5 @@ TRange<float> UMovieScene3DConstraintTrack::GetSectionBoundaries() const
 
 	return TRange<float>::Hull(Bounds);
 }
-
-
-#if WITH_EDITORONLY_DATA
-FText UMovieScene3DConstraintTrack::GetDefaultDisplayName() const
-{
-	return LOCTEXT("TrackName", "Constraint");
-}
-#endif
-
 
 #undef LOCTEXT_NAMESPACE

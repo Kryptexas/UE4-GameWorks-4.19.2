@@ -14,6 +14,8 @@
 #include "GatherableTextData.h"
 #include "Serialization/AsyncLoading.h"
 #include "ModuleManager.h"
+#include "LoadTimeTracker.h"
+#include "HAL/ThreadHeartBeat.h"
 
 #define LOCTEXT_NAMESPACE "LinkerLoad"
 
@@ -110,17 +112,17 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 
 					bool bInstanceOnly = false;
 
-					FParse::Bool( *It.Value(), TEXT("InstanceOnly="), bInstanceOnly );
-					FParse::Value( *It.Value(), TEXT("ObjectName="), ObjectName );
+					FParse::Bool( *It.Value().GetValue(), TEXT("InstanceOnly="), bInstanceOnly );
+					FParse::Value( *It.Value().GetValue(), TEXT("ObjectName="), ObjectName );
 
-					FParse::Value( *It.Value(), TEXT("OldClassName="), OldClassName );
-					FParse::Value( *It.Value(), TEXT("NewClassName="), NewClassName );
+					FParse::Value( *It.Value().GetValue(), TEXT("OldClassName="), OldClassName );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewClassName="), NewClassName );
 
-					FParse::Value( *It.Value(), TEXT("OldSubobjName="), OldSubobjName );
-					FParse::Value( *It.Value(), TEXT("NewSubobjName="), NewSubobjName );
+					FParse::Value( *It.Value().GetValue(), TEXT("OldSubobjName="), OldSubobjName );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewSubobjName="), NewSubobjName );
 
-					FParse::Value( *It.Value(), TEXT("NewClassClass="), NewClassClass );
-					FParse::Value( *It.Value(), TEXT("NewClassPackage="), NewClassPackage );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewClassClass="), NewClassClass );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewClassPackage="), NewClassPackage );
 
 					if (NewSubobjName != NAME_None || OldSubobjName != NAME_None)
 					{
@@ -181,8 +183,8 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 					FName OldGameName = NAME_None;
 					FName NewGameName = NAME_None;
 
-					FParse::Value( *It.Value(), TEXT("OldGameName="), OldGameName );
-					FParse::Value( *It.Value(), TEXT("NewGameName="), NewGameName );
+					FParse::Value( *It.Value().GetValue(), TEXT("OldGameName="), OldGameName );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewGameName="), NewGameName );
 
 					GameNameRedirects.Add(OldGameName, NewGameName);
 				}
@@ -191,8 +193,8 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 					FName OldStructName = NAME_None;
 					FName NewStructName = NAME_None;
 
-					FParse::Value( *It.Value(), TEXT("OldStructName="), OldStructName );
-					FParse::Value( *It.Value(), TEXT("NewStructName="), NewStructName );
+					FParse::Value( *It.Value().GetValue(), TEXT("OldStructName="), OldStructName );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewStructName="), NewStructName );
 
 					StructNameRedirects.Add(OldStructName, NewStructName);
 				}
@@ -201,8 +203,8 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 					FString OldPluginName;
 					FString NewPluginName;
 
-					FParse::Value( *It.Value(), TEXT("OldPluginName="), OldPluginName );
-					FParse::Value( *It.Value(), TEXT("NewPluginName="), NewPluginName );
+					FParse::Value( *It.Value().GetValue(), TEXT("OldPluginName="), OldPluginName );
+					FParse::Value( *It.Value().GetValue(), TEXT("NewPluginName="), NewPluginName );
 
 					OldPluginName = FString(TEXT("/")) + OldPluginName + FString(TEXT("/"));
 					NewPluginName = FString(TEXT("/")) + NewPluginName + FString(TEXT("/"));
@@ -213,7 +215,7 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 				{
 					FName KnownMissingPackage = NAME_None;
 
-					FParse::Value( *It.Value(), TEXT("PackageName="), KnownMissingPackage );
+					FParse::Value( *It.Value().GetValue(), TEXT("PackageName="), KnownMissingPackage );
 
 					KnownMissingPackages.Add(KnownMissingPackage);
 				}
@@ -606,42 +608,49 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 			// false is returned until any precaching is complete.
 			if( true )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_CreateLoader);
 				Status = CreateLoader();
 			}
 
 			// Serialize the package file summary and presize the various arrays (name, import & export map)
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializePackageFileSummary);
 				Status = SerializePackageFileSummary();
 			}
 
 			// Serialize the name map and register the names.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializeNameMap);
 				Status = SerializeNameMap();
 			}
 
 			// Serialize the gatherable text data map.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializeGatherableTextDataMap);
 				Status = SerializeGatherableTextDataMap();
 			}
 
 			// Serialize the import map.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializeImportMap);
 				Status = SerializeImportMap();
 			}
 
 			// Serialize the export map.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializeExportMap);
 				Status = SerializeExportMap();
 			}
 
 			// Start pre-allocation of texture memory.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_StartTextureAllocation);
 #if WITH_ENGINE
 				Status = StartTextureAllocation();
 #endif		// WITH_ENGINE
@@ -650,41 +659,48 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 			// Fix up import map for backward compatible serialization.
 			if( Status == LINKER_Loaded )
 			{	
+				SCOPED_LOADTIMER(LinkerLoad_FixupImportMap);
 				Status = FixupImportMap();
 			}
 
 			if ( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_RemapImports);
 				Status = RemapImports();
 			}
 
 			// Fix up export map for object class conversion 
 			if( Status == LINKER_Loaded )
 			{	
+				SCOPED_LOADTIMER(LinkerLoad_FixupExportMap);
 				Status = FixupExportMap();
 			}
 
 			// Serialize the dependency map.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_SerializeDependsMap);
 				Status = SerializeDependsMap();
 			}
 
 			// Hash exports.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_CreateExportHash);
 				Status = CreateExportHash();
 			}
 
 			// Find existing objects matching exports and associate them with this linker.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_FindExistingExports);
 				Status = FindExistingExports();
 			}
 
 			// Finalize creation process.
 			if( Status == LINKER_Loaded )
 			{
+				SCOPED_LOADTIMER(LinkerLoad_FinalizeCreation);
 				Status = FinalizeCreation();
 			}
 		}
@@ -1245,20 +1261,15 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeNameMap()
 
 	while( bFinishedPrecaching && NameMapIndex < Summary.NameCount && !IsTimeLimitExceeded(TEXT("serializing name map"),100) )
 	{
+		SCOPED_LOADTIMER(LinkerLoad_SerializeNameMap_ProcessingEntries);
+
 		// Read the name entry from the file.
-		FNameEntry NameEntry(ENAME_LinkerConstructor);
+		FNameEntrySerialized NameEntry(ENAME_LinkerConstructor);
 		*this << NameEntry;
 
-		// Add it to the name table. We disregard the context flags as we don't support flags on names for final release builds.
+		// Add it to the name table with no splitting and no hash calculations
+		NameMap.Add(FName(NameEntry));
 
-		// now, we make sure we DO NOT split the name here because it will have been written out
-		// split, and we don't want to keep splitting A_3_4_9 every time
-
-		NameMap.Add( 
-			NameEntry.IsWide() ? 
-				FName(ENAME_LinkerConstructor, NameEntry.GetWideName()) : 
-				FName(ENAME_LinkerConstructor, NameEntry.GetAnsiName())
-			);
 		NameMapIndex++;
 	}
 
@@ -1885,7 +1896,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 //			UE_LOG(LogLinker, Log, TEXT("Found a user created pacakge (%s)"), *(FPaths::GetBaseFilename(Filename)));
 		}
 
-		if( !(LoadFlags & LOAD_NoVerify))
+		if ( !(LoadFlags & LOAD_NoVerify) )
 		{
 			Verify();
 		}
@@ -1992,6 +2003,7 @@ void FLinkerLoad::Verify()
 			}
 		}
 	}
+
 	bHaveImportsBeenVerified = true;
 }
 
@@ -2873,6 +2885,9 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 		MetaDataIndex = LoadMetaDataFromExportMap(bForcePreload);
 	}
 	
+	// Tick the heartbeat if we're loading on the game thread
+	const bool bShouldTickHeartBeat = IsInGameThread();
+
 	for(int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 	{
 #if WITH_EDITOR
@@ -2902,12 +2917,18 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 		CreateExportAndPreload(ExportIndex, bForcePreload);
+
+		// If needed send a heartbeat, but no need to do it too often
+		if (bShouldTickHeartBeat && (ExportIndex % 10) == 0)
+		{
+			FThreadHeartBeat::Get().HeartBeat();
+		}
 	}
 
 	// Mark package as having been fully loaded.
 	if( LinkerRoot )
 	{
-		LinkerRoot->MarkAsFullyLoaded();		
+		LinkerRoot->MarkAsFullyLoaded();
 	}
 }
 
@@ -3832,9 +3853,9 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 		if (FPlatformProperties::RequiresCookedData())
 		{
 			if (GIsInitialLoad || GUObjectArray.IsOpenForDisregardForGC())
-			{
-				Export.Object->AddToRoot();
-			}
+		{
+			Export.Object->AddToRoot();
+		}
 		}
 		
 		LoadClass = Export.Object->GetClass(); // this may have changed if we are overwriting a CDO component

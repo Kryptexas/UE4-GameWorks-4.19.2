@@ -163,6 +163,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 		IOS_IPhone6Plus,
 		IOS_IPhone6S,
 		IOS_IPhone6SPlus,
+		IOS_IPadPro,
 		IOS_AppleTV,
 		IOS_Unknown,
 	};
@@ -191,6 +192,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			L"IPhone6Plus",
 			L"IPhone6S",
 			L"IPhone6SPlus",
+			L"IPadPro",
 			L"AppleTV",
 			L"Unknown",
 		};

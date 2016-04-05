@@ -80,14 +80,24 @@ void FMallocLeakDetection::HandleMallocLeakCommand(const TArray< FString >& Args
 void FMallocLeakDetection::AddCallstack(FCallstackTrack& Callstack)
 {
 	FScopeLock Lock(&AllocatedPointersCritical);
-	uint32 CallstackHash = FCrc::MemCrc32(Callstack.CallStack, sizeof(Callstack.CallStack), 0);
+	uint32 CallstackHash = FCrc::MemCrc32(Callstack.CallStack, sizeof(Callstack.CallStack), 0);	
 	FCallstackTrack& UniqueCallstack = UniqueCallstacks.FindOrAdd(CallstackHash);
+	//if we had a hash collision bail and lose the data rather than corrupting existing data.
+	if (UniqueCallstack.Count > 0 && UniqueCallstack != Callstack)
+	{
+		ensureMsgf(false, TEXT("Callstack hash collision.  Throwing away new stack."));
+		return;
+	}
+
 	if (UniqueCallstack.Count == 0)
 	{
 		UniqueCallstack = Callstack;
 	}
-	UniqueCallstack.Count++;
-	UniqueCallstack.Size += Callstack.Size;
+	else
+	{
+		UniqueCallstack.Size += Callstack.Size;
+	}
+	UniqueCallstack.Count++;	
 }
 
 void FMallocLeakDetection::RemoveCallstack(FCallstackTrack& Callstack)

@@ -27,14 +27,14 @@
 // CVars
 static TAutoConsoleVariable<float> CVarContactOffsetFactor(
 	TEXT("p.ContactOffsetFactor"),
-	0.01f,
-	TEXT("Multiplied by min dimension of object to calculate how close objects get before generating contacts. Default: 0.01"),
+	-1.f,
+	TEXT("Multiplied by min dimension of object to calculate how close objects get before generating contacts. < 0 implies use project settings. Default: 0.01"),
 	ECVF_Default);
 
 static TAutoConsoleVariable<float> CVarMaxContactOffset(
 	TEXT("p.MaxContactOffset"),
-	1.f,
-	TEXT("Max value of contact offset, which controls how close objects get before generating contacts. Default: 1.0"),
+	-1.f,
+	TEXT("Max value of contact offset, which controls how close objects get before generating contacts. < 0 implies use project settings. Default: 1.0"),
 	ECVF_Default);
 
 DEFINE_LOG_CATEGORY(LogPhysics);
@@ -299,11 +299,16 @@ void SetupNonUniformHelper(FVector Scale3D, float& MinScale, float& MinScaleAbs,
 	}
 }
 
-void GetContactOffsetParams(float& ContactOffsetFactor, float& MaxContactOffset)
+void GetContactOffsetParams(float& ContactOffsetFactor, float& MinContactOffset, float& MaxContactOffset)
 {
 	// Get contact offset params
 	ContactOffsetFactor = CVarContactOffsetFactor.GetValueOnGameThread();
 	MaxContactOffset = CVarMaxContactOffset.GetValueOnGameThread();
+
+	ContactOffsetFactor = ContactOffsetFactor < 0.f ? UPhysicsSettings::Get()->ContactOffsetMultiplier : ContactOffsetFactor;
+	MaxContactOffset = MaxContactOffset < 0.f ? UPhysicsSettings::Get()->MaxContactOffset : MaxContactOffset;
+
+	MinContactOffset = UPhysicsSettings::Get()->MinContactOffset;
 }
 
 PxMaterial* GetDefaultPhysMaterial()
@@ -328,7 +333,7 @@ struct FAddShapesHelper
 	, NewShapes(InNewShapes)
 	, bShapeSharing(InShapeSharing)
 	{
-		SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, Scale3DAbs);
+		SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, ShapeScale3DAbs);
 		{
 			float MinScaleRelative;
 			float MinScaleAbsRelative;
@@ -338,12 +343,17 @@ struct FAddShapesHelper
 			SetupNonUniformHelper(Scale3DRelative, MinScaleRelative, MinScaleAbsRelative, Scale3DAbsRelative);
 
 			MinScaleAbs *= MinScaleAbsRelative;
-			Scale3DAbs.X *= Scale3DAbsRelative.X;
-			Scale3DAbs.Y *= Scale3DAbsRelative.Y;
-			Scale3DAbs.Z *= Scale3DAbsRelative.Z;
+			ShapeScale3DAbs.X *= Scale3DAbsRelative.X;
+			ShapeScale3DAbs.Y *= Scale3DAbsRelative.Y;
+			ShapeScale3DAbs.Z *= Scale3DAbsRelative.Z;
+
+			ShapeScale3D = Scale3D;
+			ShapeScale3D.X *= Scale3DAbsRelative.X;
+			ShapeScale3D.Y *= Scale3DAbsRelative.Y;
+			ShapeScale3D.Z *= Scale3DAbsRelative.Z;
 		}
 
-		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
+		GetContactOffsetParams(ContactOffsetFactor, MinContactOffset, MaxContactOffset);
 	}
 
 	UBodySetup* BodySetup;
@@ -360,9 +370,11 @@ struct FAddShapesHelper
 
 	float MinScaleAbs;
 	float MinScale;
-	FVector Scale3DAbs;
+	FVector ShapeScale3DAbs;
+	FVector ShapeScale3D;
 
 	float ContactOffsetFactor;
+	float MinContactOffset;
 	float MaxContactOffset;
 
 public:
@@ -381,7 +393,7 @@ public:
 				PxTransform PLocalPose(U2PVector(ScaledSphereElem.Center));
 				ensure(PLocalPose.isValid());
 				{
-					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PSphereGeom.radius);
+					const float ContactOffset = FMath::Clamp(ContactOffsetFactor * PSphereGeom.radius, MinContactOffset, MaxContactOffset);
 					PxShape* PShape = AttachShape_AssumesLocked(PSphereGeom, PLocalPose, ContactOffset, SphereElem.GetUserData());
 				}
 			}
@@ -410,7 +422,7 @@ public:
 				PxTransform PLocalPose(U2PTransform(BoxTransform));
 				ensure(PLocalPose.isValid());
 				{
-					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoxGeom.halfExtents.minElement());
+					const float ContactOffset = FMath::Clamp(ContactOffsetFactor * PBoxGeom.halfExtents.minElement(), MinContactOffset, MaxContactOffset);
 					AttachShape_AssumesLocked(PBoxGeom, PLocalPose, ContactOffset, BoxElem.GetUserData());
 				}
 			}
@@ -423,8 +435,8 @@ public:
 
 	void AddSphylsToRigidActor_AssumesLocked() const
 	{
-		float ScaleRadius = FMath::Max(Scale3DAbs.X, Scale3DAbs.Y);
-		float ScaleLength = Scale3DAbs.Z;
+		float ScaleRadius = FMath::Max(ShapeScale3DAbs.X, ShapeScale3DAbs.Y);
+		float ScaleLength = ShapeScale3DAbs.Z;
 
 		for (int32 i = 0; i < BodySetup->AggGeom.SphylElems.Num(); i++)
 		{
@@ -442,7 +454,7 @@ public:
 
 				ensure(PLocalPose.isValid());
 				{
-					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PCapsuleGeom.radius);
+					const float ContactOffset = FMath::Clamp(ContactOffsetFactor * PCapsuleGeom.radius, MinContactOffset, MaxContactOffset);
 					AttachShape_AssumesLocked(PCapsuleGeom, PLocalPose, ContactOffset, SphylElem.GetUserData());
 				}
 			}
@@ -466,7 +478,7 @@ public:
 
 				PxConvexMeshGeometry PConvexGeom;
 				PConvexGeom.convexMesh = bUseNegX ? ConvexElem.ConvexMeshNegX : ConvexElem.ConvexMesh;
-				PConvexGeom.scale.scale = U2PVector(Scale3DAbs * ConvexElem.GetTransform().GetScale3D().GetAbs());
+				PConvexGeom.scale.scale = U2PVector(ShapeScale3DAbs * ConvexElem.GetTransform().GetScale3D().GetAbs());	//scale shape about the origin
 				FTransform ConvexTransform = ConvexElem.GetTransform();
 				if (ConvexTransform.GetScale3D().X < 0 || ConvexTransform.GetScale3D().Y < 0 || ConvexTransform.GetScale3D().Z < 0)
 				{
@@ -474,6 +486,7 @@ public:
 				}
 				if (ConvexTransform.IsValid())
 				{
+					//Scale the position independent of shape scale. This is because physx transforms have no concept of scale
 					PxTransform PElementTransform = U2PTransform(ConvexTransform * RelativeTM);
 					PLocalPose.q *= PElementTransform.q;
 					PLocalPose.p = PElementTransform.p;
@@ -487,7 +500,7 @@ public:
 
 						ensure(PLocalPose.isValid());
 						{
-							const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoundsExtents.minElement());
+							const float ContactOffset = FMath::Clamp(ContactOffsetFactor * PBoundsExtents.minElement(), MinContactOffset, MaxContactOffset);
 							AttachShape_AssumesLocked(PConvexGeom, PLocalPose, ContactOffset, ConvexElem.GetUserData());
 						}
 					}
@@ -515,7 +528,7 @@ public:
 		
 			PxTriangleMeshGeometry PTriMeshGeom;
 			PTriMeshGeom.triangleMesh = TriMesh;
-			PTriMeshGeom.scale.scale = U2PVector(Scale3D);
+			PTriMeshGeom.scale.scale = U2PVector(ShapeScale3D); //scale shape about the origin
 			if (BodySetup->bDoubleSidedGeometry)
 			{
 				PTriMeshGeom.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
@@ -523,6 +536,7 @@ public:
 
 			if (PTriMeshGeom.isValid())
 			{
+				//Scale the position independent of shape scale. This is because physx transforms have no concept of scale
 				PxTransform PElementTransform = U2PTransform(RelativeTM);
 				PElementTransform.p.x *= Scale3D.X;
 				PElementTransform.p.y *= Scale3D.Y;
@@ -1090,7 +1104,7 @@ void UBodySetup::PostEditUndo()
 
 SIZE_T UBodySetup::GetResourceSize( EResourceSizeMode::Type Mode )
 {
-	SIZE_T ResourceSize = 0;
+	SIZE_T ResourceSize = Super::GetResourceSize(Mode);
 
 #if WITH_PHYSX
 	// Count PhysX trimesh mem usage
@@ -1304,13 +1318,12 @@ FKSphereElem FKSphereElem::GetFinalScaled(const FVector& Scale3D, const FTransfo
 	float MinScale, MinScaleAbs;
 	FVector Scale3DAbs;
 
-	SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, Scale3DAbs);
+	SetupNonUniformHelper(Scale3D * RelativeTM.GetScale3D(), MinScale, MinScaleAbs, Scale3DAbs);
 
 	FKSphereElem ScaledSphere = *this;
 	ScaledSphere.Radius *= MinScaleAbs;
 
-	ScaledSphere.Center = RelativeTM.TransformPosition(Center);
-	ScaledSphere.Center *= MinScale;
+	ScaledSphere.Center = RelativeTM.TransformPosition(Center) * Scale3D;
 
 
 	return ScaledSphere;
@@ -1339,7 +1352,7 @@ FKBoxElem FKBoxElem::GetFinalScaled(const FVector& Scale3D, const FTransform& Re
 	float MinScale, MinScaleAbs;
 	FVector Scale3DAbs;
 
-	SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, Scale3DAbs);
+	SetupNonUniformHelper(Scale3D * RelativeTM.GetScale3D(), MinScale, MinScaleAbs, Scale3DAbs);
 
 	FKBoxElem ScaledBox = *this;
 	ScaledBox.X *= Scale3DAbs.X;
@@ -1429,7 +1442,7 @@ FKSphylElem FKSphylElem::GetFinalScaled(const FVector& Scale3D, const FTransform
 	float MinScale, MinScaleAbs;
 	FVector Scale3DAbs;
 
-	SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, Scale3DAbs);
+	SetupNonUniformHelper(Scale3D * RelativeTM.GetScale3D(), MinScale, MinScaleAbs, Scale3DAbs);
 
 	float ScaleRadius = FMath::Max(Scale3DAbs.X, Scale3DAbs.Y);
 	float ScaleLength = Scale3DAbs.Z;

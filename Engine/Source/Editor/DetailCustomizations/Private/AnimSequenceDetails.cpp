@@ -503,7 +503,7 @@ void SAnimationRefPoseViewport::InitSkeleton()
 				NewPosition.Normalize();
 				if(PreviewSkeletalMesh)
 				{
-					NewPosition *= (PreviewSkeletalMesh->Bounds.SphereRadius*1.5f);
+					NewPosition *= (PreviewSkeletalMesh->GetImportedBounds().SphereRadius*1.5f);
 				}
 				LevelViewportClient->SetViewLocation( NewPosition );
 			}

@@ -1,0 +1,31 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+ PlanarReflectionShaders.usf
+=============================================================================*/
+
+#include "Common.usf"
+#include "DeferredShadingCommon.usf"
+#include "PlanarReflectionShared.usf"
+
+void PlanarReflectionPS(
+	float2 InUV : TEXCOORD0,
+	float3 ScreenVector : TEXCOORD1,
+	float4 SVPos : SV_POSITION,
+	out float4 OutColor : SV_Target0
+	)
+{
+	OutColor = 0;
+
+	float SceneDepth = CalcSceneDepth(InUV);
+	float3 WorldPosition = ScreenVector * SceneDepth + View.WorldCameraOrigin;
+		
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(InUV);
+
+	BRANCH
+	// Skip unlit pixels (skybox)
+	if (ScreenSpaceData.GBuffer.ShadingModelID > 0)
+	{
+		OutColor = ComputePlanarReflections(WorldPosition, ScreenSpaceData.GBuffer.WorldNormal, PlanarReflectionSampler);
+	}
+}

@@ -16,7 +16,6 @@
 #include "EnvironmentQuery/EnvQueryTest.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
-#include "AbilitySystemComponent.h"
 #include "AIController.h"
 #include "BrainComponent.h"
 #include "BehaviorTreeDelegates.h"
@@ -25,6 +24,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/Channel.h"
 #include "Animation/AnimMontage.h"
+#include "GameplayTasksComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 
 #if WITH_EDITOR
@@ -645,14 +645,26 @@ void UGameplayDebuggingComponent::CollectBasicBehaviorData(APawn* MyPawn)
 		CurrentAIAssets = TEXT("");
 	}
 
+	GameplayTasksState = TEXT("");
 	UGameplayTasksComponent* GTComponent = MyPawn->FindComponentByClass<UGameplayTasksComponent>();
 	if (GTComponent)
 	{
-		GameplayTasksState = FString::Printf(TEXT("Ticking Tasks: %s\nTask Queue: %s"), *GTComponent->GetTickingTasksDescription(), *GTComponent->GetTasksPriorityQueueDescription());
-	}
-	else
-	{
-		GameplayTasksState = TEXT("");
+		for (FConstGameplayTaskIterator It = GTComponent->GetPriorityQueueIterator(); It; ++It)
+		{
+			const UGameplayTask* QueueTask = *It;
+			if (QueueTask)
+			{
+				const UObject* OwnerOb = Cast<const UObject>(QueueTask->GetTaskOwner());
+
+				GameplayTasksState += FString::Printf(TEXT("{white}%s%s {%s}%s {white}Owner:{yellow}%s {white}Res:{yellow}%s\n"),
+					*QueueTask->GetName(),
+					QueueTask->GetInstanceName() != NAME_None ? *FString::Printf(TEXT(" {yellow}[%s]"), *QueueTask->GetInstanceName().ToString()) : TEXT(""),
+					QueueTask->IsActive() ? TEXT("green") : TEXT("orange"),
+					*QueueTask->GetTaskStateName(),
+					(OwnerOb == GTComponent) ? TEXT("default") : *GetNameSafe(OwnerOb),
+					*QueueTask->GetRequiredResources().GetDebugDescription());
+			}
+		}
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }

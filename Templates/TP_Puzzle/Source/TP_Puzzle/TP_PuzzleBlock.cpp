@@ -39,7 +39,7 @@ ATP_PuzzleBlock::ATP_PuzzleBlock()
 	OrangeMaterial = ConstructorStatics.OrangeMaterial.Get();
 }
 
-void ATP_PuzzleBlock::BlockClicked(UPrimitiveComponent* ClickedComp)
+void ATP_PuzzleBlock::BlockClicked(UPrimitiveComponent* ClickedComp, FKey ButtonClicked)
 {
 	// Check we are not already active
 	if(!bIsActive)
@@ -60,5 +60,5 @@ void ATP_PuzzleBlock::BlockClicked(UPrimitiveComponent* ClickedComp)
 
 void ATP_PuzzleBlock::OnFingerPressedBlock(ETouchIndex::Type FingerIndex, UPrimitiveComponent* TouchedComponent)
 {
-	BlockClicked(TouchedComponent);
+	BlockClicked(TouchedComponent, EKeys::Invalid);
 }

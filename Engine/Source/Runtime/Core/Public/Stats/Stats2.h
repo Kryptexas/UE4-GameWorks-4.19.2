@@ -1556,6 +1556,29 @@ public:
 	}
 };
 
+class FSimpleScopeSecondsStat
+{
+public:
+
+	FSimpleScopeSecondsStat(TStatId InStatId)
+		: StartTime(FPlatformTime::Seconds())
+		, StatId(InStatId)
+	{
+
+	}
+
+	virtual ~FSimpleScopeSecondsStat()
+	{
+		double TotalTime = FPlatformTime::Seconds() - StartTime;
+		FThreadStats::AddMessage(StatId.GetName(), EStatOperation::Add, TotalTime);
+	}
+
+private:
+
+	double StartTime;
+	TStatId StatId;
+};
+
 /** Manages startup messages, usually to update the metadata. */
 class FStartupMessages
 {
@@ -1861,7 +1884,9 @@ struct FStat_##StatName\
 	SCOPE_CYCLE_COUNTER_GUARD \
 	FScopeCycleCounter CycleCount_##Stat(bCondition ? GET_STATID(Stat) : TStatId());
 
-
+#define SCOPE_SECONDS_ACCUMULATOR(Stat) \
+	SCOPE_CYCLE_COUNTER_GUARD \
+	FSimpleScopeSecondsStat SecondsAccum_##Stat(GET_STATID(Stat));
 
 #define SET_CYCLE_COUNTER(Stat,Cycles) \
 {\

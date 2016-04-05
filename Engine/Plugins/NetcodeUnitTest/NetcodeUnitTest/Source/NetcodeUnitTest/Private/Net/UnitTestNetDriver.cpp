@@ -14,9 +14,6 @@ UUnitTestNetDriver::UUnitTestNetDriver(const FObjectInitializer& ObjectInitializ
 {
 }
 
-/**
- * @todo #JohnBDoc
- */
 bool UUnitTestNetDriver::InitConnectionClass()
 {
 	bool bReturnVal = false;
@@ -25,11 +22,6 @@ bool UUnitTestNetDriver::InitConnectionClass()
 	{
 		NetConnectionClass = UUnitTestNetConnection::StaticClass();
 		bReturnVal = true;
-	}
-
-	if (NetConnectionClass == NULL)
-	{
-		bReturnVal = Super::InitConnectionClass();
 	}
 
 	return bReturnVal;

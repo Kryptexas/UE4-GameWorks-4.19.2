@@ -6,18 +6,7 @@ DebugViewModeRendering.h: Contains definitions for rendering debug viewmodes.
 
 #pragma once
 
-// Used to know whether debug viewmodes are allowed at runtime.
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-FORCEINLINE bool RuntimeAllowDebugViewModeShader(ERHIFeatureLevel::Type InFeatureLevel)
-{
-	return AllowDebugViewModeShader(GetFeatureLevelShaderPlatform(InFeatureLevel));
-}
-#else
-FORCEINLINE bool RuntimeAllowDebugViewModeShader(ERHIFeatureLevel::Type InFeatureLevel)
-{
-	return false;
-}
-#endif
+#include "DebugViewModeHelpers.h"
 
 static const int32 NumStreamingAccuracyColors = 5;
 static const int32 MaxStreamingAccuracyMips = 11;
@@ -37,7 +26,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return AllowDebugViewModeShader(Platform) && (Material->IsSpecialEngineMaterial() || Material->HasVertexPositionOffsetConnected() || Material->GetTessellationMode() != MTM_NoTessellation);
+		return AllowDebugViewVSDSHS(Platform) && (Material->IsDefaultMaterial() || Material->HasVertexPositionOffsetConnected() || Material->GetTessellationMode() != MTM_NoTessellation);
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& Material,const FSceneView& View)
@@ -124,7 +113,7 @@ struct FDebugViewMode
 {
 	static IDebugViewModePSInterface* GetPSInterface(TShaderMap<FGlobalShaderType>* ShaderMap, const FMaterial* Material, EDebugViewShaderMode DebugViewShaderMode);
 
-	static void GetDebugMaterial(const FMaterialRenderProxy** MaterialRenderProxy, const FMaterial** Material, ERHIFeatureLevel::Type FeatureLevel);
+	static void GetMaterialForVSHSDS(const FMaterialRenderProxy** MaterialRenderProxy, const FMaterial** Material, ERHIFeatureLevel::Type FeatureLevel);
 
 	static void SetParametersVSHSDS(
 		FRHICommandList& RHICmdList, 

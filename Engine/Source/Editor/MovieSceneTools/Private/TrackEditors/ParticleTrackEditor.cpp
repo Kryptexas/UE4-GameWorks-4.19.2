@@ -38,7 +38,7 @@ namespace AnimatableParticleEditorConstants
 
 FParticleSection::FParticleSection( UMovieSceneSection& InSection, TSharedRef<ISequencer>InOwningSequencer )
 	: Section( InSection )
-	, OwningSequencer( InOwningSequencer )
+	, OwningSequencerPtr( InOwningSequencer )
 {
 	ParticleKeyEnum = FindObject<UEnum>( ANY_PACKAGE, TEXT( "EParticleKey" ) );
 	checkf( ParticleKeyEnum != nullptr, TEXT( "FParticleSection could not find the EParticleKey UEnum by name." ) )
@@ -77,6 +77,13 @@ void FParticleSection::GenerateSectionLayout( class ISectionLayoutBuilder& Layou
 
 int32 FParticleSection::OnPaintSection( FSequencerSectionPainter& InPainter ) const
 {
+	TSharedPtr<ISequencer> OwningSequencer = OwningSequencerPtr.Pin();
+
+	if (!OwningSequencer.IsValid())
+	{
+		return InPainter.LayerId + 1;
+	}
+
 	const ESlateDrawEffect::Type DrawEffects = InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 	UMovieSceneParticleSection* AnimSection = Cast<UMovieSceneParticleSection>( &Section );
 	const FTimeToPixel& TimeToPixelConverter = InPainter.GetTimeConverter();
@@ -93,7 +100,6 @@ int32 FParticleSection::OnPaintSection( FSequencerSectionPainter& InPainter ) co
 		if ( ParentTrack != nullptr )
 		{
 			TrackColor = ParentTrack->GetColorTint();
-			TrackColor.A *= 0.4;
 
 			FGuid ObjectHandle;
 			for ( const FMovieSceneBinding& Binding : OwningSequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetBindings() )
@@ -235,6 +241,24 @@ const FSlateBrush* FParticleSection::GetKeyBrush( FKeyHandle KeyHandle ) const
 	return nullptr;
 }
 
+FVector2D FParticleSection::GetKeyBrushOrigin( FKeyHandle KeyHandle ) const
+{
+	UMovieSceneParticleSection* ParticleSection = Cast<UMovieSceneParticleSection>( &Section );
+	if ( ParticleSection != nullptr )
+	{
+		FIntegralKey ParticleKey = ParticleSection->GetParticleCurve().GetKey(KeyHandle);
+		if ( (EParticleKey::Type)ParticleKey.Value == EParticleKey::Activate )
+		{
+			return FVector2D(-1.0f, 1.0f);
+		}
+		else if ( (EParticleKey::Type)ParticleKey.Value == EParticleKey::Deactivate )
+		{
+			return FVector2D(1.0f, 1.0f);
+		}
+	}
+	return FVector2D(0.0f, 0.0f);
+}
+
 
 FParticleTrackEditor::FParticleTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
@@ -280,21 +304,21 @@ void FParticleTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder
 
 void FParticleTrackEditor::AddParticleKey( const FGuid ObjectGuid )
 {
-	TArray<UObject*> OutObjects;
+	TArray<TWeakObjectPtr<UObject>> OutObjects;
 
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects );
 	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FParticleTrackEditor::AddKeyInternal, OutObjects ) );
 }
 
 
-bool FParticleTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects )
+bool FParticleTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects )
 {
 	bool bHandleCreated = false;
 	bool bTrackCreated = false;
 
 	for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
 	{
-		UObject* Object = Objects[ObjectIndex];
+		UObject* Object = Objects[ObjectIndex].Get();
 
 		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
 		FGuid ObjectHandle = HandleResult.Handle;

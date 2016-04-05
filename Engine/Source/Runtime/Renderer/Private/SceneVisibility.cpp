@@ -10,6 +10,7 @@
 #include "FXSystem.h"
 #include "SceneUtils.h"
 #include "PostProcessing.h"
+#include "PlanarReflectionSceneProxy.h"
 
 /*------------------------------------------------------------------------------
 	Globals
@@ -304,7 +305,7 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 				uint32 Mask = 0x1;
 				uint32 VisBits = 0;
 				uint32 FadingBits = 0;
-				for(int32 BitSubIndex = 0; BitSubIndex < NumBitsPerDWORD && WordIndex * NumBitsPerDWORD + BitSubIndex < BitArrayNumInner; BitSubIndex++, Mask <<= 1)
+				for (int32 BitSubIndex = 0; BitSubIndex < NumBitsPerDWORD && WordIndex * NumBitsPerDWORD + BitSubIndex < BitArrayNumInner; BitSubIndex++, Mask <<= 1)
 				{
 					int32 Index = WordIndex * NumBitsPerDWORD + BitSubIndex;
 					const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[Index];
@@ -325,9 +326,8 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 						MaxDrawDistance = FLT_MAX;
 					}
 
-					// The primitive is always culled if it exceeds the max fade distance or lay outside the view frustum.
 					if (DistanceSquared > FMath::Square(MaxDrawDistance + FadeRadius) ||
-						DistanceSquared < Bounds.MinDrawDistanceSq || 
+						DistanceSquared < Bounds.MinDrawDistanceSq ||
 						(UseCustomCulling && !View.CustomVisibilityQuery->IsVisible(VisibilityId, FBoxSphereBounds(Bounds.Origin, Bounds.BoxExtent, Bounds.SphereRadius))) ||
 						(bAlsoUseSphereTest && View.ViewFrustum.IntersectSphere(Bounds.Origin, Bounds.SphereRadius) == false) ||
 						View.ViewFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent) == false)
@@ -1481,7 +1481,8 @@ struct FRelevancePacket
 			if (ViewRelevance.HasTranslucency() && !bEditorRelevance && ViewRelevance.bRenderInMainPass)
 			{
 				// Add to set of dynamic translucent primitives
-				FTranslucentPrimSet::PlaceScenePrimitive(PrimitiveSceneInfo, View, ViewRelevance.bNormalTranslucencyRelevance, ViewRelevance.bSeparateTranslucencyRelevance, 
+				FTranslucentPrimSet::PlaceScenePrimitive(PrimitiveSceneInfo, View, 
+					ViewRelevance.bNormalTranslucencyRelevance, ViewRelevance.bSeparateTranslucencyRelevance, ViewRelevance.bMobileSeparateTranslucencyRelevance, 
 					&SortedTranslucencyPrims.Prims[SortedTranslucencyPrims.NumPrims], SortedTranslucencyPrims.NumPrims,
 					&SortedSeparateTranslucencyPrims.Prims[SortedSeparateTranslucencyPrims.NumPrims], SortedSeparateTranslucencyPrims.NumPrims
 					);
@@ -1546,6 +1547,7 @@ struct FRelevancePacket
 				&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance || bHasClearCoat))
 			{
 				PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIndex].Origin);
+				PrimitiveSceneInfo->CachedPlanarReflectionProxy = Scene->FindClosestPlanarReflection(Scene->PrimitiveBounds[BitIndex].Origin);
 
 				if (!Scene->ShouldUseDeferredRenderer())
 				{
@@ -2510,41 +2512,23 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		}
 
 		// visibility test is done, so now build the hidden flags based on visibility set up
-		bool bLODSceneTreeActive = Scene->SceneLODHierarchy.IsActive();
-		FSceneBitArray PrimitiveHiddenByLODMap;
-		if (bLODSceneTreeActive)
-		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_ViewVisibilityTime_HLOD);
-			Scene->SceneLODHierarchy.PopulateFadingFlags(View);
+		FLODSceneTree& HLODTree = Scene->SceneLODHierarchy;
 
-			PrimitiveHiddenByLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
-			Scene->SceneLODHierarchy.PopulateHiddenFlags(View, PrimitiveHiddenByLODMap);
-
-			// now iterate through turn off visibility if hidden by LOD
-			for(FSceneSetBitIterator BitIt(PrimitiveHiddenByLODMap); BitIt; ++BitIt)
+		if (HLODTree.IsActive())
 			{
-				View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
-			}
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_ViewVisibilityTime_HLOD);
+			HLODTree.UpdateAndApplyVisibilityStates(View);
 		}
 
 		MarkAllPrimitivesForReflectionProxyUpdate(Scene);
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_ViewVisibilityTime_ConditionalMarkStaticMeshElementsForUpdate);
-			Scene->ConditionalMarkStaticMeshElementsForUpdate();
+		Scene->ConditionalMarkStaticMeshElementsForUpdate();
 		}
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ViewRelevance);
-			ComputeAndMarkRelevanceForViewParallel(RHICmdList, Scene, View, ViewBit, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
-
-			if (bLODSceneTreeActive)
-			{
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_ViewVisibilityTime_HLOD_Prop);
-				for (FSceneSetBitIterator BitIt(PrimitiveHiddenByLODMap); BitIt; ++BitIt)
-				{
-					View.PrimitiveViewRelevanceMap[BitIt.GetIndex()].bInitializedThisFrame = true;
-				}
-			}
+				ComputeAndMarkRelevanceForViewParallel(RHICmdList, Scene, View, ViewBit, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -2587,18 +2571,18 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_PostVisibilityFrameSetup_SortTranslucency);
-		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{		
+		FViewInfo& View = Views[ViewIndex];
+
+		// sort the translucent primitives
+		View.TranslucentPrimSet.SortPrimitives();
+
+		if (View.State)
 		{
-			FViewInfo& View = Views[ViewIndex];
-
-			// sort the translucent primitives
-			View.TranslucentPrimSet.SortPrimitives();
-
-			if (View.State)
-			{
-				((FSceneViewState*)View.State)->TrimHistoryRenderTargets(Scene);
-			}
+			((FSceneViewState*)View.State)->TrimHistoryRenderTargets(Scene);
 		}
+	}
 	}
 
 	bool bCheckLightShafts = false;
@@ -2634,146 +2618,150 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_PostVisibilityFrameSetup_Light_Visibility);
-		// determine visibility of each light
-		for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
-		{
-			const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
-			const FLightSceneInfo* LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+	// determine visibility of each light
+	for(TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights);LightIt;++LightIt)
+	{
+		const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
+		const FLightSceneInfo* LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
 
-			// view frustum cull lights in each view
-			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		// view frustum cull lights in each view
+		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+		{		
+			const FLightSceneProxy* Proxy = LightSceneInfo->Proxy;
+			FViewInfo& View = Views[ViewIndex];
+			FVisibleLightViewInfo& VisibleLightViewInfo = View.VisibleLightInfos[LightIt.GetIndex()];
+			// dir lights are always visible, and point/spot only if in the frustum
+			if (Proxy->GetLightType() == LightType_Point  
+				|| Proxy->GetLightType() == LightType_Spot)
 			{
-				const FLightSceneProxy* Proxy = LightSceneInfo->Proxy;
-				FViewInfo& View = Views[ViewIndex];
-				FVisibleLightViewInfo& VisibleLightViewInfo = View.VisibleLightInfos[LightIt.GetIndex()];
-				// dir lights are always visible, and point/spot only if in the frustum
-				if (Proxy->GetLightType() == LightType_Point
-					|| Proxy->GetLightType() == LightType_Spot)
-				{
-					const float Radius = Proxy->GetRadius();
+				const float Radius = Proxy->GetRadius();
 
-					if (View.ViewFrustum.IntersectSphere(Proxy->GetOrigin(), Radius))
-					{
-						FSphere Bounds = Proxy->GetBoundingSphere();
-						float DistanceSquared = (Bounds.Center - View.ViewMatrices.ViewOrigin).SizeSquared();
-						const bool bDrawLight = FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared < 1.0f;
-						VisibleLightViewInfo.bInViewFrustum = bDrawLight;
-					}
+				if (View.ViewFrustum.IntersectSphere(Proxy->GetOrigin(), Radius))
+				{
+					FSphere Bounds = Proxy->GetBoundingSphere();
+					float DistanceSquared = (Bounds.Center - View.ViewMatrices.ViewOrigin).SizeSquared();
+					const bool bDrawLight = FMath::Square( FMath::Min( 0.0002f, GMinScreenRadiusForLights / Bounds.W ) * View.LODDistanceFactor ) * DistanceSquared < 1.0f;
+					VisibleLightViewInfo.bInViewFrustum = bDrawLight;
 				}
-				else
+			}
+			else
+			{
+				VisibleLightViewInfo.bInViewFrustum = true;
+
+				static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+				bool bNotMobileMSAA = !(CVarMobileMSAA ? CVarMobileMSAA->GetValueOnRenderThread() > 1 : false);
+
+				// Setup single sun-shaft from direction lights for mobile.
+				if(bCheckLightShafts && LightSceneInfo->bEnableLightShaftBloom)
 				{
-					VisibleLightViewInfo.bInViewFrustum = true;
+					// Find directional light for sun shafts.
+					// Tweaked values from UE3 implementation.
+					const float PointLightFadeDistanceIncrease = 200.0f;
+					const float PointLightRadiusFadeFactor = 5.0f;
 
-					static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-					bool bNotMobileMSAA = !(CVarMobileMSAA ? CVarMobileMSAA->GetValueOnRenderThread() > 1 : false);
+					const FVector WorldSpaceBlurOrigin = LightSceneInfo->Proxy->GetPosition();
+					// Transform into post projection space
+					FVector4 ProjectedBlurOrigin = View.WorldToScreen(WorldSpaceBlurOrigin);
 
-					// Setup single sun-shaft from direction lights for mobile.
-					if (bCheckLightShafts && LightSceneInfo->bEnableLightShaftBloom)
-					{
-						// Find directional light for sun shafts.
-						// Tweaked values from UE3 implementation.
-						const float PointLightFadeDistanceIncrease = 200.0f;
-						const float PointLightRadiusFadeFactor = 5.0f;
+					const float DistanceToBlurOrigin = (View.ViewMatrices.ViewOrigin - WorldSpaceBlurOrigin).Size() + PointLightFadeDistanceIncrease;
 
-						const FVector WorldSpaceBlurOrigin = LightSceneInfo->Proxy->GetPosition();
-						// Transform into post projection space
-						FVector4 ProjectedBlurOrigin = View.WorldToScreen(WorldSpaceBlurOrigin);
-
-						const float DistanceToBlurOrigin = (View.ViewMatrices.ViewOrigin - WorldSpaceBlurOrigin).Size() + PointLightFadeDistanceIncrease;
-
-						// Don't render if the light's origin is behind the view
-						if (ProjectedBlurOrigin.W >= 0.0f
-							// Don't render point lights that have completely faded out
-							&& (LightSceneInfo->Proxy->GetLightType() == LightType_Directional
+					// Don't render if the light's origin is behind the view
+					if(ProjectedBlurOrigin.W >= 0.0f
+						// Don't render point lights that have completely faded out
+							&& (LightSceneInfo->Proxy->GetLightType() == LightType_Directional 
 							|| DistanceToBlurOrigin < LightSceneInfo->Proxy->GetRadius() * PointLightRadiusFadeFactor))
-						{
-							View.bLightShaftUse = bNotMobileMSAA;
-							View.LightShaftCenter.X = ProjectedBlurOrigin.X / ProjectedBlurOrigin.W;
-							View.LightShaftCenter.Y = ProjectedBlurOrigin.Y / ProjectedBlurOrigin.W;
-							// TODO: Might want to hookup different colors for these.
-							View.LightShaftColorMask = LightSceneInfo->BloomTint;
-							View.LightShaftColorApply = LightSceneInfo->BloomTint;
-						}
+					{
+						View.bLightShaftUse = bNotMobileMSAA;
+						View.LightShaftCenter.X = ProjectedBlurOrigin.X / ProjectedBlurOrigin.W;
+						View.LightShaftCenter.Y = ProjectedBlurOrigin.Y / ProjectedBlurOrigin.W;
+						// TODO: Might want to hookup different colors for these.
+						View.LightShaftColorMask = LightSceneInfo->BloomTint;
+						View.LightShaftColorApply = LightSceneInfo->BloomTint;
+
+						// Apply bloom scale
+						View.LightShaftColorMask  *= FLinearColor(LightSceneInfo->BloomScale, LightSceneInfo->BloomScale, LightSceneInfo->BloomScale, 1.0f);
+						View.LightShaftColorApply *= FLinearColor(LightSceneInfo->BloomScale, LightSceneInfo->BloomScale, LightSceneInfo->BloomScale, 1.0f);
 					}
 				}
+			}
 
-				// Draw shapes for reflection captures
-				if (View.bIsReflectionCapture && VisibleLightViewInfo.bInViewFrustum && Proxy->HasStaticLighting() && Proxy->GetLightType() != LightType_Directional)
+			// Draw shapes for reflection captures
+			if( View.bIsReflectionCapture && VisibleLightViewInfo.bInViewFrustum && Proxy->HasStaticLighting() && Proxy->GetLightType() != LightType_Directional )
+			{
+				FVector Origin = Proxy->GetOrigin();
+				FVector ToLight = Origin - View.ViewMatrices.ViewOrigin;
+				float DistanceSqr = ToLight | ToLight;
+				float Radius = Proxy->GetRadius();
+
+				if( DistanceSqr < Radius * Radius )
 				{
-					FVector Origin = Proxy->GetOrigin();
-					FVector ToLight = Origin - View.ViewMatrices.ViewOrigin;
-					float DistanceSqr = ToLight | ToLight;
-					float Radius = Proxy->GetRadius();
+					FVector4	PositionAndInvRadius;
+					FVector4	ColorAndFalloffExponent;
+					FVector		Direction;
+					FVector2D	SpotAngles;
+					float		SourceRadius;
+					float		SourceLength;
+					float		MinRoughness;
+					Proxy->GetParameters( PositionAndInvRadius, ColorAndFalloffExponent, Direction, SpotAngles, SourceRadius, SourceLength, MinRoughness );
 
-					if (DistanceSqr < Radius * Radius)
+					// Force to be at least 0.75 pixels
+					float CubemapSize = 128.0f;
+					float Distance = FMath::Sqrt( DistanceSqr );
+					float MinRadius = Distance * 0.75f / CubemapSize;
+					SourceRadius = FMath::Max( MinRadius, SourceRadius );
+
+					// Snap to cubemap pixel center to reduce aliasing
+					FVector Scale = ToLight.GetAbs();
+					int32 MaxComponent = Scale.X > Scale.Y ? ( Scale.X > Scale.Z ? 0 : 2 ) : ( Scale.Y > Scale.Z ? 1 : 2 );
+					for( int32 k = 1; k < 3; k++ )
 					{
-						FVector4	PositionAndInvRadius;
-						FVector4	ColorAndFalloffExponent;
-						FVector		Direction;
-						FVector2D	SpotAngles;
-						float		SourceRadius;
-						float		SourceLength;
-						float		MinRoughness;
-						Proxy->GetParameters(PositionAndInvRadius, ColorAndFalloffExponent, Direction, SpotAngles, SourceRadius, SourceLength, MinRoughness);
-
-						// Force to be at least 0.75 pixels
-						float CubemapSize = 128.0f;
-						float Distance = FMath::Sqrt(DistanceSqr);
-						float MinRadius = Distance * 0.75f / CubemapSize;
-						SourceRadius = FMath::Max(MinRadius, SourceRadius);
-
-						// Snap to cubemap pixel center to reduce aliasing
-						FVector Scale = ToLight.GetAbs();
-						int32 MaxComponent = Scale.X > Scale.Y ? (Scale.X > Scale.Z ? 0 : 2) : (Scale.Y > Scale.Z ? 1 : 2);
-						for (int32 k = 1; k < 3; k++)
-						{
-							float Projected = ToLight[(MaxComponent + k) % 3] / Scale[MaxComponent];
-							float Quantized = (FMath::RoundToFloat(Projected * (0.5f * CubemapSize) - 0.5f) + 0.5f) / (0.5f * CubemapSize);
-							ToLight[(MaxComponent + k) % 3] = Quantized * Scale[MaxComponent];
-						}
-						Origin = ToLight + View.ViewMatrices.ViewOrigin;
-
-						FLinearColor Color(ColorAndFalloffExponent);
-
-						if (Proxy->IsInverseSquared())
-						{
-							float LightRadiusMask = FMath::Square(1.0f - FMath::Square(DistanceSqr * FMath::Square(PositionAndInvRadius.W)));
-							Color *= LightRadiusMask;
-
-							// Correction for lumen units
-							Color *= 16.0f;
-						}
-						else
-						{
-							// Remove inverse square falloff
-							Color *= DistanceSqr + 1.0f;
-
-							// Apply falloff
-							Color *= FMath::Pow(1.0f - DistanceSqr * FMath::Square(PositionAndInvRadius.W), ColorAndFalloffExponent.W);
-						}
-
-						// Spot falloff
-						FVector L = ToLight.GetSafeNormal();
-						Color *= FMath::Square(FMath::Clamp(((L | Direction) - SpotAngles.X) * SpotAngles.Y, 0.0f, 1.0f));
-
-						// Scale by visible area
-						Color /= PI * FMath::Square(SourceRadius);
-
-						// Always opaque
-						Color.A = 1.0f;
-
-						FViewElementPDI LightPDI(&View, NULL);
-						FMaterialRenderProxy* const ColoredMeshInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), Color);
-						DrawSphere(&LightPDI, Origin, FVector(SourceRadius, SourceRadius, SourceRadius), 8, 6, ColoredMeshInstance, SDPG_World);
+						float Projected = ToLight[ (MaxComponent + k) % 3 ] / Scale[ MaxComponent ];
+						float Quantized = ( FMath::RoundToFloat( Projected * (0.5f * CubemapSize) - 0.5f ) + 0.5f ) / (0.5f * CubemapSize);
+						ToLight[ (MaxComponent + k) % 3 ] = Quantized * Scale[ MaxComponent ];
 					}
+					Origin = ToLight + View.ViewMatrices.ViewOrigin;
+				
+					FLinearColor Color( ColorAndFalloffExponent );
+
+					if( Proxy->IsInverseSquared() )
+					{
+						float LightRadiusMask = FMath::Square( 1.0f - FMath::Square( DistanceSqr * FMath::Square( PositionAndInvRadius.W ) ) );
+						Color *= LightRadiusMask;
+						
+						// Correction for lumen units
+						Color *= 16.0f;
+					}
+					else
+					{
+						// Remove inverse square falloff
+						Color *= DistanceSqr + 1.0f;
+
+						// Apply falloff
+						Color *= FMath::Pow( 1.0f - DistanceSqr * FMath::Square( PositionAndInvRadius.W ), ColorAndFalloffExponent.W ); 
+					}
+
+					// Spot falloff
+					FVector L = ToLight.GetSafeNormal();
+					Color *= FMath::Square( FMath::Clamp( ( (L | Direction) - SpotAngles.X ) * SpotAngles.Y, 0.0f, 1.0f ) );
+
+					// Scale by visible area
+					Color /= PI * FMath::Square( SourceRadius );
+				
+					// Always opaque
+					Color.A = 1.0f;
+				
+					FViewElementPDI LightPDI( &View, NULL );
+					FMaterialRenderProxy* const ColoredMeshInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy( GEngine->DebugMeshMaterial->GetRenderProxy(false), Color );
+					DrawSphere( &LightPDI, Origin, FVector( SourceRadius, SourceRadius, SourceRadius ), 8, 6, ColoredMeshInstance, SDPG_World );
 				}
 			}
 		}
 	}
+	}
 	{
 
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_PostVisibilityFrameSetup_InitFogConstants);
-		InitFogConstants();
+	InitFogConstants();
 	}
 }
 
@@ -2877,8 +2865,8 @@ void FDeferredShadingSceneRenderer::InitViewsPossiblyAfterPrepass(FRHICommandLis
 
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitViews_UpdatePrimitivePrecomputedLightingBuffers);
-		// Now that the indirect lighting cache is updated, we can update the primitive precomputed lighting buffers.
-		UpdatePrimitivePrecomputedLightingBuffers();
+	// Now that the indirect lighting cache is updated, we can update the primitive precomputed lighting buffers.
+	UpdatePrimitivePrecomputedLightingBuffers();
 	}
 
 	UpdateSeparateTranslucencyBufferSize(RHICmdList);
@@ -2937,10 +2925,13 @@ void FLODSceneTree::UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitive
 	}
 }
 
-void FLODSceneTree::PopulateFadingFlags(FViewInfo& View)
+void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 {
 	PrimitiveFadingLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
 	PrimitiveFadingOutLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
+	FSceneBitArray& VisibilityFlags = View.PrimitiveVisibilityMap;
+
+	++UpdateCount;
 
 	if (const FSceneViewState* ViewState = (FSceneViewState*)View.State)
 	{
@@ -2957,49 +2948,90 @@ void FLODSceneTree::PopulateFadingFlags(FViewInfo& View)
 		for (auto Iter = SceneNodes.CreateIterator(); Iter; ++Iter)
 		{
 			FLODSceneNode& Node = Iter.Value();
-			if (Node.SceneInfo && Node.LatestUpdateCount == UpdateCount)
-			{
-				const int32 NodeIndex = Node.SceneInfo->GetIndex();
-				const TIndirectArray<FStaticMesh>& NodeMeshes = Node.SceneInfo->StaticMeshes;
+			const TIndirectArray<FStaticMesh>& NodeMeshes = Node.SceneInfo->StaticMeshes;
 
-				if (NodeMeshes.Num() > 0 && NodeMeshes[0].bDitheredLODTransition)
+			// Ignore already updated nodes, or those that we can't work with
+			if (Node.LatestUpdateCount == UpdateCount || !Node.SceneInfo || NodeMeshes.Num() == 0)
+			{
+				continue;
+			}
+
+				const int32 NodeIndex = Node.SceneInfo->GetIndex();
+			bool bIsVisible = VisibilityFlags[NodeIndex];
+
+			// Update fading state
+			if (NodeMeshes[0].bDitheredLODTransition)
 				{
+				// Update with syncs
 					if (bSyncFrame)
 					{
-						bool bChildrenFading = false;
+					// Determine desired HLOD state
+					const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[NodeIndex];
+					const float DistanceSquared = (Bounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
+					const bool bIsInDrawRange = DistanceSquared >= Bounds.MinDrawDistanceSq;
 
-						// Note: Unless ending a fade, need to wait for all children to finish fading?
-						// Not sure this can actually happen as we wait for the syncs so will override the fade
-						if (Node.bWasVisible != Node.bIsVisible || !bChildrenFading)
+					// Fade when HLODs change threshold on-screen, else snap
+					// TODO: This logic can still be improved to clear state and
+					//       transitions when off-screen, but needs better detection
+					const bool bChangedRange = bIsInDrawRange != Node.bWasVisible;
+					const bool bIsOnScreen = bIsVisible || Node.bWasVisible;
+				
+					if (Node.bIsFading)
+					{
+						Node.bIsFading = false;
+					}
+					else if (bChangedRange && bIsOnScreen)
 						{
-							Node.bWasVisible = Node.bIsVisible;
-							Node.bIsVisible = View.PrimitiveVisibilityMap[NodeIndex];
-						}
+						Node.bIsFading = true;	
 					}
 
-					// Fade until state back in sync, then hold visibility
-					if (Node.bWasVisible != Node.bIsVisible)
+							Node.bWasVisible = Node.bIsVisible;
+					Node.bIsVisible = bIsInDrawRange;
+					}
+
+				// Flag as fading or freeze visibility if waiting for a fade
+				if (Node.bIsFading)
 					{
 						PrimitiveFadingLODMap[NodeIndex] = true;
 						PrimitiveFadingOutLODMap[NodeIndex] = !Node.bIsVisible;
-
-						PropagateFadingFlagsToChildren(View, Node, true, Node.bIsVisible);
 					}
 					else
 					{
-						View.PrimitiveVisibilityMap[NodeIndex] = Node.bIsVisible;
-					}
+					VisibilityFlags[NodeIndex] = Node.bWasVisible;
+					bIsVisible = Node.bWasVisible;
 				}
+			}
+#if WITH_EDITOR
+			else
+			{
+				// Force the default state in-case material edits cause an object to get stuck
+				Node.bIsFading = false;
+					}
+#endif
+
+			if (Node.bIsFading)
+			{
+				// Fade until state back in sync
+				ApplyNodeFadingToChildren(Node, VisibilityFlags, true, Node.bIsVisible);
+				}
+			else if (bIsVisible)
+			{
+				// If stable and visible, override hierarchy visibility
+				HideNodeChildren(Node, VisibilityFlags);
 			}
 		}
 	}
 }
 
-void FLODSceneTree::PropagateFadingFlagsToChildren(FViewInfo& View, FLODSceneNode& Node, bool bIsFading, bool bIsFadingOut)
+void FLODSceneTree::ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut)
 {
 	if (Node.SceneInfo)
 	{
+		Node.LatestUpdateCount = UpdateCount;
+
+		// Force visibility during fades
 		const int32 NodeIndex = Node.SceneInfo->GetIndex();
+		VisibilityFlags[NodeIndex] = true;
 
 		for (const auto& Child : Node.ChildrenSceneInfos)
 		{
@@ -3007,91 +3039,31 @@ void FLODSceneTree::PropagateFadingFlagsToChildren(FViewInfo& View, FLODSceneNod
 
 			PrimitiveFadingLODMap[ChildIndex] = bIsFading;
 			PrimitiveFadingOutLODMap[ChildIndex] = bIsFadingOut;
+			VisibilityFlags[ChildIndex] = true;
 
+			// Fading only occurs at the adjacent hierarchy level, below should be hidden
 			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
 			{
-				PropagateFadingFlagsToChildren(View, *ChildNode, bIsFading, bIsFadingOut);
+				HideNodeChildren(*ChildNode, VisibilityFlags);
 			}
 		}
-
-		// Force visibility during fades
-		View.PrimitiveVisibilityMap[NodeIndex] = true;
 	}
 }
 
-void FLODSceneTree::PropagateHiddenFlagsToChildren(FSceneBitArray& HiddenFlags, FLODSceneNode& Node)
+void FLODSceneTree::HideNodeChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags)
 {
-	// if already updated, no reason to do this
 	if(Node.LatestUpdateCount != UpdateCount)
 	{
 		Node.LatestUpdateCount = UpdateCount;
-		// if node doesn't have scene info, that means it doesn't to populate, children is disconnected, so don't bother
-		// in this case we still update children when this node is missing scene info
-		// because parent is showing, so you don't have to show anyway anybody below
-		// although this node might be MIA at this moment
-		for(const auto& Child : Node.ChildrenSceneInfos)
-		{
-			const int32 ChildIndex = Child->GetIndex();
 
-			// first update the flags
-			FRelativeBitReference BitRef(ChildIndex);
-			HiddenFlags.AccessCorrespondingBit(BitRef) = true;
-			// find the node for it
-			FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId);
-			// if you have child, populate it again, 
-			if (ChildNode)
-			{
-				PropagateHiddenFlagsToChildren(HiddenFlags, *ChildNode);
-			}
-		}
-	}
-}
-
-void FLODSceneTree::PopulateHiddenFlags(FViewInfo& View, FSceneBitArray& HiddenFlags)
-{
-	++UpdateCount;
-
-	// @todo this is experimental code - hide the children if parent is showing
-	for(auto Iter = SceneNodes.CreateIterator(); Iter; ++Iter)
-	{
-		FLODSceneNode& Node = Iter.Value();
-		// if already updated, no reason to do this
-		if(Node.LatestUpdateCount != UpdateCount)
-		{
-			Node.LatestUpdateCount = UpdateCount;
-			// if node doesn't have scene info, that means it doesn't have any
-			if(Node.SceneInfo)
-			{
-				int32 NodeIndex = Node.SceneInfo->GetIndex();
-
-				// Only override visibility when fading isn't forcing state
-				if (!IsNodeFading(NodeIndex))
-				{
-					// if this node is visible, children shouldn't show up
-					if (View.PrimitiveVisibilityMap[NodeIndex])
-					{
 						for (const auto& Child : Node.ChildrenSceneInfos)
 						{
 							const int32 ChildIndex = Child->GetIndex();
+			VisibilityFlags[ChildIndex] = false;
 
-							// first update the flags
-							FRelativeBitReference BitRef(ChildIndex);
-							HiddenFlags.AccessCorrespondingBit(BitRef) = true;
-
-							// find the node for it
-							FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId);
-							// if you have child, populate it again, 
-							if (ChildNode)
+			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
 							{
-								PropagateHiddenFlagsToChildren(HiddenFlags, *ChildNode);
-							}
-						}
-					}
-					else
-					{
-						HiddenFlags.AccessCorrespondingBit(FRelativeBitReference(NodeIndex)) = true;
-					}
-				}
+				HideNodeChildren(*ChildNode, VisibilityFlags);
 			}
 		}
 	}

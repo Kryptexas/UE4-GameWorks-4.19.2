@@ -345,9 +345,6 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 
 		if(MeshObject)
 		{
-			// verifies vertex animations are valid
-			RefreshActiveVertexAnims();
-
 			// Identify current LOD
 			int32 UseLOD;
 			if(MasterPoseComponent.IsValid())
@@ -589,7 +586,7 @@ bool USkinnedMeshComponent::ShouldCPUSkin()
 	return false;
 }
 
-void USkinnedMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+void USkinnedMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
 	if( SkeletalMesh )
 	{
@@ -708,13 +705,13 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 	// if not visible, or we were told to use fixed bounds, use skelmesh bounds
 	if ( (!bVisible || bComponentUseFixedSkelBounds) && SkeletalMesh ) 
 	{
-		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->Bounds;
+		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->GetBounds();
 		RootAdjustedBounds.Origin += RootOffset; // Adjust bounds by root bone translation
 		NewBounds = RootAdjustedBounds.TransformBy(LocalToWorld);
 	}
 	else if(MasterPoseComponentInst && MasterPoseComponentInst->SkeletalMesh && MasterPoseComponentInst->bComponentUseFixedSkelBounds)
 	{
-		FBoxSphereBounds RootAdjustedBounds = MasterPoseComponentInst->SkeletalMesh->Bounds;
+		FBoxSphereBounds RootAdjustedBounds = MasterPoseComponentInst->SkeletalMesh->GetBounds();
 		RootAdjustedBounds.Origin += RootOffset; // Adjust bounds by root bone translation
 		NewBounds = RootAdjustedBounds.TransformBy(LocalToWorld);
 	}
@@ -743,7 +740,7 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 	// Fallback is to use the one from the skeletal mesh. Usually pretty bad in terms of Accuracy of where the SkelMesh Bounds are located (i.e. usually bigger than it needs to be)
 	else if( SkeletalMesh )
 	{
-		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->Bounds;
+		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->GetBounds();
 
 		// Adjust bounds by root bone translation
 		RootAdjustedBounds.Origin += RootOffset;
@@ -867,6 +864,10 @@ FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx, const FTransfo
 	}
 }
 
+int32 USkinnedMeshComponent::GetNumBones()const
+{
+	return SkeletalMesh ? SkeletalMesh->RefSkeleton.GetNum() : 0;
+}
 
 int32 USkinnedMeshComponent::GetBoneIndex( FName BoneName) const
 {
@@ -1997,6 +1998,14 @@ void USkinnedMeshComponent::SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBl
 	else
 	{
 		CurrentEditableSpaceBases = CurrentReadSpaceBases;
+	}
+}
+
+void USkinnedMeshComponent::UpdateRecomputeTangent(int32 MaterialIndex)
+{
+	if (ensure(SkeletalMesh) && MeshObject)
+	{
+		MeshObject->UpdateRecomputeTangent(MaterialIndex, SkeletalMesh->Materials[MaterialIndex].bRecomputeTangent);
 	}
 }
 

@@ -8,6 +8,7 @@ class ISequencerSection;
 class SAnimationOutlinerTreeNode;
 class SSequencerTreeViewRow;
 class FGroupedKeyArea;
+class FSequencerDisplayNodeDragDropOp;
 
 
 /**
@@ -45,6 +46,8 @@ namespace ESequencerNode
 		Category,
 		/* Benign spacer node */
 		Spacer,
+		/* Folder node */
+		Folder
 	};
 }
 
@@ -137,6 +140,16 @@ public:
 	virtual FText GetDisplayName() const = 0;
 
 	/**
+	* @return the color used to draw the display name.
+	*/
+	virtual FLinearColor GetDisplayNameColor() const;
+
+	/**
+	 * @return the text to display for the tool tip for the display name. 
+	 */
+	virtual FText GetDisplayNameToolTipText() const;
+
+	/**
 	 * Set the node's display name.
 	 *
 	 * @param NewDisplayName the display name to set.
@@ -198,7 +211,7 @@ public:
 	FString GetPathName() const;
 
 	/** Summon context menu */
-	TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+	TSharedPtr<SWidget> OnSummonContextMenu();
 
 	/** What sort of context menu this node summons */
 	virtual void BuildContextMenu(FMenuBuilder& MenuBuilder);
@@ -351,8 +364,26 @@ public:
 	/** Get the key grouping for the specified section index */
 	TSharedRef<FGroupedKeyArea> GetKeyGrouping(int32 InSectionIndex);
 
+	/** Get the number of key groupings */
+	int32 GetNumKeyGroupings() { return KeyGroupings.Num(); }
+
 	DECLARE_EVENT(FSequencerDisplayNode, FRequestRenameEvent);
 	FRequestRenameEvent& OnRenameRequested() { return RenameRequestedEvent; }
+
+	/** 
+	 * Returns whether or not this node can be dragged. 
+	 */
+	virtual bool CanDrag() const { return false; }
+
+	/**
+	 * Determines if there is a valid drop zone based on the current drag drop operation and the zone the items were dragged onto.
+	 */
+	virtual TOptional<EItemDropZone> CanDrop( FSequencerDisplayNodeDragDropOp& DragDropOp, EItemDropZone ItemDropZone ) const { return TOptional<EItemDropZone>(); }
+
+	/**
+	 * Handles a drop of items onto this display node.
+	 */
+	virtual void Drop( const TArray<TSharedRef<FSequencerDisplayNode>>& DraggedNodes, EItemDropZone DropZone ) { }
 
 public:
 
@@ -361,6 +392,11 @@ public:
 
 	/** Re-enable dynamic regeneration of key groupings */
 	static void EnableKeyGoupingRegeneration();
+
+protected:
+
+	/** Adds a child to this node, and sets it's parent to this node. */
+	void AddChildAndSetParent( TSharedRef<FSequencerDisplayNode> InChild );
 
 private:
 

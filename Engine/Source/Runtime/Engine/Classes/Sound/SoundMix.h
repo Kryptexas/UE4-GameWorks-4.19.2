@@ -79,7 +79,7 @@ struct FAudioEQEffect
 	/** 
 	* Interpolate EQ settings based on time
 	*/
-	void Interpolate(float InterpValue, const FAudioEQEffect& Start, const FAudioEQEffect& End );
+	void Interpolate( float InterpValue, const FAudioEQEffect& Start, const FAudioEQEffect& End );
 		
 	/** 
 	* Clamp all settings in range

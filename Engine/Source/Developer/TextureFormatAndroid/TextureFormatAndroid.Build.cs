@@ -31,5 +31,10 @@ public class TextureFormatAndroid : ModuleRules
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "QualcommTextureConverter");
 		}
 
+                // opt-out from precompile for Linux (this module cannot be built for Linux atm)
+                if (Target.Platform == UnrealTargetPlatform.Linux)
+                {
+                    PrecompileForTargets = PrecompileTargetsType.None;
+                }
 	}
 }

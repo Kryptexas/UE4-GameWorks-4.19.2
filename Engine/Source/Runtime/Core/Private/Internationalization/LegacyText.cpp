@@ -80,6 +80,11 @@ bool FText::IsLetter( const TCHAR Char )
 	return (Char>='A' && Char<='Z') || (Char>='a' && Char<='z');
 }
 
+bool FUnicodeChar::CodepointToString(const uint32 InCodepoint, FString& OutString)
+{
+	return false;
+}
+
 namespace TextBiDi
 {
 

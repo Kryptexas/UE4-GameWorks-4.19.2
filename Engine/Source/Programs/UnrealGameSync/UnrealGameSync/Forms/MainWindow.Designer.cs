@@ -806,6 +806,7 @@ namespace UnrealGameSync
 			this.BuildList.ItemMouseHover += new System.Windows.Forms.ListViewItemMouseHoverEventHandler(this.BuildList_ItemMouseHover);
 			this.BuildList.SelectedIndexChanged += new System.EventHandler(this.BuildList_SelectedIndexChanged);
 			this.BuildList.FontChanged += new System.EventHandler(this.BuildList_FontChanged);
+			this.BuildList.KeyDown += new System.Windows.Forms.KeyEventHandler(this.BuildList_KeyDown);
 			this.BuildList.MouseClick += new System.Windows.Forms.MouseEventHandler(this.BuildList_MouseClick);
 			this.BuildList.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.BuildList_MouseDoubleClick);
 			this.BuildList.MouseLeave += new System.EventHandler(this.BuildList_MouseLeave);

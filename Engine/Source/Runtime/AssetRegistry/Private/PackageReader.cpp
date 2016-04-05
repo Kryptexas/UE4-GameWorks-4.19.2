@@ -307,7 +307,7 @@ bool FPackageReader::ReadAssetRegistryDataIfCookedPackage(TArray<FAssetData*>& A
 						ObjectClassName = ClassImport.ObjectName;
 					}
 
-					new(AssetDataList) FAssetData(FName(*PackageName), FName(*PackagePath), FName(*GroupNames), Export.ObjectName, ObjectClassName, Tags, ChunkIDs, GetPackageFlags());
+					AssetDataList.Add(new FAssetData(FName(*PackageName), FName(*PackagePath), FName(*GroupNames), Export.ObjectName, ObjectClassName, Tags, ChunkIDs, GetPackageFlags()));
 					bFoundAtLeastOneAsset = true;
 				}
 			}
@@ -342,14 +342,10 @@ void FPackageReader::SerializeNameMap()
 		for ( int32 NameMapIdx = 0; NameMapIdx < PackageFileSummary.NameCount; ++NameMapIdx )
 		{
 			// Read the name entry from the file.
-			FNameEntry NameEntry(ENAME_LinkerConstructor);
+			FNameEntrySerialized NameEntry(ENAME_LinkerConstructor);
 			*this << NameEntry;
 
-			NameMap.Add( 
-				NameEntry.IsWide() ? 
-					FName(ENAME_LinkerConstructor, NameEntry.GetWideName()) : 
-					FName(ENAME_LinkerConstructor, NameEntry.GetAnsiName())
-				);
+			NameMap.Add(FName(NameEntry));
 		}
 	}
 }

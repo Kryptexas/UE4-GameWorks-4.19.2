@@ -177,6 +177,8 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	static UWorld* PreviewWorld;
 #endif
+
+	static bool IsGameplayCueRecylingEnabled();
 	
 	virtual bool ShouldAsyncLoadObjectLibrariesAtStart() const { return true; }
 

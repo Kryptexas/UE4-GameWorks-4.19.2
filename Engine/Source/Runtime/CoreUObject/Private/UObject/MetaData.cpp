@@ -438,8 +438,8 @@ void UMetaData::InitializeRedirectMap()
 						FName OldKey = NAME_None;
 						FName NewKey = NAME_None;
 
-						FParse::Value(*It.Value(), TEXT("OldKey="), OldKey);
-						FParse::Value(*It.Value(), TEXT("NewKey="), NewKey);
+						FParse::Value(*It.Value().GetValue(), TEXT("OldKey="), OldKey);
+						FParse::Value(*It.Value().GetValue(), TEXT("NewKey="), NewKey);
 
 						check(OldKey != NewKey);
 						check(OldKey != NAME_None);

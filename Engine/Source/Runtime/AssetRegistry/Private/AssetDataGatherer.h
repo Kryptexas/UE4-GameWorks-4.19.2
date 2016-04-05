@@ -148,7 +148,7 @@ class FAssetDataGatherer : public FRunnable
 {
 public:
 	/** Constructor */
-	FAssetDataGatherer(const TArray<FString>& Paths, bool bInIsSynchronous, EAssetDataCacheMode AssetDataCacheMode);
+	FAssetDataGatherer(const TArray<FString>& Paths, const TArray<FString>& SpecificFiles, bool bInIsSynchronous, EAssetDataCacheMode AssetDataCacheMode);
 	virtual ~FAssetDataGatherer();
 
 	// FRunnable implementation

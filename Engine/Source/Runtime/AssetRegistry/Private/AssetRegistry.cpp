@@ -364,12 +364,12 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 	if ( bSynchronousSearch )
 	{
 		const bool bForceRescan = false;
-		ScanPathsSynchronous_Internal(PathsToSearch, bForceRescan, EAssetDataCacheMode::UseMonolithicCache);
+		ScanPathsAndFilesSynchronous(PathsToSearch, TArray<FString>(), bForceRescan, EAssetDataCacheMode::UseMonolithicCache);
 	}
 	else if ( !BackgroundAssetSearch.IsValid() )
 	{
 		// if the BackgroundAssetSearch is already valid then we have already called it before
-		BackgroundAssetSearch = MakeShareable(new FAssetDataGatherer(PathsToSearch, bSynchronousSearch, EAssetDataCacheMode::UseMonolithicCache));
+		BackgroundAssetSearch = MakeShareable(new FAssetDataGatherer(PathsToSearch, TArray<FString>(), bSynchronousSearch, EAssetDataCacheMode::UseMonolithicCache));
 	}
 }
 
@@ -1241,7 +1241,12 @@ bool FAssetRegistry::RemovePath(const FString& PathToRemove)
 
 void FAssetRegistry::ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan)
 {
-	ScanPathsSynchronous_Internal(InPaths, bForceRescan, EAssetDataCacheMode::UseModularCache);
+	ScanPathsAndFilesSynchronous(InPaths, TArray<FString>(), bForceRescan, EAssetDataCacheMode::UseModularCache);
+}
+
+void FAssetRegistry::ScanFilesSynchronous(const TArray<FString>& InFilePaths, bool bForceRescan) 
+{
+	ScanPathsAndFilesSynchronous(TArray<FString>(), InFilePaths, bForceRescan, EAssetDataCacheMode::UseModularCache);
 }
 
 void FAssetRegistry::PrioritizeSearchPath(const FString& PathToPrioritize)
@@ -1869,25 +1874,35 @@ void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 	}
 }
 
-void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPaths, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode)
+void FAssetRegistry::ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode)
 {
 	const double SearchStartTime = FPlatformTime::Seconds();
 
 	// Only scan paths that were not previously synchronously scanned, unless we were asked to force rescan.
 	TArray<FString> PathsToScan;
+	TArray<FString> FilesToScan;
 	for ( auto PathIt = InPaths.CreateConstIterator(); PathIt; ++PathIt )
 	{
-		if ( bForceRescan || !SynchronouslyScannedPaths.Contains(*PathIt) )
+		if (bForceRescan || !SynchronouslyScannedPathsAndFiles.Contains(*PathIt))
 		{
 			PathsToScan.Add(*PathIt);
-			SynchronouslyScannedPaths.Add(*PathIt);
+			SynchronouslyScannedPathsAndFiles.Add(*PathIt);
 		}
 	}
 
-	if ( PathsToScan.Num() > 0 )
+	for (auto FileIt = InSpecificFiles.CreateConstIterator(); FileIt; ++FileIt)
+	{
+		if (bForceRescan || !SynchronouslyScannedPathsAndFiles.Contains(*FileIt))
+		{
+			FilesToScan.Add(*FileIt);
+			SynchronouslyScannedPathsAndFiles.Add(*FileIt);
+		}
+	}
+
+	if ( PathsToScan.Num() > 0 || FilesToScan.Num() > 0 )
 	{
 		// Start the sync asset search
-		FAssetDataGatherer AssetSearch(PathsToScan, /*bSynchronous=*/true, AssetDataCacheMode);
+		FAssetDataGatherer AssetSearch(PathsToScan, FilesToScan, /*bSynchronous=*/true, AssetDataCacheMode);
 
 		// Get the search results
 		TArray<FAssetData*> AssetResults;
@@ -1908,11 +1923,14 @@ void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPath
 		CookedPackageNamesWithoutAssetDataGathered(-1, CookedPackageNamesWithoutAssetDataResults);
 
 		// Log stats
-		const FString& Path = PathsToScan[0];
+		TArray<FString> LogPathsAndFilenames = PathsToScan;
+		LogPathsAndFilenames.Append(FilesToScan);
+
+		const FString& Path = LogPathsAndFilenames[0];
 		FString PathsString;
-		if ( PathsToScan.Num() > 1 )
+		if (LogPathsAndFilenames.Num() > 1)
 		{
-			PathsString = FString::Printf(TEXT("'%s' and %d other paths"), *Path, PathsToScan.Num());
+			PathsString = FString::Printf(TEXT("'%s' and %d other paths/filenames"), *Path, LogPathsAndFilenames.Num() - 1);
 		}
 		else
 		{

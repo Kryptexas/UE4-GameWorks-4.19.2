@@ -23,7 +23,7 @@ struct FCameraLookatTrackingSettings
 	/** Last known lookat tracking rotation (used during interpolation) */
 	FRotator LastLookatTrackingRotation;
 
-	UPROPERTY(/*Interp, */EditAnywhere, BlueprintReadWrite, Category = "LookAt")
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "LookAt")
 	AActor* ActorToTrack;
 
 	/** Offset from actor position to look at. Relative to actor if tracking an actor, relative to world otherwise. */
@@ -47,7 +47,7 @@ public:
 	virtual bool ShouldTickIfViewportsOnly() const override;
 	virtual void PostInitializeComponents() override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LookAt")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Current Camera Settings")
 	FCameraLookatTrackingSettings LookatTrackingSettings;
 
 #if WITH_EDITOR
@@ -55,6 +55,11 @@ public:
 #endif
 
 protected:
+
+	/** Set to true to skip any interpolations on the next update. Resets to false automatically. */
+	uint8 bResetInterplation : 1;
+
 	FVector GetLookatLocation() const;
 
+	virtual void NotifyCameraCut() override;
 };

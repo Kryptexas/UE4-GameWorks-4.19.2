@@ -112,6 +112,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/High-end mobile rendering preview"))
 	bool bFeatureLevelES31Preview;
 
+	/** Enable late joining in PIE */
+	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow late joining"))
+	bool bAllowLateJoinInPIE;
+
 	/** Enable multithreaded lightmap encoding (decreases time taken to encode lightmaps) */
 	UPROPERTY(EditAnywhere, config, Category = LightingBuilds, meta = (DisplayName = "Enable Multithreaded lightmap encoding"))
 	bool bEnableMultithreadedLightmapEncoding;
@@ -119,6 +123,10 @@ public:
 	/** Enable multithreaded shadow map encoding (decreases time taken to encode shadow maps) */
 	UPROPERTY(EditAnywhere, config, Category = LightingBuilds, meta = (DisplayName = "Enable Multithreaded shadowmap encoding"))
 	bool bEnableMultithreadedShadowmapEncoding;
+	
+	/** Whether to use OpenCL to accelerate convex hull decomposition (uses GPU to decrease time taken to decompose meshes, currently only available on Mac OS X) */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Use OpenCL for convex hull decomposition"))
+	bool bUseOpenCLForConvexHullDecomp;
 
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.

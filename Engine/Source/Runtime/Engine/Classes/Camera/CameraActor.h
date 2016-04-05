@@ -74,4 +74,11 @@ public:
 
 	/** Returns CameraComponent subobject **/
 	class UCameraComponent* GetCameraComponent() const;
+
+	/** 
+	 * Called to notify that this camera was cut to, so it can update things like interpolation if necessary.
+	 * Typically called by the camera component.
+	 */
+	virtual void NotifyCameraCut() {};
+
 };

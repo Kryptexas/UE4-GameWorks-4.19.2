@@ -741,6 +741,7 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitia
 	BodyInstance.bSimulatePhysics = false;
 
 	PhysicsSerializer = ObjectInitializer.CreateDefaultSubobject<UPhysicsSerializer>(this, TEXT("PhysicsSerializer"));
+	bDisallowMeshPaintPerInstance = true;
 }
 
 #if WITH_EDITOR
@@ -1577,6 +1578,32 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingSphere(const
 		FSphere InstanceSphere(Matrix.GetOrigin(), StaticMeshBoundsRadius * Matrix.GetScaleVector().GetMax());
 
 		if (Sphere.Intersects(InstanceSphere))
+		{
+			Result.Add(Index);
+		}
+	}
+
+	return Result;
+}
+
+TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingBox(const FBox& InBox, bool bBoxInWorldSpace) const
+{
+	TArray<int32> Result;
+
+	FBox Box(InBox);
+	if (bBoxInWorldSpace)
+	{
+		Box = Box.TransformBy(ComponentToWorld.Inverse());
+	}
+
+	FVector StaticMeshBoundsExtent = StaticMesh->GetBounds().BoxExtent;
+
+	for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
+	{
+		const FMatrix& Matrix = PerInstanceSMData[Index].Transform;
+		FBox InstanceBox(Matrix.GetOrigin() - StaticMeshBoundsExtent, Matrix.GetOrigin() + StaticMeshBoundsExtent);
+
+		if (Box.Intersect(InstanceBox))
 		{
 			Result.Add(Index);
 		}

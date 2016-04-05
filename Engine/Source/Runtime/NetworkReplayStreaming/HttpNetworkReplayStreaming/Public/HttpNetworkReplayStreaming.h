@@ -315,6 +315,8 @@ public:
 	TSharedPtr< FQueuedHttpRequest >			InFlightHttpRequest;
 
 	TSet< FString >					EventGroupSet;
+
+	uint32							TotalUploadBytes;
 };
 
 class HTTPNETWORKREPLAYSTREAMING_API FHttpNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory, public FTickableGameObject

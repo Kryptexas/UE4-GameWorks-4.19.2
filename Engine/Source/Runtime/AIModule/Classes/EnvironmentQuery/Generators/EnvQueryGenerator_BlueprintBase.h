@@ -22,6 +22,9 @@ class AIMODULE_API UEnvQueryGenerator_BlueprintBase : public UEnvQueryGenerator
 	UPROPERTY(EditAnywhere, Category = Generator)
 	TSubclassOf<UEnvQueryContext> Context;
 
+	/** @todo this should show up only in the generator's BP, but 
+	 *	due to the way EQS editor is generating widgets it's there as well
+	 *	It's a bug and we'll fix it */
 	UPROPERTY(EditDefaultsOnly, Category = Generator)
 	TSubclassOf<UEnvQueryItemType> GeneratedItemType;
 

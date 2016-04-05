@@ -301,3 +301,6 @@ void FOnlineFriendsFacebook::ReadFriendsUsingGraphPath(int32 LocalUserNum, const
 	);
 }
 
+void FOnlineFriendsFacebook::DumpBlockedPlayers() const
+{
+}

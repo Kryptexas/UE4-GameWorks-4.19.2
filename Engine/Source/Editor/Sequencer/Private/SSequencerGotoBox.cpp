@@ -11,17 +11,16 @@
 
 void SSequencerGotoBox::Construct(const FArguments& InArgs, const TSharedRef<FSequencer>& InSequencer, USequencerSettings& InSettings, const TSharedRef<INumericTypeInterface<float>>& InNumericTypeInterface)
 {
-	WasHidden = true;
 	SequencerPtr = InSequencer;
 	Settings = &InSettings;
 	NumericTypeInterface = InNumericTypeInterface;
 
 	ChildSlot
 	[
-		SNew(SBorder)
+		SAssignNew(Border, SBorder)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.DarkGroupBorder"))
 			.Padding(6.0f)
-			.Visibility_Lambda([this]() -> EVisibility { return Settings->GetShowGotoBox() ? EVisibility::Visible : EVisibility::Collapsed; })
+			.Visibility(EVisibility::Collapsed)
 			[
 				SNew(SHorizontalBox)
 
@@ -48,25 +47,32 @@ void SSequencerGotoBox::Construct(const FArguments& InArgs, const TSharedRef<FSe
 }
 
 
-void SSequencerGotoBox::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SSequencerGotoBox::ToggleVisibility()
 {
-	if (WasHidden)
+	FSlateApplication& SlateApplication = FSlateApplication::Get();
+
+	if (Border->GetVisibility() == EVisibility::Visible)
 	{
-		FSlateApplication::Get().SetAllUserFocus(EntryBox, EFocusCause::Navigation);
-		WasHidden = false;
+		SlateApplication.SetAllUserFocus(LastFocusedWidget.Pin(), EFocusCause::Navigation);
+		Border->SetVisibility(EVisibility::Collapsed);
+	}
+	else
+	{
+		Border->SetVisibility(EVisibility::Visible);
+		LastFocusedWidget = SlateApplication.GetUserFocusedWidget(0);
+		SlateApplication.SetAllUserFocus(EntryBox, EFocusCause::Navigation);
 	}
 }
 
 
 void SSequencerGotoBox::HandleEntryBoxValueCommitted(float Value, ETextCommit::Type CommitType)
 {
-	Settings->SetShowGotoBox(false);
-	WasHidden = true;
-
-	if (CommitType == ETextCommit::OnCleared)
+	if (CommitType != ETextCommit::OnEnter)
 	{
 		return;
 	}
+
+	ToggleVisibility();
 
 	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
 

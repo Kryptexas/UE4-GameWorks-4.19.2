@@ -25,7 +25,6 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, MouseDelta( 0, 0 )
 	, bIsCursorVisible( true )
 	, bShouldCaptureMouseOnActivate( true )
-	, bIgnoreCaptureClick( true )
 	, bRequiresVsync( false )
 	, bUseSeparateRenderTarget( InViewportWidget.IsValid() ? !InViewportWidget->ShouldRenderDirectly() : true )
 	, bForceSeparateRenderTarget( false )
@@ -388,8 +387,8 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 			ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringMouseDown ||
 			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringRightMouseDown && InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton);
 
-		// Capture if we aren't currently a game viewport, or if we've been set to IgnoreCaptureClick or we already have capture.
-		const bool bProcessInputPrimary = !IsCurrentlyGameViewport() || !bIgnoreCaptureClick || HasMouseCapture();
+		// Process primary input if we aren't currently a game viewport, we already have capture, or we are permanent capture that dosn't consume the mouse down.
+		const bool bProcessInputPrimary = !IsCurrentlyGameViewport() || HasMouseCapture() || (ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
 
 		const bool bAnyMenuWasVisible = FSlateApplication::Get().AnyMenusVisible();
 
@@ -420,9 +419,13 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 		// a new menu was opened if there was previously not a menu visible but now there is
 		const bool bNewMenuWasOpened = !bAnyMenuWasVisible && FSlateApplication::Get().AnyMenusVisible();
 
+		const bool bPermanentCapture =
+			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently) ||
+			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
+
 		if (FSlateApplication::Get().IsActive() && !ViewportClient->IgnoreInput() &&
 			!bNewMenuWasOpened && // We should not focus the viewport if a menu was opened as it would close the menu
-			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently || bTemporaryCapture))
+			(bPermanentCapture || bTemporaryCapture))
 		{
 			CurrentReplyState = AcquireFocusAndCapture(FIntPoint(InMouseEvent.GetScreenSpacePosition().X, InMouseEvent.GetScreenSpacePosition().Y));
 		}
@@ -448,9 +451,6 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 	UWorld* World = ViewportClient->GetWorld();
 	if (World && World->IsGameWorld() && World->GetGameInstance() && World->GetGameInstance()->GetFirstLocalPlayerController())
 	{
-		ReplyState.CaptureMouse(ViewportWidgetRef);
-		ReplyState.LockMouseToWidget(ViewportWidgetRef);
-
 		bool bShouldShowMouseCursor = World->GetGameInstance()->GetFirstLocalPlayerController()->ShouldShowMouseCursor();
 		if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
 		{
@@ -459,6 +459,8 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 		}
 		if (bCursorHiddenDueToCapture || !bShouldShowMouseCursor)
 		{
+			ReplyState.CaptureMouse(ViewportWidgetRef);
+			ReplyState.LockMouseToWidget(ViewportWidgetRef);
 			ReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 		}
 	}
@@ -728,7 +730,7 @@ FReply FSceneViewport::OnTouchGesture( const FGeometry& MyGeometry, const FPoint
 
 		FSlateApplication::Get().SetKeyboardFocus(ViewportWidget.Pin());
 
-		if( !ViewportClient->InputGesture( this, GestureEvent.GetGestureType(), GestureEvent.GetGestureDelta() ) )
+		if( !ViewportClient->InputGesture( this, GestureEvent.GetGestureType(), GestureEvent.GetGestureDelta(), GestureEvent.IsDirectionInvertedFromDevice() ) )
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}
@@ -945,13 +947,24 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 
 void FSceneViewport::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
-	bShouldCaptureMouseOnActivate = false;
-
+	bCursorHiddenDueToCapture = false;
 	KeyStateMap.Empty();
 	if (ViewportClient != nullptr)
 	{
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 		ViewportClient->LostFocus( this );
+
+		TSharedPtr<SWidget> ViewportWidgetPin = ViewportWidget.Pin();
+		if( ViewportWidgetPin.IsValid() )
+		{
+			for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
+			{
+				if (FSlateApplication::Get().GetUserFocusedWidget(UserIndex) == ViewportWidgetPin)
+				{
+					FSlateApplication::Get().ClearUserFocus(UserIndex);
+				}
+			}
+		}
 	}
 }
 
@@ -962,6 +975,11 @@ void FSceneViewport::OnViewportClosed()
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 		ViewportClient->CloseRequested( this );
 	}
+}
+
+TWeakPtr<SWidget> FSceneViewport::GetWidget()
+{
+	return GetViewportWidget();
 }
 
 FReply FSceneViewport::OnViewportActivated(const FWindowActivateEvent& InActivateEvent)

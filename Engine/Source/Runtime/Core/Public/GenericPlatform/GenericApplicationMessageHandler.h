@@ -261,7 +261,17 @@ public:
 		return false;
 	}
 
+	virtual bool OnMouseDown( const TSharedPtr< FGenericWindow >& Window, const EMouseButtons::Type Button, const FVector2D CursorPos )
+	{
+		return false;
+	}
+
 	virtual bool OnMouseUp( const EMouseButtons::Type Button )
+	{
+		return false;
+	}
+
+	virtual bool OnMouseUp( const EMouseButtons::Type Button, const FVector2D CursorPos )
 	{
 		return false;
 	}
@@ -271,7 +281,17 @@ public:
 		return false;
 	}
 
+	virtual bool OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& Window, const EMouseButtons::Type Button, const FVector2D CursorPos )
+	{
+		return false;
+	}
+
 	virtual bool OnMouseWheel( const float Delta )
+	{
+		return false;
+	}
+
+	virtual bool OnMouseWheel( const float Delta, const FVector2D CursorPos )
 	{
 		return false;
 	}
@@ -310,7 +330,7 @@ public:
     {
     }
 
-	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta )
+	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta, bool bIsDirectionInvertedFromDevice )
 	{
 		return false;
 	}

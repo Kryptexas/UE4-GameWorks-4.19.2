@@ -170,6 +170,8 @@ struct FSoundMixClassOverride
 	float FadeInTime;
 	uint8 bOverrideApplied : 1;
 	uint8 bOverrideChanged : 1;
+	uint8 bIsClearing : 1;
+	uint8 bIsCleared : 1;
 
 	FSoundMixClassOverride()
 		: VolumeOverride(1.0f)
@@ -177,6 +179,8 @@ struct FSoundMixClassOverride
 		, FadeInTime(0.0f)
 		, bOverrideApplied(false)
 		, bOverrideChanged(false)
+		, bIsClearing(false)
+		, bIsCleared(false)
 	{
 	}
 };
@@ -431,6 +435,11 @@ public:
 	 */
 	void SetReverbSettings(AAudioVolume* Volume, const FReverbSettings& ReverbSettings);
 
+	/** 
+	 * Returns the currently applied reverb effect if there is one.
+	 */
+	class UReverbEffect* GetCurrentReverbEffect();
+
 	/**
 	 * Creates an audio component to handle playing a sound.
 	 * Plays a sound at the given location without creating an audio component.
@@ -574,6 +583,11 @@ public:
 	 * Sets a sound class override in the given sound mix.
 	 */
 	void SetSoundMixClassOverride(USoundMix* InSoundMix, USoundClass* InSoundClass, float Volume, float Pitch, float FadeInTime, bool bApplyToChildren);
+
+	/**
+	* Clears a sound class override in the given sound mix.
+	*/
+	void ClearSoundMixClassOverride(USoundMix* InSoundMix, USoundClass* InSoundClass, float FadeOutTime);
 
 	/**
 	 * Pop a SoundMix from the Audio Device's list.
@@ -961,9 +975,6 @@ public:
 
 	/** The Base SoundMix that should be applied by default */
 	USoundMix* DefaultBaseSoundMix;
-
-	/** Special sound mix set by user preferences */
-	USoundMix* UserPreferencesSoundMix;
 
 	/** Map of sound mixes currently affecting audio properties */
 	TMap<USoundMix*, FSoundMixState> SoundMixModifiers;

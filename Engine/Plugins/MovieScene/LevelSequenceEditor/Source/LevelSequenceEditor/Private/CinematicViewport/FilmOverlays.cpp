@@ -5,8 +5,66 @@
 #include "LevelSequenceEditorStyle.h"
 #include "Widgets/Colors/SColorPicker.h"
 #include "NumericTypeInterface.h"
+#include "SColorBlock.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditorFilmOverlays"
+
+DECLARE_DELEGATE_OneParam(FOnColorPicked, const FLinearColor&);
+
+namespace WidgetHelpers
+{
+	TSharedRef<SWidget> CreateColorWidget(FLinearColor* Color, FOnColorPicked OnColorPicked = FOnColorPicked())
+	{
+		auto GetValue = [=]{
+			return *Color;
+		};
+
+		auto SetValue = [=](FLinearColor NewColor){
+			*Color = NewColor;
+			OnColorPicked.ExecuteIfBound(NewColor);
+		};
+
+		auto OnGetMenuContent = [=]() -> TSharedRef<SWidget> {
+			// Open a color picker
+			return SNew(SColorPicker)
+			.TargetColorAttribute_Lambda(GetValue)
+			.UseAlpha(true)
+			.DisplayInlineVersion(true)
+			.OnColorCommitted_Lambda(SetValue);
+		};
+
+		return SNew(SComboButton)
+			.ContentPadding(0)
+			.HasDownArrow(false)
+			.ButtonStyle(FEditorStyle::Get(), "Sequencer.AnimationOutliner.ColorStrip")
+			.OnGetMenuContent_Lambda(OnGetMenuContent)
+			.CollapseMenuOnParentFocus(true)
+			.ButtonContent()
+			[
+				SNew(SColorBlock)
+				.Color_Lambda(GetValue)
+				.ShowBackgroundForAlpha(true)
+				.IgnoreAlpha(false)
+				.Size(FVector2D(10.0f, 10.0f))
+			];
+	}
+
+	template<typename T>
+	TSharedRef<SWidget> CreateSpinBox(T* Value, T Min, T Max, TSharedPtr<INumericTypeInterface<T>> TypeInterface = nullptr)
+	{
+		auto GetValue = [=]{ return *Value; };
+		auto SetValue = [=](T NewValue){ *Value = NewValue; };
+		auto SetValueCommitted = [=](T NewValue, ETextCommit::Type){ *Value = NewValue; };
+
+		return SNew(SSpinBox<T>)
+			.MinValue(Min)
+			.MaxValue(Max)
+			.Value_Lambda(GetValue)
+			.OnValueChanged_Lambda(SetValue)
+			.OnValueCommitted_Lambda(SetValueCommitted)
+			.TypeInterface(TypeInterface);
+	}
+}
 
 struct FFilmOverlay_None : IFilmOverlay
 {
@@ -198,7 +256,7 @@ struct FFilmOverlay_Crosshair : IFilmOverlay
 
 struct FFilmOverlay_SafeFrame : IFilmOverlay
 {
-	FFilmOverlay_SafeFrame(FText InDisplayName, float InSizePercentage, const FLinearColor& InColor)
+	FFilmOverlay_SafeFrame(FText InDisplayName, int32 InSizePercentage, const FLinearColor& InColor)
 	{
 		DisplayName = InDisplayName;
 		SizePercentage = InSizePercentage;
@@ -236,13 +294,13 @@ struct FFilmOverlay_SafeFrame : IFilmOverlay
 
 	virtual TSharedPtr<SWidget> ConstructSettingsWidget() override
 	{
-		struct FPercentageInterface : TDefaultNumericTypeInterface<float>
+		struct FPercentageInterface : TDefaultNumericTypeInterface<int32>
 		{
-			virtual FString ToString(const float& Value) const override
+			virtual FString ToString(const int32& Value) const override
 			{
 				return TDefaultNumericTypeInterface::ToString(Value) + TEXT("%");
 			}
-			virtual TOptional<float> FromString(const FString& InString, const float& InExistingValue) override
+			virtual TOptional<int32> FromString(const FString& InString, const int32& InExistingValue) override
 			{
 				return TDefaultNumericTypeInterface::FromString(InString.Replace(TEXT("%"), TEXT("")), InExistingValue);
 			}
@@ -252,22 +310,140 @@ struct FFilmOverlay_SafeFrame : IFilmOverlay
 			}
 		};
 
-		auto GetValue = [this]{ return SizePercentage; };
-		auto SetValue = [this](float NewValue){ SizePercentage = NewValue; };
-		auto SetValueCommitted = [this](float NewValue, ETextCommit::Type){ SizePercentage = NewValue; };
+		return SNew(SVerticalBox)
 
-		return SNew(SSpinBox<float>)
-			.MinValue(1)
-			.MaxValue(99)
-			.Value_Lambda(GetValue)
-			.OnValueChanged_Lambda(SetValue)
-			.OnValueCommitted_Lambda(SetValueCommitted)
-			.TypeInterface(MakeShareable(new FPercentageInterface));
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				WidgetHelpers::CreateSpinBox<int32>(&SizePercentage, 1, 99, MakeShareable(new FPercentageInterface))
+			]
+
+			+ SVerticalBox::Slot()
+			.Padding(FMargin(0.f, 1.f, 0.f, 0.f))
+			.AutoHeight()
+			[
+				WidgetHelpers::CreateColorWidget(&Tint)
+			];
 	}
 
 private:
-	float SizePercentage;
+	int32 SizePercentage;
 	FText DisplayName;
+};
+
+
+struct FFilmOverlay_LetterBox : IFilmOverlay
+{
+	FFilmOverlay_LetterBox()
+	{
+		Ratio1 = 2.35f;
+		Ratio2 = 1.f;
+		Color = FLinearColor(0.f, 0.f, 0.f, .5f);
+	}
+
+	FText GetDisplayName() const { return LOCTEXT("LetterboxMask", "Letterbox Mask"); }
+
+	const FSlateBrush* GetThumbnail() const { return nullptr; }
+
+	void Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+	{
+		const FSlateBrush* Brush = FEditorStyle::GetBrush("WhiteBrush");
+
+		const float DesiredRatio = Ratio1 / Ratio2;
+		const float CurrentRatio = AllottedGeometry.Size.X / AllottedGeometry.Size.Y;
+
+		if (CurrentRatio > DesiredRatio)
+		{
+			// vertical letterbox mask
+			FVector2D LetterBoxSize((AllottedGeometry.Size.X - AllottedGeometry.Size.Y * DesiredRatio) * .5f, AllottedGeometry.Size.Y);
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId,
+				AllottedGeometry.ToPaintGeometry(LetterBoxSize, FSlateLayoutTransform(FVector2D(0.f, 0.f))),
+				Brush,
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				Color
+				);
+
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId,
+				AllottedGeometry.ToPaintGeometry(LetterBoxSize, FSlateLayoutTransform(FVector2D(AllottedGeometry.Size.X - LetterBoxSize.X, 0.f))),
+				Brush,
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				Color
+				);
+
+		}
+		else if (CurrentRatio < DesiredRatio)
+		{
+			// horizontal letterbox mask
+			FVector2D LetterBoxSize(AllottedGeometry.Size.X, (AllottedGeometry.Size.Y - AllottedGeometry.Size.X / DesiredRatio) * .5f);
+
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId,
+				AllottedGeometry.ToPaintGeometry(LetterBoxSize, FSlateLayoutTransform(FVector2D(0.f, 0.f))),
+				Brush,
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				Color
+				);
+
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId,
+				AllottedGeometry.ToPaintGeometry(LetterBoxSize, FSlateLayoutTransform(FVector2D(0.f, AllottedGeometry.Size.Y - LetterBoxSize.Y))),
+				Brush,
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				Color
+				);
+		}
+	}
+
+	virtual TSharedPtr<SWidget> ConstructSettingsWidget() override
+	{
+		return SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				[
+					WidgetHelpers::CreateSpinBox<float>(&Ratio1, 0.1, 35)
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(FMargin(2.f, 0.f))
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(TEXT(":")))
+				]
+
+				+ SHorizontalBox::Slot()
+				[
+					WidgetHelpers::CreateSpinBox<float>(&Ratio2, 0.1, 35)
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.Padding(FMargin(0.f, 1.f, 0.f, 0.f))
+			.AutoHeight()
+			[
+				WidgetHelpers::CreateColorWidget(&Color)
+			];
+	}
+
+private:
+	float Ratio1;
+	float Ratio2;
+	FLinearColor Color;
 };
 
 void SFilmOverlay::Construct(const FArguments& InArgs)
@@ -300,6 +476,7 @@ void SFilmOverlayOptions::Construct(const FArguments& InArgs)
 	ToggleableOverlays.Add("ActionSafeFrame",	TUniquePtr<IFilmOverlay>(new FFilmOverlay_SafeFrame(LOCTEXT("ActionSafeFrame", "Action Safe"), 95.f, FLinearColor::Red)));
 	ToggleableOverlays.Add("TitleSafeFrame",	TUniquePtr<IFilmOverlay>(new FFilmOverlay_SafeFrame(LOCTEXT("TitleSafeFrame", "Title Safe"), 90.f, FLinearColor::Yellow)));
 	ToggleableOverlays.Add("CustomSafeFrame",	TUniquePtr<IFilmOverlay>(new FFilmOverlay_SafeFrame(LOCTEXT("CustomSafeFrame", "Custom Safe"), 85.f, FLinearColor::Green)));
+	ToggleableOverlays.Add("LetterBox",			TUniquePtr<IFilmOverlay>(new FFilmOverlay_LetterBox));
 
 	OverlayWidget = SNew(SFilmOverlay)
 		.Visibility(EVisibility::HitTestInvisible)
@@ -330,10 +507,8 @@ FLinearColor SFilmOverlayOptions::GetMasterColorTint() const
 	return MasterColorTint;
 }
 
-void SFilmOverlayOptions::SetMasterColorTint(FLinearColor Tint)
+void SFilmOverlayOptions::OnMasterColorTintChanged(const FLinearColor& Tint)
 {
-	MasterColorTint = Tint;
-
 	IFilmOverlay* Overlay = GetMasterFilmOverlay();
 	if (Overlay)
 	{
@@ -368,40 +543,27 @@ TSharedRef<SWidget> SFilmOverlayOptions::GetMenuContent()
 		]
 
 		+ SGridPanel::Slot(0, 1)
+		.Padding(10)
 		[
-			SNew(SVerticalBox)
+			SNew(SHorizontalBox)
 
-			+ SVerticalBox::Slot()
-			.AutoHeight()
+			+ SHorizontalBox::Slot()
+			.Padding(2.f, 0.f, 5.f, 0.f)
+			.AutoWidth()
+			.VAlign(VAlign_Center)
 			[
-				SNew(SHeader)
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("ColorPickerHeader", "Overlay Color Tint"))
-				]
+				SNew(STextBlock)
+				.Text(LOCTEXT("OverlayTint", "Tint: "))
 			]
 
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(10)
-			.HAlign(HAlign_Center)
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
 			[
-				SNew(SColorPicker)
-				.TargetColorAttribute(this, &SFilmOverlayOptions::GetMasterColorTint)
-				.UseAlpha(true)
-				.DisplayInlineVersion(true)
-				.OnColorCommitted(this, &SFilmOverlayOptions::SetMasterColorTint)
+				WidgetHelpers::CreateColorWidget(&MasterColorTint, FOnColorPicked::CreateRaw(this, &SFilmOverlayOptions::OnMasterColorTintChanged))
 			]
 		]
 
-		// @todo: specific overlay settings to go here
-		// + SGridPanel::Slot(1, 0)
-		// [
-		// 
-		// ]
-
 		+ SGridPanel::Slot(1, 0)
-		//+ SGridPanel::Slot(1, 1)
 		[
 			SNew(SVerticalBox)
 
@@ -412,7 +574,7 @@ TSharedRef<SWidget> SFilmOverlayOptions::GetMenuContent()
 				SNew(SHeader)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("SafeFrameHeader", "Safe Frames"))
+					.Text(LOCTEXT("SafeFrameHeader", "Frames"))
 				]
 			]
 			

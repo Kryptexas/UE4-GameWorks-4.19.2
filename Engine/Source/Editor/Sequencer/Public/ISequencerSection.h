@@ -3,8 +3,18 @@
 #pragma once
 
 #include "SequencerSectionPainter.h"
+#include "MovieSceneSection.h"
 
 class IKeyArea;
+class UMovieSceneSection;
+
+/** Enumerates which edge is being resized */
+UENUM()
+enum ESequencerSectionResizeMode
+{
+	SSRM_LeadingEdge,
+	SSRM_TrailingEdge
+};
 
 namespace SequencerSectionConstants
 {
@@ -57,6 +67,14 @@ public:
 	 * @return A const pointer to a slate brush if the brush should be overridden, otherwise null.
 	 */
 	virtual const FSlateBrush* GetKeyBrush(FKeyHandle KeyHandle) const { return nullptr; }
+
+	/** When a section overrides the brush to use, this allows it to set the scale origin tfor use
+	 * when the brush is scaled to create border and selection effects
+	 *
+	 * @param KeyHandle the handle of the key to get a brush origin for.
+	 * @return A FVector2D describing the custom origin, in slate units
+	 */
+	virtual FVector2D GetKeyBrushOrigin( FKeyHandle KeyHandle ) const { return FVector2D(0.0f, 0.0f); }
 
 	/**
 	 * Called when the section is double clicked
@@ -131,10 +149,29 @@ public:
 	virtual bool RequestDeleteCategory( const TArray<FName>& CategoryNamePath ) { return false; }
 
 	/**
-	* Called when the user requests that a key area from this section be deleted.
-	*
-	* @param KeyAreaNamePath An array of names representing the path of to the key area to delete, starting with any categories which contain the key area.
-	* @returns Whether or not the key area was deleted.
-	*/
+	 * Called when the user requests that a key area from this section be deleted.
+	 *
+	 * @param KeyAreaNamePath An array of names representing the path of to the key area to delete, starting with any categories which contain the key area.
+	 * @returns Whether or not the key area was deleted.
+	 */
 	virtual bool RequestDeleteKeyArea( const TArray<FName>& KeyAreaNamePath ) { return false; }
+
+	/**
+	 * Resize the section 
+	 *
+	 * @param ResizeMode Resize either the leading or the trailing edge of the section
+	 * @param ResizeTime The time to resize to
+	 */
+	virtual void BeginResizeSection() {}
+	virtual void ResizeSection(ESequencerSectionResizeMode ResizeMode, float ResizeTime) { ResizeMode == ESequencerSectionResizeMode::SSRM_LeadingEdge ? GetSectionObject()->SetStartTime(ResizeTime) : GetSectionObject()->SetEndTime(ResizeTime); }
+
+	/**
+	 * Dilates the section by a specific factor
+	 *
+	 * @param DilationFactor The multiplier which scales this section
+	 * @param bFromStart Whether to dilate from the beginning or end (whichever stays put)
+	 * @param KeyHandles The key handles to operate on
+	 */
+	virtual void BeginDilateSection() {}
+	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) { GetSectionObject()->DilateSection(DilationFactor, Origin, KeyHandles); }
 };

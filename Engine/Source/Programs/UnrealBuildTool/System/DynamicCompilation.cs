@@ -41,7 +41,7 @@ namespace UnrealBuildTool
 				{
 					// Make sure we have a manifest of source files used to compile the output assembly.  If it doesn't exist
 					// for some reason (not an expected case) then we'll need to recompile.
-					var AssemblySourceListFile = new FileInfo(AssemblySourceListFilePath.FullName);
+					FileInfo AssemblySourceListFile = new FileInfo(AssemblySourceListFilePath.FullName);
 					if (!AssemblySourceListFile.Exists)
 					{
 						return true;
@@ -50,13 +50,13 @@ namespace UnrealBuildTool
 					{
 						// Make sure the source files we're compiling are the same as the source files that were compiled
 						// for the assembly that we want to load
-						var ExistingAssemblySourceFileNames = new List<FileReference>();
+						List<FileReference> ExistingAssemblySourceFileNames = new List<FileReference>();
 						{
-							using (var Reader = AssemblySourceListFile.OpenRead())
+							using (FileStream Reader = AssemblySourceListFile.OpenRead())
 							{
-								using (var TextReader = new StreamReader(Reader))
+								using (StreamReader TextReader = new StreamReader(Reader))
 								{
-									for (var ExistingSourceFileName = TextReader.ReadLine(); ExistingSourceFileName != null; ExistingSourceFileName = TextReader.ReadLine())
+									for (string ExistingSourceFileName = TextReader.ReadLine(); ExistingSourceFileName != null; ExistingSourceFileName = TextReader.ReadLine())
 									{
 										FileReference FullExistingSourceFileName = new FileReference(ExistingSourceFileName);
 
@@ -73,7 +73,7 @@ namespace UnrealBuildTool
 						}
 
 						// Test against source file time stamps
-						foreach (var SourceFileName in SourceFileNames)
+						foreach (FileReference SourceFileName in SourceFileNames)
 						{
 							// Was the existing assembly compiled without this source file?  If so, then we definitely need to recompile it!
 							if (!ExistingAssemblySourceFileNames.Contains(SourceFileName))
@@ -81,7 +81,7 @@ namespace UnrealBuildTool
 								return true;
 							}
 
-							var SourceFileInfo = new FileInfo(SourceFileName.FullName);
+							FileInfo SourceFileInfo = new FileInfo(SourceFileName.FullName);
 
 							// Check to see if the source file exists
 							if (!SourceFileInfo.Exists)
@@ -121,10 +121,10 @@ namespace UnrealBuildTool
 		 */
 		private static Assembly CompileAssembly(FileReference OutputAssemblyPath, List<FileReference> SourceFileNames, List<string> ReferencedAssembies, List<string> PreprocessorDefines = null, bool TreatWarningsAsErrors = false)
 		{
-			var TemporaryFiles = new TempFileCollection();
+			TempFileCollection TemporaryFiles = new TempFileCollection();
 
 			// Setup compile parameters
-			var CompileParams = new CompilerParameters();
+			CompilerParameters CompileParams = new CompilerParameters();
 			{
 				// Always compile the assembly to a file on disk, so that we can load a cached version later if we have one
 				CompileParams.GenerateInMemory = false;
@@ -170,7 +170,7 @@ namespace UnrealBuildTool
 					}
 
 					// The assembly will depend on this application
-					var UnrealBuildToolAssembly = Assembly.GetExecutingAssembly();
+					Assembly UnrealBuildToolAssembly = Assembly.GetExecutingAssembly();
 					CompileParams.ReferencedAssemblies.Add(UnrealBuildToolAssembly.Location);
 				}
 
@@ -210,8 +210,8 @@ namespace UnrealBuildTool
 			try
 			{
 				// Enable .NET 4.0 as we want modern language features like 'var'
-				var ProviderOptions = new Dictionary<string, string>() { { "CompilerVersion", "v4.0" } };
-				var Compiler = new CSharpCodeProvider(ProviderOptions);
+				Dictionary<string, string> ProviderOptions = new Dictionary<string, string>() { { "CompilerVersion", "v4.0" } };
+				CSharpCodeProvider Compiler = new CSharpCodeProvider(ProviderOptions);
 				CompileResults = Compiler.CompileAssemblyFromFile(CompileParams, SourceFileNames.Select(x => x.FullName).ToArray());
 			}
 			catch (Exception Ex)
@@ -305,7 +305,7 @@ namespace UnrealBuildTool
 				// since the previous time we compiled the assembly.  In that case, we'll always want to recompile it!
 				{
 					FileInfo AssemblySourcesListFile = new FileInfo(AssemblySourcesListFilePath.FullName);
-					using (var Writer = AssemblySourcesListFile.CreateText())
+					using (StreamWriter Writer = AssemblySourcesListFile.CreateText())
 					{
 						SourceFileNames.ForEach(x => Writer.WriteLine(x));
 					}

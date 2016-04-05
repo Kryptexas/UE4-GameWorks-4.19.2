@@ -12,6 +12,7 @@
 #include "MovieScene.h"
 #include "MovieSceneBinding.h"
 #include "MovieSceneMaterialTrack.h"
+#include "MovieScenePropertyTrack.h"
 #include "MovieSceneSequenceInstance.h"
 #include "ScopedTransaction.h"
 #include "SceneOutlinerModule.h"
@@ -22,6 +23,7 @@
 #include "MovieScene3DTransformSection.h"
 #include "MovieScene3DTransformTrack.h"
 
+#include "SequencerSpawnRegister.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
 
@@ -116,7 +118,7 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 
 	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, LevelSequence);
 
-	TSharedRef<FLevelSequenceEditorSpawnRegister> SpawnRegister = MakeShareable(new FLevelSequenceEditorSpawnRegister);
+	TSharedRef<FLevelSequenceEditorSpawnRegister> SpawnRegister = MakeShareable(new TSequencerSpawnRegister<FLevelSequenceEditorSpawnRegister>);
 
 	// initialize sequencer
 	FSequencerInitParams SequencerInitParams;
@@ -148,6 +150,7 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 
 	Sequencer = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer").CreateSequencer(SequencerInitParams);
 	SpawnRegister->SetSequencer(Sequencer);
+	Sequencer->OnActorAddedToSequencer().AddSP(this, &FLevelSequenceEditorToolkit::HandleActorAddedToSequencer);
 
 	if (bEditWithinLevelEditor)
 	{
@@ -286,7 +289,9 @@ void FLevelSequenceEditorToolkit::AddActorsToSequencer(AActor*const* InActors, i
 		if (!Sequencer->GetFocusedMovieSceneSequenceInstance()->FindObjectId(*ThisActor).IsValid())
 		{
 			FGuid Binding = Sequencer->CreateBinding(*ThisActor, ThisActor->GetActorLabel());
+
 			Sequencer->UpdateRuntimeInstances();
+
 			AddDefaultTracksForActor(*ThisActor, Binding);
 		}
 
@@ -295,6 +300,11 @@ void FLevelSequenceEditorToolkit::AddActorsToSequencer(AActor*const* InActors, i
 	}
 
 	Sequencer->NotifyMovieSceneDataChanged();
+}
+
+void FLevelSequenceEditorToolkit::HandleActorAddedToSequencer(AActor* Actor, const FGuid Binding)
+{
+	AddDefaultTracksForActor(*Actor, Binding);
 }
 
 void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const FGuid Binding)
@@ -332,30 +342,45 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 			if (TrackClass != nullptr)
 			{
 				UMovieSceneTrack* NewTrack = MovieScene->AddTrack(TrackClass, Binding);
-				UMovieSceneSection* NewSection = NewTrack->CreateNewSection();
 
-				NewTrack->AddSection(*NewSection);
-
-				// @todo sequencer: hack: setting defaults for transform tracks
-				if (NewTrack->IsA(UMovieScene3DTransformTrack::StaticClass()))
+				// Create a section for any property tracks
+				if (Cast<UMovieScenePropertyTrack>(NewTrack))
 				{
-					auto TransformSection = Cast<UMovieScene3DTransformSection>(NewSection);
+					UMovieSceneSection* NewSection = NewTrack->CreateNewSection();
+					NewTrack->AddSection(*NewSection);
 
-					const FVector Location = Actor.GetActorLocation();
-					const FRotator Rotation = Actor.GetActorRotation();
-					const FVector Scale = Actor.GetActorScale();
+					// @todo sequencer: hack: setting defaults for transform tracks
+					if (NewTrack->IsA(UMovieScene3DTransformTrack::StaticClass()))
+					{
+						auto TransformSection = Cast<UMovieScene3DTransformSection>(NewSection);
 
-					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Translation, EAxis::X, Location.X, false /*bUnwindRotation*/));
-					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Translation, EAxis::Y, Location.Y, false /*bUnwindRotation*/));
-					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Translation, EAxis::Z, Location.Z, false /*bUnwindRotation*/));
+						FVector Location = Actor.GetActorLocation();
+						FRotator Rotation = Actor.GetActorRotation();
+						FVector Scale = Actor.GetActorScale();
 
-					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Rotation, EAxis::X, Rotation.Euler().X, false /*bUnwindRotation*/));
-					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Rotation, EAxis::Y, Rotation.Euler().Y, false /*bUnwindRotation*/));
-					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Rotation, EAxis::Z, Rotation.Euler().Z, false /*bUnwindRotation*/));
+						if (Actor.GetRootComponent())
+						{
+							FTransform ActorRelativeTransform = Actor.GetRootComponent()->GetRelativeTransform();
 
-					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Scale, EAxis::X, Scale.X, false /*bUnwindRotation*/));
-					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Scale, EAxis::Y, Scale.Y, false /*bUnwindRotation*/));
-					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Scale, EAxis::Z, Scale.Z, false /*bUnwindRotation*/));
+							Location = ActorRelativeTransform.GetTranslation();
+							Rotation = ActorRelativeTransform.GetRotation().Rotator();
+							Scale = ActorRelativeTransform.GetScale3D();
+						}
+
+						TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Translation, EAxis::X, Location.X, false /*bUnwindRotation*/));
+						TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Translation, EAxis::Y, Location.Y, false /*bUnwindRotation*/));
+						TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Translation, EAxis::Z, Location.Z, false /*bUnwindRotation*/));
+
+						TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Rotation, EAxis::X, Rotation.Euler().X, false /*bUnwindRotation*/));
+						TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Rotation, EAxis::Y, Rotation.Euler().Y, false /*bUnwindRotation*/));
+						TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Rotation, EAxis::Z, Rotation.Euler().Z, false /*bUnwindRotation*/));
+
+						TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Scale, EAxis::X, Scale.X, false /*bUnwindRotation*/));
+						TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Scale, EAxis::Y, Scale.Y, false /*bUnwindRotation*/));
+						TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Scale, EAxis::Z, Scale.Z, false /*bUnwindRotation*/));
+					}
+
+					NewSection->SetIsInfinite(GetSequencer()->GetInfiniteKeyAreas());
 				}
 
 				Sequencer->UpdateRuntimeInstances();
@@ -426,9 +451,9 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 			{
 				KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
 				KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
-				KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = true;
-				KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = true;
-				KeyPropertyParams.KeyParams.bCreateKeyOnlyWhenAutoKeying = true;
+				KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = false;
+				KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = false;
+				KeyPropertyParams.KeyParams.bCreateKeyOnlyWhenAutoKeying = false;
 			}
 
 			Sequencer->KeyProperty(KeyPropertyParams);

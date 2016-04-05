@@ -131,7 +131,10 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, flo
 	{
 		FTextureMemoryStats Stats;
 
+		if (GDynamicRHI)
+		{
 		RHIGetTextureMemoryStats(Stats);
+		}
 
 		if(Stats.AreHardwareStatsValid())
 		{
@@ -145,9 +148,9 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, flo
 	float GPUTime = 0.0f;
 
 	// not always done - cost some time.
-	if(bGPUBenchmark)
+	if (bGPUBenchmark && FModuleManager::Get().IsModuleLoaded(TEXT("Renderer")))
 	{
-		IRendererModule& RendererModule = FModuleManager::LoadModuleChecked<IRendererModule>(TEXT("Renderer"));
+		IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>(TEXT("Renderer"));
 
 		// First we run a quick test. If that shows very bad performance we don't need another test
 		// The hardware is slow, we don't need a long test and risk driver TDR (driver recovery).

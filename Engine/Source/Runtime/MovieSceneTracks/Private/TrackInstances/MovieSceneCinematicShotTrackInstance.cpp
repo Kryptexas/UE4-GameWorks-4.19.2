@@ -25,13 +25,13 @@ void FMovieSceneCinematicShotTrackInstance::ClearInstance(IMovieScenePlayer& Pla
 }
 
 
-void FMovieSceneCinematicShotTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneCinematicShotTrackInstance::RefreshInstance(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	FMovieSceneSubTrackInstance::RefreshInstance(RuntimeObjects, Player, SequenceInstance);
 }
 
 	
-void FMovieSceneCinematicShotTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneCinematicShotTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	FMovieSceneSubTrackInstance::RestoreState(RuntimeObjects, Player, SequenceInstance);
 
@@ -55,7 +55,7 @@ void FMovieSceneCinematicShotTrackInstance::RestoreState(const TArray<UObject*>&
 	*/
 }
 	
-void FMovieSceneCinematicShotTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
+void FMovieSceneCinematicShotTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	FMovieSceneSubTrackInstance::Update(UpdateData, RuntimeObjects, Player, SequenceInstance);
 
@@ -116,4 +116,19 @@ void FMovieSceneCinematicShotTrackInstance::Update(EMovieSceneUpdateData& Update
 		}
 		*/
 	}
+}
+
+bool FMovieSceneCinematicShotTrackInstance::ShouldEvaluateIfOverlapping(const TArray<UMovieSceneSection*>& TraversedSections, UMovieSceneSection* Section) const
+{
+	// Only evaluate the top most row on overlapping cinematic shot sections. Disregard overlap priority.
+	const bool bShouldRemove = TraversedSections.ContainsByPredicate([=](UMovieSceneSection* OtherSection){
+		if (Section->GetRowIndex() > OtherSection->GetRowIndex() &&
+			Section->GetRange().Overlaps(OtherSection->GetRange()))
+		{
+			return true;
+		}
+		return false;
+	});
+
+	return bShouldRemove;
 }

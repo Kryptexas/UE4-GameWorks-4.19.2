@@ -87,7 +87,7 @@ bool FCdnNewsFeedTitleFile::EnumerateFiles(const FPagedQuery& Page)
 
 	// Create the Http request and add to pending request list
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
-	EnumerateFilesRequests.Enqueue(&HttpRequest.Get());
+	EnumerateFilesRequests.Enqueue(HttpRequest);
 
 	HttpRequest->OnProcessRequestComplete().BindThreadSafeSP(this, &FCdnNewsFeedTitleFile::EnumerateFiles_HttpRequestComplete);
 	HttpRequest->SetURL( IndexUrl );
@@ -177,7 +177,7 @@ bool FCdnNewsFeedTitleFile::ReadFile(const FString& FileName)
 	}
 	
 	// Make sure a file request for this file is not currently pending
-	for (TMap<IHttpRequest*, FPendingFileRequest>::TConstIterator It(FileRequests); It; ++It)
+	for (FFileRequestsMap::TConstIterator It(FileRequests); It; ++It)
 	{
 		if (It.Value() == FPendingFileRequest(FileName))
 		{
@@ -243,7 +243,7 @@ bool FCdnNewsFeedTitleFile::ReadFile(const FString& FileName)
 
 	// Create the Http request and add to pending request list
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
-	FileRequests.Add(&HttpRequest.Get(), FPendingFileRequest(FileName));
+	FileRequests.Add(HttpRequest, FPendingFileRequest(FileName));
 
 	HttpRequest->OnProcessRequestComplete().BindThreadSafeSP(this, &FCdnNewsFeedTitleFile::ReadFile_HttpRequestComplete);
 	HttpRequest->SetURL( FileName );
@@ -254,8 +254,11 @@ bool FCdnNewsFeedTitleFile::ReadFile(const FString& FileName)
 
 void FCdnNewsFeedTitleFile::EnumerateFiles_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
 {
-	IHttpRequest* Request;
-	EnumerateFilesRequests.Dequeue(Request);
+	{
+		// Scoped because Request isn't used, if it needs to be used be sure to use Request.Pin() it and check validity
+		TWeakPtr<IHttpRequest> Request;
+		EnumerateFilesRequests.Dequeue(Request);
+	}
 
 	bool bResult = false;
 	FString ResponseStr, ErrorStr;
@@ -359,7 +362,7 @@ void FCdnNewsFeedTitleFile::ReadFile_HttpRequestComplete(FHttpRequestPtr HttpReq
 		return;
 	}
 
-	const FPendingFileRequest* PendingRequest = FileRequests.Find(HttpRequest.Get());
+	const FPendingFileRequest* PendingRequest = FileRequests.Find(HttpRequest);
 
 	if (PendingRequest == nullptr)
 	{
@@ -413,5 +416,5 @@ void FCdnNewsFeedTitleFile::ReadFile_HttpRequestComplete(FHttpRequestPtr HttpReq
 
 	TriggerOnReadFileCompleteDelegates(bResult, PendingRequest->FileName);
 
-	FileRequests.Remove(HttpRequest.Get());
+	FileRequests.Remove(HttpRequest);
 }

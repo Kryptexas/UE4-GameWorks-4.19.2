@@ -26,7 +26,7 @@ class FMissingShaderPS : public FGlobalShader, public IDebugViewModePSInterface
 
 public:
 
-	static bool ShouldCache(EShaderPlatform Platform) { return AllowDebugViewModeShader(Platform); }
+	static bool ShouldCache(EShaderPlatform Platform) { return AllowDebugViewVSDSHS(Platform); }
 
 	FMissingShaderPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):	FGlobalShader(Initializer) {}
 	FMissingShaderPS() {}
@@ -62,8 +62,11 @@ public:
 IMPLEMENT_SHADER_TYPE(,FMissingShaderPS,TEXT("MissingShaderPixelShader"),TEXT("Main"),SF_Pixel);
 
 
-void FDebugViewMode::GetDebugMaterial(const FMaterialRenderProxy** MaterialRenderProxy, const FMaterial** Material, ERHIFeatureLevel::Type FeatureLevel)
+void FDebugViewMode::GetMaterialForVSHSDS(const FMaterialRenderProxy** MaterialRenderProxy, const FMaterial** Material, ERHIFeatureLevel::Type FeatureLevel)
 {
+	check(AllowDebugViewVSDSHS(FeatureLevel)); // Shouldn't be called otherwise.
+
+	// If the material was compiled fo VS, return it, otherwise, return the default material.
 	if (!(*Material)->HasVertexPositionOffsetConnected() && (*Material)->GetTessellationMode() == MTM_NoTessellation)
 	{
 		if (MaterialRenderProxy)
@@ -95,6 +98,7 @@ IDebugViewModePSInterface* FDebugViewMode::GetPSInterface(TShaderMap<FGlobalShad
 		return *TShaderMapRef<FWantedMipsAccuracyPS>(ShaderMap);
 	case DVSM_TexelFactorAccuracy:
 		return *TShaderMapRef<FTexelFactorAccuracyPS>(ShaderMap);
+	case DVSM_TexCoordScaleAccuracy:
 	case DVSM_TexCoordScaleAnalysis:
 	{
 		const FMaterial* MaterialForPS = GetDebugViewMaterialPS(DebugViewShaderMode, Material);
@@ -119,25 +123,24 @@ void FDebugViewMode::PatchBoundShaderState(
 	EDebugViewShaderMode DebugViewShaderMode
 	)
 {
-	const FMaterial* MaterialForPS = Material;
-	GetDebugMaterial(nullptr, &Material, FeatureLevel);
+	const FMaterial* MaterialForPS = Material; // Backup before calling GetMaterialForVSHSDS
 
-	if (!Material->HasVertexPositionOffsetConnected() && Material->GetTessellationMode() == MTM_NoTessellation)
+	if (AllowDebugViewVSDSHS(FeatureLevel))
 	{
-		Material = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false)->GetMaterial(FeatureLevel);
-	}
+		GetMaterialForVSHSDS(nullptr, &Material, FeatureLevel);
 
-	FVertexFactoryType* VertexFactoryType = VertexFactory->GetType();
+		FVertexFactoryType* VertexFactoryType = VertexFactory->GetType();
 
-	BoundShaderStateInput.VertexShaderRHI = Material->GetShader<FDebugViewModeVS>(VertexFactoryType)->GetVertexShader();
+		BoundShaderStateInput.VertexShaderRHI = Material->GetShader<FDebugViewModeVS>(VertexFactoryType)->GetVertexShader();
 
-	if (BoundShaderStateInput.HullShaderRHI)
-	{
-		BoundShaderStateInput.HullShaderRHI = Material->GetShader<FDebugViewModeHS>(VertexFactoryType)->GetHullShader();
-	}
-	if (BoundShaderStateInput.DomainShaderRHI)
-	{
-		BoundShaderStateInput.DomainShaderRHI = Material->GetShader<FDebugViewModeDS>(VertexFactoryType)->GetDomainShader();
+		if (BoundShaderStateInput.HullShaderRHI)
+		{
+			BoundShaderStateInput.HullShaderRHI = Material->GetShader<FDebugViewModeHS>(VertexFactoryType)->GetHullShader();
+		}
+		if (BoundShaderStateInput.DomainShaderRHI)
+		{
+			BoundShaderStateInput.DomainShaderRHI = Material->GetShader<FDebugViewModeDS>(VertexFactoryType)->GetDomainShader();
+		}
 	}
 
 	BoundShaderStateInput.PixelShaderRHI = GetPSInterface(GetGlobalShaderMap(FeatureLevel), MaterialForPS, DebugViewShaderMode)->GetShader()->GetPixelShader();
@@ -154,7 +157,7 @@ void FDebugViewMode::SetParametersVSHSDS(
 {
 	VertexFactory->Set(RHICmdList);
 
-	GetDebugMaterial(&MaterialRenderProxy, &Material, View.GetFeatureLevel());
+	GetMaterialForVSHSDS(&MaterialRenderProxy, &Material, View.GetFeatureLevel());
 
 	FVertexFactoryType* VertexFactoryType = VertexFactory->GetType();
 
@@ -178,7 +181,7 @@ void FDebugViewMode::SetMeshVSHSDS(
 	bool bHasHullAndDomainShader
 	)
 {
-	GetDebugMaterial(nullptr, &Material, View.GetFeatureLevel());
+	GetMaterialForVSHSDS(nullptr, &Material, View.GetFeatureLevel());
 
 	FVertexFactoryType* VertexFactoryType = VertexFactory->GetType();
 

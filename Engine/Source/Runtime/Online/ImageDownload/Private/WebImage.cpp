@@ -9,6 +9,11 @@ FWebImage::FWebImage()
 {
 }
 
+FWebImage::~FWebImage()
+{
+	CancelDownload();
+}
+
 TAttribute< const FSlateBrush* > FWebImage::Attr() const
 {
 	return TAttribute< const FSlateBrush* >(AsShared(), &FWebImage::GetBrush);
@@ -26,7 +31,7 @@ bool FWebImage::BeginDownload(const FString& UrlIn, const TOptional<FString>& St
 	HttpRequest->SetVerb(TEXT("GET"));
 	HttpRequest->SetURL(Url);
 	HttpRequest->SetHeader(TEXT("Accept"), TEXT("image/png, image/x-png, image/jpeg; q=0.8, image/vnd.microsoft.icon, image/x-icon, image/bmp, image/*; q=0.5, image/webp; q=0.0"));
-	HttpRequest->OnProcessRequestComplete().BindSP(this, &FWebImage::HttpRequestComplete, DownloadCb);
+	HttpRequest->OnProcessRequestComplete().BindSP(this, &FWebImage::HttpRequestComplete);
 
 	if (StandInETag.IsSet())
 	{
@@ -34,23 +39,29 @@ bool FWebImage::BeginDownload(const FString& UrlIn, const TOptional<FString>& St
 	}
 
 	// queue the request
-	PendingRequest = HttpRequest;
 	if (!HttpRequest->ProcessRequest())
 	{
-		// clear our local handle
-		PendingRequest.Reset();
 		return false;
 	}
-	return true;
+	else
+	{
+		PendingRequest = HttpRequest;
+		PendingCallback = DownloadCb;
+		return true;
+	}
 }
 
-void FWebImage::HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FOnImageDownloaded DownloadCb)
+void FWebImage::HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
 {
 	// clear our handle to the request
 	PendingRequest.Reset();
 
 	// get the request URL
 	check(HttpRequest.IsValid()); // this should be valid, we did just send a request...
+	if (HttpRequest->OnProcessRequestComplete().IsBound())
+	{
+		HttpRequest->OnProcessRequestComplete().Unbind();
+	}
 	bool bSuccess = ProcessHttpResponse(HttpRequest->GetURL(), bSucceeded ? HttpResponse : FHttpResponsePtr());
 
 	// save this info
@@ -58,9 +69,10 @@ void FWebImage::HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePt
 	DownloadTimeUtc = FDateTime::UtcNow();
 
 	// fire the response delegate
-	if (DownloadCb.IsBound())
+	if (PendingCallback.IsBound())
 	{
-		DownloadCb.Execute(bSuccess);
+		PendingCallback.Execute(bSuccess);
+		PendingCallback.Unbind();
 	}
 }
 
@@ -135,9 +147,16 @@ void FWebImage::CancelDownload()
 {
 	if (PendingRequest.IsValid())
 	{
-		FHttpRequestPtr Request = PendingRequest;
+		if (PendingRequest->OnProcessRequestComplete().IsBound())
+		{
+			PendingRequest->OnProcessRequestComplete().Unbind();
+		}
+		PendingRequest->CancelRequest();
 		PendingRequest.Reset();
-		Request->CancelRequest();
+	}
+	if (PendingCallback.IsBound())
+	{
+		PendingCallback.Unbind();
 	}
 	bDownloadSuccess = false;
 }

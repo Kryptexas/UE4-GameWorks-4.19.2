@@ -234,6 +234,9 @@ namespace iPhonePackager
 							case "-iterate":
 								Config.bIterate = true;
 								break;
+							case "-tvos":
+								Config.OSString = "TVOS";
+								break;
 						}
 
 						// get the stage dir path

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Threading;
 using UnrealBuildTool;
 
 
@@ -229,6 +230,8 @@ namespace AutomationTool
 			
 			PushDir(CWD);
 
+			DateTime StartTime = DateTime.UtcNow;
+
 			string LocalLogFile = LogUtils.GetUniqueLogName(CombinePaths(CmdEnv.EngineSavedFolder, Commandlet));
 			Log("Commandlet log file is {0}", LocalLogFile);
 			string Args = String.Format(
@@ -262,6 +265,62 @@ namespace AutomationTool
 				}
 			}
 
+			// If we're running on a Mac, dump all the *.crash files that were generated while the editor was running.
+			if(HostPlatform.Current.HostEditorPlatform == UnrealTargetPlatform.Mac)
+			{
+				// If the exit code indicates the main process crashed, introduce a small delay because the crash report is written asynchronously.
+				// If we exited normally, still check without waiting in case SCW or some other child process crashed.
+				if(RunResult.ExitCode > 128)
+				{
+					CommandUtils.Log("Pausing before checking for crash logs...");
+					Thread.Sleep(10 * 1000);
+				}
+				
+				// Create a list of directories containing crash logs, and add the system log folder
+				List<string> CrashDirs = new List<string>();
+				CrashDirs.Add("/Library/Logs/DiagnosticReports");
+					
+				// Add the user's log directory too
+				string HomeDir = Environment.GetEnvironmentVariable("HOME");
+				if(!String.IsNullOrEmpty(HomeDir))
+				{
+					CrashDirs.Add(Path.Combine(HomeDir, "Library/Logs/DiagnosticReports"));
+				}
+
+				// Check each directory for crash logs
+				List<FileInfo> CrashFileInfos = new List<FileInfo>();
+				foreach(string CrashDir in CrashDirs)
+				{
+					DirectoryInfo CrashDirInfo = new DirectoryInfo(CrashDir);
+					if(CrashDirInfo.Exists)
+					{
+						CrashFileInfos.AddRange(CrashDirInfo.EnumerateFiles("*.crash", SearchOption.TopDirectoryOnly).Where(x => x.LastWriteTimeUtc >= StartTime));
+					}
+				}
+				
+				// Dump them all to the log
+				foreach(FileInfo CrashFileInfo in CrashFileInfos)
+				{
+					// snmpd seems to often crash (suspect due to it being starved of CPU cycles during cooks)
+					if(!CrashFileInfo.Name.StartsWith("snmpd_"))
+					{
+						CommandUtils.Log("Found crash log - {0}", CrashFileInfo.FullName);
+						try
+						{
+							string[] Lines = File.ReadAllLines(CrashFileInfo.FullName);
+							foreach(string Line in Lines)
+							{
+								CommandUtils.Log("Crash: {0}", Line);
+							}
+						}
+						catch(Exception Ex)
+						{
+							CommandUtils.LogWarning("Failed to read file ({0})", Ex.Message);
+						}
+					}
+				}
+			}
+
 			// Copy the local commandlet log to the destination folder.
 			string DestLogFile = LogUtils.GetUniqueLogName(CombinePaths(CmdEnv.LogFolder, Commandlet));
 			if (!CommandUtils.CopyFile_NoExceptions(LocalLogFile, DestLogFile))
@@ -290,10 +349,10 @@ namespace AutomationTool
 
 			if (RunResult.ExitCode != 0)
 			{
-				throw new AutomationException("BUILD FAILED: Failed while running {0} for {1}; see log {2}", Commandlet, ProjectName, DestLogFile);
+				throw new AutomationException(DestLogFile, RunResult.ExitCode, "BUILD FAILED: Failed while running {0} for {1}; see log {2}", Commandlet, ProjectName, DestLogFile);
 			}
 		}
-
+		
 		/// <summary>
 		/// Returns the default path of the editor executable to use for running commandlets.
 		/// </summary>

@@ -144,6 +144,18 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	float MaxDepenetrationVelocity;
 
+	/** Contact offset multiplier. When creating a physics shape we look at its bounding volume and multiply its minimum value by this multiplier. A bigger number will generate contact points earlier which results in higher stability at the cost of performance. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation, meta = (ClampMin = "0.001", UIMin = "0.001"))
+	float ContactOffsetMultiplier;
+
+	/** Min Contact offset. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation, meta = (ClampMin = "0.0001", UIMin = "0.0001"))
+	float MinContactOffset;
+
+	/** Max Contact offset. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation, meta = (ClampMin = "0.001", UIMin = "0.001"))
+	float MaxContactOffset;
+
 	/**
 	*  If true, simulate physics for this component on a dedicated server.
 	*  This should be set if simulating physics and replicating with a dedicated server.

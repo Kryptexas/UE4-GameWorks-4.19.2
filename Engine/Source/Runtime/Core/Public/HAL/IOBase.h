@@ -140,5 +140,10 @@ struct CORE_API FIOSystem
 	 * @return Minimum read size
 	 */
 	virtual int64 MinimumReadSize() = 0;
+
+	/**
+	 * Flush the pending logs if any.
+	 */
+	virtual void FlushLog() = 0;
 };
 

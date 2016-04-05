@@ -4,6 +4,8 @@
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 #include "Animation/AnimTypes.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 
 #define NOTIFY_TRIGGER_OFFSET KINDA_SMALL_NUMBER;
 
@@ -74,6 +76,12 @@ void FAnimNotifyEvent::SetDuration(float NewDuration)
 	Duration = NewDuration;
 	EndLink.SetTime(GetTime() + Duration);
 }
+
+bool FAnimNotifyEvent::IsBranchingPoint() const
+{
+	return GetLinkedMontage() && ((MontageTickType == EMontageNotifyTickType::BranchingPoint) || (Notify && Notify->bIsNativeBranchingPoint) || (NotifyStateClass && NotifyStateClass->bIsNativeBranchingPoint));
+}
+
 
 void FAnimNotifyEvent::SetTime(float NewTime, EAnimLinkMethod::Type ReferenceFrame /*= EAnimLinkMethod::Absolute*/)
 {

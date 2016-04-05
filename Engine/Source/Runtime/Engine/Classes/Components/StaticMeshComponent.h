@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SceneTypes.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "Components/MeshComponent.h"
 #include "Runtime/RenderCore/Public/PackedNormal.h"
 #include "RawIndexBuffer.h"
@@ -14,6 +15,7 @@ class FStaticMeshStaticLightingMesh;
 class ULightComponent;
 struct FEngineShowFlags;
 struct FConvexVolume;
+struct FStreamingTextureBuildInfo;
 
 /** Cached vertex information at the time the mesh was painted. */
 USTRUCT()
@@ -237,11 +239,18 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(transient)
 	TArray<struct FStaticMeshComponentLODInfo> LODData;
 
-	/** The streaming info for each LOD / Section. Needs to be persistent in order to be accessible when loading cooked maps. */
-	UPROPERTY()
-	TArray<FStreamingTexturePrimitiveInfo> StreamingTextureInfos;
+	/** The list of texture, bounds and scales. As computed in the texture streaming build process. */
+	UPROPERTY(duplicatetransient, NonTransactional)
+	TArray<FStreamingTextureBuildInfo> StreamingTextureData;
 
 #if WITH_EDITORONLY_DATA
+	/** 
+	 * Temporary section data used in the texture streaming build. 
+	 * Stays persistent to allow texture streaming accuracy view mode to inspect it.
+	 * The shared ptr is used to allow a safe way for the proxy to access it without duplicating it.
+	 */
+	TSharedPtr<TArray<FStreamingSectionBuildInfo>, ESPMode::NotThreadSafe> StreamingSectionData;
+
 	/** Derived data key of the static mesh, used to determine if an update from the source static mesh is required. */
 	UPROPERTY()
 	FString StaticMeshDerivedDataKey;
@@ -327,9 +336,27 @@ public:
 		return LightmassSettings.bShadowIndirectOnly;
 	}
 	virtual ELightMapInteractionType GetStaticLightingType() const override;
-	void UpdateStreamingTextureInfos(bool bForce = false);
-	virtual bool GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor, FBoxSphereBounds& OutBounds, int32 LODIndex, int32 ElementIndex) const;
-	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
+
+	/**
+	 *	Update the precomputed streaming data of this component.
+	 *
+	 *	@param	LevelTextures	[in,out]	The list of textures referred by all component of a level. The array index maps to UTexture2D::LevelIndex.
+	 *	@param	TexCoordScales	[in]		The texcoord scales for each texture register of each relevant materials.
+	 *	@param	QualityLevel	[in]		The quality level being used in the texture streaming build.
+	 *	@param	FeatureLevel	[in]		The feature level being used in the texture streaming build.
+	 */
+	virtual void UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel);
+
+	/**
+	*	Update the precomputed streaming debug data of this component.
+	*
+	*	@param	TexCoordScales				The texcoord scales for each texture register of each relevant materials.
+	*/
+	virtual void UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales);
+
+	virtual bool GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const;
+	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
+
 	virtual class UBodySetup* GetBodySetup() override;
 	virtual bool CanEditSimulatePhysics() override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;

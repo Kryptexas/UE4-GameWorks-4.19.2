@@ -38,11 +38,10 @@ public:
 	virtual class USceneComponent* GetDefaultAttachComponent() const override;
 #endif
 	
-protected:
+private:
+
 	void UpdatePreviewMeshes();
 	void UpdateCraneComponents();
-
-private:
 
 	/** Root component to give the whole actor a transform. */
 	UPROPERTY(EditDefaultsOnly, Category = "Crane Components")
@@ -63,4 +62,9 @@ private:
 	UPROPERTY()
 	UStaticMeshComponent* PreviewMesh_CraneBase;
 
+	UPROPERTY()
+	UStaticMeshComponent* PreviewMesh_CraneMount;
+
+	UPROPERTY()
+	UStaticMeshComponent* PreviewMesh_CraneCounterWeight;
 };

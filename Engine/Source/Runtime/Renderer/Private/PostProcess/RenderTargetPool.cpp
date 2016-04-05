@@ -1156,7 +1156,7 @@ void FRenderTargetPool::TickPoolElements()
 			//   * Ignore (editor case, might start using slow memory which can be ok)
 			if(!bCurrentlyOverBudget)
 			{
-				UE_LOG(LogRenderTargetPool, Warning, TEXT("r.RenderTargetPoolMin exceeded %d/%d MB (ok in editor, bad on fixed memory platform)"), (AllocationLevelInKB + 1023) / 1024, MinimumPoolSizeInKB / 1024);
+				UE_CLOG(IsRunningClientOnly(), LogRenderTargetPool, Warning, TEXT("r.RenderTargetPoolMin exceeded %d/%d MB (ok in editor, bad on fixed memory platform)"), (AllocationLevelInKB + 1023) / 1024, MinimumPoolSizeInKB / 1024);
 				bCurrentlyOverBudget = true;
 			}
 			// at this point we need to give up

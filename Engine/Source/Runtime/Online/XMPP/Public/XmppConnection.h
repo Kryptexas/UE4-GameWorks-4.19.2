@@ -26,6 +26,7 @@ public:
 		, PingInterval(60.0f)
 		, PingTimeout(30.0f)
 		, MaxPingRetries(1)
+		, bPrivateChatFriendsOnly(false)
 	{}
 
 	/** ip/host to connect to */
@@ -48,6 +49,8 @@ public:
 	float PingTimeout;
 	/** max number of retries on ping timeout before connection is abandoned and logged out */
 	int32 MaxPingRetries;
+	/** limit private chat to friends only */
+	bool bPrivateChatFriendsOnly;
 };
 
 /**
@@ -98,7 +101,7 @@ public:
 		return ParseResource(Resource, OutAppId, OutPlatform);
 	}
 
-	bool operator==(const FXmppUserJid& Other)
+	bool operator==(const FXmppUserJid& Other) const
 	{
 		return 
 			Other.Id == Id && 

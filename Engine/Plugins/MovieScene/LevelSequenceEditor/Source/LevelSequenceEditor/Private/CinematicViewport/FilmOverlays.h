@@ -102,7 +102,7 @@ private:
 
 	/** Get/Set the color tint override for the current master overlay */
 	FLinearColor GetMasterColorTint() const;
-	void SetMasterColorTint(FLinearColor Tint);
+	void OnMasterColorTintChanged(const FLinearColor& Tint);
 
 private:
 

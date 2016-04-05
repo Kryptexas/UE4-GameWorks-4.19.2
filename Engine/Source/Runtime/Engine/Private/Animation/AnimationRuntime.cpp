@@ -296,23 +296,17 @@ template <int32 TRANSFORM_BLEND_MODE>
 void BlendPosePerBone(const TArray<FBoneIndexType>& RequiredBoneIndices, const TArray<int32>& PerBoneIndices, const FBlendSampleData& BlendSampleDataCache, FTransformArrayA2& ResultAtoms, const FTransformArrayA2& SourceAtoms)
 {
 	const float BlendWeight = BlendSampleDataCache.GetWeight();
-	TArray<float> PerBoneBlends;
-	for (int32 i = 0; i < BlendSampleDataCache.PerBoneBlendData.Num(); ++i)
-	{
-		PerBoneBlends.Add(FMath::Clamp<float>(BlendSampleDataCache.PerBoneBlendData[i], 0.f, 1.f));
-	}
-
 	for (int32 i = 0; i < RequiredBoneIndices.Num(); ++i)
 	{
 		const int32 BoneIndex = RequiredBoneIndices[i];
-		int32 PerBoneIndex = PerBoneIndices[i];
+		const int32 PerBoneIndex = PerBoneIndices[i];
 		if (PerBoneIndex == INDEX_NONE || !BlendSampleDataCache.PerBoneBlendData.IsValidIndex(PerBoneIndex))
 		{
 			BlendTransform<TRANSFORM_BLEND_MODE>(SourceAtoms[BoneIndex], ResultAtoms[BoneIndex], BlendWeight);
 		}
 		else
 		{
-			BlendTransform<TRANSFORM_BLEND_MODE>(SourceAtoms[BoneIndex], ResultAtoms[BoneIndex], PerBoneBlends[PerBoneIndex]);
+			BlendTransform<TRANSFORM_BLEND_MODE>(SourceAtoms[BoneIndex], ResultAtoms[BoneIndex], BlendSampleDataCache.PerBoneBlendData[PerBoneIndex]);
 		}
 	}
 }
@@ -321,23 +315,16 @@ template <int32 TRANSFORM_BLEND_MODE>
 void BlendPosePerBone(const TArray<int32>& PerBoneIndices, const FBlendSampleData& BlendSampleDataCache, FCompactPose& ResultPose, const FCompactPose& SourcePose)
 {
 	const float BlendWeight = BlendSampleDataCache.GetWeight();
-	TArray<float> PerBoneBlends;
-	for (int32 i = 0; i < BlendSampleDataCache.PerBoneBlendData.Num(); ++i)
-	{
-		PerBoneBlends.Add(FMath::Clamp<float>(BlendSampleDataCache.PerBoneBlendData[i], 0.f, 1.f));
-	}
-
 	for (FCompactPoseBoneIndex BoneIndex : SourcePose.ForEachBoneIndex())
 	{
-		int32 PerBoneIndex = PerBoneIndices[BoneIndex.GetInt()];
-
+		const int32 PerBoneIndex = PerBoneIndices[BoneIndex.GetInt()];
 		if (PerBoneIndex == INDEX_NONE || !BlendSampleDataCache.PerBoneBlendData.IsValidIndex(PerBoneIndex))
 		{
 			BlendTransform<TRANSFORM_BLEND_MODE>(SourcePose[BoneIndex], ResultPose[BoneIndex], BlendWeight);
 		}
 		else
 		{
-			BlendTransform<TRANSFORM_BLEND_MODE>(SourcePose[BoneIndex], ResultPose[BoneIndex], PerBoneBlends[PerBoneIndex]);
+			BlendTransform<TRANSFORM_BLEND_MODE>(SourcePose[BoneIndex], ResultPose[BoneIndex], BlendSampleDataCache.PerBoneBlendData[PerBoneIndex]);
 		}
 	}
 }
@@ -1367,25 +1354,8 @@ static int32 FindVertexAnim(const TArray<FActiveVertexAnim>& ActiveAnims, UVerte
 	return INDEX_NONE;
 }
 
-TArray<FActiveVertexAnim> FAnimationRuntime::UpdateActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims)
+void FAnimationRuntime::AppendActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, TArray<FActiveVertexAnim>& InOutActiveAnims)
 {
-	TArray<struct FActiveVertexAnim> OutVertexAnims;
-
-	// First copy ActiveAnims
-	for(int32 AnimIdx=0; AnimIdx < ActiveAnims.Num(); AnimIdx++)
-	{
-		const FActiveVertexAnim& ActiveAnim = ActiveAnims[AnimIdx];
-		const float ActiveAnimAbsWeight = FMath::Abs(ActiveAnim.Weight);
-
-		// Check it has valid weight, and works on this SkeletalMesh
-		if (	ActiveAnimAbsWeight > MinVertexAnimBlendWeight &&
-			ActiveAnim.VertAnim != NULL &&
-			ActiveAnim.VertAnim->BaseSkelMesh == InSkeletalMesh)
-		{
-			OutVertexAnims.Add(ActiveAnim);
-		}
-		// @TODO Need to check for duplicates here?
-	}
 
 	// Then go over the CurveKeys finding morph targets by name
 	for(auto CurveIter=MorphCurveAnims.CreateConstIterator(); CurveIter; ++CurveIter)
@@ -1401,23 +1371,21 @@ TArray<FActiveVertexAnim> FAnimationRuntime::UpdateActiveVertexAnims(const USkel
 			if(Target != NULL)				
 			{
 				// See if this morph target already has an entry
-				int32 AnimIndex = FindVertexAnim(OutVertexAnims, Target);
+				int32 AnimIndex = FindVertexAnim(InOutActiveAnims, Target);
 				// If not, add it
 				if(AnimIndex == INDEX_NONE)
 				{
-					OutVertexAnims.Add(FActiveVertexAnim(Target, Weight));
+					InOutActiveAnims.Add(FActiveVertexAnim(Target, Weight));
 				}
 				// If it does, use the max weight
 				else
 				{
-					const float CurrentWeight = OutVertexAnims[AnimIndex].Weight;
-					OutVertexAnims[AnimIndex].Weight = FMath::Max<float>(CurrentWeight, Weight);
+					const float CurrentWeight = InOutActiveAnims[AnimIndex].Weight;
+					InOutActiveAnims[AnimIndex].Weight = FMath::Max<float>(CurrentWeight, Weight);
 				}
 			}
 		}
 	}
-
-	return OutVertexAnims;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

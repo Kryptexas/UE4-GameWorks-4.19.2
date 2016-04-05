@@ -28,7 +28,7 @@ void FMovieSceneSubTrackInstance::ClearInstance(IMovieScenePlayer& Player, FMovi
 }
 
 
-void FMovieSceneSubTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneSubTrackInstance::RefreshInstance(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	TSet<UMovieSceneSection*> FoundSections;
 	const TArray<UMovieSceneSection*>& AllSections = SubTrack->GetAllSections();
@@ -37,14 +37,7 @@ void FMovieSceneSubTrackInstance::RefreshInstance(const TArray<UObject*>& Runtim
 	for (const auto Section : AllSections)
 	{
 		UMovieSceneSubSection* SubSection = CastChecked<UMovieSceneSubSection>(Section);
-
-		// If the section doesn't have a valid movie scene or no longer has one 
-		// (e.g user deleted it) then skip adding an instance for it
-		if (SubSection->GetSequence() == nullptr)
-		{
-			continue;
-		}
-
+		
 		FoundSections.Add(Section);
 
 		// create an instance for the section
@@ -52,12 +45,24 @@ void FMovieSceneSubTrackInstance::RefreshInstance(const TArray<UObject*>& Runtim
 
 		if (!Instance.IsValid())
 		{
-			Instance = MakeShareable(new FMovieSceneSequenceInstance(*SubSection->GetSequence()));
+			UMovieSceneSequence* Sequence = SubSection->GetSequence();
+			if(Sequence != nullptr)
+			{
+				Instance = MakeShareable(new FMovieSceneSequenceInstance(*Sequence));
+			}
+			else
+			{
+				Instance = MakeShareable(new FMovieSceneSequenceInstance(*SubTrack));
+			}
 			SequenceInstancesBySection.Add(SubSection, Instance.ToSharedRef());
 		}
 
 		Player.AddOrUpdateMovieSceneInstance(*SubSection, Instance.ToSharedRef());
 		Instance->RefreshInstance(Player);
+
+#if WITH_EDITOR
+		SubSection->OnSequenceChanged() = FOnSequenceChanged::CreateSP(Instance.Get(), &FMovieSceneSequenceInstance::HandleSequenceSectionChanged);
+#endif
 	}
 
 	// remove sections that no longer exist
@@ -74,7 +79,7 @@ void FMovieSceneSubTrackInstance::RefreshInstance(const TArray<UObject*>& Runtim
 }
 
 
-void FMovieSceneSubTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneSubTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	for (const auto Section : SubTrack->GetAllSections())
 	{
@@ -89,7 +94,7 @@ void FMovieSceneSubTrackInstance::RestoreState(const TArray<UObject*>& RuntimeOb
 }
 
 
-void FMovieSceneSubTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneSubTrackInstance::SaveState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	for (const auto Section : SubTrack->GetAllSections())
 	{
@@ -134,6 +139,21 @@ TArray<UMovieSceneSection*> FMovieSceneSubTrackInstance::GetAllTraversedSections
 	return TraversedSections;
 }
 
+bool FMovieSceneSubTrackInstance::ShouldEvaluateIfOverlapping(const TArray<UMovieSceneSection*>& TraversedSections, UMovieSceneSection* Section) const
+{
+	const bool bShouldRemove = TraversedSections.ContainsByPredicate([=](UMovieSceneSection* OtherSection){
+		if (Section->GetRowIndex() == OtherSection->GetRowIndex() &&
+			Section->GetRange().Overlaps(OtherSection->GetRange()) &&
+			Section->GetOverlapPriority() < OtherSection->GetOverlapPriority())
+		{
+			return true;
+		}
+		return false;
+	});
+
+	return bShouldRemove;
+}
+
 TArray<UMovieSceneSection*> FMovieSceneSubTrackInstance::GetTraversedSectionsWithPreroll( const TArray<UMovieSceneSection*>& Sections, float CurrentTime, float PreviousTime )
 {
 	TArray<UMovieSceneSection*> TraversedSections = GetAllTraversedSectionsWithPreroll(Sections, CurrentTime, PreviousTime);
@@ -143,15 +163,7 @@ TArray<UMovieSceneSection*> FMovieSceneSubTrackInstance::GetTraversedSectionsWit
 	{
 		UMovieSceneSection* Section = TraversedSections[RemoveAt];
 		
-		const bool bShouldRemove = TraversedSections.ContainsByPredicate([=](UMovieSceneSection* OtherSection){
-			if (Section->GetRowIndex() == OtherSection->GetRowIndex() &&
-				Section->GetRange().Overlaps(OtherSection->GetRange()) &&
-				Section->GetOverlapPriority() < OtherSection->GetOverlapPriority())
-			{
-				return true;
-			}
-			return false;
-		});
+		const bool bShouldRemove = ShouldEvaluateIfOverlapping(TraversedSections, Section);
 		
 		if (bShouldRemove)
 		{
@@ -167,7 +179,7 @@ TArray<UMovieSceneSection*> FMovieSceneSubTrackInstance::GetTraversedSectionsWit
 }
 
 
-void FMovieSceneSubTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
+void FMovieSceneSubTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	const TArray<UMovieSceneSection*>& AllSections = SubTrack->GetAllSections();
 
@@ -203,11 +215,22 @@ void FMovieSceneSubTrackInstance::Update(EMovieSceneUpdateData& UpdateData, cons
 		const float InstancePosition = InstanceOffset + (UpdateData.Position - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
 
 		EMovieSceneUpdateData SubUpdateData(InstancePosition, InstanceLastPosition);
-		SubUpdateData.bJumpCut = UpdateData.LastPosition < SubSection->GetStartTime();
+		SubUpdateData.bJumpCut = UpdateData.LastPosition < SubSection->GetStartTime() || UpdateData.LastPosition > SubSection->GetEndTime();
 		SubUpdateData.UpdatePass = UpdateData.UpdatePass;
 		SubUpdateData.bPreroll = InitialUpdatePosition < SubSection->GetStartTime();
 
-		// update section
-		Instance->Update(SubUpdateData, Player);
+		// update sub sections
+
+		if (SubUpdateData.UpdatePass == MSUP_PreUpdate)
+		{
+			Instance->PreUpdate(Player);
+		}
+		
+		Instance->UpdatePassSingle(SubUpdateData, Player);
+
+		if (SubUpdateData.UpdatePass == MSUP_PostUpdate)
+		{
+			Instance->PostUpdate(Player);
+		}
 	}
 }

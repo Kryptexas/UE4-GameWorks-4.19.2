@@ -31,50 +31,76 @@ MTL_EXTERN NSArray* MTLCopyAllDevices(void);
 MTL_EXTERN NSArray <id<MTLDevice>>* MTLCopyAllDevices(void);
 #endif
 
-static id<MTLDevice> GetMTLDevice()
+static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 {
+	SCOPED_AUTORELEASE_POOL;
+	
+	DeviceIndex = 0;
+	
+	if(FParse::Param(FCommandLine::Get(),TEXT("metaldebug")))
+	{
+		setenv("METAL_DEVICE_WRAPPER_TYPE", "1", 0);
+	}
+	
 	NSArray* DeviceList = MTLCopyAllDevices();
+	[DeviceList autorelease];
+	
 	const int32 NumDevices = [DeviceList count];
 	
-	// return the first device if there’s only one in the list
-	if (NumDevices == 1)
+	TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = FPlatformMisc::GetGPUDescriptors();
+	check(GPUs.Num() > 0);
+	
+	id<MTLDevice> SelectedDevice = nil;
+	
+	int32 ExplicitRendererId = FPlatformMisc::GetExplicitRendererIndex();
+	if (ExplicitRendererId >= 0 && ExplicitRendererId < GPUs.Num())
 	{
-		return (id<MTLDevice>)[DeviceList objectAtIndex:0];
-	}
-	
-	const char* MetalDeviceToUse = getenv("MetalDeviceToUse");
-	const bool bForceIntelGPU = MetalDeviceToUse && strcmp(MetalDeviceToUse, "Intel") == 0;
-	const bool bForceDefault = FParse::Param(FCommandLine::Get(),TEXT("defaultgpu"));
-	
-	id<MTLDevice> DefaultDevice = MTLCreateSystemDefaultDevice();
-	if (bForceDefault)
-	{
-		
-		return DefaultDevice;
-	}
-	
-	const bool bForceHeadless = FParse::Param(FCommandLine::Get(),TEXT("metalheadless"));
-	
-	if (bForceIntelGPU || bForceHeadless)
-	{
-		// enumerate through the device list to find the low power device
-		for (int32 Index = 0; Index < NumDevices; Index++)
+		FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[ExplicitRendererId];
+		for (id<MTLDevice> Device in DeviceList)
 		{
-			id<MTLDevice> Device = (id<MTLDevice>)[DeviceList objectAtIndex:Index];
-			const bool bIsLowPower = Device.lowPower;
-			const bool bIsHeadless = Device != DefaultDevice;
-			if (bIsLowPower && bForceIntelGPU)
+			if(([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
+			|| ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
+			|| ([Device.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
 			{
-				return Device;
-			}
-			else if (bIsHeadless && !bIsLowPower && bForceHeadless)
-			{
-				return Device;
+				if((Device.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || FString(Device.name).Contains(FString(GPU.GPUName).Trim()))
+				{
+					DeviceIndex = ExplicitRendererId;
+					SelectedDevice = Device;
+					break;
+				}
 			}
 		}
+		if(!SelectedDevice)
+		{
+			UE_LOG(LogMetal, Warning,  TEXT("Couldn't find Metal device to match GPU descriptor (%s) from IORegistry - using default device."), *FString(GPU.GPUName));
+		}
 	}
-	
-	return DefaultDevice;
+	if (SelectedDevice == nil)
+	{
+		SelectedDevice = MTLCreateSystemDefaultDevice();
+		bool bFoundDefault = false;
+		for (uint32 i = 0; i < GPUs.Num(); i++)
+		{
+			FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[i];
+			if(([SelectedDevice.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
+			   || ([SelectedDevice.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
+			   || ([SelectedDevice.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
+			{
+				if((SelectedDevice.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || FString(SelectedDevice.name).Contains(FString(GPU.GPUName).Trim()))
+				{
+					DeviceIndex = i;
+					bFoundDefault = true;
+					break;
+				}
+			}
+		}
+		if(!bFoundDefault)
+		{
+			UE_LOG(LogMetal, Warning,  TEXT("Couldn't find Metal device %s in GPU descriptors from IORegistry - capability reporting may be wrong."), *FString(SelectedDevice.name));
+		}
+	}
+	check(SelectedDevice);
+	return SelectedDevice;
 }
 
 static MTLPrimitiveTopologyClass TranslatePrimitiveTopology(uint32 PrimitiveType)
@@ -97,20 +123,22 @@ static MTLPrimitiveTopologyClass TranslatePrimitiveTopology(uint32 PrimitiveType
 
 FMetalDeviceContext* FMetalDeviceContext::CreateDeviceContext()
 {
+	uint32 DeviceIndex = 0;
 #if PLATFORM_IOS
 	id<MTLDevice> Device = [IOSAppDelegate GetDelegate].IOSView->MetalDevice;
 #else // @todo zebra
-	id<MTLDevice> Device = GetMTLDevice();
+	id<MTLDevice> Device = GetMTLDevice(DeviceIndex);
 #endif
 	FMetalCommandQueue* Queue = new FMetalCommandQueue(Device);
 	check(Queue);
 	
-	return new FMetalDeviceContext(Device, Queue);
+	return new FMetalDeviceContext(Device, DeviceIndex, Queue);
 }
 
-FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, FMetalCommandQueue* Queue)
+FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, uint32 InDeviceIndex, FMetalCommandQueue* Queue)
 : FMetalContext(*Queue, true)
 , Device(MetalDevice)
+, DeviceIndex(InDeviceIndex)
 , SceneFrameCounter(0)
 , FrameCounter(0)
 , Features(0)
@@ -151,6 +179,27 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, FMetalComman
 
 FMetalDeviceContext::~FMetalDeviceContext()
 {
+	if (CurrentCommandBuffer)
+	{
+		// commit the render context to the commandBuffer
+		if (CommandEncoder.IsRenderCommandEncoderActive() || CommandEncoder.IsComputeCommandEncoderActive() || CommandEncoder.IsBlitCommandEncoderActive())
+		{
+			CommandEncoder.EndEncoding();
+		}
+		
+		// kick the whole buffer
+		// Commit to hand the commandbuffer off to the gpu
+		CommandEncoder.CommitCommandBuffer(true);
+		
+		// Wait for completion as requested.
+		[CurrentCommandBuffer waitUntilCompleted];
+		
+		//once a commandbuffer is commited it can't be added to again.
+		UNTRACK_OBJECT(CurrentCommandBuffer);
+		[CurrentCommandBuffer release];
+		
+		CurrentCommandBuffer = nil;
+	}
 	delete &(GetCommandQueue());
 }
 
@@ -391,6 +440,11 @@ uint32 FMetalDeviceContext::GetNumActiveContexts(void) const
 	return ActiveContexts;
 }
 
+uint32 FMetalDeviceContext::GetDeviceIndex(void) const
+{
+	return DeviceIndex;
+}
+
 uint32 FMetalContext::AutoReleasePoolTLSSlot = FPlatformTLS::AllocTlsSlot();
 uint32 FMetalContext::CurrentContextTLSSlot = FPlatformTLS::AllocTlsSlot();
 
@@ -411,7 +465,27 @@ FMetalContext::FMetalContext(FMetalCommandQueue& Queue, bool const bIsImmediate)
 
 FMetalContext::~FMetalContext()
 {
-	
+	if (CurrentCommandBuffer)
+	{
+		// commit the render context to the commandBuffer
+		if (CommandEncoder.IsRenderCommandEncoderActive() || CommandEncoder.IsComputeCommandEncoderActive() || CommandEncoder.IsBlitCommandEncoderActive())
+		{
+			CommandEncoder.EndEncoding();
+		}
+		
+		// kick the whole buffer
+		// Commit to hand the commandbuffer off to the gpu
+		CommandEncoder.CommitCommandBuffer(true);
+		
+		// Wait for completion as requested.
+		[CurrentCommandBuffer waitUntilCompleted];
+		
+		//once a commandbuffer is commited it can't be added to again.
+		UNTRACK_OBJECT(CurrentCommandBuffer);
+		[CurrentCommandBuffer release];
+		
+		CurrentCommandBuffer = nil;
+	}
 }
 
 FMetalContext* FMetalContext::GetCurrentContext()
@@ -608,13 +682,13 @@ void FMetalContext::ResetRenderCommandEncoder()
 	
 	ConditionalSwitchToGraphics();
 	
-    if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
+	if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
     {
-        StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), QueryBuffer->GetCurrentQueryBuffer()->Buffer);
+        StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), QueryBuffer->GetCurrentQueryBuffer()->Buffer, false);
     }
     else
     {
-        StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), NULL);
+        StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), NULL, false);
     }
 	
 	if (CommandEncoder.IsRenderCommandEncoderActive())
@@ -686,16 +760,7 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		FTexture2DRHIRef DepthStencil = RHICreateTexture2D(FBSize.width, FBSize.height, PF_DepthStencil, 1, 1, TexCreate_DepthStencilTargetable, TexInfo);
 		Info.DepthStencilRenderTarget.Texture = DepthStencil;
 		
-		TRefCountPtr<FMetalBlendState> BlendState = StateCache.GetBlendState();
-		TRefCountPtr<FMetalDepthStencilState> DepthState = StateCache.GetDepthStencilState();
-		TRefCountPtr<FMetalRasterizerState> RasterState = StateCache.GetRasterizerState();
-
-		StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer());
-		
-		StateCache.SetBlendState(BlendState);
-		StateCache.SetDepthStencilState(DepthState);
-		StateCache.SetRasterizerState(RasterState);
-		StateCache.SetBoundShaderState(CurrentBoundShaderState);
+		StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false);
 		
 		bRestoreState = true;
 	}
@@ -734,11 +799,11 @@ void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 //	}
     if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
     {
-        StateCache.SetRenderTargetsInfo(RenderTargetsInfo, QueryBuffer->GetCurrentQueryBuffer()->Buffer);
+        StateCache.SetRenderTargetsInfo(RenderTargetsInfo, QueryBuffer->GetCurrentQueryBuffer()->Buffer, true);
     }
     else
     {
-        StateCache.SetRenderTargetsInfo(RenderTargetsInfo, NULL);
+        StateCache.SetRenderTargetsInfo(RenderTargetsInfo, NULL, true);
     }
 }
 
@@ -1157,9 +1222,7 @@ static TLockFreeFixedSizeAllocator<sizeof(FMetalCommandContextContainer), PLATFO
 
 void* FMetalCommandContextContainer::operator new(size_t Size)
 {
-	// doesn't support derived classes with a different size
-	check(Size == sizeof(FMetalCommandContextContainer));
-	return FMetalCommandContextContainerAllocator.Allocate();
+	return FMemory::Malloc(Size);
 }
 
 /**
@@ -1167,7 +1230,7 @@ void* FMetalCommandContextContainer::operator new(size_t Size)
  */
 void FMetalCommandContextContainer::operator delete(void *RawMemory)
 {
-	FMetalCommandContextContainerAllocator.Free(RawMemory);
+	FMemory::Free(RawMemory);
 }
 
 IRHICommandContextContainer* FMetalDynamicRHI::RHIGetCommandContextContainer()

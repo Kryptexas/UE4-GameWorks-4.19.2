@@ -394,10 +394,6 @@ public:
 	UPROPERTY()
 	TArray<class UActorFactory*> ActorFactories;
 
-	/** Actors that are being deleted and should processed in the global re-attach */
-	UPROPERTY()
-	TArray<class AActor*> ActorsForGlobalReregister;
-
 	/** The name of the file currently being opened in the editor. "" if no file is being opened. */
 	UPROPERTY()
 	FString UserOpenedFile;
@@ -437,10 +433,6 @@ public:
 	UPROPERTY(globalconfig)
 	uint32 bAllowMultiplePIEWorlds:1;
 
-	/** The PlayerStart class used when spawning the player at the current camera location. */
-	UPROPERTY()
-	TSubclassOf<class ANavigationObjectBase>  PlayFromHerePlayerStartClass;
-
 	/** True if there is a pending end play map queued */
 	UPROPERTY()
 	uint32 bRequestEndPlayMapQueued:1;
@@ -460,6 +452,14 @@ public:
 	/** True if we're Simulating In Editor, as opposed to Playing In Editor.  In this mode, simulation takes place right the level editing environment */
 	UPROPERTY()
 	uint32 bIsSimulatingInEditor:1;
+
+	/** True if we should not display notifications about undo/redo */
+	UPROPERTY()
+	uint32 bSquelchTransactionNotification:1;
+
+	/** The PlayerStart class used when spawning the player at the current camera location. */
+	UPROPERTY()
+	TSubclassOf<class ANavigationObjectBase>  PlayFromHerePlayerStartClass;
 
 	/** When Simulating In Editor, a pointer to the original (non-simulating) editor world */
 	UPROPERTY()
@@ -558,6 +558,14 @@ public:
 
 	/** The feature level we should use when loading or creating a new world */
 	ERHIFeatureLevel::Type DefaultWorldFeatureLevel;
+
+protected:
+
+	/* These are parameters that we need to cache for late joining */
+	FString ServerPrefix;
+	int32 PIEInstance;
+	int32 SettingsIndex;
+	bool bStartLateJoinersInSpectatorMode;
 
 public:
 
@@ -879,7 +887,7 @@ public:
 	int32 EndTransaction();
 	void ResetTransaction(const FText& Reason);
 	void CancelTransaction(int32 Index);
-	bool UndoTransaction();
+	bool UndoTransaction(bool bCanRedo = true);
 	bool RedoTransaction();
 	bool IsTransactionActive();
 	FText GetTransactionName() const;
@@ -1606,10 +1614,10 @@ public:
 	 * @param	bUseMobilePreview		True to enable mobile preview mode (PC platform only)
 	 * @param	bUseVRPreview			True to enable VR preview mode (PC platform only)
 	 */
-	void RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, bool bUseMobilePreview = false, bool bUseVRPreview = false );
+	void RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, bool bUseMobilePreview = false, bool bUseVRPreview = false, bool bUseVulkanPreview = false);
 
 	// @todo gmp: temp hack for Rocket demo
-	void RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview );
+	void RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview );
 
 	/**
 	 * Request to play a game on a remote device 
@@ -1652,6 +1660,11 @@ public:
 	bool ShouldEndPlayMap() const { return bRequestEndPlayMapQueued; }
 
 	/**
+	 * Request to create a new PIE window and join the currently running PIE session.
+	 */
+	void RequestLateJoin();
+
+	/**
 	 * Saves play in editor levels and also fixes up references in AWorldSettings to other levels.
 	 *
 	 * @param	Prefix				Prefix used to save files to disk.
@@ -1679,7 +1692,7 @@ public:
 	 */
 	virtual void PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor );
 
-	virtual UGameInstance* CreatePIEGameInstance(int32 PIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bPlayNetDedicated, float PIEStartTime);
+	virtual UGameInstance* CreatePIEGameInstance(int32 InPIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bPlayNetDedicated, float PIEStartTime);
 
 	/**
 	 * Kills the Play From Here session
@@ -2115,7 +2128,7 @@ public:
 	float GetGridSize();
 
 	/** 
-	 * @return - if the grid size is part of the 1,2,48,16,.. list or not
+	 * @return - if the grid size is part of the 1,2,4,8,16,.. list or not
 	 */
 	bool IsGridSizePowerOfTwo() const;
 
@@ -2715,6 +2728,7 @@ private:
 	// @todo: This should be an enum along with bPlayOnLocalPcSession, or completely refactored
 	bool bPlayUsingLauncher;
 	bool bPlayUsingMobilePreview;
+	bool bPlayUsingVulkanPreview;
 
 	/** The platform to run on (as selected in dreop down) */
 	FString PlayUsingLauncherDeviceId;

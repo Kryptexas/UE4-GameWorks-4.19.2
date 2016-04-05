@@ -51,7 +51,7 @@ static void SetTrackingOrigin(const TArray<FString>& Args)
 		Origin = FCString::Atoi(*Args[0]);
 		if (GEngine && GEngine->HMDDevice.IsValid())
 		{
-			GEngine->HMDDevice->SetTrackingOrigin(IHeadMountedDisplay::ETrackingOrigin(Origin));
+			GEngine->HMDDevice->SetTrackingOrigin(EHMDTrackingOrigin::Type(Origin));
 		}
 	}
 	else
@@ -69,7 +69,7 @@ static void SetTrackingOrigin(const TArray<FString>& Args)
 
 static FAutoConsoleCommand CTrackingOriginCmd(
 	TEXT("vr.SetTrackingOrigin"),
-	TEXT("0 - tracking origin is at the eyes/head, 1 - tracking origin is at the floor."),
+	TEXT("0 - tracking origin is at the floor, 1 - tracking origin is at the eyes."),
 	FConsoleCommandWithArgsDelegate::CreateStatic(SetTrackingOrigin));
 
 class FHeadMountedDisplayModule : public IHeadMountedDisplayModule
@@ -134,23 +134,6 @@ void IHeadMountedDisplay::ApplyLateUpdate(FSceneInterface* Scene, const FTransfo
 		}
 	}
 	LateUpdatePrimitives.Reset();
-}
-
-void IHeadMountedDisplay::SetTrackingOrigin(ETrackingOrigin InOrigin)
-{
-	if (GLog)
-	{
-		GLog->Log(ELogVerbosity::Display, TEXT("Not implemented IHeadMountedDisplay::SetTrackingOrigin is called"));
-	}
-}
-
-IHeadMountedDisplay::ETrackingOrigin IHeadMountedDisplay::GetTrackingOrigin()
-{
-	if (GLog)
-	{
-		GLog->Log(ELogVerbosity::Display, TEXT("Not implemented IHeadMountedDisplay::GetTrackingOrigin is called"));
-	}
-	return Eye;
 }
 bool IHeadMountedDisplay::DoesAppUseVRFocus() const
 {

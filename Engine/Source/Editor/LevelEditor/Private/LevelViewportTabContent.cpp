@@ -30,11 +30,6 @@ TSharedPtr< class FLevelViewportLayout > FLevelViewportTabContent::ConstructView
 	else if (TypeName == LevelViewportConfigurationNames::FourPanesBottom) ViewportLayout = MakeShareable(new FLevelViewportLayoutFourPanesBottom);
 	else if (TypeName == LevelViewportConfigurationNames::FourPanesTop) ViewportLayout = MakeShareable(new FLevelViewportLayoutFourPanesTop);
 	else if (TypeName == LevelViewportConfigurationNames::OnePane) ViewportLayout = MakeShareable(new FLevelViewportLayoutOnePane);
-	else
-	{
-		FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>("LevelEditor");
-		ViewportLayout = LevelEditorModule.FactoryCustomViewportLayout(TypeName);
-	}
 
 	if (!ensure(ViewportLayout.IsValid()))
 	{
@@ -44,7 +39,7 @@ TSharedPtr< class FLevelViewportLayout > FLevelViewportTabContent::ConstructView
 	return ViewportLayout;
 }
 
-void FLevelViewportTabContent::Initialize(TSharedPtr<class SLevelEditor> InParentLevelEditor, TSharedPtr<SDockTab> InParentTab, const FString& InLayoutString)
+void FLevelViewportTabContent::Initialize(TSharedPtr<ILevelEditor> InParentLevelEditor, TSharedPtr<SDockTab> InParentTab, const FString& InLayoutString)
 {
 	ParentTab = InParentTab;
 	ParentLevelEditor = InParentLevelEditor;

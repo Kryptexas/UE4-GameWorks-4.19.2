@@ -39,6 +39,7 @@ bool FUdpMessageTransport::StartTransport()
 	UnicastSocket = FUdpSocketBuilder(TEXT("UdpMessageUnicastSocket"))
 		.AsNonBlocking()
 		.BoundToEndpoint(UnicastEndpoint)
+		.WithMulticastLoopback()
 		.WithReceiveBufferSize(UDP_MESSAGING_RECEIVE_BUFFER_SIZE);
 
 	if (UnicastSocket == nullptr)
@@ -94,12 +95,14 @@ bool FUdpMessageTransport::StartTransport()
 	{
 		MulticastReceiver = new FUdpSocketReceiver(MulticastSocket, ThreadWaitTime, TEXT("UdpMessageMulticastReceiver"));
 		MulticastReceiver->OnDataReceived().BindRaw(this, &FUdpMessageTransport::HandleSocketDataReceived);
+		MulticastReceiver->Start();
 	}
 
 #if PLATFORM_DESKTOP
 	UnicastReceiver = new FUdpSocketReceiver(UnicastSocket, ThreadWaitTime, TEXT("UdpMessageUnicastReceiver"));
 	{
 		UnicastReceiver->OnDataReceived().BindRaw(this, &FUdpMessageTransport::HandleSocketDataReceived);
+		UnicastReceiver->Start();
 	}
 #endif
 

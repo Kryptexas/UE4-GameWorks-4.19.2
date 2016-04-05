@@ -17,6 +17,7 @@
 #include "SpeedTreeWind.h"
 #include "HeightfieldLighting.h"
 #include "Components/WindDirectionalSourceComponent.h"
+#include "PlanarReflectionSceneProxy.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -261,6 +262,17 @@ void FDistanceFieldSceneData::VerifyIntegrity()
 	}
 }
 
+void FScene::UpdateSceneSettings(AWorldSettings* WorldSettings)
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		UpdateSceneSettings,
+		FScene*, Scene, this,
+		float, DefaultMaxDistanceFieldOcclusionDistance, WorldSettings->DefaultMaxDistanceFieldOcclusionDistance,
+	{
+		Scene->DefaultMaxDistanceFieldOcclusionDistance = DefaultMaxDistanceFieldOcclusionDistance;
+	});
+}
+
 /**
  * Sets the FX system associated with the scene.
  */
@@ -416,6 +428,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	UpperDynamicSkylightColor(FLinearColor::Black)
 ,	LowerDynamicSkylightColor(FLinearColor::Black)
 ,	SceneLODHierarchy(this)
+,	DefaultMaxDistanceFieldOcclusionDistance(InWorld->GetWorldSettings()->DefaultMaxDistanceFieldOcclusionDistance)
 ,	NumVisibleLights_GameThread(0)
 ,	NumEnabledSkylights_GameThread(0)
 {
@@ -874,8 +887,16 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 	{
 		SimpleDirectionalLight = LightSceneInfo;
 
-		// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
-		bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate || (!ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing());		
+		// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
+		bool bForwardRendererRequiresLightPolicyChange = !ShouldUseDeferredRenderer() &&
+			(
+			// this light is a dynamic shadowcast 
+			!SimpleDirectionalLight->Proxy->HasStaticShadowing() || 
+			// this light casts both static and dynamic shadows.
+			SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()
+			);
+
+		bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate || (bForwardRendererRequiresLightPolicyChange);
 	}
 
 	if (LightSceneInfo->Proxy->IsUsedAsAtmosphereSunLight() &&
@@ -1201,6 +1222,28 @@ const FReflectionCaptureProxy* FScene::FindClosestReflectionCapture(FVector Posi
 	return ClosestCaptureIndex != INDEX_NONE ? ReflectionSceneData.RegisteredReflectionCaptures[ClosestCaptureIndex] : NULL;
 }
 
+const FPlanarReflectionSceneProxy* FScene::FindClosestPlanarReflection(FVector Position) const
+{
+	checkSlow(IsInParallelRenderingThread());
+	const FPlanarReflectionSceneProxy* ClosestPlanarReflection = NULL;
+	float ClosestDistance = FLT_MAX;
+
+	// Linear search through the scene's planar reflections
+	for (int32 CaptureIndex = 0; CaptureIndex < PlanarReflections.Num(); CaptureIndex++)
+	{
+		FPlanarReflectionSceneProxy* CurrentPlanarReflection = PlanarReflections[CaptureIndex];
+		const float Distance = FMath::Abs(CurrentPlanarReflection->ReflectionPlane.PlaneDot(Position));
+
+		if (Distance < ClosestDistance)
+		{
+			ClosestDistance = Distance;
+			ClosestPlanarReflection = CurrentPlanarReflection;
+		}
+	}
+
+	return ClosestPlanarReflection;
+}
+
 void FScene::FindClosestReflectionCaptures(FVector Position, const FReflectionCaptureProxy* (&SortedByDistanceOUT)[FPrimitiveSceneInfo::MaxCachedReflectionCaptureProxies]) const
 {
 	checkSlow(IsInParallelRenderingThread());
@@ -1395,6 +1438,14 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 			{
 				if( LightSceneInfo && LightSceneInfo->bVisible )
 				{
+					// Forward renderer:
+					// a light with no color/intensity can cause the light to be ignored when rendering.
+					// thus, lights that change state in this way must update the draw lists.
+					Scene->bScenesPrimitivesNeedStaticMeshElementUpdate =
+						Scene->bScenesPrimitivesNeedStaticMeshElementUpdate ||
+						( !Scene->ShouldUseDeferredRenderer() 
+						&& Parameters.NewColor.IsAlmostBlack() != LightSceneInfo->Proxy->GetColor().IsAlmostBlack() );
+
 					LightSceneInfo->Proxy->SetColor(Parameters.NewColor);
 					LightSceneInfo->Proxy->IndirectLightingScale = Parameters.NewIndirectLightingScale;
 
@@ -2113,19 +2164,45 @@ static void LogDrawListStats(FDrawListStats Stats, const TCHAR* DrawListName)
 	}
 	else
 	{
+		FString MatchFailedReasons;
+		for (auto& It : Stats.SingleMeshPolicyMatchFailedReasons)
+		{
+			TArray<FStringFormatArg> Args;
+			Args.Emplace(It.Value);
+			Args.Emplace(*It.Key);
+
+			MatchFailedReasons.Append(FString::Format(TEXT("      - {0} ({1})\n"), Args));
+		}
+
+		FString VertexFactoryFreq;
+		for (auto& It : Stats.SingleMeshPolicyVertexFactoryFrequency)
+		{
+			TArray<FStringFormatArg> Args;
+			auto KeyStr = It.Key.ToString();
+
+			Args.Emplace(It.Value);
+			Args.Emplace(*KeyStr);
+
+			VertexFactoryFreq.Append(FString::Format(TEXT("      - {0} ({1})\n"), Args));
+		}
+
 		UE_LOG(LogRenderer,Log,
 			TEXT("%s: %d policies %d meshes\n")
 			TEXT("  - %d median meshes/policy\n")
 			TEXT("  - %f mean meshes/policy\n")
 			TEXT("  - %d max meshes/policy\n")
-			TEXT("  - %d policies with one mesh"),
+			TEXT("  - %d policies with one mesh\n")
+			TEXT("    One mesh policy closest match failure reason:\n%s\n")
+			TEXT("    One mesh policy vertex factory frequencies:\n%s"),
 			DrawListName,
 			Stats.NumDrawingPolicies,
 			Stats.NumMeshes,
 			Stats.MedianMeshesPerDrawingPolicy,
 			(float)Stats.NumMeshes / (float)Stats.NumDrawingPolicies,
 			Stats.MaxMeshesPerDrawingPolicy,
-			Stats.NumSingleMeshDrawingPolicies
+			Stats.NumSingleMeshDrawingPolicies,
+			*MatchFailedReasons,
+			*VertexFactoryFreq
 			);
 	}
 }

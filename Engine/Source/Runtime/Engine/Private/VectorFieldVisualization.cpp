@@ -132,7 +132,7 @@ void FVectorFieldVisualizationVertexFactory::ReleaseRHI()
  */
 bool FVectorFieldVisualizationVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
-	return Material->IsSpecialEngineMaterial() && SupportsGPUParticles(Platform);
+	return Material->IsSpecialEngineMaterial() && SupportsGPUParticles(Platform) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 }
 
 /**

@@ -57,6 +57,7 @@ namespace AutomationScripts.Automation
 			catch (Exception ProcessEx)
 			{
 				Log("********** REBUILD LIGHT MAPS COMMAND FAILED **********");
+                Log("Error message: {0}", ProcessEx.Message);
 				HandleFailure(ProcessEx.Message);
 				throw ProcessEx;
 			}
@@ -84,7 +85,7 @@ namespace AutomationScripts.Automation
 			try
 			{
 				UE4Build Builder = new UE4Build(this);
-				Builder.Build(Agenda, InDeleteBuildProducts: true, InUpdateVersionFiles: true, InForceNoXGE: false);
+				Builder.Build(Agenda, InDeleteBuildProducts: true, InUpdateVersionFiles: true, InForceNoXGE: false, InChangelistNumberOverride: GetLatestCodeChange());
 				UE4Build.CheckBuildProducts(Builder.BuildProductFiles);
 			}
 			catch (AutomationException Ex)
@@ -94,6 +95,15 @@ namespace AutomationScripts.Automation
 			}
 		}
 
+		private int GetLatestCodeChange()
+		{
+			List<P4Connection.ChangeRecord> ChangeRecords;
+			if(!P4.Changes(out ChangeRecords, String.Format("-m 1 //{0}/....cpp@<{1} //{0}/....h@<{1} //{0}/....cs@<{1} //{0}/....usf@<{1}", P4Env.Client, P4Env.Changelist), WithClient: true))
+			{
+				throw new AutomationException("Couldn't enumerate latest change from branch");
+			}
+			return ChangeRecords.Max(x => x.CL);
+		}
 
 		private void CreateChangelist(ProjectParams Params)
 		{
@@ -129,9 +139,40 @@ namespace AutomationScripts.Automation
 			}
 			catch (Exception Ex)
 			{
+                string FinalLogLines = "No log file found";
+                AutomationException AEx = Ex as AutomationException;
+                if ( AEx != null )
+                {
+                    string LogFile = AEx.LogFileName;
+                    UnrealBuildTool.Log.TraceWarning("Attempting to load file {0}", LogFile);
+                    if ( LogFile != "")
+                    {
+                        
+                        UnrealBuildTool.Log.TraceWarning("Attempting to read file {0}", LogFile);
+                        try
+                        {
+                            string[] AllLogFile = ReadAllLines(LogFile);
+
+                            FinalLogLines = "Important log entries\n";
+                            foreach (string LogLine in AllLogFile)
+                            {
+                                if (LogLine.Contains("[REPORT]"))
+                                {
+                                    FinalLogLines += LogLine + "\n";
+                                }
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            // we don't care about this because if this is hit then there is no log file the exception probably has more info
+                            LogError("Could not find log file " + LogFile);
+                        }
+                    }
+                }
+
 				// Something went wrong with the commandlet. Abandon this run, don't check in any updated files, etc.
 				LogError("Rebuild Light Maps has failed. because "+ Ex.ToString());
-				throw new AutomationException(ExitCode.Error_Unknown, Ex, "RebuildLightMaps failed.");
+				throw new AutomationException(ExitCode.Error_Unknown, Ex, "RebuildLightMaps failed. {0}", FinalLogLines);
 			}
 		}
 
@@ -225,15 +266,24 @@ namespace AutomationScripts.Automation
 			MailMessage Message = new System.Net.Mail.MailMessage();
 			Message.Priority = MailPriority.High;
 			Message.From = new MailAddress("unrealbot@epicgames.com");
+
+            string Branch = "Unknown";
+            if ( P4Enabled )
+            {
+                Branch = P4Env.BuildRootP4;
+            }
+
 			foreach (String NextStakeHolder in StakeholdersEmailAddresses)
 			{
 				Message.To.Add(new MailAddress(NextStakeHolder));
 			}
 
-			Message.CC.Add(new MailAddress("Terence.Burns@epicgames.com"));
-			Message.Subject = String.Format("Nightly lightmap rebuild ", bWasSuccessful ? "[SUCCESS]" : "[FAILED]");
+			Message.CC.Add(new MailAddress("Daniel.Lamb@epicgames.com"));
+            Message.CC.Add(new MailAddress("Andrew.Grant@epicgames.com"));
+			Message.Subject = String.Format("Nightly lightmap rebuild {0} for {1}", bWasSuccessful ? "[SUCCESS]" : "[FAILED]", Branch);
 			Message.Body = MessageBody;
-
+            /*Attachment Attach = new Attachment();
+            Message.Attachments.Add()*/
 			try
 			{
 				SmtpClient MailClient = new SmtpClient("smtp.epicgames.net");

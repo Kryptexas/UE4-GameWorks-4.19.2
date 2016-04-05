@@ -118,8 +118,8 @@ void FMetalStateCache::SetScissorRect(bool const bEnable, MTLScissorRect const& 
 	// Clamp to framebuffer size - Metal doesn't allow scissor to be larger.
 	Scissor.x = Scissor.x;
 	Scissor.y = Scissor.y;
-	Scissor.width = (Scissor.x + Scissor.width <= FrameBufferSize.width) ? Scissor.width : FrameBufferSize.width - Scissor.x;
-	Scissor.height = (Scissor.y + Scissor.height <= FrameBufferSize.height) ? Scissor.height : FrameBufferSize.height - Scissor.y;
+	Scissor.width = FMath::Max((Scissor.x + Scissor.width <= FMath::RoundToInt(FrameBufferSize.width)) ? Scissor.width : FMath::RoundToInt(FrameBufferSize.width) - Scissor.x, (NSUInteger)1u);
+	Scissor.height = FMath::Max((Scissor.y + Scissor.height <= FMath::RoundToInt(FrameBufferSize.height)) ? Scissor.height : FMath::RoundToInt(FrameBufferSize.height) - Scissor.y, (NSUInteger)1u);
 	
 	CommandEncoder.SetScissorRect(Scissor);
 }
@@ -233,7 +233,7 @@ void FMetalStateCache::SetComputeShader(FMetalComputeShader* InComputeShader)
 	}
 }
 
-void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer)
+void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer, bool const bReset)
 {
 	// see if our new Info matches our previous Info
 	if (NeedsToSetRenderTarget(InRenderTargets) || QueryBuffer != VisibilityResults)
@@ -604,18 +604,21 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		}
 	
 		// Set render to the framebuffer
-		CommandEncoder.SetRenderPassDescriptor(RenderPass);
+		CommandEncoder.SetRenderPassDescriptor(RenderPass, bReset);
 		
 		// if (bNeedsClear)
 		{
 			CommandEncoder.BeginRenderCommandEncoding();
 		}
 		
-		// Reset any existing state as that must be fully reinitialised by the caller.
-		DepthStencilState.SafeRelease();
-		RasterizerState.SafeRelease();
-		BlendState.SafeRelease();
-		BoundShaderState.SafeRelease();
+		if (bReset)
+		{
+			// Reset any existing state as that must be fully reinitialised by the caller.
+			DepthStencilState.SafeRelease();
+			RasterizerState.SafeRelease();
+			BlendState.SafeRelease();
+			BoundShaderState.SafeRelease();
+		}
 	}
 }
 

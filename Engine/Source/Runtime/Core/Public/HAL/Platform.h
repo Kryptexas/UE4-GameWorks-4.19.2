@@ -35,6 +35,9 @@
 #if !defined(PLATFORM_ANDROID_X64)
 	#define PLATFORM_ANDROID_X64 0
 #endif
+#if !defined(PLATFORM_ANDROID_VULKAN)
+	#define PLATFORM_ANDROID_VULKAN 0
+#endif
 #if !defined(PLATFORM_ANDROIDGL4)
 	#define PLATFORM_ANDROIDGL4 0
 #endif
@@ -270,6 +273,10 @@
 	#define PLATFORM_USES_FIXED_RHI_CLASS		0
 #endif
 
+#ifndef PLATFORM_USES_FIXED_GMalloc_CLASS
+	#define PLATFORM_USES_FIXED_GMalloc_CLASS		0
+#endif
+
 #ifndef PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS
 	#define PLATFORM_SUPPORTS_MULTIPLE_NATIVE_WINDOWS	1
 #endif
@@ -344,16 +351,16 @@
 
 /** Branch prediction hints */
 #ifndef LIKELY						/* Hints compiler that expression is likely to be true, much softer than ASSUME - allows (penalized by worse performance) expression to be false */
-	#if defined(__clang__) || defined(__GNUC__)
-		#define LIKELY(x)			__builtin_expect((x), 1)
+	#if ( defined(__clang__) || defined(__GNUC__) ) && PLATFORM_LINUX	// effect of these on non-Linux platform has not been analyzed as of 2016-03-21
+		#define LIKELY(x)			__builtin_expect(!!(x), 1)
 	#else
 		#define LIKELY(x)			(x)
 	#endif
 #endif
 
 #ifndef UNLIKELY					/* Hints compiler that expression is unlikely to be true, allows (penalized by worse performance) expression to be true */
-	#if defined(__clang__) || defined(__GNUC__)
-		#define UNLIKELY(x)			__builtin_expect((x), 0)
+	#if ( defined(__clang__) || defined(__GNUC__) ) && PLATFORM_LINUX	// effect of these on non-Linux platform has not been analyzed as of 2016-03-21
+		#define UNLIKELY(x)			__builtin_expect(!!(x), 0)
 	#else
 		#define UNLIKELY(x)			(x)
 	#endif

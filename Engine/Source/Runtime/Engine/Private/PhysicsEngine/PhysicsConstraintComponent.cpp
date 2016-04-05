@@ -69,14 +69,16 @@ UPrimitiveComponent* UPhysicsConstraintComponent::GetComponentInternal(EConstrai
 			{
 				PrimComp = Cast<UPrimitiveComponent>(Actor->GetRootComponent());
 			}
-			// Name specified, see if we can find that property..
+			// Name specified, see if we can find that component..
 			else
 			{
-				UObjectPropertyBase* ObjProp = FindField<UObjectPropertyBase>(Actor->GetClass(), ComponentName);
-				if(ObjProp != NULL)
+				for(UActorComponent* Comp : Actor->GetComponents())
 				{
-					// .. and return the component that is there
-					PrimComp = Cast<UPrimitiveComponent>(ObjProp->GetObjectPropertyValue_InContainer(Actor));
+					if(Comp->GetFName() == ComponentName)
+					{
+						PrimComp = Cast<UPrimitiveComponent>(Comp);
+						break;
+					}
 				}
 			}
 		}	

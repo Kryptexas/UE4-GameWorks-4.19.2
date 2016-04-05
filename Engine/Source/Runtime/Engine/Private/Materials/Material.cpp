@@ -33,6 +33,7 @@
 #include "ShaderCompiler.h"
 #include "Materials/MaterialParameterCollection.h"
 #include "MaterialShaderQualitySettings.h"
+#include "LoadTimeTracker.h"
 #if WITH_EDITOR
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -415,6 +416,8 @@ static TAutoConsoleVariable<int32> CVarDiscardUnusedQualityLevels(
 
 void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*, TArray<FMaterialResource*>>* PlatformMaterialResourcesToSavePtr, FArchive& Ar, FMaterialResource* (&OutMaterialResourcesLoaded)[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num])
 {
+	SCOPED_LOADTIMER(SerializeInlineShaderMaps);
+
 	if (Ar.IsSaving())
 	{
 		int32 NumResourcesToSave = 0;
@@ -598,6 +601,7 @@ UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 	MaxDisplacement = 0.0f;
 	bOutputVelocityOnBasePass = true;
 	bEnableSeparateTranslucency = true;
+	bEnableMobileSeparateTranslucency = false;
 	bEnableResponsiveAA = false;
 	bTangentSpaceNormal = true;
 	bUseLightmapDirectionality = true;
@@ -699,6 +703,106 @@ void UMaterial::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQuality
 		}
 	}
 }
+
+void UMaterial::GetUsedTexturesAndIndices(TArray<UTexture*>& OutTextures, TArray< TArray<int32> >& OutIndices, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) const
+{
+	OutTextures.Empty();
+	OutIndices.Empty();
+
+	if (!FPlatformProperties::IsServerOnly())
+	{
+		const FMaterialResource* CurrentResource = MaterialResources[QualityLevel][FeatureLevel];
+
+		if (CurrentResource)
+		{
+			const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >* ExpressionsByType[2] =
+			{
+				&CurrentResource->GetUniform2DTextureExpressions(),
+				&CurrentResource->GetUniformCubeTextureExpressions()
+			};
+
+			// Try to prevent resizing since this would be expensive.
+			OutIndices.Empty(ExpressionsByType[0]->Num() + ExpressionsByType[1]->Num());
+
+			for (int32 TypeIndex = 0; TypeIndex < ARRAY_COUNT(ExpressionsByType); TypeIndex++)
+			{
+				// Iterate over each of the material's texture expressions.
+				for (FMaterialUniformExpressionTexture* Expression : *ExpressionsByType[TypeIndex])
+				{
+					const bool bAllowOverride = false;
+					UTexture* Texture = NULL;
+					Expression->GetGameThreadTextureValue(this, *CurrentResource, Texture, bAllowOverride);
+
+					if (Texture)
+					{
+						int32 InsertIndex = OutTextures.AddUnique(Texture);
+						if (InsertIndex >= OutIndices.Num())
+						{
+							OutIndices.AddDefaulted(InsertIndex - OutIndices.Num() + 1);
+						}
+						OutIndices[InsertIndex].Add(Expression->GetTextureIndex());
+					}
+				}
+			}
+		}
+	}
+}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+void UMaterial::LogMaterialsAndTextures(FOutputDevice& Ar, int32 Indent) const
+{
+	auto World = GetWorld();
+	const EMaterialQualityLevel::Type QualityLevel = GetCachedScalabilityCVars().MaterialQualityLevel;
+	const ERHIFeatureLevel::Type FeatureLevel = World ? World->FeatureLevel : GMaxRHIFeatureLevel;
+
+	Ar.Logf(TEXT("%sMaterial: %s"), FCString::Tab(Indent), *GetName());
+
+	if (FPlatformProperties::IsServerOnly())
+	{
+		Ar.Logf(TEXT("%sNo Textures: IsServerOnly"), FCString::Tab(Indent + 1));
+	}
+	else
+	{
+		const FMaterialResource* MaterialResource = MaterialResources[QualityLevel][FeatureLevel];
+		if (MaterialResource)
+		{
+			if (MaterialResource->HasValidGameThreadShaderMap())
+			{
+				TArray<UTexture*> Textures;
+				// GetTextureExpressionValues(MaterialResource, Textures);
+				{
+					const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >* ExpressionsByType[2] = { &MaterialResource->GetUniform2DTextureExpressions(), &MaterialResource->GetUniformCubeTextureExpressions() };
+					for (int32 TypeIndex = 0; TypeIndex < ARRAY_COUNT(ExpressionsByType); TypeIndex++)
+					{
+						for (FMaterialUniformExpressionTexture* Expression : *ExpressionsByType[TypeIndex])
+						{
+							UTexture* Texture = NULL;
+							Expression->GetGameThreadTextureValue(this, *MaterialResource, Texture, false);
+							Textures.AddUnique(Texture);
+						}
+					}
+				}
+
+				for (UTexture* Texture : Textures)
+				{
+					if (Texture)
+					{
+						Ar.Logf(TEXT("%s%s"), FCString::Tab(Indent + 1), *Texture->GetName());
+					}
+				}
+			}
+			else
+			{
+				Ar.Logf(TEXT("%sNo Textures : Invalid GameThread ShaderMap"), FCString::Tab(Indent + 1));
+			}
+		}
+		else
+		{
+			Ar.Logf(TEXT("%sNo Textures : Invalid MaterialResource"), FCString::Tab(Indent + 1));
+		}
+	}
+}
+#endif
 
 void UMaterial::OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel)
 {
@@ -2071,6 +2175,8 @@ const FMaterialResource* UMaterial::GetMaterialResource(ERHIFeatureLevel::Type I
 
 void UMaterial::Serialize(FArchive& Ar)
 {
+	SCOPED_LOADTIMER(MaterialSerializeTime);
+
 	Super::Serialize(Ar);
 
 	if (FPlatformProperties::RequiresCookedData() && Ar.IsLoading())
@@ -2301,6 +2407,8 @@ TMap<FGuid, UMaterialInterface*> LightingGuidFixupMap;
 
 void UMaterial::PostLoad()
 {
+	SCOPED_LOADTIMER(MaterialPostLoad);
+
 	Super::PostLoad();
 
 	if (!IsDefaultMaterial())
@@ -2711,6 +2819,10 @@ void UMaterial::PreEditChange(UProperty* PropertyThatChanged)
 
 void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	// If the material changes, then the debug view material must reset to prevent parameters mismatch
+	void ClearAllDebugViewMaterials();
+	ClearAllDebugViewMaterials();
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
@@ -3148,7 +3260,7 @@ void UMaterial::FinishDestroy()
 
 SIZE_T UMaterial::GetResourceSize(EResourceSizeMode::Type Mode)
 {
-	int32 ResourceSize = 0;
+	int32 ResourceSize = Super::GetResourceSize(Mode);
 
 	for (int32 InstanceIndex = 0; InstanceIndex < 3; ++InstanceIndex)
 	{
@@ -3216,16 +3328,7 @@ bool UMaterial::CanBeClusterRoot() const
 void UMaterial::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	// Search for any scene color nodes
-	bool bHasSceneColor = false;
-	for (const UMaterialExpression* Expression : Expressions)
-	{
-		if (Expression->IsA<UMaterialExpressionSceneColor>())
-		{
-			bHasSceneColor = true;
-			break;
-		}
-	}
-
+	bool bHasSceneColor = HasAnyExpressionsInMaterialAndFunctionsOfType<UMaterialExpressionSceneColor>();
 	OutTags.Add(FAssetRegistryTag("HasSceneColor", bHasSceneColor ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
 
 	Super::GetAssetRegistryTags(OutTags);
@@ -3935,12 +4038,12 @@ static FAutoConsoleCommand CmdListSceneColorMaterials(
 	FConsoleCommandDelegate::CreateStatic(ListSceneColorMaterials)
 	);
 
-float UMaterial::GetOpacityMaskClipValue(bool bIsInGameThread) const
+float UMaterial::GetOpacityMaskClipValue() const
 {
 	return OpacityMaskClipValue;
 }
 
-EBlendMode UMaterial::GetBlendMode(bool bIsInGameThread) const
+EBlendMode UMaterial::GetBlendMode() const
 {
 	if (EBlendMode(BlendMode) == BLEND_Masked)
 	{
@@ -3959,7 +4062,7 @@ EBlendMode UMaterial::GetBlendMode(bool bIsInGameThread) const
 	}
 }
 
-EMaterialShadingModel UMaterial::GetShadingModel(bool bIsInGameThread) const
+EMaterialShadingModel UMaterial::GetShadingModel() const
 {
 	switch (MaterialDomain)
 	{
@@ -3980,18 +4083,18 @@ EMaterialShadingModel UMaterial::GetShadingModel(bool bIsInGameThread) const
 	}
 }
 
-bool UMaterial::IsTwoSided(bool bIsInGameThread) const
+bool UMaterial::IsTwoSided() const
 {
 	return TwoSided != 0;
 }
 
-bool UMaterial::IsDitheredLODTransition(bool bIsInGameThread) const
+bool UMaterial::IsDitheredLODTransition() const
 {
 	return DitheredLODTransition != 0;
 }
 
 
-bool UMaterial::IsMasked(bool bIsInGameThread) const
+bool UMaterial::IsMasked() const
 {
 	return GetBlendMode() == BLEND_Masked;
 }
@@ -4154,7 +4257,7 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		Active = ShadingModel != MSM_Unlit && (!bIsTranslucentBlendMode || !bIsVolumetricTranslucencyLightingMode);
 		break;
 	case MP_Normal:
-		Active = (ShadingModel != (MSM_Unlit && (!bIsTranslucentBlendMode || !bIsNonDirectionalTranslucencyLightingMode))) || Refraction.IsConnected();
+		Active = (ShadingModel != MSM_Unlit && (!bIsTranslucentBlendMode || !bIsNonDirectionalTranslucencyLightingMode)) || Refraction.IsConnected();
 		break;
 	case MP_SubsurfaceColor:
 		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_TwoSidedFoliage || ShadingModel == MSM_Cloth;

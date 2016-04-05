@@ -129,6 +129,7 @@ void FAnimInstanceProxy::InitializeRootNode()
 					// consequence of our class being recompiled and functions will be invalid in that
 					// case.
 					AnimNode->EvaluateGraphExposedInputs.bInitialized = false;
+					AnimNode->EvaluateGraphExposedInputs.Initialize(AnimNode, AnimInstanceObject);
 
 					if (AnimNode->HasPreUpdate())
 					{
@@ -161,6 +162,9 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 	CurrentDeltaSeconds = DeltaSeconds;
 	RootMotionMode = InAnimInstance->RootMotionMode;
 	bShouldExtractRootMotion = InAnimInstance->ShouldExtractRootMotion();
+
+	// Save off LOD level that we're currently using.
+	LODLevel = InAnimInstance->GetSkelMeshComponent()->PredictedLODLevel;
 
 	NotifyQueue.Reset(InAnimInstance->GetSkelMeshComponent());
 
@@ -677,40 +681,15 @@ void FAnimInstanceProxy::EvaluateAnimation(FPoseContext& Output)
 	}
 }
 
-void FAnimInstanceProxy::UpdateMorphTargetCurves(const TMap<FName, float>& InMorphTargetCurves)
+void FAnimInstanceProxy::UpdateCurvesToComponents(USkeletalMeshComponent* Component)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_AnimInstanceProxy_UpdateMorphTargetCurves);
-
-	// now all tick/trigger/kismet is done
-	// add MorphTarget Curves from Kismet driven or any other source
-	// and overwrite if it exists
-	// Tick always should maintain this list, not Evaluate
-	for( auto Iter = InMorphTargetCurves.CreateConstIterator(); Iter; ++Iter )
+	if (Component)
 	{
-		float *CurveValPtr = MorphTargetCurves.Find(Iter.Key());
-		if ( CurveValPtr )
-		{
-			// override the value if Kismet request was made
-			*CurveValPtr = Iter.Value();
-		}
-		else
-		{
-			MorphTargetCurves.Add(Iter.Key(), Iter.Value());
-		}
+		Component->ApplyAnimationCurvesToComponent(&MaterialParameterCurves, &MorphTargetCurves);
 	}
-}
-
-void FAnimInstanceProxy::UpdateComponentsMaterialParameters(UPrimitiveComponent* Component)
-{
-	if(MaterialParameterCurves.Num() > 0)
+	else
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_FAnimInstanceProxy_UpdateComponentsMaterialParameters);
-		for(auto Iter = MaterialParameterCurves.CreateConstIterator(); Iter; ++Iter)
-		{
-			FName ParameterName = Iter.Key();
-			float ParameterValue = Iter.Value();
-			SkeletalMeshComponent->SetScalarParameterValueOnMaterials(ParameterName, ParameterValue);
-		}
+		SkeletalMeshComponent->ApplyAnimationCurvesToComponent(&MaterialParameterCurves, &MorphTargetCurves);
 	}
 }
 

@@ -15,7 +15,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		static public void DeleteJunk()
 		{
-			var JunkStartTime = DateTime.UtcNow;
+			DateTime JunkStartTime = DateTime.UtcNow;
 
 			if (UnrealBuildTool.IsEngineInstalled() == false)
 			{
@@ -25,7 +25,7 @@ namespace UnrealBuildTool
 
 			if (BuildConfiguration.bPrintPerformanceInfo)
 			{
-				var JunkTime = (DateTime.UtcNow - JunkStartTime).TotalSeconds;
+				double JunkTime = (DateTime.UtcNow - JunkStartTime).TotalSeconds;
 				Log.TraceInformation("DeleteJunk took " + JunkTime + "s");
 			}
 		}

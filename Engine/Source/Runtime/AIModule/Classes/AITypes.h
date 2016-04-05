@@ -474,7 +474,7 @@ struct AIMODULE_API FAIMoveRequest
 	FAIMoveRequest& SetUserData(FCustomMoveSharedPtr Data) { UserData = Data; return *this; }
 
 	/** the request should be either set up to move to a location, of go to a valid actor */
-	bool IsValid() const { return bMoveToActor == false || GoalActor != nullptr; }
+	bool IsValid() const { return bInitialized && (!bMoveToActor || GoalActor); }
 
 	bool IsMoveToActorRequest() const { return bMoveToActor; }
 	AActor* GetGoalActor() const { return bMoveToActor ? GoalActor : nullptr; }

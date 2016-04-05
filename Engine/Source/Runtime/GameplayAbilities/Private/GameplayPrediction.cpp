@@ -169,8 +169,10 @@ void FPredictionKeyDelegates::NewRejectOrCaughtUpDelegate(FPredictionKey::KeyTyp
 void FPredictionKeyDelegates::BroadcastRejectedDelegate(FPredictionKey::KeyType Key)
 {
 	// Intentionally making a copy of the delegate list since it may change when firing one of the delegates
-	TArray<FPredictionKeyEvent> DelegateList = Get().DelegateMap.FindOrAdd(Key).RejectedDelegates;
-	for (auto Delegate : DelegateList)
+	static TArray<FPredictionKeyEvent> DelegateList;
+	DelegateList.Reset();
+	DelegateList = Get().DelegateMap.FindOrAdd(Key).RejectedDelegates;
+	for (auto& Delegate : DelegateList)
 	{
 		Delegate.ExecuteIfBound();
 	}
@@ -179,8 +181,10 @@ void FPredictionKeyDelegates::BroadcastRejectedDelegate(FPredictionKey::KeyType 
 void FPredictionKeyDelegates::BroadcastCaughtUpDelegate(FPredictionKey::KeyType Key)
 {
 	// Intentionally making a copy of the delegate list since it may change when firing one of the delegates
-	TArray<FPredictionKeyEvent> DelegateList = Get().DelegateMap.FindOrAdd(Key).CaughtUpDelegates;
-	for (auto Delegate : DelegateList)
+	static TArray<FPredictionKeyEvent> DelegateList;
+	DelegateList.Reset();
+	DelegateList = Get().DelegateMap.FindOrAdd(Key).CaughtUpDelegates;
+	for (auto& Delegate : DelegateList)
 	{
 		Delegate.ExecuteIfBound();
 	}
@@ -191,7 +195,7 @@ void FPredictionKeyDelegates::Reject(FPredictionKey::KeyType Key)
 	FDelegates* DelPtr = Get().DelegateMap.Find(Key);
 	if (DelPtr)
 	{
-		for (auto Delegate : DelPtr->RejectedDelegates)
+		for (auto& Delegate : DelPtr->RejectedDelegates)
 		{
 			Delegate.ExecuteIfBound();
 		}
@@ -206,7 +210,7 @@ void FPredictionKeyDelegates::CatchUpTo(FPredictionKey::KeyType Key)
 	{
 		if (MapIt.Key() <= Key)
 		{		
-			for (auto Delegate : MapIt.Value().CaughtUpDelegates)
+			for (auto& Delegate : MapIt.Value().CaughtUpDelegates)
 			{
 				Delegate.ExecuteIfBound();
 			}
@@ -221,7 +225,7 @@ void FPredictionKeyDelegates::CaughtUp(FPredictionKey::KeyType Key)
 	FDelegates* DelPtr = Get().DelegateMap.Find(Key);
 	if (DelPtr)
 	{
-		for (auto Delegate : DelPtr->CaughtUpDelegates)
+		for (auto& Delegate : DelPtr->CaughtUpDelegates)
 		{
 			Delegate.ExecuteIfBound();
 		}
@@ -237,7 +241,7 @@ void FPredictionKeyDelegates::AddDependency(FPredictionKey::KeyType ThisKey, FPr
 
 // -------------------------------------
 
-FScopedPredictionWindow::FScopedPredictionWindow(UAbilitySystemComponent* AbilitySystemComponent, FPredictionKey InPredictionKey)
+FScopedPredictionWindow::FScopedPredictionWindow(UAbilitySystemComponent* AbilitySystemComponent, FPredictionKey InPredictionKey, bool InSetReplicatedPredictionKey /*=true*/)
 {
 	if (!ensure(AbilitySystemComponent != NULL))
 	{
@@ -251,9 +255,10 @@ FScopedPredictionWindow::FScopedPredictionWindow(UAbilitySystemComponent* Abilit
 	{
 		Owner = AbilitySystemComponent;
 		check(Owner.IsValid());
+		RestoreKey = Owner->ScopedPredictionKey;
 		Owner->ScopedPredictionKey = InPredictionKey;
 		ClearScopedPredictionKey = true;
-		SetReplicatedPredictionKey = true;
+		SetReplicatedPredictionKey = InSetReplicatedPredictionKey;
 	}
 }
 

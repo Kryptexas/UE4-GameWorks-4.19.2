@@ -11,6 +11,9 @@ extern CORE_API bool GAlwaysReportCrash;
 /** Whether to use ClientReportClient rather than AutoReporter. */
 extern CORE_API bool GUseCrashReportClient;
 
+/** Whether we should ignore the attached debugger. */
+extern CORE_API bool GIgnoreDebugger;
+
 extern CORE_API TCHAR MiniDumpFilenameW[1024];
 
 // #CrashReport: 2014-09-11 Move to PlatformExceptionHandling
@@ -29,3 +32,10 @@ extern CORE_API void NewReportEnsure( const TCHAR* ErrorMessage );
 #elif PLATFORM_LINUX
 extern CORE_API void NewReportEnsure( const TCHAR* ErrorMessage );
 #endif
+/** Placeholder functions for checking image integrity. May or may not be used. DO NOT DELETE! */
+extern CORE_API void CheckImageIntegrity();
+extern CORE_API void CheckImageIntegrityAtRuntime();
+
+/** In debug builds we can crash on demand so we want to let the crash reporting system know about it */
+extern CORE_API void SetImageIntegrtiryStatus(int32 Status);
+extern CORE_API int32 GetImageIntegrityStatus();

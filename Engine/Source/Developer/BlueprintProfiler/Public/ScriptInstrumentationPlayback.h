@@ -35,11 +35,11 @@ public:
 	/** Remaps PIE actor instance paths to editor actor instances */
 	BLUEPRINTPROFILER_API FName RemapInstancePath(const FName InstanceName) const ;
 
-	/** Returns the function context matching the supplied name providing it exists */
-	TSharedPtr<class FBlueprintFunctionContext> FindFunctionContext(const FName FunctionNameIn) const;
+	/** Returns the function name containing the event */
+	FName GetEventFunctionName(const FName EventName) const;
 
-	/** Returns the function context matching the supplied name, creates a new one if neccesary */
-	TSharedPtr<FBlueprintFunctionContext> GetOrCreateFunctionContext(const FName FunctionNameIn);
+	/** Returns the function context matching the supplied name providing it exists */
+	TSharedPtr<class FBlueprintFunctionContext> GetFunctionContext(const FName FunctionNameIn) const;
 
 	/** Returns if this context has an execution node for the specified graph node */
 	BLUEPRINTPROFILER_API bool HasProfilerDataForNode(const UEdGraphNode* GraphNode) const;
@@ -52,11 +52,17 @@ public:
 
 private:
 
+	/** Creates and returns a new function context, returns existing if present  */
+	TSharedPtr<FBlueprintFunctionContext> CreateFunctionContext(const FName FunctionNameIn);
+
 	/** Walks the blueprint and maps events and functions ready for profiling data */
 	bool MapBlueprintExecution();
 
+	/** Locates and generates event contexts for any input events passed in */
+	void CreateInputEvents(const TArray<UK2Node*>& InputEventNodes);
+
 	/** Maps each blueprint node following execution wires */
-	TSharedPtr<FScriptExecutionNode> MapNodeExecution(UEdGraphNode* NodeToMap);
+	TSharedPtr<FScriptExecutionNode> MapNodeExecution(TSharedPtr<FBlueprintFunctionContext> FunctionContext, UEdGraphNode* NodeToMap);
 
 private:
 
@@ -96,14 +102,30 @@ public:
 	/** Returns the graph node at the specified script offset */
 	const UEdGraphNode* GetNodeFromCodeLocation(const int32 ScriptOffset);
 
+	/** Returns the pin at the specified script offset */
+	const UEdGraphPin* GetPinFromCodeLocation(const int32 ScriptOffset);
+
 	/** Returns the script offset for the specified pin */
 	const int32 GetCodeLocationFromPin(const UEdGraphPin* Pin) const;
+
+	/** Returns all registered script offsets for the specified pin */
+	void GetAllCodeLocationsFromPin(const UEdGraphPin* Pin, TArray<int32>& OutCodeLocations) const;
+
+	/** Returns the pure node script code range for the specified node */
+	FInt32Range GetPureNodeScriptCodeRange(const UEdGraphNode* Node) const;
 
 	/** Returns true if this function context contains an execution node matching the node name */
 	bool HasProfilerDataForNode(const FName NodeName) const;
 
 	/** Returns the execution node representing the node name */
 	TSharedPtr<FScriptExecutionNode> GetProfilerDataForNode(const FName NodeName);
+
+protected:
+
+	friend FBlueprintExecutionContext;
+
+	/** Utility to create execution node */
+	TSharedPtr<FScriptExecutionNode> CreateExecutionNode(FScriptExecNodeParams& InitParams);
 
 private:
 
@@ -113,6 +135,8 @@ private:
 	TWeakObjectPtr<UBlueprintGeneratedClass> BlueprintClass;
 	/** ScriptCode offset to node cache */
 	TMap<int32, TWeakObjectPtr<const UEdGraphNode>> ScriptOffsetToNodes;
+	/** ScriptCode offset to pin cache */
+	TMap<int32, TWeakObjectPtr<const UEdGraphPin>> ScriptOffsetToPins;
 	/** Execution nodes containing profiling data */
 	TMap<FName, TSharedPtr<FScriptExecutionNode>> ExecutionNodes;
 };
@@ -120,14 +144,33 @@ private:
 //////////////////////////////////////////////////////////////////////////
 // FScriptEventPlayback
 
-class FScriptEventPlayback
+namespace EEventProcessingResult
+{
+	enum Type
+	{
+		None = 0,
+		Failed,
+		Success,
+		Suspended
+	};
+};
+
+class FScriptEventPlayback : public TSharedFromThis<FScriptEventPlayback>
 {
 public:
 
-	FScriptEventPlayback(TSharedPtr<FBlueprintExecutionContext> BlueprintContextIn)
-		: BlueprintContext(BlueprintContextIn)
+	FScriptEventPlayback(TSharedPtr<FBlueprintExecutionContext> BlueprintContextIn, const FName InstanceNameIn)
+		: InstanceName(InstanceNameIn)
+		, ProcessingState(EEventProcessingResult::None)
+		, BlueprintContext(BlueprintContextIn)
 	{
 	}
+
+	/** Returns the current processing state */
+	EEventProcessingResult::Type GetProcessingState() const { return ProcessingState; }
+
+	/** Returns if current processing state is suspended */
+	bool IsSuspended() const { return ProcessingState == EEventProcessingResult::Suspended; }
 
 	/** Processes the event and cleans up any errant signals */
 	bool Process(const TArray<class FScriptInstrumentedEvent>& Events, const int32 Start, const int32 Stop);
@@ -141,6 +184,14 @@ private:
 	FName InstanceName;
 	/** Event name */
 	FName EventName;
+	/** Processing state */
+	EEventProcessingResult::Type ProcessingState;
+	/** Current tracepath state */
+	FTracePath TracePath;
+	/** Current tracepath stack */
+	TArray<FTracePath> TraceStack;
+	/** Event Timings */
+	TMultiMap<FName, double> EventTimings;
 	/** Blueprint exec context */
 	TSharedPtr<FBlueprintExecutionContext> BlueprintContext;
 

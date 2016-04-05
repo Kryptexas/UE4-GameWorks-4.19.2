@@ -78,16 +78,13 @@ private:
 	{
 		check(!AllocatedSize);
 
-		if(CPUData.Num())
-		{
-			const int32 BufferStride = sizeof(uint32);
-			const int32 BufferSize = MaxSize * BufferStride;
-			uint32 Flags = BUF_Volatile | /*BUF_KeepCPUAccessible | */BUF_ShaderResource;
-			FRHIResourceCreateInfo CreateInfo;
-			VertexBufferRHI = RHICreateVertexBuffer(BufferSize, Flags, CreateInfo);
-			VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, BufferStride, PF_R32_UINT);
-			AllocatedSize = CPUData.Num();
-		}
+		const int32 BufferStride = sizeof(uint32);
+		const int32 BufferSize = MaxSize * BufferStride;
+		uint32 Flags = BUF_Volatile | /*BUF_KeepCPUAccessible | */BUF_ShaderResource;
+		FRHIResourceCreateInfo CreateInfo;
+		VertexBufferRHI = RHICreateVertexBuffer(BufferSize, Flags, CreateInfo);
+		VertexBufferSRV = RHICreateShaderResourceView(VertexBufferRHI, BufferStride, PF_R32_UINT);
+		AllocatedSize = CPUData.Num();
 	}
 };
 

@@ -118,6 +118,10 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|TextRender")
 	void SetHorizontalAlignment(EHorizTextAligment Value);
 
+	/** Change the vertical alignment and signal the primitives to be rebuilt */
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|TextRender")
+	void SetVerticalAlignment(EVerticalTextAligment Value);
+
 	/** Change the text render color and signal the primitives to be rebuilt */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|TextRender")
 	void SetTextRenderColor(FColor Value);

@@ -388,6 +388,11 @@ float UKismetMathLibrary::GetPI()
 	return PI;
 }
 
+float UKismetMathLibrary::GetTAU()
+{
+	return 2.f * PI;
+}
+
 float UKismetMathLibrary::DegreesToRadians(float A)
 {
 	return FMath::DegreesToRadians(A);
@@ -937,6 +942,12 @@ FVector UKismetMathLibrary::ProjectVectorOnToVector(FVector V, FVector Target)
 	}
 }
 
+
+void UKismetMathLibrary::FindNearestPointsOnLineSegments(FVector Segment1Start, FVector Segment1End, FVector Segment2Start, FVector Segment2End, FVector& Segment1Point, FVector& Segment2Point)
+{
+	FMath::SegmentDistToSegmentSafe(Segment1Start, Segment1End, Segment2Start, Segment2End, Segment1Point, Segment2Point);
+}
+
 FVector UKismetMathLibrary::ProjectPointOnToPlane(FVector Point, FVector PlaneBase, FVector PlaneNormal)
 {
 	return FVector::PointPlaneProject(Point, PlaneBase, PlaneNormal);
@@ -1299,7 +1310,13 @@ bool UKismetMathLibrary::ClassIsChildOf(TSubclassOf<class UObject> TestClass, TS
 	return ((*ParentClass != NULL) && (*TestClass != NULL)) ? (*TestClass)->IsChildOf(*ParentClass) : false;
 }
 
-
+/* Plane functions
+ *****************************************************************************/
+FPlane UKismetMathLibrary::MakePlaneFromPointAndNormal(FVector Point, FVector Normal)
+{ 
+	return FPlane(Point, Normal.GetSafeNormal());
+}
+ 
 /* DateTime functions
  *****************************************************************************/
 FDateTime UKismetMathLibrary::MakeDateTime(int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond)

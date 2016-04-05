@@ -316,7 +316,8 @@ UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer
 
 UNavigationSystem::~UNavigationSystem()
 {
-	CleanUp();
+	CleanUp(ECleanupMode::CleanupUnsafe);
+
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
@@ -704,21 +705,6 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystemRunMode Mode)
 					{
 						NavData->OnStreamingLevelAdded(Level, World);
 					}
-				}
-			}
-		}
-
-		if (!World->IsGameWorld() && World->GetLevels().Num() > 1)
-		{
-			// this is a bit of a @hack for the time being until we reorganize navigation data instances (4.9?)
-			// the point of this hack is to force editor-time navmesh rebuilding if we have any sublevels
-			// since currently there's no information regarding whether we already have all navigation built 
-			// for all the actors in sublevels
-			for (ANavigationData* NavData : NavDataSet)
-			{
-				if (NavData)
-				{
-					NavData->MarkAsNeedingUpdate();
 				}
 			}
 		}
@@ -2499,7 +2485,7 @@ void UNavigationSystem::UpdateComponentInNavOctree(UActorComponent& Comp)
 		if (NavElement)
 		{
 			AActor* OwnerActor = Comp.GetOwner();
-			if (ensure(OwnerActor))
+			if (OwnerActor)
 			{
 				UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerActor->GetWorld());
 				if (NavSys)
@@ -2559,22 +2545,7 @@ void UNavigationSystem::UpdateNavOctreeAfterMove(USceneComponent* Comp)
 	AActor* OwnerActor = Comp->GetOwner();
 	if (OwnerActor && OwnerActor->GetRootComponent() == Comp)
 	{
-		UpdateActorInNavOctree(*OwnerActor);
-
-		TInlineComponentArray<UActorComponent*> Components;
-		OwnerActor->GetComponents(Components);
-
-		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-		{
-			UActorComponent* const Component = Components[ComponentIndex];
-			// updating only INavRelevantInterfaces here on purpose, all the rest will get updated automatically
-			if (Component && Cast<INavRelevantInterface>(Component))
-			{
-				UpdateComponentInNavOctree(*Component);
-			}
-		}
-
-		UpdateAttachedActorsInNavOctree(*OwnerActor);
+		UpdateActorAndComponentsInNavOctree(*OwnerActor, true);
 	}
 }
 
@@ -3208,6 +3179,13 @@ ANavigationData* UNavigationSystem::CreateNavigationDataInstance(const FNavDataC
 			UObject* ExistingObject = StaticFindObject(/*Class=*/ NULL, Instance->GetOuter(), *StrName, true);
 			if (ExistingObject != NULL)
 			{
+				ANavigationData* ExistingNavigationData = Cast<ANavigationData>(ExistingObject);
+				if (ExistingNavigationData)
+				{
+					UnregisterNavData(ExistingNavigationData);
+					AgentToNavDataMap.Remove(ExistingNavigationData->GetConfig());
+				}
+
 				ExistingObject->Rename(NULL, NULL, REN_DontCreateRedirectors | REN_ForceGlobalUnique | REN_DoNotDirty | REN_NonTransactional);
 			}
 

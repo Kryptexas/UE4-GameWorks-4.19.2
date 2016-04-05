@@ -27,6 +27,7 @@ public class CrashReportClient : ModuleRules
 				"XmlParser",
 				"Analytics",
 				"AnalyticsET",
+				"DesktopPlatform",
 				"QoSReporter",
 			}
 			);

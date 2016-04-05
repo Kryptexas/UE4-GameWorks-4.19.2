@@ -8,7 +8,7 @@ UCurveEditorSettings::UCurveEditorSettings( const FObjectInitializer& ObjectInit
 {
 	bAutoFrameCurveEditor = true;
 	bShowCurveEditorCurveToolTips = true;
-	CurveVisibility = ECurveEditorCurveVisibility::AllCurves;
+	CurveVisibility = ECurveEditorCurveVisibility::SelectedCurves;
 	TangentVisibility = ECurveEditorTangentVisibility::SelectedKeys;
 }
 

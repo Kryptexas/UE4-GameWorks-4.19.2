@@ -76,6 +76,8 @@ public class Engine : ModuleRules
 				"SynthBenchmark",
                 "AIModule",
 				"DatabaseSupport",
+                		"PacketHandler",
+				"HardwareSurvey",
 			}
 		);
 
@@ -100,7 +102,6 @@ public class Engine : ModuleRules
 				"Projects",
 				"Niagara",
                 "Internationalization",
-                "PacketHandler",
                 "MaterialShaderQualitySettings",
 			}
         );
@@ -120,7 +121,7 @@ public class Engine : ModuleRules
 			}
 		}
 
-        if (bVariadicTemplatesSupported)
+		if (bVariadicTemplatesSupported)
         {
             PrivateIncludePathModuleNames.AddRange(
                 new string[] {
@@ -132,15 +133,15 @@ public class Engine : ModuleRules
 
             if (Target.Type == TargetRules.TargetType.Editor)
             {
-                // these modules require variadic templates
-                PrivateDependencyModuleNames.AddRange(
-                    new string[] {
-                        "MessagingRpc",
-                        "PortalRpc",
-                        "PortalServices",
-                    }
-                );
-            }
+            // these modules require variadic templates
+            PrivateDependencyModuleNames.AddRange(
+                new string[] {
+                    "MessagingRpc",
+                    "PortalRpc",
+                    "PortalServices",
+                }
+            );
+        }
         }
 
         CircularlyReferencedDependentModules.Add("AIModule");
@@ -390,6 +391,12 @@ public class Engine : ModuleRules
 			// that import this also have this definition set appropriately.  Recast is a private dependency
 			// module, so it's definitions won't propagate to modules that import Engine.
 			Definitions.Add("WITH_RECAST=0");
+		}
+
+		// Add a reference to the stats HTML files referenced by UEngine::DumpFPSChartToHTML. Previously staged by CopyBuildToStagingDirectory.
+		if(UEBuildConfiguration.bBuildEditor || Target.Configuration != UnrealTargetConfiguration.Shipping)
+		{
+			RuntimeDependencies.Add("$(EngineDir)/Content/Stats/...", StagedFileType.UFS);
 		}
 	}
 }

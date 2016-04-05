@@ -3,7 +3,7 @@
 #pragma once
 
 class FHittestGrid;
-
+class ISlateViewport;
 
 /** Notification that a window has been activated */
 DECLARE_DELEGATE( FOnWindowActivated );
@@ -103,8 +103,10 @@ public:
 		, _SupportsTransparency( EWindowTransparency::None )
 		, _InitialOpacity( 1.0f )
 		, _IsInitiallyMaximized( false )
+		, _IsInitiallyMinimized(false)
 		, _SizingRule( ESizingRule::UserSized )
 		, _IsPopupWindow( false )
+		, _IsTopmostWindow( false )
 		, _FocusWhenFirstShown( true )
 		, _ActivateWhenFirstShown( true )
 		, _UseOSWindowBorder( false )
@@ -148,11 +150,17 @@ public:
 		/** Is the window initially maximized */
 		SLATE_ARGUMENT( bool, IsInitiallyMaximized )
 		
+		/** Is the window initially minimized */
+		SLATE_ARGUMENT(bool, IsInitiallyMinimized)
+
 		/** How the window should be sized */
 		SLATE_ARGUMENT( ESizingRule::Type, SizingRule )
 
 		/** True if this should be a 'pop-up' window */
 		SLATE_ARGUMENT( bool, IsPopupWindow )
+
+		/** True if this window should always be on top of all other windows */
+		SLATE_ARGUMENT(bool, IsTopmostWindow)
 
 		/** Should this window be focused immediately after it is shown? */
 		SLATE_ARGUMENT( bool, FocusWhenFirstShown )
@@ -522,6 +530,9 @@ public:
 	/** Maximize the window if bInitiallyMaximized is set */
 	void InitialMaximize();
 
+	/** Maximize the window if bInitiallyMinimized is set */
+	void InitialMinimize();
+
 	/**
 	 * Sets the opacity of this window
 	 *
@@ -739,6 +750,16 @@ public:
 		ViewportSize = VP;
 	}
 
+	void SetViewport(TSharedRef<ISlateViewport> ViewportRef)
+	{
+		Viewport = ViewportRef;
+	}
+
+	TSharedPtr<ISlateViewport> GetViewport()
+	{
+		return Viewport.Pin();
+	}
+
 	/**
 	 * Access the hittest acceleration data structure for this window.
 	 * The grid is filled out every time the window is painted.
@@ -816,6 +837,9 @@ protected:
 	/** true if this window is maximized when its created */
 	bool bInitiallyMaximized : 1;
 
+	/** true if this window is minimized when its created */
+	bool bInitiallyMinimized : 1;
+
 	/** True if this window has been shown yet */
 	bool bHasEverBeenShown : 1;
 
@@ -863,6 +887,9 @@ protected:
 
 	/** Size of the viewport. If (0,0) then it is equal to Size */
 	FVector2D ViewportSize;
+
+	/** Pointer to the viewport registered with this window if any */
+	TWeakPtr<ISlateViewport> Viewport;
 
 	/** Size of this window's title bar.  Can be zero.  Set at construction and should not be changed afterwards. */
 	float TitleBarSize;

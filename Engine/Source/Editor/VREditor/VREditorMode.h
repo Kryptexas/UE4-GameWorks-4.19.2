@@ -6,7 +6,7 @@
 #include "IVREditorModule.h"
 #include "VirtualHand.h"
 #include "HeadMountedDisplayTypes.h"	// For EHMDDeviceType::Type
-#include "IHeadMountedDisplay.h"	// For IHeadMountedDisplay::ETrackingOrigin
+#include "Kismet/HeadMountedDisplayFunctionLibrary.h"	// For EHMDTrackingOrigin::Type
 #include "VREditorInputProcessor.h"
 
 // Forward declare the GizmoHandleTypes that is defined in VREditorTransformGizmo
@@ -375,7 +375,7 @@ protected:
 		bool bRealTime;
 		float DragTriggerDistance;
 		bool bOnScreenMessages;
-		IHeadMountedDisplay::ETrackingOrigin TrackingOrigin;
+		EHMDTrackingOrigin::Type TrackingOrigin;
 
 		FSavedEditorState()
 			: ViewportType( LVT_Perspective ),
@@ -389,7 +389,7 @@ protected:
 			  bRealTime( false ),
 			  DragTriggerDistance( 0.0f ),
 			  bOnScreenMessages( false ),
-			  TrackingOrigin( IHeadMountedDisplay::Eye )
+			  TrackingOrigin( EHMDTrackingOrigin::Eye )
 		{
 		}
 		

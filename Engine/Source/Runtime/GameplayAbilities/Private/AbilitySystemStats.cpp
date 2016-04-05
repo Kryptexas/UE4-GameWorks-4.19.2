@@ -9,6 +9,7 @@ DEFINE_STAT(STAT_GameplayEffectsTick);
 DEFINE_STAT(STAT_GameplayEffectsCanApplyAttributeModifiers);
 DEFINE_STAT(STAT_GameplayEffectsGetActiveEffectsTimeRemaining);
 DEFINE_STAT(STAT_GameplayEffectsGetActiveEffectsDuration);
+DEFINE_STAT(STAT_GameplayEffectsGetActiveEffectsTimeRemainingAndDuration);
 DEFINE_STAT(STAT_GameplayEffectsGetActiveEffects);
 DEFINE_STAT(STAT_GameplayEffectsGetAllActiveEffectHandles);
 DEFINE_STAT(STAT_GameplayEffectsModifyActiveEffectStartTime);

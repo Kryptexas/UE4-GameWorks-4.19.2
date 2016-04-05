@@ -571,3 +571,5 @@ public:
 };
 
 extern TGlobalResource<FDistanceFieldObjectBufferResource> GAOCulledObjectBuffers;
+
+extern bool SupportsDistanceFieldAO(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatform ShaderPlatform);

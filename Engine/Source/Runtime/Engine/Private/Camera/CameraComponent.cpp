@@ -139,6 +139,16 @@ void UCameraComponent::PostLoad()
 		 }
 	 }
  }
+
+void UCameraComponent::ResetProxyMeshTransform()
+{
+	if (ProxyMeshComponent != nullptr)
+	{
+		ProxyMeshComponent->ResetRelativeTransform();
+	}
+}
+
+
 void UCameraComponent::RefreshVisualRepresentation()
 {
 	if (DrawFrustum != nullptr)
@@ -159,10 +169,8 @@ void UCameraComponent::RefreshVisualRepresentation()
 		DrawFrustum->FrustumAspectRatio = AspectRatio;
 		DrawFrustum->MarkRenderStateDirty();
 	}
-	if (ProxyMeshComponent != nullptr)
-	{
-		ProxyMeshComponent->ResetRelativeTransform();
-	}
+
+	ResetProxyMeshTransform();
 }
 
 void UCameraComponent::OverrideFrustumColor(FColor OverrideColor)
@@ -235,10 +243,34 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 		}
 	}
 
-	DesiredView.Location = GetComponentLocation();
-	DesiredView.Rotation = GetComponentRotation();
+	if (bUseAdditiveOffset)
+	{
+		FTransform OffsetCamToBaseCam = AdditiveOffset;
+		FTransform BaseCamToWorld = GetComponentToWorld();
+		FTransform OffsetCamToWorld = OffsetCamToBaseCam * BaseCamToWorld;
 
-	DesiredView.FOV = FieldOfView;
+		DesiredView.Location = OffsetCamToWorld.GetLocation();
+		DesiredView.Rotation = OffsetCamToWorld.Rotator();
+
+#if WITH_EDITORONLY_DATA
+		if (ProxyMeshComponent)
+		{
+			ResetProxyMeshTransform();
+
+			FTransform LocalTransform = ProxyMeshComponent->GetRelativeTransform();
+			FTransform WorldTransform = LocalTransform * OffsetCamToWorld;
+
+			ProxyMeshComponent->SetWorldTransform(WorldTransform);
+		}
+#endif
+	}
+	else
+	{
+		DesiredView.Location = GetComponentLocation();
+		DesiredView.Rotation = GetComponentRotation();
+	}
+
+	DesiredView.FOV = bUseAdditiveOffset ? (FieldOfView + AdditiveFOVOffset) : FieldOfView;
 	DesiredView.AspectRatio = AspectRatio;
 	DesiredView.bConstrainAspectRatio = bConstrainAspectRatio;
 	DesiredView.bUseFieldOfViewForLOD = bUseFieldOfViewForLOD;
@@ -255,10 +287,7 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 	}
 
 #if WITH_EDITOR
-	if (ProxyMeshComponent != nullptr)
-	{
-		ProxyMeshComponent->ResetRelativeTransform();
-	}
+	ResetProxyMeshTransform();
 #endif //WITH_EDITOR
 }
 
@@ -284,6 +313,18 @@ void SetDeprecatedControllerViewRotation(UCameraComponent& Component, bool bValu
 	Component.bUseControllerViewRotation = bValue;
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
+
+void UCameraComponent::NotifyCameraCut()
+{
+	// if we are owned by a camera actor, notify it too
+	// note: many camera components are not part of camera actors, so notification should begin at the
+	// component level.
+	ACameraActor* const OwningCamera = Cast<ACameraActor>(GetOwner());
+	if (OwningCamera)
+	{
+		OwningCamera->NotifyCameraCut();
+	}
+};
 
 
 #undef LOCTEXT_NAMESPACE

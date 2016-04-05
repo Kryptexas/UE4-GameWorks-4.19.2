@@ -109,8 +109,7 @@ private:
 	FString GetSavedRegionId() const;
 	void SaveSelectedRegionId();
 
-	// The threshold that a region ping must be below to consider as a valid option
-	int32 MaximumPingMs;
+	int32 GetMaxPingMs() const;
 
 	// The best region ping we found, even if we failed all tests
 	int32 BestRegionPingMs;

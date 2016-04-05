@@ -220,6 +220,14 @@ bool FText::IsLetter( const TCHAR Char )
 	return Uniscode.contains(Char) != 0;
 }
 
+bool FUnicodeChar::CodepointToString(const uint32 InCodepoint, FString& OutString)
+{
+	icu::UnicodeString CodepointString;
+	CodepointString.setTo((UChar32)InCodepoint);
+	ICUUtilities::ConvertString(CodepointString, OutString);
+	return true;
+}
+
 namespace TextBiDi
 {
 

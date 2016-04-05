@@ -316,13 +316,20 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/** Returns true if we should import tags from UGameplayTagsSettings objects (configured by INI files) */
 	static bool ShouldImportTagsFromINI();
 
+	/** TEMP - Returns true if we should warn on invalid (missing) tags */
+	static bool ShouldWarnOnInvalidTags();
+
 	/** Should use fast replication */
 	bool ShouldUseFastReplication()
 	{
 		return bUseFastReplication;
 	}
 
-	void RedirectTagsForContainer(FGameplayTagContainer& Container, TSet<FName>& DeprecatedTagNamesNotFoundInTagMap);
+	/** Handles redirectors for an entire container, will also error on invalid tags */
+	void RedirectTagsForContainer(FGameplayTagContainer& Container, TSet<FName>& DeprecatedTagNamesNotFoundInTagMap, UProperty* SerializingProperty);
+
+	/** Handles redirectors for a single tag, will also error on invalid tag. This is only called for when individual tags are serialized on their own */
+	void RedirectSingleGameplayTag(FGameplayTag& Tag, UProperty* SerializingProperty);
 
 	/** Gets a tag name from net index and vice versa, used for replication efficiency */
 	FName GetTagNameFromNetIndex(FGameplayTagNetIndex Index);

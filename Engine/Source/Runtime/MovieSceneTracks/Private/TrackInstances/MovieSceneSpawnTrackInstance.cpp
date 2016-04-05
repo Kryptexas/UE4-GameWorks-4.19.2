@@ -13,18 +13,32 @@ FMovieSceneSpawnTrackInstance::FMovieSceneSpawnTrackInstance(UMovieSceneSpawnTra
 	Track = &InTrack;
 }
 
-void FMovieSceneSpawnTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneSpawnTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	IMovieSceneSpawnRegister& SpawnRegister = Player.GetSpawnRegister();
 	FMovieSceneSpawnable* Spawnable = SequenceInstance.GetSequence()->GetMovieScene()->FindSpawnable(Track->GetObjectId());
 
 	TRange<float> Range = SequenceInstance.GetTimeRange();
 
+	const bool bIsPreview = Player.IsPreview();
+
 	// If we're evaluating outside of the instance's time range, and the sequence owns the spawnable, there's no reason to evaluate - it should already be destroyed
-	if (Spawnable && Spawnable->GetSpawnOwnership() == ESpawnOwnership::InnerSequence && !Range.Contains(UpdateData.Position) && !Range.Contains(UpdateData.LastPosition))
+	if (Spawnable && Spawnable->GetSpawnOwnership() == ESpawnOwnership::InnerSequence && !Range.Contains(UpdateData.Position))
 	{
-		SpawnRegister.DestroySpawnedObject(Track->GetObjectId(), SequenceInstance, Player);
-		return;
+		bool bDestroy = true;
+#if WITH_EDITORONLY_DATA
+		bDestroy = !Spawnable->ShouldIgnoreOwnershipInEditor();
+		// Don't destroy cameras while previewing
+		if (bIsPreview && MovieSceneHelpers::CameraComponentFromActor(GetDefault<AActor>(Spawnable->GetClass())))
+		{
+			bDestroy = false;
+		}
+#endif
+		if (bDestroy)
+		{
+			SpawnRegister.DestroySpawnedObject(Track->GetObjectId(), SequenceInstance, Player);
+			return;
+		}
 	}
 
 	bool bIsSpawned = false;

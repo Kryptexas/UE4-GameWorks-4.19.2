@@ -12,9 +12,18 @@
 	#include "PS4/PS4Common.usf"
 #endif
 
+#if XBOXONE_PROFILE
+	#define STENCIL_COMPONENT_SWIZZLE .x
+#endif
+
 #if COMPILER_METAL
 	// Helps with iteration when changing Metal shader code generation backend.
 	#include "MetalCommon.usf"
+#endif
+
+#if VULKAN_PROFILE
+	// Helps with iteration when changing Vulkan shader code generation backend.
+	#include "VulkanCommon.usf"
 #endif
 
 #ifndef FORCE_FLOATS
@@ -108,7 +117,11 @@
 #elif SM4_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
 #elif VULKAN_PROFILE
-	#define FEATURE_LEVEL FEATURE_LEVEL_ES2
+	#define FEATURE_LEVEL FEATURE_LEVEL_ES3_1
+#elif VULKAN_PROFILE_SM4
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
+#elif VULKAN_PROFILE_SM5
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
 #elif GL3_PROFILE || GL4_PROFILE
 
 	#if GL3_PROFILE
@@ -134,23 +147,14 @@
 	#define STENCIL_COMPONENT_SWIZZLE .x
 #elif METAL_MRT_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
-	// @todo metal: remove this and make sure all uses handle METAL_MRT_PROFILE
-	#undef SM4_PROFILE
-	#define SM4_PROFILE 1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
 	#define STENCIL_COMPONENT_SWIZZLE .x
 #elif METAL_SM4_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
-	// @todo metal: remove this and make sure all uses handle METAL_SM4_PROFILE
-	#undef SM4_PROFILE
-	#define SM4_PROFILE 1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
 	#define STENCIL_COMPONENT_SWIZZLE .x
 #elif METAL_SM5_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
-	// @todo metal: remove this and make sure all uses handle FEATURE_LEVEL_SM5
-	#undef SM5_PROFILE
-	#define SM5_PROFILE 1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
 	#define STENCIL_COMPONENT_SWIZZLE .x
 #elif ES2_PROFILE || ES3_1_PROFILE
@@ -215,6 +219,10 @@ MaterialFloat StoreTexSample(float4 C, uint TextureReferenceIndex)
 // Ideally this would just be enabled for all SM4 and above feature level platforms
 // @todo metal mrt: No reason this can't work with Metal, once cross compiler is fixed
 #define SUPPORTS_INDEPENDENT_SAMPLERS (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE)
+
+// Whether the platform supports a global clip plane through SV_ClipDistance
+// Ideally this would just be enabled for all SM4 and above feature level platforms, but not tested everywhere yet
+#define SUPPORT_GLOBAL_CLIP_PLANE (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE)
 
 // This would need to be a #define in GLSL to ignore the SamplerState, however, it is currently a function call in HLSL
 // for type checking of the parameters - ironically the type checking is really only needed in GLSL!
@@ -352,6 +360,33 @@ MaterialFloat length2(MaterialFloat3 v)
 MaterialFloat length2(MaterialFloat4 v)
 {
 	return dot(v, v);
+}
+
+uint Mod(uint a, uint b)
+{
+#if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1
+	return a % b;
+#else
+	return a - (b * (uint)((float)a / (float)b));
+#endif
+}
+
+uint2 Mod(uint2 a, uint2 b)
+{
+#if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1
+	return a % b;
+#else
+	return a - (b * (uint2)((float2)a / (float2)b));
+#endif
+}
+
+uint3 Mod(uint3 a, uint3 b)
+{
+#if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1
+	return a % b;
+#else
+	return a - (b * (uint3)((float3)a / (float3)b));
+#endif
 }
 
 MaterialFloat UnClampedPow(MaterialFloat X, MaterialFloat Y)
@@ -1366,7 +1401,8 @@ MaterialFloat3 TransformTangentVectorToWorld(MaterialFloat3x3 TangentToWorld, Ma
 /** Transforms a vector from world space to tangent space */
 MaterialFloat3 TransformWorldVectorToTangent(MaterialFloat3x3 TangentToWorld, MaterialFloat3 InWorldVector)
 {
-	// Transform from world to tangent space
+	// Transform from world to tangent space with the transpose of TangentToWorld (achieved by swapping vector / matrix multiply order)
+	// Note that the transpose is only equal to the inverse for orthonormal matrices - aka only uniform scaling
 	return mul(TangentToWorld, InWorldVector);
 }
 

@@ -443,6 +443,7 @@ public:
 		else if ( InnerNodes.Num() == 1 )
 		{
 			Hierarchy = InnerNodes[ 0 ];
+			InnerNodes.Empty();
 		}
 		else
 		{
@@ -500,6 +501,10 @@ public:
 		if( !Path.Len() )
 		{
 			UE_LOG( LogDerivedDataCache, Log, TEXT("%s data cache path not found in *engine.ini, will not use an %s cache."), NodeName, NodeName );
+		}
+		else if( Path == TEXT("None") )
+		{
+			UE_LOG( LogDerivedDataCache, Log, TEXT("Disabling %s data cache - path set to 'None'."), NodeName );
 		}
 		else
 		{

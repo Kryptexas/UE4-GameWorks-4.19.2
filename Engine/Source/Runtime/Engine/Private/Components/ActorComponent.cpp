@@ -43,7 +43,7 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext()
 	FlushRenderingCommands();
 
 	// Detach all actor components.
-	for(auto* Component : TObjectRange<UActorComponent>())
+	for(UActorComponent* Component : TObjectRange<UActorComponent>())
 	{
 		new(ComponentContexts) FComponentReregisterContext(Component);
 	}
@@ -57,7 +57,7 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 	FlushRenderingCommands();
 
 	// Detach only actor components that are not in the excluded list
-	for (auto* Component : TObjectRange<UActorComponent>())
+	for (UActorComponent* Component : TObjectRange<UActorComponent>())
 	{
 		bool bShouldReregister=true;
 		for (UClass* ExcludeClass : ExcludeComponents)
@@ -76,14 +76,6 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 	}
 }
 
-FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArray<AActor*>& InParentActors)
-{
-	ActiveGlobalReregisterContextCount++;
-
-	// wait until resources are released
-	FlushRenderingCommands();
-}
-
 FGlobalComponentReregisterContext::~FGlobalComponentReregisterContext()
 {
 	check(ActiveGlobalReregisterContextCount > 0);
@@ -98,7 +90,7 @@ FGlobalComponentRecreateRenderStateContext::FGlobalComponentRecreateRenderStateC
 	FlushRenderingCommands();
 
 	// recreate render state for all components.
-	for (auto* Component : TObjectRange<UActorComponent>())
+	for (UActorComponent* Component : TObjectRange<UActorComponent>())
 	{
 		new(ComponentContexts) FComponentRecreateRenderStateContext(Component);
 	}
@@ -868,25 +860,33 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 	ExecuteRegisterEvents();
 
 	// If not in a game world register ticks now, otherwise defer until BeginPlay. If no owner we won't trigger BeginPlay either so register now in that case as well.
-	if (MyOwner == nullptr || !InWorld->IsGameWorld())
+	if (!InWorld->IsGameWorld())
 	{
 		RegisterAllComponentTickFunctions(true);
 	}
-
-	if (MyOwner == nullptr || MyOwner->IsActorInitialized())
+	else if (MyOwner == nullptr)
 	{
 		if (!bHasBeenInitialized && bWantsInitializeComponent)
 		{
 			InitializeComponent();
 		}
-	}
 
-	if (MyOwner && (MyOwner->HasActorBegunPlay() || MyOwner->IsActorBeginningPlay()))
-	{
 		RegisterAllComponentTickFunctions(true);
-		if (bWantsBeginPlay && !bHasBegunPlay)
+	}
+	else
+	{
+		if (!bHasBeenInitialized && bWantsInitializeComponent && MyOwner->IsActorInitialized())
 		{
-			BeginPlay();
+			InitializeComponent();
+		}
+
+		if (MyOwner->HasActorBegunPlay() || MyOwner->IsActorBeginningPlay())
+		{
+			RegisterAllComponentTickFunctions(true);
+			if (bWantsBeginPlay && !bHasBegunPlay)
+			{
+				BeginPlay();
+			}
 		}
 	}
 

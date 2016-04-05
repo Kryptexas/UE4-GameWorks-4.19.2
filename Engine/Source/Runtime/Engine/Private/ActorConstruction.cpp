@@ -91,6 +91,29 @@ void AActor::ResetPropertiesForConstruction()
 	}
 }
 
+ int32 CalcComponentAttachDepth(UActorComponent* InComp, TMap<UActorComponent*, int32>& ComponentDepthMap) 
+ {
+	int32 ComponentDepth = 0;
+	int32* CachedComponentDepth = ComponentDepthMap.Find(InComp);
+	if (CachedComponentDepth)
+	{
+		ComponentDepth = *CachedComponentDepth;
+	}
+	else
+	{
+		if (USceneComponent* SC = Cast<USceneComponent>(InComp))
+		{
+			if (SC->AttachParent && SC->AttachParent->GetOwner() == InComp->GetOwner())
+			{
+				ComponentDepth = CalcComponentAttachDepth(SC->AttachParent, ComponentDepthMap) + 1;
+			}
+		}
+		ComponentDepthMap.Add(InComp, ComponentDepth);
+	}
+
+	return ComponentDepth;
+ }
+
 //* Destroys the constructed components.
 void AActor::DestroyConstructedComponents()
 {
@@ -98,22 +121,24 @@ void AActor::DestroyConstructedComponents()
 	TInlineComponentArray<UActorComponent*> PreviouslyAttachedComponents;
 	GetComponents(PreviouslyAttachedComponents);
 
-	// We need the hierarchy to be torn down in attachment order, so do a quick sort
-	PreviouslyAttachedComponents.Remove(nullptr);
-	PreviouslyAttachedComponents.Sort([](UActorComponent& A, UActorComponent& B)
-	{
-		if (USceneComponent* BSC = Cast<USceneComponent>(&B))
-		{
-			if (BSC->GetAttachParent() == &A)
-			{
-				return false;
-			}
-		}
-		return true;
-	});
+	TMap<UActorComponent*, int32> ComponentDepthMap;
 
 	for (UActorComponent* Component : PreviouslyAttachedComponents)
 	{
+		if (Component)
+		{
+			CalcComponentAttachDepth(Component, ComponentDepthMap);
+		}
+	}
+
+	ComponentDepthMap.ValueSort([](const int32& A, const int32& B)
+	{
+		return A > B;
+	});
+
+	for (const TPair<UActorComponent*,int32>& ComponentAndDepth : ComponentDepthMap)
+	{
+		UActorComponent* Component = ComponentAndDepth.Key;
 		if (Component)
 		{
 			bool bDestroyComponent = false;

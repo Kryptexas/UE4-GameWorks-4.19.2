@@ -30,6 +30,13 @@ DEFINE_STAT(STAT_VertexBufferMemory);
 DEFINE_STAT(STAT_StructuredBufferMemory);
 DEFINE_STAT(STAT_PixelBufferMemory);
 
+static FAutoConsoleVariable CVarUseVulkanRealUBs(
+	TEXT("r.Vulkan.UseRealUBs"),
+	0,
+	TEXT("If true, enable using emulated uniform buffers on Vulkan ES2 mode."),
+	ECVF_ReadOnly
+	);
+
 const FString FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)EResourceTransitionAccess::EMaxAccess + 1] =
 {
 	FString(TEXT("EReadable")),
@@ -83,15 +90,13 @@ const FClearValueBinding FClearValueBinding::DepthFar((float)ERHIZBuffer::FarPla
 
 TLockFreePointerListUnordered<FRHIResource, PLATFORM_CACHE_LINE_SIZE> FRHIResource::PendingDeletes;
 FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
-TQueue<FRHIResource::ResourceToDelete> FRHIResource::DeferredDeletionQueue;
+TArray<FRHIResource::ResourcesToDelete> FRHIResource::DeferredDeletionQueue;
 uint32 FRHIResource::CurrentFrame = 0;
 
-#if !DISABLE_RHI_DEFFERED_DELETE
 bool FRHIResource::Bypass()
 {
 	return GRHICommandList.Bypass();
 }
-#endif
 
 DECLARE_CYCLE_STAT(TEXT("Delete Resources"), STAT_DeleteResources, STATGROUP_RHICMDLIST);
 
@@ -102,14 +107,9 @@ void FRHIResource::FlushPendingDeletes()
 	check(IsInRenderingThread());
 	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
 	FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
-	while (1)
+
+	auto Delete = [](TArray<FRHIResource*>& ToDelete)
 	{
-		TArray<FRHIResource*> ToDelete;
-		PendingDeletes.PopAll(ToDelete);
-		if (!ToDelete.Num())
-		{
-			break;
-		}
 		for (int32 Index = 0; Index < ToDelete.Num(); Index++)
 		{
 			FRHIResource* Ref = ToDelete[Index];
@@ -117,15 +117,7 @@ void FRHIResource::FlushPendingDeletes()
 			if (Ref->GetRefCount() == 0) // caches can bring dead objects back to life
 			{
 				CurrentlyDeleting = Ref;
-				if (PlatformNeedsExtraDeletionLatency())
-				{
-					DeferredDeletionQueue.Enqueue(ResourceToDelete(Ref, CurrentFrame));
-				}
-				else
-				{
-					delete Ref;
-				}
-
+				delete Ref;
 				CurrentlyDeleting = nullptr;
 			}
 			else
@@ -134,32 +126,53 @@ void FRHIResource::FlushPendingDeletes()
 				FPlatformMisc::MemoryBarrier();
 			}
 		}
+	};
+
+	while (1)
+	{
+		if (PendingDeletes.IsEmpty())
+		{
+			break;
+		}
+		if (PlatformNeedsExtraDeletionLatency())
+		{
+			const int32 Index = DeferredDeletionQueue.AddDefaulted();
+			ResourcesToDelete& ResourceBatch = DeferredDeletionQueue[Index];
+			ResourceBatch.FrameDeleted = CurrentFrame;
+			PendingDeletes.PopAll(ResourceBatch.Resources);
+			check(ResourceBatch.Resources.Num());
+		}
+		else
+		{
+			TArray<FRHIResource*> ToDelete;
+			PendingDeletes.PopAll(ToDelete);
+			check(ToDelete.Num());
+			Delete(ToDelete);
+		}
 	}
 
 	const uint32 NumFramesToExpire = 3;
 
-	if (PlatformNeedsExtraDeletionLatency())
+	if (DeferredDeletionQueue.Num())
 	{
-		ResourceToDelete TempResource;
-
-		while (!DeferredDeletionQueue.IsEmpty())
+		int32 DeletedBatchCount = 0;
+		while (DeletedBatchCount < DeferredDeletionQueue.Num())
 		{
-			DeferredDeletionQueue.Peek(TempResource);
-
-			if ((TempResource.FrameDeleted + NumFramesToExpire) < CurrentFrame)
+			ResourcesToDelete& ResourceBatch = DeferredDeletionQueue[DeletedBatchCount];
+			if (((ResourceBatch.FrameDeleted + NumFramesToExpire) < CurrentFrame) || !GIsRHIInitialized)
 			{
-				// It's possible the resource has been resurrected elsewhere
-				if (TempResource.Resource->GetRefCount() == 0)
-				{
-					delete TempResource.Resource;
-				}
-
-				DeferredDeletionQueue.Dequeue(TempResource);
+				Delete(ResourceBatch.Resources);
+				++DeletedBatchCount;
 			}
 			else
 			{
 				break;
 			}
+		}
+
+		if (DeletedBatchCount)
+		{
+			DeferredDeletionQueue.RemoveAt(0, DeletedBatchCount);
 		}
 
 		++CurrentFrame;
@@ -242,8 +255,12 @@ bool GSupportsQuads = false;
 bool GSupportsVolumeTextureRendering = true;
 bool GSupportsSeparateRenderTargetBlendState = false;
 bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
+bool GSupportsTexture3D = true;
+bool GSupportsResourceView = true;
+bool GSupportsMultipleRenderTargets = true;
 float GMinClipZ = 0.0f;
 float GProjectionSignY = 1.0f;
+bool GRHINeedsExtraDeletionLatency = false;
 int32 GMaxShadowDepthBufferSizeX = 2048;
 int32 GMaxShadowDepthBufferSizeY = 2048;
 int32 GMaxTextureDimensions = 2048;
@@ -359,7 +376,11 @@ static FName NAME_SF_METAL(TEXT("SF_METAL"));
 static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
 static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
-static FName NAME_PC_VULKAN_ES2(TEXT("PC_VULKAN_ES2"));
+static FName NAME_VULKAN_ES3_1_ANDROID(TEXT("SF_VKES31_ANDROID"));
+static FName NAME_VULKAN_ES3_1(TEXT("SF_VKES31"));
+static FName NAME_VULKAN_ES3_1_UB(TEXT("SF_VKES31_UB"));
+static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
+static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 
@@ -410,8 +431,17 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_SF_METAL_MACES3_1;
 	case SP_OPENGL_ES31_EXT:
 		return NAME_GLSL_310_ES_EXT;
-	case SP_VULKAN_ES2:
-		return NAME_PC_VULKAN_ES2;
+	case SP_VULKAN_SM4:
+		return NAME_VULKAN_SM4;
+	case SP_VULKAN_SM5:
+		return NAME_VULKAN_SM5;
+	case SP_VULKAN_PCES3_1:
+	{
+		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
+		return (CVar && CVar->GetValueOnAnyThread() != 0) ? NAME_VULKAN_ES3_1_UB : NAME_VULKAN_ES3_1;
+	}
+	case SP_VULKAN_ES3_1_ANDROID:
+		return NAME_VULKAN_ES3_1_ANDROID;
 
 	default:
 		check(0);
@@ -430,8 +460,8 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_PS4)				return SP_PS4;
 	if (ShaderFormat == NAME_SF_XBOXONE)			return SP_XBOXONE;
 	if (ShaderFormat == NAME_GLSL_430)			return SP_OPENGL_SM5;
-	if (ShaderFormat == NAME_GLSL_150_ES2 || ShaderFormat == NAME_GLSL_150_ES2_NOUB)
-												return SP_OPENGL_PCES2;
+	if (ShaderFormat == NAME_GLSL_150_ES2)			return SP_OPENGL_PCES2;
+	if (ShaderFormat == NAME_GLSL_150_ES2_NOUB)		return SP_OPENGL_PCES2;
 	if (ShaderFormat == NAME_GLSL_150_ES31)		return SP_OPENGL_PCES3_1;
 	if (ShaderFormat == NAME_GLSL_ES2)			return SP_OPENGL_ES2_ANDROID;
 	if (ShaderFormat == NAME_GLSL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
@@ -440,7 +470,11 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_METAL_MRT)		return SP_METAL_MRT;
 	if (ShaderFormat == NAME_GLSL_310_ES_EXT)	return SP_OPENGL_ES31_EXT;
 	if (ShaderFormat == NAME_SF_METAL_SM5)		return SP_METAL_SM5;
-	if (ShaderFormat == NAME_PC_VULKAN_ES2)		return SP_VULKAN_ES2;
+	if (ShaderFormat == NAME_VULKAN_SM4)			return SP_VULKAN_SM4;
+	if (ShaderFormat == NAME_VULKAN_SM5)			return SP_VULKAN_SM5;
+	if (ShaderFormat == NAME_VULKAN_ES3_1_ANDROID)	return SP_VULKAN_ES3_1_ANDROID;
+	if (ShaderFormat == NAME_VULKAN_ES3_1)			return SP_VULKAN_ES3_1_ANDROID;
+	if (ShaderFormat == NAME_VULKAN_ES3_1_UB)		return SP_VULKAN_ES3_1_ANDROID;
 	if (ShaderFormat == NAME_SF_METAL_SM4)		return SP_METAL_SM4;
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)	return SP_METAL_MACES3_1;
 	return SP_NumPlatforms;

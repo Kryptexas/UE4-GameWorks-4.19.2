@@ -4,6 +4,8 @@
 #include "SequencerCommonHelpers.h"
 #include "MovieSceneSection.h"
 #include "SequencerHotspots.h"
+#include "SSequencer.h"
+#include "SSequencerTreeView.h"
 #include "VirtualTrackArea.h"
 #include "SequencerContextMenus.h"
 #include "MovieSceneTrack.h"
@@ -95,15 +97,22 @@ void SequencerHelpers::GetAllSections(TSharedRef<FSequencerDisplayNode> DisplayN
 
 bool SequencerHelpers::FindObjectBindingNode(TSharedRef<FSequencerDisplayNode> DisplayNode, TSharedRef<FSequencerDisplayNode>& ObjectBindingNode)
 {
-	if (DisplayNode->GetType() == ESequencerNode::Object)
+	TArray< TSharedPtr<FSequencerDisplayNode> > ParentNodes;
+	ParentNodes.Add(DisplayNode);
+
+	while (DisplayNode->GetParent().IsValid())
 	{
-		ObjectBindingNode = DisplayNode;
-		return true;
+		ParentNodes.Add(DisplayNode->GetParent());
+		DisplayNode = DisplayNode->GetParent().ToSharedRef();
 	}
 
-	if (DisplayNode->GetParent().IsValid())
+	for (int32 ParentNodeIndex = ParentNodes.Num() - 1; ParentNodeIndex >= 0; --ParentNodeIndex)
 	{
-		return FindObjectBindingNode(DisplayNode->GetParent().ToSharedRef(), ObjectBindingNode);
+		if (ParentNodes[ParentNodeIndex]->GetType() == ESequencerNode::Object)
+		{
+			ObjectBindingNode = ParentNodes[ParentNodeIndex].ToSharedRef();
+			return true;
+		}
 	}
 
 	return false;
@@ -120,6 +129,112 @@ float SequencerHelpers::FrameToTime(int32 Frame, float FrameRate)
 	return Frame / FrameRate;
 }
 
+bool IsSectionSelectedInNode(FSequencer& Sequencer, TSharedRef<FSequencerDisplayNode> InNode)
+{
+	if (InNode->GetType() == ESequencerNode::Track)
+	{
+		TSharedRef<FSequencerTrackNode> TrackNode = StaticCastSharedRef<FSequencerTrackNode>(InNode);
+
+		for (auto Section : TrackNode->GetSections())
+		{
+			if (Sequencer.GetSelection().IsSelected(Section->GetSectionObject()))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool AreKeysSelectedInNode(FSequencer& Sequencer, TSharedRef<FSequencerDisplayNode> InNode)
+{
+	TSharedRef<FSequencerTrackNode> TrackNode = StaticCastSharedRef<FSequencerTrackNode>(InNode);
+
+	TSet<TSharedPtr<IKeyArea>> KeyAreas;
+	SequencerHelpers::GetAllKeyAreas(InNode, KeyAreas);
+	for (auto KeyArea : KeyAreas)
+	{
+		for (auto KeyHandle : KeyArea->GetUnsortedKeyHandles())
+		{
+			FSequencerSelectedKey TestKey(*KeyArea->GetOwningSection(), KeyArea, KeyHandle);
+			if (Sequencer.GetSelection().IsSelected(TestKey))
+			{
+				return true;
+			}
+		}
+	}
+
+	for (int32 KeyGroupingIndex = 0; KeyGroupingIndex < InNode->GetNumKeyGroupings(); ++KeyGroupingIndex)
+	{			
+		TSharedRef<FGroupedKeyArea> KeyGrouping = InNode->GetKeyGrouping(KeyGroupingIndex);
+
+		for (auto KeyHandle : KeyGrouping->GetUnsortedKeyHandles())
+		{
+			FSequencerSelectedKey TestKey(*KeyGrouping->GetOwningSection(), KeyGrouping, KeyHandle);
+			if (Sequencer.GetSelection().IsSelected(TestKey))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void SequencerHelpers::ValidateNodesWithSelectedKeysOrSections(FSequencer& Sequencer)
+{
+	for (auto Node : Sequencer.GetSelection().GetNodesWithSelectedKeysOrSections())
+	{
+		if (!IsSectionSelectedInNode(Sequencer, Node) && !AreKeysSelectedInNode(Sequencer, Node))
+		{
+			Sequencer.GetSelection().RemoveFromNodesWithSelectedKeysOrSections(Node);
+		}
+	}
+}
+
+void SequencerHelpers::UpdateHoveredNodeFromSelectedSections(FSequencer& Sequencer)
+{
+	FSequencerSelection& Selection = Sequencer.GetSelection();
+
+	TSharedRef<SSequencer> SequencerWidget = StaticCastSharedRef<SSequencer>(Sequencer.GetSequencerWidget());
+	TSharedPtr<FSequencerDisplayNode> HoveredNode = SequencerWidget->GetTreeView()->GetNodeTree()->GetHoveredNode();
+	if (!HoveredNode.IsValid())
+	{
+		return;
+	}
+
+	if (IsSectionSelectedInNode(Sequencer, HoveredNode.ToSharedRef()))
+	{
+		Selection.AddToNodesWithSelectedKeysOrSections(HoveredNode.ToSharedRef());
+	}
+	else
+	{
+		Selection.RemoveFromNodesWithSelectedKeysOrSections(HoveredNode.ToSharedRef());
+	}
+}
+
+
+void SequencerHelpers::UpdateHoveredNodeFromSelectedKeys(FSequencer& Sequencer)
+{
+	FSequencerSelection& Selection = Sequencer.GetSelection();
+
+	TSharedRef<SSequencer> SequencerWidget = StaticCastSharedRef<SSequencer>(Sequencer.GetSequencerWidget());
+	TSharedPtr<FSequencerDisplayNode> HoveredNode = SequencerWidget->GetTreeView()->GetNodeTree()->GetHoveredNode();
+	if (!HoveredNode.IsValid())
+	{
+		return;
+	}
+
+	if (AreKeysSelectedInNode(Sequencer, HoveredNode.ToSharedRef()))
+	{
+		Selection.AddToNodesWithSelectedKeysOrSections(HoveredNode.ToSharedRef());
+	}
+	else
+	{
+		Selection.RemoveFromNodesWithSelectedKeysOrSections(HoveredNode.ToSharedRef());
+	}
+}
+
+
 void SequencerHelpers::PerformDefaultSelection(FSequencer& Sequencer, const FPointerEvent& MouseEvent)
 {
 	FSequencerSelection& Selection = Sequencer.GetSelection();
@@ -127,9 +242,10 @@ void SequencerHelpers::PerformDefaultSelection(FSequencer& Sequencer, const FPoi
 	// @todo: selection in transactions
 	auto ConditionallyClearSelection = [&]{
 		if (!MouseEvent.IsShiftDown() && !MouseEvent.IsControlDown())
-		{
+		{			
 			Selection.EmptySelectedSections();
 			Selection.EmptySelectedKeys();
+			Selection.EmptyNodesWithSelectedKeysOrSections();
 		}
 	};
 
@@ -161,7 +277,25 @@ void SequencerHelpers::PerformDefaultSelection(FSequencer& Sequencer, const FPoi
 				Selection.AddToSelection(Section);
 			}
 		}
+		else if (Hotspot->GetType() == ESequencerHotspot::SectionResize_L || Hotspot->GetType() == ESequencerHotspot::SectionResize_R)
+		{
+			UMovieSceneSection* Section = static_cast<FSectionResizeHotspot*>(Hotspot.Get())->Section.GetSectionObject();
+			if (!Selection.IsSelected(Section))
+			{
+				ConditionallyClearSelection();
+				Selection.AddToSelection(Section);
+			}
+		}
 
+		if (Hotspot->GetType() == ESequencerHotspot::Key)
+		{
+			UpdateHoveredNodeFromSelectedKeys(Sequencer);
+		}
+		else
+		{
+			UpdateHoveredNodeFromSelectedSections(Sequencer);
+		}
+		
 		return;
 	}
 
@@ -169,7 +303,7 @@ void SequencerHelpers::PerformDefaultSelection(FSequencer& Sequencer, const FPoi
 	ConditionallyClearSelection();
 
 	bool bForceSelect = !MouseEvent.IsControlDown();
-
+		
 	if (Hotspot->GetType() == ESequencerHotspot::Key)
 	{
 		FSequencerSelectedKey Key = static_cast<FKeyHotspot*>(Hotspot.Get())->Key;
@@ -185,14 +319,28 @@ void SequencerHelpers::PerformDefaultSelection(FSequencer& Sequencer, const FPoi
 	else if (Hotspot->GetType() == ESequencerHotspot::Section)
 	{
 		UMovieSceneSection* Section = static_cast<FSectionHotspot*>(Hotspot.Get())->Section.GetSectionObject();
-		if (bForceSelect || !Selection.IsSelected(Section))
+
+		// Never allow infinite sections to be selected through normal click (they're only selectable through right click)
+		if (!Section->IsInfinite())
 		{
-			Selection.AddToSelection(Section);
+			if (bForceSelect || !Selection.IsSelected(Section))
+			{
+				Selection.AddToSelection(Section);
+			}
+			else
+			{
+				Selection.RemoveFromSelection(Section);
+			}
 		}
-		else
-		{
-			Selection.RemoveFromSelection(Section);
-		}
+	}	
+
+	if (Hotspot->GetType() == ESequencerHotspot::Key)
+	{
+		UpdateHoveredNodeFromSelectedKeys(Sequencer);
+	}
+	else
+	{
+		UpdateHoveredNodeFromSelectedSections(Sequencer);
 	}
 }
 

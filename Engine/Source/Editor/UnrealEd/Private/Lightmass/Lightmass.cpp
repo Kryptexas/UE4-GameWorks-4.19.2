@@ -26,6 +26,7 @@
 #include "Engine/GeneratedMeshAreaLight.h"
 #include "Components/SkyLightComponent.h"
 #include "UnrealEngine.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
 
@@ -2562,7 +2563,7 @@ bool FLightmassProcessor::BeginRun()
 #endif
 	const int32 RequiredDependencyPaths64Count = ARRAY_COUNT(RequiredDependencyPaths64);
 
-	// Set up optional dependencies.  These might not exist in Rocket distributions, for example.
+	// Set up optional dependencies.  These might not exist in Launcher distributions, for example.
 	const TCHAR* OptionalDependencyPaths32[] =
 	{
 		TEXT("../Win32/UnrealLightmass.pdb"),
@@ -2919,7 +2920,7 @@ bool FLightmassProcessor::CompleteRun()
 			{
 				// Detach all components
 				// This must be done globally because different mappings will
-				FGlobalComponentReregisterContext ReregisterContext;
+				FGlobalComponentRecreateRenderStateContext ReregisterContext;
 
 				// Block until the RT processes the unregister before modifying variables that it may need to access
 				FlushRenderingCommands();
@@ -4062,7 +4063,7 @@ bool FLightmassProcessor::ImportTextureMapping(int32 Channel, FTextureMappingImp
 
 	if (TMImport.QuantizedData->Data.Num() > 0)
 	{
-		TMImport.UnmappedTexelsPercentage = (float)NumUnmappedTexels / (float)TMImport.QuantizedData->Data.Num();
+		TMImport.UnmappedTexelsPercentage = 100.0f * (float)NumUnmappedTexels / (float)TMImport.QuantizedData->Data.Num();
 	}
 	else
 	{

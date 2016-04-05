@@ -10,7 +10,7 @@ WantedMipsAccuracyRendering.cpp: Contains definitions for rendering the viewmode
 
 static TAutoConsoleVariable<int32> CVarStreamingAnalysisIndex(
 	TEXT("r.Streaming.AnalysisIndex"),
-	0,
+	FTexCoordScaleAnalysisPS::MAX_NUM_TEXTURE_REGISTER,
 	TEXT("Analysis index of the texture coordinate scale accuracy viewmode."),
 	ECVF_Default);
 
@@ -49,8 +49,44 @@ void FTexCoordScaleAnalysisPS::SetMesh(
 	const FMeshDrawingRenderState& DrawRenderState
 	)
 {
-	SetShaderValue(RHICmdList, FMeshMaterialShader::GetPixelShader(), TextureAnalysisIndexParameter, (int32)CVarStreamingAnalysisIndex.GetValueOnRenderThread());
-	SetShaderValue(RHICmdList, FMeshMaterialShader::GetPixelShader(), CPUScaleParameter, 1.f);
+	int32 AnalysisIndex = CVarStreamingAnalysisIndex.GetValueOnRenderThread();
+	if (AnalysisIndex >= 0 && AnalysisIndex < MAX_NUM_TEXTURE_REGISTER)
+	{
+		AnalysisIndex = FMath::Clamp<int32>(AnalysisIndex, 0, MAX_NUM_TEXTURE_REGISTER - 1);;
+	}
+	else
+	{
+		AnalysisIndex = MAX_NUM_TEXTURE_REGISTER;
+	}
+
+	FVector4 OneOverCPUTexCoordScales[MAX_NUM_TEXTURE_REGISTER / 4];
+	FMemory::Memzero(OneOverCPUTexCoordScales); // 0 remap to irrelevant data.
+
+	FIntVector4 TexCoordIndices[MAX_NUM_TEXTURE_REGISTER / 4];
+	FMemory::Memzero(TexCoordIndices);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnRenderThread() != 0;
+	const FStreamingSectionBuildInfo* SectionData = Proxy ? Proxy->GetStreamingSectionData(bUseNewMetrics ? VisualizeLODIndex : INDEX_NONE, bUseNewMetrics ? BatchElement.VisualizeElementIndex : INDEX_NONE) : nullptr;
+	if (SectionData)
+	{
+		for (int32 ScaleIndex = 0; ScaleIndex < MAX_NUM_TEXTURE_REGISTER && ScaleIndex < SectionData->TexCoordData.Num(); ++ScaleIndex)
+		{
+			float Scale = SectionData->TexCoordData[ScaleIndex].Scale;
+			if (Scale > 0)
+			{
+				OneOverCPUTexCoordScales[ScaleIndex / 4][ScaleIndex % 4] = 1.f / Scale;
+				TexCoordIndices[ScaleIndex / 4][ScaleIndex % 4] = SectionData->TexCoordData[ScaleIndex].Index;
+			}
+		}
+	}
+#endif
+
+	const bool bOutputScales = View.Family->GetDebugViewShaderMode() == DVSM_TexCoordScaleAnalysis;
+
+	SetShaderValueArray(RHICmdList, FMeshMaterialShader::GetPixelShader(), OneOverCPUTexCoordScalesParameter, OneOverCPUTexCoordScales, ARRAY_COUNT(OneOverCPUTexCoordScales));
+	SetShaderValueArray(RHICmdList, FMeshMaterialShader::GetPixelShader(), TexCoordIndicesParameter, TexCoordIndices, ARRAY_COUNT(TexCoordIndices));
+	SetShaderValue(RHICmdList, FMeshMaterialShader::GetPixelShader(), TextureAnalysisIndexParameter, bOutputScales ? (int32)INDEX_NONE : AnalysisIndex);
 
 	FMeshMaterialShader::SetMesh(RHICmdList, FMeshMaterialShader::GetPixelShader(), VertexFactory, View, Proxy, BatchElement, DrawRenderState);
 }

@@ -569,7 +569,7 @@ public:
 	FORCEINLINE FVector		GetScaledAxis(EAxis::Type InAxis) const;
 	FORCEINLINE FVector		GetUnitAxis(EAxis::Type InAxis) const;
 	FORCEINLINE void		Mirror(EAxis::Type MirrorAxis, EAxis::Type FlipAxis);
-	static FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale);
+	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale, float Tolerance=SMALL_NUMBER) const;
 
 	// temp function for easy conversion
 	FORCEINLINE FVector GetLocation() const
@@ -1435,15 +1435,10 @@ inline float FTransform::GetMinimumAxisScale() const
 // anymore because you should be instead of showing gigantic infinite mesh
 // also returning BIG_NUMBER causes sequential NaN issues by multiplying 
 // so we hardcode as 0
-FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale)
+FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale, float Tolerance) const
 {
 	FVector SafeReciprocalScale;
-	// mathematically if you have 0 scale, it should be infinite, 
-	// however, in practice if you have 0 scale, and relative transform doesn't make much sense 
-	// anymore because you should be instead of showing gigantic infinite mesh
-	// also returning BIG_NUMBER causes sequential NaN issues by multiplying 
-	// so we hardcode as 0
-	if (InScale.X == 0)
+	if (FMath::Abs(InScale.X) <= Tolerance)
 	{
 		SafeReciprocalScale.X = 0.f;
 	}
@@ -1452,7 +1447,7 @@ FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale)
 		SafeReciprocalScale.X = 1/InScale.X;
 	}
 
-	if (InScale.Y == 0)
+	if (FMath::Abs(InScale.Y) <= Tolerance)
 	{
 		SafeReciprocalScale.Y = 0.f;
 	}
@@ -1461,7 +1456,7 @@ FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale)
 		SafeReciprocalScale.Y = 1/InScale.Y;
 	}
 
-	if (InScale.Z == 0)
+	if (FMath::Abs(InScale.Z) <= Tolerance)
 	{
 		SafeReciprocalScale.Z = 0.f;
 	}

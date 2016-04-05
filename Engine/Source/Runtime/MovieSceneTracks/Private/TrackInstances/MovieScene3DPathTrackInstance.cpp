@@ -14,7 +14,7 @@ FMovieScene3DPathTrackInstance::FMovieScene3DPathTrackInstance( UMovieScene3DPat
 { }
 
 
-void FMovieScene3DPathTrackInstance::UpdateConstraint( float Position, const TArray<UObject*>& RuntimeObjects, AActor* Actor, UMovieScene3DConstraintSection* ConstraintSection ) 
+void FMovieScene3DPathTrackInstance::UpdateConstraint( float Position, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, AActor* Actor, UMovieScene3DConstraintSection* ConstraintSection ) 
 {
 	FVector Translation;
 	FRotator Rotation;
@@ -28,7 +28,7 @@ void FMovieScene3DPathTrackInstance::UpdateConstraint( float Position, const TAr
 
 		for( int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex )
 		{
-			USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
+			USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex].Get());
 
 			if (SceneComponent != nullptr)
 			{

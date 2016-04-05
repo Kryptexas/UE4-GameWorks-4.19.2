@@ -67,6 +67,9 @@ protected:
 	 */
 	virtual void ProgressReported( const float TotalProgressInterp, FText DisplayMessage ) {}
 
+	/** Called to check whether we are playing in editor when starting a slow task */
+	virtual bool IsPlayingInEditor() const;
+
 public:
 	virtual FContextSupplier* GetContext() const { return NULL; }
 	virtual void SetContext( FContextSupplier* InSupplier ) {}

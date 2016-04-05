@@ -15,6 +15,12 @@ inline FCustomStdString FixVecPrefix(FCustomStdString Type)
 		Type = "float";
 		Type += Num;
 	}
+	else if (!strncmp("bvec", Type.c_str(), 4))
+	{
+		FCustomStdString Num = Type.substr(4);
+		Type = "bool";
+		Type += Num;
+	}
 	else if (!strncmp("ivec", Type.c_str(), 4))
 	{
 		FCustomStdString Num = Type.substr(4);

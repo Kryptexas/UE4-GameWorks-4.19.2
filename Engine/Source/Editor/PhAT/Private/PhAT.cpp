@@ -1,5 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "PhATPrivatePCH.h"
 #include "PhATModule.h"
 #include "AssetSelection.h"
 #include "ScopedTransaction.h"
@@ -33,6 +34,8 @@
 #include "EngineLogs.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PersonaModule.h"
+
+const FName PhATAppIdentifier = FName(TEXT("PhATApp"));
 
 DEFINE_LOG_CATEGORY(LogPhAT);
 #define LOCTEXT_NAMESPACE "PhAT"
@@ -229,43 +232,42 @@ void FPhAT::InitPhAT(const EToolkitMode::Type Mode, const TSharedPtr< class IToo
 
 	CreateInternalWidgets();
 
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_PhAT_Layout_v2")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_PhAT_Layout_v3")
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea()
-		->SetOrientation(Orient_Vertical)
+		->SetOrientation(Orient_Horizontal)
 		->Split
 		(
 			FTabManager::NewStack()
-			->SetSizeCoefficient(0.1f)
-			->SetHideTabWell(true)
-			->AddTab(GetToolbarTabId(), ETabState::OpenedTab)
+			->SetSizeCoefficient(0.2f)
+			->AddTab(PhATHierarchyName, ETabState::OpenedTab)
 		)
 		->Split
 		(
 			FTabManager::NewSplitter()
-			->SetSizeCoefficient(0.9f)
-			->SetOrientation(Orient_Horizontal)
+			->SetOrientation(Orient_Vertical)
+			->SetSizeCoefficient(0.6f)
 			->Split
 			(
-				FTabManager::NewStack() 
-				->SetSizeCoefficient(0.8f)
+				FTabManager::NewStack()
+				->SetSizeCoefficient(0.1f)
+				->SetHideTabWell(true)
+				->AddTab(GetToolbarTabId(), ETabState::OpenedTab)
+			)
+			->Split
+			(
+				FTabManager::NewStack()
+				->SetSizeCoefficient(0.9f)
+				->SetHideTabWell(true)
 				->AddTab(PhATPreviewViewportName, ETabState::OpenedTab)
 			)
-			->Split
-			(
-				FTabManager::NewSplitter()
-				->SetSizeCoefficient(0.2f)
-				->Split
-				(
-					FTabManager::NewStack() ->AddTab(PhATPropertiesName, ETabState::OpenedTab)
-				)
-				->Split
-				(
-					FTabManager::NewStack() ->AddTab(PhATHierarchyName, ETabState::OpenedTab)
-				)
-
-			)
+		)
+		->Split
+		(
+			FTabManager::NewStack()
+			->SetSizeCoefficient(0.2f)
+			->AddTab(PhATPropertiesName, ETabState::OpenedTab)
 		)
 	);
 
@@ -636,7 +638,7 @@ void FPhAT::CreateInternalWidgets()
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	Properties = PropertyModule.CreateDetailView( Args );
 	Properties->SetObject(SharedData->EditorSimOptions);
-
+	Properties->OnFinishedChangingProperties().AddLambda([this](const FPropertyChangedEvent& Event) { RefreshPreviewViewport(); });
 
 	HierarchyControl = 
 	SNew(SBorder)
@@ -3231,7 +3233,7 @@ FText FPhAT::GetRecordMenuLabel() const
 		return LOCTEXT("Persona_StopRecordAnimationMenuLabel", "Stop Record Animation");
 	}
 
-	return LOCTEXT("Persona_StartRecordAnimationLabel", "Start Record Animation");
+	return LOCTEXT("Persona_StartRecordAnimationMenuLabel", "Start Record Animation");
 }
 
 FText FPhAT::GetRecordStatusLabel() const

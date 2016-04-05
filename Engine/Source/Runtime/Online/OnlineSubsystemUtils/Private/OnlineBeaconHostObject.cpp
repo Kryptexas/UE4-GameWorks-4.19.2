@@ -83,7 +83,7 @@ FName AOnlineBeaconHostObject::GetNetDriverName() const
 	AActor* BeaconHost = GetOwner();
 	if (BeaconHost)
 	{
-		return BeaconHost->NetDriverName;
+		return BeaconHost->GetNetDriverName();
 	}
 
 	return NAME_None;

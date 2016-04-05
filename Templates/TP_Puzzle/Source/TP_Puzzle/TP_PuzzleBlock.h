@@ -33,7 +33,7 @@ public:
 
 	/** Handle the block being clicked */
 	UFUNCTION()
-	void BlockClicked(UPrimitiveComponent* ClickedComp);
+	void BlockClicked(UPrimitiveComponent* ClickedComp, FKey ButtonClicked);
 
 	/** Handle the block being touched  */
 	UFUNCTION()

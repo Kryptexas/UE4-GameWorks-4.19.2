@@ -13,7 +13,7 @@
 #endif // ENABLE_WIN_ALLOC_TRACKING
 
 #if !FORCE_ANSI_ALLOCATOR
-#include "MallocBinned.h"
+#include "MallocBinnedRedirect.h"
 #endif
 
 #include "AllowWindowsPlatformTypes.h"
@@ -79,7 +79,7 @@ FMalloc* FWindowsPlatformMemory::BaseAllocator()
 #elif (WITH_EDITORONLY_DATA || IS_PROGRAM) && TBB_ALLOCATOR_ALLOWED
 	return new FMallocTBB();
 #else
-	return new FMallocBinned((uint32)(GetConstants().PageSize&MAX_uint32), (uint64)MAX_uint32+1);
+	return new FMallocBinnedRedirect((uint32)(GetConstants().PageSize&MAX_uint32), (uint64)MAX_uint32+1);
 #endif
 }
 

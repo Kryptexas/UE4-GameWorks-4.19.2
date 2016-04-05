@@ -145,14 +145,27 @@ namespace CrossCompiler
 					}
 				}
 			}
-			int32 CalculateSlack(int32 NumElements, int32 NumAllocatedElements, int32 NumBytesPerElement) const
+			int32 CalculateSlackReserve(int32 NumElements, int32 NumBytesPerElement) const
 			{
-				return DefaultCalculateSlack(NumElements, NumAllocatedElements, NumBytesPerElement);
+				return DefaultCalculateSlackReserve(NumElements, NumBytesPerElement, false);
+			}
+			int32 CalculateSlackShrink(int32 NumElements, int32 NumAllocatedElements, int32 NumBytesPerElement) const
+			{
+				return DefaultCalculateSlackShrink(NumElements, NumAllocatedElements, NumBytesPerElement, false);
+			}
+			int32 CalculateSlackGrow(int32 NumElements, int32 NumAllocatedElements, int32 NumBytesPerElement) const
+			{
+				return DefaultCalculateSlackGrow(NumElements, NumAllocatedElements, NumBytesPerElement, false);
 			}
 
 			int32 GetAllocatedSize(int32 NumAllocatedElements, int32 NumBytesPerElement) const
 			{
 				return NumAllocatedElements * NumBytesPerElement;
+			}
+
+			bool HasAllocation()
+			{
+				return !!Data;
 			}
 
 			FLinearAllocator* LinearAllocator;

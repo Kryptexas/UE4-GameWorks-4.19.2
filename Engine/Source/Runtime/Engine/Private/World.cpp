@@ -44,6 +44,7 @@
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 
 #include "Materials/MaterialParameterCollectionInstance.h"
+#include "LoadTimeTracker.h"
 
 #if WITH_EDITOR
 	#include "DerivedDataCacheInterface.h"
@@ -63,6 +64,7 @@
 
 #include "EngineModule.h"
 #include "ContentStreaming.h"
+#include "Streaming/TextureStreamingHelpers.h"
 #include "RendererInterface.h"
 #include "DataChannel.h"
 #include "ShaderCompiler.h"
@@ -528,12 +530,9 @@ void UWorld::FinishDestroy()
 		// Wait for Async Trace data to finish and reset global variable
 		WaitForAllAsyncTraceTasks();
 
-		if (NavigationSystem != NULL)
-		{
-			// NavigationSystem should be already cleaned by now, after call 
-			// in UWorld::CleanupWorld, but it never hurts to call it again
-			NavigationSystem->CleanUp();
-		}
+		// navigation system should be removed already by UWorld::CleanupWorld
+		// unless it wanted to keep resources but got destroyed now
+		SetNavigationSystem(nullptr);
 
 		if (FXSystem)
 		{
@@ -1499,17 +1498,7 @@ void UWorld::EnsureCollisionTreeIsBuilt()
 	// Set physics to static loading mode
 	if (PhysicsScene)
 	{
-		PhysicsScene->SetIsStaticLoading(true);
-
-		for (int Iteration = 0; Iteration < 6; ++Iteration)
-		{
-			SetupPhysicsTickFunctions(0.1f);
-			PhysicsScene->StartFrame();
-			PhysicsScene->WaitPhysScenes();
-			PhysicsScene->EndFrame(NULL);
-		}
-
-		PhysicsScene->SetIsStaticLoading(false);
+		PhysicsScene->EnsureCollisionTreeIsBuilt(this);
 	}
 
     bIsBuilt = true;
@@ -2661,6 +2650,17 @@ void UWorld::TriggerStreamingDataRebuild()
 
 void UWorld::ConditionallyBuildStreamingData()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	// This code is to trigger an update to the a streaming data update when the console variable is changed.
+	static int32 LastMetricsUsed = CVarStreamingUseNewMetrics.GetValueOnGameThread();
+	if (CVarStreamingUseNewMetrics.GetValueOnGameThread() != LastMetricsUsed)
+	{
+		LastMetricsUsed = CVarStreamingUseNewMetrics.GetValueOnGameThread();
+		bStreamingDataDirty = true;
+		BuildStreamingDataTimer = FPlatformTime::Seconds() - 1.0;
+	}
+#endif
+
 	if ( bStreamingDataDirty && FPlatformTime::Seconds() > BuildStreamingDataTimer )
 	{
 		bStreamingDataDirty = false;
@@ -2870,7 +2870,7 @@ bool UWorld::HandleLogActorCountsCommand( const TCHAR* Cmd, FOutputDevice& Ar, U
 
 bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	if ( InWorld != nullptr && InWorld->GetGameInstance() != nullptr )
+	if (InWorld != nullptr && InWorld->GetGameInstance() != nullptr)
 	{
 		FString DemoName;
 
@@ -2902,19 +2902,19 @@ bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld*
 	{
 		ErrorString = TEXT( "InWorld->GetGameInstance() is null" );
 	}
-
-	if ( ErrorString != nullptr )
+	
+	if (ErrorString != nullptr)
 	{
-		Ar.Log( ErrorString );
+		Ar.Log(ErrorString);
 
-		if ( GetGameInstance() != nullptr )
+		if (GetGameInstance() != nullptr)
 		{
-			GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( ErrorString ) );
+			GetGameInstance()->HandleDemoPlaybackFailure(EDemoPlayFailure::Generic, FString(ErrorString));
 		}
 	}
 	else
 	{
-		InWorld->GetGameInstance()->PlayReplay( Temp );
+		InWorld->GetGameInstance()->PlayReplay(Temp);
 	}
 
 	return true;
@@ -3246,10 +3246,8 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 
 	if (bCleanupResources == true)
 	{
-		if (NavigationSystem != NULL)
-		{
-			NavigationSystem->CleanUp(UNavigationSystem::CleanupWithWorld);
-		}
+		// cleanup & remove navigation system
+		SetNavigationSystem(nullptr);
 	}
 
 	ForEachNetDriver(this, [](UNetDriver* const Driver)
@@ -3438,7 +3436,7 @@ FConstCameraActorIterator UWorld::GetAutoActivateCameraIterator() const
 
 void UWorld::AddNetworkActor( AActor* Actor )
 {
-	if ( Actor == NULL )
+	if ( Actor == nullptr )
 	{
 		return;
 	}
@@ -3989,7 +3987,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				if (!ErrorMsg.IsEmpty())
 				{
 					UE_LOG(LogNet, Log, TEXT("PreLogin failure: %s"), *ErrorMsg);
-					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("RRELOGIN FAILURE"), *ErrorMsg, Connection));
+					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("PRELOGIN FAILURE"), *ErrorMsg, Connection));
 					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 					Connection->FlushNet(true);
 					//@todo sz - can't close the connection here since it will leave the failure message 
@@ -4475,7 +4473,10 @@ void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FName& PackageName
 		SetHandlerLoadedData(LevelPackage, World);
 
 		// Now that the p map is loaded, start async loading any always loaded levels
-		World->AsyncLoadAlwaysLoadedLevelsForSeamlessTravel();
+		if (World)
+		{
+			World->AsyncLoadAlwaysLoadedLevelsForSeamlessTravel();
+		}
 	}
 
 	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "StartTravelComplete - " ) + PackageName.ToString() )) );
@@ -4495,6 +4496,7 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 	}
 	else
 	{
+		FLoadTimeTracker::Get().ResetRawLoadTimes();
 		UE_LOG(LogWorld, Log, TEXT("SeamlessTravel to: %s"), *InURL.Map);
 		FString MapName = UWorld::RemovePIEPrefix(InURL.Map);
 		if (!FPackageName::DoesPackageExist(MapName, InGuid.IsValid() ? &InGuid : NULL))
@@ -4534,7 +4536,7 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 			FName CurrentMapName = CurrentWorld->GetOutermost()->GetFName();
 			FName DestinationMapName = FName(*PendingTravelURL.Map);
 
-			FString TransitionMap = GetDefault<UGameMapsSettings>()->TransitionMap;
+			FString TransitionMap = GetDefault<UGameMapsSettings>()->TransitionMap.GetLongPackageName();
 			FName DefaultMapFinalName(*TransitionMap);
 
 			// if we're already in the default map, skip loading it and just go to the destination
@@ -5080,6 +5082,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				
 				double TotalSeamlessTravelTime = FPlatformTime::Seconds() - SeamlessTravelStartTime;
 				UE_LOG(LogWorld, Log, TEXT("----SeamlessTravel finished in %.2f seconds ------"), TotalSeamlessTravelTime );
+				FLoadTimeTracker::Get().DumpRawLoadTimes();
 
 				AGameMode* const GameMode = LoadedWorld->GetAuthGameMode();
 				if (GameMode)
@@ -5302,7 +5305,12 @@ bool UWorld::IsPlayInPreview() const
 
 bool UWorld::IsPlayInMobilePreview() const
 {
-	return FParse::Param(FCommandLine::Get(), TEXT("simmobile"));
+	return FParse::Param(FCommandLine::Get(), TEXT("simmobile")) && !IsPlayInVulkanPreview();
+}
+
+bool UWorld::IsPlayInVulkanPreview() const
+{
+	return FParse::Param(FCommandLine::Get(), TEXT("vulkan"));
 }
 
 bool UWorld::IsGameWorld() const

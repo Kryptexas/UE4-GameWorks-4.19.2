@@ -623,8 +623,8 @@ void FTranslationDataManager::PreviewAllTranslationsInEditor(ULocalizationTarget
 
 	if (LocalizationTarget != nullptr)
 	{
-		const FString ConfigFilePath = LocalizationConfigurationScript::GetRegenerateResourcesScriptPath(LocalizationTarget);
-		LocalizationConfigurationScript::GenerateRegenerateResourcesScript(LocalizationTarget).Write(ConfigFilePath);
+		const FString ConfigFilePath = LocalizationConfigurationScript::GetRegenerateResourcesConfigPath(LocalizationTarget);
+		LocalizationConfigurationScript::GenerateRegenerateResourcesConfigFile(LocalizationTarget).Write(ConfigFilePath);
 
 		FJsonInternationalizationArchiveSerializer LocalizationArchiveSerializer;
 		FJsonInternationalizationManifestSerializer LocalizationManifestSerializer;

@@ -209,6 +209,10 @@ bool FOnlineFriendsSteam::GetBlockedPlayers(const FUniqueNetId& UserId, TArray< 
 	return false;
 }
 
+void FOnlineFriendsSteam::DumpBlockedPlayers() const
+{
+}
+
 void FOnlineAsyncTaskSteamReadFriendsList::Finalize()
 {
 	FOnlineSubsystemSteam* SteamSubsystem = FriendsPtr->SteamSubsystem;

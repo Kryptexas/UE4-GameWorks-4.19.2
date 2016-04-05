@@ -62,12 +62,7 @@ void FGameplayDebuggerCategory::DrawCategory(APlayerController* OwnerPC, FGamepl
 	UWorld* World = OwnerPC->GetWorld();
 
 	FString CategoryPrefix;
-	if (bShowCategoryName)
-	{
-		CanvasContext.MoveToNewLine();
-		CanvasContext.Printf(FColor::Green, TEXT("[CATEGORY: %s]"), *CategoryName.ToString());
-	}
-	else
+	if (!bShowCategoryName)
 	{
 		CategoryPrefix = FString::Printf(TEXT("{green}[%s]{white}  "), *CategoryName.ToString());
 	}
@@ -86,8 +81,8 @@ void FGameplayDebuggerCategory::DrawCategory(APlayerController* OwnerPC, FGamepl
 			if (DataPack.IsInProgress())
 			{
 				const FString DataPackMessage = (ReplicatedDataPacks.Num() == 1) ?
-					FString::Printf(TEXT("%sReplicating: {red}%.0f%%"), *CategoryPrefix, DataPack.GetProgress() * 100.0f) :
-					FString::Printf(TEXT("%sReplicating data[%d]: {red}%.0f%%"), *CategoryPrefix, Idx, DataPack.GetProgress() * 100.0f);
+					FString::Printf(TEXT("%sReplicating: {red}%.0f%% {white}(ver:%d)"), *CategoryPrefix, DataPack.GetProgress() * 100.0f, DataPack.Header.DataVersion) :
+					FString::Printf(TEXT("%sReplicating data[%d]: {red}%.0f%% {white}(ver:%d)"), *CategoryPrefix, Idx, DataPack.GetProgress() * 100.0f, DataPack.Header.DataVersion);
 
 				CanvasContext.Print(DataPackMessage);
 			}

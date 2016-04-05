@@ -755,38 +755,47 @@ static bool CheckLocationForPotentialInstance(const UWorld* InWorld, const UFoli
 }
 
 static bool CheckVertexColor(const UFoliageType* Settings, const FColor& VertexColor)
-{
-	uint8 ColorChannel;
-	switch (Settings->VertexColorMask)
+{	
+	for (uint8 ChannelIdx = 0; ChannelIdx < (uint8)EVertexColorMaskChannel::MAX_None; ++ChannelIdx)
 	{
-	case FOLIAGEVERTEXCOLORMASK_Red:
-		ColorChannel = VertexColor.R;
-		break;
-	case FOLIAGEVERTEXCOLORMASK_Green:
-		ColorChannel = VertexColor.G;
-		break;
-	case FOLIAGEVERTEXCOLORMASK_Blue:
-		ColorChannel = VertexColor.B;
-		break;
-	case FOLIAGEVERTEXCOLORMASK_Alpha:
-		ColorChannel = VertexColor.A;
-		break;
-	default:
-		return true;
-	}
+		const FFoliageVertexColorChannelMask& Mask = Settings->VertexColorMaskByChannel[ChannelIdx];
 
-	if (Settings->VertexColorMaskInvert)
-	{
-		if (ColorChannel > FMath::RoundToInt(Settings->VertexColorMaskThreshold * 255.f))
+		if (Mask.UseMask)
 		{
-			return false;
-		}
-	}
-	else
-	{
-		if (ColorChannel < FMath::RoundToInt(Settings->VertexColorMaskThreshold * 255.f))
-		{
-			return false;
+			uint8 ColorChannel = 0;
+			switch ((EVertexColorMaskChannel)ChannelIdx)
+			{
+			case EVertexColorMaskChannel::Red:
+				ColorChannel = VertexColor.R;
+				break;
+			case EVertexColorMaskChannel::Green:
+				ColorChannel = VertexColor.G;
+				break;
+			case EVertexColorMaskChannel::Blue:
+				ColorChannel = VertexColor.B;
+				break;
+			case EVertexColorMaskChannel::Alpha:
+				ColorChannel = VertexColor.A;
+				break;
+			default:
+				// Invalid channel value
+				continue;
+			}
+
+			if (Mask.InvertMask)
+			{
+				if (ColorChannel > FMath::RoundToInt(Mask.MaskThreshold * 255.f))
+				{
+					return false;
+				}
+			}
+			else
+			{
+				if (ColorChannel < FMath::RoundToInt(Mask.MaskThreshold * 255.f))
+				{
+					return false;
+				}
+			}
 		}
 	}
 
@@ -835,9 +844,23 @@ bool FilterByWeight(float Weight, const UFoliageType* Settings)
 	return Weight < FMath::Max(SMALL_NUMBER, WeightNeeded);
 }
 
+bool FEdModeFoliage::IsUsingVertexColorMask(const UFoliageType* Settings)
+{
+	for (uint8 ChannelIdx = 0; ChannelIdx < (uint8)EVertexColorMaskChannel::MAX_None; ++ChannelIdx)
+	{
+		const FFoliageVertexColorChannelMask& Mask = Settings->VertexColorMaskByChannel[ChannelIdx];
+		if (Mask.UseMask)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool FEdModeFoliage::VertexMaskCheck(const FHitResult& Hit, const UFoliageType* Settings)
 {
-	if (Settings->VertexColorMask != FOLIAGEVERTEXCOLORMASK_Disabled && Hit.FaceIndex != INDEX_NONE)
+	if (Hit.FaceIndex != INDEX_NONE && IsUsingVertexColorMask(Settings))
 	{
 		if (UStaticMeshComponent* HitStaticMeshComponent = Cast<UStaticMeshComponent>(Hit.Component.Get()))
 		{
@@ -1694,7 +1717,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 					// Reapply vertex color mask
 					if (Settings->ReapplyVertexColorMask)
 					{
-						if (Settings->VertexColorMask != FOLIAGEVERTEXCOLORMASK_Disabled && Hit.FaceIndex != INDEX_NONE)
+						if (Hit.FaceIndex != INDEX_NONE && IsUsingVertexColorMask(Settings))
 						{
 							UStaticMeshComponent* HitStaticMeshComponent = Cast<UStaticMeshComponent>(Hit.Component.Get());
 							if (HitStaticMeshComponent)

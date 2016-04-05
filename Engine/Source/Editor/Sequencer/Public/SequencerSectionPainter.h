@@ -6,23 +6,6 @@ struct FTimeToPixel;
 class UMovieSceneTrack;
 class UMovieSceneSection;
 
-/** Structure representing a specific region on a section to tint */
-struct FSequencerSectionTintRegion
-{
-	FSequencerSectionTintRegion(const FColor& InColor)
-		: Color(InColor)
-	{}
-
-	FSequencerSectionTintRegion(const FColor& InColor, float InStartTime, float InEndTime)
-		: Color(InColor), Range(TRange<float>(InStartTime, InEndTime))
-	{}
-
-	/** The color of the tint */
-	FColor Color;
-
-	/** The time range to tint */
-	TOptional<TRange<float>> Range;
-};
 
 /** Class that wraps up common section painting functionality */
 class SEQUENCER_API FSequencerSectionPainter
@@ -32,7 +15,7 @@ public:
 	FSequencerSectionPainter(FSlateWindowElementList& OutDrawElements, const FGeometry& InSectionGeometry, UMovieSceneSection& Section);
 
 	/** Paint the section background with the specified tint override */
-	int32 PaintSectionBackground(const FColor& Tint);
+	virtual int32 PaintSectionBackground(const FLinearColor& Tint) = 0;
 
 	/** Paint the section background with the tint stored on the track */
 	int32 PaintSectionBackground();
@@ -40,10 +23,10 @@ public:
 	/** Get the track that this painter is painting sections for */
 	UMovieSceneTrack* GetTrack() const;
 
-public:
+	/** Blend the specified color with the default track color */
+	static FLinearColor BlendColor(FLinearColor InColor);
 
-	/** Paint the section background with the specified tints */
-	virtual int32 PaintSectionBackground(const FSequencerSectionTintRegion* Tints, uint32 NumTints) = 0;
+public:
 
 	/** Get a time-to-pixel converter for the section */
 	virtual const FTimeToPixel& GetTimeConverter() const = 0;

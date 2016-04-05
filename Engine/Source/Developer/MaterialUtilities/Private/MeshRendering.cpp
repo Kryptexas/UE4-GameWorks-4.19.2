@@ -657,7 +657,7 @@ public:
 		// Check if material is TwoSided - single-sided materials should be rendered with normal and reverse
 		// triangle corner orders, to avoid problems with inside-out meshes or mesh parts. Note:
 		// FExportMaterialProxy::GetMaterial() (which is really called here) ignores 'InFeatureLevel' parameter.
-		const FMaterial* Material = Data.MaterialRenderProxy->GetMaterial(ERHIFeatureLevel::SM5);
+		const FMaterial* Material = Data.MaterialRenderProxy->GetMaterial(GMaxRHIFeatureLevel);
 		bool bIsMaterialTwoSided = Material->IsTwoSided();
 
 		TArray<FMaterialMeshVertex> Verts;
@@ -790,6 +790,7 @@ public:
 
 bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FMaterialRenderProxy* InMaterialProxy, EMaterialProperty InMaterialProperty, UTextureRenderTarget2D* InRenderTarget, TArray<FColor>& OutBMP)
 {
+	check(IsInGameThread());
 	check(InRenderTarget);
 	FTextureRenderTargetResource* RTResource = InRenderTarget->GameThread_GetRenderTargetResource();
 
@@ -938,4 +939,51 @@ bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FM
 	FFileHelper::CreateBitmap(*FilenameString, InRenderTarget->GetSurfaceWidth(), InRenderTarget->GetSurfaceHeight(), OutBMP.GetData());
 #endif // SAVE_INTERMEDIATE_TEXTURES
 	return result;
+}
+
+bool FMeshRenderer::RenderMaterialTexCoordScales(struct FMaterialMergeData& InMaterialData, FMaterialRenderProxy* InMaterialProxy, UTextureRenderTarget2D* InRenderTarget, TArray<FFloat16Color>& OutScales)
+{
+	check(IsInGameThread());
+	check(InRenderTarget);
+	// create ViewFamily
+	float CurrentRealTime = 0.f;
+	float CurrentWorldTime = 0.f;
+	float DeltaWorldTime = 0.f;
+
+	// Create a canvas for the render target and clear it to black
+	FTextureRenderTargetResource* RTResource = InRenderTarget->GameThread_GetRenderTargetResource();
+	FCanvas Canvas(RTResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, GMaxRHIFeatureLevel);
+	const FRenderTarget* CanvasRenderTarget = Canvas.GetRenderTarget();
+	Canvas.Clear(FLinearColor::Black);
+
+	// Set show flag view mode to output tex coord scale
+	FEngineShowFlags ShowFlags(ESFIM_Game);
+	ApplyViewMode(VMI_TexCoordScaleAccuracy, false, ShowFlags);
+	ShowFlags.TexCoordAnalysis = true; // This will bind the DVSM_TexCoordScaleAnalysis
+
+	FSceneViewFamily ViewFamily(FSceneViewFamily::ConstructionValues(CanvasRenderTarget, nullptr, ShowFlags)
+		.SetWorldTimes(CurrentWorldTime, DeltaWorldTime, CurrentRealTime)
+		.SetGammaCorrection(CanvasRenderTarget->GetDisplayGamma()));
+		
+	// add item for rendering
+	FMeshMaterialRenderItem::EnqueueMaterialRender(
+		&Canvas,
+		&ViewFamily,
+		InMaterialData.Mesh,
+		InMaterialData.LODModel,
+		InMaterialData.MaterialIndex,
+		InMaterialData.TexcoordBounds,
+		InMaterialData.TexCoords,
+		FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY),
+		InMaterialProxy
+		);
+
+	// rendering is performed here
+	Canvas.Flush_GameThread();
+
+	FlushRenderingCommands();
+	Canvas.SetRenderTarget_GameThread(NULL);
+	FlushRenderingCommands();
+
+	return RTResource->ReadFloat16Pixels(OutScales);
 }

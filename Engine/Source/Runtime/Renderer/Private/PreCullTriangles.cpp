@@ -290,8 +290,6 @@ IMPLEMENT_SHADER_TYPE(,FPreCullTrianglesCS,TEXT("PreCullTriangles"),TEXT("PreCul
 TGlobalResource<FPreCulledTriangleBufferResource> GPreCulledTriangleBuffers;
 TGlobalResource<FPreCulledTriangleBufferResource> GPreCulledTriangleBuffersFromHeightfields;
 
-extern bool SupportsDistanceFieldAO(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatform ShaderPlatform);
-
 void FDeferredShadingSceneRenderer::PreCullStaticMeshes(FRHICommandListImmediate& RHICmdList, const TArray<UStaticMeshComponent*>& ComponentsToPreCull, const TArray<TArray<FPlane> >& CullVolumes)
 {
 	FViewInfo& View = Views[0];

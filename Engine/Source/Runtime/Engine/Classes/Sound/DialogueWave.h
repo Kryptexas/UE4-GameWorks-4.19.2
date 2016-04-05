@@ -13,6 +13,23 @@
 class USoundWave;
 class UDialogueSoundWaveProxy;
 
+struct ENGINE_API FDialogueConstants
+{
+	static const FString DialogueNamespace;
+#if WITH_EDITORONLY_DATA
+	static const FString PropertyName_AudioFile;
+	static const FString PropertyName_VoiceActorDirection;
+	static const FString PropertyName_Speaker;
+	static const FString PropertyName_Targets;
+	static const FString PropertyName_GrammaticalGender;
+	static const FString PropertyName_GrammaticalPlurality;
+	static const FString PropertyName_TargetGrammaticalGender;
+	static const FString PropertyName_TargetGrammaticalNumber;
+	static const FString PropertyName_DialogueContext;
+	static const FString PropertyName_IsMature;
+#endif //WITH_EDITORONLY_DATA
+};
+
 USTRUCT()
 struct ENGINE_API FDialogueContextMapping
 {

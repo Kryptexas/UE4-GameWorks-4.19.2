@@ -38,6 +38,7 @@ public:
 	static jmethodID AndroidThunkJava_GetMetaDataBoolean;
 	static jmethodID AndroidThunkJava_GetMetaDataInt;
 	static jmethodID AndroidThunkJava_GetMetaDataString;
+	static jmethodID AndroidThunkJava_IsGearVRApplication;
 
 	// InputDeviceInfo member field ids
 	static jclass InputDeviceInfoClass;

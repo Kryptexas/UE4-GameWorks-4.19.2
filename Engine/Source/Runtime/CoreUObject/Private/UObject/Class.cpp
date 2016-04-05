@@ -10,6 +10,7 @@
 #include "LinkerPlaceholderClass.h"
 #include "LinkerPlaceholderFunction.h"
 #include "StructScriptLoader.h"
+#include "LoadTimeTracker.h"
 
 // This flag enables some expensive class tree validation that is meant to catch mutations of 
 // the class tree outside of SetSuperStruct. It has been disabled because loading blueprints 
@@ -849,9 +850,9 @@ void UStruct::InitTaggedPropertyRedirectsMap()
 				FName OldPropertyName = NAME_None;
 				FName NewPropertyName = NAME_None;
 
-				FParse::Value( *It.Value(), TEXT("ClassName="), ClassName );
-				FParse::Value( *It.Value(), TEXT("OldPropertyName="), OldPropertyName );
-				FParse::Value( *It.Value(), TEXT("NewPropertyName="), NewPropertyName );
+				FParse::Value( *It.Value().GetValue(), TEXT("ClassName="), ClassName );
+				FParse::Value( *It.Value().GetValue(), TEXT("OldPropertyName="), OldPropertyName );
+				FParse::Value( *It.Value().GetValue(), TEXT("NewPropertyName="), NewPropertyName );
 
 				check(ClassName != NAME_None && OldPropertyName != NAME_None && NewPropertyName != NAME_None );
 				TaggedPropertyRedirects.FindOrAdd(ClassName).Add(OldPropertyName, NewPropertyName);
@@ -866,6 +867,8 @@ void UStruct::InitTaggedPropertyRedirectsMap()
 
 void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad) const
 {
+	//SCOPED_LOADTIMER(SerializeTaggedPropertiesTime);
+	
 	check(Ar.IsLoading() || Ar.IsSaving());
 
 	UClass* DefaultsClass = dynamic_cast<UClass*>(DefaultsStruct);
@@ -1043,7 +1046,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			// check for valid array index
 			else if( Tag.ArrayIndex >= Property->ArrayDim || Tag.ArrayIndex < 0 )
 			{
-				UE_LOG(LogClass, Warning, TEXT("Array bounds in %s of %s: %i/%i for package:  %s"), *Tag.Name.ToString(), *GetName(), Tag.ArrayIndex, Property->ArrayDim, *Ar.GetArchiveName() );
+				UE_LOG(LogClass, Warning, TEXT("Array bound exceeded (var %s=%d, exceeds %s [0-%d] in package:  %s"), 
+					*Tag.Name.ToString(), Tag.ArrayIndex, *GetName(), Property->ArrayDim-1, *Ar.GetArchiveName());
 			}
 
 			// Convert properties from old type to new type automatically if types are compatible
@@ -3504,7 +3508,21 @@ void UClass::Serialize( FArchive& Ar )
 	Ar << FuncMap;
 
 	// Class flags first.
-	Ar << ClassFlags;
+	if (Ar.IsSaving())
+	{
+		auto SavedClassFlags = ClassFlags;
+		SavedClassFlags &= ~(CLASS_ShouldNeverBeLoaded | CLASS_TokenStreamAssembled);
+		Ar << SavedClassFlags;
+	}
+	else if (Ar.IsLoading())
+	{
+		Ar << ClassFlags;
+		ClassFlags &= ~(CLASS_ShouldNeverBeLoaded | CLASS_TokenStreamAssembled);
+	}
+	else 
+	{
+		Ar << ClassFlags;
+	}
 	if (Ar.UE4Ver() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
 	{
 		// We need to invert the CLASS_NotPlaceable flag here because it used to mean CLASS_Placeable
@@ -4956,6 +4974,12 @@ void UDynamicClass::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 	Collector.AddReferencedObject(This->AnimClassImplementation, This);
 
 	Super::AddReferencedObjects(This, Collector);
+}
+
+void UDynamicClass::PostLoad()
+{
+	Super::PostLoad();
+	GetDefaultObject(true);
 }
 
 void UDynamicClass::PurgeClass(bool bRecompilingOnLoad)

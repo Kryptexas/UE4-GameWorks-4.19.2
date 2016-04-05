@@ -25,6 +25,10 @@ bool FLevelVisibilityTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Ty
 	return Type == UMovieSceneLevelVisibilityTrack::StaticClass();
 }
 
+const FSlateBrush* FLevelVisibilityTrackEditor::GetIconBrush() const
+{
+	return FEditorStyle::GetBrush("Sequencer.Tracks.LevelVisibility");
+}
 
 TSharedRef<ISequencerSection> FLevelVisibilityTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {

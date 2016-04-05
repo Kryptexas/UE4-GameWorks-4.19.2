@@ -276,12 +276,19 @@ void STextBlock::SetJustification(const TAttribute<ETextJustify::Type>& InJustif
 
 FTextBlockStyle STextBlock::GetComputedTextStyle() const
 {
-	FTextBlockStyle ComputedStyle = *TextStyle;
-	ComputedStyle.SetFont( GetFont() );
-	ComputedStyle.SetColorAndOpacity( GetColorAndOpacity() );
-	ComputedStyle.SetShadowOffset( GetShadowOffset() );
-	ComputedStyle.SetShadowColorAndOpacity( GetShadowColorAndOpacity() );
-	ComputedStyle.SetHighlightColor( GetHighlightColor() );
-	ComputedStyle.SetHighlightShape( *GetHighlightShape() );
-	return ComputedStyle;
+	if( ensureMsgf(TextStyle, TEXT("No text style specified: for widget: %s"), *ToString() ) )
+	{
+		FTextBlockStyle ComputedStyle = *TextStyle;
+		ComputedStyle.SetFont(GetFont());
+		ComputedStyle.SetColorAndOpacity(GetColorAndOpacity());
+		ComputedStyle.SetShadowOffset(GetShadowOffset());
+		ComputedStyle.SetShadowColorAndOpacity(GetShadowColorAndOpacity());
+		ComputedStyle.SetHighlightColor(GetHighlightColor());
+		ComputedStyle.SetHighlightShape(*GetHighlightShape());
+		return ComputedStyle;
+	}
+	else
+	{
+		return FTextBlockStyle();
+	}
 }

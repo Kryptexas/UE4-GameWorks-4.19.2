@@ -71,7 +71,10 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 {
 	// Suspend async loading thread so that it doesn't start queueing render commands 
 	// while the render thread is suspended.
-	SuspendAsyncLoading();
+	if (IsAsyncLoadingMultithreaded())
+	{
+		SuspendAsyncLoading();
+	}
 
 	bRecreateThread = bInRecreateThread;
 	bUseRenderingThread = GUseThreadedRendering;
@@ -175,7 +178,10 @@ FSuspendRenderingThread::~FSuspendRenderingThread()
 		// Resume the render thread again. 
 		FPlatformAtomics::InterlockedDecrement( &GIsRenderingThreadSuspended );
 	}
-	ResumeAsyncLoading();
+	if (IsAsyncLoadingMultithreaded())
+	{
+		ResumeAsyncLoading();
+	}
 }
 
 
@@ -261,8 +267,10 @@ public:
 
 	virtual uint32 Run()
 	{
+		FMemory::SetupTLSCachesOnCurrentThread();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::RHIThread);
 		FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::RHIThread);
+		FMemory::ClearAndDisableTLSCachesOnCurrentThread();
 		return 0;
 	}
 
@@ -305,10 +313,12 @@ void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 	}
 #endif
 
+	FCoreDelegates::PostRenderingThreadCreated.Broadcast();
 	check(GIsThreadedRendering);
 	FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::RenderThread);
 	FPlatformMisc::MemoryBarrier();
 	check(!GIsThreadedRendering);
+	FCoreDelegates::PreRenderingThreadDestroyed.Broadcast();
 	
 #if STATS
 	if (FThreadStats::WillEverCollectData())
@@ -416,6 +426,7 @@ public:
 
 	virtual uint32 Run(void) override
 	{
+		FMemory::SetupTLSCachesOnCurrentThread();
 		FPlatformProcess::SetupGameOrRenderThread(true);
 
 #if PLATFORM_WINDOWS
@@ -445,6 +456,7 @@ public:
 		{
 			RenderingThreadMain( TaskGraphBoundSyncEvent );
 		}
+		FMemory::ClearAndDisableTLSCachesOnCurrentThread();
 		return 0;
 	}
 };
@@ -518,6 +530,17 @@ struct FConsoleRenderThreadPropagation : public IConsoleThreadPropagation
 			OnCVarChange2,
 			float&, Dest, Dest,
 			float, NewValue, NewValue,
+		{
+			Dest = NewValue;
+		});
+	}
+
+	virtual void OnCVarChange(bool& Dest, bool NewValue)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			OnCVarChange2,
+			bool&, Dest, Dest,
+			bool, NewValue, NewValue,
 		{
 			Dest = NewValue;
 		});
@@ -954,3 +977,48 @@ FPendingCleanupObjects* GetPendingCleanupObjects()
 {
 	return new FPendingCleanupObjects;
 }
+
+void SetRHIThreadEnabled(bool bEnable)
+{
+	if (bEnable != GUseRHIThread)
+	{
+		if (GRHISupportsRHIThread)
+		{
+			if (!GIsThreadedRendering)
+			{
+				check(!GRHIThread);
+				UE_LOG(LogRendererCore, Display, TEXT("Can't switch to RHI thread mode when we are not running a multithreaded renderer."));
+			}
+			else
+			{
+				StopRenderingThread();
+				GUseRHIThread = bEnable;
+				StartRenderingThread();
+			}
+			UE_LOG(LogRendererCore, Display, TEXT("RHIThread is now %s."), GRHIThread ? TEXT("active") : TEXT("inactive"));
+		}
+		else
+		{
+			UE_LOG(LogRendererCore, Display, TEXT("This RHI does not support the RHI thread."));
+		}
+	}
+}
+
+static void HandleRHIThreadEnableChanged(const TArray<FString>& Args)
+{
+	if (Args.Num() > 0)
+	{
+		const bool bUseRHIThread = Args[0].ToBool();
+		SetRHIThreadEnabled(bUseRHIThread);
+	}
+	else
+	{
+		UE_LOG(LogRendererCore, Display, TEXT("Usage: r.RHIThread.Enable 0/1"));
+	}
+}
+
+static FAutoConsoleCommand CVarRHIThreadEnable(
+	TEXT("r.RHIThread.Enable"),
+	TEXT("Enables/disabled the RHI Thread\n"),	
+	FConsoleCommandWithArgsDelegate::CreateStatic(&HandleRHIThreadEnableChanged)
+	);

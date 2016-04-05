@@ -8,10 +8,6 @@
 DEFINE_LOG_CATEGORY(OodleHandlerComponentLog);
 
 
-// @todo #JohnB: IMPORTANT: Do not add any placeholders for the compression-toggling into the protocol yet. Needs careful planning,
-//					might not be packet-based compression, but bunch-based.
-
-
 // @todo #JohnB: Deprecate the 'training' mode name from this handler eventually, as it is misnamed/confusing
 
 // @todo #JohnB: You need context-sensitive data capturing; e.g. you do NOT want to be capturing voice channel data
@@ -705,6 +701,9 @@ bool OodleHandlerComponent::IsValid() const
 
 void OodleHandlerComponent::Incoming(FBitReader& Packet)
 {
+	// Oodle must be the first HandlerComponent to process incoming packets, so does not support bit-shifted reads
+	check(Packet.GetPosBits() == 0);
+
 	if (bEnableOodle)
 	{
 		switch(Mode)
@@ -715,9 +714,13 @@ void OodleHandlerComponent::Incoming(FBitReader& Packet)
 				if (Handler->Mode == Handler::Mode::Server)
 				{
 					uint32 SizeOfPacket = Packet.GetNumBytes();
-					void* PacketData = Packet.GetData();
 
-					InPacketLog->SerializePacket(PacketData, SizeOfPacket);
+					if (SizeOfPacket > 0)
+					{
+						void* PacketData = Packet.GetData();
+
+						InPacketLog->SerializePacket(PacketData, SizeOfPacket);
+					}
 				}
 				break;
 			}
@@ -752,9 +755,14 @@ void OodleHandlerComponent::Incoming(FBitReader& Packet)
 															CompressedLength, DecompressedData, DecompressedLength);
 						}
 
+
+
 						if (!bSuccess)
 						{
 							// @todo #JohnB: Set packet archive error and allow in shipping - see note below
+
+							// @todo #JohnB: I don't think this is always an error. This may occur when Oodle decides not to compress,
+							//					in which case it should fall-through below (i.e. 'Packet' should remain unmodified)
 #if !UE_BUILD_SHIPPING
 							UE_LOG(OodleHandlerComponentLog, Error, TEXT("Error decoding Oodle network data."));
 #endif
@@ -817,7 +825,10 @@ void OodleHandlerComponent::Outgoing(FBitWriter& Packet)
 				{
 					uint32 SizeOfPacket = Packet.GetNumBytes();
 
-					OutPacketLog->SerializePacket((void*)Packet.GetData(), SizeOfPacket);
+					if (SizeOfPacket > 0)
+					{
+						OutPacketLog->SerializePacket((void*)Packet.GetData(), SizeOfPacket);
+					}
 				}
 				break;
 			}
@@ -906,6 +917,16 @@ int32 OodleHandlerComponent::GetPacketOverheadBits()
 	return ReturnVal;
 }
 
+uint8 OodleHandlerComponent::GetBitAlignment()
+{
+	return (GetPacketOverheadBits() % 8);
+}
+
+bool OodleHandlerComponent::DoesResetBitAlignment()
+{
+	return true;
+}
+
 
 #if !UE_BUILD_SHIPPING
 /**
@@ -918,6 +939,7 @@ static bool OodleExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 	if (FParse::Command(&Cmd, TEXT("Oodle")))
 	{
 		// Used by unit testing code, to enable/disable Oodle during a unit test
+		// NOTE: Do not use while a NetConnection is using Oodle, as this will cause it to break. Debugging/Testing only.
 		if (FParse::Command(&Cmd, TEXT("ForceEnable")))
 		{
 			bool bTurnOn = false;

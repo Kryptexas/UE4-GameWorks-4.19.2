@@ -59,8 +59,10 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->TransparencySupport = InArgs._SupportsTransparency.Value;
 	this->Opacity = InArgs._InitialOpacity;
 	this->bInitiallyMaximized = InArgs._IsInitiallyMaximized;
+	this->bInitiallyMinimized = InArgs._IsInitiallyMinimized;
 	this->SizingRule = InArgs._SizingRule;
 	this->bIsPopupWindow = InArgs._IsPopupWindow;
+	this->bIsTopmostWindow = InArgs._IsTopmostWindow;
 	this->bFocusWhenFirstShown = InArgs._FocusWhenFirstShown;
 	this->bActivateWhenFirstShown = InArgs._ActivateWhenFirstShown;
 	this->bHasOSWindowBorder = InArgs._UseOSWindowBorder;
@@ -162,7 +164,7 @@ void SWindow::Construct(const FArguments& InArgs)
 			WindowSize.X = FMath::Min(WindowSize.X, AutoCenterRect.GetSize().X);
 			WindowSize.Y = FMath::Min(WindowSize.Y, AutoCenterRect.GetSize().Y);
 		}
-
+		
 		// Setup a position and size for the main frame window that's centered in the desktop work area
 		const FVector2D DisplayTopLeft( AutoCenterRect.Left, AutoCenterRect.Top );
 		const FVector2D DisplaySize( AutoCenterRect.Right - AutoCenterRect.Left, AutoCenterRect.Bottom - AutoCenterRect.Top );
@@ -178,7 +180,7 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->InitialDesiredSize = WindowSize;
 
 	// Resize adds extra borders / title bar if necessary, but this is already taken into account in WindowSize, so subtract them again first
-	Resize(WindowSize -DeltaSize);
+	Resize(WindowSize - DeltaSize);
 
 	// Window visibility is currently driven by whether the window is interactive.
 	this->Visibility = TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateRaw(this, &SWindow::GetWindowVisibility) );
@@ -217,11 +219,11 @@ TSharedRef<SWindow> SWindow::MakeToolTipWindow()
 	TSharedRef<SWindow> NewWindow = SNew( SWindow )
 		.Type( EWindowType::ToolTip )
 		.IsPopupWindow( true )
-		.SizingRule( ESizingRule::Autosized )
+		.IsTopmostWindow(true)
+		.SizingRule(ESizingRule::Autosized)
 		.SupportsTransparency( EWindowTransparency::PerWindow )
 		.FocusWhenFirstShown( false )
 		.ActivateWhenFirstShown( false );
-	NewWindow->bIsTopmostWindow = true;
 	NewWindow->Opacity = 0.0f;
 
 	// NOTE: These sizes are tweaked for SToolTip widgets (text wrap width of around 400 px)
@@ -238,11 +240,11 @@ TSharedRef<SWindow> SWindow::MakeCursorDecorator()
 	TSharedRef<SWindow> NewWindow = SNew( SWindow )
 		.Type( EWindowType::CursorDecorator )
 		.IsPopupWindow( true )
-		.SizingRule( ESizingRule::Autosized )
+		.IsTopmostWindow(true)
+		.SizingRule(ESizingRule::Autosized)
 		.SupportsTransparency( EWindowTransparency::PerWindow )
 		.FocusWhenFirstShown( false )
 		.ActivateWhenFirstShown( false );
-	NewWindow->bIsTopmostWindow = true;
 	NewWindow->Opacity = 1.0f;
 
 	return NewWindow;
@@ -988,6 +990,10 @@ void SWindow::ShowWindow()
 		// Set the window to be maximized if we need to.  Note that this won't actually show the window if its not
 		// already shown.
 		InitialMaximize();
+
+		// Set the window to be minimized if we need to.  Note that this won't actually show the window if its not
+		// already shown.
+		InitialMinimize();
 	}
 
 	bHasEverBeenShown = true;
@@ -1057,6 +1063,14 @@ void SWindow::InitialMaximize()
 	if (NativeWindow.IsValid() && bInitiallyMaximized)
 	{
 		NativeWindow->Maximize();
+	}
+}
+
+void SWindow::InitialMinimize()
+{
+	if (NativeWindow.IsValid() && bInitiallyMinimized)
+	{
+		NativeWindow->Minimize();
 	}
 }
 
@@ -1508,9 +1522,10 @@ SWindow::SWindow()
 	, bIsTopmostWindow( false )
 	, bSizeWillChangeOften( false )
 	, bInitiallyMaximized( false )
+	, bInitiallyMinimized(false)
 	, bHasEverBeenShown( false )
-	, bFocusWhenFirstShown(true)
-	, bActivateWhenFirstShown(true)
+	, bFocusWhenFirstShown( true )
+	, bActivateWhenFirstShown( true )
 	, bHasOSWindowBorder( false )
 	, bHasCloseButton( false )
 	, bHasMinimizeButton( false )

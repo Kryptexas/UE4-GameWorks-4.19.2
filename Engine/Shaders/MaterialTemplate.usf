@@ -18,6 +18,10 @@
 
 #define NUM_MATERIAL_TEXCOORDS_VERTEX %s
 #define NUM_MATERIAL_TEXCOORDS %s
+
+#ifdef MIN_MATERIAL_TEXCOORDS 
+	#include "MinMaterialTexCoords.usf"
+#endif
  
 #if MATERIAL_ATMOSPHERIC_FOG
 	#include "AtmosphereCommon.usf"
@@ -203,7 +207,7 @@ struct FMaterialPixelParameters
 FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 {
 	FMaterialPixelParameters MPP;
-#if SM5_PROFILE || SM4_PROFILE || PS4_PROFILE || (ES2_PROFILE || ES3_1_PROFILE)
+#if SM5_PROFILE || SM4_PROFILE || PS4_PROFILE || (ES2_PROFILE || ES3_1_PROFILE) || METAL_SM5_PROFILE || METAL_SM4_PROFILE || METAL_MRT_PROFILE
 	MPP = (FMaterialPixelParameters)0;
 #else
 	// @todo compat hack - put back to the 0 typecast (2 lines up)
@@ -1150,7 +1154,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 	else if (SceneTextureIndex == 23)	return ScreenSpaceData.AmbientOcclusion;
 	else if (SceneTextureIndex == 24)	return ScreenSpaceData.GBuffer.CustomStencil;
 	else if (SceneTextureIndex == 25)	return float4(ScreenSpaceData.GBuffer.StoredBaseColor, 0);
-	else if (SceneTextureIndex == 26)	return float4(ScreenSpaceData.GBuffer.StoredSpecular, 0);
+	else if (SceneTextureIndex == 26)	return float4(ScreenSpaceData.GBuffer.StoredSpecular.rrr, 0);
 #else
 	switch(SceneTextureIndex)
 	{
@@ -1211,7 +1215,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		// PPI_StoredBaseColor
 		case 25: return float4(ScreenSpaceData.GBuffer.StoredBaseColor, 0);
 		// PPI_StoredSpecular
-		case 26: return float4(ScreenSpaceData.GBuffer.StoredSpecular, 0);
+		case 26: return float4(ScreenSpaceData.GBuffer.StoredSpecular.rrr, 0);
 		default:
 			return float4(0, 0, 0, 0);
 	}
@@ -1525,7 +1529,8 @@ void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out 
 #endif
 
 	// normalizing after the tangent space to world space conversion improves quality with sheared bases (UV layout to WS causes shrearing)
-	Parameters.WorldNormal = normalize(TransformTangentVectorToWorld(Parameters.TangentToWorld, Parameters.TangentNormal));
+	// use full precision normalize to avoid overflows
+	Parameters.WorldNormal = normalize(float3(TransformTangentVectorToWorld(Parameters.TangentToWorld, Parameters.TangentNormal)));
 #else
 	// Here we don't supoport two sided materials
 	Parameters.TangentNormal = Parameters.WorldNormal = normalize(Parameters.TangentNormal);
@@ -1789,6 +1794,9 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 	#define OPTIONAL_OutDepthConservative
 	#define OPTIONAL_OutDepth
 #endif
+
+// Using SV_ClipDistance has overhead (15% slower base pass in triangle bound test scene on PS4) so projects have to opt-in
+#define USE_GLOBAL_CLIP_PLANE (SUPPORT_GLOBAL_CLIP_PLANE && PROJECT_ALLOW_GLOBAL_CLIP_PLANE)
 
 float ApplyPixelDepthOffsetToMaterialParameters(inout FMaterialPixelParameters MaterialParameters, FPixelMaterialInputs PixelMaterialInputs, out float OutDepth)
 {

@@ -133,6 +133,7 @@ public:
 void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor, const UBlueprint* InBlueprint )
 {
 	bNeedsRefresh = false;
+	bShowReplicatedVariablesOnly = false;
 
 	BlueprintEditorPtr = InBlueprintEditor;
 	EdGraph = nullptr;
@@ -290,6 +291,20 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton,
 		TEXT("MyBlueprint_ShowEmptySections")
+	);
+
+	ViewOptions.AddMenuEntry(
+		LOCTEXT("ShowReplicatedVariablesOnly", "Show Replicated Variables Only"),
+		LOCTEXT("ShowReplicatedVariablesOnlyTooltip", "Should we only show variables that are replicated?"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnToggleShowReplicatedVariablesOnly),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &SMyBlueprint::IsShowingReplicatedVariablesOnly)
+		),
+		NAME_None,
+		EUserInterfaceActionType::ToggleButton,
+		TEXT("MyBlueprint_ShowReplicatedVariablesOnly")
 	);
 
 	SAssignNew(FilterBox, SSearchBox)
@@ -990,6 +1005,8 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		FieldIteratorSuperFlag = EFieldIteratorFlags::ExcludeSuper;
 	}
 
+	bool bShowReplicatedOnly = IsShowingReplicatedVariablesOnly();
+
 	// Helper structure to aid category sorting
 	struct FGraphActionSort
 	{
@@ -1083,6 +1100,12 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 	{
 		UProperty* Property = *PropertyIt;
 		FName PropName = Property->GetFName();
+
+		// If we're showing only replicated, ignore the rest
+		if (bShowReplicatedOnly && (!Property->HasAnyPropertyFlags(CPF_Net | CPF_RepNotify) || Property->HasAnyPropertyFlags(CPF_RepSkip)))
+		{
+			continue;
+		}
 		
 		// Don't show delegate properties, there is special handling for these
 		const bool bMulticastDelegateProp = Property->IsA(UMulticastDelegateProperty::StaticClass());
@@ -1167,9 +1190,10 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
 		FText FunctionCategory;
-		if (BlueprintObj->SkeletonGeneratedClass)
+		if (BlueprintObj->SkeletonGeneratedClass != nullptr)
 		{
-			if(UFunction* Function = BlueprintObj->SkeletonGeneratedClass->FindFunctionByName(Graph->GetFName()))
+			UFunction* Function = BlueprintObj->SkeletonGeneratedClass->FindFunctionByName(Graph->GetFName());
+			if (Function != nullptr)
 			{
 				FunctionCategory = Function->GetMetaDataText(FBlueprintMetadata::MD_FunctionCategory, TEXT("UObjectCategory"), Function->GetFullGroupName(false));
 			}
@@ -1177,7 +1201,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 
 		//@TODO: Should be a bit more generic (or the AnimGraph shouldn't be stored as a FunctionGraph...)
 		int32 SectionID = Graph->IsA<UAnimationGraph>() ? NodeSectionID::GRAPH : NodeSectionID::FUNCTION;
-		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Function, FunctionCategory, DisplayInfo.PlainName, DisplayInfo.Tooltip, bIsConstructionScript ? 2 : 1, SectionID));
+		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Function, FunctionCategory, DisplayInfo.DisplayName, DisplayInfo.Tooltip, bIsConstructionScript ? 2 : 1, SectionID));
 		NewFuncAction->FuncName = Graph->GetFName();
 		NewFuncAction->EdGraph = Graph;
 
@@ -1201,7 +1225,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 
 		FText MacroCategory = GetGraphCategory(Graph);
 
-		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewMacroAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Macro, MacroCategory, DisplayInfo.PlainName, DisplayInfo.Tooltip, 1, NodeSectionID::MACRO));
+		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewMacroAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Macro, MacroCategory, DisplayInfo.DisplayName, DisplayInfo.Tooltip, 1, NodeSectionID::MACRO));
 		NewMacroAction->FuncName = MacroName;
 		NewMacroAction->EdGraph = Graph;
 		OutAllActions.AddAction(NewMacroAction);
@@ -1319,7 +1343,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		FGraphDisplayInfo DisplayInfo;
 		Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
-		TSharedPtr<FEdGraphSchemaAction_K2Graph> NeUbergraphAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Graph, FText::GetEmpty(), DisplayInfo.PlainName, DisplayInfo.Tooltip, 2, NodeSectionID::GRAPH));
+		TSharedPtr<FEdGraphSchemaAction_K2Graph> NeUbergraphAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Graph, FText::GetEmpty(), DisplayInfo.DisplayName, DisplayInfo.Tooltip, 2, NodeSectionID::GRAPH));
 		NeUbergraphAction->FuncName = Graph->GetFName();
 		NeUbergraphAction->EdGraph = Graph;
 		OutAllActions.AddAction(NeUbergraphAction);
@@ -1415,6 +1439,17 @@ void SMyBlueprint::OnToggleShowEmptySections()
 bool SMyBlueprint::IsShowingEmptySections() const
 {
 	return GetMutableDefault<UBlueprintEditorSettings>()->bShowEmptySections;
+}
+
+void SMyBlueprint::OnToggleShowReplicatedVariablesOnly()
+{
+	bShowReplicatedVariablesOnly = !bShowReplicatedVariablesOnly;
+	Refresh();
+}
+
+bool SMyBlueprint::IsShowingReplicatedVariablesOnly() const
+{
+	return bShowReplicatedVariablesOnly;
 }
 
 FReply SMyBlueprint::OnActionDragged( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, const FPointerEvent& MouseEvent )
@@ -2153,7 +2188,7 @@ void SMyBlueprint::OnFindReference()
 	}
 	else if (FEdGraphSchemaAction_K2Event* EventAction = SelectionAsEvent())
 	{
-		SearchTerm = EventAction->GetMenuDescription().ToString();
+		SearchTerm = EventAction->NodeTemplate->GetFindReferenceSearchString();
 	}
 	else if (FEdGraphSchemaAction_K2InputAction* InputAction = SelectionAsInputAction())
 	{

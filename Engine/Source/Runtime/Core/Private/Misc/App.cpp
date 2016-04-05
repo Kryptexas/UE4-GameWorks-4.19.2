@@ -21,6 +21,7 @@ double FApp::FixedDeltaTime = 1 / 30.0;
 double FApp::CurrentTime = 0.0;
 double FApp::LastTime = 0.0;
 double FApp::DeltaTime = 1 / 30.0;
+double FApp::IdleTime = 0.0;
 float FApp::VolumeMultiplier = 1.0f;
 float FApp::UnfocusedVolumeMultiplier = 0.0f;
 bool FApp::bUseVRFocus = false;
@@ -183,12 +184,12 @@ bool FApp::ShouldUseThreadingForPerformance()
 #endif // HAVE_RUNTIME_THREADING_SWITCHES
 
 
-static bool GUnfocusedVolumeMultiplierItialised = false;
+static bool GUnfocusedVolumeMultiplierInitialised = false;
 float FApp::GetUnfocusedVolumeMultiplier()
 {
-	if (!GUnfocusedVolumeMultiplierItialised)
+	if (!GUnfocusedVolumeMultiplierInitialised)
 	{
-		GUnfocusedVolumeMultiplierItialised = true;
+		GUnfocusedVolumeMultiplierInitialised = true;
 		GConfig->GetFloat(TEXT("Audio"), TEXT("UnfocusedVolumeMultiplier"), UnfocusedVolumeMultiplier, GEngineIni);
 	}
 	return UnfocusedVolumeMultiplier;
@@ -197,7 +198,7 @@ float FApp::GetUnfocusedVolumeMultiplier()
 void FApp::SetUnfocusedVolumeMultiplier(float InVolumeMultiplier)
 {
 	UnfocusedVolumeMultiplier = InVolumeMultiplier;
-	GUnfocusedVolumeMultiplierItialised = true;
+	GUnfocusedVolumeMultiplierInitialised = true;
 }
 
 void FApp::SetUseVRFocus(bool bInUseVRFocus)

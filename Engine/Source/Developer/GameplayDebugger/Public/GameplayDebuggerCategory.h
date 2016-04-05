@@ -73,16 +73,30 @@ public:
 	void DrawCategory(APlayerController* OwnerPC, FGameplayDebuggerCanvasContext& CanvasContext);
 
 	/** [LOCAL] check if category should be drawn */
-	bool ShouldDrawCategory(AActor* DebugActor) const { return IsCategoryEnabled() && (!bShowOnlyWithDebugActor || IsValid(DebugActor)); }
+	bool ShouldDrawCategory(bool bHasDebugActor) const { return IsCategoryEnabled() && (!bShowOnlyWithDebugActor || bHasDebugActor); }
+
+	/** [LOCAL] check if data pack replication status  */
+	bool ShouldDrawReplicationStatus() const { return bShowDataPackReplication; }
 
 	/** [ALL] get name of category */
 	FName GetCategoryName() const { return CategoryName; }
 
+	/** [ALL] check if category header should be drawn */
+	bool IsCategoryHeaderVisible() const { return bShowCategoryName; }
+
+	/** [ALL] check if category is enabled */
 	bool IsCategoryEnabled() const { return bIsEnabled; }
+
+	/** [ALL] check if category is local (present data) */
+	bool IsCategoryLocal() const { return bIsLocal; }
+
+	/** [ALL] check if category has authority (collects data) */
+	bool IsCategoryAuth() const { return bHasAuthority; }
 
 	int32 GetNumDataPacks() const { return ReplicatedDataPacks.Num(); }
 	float GetDataPackProgress(int32 DataPackId) const { return ReplicatedDataPacks.IsValidIndex(DataPackId) ? ReplicatedDataPacks[DataPackId].GetProgress() : 0.0f; }
 	bool IsDataPackReplicating(int32 DataPackId) const { return ReplicatedDataPacks.IsValidIndex(DataPackId) && ReplicatedDataPacks[DataPackId].IsInProgress(); }
+	FGameplayDebuggerDataPack::FHeader GetDataPackHeaderCopy(int32 DataPackId) const { return ReplicatedDataPacks.IsValidIndex(DataPackId) ? ReplicatedDataPacks[DataPackId].Header : FGameplayDebuggerDataPack::FHeader(); }
 
 protected:
 
@@ -96,11 +110,10 @@ protected:
 	FString GetSceneProxyViewFlag() const;
 
 	/** [ALL] sets up DataPack replication, needs address of property holding data, DataPack's struct must define Serialize(FArchive& Ar) function
-	 *  flags: AutoResetData  - DataPack struct will be reset before each CollectData call
 	 *  returns DataPackId
 	 */
 	template<typename T>
-	int32 SetDataPackReplication(T* DataPackAddr, EGameplayDebuggerDataPack Flags = EGameplayDebuggerDataPack::AutoResetData)
+	int32 SetDataPackReplication(T* DataPackAddr, EGameplayDebuggerDataPack Flags = EGameplayDebuggerDataPack::ResetOnTick)
 	{
 		FGameplayDebuggerDataPack NewDataPack;
 		NewDataPack.PackId = ReplicatedDataPacks.Num();

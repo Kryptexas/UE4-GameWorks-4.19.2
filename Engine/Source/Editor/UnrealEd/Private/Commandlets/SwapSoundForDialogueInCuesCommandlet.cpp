@@ -1,8 +1,7 @@
 #include "UnrealEd.h"
 #include "Commandlets/SwapSoundForDialogueInCuesCommandlet.h"
-#include "Commandlets/GatherTextCommandletBase.h" // We use FGatherTextSCC since it's a nice wrapper around the default SCC
+#include "Commandlets/GatherTextCommandletBase.h" // We use some of the nice wrapper and util functions from the loc commandlet
 #include "AssetRegistryModule.h"
-#include "PackageHelperFunctions.h"
 #include "Sound/DialogueWave.h"
 #include "Sound/SoundWave.h"
 #include "Sound/SoundNode.h"
@@ -38,8 +37,9 @@ int32 USwapSoundForDialogueInCuesCommandlet::Main(const FString& Params)
 		}
 	}
 
+	// We only want dialogue wave assets that exist within the Game content directory.
 	TArray<FAssetData> AssetDataArrayForDialogueWaves;
-	if (!AssetRegistry.GetAssetsByClass(UDialogueWave::StaticClass()->GetFName(), AssetDataArrayForDialogueWaves, true))
+	if (!FLocalizedAssetUtil::GetAssetsByPathAndClass(AssetRegistry, FName("/Game"), UDialogueWave::StaticClass()->GetFName(), /*bIncludeLocalizedAssets*/false, AssetDataArrayForDialogueWaves))
 	{
 		UE_LOG(LogSwapSoundForDialogueInCuesCommandlet, Error, TEXT("Unable to get dialogue wave asset data from asset registry."));
 		return -1;
@@ -169,28 +169,9 @@ int32 USwapSoundForDialogueInCuesCommandlet::Main(const FString& Params)
 				}
 				SoundCue->MarkPackageDirty();
 
-				UPackage* const SoundCuePackage = SoundCue->GetOutermost();
-
-				// Verify sound cue package exists.
-				if (!SoundCuePackage)
-				{
-					UE_LOG(LogSwapSoundForDialogueInCuesCommandlet, Error, TEXT("Unable to find package for sound cue (%s)."), *SoundCueAssetData.AssetName.ToString());
-					continue;
-				}
-
 				// Execute save.
-				const FString PackageFileName = FPackageName::LongPackageNameToFilename(SoundCueAssetData.PackageName.ToString(), FPackageName::GetAssetPackageExtension(), false);
-				if (bEnableSourceControl)
+				if (!FLocalizedAssetSCCUtil::SaveAssetWithSCC(SourceControlInfo, SoundCue))
 				{
-					FText SCCErrorStr;
-					if (!SourceControlInfo->CheckOutFile(PackageFileName, SCCErrorStr))
-					{
-						UE_LOG(LogSwapSoundForDialogueInCuesCommandlet, Error, TEXT("Failed to check-out sound cue (%s) at (%s). %s"), *AssetData.AssetName.ToString(), *PackageFileName, *SCCErrorStr.ToString());
-					}
-				}
-				if (!SavePackageHelper(SoundCuePackage, PackageFileName))
-				{
-					UE_LOG(LogSwapSoundForDialogueInCuesCommandlet, Error, TEXT("Unable to save updated package for sound cue (%s) at (%s)."), *SoundCueAssetData.AssetName.ToString(), *PackageFileName);
 					continue;
 				}
 			}

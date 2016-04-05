@@ -11,18 +11,37 @@
 #include "SignedArchiveReader.h"
 #include "PublicKey.inl"
 
-DECLARE_CYCLE_STAT( TEXT( "FChunkCacheWorker.ProcessQueue" ), STAT_FChunkCacheWorker_ProcessQueue, STATGROUP_PakFile );
-DECLARE_CYCLE_STAT( TEXT( "FChunkCacheWorker.CheckSignature" ), STAT_FChunkCacheWorker_CheckSignature, STATGROUP_PakFile );
-DECLARE_CYCLE_STAT( TEXT( "FSignedArchiveReader.Serialize" ), STAT_SignedArchiveReader_Serialize, STATGROUP_PakFile );
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.ProcessQueue"), STAT_FChunkCacheWorker_ProcessQueue, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.CheckSignature"), STAT_FChunkCacheWorker_CheckSignature, STATGROUP_PakFile);
 
-FChunkCacheWorker::FChunkCacheWorker(FArchive* InReader)
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.Serialize"), STAT_FChunkCacheWorker_Serialize, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.HashBuffer"), STAT_FChunkCacheWorker_HashBuffer, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.DecryptDuringIdle"), STAT_FChunkCacheWorker_DecryptDuringIdle, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.DecryptDuringVerify"), STAT_FChunkCacheWorker_DecryptDuringVerify, STATGROUP_PakFile);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.WaitForHashThread"), STAT_FChunkCacheWorker_WaitForHashThread, STATGROUP_PakFile);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.SignaturesDecryptedDuringVerify"), STAT_FChunkCacheWorker_SignaturesDecryptedDuringVerify, STATGROUP_PakFile);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.SignaturesDecryptedDuringIdle"), STAT_FChunkCacheWorker_SignaturesDecryptedDuringIdle, STATGROUP_PakFile);
+
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FSignedArchiveReader.Serialize"), STAT_SignedArchiveReader_Serialize, STATGROUP_PakFile);
+
+FChunkCacheWorker::FChunkCacheWorker(FArchive* InReader, const TCHAR* Filename)
 	: Reader(InReader)
 	, QueuedRequestsEvent(NULL)
 {
-	DecryptionKey.Exponent.Parse(DECRYPTION_KEY_EXPONENT);
-	DecryptionKey.Modulus.Parse(DECYRPTION_KEY_MODULUS);
-	// Public key should never be zero at this point. Check PublicKey.inl for more details.
-	check(!DecryptionKey.Exponent.IsZero() && !DecryptionKey.Modulus.IsZero());
+	FString SigFileFilename = FPaths::ChangeExtension(Filename, TEXT("sig"));
+	FArchive* SigFileReader = IFileManager::Get().CreateFileReader(*SigFileFilename);
+
+	if (SigFileReader == nullptr)
+	{
+		UE_LOG(LogPakFile, Fatal, TEXT("Couldn't find pak signature file '%s'"), *Filename);
+	}
+
+	*SigFileReader << EncryptedSignatures;
+	delete SigFileReader;
+
+	DecryptedSignatures.AddDefaulted(EncryptedSignatures.Num());
+
+	SetupDecryptionKey();
 
 	QueuedRequestsEvent = FPlatformProcess::GetSynchEventFromPool();
 	Thread = FRunnableThread::Create(this, TEXT("FChunkCacheWorker"), 0, TPri_BelowNormal);
@@ -41,14 +60,81 @@ bool FChunkCacheWorker::Init()
 	return true;
 }
 
+void FChunkCacheWorker::SetupDecryptionKey()
+{
+	DecryptionKey.Exponent.Parse(DECRYPTION_KEY_EXPONENT);
+	DecryptionKey.Modulus.Parse(DECRYPTION_KEY_MODULUS);
+	// Public key should never be zero at this point. Check PublicKey.inl for more details.
+	UE_CLOG(DecryptionKey.Exponent.IsZero() || DecryptionKey.Modulus.IsZero(), LogPakFile, Fatal, TEXT("Invalid decryption key detected"));
+	// Public key should produce decrypted results - check for identity keys
+	static TEncryptionInt TestValues[] = 
+	{
+		11,
+		23,
+		67,
+		121,
+		180,
+		211
+	};
+	bool bIdentical = true;
+	for (int32 Index = 0; bIdentical && Index < ARRAY_COUNT(TestValues); ++Index)
+	{
+		TEncryptionInt DecryptedValue = FEncryption::ModularPow(TestValues[Index], DecryptionKey.Exponent, DecryptionKey.Modulus);
+		bIdentical = (DecryptedValue == TestValues[Index]);
+	}	
+	UE_CLOG(bIdentical, LogPakFile, Fatal, TEXT("Decryption key produces identical results to source data."));
+}
+
+void FChunkCacheWorker::DecryptSignatures(int32 NextIndexToDecrypt)
+{
+	FDecryptedSignature& DecryptedSignature = DecryptedSignatures[NextIndexToDecrypt];
+
+	// Check to see if this signature was already decrypted.
+	if (!DecryptedSignature.IsValid())
+	{
+		INC_DWORD_STAT(STAT_FChunkCacheWorker_SignaturesDecryptedDuringIdle);
+		SCOPE_SECONDS_ACCUMULATOR(STAT_FChunkCacheWorker_DecryptDuringIdle);
+		FEncryptedSignature& EncryptedSignature = EncryptedSignatures[NextIndexToDecrypt];
+		FEncryption::DecryptSignature(EncryptedSignature, DecryptedSignature, DecryptionKey);
+	}
+}
+
 uint32 FChunkCacheWorker::Run()
 {
+	int32 NextIndexToDecrypt = 0;
+	StartTime = FPlatformTime::Seconds();
+	
 	while (StopTaskCounter.GetValue() == 0)
 	{
 		int32 ProcessedRequests = ProcessQueue();		
 		if (ProcessedRequests == 0)
 		{
-			QueuedRequestsEvent->Wait(500);
+			uint32 WaitTime = 500;
+
+			// Try and decrypt some signatures if there are any left
+			if (EncryptedSignatures.Num() > 0)
+			{
+				check(NextIndexToDecrypt < EncryptedSignatures.Num());
+
+				DecryptSignatures(NextIndexToDecrypt);
+
+				if (++NextIndexToDecrypt == EncryptedSignatures.Num())
+				{
+					// Dump the encrypted signatures as we don't need them anymore
+					EncryptedSignatures.Empty();
+					NextIndexToDecrypt = 0;
+					double Time = FPlatformTime::Seconds() - StartTime;
+					UE_LOG(LogPakFile, Log, TEXT("PakFile signature decryption complete in %.2fs"), Time);
+				}
+				else
+				{
+					// There are more signatures to decrypt, so don't stall on event wait if there are
+					// no pending chunk requests
+					WaitTime = 0;
+				}
+			}
+
+			QueuedRequestsEvent->Wait(WaitTime);
 		}
 	}
 	return 0;
@@ -109,7 +195,7 @@ void FChunkCacheWorker::ReleaseBuffer(int32 ChunkIndex)
 
 int32 FChunkCacheWorker::ProcessQueue()
 {
-	SCOPE_CYCLE_COUNTER( STAT_FChunkCacheWorker_ProcessQueue );
+	SCOPE_SECONDS_ACCUMULATOR(STAT_FChunkCacheWorker_ProcessQueue);
 
 	// Add the queue to the active requests list
 	{
@@ -166,34 +252,34 @@ int32 FChunkCacheWorker::ProcessQueue()
 	return ProcessedRequests;
 }
 
-void FChunkCacheWorker::Decrypt(uint8* DecryptedData, const int256* Data, const int64 DataLength)
-{
-	for (int64 Index = 0; Index < DataLength; ++Index)
-	{
-		int256 DecryptedByte = FEncryption::ModularPow(Data[Index], DecryptionKey.Exponent, DecryptionKey.Modulus);
-		DecryptedData[Index] = (uint8)DecryptedByte.ToInt();
-	}
-}
-
 bool FChunkCacheWorker::CheckSignature(const FChunkRequest& ChunkInfo)
 {
-	SCOPE_CYCLE_COUNTER( STAT_FChunkCacheWorker_CheckSignature );
+	SCOPE_SECONDS_ACCUMULATOR(STAT_FChunkCacheWorker_CheckSignature);
 
-	FSignature Signature;
-	Reader->Seek(ChunkInfo.Offset);
-	Reader->Serialize(ChunkInfo.Buffer->Data, ChunkInfo.Size);
-	Signature.Serialize(*Reader);
+	FDecryptedSignature SourceSignature;
 
-	// Hash data
-	uint8 Hash[20];
-	FSHA1::HashBuffer(ChunkInfo.Buffer->Data, ChunkInfo.Size, Hash);
+	{
+		SCOPE_SECONDS_ACCUMULATOR(STAT_FChunkCacheWorker_Serialize);
+		Reader->Seek(ChunkInfo.Offset);
+		Reader->Serialize(ChunkInfo.Buffer->Data, ChunkInfo.Size);
+	}
+	{
+		SCOPE_SECONDS_ACCUMULATOR(STAT_FChunkCacheWorker_HashBuffer);
+		SourceSignature.Data = FCrc::MemCrc32(ChunkInfo.Buffer->Data, ChunkInfo.Size);
+	}
 
 	// Decrypt serialized hash
-	uint8 DecryptedHash[20];
-	Decrypt(DecryptedHash, Signature.Data, ARRAY_COUNT(DecryptedHash));
+	FDecryptedSignature& DecryptedSignature = DecryptedSignatures[ChunkInfo.Index];
+	if (!DecryptedSignature.IsValid())
+	{
+		INC_DWORD_STAT(STAT_FChunkCacheWorker_SignaturesDecryptedDuringVerify);
+		SCOPE_SECONDS_ACCUMULATOR(STAT_FChunkCacheWorker_DecryptDuringVerify);
+		FEncryption::DecryptSignature(EncryptedSignatures[ChunkInfo.Index], DecryptedSignature, DecryptionKey);
+		check(DecryptedSignature.IsValid());
+	}
 
 	// Compare hashes
-	if (FMemory::Memcmp(Hash, DecryptedHash, sizeof(DecryptedHash)) != 0)
+	if (DecryptedSignature != SourceSignature)
 	{
 		UE_LOG(LogPakFile, Fatal, TEXT("Pak file has been tampered with."));
 	}
@@ -229,8 +315,7 @@ void FChunkCacheWorker::ReleaseChunk(FChunkRequest& Chunk)
 }
 
 FSignedArchiveReader::FSignedArchiveReader(FArchive* InPakReader, FChunkCacheWorker* InSignatureChecker)
-	: SignatureSize(FSignature::Size())
-	, ChunkCount(0)
+	: ChunkCount(0)
 	, PakReader(InPakReader)
 	, SizeOnDisk(0)
 	, PakSize(0)
@@ -238,10 +323,9 @@ FSignedArchiveReader::FSignedArchiveReader(FArchive* InPakReader, FChunkCacheWor
 	, SignatureChecker(InSignatureChecker)
 {
 	// Cache global info about the archive
-	const int64 MaxChunkSize = FPakInfo::MaxChunkDataSize + SignatureSize;
 	SizeOnDisk = PakReader->TotalSize();
-	ChunkCount = SizeOnDisk / MaxChunkSize + ((SizeOnDisk % MaxChunkSize) ? 1 : 0);		
-	PakSize = SizeOnDisk - ChunkCount * SignatureSize;
+	ChunkCount = SizeOnDisk / FPakInfo::MaxChunkDataSize + ((SizeOnDisk % FPakInfo::MaxChunkDataSize) ? 1 : 0);
+	PakSize = SizeOnDisk;
 }
 
 FSignedArchiveReader::~FSignedArchiveReader()
@@ -254,7 +338,7 @@ int64 FSignedArchiveReader::CalculateChunkSize(int64 ChunkIndex) const
 {
 	if (ChunkIndex == (ChunkCount - 1))
 	{
-		const int64 MaxChunkSize = FPakInfo::MaxChunkDataSize + SignatureSize;
+		const int64 MaxChunkSize = FPakInfo::MaxChunkDataSize;
 		int64 Slack = SizeOnDisk % MaxChunkSize;
 		if (!Slack)
 		{
@@ -262,7 +346,6 @@ int64 FSignedArchiveReader::CalculateChunkSize(int64 ChunkIndex) const
 		}
 		else
 		{
-			Slack -= SignatureSize;
 			check(Slack > 0);
 			return Slack;
 		}
@@ -273,17 +356,18 @@ int64 FSignedArchiveReader::CalculateChunkSize(int64 ChunkIndex) const
 	}
 }
 
-void FSignedArchiveReader::PrecacheChunks(TArray<FSignedArchiveReader::FReadInfo>& Chunks, int64 Length)
+int64 FSignedArchiveReader::PrecacheChunks(TArray<FSignedArchiveReader::FReadInfo>& Chunks, int64 Length)
 {
 	// Request all the chunks that are needed to complete this read
 	int64 DataOffset;
 	int64 DestOffset = 0;
 	int32 FirstChunkIndex = CalculateChunkIndex(PakOffset);
 	int64 ChunkStartOffset = CalculateChunkOffset(PakOffset, DataOffset);
-	int32 NumChunks = (DataOffset - ChunkStartOffset + Length) / FPakInfo::MaxChunkDataSize + 1;
+	int64 NumChunksForRequest = (DataOffset - ChunkStartOffset + Length) / FPakInfo::MaxChunkDataSize + 1;
+	int64 NumChunks = NumChunksForRequest;
 	int64 RemainingLength = Length;
 	int64 ArchiveOffset = PakOffset;
-
+	
 	// And then try to precache 'PrecacheLength' more chunks because it's likely
 	// we're going to try to read them next
 	if ((NumChunks + FirstChunkIndex + PrecacheLength - 1) < ChunkCount)
@@ -293,7 +377,7 @@ void FSignedArchiveReader::PrecacheChunks(TArray<FSignedArchiveReader::FReadInfo
 	Chunks.Empty(NumChunks);
 	for (int32 ChunkIndexOffset = 0; ChunkIndexOffset < NumChunks; ++ChunkIndexOffset)
 	{
-		ChunkStartOffset = CalculateChunkOffset(ArchiveOffset, DataOffset);
+		ChunkStartOffset = RemainingLength > 0 ? CalculateChunkOffset(ArchiveOffset, DataOffset) : CalculateChunkOffsetFromIndex(ChunkIndexOffset + FirstChunkIndex);
 		int64 SizeToReadFromBuffer = RemainingLength;
 		if (DataOffset + SizeToReadFromBuffer > ChunkStartOffset + FPakInfo::MaxChunkDataSize)
 		{
@@ -324,20 +408,23 @@ void FSignedArchiveReader::PrecacheChunks(TArray<FSignedArchiveReader::FReadInfo
 		DestOffset += SizeToReadFromBuffer;
 		RemainingLength -= SizeToReadFromBuffer;
 	}
+
+	return NumChunksForRequest;
 }
 
 void FSignedArchiveReader::Serialize(void* Data, int64 Length)
 {
-	SCOPE_CYCLE_COUNTER( STAT_SignedArchiveReader_Serialize );
+	SCOPE_SECONDS_ACCUMULATOR(STAT_SignedArchiveReader_Serialize);
 
 	// First make sure the chunks we're going to read are actually cached.
 	TArray<FReadInfo> QueuedChunks;
-	PrecacheChunks(QueuedChunks, Length);
+	int64 ChunksToRead = PrecacheChunks(QueuedChunks, Length);
+	int64 FirstPrecacheChunkIndex = ChunksToRead;
 
 	// Read data from chunks.
 	int64 RemainingLength = Length;
 	uint8* DestData = (uint8*)Data;
-	int32 ChunksToRead = QueuedChunks.Num() - PrecacheLength;	
+
 	const int32 LastRequestIndex = ChunksToRead - 1;
 	do
 	{
@@ -385,9 +472,12 @@ void FSignedArchiveReader::Serialize(void* Data, int64 Length)
 	PakOffset += Length;
 
 	// Free precached chunks (they will still get precached but simply marked as not used by anything)
-	for (int32 QueueIndex = QueuedChunks.Num() - PrecacheLength; QueueIndex < QueuedChunks.Num(); ++QueueIndex)
+	for (int32 QueueIndex = FirstPrecacheChunkIndex; QueueIndex < QueuedChunks.Num(); ++QueueIndex)
 	{
 		FReadInfo& CachedChunk = QueuedChunks[QueueIndex];
-		SignatureChecker->ReleaseChunk(*CachedChunk.Request);
+		if (CachedChunk.Request)
+		{
+			SignatureChecker->ReleaseChunk(*CachedChunk.Request);
+		}
 	}
 }

@@ -101,5 +101,11 @@ void UIOSRuntimeSettings::PostInitProperties()
 			}
 		}
 	}
+
+	// switch IOS_6.1 to IOS_7
+	if (MinimumiOSVersion == EIOSVersion::IOS_61)
+	{
+		MinimumiOSVersion = EIOSVersion::IOS_7;
+	}
 }
 #endif

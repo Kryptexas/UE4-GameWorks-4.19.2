@@ -87,6 +87,12 @@ class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 	/** @return The position in world space of the bottom-left corner of the bottom-left-most active tile */
 	FVector GetWorldPosition() const;
 
+	/** @return The bounds of area encompassed by the simulation */
+	FBox GetBounds() const;
+
+	/** @return The body instanced used for bounds checking */
+	FBodyInstance* GetBoundsBodyInstance() const;
+
 	/** Determines the basic layout of the tiles used in the simulation */
 	void GetTileLayout(FTileLayout& OutTileLayout) const;
 

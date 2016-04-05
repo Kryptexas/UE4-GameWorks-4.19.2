@@ -36,6 +36,9 @@ public:
 		, Name(InitName)
 		, GeneratedClass(InitClass)
 		, Ownership(ESpawnOwnership::InnerSequence)
+#if WITH_EDITORONLY_DATA
+		, bIgnoreOwnershipInEditor(false)
+#endif
 	{ }
 
 public:
@@ -128,6 +131,24 @@ public:
 		Ownership = InOwnership;
 	}
 
+#if WITH_EDITORONLY_DATA
+	/**
+	 * Check whether this spawnable should remain spawned when outside the play-range, regardless of ownership
+	 */
+	bool ShouldIgnoreOwnershipInEditor() const
+	{
+		return bIgnoreOwnershipInEditor;
+	}
+
+	/**
+	 * Set whether this spawnable should remain spawned when outside the play-range, regardless of ownership
+	 */
+	void SetIgnoreOwnershipInEditor(bool bInIgnoreOwnershipInEditor)
+	{
+		bIgnoreOwnershipInEditor = bInIgnoreOwnershipInEditor;
+	}
+#endif
+
 private:
 
 	/** Unique identifier of the spawnable object. */
@@ -154,4 +175,10 @@ private:
 	/** Property indicating where ownership responsibility for this object lies */
 	UPROPERTY()
 	ESpawnOwnership Ownership;
+
+#if WITH_EDITORONLY_DATA
+	/** When true, this spawnable will not respect its ownership sematics outside of the playback range, when spawned from inside a currently editing sequence */
+	UPROPERTY()
+	bool bIgnoreOwnershipInEditor;
+#endif
 };

@@ -127,7 +127,7 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 			}
 			
 			MTLCompileOptions *CompileOptions = [[MTLCompileOptions alloc] init];
-			CompileOptions.fastMathEnabled = YES;
+			CompileOptions.fastMathEnabled = (BOOL)Header.bFastMath;
 #if PLATFORM_MAC
 			CompileOptions.languageVersion = MTLLanguageVersion1_1;
 #endif

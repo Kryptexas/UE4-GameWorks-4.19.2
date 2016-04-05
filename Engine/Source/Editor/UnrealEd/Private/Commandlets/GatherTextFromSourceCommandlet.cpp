@@ -307,6 +307,192 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	return 0;
 }
 
+FString UGatherTextFromSourceCommandlet::UnescapeLiteralCharacterEscapeSequences(const FString& InString)
+{
+	// We need to un-escape any octal, hex, or universal character sequences that exist in this string to mimic what happens when the string is processed by the compiler
+	enum class EParseState : uint8
+	{
+		Idle,		// Not currently parsing a sequence
+		InOct,		// Within an octal sequence (\012)
+		InHex,		// Within an hexadecimal sequence (\xBEEF)
+		InUTF16,	// Within a UTF-16 sequence (\u1234)
+		InUTF32,	// Within a UTF-32 sequence (\U12345678)
+	};
+
+	FString RetString;
+	RetString.Reserve(InString.Len());
+
+	EParseState ParseState = EParseState::Idle;
+	FString EscapedLiteralCharacter;
+	for (const TCHAR* CharPtr = *InString; *CharPtr; ++CharPtr)
+	{
+		const TCHAR CurChar = *CharPtr;
+
+		switch (ParseState)
+		{
+		case EParseState::Idle:
+			{
+				const TCHAR NextChar = *(CharPtr + 1);
+				if (CurChar == TEXT('\\') && NextChar)
+				{
+					if (FChar::IsOctDigit(NextChar))
+					{
+						ParseState = EParseState::InOct;
+					}
+					else if (NextChar == TEXT('x'))
+					{
+						// Skip the format marker
+						++CharPtr;
+						ParseState = EParseState::InHex;
+					}
+					else if (NextChar == TEXT('u'))
+					{
+						// Skip the format marker
+						++CharPtr;
+						ParseState = EParseState::InUTF16;
+					}
+					else if (NextChar == TEXT('U'))
+					{
+						// Skip the format marker
+						++CharPtr;
+						ParseState = EParseState::InUTF32;
+					}
+				}
+				
+				if (ParseState == EParseState::Idle)
+				{
+					RetString.AppendChar(CurChar);
+				}
+				else
+				{
+					EscapedLiteralCharacter.Reset();
+				}
+			}
+			break;
+
+		case EParseState::InOct:
+			{
+				if (FChar::IsOctDigit(CurChar))
+				{
+					EscapedLiteralCharacter.AppendChar(CurChar);
+
+					// Octal sequences can only be up-to 3 digits long
+					check(EscapedLiteralCharacter.Len() <= 3);
+					if (EscapedLiteralCharacter.Len() == 3)
+					{
+						RetString.AppendChar((TCHAR)FCString::Strtoi(*EscapedLiteralCharacter, nullptr, 8));
+						ParseState = EParseState::Idle;
+						// Deliberately not appending the current character here, as it was already pushed into the escaped literal character string
+					}
+				}
+				else
+				{
+					RetString.AppendChar((TCHAR)FCString::Strtoi(*EscapedLiteralCharacter, nullptr, 8));
+					ParseState = EParseState::Idle;
+					RetString.AppendChar(CurChar);
+				}
+			}
+			break;
+
+		case EParseState::InHex:
+			{
+				if (FChar::IsHexDigit(CurChar))
+				{
+					EscapedLiteralCharacter.AppendChar(CurChar);
+				}
+				else
+				{
+					RetString.AppendChar((TCHAR)FCString::Strtoi(*EscapedLiteralCharacter, nullptr, 16));
+					ParseState = EParseState::Idle;
+					RetString.AppendChar(CurChar);
+				}
+			}
+			break;
+
+		case EParseState::InUTF16:
+			{
+				if (FChar::IsHexDigit(CurChar))
+				{
+					EscapedLiteralCharacter.AppendChar(CurChar);
+
+					// UTF-16 sequences can only be up-to 4 digits long
+					check(EscapedLiteralCharacter.Len() <= 4);
+					if (EscapedLiteralCharacter.Len() == 4)
+					{
+						const uint32 UnicodeCodepoint = (uint32)FCString::Strtoi(*EscapedLiteralCharacter, nullptr, 16);
+
+						FString UnicodeString;
+						if (FUnicodeChar::CodepointToString(UnicodeCodepoint, UnicodeString))
+						{
+							RetString.Append(MoveTemp(UnicodeString));
+						}
+
+						ParseState = EParseState::Idle;
+						// Deliberately not appending the current character here, as it was already pushed into the escaped literal character string
+					}
+				}
+				else
+				{
+					const uint32 UnicodeCodepoint = (uint32)FCString::Strtoi(*EscapedLiteralCharacter, nullptr, 16);
+
+					FString UnicodeString;
+					if (FUnicodeChar::CodepointToString(UnicodeCodepoint, UnicodeString))
+					{
+						RetString.Append(MoveTemp(UnicodeString));
+					}
+
+					ParseState = EParseState::Idle;
+					RetString.AppendChar(CurChar);
+				}
+			}
+			break;
+
+		case EParseState::InUTF32:
+			{
+				if (FChar::IsHexDigit(CurChar))
+				{
+					EscapedLiteralCharacter.AppendChar(CurChar);
+
+					// UTF-32 sequences can only be up-to 8 digits long
+					check(EscapedLiteralCharacter.Len() <= 8);
+					if (EscapedLiteralCharacter.Len() == 8)
+					{
+						const uint32 UnicodeCodepoint = (uint32)FCString::Strtoui64(*EscapedLiteralCharacter, nullptr, 16);
+
+						FString UnicodeString;
+						if (FUnicodeChar::CodepointToString(UnicodeCodepoint, UnicodeString))
+						{
+							RetString.Append(MoveTemp(UnicodeString));
+						}
+
+						ParseState = EParseState::Idle;
+						// Deliberately not appending the current character here, as it was already pushed into the escaped literal character string
+					}
+				}
+				else
+				{
+					const uint32 UnicodeCodepoint = (uint32)FCString::Strtoui64(*EscapedLiteralCharacter, nullptr, 16);
+
+					FString UnicodeString;
+					if (FUnicodeChar::CodepointToString(UnicodeCodepoint, UnicodeString))
+					{
+						RetString.Append(MoveTemp(UnicodeString));
+					}
+
+					ParseState = EParseState::Idle;
+					RetString.AppendChar(CurChar);
+				}
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return RetString;
+}
+
 FString UGatherTextFromSourceCommandlet::RemoveStringFromTextMacro(const FString& TextMacro, const FString& IdentForLogging, bool& Error)
 {
 	FString Text;
@@ -317,7 +503,7 @@ FString UGatherTextFromSourceCommandlet::RemoveStringFromTextMacro(const FString
 	{
 		Error = false;
 		//UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Missing TEXT macro in %s"), *IdentForLogging);
-		return TextMacro.TrimQuotes();
+		Text = TextMacro.TrimQuotes();
 	}
 	else
 	{
@@ -340,6 +526,12 @@ FString UGatherTextFromSourceCommandlet::RemoveStringFromTextMacro(const FString
 			}
 		}
 	}
+
+	if (!Error)
+	{
+		Text = UnescapeLiteralCharacterEscapeSequences(Text);
+	}
+
 	return Text;
 }
 
@@ -1021,6 +1213,7 @@ bool UGatherTextFromSourceCommandlet::FMacroDescriptor::PrepareArgument(FString&
 	else
 	{
 		Argument = Argument.TrimTrailing().TrimQuotes(&OutHasQuotes);
+		Argument = UnescapeLiteralCharacterEscapeSequences(Argument);
 	}
 	return Error ? false : true;
 }

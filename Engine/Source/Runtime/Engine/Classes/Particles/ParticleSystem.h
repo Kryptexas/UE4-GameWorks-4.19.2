@@ -353,9 +353,7 @@ public:
 #endif // WITH_EDITOR
 	virtual void PreSave() override;
 	virtual void PostLoad() override;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	bool IsPotentiallyImmortal() const;
 	bool UsesCPUCollision() const;
 	virtual bool CanBeClusterRoot() const override;
 	//~ End UObject Interface.
@@ -502,6 +500,8 @@ public:
 
 	/** Returns true if the particle system is looping (contains one or more looping emitters) */
 	bool IsLooping() const { return bAnyEmitterLoopsForever; }
+	bool IsImmortal() const { return bIsImmortal; }
+	bool WillBecomeZombie() const { return bWillBecomeZombie; }
 
 	EParticleSignificanceLevel GetHighestSignificance()const { return HighestSignificance; }
 	EParticleSignificanceLevel GetLowestSignificance()const { return LowestSignificance; }
@@ -515,8 +515,12 @@ private:
 	
 	uint32 bShouldManageSignificance : 1;
 
-	/** Does any emitter loop forever (computed during load and when emitters are built) */
+	/** Does any emitter loop forever? */
 	uint32 bAnyEmitterLoopsForever : 1;
+	/** Does any emiter never die due to infinie looping AND indefinite duration? */
+	uint32 bIsImmortal : 1;
+	/** Does any emitter ever become a zombie (is immortal AND stops spawning at some point, i.e. is burst only)? */
+	uint32 bWillBecomeZombie : 1;
 };
 
 

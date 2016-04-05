@@ -938,19 +938,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	FWorldContext& EditorContext = GetEditorWorldContext();
 	check( CurrentGWorld == EditorContext.World() );
 
-	// was there a reregister requested last frame?
-	if (bHasPendingGlobalReregister)
-	{
-		// make sure outstanding deletion has completed before the reregister
-		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
-
-		//Only reregister actors whose replacement primitive is a child of the global reregister list
-		FGlobalComponentReregisterContext Reregister(ActorsForGlobalReregister);
-		ActorsForGlobalReregister.Empty();
-
-		bHasPendingGlobalReregister = false;
-	}
-
 	// early in the Tick() to get the callbacks for cvar changes called
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
@@ -1945,7 +1932,7 @@ void UEditorEngine::PlayPreviewSound( USoundBase* Sound,  USoundNode* SoundNode 
 		AudioComponent->bAllowSpatialization = false;
 		AudioComponent->bReverb = false;
 		AudioComponent->bCenterChannelOnly = false;
-
+		AudioComponent->bIsPreviewSound = true;
 		AudioComponent->Play();	
 	}
 }
@@ -2529,7 +2516,7 @@ void UEditorEngine::LoadMapListFromIni(const FString& InSectionName, TArray<FStr
 		for (FConfigSectionMap::TConstIterator It(*MapListList) ; It ; ++It)
 		{
 			FName EntryType = It.Key();
-			const FString& EntryValue = It.Value();
+			const FString& EntryValue = It.Value().GetValue();
 
 			if (EntryType == NAME_Map)
 			{
@@ -4593,7 +4580,7 @@ void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& Asse
 		const FTransform OldTransform = OldActor->ActorToWorld();
 
 		// create the actor
-		NewActor = Factory->CreateActor( Asset, Level, OldTransform, RF_Transactional, OldActorName );
+		NewActor = Factory->CreateActor( Asset, Level, OldTransform );
 		// For blueprints, try to copy over properties
 		if (Factory->IsA(UActorFactoryBlueprint::StaticClass()))
 		{
@@ -4608,8 +4595,10 @@ void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& Asse
 			}
 		}
 
-		if ( NewActor != NULL )
+		if (NewActor)
 		{
+			NewActor->Rename(*OldActorName.ToString());
+
 			// The new actor might not have a root component
 			USceneComponent* const NewActorRootComponent = NewActor->GetRootComponent();
 			if(NewActorRootComponent)
@@ -6106,8 +6095,8 @@ void UEditorEngine::UpdateAutoLoadProject()
 {
 	// If the recent project file exists and is non-empty, update the contents with the currently loaded .uproject
 	// If the recent project file exists and is empty, recent project files should not be auto-loaded
-	// If the recent project file does not exist, auto-populate it with the currently loaded project in Rocket and auto-populate empty in non-rocket
-	//		In Rocket we default to auto-loading, in non-Rocket we default to opting out of auto loading
+	// If the recent project file does not exist, auto-populate it with the currently loaded project in installed builds and auto-populate empty in non-installed
+	//		In installed builds we default to auto-loading, in non-installed we default to opting out of auto loading
 	const FString& AutoLoadProjectFileName = IProjectManager::Get().GetAutoLoadProjectFileName();
 	FString RecentProjectFileContents;
 	bool bShouldLoadRecentProjects = false;

@@ -323,6 +323,10 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	void InvertMouse();
 
+	/** Executes commands listed in CheatScript.ScriptName ini section of DefaultGame.ini */
+	UFUNCTION(exec)
+	void CheatScript(FString ScriptName);
+
 	/**
 	 * This will move the player and set their rotation to the passed in values.
 	 * This actually does the location / rotation setting.  Additionally it will set you as ghost as the level may have

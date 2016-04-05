@@ -168,43 +168,36 @@ float UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(UObject* WorldCo
 {
 	return WorldContext ? WorldContext->GetWorld()->GetWorldSettings()->WorldToMeters : 0.f;
 }
-
-void UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(ETrackingOriginSelector::Type InOrigin)
+void UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(TEnumAsByte<EHMDTrackingOrigin::Type> InOrigin)
 {
 	if (GEngine->HMDDevice.IsValid())
 	{
-		IHeadMountedDisplay::ETrackingOrigin Origin = IHeadMountedDisplay::Eye;
+		EHMDTrackingOrigin::Type Origin = EHMDTrackingOrigin::Eye;
 		switch (InOrigin)
 		{
-		case ETrackingOriginSelector::Eye:
-			Origin = IHeadMountedDisplay::Eye;
+		case EHMDTrackingOrigin::Eye:
+			Origin = EHMDTrackingOrigin::Eye;
 			break;
-		case ETrackingOriginSelector::Floor:
-			Origin = IHeadMountedDisplay::Floor;
+		case EHMDTrackingOrigin::Floor:
+			Origin = EHMDTrackingOrigin::Floor;
 			break;
-		default: check(0); // shouldn't happen, check the EOriginTypeSelector
+		default:
+			break;
 		}
 		GEngine->HMDDevice->SetTrackingOrigin(Origin);
 	}
 }
 
-ETrackingOriginSelector::Type UHeadMountedDisplayFunctionLibrary::GetTrackingOrigin()
+TEnumAsByte<EHMDTrackingOrigin::Type> UHeadMountedDisplayFunctionLibrary::GetTrackingOrigin()
 {
+	EHMDTrackingOrigin::Type Origin = EHMDTrackingOrigin::Eye;
+
 	if (GEngine->HMDDevice.IsValid())
 	{
-		IHeadMountedDisplay::ETrackingOrigin Origin = GEngine->HMDDevice->GetTrackingOrigin();
-		switch (Origin)
-		{
-		case IHeadMountedDisplay::Eye:
-			return ETrackingOriginSelector::Eye;
-			break;
-		case IHeadMountedDisplay::Floor:
-			return ETrackingOriginSelector::Floor;
-			break;
-		default: check(0); // shouldn't happen, check the EOriginTypeSelector
-		}
+		Origin = GEngine->HMDDevice->GetTrackingOrigin();
 	}
-	return ETrackingOriginSelector::Eye;
+
+	return Origin;
 }
 
 void UHeadMountedDisplayFunctionLibrary::GetVRFocusState(bool& bUseFocus, bool& bHasFocus)

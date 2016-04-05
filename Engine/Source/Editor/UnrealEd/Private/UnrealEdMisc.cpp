@@ -292,7 +292,7 @@ void FUnrealEdMisc::OnInit()
 		{
 			if (!bMapLoaded && GEditor)
 			{
-				const FString& StartupMap = GetDefault<UGameMapsSettings>()->EditorStartupMap;
+				const FString StartupMap = GetDefault<UGameMapsSettings>()->EditorStartupMap.ToString();
 
 				if ((StartupMap.Len() > 0) && (GetDefault<UEditorLoadingSavingSettings>()->LoadLevelAtStartup != ELoadLevelAtStartup::None))
 				{

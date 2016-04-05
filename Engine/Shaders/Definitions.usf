@@ -118,6 +118,14 @@
 #define	VULKAN_PROFILE									0
 #endif
 
+#ifndef VULKAN_PROFILE_SM4
+#define	VULKAN_PROFILE_SM4								0
+#endif
+
+#ifndef VULKAN_PROFILE_SM5
+#define	VULKAN_PROFILE_SM5								0
+#endif
+
 #ifndef IOS
 #define IOS												0
 #endif

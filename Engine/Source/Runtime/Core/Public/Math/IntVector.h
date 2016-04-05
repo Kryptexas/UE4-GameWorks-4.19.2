@@ -194,9 +194,9 @@ public:
 	float GetMin() const;
 
 	/**
-	 * Gets the distance of this point from (0,0).
+	 * Gets the distance of this point from (0,0,0).
 	 *
-	 * @return The distance of this point from (0,0).
+	 * @return The distance of this point from (0,0,0).
 	 */
 	int32 Size() const;
 
@@ -403,7 +403,7 @@ FORCEINLINE float FIntVector::GetMin() const
 
 FORCEINLINE int32 FIntVector::Num()
 {
-	return 2;
+	return 3;
 }
 
 

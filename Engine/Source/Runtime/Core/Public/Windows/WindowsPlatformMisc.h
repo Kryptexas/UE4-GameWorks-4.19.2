@@ -39,10 +39,7 @@ struct CORE_API FWindowsPlatformMisc
 	static void SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode );
 
 #if !UE_BUILD_SHIPPING
-	FORCEINLINE static bool IsDebuggerPresent()
-	{
-		return !!::IsDebuggerPresent(); 
-	}
+	static bool IsDebuggerPresent();
 	FORCEINLINE static void DebugBreak()
 	{
 		if (IsDebuggerPresent())

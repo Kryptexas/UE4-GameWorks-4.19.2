@@ -34,7 +34,7 @@ void FMacGraphicsSwitchingSettingsDetails::CustomizeDetails( IDetailLayoutBuilde
 		DetailLayout.HideProperty(GET_MEMBER_NAME_CHECKED(UMacGraphicsSwitchingSettings, bAllowAutomaticGraphicsSwitching));
 	}
 	
-	IDetailCategoryBuilder& AccessorCategory = DetailLayout.EditCategory( "OpenGL" );
+	IDetailCategoryBuilder& AccessorCategory = DetailLayout.EditCategory( "RHI" );
 	AccessorCategory.AddCustomRow( LOCTEXT("PreferredRenderer", "Preferred Renderer") )
 	.NameContent()
 	[

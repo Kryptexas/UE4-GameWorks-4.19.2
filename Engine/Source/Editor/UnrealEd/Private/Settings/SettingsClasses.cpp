@@ -15,6 +15,7 @@
 
 #include "SourceCodeNavigation.h"
 
+#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
 #include "ScriptPerfData.h"
 
 #define LOCTEXT_NAMESPACE "SettingsClasses"
@@ -70,6 +71,7 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	, bBlueprintableComponents(true)
 	, bBlueprintPerformanceAnalysisTools(false)
 	, BlueprintProfilerRecentSampleBias(0.2f)
+	, bUseOpenCLForConvexHullDecomp(false)
 {
 }
 
@@ -90,6 +92,18 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 		if (bEQSEditor)
 		{
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
+		}
+	}
+	else if (Name == FName(TEXT("bBlueprintPerformanceAnalysisTools")))
+	{
+		if (!bBlueprintPerformanceAnalysisTools)
+		{
+			IBlueprintProfilerInterface* ProfilerInterface = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler");
+			if (ProfilerInterface && ProfilerInterface->IsProfilerEnabled())
+			{
+				// Force Profiler off
+				ProfilerInterface->ToggleProfilingCapture();
+			}
 		}
 	}
 	else if (Name == FName(TEXT("BlueprintProfilerRecentSampleBias")))

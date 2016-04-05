@@ -703,7 +703,7 @@ typedef FRichCurveEditInfoTemplate<const FRichCurve*>	FRichCurveEditInfoConst;
 /**
  * Interface you implement if you want the CurveEditor to be able to edit curves on you.
  */
-class FCurveOwnerInterface
+class ENGINE_API FCurveOwnerInterface
 {
 public:
 
@@ -744,6 +744,9 @@ public:
 
 	/** Validates that a previously retrieved curve is still valid for editing. */
 	virtual bool IsValidCurve(FRichCurveEditInfo CurveInfo) = 0;
+
+	/** @return Color for this curve */
+	virtual FLinearColor GetCurveColor(FRichCurveEditInfo CurveInfo) const;
 };
 
 
@@ -840,11 +843,11 @@ public:
 	{ }
 	
 	/** The keyed time */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Key)
 	float Time;
 
 	/** The keyed integral value */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Key)
 	int32 Value;
 };
 

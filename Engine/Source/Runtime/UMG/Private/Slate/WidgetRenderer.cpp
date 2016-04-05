@@ -69,7 +69,10 @@ FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection)
 	, bUseGammaSpace(bUseGammaCorrection)
 {
 #if !UE_SERVER
-	Renderer = FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer(bUseGammaSpace);
+	if (!IsRunningDedicatedServer())
+	{
+		Renderer = FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer(bUseGammaSpace);
+	}
 #endif
 }
 
@@ -156,41 +159,67 @@ void FWidgetRenderer::DrawWindow(
 	float DeltaTime)
 {
 #if !UE_SERVER
-	if ( GUsingNullRHI )
+	if (!IsRunningDedicatedServer())
 	{
-		return;
-	}
-
-	if ( bPrepassNeeded )
-	{
-		PrepassWindowAndChildren(Window, WindowGeometry.Scale);
-	}
-	
-	FSlateDrawBuffer& DrawBuffer = Renderer->GetDrawBuffer();
-
-	DrawWindowAndChildren(RenderTarget, DrawBuffer, HitTestGrid, Window, WindowGeometry, WindowClipRect, DeltaTime);
-
-	Renderer->DrawWindow_GameThread(DrawBuffer);
-
-	struct FRenderThreadContext
-	{
-		FSlateDrawBuffer* DrawBuffer;
-		FTextureRenderTarget2DResource* RenderTargetResource;
-		TSharedPtr<ISlate3DRenderer, ESPMode::ThreadSafe> Renderer;
-	};
-	FRenderThreadContext Context =
-	{
-		&DrawBuffer,
-		static_cast<FTextureRenderTarget2DResource*>(RenderTarget->GameThread_GetRenderTargetResource()),
-		Renderer
-	};
-
-	// Enqueue a command to unlock the draw buffer after all windows have been drawn
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(FWidgetRenderer_DrawWindow,
-		FRenderThreadContext, InContext, Context,
+		if ( GUsingNullRHI )
 		{
-			InContext.Renderer->DrawWindowToTarget_RenderThread(RHICmdList, InContext.RenderTargetResource, *InContext.DrawBuffer);
-		});
+			return;
+		}
+
+	    if ( !bFoldTick )
+	    {
+		    Window->TickWidgetsRecursively(WindowGeometry, FApp::GetCurrentTime(), DeltaTime);
+	    }
+    
+	    if ( bPrepassNeeded )
+	    {
+		    // Ticking can cause geometry changes.  Recompute
+		    Window->SlatePrepass(WindowGeometry.Scale);
+	    }
+    
+	    // Prepare the test grid 
+	    HitTestGrid->ClearGridForNewFrame(WindowClipRect);
+    
+	    // Get the free buffer & add our virtual window
+	    FSlateDrawBuffer& DrawBuffer = Renderer->GetDrawBuffer();
+	    FSlateWindowElementList& WindowElementList = DrawBuffer.AddWindowElementList(Window);
+    
+	    int32 MaxLayerId = 0;
+	    {
+		    FPaintArgs PaintArgs(Window.Get(), HitTestGrid.Get(), FVector2D::ZeroVector, FApp::GetCurrentTime(), DeltaTime);
+    
+		    // Paint the window
+		    MaxLayerId = Window->Paint(
+			    PaintArgs,
+			    WindowGeometry, WindowClipRect,
+			    WindowElementList,
+			    0,
+			    FWidgetStyle(),
+			    Window->IsEnabled());
+	    }
+
+		Renderer->DrawWindow_GameThread(DrawBuffer);
+
+		struct FRenderThreadContext
+		{
+			FSlateDrawBuffer* DrawBuffer;
+			FTextureRenderTarget2DResource* RenderTargetResource;
+			TSharedPtr<ISlate3DRenderer, ESPMode::ThreadSafe> Renderer;
+		};
+		FRenderThreadContext Context =
+		{
+			&DrawBuffer,
+			static_cast<FTextureRenderTarget2DResource*>(RenderTarget->GameThread_GetRenderTargetResource()),
+			Renderer
+		};
+
+		// Enqueue a command to unlock the draw buffer after all windows have been drawn
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(FWidgetRenderer_DrawWindow,
+			FRenderThreadContext, InContext, Context,
+			{
+				InContext.Renderer->DrawWindowToTarget_RenderThread(RHICmdList, InContext.RenderTargetResource, *InContext.DrawBuffer);
+			});
+	}
 #endif // !UE_SERVER
 }
 

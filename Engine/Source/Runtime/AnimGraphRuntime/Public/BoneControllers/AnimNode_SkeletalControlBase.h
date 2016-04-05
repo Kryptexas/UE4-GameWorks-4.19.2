@@ -37,11 +37,15 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SkeletalControlBase : public FAnimNode_Bas
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Performance, meta = (DisplayName = "LOD Threshold"))
 	int32 LODThreshold;
 
+	UPROPERTY(Transient)
+	float ActualAlpha;
+
 public:
 
 	FAnimNode_SkeletalControlBase()
 		: Alpha(1.0f)
 		, LODThreshold(INDEX_NONE)
+		, ActualAlpha(0.f)
 	{
 	}
 

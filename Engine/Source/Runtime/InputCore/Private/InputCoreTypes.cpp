@@ -566,16 +566,18 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Acceleration, LOCTEXT("Acceleration", "Acceleration"), FKeyDetails::VectorAxis, "Motion"));
 
 	// Fingers
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch1], LOCTEXT("Touch1", "Touch 1"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch2], LOCTEXT("Touch2", "Touch 2"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch3], LOCTEXT("Touch3", "Touch 3"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch4], LOCTEXT("Touch4", "Touch 4"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch5], LOCTEXT("Touch5", "Touch 5"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch6], LOCTEXT("Touch6", "Touch 6"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch7], LOCTEXT("Touch7", "Touch 7"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch8], LOCTEXT("Touch8", "Touch 8"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch9], LOCTEXT("Touch9", "Touch 9"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch10], LOCTEXT("Touch10", "Touch 10"), FKeyDetails::NotBlueprintBindableKey));
+	AddMenuCategoryDisplayInfo("Touch", LOCTEXT("TouchSubCateogry", "Touch"), TEXT("GraphEditor.TouchEvent_16x"));
+
+	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch1], LOCTEXT("Touch1", "Touch 1"), 0, "Touch"));
+	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch2], LOCTEXT("Touch2", "Touch 2"), 0, "Touch"));
+	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch3], LOCTEXT("Touch3", "Touch 3"), 0, "Touch"));
+	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch4], LOCTEXT("Touch4", "Touch 4"), 0, "Touch"));
+	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch5], LOCTEXT("Touch5", "Touch 5"), 0, "Touch"));
+	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch6], LOCTEXT("Touch6", "Touch 6"), 0, "Touch"));
+	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch7], LOCTEXT("Touch7", "Touch 7"), 0, "Touch"));
+	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch8], LOCTEXT("Touch8", "Touch 8"), 0, "Touch"));
+	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch9], LOCTEXT("Touch9", "Touch 9"), 0, "Touch"));
+	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch10], LOCTEXT("Touch10", "Touch 10"), 0, "Touch"));
 
 	// Gestures
 	AddMenuCategoryDisplayInfo("Gesture", LOCTEXT("GestureSubCateogry", "Gesture"), TEXT("GraphEditor.KeyEvent_16x"));
@@ -648,7 +650,7 @@ void EKeys::Initialize()
 
 	// PS4-specific
 	AddMenuCategoryDisplayInfo("PS4", LOCTEXT("PS4SubCategory", "PS4"), TEXT("GraphEditor.PadEvent_16x"));
-	AddKey(FKeyDetails(EKeys::PS4_Special, LOCTEXT("PS4_Special", "PS4_Special"), FKeyDetails::NotBlueprintBindableKey));
+	AddKey(FKeyDetails(EKeys::PS4_Special, LOCTEXT("PS4_Special", "PS4_Special"), FKeyDetails::NotBlueprintBindableKey, "PS4"));
 	AddKey(FKeyDetails(EKeys::Gamepad_Special_Left_X, LOCTEXT("PS4_Gamepad_Special_Left_X", "PS4 Touchpad Button X Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis, "PS4"));
 	AddKey(FKeyDetails(EKeys::Gamepad_Special_Left_Y, LOCTEXT("PS4_Gamepad_Special_Left_Y", "PS4 Touchpad Button Y Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis, "PS4"));
 

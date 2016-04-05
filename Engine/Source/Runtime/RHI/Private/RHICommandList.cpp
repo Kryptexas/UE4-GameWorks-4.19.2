@@ -538,7 +538,9 @@ void FRHICommandListExecutor::LatchBypass()
 		}
 
 		check((GRHICommandList.OutstandingCmdListCount.GetValue() == 2 && !GRHICommandList.GetImmediateCommandList().HasCommands() && !GRHICommandList.GetImmediateAsyncComputeCommandList().HasCommands()));
-		bool NewBypass = (CVarRHICmdBypass.GetValueOnAnyThread() >= 1);
+
+		check(!GDynamicRHI || IsInRenderingThread());
+		bool NewBypass = IsInGameThread() || (CVarRHICmdBypass.GetValueOnAnyThread() >= 1);
 
 		if (NewBypass && !bLatchedBypass)
 		{
@@ -1515,29 +1517,14 @@ bool FRHICommandListImmediate::StallRHIThread()
 		}
 		if (!RenderThreadSublistDispatchTask.GetReference())
 		{
-			while (RHIThreadTask.GetReference())
+			if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
 			{
-				SCOPE_CYCLE_COUNTER(STAT_ExplicitWaitRHIThread);
-				if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local))
-				{
-					// we have to spin here because all task threads might be stalled, meaning the fire event anythread task might not be hit.
-					// todo, add a third queue
-					SCOPE_CYCLE_COUNTER(STAT_SpinWaitRHIThread);
-					while (!RHIThreadTask->IsComplete())
-					{
-						FPlatformProcess::SleepNoStats(0);
-					}
-				}
-				else
-				{
-					FTaskGraphInterface::Get().WaitUntilTaskCompletes(RHIThreadTask, ENamedThreads::RenderThread_Local);
-				}
-				if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
-				{
-					RHIThreadTask = nullptr;
-				}
+				RHIThreadTask = nullptr;
 			}
-			return false;
+			if (!RHIThreadTask.GetReference())
+			{
+				return false;
+			}
 		}
 		if (!GRHIThreadStallEvent)
 		{
@@ -1647,37 +1634,24 @@ void FRHICommandListBase::HandleRTThreadTaskCompletion(const FGraphEventRef& MyC
 	RTTasks.Empty();
 }
 
-static TLockFreeFixedSizeAllocator<sizeof(FRHICommandList), PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> RHICommandListAllocator;
-static TLockFreeFixedSizeAllocator<sizeof(FRHIAsyncComputeCommandList), PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> RHIAsyncComputeCommandListAllocator;
-
 void* FRHICommandList::operator new(size_t Size)
 {
-	// doesn't support derived classes with a different size
-	check(Size == sizeof(FRHICommandList));
-	return RHICommandListAllocator.Allocate();
-	//return FMemory::Malloc(Size);
+	return FMemory::Malloc(Size);
 }
 
 void FRHICommandList::operator delete(void *RawMemory)
 {
-	check(RawMemory != (void*) &GRHICommandList.GetImmediateCommandList());
-	RHICommandListAllocator.Free(RawMemory);
-	//FMemory::Free(RawMemory);
+	FMemory::Free(RawMemory);
 }
 
 void* FRHIAsyncComputeCommandList::operator new(size_t Size)
 {
-	// doesn't support derived classes with a different size
-	check(Size == sizeof(FRHICommandList));
-	return RHIAsyncComputeCommandListAllocator.Allocate();
-	//return FMemory::Malloc(Size);
+	return FMemory::Malloc(Size);
 }
 
 void FRHIAsyncComputeCommandList::operator delete(void *RawMemory)
 {
-	check(RawMemory != (void*)&GRHICommandList.GetImmediateAsyncComputeCommandList());
-	RHIAsyncComputeCommandListAllocator.Free(RawMemory);
-	//FMemory::Free(RawMemory);
+	FMemory::Free(RawMemory);
 }
 
 void* FRHICommandListBase::operator new(size_t Size)
@@ -1688,9 +1662,7 @@ void* FRHICommandListBase::operator new(size_t Size)
 
 void FRHICommandListBase::operator delete(void *RawMemory)
 {
-	check(RawMemory != (void*) &GRHICommandList.GetImmediateCommandList());
-	RHICommandListAllocator.Free(RawMemory);
-	//FMemory::Free(RawMemory);
+	FMemory::Free(RawMemory);
 }	
 
 ///////// Pass through functions that allow RHIs to optimize certain calls.

@@ -24,6 +24,19 @@ namespace EOrientPositionSelector
 	};
 }
 
+/**
+* For HMDs that support it, this specifies whether the origin of the tracking universe will be at the floor, or at the user's eye height
+*/
+UENUM()
+namespace EHMDTrackingOrigin
+{
+	enum Type
+	{
+		Floor UMETA(DisplayName = "Floor Level"),
+		Eye UMETA(DisplayName = "Eye Level"),
+	};
+}
+
 UCLASS()
 class ENGINE_API UHeadMountedDisplayFunctionLibrary : public UBlueprintFunctionLibrary
 {
@@ -143,16 +156,16 @@ class ENGINE_API UHeadMountedDisplayFunctionLibrary : public UBlueprintFunctionL
 	static float GetWorldToMetersScale(UObject* WorldContext);
 
 	/**
-	 * Sets current tracking origin type (EyeLevel or FloorLevel).
+	 * Sets current tracking origin type (eye level or floor level).
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Input|HeadMountedDisplay")
-	static void SetTrackingOrigin(ETrackingOriginSelector::Type Origin);
+	static void SetTrackingOrigin(TEnumAsByte<EHMDTrackingOrigin::Type> Origin);
 
 	/**
-	 * Returns current tracking origin type (EyeLevel or FloorLevel).
+	 * Returns current tracking origin type (eye level or floor level).
 	 */
 	UFUNCTION(BlueprintPure, Category = "Input|HeadMountedDisplay")
-	static ETrackingOriginSelector::Type GetTrackingOrigin();
+	static TEnumAsByte<EHMDTrackingOrigin::Type> GetTrackingOrigin();
 
 	/**
 	 * Returns current state of VR focus.

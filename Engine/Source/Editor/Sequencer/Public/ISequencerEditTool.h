@@ -68,6 +68,7 @@ public:
 	virtual void OnMouseLeave(SWidget& OwnerWidget, const FPointerEvent& MouseEvent) = 0;
 	virtual FName GetIdentifier() const = 0;
 	virtual bool CanDeactivate() const = 0;
+	virtual const ISequencerHotspot* GetDragHotspot() const = 0;
 	
 public:
 

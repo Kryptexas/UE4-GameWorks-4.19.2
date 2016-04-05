@@ -48,7 +48,7 @@ void ALobbyBeaconHost::SetupLobbyState(int32 InMaxPlayers)
 			LobbyState->MaxPlayers = InMaxPlayers;
 
 			// Associate with this objects net driver for proper replication
-			LobbyState->NetDriverName = GetNetDriverName();
+			LobbyState->SetNetDriverName(GetNetDriverName());
 		}
 	}
 }
@@ -200,6 +200,7 @@ void ALobbyBeaconHost::PostLogin(ALobbyBeaconClient* ClientActor)
 
 void ALobbyBeaconHost::KickPlayer(ALobbyBeaconClient* ClientActor, const FText& KickReason)
 {
+	UE_LOG(LogBeacon, Log, TEXT("KickPlayer for %s. PendingKill %d UNetConnection %s UNetDriver %s State %d"), *GetNameSafe(ClientActor), ClientActor->IsPendingKill(), *GetNameSafe(ClientActor->BeaconConnection), ClientActor->BeaconConnection ? *GetNameSafe(ClientActor->BeaconConnection->Driver) : TEXT("null"), ClientActor->BeaconConnection ? ClientActor->BeaconConnection->State : -1);
 	ClientActor->ClientWasKicked(KickReason);
 	DisconnectClient(ClientActor);
 }

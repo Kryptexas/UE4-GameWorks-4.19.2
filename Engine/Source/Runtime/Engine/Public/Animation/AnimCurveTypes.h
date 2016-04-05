@@ -572,6 +572,13 @@ struct FRawCurveTracks
 	 *	Evaluate transform curves 
 	 */
 	ENGINE_API void EvaluateTransformCurveData(USkeleton * Skeleton, TMap<FName, FTransform>&OutCurves, float CurrentTime, float BlendWeight) const;
+
+	/**
+	* Add new float curve from the given UID if not existing and add the key with time/value
+	*/
+	ENGINE_API void AddFloatCurveKey(const USkeleton::AnimCurveUID Uid, int32 CurveFlags, float Time, float Value);
+	ENGINE_API void RemoveRedundantKeys();
+
 #endif // WITH_EDITOR
 	/**
 	 * Find curve data based on the curve UID

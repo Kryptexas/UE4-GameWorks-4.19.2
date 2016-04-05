@@ -124,3 +124,8 @@ FBoundShaderStateRHIRef GetCachedBoundShaderState_Threadsafe(
 	return FBoundShaderStateRHIRef();
 }
 
+void EmptyCachedBoundShaderStates()
+{
+	GetBoundShaderStateCache().Empty(0);
+	GetBoundShaderStateCache_Threadsafe().Empty(0);
+}

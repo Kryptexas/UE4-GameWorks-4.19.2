@@ -58,6 +58,27 @@ PFNGLDRAWELEMENTSINSTANCEDPROC			glDrawElementsInstanced = NULL;
 PFNGLDRAWARRAYSINSTANCEDPROC			glDrawArraysInstanced = NULL;
 PFNGLVERTEXATTRIBDIVISORPROC			glVertexAttribDivisor = NULL;
 
+PFNGLUNIFORM4UIVPROC					glUniform4uiv = NULL;
+PFNGLTEXIMAGE3DPROC						glTexImage3D = NULL;
+PFNGLTEXSUBIMAGE3DPROC					glTexSubImage3D = NULL;
+PFNGLCOMPRESSEDTEXIMAGE3DPROC			glCompressedTexImage3D = NULL;
+PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC		glCompressedTexSubImage3D = NULL;
+PFNGLCOPYTEXSUBIMAGE3DPROC				glCopyTexSubImage3D = NULL;
+PFNGLCLEARBUFFERFIPROC					glClearBufferfi = NULL;
+PFNGLCLEARBUFFERFVPROC					glClearBufferfv = NULL;
+PFNGLCLEARBUFFERIVPROC					glClearBufferiv = NULL;
+PFNGLCLEARBUFFERUIVPROC					glClearBufferuiv = NULL;
+PFNGLDRAWBUFFERSPROC					glDrawBuffers = NULL;
+PFNGLTEXBUFFEREXTPROC					glTexBufferEXT = NULL;
+
+static TAutoConsoleVariable<int32> CVarAndroidDisableTextureFormatBGRA8888(
+	TEXT("android.DisableTextureFormatBGRA8888"),
+	0,
+	TEXT("Whether to disable usage of GL_EXT_texture_format_BGRA8888 extension.\n")
+	TEXT(" 0: Enable when extension is available (default)\n")
+	TEXT(" 1: Always disabled"),
+	ECVF_ReadOnly);
+
 struct FPlatformOpenGLDevice
 {
 
@@ -88,7 +109,7 @@ void FPlatformOpenGLDevice::Init()
 {
 	extern void InitDebugContext();
 
-	AndroidEGL::GetInstance()->InitSurface(false);
+	AndroidEGL::GetInstance()->InitSurface(false, true);
 	PlatformRenderingContextSetup(this);
 
 	LoadEXT();
@@ -315,8 +336,10 @@ void PlatformReleaseRenderQuery( GLuint Query, uint64 QueryContext )
 
 
 bool FAndroidOpenGL::bUseHalfFloatTexStorage = false;
+bool FAndroidOpenGL::bSupportsTextureBuffer = false;
 bool FAndroidOpenGL::bUseES30ShadingLanguage = false;
 bool FAndroidOpenGL::bES30Support = false;
+bool FAndroidOpenGL::bES31Support = false;
 bool FAndroidOpenGL::bSupportsInstancing = false;
 
 void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
@@ -324,8 +347,9 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	FOpenGLES2::ProcessExtensions(ExtensionsString);
 
 	FString VersionString = FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION)));
-	
+
 	bES30Support = VersionString.Contains(TEXT("OpenGL ES 3."));
+	bES31Support = VersionString.Contains(TEXT("OpenGL ES 3.1"));
 
 	// Get procedures
 	if (bSupportsOcclusionQueries || bSupportsDisjointTimeQueries)
@@ -396,10 +420,30 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		glDrawElementsInstanced = (PFNGLDRAWELEMENTSINSTANCEDPROC)((void*)eglGetProcAddress("glDrawElementsInstanced"));
 		glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)((void*)eglGetProcAddress("glDrawArraysInstanced"));
 		glVertexAttribDivisor = (PFNGLVERTEXATTRIBDIVISORPROC)((void*)eglGetProcAddress("glVertexAttribDivisor"));
+		glUniform4uiv = (PFNGLUNIFORM4UIVPROC)((void*)eglGetProcAddress("glUniform4uiv"));
+		glTexImage3D = (PFNGLTEXIMAGE3DPROC)((void*)eglGetProcAddress("glTexImage3D"));
+		glTexSubImage3D = (PFNGLTEXSUBIMAGE3DPROC)((void*)eglGetProcAddress("glTexSubImage3D"));
+		glCompressedTexImage3D = (PFNGLCOMPRESSEDTEXIMAGE3DPROC)((void*)eglGetProcAddress("glCompressedTexImage3D"));
+		glCompressedTexSubImage3D = (PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC)((void*)eglGetProcAddress("glCompressedTexSubImage3D"));
+		glCopyTexSubImage3D = (PFNGLCOPYTEXSUBIMAGE3DPROC)((void*)eglGetProcAddress("glCopyTexSubImage3D"));
+		glClearBufferfi = (PFNGLCLEARBUFFERFIPROC)((void*)eglGetProcAddress("glClearBufferfi"));
+		glClearBufferfv = (PFNGLCLEARBUFFERFVPROC)((void*)eglGetProcAddress("glClearBufferfv"));
+		glClearBufferiv = (PFNGLCLEARBUFFERIVPROC)((void*)eglGetProcAddress("glClearBufferiv"));
+		glClearBufferuiv = (PFNGLCLEARBUFFERUIVPROC)((void*)eglGetProcAddress("glClearBufferuiv"));
+		glDrawBuffers = (PFNGLDRAWBUFFERSPROC)((void*)eglGetProcAddress("glDrawBuffers"));
 
 		bSupportsInstancing = true;
 	}
 
+	if (bES31Support)
+	{
+		bSupportsTextureBuffer = ExtensionsString.Contains(TEXT("GL_EXT_texture_buffer"));
+		if (bSupportsTextureBuffer)
+		{
+			glTexBufferEXT = (PFNGLTEXBUFFEREXTPROC)((void*)eglGetProcAddress("glTexBufferEXT"));
+		}
+	}
+	
 	if (bES30Support || bIsAdrenoBased)
 	{
 		// Attempt to find ES 3.0 glTexStorage2D if we're on an ES 3.0 device
@@ -441,6 +485,12 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		UE_LOG(LogRHI, Warning, TEXT("Disabling support for hardware instancing on Adreno 330 OpenGL ES 3.0 V@66.0 AU@  (CL@)"));
 		bSupportsInstancing = false;
 	}
+
+	if (bSupportsBGRA8888 && CVarAndroidDisableTextureFormatBGRA8888.GetValueOnAnyThread() == 1)
+	{
+		UE_LOG(LogRHI, Warning, TEXT("Disabling support for GL_EXT_texture_format_BGRA8888"));
+		bSupportsBGRA8888 = false;
+	}
 }
 
 
@@ -471,7 +521,11 @@ void FAndroidMisc::GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames)
 
 void FAndroidAppEntry::PlatformInit()
 {
-	AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
+	// @todo Ronin vulkan: Yet another bit of FAndroidApp stuff that's in GL - and should be cleaned up if possible
+	if (!FAndroidMisc::ShouldUseVulkan())
+	{
+		AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, false);
+	}
 }
 
 #endif

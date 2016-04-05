@@ -14,5 +14,5 @@ public:
 	virtual void RegisterCommands() override;
 
 	TSharedPtr<FUICommandInfo> CreateNewLevelSequenceInLevel;
-	TSharedPtr<FUICommandInfo> ToggleImmersive;
+	TSharedPtr<FUICommandInfo> ToggleCinematicViewportCommand;
 };

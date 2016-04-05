@@ -320,7 +320,7 @@ namespace UnrealBuildTool
 				throw new BuildException("GetRemoteIntermediateFrameworkZipPath: No owning module for framework {0}", Framework.FrameworkName);
 			}
 
-			string IntermediatePath = Framework.OwningModule.Target.ProjectDirectory + "/Intermediate/UnzippedFrameworks/" + Framework.OwningModule.Name;
+			string IntermediatePath = ((ProjectFile != null)? ProjectFile.Directory : UnrealBuildTool.EngineDirectory) + "/Intermediate/UnzippedFrameworks/" + Framework.OwningModule.Name;
 			IntermediatePath = Path.GetFullPath((IntermediatePath + Framework.FrameworkZipPath).Replace(".zip", ""));
 
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
@@ -553,7 +553,9 @@ namespace UnrealBuildTool
 				string AllArgs = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 				string SourceText = System.IO.File.ReadAllText(SourceFile.AbsolutePath);
 				if (UEBuildConfiguration.bCompileForSize && (SourceFile.AbsolutePath.Contains("ElementBatcher.cpp") || SourceText.Contains("ElementBatcher.cpp") || SourceFile.AbsolutePath.Contains("AnimationRuntime.cpp") || SourceText.Contains("AnimationRuntime.cpp")
-					|| SourceFile.AbsolutePath.Contains("AnimEncoding.cpp") || SourceText.Contains("AnimEncoding.cpp") || SourceFile.AbsolutePath.Contains("TextRenderComponent.cpp") || SourceText.Contains("TextRenderComponent.cpp")))
+					|| SourceFile.AbsolutePath.Contains("AnimEncoding.cpp") || SourceText.Contains("AnimEncoding.cpp") || SourceFile.AbsolutePath.Contains("TextRenderComponent.cpp") || SourceText.Contains("TextRenderComponent.cpp")
+					|| SourceFile.AbsolutePath.Contains("SWidget.cpp") || SourceText.Contains("SWidget.cpp") || SourceFile.AbsolutePath.Contains("SCanvas.cpp") || SourceText.Contains("SCanvas.cpp")
+					|| SourceFile.AbsolutePath.Contains("ParticleSystemRender.cpp") || SourceText.Contains("ParticleSystemRender.cpp")))
 				{
 					Console.WriteLine("Forcing {0} to --O3!", SourceFile.AbsolutePath);
 
@@ -992,13 +994,13 @@ namespace UnrealBuildTool
 					// generate the dummy project so signing works
 					if (AppName == "UE4Game" || AppName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + AppName + ".uproject", Path.GetFullPath("../..")))
 					{
-						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-platforms=" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS"), "-NoIntellIsense", "-iosdeployonly", "-ignorejunk" });
+						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-platforms=" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS"), "-NoIntellIsense", (CppPlatform == CPPTargetPlatform.IOS ? "-iosdeployonly" : "-tvosdeployonly"), "-ignorejunk" });
 						Project = Path.GetFullPath("../..") + "/UE4_" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS") + ".xcworkspace";
 						SchemeName = "UE4";
 					}
 					else
 					{
-						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-platforms" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS"), "-NoIntellIsense", "-iosdeployonly", "-ignorejunk", "-project=\"" + Target.ProjectDirectory + "/" + AppName + ".uproject\"", "-game" });
+						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-platforms" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS"), "-NoIntellIsense", (CppPlatform == CPPTargetPlatform.IOS ? "-iosdeployonly" : "-tvosdeployonly"), "-ignorejunk", "-project=\"" + Target.ProjectDirectory + "/" + AppName + ".uproject\"", "-game" });
 						Project = Target.ProjectDirectory + "/" + AppName + "_" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS") + ".xcworkspace";
 					}
 
@@ -1064,11 +1066,6 @@ namespace UnrealBuildTool
 						if (Framework.OwningModule == null || Framework.CopyBundledAssets == null || Framework.CopyBundledAssets == "")
 						{
 							continue;		// Only care if we need to copy bundle assets
-						}
-
-						if (Framework.OwningModule.Target != Target)
-						{
-							continue;		// This framework item doesn't belong to this target, skip it
 						}
 
 						string UnpackedZipPath = GetRemoteIntermediateFrameworkZipPath(Framework);
@@ -1143,7 +1140,7 @@ namespace UnrealBuildTool
 					if (!bUseDangerouslyFastMode)
 					{
 						// generate the dummy project so signing works
-						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-NoIntellisense", "-iosdeployonly", ((Target.ProjectFile != null) ? "-game" : "") });
+						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-NoIntellisense", (CppPlatform == CPPTargetPlatform.IOS ? "-iosdeployonly" : "-tvosdeployonly"), ((Target.ProjectFile != null) ? "-game" : "") });
 					}
 
 					// now that 
@@ -1218,6 +1215,11 @@ namespace UnrealBuildTool
 						Arguments += " -architecture " + Architecture.Substring(1);
 					}
 
+					if (CppPlatform == CPPTargetPlatform.TVOS)
+					{
+						Arguments += " -tvos";
+					}
+
 					if (!bUseRPCUtil)
 					{
 						Arguments += " -usessh";
@@ -1274,11 +1276,6 @@ namespace UnrealBuildTool
 						if (Framework.OwningModule == null || Framework.CopyBundledAssets == null || Framework.CopyBundledAssets == "")
 						{
 							continue;		// Only care if we need to copy bundle assets
-						}
-
-						if (Framework.OwningModule.Target != Target)
-						{
-							continue;		// This framework item doesn't belong to this target, skip it
 						}
 
 						string RemoteZipPath = GetRemoteIntermediateFrameworkZipPath(Framework);

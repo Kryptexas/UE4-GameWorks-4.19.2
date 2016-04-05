@@ -32,12 +32,25 @@ public:
 private:
 	FAndroidGPUInfo()
 	{
+		if (FAndroidMisc::ShouldUseVulkan())
+		{
+			// hard coded for the time being
+			GPUFamily = "Vulkan Mobile";
+			GLVersion = "3.1.0";
+			bSupportsFloatingPointRenderTargets = true;
+			bSupportsFrameBufferFetch = false;
+			TargetPlatformNames.Add(TEXT("Android_ASTC"));
+			GAndroidGPUInfoReady = true;
+		}
+		else
+		{
 #if PLATFORM_ANDROIDGL4
 		// hard coded for the time being
 		GPUFamily = "NVIDIA Tegra";
 		GLVersion = "4.4.0";
 		bSupportsFloatingPointRenderTargets = true;
 		TargetPlatformNames.Add(TEXT("Android_GL4"));
+			GAndroidGPUInfoReady = true;
 #else
 		// this is only valid in the game thread, make sure we are initialized there before being called on other threads!
 		check(IsInGameThread())
@@ -49,13 +62,14 @@ private:
 		{
 			FAndroidAppEntry::PlatformInit();
 #if PLATFORM_ANDROIDES31
-			EGL->InitSurface(true);
+			EGL->InitSurface(false, true);
 #endif
 		}
 #if !PLATFORM_ANDROIDES31
-		// Do not create a window surface if the app is for GearVR
-		const bool bIsGearVRApp = AndroidThunkCpp_HasMetaDataKey(TEXT("com.samsung.android.vr.application.mode"));
-		EGL->InitSurface(!bIsGearVRApp);
+		// Do not create a window surface if the app is for GearVR (use small buffer)
+		bool bCreateSurface = !AndroidThunkCpp_IsGearVRApplication();
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("FAndroidGPUInfo"));
+		EGL->InitSurface(bCreateSurface, bCreateSurface);
 #endif
 		EGL->SetCurrentSharedContext();
 
@@ -108,10 +122,10 @@ private:
 		TargetPlatformNames.Add(TEXT("Android"));
 
 #endif
-
 		bSupportsFloatingPointRenderTargets = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
 		bSupportsFrameBufferFetch = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_NV_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_ARM_shader_framebuffer_fetch"));
 #endif
+		}
 		GAndroidGPUInfoReady = true;
 	}
 };

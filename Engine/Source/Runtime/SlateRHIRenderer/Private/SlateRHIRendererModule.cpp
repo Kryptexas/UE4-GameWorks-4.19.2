@@ -64,7 +64,9 @@ public:
 	{
 		ConditionalCreateResources();
 
-		return MakeShareable( new FSlate3DRenderer( SlateFontServices.ToSharedRef(),  ResourceManager.ToSharedRef(), bUseGammaCorrection ) );
+		return MakeShareable(new FSlate3DRenderer(SlateFontServices.ToSharedRef(), ResourceManager.ToSharedRef(), bUseGammaCorrection), [=] (FSlate3DRenderer* Renderer) {
+			Renderer->Cleanup();
+		});
 	}
 
 	virtual TSharedRef<ISlateFontAtlasFactory> CreateSlateFontAtlasFactory() override

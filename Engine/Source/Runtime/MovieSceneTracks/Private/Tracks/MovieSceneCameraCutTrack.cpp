@@ -17,7 +17,7 @@ UMovieSceneCameraCutTrack::UMovieSceneCameraCutTrack( const FObjectInitializer& 
 	: Super( ObjectInitializer )
 {
 #if WITH_EDITORONLY_DATA
-	TrackTint = FColor(0, 0, 0);
+	TrackTint = FColor(0, 0, 0, 65);
 #endif
 }
 

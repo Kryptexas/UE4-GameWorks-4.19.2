@@ -616,7 +616,9 @@ public:
 	 */
 	virtual uint32 Run() override
 	{
+		check(OwnerWorker); // make sure we are started up
 		ProcessTasksUntilQuit(0);
+		FMemory::ClearAndDisableTLSCachesOnCurrentThread();
 		return 0;
 	}
 
@@ -1134,6 +1136,10 @@ public:
 	/** Used for named threads to start processing tasks until the thread is idle and RequestQuit has been called. **/
 	virtual void ProcessTasksUntilQuit(int32 QueueIndex) override
 	{
+		if (PriorityIndex != (ENamedThreads::BackgroundThreadPriority >> ENamedThreads::ThreadPriorityShift))
+		{
+			FMemory::SetupTLSCachesOnCurrentThread();
+		}
 		check(!QueueIndex);
 		Queue.QuitWhenIdle.Reset();
 		while (Queue.QuitWhenIdle.GetValue() == 0)
@@ -1536,17 +1542,7 @@ public:
 				}
 				else
 				{
-					for (int32 Index = 0; Index < GetNumWorkerThreads(); Index++)
-					{
-						for (int32 Priority = 0; Priority < ENamedThreads::NumThreadPriorities; Priority++)
-						{
-							if (Priority == (ENamedThreads::NormalThreadPriority >> ENamedThreads::ThreadPriorityShift) ||
-								(Priority == (ENamedThreads::HighThreadPriority >> ENamedThreads::ThreadPriorityShift) && bCreatedHiPriorityThreads))
-							{
-								StartTaskThread(Priority, Index);
-							}
-						}
-					}
+					StartAllTaskThreads(true);
 				}
 			}
 		}
@@ -1823,7 +1819,22 @@ public:
 		ENamedThreads::Type ThreadToWake = ENamedThreads::Type(IndexToStart + Priority * NumTaskThreadsPerSet + NumNamedThreads);
 		((FTaskThreadAnyThread&)Thread(ThreadToWake)).FTaskThreadAnyThread::WakeUp();
 	}
-
+	void StartAllTaskThreads(bool bDoBackgroundThreads)
+	{
+		for (int32 Index = 0; Index < GetNumWorkerThreads(); Index++)
+		{
+			for (int32 Priority = 0; Priority < ENamedThreads::NumThreadPriorities; Priority++)
+			{
+				if (Priority == (ENamedThreads::NormalThreadPriority >> ENamedThreads::ThreadPriorityShift) ||
+					(Priority == (ENamedThreads::HighThreadPriority >> ENamedThreads::ThreadPriorityShift) && bCreatedHiPriorityThreads) ||
+					(Priority == (ENamedThreads::BackgroundThreadPriority >> ENamedThreads::ThreadPriorityShift) && bCreatedBackgroundPriorityThreads && bDoBackgroundThreads)
+					)
+				{
+					StartTaskThread(Priority, Index);
+				}
+			}
+		}
+	}
 
 	void StartTaskThreadFastMode(int32 Priority, int32 MyIndex)
 	{
@@ -2631,6 +2642,119 @@ FGraphEvent::~FGraphEvent()
 	}
 #endif
 	CheckDontCompleteUntilIsEmpty(); // We should not have any wait untils outstanding
+}
+
+DECLARE_CYCLE_STAT(TEXT("FBroadcastTask"), STAT_FBroadcastTask, STATGROUP_TaskGraphTasks);
+
+class FBroadcastTask
+{
+public:
+	FBroadcastTask(TFunction<void(ENamedThreads::Type CurrentThread)>& InFunction, ENamedThreads::Type InDesiredThread, FThreadSafeCounter* InStallForTaskThread)
+		: Function(InFunction)
+		, DesiredThread(InDesiredThread)
+		, StallForTaskThread(InStallForTaskThread)
+	{
+	}
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return DesiredThread;
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		return GET_STATID(STAT_FBroadcastTask);
+	}
+
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+	void FORCEINLINE DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		Function(CurrentThread);
+		if (StallForTaskThread)
+		{
+			StallForTaskThread->Decrement();
+			// we wait for the others to finish here so that we do all task threads
+			while (StallForTaskThread->GetValue())
+			{
+				FPlatformProcess::SleepNoStats(.0002f);
+			}
+		}
+	}
+private:
+	TFunction<void(ENamedThreads::Type CurrentThread)> Function;
+	const ENamedThreads::Type DesiredThread;
+	FThreadSafeCounter* StallForTaskThread;
+};
+
+
+void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoBackgroundThreads, TFunction<void(ENamedThreads::Type CurrentThread)>& Callback)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FTaskGraphInterface_BroadcastSlow_OnlyUseForSpecialPurposes);
+	check(FPlatformTLS::GetCurrentThreadId() == GGameThreadId);
+	if (!TaskGraphImplementationSingleton)
+	{
+		// we aren't going yet
+		Callback(ENamedThreads::GameThread);
+		return;
+	}
+
+	// these are static because we don't actually wait for the tasks to clear
+	static FThreadSafeCounter StallForTaskThread;
+
+	int32 Workers = FTaskGraphInterface::Get().GetNumWorkerThreads();
+	StallForTaskThread.Reset();
+	StallForTaskThread.Add(Workers * (1 + (bDoBackgroundThreads && ENamedThreads::bHasBackgroundThreads) + !!(ENamedThreads::bHasHighPriorityThreads)));
+
+	{
+
+		for (int32 Index = 0; Index < Workers; Index++)
+		{
+			TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::AnyNormalThreadHiPriTask, &StallForTaskThread);
+		}
+
+	}
+	if (ENamedThreads::bHasHighPriorityThreads)
+	{
+		for (int32 Index = 0; Index < Workers; Index++)
+		{
+			TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::AnyHiPriThreadHiPriTask, &StallForTaskThread);
+		}
+	}
+	if (bDoBackgroundThreads && ENamedThreads::bHasBackgroundThreads)
+	{
+		for (int32 Index = 0; Index < Workers; Index++)
+		{
+			TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::AnyBackgroundHiPriTask, &StallForTaskThread);
+		}
+	}
+	FGraphEventArray Tasks;
+	STAT(Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::StatsThread, ENamedThreads::HighTaskPriority), nullptr)););
+	if (GRHIThread)
+	{
+		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::RHIThread, ENamedThreads::HighTaskPriority), nullptr));
+	}
+	if (ENamedThreads::RenderThread != ENamedThreads::GameThread)
+	{
+		Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::SetTaskPriority(ENamedThreads::RenderThread, ENamedThreads::HighTaskPriority), nullptr));
+	}
+	Tasks.Add(TGraphTask<FBroadcastTask>::CreateTask().ConstructAndDispatchWhenReady(Callback, ENamedThreads::GameThread_Local, nullptr));
+	FTaskGraphInterface::Get().WaitUntilTasksComplete(Tasks, ENamedThreads::GameThread_Local);
+	bool bStartedThreads = false;
+	double StartTime = FPlatformTime::Seconds();
+	while (StallForTaskThread.GetValue())
+	{
+		FPlatformProcess::SleepNoStats(.0001f);
+		// this is probably not needed, but task are not generally tested to never miss a start
+		if (!bStartedThreads && FPlatformTime::Seconds() - StartTime > 0.5)
+		{
+			bStartedThreads = true;
+			TaskGraphImplementationSingleton->StartAllTaskThreads(bDoBackgroundThreads);
+		}
+		else if (FPlatformTime::Seconds() - StartTime > 3.0)
+		{
+			StartTime = FPlatformTime::Seconds();
+			UE_LOG(LogTaskGraph, Error, TEXT("Broadcast failed after three seconds"));
+		}
+	}
 }
 
 

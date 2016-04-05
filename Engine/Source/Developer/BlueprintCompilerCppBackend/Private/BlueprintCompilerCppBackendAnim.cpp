@@ -19,7 +19,7 @@ void FBackendHelperAnim::CreateAnimClassData(FEmitterLocalContext& Context)
 	if (auto AnimClass = Cast<UAnimBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass()))
 	{
 		const FString LocalNativeName = Context.GenerateUniqueLocalName();
-		Context.AddLine(FString::Printf(TEXT("auto %s = NewObject<UAnimClassData>(GetClass(), TEXT(\"AnimClassData\"));"), *LocalNativeName));
+		Context.AddLine(FString::Printf(TEXT("auto %s = NewObject<UAnimClassData>(InDynamicClass, TEXT(\"AnimClassData\"));"), *LocalNativeName));
 
 		auto AnimClassData = NewObject<UAnimClassData>(GetTransientPackage(), TEXT("AnimClassData"));
 		AnimClassData->CopyFrom(AnimClass);
@@ -33,7 +33,7 @@ void FBackendHelperAnim::CreateAnimClassData(FEmitterLocalContext& Context)
 				, FEmitDefaultValueHelper::EPropertyAccessOperator::Pointer);
 		}
 
-		Context.AddLine(FString::Printf(TEXT("CastChecked<UDynamicClass>(GetClass())->AnimClassImplementation = %s;"), *LocalNativeName));
+		Context.AddLine(FString::Printf(TEXT("InDynamicClass->AnimClassImplementation = %s;"), *LocalNativeName));
 	}
 }
 

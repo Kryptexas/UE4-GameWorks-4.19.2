@@ -301,7 +301,7 @@ public class IOSPlatform : Platform
 					}
 
 					IPPArguments += (cookonthefly ? " -cookonthefly" : "");
-					IPPArguments += " -stagedir \"" + CombinePaths(Params.BaseStageDirectory, "IOS") + "\"";
+					IPPArguments += " -stagedir \"" + CombinePaths(Params.BaseStageDirectory, PlatformName) + "\"";
 					IPPArguments += " -project \"" + Params.RawProjectPath + "\"";
 					if (Params.IterativeDeploy)
 					{
@@ -315,7 +315,10 @@ public class IOSPlatform : Platform
 					{
 						IPPArguments += " -certificate \"" + Params.Certificate + "\"";
 					}
-
+					if (PlatformName == "TVOS")
+					{
+						IPPArguments += " -tvos";
+					}
 					RunAndLog(CmdEnv, IPPExe, IPPArguments);
 				}
 				else
@@ -437,16 +440,25 @@ public class IOSPlatform : Platform
 			// project.xcodeproj doesn't exist, so generate temp project
 			string Arguments = "-project=\"" + RawProjectPath + "\"";
 			Arguments += " -platforms=" + PlatformName + " -game -nointellisense -" + PlatformName + "deployonly -ignorejunk";
-			string Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh");
-			if (Automation.RunningRocket())
+
+			// If engine is installed then UBT doesn't need to be built
+			if (Automation.IsEngineInstalled())
 			{
-				Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/RocketGenerateProjectFiles.sh");
+				// Get the path to UBT
+				string InstalledUBT = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/UnrealBuildTool.exe");
+				Arguments = "-XcodeProjectFile " + Arguments;
+				RunUBT(CmdEnv, InstalledUBT, Arguments);
 			}
-			string CWD = Directory.GetCurrentDirectory ();
-			Directory.SetCurrentDirectory (Path.GetDirectoryName (Script));
-			Run (Script, Arguments, null, ERunOptions.Default);
+			else
+			{
+				string Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh");
+				string CWD = Directory.GetCurrentDirectory();
+				Directory.SetCurrentDirectory(Path.GetDirectoryName(Script));
+				Run(Script, Arguments, null, ERunOptions.Default);
+				Directory.SetCurrentDirectory(CWD);
+			}
+
 			bWasGenerated = true;
-			Directory.SetCurrentDirectory (CWD);
 
 			if (!Directory.Exists (XcodeProj))
 			{

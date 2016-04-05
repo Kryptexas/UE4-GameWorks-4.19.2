@@ -75,6 +75,9 @@ namespace EGameplayAbilityActivationMode
 
 		// We are not the authority, but the authority has confirmed this activation
 		Confirmed,
+
+		// We tried to activate it, and server told us we couldn't (even though we thought we could)
+		Rejected,
 	};
 }
 
@@ -172,6 +175,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 	uint8 bCanBeEndedByOtherInstance:1;
 
 	void SetActivationConfirmed();
+
+	void SetActivationRejected();
 
 	/** Called on client to set this as a predicted ability */
 	void SetPredicting(FPredictionKey PredictionKey);
@@ -317,6 +322,7 @@ struct TStructOpsTypeTraits< FGameplayAbilitySpecContainer > : public TStructOps
 
 // ----------------------------------------------------
 
+// Used to stop us from removing abilities from an ability system component while we're iterating through the abilities
 struct GAMEPLAYABILITIES_API FScopedAbilityListLock
 {
 	FScopedAbilityListLock(UAbilitySystemComponent& InContainer);
@@ -327,3 +333,18 @@ private:
 };
 
 #define ABILITYLIST_SCOPE_LOCK()	FScopedAbilityListLock ActiveScopeLock(*this);
+
+// Used to stop us from canceling or ending an ability while we're iterating through its gameplay targets
+struct GAMEPLAYABILITIES_API FScopedTargetListLock
+{
+	FScopedTargetListLock(UAbilitySystemComponent& InAbilitySystemComponent, const UGameplayAbility& InAbility);
+	~FScopedTargetListLock();
+
+private:
+	const UGameplayAbility& GameplayAbility;
+
+	// we also need to make sure the ability isn't removed while we're in this lock
+	FScopedAbilityListLock AbilityLock;
+};
+
+#define TARGETLIST_SCOPE_LOCK(ASC)	FScopedTargetListLock ActiveScopeLock(ASC, *this);

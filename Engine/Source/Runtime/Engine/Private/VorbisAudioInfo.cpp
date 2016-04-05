@@ -89,15 +89,17 @@ FVorbisAudioInfo::FVorbisAudioInfo( void )
 
 FVorbisAudioInfo::~FVorbisAudioInfo( void ) 
 { 
-	check( VFWrapper != NULL );
+	FScopeLock ScopeLock(&VorbisCriticalSection);
+	check(VFWrapper != nullptr);
 	delete VFWrapper;
+	VFWrapper = nullptr;
 }
 
 /** Emulate read from memory functionality */
 size_t FVorbisAudioInfo::Read( void *Ptr, uint32 Size )
 {
 	check(Ptr);
-	size_t BytesToRead = FMath::Min( Size, SrcBufferDataSize - BufferOffset );
+	size_t BytesToRead = FMath::Min(Size, SrcBufferDataSize - BufferOffset);
 	FMemory::Memcpy( Ptr, SrcBufferData + BufferOffset, BytesToRead );
 	BufferOffset += BytesToRead;
 	return( BytesToRead );
@@ -126,6 +128,7 @@ int FVorbisAudioInfo::Seek( uint32 offset, int whence )
 	case SEEK_END:
 		BufferOffset = SrcBufferDataSize - offset;
 		break;
+
 	default:
 		checkf(false, TEXT("Uknown seek type"));
 		break;
@@ -171,8 +174,14 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 {
 	SCOPE_CYCLE_COUNTER( STAT_VorbisPrepareDecompressionTime );
 
-	check( VFWrapper != NULL );
-	ov_callbacks		Callbacks;
+	FScopeLock ScopeLock(&VorbisCriticalSection);
+
+	if (!VFWrapper)
+	{
+		return false;
+	}
+
+	ov_callbacks Callbacks;
 
 	SrcBufferData = InSrcBufferData;
 	SrcBufferDataSize = InSrcBufferDataSize;
@@ -182,8 +191,6 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 	Callbacks.seek_func = OggSeek;
 	Callbacks.close_func = OggClose;
 	Callbacks.tell_func = OggTell;
-
-	FScopeLock ScopeLock(&VorbisCriticalSection);
 
 	// Set up the read from memory variables
 	int Result = ov_open_callbacks(this, &VFWrapper->vf, NULL, 0, Callbacks);
@@ -342,12 +349,15 @@ void LoadVorbisLibraries()
 #if PLATFORM_WINDOWS  && WITH_OGGVORBIS
 		//@todo if ogg is every ported to another platform, then use the platform abstraction to load these DLLs
 		// Load the Ogg dlls
+#  if _MSC_VER >= 1900
+		FString VSVersion = TEXT("VS2015/");
+#  elif _MSC_VER >= 1800
 		FString VSVersion = TEXT("VS2013/");
+#  else
+#    error "Unsupported Visual Studio version."
+#  endif
 		FString PlatformString = TEXT("Win32");
 		FString DLLNameStub = TEXT(".dll");
-#if _MSC_VER == 1900
-		VSVersion = TEXT("VS2015/");
-#endif
 #if PLATFORM_64BITS
 		PlatformString = TEXT("Win64");
 		DLLNameStub = TEXT("_64.dll");

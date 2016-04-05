@@ -63,7 +63,7 @@ public partial class Project : CommandUtils
 
 				var ServerLogFile = CombinePaths(LogFolderOutsideOfSandbox, "Server.log");
 				Platform ClientPlatformInst = Params.ClientTargetPlatformInstances[0];
-				string TargetCook = ClientPlatformInst.GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor);
+				string TargetCook = ClientPlatformInst.GetCookPlatform(false, false, Params.CookFlavor); // cook ont he fly doesn't support server cook platform... 
 				ServerProcess = RunCookOnTheFlyServer(Params.RawProjectPath, Params.NoClient ? "" : ServerLogFile, TargetCook, COTFCommandLine);
 
 				if (ServerProcess != null)

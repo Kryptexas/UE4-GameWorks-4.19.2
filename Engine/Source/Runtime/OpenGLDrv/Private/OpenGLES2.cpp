@@ -55,6 +55,9 @@ bool FOpenGLES2::bSupportsTextureHalfFloat = false;
 /** GL_EXT_color_buffer_half_float */
 bool FOpenGLES2::bSupportsColorBufferHalfFloat = false;
 
+/** GL_EXT_color_buffer_float */
+bool FOpenGLES2::bSupportsColorBufferFloat = false;
+
 /** GL_EXT_shader_framebuffer_fetch */
 bool FOpenGLES2::bSupportsShaderFramebufferFetch = false;
 
@@ -197,6 +200,7 @@ void FOpenGLES2::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsTextureFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_float"));
 	bSupportsTextureHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_half_float"));
 	bSupportsSGRB = ExtensionsString.Contains(TEXT("GL_EXT_sRGB"));
+	bSupportsColorBufferFloat = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_float"));
 	bSupportsColorBufferHalfFloat = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
 	bSupportsShaderFramebufferFetch = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_NV_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_ARM_shader_framebuffer_fetch"));
 	bSupportsShaderDepthStencilFetch = ExtensionsString.Contains(TEXT("GL_ARM_shader_framebuffer_fetch_depth_stencil"));

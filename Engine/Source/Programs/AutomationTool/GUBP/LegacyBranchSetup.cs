@@ -493,7 +493,7 @@ partial class GUBP
 			{
 				BranchConfig.AddNode(new InternalToolsNode(BranchConfig, HostPlatform));
 			
-				if (HostPlatform == UnrealTargetPlatform.Win64 && ActivePlatforms.Contains(UnrealTargetPlatform.Linux))
+				if (HostPlatform == UnrealTargetPlatform.Win64 && ActivePlatforms.Contains(UnrealTargetPlatform.Linux) && !BranchConfig.BranchOptions.ExcludeNodes.Contains("LinuxTools"))
 				{
 					BranchConfig.AddNode(new ToolsCrossCompileNode(BranchConfig, HostPlatform));
 				}
@@ -717,14 +717,6 @@ partial class GUBP
 										BranchConfig.AddNode(new GamePlatformMonolithicsNode(BranchConfig, HostPlatform, ActivePlatforms, Branch.BaseEngineProject, Plat, true));
 									}
 	                            }
-								if (!BranchConfig.HasNode(GamePlatformMonolithicsKindNode.StaticGetFullName(HostPlatform, Branch.BaseEngineProject, Plat, Kind)))
-								{
-									if (GamePlatformMonolithicsKindNode.HasPrecompiledTargets(Branch.BaseEngineProject, HostPlatform, Plat, Kind))
-									{
-										BranchConfig.AddNode(new GamePlatformMonolithicsKindNode(BranchConfig, HostPlatform, ActivePlatforms, Branch.BaseEngineProject, Plat, Kind, InPrecompiled: true));
-									}
-									BranchConfig.AddNode(new GamePlatformMonolithicsKindNode(BranchConfig, HostPlatform, ActivePlatforms, Branch.BaseEngineProject, Plat, Kind));
-								}
 							}
                         }
                     }
@@ -1012,14 +1004,6 @@ partial class GUBP
 									}
                                     BranchConfig.AddNode(new GamePlatformMonolithicsNode(BranchConfig, HostPlatform, ActivePlatforms, CodeProj, Plat));
                                 }
-								if (!BranchConfig.HasNode(GamePlatformMonolithicsKindNode.StaticGetFullName(HostPlatform, CodeProj, Plat, Kind)))
-								{
-									if (GamePlatformMonolithicsKindNode.HasPrecompiledTargets(CodeProj, HostPlatform, Plat, Kind))
-									{
-										BranchConfig.AddNode(new GamePlatformMonolithicsKindNode(BranchConfig, HostPlatform, ActivePlatforms, CodeProj, Plat, Kind, InPrecompiled: true));
-									}
-									BranchConfig.AddNode(new GamePlatformMonolithicsKindNode(BranchConfig, HostPlatform, ActivePlatforms, CodeProj, Plat, Kind));
-								}
 								var FormalBuildConfigs = Target.Rules.GUBP_GetConfigsForFormalBuilds_MonolithicOnly(HostPlatform);
 								if (!AdditionalPlatforms.Contains(Plat) && (BranchOptions.ProjectsToCook.Contains(CodeProj.GameName) || BranchOptions.ProjectsToCook.Count == 0))
 								{
@@ -1158,7 +1142,15 @@ partial class GUBP
         BranchConfig.AddNode(new WaitForTestShared(this));
 		List<UnrealTargetPlatform> HostPlatformsToWaitFor = BranchConfig.HostPlatforms;
 		HostPlatformsToWaitFor.RemoveAll(HostPlatform => BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform));
-		BranchConfig.AddNode(new WaitToPackageSamplesNode(HostPlatformsToWaitFor));
+
+		foreach(GUBPNode Node in BranchConfig.GUBPNodes.Values)
+		{
+			if(Node.FullNamesOfDependencies.Contains(WaitToPackageSamplesNode.StaticGetFullName()) || Node.FullNamesOfPseudodependencies.Contains(WaitToPackageSamplesNode.StaticGetFullName()))
+			{
+				BranchConfig.AddNode(new WaitToPackageSamplesNode(HostPlatformsToWaitFor));
+				break;
+			}
+		}
 
 		AddCustomNodes(BranchConfig, HostPlatforms, ActivePlatforms);
         

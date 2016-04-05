@@ -15,9 +15,6 @@ namespace UnrealBuildTool
 	/// </summary>
 	public enum WindowsCompiler
 	{
-		/// Visual Studio 2012 (Visual C++ 11.0). No longer supported for building on Windows, but required for other platform toolchains.
-		VisualStudio2012,
-
 		/// Visual Studio 2013 (Visual C++ 12.0)
 		VisualStudio2013,
 
@@ -95,14 +92,14 @@ namespace UnrealBuildTool
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
 
-					//#todo-rco: Remove when public
 					string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
 					{
-/*						if ((!String.IsNullOrEmpty(VulkanSDKPath)))
+                        if ((!String.IsNullOrEmpty(VulkanSDKPath)))
 						{
+            				Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
 							Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
-						}
-*/					}
+                        }
+					}
 				}
 			}
 
@@ -201,7 +198,7 @@ namespace UnrealBuildTool
 				SupportWindowsXP = true;
 			}
 
-			if (WindowsPlatform.bUseWindowsSDK10 && WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			if (WindowsPlatform.bUseWindowsSDK10)
 			{
 				if (SupportWindowsXP)
 				{
@@ -269,8 +266,8 @@ namespace UnrealBuildTool
 				InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCPD");
 
 				//@todo ATL: Currently, only VSAccessor requires ATL (which is only used in editor builds)
-				// When compiling games, we do not want to include ATL - and we can't when compiling Rocket games
-				// due to VS 2012 Express not including ATL.
+				// When compiling games, we do not want to include ATL - and we can't when compiling games
+				// made with Launcher build due to VS 2012 Express not including ATL.
 				// If more modules end up requiring ATL, this should be refactored into a BuildTarget flag (bNeedsATL)
 				// that is set by the modules the target includes to allow for easier tracking.
 				// Alternatively, if VSAccessor is modified to not require ATL than we should always exclude the libraries.
@@ -345,6 +342,7 @@ namespace UnrealBuildTool
 			if (InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("USE_NULL_RHI=1"))
 			{
 				UEBuildConfiguration.bCompileSimplygon = false;
+                UEBuildConfiguration.bCompileSimplygonSSF = false;
 			}
 
 			// For 64-bit builds, we'll forcibly ignore a linker warning with DirectInput.  This is
@@ -473,11 +471,6 @@ namespace UnrealBuildTool
 				}
 
 				// First, default based on whether there is a command line override...
-				if (UnrealBuildTool.CommandLineContains("-2012"))
-				{
-					// We don't support compiling with VS 2012 on Windows platform, but you can still generate project files that are 2012-compatible.  That's handled elsewhere
-				}
-
 				if (UnrealBuildTool.CommandLineContains("-2013"))
 				{
 					CachedCompiler = WindowsCompiler.VisualStudio2013;
@@ -486,12 +479,7 @@ namespace UnrealBuildTool
 				{
 					CachedCompiler = WindowsCompiler.VisualStudio2015;
 				}
-
-				// Second, default based on what's installed, test for 2013 first
-				else if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
- 				{
-					CachedCompiler = WindowsCompiler.VisualStudio2013;
-				}
+				// Second, default based on what's installed, test for 2015 first
 				else if (!Utils.IsRunningOnMono && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2015)))
 				{
 					CachedCompiler = WindowsCompiler.VisualStudio2015;
@@ -501,21 +489,20 @@ namespace UnrealBuildTool
 					if (!File.Exists(CompilerExe))
 					{
 						Log.TraceWarning("Visual C++ 2015 toolchain does not appear to be correctly installed. Please verify that \"Common Tools for Visual C++ 2015\" was selected when installing Visual Studio 2015.");
-						// Check if 2013 is installed and fall back to it if possible, if that doesn't work we'll leave the setting on 2015 and defer the error to be picked up later
-						if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
-						{
-							Log.TraceWarning("Using Visual Studio 2013 toolchain instead of Visual Studio 2015 toolchain.");
-							CachedCompiler = WindowsCompiler.VisualStudio2013;
-						}
 					}
 				}
 				else
 				{
-					// Finally assume 2013 is installed to defer errors somewhere else like VCToolChain
-					CachedCompiler = WindowsCompiler.VisualStudio2013;
+					// Finally assume 2015 is installed to defer errors somewhere else like VCToolChain
+					CachedCompiler = WindowsCompiler.VisualStudio2015;
 				}
 
 				return CachedCompiler.Value;
+			}
+
+			set
+			{
+				CachedCompiler = value;
 			}
 		}
 
@@ -567,9 +554,6 @@ namespace UnrealBuildTool
 						case WindowsCompiler.VisualStudio2013:
 							DTEKey = "VisualStudio.DTE.12.0";
 							break;
-						case WindowsCompiler.VisualStudio2012:
-							DTEKey = "VisualStudio.DTE.11.0";
-							break;
 					}
 					return RegistryKey.OpenBaseKey(RegistryHive.ClassesRoot, RegistryView.Registry32).OpenSubKey(DTEKey) != null;
 				}
@@ -608,6 +592,42 @@ namespace UnrealBuildTool
 			return GetVSComnToolsPath(Compiler);
 		}
 
+		public static bool HasVSInstalled(WindowsCompiler Toolchain)
+		{
+			string VSVersion = "";
+			switch (Toolchain)
+			{
+				case WindowsCompiler.VisualStudio2013:
+					VSVersion = "12.0";
+					break;
+				case WindowsCompiler.VisualStudio2015:
+					VSVersion = "14.0";
+					break;
+				default:
+					throw new NotSupportedException("Not supported compiler.");
+			}
+
+			RegistryKey BaseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32);
+			object InstalledFlag = BaseKey.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\DevDiv\vs\Servicing\{0}\devenv\Install", VSVersion));
+			if (InstalledFlag != null && InstalledFlag.ToString() == "1")
+			{
+				return true;
+			}
+			return false;
+		}
+
+		public static bool HasAnyVSInstalled()
+		{
+			foreach (WindowsCompiler Toolchain in Enum.GetValues(typeof(WindowsCompiler)))
+			{
+				if (HasVSInstalled(Toolchain))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
 		/// <summary>
 		/// Returns VisualStudio common tools path for given compiler.
 		/// </summary>
@@ -624,9 +644,6 @@ namespace UnrealBuildTool
 
 			switch (Compiler)
 			{
-				case WindowsCompiler.VisualStudio2012:
-					VSVersion = 11;
-					break;
 				case WindowsCompiler.VisualStudio2013:
 					VSVersion = 12;
 					break;
@@ -638,15 +655,15 @@ namespace UnrealBuildTool
 			}
 
 			string[] PossibleRegPaths = new string[] {
-                @"Wow6432Node\Microsoft\VisualStudio",	// Non-express VS2013 on 64-bit machine.
-                @"Microsoft\VisualStudio",				// Non-express VS2013 on 32-bit machine.
-                @"Wow6432Node\Microsoft\WDExpress",		// Express VS2013 on 64-bit machine.
-                @"Microsoft\WDExpress"					// Express VS2013 on 32-bit machine.
+                @"Wow6432Node\Microsoft\VisualStudio",	// VS2015 on 64-bit machine.
+                @"Microsoft\VisualStudio",				// VS2015 on 32-bit machine.
+				@"Wow6432Node\Microsoft\WDExpress",		// VSExpress on 64-bit machine.
+                @"Microsoft\WDExpress"					// VSExpress on 32-bit machine.
             };
 
 			string VSPath = null;
 
-			foreach (var PossibleRegPath in PossibleRegPaths)
+			foreach (string PossibleRegPath in PossibleRegPaths)
 			{
 				VSPath = (string)Registry.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\{0}\{1}.0", PossibleRegPath, VSVersion), "InstallDir", null);
 
@@ -717,17 +734,13 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// When using a Visual Studio compiler, returns the version name as a string
 		/// </summary>
-		/// <returns>The Visual Studio compiler version name (e.g. "2012")</returns>
+		/// <returns>The Visual Studio compiler version name (e.g. "2015")</returns>
 		public static string GetVisualStudioCompilerVersionName()
 		{
 			switch (Compiler)
 			{
-				case WindowsCompiler.VisualStudio2012:
-					return "2012";
-
 				case WindowsCompiler.VisualStudio2013:
 					return "2013";
-
 				case WindowsCompiler.VisualStudio2015:
 					return "2015";
 

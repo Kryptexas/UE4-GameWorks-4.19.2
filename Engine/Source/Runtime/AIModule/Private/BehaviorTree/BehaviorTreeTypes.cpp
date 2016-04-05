@@ -39,7 +39,7 @@ void FBehaviorTreeInstance::Initialize(UBehaviorTreeComponent& OwnerComp, UBTCom
 			UBTDecorator* InstancedDecoratorOb = Cast<UBTDecorator>(DecoratorOb->GetNodeInstance(OwnerComp, DecoratorMemory));
 			if (InstancedDecoratorOb)
 			{
-				InstancedDecoratorOb->InitializeDecorator(DecoratorOb->GetChildIndex());
+				InstancedDecoratorOb->InitializeParentLink(DecoratorOb->GetChildIndex());
 			}
 		}
 
@@ -49,6 +49,19 @@ void FBehaviorTreeInstance::Initialize(UBehaviorTreeComponent& OwnerComp, UBTCom
 		}
 		else if (ChildInfo.ChildTask)
 		{
+			for (int32 ServiceIndex = 0; ServiceIndex < ChildInfo.ChildTask->Services.Num(); ServiceIndex++)
+			{
+				UBTService* ServiceOb = ChildInfo.ChildTask->Services[ServiceIndex];
+				uint8* ServiceMemory = ServiceOb->GetNodeMemory<uint8>(*this);
+				ServiceOb->InitializeInSubtree(OwnerComp, ServiceMemory, InstancedIndex, InitType);
+
+				UBTService* InstancedServiceOb = Cast<UBTService>(ServiceOb->GetNodeInstance(OwnerComp, ServiceMemory));
+				if (InstancedServiceOb)
+				{
+					InstancedServiceOb->InitializeParentLink(ServiceOb->GetChildIndex());
+				}
+			}
+
 			ChildInfo.ChildTask->InitializeInSubtree(OwnerComp, ChildInfo.ChildTask->GetNodeMemory<uint8>(*this), InstancedIndex, InitType);
 		}
 	}
@@ -119,6 +132,11 @@ void FBehaviorTreeInstance::CleanupNodes(UBehaviorTreeComponent& OwnerComp, UBTC
 		}
 		else if (ChildInfo.ChildTask)
 		{
+			for (int32 ServiceIndex = 0; ServiceIndex < ChildInfo.ChildTask->Services.Num(); ServiceIndex++)
+			{
+				ChildInfo.ChildTask->Services[ServiceIndex]->CleanupInSubtree(OwnerComp, ChildInfo.ChildTask->Services[ServiceIndex]->GetNodeMemory<uint8>(*this), CleanupType);
+			}
+
 			ChildInfo.ChildTask->CleanupInSubtree(OwnerComp, ChildInfo.ChildTask->GetNodeMemory<uint8>(*this), CleanupType);
 		}
 	}

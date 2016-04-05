@@ -213,6 +213,11 @@ bool SMultiLineEditableText::ShouldClearKeyboardFocusOnCommit() const
 	return bClearKeyboardFocusOnCommit.Get(false);
 }
 
+bool SMultiLineEditableText::ShouldSelectAllTextOnCommit() const
+{
+	return false;
+}
+
 bool SMultiLineEditableText::CanInsertCarriageReturn() const
 {
 	return FSlateApplication::Get().GetModifierKeys().AreModifersDown(ModiferKeyForNewLine);

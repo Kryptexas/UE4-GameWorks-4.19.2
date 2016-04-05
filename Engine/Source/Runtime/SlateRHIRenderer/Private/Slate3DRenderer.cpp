@@ -15,17 +15,19 @@ FSlate3DRenderer::FSlate3DRenderer( TSharedRef<FSlateFontServices> InSlateFontSe
 	ElementBatcher = MakeShareable(new FSlateElementBatcher(RenderTargetPolicy.ToSharedRef()));
 }
 
-FSlate3DRenderer::~FSlate3DRenderer()
+void FSlate3DRenderer::Cleanup()
 {
-	if( RenderTargetPolicy.IsValid() )
+	if ( RenderTargetPolicy.IsValid() )
 	{
 		RenderTargetPolicy->ReleaseResources();
 	}
 
-	if ( IsInGameThread() )
-	{
-		FlushRenderingCommands();
-	}
+	BeginCleanup(this);
+}
+
+void FSlate3DRenderer::FinishCleanup()
+{
+	delete this;
 }
 
 FSlateDrawBuffer& FSlate3DRenderer::GetDrawBuffer()

@@ -24,7 +24,7 @@ FAutoConsoleVariableRef CVarUseTranslucentLightingVolumes(
 	GUseTranslucentLightingVolumes,
 	TEXT("Whether to allow updating the translucent lighting volumes.\n")
 	TEXT("0:off, otherwise on, default is 1"),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GTranslucentVolumeMinFOV = 45;

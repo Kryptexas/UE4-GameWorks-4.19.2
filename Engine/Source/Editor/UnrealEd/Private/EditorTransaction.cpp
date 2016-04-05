@@ -19,7 +19,12 @@ inline UObject* BuildSubobjectKey(UObject* InObj, TArray<FName>& OutHierarchyNam
 		const bool bIsCDO = Obj->HasAllFlags(RF_ClassDefaultObject);
 		const UObject* CDO = bIsCDO ? Obj : nullptr;
 		const bool bIsClassCDO = (CDO != nullptr) ? (CDO->GetClass()->ClassDefaultObject == CDO) : false;
-		check(bIsCDO && bIsClassCDO || (!bIsCDO && !bIsClassCDO));
+		if(!bIsClassCDO && CDO)
+		{
+			// Likely a trashed CDO, try to recover. Only known cause of this is
+			// ambiguous use of DSOs:
+			CDO = CDO->GetClass()->ClassDefaultObject;
+		}
 		const UActorComponent* AsComponent = Cast<UActorComponent>(Obj);
 		const bool bIsDSO = Obj->HasAnyFlags(RF_DefaultSubObject);
 		const bool bIsSCSComponent = AsComponent && AsComponent->IsCreatedByConstructionScript();
@@ -721,7 +726,7 @@ bool UTransBuffer::CanRedo( FText* Text )
 
 const FTransaction* UTransBuffer::GetTransaction( int32 QueueIndex ) const
 {
-	if (UndoBuffer.Num() > QueueIndex)
+	if (UndoBuffer.Num() > QueueIndex && QueueIndex != INDEX_NONE)
 	{
 		return &UndoBuffer[QueueIndex];
 	}
@@ -781,7 +786,7 @@ void UTransBuffer::ClearUndoBarriers()
 }
 
 
-bool UTransBuffer::Undo()
+bool UTransBuffer::Undo(bool bCanRedo)
 {
 	CheckState();
 
@@ -801,6 +806,12 @@ bool UTransBuffer::Undo()
 		BeforeRedoUndoDelegate.Broadcast(Transaction.GetContext());
 		Transaction.Apply();
 		UndoDelegate.Broadcast(Transaction.GetContext(), true);
+
+		if (!bCanRedo)
+		{
+			UndoBuffer.RemoveAt(UndoBuffer.Num() - UndoCount, UndoCount);
+			UndoCount = 0;
+		}
 	}
 	GIsTransacting = false;
 

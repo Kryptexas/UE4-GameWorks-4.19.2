@@ -32,6 +32,7 @@ public:
 public:
 
 	void Cleanup();
+	bool ValidateRendererState() const;
 
 	void PanoramicScreenshot(const TArray<FString>& Args);
 	void PanoramicScreenshot(const int32 InStartFrame, const int32 InEndFrame, FStereoCaptureDoneDelegate& InStereoCaptureDoneDelegate);

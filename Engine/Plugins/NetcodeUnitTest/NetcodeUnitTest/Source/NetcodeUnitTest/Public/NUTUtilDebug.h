@@ -436,9 +436,9 @@ public:
 
 
 		auto MatchLogLine =
-			[&](const FLogTraceEntry& CurEntry)
+			[&](const FLogTraceEntry& InEntry)
 			{
-				return CurEntry.LogLine == LogLine;
+				return InEntry.LogLine == LogLine;
 			};
 
 		if (bPartial)

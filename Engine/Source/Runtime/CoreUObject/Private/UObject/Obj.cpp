@@ -1630,16 +1630,16 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 					Key = FString::Printf(TEXT("%s[%i]"), *Property->GetName(), i);
 				}
 
-				FString Value;
+					FString Value;
 				const bool bFoundValue = GConfig->GetString( *ClassSection, *Key, Value, *PropFileName );
-				if (bFoundValue)
-				{
-					if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
+					if (bFoundValue)
 					{
-						// this should be an error as the properties from the .ini / .int file are not correctly being read in and probably are affecting things in subtle ways
-						UE_LOG(LogObj, Error, TEXT("LoadConfig (%s): import failed for %s in: %s"), *GetPathName(), *Property->GetName(), *Value);
+						if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
+						{
+							// this should be an error as the properties from the .ini / .int file are not correctly being read in and probably are affecting things in subtle ways
+							UE_LOG(LogObj, Error, TEXT("LoadConfig (%s): import failed for %s in: %s"), *GetPathName(), *Property->GetName(), *Value);
+						}
 					}
-				}
 
 #if !UE_BUILD_SHIPPING
 				if (!bFoundValue && !FPlatformProperties::RequiresCookedData())
@@ -1656,13 +1656,14 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 			//@Package name transition
 			if( Sec )
 			{
-				TArray<FString> List;
-				Sec->MultiFind(FName(*Key,FNAME_Find),List);
+				TArray<FConfigValue> List;
+				const FName KeyName(*Key, FNAME_Find);
+				Sec->MultiFind(KeyName,List);
 
 				// If we didn't find anything in the first section, try the alternate
 				if ((List.Num() == 0) && AltSec)
 				{
-					AltSec->MultiFind(FName(*Key,FNAME_Find),List);
+					AltSec->MultiFind(KeyName,List);
 				}
 
 				FScriptArrayHelper_InContainer ArrayHelper(Array, this);
@@ -1673,32 +1674,32 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 					ArrayHelper.EmptyAndAddValues(List.Num());
 					for( int32 i=List.Num()-1,c=0; i>=0; i--,c++ )
 					{
-						Array->Inner->ImportText( *List[i], ArrayHelper.GetRawPtr(c), PortFlags, this );
+						Array->Inner->ImportText( *List[i].GetValue(), ArrayHelper.GetRawPtr(c), PortFlags, this );
 					}
 				}
 				else
 				{
 					int32 Index = 0;
-					FString* ElementValue = NULL;
+					const FConfigValue* ElementValue = nullptr;
 					do
 					{
 						// Add array index number to end of key
 						FString IndexedKey = FString::Printf(TEXT("%s[%i]"), *Key, Index);
 
 						// Try to find value of key
-						FName IndexedName(*IndexedKey,FNAME_Find);
+						const FName IndexedName(*IndexedKey,FNAME_Find);
 						if (IndexedName == NAME_None)
 						{
 							break;
 						}
-						ElementValue  = Sec->Find(IndexedName);
+						ElementValue = Sec->Find(IndexedName);
 
 						// If found, import the element
-						if ( ElementValue != NULL )
+						if ( ElementValue != nullptr )
 						{
 							// expand the array if necessary so that Index is a valid element
 							ArrayHelper.ExpandForIndex(Index);
-							Array->Inner->ImportText(**ElementValue, ArrayHelper.GetRawPtr(Index), PortFlags, this);
+							Array->Inner->ImportText(*ElementValue->GetValue(), ArrayHelper.GetRawPtr(Index), PortFlags, this);
 						}
 
 						Index++;
@@ -1827,13 +1828,13 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 					FString CompleteKey = FString::Printf(TEXT("%s%s"), bIsADefaultIniWrite ? TEXT("+") : TEXT(""), *Key);
 
 					FScriptArrayHelper_InContainer ArrayHelper(Array, this);
-					for( int32 i=0; i<ArrayHelper.Num(); i++ )
-					{
-						FString	Buffer;
-						Array->Inner->ExportTextItem( Buffer, ArrayHelper.GetRawPtr(i), ArrayHelper.GetRawPtr(i), this, PortFlags );
-						Sec->Add(*CompleteKey, *Buffer);
+						for( int32 i=0; i<ArrayHelper.Num(); i++ )
+						{
+							FString	Buffer;
+							Array->Inner->ExportTextItem( Buffer, ArrayHelper.GetRawPtr(i), ArrayHelper.GetRawPtr(i), this, PortFlags );
+							Sec->Add(*CompleteKey, *Buffer);
+						}
 					}
-				}
 				else if( Property->Identical_InContainer(this, SuperClassDefaultObject) )
 				{
 					// If we are not writing it to config above, we should make sure that this property isn't stagnant in the cache.
@@ -1858,10 +1859,10 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 							Key = TempKey;
 						}
 
-						FString	Value;
-						Property->ExportText_InContainer( Index, Value, this, this, this, PortFlags );
-						Config->SetString( *Section, *Key, *Value, *PropFileName );
-					}
+							FString	Value;
+							Property->ExportText_InContainer( Index, Value, this, this, this, PortFlags );
+							Config->SetString( *Section, *Key, *Value, *PropFileName );
+						}
 					else if( Property->Identical_InContainer(this, SuperClassDefaultObject, Index) )
 					{
 						// If we are not writing it to config above, we should make sure that this property isn't stagnant in the cache.

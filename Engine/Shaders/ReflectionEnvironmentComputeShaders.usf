@@ -411,6 +411,18 @@ float CountOverlap( float3 WorldPosition )
 
 void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirection, float Roughness, float2 ScreenPosition, float IndirectIrradiance, uint ShadingModelID)
 {
+	// Indirect occlusion from DFAO, which should be applied to reflection captures and skylight specular, but not SSR
+	float IndirectSpecularOcclusion = 1.0f;
+
+#if SUPPORT_DFAO_INDIRECT_OCCLUSION
+	float2 ScreenUV = ScreenPosition * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+	float IndirectDiffuseOcclusion;
+	GetDistanceFieldAOSpecularOcclusion(ScreenUV, RayDirection, Roughness, ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE, IndirectSpecularOcclusion, IndirectDiffuseOcclusion);
+	// Apply DFAO to IndirectIrradiance before mixing with indirect specular
+	IndirectIrradiance *= IndirectDiffuseOcclusion;
+	
+#endif
+
 	float Mip = ComputeReflectionCaptureMipFromRoughness( Roughness );
 
 	uint NumCapturesAffectingTile = TileNumReflectionCaptures;
@@ -542,7 +554,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 				Sample *= DistanceAlpha;
 
 				// Under operator (back to front)
-				Color.rgb += Sample.rgb * Color.a;
+				Color.rgb += Sample.rgb * Color.a * IndirectSpecularOcclusion;
 				Color.a *= 1 - Sample.a;
 			}
 		}
@@ -562,11 +574,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 			SkyLighting *= IndirectIrradiance;
 		}
 
-		float2 ScreenUV = ScreenPosition * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-		float Visibility = GetDistanceFieldAOSpecularOcclusion(ScreenUV, RayDirection, Roughness, ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE);
-
-		// TODO use Mip
-		Color.rgb += (Color.a * Visibility) * SkyLighting;
+		Color.rgb += Color.a * SkyLighting * IndirectSpecularOcclusion;
 	}
 #endif
 }

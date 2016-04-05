@@ -4,10 +4,8 @@
 
 #include "StereoRendering.h"
 #include "Layout/SlateRect.h"
+#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "HeadMountedDisplayTypes.h"
-
-// depending on your kit and SDK, you may want to use this.
-// new distortion handling still in development.
 
 /**
  * HMD device interface
@@ -334,6 +332,9 @@ public:
 	virtual FVector2D GetTextureOffsetRight() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureScaleLeft() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureScaleRight() const {return FVector2D::ZeroVector;}
+	virtual const float* GetRedDistortionParameters() const { return nullptr; }
+	virtual const float* GetGreenDistortionParameters() const { return nullptr; }
+	virtual const float* GetBlueDistortionParameters() const { return nullptr; }
 
 	virtual bool NeedsUpscalePostProcessPass()  { return false; }
 
@@ -346,21 +347,15 @@ public:
 	 */
 	virtual FString GetVersionString() const { return FString(TEXT("GenericHMD")); }
 
-	enum ETrackingOrigin
-	{
-		Eye		= 0,
-		Floor	= 1,
-	};
-
 	/**
 	 * Sets tracking origin (either 'eye'-level or 'floor'-level).
 	 */
-	virtual void SetTrackingOrigin(ETrackingOrigin);
+	virtual void SetTrackingOrigin(EHMDTrackingOrigin::Type NewOrigin) {};
 
 	/**
 	 * Returns current tracking origin.
 	 */
-	virtual ETrackingOrigin GetTrackingOrigin();
+	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() { return EHMDTrackingOrigin::Eye; }
 
 	/**
 	 * Returns true, if the App is using VR focus. This means that the app may handle lifecycle events differently from

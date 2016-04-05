@@ -265,10 +265,10 @@ public:
 class OODLEHANDLERCOMPONENT_API OodleHandlerComponent : public HandlerComponent
 {
 public:
-	/* Initializes default data */
+	/** Initializes default data */
 	OodleHandlerComponent();
 
-	/* Default Destructor */
+	/** Default Destructor */
 	~OodleHandlerComponent();
 
 	/**
@@ -315,41 +315,45 @@ public:
 	bool FindFallbackDictionaries(FString& OutServerDictionary, FString& OutClientDictionary, bool bTestOnly=false);
 #endif
 
-	/* Initializes the handler component */
 	virtual void Initialize() override;
 
-	/* Whether the handler component is valid */
 	virtual bool IsValid() const override;
 
-	/* Handles any incoming packets */
 	virtual void Incoming(FBitReader& Packet) override;
 
-	/* Handles any outgoing packets */
 	virtual void Outgoing(FBitWriter& Packet) override;
 
+	virtual void IncomingConnectionless(FString Address, FBitReader& Packet) override
+	{
+	}
+
+	virtual void OutgoingConnectionless(FString Address, FBitWriter& Packet) override
+	{
+	}
+
 	virtual int32 GetPacketOverheadBits() override;
+
+	virtual uint8 GetBitAlignment() override;
+
+	virtual bool DoesResetBitAlignment() override;
+
 
 protected:
 	/** Whether or not Oodle is enabled */
 	bool bEnableOodle;
 
 #if !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
-	/* File to log input packets to */
+	/** File to log input packets to */
 	FPacketCaptureArchive* InPacketLog;
 
-	/* File to log output packets to */
+	/** File to log output packets to */
 	FPacketCaptureArchive* OutPacketLog;
 
 	/** Search for dictionary files and use them if present - switching mode to Release in process - don't use in shipping */
 	bool bUseDictionaryIfPresent;
 #endif
 
-	/* 
-	* Modes of the component
-	* Specify this in .ini by
-	* [OodleHandlerComponent]
-	* Mode=Capturing
-	*/
+	/** Modes of the component  */
 	EOodleHandlerMode Mode;
 
 	/** Server (Outgoing) dictionary data */

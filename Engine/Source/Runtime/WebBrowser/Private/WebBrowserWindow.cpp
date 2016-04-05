@@ -46,9 +46,10 @@ namespace {
 	};
 }
 
-FWebBrowserWindow::FWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
+FWebBrowserWindow::FWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, CefRefPtr<FWebBrowserHandler> InHandler, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
 	: DocumentState(EWebBrowserDocumentState::NoDocument)
 	, InternalCefBrowser(InBrowser)
+	, WebBrowserHandler(InHandler)
 	, CurrentUrl(InUrl)
 	, ViewportSize(FIntPoint::ZeroValue)
 	, bIsClosing(false)
@@ -81,7 +82,10 @@ FWebBrowserWindow::FWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, FString In
 
 FWebBrowserWindow::~FWebBrowserWindow()
 {
+	WebBrowserHandler->OnCreateWindow().Unbind();
+	WebBrowserHandler->OnBeforePopup().Unbind();
 	CloseBrowser(true);
+
 	if(FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
 	{
 		for (int I = 0; I < 1; ++I)
@@ -519,21 +523,6 @@ bool FWebBrowserWindow::OnUnhandledKeyEvent(const CefKeyEvent& CefEvent)
 	}
 	}
 	return bWasHandled;
-}
-
-
-bool FWebBrowserWindow::SupportsNewWindows()
-{
-	return OnCreateWindow().IsBound() ? true : false;
-}
-
-bool FWebBrowserWindow::RequestCreateWindow( const TSharedRef<IWebBrowserWindow>& NewBrowserWindow, const TSharedPtr<IWebBrowserPopupFeatures>& BrowserPopupFeatures )
-{
-	if(OnCreateWindow().IsBound())
-	{
-		return OnCreateWindow().Execute(TWeakPtr<IWebBrowserWindow>(NewBrowserWindow), TWeakPtr<IWebBrowserPopupFeatures>(BrowserPopupFeatures));
-	}
-	return false;
 }
 
 bool FWebBrowserWindow::OnJSDialog(CefJSDialogHandler::JSDialogType DialogType, const CefString& MessageText, const CefString& DefaultPromptText, CefRefPtr<CefJSDialogCallback> Callback, bool& OutSuppressMessage)
@@ -1052,7 +1041,12 @@ bool FWebBrowserWindow::OnBeforeBrowse( CefRefPtr<CefBrowser> Browser, CefRefPtr
 			if(OnBeforeBrowse().IsBound())
 			{
 				FString Url = Request->GetURL().ToWString().c_str();
-				return OnBeforeBrowse().Execute(Url, bIsRedirect);
+
+				FWebNavigationRequest RequestDetails;
+				RequestDetails.bIsRedirect = bIsRedirect;
+				RequestDetails.bIsMainFrame = Frame->IsMain();
+
+				return OnBeforeBrowse().Execute(Url, RequestDetails);
 			}
 		}
 	}
@@ -1273,17 +1267,6 @@ void FWebBrowserWindow::UnbindUObject(const FString& Name, UObject* Object, bool
 	Scripting->UnbindUObject(Name, Object, bIsPermanent);
 }
 
-bool FWebBrowserWindow::OnCefBeforePopup(const CefString& Target_Url, const CefString& Target_Frame_Name)
-{
-	if (OnBeforePopup().IsBound())
-	{
-		FString URL = Target_Url.ToWString().c_str();
-		FString FrameName = Target_Frame_Name.ToWString().c_str();
-		return OnBeforePopup().Execute(URL, FrameName);
-	}
-
-	return false;
-}
 
 void FWebBrowserWindow::OnBrowserClosing()
 {

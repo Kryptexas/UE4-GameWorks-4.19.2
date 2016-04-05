@@ -161,15 +161,10 @@ bool FXAudio2Device::InitializeHardware()
 	bool bUseHmdDeviceIndex = CVarXAudio2HmdDeviceIndex.GetValueOnGameThread() >= 0 && 
 		IModularFeatures::Get().IsModularFeatureAvailable(IHeadMountedDisplayModule::GetModularFeatureName());
 
-	if( bUseHmdDeviceIndex )
-	{
-		DeviceIndex = CVarXAudio2HmdDeviceIndex.GetValueOnGameThread();
-	}
+	DeviceIndex = bUseHmdDeviceIndex ? CVarXAudio2HmdDeviceIndex.GetValueOnGameThread() : DeviceIndex;
 
 	if(DeviceIndex >= DeviceCount)
-	{
 		DeviceIndex = 0;
-	}
 
 	// Get the details of the desired device index (0 is default)
 	if (!ValidateAPICall(TEXT("GetDeviceDetails"),
@@ -222,7 +217,7 @@ bool FXAudio2Device::InitializeHardware()
 #else	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 	// Create the final output voice
 	if (!ValidateAPICall(TEXT("CreateMasteringVoice"),
-		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, UE4_XAUDIO2_NUMCHANNELS, UE4_XAUDIO2_SAMPLERATE, 0, DeviceIndex, nullptr )))
+		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, UE4_XAUDIO2_NUMCHANNELS, UE4_XAUDIO2_SAMPLERATE, 0, 0, nullptr )))
 	{
 		UE_LOG(LogInit, Warning, TEXT( "Failed to create the mastering voice for XAudio2" ) );
 		DeviceProperties->XAudio2 = nullptr;
@@ -266,6 +261,7 @@ void FXAudio2Device::TeardownHardware()
 
 void FXAudio2Device::UpdateHardware()
 {
+	DeviceProperties->ProcessPendingTasksToCleanup();
 }
 
 FAudioEffectsManager* FXAudio2Device::CreateEffectsManager()

@@ -251,42 +251,73 @@ UWorld* UUserWidget::GetWorld() const
 	return nullptr;
 }
 
-void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode)
+UUMGSequencePlayer* UUserWidget::GetOrAddPlayer(const UWidgetAnimation* InAnimation)
 {
-	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnim");
-
-	if( InAnimation )
+	if (InAnimation)
 	{
 		// @todo UMG sequencer - Restart animations which have had Play called on them?
 		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate(
 			[&](const UUMGSequencePlayer* Player)
-			{
-				return Player->GetAnimation() == InAnimation;
-			});
+		{
+			return Player->GetAnimation() == InAnimation;
+		});
 
-		if( !FoundPlayer )
+		if (!FoundPlayer)
 		{
 			UUMGSequencePlayer* NewPlayer = NewObject<UUMGSequencePlayer>(this);
-			ActiveSequencePlayers.Add( NewPlayer );
+			ActiveSequencePlayers.Add(NewPlayer);
 
-			NewPlayer->OnSequenceFinishedPlaying().AddUObject( this, &UUserWidget::OnAnimationFinishedPlaying );
+			NewPlayer->OnSequenceFinishedPlaying().AddUObject(this, &UUserWidget::OnAnimationFinishedPlaying);
 
-			NewPlayer->InitSequencePlayer( *InAnimation, *this );
+			NewPlayer->InitSequencePlayer(*InAnimation, *this);
 
-			NewPlayer->Play( StartAtTime, NumberOfLoops, PlayMode );
+			return NewPlayer;
 		}
 		else
 		{
-			( *FoundPlayer )->Play( StartAtTime, NumberOfLoops, PlayMode );
+			return *FoundPlayer;
 		}
+	}
 
-		TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
-		if ( CachedWidget.IsValid() )
-		{
-			CachedWidget->Invalidate(EInvalidateWidget::LayoutAndVolatility);
-		}
+	return nullptr;
+}
 
-		OnAnimationStarted( InAnimation );
+void UUserWidget::Invalidate()
+{
+	TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
+	if (CachedWidget.IsValid())
+	{
+		CachedWidget->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+	}
+}
+
+void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode)
+{
+	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnimation");
+
+	UUMGSequencePlayer* Player = GetOrAddPlayer(InAnimation);
+	if (Player)
+	{
+		Player->Play(StartAtTime, NumberOfLoops, PlayMode);
+
+		Invalidate();
+
+		OnAnimationStarted(InAnimation);
+	}
+}
+
+void UUserWidget::PlayAnimationTo(const UWidgetAnimation* InAnimation, float StartAtTime, float EndAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode)
+{
+	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnimationTo");
+
+	UUMGSequencePlayer* Player = GetOrAddPlayer(InAnimation);
+	if (Player)
+	{
+		Player->PlayTo(StartAtTime, EndAtTime, NumberOfLoops, PlayMode);
+
+		Invalidate();
+
+		OnAnimationStarted(InAnimation);
 	}
 }
 
@@ -880,11 +911,7 @@ void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InD
 	// If we're no longer playing animations invalidate layout so that we recache the volatility of the widget.
 	if ( bWasPlayingAnimation && IsPlayingAnimation() == false )
 	{
-		TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
-		if ( CachedWidget.IsValid() )
-		{
-			CachedWidget->Invalidate(EInvalidateWidget::LayoutAndVolatility);
-		}
+		Invalidate();
 	}
 
 	UWorld* World = GetWorld();

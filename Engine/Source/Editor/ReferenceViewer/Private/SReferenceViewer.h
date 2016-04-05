@@ -83,13 +83,14 @@ private:
 	void ReCenterGraph();
 	void ListReferencedObjects();
 	void ListObjectsThatReference();
-	void MakeCollectionWithReferencedAssets(ECollectionShareType::Type ShareType);
+	void MakeCollectionWithReferenersOrDependencies(ECollectionShareType::Type ShareType, bool bReferencers);
 	void ShowSizeMap();
 	void ShowReferenceTree();
 
 	void ReCenterGraphOnNodes(const TSet<UObject*>& Nodes);
 
 	UObject* GetObjectFromSingleSelectedNode() const;
+	void GetPackageNamesFromSelectedNodes(TSet<FName>& OutNames) const;
 	bool HasExactlyOneNodeSelected() const;
 	bool HasAtLeastOneNodeSelected() const;
 

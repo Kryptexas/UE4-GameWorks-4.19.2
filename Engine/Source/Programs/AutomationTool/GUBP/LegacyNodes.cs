@@ -351,11 +351,13 @@ partial class GUBP
     public class ToolsForCompileNode : CompileNode
     {
 		bool bHasLauncherParam;
+		bool bNoInstalledEngine;
 
         public ToolsForCompileNode(GUBP.GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform, bool bInHasLauncherParam)
             : base(InBranchConfig, InHostPlatform, false)
         {
 			bHasLauncherParam = bInHasLauncherParam;
+			bNoInstalledEngine = InBranchConfig.BranchOptions.bNoInstalledEngine;
 
 			if (InHostPlatform != UnrealTargetPlatform.Win64)
             {
@@ -414,7 +416,7 @@ partial class GUBP
             }
             string AddArgs = "-CopyAppBundleBackToDevice";
 
-            Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs);
+            Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs + (bNoInstalledEngine? "" : " -precompile"));
             return Agenda;
         }
         public override void PostBuild(GUBP bp, UE4Build UE4Build)
@@ -1058,6 +1060,10 @@ partial class GUBP
 				{
 					UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Linux/UnrealPak");
 				}
+                else if (HostPlatform == UnrealTargetPlatform.Mac)
+                {
+                    UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Mac/UnrealPak");
+                }
 				else
 				{
 					throw new AutomationException("Unknown path to UnrealPak for host platform ({0})", HostPlatform);
@@ -1080,6 +1086,7 @@ partial class GUBP
 		bool WithXp;
 		bool Precompiled; // If true, just builds targets which generate static libraries for the -UsePrecompiled option to UBT. If false, just build those that don't.
 		bool EnhanceAgentRequirements;
+		public List<UnrealTargetConfiguration> ExcludeConfigurations = new List<UnrealTargetConfiguration>();
 
         public GamePlatformMonolithicsNode(GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool InWithXp = false, bool InPrecompiled = false)
             : base(InBranchConfig, InHostPlatform)
@@ -1343,7 +1350,7 @@ partial class GUBP
 								Configs = Target.Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, TargetPlatform).Except(Target.Rules.GUBP_GetConfigsForPrecompiledBuilds_MonolithicOnly(HostPlatform, TargetPlatform)).ToList();
 							}
 							
-							foreach (var Config in Configs)
+							foreach (var Config in Configs.Where(x => !ExcludeConfigurations.Contains(x)))
 							{
 								if (GameProj.GameName == BranchConfig.Branch.BaseEngineProject.GameName)
 								{
@@ -2022,9 +2029,9 @@ partial class GUBP
             {
                 AddDependency(GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, GameProj, Plat));
             }
-        }
+		}
 
-        public static string StaticGetFullName(BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms = null, List<UnrealTargetConfiguration> InClientConfigs = null, List<UnrealTargetPlatform> InServerTargetPlatforms = null, List<UnrealTargetConfiguration> InServerConfigs = null, bool InClientNotGame = false)
+		public static string StaticGetBaseName(BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms = null, List<UnrealTargetConfiguration> InClientConfigs = null, List<UnrealTargetPlatform> InServerTargetPlatforms = null, List<UnrealTargetConfiguration> InServerConfigs = null, bool InClientNotGame = false)
         {
             string Infix = "";
             if (InClientNotGame)
@@ -2057,9 +2064,14 @@ partial class GUBP
             {
                 Infix += "_Serv_" + InServerConfigs[0].ToString();
             }
-            return InGameProj.GameName + Infix + "_MakeBuild" + HostPlatformNode.StaticGetHostPlatformSuffix(InHostPlatform);
+			return InGameProj.GameName + Infix;
         }
-        public override string GetFullName()
+		public static string StaticGetFullName(BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms = null, List<UnrealTargetConfiguration> InClientConfigs = null, List<UnrealTargetPlatform> InServerTargetPlatforms = null, List<UnrealTargetConfiguration> InServerConfigs = null, bool InClientNotGame = false)
+		{
+			return StaticGetBaseName(InGameProj, InHostPlatform, InClientTargetPlatforms, InClientConfigs, InServerTargetPlatforms, InServerConfigs, InClientNotGame) + "_MakeBuild" + HostPlatformNode.StaticGetHostPlatformSuffix(InHostPlatform);
+		}
+
+		public override string GetFullName()
         {
             return StaticGetFullName(GameProj, HostPlatform, ClientTargetPlatforms, ClientConfigs, ServerTargetPlatforms, ServerConfigs, ClientNotGame);
         }
@@ -2097,18 +2109,24 @@ partial class GUBP
 		{
 			return base.CISFrequencyQuantumShift(BranchConfig) + 3;
 		}
+
+		public static string GetBranchArchiveDirectory(GUBP.GUBPBranchConfig BranchConfig, BranchInfo.BranchUProject InGameProj)
+		{
+			// Find the build share where formal builds will be placed for this game.
+			string BuildShareName;
+			if (!BranchConfig.BranchOptions.GameNameToBuildShareMapping.TryGetValue(InGameProj.GameName, out BuildShareName))
+			{
+				BuildShareName = "UE4";
+			}
+			return CommandUtils.CombinePaths(CommandUtils.RootBuildStorageDirectory(), BuildShareName, "PackagedBuilds", P4Env.BuildRootEscaped);
+		}
+
 		public static string GetArchiveDirectory(GUBP.GUBPBranchConfig BranchConfig, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms = null, List<UnrealTargetConfiguration> InClientConfigs = null, List<UnrealTargetPlatform> InServerTargetPlatforms = null, List<UnrealTargetConfiguration> InServerConfigs = null, bool InClientNotGame = false)
         {
-            // Find the build share where formal builds will be placed for this game.
-            string BuildShareName;
-            if (!BranchConfig.BranchOptions.GameNameToBuildShareMapping.TryGetValue(InGameProj.GameName, out BuildShareName))
-            {
-                BuildShareName = "UE4";
-            }
-            string BaseDir = CommandUtils.CombinePaths(CommandUtils.RootBuildStorageDirectory(), BuildShareName);
-            string NodeName = StaticGetFullName(InGameProj, InHostPlatform, InClientTargetPlatforms, InClientConfigs, InServerTargetPlatforms, InServerConfigs, InClientNotGame);
-            string Inner = P4Env.BuildRootEscaped + "-" + BranchConfig.JobInfo.BuildName;
-			string ArchiveDirectory = CombinePaths(BaseDir, NodeName, Inner);
+			string BranchArchiveDir = GetBranchArchiveDirectory(BranchConfig, InGameProj);
+            string BaseDir = CommandUtils.CombinePaths(BranchArchiveDir, BranchConfig.JobInfo.BuildName);
+			string NodeName = StaticGetBaseName(InGameProj, InHostPlatform, InClientTargetPlatforms, InClientConfigs, InServerTargetPlatforms, InServerConfigs, InClientNotGame);
+			string ArchiveDirectory = CombinePaths(BaseDir, NodeName);
             return ArchiveDirectory;
         }
         public override void DoBuild(GUBP bp)
@@ -2234,7 +2252,7 @@ partial class GUBP
 					}
 					CreateDirectory_NoExceptions(IntermediateArchiveDirectory);
 				}
-				CleanFormalBuilds(FinalArchiveDirectory);
+				CleanFormalBuilds(GetBranchArchiveDirectory(BranchConfig, GameProj), "CL-*");
 				if (DirectoryExists_NoExceptions(FinalArchiveDirectory))
                 {
                     if (IsBuildMachine)

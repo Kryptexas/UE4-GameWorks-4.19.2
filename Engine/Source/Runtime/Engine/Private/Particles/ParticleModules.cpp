@@ -3215,6 +3215,23 @@ FParticleEmitterInstance* UParticleModuleTypeDataBase::CreateInstance(UParticleE
 /*-----------------------------------------------------------------------------
 	UParticleModuleTypeDataMesh implementation.
 -----------------------------------------------------------------------------*/
+static TAutoConsoleVariable<int32> CVarMinDetailModeForMeshParticleMotionBlur(
+	TEXT("r.MeshParticle.MinDetailModeForMotionBlur"),
+	-1,
+	TEXT("Sets the minimum detail mode before mesh particles emit motion blur (Low  = 0, Med = 1, High = 2, Max = 3). ")
+	TEXT("Set to -1 to disable mesh particles motion blur entirely. Defaults to -1.")
+	);
+
+int32 UParticleModuleTypeDataMesh::GetCurrentDetailMode()
+{
+	return GetCachedScalabilityCVars().DetailMode;
+}
+
+int32 UParticleModuleTypeDataMesh::GetMeshParticleMotionBlurMinDetailMode()
+{
+	return CVarMinDetailModeForMeshParticleMotionBlur.GetValueOnGameThread();
+}
+
 UParticleModuleTypeDataMesh::UParticleModuleTypeDataMesh(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -4371,7 +4388,7 @@ void UParticleModuleTypeDataGpu::BeginDestroy()
 
 void UParticleModuleTypeDataGpu::Build( FParticleEmitterBuildInfo& EmitterBuildInfo )
 {
-#if WITH_EDITOR
+//#if WITH_EDITOR
 	FVector4Distribution Curve;
 	FComposableFloatDistribution ZeroDistribution;
 	FComposableFloatDistribution OneDistribution;
@@ -4666,7 +4683,7 @@ void UParticleModuleTypeDataGpu::Build( FParticleEmitterBuildInfo& EmitterBuildI
 	// Collision flag.
 	EmitterInfo.bEnableCollision = EmitterBuildInfo.bEnableCollision;
 	EmitterInfo.CollisionMode = (EParticleCollisionMode::Type)EmitterBuildInfo.CollisionMode;
-#endif
+//#endif
 
 
 	// Create or update GPU resources.
@@ -4690,7 +4707,7 @@ FParticleEmitterInstance* UParticleModuleTypeDataGpu::CreateInstance(UParticleEm
 		InComponent->Template != NULL ? *InComponent->Template->GetName() : TEXT("NULL"));
 
 	FParticleEmitterInstance* Instance = NULL;
-	if (World->Scene && RHISupportsGPUParticles(World->Scene->GetFeatureLevel()))
+	if (World->Scene && RHISupportsGPUParticles())
 	{
 		check( InComponent && InComponent->FXSystem );
 		Instance = InComponent->FXSystem->CreateGPUSpriteEmitterInstance( EmitterInfo );

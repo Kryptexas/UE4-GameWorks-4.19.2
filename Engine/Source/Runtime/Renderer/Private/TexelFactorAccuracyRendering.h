@@ -17,7 +17,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return AllowDebugViewModeShader(Platform);
+		return AllowDebugViewShaderMode(DVSM_TexelFactorAccuracy, Platform);
 	}
 
 	FTexelFactorAccuracyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):

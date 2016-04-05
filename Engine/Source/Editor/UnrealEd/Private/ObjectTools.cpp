@@ -886,14 +886,7 @@ namespace ObjectTools
 				UObject* CurObjOuter = CurObjToConsolidate->GetOuter();
 				UPackage* CurObjPackage = CurObjToConsolidate->GetOutermost();
 				FName CurObjName = CurObjToConsolidate->GetFName();
-
-				// null out the CDO of our current generated class so that DeleteSingleObject does not find it and set it's ClassGeneratedBy to the replacing type.
-				// That would trigger a type mismatch assertion...
 				UBlueprint* BlueprintToConsolidate = Cast<UBlueprint>(CurObjToConsolidate);
-				if (BlueprintToConsolidateTo != nullptr && BlueprintToConsolidate != nullptr && BlueprintToConsolidate->GeneratedClass != nullptr)
-				{
-					BlueprintToConsolidate->GeneratedClass->ClassDefaultObject = nullptr;
-				}
 
 				// Attempt to delete the object that was consolidated
 				if ( DeleteSingleObject( CurObjToConsolidate ) )
@@ -1488,8 +1481,11 @@ namespace ObjectTools
 
 		GWarn->EndSlowTask();
 
-		// Let the package auto-saver know that it needs to ignore the deleted packages
-		GUnrealEd->GetPackageAutoSaver().OnPackagesDeleted(PackagesToDelete);
+		if (GUnrealEd)
+		{
+			// Let the package auto-saver know that it needs to ignore the deleted packages
+			GUnrealEd->GetPackageAutoSaver().OnPackagesDeleted(PackagesToDelete);
+		}
 
 		// Unload the packages and collect garbage.
 		if ( PackagesToDelete.Num() > 0 )

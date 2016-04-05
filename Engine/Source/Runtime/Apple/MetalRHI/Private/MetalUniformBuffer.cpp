@@ -27,11 +27,6 @@ static const uint32 RequestedUniformBufferSizeBuckets[NUM_POOL_BUCKETS] =
 // Maps desired size buckets to alignment actually 
 static TArray<uint32> UniformBufferSizeBuckets;
 
-static uint32 GetUBPoolSize()
-{
-	return 512 * 1024;
-}
-
 // Convert bucket sizes to be compatible with present device
 static void RemapBuckets()
 {
@@ -123,15 +118,6 @@ void InitFrame_UniformBufferPoolCleanup()
 	}
 }
 
-struct TUBPoolBuffer
-{
-	id<MTLBuffer> Buffer;
-	uint32 ConsumedSpace;
-	uint32 AllocatedSpace;
-};
-
-TArray<TUBPoolBuffer> UBPool;
-
 void AddNewlyFreedBufferToUniformBufferPool(id<MTLBuffer> Buffer, uint32 Offset, uint32 Size)
 {
 	check(Buffer);
@@ -144,7 +130,7 @@ void AddNewlyFreedBufferToUniformBufferPool(id<MTLBuffer> Buffer, uint32 Offset,
 	FPooledUniformBuffer NewEntry;
 	NewEntry.Buffer = Buffer;
 	NewEntry.FrameFreed = GFrameNumberRenderThread;
-	NewEntry.CreatedSize = Size;
+	NewEntry.CreatedSize = Buffer.length;
 	NewEntry.Offset = Offset;
 
 	// Add to this frame's array of free uniform buffers
@@ -164,33 +150,12 @@ void AddNewlyFreedBufferToUniformBufferPool(id<MTLBuffer> Buffer, uint32 Offset,
 
 id<MTLBuffer> SuballocateUB(uint32 Size, uint32& OutOffset)
 {
-	check(Size <= GetUBPoolSize());
-
-	// Find space in previously allocated pool buffers
-	for ( int32 Buffer = 0; Buffer < UBPool.Num(); Buffer++)
-	{
-		TUBPoolBuffer &Pool = UBPool[Buffer];
-		if ( Size < (Pool.AllocatedSpace - Pool.ConsumedSpace))
-		{
-			OutOffset = Pool.ConsumedSpace;
-			Pool.ConsumedSpace += Size;
-			return Pool.Buffer;
-		}
-	}
-
 	// No space was found to use, create a new Pool buffer
-	uint32 TotalSize = GetUBPoolSize();
-	//NSLog(@"New Metal Buffer Size %d", TotalSize);
-	id<MTLBuffer> Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:TotalSize options:BUFFER_CACHE_MODE];
+	id<MTLBuffer> Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:Size options:BUFFER_CACHE_MODE];
 	TRACK_OBJECT(Buffer);
+	INC_MEMORY_STAT_BY(STAT_MetalTotalUniformBufferMemory, Size);
 
 	OutOffset = 0;
-
-	TUBPoolBuffer Pool;
-	Pool.Buffer = Buffer;
-	Pool.ConsumedSpace = Size;
-	Pool.AllocatedSpace = GetUBPoolSize();
-	UBPool.Push(Pool);
 
 	return Buffer;
 }

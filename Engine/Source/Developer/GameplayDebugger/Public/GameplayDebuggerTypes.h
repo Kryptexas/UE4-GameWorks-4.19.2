@@ -123,8 +123,9 @@ FArchive& operator<<(FArchive& Ar, FGameplayDebuggerShape& Shape);
 
 enum class EGameplayDebuggerDataPack : uint8
 {
-	PersistentData,
-	AutoResetData,
+	Persistent,
+	ResetOnActorChange,
+	ResetOnTick,
 };
 
 struct GAMEPLAYDEBUGGER_API FGameplayDebuggerDataPack
@@ -132,7 +133,10 @@ struct GAMEPLAYDEBUGGER_API FGameplayDebuggerDataPack
 	struct FHeader
 	{
 		/** version, increased every time new Data is requested */
-		int32 DataVersion;
+		int16 DataVersion;
+
+		/** debug actor sync counter */
+		int16 SyncCounter;
 
 		/** size of Data array */
 		int32 DataSize;
@@ -143,26 +147,31 @@ struct GAMEPLAYDEBUGGER_API FGameplayDebuggerDataPack
 		/** is data compressed? */
 		uint32 bIsCompressed : 1;
 
-		FHeader() : DataVersion(0), DataSize(0), DataOffset(0), bIsCompressed(false) {}
-		
-		void UpdateOffset(int32 InDataVersion, int32 InDataOffset)
-		{
-			if (DataVersion == InDataVersion)
-			{
-				DataOffset = FMath::Min(InDataOffset, DataSize);
-			}
-		}
+		FHeader() : DataVersion(0), SyncCounter(0), DataSize(0), DataOffset(0), bIsCompressed(false) {}
 
-		bool operator==(const FHeader& Other) const 
+		FORCEINLINE bool Equals(const FHeader& Other) const
 		{
 			return (DataVersion == Other.DataVersion) && (DataSize == Other.DataSize) && (DataOffset == Other.DataOffset);
+		}
+
+		FORCEINLINE bool operator==(const FHeader& Other) const
+		{
+			return Equals(Other);
+		}
+
+		FORCEINLINE bool operator!=(const FHeader& Other) const
+		{
+			return !Equals(Other);
 		}
 	};
 
 	DECLARE_DELEGATE(FOnReset);
 	DECLARE_DELEGATE_OneParam(FOnSerialize, FArchive&);
 
-	FGameplayDebuggerDataPack() : PackId(0), DataCRC(0), bIsDirty(false), bNeedsReceiveConfirmation(false), Flags(EGameplayDebuggerDataPack::AutoResetData) {}
+	FGameplayDebuggerDataPack() :
+		PackId(0), DataCRC(0), bIsDirty(false), bNeedsConfirmation(false), bReceived(false),
+		Flags(EGameplayDebuggerDataPack::ResetOnTick)
+	{}
 
 	/** data being replicated */
 	TArray<uint8> Data;
@@ -179,8 +188,11 @@ struct GAMEPLAYDEBUGGER_API FGameplayDebuggerDataPack
 	/** force net replication, regardless DataCRC */
 	uint32 bIsDirty : 1;
 
-	/** if set, data pack replication must be completed */
-	uint32 bNeedsReceiveConfirmation : 1;
+	/** if set, replication must be confirmed by client before sending next update */
+	uint32 bNeedsConfirmation : 1;
+
+	/** set when client receives complete data pack */
+	uint32 bReceived : 1;
 
 	/** data pack flags */
 	EGameplayDebuggerDataPack Flags;
@@ -191,20 +203,26 @@ struct GAMEPLAYDEBUGGER_API FGameplayDebuggerDataPack
 	static int32 PacketSize;
 
 	bool CheckDirtyAndUpdate();
-	bool RequestReplication();
+	bool RequestReplication(int16 SyncCounter);
+
 	void OnReplicated();
-	void OnPacketRequest(int32 DataVersion, int32 DataOffset);
+	void OnPacketRequest(int16 DataVersion, int32 DataOffset);
 
 	/** get replication progress in (0..1) range */
-	float GetProgress() const
+	FORCEINLINE float GetProgress() const
 	{
 		return (Header.DataOffset != Header.DataSize) ? ((1.0f * Header.DataOffset) / Header.DataSize) : 1.0f;
 	}
 
 	/** is replication in progress? */
-	bool IsInProgress() const
+	FORCEINLINE bool IsInProgress() const
 	{
 		return (Header.DataSize > 0) && (Header.DataOffset < Header.DataSize);
+	}
+
+	static bool IsMultiPacket(int32 TestSize)
+	{
+		return TestSize > PacketSize;
 	}
 };
 

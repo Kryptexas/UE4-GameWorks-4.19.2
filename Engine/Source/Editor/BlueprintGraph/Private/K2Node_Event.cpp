@@ -795,6 +795,18 @@ UObject* UK2Node_Event::GetJumpTargetForDoubleClick() const
 	return NULL;
 }
 
+FString UK2Node_Event::GetFindReferenceSearchString() const
+{
+	FString FunctionName = EventReference.GetMemberName().ToString(); // If we fail to find the function, still want to search for its expected name.
+
+	if (UFunction* Function = EventReference.ResolveMember<UFunction>(GetBlueprintClassFromNode()))
+	{
+		FunctionName = UEdGraphSchema_K2::GetFriendlySignatureName(Function).ToString();
+	}
+
+	return FunctionName;
+}
+
 bool UK2Node_Event::AreEventNodesIdentical(const UK2Node_Event* InNodeA, const UK2Node_Event* InNodeB)
 {
 	return InNodeA->EventReference.GetMemberName() == InNodeB->EventReference.GetMemberName()

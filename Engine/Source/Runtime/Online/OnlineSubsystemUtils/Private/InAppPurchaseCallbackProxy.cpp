@@ -90,7 +90,7 @@ void UInAppPurchaseCallbackProxy::OnInAppPurchaseComplete_Delayed()
 {
     /** Cached product details of the purchased product */
     FInAppPurchaseProductInfo ProductInformation; 
-    
+
     if (SavedPurchaseState == EInAppPurchaseState::Success && PurchaseRequest.IsValid())
     {
         ProductInformation = PurchaseRequest->ProvidedProductInformation;

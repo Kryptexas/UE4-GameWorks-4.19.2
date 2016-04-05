@@ -1309,7 +1309,7 @@ void FSlateRHIRenderer::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
 		ReleaseCachingResourcesFor,
 		FReleaseCachingResourcesForContext, Context, MarshalContext,
 		{
-			Context.RenderPolicy->ReleaseCachingResourcesFor(Context.Cacher);
+			Context.RenderPolicy->ReleaseCachingResourcesFor(RHICmdList, Context.Cacher);
 		});
 }
 

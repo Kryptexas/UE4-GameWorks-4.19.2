@@ -115,7 +115,7 @@ void F3DPathTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, 
 bool F3DPathTrackEditor::IsActorPickable(const AActor* const ParentActor, FGuid ObjectBinding, UMovieSceneSection* InSection)
 {
 	// Can't pick the object that this track binds
-	TArray<UObject*> OutObjects;
+	TArray<TWeakObjectPtr<UObject>> OutObjects;
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectBinding, OutObjects);
 	if (OutObjects.Contains(ParentActor))
 	{
@@ -130,7 +130,7 @@ bool F3DPathTrackEditor::IsActorPickable(const AActor* const ParentActor, FGuid 
 
 		if (ConstraintId.IsValid())
 		{
-			TArray<UObject*> ConstraintObjects;
+			TArray<TWeakObjectPtr<UObject>> ConstraintObjects;
 			GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ConstraintId, ConstraintObjects);
 			if (ConstraintObjects.Contains(ParentActor))
 			{
@@ -157,14 +157,7 @@ bool F3DPathTrackEditor::IsActorPickable(const AActor* const ParentActor, FGuid 
 
 void F3DPathTrackEditor::ActorSocketPicked(const FName SocketName, USceneComponent* Component, AActor* ParentActor, FGuid ObjectGuid, UMovieSceneSection* Section)
 {
-	if (ObjectGuid.IsValid())
-	{
-		TArray<UObject*> OutObjects;
-		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
-
-		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &F3DPathTrackEditor::AddKeyInternal, OutObjects, ParentActor) );
-	}
-	else if (Section != nullptr)
+	if (Section != nullptr)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("UndoSetPath", "Set Path"));
 
@@ -176,9 +169,15 @@ void F3DPathTrackEditor::ActorSocketPicked(const FName SocketName, USceneCompone
 			PathSection->SetConstraintId(SplineId);
 		}
 	}
+	else if (ObjectGuid.IsValid())
+	{
+		TArray<TWeakObjectPtr<UObject>> OutObjects;
+		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
+		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &F3DPathTrackEditor::AddKeyInternal, OutObjects, ParentActor) );
+	}
 }
 
-bool F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, AActor* ParentActor)
+bool F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects, AActor* ParentActor)
 {
 	bool bHandleCreated = false;
 	bool bTrackCreated = false;
@@ -202,7 +201,7 @@ bool F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> O
 
 	for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
 	{
-		UObject* Object = Objects[ObjectIndex];
+		UObject* Object = Objects[ObjectIndex].Get();
 
 		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
 		FGuid ObjectHandle = HandleResult.Handle;

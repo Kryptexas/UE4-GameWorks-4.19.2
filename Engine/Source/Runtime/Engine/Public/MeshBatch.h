@@ -39,6 +39,7 @@ struct FMeshBatchElement
 	uint32 NumInstances;
 	uint32 MinVertexIndex;
 	uint32 MaxVertexIndex;
+	// Meaning depends on the vertex factory, e.g. FGPUSkinPassthroughVertexFactory: element index in FGPUSkinCache::CachedElements
 	int32 UserIndex;
 	float MinScreenSize;
 	float MaxScreenSize;

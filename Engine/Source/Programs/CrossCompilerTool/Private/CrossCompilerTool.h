@@ -15,6 +15,7 @@ namespace CCT
 		{
 			BE_Metal,
 			BE_OpenGL,
+			BE_Vulkan,
 			BE_Invalid,
 		};
 		EHlslShaderFrequency Frequency;

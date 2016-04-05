@@ -2,6 +2,7 @@
 
 #include "BlueprintProfilerPCH.h"
 #include "EditorStyleSet.h"
+#include "GraphEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "ScriptInstrumentationPlayback"
 
@@ -24,19 +25,19 @@ bool FBlueprintExecutionContext::InitialiseContext(const FString& BlueprintPath)
 			UbergraphFunctionName = BPClass->UberGraphFunction ? BPClass->UberGraphFunction->GetFName() : NAME_None;
 		}
 	}
-	if (Blueprint.IsValid() && BlueprintClass.IsValid())
+	if (Blueprint.IsValid() && BlueprintClass.IsValid() && UbergraphFunctionName != NAME_None)
 	{
 		// Create new blueprint exec node
-		BlueprintNode = MakeShareable<FScriptExecutionBlueprint>(new FScriptExecutionBlueprint);
-		BlueprintNode->SetNameByString(BlueprintPath);
-		BlueprintNode->SetObservedObject(Blueprint.Get());
-		BlueprintNode->SetGraphName(NAME_None);
-		BlueprintNode->SetDisplayName(FText::FromName(Blueprint.Get()->GetFName()));
-		BlueprintNode->SetFlags(EScriptExecutionNodeFlags::Class);
-		const FSlateBrush* Icon_Normal = FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPIcon_Normal"));
-		BlueprintNode->SetIcon(const_cast<FSlateBrush*>(Icon_Normal));
-		BlueprintNode->SetIconColor(FLinearColor(0.46f, 0.54f, 0.81f));
-		BlueprintNode->SetToolTipText(LOCTEXT("NavigateToBlueprintHyperlink_ToolTip", "Navigate to the Blueprint"));
+		FScriptExecNodeParams BlueprintParams;
+		BlueprintParams.NodeName = FName(*BlueprintPath);
+		BlueprintParams.ObservedObject = Blueprint.Get();
+		BlueprintParams.OwningGraphName = NAME_None;
+		BlueprintParams.DisplayName = FText::FromName(Blueprint.Get()->GetFName());
+		BlueprintParams.Tooltip = LOCTEXT("NavigateToBlueprintHyperlink_ToolTip", "Navigate to the Blueprint");
+		BlueprintParams.NodeFlags = EScriptExecutionNodeFlags::Class;
+		BlueprintParams.Icon = const_cast<FSlateBrush*>(FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPIcon_Normal")));
+		BlueprintParams.IconColor = FLinearColor(0.46f, 0.54f, 0.81f);
+		BlueprintNode = MakeShareable<FScriptExecutionBlueprint>(new FScriptExecutionBlueprint(BlueprintParams));
 		// Map the blueprint execution
 		if (MapBlueprintExecution())
 		{
@@ -75,6 +76,7 @@ TWeakObjectPtr<const UObject> FBlueprintExecutionContext::GetInstance(FName& Ins
 	if (const FName* SearchName = PIEInstanceNameMap.Find(InstanceNameInOut)) 
 	{
 		CorrectedName = *SearchName;
+		InstanceNameInOut = CorrectedName;
 	}
 	if (TWeakObjectPtr<const UObject>* SearchResult = ActorInstances.Find(CorrectedName))
 	{
@@ -107,22 +109,27 @@ TWeakObjectPtr<const UObject> FBlueprintExecutionContext::GetInstance(FName& Ins
 						}
 					}
 				}
-				else
+				else if (!ObjectPtr->HasAnyFlags(RF_Transient))
 				{
 					ActorInstances.Add(InstanceNameInOut) = ObjectPtr;
+					PIEInstanceNameMap.Add(InstanceNameInOut) = InstanceNameInOut;
 					Result = ObjectPtr;
 				}
 			}
 		}
-
 	}
 	return Result;
 }
 
-TSharedPtr<FBlueprintFunctionContext> FBlueprintExecutionContext::FindFunctionContext(const FName FunctionNameIn) const
+FName FBlueprintExecutionContext::GetEventFunctionName(const FName EventName) const
+{
+	return (EventName == UEdGraphSchema_K2::FN_UserConstructionScript) ? UEdGraphSchema_K2::FN_UserConstructionScript : UbergraphFunctionName;
+}
+
+TSharedPtr<FBlueprintFunctionContext> FBlueprintExecutionContext::GetFunctionContext(const FName FunctionNameIn) const
 {
 	TSharedPtr<FBlueprintFunctionContext> Result;
-	FName FunctionName = (FunctionNameIn ==  UEdGraphSchema_K2::GN_EventGraph) ? UbergraphFunctionName : FunctionNameIn;
+	FName FunctionName = (FunctionNameIn == UEdGraphSchema_K2::GN_EventGraph) ? UbergraphFunctionName : FunctionNameIn;
 
 	if (const TSharedPtr<FBlueprintFunctionContext>* SearchResult = FunctionContexts.Find(FunctionName))
 	{
@@ -131,7 +138,7 @@ TSharedPtr<FBlueprintFunctionContext> FBlueprintExecutionContext::FindFunctionCo
 	return Result;
 }
 
-TSharedPtr<FBlueprintFunctionContext> FBlueprintExecutionContext::GetOrCreateFunctionContext(const FName FunctionNameIn)
+TSharedPtr<FBlueprintFunctionContext> FBlueprintExecutionContext::CreateFunctionContext(const FName FunctionNameIn)
 {
 	FName FunctionName = (FunctionNameIn ==  UEdGraphSchema_K2::GN_EventGraph) ? UbergraphFunctionName : FunctionNameIn;
 	TSharedPtr<FBlueprintFunctionContext>& Result = FunctionContexts.FindOrAdd(FunctionName);
@@ -152,7 +159,7 @@ bool FBlueprintExecutionContext::HasProfilerDataForNode(const UEdGraphNode* Grap
 	const UEdGraph* OuterGraph = GraphNode ? GraphNode->GetTypedOuter<UEdGraph>() : nullptr;
 	if (OuterGraph)
 	{
-		TSharedPtr<FBlueprintFunctionContext> FunctionContext = FindFunctionContext(OuterGraph->GetFName());
+		TSharedPtr<FBlueprintFunctionContext> FunctionContext = GetFunctionContext(OuterGraph->GetFName());
 		if (FunctionContext.IsValid())
 		{
 			return FunctionContext->HasProfilerDataForNode(GraphNode->GetFName());
@@ -168,7 +175,7 @@ TSharedPtr<FScriptExecutionNode> FBlueprintExecutionContext::GetProfilerDataForN
 	const UEdGraph* OuterGraph = GraphNode ? GraphNode->GetTypedOuter<UEdGraph>() : nullptr;
 	if (OuterGraph)
 	{
-		TSharedPtr<FBlueprintFunctionContext> FunctionContext = FindFunctionContext(OuterGraph->GetFName());
+		TSharedPtr<FBlueprintFunctionContext> FunctionContext = GetFunctionContext(OuterGraph->GetFName());
 		if (FunctionContext.IsValid() && FunctionContext->HasProfilerDataForNode(GraphNode->GetFName()))
 		{
 			Result = FunctionContext->GetProfilerDataForNode(GraphNode->GetFName());
@@ -197,6 +204,7 @@ bool FBlueprintExecutionContext::MapBlueprintExecution()
 		TArray<UEdGraph*> Graphs;
 		TArray<UK2Node_Event*> EventNodes;
 		TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+		TArray<UK2Node*> InputEventNodes;
 		BlueprintToMap->GetAllGraphs(Graphs);
 		for (auto GraphIter : Graphs)
 		{
@@ -208,56 +216,59 @@ bool FBlueprintExecutionContext::MapBlueprintExecution()
 			{
 				GraphIter->GetNodesOfClass<UK2Node_FunctionEntry>(FunctionEntryNodes);
 			}
+			GraphIter->GetNodesOfClassEx<UK2Node_InputAction, UK2Node>(InputEventNodes);
+			GraphIter->GetNodesOfClassEx<UK2Node_InputKey, UK2Node>(InputEventNodes);
+			GraphIter->GetNodesOfClassEx<UK2Node_InputTouch, UK2Node>(InputEventNodes);
 		}
 		// Map execution paths for each event node
 		for (auto EventIter : EventNodes)
 		{
 			FName EventName = EventIter->GetFunctionName();
-			TSharedPtr<FBlueprintFunctionContext> FunctionContext = GetOrCreateFunctionContext(EventName);
-			TSharedPtr<FScriptExecutionNode> EventExecNode = FunctionContext->GetProfilerDataForNode(EventName);
-			EventExecNode->SetName(EventName);
-			EventExecNode->SetObservedObject(EventIter);
-			EventExecNode->SetGraphName(EventIter->GetTypedOuter<UEdGraph>()->GetFName());
-			EventExecNode->SetFlags(EScriptExecutionNodeFlags::Event);
-			FLinearColor IconColor = FLinearColor(0.91f, 0.16f, 0.16f);
-			FText ToolTipText = LOCTEXT("NavigateToEventLocationHyperlink_ToolTip", "Navigate to the Event");
-			EventExecNode->SetDisplayName(EventIter->GetNodeTitle(ENodeTitleType::ListView));
-			EventExecNode->SetToolTipText(ToolTipText);
-			const FSlateBrush* Icon_Node = EventIter->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(EventIter->GetPaletteIcon(IconColor)) :
-																			FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
-			EventExecNode->SetIcon(const_cast<FSlateBrush*>(Icon_Node));
-			EventExecNode->SetIconColor(IconColor);
+			TSharedPtr<FBlueprintFunctionContext> EventContext = CreateFunctionContext(UbergraphFunctionName);
+			FScriptExecNodeParams EventParams;
+			EventParams.NodeName = EventName;
+			EventParams.ObservedObject = EventIter;
+			EventParams.OwningGraphName = NAME_None;
+			EventParams.DisplayName = EventIter->GetNodeTitle(ENodeTitleType::ListView);
+			EventParams.Tooltip = LOCTEXT("NavigateToEventLocationHyperlink_ToolTip", "Navigate to the Event");
+			EventParams.NodeFlags = EScriptExecutionNodeFlags::Event;
+			EventParams.IconColor = FLinearColor(0.91f, 0.16f, 0.16f);
+			const FSlateBrush* EventIcon = EventIter->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(EventIter->GetPaletteIcon(EventParams.IconColor)) :
+																				FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
+			EventParams.Icon = const_cast<FSlateBrush*>(EventIcon);
+			TSharedPtr<FScriptExecutionNode> EventExecNode = EventContext->CreateExecutionNode(EventParams);
 			// Add event to mapped blueprint
 			BlueprintNode->AddChildNode(EventExecNode);
 			// Map the event execution flow
-			TSharedPtr<FScriptExecutionNode> MappedEvent = MapNodeExecution(EventIter);
+			TSharedPtr<FScriptExecutionNode> MappedEvent = MapNodeExecution(EventContext, EventIter);
 			if (MappedEvent.IsValid())
 			{
 				EventExecNode->AddChildNode(MappedEvent);
 			}
 		}
+		// Create Input events
+		CreateInputEvents(InputEventNodes);
 		// Map execution paths for each function entry node
 		for (auto FunctionIter : FunctionEntryNodes)
 		{
 			FName FunctionName = FunctionIter->SignatureName;
-			TSharedPtr<FBlueprintFunctionContext> FunctionContext = GetOrCreateFunctionContext(FunctionName);
-			TSharedPtr<FScriptExecutionNode> FunctionExecNode = FunctionContext->GetProfilerDataForNode(FunctionName);
-			FunctionExecNode->SetName(FunctionName);
-			FunctionExecNode->SetObservedObject(FunctionIter);
-			FunctionExecNode->SetGraphName(FunctionIter->GetTypedOuter<UEdGraph>()->GetFName());
-			FunctionExecNode->SetFlags(EScriptExecutionNodeFlags::Event);
-			FLinearColor IconColor = FLinearColor(0.91f, 0.16f, 0.16f);
-			FText ToolTipText = LOCTEXT("NavigateToFunctionLocationHyperlink_ToolTip", "Navigate to the Function");
-			FunctionExecNode->SetDisplayName(FunctionIter->GetNodeTitle(ENodeTitleType::ListView));
-			FunctionExecNode->SetToolTipText(ToolTipText);
-			const FSlateBrush* Icon = FunctionIter->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(FunctionIter->GetPaletteIcon(IconColor)) :
-																				FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
-			FunctionExecNode->SetIcon(const_cast<FSlateBrush*>(Icon));
-			FunctionExecNode->SetIconColor(IconColor);
+			TSharedPtr<FBlueprintFunctionContext> FunctionContext = CreateFunctionContext(FunctionName);
+			FScriptExecNodeParams FunctionParams;
+			FunctionParams.NodeName = FunctionName;
+			FunctionParams.ObservedObject = FunctionIter;
+			FunctionParams.OwningGraphName = NAME_None;
+			FunctionParams.DisplayName = FunctionIter->GetNodeTitle(ENodeTitleType::ListView);
+			FunctionParams.Tooltip = LOCTEXT("NavigateToFunctionLocationHyperlink_ToolTip", "Navigate to the Function");
+			FunctionParams.NodeFlags = EScriptExecutionNodeFlags::Event;
+			FunctionParams.IconColor = FLinearColor(0.91f, 0.16f, 0.16f);
+			const FSlateBrush* FunctionIcon = FunctionIter->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(FunctionIter->GetPaletteIcon(FunctionParams.IconColor)) :
+																						FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
+			FunctionParams.Icon = const_cast<FSlateBrush*>(FunctionIcon);
+			TSharedPtr<FScriptExecutionNode> FunctionExecNode = FunctionContext->CreateExecutionNode(FunctionParams);
 			// Add Function to mapped blueprint
 			BlueprintNode->AddChildNode(FunctionExecNode);
 			// Map the Function execution flow
-			TSharedPtr<FScriptExecutionNode> MappedFunction = MapNodeExecution(FunctionIter);
+			TSharedPtr<FScriptExecutionNode> MappedFunction = MapNodeExecution(FunctionContext, FunctionIter);
 			if (MappedFunction.IsValid())
 			{
 				FunctionExecNode->AddChildNode(MappedFunction);
@@ -268,39 +279,173 @@ bool FBlueprintExecutionContext::MapBlueprintExecution()
 	return bMappingSuccessful;
 }
 
-TSharedPtr<FScriptExecutionNode> FBlueprintExecutionContext::MapNodeExecution(UEdGraphNode* NodeToMap)
+void FBlueprintExecutionContext::CreateInputEvents(const TArray<UK2Node*>& InputEventNodes)
+{
+	struct FInputEventDesc
+	{
+		UEdGraphNode* GraphNode;
+		UFunction* EventFunction;
+	};
+	TArray<FInputEventDesc> InputEventDescs;
+	// Extract basic event info
+	if (UBlueprintGeneratedClass* BPClass = BlueprintClass.Get())
+	{
+		FInputEventDesc NewInputDesc;
+		for (auto EventNode : InputEventNodes)
+		{
+			if (EventNode)
+			{
+				if (UK2Node_InputAction* InputActionNode = Cast<UK2Node_InputAction>(EventNode))
+				{
+					const FString CustomEventName = FString::Printf(TEXT("InpActEvt_%s_%s"), *InputActionNode->InputActionName.ToString());
+					for (auto FunctionIter = TFieldIterator<UFunction>(BPClass); FunctionIter; ++FunctionIter)
+					{
+						if (FunctionIter->GetName().Contains(CustomEventName))
+						{
+							NewInputDesc.GraphNode = EventNode;
+							NewInputDesc.EventFunction = *FunctionIter;
+							InputEventDescs.Add(NewInputDesc);
+						}
+					}
+				}
+				else if (UK2Node_InputKey* InputKeyNode = Cast<UK2Node_InputKey>(EventNode))
+				{
+					const FName ModifierName = InputKeyNode->GetModifierName();
+					const FString CustomEventName = ModifierName != NAME_None ? FString::Printf(TEXT("InpActEvt_%s_%s"), *ModifierName.ToString(), *InputKeyNode->InputKey.ToString()) :
+																				FString::Printf(TEXT("InpActEvt_%s"), *InputKeyNode->InputKey.ToString());
+					for (auto FunctionIter = TFieldIterator<UFunction>(BPClass); FunctionIter; ++FunctionIter)
+					{
+						if (FunctionIter->GetName().Contains(CustomEventName))
+						{
+							NewInputDesc.GraphNode = EventNode;
+							NewInputDesc.EventFunction = *FunctionIter;
+							InputEventDescs.Add(NewInputDesc);
+						}
+					}
+				}
+				else if (UK2Node_InputTouch* InputTouchNode = Cast<UK2Node_InputTouch>(EventNode))
+				{
+					struct EventPinData
+					{
+						EventPinData(UEdGraphPin* InPin,TEnumAsByte<EInputEvent> InEvent ){	Pin=InPin;EventType=InEvent;};
+						UEdGraphPin* Pin;
+						TEnumAsByte<EInputEvent> EventType;
+					};
+					TArray<UEdGraphPin*> ActivePins;
+					if (UEdGraphPin* InputTouchPressedPin = InputTouchNode->GetPressedPin())
+					{
+						if (InputTouchPressedPin->LinkedTo.Num() > 0)
+						{
+							ActivePins.Add(InputTouchPressedPin);
+						}
+					}
+					if (UEdGraphPin* InputTouchReleasedPin = InputTouchNode->GetReleasedPin())
+					{
+						if (InputTouchReleasedPin->LinkedTo.Num() > 0)
+						{
+							ActivePins.Add(InputTouchReleasedPin);
+						}
+					}
+					if (UEdGraphPin* InputTouchMovedPin = InputTouchNode->GetMovedPin())
+					{
+						if (InputTouchMovedPin->LinkedTo.Num() > 0)
+						{
+							ActivePins.Add(InputTouchMovedPin);
+						}
+					}
+					for (auto Pin : ActivePins)
+					{
+						const FString CustomEventName = FString::Printf(TEXT("InpTchEvt_%s"), *Pin->GetName());
+						for (auto FunctionIter = TFieldIterator<UFunction>(BPClass); FunctionIter; ++FunctionIter)
+						{
+							if (FunctionIter->GetName().Contains(CustomEventName))
+							{
+								NewInputDesc.GraphNode = EventNode;
+								NewInputDesc.EventFunction = *FunctionIter;
+								InputEventDescs.Add(NewInputDesc);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	// Build event contexts
+	for (auto InputEventDesc : InputEventDescs)
+	{
+		UEdGraphNode* GraphNode = InputEventDesc.GraphNode;
+		FName EventName = InputEventDesc.EventFunction->GetFName();
+		TSharedPtr<FBlueprintFunctionContext> EventContext = CreateFunctionContext(UbergraphFunctionName);
+		FScriptExecNodeParams EventParams;
+		EventParams.NodeName = EventName;
+		EventParams.ObservedObject = GraphNode;
+		EventParams.OwningGraphName = NAME_None;
+		EventParams.DisplayName = GraphNode->GetNodeTitle(ENodeTitleType::ListView);
+		EventParams.Tooltip = LOCTEXT("NavigateToEventLocationHyperlink_ToolTip", "Navigate to the Event");
+		EventParams.NodeFlags = EScriptExecutionNodeFlags::Event;
+		EventParams.IconColor = FLinearColor(0.91f, 0.16f, 0.16f);
+		const FSlateBrush* EventIcon = GraphNode->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(GraphNode->GetPaletteIcon(EventParams.IconColor)) :
+																			FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
+		EventParams.Icon = const_cast<FSlateBrush*>(EventIcon);
+		TSharedPtr<FScriptExecutionNode> EventExecNode = EventContext->CreateExecutionNode(EventParams);
+		// Add Function to mapped blueprint
+		BlueprintNode->AddChildNode(EventExecNode);
+		// Map the Function execution flow
+		TSharedPtr<FScriptExecutionNode> MappedFunction = MapNodeExecution(EventContext, GraphNode);
+		if (MappedFunction.IsValid())
+		{
+			EventExecNode->AddChildNode(MappedFunction);
+		}
+	}
+}
+
+TSharedPtr<FScriptExecutionNode> FBlueprintExecutionContext::MapNodeExecution(TSharedPtr<FBlueprintFunctionContext> FunctionContext, UEdGraphNode* NodeToMap)
 {
 	TSharedPtr<FScriptExecutionNode> MappedNode;
 	if (NodeToMap)
 	{
-		const UEdGraph* OwningGraph = NodeToMap->GetTypedOuter<UEdGraph>();
-		TSharedPtr<FBlueprintFunctionContext> FunctionContext = GetOrCreateFunctionContext(OwningGraph->GetFName());
-		const bool bNodeMapped = FunctionContext->HasProfilerDataForNode(NodeToMap->GetFName());
 		MappedNode = FunctionContext->GetProfilerDataForNode(NodeToMap->GetFName());
-
-		if (!bNodeMapped)
+		if (!MappedNode.IsValid())
 		{
-			// Construct mapped node values
-			MappedNode->SetName(NodeToMap->GetFName());
-			MappedNode->SetObservedObject(NodeToMap);
-			MappedNode->SetGraphName(NodeToMap->GetTypedOuter<UEdGraph>()->GetFName());
-			MappedNode->SetFlags(EScriptExecutionNodeFlags::Node);
-			FLinearColor IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
-			FText ToolTipText = LOCTEXT("NavigateToNodeLocationHyperlink_ToolTip", "Navigate to the Node");
-			// Evaluate Execution Pins
+			FScriptExecNodeParams NodeParams;
+			NodeParams.NodeName = NodeToMap->GetFName();
+			NodeParams.ObservedObject = NodeToMap;
+			NodeParams.DisplayName = NodeToMap->GetNodeTitle(ENodeTitleType::ListView);
+			NodeParams.Tooltip = LOCTEXT("NavigateToNodeLocationHyperlink_ToolTip", "Navigate to the Node");
+			NodeParams.NodeFlags = EScriptExecutionNodeFlags::Node;
+			NodeParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
+			const FSlateBrush* NodeIcon = NodeToMap->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(NodeToMap->GetPaletteIcon(NodeParams.IconColor)) :
+																				FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
+			NodeParams.Icon = const_cast<FSlateBrush*>(NodeIcon);
+			MappedNode = FunctionContext->CreateExecutionNode(NodeParams);
+			// Evaluate Execution and Input Pins
 			TArray<UEdGraphPin*> ExecPins;
+			TArray<UEdGraphPin*> InputPins;
 			for (auto Pin : NodeToMap->Pins)
 			{
 				if (Pin->Direction == EGPD_Output && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
 				{
 					ExecPins.Add(Pin);
 				}
+				else if (Pin->Direction == EGPD_Input && Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec)
+				{
+					InputPins.Add(Pin);
+				}
 			}
+
+			if (ExecPins.Num() == 0)
+			{
+				MappedNode->AddFlags(EScriptExecutionNodeFlags::PureNode);
+			}
+			else
+			{
+				MappedNode->SetPureNodeScriptCodeRange(FunctionContext->GetPureNodeScriptCodeRange(NodeToMap));
+			}
+
 			const bool bBranchNode = ExecPins.Num() > 1;
 			if (bBranchNode)
 			{
 				// Determine branch exec type
-				IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
 				if (NodeToMap->IsA<UK2Node_ExecutionSequence>())
 				{
 					MappedNode->AddFlags(EScriptExecutionNodeFlags::SequentialBranch);
@@ -308,6 +453,31 @@ TSharedPtr<FScriptExecutionNode> FBlueprintExecutionContext::MapNodeExecution(UE
 				else
 				{
 					MappedNode->AddFlags(EScriptExecutionNodeFlags::ConditionalBranch);
+				}
+			}
+			// Evaluate non-exec input pins (pure node execution chains)
+			TArray<int32> PinScriptCodeOffsets;
+			for (auto InputPin : InputPins)
+			{
+				// If this input pin is linked to a pure node in the source graph, create and map all known execution paths for it.
+				for (auto LinkedPin : InputPin->LinkedTo)
+				{
+					// Note: Intermediate pure nodes can have output pins that masquerade as impure node output pins when links are "moved" from the source graph (thus
+					// resulting in a false association here with one or more script code offsets), so we must first ensure that the link is really to a pure node output.
+					UK2Node* OwningNode = Cast<UK2Node>(LinkedPin->GetOwningNode());
+					if (OwningNode && OwningNode->IsNodePure())
+					{
+						FunctionContext->GetAllCodeLocationsFromPin(LinkedPin, PinScriptCodeOffsets);
+						if (PinScriptCodeOffsets.Num() > 0)
+						{
+							TSharedPtr<FScriptExecutionNode> PureNode = MapNodeExecution(FunctionContext, OwningNode);
+							check(PureNode.IsValid() && PureNode->IsPureNode());
+							for (int32 i = 0; i < PinScriptCodeOffsets.Num(); ++i)
+							{
+								MappedNode->AddPureNode(PinScriptCodeOffsets[i], PureNode);
+							}
+						}
+					}
 				}
 			}
 			for (auto Pin : ExecPins)
@@ -319,22 +489,22 @@ TSharedPtr<FScriptExecutionNode> FBlueprintExecutionContext::MapNodeExecution(UE
 					const int32 PinScriptCodeOffset = FunctionContext->GetCodeLocationFromPin(Pin);
 					// Check we have a valid script offset or that the pin isn't linked.
 					check((PinScriptCodeOffset != INDEX_NONE)||(LinkedPin == nullptr));
-					TSharedPtr<FScriptExecutionNode> LinkedNode = FunctionContext->GetProfilerDataForNode(Pin->GetFName());
-					LinkedNode->SetName(Pin->GetFName());
-					LinkedNode->SetObservedObject(Pin);
-					LinkedNode->SetGraphName(Pin->GetTypedOuter<UEdGraph>()->GetFName());
-					LinkedNode->SetDisplayName(Pin->GetDisplayName());
-					LinkedNode->SetFlags(EScriptExecutionNodeFlags::ExecPin);
-					LinkedNode->SetToolTipText(LOCTEXT("ExecPin_ToolTip", "Expand execution path"));
+					FScriptExecNodeParams LinkNodeParams;
+					LinkNodeParams.NodeName = Pin->GetFName();
+					LinkNodeParams.ObservedObject = Pin;
+					LinkNodeParams.DisplayName = Pin->GetDisplayName();
+					LinkNodeParams.Tooltip = LOCTEXT("ExecPin_ToolTip", "Expand execution path");
+					LinkNodeParams.NodeFlags = EScriptExecutionNodeFlags::ExecPin;
+					LinkNodeParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
 					const FSlateBrush* Icon = LinkedPin ?	FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPPinConnected")) : 
 															FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPPinDisconnected"));
-					LinkedNode->SetIcon(const_cast<FSlateBrush*>(Icon));
-					LinkedNode->SetIconColor(FLinearColor(1.f, 1.f, 1.f, 0.8f));
+					LinkNodeParams.Icon = const_cast<FSlateBrush*>(Icon);
+					TSharedPtr<FScriptExecutionNode> LinkedNode = FunctionContext->CreateExecutionNode(LinkNodeParams);
 					MappedNode->AddLinkedNode(PinScriptCodeOffset, LinkedNode);
 					// Map pin exec flow
 					if (LinkedPin)
 					{
-						TSharedPtr<FScriptExecutionNode> ExecPinNode = MapNodeExecution(LinkedPin->GetOwningNode());
+						TSharedPtr<FScriptExecutionNode> ExecPinNode = MapNodeExecution(FunctionContext, LinkedPin->GetOwningNode());
 						if (ExecPinNode.IsValid())
 						{
 							LinkedNode->AddChildNode(ExecPinNode);
@@ -343,7 +513,7 @@ TSharedPtr<FScriptExecutionNode> FBlueprintExecutionContext::MapNodeExecution(UE
 				}
 				else if (LinkedPin)
 				{
-					TSharedPtr<FScriptExecutionNode> ExecLinkedNode = MapNodeExecution(LinkedPin->GetOwningNode());
+					TSharedPtr<FScriptExecutionNode> ExecLinkedNode = MapNodeExecution(FunctionContext, LinkedPin->GetOwningNode());
 					if (ExecLinkedNode.IsValid())
 					{
 						const int32 PinScriptCodeOffset = FunctionContext->GetCodeLocationFromPin(Pin);
@@ -360,18 +530,24 @@ TSharedPtr<FScriptExecutionNode> FBlueprintExecutionContext::MapNodeExecution(UE
 				{
 					// Update Exec node
 					MappedNode->AddFlags(EScriptExecutionNodeFlags::FunctionCall);
-					IconColor = FLinearColor(0.46f, 0.54f, 0.95f);
-					ToolTipText = LOCTEXT("NavigateToFunctionLocationHyperlink_ToolTip", "Navigate to the Function Callsite");
+					MappedNode->SetIconColor(FLinearColor(0.46f, 0.54f, 0.95f));
+					MappedNode->SetToolTipText(LOCTEXT("NavigateToFunctionLocationHyperlink_ToolTip", "Navigate to the Function Callsite"));
+					// Update the function context
+					FunctionContext = CreateFunctionContext(CalledGraph->GetFName());
 					// Grab function entries
 					TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
 					CalledGraph->GetNodesOfClass<UK2Node_FunctionEntry>(FunctionEntryNodes);
 	
 					for (auto EntryNodeIter : FunctionEntryNodes)
 					{
-						TSharedPtr<FScriptExecutionNode> FunctionEntry = MapNodeExecution(EntryNodeIter);
+						TSharedPtr<FScriptExecutionNode> FunctionEntry = MapNodeExecution(FunctionContext, EntryNodeIter);
 						MappedNode->AddChildNode(FunctionEntry);
 					}
 				}
+			}
+			else if (UK2Node_CustomEvent* CustomEvent = Cast<UK2Node_CustomEvent>(NodeToMap))
+			{
+				MappedNode->AddFlags(EScriptExecutionNodeFlags::CustomEvent);
 			}
 			//else if (UK2Node_MacroInstance* MacroCallSite = Cast<UK2Node_MacroInstance>(NodeToMap))
 			//{
@@ -396,13 +572,6 @@ TSharedPtr<FScriptExecutionNode> FBlueprintExecutionContext::MapNodeExecution(UE
 			//		}
 			//	}
 			//}
-			// Finalise exec node data.
-			MappedNode->SetDisplayName(NodeToMap->GetNodeTitle(ENodeTitleType::ListView));
-			MappedNode->SetToolTipText(ToolTipText);
-			const FSlateBrush* Icon = NodeToMap->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(NodeToMap->GetPaletteIcon(IconColor)) :
-																			FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
-			MappedNode->SetIcon(const_cast<FSlateBrush*>(Icon));
-			MappedNode->SetIconColor(IconColor);
 		}
 	}
 	return MappedNode;
@@ -417,10 +586,10 @@ bool FBlueprintFunctionContext::HasProfilerDataForNode(const FName NodeName) con
 
 TSharedPtr<FScriptExecutionNode> FBlueprintFunctionContext::GetProfilerDataForNode(const FName NodeName)
 {
-	TSharedPtr<FScriptExecutionNode>& Result = ExecutionNodes.FindOrAdd(NodeName);
-	if (!Result.IsValid())
+	TSharedPtr<FScriptExecutionNode> Result;
+	if (TSharedPtr<FScriptExecutionNode>* SearchResult = ExecutionNodes.Find(NodeName))
 	{
-		Result = MakeShareable(new FScriptExecutionNode);
+		Result = *SearchResult;
 	}
 	return Result;
 }
@@ -438,63 +607,99 @@ const UEdGraphNode* FBlueprintFunctionContext::GetNodeFromCodeLocation(const int
 	return Result.Get();
 }
 
+const UEdGraphPin* FBlueprintFunctionContext::GetPinFromCodeLocation(const int32 ScriptOffset)
+{
+	TWeakObjectPtr<const UEdGraphPin>& Result = ScriptOffsetToPins.FindOrAdd(ScriptOffset);
+	if (!Result.IsValid() && BlueprintClass.IsValid())
+	{
+		if (const UEdGraphPin* GraphPin = BlueprintClass->GetDebugData().FindSourcePinFromCodeLocation(Function.Get(), ScriptOffset))
+		{
+			Result = GraphPin;
+		}
+	}
+	return Result.Get();
+}
+
 const int32 FBlueprintFunctionContext::GetCodeLocationFromPin(const UEdGraphPin* Pin) const
 {
-	int32 Result = INDEX_NONE;
 	if (BlueprintClass.IsValid())
 	{
-		Result = BlueprintClass.Get()->GetDebugData().FindPinToCodeAssociation(Pin, Function.Get());
+		return BlueprintClass.Get()->GetDebugData().FindCodeLocationFromSourcePin(Pin, Function.Get());
 	}
-	return Result;
+
+	return INDEX_NONE;
+}
+
+void FBlueprintFunctionContext::GetAllCodeLocationsFromPin(const UEdGraphPin* Pin, TArray<int32>& OutCodeLocations) const
+{
+	if (BlueprintClass.IsValid())
+	{
+		BlueprintClass.Get()->GetDebugData().FindAllCodeLocationsFromSourcePin(Pin, Function.Get(), OutCodeLocations);
+	}
+}
+
+FInt32Range FBlueprintFunctionContext::GetPureNodeScriptCodeRange(const UEdGraphNode* Node) const
+{
+	if (BlueprintClass.IsValid())
+	{
+		return BlueprintClass->GetDebugData().FindPureNodeScriptCodeRangeFromSourceNode(Node, Function.Get());
+	}
+
+	return FInt32Range(INDEX_NONE);
+}
+
+TSharedPtr<FScriptExecutionNode> FBlueprintFunctionContext::CreateExecutionNode(FScriptExecNodeParams& InitParams)
+{
+	TSharedPtr<FScriptExecutionNode>& ScriptExecNode = ExecutionNodes.FindOrAdd(InitParams.NodeName);
+	check(!ScriptExecNode.IsValid());
+	UEdGraph* OuterGraph = InitParams.ObservedObject.IsValid() ? InitParams.ObservedObject.Get()->GetTypedOuter<UEdGraph>() : nullptr;
+	InitParams.OwningGraphName = OuterGraph ? OuterGraph->GetFName() : NAME_None;
+	ScriptExecNode = MakeShareable(new FScriptExecutionNode(InitParams));
+	return ScriptExecNode;
 }
 
 //////////////////////////////////////////////////////////////////////////
 // FScriptEventPlayback
 
-bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Events, const int32 Start, const int32 Stop)
+bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& SignalData, const int32 StartIdx, const int32 StopIdx)
 {
 	struct PerNodeEventHelper
 	{
 		TArray<FTracePath> EntryTracePaths;
+		TArray<FTracePath> InputTracePaths;
 		TSharedPtr<FScriptExecutionNode> ExecNode;
 		TSharedPtr<FBlueprintFunctionContext> FunctionContext;
 		TArray<FScriptInstrumentedEvent> UnproccessedEvents;
 	};
 
-	const int32 NumEvents = (Stop + 1) - Start;
-	if (BlueprintContext.IsValid() && NumEvents > 2)
-	{
-		check(Events[Start].GetType() == EScriptInstrumentation::Class);
-		check(Events[Start+1].GetType() == EScriptInstrumentation::Instance);
-		check(Events[Start+2].GetType() == EScriptInstrumentation::Event);
-		// Update event and instance names
-		EventName = Events[Start+2].GetFunctionName();
-		InstanceName = BlueprintContext->RemapInstancePath(FName(*Events[Start+1].GetObjectPath()));
-		// Process event
-		FName CurrentFunctionName = EventName;
-		TSharedPtr<FBlueprintFunctionContext> FunctionContext = BlueprintContext->GetOrCreateFunctionContext(CurrentFunctionName);
-		TSharedPtr<FScriptExecutionNode> EventNode = FunctionContext->GetProfilerDataForNode(EventName);
-		FTracePath EventTrace;
-		TSharedPtr<FScriptPerfData> PerfData = EventNode->GetPerfDataByInstanceAndTracePath(InstanceName, EventTrace);
-		PerfData->AddEventTiming(0.0, Events[Stop].GetTime() - Events[Start+2].GetTime());
-		// Find Associated graph nodes and submit into a node map for later processing.
-		FTracePath TracePath;
-		TArray<FTracePath> TraceStack;
-		TMap<const UEdGraphNode*, PerNodeEventHelper> NodeMap;
+	const int32 NumEvents = (StopIdx+1) - StartIdx;
+	ProcessingState = EEventProcessingResult::Failed;
+	const bool bEventIsResuming = SignalData[StartIdx].IsResumeEvent() ;
 
-		for (int32 EventIdx = Start + 3; EventIdx < Stop; ++EventIdx)
+	if (BlueprintContext.IsValid() && InstanceName != NAME_None)
+	{
+		check(SignalData[StartIdx].IsEvent());
+		EventName = bEventIsResuming ? EventName : SignalData[StartIdx].GetFunctionName();
+		FName CurrentFunctionName = BlueprintContext->GetEventFunctionName(SignalData[StartIdx].GetFunctionName());
+		TSharedPtr<FBlueprintFunctionContext> FunctionContext = BlueprintContext->GetFunctionContext(CurrentFunctionName);
+		TSharedPtr<FScriptExecutionNode> EventNode = FunctionContext->GetProfilerDataForNode(EventName);
+		// Find Associated graph nodes and submit into a node map for later processing.
+		TMap<const UEdGraphNode*, PerNodeEventHelper> NodeMap;
+		ProcessingState = EEventProcessingResult::Success;
+		int32 LastEventIdx = StartIdx;
+		const int32 EventStartOffset = SignalData[StartIdx].IsResumeEvent() ? 3 : 1;
+
+		for (int32 SignalIdx = StartIdx + EventStartOffset; SignalIdx < StopIdx; ++SignalIdx)
 		{
-			const FScriptInstrumentedEvent& CurrEvent = Events[EventIdx];
-			bool bFunctionChanged = false;
+			const FScriptInstrumentedEvent& CurrSignal = SignalData[SignalIdx];
 			// Update script function.
-			if (CurrentFunctionName != CurrEvent.GetFunctionName())
+			if (CurrentFunctionName != CurrSignal.GetFunctionName())
 			{
-				bFunctionChanged = true;
-				CurrentFunctionName = CurrEvent.GetFunctionName();
-				FunctionContext = BlueprintContext->FindFunctionContext(CurrentFunctionName);
+				CurrentFunctionName = CurrSignal.GetFunctionName();
+				FunctionContext = BlueprintContext->GetFunctionContext(CurrentFunctionName);
 				check(FunctionContext.IsValid());
 			}
-			if (const UEdGraphNode* GraphNode = FunctionContext->GetNodeFromCodeLocation(CurrEvent.GetScriptCodeOffset()))
+			if (const UEdGraphNode* GraphNode = FunctionContext->GetNodeFromCodeLocation(CurrSignal.GetScriptCodeOffset()))
 			{
 				PerNodeEventHelper& NodeEntry = NodeMap.FindOrAdd(GraphNode);
 				if (!NodeEntry.FunctionContext.IsValid())
@@ -502,27 +707,48 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Event
 					NodeEntry.FunctionContext = FunctionContext;
 					NodeEntry.ExecNode = FunctionContext->GetProfilerDataForNode(GraphNode->GetFName());
 				}
-				switch (CurrEvent.GetType())
+				switch (CurrSignal.GetType())
 				{
 					case EScriptInstrumentation::PureNodeEntry:
 					{
-						NodeEntry.UnproccessedEvents.Add(CurrEvent);
+						if (const UEdGraphPin* Pin = FunctionContext->GetPinFromCodeLocation(CurrSignal.GetScriptCodeOffset()))
+						{
+							if (NodeEntry.FunctionContext->HasProfilerDataForNode(Pin->GetOwningNode()->GetFName()))
+							{
+								TracePath.AddExitPin(CurrSignal.GetScriptCodeOffset());
+								NodeEntry.InputTracePaths.Insert(TracePath, 0);
+							}
+						}
+						NodeEntry.UnproccessedEvents.Add(CurrSignal);
 						break;
 					}
 					case EScriptInstrumentation::NodeEntry:
 					{
-						NodeEntry.EntryTracePaths.Push(TracePath);
-						if (bFunctionChanged && GraphNode->IsA<UK2Node_FunctionEntry>())
+						// Handle timings for events called as functions
+						if (NodeEntry.ExecNode->IsCustomEvent())
 						{
-							TraceStack.Push(TracePath);
+							// Ensure this is a different event
+							if (const UK2Node_Event* EventGraphNode = Cast<UK2Node_Event>(GraphNode))
+							{
+								const FName NewEventName = EventGraphNode->GetFunctionName();
+								if (NewEventName != EventName)
+								{
+									TracePath.Reset();
+									EventTimings.Add(EventName) = SignalData[SignalIdx].GetTime() - SignalData[LastEventIdx].GetTime();
+									EventName = NewEventName;
+									EventNode = FunctionContext->GetProfilerDataForNode(EventName);
+									LastEventIdx = SignalIdx;
+								}
+							}
 						}
-						NodeEntry.UnproccessedEvents.Add(CurrEvent);
+						NodeEntry.EntryTracePaths.Push(TracePath);
+						NodeEntry.UnproccessedEvents.Add(CurrSignal);
 						break;
 					}
 					case EScriptInstrumentation::PushState:
 					{
 						TraceStack.Push(TracePath);
-						NodeEntry.UnproccessedEvents.Add(CurrEvent);
+						NodeEntry.UnproccessedEvents.Add(CurrSignal);
 						break;
 					}
 					case EScriptInstrumentation::RestoreState:
@@ -531,44 +757,48 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Event
 						TracePath = TraceStack.Last();
 						break;
 					}
+					case EScriptInstrumentation::SuspendState:
+					{
+						ProcessingState = EEventProcessingResult::Suspended;
+						break;
+					}
 					case EScriptInstrumentation::PopState:
 					{
 						if (TraceStack.Num())
 						{
 							TracePath = TraceStack.Pop();
 						}
-						FScriptInstrumentedEvent OverrideEvent(CurrEvent);
-						OverrideEvent.OverrideType(EScriptInstrumentation::NodeExit);
-						NodeEntry.UnproccessedEvents.Add(OverrideEvent);
-						// Consolidate enclosed timings
-						int32 NodeEntryIdx = INDEX_NONE;
-						for (int32 NodeEventIdx = NodeEntry.UnproccessedEvents.Num()-2; NodeEventIdx >= 0; --NodeEventIdx)
+						// Consolidate enclosed timings for execution sequence nodes
+						if (GraphNode->IsA<UK2Node_ExecutionSequence>())
 						{
-							const FScriptInstrumentedEvent& NodeEvent = NodeEntry.UnproccessedEvents[NodeEventIdx];
-
-							if (NodeEvent.GetType() == EScriptInstrumentation::NodeEntry)
+							FScriptInstrumentedEvent OverrideEvent(CurrSignal);
+							OverrideEvent.OverrideType(EScriptInstrumentation::NodeExit);
+							NodeEntry.UnproccessedEvents.Add(OverrideEvent);
+							int32 NodeEntryIdx = INDEX_NONE;
+							for (int32 NodeEventIdx = NodeEntry.UnproccessedEvents.Num()-2; NodeEventIdx >= 0; --NodeEventIdx)
 							{
-								if (NodeEntryIdx != INDEX_NONE)
+								const FScriptInstrumentedEvent& NodeEvent = NodeEntry.UnproccessedEvents[NodeEventIdx];
+
+								if (NodeEvent.GetType() == EScriptInstrumentation::NodeEntry)
 								{
-									// Keep only the first node entry.
+									if (NodeEntryIdx != INDEX_NONE)
+									{
+										// Keep only the first node entry.
+										NodeEntry.UnproccessedEvents.RemoveAt(NodeEventIdx, 1);
+									}
+									NodeEntryIdx = NodeEventIdx;
+								}
+								else if (NodeEvent.GetType() == EScriptInstrumentation::NodeExit)
+								{
+									// Strip out all node exits apart from the PopExecution overridden event.
 									NodeEntry.UnproccessedEvents.RemoveAt(NodeEventIdx, 1);
 								}
-								NodeEntryIdx = NodeEventIdx;
-							}
-							else if (NodeEvent.GetType() == EScriptInstrumentation::NodeExit)
-							{
-								// Strip out all node exits apart from the PopExecution overridden event.
-								NodeEntry.UnproccessedEvents.RemoveAt(NodeEventIdx, 1);
 							}
 						}
 						break;
 					}
 					case EScriptInstrumentation::NodeExit:
 					{
-						if (TraceStack.Num() && bFunctionChanged)
-						{
-							TracePath = TraceStack.Pop();
-						}
 						// Cleanup branching multiple exits and correct the tracepath
 						if (NodeEntry.UnproccessedEvents.Num() && NodeEntry.UnproccessedEvents.Last().GetType() == EScriptInstrumentation::NodeExit)
 						{
@@ -578,34 +808,80 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Event
 								TracePath = NodeEntry.EntryTracePaths.Last();
 							}
 						}
-						TracePath.AddExitPin(CurrEvent.GetScriptCodeOffset());
-						NodeEntry.UnproccessedEvents.Add(CurrEvent);
+						TracePath.AddExitPin(CurrSignal.GetScriptCodeOffset());
+						NodeEntry.UnproccessedEvents.Add(CurrSignal);
 						break;
 					}
 					default:
 					{
-						NodeEntry.UnproccessedEvents.Add(CurrEvent);
+						NodeEntry.UnproccessedEvents.Add(CurrSignal);
 						break;
 					}
 				}
 			}
 		}
-		// Process Node map timings
+		// Process last event timing
+		double* TimingData = bEventIsResuming ? EventTimings.Find(EventName) : nullptr;
+		if (TimingData)
+		{
+			*TimingData += SignalData[StopIdx].GetTime() - SignalData[LastEventIdx].GetTime();
+		}
+		else
+		{
+			EventTimings.Add(EventName) = SignalData[StopIdx].GetTime() - SignalData[LastEventIdx].GetTime();
+		}
+		// Process outstanding event timings, adding to previous timings if existing.
+		if (ProcessingState != EEventProcessingResult::Suspended)
+		{
+			for (auto EventTiming : EventTimings)
+			{
+				FTracePath EventTracePath;
+				const FName EventFunctionName = BlueprintContext->GetEventFunctionName(EventTiming.Key);
+				FunctionContext = BlueprintContext->GetFunctionContext(EventFunctionName);
+				check (FunctionContext.IsValid());
+				EventNode = FunctionContext->GetProfilerDataForNode(EventTiming.Key);
+				check (EventNode.IsValid());
+				TSharedPtr<FScriptPerfData> PerfData = EventNode->GetPerfDataByInstanceAndTracePath(InstanceName, EventTracePath);
+				PerfData->AddEventTiming(0.0, SignalData[StopIdx].GetTime() - SignalData[LastEventIdx].GetTime());
+			}
+			EventTimings.Reset();
+		}
+		// Process Node map timings -- this can probably be rolled back into submission during the initial processing and lose this extra iteration.
 		for (auto NodeEntry : NodeMap)
 		{
 			TSharedPtr<FScriptExecutionNode> ExecNode = NodeEntry.Value.ExecNode;
 			double PureNodeEntryTime = 0.0;
+			double LastPureNodeTime = 0.0;
 			double NodeEntryTime = 0.0;
+			int32 TracePathIdx = 0;
 			for (auto EventIter = NodeEntry.Value.UnproccessedEvents.CreateIterator(); EventIter; ++EventIter)
 			{
 				switch(EventIter->GetType())
 				{
+					case EScriptInstrumentation::PushState:
+					{
+						LastPureNodeTime = EventIter->GetTime();
+						break;
+					}
 					case EScriptInstrumentation::PureNodeEntry:
 					{
 						if (PureNodeEntryTime == 0.0)
 						{
 							PureNodeEntryTime = EventIter->GetTime();
 						}
+
+						const int32 ScriptCodeOffset = EventIter->GetScriptCodeOffset();
+						if (const UEdGraphPin* Pin = FunctionContext->GetPinFromCodeLocation(ScriptCodeOffset))
+						{
+							if (FunctionContext->HasProfilerDataForNode(Pin->GetOwningNode()->GetFName()))
+							{
+								TSharedPtr<FScriptExecutionNode> PureNode = NodeEntry.Value.FunctionContext->GetProfilerDataForNode(Pin->GetOwningNode()->GetFName());
+								TSharedPtr<FScriptPerfData> PerfData = PureNode->GetPerfDataByInstanceAndTracePath(InstanceName, NodeEntry.Value.InputTracePaths.Pop());
+								PerfData->AddEventTiming(0.0f, EventIter->GetTime() - LastPureNodeTime);
+							}
+						}
+
+						LastPureNodeTime = EventIter->GetTime();
 						break;
 					}
 					case EScriptInstrumentation::NodeEntry:
@@ -619,7 +895,8 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Event
 					case EScriptInstrumentation::NodeExit:
 					{
 						check(NodeEntryTime != 0.0 );
-						PerfData = ExecNode->GetPerfDataByInstanceAndTracePath(InstanceName, NodeEntry.Value.EntryTracePaths.Pop());
+						const FTracePath NodeTracePath = NodeEntry.Value.EntryTracePaths[TracePathIdx++];
+						TSharedPtr<FScriptPerfData> PerfData = ExecNode->GetPerfDataByInstanceAndTracePath(InstanceName, NodeTracePath);
 						double PureNodeDuration = PureNodeEntryTime != 0.0 ? (NodeEntryTime - PureNodeEntryTime) : 0.0;
 						double NodeDuration = EventIter->GetTime() - NodeEntryTime;
 						PerfData->AddEventTiming(PureNodeDuration, NodeDuration);
@@ -629,9 +906,8 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Event
 				}
 			}
 		}
-		return true;
 	}
-	return false;
+	return ProcessingState != EEventProcessingResult::Failed;
 }
 
 #undef LOCTEXT_NAMESPACE

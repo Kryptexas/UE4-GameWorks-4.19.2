@@ -138,6 +138,12 @@ void SRichTextBlock::SetJustification(const TAttribute<ETextJustify::Type>& InJu
 	Invalidate(EInvalidateWidget::Layout);
 }
 
+void SRichTextBlock::SetTextStyle(const FTextBlockStyle& InTextStyle)
+{
+	TextStyle = InTextStyle;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
 void SRichTextBlock::Refresh()
 {
 	TextLayoutCache->DirtyLayout();

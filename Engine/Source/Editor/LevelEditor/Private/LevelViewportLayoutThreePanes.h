@@ -23,7 +23,7 @@ protected:
 
 	virtual TSharedRef<SWidget> MakeThreePanelWidget(
 		TMap< FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
-		const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2,
+		const TSharedRef<SWidget>& ViewportKey0, const TSharedRef<SWidget>& ViewportKey1, const TSharedRef<SWidget>& ViewportKey2,
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage) = 0;
 
 	/** Overridden from FLevelViewportLayout */
@@ -45,7 +45,7 @@ public:
 
 	virtual TSharedRef<SWidget> MakeThreePanelWidget(
 		TMap< FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
-		const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2,
+		const TSharedRef<SWidget>& ViewportKey0, const TSharedRef<SWidget>& ViewportKey1, const TSharedRef<SWidget>& ViewportKey2,
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage) override;
 };
 
@@ -59,7 +59,7 @@ public:
 
 	virtual TSharedRef<SWidget> MakeThreePanelWidget(
 		TMap< FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
-		const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2,
+		const TSharedRef<SWidget>& ViewportKey0, const TSharedRef<SWidget>& ViewportKey1, const TSharedRef<SWidget>& ViewportKey2,
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage) override;
 };
 
@@ -73,7 +73,7 @@ public:
 
 	virtual TSharedRef<SWidget> MakeThreePanelWidget(
 		TMap< FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
-		const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2,
+		const TSharedRef<SWidget>& ViewportKey0, const TSharedRef<SWidget>& ViewportKey1, const TSharedRef<SWidget>& ViewportKey2,
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage) override;
 };
 
@@ -87,7 +87,7 @@ public:
 
 	virtual TSharedRef<SWidget> MakeThreePanelWidget(
 		TMap< FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
-		const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2,
+		const TSharedRef<SWidget>& ViewportKey0, const TSharedRef<SWidget>& ViewportKey1, const TSharedRef<SWidget>& ViewportKey2,
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage) override;
 };
 

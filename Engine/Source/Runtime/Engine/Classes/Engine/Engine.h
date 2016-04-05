@@ -1149,7 +1149,7 @@ public:
 	uint32 bUseFixedFrameRate : 1;
 	
 	/** The fixed framerate to use. */
-	UPROPERTY(config, EditAnywhere, Category = Framerate, meta=(EditCondition="bUseFixedFrameRate"))
+	UPROPERTY(config, EditAnywhere, Category = Framerate, meta=(EditCondition="bUseFixedFrameRate", ClampMin = "15.0"))
 	float FixedFrameRate;
 
 	/** Range of framerates in which smoothing will kick in */
@@ -1300,10 +1300,6 @@ public:
 	/** Number of times to tick each client per second */
 	UPROPERTY(globalconfig)
 	float NetClientTicksPerSecond;
-
-	/** true if the engine needs to perform a delayed global component reregister (really just for editor) */
-	UPROPERTY(transient)
-	uint32 bHasPendingGlobalReregister:1;
 
 	/** Current display gamma setting */
 	UPROPERTY(config)
@@ -1567,6 +1563,13 @@ public:
 	/** Called by internal engine systems after an actor has been moved to notify other subsystems */
 	void BroadcastOnActorMoved( AActor* Actor ) { OnActorMovedEvent.Broadcast( Actor ); }
 
+	/** Editor-only event triggered when any component transform is changed */
+	DECLARE_EVENT_TwoParams(UEngine, FOnComponentTransformChangedEvent, USceneComponent*, ETeleportType);
+	FOnComponentTransformChangedEvent& OnComponentTransformChanged() { return OnComponentTransformChangedEvent; }
+
+	/** Called by SceneComponent PropagateTransformUpdate to nofify of any component transform change */
+	void BroadcastOnComponentTransformChanged(USceneComponent* InComponent, ETeleportType InTeleport) { OnComponentTransformChangedEvent.Broadcast(InComponent, InTeleport); }
+
 	/** Editor-only event triggered when actors are being requested to be renamed */
 	DECLARE_EVENT_OneParam( UEngine, FLevelActorRequestRenameEvent, const AActor* );
 	FLevelActorRequestRenameEvent& OnLevelActorRequestRename() { return LevelActorRequestRenameEvent; }
@@ -1658,8 +1661,7 @@ public:
 #endif
 
 #if WITH_PROFILEGPU
-	bool HandleProfileGPUCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleShowMaterialDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleProfileGPUCommand( const TCHAR* Cmd, FOutputDevice& Ar );	
 #endif
 
 	// Compile in Debug or Development
@@ -1677,8 +1679,7 @@ public:
 	bool HandleFreezeStreamingCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );		// Smedis
 	bool HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );			// Smedis
 	bool HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar );						// Smedis
-	bool HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleToggleRHIThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar );	
 	bool HandleToggleAsyncComputeCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleRecompileShadersCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleRecompileGlobalShadersCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1740,10 +1741,10 @@ public:
 	virtual float GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing = true) const;
 
 	/** Get max fps. */
-	virtual int32 GetMaxFPS() const;
+	virtual float GetMaxFPS() const;
 
 	/** Set max fps. Overrides console variable. */
-	virtual void SetMaxFPS(const int32 MaxFPS);
+	virtual void SetMaxFPS(const float MaxFPS);
 
 	/** Updates the running average delta time */
 	virtual void UpdateRunningAverageDeltaTime(float DeltaTime, bool bAllowFrameRateSmoothing = true);
@@ -1757,15 +1758,23 @@ public:
 	 */
 	virtual void OnLostFocusPause( bool EnablePause );
 
-	/** Functions to start and finish the hardware survey. */
+	/** Function to start the hardware survey. */
+	void StartHardwareSurvey();
+		
+	/** [Deprecated] Functions to start and finish the hardware survey. */
+	DEPRECATED(4.11, "InitHardwareSurvey() is deprecated and is not used by engine code. Use StartHardwareSurvey() instead.")
 	void InitHardwareSurvey();
+	DEPRECATED(4.11, "TickHardwareSurvey() is deprecated and is not used by engine code. Use StartHardwareSurvey() which will tick automatically.")
 	void TickHardwareSurvey();
 
+	DEPRECATED(4.11, "HardwareSurveyBucketResolution() is deprecated and is not used by engine code.")
 	static FString HardwareSurveyBucketResolution(uint32 DisplayWidth, uint32 DisplayHeight);
+	DEPRECATED(4.11, "HardwareSurveyBucketVRAM() is deprecated and is not used by engine code.")
 	static FString HardwareSurveyBucketVRAM(uint32 VidMemoryMB);
+	DEPRECATED(4.11, "HardwareSurveyBucketRAM() is deprecated and is not used by engine code.")
 	static FString HardwareSurveyBucketRAM(uint32 MemoryMB);
+	DEPRECATED(4.11, "HardwareSurveyGetResolutionClass() is deprecated and is not used by engine code.")
 	static FString HardwareSurveyGetResolutionClass(uint32 LargestDisplayHeight);
-
 	/** 
 	 * Returns the average game/render/gpu/total time since this function was last called
 	 */
@@ -1793,6 +1802,7 @@ protected:
 	 *
 	 * @return	true if the engine should run the hardware survey now
 	 */
+	DEPRECATED(4.11, "IsHardwareSurveyRequired() is deprecated and is not used by engine code.")
 	virtual bool IsHardwareSurveyRequired();
 
 	/** 
@@ -1802,6 +1812,7 @@ protected:
 	 *
 	 * @param SurveyResults		The raw survey results generated by the platform hardware survey code
 	 */
+	DEPRECATED(4.11, "OnHardwareSurveyComplete() is deprecated and is not used by engine code.")
 	virtual void OnHardwareSurveyComplete(const struct FHardwareSurveyResults& SurveyResults);
 	
 public:
@@ -1976,8 +1987,9 @@ public:
 	 * Starts the FPS chart data capture.
 	 *
 	 * @param	Label		Label for this run
+	 * @param	bRecordPerFrameTimes	Should we record per-frame times (potentially unbounded memory growth; used when triggered via the console but not when triggered by game code)
 	 */
-	virtual void StartFPSChart( const FString& Label );
+	virtual void StartFPSChart( const FString& Label, bool bRecordPerFrameTimes );
 
 	/**
 	 * Stops the FPS chart data capture.
@@ -2006,11 +2018,6 @@ public:
 	virtual void GetFPSChartBoundByFrameCounts(uint32& OutGameThread, uint32& OutRenderThread, uint32& OutGPU) const;
 
 private:
-
-	/**
-	* Calculates the range of FPS values for the given bucket index
-	*/
-	void CalcQuantisedFPSRange(int32 BucketIndex, int32& StartFPS, int32& EndFPS);
 
 	/**
 	 * Dumps the FPS chart information to HTML.
@@ -2061,6 +2068,14 @@ protected:
 	 {
 		// Intentionally empty.
 	 }
+
+	 /**
+	 * Requests that the engine intentionally performs an invalid operation. Used for testing error handling
+	 * and external crash reporters
+	 *
+	 * @param Cmd			Error to perform. See implementation for options
+	 */
+	 bool PerformError(const TCHAR* Cmd, FOutputDevice& Out = *GLog);
 
 public:
 	/** @return the GIsEditor flag setting */
@@ -2321,6 +2336,9 @@ private:
 
 	/** Broadcasts after an actor has been moved, rotated or scaled */
 	FOnActorMovedEvent		OnActorMovedEvent;
+
+	/** Broadcasts after a component has been moved, rotated or scaled */
+	FOnComponentTransformChangedEvent OnComponentTransformChangedEvent;
 	
 	/** Delegate broadcast after UEditorEngine::Tick has been called (or UGameEngine::Tick in standalone) */
 	FPostEditorTick PostEditorTickEvent;
@@ -2330,9 +2348,6 @@ private:
 	/** Thread preventing screen saver from kicking. Suspend most of the time. */
 	FRunnableThread*		ScreenSaverInhibitor;
 	FScreenSaverInhibitor*  ScreenSaverInhibitorRunnable;
-
-	/** If true, the engine tick function will poll FPlatformSurvey for results */
-	bool					bPendingHardwareSurveyResults;
 
 
 public:

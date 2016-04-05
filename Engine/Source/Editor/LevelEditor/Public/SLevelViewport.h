@@ -24,6 +24,7 @@ public:
 		SLATE_ARGUMENT( TWeakPtr<class FEditorModeTools>, EditorModeTools )
 		SLATE_ARGUMENT( TSharedPtr<class FLevelViewportLayout>, ParentLayout )
 		SLATE_ARGUMENT( TWeakPtr<ILevelEditor>, ParentLevelEditor )
+		SLATE_ARGUMENT( TSharedPtr<FLevelEditorViewportClient>, LevelEditorViewportClient )
 		SLATE_ARGUMENT( ELevelViewportType, ViewportType )
 		SLATE_ARGUMENT( bool, Realtime )
 		SLATE_ARGUMENT( FString, ConfigKey )
@@ -269,13 +270,18 @@ public:
 	FText GetCurrentFeatureLevelPreviewText( bool bDrawOnlyLabel ) const;
 	
 	/** @return The visibility of the current level text display */
-	EVisibility GetCurrentLevelTextVisibility() const;
+	virtual EVisibility GetCurrentLevelTextVisibility() const;
 
 	/** @return The visibility of the current feature level preview text display */
 	EVisibility GetCurrentFeatureLevelPreviewTextVisibility() const;
 
 	/** @return The visibility of the viewport controls popup */
-	EVisibility GetViewportControlsVisibility() const;
+	virtual EVisibility GetViewportControlsVisibility() const;
+
+	/**
+	 * Called to get the visibility of the level viewport toolbar
+	 */
+	virtual EVisibility GetToolBarVisibility() const;
 
 	/**
 	 * Sets the current layout on the parent tab that this viewport belongs to.
@@ -292,6 +298,18 @@ public:
 	 */
 	bool IsViewportConfigurationSet(FName ConfigurationName) const;
 
+	/** Get this level viewport widget's type within its parent layout */
+	FName GetViewportTypeWithinLayout() const;
+
+	/** Set this level viewport widget's type within its parent layout */
+	void SetViewportTypeWithinLayout(FName InLayoutType);
+
+	/** Activates the specified viewport type in the layout, if it's not already, or reverts to default if it is. */
+	void ToggleViewportTypeActivationWithinLayout(FName InLayoutType);
+
+	/** Checks if the specified layout type matches our current viewport type. */
+	bool IsViewportTypeWithinLayoutEqual(FName InLayoutType);
+
 	/** For the specified actor, toggle Pinned/Unpinned of it's ActorPreview */
 	void ToggleActorPreviewIsPinned(TWeakObjectPtr<AActor> PreviewActor);
 
@@ -300,6 +318,9 @@ public:
 
 	/** Actions to perform whenever the viewports floating buttons are pressed */
 	void OnFloatingButtonClicked();
+
+	/** Get the visibility for items considered to be part of the 'full' viewport toolbar */
+	EVisibility GetFullToolbarVisibility() const { return bShowFullToolbar ? EVisibility::Visible : EVisibility::Collapsed; }
 
 protected:
 	/** SEditorViewport interface */
@@ -559,11 +580,7 @@ private:
 	* @param InCommandName	The command used by the functions
 	*/
 	void BindStatCommand(const TSharedPtr<FUICommandInfo> InMenuItem, const FString& InCommandName);
-
-	/**
-	 * Called to get the visibility of the level viewport toolbar
-	 */
-	EVisibility GetToolBarVisibility() const;
+	
 	/**
 	 * Called to build the viewport context menu when the user is Drag Dropping from the Content Browser
 	 */
@@ -637,6 +654,12 @@ private:
 
 	/** Gets the active scene viewport for the game */
 	const FSceneViewport* GetGameSceneViewport() const;
+
+	/** Called when the user toggles the full toolbar */
+	void OnToggleShowFullToolbar() { bShowFullToolbar = !bShowFullToolbar; }
+
+	/** Check whether we should display the full toolbar or not */
+	bool ShouldShowFullToolbar() const { return bShowFullToolbar; }
 
 private:
 	/** Tab which this viewport is located in */
@@ -785,6 +808,9 @@ private:
 
 	/** The users value for allowing throttling, we restore this value when we lose focus. */
 	int32 UserAllowThrottlingValue;
+
+	/** Whether to show a full toolbar, or a compact one */
+	bool bShowFullToolbar;
 
 protected:
 	void LockActorInternal(AActor* NewActorToLock);

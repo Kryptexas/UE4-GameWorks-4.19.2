@@ -67,6 +67,11 @@ class ENGINE_API UCameraComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	uint32 bUsePawnControlRotation:1;
 
+protected:
+	/** True to enable the additive view offset, for adjusting the view without moving the component. */
+	uint32 bUseAdditiveOffset : 1;
+
+public:
 	// The type of camera
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	TEnumAsByte<ECameraProjectionMode::Type> ProjectionMode;
@@ -122,16 +127,45 @@ protected:
 	// The camera mesh to show visually where the camera is placed
 	class UStaticMeshComponent* ProxyMeshComponent;
 
-public:
-
 	virtual void SetCameraMesh(UStaticMesh* Mesh);
 
+	virtual void ResetProxyMeshTransform();
 #endif
+
+	/** An optional extra transform to adjust the final view without moving the component, in the camera's local space */
+	FTransform AdditiveOffset;
+
+	/** An optional extra FOV offset to adjust the final view without modifying the component */
+	float AdditiveFOVOffset;
+
+public:
+
+	/** Applies the given additive offset, preserving any existing offset */
+	void AddAdditiveOffset(FTransform const& Transform, float FOV)
+	{
+		bUseAdditiveOffset = true;
+		AdditiveOffset = AdditiveOffset * Transform;
+		AdditiveFOVOffset += FOV;
+	}
+
+	/** Removes any additive offset. */
+	void ClearAdditiveOffset()
+	{
+		bUseAdditiveOffset = false;
+		AdditiveOffset = FTransform::Identity;
+		AdditiveFOVOffset = 0.f;
+	}
+
+	/** 
+	 * Can be called from external code to notify that this camera was cut to, so it can update 
+	 * things like interpolation if necessary.
+	 */
+	virtual void NotifyCameraCut();
+
 public:
 #if WITH_EDITORONLY_DATA
 	// Refreshes the visual components to match the component state
 	virtual void RefreshVisualRepresentation();
-
 
 	void OverrideFrustumColor(FColor OverrideColor);
 	void RestoreFrustumColor();

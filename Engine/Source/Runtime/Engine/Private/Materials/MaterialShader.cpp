@@ -1355,8 +1355,11 @@ void FMaterialShaderMap::Compile(
 			// Mark as not having been compiled
 			bCompiledSuccessfully = false;
   
+			// Only cause a global component recreate state for non-preview materials
+			const bool bRecreateComponentRenderStateOnCompletion = Material->IsPersistent();
+
 			// Note: using Material->IsPersistent() to detect whether this is a preview material which should have higher priority over background compiling
-			GShaderCompilingManager->AddJobs(NewJobs, bApplyCompletedShaderMapForRendering && !bSynchronousCompile, bSynchronousCompile || !Material->IsPersistent());
+			GShaderCompilingManager->AddJobs(NewJobs, bApplyCompletedShaderMapForRendering && !bSynchronousCompile, bSynchronousCompile || !Material->IsPersistent(), bRecreateComponentRenderStateOnCompletion);
   
 			// Compile the shaders for this shader map now if the material is not deferring and deferred compiles are not enabled globally
 			if (bSynchronousCompile)

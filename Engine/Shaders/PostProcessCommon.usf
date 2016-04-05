@@ -71,6 +71,14 @@ float2 ComputePixelPosCenter(float2 ScreenPos, bool bPixelCenter)
 	return ScreenPos * ScreenPosToPixel.xy + ScreenPosToPixel.zw + PixelOffset;
 }
 
+// not well optimized but can be useful
+float2 ScreenPosFromPixelPos(float2 PixelPos, bool bPixelCenter)
+{
+	float2 PixelOffset = bPixelCenter ? 0.5f : 0.0f;
+
+	return (PixelPos - PixelOffset - ScreenPosToPixel.zw) / ScreenPosToPixel.xy;
+}
+
 // shape of the lens for vignette like effects and masking
 // @param ScreenPos -1 .. 1
 // @return 0..1 0:borders, 1:center

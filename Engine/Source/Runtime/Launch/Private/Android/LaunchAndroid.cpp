@@ -201,6 +201,9 @@ int32 AndroidMain(struct android_app* state)
 	// Force the first call to GetJavaEnv() to happen on the game thread, allowing subsequent calls to occur on any thread
 	FAndroidApplication::GetJavaEnv();
 
+	// Set window format to 8888
+	ANativeActivity_setWindowFormat(state->activity, WINDOW_FORMAT_RGBA_8888);
+
 	// adjust the file descriptor limits to allow as many open files as possible
 	rlimit cur_fd_limit;
 	{
@@ -297,6 +300,23 @@ int32 AndroidMain(struct android_app* state)
 
 	FAppEventManager::GetInstance()->SetEmptyQueueHandlerEvent(FPlatformProcess::GetSynchEventFromPool(false));
 
+#if PLATFORM_ANDROID_VULKAN
+	//@todo Ronin - is this needed now?
+	// wait for loadmap to complete if Vulkan on Android
+	if (FAndroidMisc::ShouldUseVulkan())
+	{
+		double startTime = FPlatformTime::Seconds();
+		double stopTime = startTime + 5.0f;
+		while (FPlatformTime::Seconds() < stopTime)
+		{
+			GEngineLoop.Tick();
+
+			float timeToSleep = 0.05f; //in seconds
+			sleep(timeToSleep);
+		}
+	}
+#endif
+
 	// tick until done
 	while (!GIsRequestingExit)
 	{
@@ -304,9 +324,11 @@ int32 AndroidMain(struct android_app* state)
 		if(!FAppEventManager::GetInstance()->IsGamePaused())
 		{
 			GEngineLoop.Tick();
-
-			float timeToSleep = 0.05f; //in seconds
-			sleep(timeToSleep);
+		}
+		else
+		{
+			// use less CPU when paused
+			FPlatformProcess::Sleep(0.10f);
 		}
 
 #if !UE_BUILD_SHIPPING

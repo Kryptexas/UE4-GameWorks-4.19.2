@@ -15,6 +15,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Engine/UserDefinedStruct.h"
 
+#define LOCTEXT_NAMESPACE "KismetCompilerVMBackend"
 //////////////////////////////////////////////////////////////////////////
 // FScriptBytecodeWriter
 
@@ -224,6 +225,10 @@ private:
 	FKismetCompilerContext* CurrentCompilerContext;
 	FKismetFunctionContext* CurrentFunctionContext;
 
+	// Pure node count/starting offset (used for instrumentation)
+	int32 PureNodeEntryCount;
+	int32 PureNodeEntryStart;
+
 protected:
 	/**
 	 * This class is designed to be used like so to emit a bytecode context expression:
@@ -334,6 +339,8 @@ public:
 		, ReturnStatement(InReturnStatement)
 		, CurrentCompilerContext(nullptr)
 		, CurrentFunctionContext(nullptr)
+		, PureNodeEntryCount(0)
+		, PureNodeEntryStart(0)
 	{
 		VectorStruct = TBaseStructure<FVector>::Get();
 		RotatorStruct = TBaseStructure<FRotator>::Get();
@@ -565,6 +572,7 @@ public:
 							// Create a new term for each property, and serialize it out
 							FBPTerminal NewTerm;
 							NewTerm.bIsLiteral = true;
+							NewTerm.Source = Term->Source;
 							Prop->ExportText_InContainer(ArrayIter, NewTerm.Name, StructData, StructData, NULL, PPF_None);
 							if (Prop->IsA(UTextProperty::StaticClass()))
 							{
@@ -600,6 +608,7 @@ public:
 				{
 					FBPTerminal NewTerm;
 					NewTerm.bIsLiteral = true;
+					NewTerm.Source = Term->Source;
 					uint8* RawElemData = ScriptArrayHelper.GetRawPtr(ElemIdx);
 					InnerProp->ExportText_Direct(NewTerm.Name, RawElemData, RawElemData, NULL, PPF_None);
 					if (InnerProp->IsA(UTextProperty::StaticClass()))
@@ -671,7 +680,13 @@ public:
 			// Cannot assign a literal to a multicast delegate; it should be added instead of assigned
 			else
 			{
-				ensureMsgf(false, TEXT("It is not possible to express this type as a literal value! (%s)"), *CoerceProperty->GetFullName());
+				if (ensure(CurrentCompilerContext))
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("PropertyType"), CoerceProperty->GetClass()->GetDisplayNameText());
+					Args.Add(TEXT("PropertyName"), CoerceProperty->GetDisplayNameText());
+					CurrentCompilerContext->MessageLog.Error(*FText::Format(LOCTEXT("InvalidProperty", "It is not possible to express this type ({PropertyType}) as a literal value for the property {PropertyName} on pin @@! If it is inside a struct, you can add a Make struct node to resolve this issue!"), Args).ToString(), Term->Source);
+				}
 			}
 		}
 		else
@@ -1360,22 +1375,117 @@ public:
 		Writer.CommitSkip(PatchUpNeededAtOffset, Writer.ScriptBuffer.Num());
 	}
 
-	void EmitInstrumentation(FBlueprintCompiledStatement& Statement)
+	void EmitInstrumentation(FKismetCompilerContext& CompilerContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement, UEdGraphNode* SourceNode)
 	{
-		int32 EventType = 0;
-		switch (Statement.Type)
+		int32 Offset = Writer.ScriptBuffer.Num();
+
+		if (Statement.Type == KCST_DebugSite)
 		{
+			Writer << EX_Tracepoint;
+		}
+		else if (Statement.Type == KCST_WireTraceSite)
+		{
+			Writer << EX_WireTracepoint;
+		}
+		else
+		{
+			int32 EventType = 0;
+			switch (Statement.Type)
+			{
 			case KCST_InstrumentedWireExit:			EventType = EScriptInstrumentation::NodeExit; break;
 			case KCST_InstrumentedWireEntry:		EventType = EScriptInstrumentation::NodeEntry; break;
 			case KCST_InstrumentedPureNodeEntry:	EventType = EScriptInstrumentation::PureNodeEntry; break;
 			case KCST_InstrumentedStatePush:		EventType = EScriptInstrumentation::PushState; break;
 			case KCST_InstrumentedStateRestore:		EventType = EScriptInstrumentation::RestoreState; break;
+			case KCST_InstrumentedStateReset:		EventType = EScriptInstrumentation::ResetState; break;
+			case KCST_InstrumentedStateSuspend:		EventType = EScriptInstrumentation::SuspendState; break;
 			case KCST_InstrumentedStatePop:			EventType = EScriptInstrumentation::PopState; break;
-		}
-		Writer << EX_InstrumentationEvent;
-		Writer << EventType;
-	}
+			}
+			Writer << EX_InstrumentationEvent;
+			Writer << EventType;
 
+			Offset += sizeof(int32);
+		}
+
+		if (Statement.Type != KCST_InstrumentedStateRestore)
+		{
+			TArray<UEdGraphPin*> PinContextArray(Statement.PureOutputContextArray);
+			if (Statement.ExecContext != nullptr)
+			{
+				PinContextArray.Add(Statement.ExecContext);
+			}
+
+			for (auto PinContext : PinContextArray)
+			{
+				UEdGraphPin const* TrueSourcePin = Cast<UEdGraphPin const>(FunctionContext.MessageLog.FindSourceObject(PinContext));
+				if (TrueSourcePin)
+				{
+					ClassBeingBuilt->GetDebugData().RegisterPinToCodeAssociation(TrueSourcePin, FunctionContext.Function, Offset);
+				}
+			}
+
+			if (SourceNode != NULL)
+			{
+				// Record where this NOP is
+				UEdGraphNode* TrueSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(SourceNode));
+				if (TrueSourceNode)
+				{
+					// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
+					UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(CompilerContext.MessageLog.FinalNodeBackToMacroSourceMap.FindSourceObject(SourceNode));
+					if (MacroSourceNode == SourceNode)
+					{
+						// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
+						MacroSourceNode = NULL;
+					}
+
+					TArray<TWeakObjectPtr<UEdGraphNode>> MacroInstanceNodes;
+					bool bBreakpointSite = Statement.Type == KCST_DebugSite;
+
+					if (MacroSourceNode)
+					{
+						// Only associate macro instance node breakpoints with source nodes that are linked to the entry node in an impure macro graph
+						if (bBreakpointSite)
+						{
+							const UK2Node_MacroInstance* MacroInstanceNode = Cast<const UK2Node_MacroInstance>(TrueSourceNode);
+							if (MacroInstanceNode)
+							{
+								TArray<const UEdGraphNode*> ValidBreakpointLocations;
+								FKismetDebugUtilities::GetValidBreakpointLocations(MacroInstanceNode, ValidBreakpointLocations);
+								bBreakpointSite = ValidBreakpointLocations.Contains(MacroSourceNode);
+							}
+						}
+
+						// Gather up all the macro instance nodes that lead to this macro source node
+						CompilerContext.MessageLog.MacroSourceToMacroInstanceNodeMap.MultiFind(MacroSourceNode, MacroInstanceNodes);
+					}
+
+					ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
+
+					// Track pure node script code range for the current impure (exec) node
+					if (Statement.Type == KCST_InstrumentedPureNodeEntry)
+					{
+						if (PureNodeEntryCount == 0)
+						{
+							// Indicates the starting offset for this pure node call chain.
+							PureNodeEntryStart = Offset;
+						}
+
+						++PureNodeEntryCount;
+					}
+					else if (Statement.Type == KCST_InstrumentedWireEntry && PureNodeEntryCount > 0)
+					{
+						// Map script code range for the full set of pure node inputs feeding in to the current impure (exec) node at the current offset
+						ClassBeingBuilt->GetDebugData().RegisterPureNodeScriptCodeRange(TrueSourceNode, FunctionContext.Function, FInt32Range(PureNodeEntryStart, Offset));
+
+						// Reset pure node code range tracking.
+						PureNodeEntryCount = 0;
+						PureNodeEntryStart = 0;
+					}
+				}
+			}
+		}
+	}
+	
 	void EmitArrayGetByRef(FBlueprintCompiledStatement& Statement)
 	{
 		Writer << EX_ArrayGetByRef;
@@ -1418,58 +1528,6 @@ public:
 		{
 		case KCST_Nop:
 			Writer << EX_Nothing;
-			break;
-		case KCST_WireTraceSite:
-			{
-				UEdGraphPin const* TrueSourcePin = Cast<UEdGraphPin const>(FunctionContext.MessageLog.FindSourceObject(Statement.ExecContext));
-				if (TrueSourcePin)
-				{
-					int32 Offset = Writer.ScriptBuffer.Num();
-					ClassBeingBuilt->GetDebugData().RegisterPinToCodeAssociation(TrueSourcePin, FunctionContext.Function, Offset);
-				}
-			}
-			// no break, continue down through KCST_DebugSite
-		case KCST_DebugSite:
-			if (SourceNode != NULL)
-			{
-				// Record where this NOP is
-				UEdGraphNode* TrueSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(SourceNode));
-				if (TrueSourceNode)
-				{
-					// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
-					UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(CompilerContext.MessageLog.FinalNodeBackToMacroSourceMap.FindSourceObject(SourceNode));
-					if (MacroSourceNode == SourceNode)
-					{
-						// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
-						MacroSourceNode = NULL;
-					}
-
-					TArray<TWeakObjectPtr<UEdGraphNode>> MacroInstanceNodes;
-					bool bBreakpointSite = Statement.Type == KCST_DebugSite;
-
-					if (MacroSourceNode)
-					{
-						// Only associate macro instance node breakpoints with source nodes that are linked to the entry node in an impure macro graph
-						if (bBreakpointSite)
-						{
-							const UK2Node_MacroInstance* MacroInstanceNode = Cast<const UK2Node_MacroInstance>(TrueSourceNode);
-							if (MacroInstanceNode)
-							{
-								TArray<const UEdGraphNode*> ValidBreakpointLocations;
-								FKismetDebugUtilities::GetValidBreakpointLocations(MacroInstanceNode, ValidBreakpointLocations);
-								bBreakpointSite = ValidBreakpointLocations.Contains(MacroSourceNode);
-							}
-						}
-
-						// Gather up all the macro instance nodes that lead to this macro source node
-						CompilerContext.MessageLog.MacroSourceToMacroInstanceNodeMap.MultiFind(MacroSourceNode, MacroInstanceNodes);
-					}
-
-					int32 Offset = Writer.ScriptBuffer.Num();
-					ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
-				}
-			}
-			Writer << ((Statement.Type == KCST_DebugSite) ? EX_Tracepoint : EX_WireTracepoint);
 			break;
 		case KCST_CallFunction:
 			EmitFunctionCall(CompilerContext, FunctionContext, Statement, SourceNode);
@@ -1539,45 +1597,18 @@ public:
 		case KCST_SwitchValue:
 			EmitSwitchValue(Statement);
 			break;
-		case KCST_InstrumentedWireExit:
+		case KCST_DebugSite:
+		case KCST_WireTraceSite:
 		case KCST_InstrumentedWireEntry:
+		case KCST_InstrumentedWireExit:
 		case KCST_InstrumentedStatePush:
+		case KCST_InstrumentedStateReset:
+		case KCST_InstrumentedStateSuspend:
 		case KCST_InstrumentedStatePop:
-			{
-				UEdGraphPin const* TrueSourcePin = Cast<UEdGraphPin const>(FunctionContext.MessageLog.FindSourceObject(Statement.ExecContext));
-				if (TrueSourcePin)
-				{
-					int32 Offset = Writer.ScriptBuffer.Num() + sizeof(int32);
-					ClassBeingBuilt->GetDebugData().RegisterPinToCodeAssociation(TrueSourcePin, FunctionContext.Function, Offset);
-				}
-				if (SourceNode != NULL)
-				{
-					// Record where this NOP is
-					UEdGraphNode* TrueSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(SourceNode));
-					if (TrueSourceNode)
-					{
-						// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
-						UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(CompilerContext.MessageLog.FinalNodeBackToMacroSourceMap.FindSourceObject(SourceNode));
-						if (MacroSourceNode == SourceNode)
-						{
-							// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
-							MacroSourceNode = NULL;
-						}
-	
-						TArray<TWeakObjectPtr<UEdGraphNode>> MacroInstanceNodes;
-						int32 Offset = Writer.ScriptBuffer.Num() + sizeof(int32);
-						ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, false);
-					}
-				}
-			}
-		case KCST_InstrumentedPureNodeEntry:
 		case KCST_InstrumentedStateRestore:
-			{
-				// Emit Statement
-				EmitInstrumentation(Statement);
-				break;
-			}
-
+		case KCST_InstrumentedPureNodeEntry:
+			EmitInstrumentation(CompilerContext, FunctionContext, Statement, SourceNode);
+			break;
 		case KCST_ArrayGetByRef:
 			EmitArrayGetByRef(Statement);
 			break;
@@ -1689,3 +1720,5 @@ void FKismetCompilerVMBackend::ConstructFunction(FKismetFunctionContext& Functio
 	static_assert(sizeof(CodeSkipSizeType) == 4, "Update this code as size changed.");
 #endif
 }
+
+#undef LOCTEXT_NAMESPACE

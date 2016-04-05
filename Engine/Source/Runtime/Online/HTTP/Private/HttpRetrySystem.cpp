@@ -400,14 +400,25 @@ bool FHttpRetrySystem::FManager::ProcessRequest(TSharedRef<FHttpRetrySystem::FRe
 
 void FHttpRetrySystem::FManager::CancelRequest(TSharedRef<FHttpRetrySystem::FRequest>& HttpRetryRequest)
 {
-    for (int32 i = 0; i < RequestList.Num(); ++i)
-    {
-        FHttpRetryRequestEntry& EntryRef = RequestList[i];
+	// Find the existing request entry if is was previously processed.
+	bool bFound = false;
+	for (int32 i = 0; i < RequestList.Num(); ++i)
+	{
+		FHttpRetryRequestEntry& EntryRef = RequestList[i];
 
 		if (EntryRef.Request == HttpRetryRequest)
-        {
-            EntryRef.bShouldCancel = true;
-        }
-    }
+		{
+			EntryRef.bShouldCancel = true;
+			bFound = true;
+		}
+	}
+	// If we did not find the entry, likely auth failed for the request, in which case ProcessRequest does not get called.
+	// Adding it to the list and flagging as cancel will process it on next tick.
+	if (!bFound)
+	{
+		FHttpRetryRequestEntry RetryRequestEntry(HttpRetryRequest);
+		RetryRequestEntry.bShouldCancel = true;
+		RequestList.Add(RetryRequestEntry);
+	}
 	HttpRetryRequest->HttpRequest->CancelRequest();
 }

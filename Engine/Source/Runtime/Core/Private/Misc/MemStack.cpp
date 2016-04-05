@@ -7,7 +7,6 @@ DECLARE_MEMORY_STAT(TEXT("PageAllocator Free"), STAT_PageAllocatorFree, STATGROU
 DECLARE_MEMORY_STAT(TEXT("PageAllocator Used"), STAT_PageAllocatorUsed, STATGROUP_Memory);
 
 FPageAllocator::TPageAllocator FPageAllocator::TheAllocator;
-FPageAllocator::TSmallPageAllocator FPageAllocator::TheSmallAllocator;
 
 
 #define USE_MEMSTACK_PUGATORY (0)
@@ -150,7 +149,7 @@ void *FPageAllocator::AllocSmall()
 	}
 	else
 	{
-		Result = TheSmallAllocator.Allocate();
+		Result = FMemory::Malloc(SmallPageSize);
 	}
 	STAT(UpdateStats());
 	return Result;
@@ -177,7 +176,7 @@ void FPageAllocator::FreeSmall(void *Mem)
 	}
 	else
 	{
-		TheSmallAllocator.Free(Mem);
+		FMemory::Free(Mem);
 	}
 	STAT(UpdateStats());
 }
@@ -215,25 +214,22 @@ void FPageAllocator::Free(void *Mem)
 
 void *FPageAllocator::AllocSmall()
 {
-	void *Result = TheSmallAllocator.Allocate();
-	STAT(UpdateStats());
-	return Result;
+	return FMemory::Malloc(SmallPageSize);
 }
 
 void FPageAllocator::FreeSmall(void *Mem)
 {
-	TheSmallAllocator.Free(Mem);
-	STAT(UpdateStats());
+	FMemory::Free(Mem);
 }
 
 uint64 FPageAllocator::BytesUsed()
 {
-	return uint64(TheAllocator.GetNumUsed().GetValue()) * PageSize + uint64(TheSmallAllocator.GetNumUsed().GetValue()) * SmallPageSize;
+	return uint64(TheAllocator.GetNumUsed().GetValue()) * PageSize;
 }
 
 uint64 FPageAllocator::BytesFree()
 {
-	return uint64(TheAllocator.GetNumFree().GetValue()) * PageSize + uint64(TheSmallAllocator.GetNumFree().GetValue()) * SmallPageSize;
+	return uint64(TheAllocator.GetNumFree().GetValue()) * PageSize;
 }
 
 #endif

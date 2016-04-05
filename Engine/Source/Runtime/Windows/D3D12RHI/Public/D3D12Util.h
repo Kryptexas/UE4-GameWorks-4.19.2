@@ -293,6 +293,11 @@ public:
 	FD3D12LockedKey(class FD3D12ResourceLocation* source, uint32 subres = 0) : SourceObject((void*)source)
 		, Subresource(subres)
 	{}
+
+	template<class ClassType>
+	FD3D12LockedKey(ClassType* source, uint32 subres = 0) : SourceObject((void*)source)
+		, Subresource(subres)
+	{}
 	bool operator==(const FD3D12LockedKey& Other) const
 	{
 		return SourceObject == Other.SourceObject && Subresource == Other.Subresource;
@@ -1118,3 +1123,13 @@ static bool TextureCanBe4KAligned(D3D12_RESOURCE_DESC& Desc, uint8 UEFormat)
 
 	return TilesNeeded <= NUM_4K_BLOCKS_PER_64K_PAGE;
 }
+
+template <class TView>
+class FD3D12View;
+class CViewSubresourceSubset;
+
+template <class TView>
+bool AssertResourceState(ID3D12CommandList* pCommandList, FD3D12View<TView>* pView, const D3D12_RESOURCE_STATES& State);
+
+bool AssertResourceState(ID3D12CommandList* pCommandList, FD3D12Resource* pResource, const D3D12_RESOURCE_STATES& State, uint32 Subresource);
+bool AssertResourceState(ID3D12CommandList* pCommandList, FD3D12Resource* pResource, const D3D12_RESOURCE_STATES& State, const CViewSubresourceSubset& SubresourceSubset);

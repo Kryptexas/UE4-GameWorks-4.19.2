@@ -44,13 +44,15 @@ ANavigationTestingActor::ANavigationTestingActor(const FObjectInitializer& Objec
 	bShouldBeVisibleInGame = false;
 	TextCanvasOffset = FVector2D::ZeroVector;
 	bGatherDetailedInfo = true;
+	bDrawDistanceToWall = false;
+	ClosestWallLocation = FNavigationSystem::InvalidLocation;
 	OffsetFromCornersDistance = 0.f;
 
 	QueryingExtent = FVector(DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_VERTICAL);
 
 	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CollisionCylinder"));
 	CapsuleComponent->InitCapsuleSize(NavAgentProps.AgentRadius, NavAgentProps.AgentHeight / 2);
-	CapsuleComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
+	CapsuleComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	CapsuleComponent->CanCharacterStepUpOn = ECB_No;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
 	CapsuleComponent->SetCanEverAffectNavigation(false);
@@ -140,6 +142,19 @@ void ANavigationTestingActor::PostEditChangeProperty(FPropertyChangedEvent& Prop
 			EdRenderComp->MarkRenderStateDirty();
 #endif
 		}
+		else if (ChangedCategory == TEXT("Query"))
+		{
+			if (bDrawDistanceToWall)
+			{
+				ClosestWallLocation = FindClosestWallLocation();
+			}
+#if WITH_EDITORONLY_DATA
+			else
+			{
+				EdRenderComp->MarkRenderStateDirty();
+			}
+#endif
+		}
 		else if (ChangedCategory == TEXT("Pathfinding"))
 		{
 			if (ChangedPropName == NAME_OtherActor)
@@ -203,6 +218,11 @@ void ANavigationTestingActor::PostEditMove(bool bFinished)
 		if (bSearchStart || (OtherActor != NULL && OtherActor->bSearchStart))
 		{
 			UpdatePathfinding();
+		}
+
+		if (bDrawDistanceToWall)
+		{
+			ClosestWallLocation = FindClosestWallLocation();
 		}
 	}
 }
@@ -325,6 +345,26 @@ void ANavigationTestingActor::UpdatePathfinding()
 			OtherActor->SearchPathTo(this);
 		}
 	}
+}
+
+FVector ANavigationTestingActor::FindClosestWallLocation() const
+{
+#if WITH_EDITORONLY_DATA
+	if (EdRenderComp)
+	{
+		EdRenderComp->MarkRenderStateDirty();
+	}
+#endif // WITH_EDITORONLY_DATA
+
+	ARecastNavMesh* AsRecastNavMesh = Cast<ARecastNavMesh>(MyNavData);
+	if (AsRecastNavMesh)
+	{
+		FVector TmpOutLocation = FNavigationSystem::InvalidLocation;
+		const float Distance = AsRecastNavMesh->FindDistanceToWall(GetActorLocation(), UNavigationQueryFilter::GetQueryFilter(*MyNavData, FilterClass), FLT_MAX, &TmpOutLocation);
+		return TmpOutLocation;
+	}
+	
+	return FNavigationSystem::InvalidLocation;
 }
 
 void ANavigationTestingActor::SearchPathTo(ANavigationTestingActor* Goal)

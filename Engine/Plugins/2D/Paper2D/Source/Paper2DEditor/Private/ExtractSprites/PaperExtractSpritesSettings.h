@@ -57,6 +57,7 @@ class UPaperExtractSpriteGridSettings : public UObject
 {
 	GENERATED_BODY()
 
+public:
 	//////////////////////////////////////////////////////////////////////////
 	// Grid mode
 

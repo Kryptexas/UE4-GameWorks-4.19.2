@@ -15,18 +15,23 @@ public:
 
 	typedef typename TSlateDelegates< ItemType >::FOnGenerateRow FOnGenerateRow;
 	typedef typename TSlateDelegates< ItemType >::FOnItemScrolledIntoView FOnItemScrolledIntoView;
+	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonClick FOnMouseButtonClick;
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 	typedef typename TSlateDelegates< NullableItemType >::FOnSelectionChanged FOnSelectionChanged;
+
+	using FOnWidgetToBeRemoved = typename SListView<ItemType>::FOnWidgetToBeRemoved;
 
 public:
 
 	SLATE_BEGIN_ARGS( STileView<ItemType> )
 		: _OnGenerateTile()
+		, _OnTileReleased()
 		, _ListItemsSource( static_cast<TArray<ItemType>*>(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
 		, _ItemHeight(128)
 		, _ItemWidth(128)
 		, _ItemAlignment(EListItemAlignment::EvenlyDistributed)
 		, _OnContextMenuOpening()
+		, _OnMouseButtonClick()
 		, _OnMouseButtonDoubleClick()
 		, _OnSelectionChanged()
 		, _SelectionMode(ESelectionMode::Multi)
@@ -38,6 +43,8 @@ public:
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
+
+		SLATE_EVENT( FOnWidgetToBeRemoved, OnTileReleased )
 
 		SLATE_EVENT( FOnTableViewScrolled, OnTileViewScrolled )
 
@@ -52,6 +59,8 @@ public:
 		SLATE_ATTRIBUTE( EListItemAlignment, ItemAlignment )
 
 		SLATE_EVENT( FOnContextMenuOpening, OnContextMenuOpening )
+
+		SLATE_EVENT( FOnMouseButtonClick, OnMouseButtonClick )
 
 		SLATE_EVENT( FOnMouseButtonDoubleClick, OnMouseButtonDoubleClick )
 
@@ -79,10 +88,12 @@ public:
 	void Construct( const typename STileView<ItemType>::FArguments& InArgs )
 	{
 		this->OnGenerateRow = InArgs._OnGenerateTile;
+		this->OnRowReleased = InArgs._OnTileReleased;
 		this->OnItemScrolledIntoView = InArgs._OnItemScrolledIntoView;
 		
 		this->ItemsSource = InArgs._ListItemsSource;
 		this->OnContextMenuOpening = InArgs._OnContextMenuOpening;
+		this->OnClick = InArgs._OnMouseButtonClick;
 		this->OnDoubleClick = InArgs._OnMouseButtonDoubleClick;
 		this->OnSelectionChanged = InArgs._OnSelectionChanged;
 		this->SelectionMode = InArgs._SelectionMode;

@@ -16,7 +16,7 @@ UMovieSceneSpawnTrack::UMovieSceneSpawnTrack(const FObjectInitializer& Obj)
 	: Super(Obj)
 {
 #if WITH_EDITORONLY_DATA
-	TrackTint = FColor(255, 0, 234);
+	TrackTint = FColor(255, 0, 93, 65);
 #endif
 }
 
@@ -97,7 +97,7 @@ const TArray<UMovieSceneSection*>& UMovieSceneSpawnTrack::GetAllSections() const
 
 #if WITH_EDITORONLY_DATA
 
-FText UMovieSceneSpawnTrack::GetDefaultDisplayName() const
+FText UMovieSceneSpawnTrack::GetDisplayName() const
 {
 	return LOCTEXT("TrackName", "Spawned");
 }

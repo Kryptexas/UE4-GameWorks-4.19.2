@@ -141,7 +141,7 @@ public:
 	 * @return true if an item was returned, false if the queue was empty.
 	 * @see Dequeue, Enqueue, IsEmpty
 	 */
-	bool Peek( ItemType& OutItem )
+	bool Peek( ItemType& OutItem ) const
 	{
 		if (Tail->NextNode == nullptr)
 		{

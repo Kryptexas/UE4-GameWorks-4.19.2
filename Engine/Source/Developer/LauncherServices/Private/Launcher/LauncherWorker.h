@@ -24,7 +24,6 @@ public:
 	 *
 	 * @param InProfile - The profile to process.
 	 * @param InDeviceProxyManager - The target device proxy manager to use.
-	 * @param LaunchType - The launch type, i.e. UE4 or Rocket.
 	 */
 	FLauncherWorker( const ITargetDeviceProxyManagerRef& InDeviceProxyManager, const ILauncherProfileRef& InProfile );
 

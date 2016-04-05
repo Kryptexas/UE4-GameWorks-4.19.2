@@ -76,6 +76,12 @@ void FAnimNode_RandomPlayer::Update(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
+	if(Entries.Num() == 0)
+	{
+		// We don't have any entries, play data will be invalid - early out
+		return;
+	}
+
 	FRandomAnimPlayData* CurrentData = &PlayData[GetDataIndex(ERandomDataIndexType::Current)];
 	FRandomAnimPlayData* NextData = &PlayData[GetDataIndex(ERandomDataIndexType::Next)];
 

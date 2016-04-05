@@ -35,6 +35,13 @@ FReply SCinematicTransportRange::OnMouseButtonDown(const FGeometry& MyGeometry, 
 {
 	bDraggingTime = true;
 	SetTime(MyGeometry, MouseEvent);
+		
+	ISequencer* Sequencer = GetSequencer();
+	if (Sequencer)
+	{
+		Sequencer->SetPlaybackStatus(EMovieScenePlayerStatus::Scrubbing);
+	}
+	
 	return FReply::Handled().CaptureMouse(AsShared()).PreventThrottling();
 }
 
@@ -51,6 +58,13 @@ FReply SCinematicTransportRange::OnMouseMove(const FGeometry& MyGeometry, const 
 FReply SCinematicTransportRange::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	bDraggingTime = false;
+
+	ISequencer* Sequencer = GetSequencer();
+	if (Sequencer)
+	{
+		Sequencer->SetPlaybackStatus(EMovieScenePlayerStatus::Stepping);
+	}
+	
 	return FReply::Handled().ReleaseMouseCapture();
 }
 
@@ -63,14 +77,23 @@ void SCinematicTransportRange::SetTime(const FGeometry& MyGeometry, const FPoint
 		Lerp = FMath::Clamp(Lerp, 0.f, 1.f);
 		
 		const TRange<float> WorkingRange = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetEditorData().WorkingRange;
-		const bool bAllowSnappingToFrames = true;
-		Sequencer->SetGlobalTime(WorkingRange.GetLowerBoundValue() + WorkingRange.Size<float>()*Lerp, bAllowSnappingToFrames);
+		
+		Sequencer->SetGlobalTime(WorkingRange.GetLowerBoundValue() + WorkingRange.Size<float>()*Lerp, ESnapTimeMode::STM_All);
 	}
 }
 
 void SCinematicTransportRange::OnMouseCaptureLost()
 {
 	bDraggingTime = false;
+}
+
+void SCinematicTransportRange::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	ISequencer* Sequencer = GetSequencer();
+	if (Sequencer)
+	{
+		Sequencer->GetKeysFromSelection(ActiveKeyCollection);
+	}
 }
 
 int32 SCinematicTransportRange::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
@@ -88,6 +111,8 @@ int32 SCinematicTransportRange::OnPaint(const FPaintArgs& Args, const FGeometry&
 
 	TRange<float> WorkingRange = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetEditorData().WorkingRange;
 	TRange<float> PlaybackRange = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetPlaybackRange();
+
+	const float TimePerPixel = WorkingRange.Size<float>() / AllottedGeometry.Size.X;
 
 	FColor DarkGray(40, 40, 40);
 	FColor MidGray(80, 80, 80);
@@ -120,7 +145,8 @@ int32 SCinematicTransportRange::OnPaint(const FPaintArgs& Args, const FGeometry&
 		FLinearColor(MidGray)
 	);
 
-	const float ProgressLerp = (Sequencer->GetGlobalTime() - WorkingRange.GetLowerBoundValue()) / FullRange;
+	const float CurrentTime = Sequencer->GetGlobalTime();
+	const float ProgressLerp = (CurrentTime - WorkingRange.GetLowerBoundValue()) / FullRange;
 
 	// Draw the playback progress
 	if (ProgressLerp > PlaybackStartLerp)
@@ -137,6 +163,53 @@ int32 SCinematicTransportRange::OnPaint(const FPaintArgs& Args, const FGeometry&
 		);
 	}
 
+	bool bPlayMarkerOnKey = false;
+
+	const FLinearColor KeyFrameColor = FEditorStyle::GetSlateColor("SelectionColor").GetColor(FWidgetStyle());
+
+	// Draw the current key collection tick marks
+	{
+		static const float BrushWidth = 7.f;
+		static const float BrushHeight = 7.f;
+
+		if (ActiveKeyCollection.IsValid())
+		{
+			const float BrushOffsetY = TrackOffsetY + TrackHeight * .5f - BrushHeight * .5f;
+			const FSlateBrush* KeyBrush = FLevelSequenceEditorStyle::Get()->GetBrush("LevelSequenceEditor.CinematicViewportTransportRangeKey");
+
+			ActiveKeyCollection->IterateKeys([&](float Time){
+				if (Time < WorkingRange.GetLowerBoundValue() || Time > WorkingRange.GetUpperBoundValue())
+				{
+					// continue iteration
+					return true;
+				}
+
+				if (FMath::IsNearlyEqual(CurrentTime, Time, TimePerPixel*.5f))
+				{
+					bPlayMarkerOnKey = true;
+				}
+
+				float Lerp = (Time - WorkingRange.GetLowerBoundValue()) / FullRange;
+
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					LayerId+2,
+					AllottedGeometry.ToPaintGeometry(
+						FVector2D(BrushWidth, BrushHeight),
+						FSlateLayoutTransform(FVector2D(AllottedGeometry.Size.X*Lerp - BrushWidth*.5f, BrushOffsetY))
+					),
+					KeyBrush,
+					MyClippingRect,
+					DrawEffects,
+					KeyFrameColor
+				);
+
+				// continue iteration
+				return true;
+			});
+		}
+	}
+
 	// Draw the play marker
 	{
 		static const float BrushWidth = 11.f, BrushHeight = 6.f;
@@ -149,23 +222,26 @@ int32 SCinematicTransportRange::OnPaint(const FPaintArgs& Args, const FGeometry&
 			FLevelSequenceEditorStyle::Get()->GetBrush("LevelSequenceEditor.CinematicViewportPlayMarker"),
 			MyClippingRect,
 			DrawEffects,
-			LightGray
+			bPlayMarkerOnKey ? KeyFrameColor : LightGray
 		);
 
-		TArray<FVector2D> LinePoints;
-		LinePoints.Add(FVector2D(PositionX, BrushHeight));
-		LinePoints.Add(FVector2D(PositionX, AllottedGeometry.Size.Y));
+		if (!bPlayMarkerOnKey)
+		{
+			TArray<FVector2D> LinePoints;
+			LinePoints.Add(FVector2D(PositionX, BrushHeight));
+			LinePoints.Add(FVector2D(PositionX, AllottedGeometry.Size.Y));
 
-		FSlateDrawElement::MakeLines(
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			LinePoints,
-			MyClippingRect,
-			DrawEffects,
-			LightGray,
-			false
-		);
+			FSlateDrawElement::MakeLines(
+				OutDrawElements,
+				LayerId,
+				AllottedGeometry.ToPaintGeometry(),
+				LinePoints,
+				MyClippingRect,
+				DrawEffects,
+				LightGray,
+				false
+			);
+		}
 	}
 
 	// Draw the play bounds

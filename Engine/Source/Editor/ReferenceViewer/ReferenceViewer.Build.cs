@@ -33,6 +33,7 @@ namespace UnrealBuildTool.Rules
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
 				    "AssetRegistry",
+					"CollectionManager",
 					"EditorWidgets",
 					"SizeMap",
 			    }

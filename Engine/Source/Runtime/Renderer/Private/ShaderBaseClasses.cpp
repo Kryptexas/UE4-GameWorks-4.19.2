@@ -79,8 +79,6 @@ FUniformBufferRHIParamRef FMaterialShader::GetParameterCollectionBuffer(const FG
 	return Scene ? Scene->GetParameterCollectionBuffer(Id) : FUniformBufferRHIParamRef();
 }
 
-static TLockFreeFixedSizeAllocator<sizeof(FUniformExpressionCache), PLATFORM_CACHE_LINE_SIZE, FNoopCounter> TempUniformCache;
-
 template<typename ShaderRHIParamRef>
 void FMaterialShader::SetParameters(
 	FRHICommandList& RHICmdList,
@@ -112,7 +110,7 @@ void FMaterialShader::SetParameters(
 	{
 		FMaterialRenderContext MaterialRenderContext(MaterialRenderProxy, Material, &View);
 		bUniformExpressionCacheNeedsDelete = true;
-		UniformExpressionCache = new (TempUniformCache.Allocate()) FUniformExpressionCache();
+		UniformExpressionCache = new FUniformExpressionCache();
 		MaterialRenderProxy->EvaluateUniformExpressions(*UniformExpressionCache, MaterialRenderContext, &RHICmdList);
 		SetLocalUniformBufferParameter(RHICmdList, ShaderRHI, MaterialUniformBuffer, UniformExpressionCache->LocalUniformBuffer);
 	}
@@ -334,8 +332,7 @@ void FMaterialShader::SetParameters(
 
 	if (bUniformExpressionCacheNeedsDelete)
 	{
-		UniformExpressionCache->~FUniformExpressionCache();
-		TempUniformCache.Free(UniformExpressionCache);
+		delete UniformExpressionCache;
 	}
 }
 
@@ -404,10 +401,12 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 FTextureRHIRef& FMaterialShader::GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View)
 {
 	IPooledRenderTarget* EyeAdaptationRT = NULL;
-	if( View.bIsViewInfo )
+	if (View.bIsViewInfo)
 	{
 		const FViewInfo& ViewInfo = static_cast<const FViewInfo&>(View);
-		EyeAdaptationRT = ViewInfo.GetEyeAdaptation(RHICmdList);
+		if (ViewInfo.HasValidEyeAdaptation()) {
+			EyeAdaptationRT = ViewInfo.GetEyeAdaptation(RHICmdList);
+		}
 	}
 
 	if( EyeAdaptationRT )

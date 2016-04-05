@@ -89,6 +89,8 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	bIsPlayerController = true;
 	bIsLocalPlayerController = false;
 
+	ClickEventKeys.Add(EKeys::LeftMouseButton);
+
 	if (RootComponent)
 	{
 		// We want to drive rotation with ControlRotation regardless of attachment state.
@@ -764,6 +766,7 @@ void APlayerController::Possess(APawn* PawnToPossess)
 			LOCTEXT("PlayerControllerPossessAuthorityOnly", "Possess function should only be used by the network authority for {0}"),
 			FText::FromName(GetFName())
 			));
+		UE_LOG(LogPlayerController, Warning, TEXT("Trying to possess %s without network authority! Request will be ignored."), *GetNameSafe(PawnToPossess));
 		return;
 	}
 
@@ -2066,9 +2069,7 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 	if (PlayerInput)
 	{
 		bResult = PlayerInput->InputKey(Key, EventType, AmountDepressed, bGamepad);
-
-		// TODO: Allow click key(s?) to be defined
-		if (bEnableClickEvents && Key == EKeys::LeftMouseButton)
+		if (bEnableClickEvents && (ClickEventKeys.Contains(Key) || ClickEventKeys.Contains(EKeys::AnyKey)))
 		{
 			FVector2D MousePosition;
 			UGameViewportClient* ViewportClient = CastChecked<ULocalPlayer>(Player)->ViewportClient;
@@ -2102,11 +2103,11 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 					{
 					case IE_Pressed:
 					case IE_DoubleClick:
-						ClickedPrimitive->DispatchOnClicked();
+						ClickedPrimitive->DispatchOnClicked(Key);
 						break;
 
 					case IE_Released:
-						ClickedPrimitive->DispatchOnReleased();
+						ClickedPrimitive->DispatchOnReleased(Key);
 						break;
 
 					case IE_Axis:
@@ -3583,6 +3584,11 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 		return;
 	}
 
+	if (Player == nullptr)
+	{
+		return;
+	}
+
 	IInputInterface* InputInterface = FSlateApplication::Get().GetInputInterface();
 	if (InputInterface)
 	{
@@ -3590,6 +3596,21 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 
 		FHapticFeedbackValues Values(Frequency, Amplitude);
 		InputInterface->SetHapticFeedbackValues(ControllerId, (int32)Hand.GetValue(), Values);
+	}
+}
+
+void APlayerController::SetControllerLightColor(FColor Color)
+{
+	if (Player == nullptr)
+	{
+		return;
+	}
+
+	IInputInterface* InputInterface = FSlateApplication::Get().GetInputInterface();
+	if (InputInterface)
+	{
+		const int32 ControllerId = CastChecked<ULocalPlayer>(Player)->GetControllerId();
+		InputInterface->SetLightColor(ControllerId, Color);
 	}
 }
 
@@ -3917,13 +3938,15 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 			{
 				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->GetPredictionData_Server();
 				const float TimeSinceUpdate = ServerData ? GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp : 0.f;
-				if (TimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f,AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL))
+				const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
+				if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f,AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
 				{
+					//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
 					const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
 					if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
 					{
-						NetworkPredictionInterface->ForcePositionUpdate(TimeSinceUpdate);
-						ServerData->ServerTimeStamp = GetWorld()->TimeSeconds;
+						NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
+						ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
 					}					
 				}
 			}
@@ -4572,7 +4595,7 @@ void FInputModeGameOnly::ApplyInputMode(FReply& SlateOperations, class UGameView
 		SlateOperations.SetUserFocus(ViewportWidgetRef);
 		SlateOperations.LockMouseToWidget(ViewportWidgetRef);
 		GameViewportClient.SetIgnoreInput(false);
-		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::CapturePermanently);
+		GameViewportClient.SetCaptureMouseOnClick(bConsumeCaptureMouseDown ? EMouseCaptureMode::CapturePermanently : EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
 	}
 }
 

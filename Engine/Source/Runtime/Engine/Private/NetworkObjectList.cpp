@@ -32,13 +32,7 @@ void FNetworkObjectList::Add(AActor* const Actor, const FName NetDriverName)
 	if (!NetworkObjects.Contains(Actor))
 	{
 		// Special case the demo net driver, since actors currently only have one associated NetDriverName.
-		
-		// FIXME: For now, add all actors, regardless of NetDriverName.
-		// There is an issue where NetDriverName isn't correct at this time
-		// The real fix is to register actors with netdrivers when the name changes on the netdriver or actor
-		// But for now, this fix is safe.
-
-		//if (Actor->NetDriverName == NetDriverName || NetDriverName == NAME_DemoNetDriver)
+		if (Actor->GetNetDriverName() == NetDriverName || NetDriverName == NAME_DemoNetDriver)
 		{
 			NetworkObjects.Emplace(new FNetworkObjectInfo(Actor));
 		}

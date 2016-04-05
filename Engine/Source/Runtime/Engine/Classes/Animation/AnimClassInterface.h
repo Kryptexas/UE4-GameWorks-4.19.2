@@ -39,6 +39,7 @@ public:
 		}
 		if (auto DynamicClass = Cast<UDynamicClass>(InClass))
 		{
+			DynamicClass->GetDefaultObject(true);
 			return CastChecked<IAnimClassInterface>(DynamicClass->AnimClassImplementation, ECastCheckedType::NullAllowed);
 		}
 		return nullptr;

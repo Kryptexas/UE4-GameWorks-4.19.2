@@ -5,6 +5,31 @@
 #include "StructDeserializer.h"
 
 
+/* FUdpDeserializedMessage structors
+*****************************************************************************/
+
+FUdpDeserializedMessage::FUdpDeserializedMessage(const IMessageAttachmentPtr& InAttachment)
+	: Attachment(InAttachment)
+	, MessageData(nullptr)
+{
+}
+
+
+FUdpDeserializedMessage::~FUdpDeserializedMessage()
+{
+	if (MessageData != nullptr)
+	{
+		if (TypeInfo.IsValid())
+		{
+			TypeInfo->DestroyStruct(MessageData);
+		}
+
+		FMemory::Free(MessageData);
+		MessageData = nullptr;
+	}
+}
+
+
 /* FUdpDeserializedMessage interface
  *****************************************************************************/
 

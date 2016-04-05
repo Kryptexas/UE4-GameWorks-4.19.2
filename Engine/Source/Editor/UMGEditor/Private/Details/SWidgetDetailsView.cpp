@@ -219,6 +219,8 @@ void SWidgetDetailsView::OnEditorSelectionChanged()
 	{
 		for ( FWidgetReference& WidgetRef : SelectedWidgets )
 		{
+			// Edit actions will go directly to the preview widget, changes will be
+			// propagated to the template via SWidgetDetailsView::NotifyPostChange
 			SelectedObjects.Add(WidgetRef.GetPreview());
 		}
 	}

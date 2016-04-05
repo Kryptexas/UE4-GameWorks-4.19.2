@@ -21,6 +21,9 @@ class UNREALED_API UPersonaOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bShowSky:1;
 
+	UPROPERTY(EditAnywhere, config, Category = Options)
+	uint32 bAutoAlignFloorToMesh : 1;
+
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bShowGrid:1;
 
@@ -31,7 +34,7 @@ class UNREALED_API UPersonaOptions : public UObject
 	uint32 bMuteAudio:1;
 
 	// currently Stats can have None, Basic and Detailed. Please refer to EDisplayInfoMode.
-	UPROPERTY(EditAnywhere, config, Category = Options, meta=(ClampMin ="0", ClampMax = "2", UIMin = "0", UIMax = "2"))
+	UPROPERTY(EditAnywhere, config, Category = Options, meta=(ClampMin ="0", ClampMax = "3", UIMin = "0", UIMax = "3"))
 	int32 ShowMeshStats;
 
 	UPROPERTY(EditAnywhere, config, Category=Options)
@@ -63,6 +66,7 @@ public:
 	void SetShowGrid( bool bInShowGrid );
 	void SetHighlightOrigin( bool bInHighlightOrigin );
 	void SetShowFloor( bool bInShowFloor );
+	void SetAutoAlignFloorToMesh(bool bInAutoAlignFloorToMesh);
 	void SetShowSky( bool bInShowSky );
 	void SetMuteAudio( bool bInMuteAudio );
 	void SetGridSize( int32 InGridSize );

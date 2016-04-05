@@ -539,6 +539,8 @@ private:
 	bool IsGradientEditorVisible() const { return bIsGradientEditorVisible; }
 	bool IsLinearColorCurve() const;
 
+	bool IsCurveSelectable(TSharedPtr<FCurveViewModel> CurveViewModel) const;
+
 	FVector2D SnapLocation(FVector2D InLocation);
 
 	FText GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const;
@@ -608,8 +610,6 @@ private:
 
 	/** Interface for curve supplier */
 	FCurveOwnerInterface*		CurveOwner;
-	/** Color for each curve */
-	TArray<FLinearColor>		CurveColors;
 
 	/** If we should draw the curve */
 	bool				bDrawCurve;

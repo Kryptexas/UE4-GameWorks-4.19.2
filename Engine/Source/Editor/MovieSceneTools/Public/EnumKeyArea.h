@@ -26,6 +26,10 @@ public:
 	virtual bool CanCreateKeyEditor() override;
 	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) override;
 
+protected:
+
+	void OnValueChanged(int32 InValue);
+
 private:
 
 	/** The enum which provides available integral values for this key area. */

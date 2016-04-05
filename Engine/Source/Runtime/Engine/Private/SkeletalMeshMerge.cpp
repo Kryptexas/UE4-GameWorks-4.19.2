@@ -635,7 +635,8 @@ bool FSkeletalMeshMerge::ProcessMergeMesh()
 			if( bNeedsInit )
 			{
 				// initialize the merged mesh with the first src mesh entry used
-				MergeMesh->Bounds = SrcMesh->Bounds;
+				MergeMesh->SetImportedBounds(SrcMesh->GetImportedBounds());
+
 				MergeMesh->SkelMirrorAxis = SrcMesh->SkelMirrorAxis;
 				MergeMesh->SkelMirrorFlipAxis = SrcMesh->SkelMirrorFlipAxis;
 
@@ -645,8 +646,8 @@ bool FSkeletalMeshMerge::ProcessMergeMesh()
 			else
 			{
 				// add bounds
-				MergeMesh->Bounds = MergeMesh->Bounds + SrcMesh->Bounds;
-			}			
+				MergeMesh->SetImportedBounds(MergeMesh->GetImportedBounds() + SrcMesh->GetImportedBounds());
+			}
 		}
 	}
 

@@ -239,7 +239,7 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:BufferSize * 2 options:BUFFER_CACHE_MODE];
 		Offset = 0;
 		LastRead = Size;
-		
+
 		// get current location
 		uint32 ReturnOffset = Offset;
 		Offset += Size;

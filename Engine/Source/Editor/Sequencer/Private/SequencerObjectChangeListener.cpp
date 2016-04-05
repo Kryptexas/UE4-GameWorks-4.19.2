@@ -293,7 +293,7 @@ void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object, con
 				FPropertyListenerSettings Settings;
 				// Ignore array and object properties
 				Settings.bIgnoreArrayProperties = true;
-				Settings.bIgnoreObjectProperties = true;
+				Settings.bIgnoreObjectProperties = false;
 				// Property flags which must be on the property
 				Settings.RequiredPropertyFlags = 0;
 				// Property flags which cannot be on the property

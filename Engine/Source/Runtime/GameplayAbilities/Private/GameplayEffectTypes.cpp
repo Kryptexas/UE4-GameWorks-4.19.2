@@ -74,10 +74,11 @@ void FGameplayEffectContext::SetAbility(const UGameplayAbility* InGameplayAbilit
 	if (InGameplayAbility)
 	{
 		Ability = InGameplayAbility->GetClass();
+		AbilityLevel = InGameplayAbility->GetAbilityLevel();
 	}
 }
 
-UGameplayAbility* FGameplayEffectContext::GetAbility() const
+const UGameplayAbility* FGameplayEffectContext::GetAbility() const
 {
 	return Ability.GetDefaultObject();
 }
@@ -163,7 +164,7 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 	}
 	if (RepBits & (1 << 4))
 	{
-		Ar << Actors;
+		SafeNetSerializeTArray_Default<31>(Ar, Actors);
 	}
 	if (RepBits & (1 << 5))
 	{
@@ -534,6 +535,8 @@ FGameplayCueParameters::FGameplayCueParameters(const FGameplayEffectSpecForRPC& 
 , RawMagnitude(0.0f)
 , Location(ForceInitToZero)
 , Normal(ForceInitToZero)
+, GameplayEffectLevel(1)
+, AbilityLevel(1)
 {
 	UAbilitySystemGlobals::Get().InitGameplayCueParameters(*this, Spec);
 }
@@ -543,12 +546,17 @@ FGameplayCueParameters::FGameplayCueParameters(const struct FGameplayEffectConte
 , RawMagnitude(0.0f)
 , Location(ForceInitToZero)
 , Normal(ForceInitToZero)
+, GameplayEffectLevel(1)
+, AbilityLevel(1)
 {
 	UAbilitySystemGlobals::Get().InitGameplayCueParameters(*this, InEffectContext);
 }
 
 bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
+	static const uint8 NUM_LEVEL_BITS = 4;
+	static const uint8 MAX_LEVEL = (1 << NUM_LEVEL_BITS) - 1;
+
 	enum RepFlag
 	{
 		REP_NormalizedMagnitude = 0,
@@ -560,7 +568,9 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		REP_EffectCauser,
 		REP_SourceObject,
 		REP_PhysMaterial,
-		
+		REP_GELevel,
+		REP_AbilityLevel,
+
 		REP_MAX
 	};
 
@@ -602,6 +612,14 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		if (PhysicalMaterial.IsValid())
 		{
 			RepBits |= (1 << REP_PhysMaterial);
+		}
+		if (GameplayEffectLevel != 1)
+		{
+			RepBits |= (1 << REP_GELevel);
+		}
+		if (AbilityLevel != 1)
+		{
+			RepBits |= (1 << REP_AbilityLevel);
 		}
 	}
 
@@ -646,6 +664,26 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 	if (RepBits & (1 << REP_SourceObject))
 	{
 		Ar << PhysicalMaterial;
+	}
+	if (RepBits & (1 << REP_GELevel))
+	{
+		ensureMsgf(GameplayEffectLevel <= MAX_LEVEL, TEXT("FGameplayCueParameters::NetSerialize trying to serialize GC parameters with a GameplayEffectLevel of %d"), GameplayEffectLevel);
+		if (Ar.IsLoading())
+		{
+			GameplayEffectLevel = 0;
+		}
+
+		Ar.SerializeBits(&GameplayEffectLevel, NUM_LEVEL_BITS);
+	}
+	if (RepBits & (1 << REP_AbilityLevel))
+	{
+		ensureMsgf(AbilityLevel <= MAX_LEVEL, TEXT("FGameplayCueParameters::NetSerialize trying to serialize GC parameters with an AbilityLevel of %d"), AbilityLevel);
+		if (Ar.IsLoading())
+		{
+			AbilityLevel = 0;
+		}
+
+		Ar.SerializeBits(&AbilityLevel, NUM_LEVEL_BITS);
 	}
 
 	bOutSuccess = true;

@@ -133,25 +133,64 @@ FString GetPathDescHelper(FNavPathSharedPtr Path)
 		FString::Printf(TEXT("%s:%d"), Path->IsPartial() ? TEXT("partial") : TEXT("complete"), Path->GetPathPoints().Num());
 }
 
-void UPathFollowingComponent::OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event)
+void UPathFollowingComponent::OnPathEvent(FNavigationPath* InPath, ENavPathEvent::Type Event)
 {
 	const static UEnum* NavPathEventEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ENavPathEvent"));
 	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("OnPathEvent: %s"), *NavPathEventEnum->GetEnumName(Event));
 
-	if (InvalidatedPath == nullptr || Path.Get() != InvalidatedPath)
+	if (InPath && Path.Get() == InPath)
 	{
-		return;
-	}
-
-	switch (Event)
-	{
+		switch (Event)
+		{
 		case ENavPathEvent::UpdatedDueToGoalMoved:
 		case ENavPathEvent::UpdatedDueToNavigationChanged:
-		{
-			UpdateMove(Path, GetCurrentRequestId());
+			{
+				const bool bIsPathAccepted = HandlePathUpdateEvent();
+				if (!bIsPathAccepted)
+				{
+					AbortMove(TEXT("Failed path update"));
+				}
+			}
+			break;
+
+		default:
+			break;
 		}
-		break;
 	}
+}
+
+bool UPathFollowingComponent::HandlePathUpdateEvent()
+{
+	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("HandlePathUpdateEvent Path(%s) Status(%s)"), *GetPathDescHelper(Path), *GetStatusDesc());
+	LogPathHelper(GetOwner(), Path, DestinationActor.Get());
+
+	if (Status == EPathFollowingStatus::Waiting && Path.IsValid() && !Path->IsValid())
+	{
+		UE_VLOG(GetOwner(), LogPathFollowing, Error, TEXT("Received unusable path in Waiting state! (ready:%d upToDate:%d pathPoints:%d)"),
+			Path->IsReady() ? 1 : 0,
+			Path->IsUpToDate() ? 1 : 0,
+			Path->GetPathPoints().Num());
+	}
+
+	if (Status == EPathFollowingStatus::Idle || !Path.IsValid() || !Path->IsValid())
+	{
+		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT(">> invalid request"));
+		return false;
+	}
+
+	OnPathUpdated();
+	GetWorld()->GetTimerManager().ClearTimer(WaitingForPathTimer);
+	UpdateDecelerationData();
+
+	if (Status == EPathFollowingStatus::Waiting || Status == EPathFollowingStatus::Moving)
+	{
+		Status = EPathFollowingStatus::Moving;
+
+		const int32 CurrentSegment = DetermineStartingPathPoint(Path.Get());
+		SetMoveSegment(CurrentSegment);
+	}
+
+	return true;
 }
 
 FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FRequestCompletedSignature OnComplete,
@@ -236,7 +275,7 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 			CurrentRequestId.GetID(), ToDest.Size2D(), FMath::Abs(ToDest.Z));
 	#endif // ENABLE_VISUAL_LOG
 
-		// with async pathfinding paths can be incomplete, movement will start after receiving UpdateMove 
+		// with async pathfinding paths can be incomplete, movement will start after receiving path event 
 		if (Path->IsValid())
 		{
 			Status = EPathFollowingStatus::Moving;
@@ -257,41 +296,16 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 
 bool UPathFollowingComponent::UpdateMove(FNavPathSharedPtr InPath, FAIRequestID RequestID)
 {
-	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("UpdateMove: Path(%s) Status(%s) RequestID(%u)"),
-		*GetPathDescHelper(InPath),
-		*GetStatusDesc(), RequestID);
-
-	LogPathHelper(GetOwner(), InPath, DestinationActor.Get());
-
-	if (Status == EPathFollowingStatus::Waiting && InPath.IsValid() && !InPath->IsValid())
+	if (InPath == Path && RequestID.IsEquivalent(CurrentRequestId))
 	{
-		UE_VLOG(GetOwner(), LogPathFollowing, Error, TEXT("Received unusable path in Waiting state! (ready:%d upToDate:%d pathPoints:%d)"),
-			InPath->IsReady() ? 1 : 0,
-			InPath->IsUpToDate() ? 1 : 0,
-			InPath->GetPathPoints().Num());
+		return HandlePathUpdateEvent();
 	}
 
-	if (!InPath.IsValid() || !InPath->IsValid() || Status == EPathFollowingStatus::Idle 
-		|| RequestID.IsEquivalent(GetCurrentRequestId()) == false)
-	{
-		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("UpdateMove: invalid request"));
-		return false;
-	}
+	UE_VLOG(GetOwner(), LogPathFollowing, Error, TEXT("UpdateMove is ignored! path:%s requestId:%s"),
+		(InPath == Path) ? TEXT("ok") : TEXT("DIFFERENT"),
+		RequestID.IsEquivalent(CurrentRequestId) ? TEXT("ok") : TEXT("NOT CURRENT"));
 
-	Path = InPath;
-	OnPathUpdated();
-	GetWorld()->GetTimerManager().ClearTimer(WaitingForPathTimer);
-	UpdateDecelerationData();
-
-	if (Status == EPathFollowingStatus::Waiting || Status == EPathFollowingStatus::Moving)
-	{
-		Status = EPathFollowingStatus::Moving;
-
-		const int32 CurrentSegment = DetermineStartingPathPoint(InPath.Get());
-		SetMoveSegment(CurrentSegment);
-	}
-
-	return true;
+	return false;
 }
 
 void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID RequestID, bool bResetVelocity, bool bSilent, uint8 MessageFlags)
@@ -1166,9 +1180,7 @@ bool UPathFollowingComponent::UpdateMovementComponent(bool bForce)
 
 		if (MyPawn)
 		{
-			FScriptDelegate Delegate;
-			Delegate.BindUFunction(this, "OnActorBump");
-			MyPawn->OnActorHit.AddUnique(Delegate);
+			MyPawn->OnActorHit.AddUniqueDynamic(this, &UPathFollowingComponent::OnActorBump);
 
 			SetMovementComponent(MyPawn->FindComponentByClass<UNavMovementComponent>());
 		}

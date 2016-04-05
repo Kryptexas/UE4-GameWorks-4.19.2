@@ -30,7 +30,6 @@
 #include "VarargsHelper.h"
 
 #if !FORCE_ANSI_ALLOCATOR
-	#include "MallocBinned2.h"
 	#include "AllowWindowsPlatformTypes.h"
 		#include <psapi.h>
 	#include "HideWindowsPlatformTypes.h"
@@ -863,6 +862,13 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 		}
 	}
 }
+
+#if !UE_BUILD_SHIPPING
+bool FWindowsPlatformMisc::IsDebuggerPresent()
+{
+	return !GIgnoreDebugger && !!::IsDebuggerPresent();
+}
+#endif // UE_BUILD_SHIPPING
 
 static void WinPumpMessages()
 {
@@ -2117,6 +2123,13 @@ void FWindowsPlatformMisc::PromptForRemoteDebugging(bool bIsEnsure)
 			return;
 		}
 
+		if (GIsCriticalError && !GIsGuarded)
+		{
+			// A fatal error occurred.
+			// We have not ability to debug, this does not make sense to ask.
+			return;
+		}
+
 		// Upload locally compiled files for remote debugging
 		FPlatformStackWalk::UploadLocalSymbols();
 
@@ -2401,7 +2414,7 @@ FString FWindowsPlatformMisc::GetPrimaryGPUBrand()
 	}
 
 	return PrimaryGPUBrand;
-}
+	}
 
 static void GetVideoDriverDetails(const FString& Key, FGPUDriverInfo& Out)
 {
@@ -2760,13 +2773,13 @@ bool FWindowsPlatformMisc::QueryRegKey( const HKEY InKey, const TCHAR* InSubKey,
 
 bool FWindowsPlatformMisc::GetVSComnTools(int32 Version, FString& OutData)
 {
-	checkf(11 <= Version && Version <= 14, L"Not supported Visual Studio version.");
+	checkf(12 <= Version && Version <= 14, L"Not supported Visual Studio version.");
 
 	const TCHAR* PossibleRegPaths[] = {
-		L"Wow6432Node\\Microsoft\\VisualStudio",	// Non-express VS2013 on 64-bit machine.
-		L"Microsoft\\VisualStudio",					// Non-express VS2013 on 32-bit machine.
-		L"Wow6432Node\\Microsoft\\WDExpress",		// Express VS2013 on 64-bit machine.
-		L"Microsoft\\WDExpress"						// Express VS2013 on 32-bit machine.
+		L"Wow6432Node\\Microsoft\\VisualStudio",	// Non-express VS201x on 64-bit machine.
+		L"Microsoft\\VisualStudio",					// Non-express VS201x on 32-bit machine.
+		L"Wow6432Node\\Microsoft\\WDExpress",		// Express VS201x on 64-bit machine.
+		L"Microsoft\\WDExpress"						// Express VS201x on 32-bit machine.
 	};
 
 	bool bResult = false;
@@ -2858,10 +2871,10 @@ IPlatformChunkInstall* FWindowsPlatformMisc::GetPlatformChunkInstall()
 		{
 			PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
 			if (PlatformChunkInstallModule != nullptr)
-			{
-				// Attempt to grab the platform installer
-				ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
-			}
+		{
+			// Attempt to grab the platform installer
+			ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+		}
 		}
 
 		if (PlatformChunkInstallModule == nullptr)

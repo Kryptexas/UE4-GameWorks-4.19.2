@@ -86,7 +86,7 @@ public:
 	/**
 	* Initialize a raw distribution from the original Unreal distribution
 	*/
-	void Initialize();
+	ENGINE_API void Initialize();
 #endif
 
 	/**

@@ -27,7 +27,10 @@ public class CrashReportClientTarget : TargetRules
 	{
 		if( base.GetSupportedConfigurations( ref OutConfigurations, bIncludeTestAndShippingConfigs ) )
 		{
-			OutConfigurations.Add( UnrealTargetConfiguration.Shipping );
+			if( bIncludeTestAndShippingConfigs )
+			{ 
+				OutConfigurations.Add( UnrealTargetConfiguration.Shipping );
+			}
 			OutConfigurations.Add( UnrealTargetConfiguration.Debug );
 			return true;
 		}

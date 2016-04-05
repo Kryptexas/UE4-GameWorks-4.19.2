@@ -63,7 +63,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 	bHidden = false;
 
 	DefaultColorScale = FVector(1.0f, 1.0f, 1.0f);
-
+	DefaultMaxDistanceFieldOcclusionDistance = 600;
 	bPlaceCellsOnlyAlongCameraTracks = false;
 	VisibilityCellSize = 200;
 	VisibilityAggressiveness = VIS_LeastAggressive;
@@ -318,6 +318,11 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 			GEditor->BroadcastHLODLevelsArrayChanged();
 			NumHLODLevels = HierarchicalLODSetup.Num();			
 		}
+	}
+
+	if (PropertyThatChanged != nullptr && GetWorld() != nullptr && GetWorld()->Scene)
+	{
+		GetWorld()->Scene->UpdateSceneSettings(this);
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);

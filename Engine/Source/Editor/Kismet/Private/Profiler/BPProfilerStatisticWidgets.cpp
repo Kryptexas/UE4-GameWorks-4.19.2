@@ -128,6 +128,15 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 					.Style(FEditorStyle::Get(), "HoverOnlyHyperlink")
 					.ToolTipText(ExecNode->GetToolTipText())
 					.OnNavigate(this, &FBPProfilerStatWidget::NavigateTo)
+		#if TRACEPATH_DEBUG
+				]
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(FMargin(5,0))
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(*WidgetTracePath.GetPathString()))
+		#endif
 				];
 		}
 		else
@@ -233,6 +242,27 @@ void FBPProfilerStatWidget::GenerateExecNodeWidgets(const FName InstanceName, co
 		}
 		else
 		{
+			// @TODO - filter out pure nodes?
+			if (!ExecNode->IsPureNode())
+			{
+				// Get the full pure node chain associated with this exec node.
+				TMap<int32, TSharedPtr<FScriptExecutionNode>> AllPureNodes;
+				ExecNode->GetAllPureNodes(AllPureNodes);
+
+				// Sort pure nodes by script offset (execution order).
+				AllPureNodes.KeySort(TLess<int32>());
+
+				// Build trace path, tree view node widget and register perf stats for tracking.
+				FTracePath PureTracePath(WidgetTracePath);
+				for (auto Iter : AllPureNodes)
+				{
+					PureTracePath.AddExitPin(Iter.Key);
+					TSharedPtr<FBPProfilerStatWidget> NewPureChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(Iter.Value, PureTracePath));
+					NewPureChildNode->GenerateExecNodeWidgets(InstanceName, FilterGraph);
+					CachedChildren.Add(NewPureChildNode);
+				}
+			}
+
 			for (auto Iter : ExecNode->GetChildNodes())
 			{
 				// Filter out events based on graph

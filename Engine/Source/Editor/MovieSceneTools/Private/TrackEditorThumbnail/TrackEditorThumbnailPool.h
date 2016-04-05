@@ -14,7 +14,7 @@ class FTrackEditorThumbnailPool
 {
 public:
 
-	FTrackEditorThumbnailPool(TSharedPtr<ISequencer> InSequencer, uint32 InMaxThumbnailsToDrawAtATime = 1);
+	FTrackEditorThumbnailPool(TSharedPtr<ISequencer> InSequencer);
 
 public:
 
@@ -36,6 +36,12 @@ private:
 	/** Thumbnails enqueued for drawing */
 	TArray< TSharedPtr<FTrackEditorThumbnail> > ThumbnailsNeedingDraw;
 
-	/** How many thumbnails we are allowed to draw in a single DrawThumbnails call */
-	uint32 MaxThumbnailsToDrawAtATime;
+	/** Thumbnails that are currently being drawn */
+	TArray< TSharedPtr<FTrackEditorThumbnail> > ThumbnailsBeingDrawn;
+
+	double TimeOfLastDraw;
+	double TimeOfLastUpdate;
+
+	/** Whether we need to sort */
+	bool bNeedsSort;
 };

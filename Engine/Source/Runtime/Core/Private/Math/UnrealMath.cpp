@@ -2352,7 +2352,7 @@ CORE_API FRotator FMath::RInterpTo( const FRotator& Current, const FRotator& Tar
 CORE_API float FMath::FInterpTo( float Current, float Target, float DeltaTime, float InterpSpeed )
 {
 	// If no interp speed, jump to target value
-	if( InterpSpeed == 0.f )
+	if( InterpSpeed <= 0.f )
 	{
 		return Target;
 	}
@@ -3104,6 +3104,16 @@ bool FMath::Eval( FString Str, float& OutValue )
 	}
 
 	return bResult;
+}
+
+void FMath::WindRelativeAnglesDegrees(float InAngle0, float& InOutAngle1)
+{
+	const float Diff = InAngle0 - InOutAngle1;
+	const float AbsDiff = Abs(Diff);
+	if(AbsDiff > 180.0f)
+	{
+		InOutAngle1 += 360.0f * Sign(Diff) * FloorToFloat((AbsDiff / 360.0f) + 0.5f);
+	}
 }
 
 float FMath::FixedTurn(float InCurrent, float InDesired, float InDeltaRate)

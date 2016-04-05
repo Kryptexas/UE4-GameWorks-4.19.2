@@ -329,10 +329,16 @@ public:
 	}
 
 	/**
-	*	When a set of tasks complete, fire a scoped event
+	*	Deletegates for shutdown
 	*	@param	Callback - function to call prior to shutting down the taskgraph
 	**/
 	virtual void AddShutdownCallback(TFunction<void()>& Callback) = 0;
+
+	/**
+	*	A (slow) function to call a function on every known thread, both named and workers
+	*	@param	Callback - function to call prior to shutting down the taskgraph
+	**/
+	static void BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoBackgroundThreads, TFunction<void(ENamedThreads::Type CurrentThread)>& Callback);
 };
 
 /** 

@@ -191,7 +191,7 @@ void UK2Node_SetFieldsInStruct::ValidateNodeDuringCompilation(FCompilerResultsLo
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
 	UEdGraphPin* FoundPin = FindPin(SetFieldsInStructHelper::StructRefPinName());
-	if (!ensure(FoundPin) || (FoundPin->LinkedTo.Num() <= 0))
+	if (!FoundPin || (FoundPin->LinkedTo.Num() <= 0))
 	{
 		FText ErrorMessage = LOCTEXT("SetStructFields_NoStructRefError", "The @@ pin must be connected to the struct that you wish to set.");
 		MessageLog.Error(*ErrorMessage.ToString(), FoundPin);

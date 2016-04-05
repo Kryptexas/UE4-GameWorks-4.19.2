@@ -12,6 +12,7 @@ DECLARE_MULTICAST_DELEGATE(FOnGotoTimeMCDelegate);
 DECLARE_DELEGATE_OneParam(FOnGotoTimeDelegate, const bool /* bWasSuccessful */);
 
 class UDemoNetDriver;
+class UDemoNetConnection;
 
 class FQueuedReplayTask
 {
@@ -29,6 +30,29 @@ public:
 	virtual FString	GetName() = 0;
 
 	UDemoNetDriver* Driver;
+};
+
+class FReplayExternalData
+{
+public:
+	FReplayExternalData() : TimeSeconds( 0.0f )
+	{
+	}
+
+	FReplayExternalData( const FBitReader& InReader, const float InTimeSeconds ) : Reader( InReader ), TimeSeconds( InTimeSeconds )
+	{
+	}
+
+	FBitReader	Reader;
+	float		TimeSeconds;
+};
+
+typedef TArray< FReplayExternalData > FReplayExternalDataArray;
+
+struct FPlaybackPacket
+{
+	TArray< uint8 > Data;
+	float			TimeSeconds;
 };
 
 /**
@@ -57,9 +81,6 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	/** Total number of frames in the demo */
 	int32 DemoTotalFrames;
 
-	/** True if we're in the middle of recording a frame */
-	bool bIsRecordingDemoFrame;
-
 	/** True if we are at the end of playing a demo */
 	bool bDemoPlaybackDone;
 
@@ -84,13 +105,21 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	double		LastCheckpointTime;
 
 	void		SaveCheckpoint();
-
 	void		LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 GotoCheckpointSkipExtraTimeInMS );
+
+	void		SaveExternalData( FArchive& Ar );
+	void		LoadExternalData( FArchive& Ar, const float TimeSeconds );
 
 	/** Public delegate for external systems to be notified when scrubbing is complete. Only called for successful scrub. */
 	FOnGotoTimeMCDelegate OnGotoTimeDelegate;
 
 	bool		IsLoadingCheckpoint() const { return bIsLoadingCheckpoint; }
+
+	/** ExternalDataToObjectMap is used to map a FNetworkGUID to the proper FReplayExternalDataArray */
+	TMap< FNetworkGUID, FReplayExternalDataArray > ExternalDataToObjectMap;
+		
+	/** PlaybackPackets are used to buffer packets up when we read a demo frame, which we can then process when the time is right */
+	TArray< FPlaybackPacket > PlaybackPackets;
 
 private:
 	bool		bIsFastForwarding;
@@ -123,6 +152,7 @@ public:
 	virtual FString LowLevelGetNetworkNumber() override;
 	virtual bool InitConnect( FNetworkNotify* InNotify, const FURL& ConnectURL, FString& Error ) override;
 	virtual bool InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool bReuseAddressAndPort, FString& Error ) override;
+	virtual void TickFlush( float DeltaSeconds ) override;
 	virtual void TickDispatch( float DeltaSeconds ) override;
 	virtual void ProcessRemoteFunction( class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject = nullptr ) override;
 	virtual bool IsAvailable() const override { return true; }
@@ -166,8 +196,17 @@ public:
 
 	void TickDemoRecord( float DeltaSeconds );
 	void PauseChannels( const bool bPause );
-	bool ConditionallyReadDemoFrame();
-	bool ReadDemoFrame( FArchive* Archive );
+
+	bool ConditionallyProcessPlaybackPackets();
+	void ProcessAllPlaybackPackets();
+	bool ReadPacket( FArchive& Archive, uint8* OutReadBuffer, int32& OutBufferSize, const int32 MaxBufferSize );
+	bool ReadDemoFrameIntoPlaybackPackets( FArchive& Ar );
+	bool ConditionallyReadDemoFrameIntoPlaybackPackets( FArchive& Ar );
+	bool ProcessPacket( uint8* Data, int32 Count );
+
+	void WriteDemoFrameFromQueuedDemoPackets( FArchive& Ar, UDemoNetConnection* Connection );
+	void WritePacket( FArchive& Ar, uint8* Data, int32 Count );
+
 	void TickDemoPlayback( float DeltaSeconds );
 	void FinalizeFastForward( const float StartTime );
 	void SpawnDemoRecSpectator( UNetConnection* Connection, const FURL& ListenURL );
@@ -177,6 +216,8 @@ public:
 	void EnumerateEvents(const FString& Group, FEnumerateEventsCompleteDelegate& EnumerationCompleteDelegate);
 	void RequestEventData(const FString& EventID, FOnRequestEventDataComplete& RequestEventDataCompleteDelegate);
 	virtual bool IsFastForwarding() { return bIsFastForwarding; }
+
+	FReplayExternalDataArray* GetExternalDataArrayForObject( UObject* Object );
 
 	/**
 	 * Adds a join-in-progress user to the set of users associated with the currently recording replay (if any)

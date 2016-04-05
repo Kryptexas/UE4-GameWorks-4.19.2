@@ -415,6 +415,14 @@ public:
 	void RegisterGameViewport( TSharedRef<SViewport> InViewport );
 
 	/**
+	 * Registers a viewport with the Slate application so that specific messages can be routed directly to a viewport
+	 * This is for all viewports, there can be multiple of these as opposed to the singular "Game Viewport"
+	 * 
+	 * @param InViewport	The viewport to register.  Note there is currently only one registered viewport
+	 */
+	void RegisterViewport(TSharedRef<SViewport> InViewport);
+
+	/**
 	 * Returns the game viewport registered with the slate application
 	 *
 	 * @return registered game viewport
@@ -447,6 +455,11 @@ public:
 
 	DEPRECATED(4.6, "FSlateApplication::SetJoystickCaptorToGameViewport() is deprecated, use FSlateApplication::SetAllUserFocusToGameViewport() instead.")
 	void SetJoystickCaptorToGameViewport();
+
+	/**
+	 * Activates the Game Viewport if it is properly childed under a window
+	 */
+	void ActivateGameViewport();
 
 	/**
 	 * Sets specified user focus to the SWidget passed in.
@@ -589,6 +602,11 @@ public:
 	 * @return True if there is a mouse device attached
 	 */
 	bool IsMouseAttached() const { return PlatformApplication.IsValid() ? PlatformApplication->IsMouseAttached() : false; }
+
+	/**
+	 * @return True if there is a gamepad attached
+	 */
+	bool IsGamepadAttached() const { return PlatformApplication.IsValid() ? PlatformApplication->IsGamepadAttached() : false; }
 
 	/**
 	 * Sets the widget reflector.
@@ -1130,6 +1148,9 @@ public:
 	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 	virtual void SetAllUserFocusAllowingDescendantFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 
+	DECLARE_EVENT_OneParam(FSlateApplication, FApplicationActivationStateChangedEvent, const bool /*IsActive*/)
+	virtual FApplicationActivationStateChangedEvent& OnApplicationActivationStateChanged() { return ApplicationActivationStateChangedEvent; }
+
 public:
 
 	//~ Begin FGenericApplicationMessageHandler Interface
@@ -1139,16 +1160,20 @@ public:
 	virtual bool OnKeyDown( const int32 KeyCode, const uint32 CharacterCode, const bool IsRepeat ) override;
 	virtual bool OnKeyUp( const int32 KeyCode, const uint32 CharacterCode, const bool IsRepeat ) override;
 	virtual bool OnMouseDown( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button ) override;
+	virtual bool OnMouseDown( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button, const FVector2D CursorPos ) override;
 	virtual bool OnMouseUp( const EMouseButtons::Type Button ) override;
+	virtual bool OnMouseUp( const EMouseButtons::Type Button, const FVector2D CursorPos ) override;
 	virtual bool OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button ) override;
+	virtual bool OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button, const FVector2D CursorPos ) override;
 	virtual bool OnMouseWheel( const float Delta ) override;
+	virtual bool OnMouseWheel( const float Delta, const FVector2D CursorPos ) override;
 	virtual bool OnMouseMove() override;
 	virtual bool OnRawMouseMove( const int32 X, const int32 Y ) override;
 	virtual bool OnCursorSet() override;
 	virtual bool OnControllerAnalog( FGamepadKeyNames::Type KeyName, int32 ControllerId, float AnalogValue ) override;
 	virtual bool OnControllerButtonPressed( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat ) override;
 	virtual bool OnControllerButtonReleased( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat ) override;
-	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta ) override;
+	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta, bool bIsDirectionInvertedFromDevice ) override;
 	virtual bool OnTouchStarted( const TSharedPtr< FGenericWindow >& PlatformWindow, const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 	virtual bool OnTouchMoved( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 	virtual bool OnTouchEnded( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
@@ -1668,6 +1693,7 @@ private:
 	/** The icon to use on application windows */
 	const FSlateBrush *AppIcon;
 
+	FApplicationActivationStateChangedEvent ApplicationActivationStateChangedEvent;
 	//
 	// Hittest 2.0
 	//

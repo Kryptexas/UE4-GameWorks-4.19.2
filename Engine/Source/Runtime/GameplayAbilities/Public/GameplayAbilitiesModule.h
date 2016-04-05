@@ -3,7 +3,6 @@
 #pragma once
 
 #include "ModuleManager.h"
-#include "AbilitySystemGlobals.h"
 
 
 /**
@@ -38,7 +37,7 @@ public:
 		return FModuleManager::Get().IsModuleLoaded( "GameplayAbilities" );
 	}
 
-	virtual UAbilitySystemGlobals* GetAbilitySystemGlobals() = 0;
+	virtual class UAbilitySystemGlobals* GetAbilitySystemGlobals() = 0;
 
 	virtual bool IsAbilitySystemGlobalsAvailable() = 0;
 };

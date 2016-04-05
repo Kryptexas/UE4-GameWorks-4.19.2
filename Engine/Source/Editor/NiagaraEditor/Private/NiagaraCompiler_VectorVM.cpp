@@ -525,7 +525,7 @@ bool FNiagaraCompiler_VectorVM::CompileScript(UNiagaraScript* InScript)
 	}
 	
 	//Should we roll our own message/error log and put it in a window somewhere?
-	MessageLog.SetSourceName(InScript->GetPathName());
+	MessageLog.SetSourcePath(InScript->GetPathName());
 
 	// Clone the source graph so we can modify it as needed; merging in the child graphs
 	SourceGraph = CastChecked<UNiagaraGraph>(FEdGraphUtilities::CloneGraph(Source->NodeGraph, NULL, &MessageLog));

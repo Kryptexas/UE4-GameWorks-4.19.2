@@ -341,6 +341,9 @@ public:
 	/** True if this was active before being unregistered or otherwise reset, if so reactivate it */
 	uint32 bWasActive:1;
 
+	/** If true, someone has requested this component reset. */
+	uint32 bResetTriggered : 1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Particles)
 	uint32 bResetOnDetach:1;
 
@@ -392,6 +395,11 @@ private:
 	void CancelAutoAttachment(bool bDetachFromParent);
 
 public:
+
+	void ResetNextTick()
+	{
+		bResetTriggered = true;
+	}
 
 	/**
 	 *	Array holding name instance parameters for this ParticleSystemComponent.
@@ -1077,19 +1085,20 @@ protected:
 	 * @param	EmitterInstance		Emitter instance this replay is playing on
 	 * @param	EmitterReplayData	Incoming replay data of any time, cannot be NULL
 	 * @param	bSelected			true if the particle system is currently selected
+	 * @param	InFeatureLevel		The relevant shader feature level
 	 *
 	 * @return	The newly created dynamic data, or NULL on failure
 	 */
-	static FDynamicEmitterDataBase* CreateDynamicDataFromReplay( FParticleEmitterInstance* EmitterInstance, const FDynamicEmitterReplayDataBase* EmitterReplayData, bool bSelected );
+	static FDynamicEmitterDataBase* CreateDynamicDataFromReplay( FParticleEmitterInstance* EmitterInstance, const FDynamicEmitterReplayDataBase* EmitterReplayData, bool bSelected, ERHIFeatureLevel::Type InFeatureLevel );
 
 	/**
 	 * Creates dynamic particle data for rendering the particle system this frame.  This function
 	 * handle creation of dynamic data for regularly simulated particles, but also handles capture
 	 * and playback of particle replay data.
-	 *
+     * @param InFeatureLevel - The relevant shader feature level.
 	 * @return	Returns the dynamic data to render this frame
 	 */
-	FParticleDynamicData* CreateDynamicData();
+	FParticleDynamicData* CreateDynamicData(ERHIFeatureLevel::Type InFeatureLevel);
 
 	/** Orients the Z axis of the ParticleSystemComponent toward the camera while preserving the X axis direction */
 	void OrientZAxisTowardCamera();

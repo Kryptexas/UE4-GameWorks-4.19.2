@@ -19,9 +19,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogStandaloneRenderer, Log, All);
 
 // Disable macro redefinition warning for compatibility with Windows SDK 8+
 #pragma warning(push)
-#if _MSC_VER >= 1700
 #pragma warning(disable : 4005)	// macro redefinition
-#endif
 
 #include <d3d11.h>
 #include <d3dx11.h>

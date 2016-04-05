@@ -33,7 +33,7 @@ void UEdGraphNode_Reference::SetupReferenceNode(const FIntPoint& NodeLoc, const 
 	else
 	{
 		NodeComment = FText::Format(LOCTEXT("ReferenceNodeMultiplePackagesTitle", "{0} nodes"), FText::AsNumber(NewPackageNames.Num())).ToString();
-		NodeTitle = FText::Format(LOCTEXT("ReferenceNodeMultiplePackagesComment", "{0} and {1} others"), FText::FromString(ShortPackageName), FText::AsNumber(NewPackageNames.Num()));
+		NodeTitle = FText::Format(LOCTEXT("ReferenceNodeMultiplePackagesComment", "{0} and {1} others"), FText::FromString(ShortPackageName), FText::AsNumber(NewPackageNames.Num() - 1));
 	}
 	
 	CacheAssetData(InAssetData);
@@ -73,6 +73,11 @@ FName UEdGraphNode_Reference::GetPackageName() const
 	}
 	
 	return NAME_None;
+}
+
+void UEdGraphNode_Reference::GetAllPackageNames(TArray<FName>& OutPackageNames) const
+{
+	OutPackageNames.Append(PackageNames);
 }
 
 UEdGraph_ReferenceViewer* UEdGraphNode_Reference::GetReferenceViewerGraph() const

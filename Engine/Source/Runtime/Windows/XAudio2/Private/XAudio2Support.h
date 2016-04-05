@@ -91,6 +91,22 @@ struct FXWMABufferInfo
 typedef FAsyncTask<class FAsyncRealtimeAudioTaskWorker<FXAudio2SoundBuffer>> FAsyncRealtimeAudioTask;
 
 /**
+* Struct to store pending task information.
+*/
+struct FPendingAsyncTaskInfo
+{
+	FAsyncRealtimeAudioTask* RealtimeAsyncTask;
+	FAsyncRealtimeAudioTask* RealtimeAsyncHeaderParseTask;
+	FSoundBuffer* Buffer;
+
+	FPendingAsyncTaskInfo()
+		: RealtimeAsyncTask(nullptr)
+		, RealtimeAsyncHeaderParseTask(nullptr)
+		, Buffer(nullptr)
+	{}
+};
+
+/**
  * XAudio2 implementation of FSoundBuffer, containing the wave data and format information.
  */
 class FXAudio2SoundBuffer : public FSoundBuffer
@@ -420,6 +436,9 @@ protected:
 	/** Decompress through XAudio2Buffer, or call USoundWave procedure to generate more PCM data. Returns true/false: did audio loop? */
 	bool ReadMorePCMData(const int32 BufferIndex, EDataReadMode DataReadMode);
 
+	/** Retrieves the realtime buffer data from the given buffer index */
+	uint8* GetRealtimeBufferData(const int32 InBufferIndex, const int32 InBufferSize);
+
 	/** Returns if the source is using the default 3d spatialization. */
 	bool IsUsingHrtfSpatializer();
 
@@ -480,8 +499,11 @@ protected:
 	/** Destination voices */
 	XAUDIO2_SEND_DESCRIPTOR Destinations[DEST_COUNT];
 
-	/** A pair of sound buffers to allow notification when a sound loops. */
+	/** Used to allow notification when a sound loops and to feed audio to realtime decoded sources. */
 	XAUDIO2_BUFFER XAudio2Buffers[3];
+
+	/** Raw real-time buffer data for use with realtime XAudio2Buffers sources */
+	TArray<uint8> RealtimeBufferData[3];
 
 	/** Additional buffer info for XWMA sounds */
 	XAUDIO2_BUFFER_WMA XAudio2BufferXWMA[1];
@@ -616,6 +638,9 @@ struct FXAudioDeviceProperties
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	static XAUDIO2_DEVICE_DETAILS		DeviceDetails;
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
+
+	/** Array of pending async tasks to clean up when they finish */
+	TArray<FPendingAsyncTaskInfo>		PendingAsyncTasksToCleanUp;
 
 	// For calculating speaker maps for 3d audio
 	FSpatializationHelper				SpatializationHelper;
@@ -860,6 +885,40 @@ struct FXAudioDeviceProperties
 #endif // XAUDIO2_SUPPORTS_VOICE_POOL
 
 		--NumActiveVoices;
+	}
+	
+	void AddPendingTaskToCleanup(FPendingAsyncTaskInfo PendingTaskInfo)
+	{
+		PendingAsyncTasksToCleanUp.Add(PendingTaskInfo);
+	}
+
+	void ProcessPendingTasksToCleanup()
+	{
+		for (int32 i = PendingAsyncTasksToCleanUp.Num() - 1; i >= 0; --i)
+		{
+			FPendingAsyncTaskInfo& TaskInfo = PendingAsyncTasksToCleanUp[i];
+
+			// Clean up the tasks if they're finished
+			if (TaskInfo.RealtimeAsyncTask && TaskInfo.RealtimeAsyncTask->IsDone())
+			{
+				delete TaskInfo.RealtimeAsyncTask;
+				TaskInfo.RealtimeAsyncTask = nullptr;
+			}
+
+			if (TaskInfo.RealtimeAsyncHeaderParseTask && TaskInfo.RealtimeAsyncHeaderParseTask->IsDone())
+			{
+				delete TaskInfo.RealtimeAsyncHeaderParseTask;
+				TaskInfo.RealtimeAsyncHeaderParseTask = nullptr;
+			}
+
+			// If both tasks are finished, clean up the buffer and remove it in the pending list
+			if (!TaskInfo.RealtimeAsyncHeaderParseTask && !TaskInfo.RealtimeAsyncTask)
+			{
+				check(TaskInfo.Buffer);
+				delete TaskInfo.Buffer;
+				PendingAsyncTasksToCleanUp.RemoveAtSwap(i, 1, false);
+			}
+		}
 	}
 };
 

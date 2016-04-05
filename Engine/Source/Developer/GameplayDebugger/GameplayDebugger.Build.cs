@@ -54,8 +54,16 @@ namespace UnrealBuildTool.Rules
 						}
 					);
 
-                PrivateDependencyModuleNames.AddRange(new string[] { "AIModule", "GameplayTasks", "GameplayAbilities" });
-                CircularlyReferencedDependentModules.AddRange(new string[] { "AIModule", "GameplayTasks", "GameplayAbilities" });
+                PrivateDependencyModuleNames.AddRange(new string[] { "AIModule", "GameplayTasks" });
+                CircularlyReferencedDependentModules.AddRange(new string[] { "AIModule", "GameplayTasks" });
+
+				DynamicallyLoadedModuleNames.AddRange(
+                new string[]
+				    {
+					    // Removed direct dependency on GameplayAbilities from GameplayDebugger to solve problems with its classes showing in blueprints editor as a result of the OS automatically loading the library
+					    "GameplayAbilities",
+					}
+				);
 			}
         }
     }

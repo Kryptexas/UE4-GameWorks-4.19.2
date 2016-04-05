@@ -201,7 +201,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				if (Obj->HasAllFlags(RF_ClassDefaultObject))
 				{
 					IsEnabledAttribute.Set(false);
-					TooltipAttribute.Set(LOCTEXT("VariableHasDisableEditOnTemplate", "Editing this value in a Class Default Object is not allowed"));
+					TooltipAttribute.Set(LOCTEXT("VariableHasDisableEditOnTemplateTooltip", "Editing this value in a Class Default Object is not allowed"));
 					break;
 				}
 
@@ -568,7 +568,7 @@ bool SPropertyEditorAsset::CanAssetBeAssigned(const FAssetData& AssetData) const
 	// Prevent Engine assets being assigned non-Engine asset properties
 	const bool bHasEngineOuterObject = HasEngineOuterObject();
 	const FString AssetPath = AssetData.ObjectPath.ToString();
-	if (bHasEngineOuterObject && !FPackageName::IsEnginePackageName(AssetPath))
+	if (bHasEngineOuterObject && !FPackageName::IsEnginePackageName(AssetPath) && PropertyEditor->GetPropertyHandle()->GetPropertyClass() != ULazyObjectProperty::StaticClass())
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
 			LOCTEXT("ObjectAssignmentToEngineFailed", "Cannot assign a Project object {0} to an Engine property."),

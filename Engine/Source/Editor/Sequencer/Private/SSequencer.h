@@ -4,6 +4,7 @@
 
 #include "UniquePtr.h"
 #include "ISequencerEditTool.h"
+#include "IMovieScenePlayer.h"
 #include "SequencerCommonHelpers.h"
 
 
@@ -18,17 +19,24 @@ class FUnloadedClassDragDropOp;
 class IDetailsView;
 class UMovieSceneSection;
 class SSequencerCurveEditor;
+class SSequencerGotoBox;
 class SSequencerLabelBrowser;
 class SSequencerTrackArea;
 class SSequencerTrackOutliner;
 class SSequencerTreeView;
+class FSequencerTimeSliderController;
+
 struct FSectionHandle;
 struct FPaintPlaybackRangeArgs;
+
 
 namespace SequencerLayoutConstants
 {
 	/** The amount to indent child nodes of the layout tree */
 	const float IndentAmount = 8.0f;
+
+	/** Height of each folder node */
+	const float FolderNodeHeight = 20.0f;
 
 	/** Height of each object node */
 	const float ObjectNodeHeight = 20.0f;
@@ -92,9 +100,24 @@ public:
 		/** The current clamp range (seconds) */
 		SLATE_ATTRIBUTE( FAnimatedRange, ClampRange )
 
+		/** The in/out selection range */
+		SLATE_ATTRIBUTE( TRange<float>, InOutRange )
+
 		/** The playback range */
 		SLATE_ATTRIBUTE( TRange<float>, PlaybackRange )
-		
+
+		/** The playback status */
+		SLATE_ATTRIBUTE( EMovieScenePlayerStatus::Type, PlaybackStatus )
+
+		/** Called when the user changes the playback range */
+		SLATE_EVENT( FOnRangeChanged, OnInOutRangeChanged )
+
+		/** Called when the user has begun dragging the selection range */
+		SLATE_EVENT( FSimpleDelegate, OnBeginInOutRangeDrag )
+
+		/** Called when the user has finished dragging the selection range */
+		SLATE_EVENT( FSimpleDelegate, OnEndInOutRangeDrag )
+
 		/** Called when the user changes the playback range */
 		SLATE_EVENT( FOnRangeChanged, OnPlaybackRangeChanged )
 
@@ -163,17 +186,6 @@ public:
 	void StepToPreviousCameraKey();
 	void StepToKey(bool bStepToNextKey, bool bCameraOnly);
 
-	/** Whether the user is selecting. Ignore selection changes from the level when the user is selecting. */
-	void SetUserIsSelecting(bool bUserIsSelectingIn)
-	{
-		bUserIsSelecting = bUserIsSelectingIn;
-	}
-
-	bool UserIsSelecting()
-	{
-		return bUserIsSelecting;
-	}
-
 	/** Called when the save button is clicked */
 	void OnSaveMovieSceneClicked();
 
@@ -194,6 +206,9 @@ public:
 
 	/** @return a numeric type interface that will parse and display numbers as frames and times correctly, including any zero padding, if necessary */
 	TSharedRef<INumericTypeInterface<float>> GetZeroPadNumericTypeInterface();
+	
+	/** Access the currently active track area edit tool */
+	const ISequencerEditTool* GetEditTool() const;
 
 public:
 
@@ -226,6 +241,9 @@ private:
 	/** Handles section selection changes. */
 	void HandleSectionSelectionChanged();
 
+	/** Handles changes to the selected outliner nodes. */
+	void HandleOutlinerNodeSelectionChanged();
+
 	/** Empty active timer to ensure Slate ticks during Sequencer playback */
 	EActiveTimerReturnType EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime);	
 
@@ -249,11 +267,11 @@ private:
 
 public:
 
-	/** Makes and configures a set of the standard UE transport controls. */
-	TSharedRef<SWidget> MakeTransportControls();
+	/** Makes a time range widget with the specified inner content */
+	TSharedRef<SWidget> MakeTimeRange(const TSharedRef<SWidget>& InnerContent, bool bShowWorkingRange, bool bShowViewRange, bool bShowPlaybackRange);
 
 private:
-	
+
 	/**
 	* @return The value of the current time snap interval.
 	*/
@@ -327,12 +345,6 @@ private:
 	 * @param	DragDropOp	Information about the actor(s) that was dropped
 	 */
 	void OnActorsDropped(FActorDragDropGraphEdOp& DragDropOp); 
-	
-	/**
-	* Delegate used when actor selection changes in the level
-	*
-	*/	
-	void OnActorSelectionChanged( UObject* obj );
 
 	/** Called when a breadcrumb is clicked on in the sequencer */
 	void OnCrumbClicked(const FSequencerBreadcrumb& Item);
@@ -378,7 +390,7 @@ public:
 private:
 
 	/** Goto box widget. */
-	TSharedPtr<SWidget> GotoBox;
+	TSharedPtr<SSequencerGotoBox> GotoBox;
 
 	/** Section area widget */
 	TSharedPtr<SSequencerTrackArea> TrackArea;
@@ -388,9 +400,6 @@ private:
 
 	/** The curve editor. */
 	TSharedPtr<SSequencerCurveEditor> CurveEditor;
-
-	/** Sequencer node tree for movie scene data */
-	TSharedPtr<FSequencerNodeTree> SequencerNodeTree;
 
 	/** The breadcrumb trail widget for this sequencer */
 	TSharedPtr<SBreadcrumbTrail<FSequencerBreadcrumb>> BreadcrumbTrail;
@@ -426,7 +435,17 @@ private:
 	TSharedPtr<INumericTypeInterface<float>> NumericTypeInterface;
 	TSharedPtr<INumericTypeInterface<float>> ZeroPadNumericTypeInterface;
 
+	/** Time slider controller for this sequencer */
+	TSharedPtr<FSequencerTimeSliderController> TimeSliderController;
+
 	FOnGetAddMenuContent OnGetAddMenuContent;
+
+	/** Called when the user has begun dragging the in/out selection range */
+	FSimpleDelegate OnBeginInOutRangeDrag;
+
+	/** Called when the user has finished dragging the in/out selection range */
+	FSimpleDelegate OnEndInOutRangeDrag;
+
 	/** Called when the user has begun dragging the playback range */
 	FSimpleDelegate OnBeginPlaybackRangeDrag;
 

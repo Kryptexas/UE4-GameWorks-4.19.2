@@ -26,6 +26,8 @@
 #include "EditorFramework/AssetImportData.h"
 #include "AI/Navigation/NavCollision.h"
 
+#include "ReleaseObjectVersion.h"
+
 DEFINE_LOG_CATEGORY(LogStaticMesh);	
 
 DECLARE_MEMORY_STAT( TEXT( "StaticMesh Total Memory" ), STAT_StaticMeshTotalMemory2, STATGROUP_MemoryStaticMesh );
@@ -870,11 +872,11 @@ void FStaticMeshLODSettings::Initialize(const FConfigFile& IniFile)
 	const FConfigSection* Section = IniFile.Find(IniSection);
 	if (Section)
 	{
-		for (TMultiMap<FName,FString>::TConstIterator It(*Section); It; ++It)
+		for (TMultiMap<FName,FConfigValue>::TConstIterator It(*Section); It; ++It)
 		{
 			FName GroupName = It.Key();
 			FStaticMeshLODGroup& Group = Groups.FindOrAdd(GroupName);
-			ReadEntry(Group, It.Value());
+			ReadEntry(Group, It.Value().GetValue());
 		};
 	}
 
@@ -1207,9 +1209,17 @@ static FString BuildStaticMeshDerivedDataKey(UStaticMesh* Mesh, const FStaticMes
 
 static FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey)
 {
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFields.MaxPerMeshResolution"));
+	const int32 PerMeshMax = CVar->GetValueOnAnyThread();
+	const FString PerMeshMaxString = PerMeshMax == 128 ? TEXT("") : FString(TEXT("_%u"), PerMeshMax);
+
+	static const auto CVarDensity = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.DistanceFields.DefaultVoxelDensity"));
+	const float VoxelDensity = CVarDensity->GetValueOnAnyThread();
+	const FString VoxelDensityString = VoxelDensity == .1f ? TEXT("") : FString(TEXT("_%.3f"), VoxelDensity);
+
 	return FDerivedDataCacheInterface::BuildCacheKey(
 		TEXT("DIST"),
-		*FString::Printf(TEXT("%s_%s"), *InMeshKey, DISTANCEFIELD_DERIVEDDATA_VER),
+		*FString::Printf(TEXT("%s_%s%s%s"), *InMeshKey, DISTANCEFIELD_DERIVEDDATA_VER, *PerMeshMaxString, *VoxelDensityString),
 		TEXT(""));
 }
 
@@ -1703,6 +1713,8 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	int32 NumVertices = 0;
 	int32 NumUVChannels = 0;
 	int32 NumLODs = 0;
+	int32 NumSectionsWithCollision = 0;
+
 	if (RenderData && RenderData->LODResources.Num() > 0)
 	{
 		const FStaticMeshLODResources& LOD = RenderData->LODResources[0];
@@ -1710,6 +1722,19 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		NumVertices = LOD.VertexBuffer.GetNumVertices();
 		NumUVChannels = LOD.VertexBuffer.GetNumTexCoords();
 		NumLODs = RenderData->LODResources.Num();
+
+#if WITH_EDITORONLY_DATA
+		// Find how many sections have collision enabled
+		const int32 UseLODIndex = FMath::Clamp(LODForCollision, 0, RenderData->LODResources.Num() - 1);
+		FStaticMeshLODResources& CollisionLOD = RenderData->LODResources[UseLODIndex];
+		for (int32 SectionIndex = 0; SectionIndex < CollisionLOD.Sections.Num(); ++SectionIndex)
+		{
+			if (SectionInfoMap.Get(UseLODIndex, SectionIndex).bEnableCollision)
+			{
+				NumSectionsWithCollision++;
+			}
+		}
+#endif
 	}
 
 	int32 NumCollisionPrims = 0;
@@ -1725,6 +1750,13 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	}
 	const FString ApproxSizeStr = FString::Printf(TEXT("%dx%dx%d"), FMath::RoundToInt(Bounds.BoxExtent.X * 2.0f), FMath::RoundToInt(Bounds.BoxExtent.Y * 2.0f), FMath::RoundToInt(Bounds.BoxExtent.Z * 2.0f));
 
+	// Get name of default collision profile
+	FName DefaultCollisionName = NAME_None;
+	if(BodySetup != nullptr)
+	{
+		DefaultCollisionName = BodySetup->DefaultInstance.GetCollisionProfileName();
+	}
+
 	OutTags.Add( FAssetRegistryTag("Triangles", FString::FromInt(NumTriangles), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("Vertices", FString::FromInt(NumVertices), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("UVChannels", FString::FromInt(NumUVChannels), FAssetRegistryTag::TT_Numerical) );
@@ -1732,6 +1764,8 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	OutTags.Add( FAssetRegistryTag("ApproxSize", ApproxSizeStr, FAssetRegistryTag::TT_Dimensional) );
 	OutTags.Add( FAssetRegistryTag("CollisionPrims", FString::FromInt(NumCollisionPrims), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add( FAssetRegistryTag("LODs", FString::FromInt(NumLODs), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add( FAssetRegistryTag("SectionsWithCollision", FString::FromInt(NumSectionsWithCollision), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add( FAssetRegistryTag("DefaultCollision", DefaultCollisionName.ToString(), FAssetRegistryTag::TT_Alphabetical));
 
 #if WITH_EDITORONLY_DATA
 	if (AssetImportData)
@@ -1963,16 +1997,20 @@ void UStaticMesh::CalculateExtendedBounds()
 		Bounds = RenderData->Bounds;
 	}
 
-	// Convert to Min and Max
-	FVector Min = Bounds.Origin - Bounds.BoxExtent;
-	FVector Max = Bounds.Origin + Bounds.BoxExtent;
-	// Apply bound extensions
-	Min -= NegativeBoundsExtension;
-	Max += PositiveBoundsExtension;
-	// Convert back to Origin, Extent and update SphereRadius
-	Bounds.Origin = (Min + Max) / 2;
-	Bounds.BoxExtent = (Max - Min) / 2;	
-	Bounds.SphereRadius = Bounds.BoxExtent.GetAbsMax();
+	// Only apply bound extension if necessary, as it will result in a larger bounding sphere radius than retrieved from the render data
+	if (!NegativeBoundsExtension.IsZero() || !PositiveBoundsExtension.IsZero())
+	{
+		// Convert to Min and Max
+		FVector Min = Bounds.Origin - Bounds.BoxExtent;
+		FVector Max = Bounds.Origin + Bounds.BoxExtent;
+		// Apply bound extensions
+		Min -= NegativeBoundsExtension;
+		Max += PositiveBoundsExtension;
+		// Convert back to Origin, Extent and update SphereRadius
+		Bounds.Origin = (Min + Max) / 2;
+		Bounds.BoxExtent = (Max - Min) / 2;
+		Bounds.SphereRadius = Bounds.BoxExtent.Size();
+	}
 
 	ExtendedBounds = Bounds;
 }
@@ -1995,6 +2033,8 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("UStaticMesh::Serialize"), STAT_StaticMesh_Serialize, STATGROUP_LoadTime );
 
 	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
 
 	FStripDataFlags StripFlags( Ar );
 
@@ -2257,6 +2297,13 @@ void UStaticMesh::PostLoad()
 	{
 		CalculateExtendedBounds();
 	}
+
+	// New fix for incorrect extended bounds
+	const int32 CustomVersion = GetLinkerCustomVersion(FReleaseObjectVersion::GUID);
+	if (CustomVersion < FReleaseObjectVersion::StaticMeshExtendedBoundsFix)
+	{
+		CalculateExtendedBounds();
+	}
 #endif // #if WITH_EDITOR
 
 	// We want to always have a BodySetup, its used for per-poly collision as well
@@ -2327,7 +2374,7 @@ bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionD
 	{
 		const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
 
-		if (bInUseAllTriData || SectionInfoMap.Get(0,SectionIndex).bEnableCollision)
+		if (bInUseAllTriData || SectionInfoMap.Get(UseLODIndex,SectionIndex).bEnableCollision)
 		{
 			const uint32 OnePastLastIndex  = Section.FirstIndex + Section.NumTriangles*3;
 
@@ -2976,14 +3023,14 @@ UStaticMeshSocket::UStaticMeshSocket(const FObjectInitializer& ObjectInitializer
 bool UStaticMeshSocket::GetSocketMatrix(FMatrix& OutMatrix, UStaticMeshComponent const* MeshComp) const
 {
 	check( MeshComp );
-	OutMatrix = FRotationTranslationMatrix( RelativeRotation, RelativeLocation ) * MeshComp->ComponentToWorld.ToMatrixWithScale();
+	OutMatrix = FScaleRotationTranslationMatrix( RelativeScale, RelativeRotation, RelativeLocation ) * MeshComp->ComponentToWorld.ToMatrixWithScale();
 	return true;
 }
 
 bool UStaticMeshSocket::GetSocketTransform(FTransform& OutTransform, class UStaticMeshComponent const* MeshComp) const
 {
 	check( MeshComp );
-	OutTransform = FTransform(RelativeRotation, RelativeLocation) * MeshComp->ComponentToWorld;
+	OutTransform = FTransform(RelativeRotation, RelativeLocation, RelativeScale) * MeshComp->ComponentToWorld;
 	return true;
 }
 
@@ -3028,3 +3075,17 @@ void UStaticMeshSocket::PostEditChangeProperty( FPropertyChangedEvent& PropertyC
 	}
 }
 #endif
+
+void UStaticMeshSocket::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if(Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::MeshSocketScaleUtilization)
+	{
+		// Set the relative scale to 1.0. As it was not used before this should allow existing data
+		// to work as expected.
+		RelativeScale = FVector(1.0f, 1.0f, 1.0f);
+	}
+}

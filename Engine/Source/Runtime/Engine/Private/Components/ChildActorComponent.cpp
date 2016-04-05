@@ -24,11 +24,16 @@ void UChildActorComponent::OnRegister()
 		else
 		{
 			ChildActorName = ChildActor->GetFName();
-			// attach new actor to this component
-			// we can't attach in CreateChildActor since it has intermediate Mobility set up
-			// causing spam with inconsistent mobility set up
-			// so moving Attach to happen in Register
-			ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTargetIncludingScale);
+			
+			USceneComponent* ChildRoot = ChildActor->GetRootComponent();
+			if (ChildRoot && ChildRoot->GetAttachParent() != this)
+			{
+				// attach new actor to this component
+				// we can't attach in CreateChildActor since it has intermediate Mobility set up
+				// causing spam with inconsistent mobility set up
+				// so moving Attach to happen in Register
+				ChildRoot->AttachTo(this, NAME_None, EAttachLocation::SnapToTarget);
+			}
 		}
 	}
 	else if (ChildActorClass)
@@ -93,14 +98,22 @@ void UChildActorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	DestroyChildActor(MyWorld && !MyWorld->IsGameWorld());
 }
 
+void UChildActorComponent::OnUnregister()
+{
+	Super::OnUnregister();
+
+	const UWorld* const MyWorld = GetWorld();
+	DestroyChildActor(MyWorld && !MyWorld->IsGameWorld());
+}
+
 FChildActorComponentInstanceData::FChildActorComponentInstanceData(const UChildActorComponent* Component)
 	: FSceneComponentInstanceData(Component)
-	, ChildActorName(Component->ChildActorName)
+	, ChildActorName(Component->GetChildActorName())
 	, ComponentInstanceData(nullptr)
 {
-	if (Component->ChildActor)
+	if (Component->GetChildActor())
 	{
-		ComponentInstanceData = new FComponentInstanceDataCache(Component->ChildActor);
+		ComponentInstanceData = new FComponentInstanceDataCache(Component->GetChildActor());
 		// If it is empty dump it
 		if (!ComponentInstanceData->HasInstanceData())
 		{
@@ -108,7 +121,7 @@ FChildActorComponentInstanceData::FChildActorComponentInstanceData(const UChildA
 			ComponentInstanceData = nullptr;
 		}
 
-		USceneComponent* ChildRootComponent = Component->ChildActor->GetRootComponent();
+		USceneComponent* ChildRootComponent = Component->GetChildActor()->GetRootComponent();
 		if (ChildRootComponent)
 		{
 			for (USceneComponent* AttachedComponent : ChildRootComponent->AttachChildren)
@@ -116,7 +129,7 @@ FChildActorComponentInstanceData::FChildActorComponentInstanceData(const UChildA
 				if (AttachedComponent)
 				{
 					AActor* AttachedActor = AttachedComponent->GetOwner();
-					if (AttachedActor != Component->ChildActor)
+					if (AttachedActor != Component->GetChildActor())
 					{
 						FAttachedActorInfo Info;
 						Info.Actor = AttachedActor;
@@ -234,6 +247,19 @@ private:
 	friend UChildActorComponent;
 };
 
+#if WITH_EDITOR
+void UChildActorComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	// For a period of time the parent component property on Actor was not a UPROPERTY so this value was not set
+	if (ChildActor)
+	{
+		FActorParentComponentSetter::Set(ChildActor, this);
+	}
+}
+#endif
+
 void UChildActorComponent::CreateChildActor()
 {
 	// Kill spawned actor if we have one
@@ -296,7 +322,7 @@ void UChildActorComponent::CreateChildActor()
 					const FComponentInstanceDataCache* ComponentInstanceData = (CachedInstanceData ? CachedInstanceData->ComponentInstanceData : nullptr);
 					ChildActor->FinishSpawning(ComponentToWorld, false, ComponentInstanceData);
 
-					ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTargetIncludingScale);
+					ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTarget);
 				}
 			}
 		}
@@ -313,10 +339,10 @@ void UChildActorComponent::CreateChildActor()
 void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
 {
 	// If we own an Actor, kill it now
-	if(ChildActor != nullptr && !GExitPurge)
+	if (ChildActor != nullptr && !GExitPurge)
 	{
 		// if still alive, destroy, otherwise just clear the pointer
-		if(!ChildActor->IsPendingKill())
+		if (!ChildActor->IsPendingKill())
 		{
 #if WITH_EDITOR
 			if (CachedInstanceData)
@@ -330,7 +356,7 @@ void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
 
 			UWorld* World = ChildActor->GetWorld();
 			// World may be nullptr during shutdown
-			if(World != nullptr)
+			if (World != nullptr)
 			{
 				UClass* ChildClass = ChildActor->GetClass();
 
@@ -348,7 +374,7 @@ void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
 				World->DestroyActor(ChildActor);
 			}
 		}
-
-		ChildActor = nullptr;
 	}
+
+	ChildActor = nullptr;
 }

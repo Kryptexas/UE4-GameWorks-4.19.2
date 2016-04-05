@@ -9,6 +9,7 @@
 #include "IConsoleManager.h"
 #include "LinkerPlaceholderClass.h"
 #include "UObject/GCScopeLock.h"
+#include "HAL/ExceptionHandling.h"
 
 /*-----------------------------------------------------------------------------
    Garbage collection.
@@ -349,12 +350,13 @@ public:
 			{
 				if (ReferencedMutableObjectItem->IsUnreachable() && ReferencedMutableObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
 				{
+					ReferencedMutableObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
 					ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
 				}
 			}
 			else if (ReferencedMutableObjectItem->IsUnreachable())
 			{
-				ReferencedMutableObjectItem->ClearUnreachable();
+				ReferencedMutableObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
 				ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
 			}
 		}
@@ -373,11 +375,11 @@ public:
 			// This condition should get collapsed by the compiler based on the template argument
 			if (bParallel)
 			{
-				ReferencedClusterRootObjectItem->ThisThreadAtomicallyClearedRFUnreachable();
+				ReferencedClusterRootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
 			}
 			else
 			{
-				ReferencedClusterRootObjectItem->ClearUnreachable();
+				ReferencedClusterRootObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
 			}
 			FUObjectCluster* ReferencedCluster = GUObjectClusters.FindChecked(ReferncedClusterIndex);
 			MarkClusterMutableObjectsAsReachable<bParallel>(ReferencedCluster, ObjectsToSerialize);
@@ -482,13 +484,14 @@ public:
 			{
 				if (RootObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
 				{
+					RootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
 					// Make sure all referenced clusters are marked as reachable too
 					MarkReferencedClustersAsReachable<true>(OwnerIndex, ObjectsToSerialize);
 				}
 			}
 			else if (RootObjectItem->IsUnreachable())
 			{
-				RootObjectItem->ClearUnreachable();
+				RootObjectItem->ClearFlags(EInternalObjectFlags::Unreachable | EInternalObjectFlags::NoStrongReference);
 				// Make sure all referenced clusters are marked as reachable too
 				MarkReferencedClustersAsReachable<false>(OwnerIndex, ObjectsToSerialize);
 			}
@@ -1132,6 +1135,8 @@ bool VerifyClusterAssumptions(UObject* ClusterRootObject);
  */
 void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 {
+	CheckImageIntegrityAtRuntime();
+
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "CollectGarbageInternal" ), STAT_CollectGarbageInternal, STATGROUP_GC );
 	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, TEXT( "GarbageCollection - Begin" ) );
 
@@ -1162,6 +1167,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	if( GObjIncrementalPurgeIsInProgress || GObjPurgeIsRequired )
 	{
 		IncrementalPurgeGarbage( false );
+		FMemory::Trim();
 	}
 	check( !GObjIncrementalPurgeIsInProgress );
 	check( !GObjPurgeIsRequired );
@@ -1312,6 +1318,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	{
 		IncrementalPurgeGarbage( false );	
 	}
+	FMemory::Trim();
 
 	// Destroy all pending delete linkers
 	DeleteLoaders();

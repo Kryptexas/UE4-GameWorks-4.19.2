@@ -255,7 +255,7 @@ namespace UnrealGameSync
 			// If there's something to check for, find all the content changes after this changelist
 			if(bRequiresUpdate)
 			{
-				string[] CodeExtensions = { ".cs", ".h", ".cpp" };
+				string[] CodeExtensions = { ".cs", ".h", ".cpp", ".usf" };
 
 				// Find all the content changes in this range. Include a few extra changes in case there have been more changes submitted since the last query (it seems -m is much faster than specifying a changelist range)
 				List<PerforceChangeSummary> CodeChanges;

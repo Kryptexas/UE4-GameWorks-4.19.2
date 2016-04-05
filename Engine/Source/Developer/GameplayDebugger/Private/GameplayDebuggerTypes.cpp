@@ -580,9 +580,9 @@ bool FGameplayDebuggerDataPack::CheckDirtyAndUpdate()
 	return true;
 }
 
-bool FGameplayDebuggerDataPack::RequestReplication()
+bool FGameplayDebuggerDataPack::RequestReplication(int16 SyncCounter)
 {
-	if (bNeedsReceiveConfirmation)
+	if (bNeedsConfirmation && !bReceived)
 	{
 		return false;
 	}
@@ -624,10 +624,14 @@ bool FGameplayDebuggerDataPack::RequestReplication()
 		Data = UncompressedBuffer;
 	}
 
-	bNeedsReceiveConfirmation = Data.Num() > PacketSize;
+	bNeedsConfirmation = IsMultiPacket(Data.Num());
+	bReceived = false;
+	bIsDirty = false;
+
 	DataCRC = NewDataCRC;
 	Header.DataOffset = 0;
 	Header.DataSize = Data.Num();
+	Header.SyncCounter = SyncCounter;
 	Header.DataVersion++;
 	return true;
 }
@@ -669,13 +673,23 @@ void FGameplayDebuggerDataPack::OnReplicated()
 	Header.DataOffset = Header.DataSize;
 }
 
-void FGameplayDebuggerDataPack::OnPacketRequest(int32 DataVersion, int32 DataOffset)
+void FGameplayDebuggerDataPack::OnPacketRequest(int16 DataVersion, int32 DataOffset)
 {
-	Header.UpdateOffset(DataVersion, DataOffset);
-	
-	if (bNeedsReceiveConfirmation && (Header.DataOffset == Header.DataSize))
+	// client should confirm with the same version and offset that server currently replicates
+	if (DataVersion == Header.DataVersion && DataOffset == Header.DataOffset)
 	{
-		bNeedsReceiveConfirmation = false;
+		Header.DataOffset = FMath::Min(DataOffset + FGameplayDebuggerDataPack::PacketSize, Header.DataSize);
+		bReceived = (Header.DataOffset == Header.DataSize);
+	}
+	// if for some reason it requests previous data version, rollback to first packet
+	else if (DataVersion < Header.DataVersion)
+	{
+		Header.DataOffset = 0;
+	}
+	// it may also request a previous packet from the same version, rollback and send next one
+	else if (DataVersion == Header.DataVersion && DataOffset < Header.DataOffset)
+	{
+		Header.DataOffset = FMath::Max(0, DataOffset + FGameplayDebuggerDataPack::PacketSize);
 	}
 }
 

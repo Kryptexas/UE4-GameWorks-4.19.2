@@ -416,6 +416,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Separate Translucency"), AdvancedDisplay)
 	uint32 bEnableSeparateTranslucency:1;
 
+	/** Indicates that the translucent material should not be affected by bloom or DOF. (Note: Depth testing is not available) */
+	UPROPERTY(EditAnywhere, Category = Translucency, meta = (DisplayName = "Mobile Separate Translucency"), AdvancedDisplay)
+	uint32 bEnableMobileSeparateTranslucency : 1;
+
 	/**
 	 * Indicates that the material should be rendered using responsive anti-aliasing. Improves sharpness of small moving particles such as sparks.
 	 * Only use for small moving features because it will cause aliasing of the background.
@@ -808,6 +812,7 @@ public:
 	ENGINE_API virtual FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered=false) const override;
 	ENGINE_API virtual UPhysicalMaterial* GetPhysicalMaterial() const override;
 	ENGINE_API virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const override;
+	ENGINE_API virtual void GetUsedTexturesAndIndices(TArray<UTexture*>& OutTextures, TArray< TArray<int32> >& OutIndices, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) const override;
 	ENGINE_API virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel ) override;
 	ENGINE_API virtual void OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
 	ENGINE_API virtual void OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
@@ -826,12 +831,12 @@ public:
 #endif
 	ENGINE_API virtual void RecacheUniformExpressions() const override;
 
-	ENGINE_API virtual float GetOpacityMaskClipValue(bool bIsGameThread = IsInGameThread()) const override;
-	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const override;
-	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const override;
-	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const override;
-	ENGINE_API virtual bool IsDitheredLODTransition(bool bIsGameThread = IsInGameThread()) const override;
-	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual float GetOpacityMaskClipValue() const override;
+	ENGINE_API virtual EBlendMode GetBlendMode() const override;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel() const override;
+	ENGINE_API virtual bool IsTwoSided() const override;
+	ENGINE_API virtual bool IsDitheredLODTransition() const override;
+	ENGINE_API virtual bool IsMasked() const override;
 	ENGINE_API virtual bool IsUIMaterial() const { return MaterialDomain == MD_UI; }
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;
 
@@ -900,6 +905,15 @@ public:
 	
 	/** Useful to customize rendering if that case (e.g. hide the object) */
 	ENGINE_API bool IsCompilingOrHadCompileError(ERHIFeatureLevel::Type InFeatureLevel);
+
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/**
+	 * Output to the log which materials and textures are used by this material.
+	 * @param Indent	Number of tabs to put before the log.
+	 */
+	ENGINE_API virtual void LogMaterialsAndTextures(FOutputDevice& Ar, int32 Indent) const override;
+#endif
 
 private:
 	void BackwardsCompatibilityInputConversion();
@@ -1068,6 +1082,44 @@ public:
 				}
 			}
 		}
+	}
+
+	/** Checks if the material contains an expression of the requested type, recursing through any function expressions in the material */
+	template<typename ExpressionType>
+	bool HasAnyExpressionsInMaterialAndFunctionsOfType() const
+	{
+		for (UMaterialExpression* Expression : Expressions)
+		{
+			ExpressionType* ExpressionOfType = Cast<ExpressionType>(Expression);
+			if (ExpressionOfType)
+			{
+				return true;
+			}
+
+			UMaterialExpressionMaterialFunctionCall* ExpressionFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression);
+			if (ExpressionFunctionCall && ExpressionFunctionCall->MaterialFunction)
+			{
+				TArray<UMaterialFunction*> Functions;
+				Functions.Add(ExpressionFunctionCall->MaterialFunction);
+
+				ExpressionFunctionCall->MaterialFunction->GetDependentFunctions(Functions);
+
+				// Handle nested functions
+				for (UMaterialFunction* Function : Functions)
+				{
+					for (UMaterialExpression* FunctionExpression : Function->FunctionExpressions)
+					{
+						ExpressionType* FunctionExpressionOfType = Cast<ExpressionType>(FunctionExpression);
+						if (FunctionExpressionOfType)
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/** Determines whether each quality level has different nodes by inspecting the material's expressions. 

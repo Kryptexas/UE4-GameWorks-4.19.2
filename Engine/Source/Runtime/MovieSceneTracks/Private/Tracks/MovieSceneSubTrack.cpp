@@ -17,7 +17,7 @@ UMovieSceneSubTrack::UMovieSceneSubTrack( const FObjectInitializer& ObjectInitia
 	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	TrackTint = FColor(255, 0, 0);
+	TrackTint = FColor(255, 0, 0, 65);
 #endif
 }
 
@@ -99,6 +99,29 @@ UMovieSceneSubSection* UMovieSceneSubTrack::AddSequence(UMovieSceneSequence* Seq
 	return NewSection;
 }
 
+UMovieSceneSubSection* UMovieSceneSubTrack::AddSequenceToRecord()
+{
+	UMovieScene* MovieScene = CastChecked<UMovieScene>(GetOuter());
+	TRange<float> PlaybackRange = MovieScene->GetPlaybackRange();
+
+	int32 MaxRowIndex = 0;
+	for (auto Section : Sections)
+	{
+		MaxRowIndex = FMath::Max(Section->GetRowIndex(), MaxRowIndex);
+	}
+
+	UMovieSceneSubSection* NewSection = CastChecked<UMovieSceneSubSection>(CreateNewSection());
+	{
+		NewSection->SetRowIndex(MaxRowIndex + 1);
+		NewSection->SetAsRecording(true);
+		NewSection->SetStartTime(PlaybackRange.GetLowerBoundValue());
+		NewSection->SetEndTime(PlaybackRange.GetUpperBoundValue());
+	}
+
+	Sections.Add(NewSection);
+
+	return NewSection;
+}
 
 bool UMovieSceneSubTrack::ContainsSequence(const UMovieSceneSequence& Sequence, bool Recursively) const
 {

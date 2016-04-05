@@ -148,10 +148,6 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 		return RequestMove(InPath, UnboundRequestDelegate, InDestinationActor, InAcceptanceRadius, InStopOnOverlap, InGameData);
 	}
 
-	/** update path for specified request
-	 *  @param RequestID - request to update */
-	virtual bool UpdateMove(FNavPathSharedPtr Path, FAIRequestID RequestID = FAIRequestID::CurrentRequest);
-
 	/** aborts following path
 	 *  @param RequestID - request to abort, 0 = current
 	 *  @param bResetVelocity - try to stop movement component
@@ -172,7 +168,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** notify about finishing move along current path segment */
 	virtual void OnSegmentFinished();
 
-	/** notify about changing current path */
+	/** notify about changing current path: new pointer or update from path event */
 	virtual void OnPathUpdated();
 
 	/** set associated movement component */
@@ -297,11 +293,14 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	virtual bool IsResourceLocked() const override;
 	// IAIResourceInterface end
 
-	void OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event);
+	void OnPathEvent(FNavigationPath* InPath, ENavPathEvent::Type Event);
 
 	/** helper function for sending a path for visual log */
 	static void LogPathHelper(const AActor* LogOwner, FNavPathSharedPtr InLogPath, const AActor* LogGoalActor);
 	static void LogPathHelper(const AActor* LogOwner, FNavigationPath* InLogPath, const AActor* LogGoalActor);
+
+	DEPRECATED_FORGAME(4.12, "This function is now deprecated and replaced with HandlePathUpdateEvent. Receiving new path pointer for the same move request is no longer supported, please either update data within current path and call FNavigationPath::DoneUpdating or start new move request.")
+	virtual bool UpdateMove(FNavPathSharedPtr Path, FAIRequestID RequestID = FAIRequestID::CurrentRequest);
 
 protected:
 
@@ -489,6 +488,10 @@ protected:
 	/** check if movement component is valid or tries to grab one from owner 
 	 *	@param bForce results in looking for owner's movement component even if pointer to one is already cached */
 	virtual bool UpdateMovementComponent(bool bForce = false);
+
+	/** called after receiving update event from current path
+	 *  @return false if path was not accepted and move request needs to be aborted */
+	virtual bool HandlePathUpdateEvent();
 
 	/** called from timer if component spends too much time in Waiting state */
 	virtual void OnWaitingPathTimeout();

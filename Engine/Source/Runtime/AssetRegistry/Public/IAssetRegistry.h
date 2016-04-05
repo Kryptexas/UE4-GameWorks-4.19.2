@@ -161,8 +161,11 @@ public:
 	/** Attempts to remove the specified path to the set of cached paths. This will only succeed if there are no assets left in the specified path. */
 	virtual bool RemovePath(const FString& PathToRemove) = 0;
 
-	/** Scan the supplied paths right now and populate the asset registry. If bForceRescan is true, the paths will be scanned again, even if they were previously scanned */
+	/** Scan the supplied paths recursively right now and populate the asset registry. If bForceRescan is true, the paths will be scanned again, even if they were previously scanned */
 	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan = false) = 0;
+
+	/** Scan the specified individual files right now and populate the asset registry. If bForceRescan is true, the paths will be scanned again, even if they were previously scanned */
+	virtual void ScanFilesSynchronous(const TArray<FString>& InFilePaths, bool bForceRescan = false) = 0;
 
 	/** Look for all assets on disk (can be async or synchronous) */
 	virtual void SearchAllAssets(bool bSynchronousSearch) = 0;

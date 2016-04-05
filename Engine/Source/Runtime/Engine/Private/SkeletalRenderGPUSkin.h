@@ -27,8 +27,6 @@ class FDynamicSkelMeshObjectDataGPUSkin
 
 	virtual ~FDynamicSkelMeshObjectDataGPUSkin()
 	{
-		// we leak these
-		check(0);
 	}
 
 	void Clear();
@@ -173,10 +171,22 @@ public:
 	/** Has been updated or not by UpdateMorphVertexBuffer**/
 	bool bHasBeenUpdated;
 
+	// @param guaranteed only to be valid if the vertex buffer is valid
+	FShaderResourceViewRHIParamRef GetSRV() const
+	{
+		return SRVValue;
+	}
+
+	FStaticLODModel* GetStaticLODModel() const { return &SkelMeshResource->LODModels[LODIdx]; }
+
+protected:
+	// guaranteed only to be valid if the vertex buffer is valid
+	FShaderResourceViewRHIRef SRVValue;
+
 private:
 	/** index to the SkelMeshResource.LODModels */
 	int32	LODIdx;
-	/** parent mesh containing the source data */
+	// parent mesh containing the source data, never 0
 	FSkeletalMeshResource* SkelMeshResource;
 };
 
@@ -194,9 +204,10 @@ public:
 	virtual void InitResources() override;
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims) override;
-	void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, uint32 FrameNumber);
+	void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataGPUSkin* InDynamicData, uint32 FrameNumberToPrepare);
+	virtual void UpdateRecomputeTangent(int32 MaterialIndex, bool bRecomputeTangent) override;
 	virtual void PreGDMECallback(uint32 FrameNumber) override;
-	virtual const FVertexFactory* GetVertexFactory(int32 LODIndex,int32 ChunkIdx) const override;
+	virtual const FVertexFactory* GetSkinVertexFactory(const FSceneView* View, int32 LODIndex,int32 ChunkIdx) const override;
 	virtual void CacheVertices(int32 LODIndex, bool bForce) const override {}
 	virtual bool IsCPUSkinned() const override { return false; }
 	virtual TArray<FTransform>* GetSpaceBases() const override;
@@ -393,6 +404,7 @@ private:
 		}
 
 		FSkeletalMeshResource* SkelMeshResource;
+		// index into FSkeletalMeshResource::LODModels[]
 		int32 LODIndex;
 
 		/** Vertex buffer that stores the morph target vertex deltas. Updated on the CPU */
@@ -406,7 +418,7 @@ private:
 		 * delta positions and delta normals from the set of active vertex anims
 		 * @param ActiveVertexAnims - vertex anims to accumulate. assumed to be weighted and have valid targets
 		 */
-		void UpdateMorphVertexBuffer( const TArray<FActiveVertexAnim>& ActiveVertexAnims );
+		void UpdateMorphVertexBuffer(FRHICommandListImmediate& RHICmdList, const TArray<FActiveVertexAnim>& ActiveVertexAnims);
 
 		/**
 		 * Determine the current vertex buffers valid for this LOD
@@ -430,8 +442,7 @@ private:
 	*/
 	void ReleaseMorphResources();
 
-	// @param FrameNumber from GFrameNumber
-	void ProcessUpdatedDynamicData(FRHICommandListImmediate& RHICmdList, uint32 FrameNumber, bool bMorphNeedsUpdate);
+	void ProcessUpdatedDynamicData(FRHICommandListImmediate& RHICmdList, uint32 FrameNumberToPrepare, bool bMorphNeedsUpdate);
 
 	void WaitForRHIThreadFenceForDynamicData();
 

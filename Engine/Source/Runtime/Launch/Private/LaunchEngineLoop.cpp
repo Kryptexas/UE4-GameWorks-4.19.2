@@ -17,6 +17,11 @@
 #include "../Resources/Version.h"
 #include "VersionManifest.h"
 #include "UObject/DevObjectVersion.h"
+#include "HAL/ThreadHeartBeat.h"
+
+#if WITH_COREUOBJECT
+	#include "Internationalization/PackageLocalizationManager.h"
+#endif
 
 #if WITH_EDITOR
 	#include "EditorStyle.h"
@@ -52,6 +57,7 @@
 	#include "ISessionService.h"
 	#include "ISessionServicesModule.h"
 	#include "Engine/GameInstance.h"
+	#include "Internationalization/EnginePackageLocalizationCache.h"
 
 #if !UE_SERVER
 	#include "HeadMountedDisplay.h"
@@ -91,9 +97,20 @@
 #endif
 
 #if ENABLE_VISUAL_LOG
-#	include "VisualLogger/VisualLogger.h"
+	#include "VisualLogger/VisualLogger.h"
 #endif
 
+#if WITH_LAUNCHERCHECK
+	#include "LauncherCheck.h"
+#endif
+
+#if WITH_COREUOBJECT
+	#ifndef USE_LOCALIZED_PACKAGE_CACHE
+		#define USE_LOCALIZED_PACKAGE_CACHE 1
+	#endif
+#else
+	#define USE_LOCALIZED_PACKAGE_CACHE 0
+#endif
 
 // Pipe output to std output
 // This enables UBT to collect the output for it's own use
@@ -631,6 +648,8 @@ FEngineLoop::FEngineLoop()
 
 int32 FEngineLoop::PreInit(int32 ArgC, TCHAR* ArgV[], const TCHAR* AdditionalCommandline)
 {
+	FMemory::SetupTLSCachesOnCurrentThread();
+
 	FString CmdLine;
 
 	// loop over the parameters, skipping the first one (which is the executable name)
@@ -729,10 +748,25 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return -1;
 	}
 
+#if WITH_LAUNCHERCHECK
+	if (ILauncherCheckModule::Get().WasRanFromLauncher() == false)
+	{
+		// Tell Launcher to run us instead
+		ILauncherCheckModule::Get().RunLauncher();
+		// We wish to exit
+		GIsRequestingExit = true;
+		return 0;
+	}
+#endif
+
 #if	STATS
 	// Create the stats malloc profiler proxy.
 	if( FStatsMallocProfilerProxy::HasMemoryProfilerToken() )
 	{
+		if (PLATFORM_USES_FIXED_GMalloc_CLASS)
+		{
+			UE_LOG(LogMemory, Fatal, TEXT("Cannot do malloc profiling with PLATFORM_USES_FIXED_GMalloc_CLASS."));
+		}
 		// Assumes no concurrency here.
 		GMalloc = FStatsMallocProfilerProxy::Get();
 	}
@@ -1402,6 +1436,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	SlowTask.EnterProgressFrame(10);
 
+#if USE_LOCALIZED_PACKAGE_CACHE
+	// this loads a UObject, so we do this now after objects are brought up (otherwise, it can't load properties from config)
+	FPackageLocalizationManager::Get().InitializeFromDefaultCache();
+#endif	// USE_LOCALIZED_PACKAGE_CACHE
+
 	// Initialize the RHI.
 	RHIInit(bHasEditorToken);
 
@@ -1426,7 +1465,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// if (!IsRunningCommandlet()) 
 		// hack: don't load global shaders if we are cooking we will load the shaders for the correct platform later
 		FString Commandline = FCommandLine::Get();
-		if (Commandline.Contains(TEXT("cookcommandlet")) == false &&
+		if (!IsRunningDedicatedServer() &&
+			Commandline.Contains(TEXT("cookcommandlet")) == false &&
 			Commandline.Contains(TEXT("run=cook")) == false )
 		// if (FParse::Param(FCommandLine::Get(), TEXT("Multiprocess")) == false)
 		{
@@ -1456,7 +1496,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		UMaterialInterface::AssertDefaultMaterialsExist();
 		UMaterialInterface::AssertDefaultMaterialsPostLoaded();
 	}
-
+	
 	// Initialize the texture streaming system (needs to happen after RHIInit and ProcessNewlyLoadedUObjects).
 	IStreamingManager::Get();
 
@@ -1566,7 +1606,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return 1;
 	}
 
-	GUObjectArray.CloseDisregardForGC();
+	if (GUObjectArray.IsOpenForDisregardForGC())
+	{
+		GUObjectArray.CloseDisregardForGC();
+	}
 
 	if (IOnlineSubsystem::IsLoaded())
 	{
@@ -1877,6 +1920,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 #else // WITH_ENGINE
 	EndInitTextLocalization();
+#if USE_LOCALIZED_PACKAGE_CACHE
+	FPackageLocalizationManager::Get().InitializeFromDefaultCache();
+#endif	// USE_LOCALIZED_PACKAGE_CACHE
 	FPlatformMisc::PlatformPostInit();
 #endif // WITH_ENGINE
 
@@ -2149,6 +2195,8 @@ void GameLoopIsStarved()
 
 int32 FEngineLoop::Init()
 {
+	CheckImageIntegrity();
+
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FEngineLoop::Init" ), STAT_FEngineLoop_Init, STATGROUP_LoadTime );
 
 	FScopedSlowTask SlowTask(100);
@@ -2224,6 +2272,8 @@ int32 FEngineLoop::Init()
 	{
 		FModuleManager::Get().LoadModule(TEXT("ProfilerClient"));
 	}
+
+	FModuleManager::Get().LoadModule(TEXT("SequenceRecorder"));
 #endif
 
 	GIsRunning = true;
@@ -2235,9 +2285,12 @@ int32 FEngineLoop::Init()
 	}
 
 	// Begin the async platform hardware survey
-	GEngine->InitHardwareSurvey();
+	GEngine->StartHardwareSurvey();
 
 	FCoreDelegates::StarvedGameLoop.BindStatic(&GameLoopIsStarved);
+
+	// Ready to measure thread heartbeat
+	FThreadHeartBeat::Get().Start();
 
 	return 0;
 }
@@ -2542,6 +2595,10 @@ void FEngineLoop::Tick()
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	FScopedSampleMallocChurn ChurnTracker;
 #endif
+
+	// Send a heartbeat for the diagnostics thread
+	FThreadHeartBeat::Get().HeartBeat();
+
 	// Ensure we aren't starting a frame while loading or playing a loading movie
 	ensure(GetMoviePlayer()->IsLoadingFinished() && !GetMoviePlayer()->IsMovieCurrentlyPlaying());
 
@@ -2770,7 +2827,7 @@ void FEngineLoop::Tick()
 
 			FTicker::GetCoreTicker().Tick(FApp::GetDeltaTime());
 
-			FSingleThreadManager::Get().Tick();
+			FThreadManager::Get().Tick();
 
 			GEngine->TickDeferredCommands();		
 		}
@@ -2782,9 +2839,6 @@ void FEngineLoop::Tick()
 			RHICmdList.PopEvent();
 		});
 
-		// Check for async platform hardware survey results
-		GEngine->TickHardwareSurvey();
-
 		// Set CPU utilization stats.
 		const FCPUTime CPUTime = FPlatformTime::GetCPUTime();
 		SET_FLOAT_STAT( STAT_CPUTimePct, CPUTime.CPUTimePct );
@@ -2794,7 +2848,7 @@ void FEngineLoop::Tick()
 #if UE_GC_TRACK_OBJ_AVAILABLE
 		SET_DWORD_STAT(STAT_Hash_NumObjects, GUObjectArray.GetObjectArrayNumMinusAvailable());
 #endif
-	}
+	}	
 }
 
 
@@ -3109,6 +3163,7 @@ bool FEngineLoop::AppInit( )
 	//// Command line.
 	UE_LOG(LogInit, Log, TEXT("Version: %s"), *FEngineVersion::Current().ToString());
 	UE_LOG(LogInit, Log, TEXT("API Version: %u"), FEngineVersion::CompatibleWith().GetChangelist());
+	UE_LOG(LogInit, Log, TEXT("Net Version: %u"), GEngineNetVersion);
 	FDevVersionRegistration::DumpVersionsToLog();
 
 #if PLATFORM_64BITS
@@ -3145,7 +3200,7 @@ bool FEngineLoop::AppInit( )
 	UE_LOG(LogInit, Log, TEXT("Installed Engine Build: %d"), FApp::IsEngineInstalled() ? 1 : 0);
 
 	// if a logging build, clear out old log files
-#if !NO_LOGGING && !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !NO_LOGGING
 	FMaintenance::DeleteOldLogs();
 #endif
 

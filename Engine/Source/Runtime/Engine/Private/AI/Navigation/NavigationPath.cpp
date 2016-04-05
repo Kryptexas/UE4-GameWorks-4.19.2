@@ -22,6 +22,8 @@ const FNavPathType FNavigationPath::Type;
 
 FNavigationPath::FNavigationPath()
 	: PathType(FNavigationPath::Type)
+	, bUpdateStartPointOnRepath(true)
+	, bUpdateEndPointOnRepath(true)
 	, LastUpdateTimeStamp(-1.f)	// indicates that it has not been set
 	, GoalActorLocationTetherDistanceSq(-1.f)
 {
@@ -30,6 +32,8 @@ FNavigationPath::FNavigationPath()
 
 FNavigationPath::FNavigationPath(const TArray<FVector>& Points, AActor* InBase)
 	: PathType(FNavigationPath::Type)
+	, bUpdateStartPointOnRepath(true)
+	, bUpdateEndPointOnRepath(true)
 	, LastUpdateTimeStamp(-1.f)	// indicates that it has not been set
 	, GoalActorLocationTetherDistanceSq(-1.f)
 {
@@ -67,6 +71,8 @@ void FNavigationPath::InternalResetNavigationPath()
 	// - PathType
 	// - ObserverDelegate
 	// - bDoAutoUpdateOnInvalidation
+	// - bUpdateStartPointOnRepath
+	// - bUpdateEndPointOnRepath
 	// - bWaitingForRepath
 	// - NavigationDataUsed
 	// - LastUpdateTimeStamp
@@ -91,11 +97,6 @@ void FNavigationPath::SetGoalActorObservation(const AActor& ActorToObserve, floa
 		// this mechanism is available only for navigation-generated paths
 		UE_LOG(LogNavigation, Warning, TEXT("Updating navigation path on goal actor's location change is available only for navigation-generated paths. Called for %s")
 			, *GetNameSafe(&ActorToObserve));
-		return;
-	}
-	else if (IsValid() == false)
-	{
-		UE_LOG(LogNavigation, Log, TEXT("FNavigationPath::SetGoalActorObservation called for an invalid path. Skipping."));
 		return;
 	}
 
@@ -368,6 +369,11 @@ FBasedPosition FNavigationPath::GetPathPointLocation(uint32 Index) const
 
 void FNavigationPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const 
 {
+	if (Snapshot == nullptr)
+	{
+		return;
+	}
+
 	const int32 NumPathVerts = PathPoints.Num();
 	FVisualLogShapeElement Element(EVisualLoggerShapeElement::Path);
 	Element.Category = LogNavigation.GetCategoryName();
@@ -1139,6 +1145,11 @@ FVector FNavMeshPath::GetSegmentDirection(uint32 SegmentEndIndex) const
 
 void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
+	if (Snapshot == nullptr)
+	{
+		return;
+	}
+
 	if (IsStringPulled())
 	{
 		// draw path points only for string pulled paths

@@ -60,6 +60,8 @@ static void BuildMetalShaderOutput(
 	}
 	
 	FMetalCodeHeader Header = {0};
+	Header.bFastMath = !ShaderInput.Environment.CompilerFlags.Contains(CFLAG_NoFastMath);
+	
 	FShaderParameterMap& ParameterMap = ShaderOutput.ParameterMap;
 	EShaderFrequency Frequency = (EShaderFrequency)ShaderOutput.Target.Frequency;
 
@@ -344,6 +346,7 @@ static void BuildMetalShaderOutput(
 		bool bSucceeded = false;
 
 #if METAL_OFFLINE_COMPILE
+	#if PLATFORM_MAC
 		const bool bIsMobile = (ShaderInput.Target.Platform == SP_METAL || ShaderInput.Target.Platform == SP_METAL_MRT);
 		FString XcodePath = FPlatformMisc::GetXcodePath();
 		if (XcodePath.Len() > 0 && (bIsMobile || FPlatformMisc::MacOSXVersionCompare(10, 11, 0) >= 0))
@@ -364,7 +367,8 @@ static void BuildMetalShaderOutput(
 			}
 
 			// metal commandlines
-			FString Params = FString::Printf(TEXT("%s -Wno-null-character -ffmast-math %s -o %s"), Standard, *InputFilename, *ObjFilename);
+			FString MathMode = Header.bFastMath ? TEXT("-ffast-math") : TEXT("-fno-fast-math");
+			FString Params = FString::Printf(TEXT("%s -Wno-null-character %s %s -o %s"), *MathMode, Standard, *InputFilename, *ObjFilename);
 			FPlatformProcess::ExecProcess( *MetalPath, *Params, &ReturnCode, &Results, &Errors );
 
 			// handle compile error
@@ -434,6 +438,11 @@ static void BuildMetalShaderOutput(
 				}
 			}
 		}
+	#else
+		// do not compile on non-Windows
+		UE_LOG(LogMetalShaderCompiler, Fatal, TEXT("Metal shader compilation is not supported on this platform"));
+		bSucceeded = false;
+	#endif // PLATFORM_MAC
 #else
 		// Assume success for non-Mac
 		bSucceeded = true;
@@ -536,6 +545,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	else if (Input.ShaderFormat == NAME_SF_METAL_MACES3_1)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
+		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
 		Standard = TEXT("-std=osx-metal1.1");
 		MetalCompilerTarget = HCT_FeatureLevelES3_1;
 	}
