@@ -257,7 +257,7 @@ bool					GIsAutomationTesting					= false;
 bool					GPumpingMessagesOutsideOfMainLoop = false;
 
 /** Enables various editor and HMD hacks that allow the experimental VR editor feature to work, perhaps at the expense of other systems */
-bool					GEnableVREditorHacks = true;
+bool					GEnableVREditorHacks = false;
 
 /** Total blueprint compile time.																			*/
 double GBlueprintCompileTime = 0.0;

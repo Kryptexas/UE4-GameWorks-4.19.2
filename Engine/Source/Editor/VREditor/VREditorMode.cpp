@@ -141,6 +141,9 @@ void FVREditorMode::Enter()
 	InputProcessor = MakeShareable(new FVREditorInputProcessor(this));
 	FSlateApplication::Get().SetInputPreProcessor(true, InputProcessor);
 
+	// @todo vreditor urgent: Turn on global editor hacks for VR Editor mode
+	GEnableVREditorHacks = true;
+
 	bIsFullyInitialized = false;
 	bWantsToExitMode = false;
 
@@ -571,6 +574,9 @@ void FVREditorMode::Exit()
 
 	// Call parent implementation
 	FEdMode::Exit();
+
+	// @todo vreditor urgent: Disable global editor hacks for VR Editor mode
+	GEnableVREditorHacks = false;
 }
 
 

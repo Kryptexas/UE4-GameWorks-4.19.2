@@ -5676,7 +5676,7 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 
 		// @todo vreditor urgent: Increase the size of Content Browser fonts while in VR
 		const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed
-		if( GEnableVREditorHacks && bIsVREditorDemo )
+		if( bIsVREditorDemo )
 		{
 			Set( "ContentBrowser.SourceListItemFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 20 ) );
 			Set( "ContentBrowser.SourceTreeItemFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 20 ) );
