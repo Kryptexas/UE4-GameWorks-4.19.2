@@ -87,7 +87,7 @@ bool FVREditorModule::IsVREditorEnabled() const
 
 
 bool FVREditorModule::IsVREditorAvailable() const
-{	// @todo vreditor: For some reason, check state and disabled state is not reflected on the level editor toolbar!
+{
 	const bool bHasHMDDevice = GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled();
 	return bHasHMDDevice;
 }

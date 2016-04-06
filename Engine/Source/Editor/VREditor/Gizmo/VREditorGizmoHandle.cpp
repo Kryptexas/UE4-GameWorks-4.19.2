@@ -218,12 +218,6 @@ class UStaticMeshComponent* UVREditorGizmoHandleGroup::CreateMeshHandle( class U
 	HandleComponent->SetMobility( EComponentMobility::Movable );
 	HandleComponent->AttachTo( this );
 
-	// @todo vreditor: We added a new engine collision channel "ECC_EditorGizmo" so that we could trace only
-	// against gizmos and nothing else.  This allows you to "click thru" solid objects to hit a ghosted gizmo.
-	// However, we need to look out for backwards compatibility issues with adding a new engine collision
-	// channel.  When I tested this with an existing project, all of the engine collision channels had been
-	// duplicated into the game's DefaultEngine.ini and were not updated to filter out the ECC_EditorGizmo
-	// like the stock collision channels that I updated in BaseEngine.ini when adding this feature.
 	HandleComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 	HandleComponent->SetCollisionResponseToAllChannels( ECR_Ignore );
 	HandleComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );

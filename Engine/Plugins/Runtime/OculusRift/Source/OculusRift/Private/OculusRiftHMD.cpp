@@ -1310,7 +1310,7 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 
 		if (SceneVP && SceneVP->GetViewportWidget().IsValid())
 		{
-			if (!IsFullscreenAllowed() && stereoToBeEnabled)	// @todo vreditor: What do we need to do to be able to support "full screen" on the HMD device in the editor?  Do we even care?  Perf benefits to that?
+			if (!IsFullscreenAllowed() && stereoToBeEnabled)
 			{
 				FOvrSessionShared::AutoSession OvrSession(Session);
 				if (OvrSession)
@@ -1344,7 +1344,7 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 
 						if (stereoToBeEnabled)
 						{
-							EWindowMode::Type wm = (!GIsEditor) ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;	// @todo vreditor: Fullscreen gating based on editor here
+							EWindowMode::Type wm = (!GIsEditor) ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
 							FVector2D size = Window->GetSizeInScreen();
 							SceneVP->ResizeFrame(size.X, size.Y, wm, 0, 0);
 						}
@@ -1352,7 +1352,7 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 						{
 							// In Editor we cannot use ResizeFrame trick since it is called too late and App::IsGame
 							// returns false.
-							if (GIsEditor)	// @todo vreditor: More pre-existing editor hacks for VR PIE, might be fine for VR editor too
+							if (GIsEditor)
 							{
 								FSlateRect LocalPreFullScreenRect;
 								PopPreFullScreenRect(LocalPreFullScreenRect);
@@ -1707,7 +1707,7 @@ FOculusRiftHMD::~FOculusRiftHMD()
 void FOculusRiftHMD::Startup()
 {
 #if PLATFORM_MAC
-	if (GIsEditor)	// @todo vreditor: No Mac VR support yet?
+	if (GIsEditor)
 	{
 		// no editor support for Mac yet
 		return;

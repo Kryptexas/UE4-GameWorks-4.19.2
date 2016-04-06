@@ -1662,11 +1662,10 @@ void FVREditorWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 bool FVREditorWorldInteraction::IsInteractableComponent( const UActorComponent* Component ) const
 {
 	// Don't interact with frozen actors
-	// @todo vreditor urgent: This is a super hacky way to determine whether something is "frozen".  This would need
-	// to become a first class concept in the editor for any interactable object.
 	if( Component != nullptr )
 	{
-		const bool bIsFrozen = Component->GetOwner()->GetActorLabel().StartsWith( TEXT( "Frozen_" ) );
+		static const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed (console variable, too!)
+		const bool bIsFrozen = bIsVREditorDemo && Component->GetOwner()->GetActorLabel().StartsWith( TEXT( "Frozen_" ) );
 		return
 			!bIsFrozen &&
 			( !Owner.GetUISystem().IsWidgetAnEditorUIWidget( Component ) ); // Don't allow user to move around our UI widgets
@@ -2531,7 +2530,7 @@ void FVREditorWorldInteraction::StartDraggingActors( FVRAction VRAction, UActorC
 			}
 
 			// Play a haptic effect when objects are picked up
-			const float Strength = VREd::DragHapticFeedbackStrength->GetFloat();	// @todo vreditor: Tweak
+			const float Strength = VREd::DragHapticFeedbackStrength->GetFloat();
 			Owner.PlayHapticEffect(
 				VRAction.HandIndex == VREditorConstants::LeftHandIndex ? Strength : 0.0f,
 				VRAction.HandIndex == VREditorConstants::RightHandIndex ? Strength : 0.0f );
@@ -2581,7 +2580,7 @@ void FVREditorWorldInteraction::StartDraggingMaterialOrTexture( FVRAction VRActi
 		LastDragGizmoStartTransform = FTransform::Identity;
 
 		// Play a haptic effect when objects are picked up
-		const float Strength = VREd::DragHapticFeedbackStrength->GetFloat();	// @todo vreditor: Tweak
+		const float Strength = VREd::DragHapticFeedbackStrength->GetFloat();
 		Owner.PlayHapticEffect(
 			VRAction.HandIndex == VREditorConstants::LeftHandIndex ? Strength : 0.0f,
 			VRAction.HandIndex == VREditorConstants::RightHandIndex ? Strength : 0.0f );
@@ -2743,7 +2742,7 @@ void FVREditorWorldInteraction::OnAssetDragStartedFromContentBrowser( const TArr
 	}
 
 	// We're always expecting a hand to be hovering at the time we receive this event
-	if( PlacingWithHandIndex != INDEX_NONE )	// @todo vreditor: This ensure fires when in "fake VR" mode when you drag an asset (Expected)
+	if( PlacingWithHandIndex != INDEX_NONE )
 	{
 		FVirtualHand& Hand = Owner.GetVirtualHand( PlacingWithHandIndex );
 

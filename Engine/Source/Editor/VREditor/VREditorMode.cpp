@@ -200,7 +200,6 @@ void FVREditorMode::Enter()
 		KeyToActionMap.Add( VREditorKeyNames::MotionController_Left_LightlyPressedTriggerAxis, FVRAction( EVRActionType::SelectAndMove_LightlyPressed, VREditorConstants::LeftHandIndex ) );
 		KeyToActionMap.Add( VREditorKeyNames::MotionController_Right_LightlyPressedTriggerAxis, FVRAction( EVRActionType::SelectAndMove_LightlyPressed, VREditorConstants::RightHandIndex ) );
 
-		// @todo vreditor UI: We moved most of these into the UI, and we're using the touchpad for Undo instead of summoning our Slate UI for now
 		KeyToActionMap.Add( EKeys::MotionController_Left_Thumbstick, FVRAction( EVRActionType::ConfirmRadialSelection, VREditorConstants::LeftHandIndex ) );
  		KeyToActionMap.Add( EKeys::MotionController_Right_Thumbstick, FVRAction( EVRActionType::ConfirmRadialSelection, VREditorConstants::RightHandIndex ) );
 
@@ -1942,7 +1941,7 @@ AActor* FVREditorMode::SpawnTransientSceneActor( TSubclassOf<AActor> ActorClass,
 	FActorSpawnParameters ActorSpawnParameters;
 	ActorSpawnParameters.Name = MakeUniqueObjectName( GetWorld(), ActorClass, *ActorName );	// @todo vreditor: Without this, SpawnActor() can return us an existing PendingKill actor of the same name!  WTF?
 	ActorSpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	ActorSpawnParameters.ObjectFlags = EObjectFlags::RF_Transient;	// @todo vreditor: Make sure transient actors aren't getting saved into maps, or picked up in world outliners, or other actor iterators where they should be hidden from
+	ActorSpawnParameters.ObjectFlags = EObjectFlags::RF_Transient;
 
 	check( ActorClass != nullptr );
 	AActor* NewActor = GetWorld()->SpawnActor< AActor >( ActorClass, ActorSpawnParameters );
@@ -2600,9 +2599,6 @@ void FVREditorMode::ApplyVelocityDamping( FVector& Velocity, const bool bVelocit
 		// Apply damping
 		if( bVelocitySensitive )
 		{
-			// @todo vreditor: Experimenting with speed-based dampening amounts here, so that you can drift further
-			// after you've been "thrown faster", but come to a stop rather quickly if you are not already moving fast.
-			//		--> If this is successful, consider generalizing this and doing it everywhere else we need inertial movement
 			const float DampenMultiplierAtLowSpeeds = 0.94f;	// @todo vreditor tweak
 			const float DampenMultiplierAtHighSpeeds = 0.99f;	// @todo vreditor tweak
 			const float SpeedForMinimalDamping = 2.5f * GetWorldScaleFactor();	// cm/frame	// @todo vreditor tweak
