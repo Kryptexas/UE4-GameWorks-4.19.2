@@ -672,7 +672,7 @@ public:
 	 */
 	virtual bool LockDuringCapture() override
 	{
-		return bHideCursorDuringCapture;
+		return bLockDuringCapture;
 	}
 
 	/**
