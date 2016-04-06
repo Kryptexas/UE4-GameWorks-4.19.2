@@ -43,9 +43,17 @@ class ENGINE_API UInputSettings
 	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay)
 	float DoubleClickTime;
 
+	/** Controls if the viewport will capture the mouse on Launch of the application */
+	UPROPERTY(config, EditAnywhere, Category = "ViewportProperties")
+	bool bCaptureMouseOnLaunch;
+	
 	/** The default mouse capture mode for the game viewport */
 	UPROPERTY(config, EditAnywhere, Category = "ViewportProperties")
 	TEnumAsByte<EMouseCaptureMode> DefaultViewportMouseCaptureMode;
+
+	/** The default mouse lock state when the viewport acquires capture */
+	UPROPERTY(config, EditAnywhere, Category = "ViewportProperties")
+	bool bDefaultViewportMouseLock;
 
 	/** List of Action Mappings */
 	UPROPERTY(config, EditAnywhere, Category="Bindings")
