@@ -221,6 +221,7 @@ class UStaticMeshComponent* UVREditorGizmoHandleGroup::CreateMeshHandle( class U
 	HandleComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 	HandleComponent->SetCollisionResponseToAllChannels( ECR_Ignore );
 	HandleComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
+	HandleComponent->SetCollisionObjectType( ECC_EditorGizmo );
 
 	HandleComponent->bGenerateOverlapEvents = false;
 	HandleComponent->SetCanEverAffectNavigation( false );

@@ -356,6 +356,7 @@ void UCollisionProfile::LoadProfileConfig(bool bForceInit)
 	// Now Load Channel setups, and set display names if customized
 	// also initialize DefaultResposneContainer with default response for each channel
 	FCollisionResponseContainer::DefaultResponseContainer.SetAllChannels(ECR_Block);
+	FCollisionResponseContainer::DefaultResponseContainer.SetResponse( ECC_EditorGizmo, ECR_Ignore );
 
 	for (auto Iter=DefaultChannelResponses.CreateConstIterator(); Iter; ++Iter)
 	{

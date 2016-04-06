@@ -29,6 +29,7 @@ UVREditorUniformScaleGizmoHandleGroup::UVREditorUniformScaleGizmoHandleGroup()
 	UniformScaleHandle->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 	UniformScaleHandle->SetCollisionResponseToAllChannels( ECR_Ignore );
 	UniformScaleHandle->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
+	UniformScaleHandle->SetCollisionObjectType( ECC_EditorGizmo );
 
 	UniformScaleHandle->bGenerateOverlapEvents = false;
 	UniformScaleHandle->SetCanEverAffectNavigation( false );

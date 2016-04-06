@@ -1811,8 +1811,19 @@ FHitResult FVREditorMode::GetHitResultFromLaserPointer( int32 HandIndex, TArray<
 				TraceParams.AddIgnoredActors( *OptionalListOfIgnoredActors );
 			}
 
+			bool bHit = false;
 			FHitResult HitResult;
-			if( GetWorld()->LineTraceSingleByChannel( HitResult, LaserPointerStart, LaserPointerEnd, CollisionChannel, TraceParams, ResponseParam ) )
+			if( bOnlyEditorGizmos )
+			{
+				bHit = GetWorld()->LineTraceSingleByChannel( HitResult, LaserPointerStart, LaserPointerEnd, CollisionChannel, TraceParams, ResponseParam );
+			}
+			else
+			{
+				FCollisionObjectQueryParams EverythingButGizmos( FCollisionObjectQueryParams::AllObjects );
+				EverythingButGizmos.RemoveObjectTypesToQuery( ECC_EditorGizmo );
+				bHit = GetWorld()->LineTraceSingleByObjectType( HitResult, LaserPointerStart, LaserPointerEnd, EverythingButGizmos, TraceParams );
+			}
+			if( bHit )
 			{
 				// Is this better than what we have already?  Always prefer transform gizmos even if they were not using
 				// ECC_EditorGizmo (some gizmo handles are opaque and use ECC_Visibility as their collision channel)
