@@ -119,7 +119,10 @@ void SLevelEditor::BindCommands()
 
 	LevelEditorCommands->MapAction(
 		Actions.ToggleVR,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR ) );
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR ),
+		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR_CanExecute ),
+		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR_IsChecked ),
+		FIsActionButtonVisible::CreateStatic( &FLevelEditorActionCallbacks::ToggleVR_IsVisible ) );
 
 	LevelEditorCommands->MapAction(
 		Actions.WorldProperties,

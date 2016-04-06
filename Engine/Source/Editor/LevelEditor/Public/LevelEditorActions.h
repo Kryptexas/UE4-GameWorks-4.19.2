@@ -633,6 +633,7 @@ public:
 	static void ToggleVR();
 	static bool ToggleVR_CanExecute();
 	static bool ToggleVR_IsChecked();
+	static bool ToggleVR_IsVisible();
 
 	/** Opens delta transform */
 	static void DeltaTransform();

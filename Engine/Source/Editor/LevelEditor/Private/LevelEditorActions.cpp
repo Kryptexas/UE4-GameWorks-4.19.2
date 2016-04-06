@@ -2078,6 +2078,12 @@ bool FLevelEditorActionCallbacks::ToggleVR_IsChecked()
 }
 
 
+bool FLevelEditorActionCallbacks::ToggleVR_IsVisible()
+{
+	return GetDefault<UEditorExperimentalSettings>()->bEnableVREditing;
+}
+
+
 bool FLevelEditorActionCallbacks::CanSelectGameModeBlueprint()
 {
 	bool bCheckOutNeeded = false;
