@@ -1068,6 +1068,9 @@ void FWindowsPlatformMisc::LocalPrint( const TCHAR *Message )
 void FWindowsPlatformMisc::RequestExit( bool Force )
 {
 	UE_LOG(LogWindows, Log,  TEXT("FPlatformMisc::RequestExit(%i)"), Force );
+
+	FCoreDelegates::ApplicationWillTerminateDelegate.Broadcast();
+
 	if( Force )
 	{
 		// Force immediate exit. In case of an error set the exit code to 3.

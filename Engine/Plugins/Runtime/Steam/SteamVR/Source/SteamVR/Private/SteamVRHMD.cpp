@@ -91,6 +91,27 @@ public:
 		SteamVRHMD->SetUnrealControllerIdAndHandToDeviceIdMap(InUnrealControllerIdAndHandToDeviceIdMap);
 	}
 
+	virtual bool IsHMDConnected() override
+	{
+		TSharedPtr<FSteamVRHMD, ESPMode::ThreadSafe > Device;
+
+		// Pre-init...need to bootstrap loading things to see if it's connected
+		if (!VRSystem)
+		{
+			// Create a temporary device just for initialization purposes
+			Device = MakeShareable(new FSteamVRHMD(this));
+			
+		}
+
+		// Normal, just check if we're connected
+		if (VRSystem)
+		{
+			return VRSystem->IsTrackedDeviceConnected(vr::k_unTrackedDeviceIndex_Hmd);
+		}
+
+		return false;
+	}
+
 private:
 	vr::IVRSystem* VRSystem;
 };
