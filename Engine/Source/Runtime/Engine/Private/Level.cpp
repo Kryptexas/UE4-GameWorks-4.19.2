@@ -682,8 +682,10 @@ void ULevel::ClearLevelComponents()
 	}
 
 	// Remove the actors' components from the scene and build a list of relevant worlds
-	for( AActor* Actor : Actors )
+	// In theory (though it is a terrible idea), users could spawn Actors from an OnUnregister event so don't use ranged-for
+	for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ++ActorIndex)
 	{
+		AActor* Actor = Actors[ActorIndex];
 		if (Actor)
 		{
 			Actor->UnregisterAllComponents();

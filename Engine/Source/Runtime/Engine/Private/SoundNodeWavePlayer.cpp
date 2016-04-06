@@ -58,7 +58,7 @@ void USoundNodeWavePlayer::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT 
 {
 	if (bAsyncLoading)
 	{
-		UE_LOG(LogAudio, Warning, TEXT("Asynchronous load of %s not complete in USoundNodeWavePlayer::ParseNodes, will attempt to play later."), *GetFullNameSafe(this));
+		UE_LOG(LogAudio, Verbose, TEXT("Asynchronous load of %s not complete in USoundNodeWavePlayer::ParseNodes, will attempt to play later."), *GetFullNameSafe(this));
 		// We're still loading so don't stop this active sound yet
 		ActiveSound.bFinished = false;
 		return;

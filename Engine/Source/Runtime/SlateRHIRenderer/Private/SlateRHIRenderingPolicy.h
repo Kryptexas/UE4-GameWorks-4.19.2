@@ -17,8 +17,6 @@ public:
 
 	void ReleaseCachingResourcesFor(FRHICommandListImmediate& RHICmdList, const ILayoutCache* Cacher);
 
-	void SetDefaultBlendMode(const FBlendStateInitializerRHI& BlendState);
-
 	virtual void DrawElements(FRHICommandListImmediate& RHICmdList, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches, bool bAllowSwtichVerticalAxis=true);
 
 	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() const override { return ResourceManager; }
@@ -58,8 +56,6 @@ private:
 	TSharedRef<FSlateRHIResourceManager> ResourceManager;
 
 	bool bGammaCorrect;
-
-	FBlendStateRHIRef BlendMode;
 
 	TOptional<int32> InitialBufferSizeOverride;
 };

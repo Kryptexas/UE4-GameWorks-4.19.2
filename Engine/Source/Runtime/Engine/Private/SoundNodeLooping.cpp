@@ -60,16 +60,22 @@ bool USoundNodeLooping::NotifyWaveInstanceFinished( FWaveInstance* InWaveInstanc
 	const UPTRINT NodeWaveInstanceHash = InWaveInstance->NotifyBufferFinishedHooks.GetHashForNode(this);
 	RETRIEVE_SOUNDNODE_PAYLOAD(sizeof(int32));
 	DECLARE_SOUNDNODE_ELEMENT(int32, CurrentLoopCount);
-	check(*RequiresInitialization == 0);
 
-	if (bLoopIndefinitely || ++CurrentLoopCount < LoopCount)
+	// The looping node should be initialized, but we hit this check and need to get information about what sound cue is causing the issue.
+	ensureMsgf((*RequiresInitialization == 0), TEXT("Sound looping finished but not initialized. SoundWave: %s, Sound: %s"), *InWaveInstance->GetName(), *ActiveSound.Sound->GetName());
+
+	// Avoid the crash and continue...
+	if (!*RequiresInitialization)
 	{
-		ResetChildren(NodeWaveInstanceHash, ActiveSound, CurrentLoopCount);
+		if (bLoopIndefinitely || ++CurrentLoopCount < LoopCount)
+		{
+			ResetChildren(NodeWaveInstanceHash, ActiveSound, CurrentLoopCount);
 
-		// Reset wave instances that notified us of completion.
-		InWaveInstance->bIsStarted = false;
-		InWaveInstance->bIsFinished = false;
-		return true;
+			// Reset wave instances that notified us of completion.
+			InWaveInstance->bIsStarted = false;
+			InWaveInstance->bIsFinished = false;
+			return true;
+		}
 	}
 
 	return false;

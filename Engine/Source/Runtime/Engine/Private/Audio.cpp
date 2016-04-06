@@ -607,6 +607,16 @@ bool FWaveInstance::IsStreaming() const
 	return FPlatformProperties::SupportsAudioStreaming() && WaveData != nullptr && WaveData->IsStreaming();
 }
 
+FString FWaveInstance::GetName() const
+{
+	if (WaveData)
+	{
+		return WaveData->GetName();
+	}
+	return TEXT("Null");
+}
+
+
 /*-----------------------------------------------------------------------------
 	WaveModInfo implementation - downsampling of wave files.
 -----------------------------------------------------------------------------*/

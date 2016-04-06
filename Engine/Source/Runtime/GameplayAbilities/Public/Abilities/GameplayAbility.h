@@ -295,6 +295,9 @@ public:
 	/** Destroys instanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Any active ability state tasks receive the 'OnAbilityStateInterrupted' event. Non instance abilities - what can we do? */
 	virtual void CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility);
 
+	/** Returns true if an an ability should be activated */
+	virtual bool ShouldActivateAbility(ENetRole Role) const;
+
 protected:
 
 	// --------------------------------------

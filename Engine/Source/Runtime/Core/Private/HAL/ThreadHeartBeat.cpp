@@ -101,12 +101,12 @@ uint32 FThreadHeartBeat::CheckHeartBeat()
 #if !WITH_EDITORONLY_DATA && !IS_PROGRAM && !UE_BUILD_DEBUG
 	if (HangDuration > 0.0 && bReadyToCheckHeartbeat && !GIsRequestingExit && !FPlatformMisc::IsDebuggerPresent())
 	{
-		const double HangDuration = 25.0;
+		const double Duration = 25.0;
 		const double CurrentTime = FPlatformTime::Seconds();
 		FScopeLock HeartBeatLock(&HeartBeatCritical);
 		for (TPair<uint32, double>& LastHeartBeat : ThreadHeartBeat)
 		{
-			if ((CurrentTime - LastHeartBeat.Value) > HangDuration)
+			if ((CurrentTime - LastHeartBeat.Value) > Duration)
 			{
 				LastHeartBeat.Value = CurrentTime;
 				return LastHeartBeat.Key;

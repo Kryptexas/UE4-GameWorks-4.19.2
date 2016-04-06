@@ -1444,7 +1444,7 @@ FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale, f
 	}
 	else
 	{
-		SafeReciprocalScale.X = 1/InScale.X;
+		SafeReciprocalScale.X = 1 / InScale.X;
 	}
 
 	if (FMath::Abs(InScale.Y) <= Tolerance)
@@ -1453,7 +1453,7 @@ FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale, f
 	}
 	else
 	{
-		SafeReciprocalScale.Y = 1/InScale.Y;
+		SafeReciprocalScale.Y = 1 / InScale.Y;
 	}
 
 	if (FMath::Abs(InScale.Z) <= Tolerance)
@@ -1462,7 +1462,7 @@ FORCEINLINE FVector FTransform::GetSafeScaleReciprocal(const FVector& InScale, f
 	}
 	else
 	{
-		SafeReciprocalScale.Z = 1/InScale.Z;
+		SafeReciprocalScale.Z = 1 / InScale.Z;
 	}
 
 	return SafeReciprocalScale;

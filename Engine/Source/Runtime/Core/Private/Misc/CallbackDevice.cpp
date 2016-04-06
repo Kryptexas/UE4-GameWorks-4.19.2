@@ -79,8 +79,8 @@ FCoreDelegates::FLoadStringAssetReferenceInCook FCoreDelegates::LoadStringAssetR
 FCoreDelegates::FVRHeadsetRecenter FCoreDelegates::VRHeadsetRecenter;
 
 FCoreDelegates::FOnUserActivityStringChanged FCoreDelegates::UserActivityStringChanged;
-
 FCoreDelegates::FOnGameSessionIDChange FCoreDelegates::GameSessionIDChanged;
+FCoreDelegates::FOnCrashOverrideParamsChanged FCoreDelegates::CrashOverrideParamsChanged;
 
 FCoreDelegates::FOnAsyncLoadingFlush FCoreDelegates::OnAsyncLoadingFlush;
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PostRenderingThreadCreated;

@@ -1428,6 +1428,7 @@ void FBlueprintEditorUtils::ForceLoadMembers(UObject* Object)
 	FRegenerationHelper::ForcedLoadMembers(Object);
 }
 
+
 UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
 {
 	bool bRegenerated = false;
@@ -1569,6 +1570,9 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 					ClassToRegenerate->SetSuperStruct(NewSuperClass);
 				}
 			}
+
+			// Flag macro blueprints as being up-to-date
+			Blueprint->Status = BS_UpToDate;
 		}
 		else
 		{
@@ -1737,6 +1741,8 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 
 	return bRegenerated ? Blueprint->GeneratedClass : NULL;
 }
+
+
 
 void FBlueprintEditorUtils::RecreateClassMetaData(UBlueprint* Blueprint, UClass* Class, bool bRemoveExistingMetaData)
 {
@@ -2238,7 +2244,10 @@ void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint)
 			}
 		}
 
-		Blueprint->Status = BS_Dirty;
+		if (Blueprint->BlueprintType != BPTYPE_MacroLibrary)
+		{
+			Blueprint->Status = BS_Dirty;
+		}
 		Blueprint->MarkPackageDirty();
 		Blueprint->PostEditChange();
 	}

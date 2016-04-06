@@ -5,6 +5,16 @@
 #include "Abilities/Tasks/AbilityTask_ApplyRootMotionMoveToActorForce.h"
 #include "Net/UnrealNetwork.h"
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+int32 DebugMoveToActorForce = 0;
+static FAutoConsoleVariableRef CVarDebugMoveToActorForce(
+TEXT("AbilitySystem.DebugMoveToActorForce"),
+	DebugMoveToActorForce,
+	TEXT("Show debug info for MoveToActorForce"),
+	ECVF_Default
+	);
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 UAbilityTask_ApplyRootMotionMoveToActorForce::UAbilityTask_ApplyRootMotionMoveToActorForce(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
@@ -14,25 +24,35 @@ UAbilityTask_ApplyRootMotionMoveToActorForce::UAbilityTask_ApplyRootMotionMoveTo
 	NewMovementMode = EMovementMode::MOVE_Walking;
 	PreviousMovementMode = EMovementMode::MOVE_None;
 	RootMotionSourceID = (uint16)ERootMotionSourceID::Invalid;
+	TargetLocationOffset = FVector::ZeroVector;
+	OffsetAlignment = ERootMotionMoveToActorTargetOffsetType::AlignFromTargetToSource;
 	bIsFinished = false;
 	MovementComponent = nullptr;
 	bRestrictSpeedToExpected = false;
 	PathOffsetCurve = nullptr;
+	TimeMappingCurve = nullptr;
+	TargetLerpSpeedHorizontalCurve = nullptr;
+	TargetLerpSpeedVerticalCurve = nullptr;
 	VelocityOnFinishMode = ERootMotionFinishVelocityMode::MaintainLastRootMotionVelocity;
 	SetVelocityOnFinish = FVector::ZeroVector;
 }
 
-UAbilityTask_ApplyRootMotionMoveToActorForce* UAbilityTask_ApplyRootMotionMoveToActorForce::ApplyRootMotionMoveToActorForce(UObject* WorldContextObject, FName TaskInstanceName, FVector TargetLocation, float Duration, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish)
+UAbilityTask_ApplyRootMotionMoveToActorForce* UAbilityTask_ApplyRootMotionMoveToActorForce::ApplyRootMotionMoveToActorForce(UObject* WorldContextObject, FName TaskInstanceName, AActor* TargetActor, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish)
 {
 	auto MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionMoveToActorForce>(WorldContextObject, TaskInstanceName);
 
 	MyTask->ForceName = TaskInstanceName;
-	MyTask->TargetLocation = TargetLocation;
+	MyTask->TargetActor = TargetActor;
+	MyTask->TargetLocationOffset = TargetLocationOffset;
+	MyTask->OffsetAlignment = OffsetAlignment;
 	MyTask->Duration = FMath::Max(Duration, KINDA_SMALL_NUMBER); // Avoid negative or divide-by-zero cases
+	MyTask->TargetLerpSpeedHorizontalCurve = TargetLerpSpeedHorizontal;
+	MyTask->TargetLerpSpeedVerticalCurve = TargetLerpSpeedVertical;
 	MyTask->bSetNewMovementMode = bSetNewMovementMode;
 	MyTask->NewMovementMode = MovementMode;
 	MyTask->bRestrictSpeedToExpected = bRestrictSpeedToExpected;
 	MyTask->PathOffsetCurve = PathOffsetCurve;
+	MyTask->TimeMappingCurve = TimeMappingCurve;
 	MyTask->VelocityOnFinishMode = VelocityOnFinishMode;
 	MyTask->SetVelocityOnFinish = SetVelocityOnFinish;
 	if (MyTask->GetAvatarActor() != nullptr)
@@ -42,7 +62,7 @@ UAbilityTask_ApplyRootMotionMoveToActorForce* UAbilityTask_ApplyRootMotionMoveTo
 	else
 	{
 		checkf(false, TEXT("UAbilityTask_ApplyRootMotionMoveToActorForce called without valid avatar actor to get start location from."));
-		MyTask->StartLocation = TargetLocation;
+		MyTask->StartLocation = TargetActor ? TargetActor->GetActorLocation() : FVector(0.f);
 	}
 	MyTask->SharedInitAndApply();
 
@@ -58,6 +78,22 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::InitSimulatedTask(UGameplayTa
 	Super::InitSimulatedTask(InGameplayTasksComponent);
 
 	SharedInitAndApply();
+}
+
+void UAbilityTask_ApplyRootMotionMoveToActorForce::OnRep_TargetLocation()
+{
+	if (bIsSimulating)
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Draw debug
+		if (DebugMoveToActorForce > 0)
+		{
+			DrawDebugSphere(GetWorld(), TargetLocation, 50.f, 10, FColor::Green, false, 15.f);
+		}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+		SetRootMotionTargetLocation(TargetLocation);
+	}
 }
 
 void UAbilityTask_ApplyRootMotionMoveToActorForce::SharedInitAndApply()
@@ -76,17 +112,25 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::SharedInitAndApply()
 				MovementComponent->SetMovementMode(NewMovementMode);
 			}
 
+			// Set initial target location
+			if (TargetActor)
+			{
+				TargetLocation = CalculateTargetOffset();
+			}
+
 			ForceName = ForceName.IsNone() ? FName("AbilityTaskApplyRootMotionMoveToActorForce") : ForceName;
-			FRootMotionSource_MoveToForce* MoveToActorForce = new FRootMotionSource_MoveToForce();
+			FRootMotionSource_MoveToDynamicForce* MoveToActorForce = new FRootMotionSource_MoveToDynamicForce();
 			MoveToActorForce->InstanceName = ForceName;
 			MoveToActorForce->AccumulateMode = ERootMotionAccumulateMode::Override;
 			MoveToActorForce->Settings.SetFlag(ERootMotionSourceSettingsFlags::UseSensitiveLiftoffCheck);
-			MoveToActorForce->Priority = 1000;
+			MoveToActorForce->Priority = 900;
+			MoveToActorForce->InitialTargetLocation = TargetLocation;
 			MoveToActorForce->TargetLocation = TargetLocation;
 			MoveToActorForce->StartLocation = StartLocation;
 			MoveToActorForce->Duration = Duration;
 			MoveToActorForce->bRestrictSpeedToExpected = bRestrictSpeedToExpected;
 			MoveToActorForce->PathOffsetCurve = PathOffsetCurve;
+			MoveToActorForce->TimeMappingCurve = TimeMappingCurve;
 			RootMotionSourceID = MovementComponent->ApplyRootMotionSource(MoveToActorForce);
 
 			if (Ability)
@@ -100,6 +144,105 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::SharedInitAndApply()
 		ABILITY_LOG(Warning, TEXT("UAbilityTask_ApplyRootMotionMoveToActorForce called in Ability %s with null MovementComponent; Task Instance Name %s."), 
 			Ability ? *Ability->GetName() : TEXT("NULL"), 
 			*InstanceName.ToString());
+	}
+}
+
+FVector UAbilityTask_ApplyRootMotionMoveToActorForce::CalculateTargetOffset() const
+{
+	check(TargetActor != nullptr);
+
+	const FVector TargetActorLocation = TargetActor->GetActorLocation();
+	FVector CalculatedTargetLocation = TargetActorLocation;
+	
+	if (OffsetAlignment == ERootMotionMoveToActorTargetOffsetType::AlignFromTargetToSource)
+	{
+		if (MovementComponent)
+		{
+			FVector ToSource = MovementComponent->GetActorLocation() - TargetActorLocation;
+			ToSource.Z = 0.f;
+			CalculatedTargetLocation += ToSource.ToOrientationQuat().RotateVector(TargetLocationOffset);
+		}
+
+	}
+	else if (OffsetAlignment == ERootMotionMoveToActorTargetOffsetType::AlignToTargetForward)
+	{
+		CalculatedTargetLocation += TargetActor->GetActorQuat().RotateVector(TargetLocationOffset);
+	}
+	else if (OffsetAlignment == ERootMotionMoveToActorTargetOffsetType::AlignToWorldSpace)
+	{
+		CalculatedTargetLocation += TargetLocationOffset;
+	}
+	
+	return CalculatedTargetLocation;
+}
+
+bool UAbilityTask_ApplyRootMotionMoveToActorForce::UpdateTargetLocation(float DeltaTime)
+{
+	if (TargetActor && GetWorld())
+	{
+		const FVector PreviousTargetLocation = TargetLocation;
+		FVector ExactTargetLocation = CalculateTargetOffset();
+
+		const float CurrentTime = GetWorld()->GetTimeSeconds();
+		const float CompletionPercent = (CurrentTime - StartTime) / Duration;
+
+		const float TargetLerpSpeedHorizontal = TargetLerpSpeedHorizontalCurve ? TargetLerpSpeedHorizontalCurve->GetFloatValue(CompletionPercent) : 1000.f;
+		const float TargetLerpSpeedVertical = TargetLerpSpeedVerticalCurve ? TargetLerpSpeedVerticalCurve->GetFloatValue(CompletionPercent) : 500.f;
+
+		const float MaxHorizontalChange = FMath::Max(0.f, TargetLerpSpeedHorizontal * DeltaTime);
+		const float MaxVerticalChange = FMath::Max(0.f, TargetLerpSpeedVertical * DeltaTime);
+
+		FVector ToExactLocation = ExactTargetLocation - PreviousTargetLocation;
+		FVector TargetLocationDelta = ToExactLocation;
+
+		// Cap vertical lerp
+		if (FMath::Abs(ToExactLocation.Z) > MaxVerticalChange)
+		{
+			if (ToExactLocation.Z >= 0.f)
+			{
+				TargetLocationDelta.Z = MaxVerticalChange;
+			}
+			else
+			{
+				TargetLocationDelta.Z = -MaxVerticalChange;
+			}
+		}
+
+		// Cap horizontal lerp
+		if (FMath::Abs(ToExactLocation.SizeSquared2D()) > MaxHorizontalChange*MaxHorizontalChange)
+		{
+			FVector ToExactLocationHorizontal(ToExactLocation.X, ToExactLocation.Y, 0.f);
+			ToExactLocationHorizontal.Normalize();
+			ToExactLocationHorizontal *= MaxHorizontalChange;
+
+			TargetLocationDelta.X = ToExactLocationHorizontal.X;
+			TargetLocationDelta.Y = ToExactLocationHorizontal.Y;
+		}
+
+		TargetLocation += TargetLocationDelta;
+
+		return true;
+	}
+
+	return false;
+}
+
+void UAbilityTask_ApplyRootMotionMoveToActorForce::SetRootMotionTargetLocation(FVector NewTargetLocation)
+{
+	if (MovementComponent)
+	{
+		auto RMS = MovementComponent->GetRootMotionSourceByID(RootMotionSourceID);
+		if (RMS.IsValid())
+		{
+			if (RMS->GetScriptStruct() == FRootMotionSource_MoveToDynamicForce::StaticStruct())
+			{
+				FRootMotionSource_MoveToDynamicForce* MoveToActorForce = static_cast<FRootMotionSource_MoveToDynamicForce*>(RMS.Get());
+				if (MoveToActorForce)
+				{
+					MoveToActorForce->SetTargetLocation(TargetLocation);
+				}
+			}
+		}
 	}
 }
 
@@ -118,24 +261,38 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::TickTask(float DeltaTime)
 		float CurrentTime = GetWorld()->GetTimeSeconds();
 		const bool bTimedOut = CurrentTime >= EndTime;
 
+		// Update target location
+		{
+			const FVector PreviousTargetLocation = TargetLocation;
+			if (UpdateTargetLocation(DeltaTime))
+			{
+				SetRootMotionTargetLocation(TargetLocation);
+			}
+			else
+			{
+				// TargetLocation not updated - TargetActor not around anymore, continue on to last set TargetLocation
+			}
+		}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Draw debug
+		if (DebugMoveToActorForce > 0)
+		{
+			DrawDebugSphere(GetWorld(), TargetLocation, 50.f, 10, FColor::Green, false, 15.f);
+		}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 		const float ReachedDestinationDistanceSqr = 50.f * 50.f;
 		const bool bReachedDestination = FVector::DistSquared(TargetLocation, MyActor->GetActorLocation()) < ReachedDestinationDistanceSqr;
 
-		if (bTimedOut)
+		if (bTimedOut || bReachedDestination)
 		{
 			// Task has finished
 			bIsFinished = true;
 			if (!bIsSimulating)
 			{
 				MyActor->ForceNetUpdate();
-				if (bReachedDestination)
-				{
-					OnTimedOutAndDestinationReached.Broadcast();
-				}
-				else
-				{
-					OnTimedOut.Broadcast();
-				}
+				OnFinished.Broadcast(bReachedDestination, bTimedOut, TargetLocation);
 				EndTask();
 			}
 		}
@@ -151,8 +308,13 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::GetLifetimeReplicatedProps(TA
 {
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, ForceName);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, StartLocation);
-	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, TargetLocation);
+	DOREPLIFETIME_CONDITION(UAbilityTask_ApplyRootMotionMoveToActorForce, TargetLocation, COND_SimulatedOnly); // Autonomous and server calculate target location independently
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, TargetActor);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, TargetLocationOffset);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, OffsetAlignment);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, Duration);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, TargetLerpSpeedHorizontalCurve);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, TargetLerpSpeedVerticalCurve);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, bSetNewMovementMode);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, NewMovementMode);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToActorForce, bRestrictSpeedToExpected);
@@ -175,7 +337,7 @@ void UAbilityTask_ApplyRootMotionMoveToActorForce::OnDestroy(bool AbilityIsEndin
 
 		if (bSetNewMovementMode)
 		{
-			MovementComponent->SetMovementMode(EMovementMode::MOVE_Falling);
+			MovementComponent->SetMovementMode(NewMovementMode);
 		}
 
 		if (VelocityOnFinishMode == ERootMotionFinishVelocityMode::SetVelocity)

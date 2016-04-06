@@ -798,10 +798,9 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 	{
 		if (MovementMode == DefaultLandMovementMode || IsWalking())
 		{
-			const bool bCanSwitchMode = TryToLeaveNavWalking();
-			if (!bCanSwitchMode)
+			const bool bSucceeded = TryToLeaveNavWalking();
+			if (!bSucceeded)
 			{
-				SetMovementMode(MOVE_NavWalking);
 				return;
 			}
 		}
@@ -4741,12 +4740,12 @@ bool UCharacterMovementComponent::TryToLeaveNavWalking()
 {
 	SetNavWalkingPhysics(false);
 
-	bool bCanTeleport = true;
+	bool bSucceeded = true;
 	if (CharacterOwner)
 	{
 		FVector CollisionFreeLocation = UpdatedComponent->GetComponentLocation();
-		bCanTeleport = GetWorld()->FindTeleportSpot(CharacterOwner, CollisionFreeLocation, UpdatedComponent->GetComponentRotation());
-		if (bCanTeleport)
+		bSucceeded = GetWorld()->FindTeleportSpot(CharacterOwner, CollisionFreeLocation, UpdatedComponent->GetComponentRotation());
+		if (bSucceeded)
 		{
 			CharacterOwner->SetActorLocation(CollisionFreeLocation);
 		}
@@ -4756,8 +4755,17 @@ bool UCharacterMovementComponent::TryToLeaveNavWalking()
 		}
 	}
 
-	bWantsToLeaveNavWalking = !bCanTeleport;
-	return bCanTeleport;
+	if (MovementMode == MOVE_NavWalking && bSucceeded)
+	{
+		SetMovementMode(DefaultLandMovementMode != MOVE_NavWalking ? DefaultLandMovementMode.GetValue() : MOVE_Walking);
+	}
+	else if (MovementMode != MOVE_NavWalking && !bSucceeded)
+	{
+		SetMovementMode(MOVE_NavWalking);
+	}
+
+	bWantsToLeaveNavWalking = !bSucceeded;
+	return bSucceeded;
 }
 
 void UCharacterMovementComponent::OnTeleported()

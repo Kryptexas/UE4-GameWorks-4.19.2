@@ -208,6 +208,8 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 		}
 	}
 
+	UWorld* World = GetWorld();
+
 	// We don't have an instance for this, and we need one, so make one
 	if (ensure(TargetActor) && ensure(CueClass))
 	{
@@ -220,16 +222,36 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 		// Look to reuse an existing one that is stored on the CDO:
 		if (GameplayCueActorRecycle > 0)
 		{
-			FPreallocationInfo& Info = GetPreallocationInfo(GetWorld());
+			FPreallocationInfo& Info = GetPreallocationInfo(World);
 			TArray<AGameplayCueNotify_Actor*>* PreallocatedList = Info.PreallocatedInstances.Find(CueClass);
 			if (PreallocatedList && PreallocatedList->Num() > 0)
 			{
-				SpawnedCue = PreallocatedList->Pop(false);
-				checkf(SpawnedCue && SpawnedCue->IsPendingKill() == false, TEXT("Spawned Cue is pending kill or null: %s"), *GetNameSafe(SpawnedCue));
-				SpawnedCue->bInRecycleQueue = false;				
-				SpawnedCue->SetActorHiddenInGame(false);
-				SpawnedCue->SetOwner(NewOwnerActor);
-				SpawnedCue->SetActorLocationAndRotation(TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
+				SpawnedCue = nullptr;
+				while (true)
+				{
+					SpawnedCue = PreallocatedList->Pop(false);
+					if (SpawnedCue && SpawnedCue->IsPendingKill() == false)
+					{
+						break;
+					}
+					
+					// outside of replays, this should not happen. GC Notifies should not be actually destroyed.
+					checkf(World->DemoNetDriver, TEXT("Spawned Cue is pending kill or null: %s."), *GetNameSafe(SpawnedCue));
+
+					if (PreallocatedList->Num() <= 0)
+					{
+						// Ran out of preallocated instances... break and create a new one.
+						break;
+					}
+				}
+
+				if (SpawnedCue)
+				{
+					SpawnedCue->bInRecycleQueue = false;				
+					SpawnedCue->SetActorHiddenInGame(false);
+					SpawnedCue->SetOwner(NewOwnerActor);
+					SpawnedCue->SetActorLocationAndRotation(TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
+				}
 
 				UE_CLOG((GameplayCueActorRecycleDebug>0), LogAbilitySystem, Display, TEXT("GetInstancedCueActor Popping Recycled %s (Target: %s). Using GC Actor: %s"), *GetNameSafe(CueClass), *GetNameSafe(TargetActor), *GetNameSafe(SpawnedCue));
 #if WITH_EDITOR
@@ -282,7 +304,11 @@ void UGameplayCueManager::NotifyGameplayCueActorFinished(AGameplayCueNotify_Acto
 		AGameplayCueNotify_Actor* CDO = Actor->GetClass()->GetDefaultObject<AGameplayCueNotify_Actor>();
 		if (CDO && Actor->Recycle())
 		{
-			ensure(Actor->IsPendingKill() == false);
+			if (Actor->IsPendingKill())
+			{
+				ensureMsgf(GetWorld()->DemoNetDriver, TEXT("GameplayCueNotify %s is pending kill in ::NotifyGameplayCueActorFinished (and not in network demo)"), *GetNameSafe(Actor));
+				return;
+			}
 			Actor->bInRecycleQueue = true;
 
 			// Remove this now from our internal map so that it doesn't get reused like a currently active cue would

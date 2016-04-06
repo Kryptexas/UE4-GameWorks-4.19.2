@@ -2694,226 +2694,6 @@ void UEdGraphSchema_K2::ClearPinWatch(UEdGraphPin const* Pin) const
 	FKismetDebugUtilities::RemovePinWatch(Blueprint, Pin);
 }
 
-bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinType, const FString& PinName, const FString& NewDefaultValue, UObject* NewDefaultObject, const FText& InNewDefaultText, FString* OutMsg /*= NULL*/) const
-{
-#ifdef DVSV_RETURN_MSG
-	static_assert(false, "Macro redefinition.");
-#endif
-#define DVSV_RETURN_MSG(Str) if(NULL != OutMsg) { *OutMsg = Str; } return false;
-
-	const FString& PinCategory = PinType.PinCategory;
-	const FString& PinSubCategory = PinType.PinSubCategory;
-	const UObject* PinSubCategoryObject = PinType.PinSubCategoryObject.Get();
-
-	if (PinType.bIsArray)
-	{
-		// arrays are validated separately
-	}
-	//@TODO: FCString::Atoi, FCString::Atof, and appStringToBool will 'accept' any input, but we should probably catch and warn
-	// about invalid input (non numeric for int/byte/float, and non 0/1 or yes/no/true/false for bool)
-
-	else if(PinCategory == PC_Boolean)
-	{
-		// All input is acceptable to some degree
-	}
-	else if (PinCategory == PC_Byte)
-	{
-		const UEnum* EnumPtr = Cast<const UEnum>(PinSubCategoryObject);
-		if (EnumPtr)
-		{
-			if (EnumPtr->FindEnumIndex(*NewDefaultValue) == INDEX_NONE)
-			{
-				DVSV_RETURN_MSG( FString::Printf( TEXT("'%s' is not a valid enumerant of '<%s>'"), *NewDefaultValue, *(EnumPtr->GetName( )) ) );
-			}
-		}
-		else if( !NewDefaultValue.IsEmpty() )
-		{
-			int32 Value;
-			if (!FDefaultValueHelper::ParseInt(NewDefaultValue, Value))
-			{
-				DVSV_RETURN_MSG( TEXT("Expected a valid unsigned number for a byte property") );
-			}
-			if ((Value < 0) || (Value > 255))
-			{
-				DVSV_RETURN_MSG( TEXT("Expected a value between 0 and 255 for a byte property") );
-			}
-		}
-	}
-	else if ((PinCategory == PC_Class) || (PinCategory == PC_AssetClass))
-	{
-		// Should have an object set but no string
-		if(!NewDefaultValue.IsEmpty())
-		{
-			DVSV_RETURN_MSG( FString::Printf(TEXT("String NewDefaultValue '%s' specified on class pin '%s'"), *NewDefaultValue, *(PinName)) );
-		}
-
-		if (NewDefaultObject == NULL)
-		{
-			// Valid self-reference or empty reference
-		}
-		else
-		{
-			// Otherwise, we expect to be able to resolve the type at least
-			const UClass* DefaultClassType = Cast<const UClass>(NewDefaultObject);
-			if (DefaultClassType == NULL)
-			{
-				DVSV_RETURN_MSG( FString::Printf(TEXT("Literal on pin %s is not a class."), *(PinName)) );
-			}
-			else
-			{
-				// @TODO support PinSubCategory == 'self'
-				const UClass* PinClassType = Cast<const UClass>(PinSubCategoryObject);
-				if (PinClassType == NULL)
-				{
-					DVSV_RETURN_MSG( FString::Printf(TEXT("Failed to find class for pin %s"), *(PinName)) );
-				}
-				else
-				{
-					// Have both types, make sure the specified type is a valid subtype
-					if (!DefaultClassType->IsChildOf(PinClassType))
-					{
-						DVSV_RETURN_MSG( FString::Printf(TEXT("%s isn't a valid subclass of %s (specified on pin %s)"), *NewDefaultObject->GetPathName(), *PinClassType->GetName(), *(PinName)) );
-					}
-				}
-			}
-		}
-	}
-	else if (PinCategory == PC_Float)
-	{
-		if(!NewDefaultValue.IsEmpty())
-		{
-			if (!FDefaultValueHelper::IsStringValidFloat(NewDefaultValue))
-			{
-				DVSV_RETURN_MSG( TEXT("Expected a valid number for an float property") );
-			}
-		}
-	}
-	else if (PinCategory == PC_Int)
-	{
-		if(!NewDefaultValue.IsEmpty())
-		{
-			if (!FDefaultValueHelper::IsStringValidInteger(NewDefaultValue))
-			{
-				DVSV_RETURN_MSG( TEXT("Expected a valid number for an integer property") );
-			}
-		}
-	}
-	else if (PinCategory == PC_Name)
-	{
-		// Anything is allowed
-	}
-	else if ((PinCategory == PC_Object) || (PinCategory == PC_Interface) || (PinCategory == PC_Asset))
-	{
-		if (PinSubCategoryObject == NULL && (PinSubCategory != PSC_Self))
-		{
-			DVSV_RETURN_MSG( FString::Printf(TEXT("PinSubCategoryObject on pin '%s' is NULL and PinSubCategory is '%s' not 'self'"), *(PinName), *PinSubCategory) );
-		}
-
-		if(PinSubCategoryObject != NULL && PinSubCategory != TEXT(""))
-		{
-			DVSV_RETURN_MSG( FString::Printf(TEXT("PinSubCategoryObject on pin '%s' is non-NULL but PinSubCategory is '%s', should be empty"), *(PinName), *PinSubCategory) );
-		}
-
-		// Should have an object set but no string - 'self' is not a valid NewDefaultValue for PC_Object pins
-		if(!NewDefaultValue.IsEmpty())
-		{
-			DVSV_RETURN_MSG( FString::Printf(TEXT("String NewDefaultValue '%s' specified on object pin '%s'"), *NewDefaultValue, *(PinName)) );
-		}
-
-		// Check that the object that is set is of the correct class
-		const UClass* ObjectClass = Cast<const UClass>(PinSubCategoryObject);
-		if(NewDefaultObject != NULL && ObjectClass != NULL && !NewDefaultObject->IsA(ObjectClass))
-		{
-			DVSV_RETURN_MSG( FString::Printf(TEXT("%s isn't a %s (specified on pin %s)"), *NewDefaultObject->GetPathName(), *ObjectClass->GetName(), *(PinName)) );		
-		}
-
-		if ((PinCategory == PC_Asset) && NewDefaultObject && !NewDefaultObject->IsAsset())
-		{
-			DVSV_RETURN_MSG(FString::Printf(TEXT("%s is not an asset (specified on pin %s)"), *NewDefaultObject->GetPathName(), *(PinName)));
-		}
-	}
-	else if (PinCategory == PC_String)
-	{
-		// All strings are valid
-	}
-	else if (PinCategory == PC_Text)
-	{
-		// Neither of these should ever be true 
-		if( InNewDefaultText.IsTransient() )
-		{
-			DVSV_RETURN_MSG( TEXT("Invalid text literal, text is transient!") );
-		}
-	}
-	else if (PinCategory == PC_Struct)
-	{
-		if(PinSubCategory != TEXT(""))
-		{
-			DVSV_RETURN_MSG( FString::Printf(TEXT("Invalid PinSubCategory value '%s' (it should be empty)"), *PinSubCategory) );
-		}
-
-		// Only FRotator and FVector properties are currently allowed to have a valid default value
-		const UScriptStruct* StructType = Cast<const UScriptStruct>(PinSubCategoryObject);
-		if (StructType == NULL)
-		{
-			//@TODO: MessageLog.Error(*FString::Printf(TEXT("Failed to find struct named %s (passed thru @@)"), *PinSubCategory), SourceObject);
-			DVSV_RETURN_MSG( FString::Printf(TEXT("No struct specified for pin '%s'"), *(PinName)) );
-		}
-		else if(!NewDefaultValue.IsEmpty())
-		{
-			if (StructType == VectorStruct)
-			{
-				if (!FDefaultValueHelper::IsStringValidVector(NewDefaultValue))
-				{
-					DVSV_RETURN_MSG( TEXT("Invalid value for an FVector") );
-				}
-			}
-			else if (StructType == RotatorStruct)
-			{
-				FRotator Rot;
-				if (!FDefaultValueHelper::IsStringValidRotator(NewDefaultValue))
-				{
-					DVSV_RETURN_MSG( TEXT("Invalid value for an FRotator") );
-				}
-			}
-			else if (StructType == TransformStruct)
-			{
-				FTransform Transform;
-				if ( !Transform.InitFromString(NewDefaultValue))
-				{
-					DVSV_RETURN_MSG( TEXT("Invalid value for an FTransform") );
-				}
-			}
-			else if (StructType == LinearColorStruct)
-			{
-				FLinearColor Color;
-				// Color form: "(R=%f,G=%f,B=%f,A=%f)"
-				if (!Color.InitFromString(NewDefaultValue))
-				{
-					DVSV_RETURN_MSG( TEXT("Invalid value for an FLinearColor") );
-				}
-			}
-			else
-			{
-				// Structs must pass validation at this point, because we need a UStructProperty to run ImportText
-				// They'll be verified in FKCHandler_CallFunction::CreateFunctionCallStatement()
-			}
-		}
-	}
-	else if (PinCategory == TEXT("CommentType"))
-	{
-		// Anything is allowed
-	}
-	else
-	{
-		//@TODO: MessageLog.Error(*FString::Printf(TEXT("Unsupported type %s on @@"), *UEdGraphSchema_K2::TypeToText(Type).ToString()), SourceObject);
-		DVSV_RETURN_MSG( FString::Printf(TEXT("Unsupported type %s on pin %s"), *UEdGraphSchema_K2::TypeToText(PinType).ToString(), *(PinName)) ); 
-	}
-
-#undef DVSV_RETURN_MSG
-
-	return true;
-}
-
 FLinearColor UEdGraphSchema_K2::GetPinTypeColor(const FEdGraphPinType& PinType) const
 {
 	const FString& TypeString = PinType.PinCategory;
@@ -3742,6 +3522,40 @@ namespace
 		return BP ? Cast<UClass>(BP->OriginalClass) : nullptr;
 	}
 
+	// During compilation, pins are moved around for node expansion and the Blueprints may still inherit from REINST_ classes
+	// which causes problems for IsChildOf. Because we do not want to modify IsChildOf we must use a separate function
+	// that can check to see if classes have an AuthoritativeClass that IsChildOf a Target class.
+	static bool IsAuthoritativeChildOf(const UStruct* InSourceStruct, const UStruct* InTargetStruct)
+	{
+		bool bResult = false;
+		bool bIsNonNativeClass = false;
+		if (UClass* SourceAsClass = const_cast<UClass*>(Cast<UClass>(InSourceStruct)))
+		{
+			if (SourceAsClass->ClassGeneratedBy)
+			{
+				// We have a non-native (Blueprint) class which means it can exist in a semi-compiled state and inherit from a REINST_ class.
+				bIsNonNativeClass = true;
+				while (SourceAsClass)
+				{
+					if (SourceAsClass->GetAuthoritativeClass() == InTargetStruct)
+					{
+						bResult = true;
+						break;
+					}
+					SourceAsClass = SourceAsClass->GetSuperClass();
+				}
+			}
+		}
+
+		// We have a native (C++) class, do a normal IsChildOf check
+		if (!bIsNonNativeClass)
+		{
+			bResult = InSourceStruct->IsChildOf(InTargetStruct);
+		}
+
+		return bResult;
+	}
+
 	static bool ExtendedIsChildOf(const UClass* Child, const UClass* Parent)
 	{
 		if (Child->IsChildOf(Parent))
@@ -3787,45 +3601,230 @@ namespace
 	}
 };
 
-bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, const FEdGraphPinType& Input, const UClass* CallingContext, bool bIgnoreArray /*= false*/) const
+
+bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinType, const FString& PinName, const FString& NewDefaultValue, UObject* NewDefaultObject, const FText& InNewDefaultText, FString* OutMsg /*= NULL*/) const
 {
-	// During compilation, pins are moved around for node expansion and the Blueprints may still inherit from REINST_ classes
-	// which causes problems for IsChildOf. Because we do not want to modify IsChildOf we must use a separate function
-	// that can check to see if classes have an AuthoritativeClass that IsChildOf a Target class.
-	struct Local
+#ifdef DVSV_RETURN_MSG
+	static_assert(false, "Macro redefinition.");
+#endif
+#define DVSV_RETURN_MSG(Str) if(NULL != OutMsg) { *OutMsg = Str; } return false;
+
+	const FString& PinCategory = PinType.PinCategory;
+	const FString& PinSubCategory = PinType.PinSubCategory;
+	const UObject* PinSubCategoryObject = PinType.PinSubCategoryObject.Get();
+
+	if (PinType.bIsArray)
 	{
-		static bool IsAuthoritativeChildOf(const UStruct* InSourceStruct, const UStruct* InTargetStruct)
+		// arrays are validated separately
+	}
+	//@TODO: FCString::Atoi, FCString::Atof, and appStringToBool will 'accept' any input, but we should probably catch and warn
+	// about invalid input (non numeric for int/byte/float, and non 0/1 or yes/no/true/false for bool)
+
+	else if (PinCategory == PC_Boolean)
+	{
+		// All input is acceptable to some degree
+	}
+	else if (PinCategory == PC_Byte)
+	{
+		const UEnum* EnumPtr = Cast<const UEnum>(PinSubCategoryObject);
+		if (EnumPtr)
 		{
-			bool bResult = false;
-			bool bIsNonNativeClass = false;
-			if (UClass* SourceAsClass = const_cast<UClass*>(Cast<UClass>(InSourceStruct)))
+			if (EnumPtr->FindEnumIndex(*NewDefaultValue) == INDEX_NONE)
 			{
-				if (SourceAsClass->ClassGeneratedBy)
+				DVSV_RETURN_MSG(FString::Printf(TEXT("'%s' is not a valid enumerant of '<%s>'"), *NewDefaultValue, *(EnumPtr->GetName())));
+			}
+		}
+		else if (!NewDefaultValue.IsEmpty())
+		{
+			int32 Value;
+			if (!FDefaultValueHelper::ParseInt(NewDefaultValue, Value))
+			{
+				DVSV_RETURN_MSG(TEXT("Expected a valid unsigned number for a byte property"));
+			}
+			if ((Value < 0) || (Value > 255))
+			{
+				DVSV_RETURN_MSG(TEXT("Expected a value between 0 and 255 for a byte property"));
+			}
+		}
+	}
+	else if ((PinCategory == PC_Class) || (PinCategory == PC_AssetClass))
+	{
+		// Should have an object set but no string
+		if (!NewDefaultValue.IsEmpty())
+		{
+			DVSV_RETURN_MSG(FString::Printf(TEXT("String NewDefaultValue '%s' specified on class pin '%s'"), *NewDefaultValue, *(PinName)));
+		}
+
+		if (NewDefaultObject == NULL)
+		{
+			// Valid self-reference or empty reference
+		}
+		else
+		{
+			// Otherwise, we expect to be able to resolve the type at least
+			const UClass* DefaultClassType = Cast<const UClass>(NewDefaultObject);
+			if (DefaultClassType == NULL)
+			{
+				DVSV_RETURN_MSG(FString::Printf(TEXT("Literal on pin %s is not a class."), *(PinName)));
+			}
+			else
+			{
+				// @TODO support PinSubCategory == 'self'
+				const UClass* PinClassType = Cast<const UClass>(PinSubCategoryObject);
+				if (PinClassType == NULL)
 				{
-					// We have a non-native (Blueprint) class which means it can exist in a semi-compiled state and inherit from a REINST_ class.
-					bIsNonNativeClass = true;
-					while (SourceAsClass)
+					DVSV_RETURN_MSG(FString::Printf(TEXT("Failed to find class for pin %s"), *(PinName)));
+				}
+				else
+				{
+					// Have both types, make sure the specified type is a valid subtype
+					if (!IsAuthoritativeChildOf(DefaultClassType, PinClassType))
 					{
-						if (SourceAsClass->GetAuthoritativeClass() == InTargetStruct)
-						{
-							bResult = true;
-							break;
-						}
-						SourceAsClass = SourceAsClass->GetSuperClass();
+						DVSV_RETURN_MSG(FString::Printf(TEXT("%s isn't a valid subclass of %s (specified on pin %s)"), *NewDefaultObject->GetPathName(), *PinClassType->GetName(), *(PinName)));
 					}
 				}
 			}
-
-			// We have a native (C++) class, do a normal IsChildOf check
-			if (!bIsNonNativeClass)
-			{
-				bResult = InSourceStruct->IsChildOf(InTargetStruct);
-			}
-			
-			return bResult;
 		}
-	};
+	}
+	else if (PinCategory == PC_Float)
+	{
+		if (!NewDefaultValue.IsEmpty())
+		{
+			if (!FDefaultValueHelper::IsStringValidFloat(NewDefaultValue))
+			{
+				DVSV_RETURN_MSG(TEXT("Expected a valid number for an float property"));
+			}
+		}
+	}
+	else if (PinCategory == PC_Int)
+	{
+		if (!NewDefaultValue.IsEmpty())
+		{
+			if (!FDefaultValueHelper::IsStringValidInteger(NewDefaultValue))
+			{
+				DVSV_RETURN_MSG(TEXT("Expected a valid number for an integer property"));
+			}
+		}
+	}
+	else if (PinCategory == PC_Name)
+	{
+		// Anything is allowed
+	}
+	else if ((PinCategory == PC_Object) || (PinCategory == PC_Interface) || (PinCategory == PC_Asset))
+	{
+		if (PinSubCategoryObject == NULL && (PinSubCategory != PSC_Self))
+		{
+			DVSV_RETURN_MSG(FString::Printf(TEXT("PinSubCategoryObject on pin '%s' is NULL and PinSubCategory is '%s' not 'self'"), *(PinName), *PinSubCategory));
+		}
 
+		if (PinSubCategoryObject != NULL && PinSubCategory != TEXT(""))
+		{
+			DVSV_RETURN_MSG(FString::Printf(TEXT("PinSubCategoryObject on pin '%s' is non-NULL but PinSubCategory is '%s', should be empty"), *(PinName), *PinSubCategory));
+		}
+
+		// Should have an object set but no string - 'self' is not a valid NewDefaultValue for PC_Object pins
+		if (!NewDefaultValue.IsEmpty())
+		{
+			DVSV_RETURN_MSG(FString::Printf(TEXT("String NewDefaultValue '%s' specified on object pin '%s'"), *NewDefaultValue, *(PinName)));
+		}
+
+		// Check that the object that is set is of the correct class
+		const UClass* ObjectClass = Cast<const UClass>(PinSubCategoryObject);
+		if (NewDefaultObject != NULL && ObjectClass != NULL && !NewDefaultObject->IsA(ObjectClass))
+		{
+			DVSV_RETURN_MSG(FString::Printf(TEXT("%s isn't a %s (specified on pin %s)"), *NewDefaultObject->GetPathName(), *ObjectClass->GetName(), *(PinName)));
+		}
+
+		if ((PinCategory == PC_Asset) && NewDefaultObject && !NewDefaultObject->IsAsset())
+		{
+			DVSV_RETURN_MSG(FString::Printf(TEXT("%s is not an asset (specified on pin %s)"), *NewDefaultObject->GetPathName(), *(PinName)));
+		}
+	}
+	else if (PinCategory == PC_String)
+	{
+		// All strings are valid
+	}
+	else if (PinCategory == PC_Text)
+	{
+		// Neither of these should ever be true 
+		if (InNewDefaultText.IsTransient())
+		{
+			DVSV_RETURN_MSG(TEXT("Invalid text literal, text is transient!"));
+		}
+	}
+	else if (PinCategory == PC_Struct)
+	{
+		if (PinSubCategory != TEXT(""))
+		{
+			DVSV_RETURN_MSG(FString::Printf(TEXT("Invalid PinSubCategory value '%s' (it should be empty)"), *PinSubCategory));
+		}
+
+		// Only FRotator and FVector properties are currently allowed to have a valid default value
+		const UScriptStruct* StructType = Cast<const UScriptStruct>(PinSubCategoryObject);
+		if (StructType == NULL)
+		{
+			//@TODO: MessageLog.Error(*FString::Printf(TEXT("Failed to find struct named %s (passed thru @@)"), *PinSubCategory), SourceObject);
+			DVSV_RETURN_MSG(FString::Printf(TEXT("No struct specified for pin '%s'"), *(PinName)));
+		}
+		else if (!NewDefaultValue.IsEmpty())
+		{
+			if (StructType == VectorStruct)
+			{
+				if (!FDefaultValueHelper::IsStringValidVector(NewDefaultValue))
+				{
+					DVSV_RETURN_MSG(TEXT("Invalid value for an FVector"));
+				}
+			}
+			else if (StructType == RotatorStruct)
+			{
+				FRotator Rot;
+				if (!FDefaultValueHelper::IsStringValidRotator(NewDefaultValue))
+				{
+					DVSV_RETURN_MSG(TEXT("Invalid value for an FRotator"));
+				}
+			}
+			else if (StructType == TransformStruct)
+			{
+				FTransform Transform;
+				if (!Transform.InitFromString(NewDefaultValue))
+				{
+					DVSV_RETURN_MSG(TEXT("Invalid value for an FTransform"));
+				}
+			}
+			else if (StructType == LinearColorStruct)
+			{
+				FLinearColor Color;
+				// Color form: "(R=%f,G=%f,B=%f,A=%f)"
+				if (!Color.InitFromString(NewDefaultValue))
+				{
+					DVSV_RETURN_MSG(TEXT("Invalid value for an FLinearColor"));
+				}
+			}
+			else
+			{
+				// Structs must pass validation at this point, because we need a UStructProperty to run ImportText
+				// They'll be verified in FKCHandler_CallFunction::CreateFunctionCallStatement()
+			}
+		}
+	}
+	else if (PinCategory == TEXT("CommentType"))
+	{
+		// Anything is allowed
+	}
+	else
+	{
+		//@TODO: MessageLog.Error(*FString::Printf(TEXT("Unsupported type %s on @@"), *UEdGraphSchema_K2::TypeToText(Type).ToString()), SourceObject);
+		DVSV_RETURN_MSG(FString::Printf(TEXT("Unsupported type %s on pin %s"), *UEdGraphSchema_K2::TypeToText(PinType).ToString(), *(PinName)));
+	}
+
+#undef DVSV_RETURN_MSG
+
+	return true;
+}
+
+
+bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, const FEdGraphPinType& Input, const UClass* CallingContext, bool bIgnoreArray /*= false*/) const
+{
 	if( !bIgnoreArray && (Output.bIsArray != Input.bIsArray) && (Input.PinCategory != PC_Wildcard || Input.bIsArray) )
 	{
 		return false;
@@ -3891,7 +3890,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 					}
 				}				
 
-				return (Local::IsAuthoritativeChildOf(OutputObject, InputObject) || (OutputClass && InputClass && ExtendedIsChildOf(OutputClass, InputClass)))
+				return (IsAuthoritativeChildOf(OutputObject, InputObject) || (OutputClass && InputClass && ExtendedIsChildOf(OutputClass, InputClass)))
 					&& (bInputIsInterface == bOutputIsInterface);
 			}
 		}

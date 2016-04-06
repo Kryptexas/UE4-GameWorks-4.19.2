@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "NetworkReplayStreaming.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "Net/UnrealNetwork.h"
 #include "GeneralProjectSettings.h"
 
@@ -78,7 +79,7 @@ bool FNetworkVersion::IsNetworkCompatible( const uint32 LocalNetworkVersion, con
 
 FNetworkReplayVersion FNetworkVersion::GetReplayVersion()
 {
-	return FNetworkReplayVersion(FApp::GetGameName(), GetLocalNetworkVersion(), GEngineNetVersion);
+	return FNetworkReplayVersion(FApp::GetGameName(), 0, ENGINE_REPLAY_VERSION);
 }
 
 

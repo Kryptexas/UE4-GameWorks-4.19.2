@@ -7,7 +7,6 @@
 #include "CrashDescription.h"
 #include "CrashReportAnalytics.h"
 #include "CrashReportUtil.h"
-#include "Runtime/Analytics/Analytics/Public/Analytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineBuildSettings.h"
 #include "QoSReporter.h"
@@ -117,6 +116,8 @@ FPrimaryCrashProperties::FPrimaryCrashProperties()
 	, FullCrashDumpLocation( FGenericCrashContext::RuntimePropertiesTag, TEXT( "FullCrashDumpLocation" ), this )
 	, TimeOfCrash( FGenericCrashContext::RuntimePropertiesTag, TEXT( "TimeOfCrash" ), this )
 	, bAllowToBeContacted( FGenericCrashContext::RuntimePropertiesTag, TEXT( "bAllowToBeContacted" ), this )
+	, CrashReporterMessage( FGenericCrashContext::RuntimePropertiesTag, TEXT( "CrashReporterMessage" ), this )
+	, BuildIntegrity(FGenericCrashContext::PlatformPropertiesTag, TEXT("BuildIntegrityStatus"), this)
 	, XmlFile( nullptr )
 {
 	CrashVersion = ECrashDescVersions::VER_1_NewCrashFormat;
@@ -186,30 +187,7 @@ FString FPrimaryCrashProperties::EncodeArrayStringAsXMLString( const TArray<FStr
 void FPrimaryCrashProperties::SendPreUploadAnalytics()
 {
 	TArray<FAnalyticsEventAttribute> CrashAttributes;
-
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("bHasPrimaryData"), bHasPrimaryData));
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashVersion"), (int32)CrashVersion));
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashGUID"), CrashGUID));
-
-	//	AppID = GameName
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("GameName"), GameName));
-
-	//	AppVersion = EngineVersion
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EngineVersion"), EngineVersion.ToString()));
-
-	// @see UpdateIDs()
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("MachineID"), MachineId.AsString()));
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("UserName"), UserName.AsString()));
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EpicAccountId"), EpicAccountId.AsString()));
-
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformFullName.AsString()));
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeOfCrash"), TimeOfCrash.AsString()));
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EngineMode"), EngineMode));
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("AppDefaultLocale"), AppDefaultLocale));
-
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("UserActivityHint"), UserActivityHint.AsString()));
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("GameSessionID"), GameSessionID.AsString()));
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("DeploymentName"), DeploymentName));
+	MakeCrashEventAttributes(CrashAttributes);
 
 	if (FCrashReportAnalytics::IsAvailable())
 	{
@@ -243,8 +221,7 @@ void FPrimaryCrashProperties::SendPreUploadAnalytics()
 void FPrimaryCrashProperties::SendPostUploadAnalytics()
 {
 	TArray<FAnalyticsEventAttribute> CrashAttributes;
-
-	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashGUID"), CrashGUID));
+	MakeCrashEventAttributes(CrashAttributes);
 
 	if (FCrashReportAnalytics::IsAvailable())
 	{
@@ -273,6 +250,34 @@ void FPrimaryCrashProperties::SendPostUploadAnalytics()
 			FQoSReporter::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportCrashUploaded"), CrashAttributes);
 		}
 	}
+}
+
+void FPrimaryCrashProperties::MakeCrashEventAttributes(TArray<FAnalyticsEventAttribute>& OutCrashAttributes)
+{
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("bHasPrimaryData"), bHasPrimaryData));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashVersion"), (int32)CrashVersion));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashGUID"), CrashGUID));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("BuildIntegrityStatus"), BuildIntegrity.AsString()));
+
+	//	AppID = GameName
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("GameName"), GameName));
+
+	//	AppVersion = EngineVersion
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EngineVersion"), EngineVersion.ToString()));
+
+	// @see UpdateIDs()
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("MachineID"), MachineId.AsString()));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("UserName"), UserName.AsString()));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EpicAccountId"), EpicAccountId.AsString()));
+
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformFullName.AsString()));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeOfCrash"), TimeOfCrash.AsString()));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EngineMode"), EngineMode));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("AppDefaultLocale"), AppDefaultLocale));
+
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("UserActivityHint"), UserActivityHint.AsString()));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("GameSessionID"), GameSessionID.AsString()));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("DeploymentName"), DeploymentName));
 }
 
 void FPrimaryCrashProperties::Save()

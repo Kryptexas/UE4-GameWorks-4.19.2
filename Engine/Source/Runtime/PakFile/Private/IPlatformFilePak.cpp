@@ -19,7 +19,9 @@ DEFINE_STAT(STAT_PakFile_Read);
 DEFINE_STAT(STAT_PakFile_NumOpenHandles);
 
 // Enable to stop the loading of any loose files outside of the pak file
-static const bool GEnablePakFileSecurity = false;
+#ifndef ENABLE_LOOSE_FILE_SECURITY
+#define ENABLE_LOOSE_FILE_SECURITY 0
+#endif
 
 /**
  * Class to handle correctly reading from a compressed file within a compressed package
@@ -562,14 +564,7 @@ FPakPlatformFile::FPakPlatformFile()
 	, bSigned(false)
 	, bForceSecurityBypass(false)
 {
-
-#if PLATFORM_DESKTOP && UE_BUILD_SHIPPING
-	bool UsePakSecurity = true;
-#else
-	bool UsePakSecurity = FParse::Param(FCommandLine::Get(), TEXT("PlatformFileSecurity"));
-#endif
-
-	bSecurityEnabled = GEnablePakFileSecurity && UsePakSecurity;
+	bSecurityEnabled = (!!ENABLE_LOOSE_FILE_SECURITY) || FParse::Param(FCommandLine::Get(), TEXT("PlatformFileSecurity"));
 }
 
 FPakPlatformFile::~FPakPlatformFile()

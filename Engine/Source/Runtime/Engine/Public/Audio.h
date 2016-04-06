@@ -313,6 +313,9 @@ struct ENGINE_API FWaveInstance
 	 * Checks whether wave is streaming and streaming is supported
 	 */
 	bool IsStreaming() const;
+
+	/** Returns the name of the contained USoundWave */
+	FString GetName() const;
 };
 
 inline uint32 GetTypeHash( FWaveInstance* A ) { return A->TypeHash; }

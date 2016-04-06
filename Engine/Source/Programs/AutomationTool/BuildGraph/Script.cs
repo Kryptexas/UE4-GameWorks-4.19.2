@@ -554,6 +554,7 @@ namespace AutomationTool
 				string[] RequiresNames = ReadListAttribute(Element, "Requires");
 				string[] ProducesNames = ReadListAttribute(Element, "Produces");
 				string[] AfterNames = ReadListAttribute(Element, "After");
+				bool bNotifyOnWarnings = ReadBooleanAttribute(Element, "NotifyOnWarnings", true);
 
 				// Resolve all the inputs we depend on
 				HashSet<NodeOutput> Inputs = ResolveInputReferences(Element, RequiresNames);
@@ -618,6 +619,7 @@ namespace AutomationTool
 				{
 					// Add it to the node lookup
 					Node NewNode = new Node(Name, Inputs.ToArray(), OutputNames.ToArray(), InputDependencies.ToArray(), OrderDependencies.ToArray(), ControllingTrigger);
+					NewNode.bNotifyOnWarnings = bNotifyOnWarnings;
 					Graph.NameToNode.Add(Name, NewNode);
 
 					// Register each of the outputs as a reference to this node

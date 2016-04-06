@@ -91,7 +91,7 @@ void ParseCommandLine(const TCHAR* CommandLine)
 
 	if (FoundReportDirectoryAbsolutePaths.Num() == 0)
 	{
-		FPlatformErrorReport::FindMostRecentErrorReports(FoundReportDirectoryAbsolutePaths, FTimespan::FromMinutes(30));
+		FPlatformErrorReport::FindMostRecentErrorReports(FoundReportDirectoryAbsolutePaths, FTimespan::FromDays(30));  //FTimespan::FromMinutes(30));
 	}
 }
 
