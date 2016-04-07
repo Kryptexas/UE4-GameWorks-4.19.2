@@ -746,47 +746,61 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 				USceneComponent* Child = AttachChildren.Last();
 				if (Child && Child->GetOwner() != MyOwner)
 				{
-					if (!bExternalAttachParentDetermined)
+					if (Child->GetAttachParent())
 					{
-						ExternalAttachParent = AttachParent;
-						while (ExternalAttachParent)
+						if (Child->GetAttachParent() == this)
 						{
-							if (ExternalAttachParent->GetOwner() != MyOwner)
+							if (!bExternalAttachParentDetermined)
 							{
-								break;
+								ExternalAttachParent = AttachParent;
+								while (ExternalAttachParent)
+								{
+									if (ExternalAttachParent->GetOwner() != MyOwner)
+									{
+										break;
+									}
+									ExternalAttachParent = ExternalAttachParent->GetAttachParent();
+								}
+								bExternalAttachParentDetermined = true;
 							}
-							ExternalAttachParent = ExternalAttachParent->GetAttachParent();
-						}
-						bExternalAttachParentDetermined = true;
-					}
-					bool bNeedsDetach = true;
-					if (ExternalAttachParent)
-					{
-						bNeedsDetach = (Child->AttachTo(ExternalAttachParent, NAME_None, EAttachLocation::KeepWorldPosition) == false);
-					}
-					if (bNeedsDetach)
-					{
-						if (Child->AttachParent && Child->AttachParent == this)
-						{
-							Child->DetachFromParent(true);
+
+							bool bNeedsDetach = true;
+							if (ExternalAttachParent)
+							{
+								bNeedsDetach = (Child->AttachTo(ExternalAttachParent, NAME_None, EAttachLocation::KeepWorldPosition) == false);
+							}
+							if (bNeedsDetach)
+							{
+								Child->DetachFromParent(true);
+							}
 						}
 						else
 						{
-							// We've gotten in to a bad state where the Child's AttachParent doesn't jive with the AttachChildren array
-							// so instead of crashing output an error and gracefully handle
-							if (Child->AttachParent)
+#if WITH_EDITORONLY_DATA
+							// If we are in the middle of a transaction it isn't entirely unexpected that an AttachParent/AttachChildren pairing is wrong
+							if (!ensure(GIsTransacting))
+#endif
 							{
-								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->AttachParent->GetFullName());
-							}
-							else if (!IsPendingKill())
-							{
-								// If we (or child) are pending kill, the AttachParent reference to us may have been nulled already, so only error if not pending kill
-								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
+								// We've gotten in to a bad state where the Child's AttachParent doesn't jive with the AttachChildren array
+								// so instead of crashing, output an error and gracefully handle
+								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->GetAttachParent()->GetFullName());
 							}
 							AttachChildren.Pop(false);
 						}
 					}
+					else 
+					{
+						// We've gotten in to a bad state where the Child's AttachParent doesn't jive with the AttachChildren array
+						// so instead of crashing, gracefully handle and output an error. 
+						// We skip outputting the error if something is pending kill because this is likely a undo/redo situation that is not concerning.
+						if (!IsPendingKill() && !Child->IsPendingKill())
+						{
+							UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
+						}
+						AttachChildren.Pop(false);
+					}
 					checkf(ChildCount > AttachChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
+
 				}
 				else
 				{
@@ -807,32 +821,44 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 			{
 				if (USceneComponent* Child = AttachChildren.Last())
 				{
-					bool bNeedsDetach = true;
-					if (AttachParent)
+					if (Child->GetAttachParent())
 					{
-						bNeedsDetach = (Child->AttachTo(AttachParent, NAME_None, EAttachLocation::KeepWorldPosition) == false);
-					}
-					if (bNeedsDetach)
-					{
-						if (Child->AttachParent && Child->AttachParent == this)
+						if (Child->GetAttachParent() == this)
 						{
-							Child->DetachFromParent(true);
+							bool bNeedsDetach = true;
+							if (AttachParent)
+							{
+								bNeedsDetach = (Child->AttachTo(AttachParent, NAME_None, EAttachLocation::KeepWorldPosition) == false);
+							}
+							if (bNeedsDetach)
+							{
+								Child->DetachFromParent(true);
+							}
 						}
 						else
 						{
-							// We've gotten in to a bad state where the Child's AttachParent doesn't jive with the AttachChildren array
-							// so instead of crashing output an error and gracefully handle
-							if (Child->AttachParent)
+#if WITH_EDITORONLY_DATA
+							// If we are in the middle of a transaction it isn't entirely unexpected that an AttachParent/AttachChildren pairing is wrong
+							if (!ensure(GIsTransacting))
+#endif
 							{
-								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->AttachParent->GetFullName());
-							}
-							else if (!IsPendingKill())
-							{
-								// If we are pending kill, the AttachParent reference to us may have been nulled already, so only an error if not pending kill
-								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
+								// We've gotten in to a bad state where the Child's AttachParent doesn't jive with the AttachChildren array
+								// so instead of crashing, output an error and gracefully handle
+								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->GetAttachParent()->GetFullName());
 							}
 							AttachChildren.Pop(false);
 						}
+					}
+					else 
+					{
+						// We've gotten in to a bad state where the Child's AttachParent doesn't jive with the AttachChildren array
+						// so instead of crashing, gracefully handle and output an error. 
+						// We skip outputting the error if something is pending kill because this is likely a undo/redo situation that is not concerning.
+						if (!IsPendingKill() && !Child->IsPendingKill())
+						{
+							UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
+						}
+						AttachChildren.Pop(false);
 					}
 					checkf(ChildCount > AttachChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
 				}
