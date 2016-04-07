@@ -1,7 +1,7 @@
 /********************************************************************************//**
 \file      OVR_CAPI_Util.h
 \brief     This header provides LibOVR utility function declarations
-\copyright Copyright 2015 Oculus VR, LLC All Rights reserved.
+\copyright Copyright 2015-2016 Oculus VR, LLC All Rights reserved.
 *************************************************************************************/
 
 #ifndef OVR_CAPI_Util_h
@@ -23,14 +23,14 @@ extern "C" {
 typedef enum ovrProjectionModifier_
 {
     /// Use for generating a default projection matrix that is:
-    /// * Left-handed.
+    /// * Right-handed.
     /// * Near depth values stored in the depth buffer are smaller than far depth values.
     /// * Both near and far are explicitly defined.
     /// * With a clipping range that is (0 to w).
     ovrProjection_None = 0x00,
 
-    /// Enable if using right-handed transformations in your application.
-    ovrProjection_RightHanded = 0x01,
+    /// Enable if using left-handed transformations in your application.
+    ovrProjection_LeftHanded = 0x01,
 
     /// After the projection transform is applied, far values stored in the depth buffer will be less than closer depth values.
     /// NOTE: Enable only if the application is using a floating-point depth buffer for proper precision.
@@ -79,13 +79,13 @@ OVR_STATIC_ASSERT(sizeof(ovrDetectResult) == 8, "ovrDetectResult size mismatch")
 /// shared library.  This may be called before ovr_Initialize() to help decide whether or
 /// not to initialize LibOVR.
 ///
-/// \param[in] timeoutMsec Specifies a timeout to wait for HMD to be attached or 0 to poll.
+/// \param[in] timeoutMilliseconds Specifies a timeout to wait for HMD to be attached or 0 to poll.
 ///
 /// \return Returns an ovrDetectResult object indicating the result of detection.
 ///
 /// \see ovrDetectResult
 ///
-OVR_PUBLIC_FUNCTION(ovrDetectResult) ovr_Detect(int timeoutMsec);
+OVR_PUBLIC_FUNCTION(ovrDetectResult) ovr_Detect(int timeoutMilliseconds);
 
 // On the Windows platform,
 #ifdef _WIN32
@@ -125,54 +125,67 @@ OVR_PUBLIC_FUNCTION(ovrTimewarpProjectionDesc) ovrTimewarpProjectionDesc_FromPro
 /// \param[in] projection The perspective matrix that the orthographic matrix is derived from.
 /// \param[in] orthoScale Equal to 1.0f / pixelsPerTanAngleAtCenter.
 /// \param[in] orthoDistance Equal to the distance from the camera in meters, such as 0.8m.
-/// \param[in] hmdToEyeViewOffsetX Specifies the offset of the eye from the center.
+/// \param[in] HmdToEyeOffsetX Specifies the offset of the eye from the center.
 ///
 /// \return Returns the calculated projection matrix.
 ///
 OVR_PUBLIC_FUNCTION(ovrMatrix4f) ovrMatrix4f_OrthoSubProjection(ovrMatrix4f projection, ovrVector2f orthoScale,
-                                                                float orthoDistance, float hmdToEyeViewOffsetX);
+                                                                float orthoDistance, float HmdToEyeOffsetX);
 
 
 
 /// Computes offset eye poses based on headPose returned by ovrTrackingState.
 ///
 /// \param[in] headPose Indicates the HMD position and orientation to use for the calculation.
-/// \param[in] hmdToEyeViewOffset Can be ovrEyeRenderDesc.HmdToEyeViewOffset returned from 
+/// \param[in] HmdToEyeOffset Can be ovrEyeRenderDesc.HmdToEyeOffset returned from 
 ///            ovr_GetRenderDesc. For monoscopic rendering, use a vector that is the average 
 ///            of the two vectors for both eyes.
 /// \param[out] outEyePoses If outEyePoses are used for rendering, they should be passed to 
 ///             ovr_SubmitFrame in ovrLayerEyeFov::RenderPose or ovrLayerEyeFovDepth::RenderPose.
 ///
 OVR_PUBLIC_FUNCTION(void) ovr_CalcEyePoses(ovrPosef headPose,
-                                           const ovrVector3f hmdToEyeViewOffset[2],
+                                           const ovrVector3f HmdToEyeOffset[2],
                                            ovrPosef outEyePoses[2]);
 
 
-/// Returns the predicted head pose in outHmdTrackingState and offset eye poses in outEyePoses. 
+/// Returns the predicted head pose in outHmdTrackingState and offset eye poses in outEyePoses.
 ///
 /// This is a thread-safe function where caller should increment frameIndex with every frame
 /// and pass that index where applicable to functions called on the rendering thread.
 /// Assuming outEyePoses are used for rendering, it should be passed as a part of ovrLayerEyeFov.
-/// The caller does not need to worry about applying HmdToEyeViewOffset to the returned outEyePoses variables.
+/// The caller does not need to worry about applying HmdToEyeOffset to the returned outEyePoses variables.
 ///
-/// \param[in]  hmd Specifies an ovrHmd previously returned by ovr_Create.
+/// \param[in]  hmd Specifies an ovrSession previously returned by ovr_Create.
 /// \param[in]  frameIndex Specifies the targeted frame index, or 0 to refer to one frame after 
 ///             the last time ovr_SubmitFrame was called.
-/// \param[in]  hmdToEyeViewOffset Can be ovrEyeRenderDesc.HmdToEyeViewOffset returned from 
+/// \param[in]  HmdToEyeOffset Can be ovrEyeRenderDesc.HmdToEyeOffset returned from 
 ///             ovr_GetRenderDesc. For monoscopic rendering, use a vector that is the average 
 ///             of the two vectors for both eyes.
 /// \param[in]  latencyMarker Specifies that this call is the point in time where
 ///             the "App-to-Mid-Photon" latency timer starts from. If a given ovrLayer
 ///             provides "SensorSampleTimestamp", that will override the value stored here.
 /// \param[out] outEyePoses The predicted eye poses.
-/// \param[out] outHmdTrackingState The predicted ovrTrackingState. May be NULL, in which case it is ignored.
+/// \param[out] outSensorSampleTime The time when this function was called. May be NULL, in which case it is ignored.
 ///
 OVR_PUBLIC_FUNCTION(void) ovr_GetEyePoses(ovrSession session, long long frameIndex, ovrBool latencyMarker,
-                                             const ovrVector3f hmdToEyeViewOffset[2],
+                                             const ovrVector3f HmdToEyeOffset[2],
                                              ovrPosef outEyePoses[2],
-                                             ovrTrackingState* outHmdTrackingState);
+                                             double* outSensorSampleTime);
 
 
+
+/// Tracking poses provided by the SDK come in a right-handed coordinate system. If an application
+/// is passing in ovrProjection_LeftHanded into ovrMatrix4f_Projection, then it should also use
+/// this function to flip the HMD tracking poses to be left-handed.
+///
+/// While this utility function is intended to convert a left-handed ovrPosef into a right-handed
+/// coordinate system, it will also work for converting right-handed to left-handed since the
+/// flip operation is the same for both cases.
+/// 
+/// \param[in]  inPose that is right-handed
+/// \param[out] outPose that is requested to be left-handed (can be the same pointer to inPose)
+///
+OVR_PUBLIC_FUNCTION(void) ovrPosef_FlipHandedness(const ovrPosef* inPose, ovrPosef* outPose);
 
 
 #ifdef __cplusplus

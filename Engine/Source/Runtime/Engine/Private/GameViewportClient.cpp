@@ -770,6 +770,58 @@ static UCanvas* GetCanvasByName(FName CanvasName)
 	return *FoundCanvas;
 }
 
+/** Util to gather and sort view extensions */
+static void GatherViewExtensions(FViewport* InViewport, TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> >& OutViewExtensions)
+{
+#if PLATFORM_PS4
+	// Temp change to force PS4Tracker to be inserted before the HMD. Less hacky vesrion coming in future update
+	// This makes a dirty but reliable assumption that the PS4Tracker is first
+	if (GEngine->ViewExtensions.Num() > 0)
+	{
+		if (GEngine->ViewExtensions[0].IsValid())
+		{
+			OutViewExtensions.Add(GEngine->ViewExtensions[0]);
+		}
+	}
+
+	// Add HMD
+	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
+	{
+		auto HmdViewExt = GEngine->HMDDevice->GetViewExtension();
+		if (HmdViewExt.IsValid())
+		{
+			OutViewExtensions.Add(HmdViewExt);
+		}
+	}
+
+	// Add remaining view extensions
+	for (int32 ViewExtIndex = 1; ViewExtIndex < GEngine->ViewExtensions.Num(); ++ViewExtIndex)
+	{
+		if (GEngine->ViewExtensions[ViewExtIndex].IsValid())
+		{
+			OutViewExtensions.Add(GEngine->ViewExtensions[ViewExtIndex]);
+		}
+	}
+#else
+	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
+	{
+		auto HmdViewExt = GEngine->HMDDevice->GetViewExtension();
+		if (HmdViewExt.IsValid())
+		{
+			OutViewExtensions.Add(HmdViewExt);
+		}
+	}
+
+	for (auto ViewExt : GEngine->ViewExtensions)
+	{
+		if (ViewExt.IsValid())
+		{
+			OutViewExtensions.Add(ViewExt);
+		}
+	}
+#endif
+}
+
 void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 {
 	//Valid SceneCanvas is required.  Make this explicit.
@@ -812,20 +864,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		EngineShowFlags)
 		.SetRealtimeUpdate(true));
 
-	// Allow HMD to modify the view later, just before rendering
-	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
-	{
-		auto HmdViewExt = GEngine->HMDDevice->GetViewExtension();
-		if (HmdViewExt.IsValid())
-		{
-			ViewFamily.ViewExtensions.Add(HmdViewExt);
-		}
-	}
-
-	if (GEngine->ViewExtensions.Num())
-	{
-		ViewFamily.ViewExtensions.Append(GEngine->ViewExtensions.GetData(), GEngine->ViewExtensions.Num());
-	}
+	GatherViewExtensions(InViewport, ViewFamily.ViewExtensions);
 
 	for (auto ViewExt : ViewFamily.ViewExtensions)
 	{

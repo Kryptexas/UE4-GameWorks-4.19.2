@@ -10,13 +10,14 @@ public class Voice : ModuleRules
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				"Runtime/Online/Voice/Private",
+				"Runtime/Online/Voice/Private"
 			}
 			);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] { 
-				"Core"
+				"Core",
+                "Engine",
 			}
 			);
 

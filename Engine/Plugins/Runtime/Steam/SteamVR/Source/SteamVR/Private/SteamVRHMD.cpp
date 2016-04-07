@@ -37,7 +37,7 @@ FSceneViewport* FindSceneViewport()
 // SteamVR Plugin Implementation
 //---------------------------------------------------
 
-class FSteamVRPlugin : public ISteamVRPlugin
+class FSteamVRPlugin : public ISteamVRPlugin, public FHeadMountedDisplayModuleExt
 {
 	/** IHeadMountedDisplayModule implementation */
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
@@ -51,6 +51,12 @@ public:
 	FSteamVRPlugin::FSteamVRPlugin()
 		: VRSystem(nullptr)
 	{
+	}
+
+	virtual void StartupModule() override
+	{
+		IHeadMountedDisplayModule::StartupModule();
+		FHeadMountedDisplayModuleExt::RegisterModule((IHeadMountedDisplayModule*)this, (FHeadMountedDisplayModuleExt*)this);
 	}
 
 	virtual vr::IVRSystem* GetVRSystem() const override
@@ -74,6 +80,27 @@ public:
 		FSteamVRHMD* SteamVRHMD = static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
 
 		SteamVRHMD->SetUnrealControllerIdAndHandToDeviceIdMap(InUnrealControllerIdAndHandToDeviceIdMap);
+	}
+
+	virtual bool IsHMDConnected() override
+	{
+		TSharedPtr<FSteamVRHMD, ESPMode::ThreadSafe > Device;
+
+		// Pre-init...need to bootstrap loading things to see if it's connected
+		if (!VRSystem)
+		{
+			// Create a temporary device just for initialization purposes
+			Device = MakeShareable(new FSteamVRHMD(this));
+			
+		}
+
+		// Normal, just check if we're connected
+		if (VRSystem)
+		{
+			return VRSystem->IsTrackedDeviceConnected(vr::k_unTrackedDeviceIndex_Hmd);
+		}
+
+		return false;
 	}
 
 private:

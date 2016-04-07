@@ -218,6 +218,14 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FVRHeadsetRecenter);
 	static FVRHeadsetRecenter VRHeadsetRecenter;
 
+	/** Sent when connection to VR HMD is lost */
+	DECLARE_MULTICAST_DELEGATE(FVRHeadsetLost);
+	static FVRHeadsetLost VRHeadsetLost;
+
+	/** Sent when connection to VR HMD is restored */
+	DECLARE_MULTICAST_DELEGATE(FVRHeadsetReconnected);
+	static FVRHeadsetReconnected VRHeadsetReconnected;
+
 private:
 
 	// Callbacks for hotfixes

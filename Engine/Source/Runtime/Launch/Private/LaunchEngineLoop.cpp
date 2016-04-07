@@ -3238,16 +3238,23 @@ void FEngineLoop::AppExit( )
 void FEngineLoop::PreInitHMDDevice()
 {
 #if WITH_ENGINE && !UE_SERVER
-	if (!GIsEditor)
+	if (!FParse::Param(FCommandLine::Get(), TEXT("nohmd")) && !FParse::Param(FCommandLine::Get(), TEXT("emulatestereo")))
 	{
-		//@todo vr: only preinit first valid hmd?
-		if (!FParse::Param(FCommandLine::Get(), TEXT("nohmd")) && !FParse::Param(FCommandLine::Get(), TEXT("emulatestereo")))
+		// Get a list of modules that implement this feature
+		FName Type = IHeadMountedDisplayModule::GetModularFeatureName();
+		IModularFeatures& ModularFeatures = IModularFeatures::Get();
+		TArray<IHeadMountedDisplayModule*> HMDModules = ModularFeatures.GetModularFeatureImplementations<IHeadMountedDisplayModule>(Type);
+
+		// Iterate over modules, calling PreInit
+		for (auto HMDModuleIt = HMDModules.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
 		{
-			// Get a list of plugins that implement this feature
-			TArray<IHeadMountedDisplayModule*> HMDImplementations = IModularFeatures::Get().GetModularFeatureImplementations<IHeadMountedDisplayModule>(IHeadMountedDisplayModule::GetModularFeatureName());
-			for (auto HMDModuleIt = HMDImplementations.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
+			IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
+			FHeadMountedDisplayModuleExt* HMDModuleExt = FHeadMountedDisplayModuleExt::GetExtendedInterface(HMDModule);
+
+			if (HMDModuleExt && !HMDModuleExt->PreInitEx())
 			{
-				(*HMDModuleIt)->PreInit();
+				// Unregister modules which fail PreInit
+				ModularFeatures.UnregisterModularFeature(Type, HMDModule);
 			}
 		}
 	}

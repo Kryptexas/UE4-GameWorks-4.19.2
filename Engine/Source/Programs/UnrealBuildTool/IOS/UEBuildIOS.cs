@@ -263,6 +263,7 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bCompileAPEX = false;
 			UEBuildConfiguration.bRuntimePhysicsCooking = false;
 			UEBuildConfiguration.bCompileSimplygon = false;
+            UEBuildConfiguration.bCompileSimplygonSSF = false;
 			UEBuildConfiguration.bBuildDeveloperTools = false;
 			UEBuildConfiguration.bCompileICU = true;
 

@@ -71,3 +71,6 @@ FCoreDelegates::FPlatformChangedLaptopMode FCoreDelegates::PlatformChangedLaptop
 FCoreDelegates::FLoadStringAssetReferenceInCook FCoreDelegates::LoadStringAssetReferenceInCook;
 
 FCoreDelegates::FVRHeadsetRecenter FCoreDelegates::VRHeadsetRecenter;
+FCoreDelegates::FVRHeadsetLost FCoreDelegates::VRHeadsetLost;
+FCoreDelegates::FVRHeadsetReconnected FCoreDelegates::VRHeadsetReconnected;
+

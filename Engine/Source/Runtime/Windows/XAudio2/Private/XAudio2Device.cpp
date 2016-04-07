@@ -26,12 +26,6 @@
 #include "XAudio2Support.h"
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
 
-static TAutoConsoleVariable<int32> CVarXAudio2HmdDeviceIndex(
-	TEXT("hmd.XAudio2DeviceIndex"),
-	-1,
-	TEXT("Specifies the XAudio2 device index to use when HMD is connected. (-1 == Unknown)\n"),
-	ECVF_Default);
-
 DEFINE_LOG_CATEGORY(LogXAudio2);
 
 class FXAudio2DeviceModule : public IAudioDeviceModule
@@ -129,16 +123,41 @@ bool FXAudio2Device::InitializeHardware()
 		return( false );		
 	}
 
-	// Allow HMD to override which audio device is chosen
-	bool bUseHmdDeviceIndex = CVarXAudio2HmdDeviceIndex.GetValueOnGameThread() >= 0 && 
-		IModularFeatures::Get().IsModularFeatureAvailable(IHeadMountedDisplayModule::GetModularFeatureName());
+	// Initialize the audio device index to 0, which is the windows default device index
+	UINT32 DeviceIndex = 0;
 
-	UINT32 DeviceIndex = bUseHmdDeviceIndex ? CVarXAudio2HmdDeviceIndex.GetValueOnGameThread() : 0;
+#if XAUDIO_SUPPORTS_DEVICE_DETAILS
+	FString WindowsAudioDeviceName;
+	GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("AudioDevice"), WindowsAudioDeviceName, GEngineIni);
 
-	if(DeviceIndex >= DeviceCount)
-		DeviceIndex = 0;
+	// Allow HMD to specify audio device, if one was not specified in settings
+	if (WindowsAudioDeviceName.IsEmpty() && IHeadMountedDisplayModule::IsAvailable())
+	{
+		FHeadMountedDisplayModuleExt* const HmdEx = FHeadMountedDisplayModuleExt::GetExtendedInterface(&IHeadMountedDisplayModule::Get());
+		WindowsAudioDeviceName = HmdEx ? HmdEx->GetAudioOutputDevice() : FString();
+	}
+	
+	// If an audio device was specified, try to find it
+	if (!WindowsAudioDeviceName.IsEmpty())
+	{
+		uint32 NumDevices = 0;
+		DeviceProperties->XAudio2->GetDeviceCount(&NumDevices);
 
-	// Get the details of the default device
+		for (uint32 i = 0; i < NumDevices; ++i)
+		{
+			XAUDIO2_DEVICE_DETAILS Details;
+			DeviceProperties->XAudio2->GetDeviceDetails(i, &Details);
+
+			if (FString(Details.DeviceID) == WindowsAudioDeviceName)
+			{
+				DeviceIndex = i;
+				break;
+			}
+		}
+	}
+#endif
+
+	// Get the details of the desired device index (0 is default)
 	if( !ValidateAPICall(TEXT("GetDeviceDetails"),
 		DeviceProperties->XAudio2->GetDeviceDetails(DeviceIndex, &FXAudioDeviceProperties::DeviceDetails)))
 	{
