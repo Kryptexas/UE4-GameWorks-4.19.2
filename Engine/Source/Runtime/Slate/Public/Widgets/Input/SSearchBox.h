@@ -58,6 +58,9 @@ public:
 		/** Whether the SearchBox should delay notifying listeners of text changed events until the user is done typing */
 		SLATE_ATTRIBUTE( bool, DelayChangeNotificationsWhileTyping )
 
+		/** Callback delegate to have first chance handling of the OnKeyDown event */
+		SLATE_EVENT(FOnKeyDown, OnKeyDownHandler)
+
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs );

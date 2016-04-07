@@ -27,6 +27,7 @@
 #include "SEditorViewport.h"
 #include "AssetEditorModeManager.h"
 #include "Components/DirectionalLightComponent.h"
+#include "PixelInspectorModule.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -57,6 +58,19 @@ float ComputeOrthoZoomFactor(const float ViewportWidth)
 	return Ret;
 }
 
+void PixelInspectorRealtimeManagement(FEditorViewportClient *CurrentViewport, bool bMouseEnter)
+{
+	FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
+	if (PixelInspectorModule != nullptr)
+	{
+		bool bViewportIsRealtime = CurrentViewport->IsRealtime();
+		bool bViewportShouldBeRealtime = PixelInspectorModule->GetViewportRealtime(CurrentViewport->ViewIndex, bViewportIsRealtime, bMouseEnter);
+		if (bViewportIsRealtime != bViewportShouldBeRealtime)
+		{
+			CurrentViewport->SetRealtime(bViewportShouldBeRealtime);
+		}
+	}
+}
 
 namespace {
 	static const float GridSize = 2048.0f;
@@ -2205,7 +2219,7 @@ bool FEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, 
 
 		bHandled |= true;
 	}
-	else if( IsFlightCameraActive() )
+	else if( IsFlightCameraActive() && Event != IE_Repeat )
 	{
 		// Flight camera control is active, so simply absorb the key.  The camera will update based
 		// on currently pressed keys (Viewport->KeyState) in the Tick function.
@@ -3008,6 +3022,26 @@ void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily,
 	}
 
 	View.CurrentBufferVisualizationMode = CurrentBufferVisualizationMode;
+
+	//Look if the pixel inspector tool is on
+	View.bUsePixelInspector = false;
+	FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
+	if (PixelInspectorModule != nullptr)
+	{
+		View.bUsePixelInspector = PixelInspectorModule->IsPixelInspectorEnable();
+		bool IsMouseInsideViewport = CurrentMousePos != FIntPoint(-1, -1);
+		if (View.bUsePixelInspector && IsMouseInsideViewport)
+		{
+			// Ready to send a request
+			FSceneInterface *SceneInterface = GetScene();
+			PixelInspectorModule->CreatePixelInspectorRequest(CurrentMousePos, View.State->GetViewKey(), SceneInterface);
+		}
+		else if (!View.bUsePixelInspector && IsMouseInsideViewport)
+		{
+			//Track in case the user hit esc key to stop inspecting pixel
+			PixelInspectorRealtimeManagement(this, true);
+		}
+	}
 }
 
 void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
@@ -4404,6 +4438,8 @@ void FEditorViewportClient::MouseEnter(FViewport* InViewport,int32 x, int32 y)
 	ModeTools->MouseEnter(this, Viewport, x, y);
 
 	MouseMove(InViewport, x, y);
+
+	PixelInspectorRealtimeManagement(this, true);
 }
 
 void FEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)
@@ -4425,6 +4461,8 @@ void FEditorViewportClient::MouseLeave(FViewport* InViewport)
 	CurrentMousePos = FIntPoint(-1, -1);
 
 	FCommonViewportClient::MouseLeave(InViewport);
+
+	PixelInspectorRealtimeManagement(this, false);
 }
 
 void FEditorViewportClient::CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY )

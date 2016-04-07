@@ -1596,6 +1596,13 @@ public:
 	/** Called after UEditorEngine::Tick has been called (or UGameEngine::Tick in standalone) */
 	void BroadcastPostEditorTick(float DeltaSeconds) { PostEditorTickEvent.Broadcast(DeltaSeconds); }
 
+	/** Delegate broadcast after UEditorEngine::Tick has been called (or UGameEngine::Tick in standalone) */
+	DECLARE_EVENT(UEditorEngine, FEditorCloseEvent);
+	FEditorCloseEvent& OnEditorClose() { return EditorCloseEvent; }
+
+	/** Called after UEditorEngine::Tick has been called (or UGameEngine::Tick in standalone) */
+	void BroadcastEditorClose() { EditorCloseEvent.Broadcast(); }
+
 #endif // #if WITH_EDITOR
 
 	/** Event triggered after a server travel failure of any kind has occurred */
@@ -2347,6 +2354,9 @@ private:
 	
 	/** Delegate broadcast after UEditorEngine::Tick has been called (or UGameEngine::Tick in standalone) */
 	FPostEditorTick PostEditorTickEvent;
+
+	/** Delegate broadcast when the editor is closing */
+	FEditorCloseEvent EditorCloseEvent;
 
 #endif // #if WITH_EDITOR
 

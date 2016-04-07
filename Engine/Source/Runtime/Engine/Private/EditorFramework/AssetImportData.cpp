@@ -171,7 +171,13 @@ FString UAssetImportData::ResolveImportFilename(const FString& InRelativePath, c
 		const FString PathRelativeToPackage = FPaths::GetPath(FPackageName::LongPackageNameToFilename(Outermost->GetPathName())) / InRelativePath;
 		if (FPaths::FileExists(PathRelativeToPackage))
 		{
-			RelativePath = PathRelativeToPackage;
+			FString FullConvertPath = FPaths::ConvertRelativePathToFull(PathRelativeToPackage);
+			//FileExist return true when testing Path like c:/../folder1/filename. ConvertRelativePathToFull specify having .. in front of a drive letter is an error.
+			//It is relative to package only if the conversion to full path is successful.
+			if (FullConvertPath.Find(TEXT("..")) == INDEX_NONE)
+			{
+				return FullConvertPath;
+			}
 		}
 	}
 

@@ -1274,14 +1274,6 @@ void FMeshSectionSettingsLayout::OnMaterialChanged(UMaterialInterface* NewMateri
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 
-	if (FPackageName::IsEnginePackageName(StaticMesh.GetPathName()) && !FPackageName::IsEnginePackageName(NewMaterial->GetPathName()))
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
-			LOCTEXT("ObjectAssignmentToEngineFailed", "Cannot assign a Project object {0} to an Engine property."),
-			FText::FromString(NewMaterial->GetPathName())));
-		return;
-	}
-
 	// flag the property (Materials) we're modifying so that not all of the object is rebuilt.
 	UProperty* ChangedProperty = NULL;
 	ChangedProperty = FindField<UProperty>( UStaticMesh::StaticClass(), "Materials" );

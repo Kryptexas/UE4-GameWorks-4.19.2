@@ -1706,4 +1706,67 @@ bool ContentBrowserUtils::IsValidPackageForCooking(const FString& PackageName, F
 	return true;
 }
 
+void ContentBrowserUtils::SyncPackagesFromSourceControl(TArray<FString> PackageNames)
+{
+	// Form a list of loaded packages to prompt for save
+	TArray<UPackage*> LoadedPackages;
+	TArray<FString> LoadedPackageNames;
+	for (const auto& PackageName : PackageNames)
+	{
+		UPackage* Package = FindPackage(nullptr, *PackageName);
+		if (Package != nullptr)
+		{
+			LoadedPackages.Add(Package);
+			LoadedPackageNames.Add(PackageName);
+		}
+	}
+
+	// Prevent any level assets from being synced if they are currently being edited
+	bool bSyncingLevelBeingEdited = false;
+	LoadedPackages.RemoveAllSwap(
+		[&bSyncingLevelBeingEdited, &PackageNames, &LoadedPackageNames](UPackage* Package)
+		{
+			UWorld* ExistingWorld = UWorld::FindWorldInPackage(Package);
+			if (ExistingWorld && ExistingWorld->WorldType == EWorldType::Editor)
+			{
+				PackageNames.RemoveSwap(Package->GetName());
+				LoadedPackageNames.RemoveSwap(Package->GetName());
+				bSyncingLevelBeingEdited = true;
+				return true;
+			}
+
+			return false;
+		}
+	);
+
+	if (bSyncingLevelBeingEdited)
+	{
+		FNotificationInfo Info(LOCTEXT("CannotSyncLevelBeingEdited", "Level(s) being currently edited have not been synced."));
+		Info.ExpireDuration = 3.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+
+	if (PackageNames.Num() > 0)
+	{
+		FText ErrorMessage;
+		PackageTools::UnloadPackages(LoadedPackages, ErrorMessage);
+
+		if (!ErrorMessage.IsEmpty())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, ErrorMessage);
+		}
+		else
+		{
+			ISourceControlProvider& SCCProvider = ISourceControlModule::Get().GetProvider();
+			const TArray<FString> PackageFilenames = SourceControlHelpers::PackageFilenames(PackageNames);
+			SCCProvider.Execute(ISourceControlOperation::Create<FSync>(), PackageFilenames);
+			for (const FString& PackageName : LoadedPackageNames)
+			{
+				PackageTools::LoadPackage(PackageName);
+			}
+			SCCProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), PackageFilenames, EConcurrency::Asynchronous);
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

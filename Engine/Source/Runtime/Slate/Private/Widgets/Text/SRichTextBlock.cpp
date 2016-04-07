@@ -28,6 +28,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 	TextStyle = *InArgs._TextStyle;
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
+	WrappingPolicy = InArgs._WrappingPolicy;
 	Margin = InArgs._Margin;
 	LineHeightPercentage = InArgs._LineHeightPercentage;
 	Justification = InArgs._Justification;
@@ -67,7 +68,7 @@ FVector2D SRichTextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
 	// ComputeDesiredSize will also update the text layout cache if required
 	const FVector2D TextSize = TextLayoutCache->ComputeDesiredSize(
-		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
+		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, WrappingPolicy, Margin, LineHeightPercentage, Justification),
 		LayoutScaleMultiplier, TextStyle
 		);
 
@@ -117,6 +118,12 @@ void SRichTextBlock::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
 void SRichTextBlock::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
 {
 	AutoWrapText = InAutoWrapText;
+	Invalidate(EInvalidateWidget::Layout);
+}
+
+void SRichTextBlock::SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy)
+{
+	WrappingPolicy = InWrappingPolicy;
 	Invalidate(EInvalidateWidget::Layout);
 }
 

@@ -29,6 +29,7 @@ void SSearchBox::Construct( const FArguments& InArgs )
 		.OnTextChanged( this, &SSearchBox::HandleTextChanged )
 		.OnTextCommitted( this, &SSearchBox::HandleTextCommitted )
 		.MinDesiredWidth( InArgs._MinDesiredWidth )
+		.OnKeyDownHandler( InArgs._OnKeyDownHandler )
 	);
 
 	// If we want to have the buttons appear to the left of the text box we have to insert the slots instead of add them

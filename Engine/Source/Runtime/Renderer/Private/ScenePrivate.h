@@ -1584,6 +1584,27 @@ private:
 
 typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;
 
+#if WITH_EDITOR
+	class FPixelInspectorData
+	{
+	public:
+		FPixelInspectorData();
+
+		void InitializeBuffers(FRenderTarget* BufferFinalColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 bufferIndex);
+
+		bool AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequest);
+
+		//Hold the buffer array
+		TMap<FIntPoint, FPixelInspectorRequest *> Requests;
+
+		FRenderTarget* RenderTargetBufferDepth[2];
+		FRenderTarget* RenderTargetBufferFinalColor[2];
+		FRenderTarget* RenderTargetBufferHDR[2];
+		FRenderTarget* RenderTargetBufferA[2];
+		FRenderTarget* RenderTargetBufferBCDE[2];
+	};
+#endif //WITH_EDITOR
+
 /** 
  * Renderer scene which is private to the renderer module.
  * Ordinarily this is the renderer version of a UWorld, but an FScene can be created for previewing in editors which don't have a UWorld as well.
@@ -1782,6 +1803,11 @@ public:
 
 	float DefaultMaxDistanceFieldOcclusionDistance;
 
+#if WITH_EDITOR
+	/** Editor Pixel inspector */
+	FPixelInspectorData PixelInspectorData;
+#endif //WITH_EDITOR
+
 	/** Initialization constructor. */
 	FScene(UWorld* InWorld, bool bInRequiresHitProxies,bool bInIsEditorScene, bool bCreateFXSystem, ERHIFeatureLevel::Type InFeatureLevel);
 
@@ -1961,6 +1987,12 @@ public:
 	{
 		return PrimitiveComponentIds;
 	}
+
+#if WITH_EDITOR
+	virtual bool InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex) override;
+
+	virtual bool AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequest) override;
+#endif //WITH_EDITOR
 
 private:
 

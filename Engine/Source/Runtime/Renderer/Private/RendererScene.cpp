@@ -155,6 +155,88 @@ FSceneViewState::~FSceneViewState()
 	DestroyLightPropagationVolume();
 }
 
+#if WITH_EDITOR
+
+FPixelInspectorData::FPixelInspectorData()
+{
+	for (int32 i = 0; i < 2; ++i)
+	{
+		RenderTargetBufferFinalColor[i] = nullptr;
+		RenderTargetBufferDepth[i] = nullptr;
+		RenderTargetBufferHDR[i] = nullptr;
+		RenderTargetBufferA[i] = nullptr;
+		RenderTargetBufferBCDE[i] = nullptr;
+	}
+}
+
+void FPixelInspectorData::InitializeBuffers(FRenderTarget* BufferFinalColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
+{
+	RenderTargetBufferFinalColor[BufferIndex] = BufferFinalColor;
+	RenderTargetBufferDepth[BufferIndex] = BufferDepth;
+	RenderTargetBufferHDR[BufferIndex] = BufferHDR;
+	RenderTargetBufferA[BufferIndex] = BufferA;
+	RenderTargetBufferBCDE[BufferIndex] = BufferBCDE;
+
+	check(RenderTargetBufferBCDE[BufferIndex] != nullptr);
+	
+	FIntPoint BufferSize = RenderTargetBufferBCDE[BufferIndex]->GetSizeXY();
+	check(BufferSize.X == 4 && BufferSize.Y == 1);
+
+	if (RenderTargetBufferA[BufferIndex] != nullptr)
+	{
+		BufferSize = RenderTargetBufferA[BufferIndex]->GetSizeXY();
+		check(BufferSize.X == 1 && BufferSize.Y == 1);
+	}
+	
+	if (RenderTargetBufferFinalColor[BufferIndex] != nullptr)
+	{
+		BufferSize = RenderTargetBufferFinalColor[BufferIndex]->GetSizeXY();
+		//The Final color grab an area and can change depending on the setup
+		//It should at least contain 1 pixel but can be 3x3 or more
+		check(BufferSize.X > 0 && BufferSize.Y > 0);
+	}
+
+	if (RenderTargetBufferDepth[BufferIndex] != nullptr)
+	{
+		BufferSize = RenderTargetBufferDepth[BufferIndex]->GetSizeXY();
+		check(BufferSize.X == 1 && BufferSize.Y == 1);
+	}
+
+	if (RenderTargetBufferHDR[BufferIndex] != nullptr)
+	{
+		BufferSize = RenderTargetBufferHDR[BufferIndex]->GetSizeXY();
+		check(BufferSize.X == 1 && BufferSize.Y == 1);
+	}
+}
+
+bool FPixelInspectorData::AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequest)
+{
+	if (PixelInspectorRequest == nullptr)
+		return false;
+	FIntPoint PixelPosition = PixelInspectorRequest->SourcePixelPosition;
+	if (Requests.Contains(PixelPosition))
+		return false;
+	
+	//Remove the oldest request since the new request use the buffer
+	if (Requests.Num() > 1)
+	{
+		FIntPoint FirstKey(-1, -1);
+		for (auto kvp : Requests)
+		{
+			FirstKey = kvp.Key;
+			break;
+		}
+		if (Requests.Contains(FirstKey))
+		{
+			Requests.Remove(FirstKey);
+		}
+	}
+	Requests.Add(PixelPosition, PixelInspectorRequest);
+	return true;
+}
+
+#endif //WITH_EDITOR
+
 FDistanceFieldSceneData::FDistanceFieldSceneData(EShaderPlatform ShaderPlatform) 
 	: NumObjectsInBuffer(0)
 	, ObjectBuffers(NULL)
@@ -2413,6 +2495,21 @@ void FScene::OnLevelAddedToWorld_RenderThread(FName InLevelName)
 		}
 	}
 }
+
+#if WITH_EDITOR
+bool FScene::InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
+{
+	//Initialize the buffers
+	PixelInspectorData.InitializeBuffers(BufferFinalColor, BufferDepth, BufferHDR, BufferA, BufferBCDE, BufferIndex);
+	//return true when the interface is implemented
+	return true;
+}
+
+bool FScene::AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequest)
+{
+	return PixelInspectorData.AddPixelInspectorRequest(PixelInspectorRequest);
+}
+#endif //WITH_EDITOR
 
 /**
  * Dummy NULL scene interface used by dedicated servers.

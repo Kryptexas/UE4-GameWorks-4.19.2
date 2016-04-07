@@ -10,6 +10,7 @@ class USkyLightComponent;
 class FAtmosphericFogSceneInfo;
 class FPrimitiveComponentId;
 class FPrimitiveSceneInfo;
+class FRenderTarget;
 
 /**
  * An interface to the private scene manager implementation of a scene.  Use GetRendererModule().AllocateScene to create.
@@ -340,6 +341,26 @@ public:
 	{
 		return ShouldUseDeferredRenderer(GetFeatureLevel());
 	}
+
+#if WITH_EDITOR
+	/**
+	 * Initialize the pixel inspector buffers.
+	 * @return True if implemented false otherwise.
+	 */
+	virtual bool InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
+	{
+		return false;
+	}
+
+	/**
+	 * Add a pixel inspector request.
+	 * @return True if implemented false otherwise.
+	 */
+	virtual bool AddPixelInspectorRequest(class FPixelInspectorRequest *PixelInspectorRequest)
+	{
+		return false;
+	}
+#endif //WITH_EDITOR
 
 	/**
 	 * Returns the FPrimitiveComponentId for all primitives in the scene

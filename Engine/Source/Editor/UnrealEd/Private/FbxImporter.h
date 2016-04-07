@@ -341,7 +341,16 @@ public:
 	* @param NodeLodGroup	The LOD group fbx node
 	* @param LodIndex		The index of the LOD we search the mesh node
 	*/
-	FbxNode* FindLODGroupNode(FbxNode* NodeLodGroup, int32 LodIndex);
+	FbxNode* FindLODGroupNode(FbxNode* NodeLodGroup, int32 LodIndex, FbxNode *NodeToFind = nullptr);
+
+	/**
+	* Find the all the node containing a mesh attribute for the specified LOD index.
+	*
+	* @param OutNodeInLod   All the mesh node under the lod group
+	* @param NodeLodGroup	The LOD group fbx node
+	* @param LodIndex		The index of the LOD we search the mesh node
+	*/
+	void FindAllLODGroupNode(TArray<FbxNode*> &OutNodeInLod, FbxNode* NodeLodGroup, int32 LodIndex);
 
 	/**
 	* Find the first parent node containing a eLODGroup attribute.
@@ -422,7 +431,7 @@ public:
 	 *
 	 * @return The USkeletalMesh object created
 	 */
-	USkeletalMesh* ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, bool* bCancelOperation = nullptr, TArray<FbxShape*> *FbxShapeArray = nullptr, FSkeletalMeshImportData* OutData = nullptr, bool bCreateRenderData = true );
+	USkeletalMesh* ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, int32 LodIndex, bool* bCancelOperation = nullptr, TArray<FbxShape*> *FbxShapeArray = nullptr, FSkeletalMeshImportData* OutData = nullptr, bool bCreateRenderData = true );
 
 	/**
 	 * Add to the animation set, the animations contained within the FBX scene, for the given skeletal mesh
@@ -630,7 +639,14 @@ private:
 	*
 	* @param Node	The node from which we start the search for the first node containing a mesh attribute
 	*/
-	FbxNode *RecursiveGetFirstMeshNode(FbxNode* Node);
+	FbxNode *RecursiveGetFirstMeshNode(FbxNode* Node, FbxNode* NodeToFind = nullptr);
+
+	/**
+	* Recursive search for a node having a mesh attribute
+	*
+	* @param Node	The node from which we start the search for the first node containing a mesh attribute
+	*/
+	void RecursiveGetAllMeshNode(TArray<FbxNode *> &OutAllNode, FbxNode* Node);
 
 	/**
 	 * ActorX plug-in can export mesh and dummy as skeleton.

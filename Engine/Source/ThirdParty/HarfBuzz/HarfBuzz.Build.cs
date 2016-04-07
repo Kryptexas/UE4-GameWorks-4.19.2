@@ -16,7 +16,7 @@ public class HarfBuzz : ModuleRules
 			return;
 		}
 
-		string HarfBuzzVersion = "harfbuzz-1.0.5";
+		string HarfBuzzVersion = "harfbuzz-1.2.4";
 		string HarfBuzzRootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "HarfBuzz/" + HarfBuzzVersion + "/";
 
 		// Includes

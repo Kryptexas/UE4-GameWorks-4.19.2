@@ -1174,7 +1174,7 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 		{
 			const FCharacterEntry& Entry = CharacterList.GetCharacter(CurrentChar, LegacyFontInfo.FontFallback);
 
-			if( FontTexture == nullptr || Entry.TextureIndex != FontTextureIndex )
+			if( Entry.Valid && (FontTexture == nullptr || Entry.TextureIndex != FontTextureIndex) )
 			{
 				// Font has a new texture for this glyph. Refresh the batch we use and the index we are currently using
 				FontTextureIndex = Entry.TextureIndex;
@@ -1189,10 +1189,10 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 				InvTextureSizeY = 1.0f/FontTexture->GetSizeY();
 			}
 
-			const bool bIsWhitespace = FChar::IsWhitespace(CurrentChar);
+			const bool bIsWhitespace = !Entry.Valid || FChar::IsWhitespace(CurrentChar);
 
 			int32 Kerning = 0;
-			if( !bIsWhitespace && PreviousCharEntry.IsCached() )
+			if( !bIsWhitespace && PreviousCharEntry.Valid )
 			{
 				Kerning = CharacterList.GetKerning( PreviousCharEntry, Entry ) * Scale.X;
 			}
@@ -1318,60 +1318,63 @@ void FCanvasShapedTextItem::DrawStringInternal( FCanvas* InCanvas, const FVector
 		{
 			const FShapedGlyphFontAtlasData GlyphAtlasData = FontCache->GetShapedGlyphFontAtlasData(GlyphToRender);
 
-			if( FontTexture == nullptr || GlyphAtlasData.TextureIndex != FontTextureIndex )
+			if (GlyphAtlasData.Valid)
 			{
-				// Font has a new texture for this glyph. Refresh the batch we use and the index we are currently using
-				FontTextureIndex = GlyphAtlasData.TextureIndex;
-				FontTexture = FontCache->GetEngineTextureResource( FontTextureIndex );
-				check(FontTexture);
+				if( FontTexture == nullptr || GlyphAtlasData.TextureIndex != FontTextureIndex )
+				{
+					// Font has a new texture for this glyph. Refresh the batch we use and the index we are currently using
+					FontTextureIndex = GlyphAtlasData.TextureIndex;
+					FontTexture = FontCache->GetEngineTextureResource( FontTextureIndex );
+					check(FontTexture);
 
-				FBatchedElementParameters* BatchedElementParameters = nullptr;
-				BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
-				check(BatchedElements);
+					FBatchedElementParameters* BatchedElementParameters = nullptr;
+					BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
+					check(BatchedElements);
 
-				InvTextureSizeX = 1.0f/FontTexture->GetSizeX();
-				InvTextureSizeY = 1.0f/FontTexture->GetSizeY();
+					InvTextureSizeX = 1.0f/FontTexture->GetSizeX();
+					InvTextureSizeY = 1.0f/FontTexture->GetSizeY();
+				}
+
+				const float X = DrawPos.X + LineX + (GlyphAtlasData.HorizontalOffset * Scale.X) + (GlyphToRender.XOffset  * Scale.X);
+				// Note PosX,PosY is the upper left corner of the bounding box representing the string.  This computes the Y position of the baseline where text will sit
+
+				const float Y = DrawPos.Y + PosY - (GlyphAtlasData.VerticalOffset * Scale.Y) + (GlyphToRender.YOffset * Scale.Y) + ScaledBaseline + ScaledMaxHeight;
+				const float U = GlyphAtlasData.StartU * InvTextureSizeX;
+				const float V = GlyphAtlasData.StartV * InvTextureSizeY;
+				const float SizeX = GlyphAtlasData.USize * Scale.X;
+				const float SizeY = GlyphAtlasData.VSize * Scale.Y;
+				const float SizeU = GlyphAtlasData.USize * InvTextureSizeX;
+				const float SizeV = GlyphAtlasData.VSize * InvTextureSizeY;
+
+				const float Left = X * Depth;
+				const float Top = Y * Depth;
+				const float Right = (X + SizeX) * Depth;
+				const float Bottom = (Y + SizeY) * Depth;
+
+				int32 V00 = BatchedElements->AddVertex(
+					FVector4( Left, Top, 0.f, Depth ),
+					FVector2D( U, V ),
+					InColor,
+					HitProxyId );
+				int32 V10 = BatchedElements->AddVertex(
+					FVector4( Right, Top, 0.0f, Depth ),
+					FVector2D( U + SizeU, V ),			
+					InColor,
+					HitProxyId );
+				int32 V01 = BatchedElements->AddVertex(
+					FVector4( Left, Bottom, 0.0f, Depth ),
+					FVector2D( U, V + SizeV ),	
+					InColor,
+					HitProxyId);
+				int32 V11 = BatchedElements->AddVertex(
+					FVector4( Right, Bottom, 0.0f, Depth ),
+					FVector2D( U + SizeU, V + SizeV ),
+					InColor,
+					HitProxyId);
+
+				BatchedElements->AddTriangle(V00, V10, V11, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
+				BatchedElements->AddTriangle(V00, V11, V01, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
 			}
-
-			const float X = DrawPos.X + LineX + (GlyphAtlasData.HorizontalOffset * Scale.X) + (GlyphToRender.XOffset  * Scale.X);
-			// Note PosX,PosY is the upper left corner of the bounding box representing the string.  This computes the Y position of the baseline where text will sit
-
-			const float Y = DrawPos.Y + PosY - (GlyphAtlasData.VerticalOffset * Scale.Y) + (GlyphToRender.YOffset * Scale.Y) + ScaledBaseline + ScaledMaxHeight;
-			const float U = GlyphAtlasData.StartU * InvTextureSizeX;
-			const float V = GlyphAtlasData.StartV * InvTextureSizeY;
-			const float SizeX = GlyphAtlasData.USize * Scale.X;
-			const float SizeY = GlyphAtlasData.VSize * Scale.Y;
-			const float SizeU = GlyphAtlasData.USize * InvTextureSizeX;
-			const float SizeV = GlyphAtlasData.VSize * InvTextureSizeY;
-
-			const float Left = X * Depth;
-			const float Top = Y * Depth;
-			const float Right = (X + SizeX) * Depth;
-			const float Bottom = (Y + SizeY) * Depth;
-
-			int32 V00 = BatchedElements->AddVertex(
-				FVector4( Left, Top, 0.f, Depth ),
-				FVector2D( U, V ),
-				InColor,
-				HitProxyId );
-			int32 V10 = BatchedElements->AddVertex(
-				FVector4( Right, Top, 0.0f, Depth ),
-				FVector2D( U + SizeU, V ),			
-				InColor,
-				HitProxyId );
-			int32 V01 = BatchedElements->AddVertex(
-				FVector4( Left, Bottom, 0.0f, Depth ),
-				FVector2D( U, V + SizeV ),	
-				InColor,
-				HitProxyId);
-			int32 V11 = BatchedElements->AddVertex(
-				FVector4( Right, Bottom, 0.0f, Depth ),
-				FVector2D( U + SizeU, V + SizeV ),
-				InColor,
-				HitProxyId);
-
-			BatchedElements->AddTriangle(V00, V10, V11, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
-			BatchedElements->AddTriangle(V00, V11, V01, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
 		}
 
 		LineX += GlyphToRender.XAdvance * Scale.X;
