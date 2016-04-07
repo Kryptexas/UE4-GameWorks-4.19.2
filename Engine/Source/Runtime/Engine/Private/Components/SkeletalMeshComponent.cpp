@@ -2189,9 +2189,17 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 						const TArray<FTransform>& RefPose = SkeletalMesh->RefSkeleton.GetRefBonePose();
 
 						const TArray<FTransform>& SpaceBases = GetSpaceBases();
-						FTransform RelativeTransform = SpaceBases[BoneIndex].GetRelativeTransformReverse(SpaceBases[ParentIndex]);
-						// now get offset 
-						RootBodyData.TransformToRoot = RelativeTransform;
+
+						if (SpaceBases.IsValidIndex(BoneIndex))
+						{
+							FTransform RelativeTransform = SpaceBases[BoneIndex].GetRelativeTransformReverse(SpaceBases[ParentIndex]);
+							// now get offset 
+							RootBodyData.TransformToRoot = RelativeTransform;
+						}
+						else
+						{
+							RootBodyData.TransformToRoot = FTransform::Identity;
+						}
 					}
 				}
 			}
