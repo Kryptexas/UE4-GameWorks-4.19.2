@@ -2371,21 +2371,6 @@ void FD3D12CommandContext::RHIBindClearMRTValues(bool bClearColor, bool bClearDe
 	// Not necessary for d3d.
 }
 
-void FD3D12CommandContext::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority)
-{
-	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
-}
-
-void FD3D12CommandContext::RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex)
-{
-	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
-}
-
-void FD3D12CommandContext::RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex)
-{
-	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
-}
-
 // Functions to yield and regain rendering control from D3D
 
 void FD3D12DynamicRHI::RHISuspendRendering()

@@ -42,7 +42,7 @@ const uint32 MaxMetalStreams = 30;
 #define METAL_STATISTICS 0
 #endif
 
-#define SHOULD_TRACK_OBJECTS 0 // (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#define SHOULD_TRACK_OBJECTS (UE_BUILD_DEBUG)
 
 #define UNREAL_TO_METAL_BUFFER_INDEX(Index) ((MaxMetalStreams - 1) - Index)
 
@@ -68,15 +68,14 @@ FMetalSurface* GetMetalSurfaceFromRHITexture(FRHITexture* Texture);
 #define NOT_SUPPORTED(Func) UE_LOG(LogMetal, Fatal, TEXT("'%s' is not supported"), L##Func);
 
 #if SHOULD_TRACK_OBJECTS
-extern TMap<id, int32> ClassCounts;
-#define TRACK_OBJECT(Obj) ClassCounts.FindOrAdd([Obj class])++;
-#define UNTRACK_OBJECT(Obj) ClassCounts.FindOrAdd([Obj class])--;
+void TrackMetalObject(NSObject* Object);
+void UntrackMetalObject(NSObject* Object);
+#define TRACK_OBJECT(Stat, Obj) INC_DWORD_STAT(Stat); TrackMetalObject(Obj)
+#define UNTRACK_OBJECT(Stat, Obj) DEC_DWORD_STAT(Stat); UntrackMetalObject(Obj)
 #else
-#define TRACK_OBJECT(Obj)
-#define UNTRACK_OBJECT(Obj)
+#define TRACK_OBJECT(Stat, Obj) INC_DWORD_STAT(Stat)
+#define UNTRACK_OBJECT(Stat, Obj) DEC_DWORD_STAT(Stat)
 #endif
-
-
 
 FORCEINLINE int32 GetMetalCubeFace(ECubeFace Face)
 {

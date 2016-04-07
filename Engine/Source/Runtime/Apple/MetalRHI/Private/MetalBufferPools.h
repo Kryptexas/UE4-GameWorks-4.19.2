@@ -79,6 +79,11 @@ public:
 	 */
 	CreationArguments GetCreationArguments(FMetalPooledBuffer Resource);
 	
+	/** Frees the resource
+	 * @param Resource The buffer to prepare for release from the pool permanently.
+	 */
+	void FreeResource(FMetalPooledBuffer Resource);
+	
 private:
 	/** The bucket sizes */
 	static uint32 BucketSizes[NumPoolBucketSizes];

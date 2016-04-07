@@ -33,9 +33,16 @@ public class VulkanRHI : ModuleRules
 			PrivateIncludePaths.Add(VulkanSDKPath + "/Include");
 
 			//#todo-rco: Using /Source/lib instead of /bin as we want pdb's for now
-			PublicLibraryPaths.Add(VulkanSDKPath + "/Source/lib");
+			if (Target.Platform == UnrealTargetPlatform.Win32)
+			{
+				PublicLibraryPaths.Add(VulkanSDKPath + "/Source/lib32");
+			}
+			else
+			{
+				PublicLibraryPaths.Add(VulkanSDKPath + "/Source/lib");
+			}
 
-            if (Target.Platform == UnrealTargetPlatform.Android)
+			if (Target.Platform == UnrealTargetPlatform.Android)
             {
                 PublicAdditionalLibraries.Add(System.IO.Path.Combine(VulkanSDKPath, "Source/lib/libvulkan.so"));
             }

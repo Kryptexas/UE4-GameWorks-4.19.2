@@ -92,6 +92,7 @@ class FMetalComputeShader : public TMetalBaseShader<FRHIComputeShader, SF_Comput
 {
 public:
 	FMetalComputeShader(const TArray<uint8>& InCode);
+	virtual ~FMetalComputeShader();
 	
 	// the state object for a compute shader
 	id <MTLComputePipelineState> Kernel;
@@ -598,6 +599,9 @@ public:
 
 	// The vertex buffer this SRV comes from (can be null)
 	TRefCountPtr<FMetalVertexBuffer> SourceVertexBuffer;
+	
+	// The index buffer this SRV comes from (can be null)
+	TRefCountPtr<FMetalIndexBuffer> SourceIndexBuffer;
 
 	// The texture that this SRV come from
 	TRefCountPtr<FRHITexture> SourceTexture;
@@ -653,6 +657,36 @@ private:
 	uint8* PackedUniformsScratch[CrossCompiler::PACKED_TYPEINDEX_MAX];
 
 	int32 GlobalUniformArraySize;
+};
+
+class FMetalComputeFence : public FRHIComputeFence
+{
+public:
+	
+	FMetalComputeFence(FName InName)
+	: FRHIComputeFence(InName)
+	, CommandBuffer(nil)
+	{}
+	
+	virtual void Reset() final override
+	{
+		FRHIComputeFence::Reset();
+		[CommandBuffer release];
+		CommandBuffer = nil;
+	}
+	
+	void Write(id<MTLCommandBuffer> Buffer)
+	{
+		check(CommandBuffer == nil);
+		check(Buffer != nil);
+		CommandBuffer = [Buffer retain];
+		FRHIComputeFence::WriteFence();
+	}
+	
+	void Wait();
+	
+private:
+	id<MTLCommandBuffer> CommandBuffer;
 };
 
 template<class T>
@@ -774,4 +808,9 @@ template<>
 struct TMetalResourceTraits<FRHIBlendState>
 {
 	typedef FMetalBlendState TConcreteType;
+};
+template<>
+struct TMetalResourceTraits<FRHIComputeFence>
+{
+	typedef FMetalComputeFence TConcreteType;
 };

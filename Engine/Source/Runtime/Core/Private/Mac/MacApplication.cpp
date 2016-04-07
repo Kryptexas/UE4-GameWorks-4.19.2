@@ -1153,12 +1153,26 @@ void FMacApplication::OnWindowsReordered()
 	SavedWindowsOrder.Empty();
 
 	NSArray* OrderedWindows = [NSApp orderedWindows];
+
+	int32 MinLevel = 0;
+	int32 MaxLevel = 0;
 	for (NSWindow* Window in OrderedWindows)
 	{
-		if ([Window isKindOfClass:[FCocoaWindow class]] && [Window isVisible] && ![Window hidesOnDeactivate])
+		const int32 WindowLevel = Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level];
+		MinLevel = FMath::Min(MinLevel, WindowLevel);
+		MaxLevel = FMath::Max(MaxLevel, WindowLevel);
+	}
+
+	for (int32 Level = MaxLevel; Level >= MinLevel; Level--)
+	{
+		for (NSWindow* Window in OrderedWindows)
 		{
-			SavedWindowsOrder.Add(FSavedWindowOrderInfo([Window windowNumber], Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level]));
-			[Window setLevel:NSNormalWindowLevel];
+			const int32 WindowLevel = Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level];
+			if (Level == WindowLevel && [Window isKindOfClass:[FCocoaWindow class]] && [Window isVisible] && ![Window hidesOnDeactivate])
+			{
+				SavedWindowsOrder.Add(FSavedWindowOrderInfo([Window windowNumber], WindowLevel));
+				[Window setLevel:NSNormalWindowLevel];
+			}
 		}
 	}
 }

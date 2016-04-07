@@ -66,9 +66,11 @@
     <Compile Include="BuildDocumentation.Automation.cs" />
     <Compile Include="BuildPluginCommand.Automation.cs" />
     <Compile Include="BuildProjectCommand.Automation.cs" />
+    <Compile Include="BuildTargetCommand.Automation.cs" />
     <Compile Include="BuildThirdPartyLibs.Automation.cs" />
     <Compile Include="CodeSurgery.Automation.cs" />
     <Compile Include="CookCommand.Automation.cs" />
+    <Compile Include="CookTargetCommand.Automation.cs" />
     <Compile Include="CopyBuildToStagingDirectory.Automation.cs" />
     <Compile Include="CopyUAT.Automation.cs" />
     <Compile Include="DeployCommand.Automation.cs" />
@@ -86,6 +88,7 @@
     <Compile Include="PackageCommand.Automation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RunProjectCommand.Automation.cs" />
+    <Compile Include="StageTargetCommand.Automation.cs" />
     <Compile Include="Tests.Automation.cs" />
     <Compile Include="TestSnippet.Automation.cs" />
     <Compile Include="UE4BuildUtils.cs" />

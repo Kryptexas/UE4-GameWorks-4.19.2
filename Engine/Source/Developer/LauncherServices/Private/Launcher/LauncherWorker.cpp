@@ -200,6 +200,11 @@ static void AddDeviceToLaunchCommand(const FString& DeviceId, ITargetDeviceProxy
 		// if our editor has nomcp then pass it through the launched game
 		RoleCommands += TEXT(" -nomcp");
 	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("opengl")))
+	{
+		RoleCommands += TEXT(" -opengl");
+	}
 }
 
 FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile, const TArray<FString>& InPlatforms, TArray<FCommandDesc>& OutCommands, FString& CommandStart )

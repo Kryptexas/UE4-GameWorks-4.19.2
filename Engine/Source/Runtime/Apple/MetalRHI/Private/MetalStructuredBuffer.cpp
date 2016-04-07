@@ -11,7 +11,7 @@ FMetalStructuredBuffer::FMetalStructuredBuffer(uint32 Stride, uint32 Size, FReso
 {
 	check((Size % Stride) == 0);
 
-	MTLStorageMode Mode = (GetUsage() & BUF_Volatile) ? MTLStorageModeShared : BUFFER_STORAGE_MODE;
+	MTLStorageMode Mode = BUFFER_STORAGE_MODE;
 	FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), Size, Mode));
 	Buffer = [Buf.Buffer retain];
 
@@ -23,7 +23,7 @@ FMetalStructuredBuffer::FMetalStructuredBuffer(uint32 Stride, uint32 Size, FReso
 		ResourceArray->Discard();
 	}
 
-	TRACK_OBJECT(Buffer);
+	TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 }
 
 FMetalStructuredBuffer::~FMetalStructuredBuffer()
@@ -40,7 +40,7 @@ void* FMetalStructuredBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, ui
 	if (GetUsage() & BUF_AnyDynamic && LockMode == RLM_WriteOnly)
 	{
 		id<MTLBuffer> OldBuffer = Buffer;
-		MTLStorageMode Mode = (GetUsage() & BUF_Volatile) ? MTLStorageModeShared : BUFFER_STORAGE_MODE;
+		MTLStorageMode Mode = BUFFER_STORAGE_MODE;
 		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), GetSize(), Mode));
 		Buffer = [Buf.Buffer retain];
 		GetMetalDeviceContext().ReleasePooledBuffer(OldBuffer);

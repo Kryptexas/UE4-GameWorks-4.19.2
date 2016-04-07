@@ -173,7 +173,7 @@ public:
 	/**
 	 * List of maps to include when no other map list is specified on commandline
 	 */
-	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="List of maps to include in a packaged build", RelativeToGameContentDir))
+	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "List of maps to include in a packaged build", RelativeToGameContentDir, LongPackageName))
 	TArray<FFilePath> MapsToCook;	
 
 	/**

@@ -513,6 +513,8 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device, const FOpenGLViewport
 				glDeleteTextures(Num, TexturesToDelete.GetData());
 				TexturesToDelete.RemoveAt(0, Num, false);
 			}
+			
+			FPlatformMisc::UpdateDriverMonitorStatistics(Context->RendererIndex);
 		}
 	}
 	UnlockGLContext(Context->OpenGLContext);

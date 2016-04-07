@@ -380,6 +380,7 @@ public partial class Project : CommandUtils
             }
 			
             // Game ufs (content)
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot), "*.uproject", false, null, CombinePaths(SC.RelativeProjectRootForStage), true, !Params.UsePak(SC.StageTargetPlatform));
 
 			if (SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.HTML5 && SC.bUseWebsocketNetDriver)
 			{
@@ -589,15 +590,6 @@ public partial class Project : CommandUtils
 			ManifestPath = CombinePaths(StageDir, ManifestFile);
 			DeleteFile(ManifestPath);
 		}
-		foreach (var Pair in Mapping)
-		{
-			string Src = Pair.Key;
-			string Dest = CombinePaths(StageDir, Pair.Value);
-			if (Src != Dest)  // special case for things created in the staging directory, like the pak file
-			{
-				CopyFileIncremental(Src, Dest, bFilterSpecialLinesFromIniFiles:true);
-			}
-		}
 		if (!String.IsNullOrEmpty(ManifestPath) && Mapping.Count > 0)
 		{
 			DumpTargetManifest(Mapping, ManifestPath, StageDir, CRCFiles);
@@ -606,6 +598,15 @@ public partial class Project : CommandUtils
 				throw new AutomationException("Failed to write manifest {0}", ManifestPath);
 			}
 			CopyFile(ManifestPath, CombinePaths(CmdEnv.LogFolder, ManifestFile));
+		}
+		foreach (var Pair in Mapping)
+		{
+			string Src = Pair.Key;
+			string Dest = CombinePaths(StageDir, Pair.Value);
+			if (Src != Dest)  // special case for things created in the staging directory, like the pak file
+			{
+				CopyFileIncremental(Src, Dest, bFilterSpecialLinesFromIniFiles:true);
+			}
 		}
 	}
 

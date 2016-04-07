@@ -100,7 +100,7 @@ namespace AutomationTool.Tasks
 			if(Parameters.Files != null)
 			{
 				// Find the files which are to be included
-				HashSet<FileReference> IncludeFiles = ResolveFilespec(InputDir, Parameters.Files, TagNameToFileSet);
+				// HashSet<FileReference> IncludeFiles = ResolveFilespec(InputDir, Parameters.Files, TagNameToFileSet);
 
 				// Create a file to store the ignored file list
 				IgnoreList = new FileReference(LogUtils.GetUniqueLogName(Path.Combine(CommandUtils.CmdEnv.LogFolder, Parameters.AppName + "-Ignore")));

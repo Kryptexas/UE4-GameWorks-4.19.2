@@ -252,15 +252,6 @@ Requirements for RHI thread
 ***/
 extern RHI_API bool GRHISupportsRHIThread;
 
-inline bool IsAsyncComputeEnabled()
-{
-#if USE_ASYNC_COMPUTE_CONTEXT
-	extern int32 GAllowAsyncComputeJobs;
-	return GAllowAsyncComputeJobs != 0;
-#endif
-	return false;
-}
-
 /** Whether or not the RHI supports parallel RHIThread executes / translates
 Requirements:
 * RHICreateBoundShaderState is threadsafe and GetCachedBoundShaderState must not be used. GetCachedBoundShaderState_Threadsafe has a slightly different protocol.

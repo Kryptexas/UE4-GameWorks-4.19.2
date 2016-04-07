@@ -1276,9 +1276,12 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 		GEditor->ParseMapSectionIni(TEXT("-MAPINISECTION=AllMaps"), MapList);
 	}
 
-	// Put the always cook map list at the front of the map list
-	AlwaysCookMapList.Append(MapList);
-	Swap(MapList, AlwaysCookMapList);
+	if (!bCookSinglePackage)
+	{
+		// Put the always cook map list at the front of the map list
+		AlwaysCookMapList.Append(MapList);
+		Swap(MapList, AlwaysCookMapList);
+	}
 
 	// Set the list of cultures to cook as those on the commandline, if specified.
 	// Otherwise, use the project packaging settings.

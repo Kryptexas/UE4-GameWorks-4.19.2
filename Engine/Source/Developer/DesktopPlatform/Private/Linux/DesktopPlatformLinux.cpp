@@ -225,7 +225,7 @@ bool FDesktopPlatformLinux::FileDialogShared(bool bSave, const void* ParentWindo
 
 		for (const FString& Extension : ExtensionsArray)
 		{
-			if (AllExtensionsSpaceDelim.Find(Extension, ESearchCase::CaseSensitive) == INDEX_NONE)
+			if (AllExtensionsSpaceDelim.Find(Extension, ESearchCase::IgnoreCase) == INDEX_NONE)
 			{
 				AllExtensionsSpaceDelim += Extension;
 				AllExtensionsSpaceDelim += TEXT(" ");

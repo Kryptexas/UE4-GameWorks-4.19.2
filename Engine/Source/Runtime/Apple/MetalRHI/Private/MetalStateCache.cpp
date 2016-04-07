@@ -245,6 +245,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		
 		// at this point, we need to fully set up an encoder/command buffer, so make a new one (autoreleased)
 		MTLRenderPassDescriptor* RenderPass = [MTLRenderPassDescriptor renderPassDescriptor];
+		TRACK_OBJECT(STAT_MetalRenderPassDescriptorCount, RenderPass);
 	
 		// if we need to do queries, write to the supplied query buffer
 		if (IsFeatureLevelSupported(GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4))
@@ -335,6 +336,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				}
 	
 				MTLRenderPassColorAttachmentDescriptor* ColorAttachment = [MTLRenderPassColorAttachmentDescriptor new];
+				TRACK_OBJECT(STAT_MetalRenderPassColorAttachmentDescriptorCount, ColorAttachment);
 	
 				if (Surface.MSAATexture != nil)
 				{
@@ -380,6 +382,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				[RenderPass.colorAttachments setObject:ColorAttachment atIndexedSubscript:RenderTargetIndex];
 				[PipelineDesc.PipelineDescriptor.colorAttachments objectAtIndexedSubscript:RenderTargetIndex].pixelFormat = ColorAttachment.texture.pixelFormat;
 	
+				UNTRACK_OBJECT(STAT_MetalRenderPassColorAttachmentDescriptorCount, ColorAttachment);
 				[ColorAttachment release];
 	
 				bHasValidRenderTarget = true;
@@ -520,6 +523,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 			if (DepthTexture)
 			{
 				MTLRenderPassDepthAttachmentDescriptor* DepthAttachment = [[MTLRenderPassDepthAttachmentDescriptor alloc] init];
+				TRACK_OBJECT(STAT_MetalRenderPassDepthAttachmentDescriptorCount, DepthAttachment);
 				
 				DepthFormatKey = Surface.FormatKey;
 	
@@ -551,12 +555,15 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 	
 				// and assign it
 				RenderPass.depthAttachment = DepthAttachment;
+				
+				UNTRACK_OBJECT(STAT_MetalRenderPassDepthAttachmentDescriptorCount, DepthAttachment);
 				[DepthAttachment release];
 			}
 	
 			if (StencilTexture)
 			{
 				MTLRenderPassStencilAttachmentDescriptor* StencilAttachment = [[MTLRenderPassStencilAttachmentDescriptor alloc] init];
+				TRACK_OBJECT(STAT_MetalRenderPassStencilAttachmentDescriptorCount, StencilAttachment);
 				
 				StencilFormatKey = Surface.FormatKey;
 	
@@ -588,6 +595,8 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 	
 				// and assign it
 				RenderPass.stencilAttachment = StencilAttachment;
+				
+				UNTRACK_OBJECT(STAT_MetalRenderPassStencilAttachmentDescriptorCount, StencilAttachment);
 				[StencilAttachment release];
 			}
 		}
@@ -606,7 +615,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		// Set render to the framebuffer
 		CommandEncoder.SetRenderPassDescriptor(RenderPass, bReset);
 		
-		// if (bNeedsClear)
+		if (bNeedsClear || !PLATFORM_MAC || IsRHIDeviceNVIDIA())
 		{
 			CommandEncoder.BeginRenderCommandEncoding();
 		}

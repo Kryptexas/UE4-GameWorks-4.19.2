@@ -112,6 +112,13 @@ public:
 	{
 		return (Resource->GetSize());
 	}
+	
+	/** Frees the resource
+	 * @param Resource The buffer to prepare for release from the pool permanently.
+	 */
+	void FreeResource(FIndexBufferRHIRef Resource)
+	{
+	}
 };
 
 class FGlobalDynamicMeshIndexPool : public TRenderResourcePool<FIndexBufferRHIRef, FGlobalDynamicMeshIndexPolicy, FGlobalDynamicMeshPoolPolicy::CreationArguments>
@@ -162,6 +169,13 @@ public:
 	FGlobalDynamicMeshPoolPolicy::CreationArguments GetCreationArguments(FVertexBufferRHIRef Resource)
 	{
 		return (Resource->GetSize());
+	}
+	
+	/** Frees the resource
+	 * @param Resource The buffer to prepare for release from the pool permanently.
+	 */
+	void FreeResource(FVertexBufferRHIRef Resource)
+	{
 	}
 };
 

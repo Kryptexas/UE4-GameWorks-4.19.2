@@ -252,6 +252,27 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		}
 	}
 
+
+	bool bIncludeChildClasses = Switches.Contains(TEXT("includeChildClasses"));
+	if (bIncludeChildClasses)
+	{
+		for (const auto& ResaveClassName : ResaveClasses)
+		{
+			const UClass* ResaveClass = FindObject<UClass>(nullptr, *ResaveClassName.ToString(), true);
+			if (ResaveClass)
+			{
+				for (TObjectIterator<UClass> It; It; ++It)
+				{
+
+					if (It->IsChildOf(ResaveClass))
+					{
+						ResaveClasses.AddUnique(*It->GetFName().ToString());
+					}
+				}
+			}
+		}
+	}
+
 	return 0;
 }
 
@@ -429,37 +450,40 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 					PackagesToDelete.Empty();
 					Package = NULL;
 
-					if (SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()))
+					if (bAutoCheckOut)
 					{
-						UE_LOG(LogContentCommandlet, Display, TEXT("Revert '%s' from source control..."), *Filename);
-						SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), PackageFilename);
+						if (SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()))
+						{
+							UE_LOG(LogContentCommandlet, Display, TEXT("Revert '%s' from source control..."), *Filename);
+							SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), PackageFilename);
 
-						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
-						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
-					}
-					else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
-					{
-						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
-						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
-					}
-					else if (SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther())
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("Couldn't delete '%s' from source control, someone has it checked out, skipping..."), *Filename);
-					}
-					else if (SourceControlState.IsValid() && !SourceControlState->IsSourceControlled())
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is not in source control, attempting to delete from disk..."), *Filename);
-						if (!IFileManager::Get().Delete(*Filename, false, true))
-						{
-							UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
+							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
 						}
-					}
-					else
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is in an unknown source control state, attempting to delete from disk..."), *Filename);
-						if (!IFileManager::Get().Delete(*Filename, false, true))
+						else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
 						{
-							UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
+							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
+						}
+						else if (SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther())
+						{
+							UE_LOG(LogContentCommandlet, Warning, TEXT("Couldn't delete '%s' from source control, someone has it checked out, skipping..."), *Filename);
+						}
+						else if (SourceControlState.IsValid() && !SourceControlState->IsSourceControlled())
+						{
+							UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is not in source control, attempting to delete from disk..."), *Filename);
+							if (!IFileManager::Get().Delete(*Filename, false, true))
+							{
+								UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							}
+						}
+						else
+						{
+							UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is in an unknown source control state, attempting to delete from disk..."), *Filename);
+							if (!IFileManager::Get().Delete(*Filename, false, true))
+							{
+								UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							}
 						}
 					}
 				}

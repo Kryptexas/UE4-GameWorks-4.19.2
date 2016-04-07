@@ -16,24 +16,16 @@ FMetalVertexBuffer::FMetalVertexBuffer(uint32 InSize, uint32 InUsage)
 {
 	checkf(InSize <= 256 * 1024 * 1024, TEXT("Metal doesn't support buffers > 256 MB"));
 	// Zero-stride buffers must be separate in order to wrap appropriately
-	if (InUsage & BUF_Volatile && !(InUsage & BUF_ZeroStride))
+	if(!(InUsage & BUF_ZeroStride))
 	{
-		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, MTLStorageModeShared));
+		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, BUFFER_STORAGE_MODE));
 		Buffer = [Buf.Buffer retain];
 	}
 	else
 	{
-		if(!(InUsage & BUF_ZeroStride))
-		{
-			FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), InSize, BUFFER_STORAGE_MODE));
-			Buffer = [Buf.Buffer retain];
-		}
-		else
-		{
-			Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:InSize options:BUFFER_CACHE_MODE|BUFFER_MANAGED_MEM];
-		}
+		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:InSize options:BUFFER_CACHE_MODE|BUFFER_MANAGED_MEM];
+		TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 	}
-	TRACK_OBJECT(Buffer);
 }
 
 FMetalVertexBuffer::~FMetalVertexBuffer()
@@ -60,7 +52,7 @@ void* FMetalVertexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32
 		id<MTLBuffer> OldBuffer = Buffer;
 		if(!(GetUsage() & BUF_ZeroStride))
 		{
-			MTLStorageMode Mode = (GetUsage() & BUF_Volatile) ? MTLStorageModeShared : BUFFER_STORAGE_MODE;
+			MTLStorageMode Mode = BUFFER_STORAGE_MODE;
 			FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), GetSize(), Mode));
 			Buffer = [Buf.Buffer retain];
 			GetMetalDeviceContext().ReleasePooledBuffer(OldBuffer);
@@ -69,6 +61,7 @@ void* FMetalVertexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32
 		else
 		{
 			Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:Buffer.length options:BUFFER_CACHE_MODE|BUFFER_MANAGED_MEM];
+			TRACK_OBJECT(STAT_MetalBufferCount, Buffer);
 			GetMetalDeviceContext().ReleaseObject(OldBuffer);
 		}
 	}
@@ -149,4 +142,9 @@ void FMetalDynamicRHI::RHIUnlockVertexBuffer(FVertexBufferRHIParamRef VertexBuff
 void FMetalDynamicRHI::RHICopyVertexBuffer(FVertexBufferRHIParamRef SourceBufferRHI,FVertexBufferRHIParamRef DestBufferRHI)
 {
 	NOT_SUPPORTED("RHICopyVertexBuffer");
+}
+
+FVertexBufferRHIRef FMetalDynamicRHI::CreateVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
+{
+	return GDynamicRHI->RHICreateVertexBuffer(Size, InUsage, CreateInfo);
 }

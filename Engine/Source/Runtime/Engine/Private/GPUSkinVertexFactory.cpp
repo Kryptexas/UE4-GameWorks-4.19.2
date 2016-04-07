@@ -108,6 +108,10 @@ FSharedPoolPolicyData::CreationArguments FBoneBufferPoolPolicy::GetCreationArgum
 	return Resource.VertexBufferRHI->GetSize();
 }
 
+void FBoneBufferPoolPolicy::FreeResource(FVertexBufferAndSRV Resource)
+{
+}
+
 FVertexBufferAndSRV FClothBufferPoolPolicy::CreateResource(CreationArguments Args)
 {
 	uint32 BufferSize = GetPoolBucketSize(GetPoolBucketIndex(Args));

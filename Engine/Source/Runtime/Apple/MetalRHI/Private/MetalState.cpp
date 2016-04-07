@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "MetalRHIPrivate.h"
+#include "MetalProfiler.h"
 
 int32 GMetalUseSamplerCompareFunc = 1;
 FAutoConsoleVariableRef CVarMetalUseSamplerCompareFunc(
@@ -177,12 +178,12 @@ FMetalSamplerState::FMetalSamplerState(id<MTLDevice> Device, const FSamplerState
 	
 	State = [Device newSamplerStateWithDescriptor:Desc];
 	[Desc release];
-	TRACK_OBJECT(State);
+	TRACK_OBJECT(STAT_MetalSamplerStateCount, State);
 }
 
 FMetalSamplerState::~FMetalSamplerState()
 {
-	UNTRACK_OBJECT(State);
+	UNTRACK_OBJECT(STAT_MetalSamplerStateCount, State);
 	[State release];
 }
 
@@ -248,7 +249,7 @@ FMetalDepthStencilState::FMetalDepthStencilState(id<MTLDevice> Device, const FDe
 		
 	// bake out the descriptor
 	State = [Device newDepthStencilStateWithDescriptor:Desc];
-	TRACK_OBJECT(State);
+	TRACK_OBJECT(STAT_MetalDepthStencilStateCount, State);
 	[Desc release];
 	
 	// cache some pipeline state info
@@ -258,7 +259,7 @@ FMetalDepthStencilState::FMetalDepthStencilState(id<MTLDevice> Device, const FDe
 
 FMetalDepthStencilState::~FMetalDepthStencilState()
 {
-	UNTRACK_OBJECT(State);
+	UNTRACK_OBJECT(STAT_MetalDepthStencilStateCount, State);
 	[State release];
 }
 
@@ -281,7 +282,7 @@ FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
 
 		// make a new blend state
 		MTLRenderPipelineColorAttachmentDescriptor* BlendState = [[MTLRenderPipelineColorAttachmentDescriptor alloc] init];
-		TRACK_OBJECT(BlendState);
+		TRACK_OBJECT(STAT_MetalRenderPipelineColorAttachmentDescriptor, BlendState);
 
 		// set values
 		BlendState.blendingEnabled =
@@ -319,7 +320,7 @@ FMetalBlendState::~FMetalBlendState()
 {
 	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
 	{
-		UNTRACK_OBJECT(RenderTargetStates[RenderTargetIndex]);
+		UNTRACK_OBJECT(STAT_MetalRenderPipelineColorAttachmentDescriptor, RenderTargetStates[RenderTargetIndex].BlendState);
 		[RenderTargetStates[RenderTargetIndex].BlendState release];
 	}
 }

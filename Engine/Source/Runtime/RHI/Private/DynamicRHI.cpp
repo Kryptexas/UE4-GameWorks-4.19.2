@@ -49,8 +49,8 @@ void InitNullRHI()
 	GRHISupportsTextureStreaming = false;
 }
 
-
-void RHIDetectAndWarnOfBadDrivers()
+#if PLATFORM_WINDOWS
+static void RHIDetectAndWarnOfBadDrivers()
 {
 	int32 CVarValue = CVarWarnOfBadDrivers.GetValueOnGameThread();
 
@@ -155,6 +155,7 @@ void RHIDetectAndWarnOfBadDrivers()
 		}
 	}
 }
+#endif // PLATFORM_WINDOWS
 
 void RHIInit(bool bHasEditorToken)
 {
@@ -187,7 +188,9 @@ void RHIInit(bool bHasEditorToken)
 		check(GDynamicRHI);
 	}
 
+#if PLATFORM_WINDOWS
 	RHIDetectAndWarnOfBadDrivers();
+#endif
 }
 
 void RHIPostInit()

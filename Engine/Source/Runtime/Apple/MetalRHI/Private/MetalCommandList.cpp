@@ -8,6 +8,7 @@
 
 #include "MetalCommandList.h"
 #include "MetalCommandQueue.h"
+#include "MetalProfiler.h"
 
 #pragma mark - Public C++ Boilerplate -
 
@@ -32,7 +33,7 @@ void FMetalCommandList::Commit(id<MTLCommandBuffer> Buffer, bool const bWait)
 	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	[Buffer addCompletedHandler : ^ (id <MTLCommandBuffer> CompletedBuffer)
-	{
+	 {
 		if (CompletedBuffer.status == MTLCommandBufferStatusError)
 		{
 			NSString* Label = CompletedBuffer.label;

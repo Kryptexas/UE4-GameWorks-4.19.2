@@ -60,15 +60,10 @@ namespace UnrealBuildTool
 
 		/// <summary>
 		/// New Xbox driver supports a "fast semantics" context type. This switches it on for the immediate and deferred contexts
-		/// EXPERIMENTAL - WILL CAUSE RENDERING ISSUES AND/OR CRASHES AT PRESENT!
+		/// Try disabling this if you see rendering issues and/or crashes inthe Xbox RHI.
 		/// </summary>
 		[XmlConfig]
 		public static bool bUseFastSemanticsRenderContexts;
-
-		/// Async Compute context support. Requires Mono and Fastcalls
-		/// </summary>
-		[XmlConfig]
-		public static bool bUseAsyncComputeContext;
 
 		/// <summary>
 		/// An approximate number of bytes of C++ code to target for inclusion in a single unified C++ file.
@@ -643,11 +638,10 @@ namespace UnrealBuildTool
 			//  if this is set to true, then fast calls will be on by default on Dingo, and if false it will be off by default on Dingo.
 			//  This can be overridden by -fastmonocalls  or -nofastmonocalls in the NMAKE params.
 			bUseFastMonoCalls = true;
-			bUseAsyncComputeContext = bUseFastMonoCalls;
 
 			// Switch for fast semantics D3D contexts
 			// Try disabling this if you see rendering issues or crashes in the Xbox One RHI
-			bUseFastSemanticsRenderContexts = false;
+			bUseFastSemanticsRenderContexts = true;
 
 			// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
 			// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
@@ -732,6 +726,7 @@ namespace UnrealBuildTool
 							DefaultsProcess.StartInfo.CreateNoWindow = true;
 							DefaultsProcess.StartInfo.UseShellExecute = false;
 							DefaultsProcess.StartInfo.RedirectStandardOutput = true;
+							DefaultsProcess.StartInfo.RedirectStandardError = true;
 							DefaultsProcess.StartInfo.Arguments = "read com.marksatt.DistCode DistProp";
 							DefaultsProcess.Start();
 							string Output = DefaultsProcess.StandardOutput.ReadToEnd();
@@ -745,6 +740,43 @@ namespace UnrealBuildTool
 						{
 						}
 					}
+                    using (System.Diagnostics.Process CoordModeProcess = new System.Diagnostics.Process())
+                    {
+                        using (System.Diagnostics.Process DefaultsProcess = new System.Diagnostics.Process())
+                        {
+                            try
+                            {
+                                CoordModeProcess.StartInfo.FileName = "/usr/bin/defaults";
+                                CoordModeProcess.StartInfo.CreateNoWindow = true;
+                                CoordModeProcess.StartInfo.UseShellExecute = false;
+                                CoordModeProcess.StartInfo.RedirectStandardOutput = true;
+								CoordModeProcess.StartInfo.RedirectStandardError = true;
+                                CoordModeProcess.StartInfo.Arguments = "read com.marksatt.DistCode CoordinatorMode";
+                                CoordModeProcess.Start();
+                                string CoordModeProcessOutput = CoordModeProcess.StandardOutput.ReadToEnd();
+                                CoordModeProcess.WaitForExit();
+                                if (CoordModeProcess.ExitCode == 0 && CoordModeProcessOutput.StartsWith("1"))
+                                {
+                                    DefaultsProcess.StartInfo.FileName = "/usr/bin/defaults";
+                                    DefaultsProcess.StartInfo.CreateNoWindow = true;
+                                    DefaultsProcess.StartInfo.UseShellExecute = false;
+                                    DefaultsProcess.StartInfo.RedirectStandardOutput = true;
+									DefaultsProcess.StartInfo.RedirectStandardError = true;
+                                    DefaultsProcess.StartInfo.Arguments = "read com.marksatt.DistCode CoordinatorIP";
+                                    DefaultsProcess.Start();
+                                    string Output = DefaultsProcess.StandardOutput.ReadToEnd();
+                                    DefaultsProcess.WaitForExit();
+                                    if (DefaultsProcess.ExitCode == 0)
+                                    {
+                                        DMUCSCoordinator = Output;
+                                    }
+                                }
+                            }
+                            catch (Exception)
+                            {
+                            }
+                        }
+                    }
 				}
 			}
 		}

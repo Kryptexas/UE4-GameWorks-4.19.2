@@ -2215,6 +2215,22 @@ protected:
 
 		}
 
+		
+
+		if (CookMode == ELauncherProfileCookModes::OnTheFly)
+		{
+
+			for (auto const& CookedPlatform : CookedPlatforms)
+			{
+				if (CookedPlatform.Contains("Server"))
+				{
+					ValidationErrors.Add(ELauncherProfileValidationErrors::CookOnTheFlyDoesntSupportServer);
+				}
+			}
+			
+
+		}
+
 
 		ValidatePlatformSDKs();
 	}

@@ -114,7 +114,7 @@ bool FXAudio2Device::InitializeHardware()
 #endif
 
 	// Create a new XAudio2 device object instance
-	if (XAudio2Create(&DeviceProperties->XAudio2, Flags, AUDIO_HWTHREAD) != S_OK)
+	if (XAudio2Create(&DeviceProperties->XAudio2, Flags, (XAUDIO2_PROCESSOR)FPlatformAffinity::GetAudioThreadMask()) != S_OK)
 	{
 		UE_LOG(LogInit, Log, TEXT( "Failed to create XAudio2 interface" ) );
 		return( false );

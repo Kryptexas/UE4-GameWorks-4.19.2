@@ -491,9 +491,6 @@ public:
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIPushEvent(const TCHAR* Name, FColor Color) final override;
 	virtual void RHIPopEvent() final override;
-	virtual void RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority);
-	virtual void RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex);
-	virtual void RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex);
 
 	// Accessors.
 	ID3D11Device* GetDevice() const

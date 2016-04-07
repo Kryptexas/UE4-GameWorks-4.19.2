@@ -32,6 +32,7 @@ IMPLEMENT_MODULE(FMetalDynamicRHIModule, MetalRHI);
 
 FMetalDynamicRHI::FMetalDynamicRHI()
 : FMetalRHICommandContext(nullptr, FMetalDeviceContext::CreateDeviceContext())
+, AsyncComputeContext(nullptr)
 {
 	// This should be called once at the start 
 	check( IsInGameThread() );
@@ -91,15 +92,15 @@ FMetalDynamicRHI::FMetalDynamicRHI()
     bool bCanUseASTC = false;
 	bool bSupportsD24S8 = false;
 
-	if(FParse::Param(FCommandLine::Get(),TEXT("metalsm5")))
-	{
-		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
-		GMaxRHIShaderPlatform = SP_METAL_SM5;
-	}
-	else
+	if(FParse::Param(FCommandLine::Get(),TEXT("metal")))
 	{
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
 		GMaxRHIShaderPlatform = SP_METAL_SM4;
+	}
+	else
+	{
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
+		GMaxRHIShaderPlatform = SP_METAL_SM5;
 	}
 	
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL_MACES3_1;
@@ -139,8 +140,8 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	if(GPUDesc.GPUVendorId == GRHIVendorId)
 	{
 		GRHIDeviceId = GPUDesc.GPUDeviceId;
-		MemoryStats.DedicatedVideoMemory = GPUDesc.GPUMemoryMB;
-		MemoryStats.TotalGraphicsMemory = GPUDesc.GPUMemoryMB;
+		MemoryStats.DedicatedVideoMemory = GPUDesc.GPUMemoryMB * 1024 * 1024;
+		MemoryStats.TotalGraphicsMemory = GPUDesc.GPUMemoryMB * 1024 * 1024;
 		MemoryStats.DedicatedSystemMemory = 0;
 		MemoryStats.SharedSystemMemory = 0;
 	}
@@ -150,7 +151,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GConfig->GetInt(TEXT("TextureStreaming"), TEXT("PoolSizeVRAMPercentage"), GPoolSizeVRAMPercentage, GEngineIni);
 	if ( GPoolSizeVRAMPercentage > 0 && MemoryStats.TotalGraphicsMemory > 0 )
 	{
-		float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * (float(MemoryStats.TotalGraphicsMemory) * 1024.f * 1024.f);
+		float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(MemoryStats.TotalGraphicsMemory);
 		
 		// Truncate GTexturePoolSize to MB (but still counted in bytes)
 		GTexturePoolSize = int64(FGenericPlatformMath::TruncToFloat(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
@@ -181,6 +182,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 #if METAL_SUPPORTS_PARALLEL_RHI_EXECUTE
 	GRHISupportsParallelRHIExecute = GRHISupportsRHIThread;
 #endif
+	GSupportsEfficientAsyncCompute = FParse::Param(FCommandLine::Get(),TEXT("metalasynccompute"));
 	
 #endif
 
@@ -402,6 +404,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 #if ENABLE_METAL_GPUPROFILE
 	Profiler = new FMetalGPUProfiler(Context);
 #endif
+	AsyncComputeContext = GSupportsEfficientAsyncCompute ? new FMetalRHIComputeContext(Profiler, new FMetalContext(Context->GetCommandQueue(), true)) : nullptr;
 }
 
 FMetalDynamicRHI::~FMetalDynamicRHI()
@@ -441,11 +444,6 @@ uint64 FMetalDynamicRHI::RHICalcTextureCubePlatformSize(uint32 Size, uint8 Forma
 void FMetalDynamicRHI::Init()
 {
 	GIsRHIInitialized = true;
-}
-
-void FMetalDynamicRHI::PostInit()
-{
-	SetupRecursiveResources();
 }
 
 void FMetalDynamicRHI::RHIBeginFrame()
@@ -536,6 +534,7 @@ void FMetalDynamicRHI::RHIFlushResources()
 void FMetalDynamicRHI::RHIAcquireThreadOwnership()
 {
 	Context->CreateAutoreleasePool();
+	SetupRecursiveResources();
 }
 
 void FMetalDynamicRHI::RHIReleaseThreadOwnership()
@@ -548,17 +547,3 @@ void* FMetalDynamicRHI::RHIGetNativeDevice()
 	return (void*)Context->GetDevice();
 }
 
-void FMetalRHICommandContext::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority)
-{
-	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
-}
-
-void FMetalRHICommandContext::RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex)
-{
-	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
-}
-
-void FMetalRHICommandContext::RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex)
-{
-	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
-}

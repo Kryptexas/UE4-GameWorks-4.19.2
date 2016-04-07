@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "MetalRHIPrivate.h"
+#include "MetalProfiler.h"
 #include "ShaderCache.h"
 
 static MTLVertexFormat TranslateElementTypeToMTLType(EVertexElementType Type)
@@ -100,7 +101,7 @@ FVertexDeclarationRHIRef FMetalDynamicRHI::RHICreateVertexDeclaration(const FVer
 void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList& InElements)
 {
 	Layout = [[MTLVertexDescriptor alloc] init];
-	TRACK_OBJECT(Layout);
+	TRACK_OBJECT(STAT_MetalVertexDescriptorCount, Layout);
 
 	TMap<uint32, uint32> BufferStrides;
 	for (uint32 ElementIndex = 0; ElementIndex < InElements.Num(); ElementIndex++)

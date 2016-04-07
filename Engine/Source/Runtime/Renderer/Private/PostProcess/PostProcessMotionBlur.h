@@ -87,9 +87,6 @@ public:
 
 	// -------------------------------------------
 
-	// -1 if not set yet (AsyncCompute wasn't started, we need another Process to finish it)
-	uint32 AsyncJobFenceID;
-
 	static FIntPoint ComputeThreadGroupCount(FIntPoint PixelExtent);
 };
 
