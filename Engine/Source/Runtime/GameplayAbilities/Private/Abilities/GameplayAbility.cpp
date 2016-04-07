@@ -238,12 +238,17 @@ bool UGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystemCom
 	return true;
 }
 
+bool UGameplayAbility::ShouldActivateAbility(ENetRole Role) const
+{
+	return Role != ROLE_SimulatedProxy;
+}
+
 bool UGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, OUT FGameplayTagContainer* OptionalRelevantTags) const
 {
 	// Don't set the actor info, CanActivate is called on the CDO
 
 	// A valid AvatarActor is required. Simulated proxy check means only authority or autonomous proxies should be executing abilities.
-	if (ActorInfo == nullptr || ActorInfo->AvatarActor == nullptr || ActorInfo->AvatarActor->Role == ROLE_SimulatedProxy)
+	if (ActorInfo == nullptr || ActorInfo->AvatarActor == nullptr || !ShouldActivateAbility(ActorInfo->AvatarActor->Role))
 	{
 		return false;
 	}

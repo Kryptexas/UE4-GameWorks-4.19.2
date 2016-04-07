@@ -67,7 +67,7 @@ void FMacErrorReport::FindMostRecentErrorReports(TArray<FString>& ErrorReportPat
 {
 	auto& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
-	FDateTime MinCreationTime = FDateTime::Now() - MaxCrashReportAge;
+	FDateTime MinCreationTime = FDateTime::UtcNow() - MaxCrashReportAge;
 	auto ReportFinder = MakeDirectoryVisitor([&](const TCHAR* FilenameOrDirectory, bool bIsDirectory)
 	{
 		if (bIsDirectory)

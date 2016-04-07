@@ -356,7 +356,7 @@ protected:
 	virtual void UpdateVersion();
 
 	/** Picks the best resolution quality for a given screen size */
-	float FindResolutionQualityForScreenSize(int32 Width, int32 Height);
+	float FindResolutionQualityForScreenSize(float Width, float Height);
 
 private:
 

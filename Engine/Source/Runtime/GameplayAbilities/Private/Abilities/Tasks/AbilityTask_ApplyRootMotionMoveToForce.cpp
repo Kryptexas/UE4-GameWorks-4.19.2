@@ -175,7 +175,7 @@ void UAbilityTask_ApplyRootMotionMoveToForce::OnDestroy(bool AbilityIsEnding)
 
 		if (bSetNewMovementMode)
 		{
-			MovementComponent->SetMovementMode(EMovementMode::MOVE_Falling);
+			MovementComponent->SetMovementMode(NewMovementMode);
 		}
 
 		if (VelocityOnFinishMode == ERootMotionFinishVelocityMode::SetVelocity)

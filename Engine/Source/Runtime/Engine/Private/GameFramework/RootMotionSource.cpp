@@ -749,6 +749,7 @@ FRootMotionSource_MoveToDynamicForce::FRootMotionSource_MoveToDynamicForce()
 	, TargetLocation(EForceInit::ForceInitToZero)
 	, bRestrictSpeedToExpected(false)
 	, PathOffsetCurve(nullptr)
+	, TimeMappingCurve(nullptr)
 {
 }
 
@@ -774,7 +775,8 @@ bool FRootMotionSource_MoveToDynamicForce::Matches(const FRootMotionSource* Othe
 	const FRootMotionSource_MoveToDynamicForce* OtherCast = static_cast<const FRootMotionSource_MoveToDynamicForce*>(Other);
 
 	return bRestrictSpeedToExpected == OtherCast->bRestrictSpeedToExpected &&
-		PathOffsetCurve == OtherCast->PathOffsetCurve;
+		PathOffsetCurve == OtherCast->PathOffsetCurve &&
+		TimeMappingCurve == OtherCast->TimeMappingCurve;
 }
 
 bool FRootMotionSource_MoveToDynamicForce::MatchesAndHasSameState(const FRootMotionSource* Other) const
@@ -831,7 +833,11 @@ void FRootMotionSource_MoveToDynamicForce::PrepareRootMotion
 
 	if (Duration > SMALL_NUMBER && MovementTickTime > SMALL_NUMBER)
 	{
-		const float MoveFraction = (GetTime() + SimulationTime) / Duration;
+		float MoveFraction = (GetTime() + SimulationTime) / Duration;
+		if (TimeMappingCurve)
+		{
+			MoveFraction = TimeMappingCurve->GetFloatValue(MoveFraction);
+		}
 
 		FVector CurrentTargetLocation = FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction);
 		CurrentTargetLocation += GetPathOffsetInWorldSpace(MoveFraction);
@@ -904,6 +910,7 @@ bool FRootMotionSource_MoveToDynamicForce::NetSerialize(FArchive& Ar, UPackageMa
 	Ar << TargetLocation; // TODO-RootMotionSource: Quantization
 	Ar << bRestrictSpeedToExpected;
 	Ar << PathOffsetCurve;
+	Ar << TimeMappingCurve;
 
 	bOutSuccess = true;
 	return true;
@@ -922,6 +929,7 @@ FString FRootMotionSource_MoveToDynamicForce::ToSimpleString() const
 void FRootMotionSource_MoveToDynamicForce::AddReferencedObjects(class FReferenceCollector& Collector)
 {
 	Collector.AddReferencedObject(PathOffsetCurve);
+	Collector.AddReferencedObject(TimeMappingCurve);
 
 	FRootMotionSource::AddReferencedObjects(Collector);
 }

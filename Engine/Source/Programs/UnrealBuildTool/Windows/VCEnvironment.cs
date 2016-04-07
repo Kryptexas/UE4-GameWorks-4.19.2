@@ -99,10 +99,14 @@ namespace UnrealBuildTool
 
             // Make sure the base 32-bit VS tool path is in the PATH, regardless of which configuration we're using. The toolchain may need to reference support DLLs from this directory (eg. mspdb120.dll).
             string PathEnvironmentVariable = Environment.GetEnvironmentVariable("PATH");
-            if (!PathEnvironmentVariable.Split(';').Any(x => String.Compare(x, VSToolPath32Bit, true) == 0))
+            if (!String.IsNullOrEmpty(PathEnvironmentVariable) && !PathEnvironmentVariable.Split(';').Any(x => String.Compare(x, VSToolPath32Bit, true) == 0))
             {
                 PathEnvironmentVariable = VSToolPath32Bit + ";" + PathEnvironmentVariable;
                 Environment.SetEnvironmentVariable("PATH", PathEnvironmentVariable);
+            }
+            else
+            {
+                Log.TraceWarning("Path environment variable is null");
             }
 
 			// Setup the INCLUDE environment variable

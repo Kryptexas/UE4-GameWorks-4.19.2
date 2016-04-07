@@ -81,8 +81,8 @@ FCoreDelegates::FVRHeadsetLost FCoreDelegates::VRHeadsetLost;
 FCoreDelegates::FVRHeadsetReconnected FCoreDelegates::VRHeadsetReconnected;
 
 FCoreDelegates::FOnUserActivityStringChanged FCoreDelegates::UserActivityStringChanged;
-
 FCoreDelegates::FOnGameSessionIDChange FCoreDelegates::GameSessionIDChanged;
+FCoreDelegates::FOnCrashOverrideParamsChanged FCoreDelegates::CrashOverrideParamsChanged;
 
 FCoreDelegates::FOnAsyncLoadingFlush FCoreDelegates::OnAsyncLoadingFlush;
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PostRenderingThreadCreated;

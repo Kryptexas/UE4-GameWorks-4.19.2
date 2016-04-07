@@ -51,6 +51,7 @@ namespace NCachedCrashContextProperties
 	static FString UserActivityHint;
 	static FString GameSessionID;
 	static FString CommandLine;
+	static FString CrashReportClientRichText;
 }
 
 void FGenericCrashContext::Initialize()
@@ -115,6 +116,11 @@ void FGenericCrashContext::Initialize()
 		NCachedCrashContextProperties::GameSessionID = InGameSessionID;
 	});
 
+	FCoreDelegates::CrashOverrideParamsChanged.AddLambda([](const FCrashOverrideParameters& InParams)
+	{
+		NCachedCrashContextProperties::CrashReportClientRichText = InParams.CrashReportClientMessageText;
+	});
+
 	bIsInitialized = true;
 }
 
@@ -174,6 +180,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "UserActivityHint" ), *NCachedCrashContextProperties::UserActivityHint );
 	AddCrashProperty( TEXT( "ErrorMessage" ), (const TCHAR*)GErrorMessage ); // GErrorMessage may be broken.
 	AddCrashProperty( TEXT( "CrashDumpMode" ), NCachedCrashContextProperties::CrashDumpMode );
+	AddCrashProperty( TEXT( "CrashReporterMessage" ), *NCachedCrashContextProperties::CrashReportClientRichText );
 
 	// Add misc stats.
 	AddCrashProperty( TEXT( "Misc.NumberOfCores" ), NCachedCrashContextProperties::NumberOfCores );

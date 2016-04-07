@@ -456,6 +456,21 @@ enum class EMemberExitedReason
 	Kicked
 };
 
+struct FPartyInvitationRecipient
+{
+	FPartyInvitationRecipient(const TSharedRef<const FUniqueNetId>& InId)
+		: Id(InId)
+		{}
+
+	FPartyInvitationRecipient(const FUniqueNetId& InId)
+		: Id(InId.AsShared())
+	{}
+
+
+	TSharedRef<const FUniqueNetId> Id;
+	FString PlatformData;
+};
+
 
 enum class ECreatePartyCompletionResult;
 enum class EJoinPartyCompletionResult;
@@ -782,12 +797,12 @@ public:
 	 *
 	 * @param LocalUserId - user making the request
 	 * @param PartyId - id of an existing party
-	 * @param RecipientId - id of the user being invited
+	 * @param Recipient - structure specifying the recipient of the invitation
 	 * @param Delegate - called on completion
 	 *
 	 * @return true if task was started
 	 */
-	virtual bool SendInvitation(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& RecipientId, const FOnlinePartyData& ClientData = FOnlinePartyData(), const FOnSendPartyInvitationComplete& Delegate = FOnSendPartyInvitationComplete()) = 0;
+	virtual bool SendInvitation(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FPartyInvitationRecipient& Recipient, const FOnlinePartyData& ClientData = FOnlinePartyData(), const FOnSendPartyInvitationComplete& Delegate = FOnSendPartyInvitationComplete()) = 0;
 
 	/**
 	* Accept an invite to a party. NOTE this does not initiate a join.

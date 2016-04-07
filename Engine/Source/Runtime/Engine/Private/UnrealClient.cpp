@@ -1001,7 +1001,6 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 	static bool bReentrant = false;
 	if(!bReentrant)
 	{
-		//GWarn->Logf( TEXT( "%i: ViewportDRAW!" ), GFrameCounter );
 		// See what screenshot related features are required
 		static const auto CVarDumpFrames = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFrames"));
 		GIsHighResScreenshot = GIsHighResScreenshot || bTakeHighResScreenShot;

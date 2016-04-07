@@ -38,6 +38,12 @@ struct FTestHotFixPayload
 	bool Result;
 };
 
+// Parameters passed to CrashOverrideParamsChanged used to customize crash report client behavior/appearance
+struct FCrashOverrideParameters
+{
+	FString CrashReportClientMessageText;
+};
+
 
 class CORE_API FCoreDelegates
 {
@@ -237,6 +243,10 @@ public:
 	/** Sent when application code changes the currently active game session. The exact semantics of this will vary between games but it is useful for analytics, crash reports, etc  */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameSessionIDChange, const FString&);
 	static FOnGameSessionIDChange GameSessionIDChanged;
+
+	/** Sent by application code to set params that customize crash reporting behavior */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCrashOverrideParamsChanged, const FCrashOverrideParameters&);
+	static FOnCrashOverrideParamsChanged CrashOverrideParamsChanged;
 	
 		// Callback for platform specific very early init code.
 	DECLARE_MULTICAST_DELEGATE(FOnPreMainInit);

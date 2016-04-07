@@ -179,6 +179,12 @@ FSlateEditableTextLayout::~FSlateEditableTextLayout()
 
 		TextInputMethodSystem->UnregisterContext(TextInputMethodContextRef);
 	}
+
+	if(FSlateApplication::IsInitialized() && FPlatformMisc::GetRequiresVirtualKeyboard())
+	{
+		FSlateApplication::Get().ShowVirtualKeyboard(false, 0);
+	}
+
 }
 
 void FSlateEditableTextLayout::SetText(const TAttribute<FText>& InText)

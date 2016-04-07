@@ -106,7 +106,6 @@ public class Launch : ModuleRules
 			new string[] {
                 "Media",
 				"Renderer",
-				"VREditor"
 			}
 		);
 

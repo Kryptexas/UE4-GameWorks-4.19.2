@@ -1210,10 +1210,18 @@ namespace UnrealBuildTool
 					}
 
 
-					// actually perform the PATH stripping / adding.
-					String OrigPathVar = Environment.GetEnvironmentVariable("PATH");
-					String PathDelimiter = UEBuildPlatform.GetPathVarDelimiter();
-					String[] PathVars = OrigPathVar.Split(PathDelimiter.ToCharArray());
+                    // actually perform the PATH stripping / adding.
+                    String OrigPathVar = Environment.GetEnvironmentVariable("PATH");
+                    String PathDelimiter = UEBuildPlatform.GetPathVarDelimiter();
+                    String[] PathVars = { };
+                    if (!String.IsNullOrEmpty(OrigPathVar))
+                    {
+                        PathVars = OrigPathVar.Split(PathDelimiter.ToCharArray());
+                    }
+                    else
+                    {
+                        LogAutoSDK("Path environment variable is null during AutoSDK");
+                    }
 
 					List<String> ModifiedPathVars = new List<string>();
 					ModifiedPathVars.AddRange(PathVars);
@@ -1231,7 +1239,7 @@ namespace UnrealBuildTool
 						}
 					}
 
-					// remove all the of ADDs so that if this function is executed multiple times, the paths will be guarateed to be in the same order after each run.
+					// remove all the of ADDs so that if this function is executed multiple times, the paths will be guaranteed to be in the same order after each run.
 					// If we did not do this, a 'remove' that matched some, but not all, of our 'adds' would cause the order to change.
 					foreach (String PathAdd in PathAdds)
 					{

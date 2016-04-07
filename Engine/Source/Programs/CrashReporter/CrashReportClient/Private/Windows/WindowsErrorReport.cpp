@@ -102,7 +102,7 @@ FText FWindowsErrorReport::DiagnoseReport() const
 	return FText();
 }
 
-static bool TryGetDirectoryCreationTime(const FString& InDirectoryName, FDateTime& OutCreationTime)
+static bool TryGetDirectoryCreationTimeUtc(const FString& InDirectoryName, FDateTime& OutCreationTime)
 {
 	FString DirectoryName(InDirectoryName);
 	FPaths::MakePlatformFilename(DirectoryName);
@@ -129,13 +129,13 @@ void FWindowsErrorReport::FindMostRecentErrorReports(TArray<FString>& ErrorRepor
 {
 	auto& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
-	FDateTime MinCreationTime = FDateTime::Now() - MaxCrashReportAge;
+	FDateTime MinCreationTime = FDateTime::UtcNow() - MaxCrashReportAge;
 	auto ReportFinder = MakeDirectoryVisitor([&](const TCHAR* FilenameOrDirectory, bool bIsDirectory) 
 	{
 		if (bIsDirectory)
 		{
 			FDateTime CreationTime;
-			if (TryGetDirectoryCreationTime(FilenameOrDirectory, CreationTime) && CreationTime > MinCreationTime && FCString::Strstr(FilenameOrDirectory, TEXT("UE4-")))
+			if (TryGetDirectoryCreationTimeUtc(FilenameOrDirectory, CreationTime) && CreationTime > MinCreationTime && FCString::Strstr(FilenameOrDirectory, TEXT("UE4-")))
 			{
 				ErrorReportPaths.Add(FilenameOrDirectory);
 			}
@@ -157,9 +157,9 @@ void FWindowsErrorReport::FindMostRecentErrorReports(TArray<FString>& ErrorRepor
 	ErrorReportPaths.Sort([](const FString& L, const FString& R)
 	{
 		FDateTime CreationTimeL;
-		TryGetDirectoryCreationTime(L, CreationTimeL);
+		TryGetDirectoryCreationTimeUtc(L, CreationTimeL);
 		FDateTime CreationTimeR;
-		TryGetDirectoryCreationTime(R, CreationTimeR);
+		TryGetDirectoryCreationTimeUtc(R, CreationTimeR);
 
 		return CreationTimeL > CreationTimeR;
 	});

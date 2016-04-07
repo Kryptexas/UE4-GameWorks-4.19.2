@@ -5,10 +5,11 @@
 // To lock a build to a specific version set VERSION_LOCKED to 1, and 
 // fill out the details in the desired section below.
 
-#define BUILD_VERSION_LOCKED 0
-#define NETWORK_VERSION_LOCKED 0
+#define LOCKED_BUILD_VERSION 0
+#define LOCKED_NETWORK_VERSION 0
+#define LOCKED_REPLAY_VERSION 0
 
-#if BUILD_VERSION_LOCKED
+#if LOCKED_BUILD_VERSION
 
 #define ENGINE_MAJOR_VERSION	4
 #define ENGINE_MINOR_VERSION	12
@@ -28,9 +29,7 @@
 
 #endif
 
-#if NETWORK_VERSION_LOCKED
-	#define ENGINE_NET_VERSION 2899589
-#endif
+
 	
 
 

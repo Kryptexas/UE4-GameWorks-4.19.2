@@ -48,7 +48,8 @@ public abstract class BaseWinPlatform : Platform
 				if(Executable != null)
 				{
 					// only create bootstraps for executables
-					if (SC.NonUFSStagingFiles.ContainsKey(Executable.Path) && Path.GetExtension(Executable.Path) == ".exe")
+					string FullExecutablePath = Path.GetFullPath(Executable.Path);
+					if (SC.NonUFSStagingFiles.ContainsKey(FullExecutablePath) && Path.GetExtension(FullExecutablePath) == ".exe")
 					{
 						string BootstrapArguments = "";
 						if (!SC.IsCodeBasedProject && !ShouldStageCommandLine(Params, SC))
@@ -59,7 +60,7 @@ public abstract class BaseWinPlatform : Platform
 						string BootstrapExeName;
 						if(SC.StageTargetConfigurations.Count > 1)
 						{
-							BootstrapExeName = Path.GetFileName(Executable.Path);
+							BootstrapExeName = Path.GetFileName(FullExecutablePath);
 						}
 						else if(Params.IsCodeBasedProject)
 						{
@@ -70,9 +71,9 @@ public abstract class BaseWinPlatform : Platform
 							BootstrapExeName = SC.ShortProjectName + ".exe";
 						}
 
-						foreach (string StagePath in SC.NonUFSStagingFiles[Executable.Path])
+						foreach (string StagePath in SC.NonUFSStagingFiles[FullExecutablePath])
 						{
-							StageBootstrapExecutable(SC, BootstrapExeName, Executable.Path, StagePath, BootstrapArguments);
+							StageBootstrapExecutable(SC, BootstrapExeName, FullExecutablePath, StagePath, BootstrapArguments);
 						}
 					}
 				}

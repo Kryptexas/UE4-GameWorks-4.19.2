@@ -556,6 +556,9 @@ struct ENGINE_API FRootMotionSource_MoveToDynamicForce : public FRootMotionSourc
 	UPROPERTY()
 	UCurveVector* PathOffsetCurve;
 
+	UPROPERTY()
+	UCurveFloat* TimeMappingCurve;
+
 	void SetTargetLocation(FVector NewTargetLocation);
 
 	FVector GetPathOffsetInWorldSpace(float MoveFraction) const;
