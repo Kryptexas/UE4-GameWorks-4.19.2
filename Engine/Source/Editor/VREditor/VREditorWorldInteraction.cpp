@@ -2312,11 +2312,7 @@ void FVREditorWorldInteraction::UpdateDragging(
 				if( NewWorldToMetersScale != OldWorldToMetersScale &&
 					NewWorldToMetersScale >= Owner.GetMinScale() && NewWorldToMetersScale <= Owner.GetMaxScale() )
 				{
-					// @todo vreditor: This is bad because we're clobbering the world settings which will be saved with the map.  Instead we need to 
-					// be able to apply an override before the scene view gets it
-
-					LAUNCH_API extern float GNewWorldToMetersScale;
-					GNewWorldToMetersScale = NewWorldToMetersScale;
+					Owner.SetWorldToMetersScale( NewWorldToMetersScale );
 
 					// Because the tracking space size has changed, but our head position within that space relative to the origin
 					// of the room is the same (before scaling), we need to offset our location within the tracking space to compensate.

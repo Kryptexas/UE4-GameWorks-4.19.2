@@ -304,6 +304,9 @@ public:
 	/** Returns the minimum user scale */
 	float GetMinScale();
 
+	/** Sets GNewWorldToMetersScale */
+	void SetWorldToMetersScale( const float NewWorldToMetersScale );
+
 private:
 
 	/** Called when someone closes a standalone VR Editor window */
@@ -551,5 +554,8 @@ private:
 
 	// All the colors for this mode
 	TArray<FLinearColor> Colors;
+
+	/** If this is the first tick or before */
+	bool bFirstTick;
 };
 
