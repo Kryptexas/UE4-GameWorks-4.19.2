@@ -406,10 +406,12 @@ public:
 
 	/**
 	 * Visualize a new pop-up if possible.  If it's not possible for this widget to host the pop-up
-	 * content you'll get back an invalid pointer to the layer.
+	 * content you'll get back an invalid pointer to the layer.  The returned FPopupLayer allows you 
+	 * to remove the pop-up when you're done with it
 	 * 
 	 * @param PopupContent The widget to try and host overlaid on top of the widget.
-	 * @return a valid FPopupLayer if this widget supported hosting it.
+	 *
+	 * @return a valid FPopupLayer if this widget supported hosting it.  You can call Remove() on this to destroy the pop-up.
 	 */
 	virtual TSharedPtr<FPopupLayer> OnVisualizePopup(const TSharedRef<SWidget>& PopupContent);
 
