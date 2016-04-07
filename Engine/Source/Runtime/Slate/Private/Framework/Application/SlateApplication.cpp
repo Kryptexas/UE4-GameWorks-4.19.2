@@ -759,13 +759,14 @@ FSlateApplication::FSlateApplication()
 	, bMenuAnimationsEnabled( true )
 	, AppIcon( FCoreStyle::Get().GetBrush("DefaultAppIcon") )
 	, VirtualDesktopRect( 0,0,0,0 )
+	, NavigationConfig(MakeShareable(new FNavigationConfig()))
 {
 #if WITH_UNREAL_DEVELOPER_TOOLS
 	FModuleManager::Get().LoadModule(TEXT("Settings"));
-#endif	
+#endif
 
 	if (GConfig)
-	{	
+	{
 		GConfig->GetBool(TEXT("MobileSlateUI"),TEXT("bTouchFallbackToMouse"),bTouchFallbackToMouse,GEngineIni);
 		GConfig->GetBool(TEXT("CursorControl"), TEXT("bAllowSoftwareCursor"), bSoftwareCursorAvailable, GEngineIni);
 	}
@@ -1755,27 +1756,9 @@ bool FSlateApplication::CanDisplayWindows() const
 }
 
 
-EUINavigation FSlateApplication::GetNavigationDirectionFromKey( const FKeyEvent& InKeyEvent ) const
+EUINavigation FSlateApplication::GetNavigationDirectionFromKey(const FKeyEvent& InKeyEvent) const
 {
-	
-	if ( NavigationConfig.Right.Contains( InKeyEvent.GetKey() ) )
-	{
-		return EUINavigation::Right;
-	}
-	else if ( NavigationConfig.Left.Contains( InKeyEvent.GetKey() ) )
-	{
-		return EUINavigation::Left;
-	}
-	else if ( NavigationConfig.Up.Contains( InKeyEvent.GetKey() ) )
-	{
-		return EUINavigation::Up;
-	}
-	else if ( NavigationConfig.Down.Contains( InKeyEvent.GetKey() ) )
-	{
-		return EUINavigation::Down;
-	}
-	
-	return EUINavigation::Invalid;
+	return NavigationConfig->GetNavigationDirectionFromKey(InKeyEvent);
 }
 
 void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const TSharedPtr<const SWidget> InParentWidget, bool bSlowTaskWindow )
@@ -4140,6 +4123,14 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 {
 	SCOPE_CYCLE_COUNTER(STAT_ProcessKeyDown);
 
+#if WITH_EDITOR
+	//Send the key input to all pre input key down listener function
+	if (OnApplicationPreInputKeyDownListenerEvent.IsBound())
+	{
+		OnApplicationPreInputKeyDownListenerEvent.Broadcast(InKeyEvent);
+	}
+#endif //WITH_EDITOR
+
 	QueueSynthesizedMouseMove();
 
 	// Analog cursor gets first chance at the input
@@ -5701,9 +5692,9 @@ void FSlateApplication::ProcessApplicationActivationEvent(bool InAppActivated)
 }
 
 
-void FSlateApplication::SetNavigationConfig( FNavigationConfig&& Config )
+void FSlateApplication::SetNavigationConfig(TSharedRef<FNavigationConfig> Config)
 {
-	NavigationConfig = MoveTemp( Config );
+	NavigationConfig = Config;
 }
 
 bool FSlateApplication::OnConvertibleLaptopModeChanged()

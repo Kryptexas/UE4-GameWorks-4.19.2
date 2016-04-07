@@ -327,11 +327,21 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 	for (int32 ActorIndex = 0; ActorIndex < ActorCount; ++ActorIndex)
 	{
 		AActor* Actor = ActorToExport[ActorIndex];
+		//We export only valid actor
+		if (Actor == nullptr)
+			continue;
+
+		bool bIsBlueprintClass = false;
+		if (UClass* ActorClass = Actor->GetClass())
+		{
+			// Check if we export the actor as a blueprint
+			bIsBlueprintClass = UBlueprint::GetBlueprintFromClass(ActorClass) != nullptr;
+		}
 		if (Actor->IsA(ALight::StaticClass()))
 		{
 			ExportLight((ALight*) Actor, InMatineeActor );
 		}
-		else if (Actor->IsA(AStaticMeshActor::StaticClass()))
+		else if (!bIsBlueprintClass && Actor->IsA(AStaticMeshActor::StaticClass()))
 		{
 			ExportStaticMesh( Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), InMatineeActor );
 		}
@@ -352,7 +362,7 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 		{
 			ExportCamera(CastChecked<ACameraActor>(Actor), InMatineeActor, false); // Just export the placement of the particle emitter.
 		}
-		else if( Actor != NULL )
+		else if(bIsBlueprintClass)
 		{
 			// Export blueprint actors and all their components
 			ExportActor( Actor, InMatineeActor, true );

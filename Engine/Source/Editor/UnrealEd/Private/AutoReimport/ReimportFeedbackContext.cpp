@@ -238,7 +238,7 @@ public:
 	{
 		auto Size = SCompoundWidget::ComputeDesiredSize(LayoutScale);
 		// The width is determined by the top row, plus some padding
-		Size.X = TopRow->GetDesiredSize().X + 2*20;
+		Size.X = TopRow->GetDesiredSize().X + 100;
 		return Size;
 	}
 	/** Construct this widget */

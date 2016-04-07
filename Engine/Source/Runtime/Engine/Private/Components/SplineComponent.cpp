@@ -216,10 +216,22 @@ float USplineComponent::GetSegmentLength(const int32 Index, const float Param) c
 	const auto& EndPoint = SplineInfo.Points[Index == LastPoint ? 0 : Index + 1];
 	check(Index == LastPoint || (static_cast<int32>(EndPoint.InVal) - static_cast<int32>(StartPoint.InVal) == 1));
 
+	const FVector Scale3D = ComponentToWorld.GetScale3D();
+
 	const auto& P0 = StartPoint.OutVal;
 	const auto& T0 = StartPoint.LeaveTangent;
 	const auto& P1 = EndPoint.OutVal;
 	const auto& T1 = EndPoint.ArriveTangent;
+
+	// Special cases for linear or constant segments
+	if (StartPoint.InterpMode == CIM_Linear)
+	{
+		return ((P1 - P0) * Scale3D).Size() * Param;
+	}
+	else if (StartPoint.InterpMode == CIM_Constant)
+	{
+		return 0.0f;
+	}
 
 	// Cache the coefficients to be fed into the function to calculate the spline derivative at each sample point as they are constant.
 	const FVector Coeff1 = ((P0 - P1) * 2.0f + T0 + T1) * 3.0f;
@@ -233,7 +245,7 @@ float USplineComponent::GetSegmentLength(const int32 Index, const float Param) c
 	{
 		// Calculate derivative at each Legendre-Gauss sample, and perform a weighted sum
 		const float Alpha = HalfParam * (1.0f + LegendreGaussCoefficient.Abscissa);
-		const FVector Derivative = ((Coeff1 * Alpha + Coeff2) * Alpha + Coeff3) * ComponentToWorld.GetScale3D();
+		const FVector Derivative = ((Coeff1 * Alpha + Coeff2) * Alpha + Coeff3) * Scale3D;
 		Length += Derivative.Size() * LegendreGaussCoefficient.Weight;
 	}
 	Length *= HalfParam;

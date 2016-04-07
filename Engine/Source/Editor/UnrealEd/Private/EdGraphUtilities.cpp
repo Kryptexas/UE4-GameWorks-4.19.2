@@ -396,6 +396,32 @@ void FEdGraphUtilities::UnregisterVisualPinConnectionFactory(TSharedPtr<FGraphPa
     VisualPinConnectionFactories.Remove(OldFactory);
 }
 
+void FEdGraphUtilities::FNodeVisitor::TraverseNodes(UEdGraphNode* Node)
+{
+	VisitedNodes.Add(Node);
+	TouchNode(Node);
+
+	// Follow every pin
+	for (int32 i = 0; i < Node->Pins.Num(); ++i)
+	{
+		UEdGraphPin* MyPin = Node->Pins[i];
+
+		// And every connection to the pin
+		for (int32 j = 0; j < MyPin->LinkedTo.Num(); ++j)
+		{
+			UEdGraphPin* OtherPin = MyPin->LinkedTo[j];
+			if (OtherPin)
+			{
+				UEdGraphNode* OtherNode = OtherPin->GetOwningNodeUnchecked();
+				if (OtherNode && !VisitedNodes.Contains(OtherNode))
+				{
+					TraverseNodes(OtherNode);
+				}
+			}
+		}
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FWeakGraphPinPtr
 

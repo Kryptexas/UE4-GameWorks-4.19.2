@@ -4447,15 +4447,21 @@ void FEdModeMeshPaint::SetSelectedTexture( const UTexture2D* Texture )
 	// Loop through our list of textures and see which one the user wants to select
 	for( int32 targetIndex = 0; targetIndex < TexturePaintTargetList.Num(); targetIndex++ )
 	{
-		if(TexturePaintTargetList[targetIndex].TextureData == Texture )
+		FTextureTargetListInfo& TextureTarget = TexturePaintTargetList[targetIndex];
+		if (TextureTarget.TextureData == Texture)
 		{
-			TexturePaintTargetList[targetIndex].bIsSelected = true;
-			FMeshPaintSettings::Get().UVChannel = TexturePaintTargetList[targetIndex].UVChannelIndex;
+			TextureTarget.bIsSelected = true;
+			FMeshPaintSettings::Get().UVChannel = TextureTarget.UVChannelIndex;
 		}
 		else
 		{
-			TexturePaintTargetList[targetIndex].bIsSelected = false;
+			TextureTarget.bIsSelected = false;
 		}
+	}
+
+	if (ActorBeingEdited.IsValid())
+	{
+		SaveSettingsForActor(ActorBeingEdited.Get());
 	}
 }
 

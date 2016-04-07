@@ -89,7 +89,7 @@ public class UnrealEd : ModuleRules
                 "Niagara",
                 "VectorVM",
                 "FunctionalTesting"
-			}
+            }
 		);
 
 		PrivateDependencyModuleNames.AddRange(
@@ -144,8 +144,9 @@ public class UnrealEd : ModuleRules
 				"GameProjectGeneration",
                 "HierarchicalLODUtilities",
                 "AnalyticsET",
-                "PluginWarden"
-			}
+                "PluginWarden",
+                "PixelInspectorModule"
+            }
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(

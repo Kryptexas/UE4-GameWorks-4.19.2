@@ -448,7 +448,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 				MustLoadForGather = true;
 			}
 			// Package not resaved since gatherable text data was added to package headers must be loaded, since their package header won't contain pregathered text data.
-			else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_SERIALIZE_TEXT_IN_PACKAGES)
+			else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_SERIALIZE_TEXT_IN_PACKAGES || (EditorVersion && EditorVersion->Version < FEditorObjectVersion::GatheredTextPackageCacheFixes))
 			{
 				// Fallback on the old package flag check.
 				if (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather)

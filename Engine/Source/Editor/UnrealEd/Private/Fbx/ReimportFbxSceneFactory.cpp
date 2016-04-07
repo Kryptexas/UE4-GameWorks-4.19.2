@@ -459,8 +459,10 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	}
 
 	StaticMeshImportData->bImportAsScene = true;
+	StaticMeshImportData->bImportMaterials = GlobalImportSettingsReference->bImportMaterials;
 	StaticMeshImportData->FbxSceneImportDataReference = ReimportData;
 	SkeletalMeshImportData->bImportAsScene = true;
+	SkeletalMeshImportData->bImportMaterials = GlobalImportSettingsReference->bImportMaterials;
 	SkeletalMeshImportData->FbxSceneImportDataReference = ReimportData;
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
@@ -877,7 +879,30 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportStaticMesh(void* VoidFbxIm
 		GlobalImportSettings->bBakePivotInVertex = false;
 	}
 	FName StaticMeshFName = FName(*(MeshInfo->Name));
-	UStaticMesh *NewObject = FbxImporter->ImportStaticMesh(Pkg, GeometryParentNode, StaticMeshFName, RF_Public | RF_Standalone, StaticMeshImportData );
+
+	UStaticMesh *NewObject = nullptr;
+	FbxNode* NodeParent = FbxImporter->RecursiveFindParentLodGroup(GeometryParentNode->GetParent());
+	if (NodeParent && NodeParent->GetNodeAttribute() && NodeParent->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
+	{
+		TArray<UStaticMesh*> BaseMeshes;
+		TArray<FbxNode*> AllNodeInLod;
+		FbxImporter->FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
+		NewObject = FbxImporter->ImportStaticMeshAsSingle(Pkg, AllNodeInLod, StaticMeshFName, RF_Public | RF_Standalone, StaticMeshImportData, nullptr, 0);
+		if (NewObject)
+		{
+			// import LOD meshes
+			for (int32 LODIndex = 1; LODIndex < NodeParent->GetChildCount(); LODIndex++)
+			{
+				AllNodeInLod.Empty();
+				FbxImporter->FindAllLODGroupNode(AllNodeInLod, NodeParent, LODIndex);
+				FbxImporter->ImportStaticMeshAsSingle(Pkg, AllNodeInLod, StaticMeshFName, RF_Public | RF_Standalone, StaticMeshImportData, NewObject, LODIndex);
+			}
+		}
+	}
+	else
+	{
+		NewObject = FbxImporter->ImportStaticMesh(Pkg, GeometryParentNode, StaticMeshFName, RF_Public | RF_Standalone, StaticMeshImportData);
+	}
 	if (NewObject == nullptr)
 	{
 		return EReimportResult::Failed;

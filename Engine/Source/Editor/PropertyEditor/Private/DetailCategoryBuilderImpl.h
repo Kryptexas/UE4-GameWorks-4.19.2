@@ -148,7 +148,7 @@ public:
 
 	/** IDetailTreeNode interface */
 	virtual IDetailsViewPrivate& GetDetailsView() const override{ return DetailLayoutBuilder.Pin()->GetDetailsView(); }
-	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) override;
+	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem) override;
 	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren ) override;
 	virtual bool ShouldBeExpanded() const override;
 	virtual ENodeVisibility::Type GetVisibility() const override;
@@ -252,6 +252,11 @@ public:
 	 * Called when the advanced dropdown button is clicked 
 	 */
 	void OnAdvancedDropdownClicked();
+
+	/*
+	 * Call this function to make the category behave like favorite category
+	 */
+	void SetCategoryAsSpecialFavorite() { bFavoriteCategory = true; bForceAdvanced = true; }
 
 private:
 	virtual void OnItemExpansionChanged( bool bIsExpanded ) override;
@@ -373,4 +378,7 @@ private:
 	bool bHasVisibleDetails:1;
 	/** true if the category is visible at all */
 	bool bIsCategoryVisible:1;
+
+	/*true if the category is the special favorite category, all property in the layout will be display when we generate the roottree */
+	bool bFavoriteCategory:1;
 };

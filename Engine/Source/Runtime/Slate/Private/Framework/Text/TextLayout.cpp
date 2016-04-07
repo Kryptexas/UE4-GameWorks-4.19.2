@@ -539,7 +539,7 @@ void FTextLayout::FlowLineLayout(const int32 LineModelIndex, const float Wrappin
 	// if the Line doesn't have any BreakCandidates, or we're not wrapping text
 	if (!IsWrapping || LineModel.BreakCandidates.Num() == 0 )
 	{
-		//Then iterate over all of it's runs
+		//Then iterate over all of its runs
 		CreateLineViewBlocks( LineModelIndex, INDEX_NONE, 0.0f, /*OUT*/CurrentRunIndex, /*OUT*/CurrentRendererIndex, /*OUT*/PreviousBlockEnd, SoftLine );
 		checkf(CurrentRunIndex == LineModel.Runs.Num(), TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 		CurrentWidth = 0;
@@ -554,11 +554,115 @@ void FTextLayout::FlowLineLayout(const int32 LineModelIndex, const float Wrappin
 			const bool IsLastBreak = BreakIndex + 1 == LineModel.BreakCandidates.Num();
 			const bool IsFirstBreakOnSoftLine = CurrentWidth == 0;
 			const uint8 Kerning = ( IsFirstBreakOnSoftLine ) ? Break.Kerning : 0;
-			const bool BreakDoesFit = !IsWrapping || CurrentWidth + Break.ActualSize.X + Kerning <= WrappingDrawWidth;
+			const bool BreakDoesFit = CurrentWidth + Break.ActualSize.X + Kerning <= WrappingDrawWidth;
+			const bool BreakWithoutTrailingWhitespaceDoesFit = CurrentWidth + Break.TrimmedSize.X + Kerning <= WrappingDrawWidth;
 
-			if ( !BreakDoesFit || IsLastBreak )
+			if ( WrappingPolicy == ETextWrappingPolicy::AllowPerCharacterWrapping && !BreakWithoutTrailingWhitespaceDoesFit && IsFirstBreakOnSoftLine )
 			{
-				const bool BreakWithoutTrailingWhitespaceDoesFit = !IsWrapping || CurrentWidth + Break.TrimmedSize.X + Kerning <= WrappingDrawWidth;
+				const FRunTextContext RunTextContext(TextShapingMethod, LineModel.TextBaseDirection, LineModel.ShapedTextCache);
+
+				// This is a single word that's too long to fit onto a line, so we'll fallback to wrapping this word at grapheme cluster boundaries - this may require more than a single split
+				const int32 NonBreakingStringIndexOffset = PreviousBlockEnd;
+				const FString NonBreakingString = FString(Break.TrimmedRange.EndIndex - NonBreakingStringIndexOffset, **LineModel.Text + NonBreakingStringIndexOffset);
+				GraphemeBreakIterator->SetString(NonBreakingString);
+
+				CurrentWidth = 0.0f;
+				for (int32 PreviousBreak = 0, CurrentBreak = GraphemeBreakIterator->MoveToNext(); CurrentBreak != INDEX_NONE;)
+				{
+					// The break range may span multiple runs
+					float BreakWidth = 0.0f;
+					for (int32 BreakRunIndex = CurrentRunIndex; BreakRunIndex < LineModel.Runs.Num(); ++BreakRunIndex)
+					{
+						const FRunModel& RunModel = LineModel.Runs[CurrentRunIndex];
+						const FTextRange RunRange = RunModel.GetTextRange();
+
+						const int32 StartIndex = FMath::Max(RunRange.BeginIndex - NonBreakingStringIndexOffset, PreviousBreak);
+						const int32 StopIndex = FMath::Min(RunRange.EndIndex - NonBreakingStringIndexOffset, CurrentBreak);
+
+						BreakWidth += RunModel.GetRun()->Measure(StartIndex + NonBreakingStringIndexOffset, StopIndex + NonBreakingStringIndexOffset, Scale, RunTextContext).X;
+
+						if (StopIndex == CurrentBreak)
+						{
+							break;
+						}
+					}
+
+					bool bAdvanceIterator = true;
+
+					const bool IsLastGraphemeBreak = CurrentBreak == NonBreakingString.Len();
+					const bool IsFirstGraphemeBreakOnSoftLine = CurrentWidth == 0;
+					const bool GraphemeBreakDoesFit = CurrentWidth + BreakWidth <= WrappingDrawWidth;
+					if (!GraphemeBreakDoesFit || IsLastGraphemeBreak)
+					{
+						bool bHasTrailingText = IsLastGraphemeBreak;
+
+						int32 CurrentBlockEnd = INDEX_NONE;
+						if (IsLastGraphemeBreak && (GraphemeBreakDoesFit || IsFirstGraphemeBreakOnSoftLine))
+						{
+							bHasTrailingText = false;
+
+							// Use the actual range if we've reached the end of the string, as that includes any trailing whitespace that we want to include on this line
+							CurrentBlockEnd = Break.ActualRange.EndIndex;
+						}
+						else if (IsFirstGraphemeBreakOnSoftLine)
+						{
+							// We mustn't break without adding any grapheme clusters as that would cause an infinite loop
+							CurrentBlockEnd = CurrentBreak + NonBreakingStringIndexOffset;
+						}
+						else
+						{
+							bAdvanceIterator = false; // Don't advance the iterator in this case since we need to include the current grapheme cluster on the line after we split
+							CurrentBlockEnd = PreviousBreak + NonBreakingStringIndexOffset;
+						}
+						
+						CreateLineViewBlocks(LineModelIndex, CurrentBlockEnd, CurrentWidth, /*OUT*/CurrentRunIndex, /*OUT*/CurrentRendererIndex, /*OUT*/PreviousBlockEnd, SoftLine);
+
+						if (CurrentRunIndex < LineModel.Runs.Num() && CurrentBlockEnd == LineModel.Runs[CurrentRunIndex].GetTextRange().EndIndex)
+						{
+							++CurrentRunIndex;
+						}
+
+						PreviousBlockEnd = CurrentBlockEnd;
+
+						CurrentWidth = 0;
+						SoftLine.Reset();
+
+						// Add any trailing text
+						if (bHasTrailingText)
+						{
+							CurrentBlockEnd = Break.ActualRange.EndIndex;
+							CreateLineViewBlocks(LineModelIndex, CurrentBlockEnd, CurrentWidth, /*OUT*/CurrentRunIndex, /*OUT*/CurrentRendererIndex, /*OUT*/PreviousBlockEnd, SoftLine);
+
+							if (CurrentRunIndex < LineModel.Runs.Num() && CurrentBlockEnd == LineModel.Runs[CurrentRunIndex].GetTextRange().EndIndex)
+							{
+								++CurrentRunIndex;
+							}
+
+							PreviousBlockEnd = CurrentBlockEnd;
+
+							CurrentWidth = 0;
+							SoftLine.Reset();
+
+							// Always advance the iterator when we've finished processing the text so that we exit the loop
+							bAdvanceIterator = true;
+						}
+					}
+					else
+					{
+						CurrentWidth += BreakWidth;
+					}
+
+					if (bAdvanceIterator)
+					{
+						PreviousBreak = CurrentBreak;
+						CurrentBreak = GraphemeBreakIterator->MoveToNext();
+					}
+				}
+
+				GraphemeBreakIterator->ClearString();
+			}
+			else if ( !BreakDoesFit || IsLastBreak )
+			{
 				const bool IsFirstBreak = BreakIndex == 0;
 
 				const FBreakCandidate& FinalBreakOnSoftLine = ( !IsFirstBreak && !IsFirstBreakOnSoftLine && !BreakWithoutTrailingWhitespaceDoesFit ) ? LineModel.BreakCandidates[ --BreakIndex ] : Break;
@@ -566,14 +670,14 @@ void FTextLayout::FlowLineLayout(const int32 LineModelIndex, const float Wrappin
 				// We want the wrapped line width to contain the first piece of trailing whitespace for a line, however we only do this if we have trailing whitespace
 				// otherwise very long non-breaking words can cause the wrapped line width to expand beyond the desired wrap width
 				float WrappedLineWidth = CurrentWidth;
-				if ( BreakWithoutTrailingWhitespaceDoesFit && !IsLastBreak )
+				if ( BreakWithoutTrailingWhitespaceDoesFit )
 				{
 					// This break has trailing whitespace
 					WrappedLineWidth += ( FinalBreakOnSoftLine.TrimmedSize.X + FinalBreakOnSoftLine.FirstTrailingWhitespaceCharWidth );
 				}
 				else
 				{
-					// This break is either longer than the wrapping point or the last break on this line, so make sure and clamp the line size to the given wrapping width
+					// This break is longer than the wrapping point, so make sure and clamp the line size to the given wrapping width
 					WrappedLineWidth += FinalBreakOnSoftLine.ActualSize.X;
 					WrappedLineWidth = FMath::Min(WrappedLineWidth, WrappingDrawWidth);
 				}
@@ -632,8 +736,8 @@ void FTextLayout::FlowHighlights()
 				continue;
 			}
 
-			const bool bIsHighlightInRange = LineView.Range.InclusiveContains(LineHighlight.Range.BeginIndex) && LineView.Range.InclusiveContains(LineHighlight.Range.EndIndex);
-			if(!bIsHighlightInRange)
+			const FTextRange LineViewHighlightRange = LineView.Range.Intersect(LineHighlight.Range);
+			if (LineViewHighlightRange.IsEmpty() && LineViewHighlightRange != LineView.Range)
 			{
 				continue;
 			}
@@ -663,16 +767,16 @@ void FTextLayout::FlowHighlights()
 				const TSharedRef<ILayoutBlock>& Block = LineView.Blocks[CurrentBlockIndex];
 				const FTextRange& BlockTextRange = Block->GetTextRange();
 
-				if (BlockTextRange.InclusiveContains(LineHighlight.Range.BeginIndex))
+				if (BlockTextRange.InclusiveContains(LineViewHighlightRange.BeginIndex))
 				{
 					VisualHighlightStart.BlockIndex = CurrentBlockIndex;
-					VisualHighlightStart.RangeIndex = LineHighlight.Range.BeginIndex;
+					VisualHighlightStart.RangeIndex = LineViewHighlightRange.BeginIndex;
 				}
 
-				if (BlockTextRange.InclusiveContains(LineHighlight.Range.EndIndex))
+				if (BlockTextRange.InclusiveContains(LineViewHighlightRange.EndIndex))
 				{
 					VisualHighlightEnd.BlockIndex = CurrentBlockIndex;
-					VisualHighlightEnd.RangeIndex = LineHighlight.Range.EndIndex;
+					VisualHighlightEnd.RangeIndex = LineViewHighlightRange.EndIndex;
 				}
 
 				if (VisualHighlightStart.BlockIndex != INDEX_NONE && VisualHighlightEnd.BlockIndex != INDEX_NONE)
@@ -710,21 +814,21 @@ void FTextLayout::FlowHighlights()
 				const TSharedRef<IRun> Run = StartBlock->GetRun();
 
 				// The width always includes size of the intersecting text
-				const FTextRange IntersectedRange = BlockTextRange.Intersect(LineHighlight.Range);
+				const FTextRange IntersectedRange = BlockTextRange.Intersect(LineViewHighlightRange);
 				if (!IntersectedRange.IsEmpty())
 				{
 					LineViewHighlight.Width += Run->Measure(IntersectedRange.BeginIndex, IntersectedRange.EndIndex, Scale, RunTextContext).X;
-				}
 
-				// In left-to-right text, the space before the start of the text is added as an offset
-				// In right-to-left text, the space after the end of the text (which is visually on the left) is added as an offset
-				if (StartBlock->GetTextContext().TextDirection == TextBiDi::ETextDirection::LeftToRight)
-				{
-					LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, IntersectedRange.BeginIndex, Scale, RunTextContext).X;
-				}
-				else
-				{
-					LineViewHighlight.OffsetX += Run->Measure(IntersectedRange.EndIndex, BlockTextRange.EndIndex, Scale, RunTextContext).X;
+					// In left-to-right text, the space before the start of the text is added as an offset
+					// In right-to-left text, the space after the end of the text (which is visually on the left) is added as an offset
+					if (StartBlock->GetTextContext().TextDirection == TextBiDi::ETextDirection::LeftToRight)
+					{
+						LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, IntersectedRange.BeginIndex, Scale, RunTextContext).X;
+					}
+					else
+					{
+						LineViewHighlight.OffsetX += Run->Measure(IntersectedRange.EndIndex, BlockTextRange.EndIndex, Scale, RunTextContext).X;
+					}
 				}
 			}
 
@@ -766,7 +870,7 @@ void FTextLayout::FlowHighlights()
 					const TSharedRef<IRun> Run = EndBlock->GetRun();
 
 					// The width always includes size of the intersecting text
-					const FTextRange IntersectedRange = BlockTextRange.Intersect(LineHighlight.Range);
+					const FTextRange IntersectedRange = BlockTextRange.Intersect(LineViewHighlightRange);
 					if (!IntersectedRange.IsEmpty())
 					{
 						LineViewHighlight.Width += Run->Measure(IntersectedRange.BeginIndex, IntersectedRange.EndIndex, Scale, RunTextContext).X;
@@ -963,6 +1067,7 @@ FTextLayout::FTextLayout()
 	, TextFlowDirection( GetDefaultTextFlowDirection() )
 	, Scale( 1.0f )
 	, WrappingWidth( 0 )
+	, WrappingPolicy( ETextWrappingPolicy::DefaultWrapping )
 	, Margin()
 	, Justification( ETextJustify::Left )
 	, LineHeightPercentage( 1.0f )
@@ -970,6 +1075,7 @@ FTextLayout::FTextLayout()
 	, ViewSize( ForceInitToZero )
 	, ScrollOffset( ForceInitToZero )
 	, LineBreakIterator() // Initialized in FTextLayout::CreateWrappingCache if no custom iterator is provided
+	, GraphemeBreakIterator(FBreakIterator::CreateCharacterBoundaryIterator())
 	, WordBreakIterator(FBreakIterator::CreateWordBreakIterator())
 	, TextBiDiDetection(TextBiDi::CreateTextBiDi())
 {
@@ -2301,6 +2407,15 @@ void FTextLayout::SetWrappingWidth( float Value )
 	if ( WrappingWidth != Value )
 	{
 		WrappingWidth = Value; 
+		DirtyFlags |= ETextLayoutDirtyState::Layout;
+	}
+}
+
+void FTextLayout::SetWrappingPolicy(ETextWrappingPolicy Value)
+{
+	if (WrappingPolicy != Value)
+	{
+		WrappingPolicy = Value;
 		DirtyFlags |= ETextLayoutDirtyState::Layout;
 	}
 }

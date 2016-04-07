@@ -162,15 +162,12 @@ void UComboBoxString::SetSelectedOption(FString Option)
 	if (InitialIndex != -1)
 	{
 		CurrentOptionPtr = Options[InitialIndex];
+		SelectedOption = Option;
 
 		if ( ComoboBoxContent.IsValid() )
 		{
 			MyComboBox->SetSelectedItem(CurrentOptionPtr);
 			ComoboBoxContent->SetContent(HandleGenerateWidget(CurrentOptionPtr));
-		}
-		else
-		{
-			SelectedOption = Option;
 		}
 	}
 }
@@ -210,6 +207,7 @@ TSharedRef<SWidget> UComboBoxString::HandleGenerateWidget(TSharedPtr<FString> It
 void UComboBoxString::HandleSelectionChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectionType)
 {
 	CurrentOptionPtr = Item;
+	SelectedOption = CurrentOptionPtr.IsValid() ? CurrentOptionPtr.ToSharedRef().Get() : FString();
 
 	if ( !IsDesignTime() )
 	{

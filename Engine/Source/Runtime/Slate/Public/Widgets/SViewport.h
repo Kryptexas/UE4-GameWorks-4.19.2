@@ -15,6 +15,7 @@ public:
 		, _EnableGammaCorrection(true)
 		, _EnableBlending(false)
 		, _EnableStereoRendering(false)
+		, _PreMultipliedAlpha(true)
 		, _IgnoreTextureAlpha(true)
 		, _ViewportSize(FVector2D(320.0f, 240.0f))
 	{ }
@@ -31,7 +32,7 @@ public:
 		 */
 		SLATE_ARGUMENT( bool, RenderDirectlyToWindow )
 
-		/** Whether or not to enable gamma correction.  Doesn't apply when rendering directly to a backbuffer . */
+		/** Whether or not to enable gamma correction. Doesn't apply when rendering directly to a backbuffer. */
 		SLATE_ARGUMENT( bool, EnableGammaCorrection )
 
 		/** Allow this viewport to blend with its background. */
@@ -39,6 +40,9 @@ public:
 
 		/** Whether or not to enable stereo rendering. */
 		SLATE_ARGUMENT(bool, EnableStereoRendering )
+
+		/** True if the viewport texture has pre-multiplied alpha */
+		SLATE_ARGUMENT( bool, PreMultipliedAlpha )
 
 		/**
 		 * If true, the viewport's texture alpha is ignored when performing blending.  In this case only the viewport tint opacity is used
@@ -225,4 +229,7 @@ private:
 
 	/** Whether or not to allow texture alpha to be used in blending calculations. */
 	bool bIgnoreTextureAlpha;
+
+	/** True if the viewport texture has pre-multiplied alpha */
+	bool bPreMultipliedAlpha;
 };

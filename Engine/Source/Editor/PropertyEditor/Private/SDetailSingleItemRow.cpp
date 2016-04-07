@@ -6,6 +6,7 @@
 #include "PropertyEditorHelpers.h"
 #include "IDetailKeyframeHandler.h"
 #include "IDetailPropertyExtensionHandler.h"
+#include "DetailPropertyRow.h"
 
 namespace DetailWidgetConstants
 {
@@ -63,10 +64,35 @@ private:
 	TAttribute< TOptional<float> > MaxWidth;
 };
 
+FReply SDetailSingleItemRow::OnFavoriteToggle()
+{
+	if (Customization->GetPropertyNode().IsValid() && Customization->GetPropertyNode()->CanDisplayFavorite())
+	{
+		bool toggle = !Customization->GetPropertyNode()->IsFavorite();
+		Customization->GetPropertyNode()->SetFavorite(toggle);
+		if (OwnerTreeNode.IsValid())
+		{
+			OwnerTreeNode.Pin()->GetDetailsView().ForceRefresh();
+		}
+	}
+	return FReply::Handled();
+}
+
+const FSlateBrush* SDetailSingleItemRow::GetFavoriteButtonBrush() const
+{
+	if (Customization->GetPropertyNode().IsValid() && Customization->GetPropertyNode()->CanDisplayFavorite())
+	{
+		return FEditorStyle::GetBrush(Customization->GetPropertyNode()->IsFavorite() ? TEXT("DetailsView.PropertyIsFavorite") : bMouseHoverWidget ? TEXT("DetailsView.PropertyIsNotFavorite") : TEXT("DetailsView.NoFavoritesSystem"));
+	}
+	//Adding a transparent brush make sure all property are left align correctly
+	return FEditorStyle::GetBrush(TEXT("DetailsView.NoFavoritesSystem"));
+}
 
 void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCustomization* InCustomization, bool bHasMultipleColumns, TSharedRef<IDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView )
 {
+	bMouseHoverWidget = false;
 	OwnerTreeNode = InOwnerTreeNode;
+	bAllowFavoriteSystem = InArgs._AllowFavoriteSystem;
 
 	ColumnSizeData = InArgs._ColumnSizeData;
 
@@ -107,10 +133,60 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 		TSharedRef<SWidget> KeyFrameButton = CreateKeyframeButton( *Customization, InOwnerTreeNode );
 		TAttribute<bool> IsPropertyEditingEnabled = InOwnerTreeNode->IsPropertyEditingEnabled();
 
+		bool const bEnableFavoriteSystem = GIsRequestingExit ? false : (GetDefault<UEditorStyleSettings>()->bEnableFavoriteSystem && bAllowFavoriteSystem);
+
+		TSharedRef<SHorizontalBox> InternalLeftColumnRowBox = SNew(SHorizontalBox);
+
+		if (bEnableFavoriteSystem)
+		{
+			InternalLeftColumnRowBox->AddSlot()
+				.Padding(0.0f, 0.0f)
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.OnClicked(this, &SDetailSingleItemRow::OnFavoriteToggle)
+					[
+						SNew(SImage).Image(this, &SDetailSingleItemRow::GetFavoriteButtonBrush)
+					]
+				];
+		}
+		InternalLeftColumnRowBox->AddSlot()
+			.Padding(3.0f, 0.0f)
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			[
+				SNew(SExpanderArrow, SharedThis(this))
+				.BaseIndentLevel(1)
+			];
+		
+
 		if( bHasMultipleColumns )
 		{
 			NameWidget->SetEnabled(IsPropertyEditingEnabled);
 			TSharedPtr<SHorizontalBox> HBox;
+			
+			InternalLeftColumnRowBox->AddSlot()
+				.HAlign(Row.NameWidget.HorizontalAlignment)
+				.VAlign(Row.NameWidget.VerticalAlignment)
+				.Padding(DetailWidgetConstants::LeftRowPadding)
+				[
+					NameWidget.ToSharedRef()
+				];
+			InternalLeftColumnRowBox->AddSlot()
+				.Padding(3.0f, 0.0f)
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					KeyFrameButton
+				];
+
 			TSharedRef<SSplitter> Splitter = 
 				SNew( SSplitter )
 				.Style( FEditorStyle::Get(), "DetailsView.Splitter" )
@@ -120,31 +196,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 				.Value( ColumnSizeData.LeftColumnWidth )
 				.OnSlotResized( SSplitter::FOnSlotResized::CreateSP( this, &SDetailSingleItemRow::OnLeftColumnResized ) )
 				[
-					SNew( SHorizontalBox )
-					+ SHorizontalBox::Slot()
-					.Padding( 3.0f, 0.0f )
-					.HAlign( HAlign_Left )
-					.VAlign( VAlign_Center )
-					.AutoWidth()
-					[
-						SNew( SExpanderArrow, SharedThis(this) )
-						.BaseIndentLevel(1)
-					]
-					+ SHorizontalBox::Slot()
-					.HAlign( Row.NameWidget.HorizontalAlignment )
-					.VAlign( Row.NameWidget.VerticalAlignment )
-					.Padding( DetailWidgetConstants::LeftRowPadding )
-					[
-						NameWidget.ToSharedRef()
-					]
-					+ SHorizontalBox::Slot()
-					.Padding(3.0f, 0.0f)
-					.HAlign(HAlign_Right)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-						KeyFrameButton
-					]
+					InternalLeftColumnRowBox
 				]
 				+ SSplitter::Slot()
 				.Value( ColumnSizeData.RightColumnWidth )
@@ -172,31 +224,21 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 		else
 		{
 			Row.WholeRowWidget.Widget->SetEnabled(IsPropertyEditingEnabled);
-			Widget =
-				SNew( SHorizontalBox )
-				+ SHorizontalBox::Slot()
-				.Padding( 3.0f, 0.0f )
-				.HAlign( HAlign_Left )
-				.VAlign( VAlign_Center )
-				.AutoWidth()
-				[
-					SNew( SExpanderArrow, SharedThis(this) )
-					.BaseIndentLevel(1)
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign( Row.WholeRowWidget.HorizontalAlignment )
-				.VAlign( Row.WholeRowWidget.VerticalAlignment )
-				.Padding( DetailWidgetConstants::LeftRowPadding )
+			InternalLeftColumnRowBox->AddSlot()
+				.HAlign(Row.WholeRowWidget.HorizontalAlignment)
+				.VAlign(Row.WholeRowWidget.VerticalAlignment)
+				.Padding(DetailWidgetConstants::LeftRowPadding)
 				[
 					Row.WholeRowWidget.Widget
-				]
-				+ SHorizontalBox::Slot()
+				];
+			InternalLeftColumnRowBox->AddSlot()
 				.Padding(3.0f, 0.0f)
 				.HAlign(HAlign_Right)
 				.VAlign(VAlign_Center)
 				[
 					KeyFrameButton
 				];
+			Widget = InternalLeftColumnRowBox;
 		}
 	}
 
@@ -217,6 +259,16 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 			.ShowSelection(false),
 		InOwnerTableView
 	);
+}
+
+void SDetailSingleItemRow::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	bMouseHoverWidget = true;
+}
+
+void SDetailSingleItemRow::OnMouseLeave(const FPointerEvent& MouseEvent)
+{
+	bMouseHoverWidget = false;
 }
 
 bool SDetailSingleItemRow::OnContextMenuOpening( FMenuBuilder& MenuBuilder )
@@ -293,6 +345,16 @@ void SDetailSingleItemRow::OnPasteProperty()
 
 bool SDetailSingleItemRow::CanPasteProperty() const
 {
+	// Prevent paste from working if the property's edit condition is not met.
+	if (Customization->PropertyRow.IsValid())
+	{
+		FPropertyEditor* PropertyEditor = Customization->PropertyRow->GetPropertyEditor().Get();
+		if (PropertyEditor && PropertyEditor->HasEditCondition() && !PropertyEditor->IsEditConditionMet())
+		{
+			return false;
+		}
+	}
+
 	FString ClipboardContent;
 	if( OwnerTreeNode.IsValid() )
 	{

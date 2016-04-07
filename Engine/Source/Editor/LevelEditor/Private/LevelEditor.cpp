@@ -23,6 +23,7 @@
 #include "IProjectManager.h"
 #include "LevelViewportLayout.h"
 #include "LevelViewportLayoutEntity.h"
+#include "PixelInspectorModule.h"
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
@@ -241,6 +242,8 @@ void FLevelEditorModule::StartupModule()
 		.SetDisplayName( NSLOCTEXT("LevelEditor", "LevelEditorTab", "Level Editor") );
 
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(MenuStructure.GetDeveloperToolsMiscCategory());
+
+	FModuleManager::LoadModuleChecked<FPixelInspectorModule>("PixelInspectorModule").RegisterTabSpawner(MenuStructure.GetDeveloperToolsMiscCategory());
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.RegisterLogListing("BuildAndSubmitErrors", LOCTEXT("BuildAndSubmitErrors", "Build and Submit Errors"));

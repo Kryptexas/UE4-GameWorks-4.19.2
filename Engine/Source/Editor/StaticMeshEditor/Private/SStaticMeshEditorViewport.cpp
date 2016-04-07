@@ -233,6 +233,13 @@ void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
 				else
 				{
 					SocketPreviewMeshComponent = SocketPreviewMeshComponents[i];
+
+					// In case of a socket rename, ensure our preview component is still snapping to the proper socket
+					if (!SocketPreviewMeshComponent->AttachSocketName.IsEqual(Socket->SocketName))
+					{
+						SocketPreviewMeshComponent->SnapTo(PreviewMeshComponent, Socket->SocketName);
+					}
+
 					// Force component to world update to take into account the new socket position.
 					SocketPreviewMeshComponent->UpdateComponentToWorld();
 				}

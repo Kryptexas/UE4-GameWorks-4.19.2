@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#ifndef __SLATE_VIEWPORT_H__
-#define __SLATE_VIEWPORT_H__
+#pragma once
 
 #include "SlateCore.h"
 
@@ -363,6 +362,3 @@ private:
 	int32 CurrentBufferedTargetIndex;
 	int32 NextBufferedTargetIndex;
 };
-
-
-#endif

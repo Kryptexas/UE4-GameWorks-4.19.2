@@ -8,6 +8,9 @@
 #include "ScenePrivate.h"
 #include "PostProcessing.h"
 #include "PostProcessAA.h"
+#if WITH_EDITOR
+	#include "PostProcessBufferInspector.h"
+#endif
 #include "PostProcessMaterial.h"
 #include "PostProcessInput.h"
 #include "PostProcessWeightedSampleSum.h"
@@ -1936,6 +1939,20 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		}
 		
 		AddPostProcessMaterial(Context, BL_AfterTonemapping, SeparateTranslucency, HDRColor);
+
+#if WITH_EDITOR
+		//Inspect the Final color, GBuffer and HDR
+		//No more postprocess Final color should be the real one
+		//The HDR was save before the tonemapping
+		//GBuffer should not be change during post process 
+		if (View.bUsePixelInspector && FeatureLevel >= ERHIFeatureLevel::SM4)
+		{
+			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBufferInspector(RHICmdList));
+			Node->SetInput(ePId_Input0, Context.FinalOutput);
+			Node->SetInput(ePId_Input1, HDRColor);
+			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+		}
+#endif //WITH_EDITOR
 
 		if(bVisualizeBloom)
 		{

@@ -6,6 +6,7 @@
 #include "IVirtualKeyboardEntry.h"
 #include "ITextInputMethodSystem.h"
 #include "ISlateEditableTextWidget.h"
+#include "IBreakIterator.h"
 #include "UniquePtr.h"
 
 class FSlateTextLayout;
@@ -65,13 +66,16 @@ public:
 	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
 
 	/** Set the wrapping to use for this document */
-	void SetTextWrapping(const TAttribute<float>& InWrapTextAt, const TAttribute<bool>& InAutoWrapText);
+	void SetTextWrapping(const TAttribute<float>& InWrapTextAt, const TAttribute<bool>& InAutoWrapText, const TAttribute<ETextWrappingPolicy>& InWrappingPolicy);
 
 	/** Set whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs */
 	void SetWrapTextAt(const TAttribute<float>& InWrapTextAt);
 
 	/** Set whether to wrap text automatically based on the widget's computed horizontal space */
 	void SetAutoWrapText(const TAttribute<bool>& InAutoWrapText);
+
+	/** Set the wrapping policy to use */
+	void SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy);
 
 	/** Set the amount of blank space left around the edges of text area */
 	void SetMargin(const TAttribute<FMargin>& InMargin);
@@ -203,7 +207,7 @@ public:
 	void InsertRunAtCursor(TSharedRef<IRun> InRun);
 
 	/** Move the cursor in the document using the specified move method */
-	void MoveCursor(const FMoveCursor& InArgs);
+	bool MoveCursor(const FMoveCursor& InArgs);
 
 	/** Move the cursor to the given location in the document (will also scroll to this point) */
 	void GoTo(const FTextLocation& NewLocation);
@@ -425,6 +429,9 @@ private:
 	/** Pointer to the interface for our owner widget */
 	ISlateEditableTextWidget* OwnerWidget;
 
+	/** The iterator to use to detect grapheme cluster boundaries */
+	TSharedPtr<IBreakIterator> GraphemeBreakIterator;
+
 	/** The marshaller used to get/set the BoundText text to/from the text layout. */
 	TSharedPtr<ITextLayoutMarshaller> Marshaller;
 
@@ -461,6 +468,9 @@ private:
 	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
 	TAttribute<bool> AutoWrapText;
 
+	/** The wrapping policy we're using */
+	TAttribute<ETextWrappingPolicy> WrappingPolicy;
+
 	/** The amount of blank space left around the edges of text area */
 	TAttribute<FMargin> Margin;
 
@@ -489,7 +499,7 @@ private:
 	TSharedPtr<SlateEditableTextTypes::FTextCompositionHighlighter> TextCompositionHighlighter;
 
 	/** Run renderer used to draw the active text selection */
-	TSharedPtr<SlateEditableTextTypes::FTextSelectionRunRenderer> TextSelectionRunRenderer;
+	TSharedPtr<SlateEditableTextTypes::FTextSelectionHighlighter> TextSelectionHighlighter;
 
 	/** The scroll offset (in unscaled Slate units) for this text */
 	FVector2D ScrollOffset;

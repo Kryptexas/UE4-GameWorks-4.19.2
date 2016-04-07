@@ -312,7 +312,7 @@ protected:
 	 * @param The detail layout builder that will be used for customization of this property map
 	 * @param CurCategory The current category name
 	 */
-	void UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLayoutBuilderImpl& DetailLayout, FName CurCategory, FComplexPropertyNode* CurObjectNode );
+	void UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLayoutBuilderImpl& DetailLayout, FName CurCategory, FComplexPropertyNode* CurObjectNode, bool bEnableFavoriteSystem, bool bUpdateFavoriteSystemOnly);
 
 
 	/** Called to get the visibility of the tree view */

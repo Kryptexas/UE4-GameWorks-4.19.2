@@ -828,6 +828,7 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 			ULevel* BrushLevel = Actor->GetLevel();
 			if (BrushLevel && !Brush->IsVolumeBrush() )
 			{
+				BrushLevel->Model->Modify();
 				LevelsToRebuildBSP.Add( BrushLevel );
 				// Rebuilding bsp will also take care of navigation
 				LevelsToRebuildNavigation.Remove( BrushLevel );
