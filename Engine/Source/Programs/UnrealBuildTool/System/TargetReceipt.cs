@@ -386,11 +386,11 @@ namespace UnrealBuildTool
 			// Replace all the variables in the paths
 			foreach (BuildProduct BuildProduct in BuildProducts)
 			{
-				BuildProduct.Path = Path.GetFullPath(Utils.ExpandVariables(BuildProduct.Path, Variables));
+				BuildProduct.Path = Utils.ExpandVariables(BuildProduct.Path, Variables);
 			}
 			foreach (RuntimeDependency RuntimeDependency in RuntimeDependencies)
 			{
-				RuntimeDependency.Path = Path.GetFullPath(Utils.ExpandVariables(RuntimeDependency.Path, Variables));
+				RuntimeDependency.Path = Utils.ExpandVariables(RuntimeDependency.Path, Variables);
 			}
 		}
 
