@@ -1334,30 +1334,6 @@ FReply SAssetView::OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent&
 	return FReply::Unhandled();
 }
 
-static bool IsValidObjectPath(const FString& Path)
-{
-	int32 NameStartIndex = INDEX_NONE;
-	Path.FindChar(TCHAR('\''), NameStartIndex);
-	if (NameStartIndex != INDEX_NONE)
-	{
-		int32 NameEndIndex = INDEX_NONE;
-		Path.FindLastChar(TCHAR('\''), NameEndIndex);
-		if (NameEndIndex > NameStartIndex)
-		{
-			const FString ClassName = Path.Left(NameStartIndex);
-			const FString PathName = Path.Mid(NameStartIndex + 1, NameEndIndex - NameStartIndex - 1);
-
-			UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassName, true);
-			if (Class)
-			{
-				return FPackageName::IsValidLongPackageName(FPackageName::ObjectPathToPackageName(PathName));
-			}
-		}
-	}
-
-	return false;
-}
-
 FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	{
@@ -1375,19 +1351,12 @@ FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 			TArray<UObject*> ObjectsToCopy;
 			for (FString DestPath : DestPathsSplit)
 			{
-				// Validate string
-				if ( IsValidObjectPath(DestPath) )
+				if ( !(DestPath == TEXT("None")) )
 				{
 					ObjectsToCopy.Add( LoadObject<UObject>( NULL, *DestPath ));
 				}
 			}
-
-			if (ObjectsToCopy.Num())
-			{
-				ContentBrowserUtils::CopyAssets(ObjectsToCopy, SourcesData.PackagePaths[0].ToString());
-			}
-
-			return FReply::Handled();
+			ContentBrowserUtils::CopyAssets( ObjectsToCopy, SourcesData.PackagePaths[0].ToString() );
 		}
 		// Swallow the key-presses used by the quick-jump in OnKeyChar to avoid other things (such as the viewport commands) getting them instead
 		// eg) Pressing "W" without this would set the viewport to "translate" mode

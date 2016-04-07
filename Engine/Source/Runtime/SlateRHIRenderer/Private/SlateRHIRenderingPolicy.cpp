@@ -401,7 +401,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					( RenderBatch.DrawFlags & ESlateBatchDrawFlag::NoBlending )
 					? TStaticBlendState<>::GetRHI()
 #if SLATE_PRE_MULTIPLY
-					: ( ( RenderBatch.DrawFlags & ESlateBatchDrawFlag::PreMultipliedAlpha )
+					: ( ( RenderBatch.DrawFlags & ESlateBatchDrawFlag::AlphaCompositing )
 						? TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
 						: TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI() )
 #else
@@ -523,7 +523,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 						}
 
 #if SLATE_PRE_MULTIPLY
-						if (RenderBatch.DrawFlags & ESlateBatchDrawFlag::PreMultipliedAlpha)
+						if (RenderBatch.DrawFlags & ESlateBatchDrawFlag::AlphaCompositing)
 						{
 							RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI());
 						}

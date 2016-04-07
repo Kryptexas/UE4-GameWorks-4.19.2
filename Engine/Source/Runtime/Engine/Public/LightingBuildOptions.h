@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
+
+#ifndef __LIGHTINGBUILDOPTIONS_H__
+#define __LIGHTINGBUILDOPTIONS_H__
 
 /**
  * A set of parameters specifying how static lighting is rebuilt.
@@ -49,3 +51,4 @@ public:
 	TArray<ULevel*>			SelectedLevels;
 };
 
+#endif // __LIGHTINGBUILDOPTIONS_H__

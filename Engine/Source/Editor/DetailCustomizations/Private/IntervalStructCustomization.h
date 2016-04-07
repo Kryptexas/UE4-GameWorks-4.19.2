@@ -2,15 +2,9 @@
 
 #pragma once
 
-enum class EIntervalField
-{
-	Min,
-	Max
-};
-
 /**
- * Implements a details panel customization for numeric TInterval structures.
- */
+* Implements a details panel customization for numeric TInterval structures.
+*/
 template <typename NumericType>
 class FIntervalStructCustomization : public IPropertyTypeCustomization
 {
@@ -38,43 +32,29 @@ public:
 protected:
 
 	/**
-	 * Gets the value for the provided interval field
+	 * Gets the value for the provided property handle
 	 *
-	 * @param	Field	Which FInterval field to get
+	 * @param	ValueWeakPtr	Handle to the property to get the value from
 	 * @return	The value or unset if it could not be accessed
 	 */
-	TOptional<NumericType> OnGetValue(EIntervalField Field) const;
-
-	/**
-	 * Gets the minimum allowed value
-	 *
-	 * @return	The value or unset if it could not be accessed
-	 */
-	TOptional<NumericType> OnGetMinValue() const;
-
-	/**
-	 * Gets the maximum allowed value
-	 *
-	 * @return	The value or unset if it could not be accessed
-	 */
-	TOptional<NumericType> OnGetMaxValue() const;
+	TOptional<NumericType> OnGetValue(TWeakPtr<IPropertyHandle> ValueWeakPtr) const;
 
 	/**
 	 * Called when the value is committed from the property editor
 	 *
 	 * @param	NewValue		The new value of the property
 	 * @param	CommitType		How the value was committed (unused)
-	 * @param	Field			Which TInterval field is being committed to
+	 * @param	HandleWeakPtr	Handle to the property that the new value is for
 	 */
-	void OnValueCommitted(NumericType NewValue, ETextCommit::Type CommitType, EIntervalField Field);
+	void OnValueCommitted(NumericType NewValue, ETextCommit::Type CommitType, TWeakPtr<IPropertyHandle> HandleWeakPtr);
 
 	/**
 	 * Called when the value is changed in the property editor
 	 *
 	 * @param	NewValue		The new value of the property
-	 * @param	Field			Which TInterval field is being committed to
+	 * @param	HandleWeakPtr	Handle to the property that the new value is for
 	 */
-	void OnValueChanged(NumericType NewValue, EIntervalField Field);
+	void OnValueChanged(NumericType NewValue, TWeakPtr<IPropertyHandle> HandleWeakPtr);
 
 	/**
 	 * Called when a value starts to be changed by a slider
@@ -87,15 +67,6 @@ protected:
 	 * @param	NewValue		The new value of the property
 	 */
 	void OnEndSliderMovement(NumericType NewValue);
-
-	/**
-	 * Sets the interval field specified to a new value
-	 *
-	 * @param	NewValue		The new value of the property
-	 * @param	Field			Which TInterval field is being set
-	 * @param	Flags			Flags specifying how the property should be set
-	 */
-	void SetValue(NumericType NewValue, EIntervalField Field, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags);
 
 	/**
 	 * Determines if the spin box is enabled on a numeric value widget
@@ -114,10 +85,4 @@ protected:
 	
 	// Flags whether the slider is being moved at the moment on any of our widgets
 	bool bIsUsingSlider;
-
-	// Specifies that the Min value may be set greater than the Max value
-	bool bAllowInvertedInterval;
-
-	// Specifies that the Min value imposes a minimum limit on the Max value, and vice versa
-	bool bClampToMinMaxLimits;
 };

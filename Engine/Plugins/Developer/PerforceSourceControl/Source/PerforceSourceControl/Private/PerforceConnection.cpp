@@ -790,12 +790,11 @@ void FPerforceConnection::EstablishConnection(const FPerforceConnectionInfo& InC
 #endif
 }
 
-FScopedPerforceConnection::FScopedPerforceConnection( FPerforceSourceControlCommand& InCommand )
+FScopedPerforceConnection::FScopedPerforceConnection( const class FPerforceSourceControlCommand& InCommand )
 	: Connection(NULL)
 	, Concurrency(InCommand.Concurrency)
 {
 	Initialize(InCommand.ConnectionInfo);
-	InCommand.MarkConnectionAsSuccessful();
 }
 
 FScopedPerforceConnection::FScopedPerforceConnection( EConcurrency::Type InConcurrency, const FPerforceConnectionInfo& InConnectionInfo )

@@ -55,21 +55,12 @@ static bool RunCommandInternalRaw(const FString& InCommand, const FString& InPat
 
 	if(!InRepositoryRoot.IsEmpty())
 	{
-		FString RepositoryRoot = InRepositoryRoot;
-
-		// Detect a "migrate asset" scenario (a "git add" command is applied to files outside the current project)
-		if ( (InFiles.Num() > 0) && (!InFiles[0].StartsWith(InRepositoryRoot)) )
-		{
-			// in this case, find the git repository (if any) of the destination Project
-			FindRootDirectory(FPaths::GetPath(InFiles[0]), RepositoryRoot);
-		}
-
 		// Specify the working copy (the root) of the git repository (before the command itself)
 		FullCommand  = TEXT("--work-tree=\"");
-		FullCommand += RepositoryRoot;
+		FullCommand += InRepositoryRoot;
 		// and the ".git" subdirectory in it (before the command itself)
 		FullCommand += TEXT("\" --git-dir=\"");
-		FullCommand += RepositoryRoot;
+		FullCommand += InRepositoryRoot;
 		FullCommand += TEXT(".git\" ");
 	}
 	// then the git command itself ("status", "log", "commit"...)
@@ -207,37 +198,25 @@ bool CheckGitAvailability(const FString& InPathToGitBinary)
 	return bGitAvailable;
 }
 
-// Find the root of the Git repository, looking from the provided path and upward in its parent directories.
-bool FindRootDirectory(const FString& InPath, FString& OutRepositoryRoot)
+// Find the root of the Git repository, looking from the GameDir and upward in its parent directories.
+bool FindRootDirectory(const FString& InPathToGameDir, FString& OutRepositoryRoot)
 {
 	bool bFound = false;
 	FString PathToGitSubdirectory;
-	OutRepositoryRoot = InPath;
-
-	auto TrimTrailing = [](FString& Str, const TCHAR Char)
-	{
-		int32 Len = Str.Len();
-		while(Len && Str[Len - 1] == Char)
-		{
-			Str = Str.LeftChop(1);
-			Len = Str.Len();
-		}
-	};
-
-	TrimTrailing(OutRepositoryRoot, '\\');
-	TrimTrailing(OutRepositoryRoot, '/');
+	OutRepositoryRoot = InPathToGameDir;
 
 	while(!bFound && !OutRepositoryRoot.IsEmpty())
 	{
-		// Look for the ".git" subdirectory present at the root of every Git repository
-		PathToGitSubdirectory = OutRepositoryRoot / TEXT(".git");
+		PathToGitSubdirectory = OutRepositoryRoot;
+		PathToGitSubdirectory += TEXT(".git"); // Look for the ".git" subdirectory present at the root of every Git repository
 		bFound = IFileManager::Get().DirectoryExists(*PathToGitSubdirectory);
 		if(!bFound)
 		{
 			int32 LastSlashIndex;
+			OutRepositoryRoot = OutRepositoryRoot.LeftChop(5);
 			if(OutRepositoryRoot.FindLastChar('/', LastSlashIndex))
 			{
-				OutRepositoryRoot = OutRepositoryRoot.Left(LastSlashIndex);
+				OutRepositoryRoot = OutRepositoryRoot.Left(LastSlashIndex + 1);
 			}
 			else
 			{
@@ -247,7 +226,7 @@ bool FindRootDirectory(const FString& InPath, FString& OutRepositoryRoot)
 	}
 	if (!bFound)
 	{
-		OutRepositoryRoot = InPath; // If not found, return the provided dir as best possible root.
+		OutRepositoryRoot = InPathToGameDir; // If not found, return the GameDir as best possible root.
 	}
 	return bFound;
 }

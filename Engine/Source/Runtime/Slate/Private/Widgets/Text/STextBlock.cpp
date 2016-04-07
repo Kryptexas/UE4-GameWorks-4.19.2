@@ -23,12 +23,11 @@ STextBlock::~STextBlock()
 
 void STextBlock::Construct( const FArguments& InArgs )
 {
-	TextStyle = *InArgs._TextStyle;
+	TextStyle = InArgs._TextStyle;
 
 	HighlightText = InArgs._HighlightText;
 	WrapTextAt = InArgs._WrapTextAt;
 	AutoWrapText = InArgs._AutoWrapText;
-	WrappingPolicy = InArgs._WrappingPolicy;
 	Margin = InArgs._Margin;
 	LineHeightPercentage = InArgs._LineHeightPercentage;
 	Justification = InArgs._Justification;
@@ -52,32 +51,32 @@ void STextBlock::Construct( const FArguments& InArgs )
 
 FSlateFontInfo STextBlock::GetFont() const
 {
-	return Font.IsSet() ? Font.Get() : TextStyle.Font;
+	return Font.IsSet() ? Font.Get() : TextStyle->Font;
 }
 
 FSlateColor STextBlock::GetColorAndOpacity() const
 {
-	return ColorAndOpacity.IsSet() ? ColorAndOpacity.Get() : TextStyle.ColorAndOpacity;
+	return ColorAndOpacity.IsSet() ? ColorAndOpacity.Get() : TextStyle->ColorAndOpacity;
 }
 
 FVector2D STextBlock::GetShadowOffset() const
 {
-	return ShadowOffset.IsSet() ? ShadowOffset.Get() : TextStyle.ShadowOffset;
+	return ShadowOffset.IsSet() ? ShadowOffset.Get() : TextStyle->ShadowOffset;
 }
 
 FLinearColor STextBlock::GetShadowColorAndOpacity() const
 {
-	return ShadowColorAndOpacity.IsSet() ? ShadowColorAndOpacity.Get() : TextStyle.ShadowColorAndOpacity;
+	return ShadowColorAndOpacity.IsSet() ? ShadowColorAndOpacity.Get() : TextStyle->ShadowColorAndOpacity;
 }
 
 FLinearColor STextBlock::GetHighlightColor() const
 {
-	return HighlightColor.IsSet() ? HighlightColor.Get() : TextStyle.HighlightColor;
+	return HighlightColor.IsSet() ? HighlightColor.Get() : TextStyle->HighlightColor;
 }
 
 const FSlateBrush* STextBlock::GetHighlightShape() const
 {
-	return HighlightShape.IsSet() ? HighlightShape.Get() : &TextStyle.HighlightShape;
+	return HighlightShape.IsSet() ? HighlightShape.Get() : &TextStyle->HighlightShape;
 }
 
 void STextBlock::SetText( const TAttribute< FString >& InText )
@@ -174,7 +173,7 @@ FVector2D STextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 
 	// ComputeDesiredSize will also update the text layout cache if required
 	const FVector2D TextSize = TextLayoutCache->ComputeDesiredSize(
-		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, WrappingPolicy, Margin, LineHeightPercentage, Justification),
+		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
 		LayoutScaleMultiplier, GetComputedTextStyle()
 		);
 
@@ -204,14 +203,12 @@ void STextBlock::SetColorAndOpacity(const TAttribute<FSlateColor>& InColorAndOpa
 
 void STextBlock::SetTextStyle(const FTextBlockStyle* InTextStyle)
 {
-	if (InTextStyle)
-	{
-		TextStyle = *InTextStyle;
-	}
-	else
+	TextStyle = InTextStyle;
+
+	if (TextStyle == nullptr)
 	{
 		FArguments Defaults;
-		TextStyle = *Defaults._TextStyle;
+		TextStyle = Defaults._TextStyle;
 	}
 
 	Invalidate(EInvalidateWidget::Layout);
@@ -238,12 +235,6 @@ void STextBlock::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
 void STextBlock::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
 {
 	AutoWrapText = InAutoWrapText;
-	Invalidate(EInvalidateWidget::Layout);
-}
-
-void STextBlock::SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy)
-{
-	WrappingPolicy = InWrappingPolicy;
 	Invalidate(EInvalidateWidget::Layout);
 }
 
@@ -285,12 +276,19 @@ void STextBlock::SetJustification(const TAttribute<ETextJustify::Type>& InJustif
 
 FTextBlockStyle STextBlock::GetComputedTextStyle() const
 {
-	FTextBlockStyle ComputedStyle = TextStyle;
-	ComputedStyle.SetFont( GetFont() );
-	ComputedStyle.SetColorAndOpacity( GetColorAndOpacity() );
-	ComputedStyle.SetShadowOffset( GetShadowOffset() );
-	ComputedStyle.SetShadowColorAndOpacity( GetShadowColorAndOpacity() );
-	ComputedStyle.SetHighlightColor( GetHighlightColor() );
-	ComputedStyle.SetHighlightShape( *GetHighlightShape() );
-	return ComputedStyle;
+	if( ensureMsgf(TextStyle, TEXT("No text style specified: for widget: %s"), *ToString() ) )
+	{
+		FTextBlockStyle ComputedStyle = *TextStyle;
+		ComputedStyle.SetFont(GetFont());
+		ComputedStyle.SetColorAndOpacity(GetColorAndOpacity());
+		ComputedStyle.SetShadowOffset(GetShadowOffset());
+		ComputedStyle.SetShadowColorAndOpacity(GetShadowColorAndOpacity());
+		ComputedStyle.SetHighlightColor(GetHighlightColor());
+		ComputedStyle.SetHighlightShape(*GetHighlightShape());
+		return ComputedStyle;
+	}
+	else
+	{
+		return FTextBlockStyle();
+	}
 }

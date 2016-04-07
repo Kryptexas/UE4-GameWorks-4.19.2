@@ -582,28 +582,11 @@ FText SFbxSceneOptionWindow::GetMaterialBasePath() const
 	return FText::FromString(MaterialBasePath);
 }
 
-bool IsMaterialBasePathValid(FString MaterialBasePath)
-{
-	bool bInvalidMaterialPath = (MaterialBasePath.Contains(TEXT("//"), ESearchCase::CaseSensitive)) ||
-								(MaterialBasePath.Len() < 2) ||
-								!MaterialBasePath.StartsWith(TEXT("/")) ||
-								!MaterialBasePath.EndsWith(TEXT("/")
-								);
-	return !bInvalidMaterialPath;
-}
-
 void SFbxSceneOptionWindow::OnMaterialBasePathCommited(const FText& InText, ETextCommit::Type InCommitType)
 {
 	MaterialBasePath = InText.ToString();
-
-	bool bMaterialPathValid = IsMaterialBasePathValid(MaterialBasePath);
 	//Commit only if all the rules are respected
-	if (MaterialBasePath.Len() == 0)
-	{
-		GlobalImportSettings->MaterialBasePath = NAME_None;
-		MaterialsTabListView->UpdateMaterialBasePath();
-	}
-	else if (bMaterialPathValid)
+	if (MaterialBasePath.StartsWith(TEXT("/")) && MaterialBasePath.EndsWith(TEXT("/")))
 	{
 		GlobalImportSettings->MaterialBasePath = FName(*MaterialBasePath);
 		MaterialsTabListView->UpdateMaterialBasePath();
@@ -643,7 +626,7 @@ FReply SFbxSceneOptionWindow::OnMaterialBasePathBrowse()
 
 FSlateColor SFbxSceneOptionWindow::GetMaterialBasePathTextColor() const
 {
-	if (MaterialBasePath.IsEmpty() || IsMaterialBasePathValid(MaterialBasePath))
+	if (MaterialBasePath.IsEmpty() || (MaterialBasePath.StartsWith(TEXT("/")) && MaterialBasePath.EndsWith(TEXT("/"))))
 	{
 		return FSlateColor::UseForeground();
 	}

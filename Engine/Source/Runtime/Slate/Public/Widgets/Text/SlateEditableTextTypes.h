@@ -154,13 +154,13 @@ protected:
 	TAttribute<const FSlateBrush*> CompositionBrush;
 };
 
-/** Run highlighter used to draw selection ranges */
-class SLATE_API FTextSelectionHighlighter : public ISlateLineHighlighter
+/** Run renderer used to draw selection ranges */
+class SLATE_API FTextSelectionRunRenderer : public ISlateRunRenderer
 {
 public:
-	static TSharedRef< FTextSelectionHighlighter > Create();
+	static TSharedRef< FTextSelectionRunRenderer > Create();
 
-	virtual int32 OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	void SetHasKeyboardFocus(const bool bInHasKeyboardFocus)
 	{
@@ -168,7 +168,7 @@ public:
 	}
 
 protected:
-	FTextSelectionHighlighter();
+	FTextSelectionRunRenderer();
 
 	/** true if the parent widget has keyboard focus, false otherwise */
 	bool bHasKeyboardFocus;

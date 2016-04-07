@@ -38,19 +38,6 @@ namespace ETextJustify
 }
 
 /** 
- * The different methods that can be used if a word is too long to be broken by the default line-break iterator.
- */
-UENUM( BlueprintType )
-enum class ETextWrappingPolicy : uint8
-{
-	/** No fallback, just use the given line-break iterator */
-	DefaultWrapping = 0,
-
-	/** Fallback to per-character wrapping if a word is too long */
-	AllowPerCharacterWrapping,
-};
-
-/** 
  * The different directions that text can flow within a paragraph of text.
  * @note If you change this enum, make sure and update CVarDefaultTextFlowDirection and GetDefaultTextFlowDirection.
  */
@@ -214,7 +201,7 @@ public:
 #endif
 	};
 
-	class SLATE_API FRunModel
+	class FRunModel
 	{
 	public:
 
@@ -268,7 +255,7 @@ public:
 		};
 	};
 
-	struct SLATE_API FLineModel
+	struct FLineModel
 	{
 	public:
 
@@ -308,7 +295,7 @@ public:
 	};
 
 	/** A mapping between the offsets into the text as a flat string (with line-breaks), and the internal lines used within a text layout */
-	struct SLATE_API FTextOffsetLocations
+	struct FTextOffsetLocations
 	{
 	friend class FTextLayout;
 
@@ -352,9 +339,6 @@ public:
 
 	FORCEINLINE float GetWrappingWidth() const { return WrappingWidth; }
 	void SetWrappingWidth( float Value );
-
-	FORCEINLINE ETextWrappingPolicy GetWrappingPolicy() const { return WrappingPolicy; }
-	void SetWrappingPolicy(ETextWrappingPolicy Value);
 
 	FORCEINLINE float GetLineHeightPercentage() const { return LineHeightPercentage; }
 	void SetLineHeightPercentage( float Value );
@@ -649,9 +633,6 @@ protected:
 	/** The width that the text should be wrap at. If 0 or negative no wrapping occurs. */
 	float WrappingWidth;
 
-	/** The wrapping policy used by this text layout. */
-	ETextWrappingPolicy WrappingPolicy;
-
 	/** The size of the margins to put about the text. This is an unscaled value. */
 	FMargin Margin;
 
@@ -673,11 +654,8 @@ protected:
 	/** The iterator to use to detect appropriate soft-wrapping points for lines */
 	TSharedPtr<IBreakIterator> LineBreakIterator;
 
-	/** The iterator to use to detect grapheme cluster boundaries */
-	TSharedRef<IBreakIterator> GraphemeBreakIterator;
-
 	/** The iterator to use to detect word boundaries */
-	TSharedRef<IBreakIterator> WordBreakIterator;
+	TSharedPtr<IBreakIterator> WordBreakIterator;
 
 	/** Unicode BiDi text detection */
 	TUniquePtr<TextBiDi::ITextBiDi> TextBiDiDetection;

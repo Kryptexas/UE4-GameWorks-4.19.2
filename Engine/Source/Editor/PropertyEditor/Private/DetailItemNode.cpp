@@ -151,7 +151,7 @@ void FDetailItemNode::SetExpansionState(bool bWantsExpanded)
 	OnItemExpansionChanged(bIsExpanded);
 }
 
-TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem)
+TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities )
 {
 	FTagMetaData TagMeta(TEXT("DetailRowItem"));
 	if (ParentCategory.IsValid())
@@ -178,8 +178,7 @@ TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<ST
 		return
 			SNew(SDetailSingleItemRow, &Customization, HasMultiColumnWidget(), AsShared(), OwnerTable )
 			.AddMetaData<FTagMetaData>(TagMeta)
-			.ColumnSizeData(ColumnSizeData)
-			.AllowFavoriteSystem(bAllowFavoriteSystem);
+			.ColumnSizeData(ColumnSizeData);
 	}
 }
 

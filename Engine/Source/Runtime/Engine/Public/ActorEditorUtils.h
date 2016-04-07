@@ -1,6 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#ifndef __ActorEditorUtils_h__
+#define __ActorEditorUtils_h__
+
 #pragma once
+
+
 
 namespace FActorEditorUtils
 {
@@ -46,3 +51,5 @@ namespace FActorEditorUtils
 	 */
 	ENGINE_API bool TraverseActorTree_ChildFirst(AActor* InActor, TFunctionRef<bool(AActor*)> InPredicate, bool bIncludeThisActor = true);
 };
+
+#endif// __ActorEditorUtils_h__

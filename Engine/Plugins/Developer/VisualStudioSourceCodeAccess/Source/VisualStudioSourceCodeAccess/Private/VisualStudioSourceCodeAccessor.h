@@ -9,7 +9,6 @@ public:
 	/** Struct representing identifying information about Visual Studio versions */
 	struct VisualStudioLocation
 	{
-		int32 VersionNumber;
 		FString ExecutablePath;
 #if VSACCESSOR_HAS_DTE
 		FString ROTMoniker;
@@ -62,7 +61,7 @@ private:
 	};
 
 	/** Checks to see if we can run visual studio, also outputs the executable path if it's needed */
-	bool CanRunVisualStudio(FString& OutPath, const FString& InSolution) const;
+	bool CanRunVisualStudio(FString& OutPath) const;
 
 	/** Run an instance of visual studio instance if possible. */
 	bool RunVisualStudioAndOpenSolution() const;
@@ -97,13 +96,6 @@ private:
 	 * @param	bAllowExpress	true to also add the express version of Visual Studio to the list of locations
 	 */
 	void AddVisualStudioVersion(const int MajorVersion, const bool bAllowExpress = true);
-
-	/** 
-	 * Get the prioritized list of VS install locations based upon the version of the given solution
-	 * 
-	 * @return	The sorted array of install locations
-	 */
-	TArray<VisualStudioLocation> GetPrioritizedVisualStudioVersions(const FString& InSolution) const;
 
 	/** 
 	 * Run a new instance Visual Studio, optionally opening the provided solution and list of files

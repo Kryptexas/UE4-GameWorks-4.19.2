@@ -6,7 +6,6 @@
 #include "EdGraph/EdGraph.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node_EditablePinBase.h"
-#include "Engine/LevelScriptBlueprint.h"
 
 class  USCS_Node;
 struct FComponentKey;

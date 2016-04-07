@@ -364,8 +364,6 @@ FFileCache::FFileCache(const FFileCacheConfig& InConfig)
 	, bSavedCacheDirty(false)
 	, LastFileHashGetTime(0)
 {
-	bPendingTransactionsDirty = true;
-
 	// Ensure the directory has a trailing /
 	Config.Directory /= TEXT("");
 
@@ -602,21 +600,8 @@ void FFileCache::DiffDirtyFiles(TMap<FImmutableString, FFileData>& InDirtyFiles,
 			// Do we think it exists in the cache?
 			if (CachedState)
 			{
-				// Custom logic overrides everything
-				TOptional<bool> CustomResult = Config.CustomChangeLogic ? Config.CustomChangeLogic(File, FileData) : TOptional<bool>();
-				if (CustomResult.IsSet())
-				{
-					if (CustomResult.GetValue())
-					{
-						ModifiedFiles.Add(File, FileData);
-					}
-					else
-					{
-						InvalidDirtyFiles.Add(File);
-					}
-				}
 				// A file has changed if its hash is now different
-				else if (Config.bRequireFileHashes &&
+				if (Config.bRequireFileHashes &&
 					Config.ChangeDetectionBits[FFileCacheConfig::FileHash] &&
 					CachedState->FileHash != FileData.FileHash
 					)
@@ -724,42 +709,14 @@ void FFileCache::DiffDirtyFiles(TMap<FImmutableString, FFileData>& InDirtyFiles,
 	// ModifiedFiles is now bogus
 }
 
-void FFileCache::UpdatePendingTransactions()
-{
-	if (bPendingTransactionsDirty)
-	{
-		PendingTransactions.Reset();
-
-		DiffDirtyFiles(DirtyFiles, PendingTransactions);
-
-		bPendingTransactionsDirty = false;
-	}
-}
-
-void  FFileCache::IterateOutstandingChanges(TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)> InIter) const
-{
-	for (const FUpdateCacheTransaction& Transaction : PendingTransactions)
-	{
-		FFileData FileData = DirtyFiles.FindRef(Transaction.Filename);
-		if (!InIter(Transaction, FileData.Timestamp))
-		{
-			break;
-		}
-	}
-}
-
 TArray<FUpdateCacheTransaction> FFileCache::GetOutstandingChanges()
 {
-	// Harvest hashes first, since that may invalidate our pending transactions
 	HarvestDirtyFileHashes();
-	UpdatePendingTransactions();
 
-	// Clear the set of dirty files since we're returning transactions for them now
+	TArray<FUpdateCacheTransaction> PendingTransactions;
+	DiffDirtyFiles(DirtyFiles, PendingTransactions);
 	DirtyFiles.Empty();
-
-	TArray<FUpdateCacheTransaction> ReturnVal = MoveTemp(PendingTransactions);
-	PendingTransactions.Empty();
-	return ReturnVal;
+	return PendingTransactions;
 }
 
 TArray<FUpdateCacheTransaction> FFileCache::FilterOutstandingChanges(TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)> InPredicate)
@@ -779,17 +736,9 @@ TArray<FUpdateCacheTransaction> FFileCache::FilterOutstandingChanges(TFunctionRe
 		if (InPredicate(Transaction, FileData.Timestamp))
 		{
 			DirtyFiles.Remove(Transaction.Filename);
-			if (Transaction.Action == EFileAction::Moved)
-			{
-				DirtyFiles.Remove(Transaction.MovedFromFilename);
-			}
-
 			FilteredTransactions.Add(MoveTemp(Transaction));
 		}
 	}
-
-	bPendingTransactionsDirty = true;
-
 	// Anything left in AllTransactions is discarded
 	return FilteredTransactions;
 }
@@ -802,9 +751,7 @@ void FFileCache::IgnoreNewFile(const FString& Filename)
 		DirtyFiles.Remove(TransactionPath.GetValue());
 		
 		const FFileData FileData(IFileManager::Get().GetTimeStamp(*Filename), FMD5Hash::HashFile(*Filename));
-		CompleteTransaction(FUpdateCacheTransaction(MoveTemp(TransactionPath.GetValue()), EFileAction::Added, FileData));
-
-		bPendingTransactionsDirty = true;
+		CompleteTransaction(FUpdateCacheTransaction(MoveTemp(TransactionPath.GetValue()), EFileAction::Added, FileData));	
 	}
 }
 
@@ -816,9 +763,7 @@ void FFileCache::IgnoreFileModification(const FString& Filename)
 		DirtyFiles.Remove(TransactionPath.GetValue());
 		
 		const FFileData FileData(IFileManager::Get().GetTimeStamp(*Filename), FMD5Hash::HashFile(*Filename));
-		CompleteTransaction(FUpdateCacheTransaction(MoveTemp(TransactionPath.GetValue()), EFileAction::Modified, FileData));
-
-		bPendingTransactionsDirty = true;
+		CompleteTransaction(FUpdateCacheTransaction(MoveTemp(TransactionPath.GetValue()), EFileAction::Modified, FileData));	
 	}
 }
 
@@ -833,9 +778,7 @@ void FFileCache::IgnoreMovedFile(const FString& SrcFilename, const FString& DstF
 		DirtyFiles.Remove(DstTransactionPath.GetValue());
 
 		const FFileData FileData(IFileManager::Get().GetTimeStamp(*DstFilename), FMD5Hash::HashFile(*DstFilename));
-		CompleteTransaction(FUpdateCacheTransaction(MoveTemp(SrcTransactionPath.GetValue()), MoveTemp(DstTransactionPath.GetValue()), FileData));
-
-		bPendingTransactionsDirty = true;
+		CompleteTransaction(FUpdateCacheTransaction(MoveTemp(SrcTransactionPath.GetValue()), MoveTemp(DstTransactionPath.GetValue()), FileData));	
 	}
 }
 
@@ -845,9 +788,7 @@ void FFileCache::IgnoreDeletedFile(const FString& Filename)
 	if (TransactionPath.IsSet())
 	{
 		DirtyFiles.Remove(TransactionPath.GetValue());
-		CompleteTransaction(FUpdateCacheTransaction(MoveTemp(TransactionPath.GetValue()), EFileAction::Removed));
-
-		bPendingTransactionsDirty = true;
+		CompleteTransaction(FUpdateCacheTransaction(MoveTemp(TransactionPath.GetValue()), EFileAction::Removed));	
 	}
 }
 
@@ -907,9 +848,6 @@ void FFileCache::CompleteTransaction(FUpdateCacheTransaction&& Transaction)
 
 void FFileCache::Tick()
 {
-	HarvestDirtyFileHashes();
-	UpdatePendingTransactions();
-
 	/** Stage one: wait for the asynchronous directory reader to finish harvesting timestamps for the directory */
 	if (DirectoryReader.IsValid())
 	{
@@ -1026,8 +964,6 @@ void FFileCache::ReadStateFromAsyncReader()
 
 	RescanForDirtyFileHashes();
 
-	bPendingTransactionsDirty = true;
-
 	// Update the applicable extensions now that we've updated the cache
 	CachedDirectoryState.Rules = LiveState->Rules;
 }
@@ -1045,7 +981,6 @@ void FFileCache::HarvestDirtyFileHashes()
 		if (auto* FileData = DirtyFiles.Find(CachePath))
 		{
 			FileData->FileHash = Data.FileHash;
-			bPendingTransactionsDirty = true;
 		}
 	}
 
@@ -1057,11 +992,6 @@ void FFileCache::HarvestDirtyFileHashes()
 
 void FFileCache::RescanForDirtyFileHashes()
 {
-	if (!Config.bRequireFileHashes)
-	{
-		return;
-	}
-
 	TArray<FFilenameAndHash> FilesThatNeedHashing;
 
 	for (const auto& Pair : DirtyFiles)
@@ -1093,7 +1023,6 @@ void FFileCache::OnDirectoryChanged(const TArray<FFileChangeData>& FileChanges)
 		{
 			// Add the file that changed to the dirty files map, potentially invalidating the MD5 hash (we'll need to calculate it again)
 			DirtyFiles.Add(MoveTemp(TransactionPath.GetValue()), FFileData(Now, FMD5Hash()));
-			bPendingTransactionsDirty = true;
 		}
 	}
 

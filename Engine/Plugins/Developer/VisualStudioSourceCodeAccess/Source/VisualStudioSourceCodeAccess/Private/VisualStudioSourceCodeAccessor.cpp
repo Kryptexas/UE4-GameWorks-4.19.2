@@ -67,44 +67,6 @@ void OnModuleCompileStarted(bool bIsAsyncCompile)
 	VisualStudioSourceCodeAccessModule.GetAccessor().SaveAllOpenDocuments();
 }
 
-int32 GetVisualStudioVersionForCompiler()
-{
-#if _MSC_VER == 1900
-	return 14; // Visual Studio 2015
-#elif _MSC_VER == 1800
-	return 12; // Visual Studio 2013
-#else
-	#error "FVisualStudioSourceCodeAccessor::RefreshAvailability - Unknown _MSC_VER! Please update this code for this version of MSVC."
-#endif //_MSVC_VER
-	return 0;
-}
-
-int32 GetVisualStudioVersionForSolution(const FString& InSolutionFile)
-{
-	static const FString VisualStudioVersionString = TEXT("Microsoft Visual Studio Solution File, Format Version ");
-
-	FString SolutionFileContents;
-	if (FFileHelper::LoadFileToString(SolutionFileContents, *InSolutionFile))
-	{
-		// Find the format version from the file, it will look like "Microsoft Visual Studio Solution File, Format Version 12.00"
-		const int32 VersionStringStart = SolutionFileContents.Find(VisualStudioVersionString);
-		if (VersionStringStart != INDEX_NONE)
-		{
-			FString VersionString;
-			for (const TCHAR* VersionChar = *SolutionFileContents + VersionStringStart + VisualStudioVersionString.Len(); FChar::IsDigit(*VersionChar); ++VersionChar)
-			{
-				VersionString.AppendChar(*VersionChar);
-			}
-
-			int32 Version = 0;
-			LexicalConversion::FromString(Version, *VersionString);
-			return Version;
-		}
-	}
-
-	return 0;
-}
-
 void FVisualStudioSourceCodeAccessor::Startup()
 {
 	VSLaunchTime = 0.0;
@@ -251,8 +213,7 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioSolutionViaDTE()
 	bool bSuccess = false;
 
 	CComPtr<EnvDTE::_DTE> DTE;
-	const FString SolutionPath = GetSolutionPath();
-	switch (AccessVisualStudioViaDTE(DTE, SolutionPath, GetPrioritizedVisualStudioVersions(SolutionPath)))
+	switch (AccessVisualStudioViaDTE(DTE, GetSolutionPath(), Locations))
 	{
 	case EAccessVisualStudioResult::VSInstanceIsOpen:
 		{
@@ -305,8 +266,7 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaDTE(const 
 	
 	bool bDefer = false, bSuccess = false;
 	CComPtr<EnvDTE::_DTE> DTE;
-	const FString SolutionPath = GetSolutionPath();
-	switch (AccessVisualStudioViaDTE(DTE, SolutionPath, GetPrioritizedVisualStudioVersions(SolutionPath)))
+	switch (AccessVisualStudioViaDTE(DTE, GetSolutionPath(), Locations))
 	{
 	case EAccessVisualStudioResult::VSInstanceIsOpen:
 		{
@@ -466,8 +426,7 @@ bool FVisualStudioSourceCodeAccessor::SaveAllOpenDocuments() const
 	}
 	
 	CComPtr<EnvDTE::_DTE> DTE;
-	const FString SolutionPath = GetSolutionPath();
-	if (AccessVisualStudioViaDTE(DTE, SolutionPath, GetPrioritizedVisualStudioVersions(SolutionPath)) == EAccessVisualStudioResult::VSInstanceIsOpen)
+	if (AccessVisualStudioViaDTE(DTE, GetSolutionPath(), Locations) == EAccessVisualStudioResult::VSInstanceIsOpen)
 	{
 		// Save all documents
 		CComPtr<EnvDTE::Documents> Documents;
@@ -733,8 +692,7 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioSolutionViaProcess()
 {
 	::DWORD ProcessID = 0;
 	FString Path;
-	const FString SolutionPath = GetSolutionPath();
-	switch (AccessVisualStudioViaProcess(ProcessID, Path, SolutionPath, GetPrioritizedVisualStudioVersions(SolutionPath)))
+	switch (AccessVisualStudioViaProcess(ProcessID, Path, GetSolutionPath(), Locations))
 	{
 		case EAccessVisualStudioResult::VSInstanceIsOpen:
 		{
@@ -766,16 +724,15 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaProcess(co
 {
 	::DWORD ProcessID = 0;
 	FString Path;
-	const FString SolutionPath = GetSolutionPath();
-	switch (AccessVisualStudioViaProcess(ProcessID, Path, SolutionPath, GetPrioritizedVisualStudioVersions(SolutionPath)))
+	switch (AccessVisualStudioViaProcess(ProcessID, Path, GetSolutionPath(), Locations))
 	{
 	case EAccessVisualStudioResult::VSInstanceIsOpen:
 		return RunVisualStudioAndOpenSolutionAndFiles(Path, "", &Requests);
 	
 	case EAccessVisualStudioResult::VSInstanceIsNotOpen:
-		if (CanRunVisualStudio(Path, SolutionPath))
+		if (CanRunVisualStudio(Path))
 		{
-			return RunVisualStudioAndOpenSolutionAndFiles(Path, SolutionPath, &Requests);
+			return RunVisualStudioAndOpenSolutionAndFiles(Path, GetSolutionPath(), &Requests);
 		}
 		break;
 
@@ -788,12 +745,13 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaProcess(co
 	return false;
 }
 
-bool FVisualStudioSourceCodeAccessor::CanRunVisualStudio(FString& OutPath, const FString& InSolution) const
+bool FVisualStudioSourceCodeAccessor::CanRunVisualStudio(FString& OutPath) const
 {
-	TArray<VisualStudioLocation> PrioritizedLocations = GetPrioritizedVisualStudioVersions(InSolution);
-	if (PrioritizedLocations.Num() > 0)
+	// AddVisualStudioVersion only adds paths to Locations if they're valid, so we can just use the first entry in the array
+	if (Locations.Num())
 	{
-		OutPath = PrioritizedLocations[0].ExecutablePath;
+		const VisualStudioLocation& NewLocation = Locations[0];
+		OutPath = NewLocation.ExecutablePath;
 		return true;
 	}
 
@@ -803,10 +761,9 @@ bool FVisualStudioSourceCodeAccessor::CanRunVisualStudio(FString& OutPath, const
 bool FVisualStudioSourceCodeAccessor::RunVisualStudioAndOpenSolution() const
 {
 	FString Path;
-	const FString SolutionPath = GetSolutionPath();
-	if (CanRunVisualStudio(Path, SolutionPath))
+	if (CanRunVisualStudio(Path))
 	{
-		return RunVisualStudioAndOpenSolutionAndFiles(Path, SolutionPath, nullptr);
+		return RunVisualStudioAndOpenSolutionAndFiles(Path, GetSolutionPath(), nullptr);
 	}
 
 	return false;
@@ -901,8 +858,7 @@ bool FVisualStudioSourceCodeAccessor::AddSourceFiles(const TArray<FString>& Abso
 	}
 
 	CComPtr<EnvDTE::_DTE> DTE;
-	const FString SolutionPath = GetSolutionPath();
-	if (AccessVisualStudioViaDTE(DTE, SolutionPath, GetPrioritizedVisualStudioVersions(SolutionPath)) == EAccessVisualStudioResult::VSInstanceIsOpen)
+	if (AccessVisualStudioViaDTE(DTE, GetSolutionPath(), Locations) == EAccessVisualStudioResult::VSInstanceIsOpen)
 	{
 		CComPtr<EnvDTE::_Solution> Solution;
 		if (SUCCEEDED(DTE->get_Solution(&Solution)) && Solution)
@@ -1064,7 +1020,6 @@ void FVisualStudioSourceCodeAccessor::AddVisualStudioVersion(const int MajorVers
 	FPaths::CollapseRelativeDirectories(BaseExecutablePath);
 
 	VisualStudioLocation NewLocation;
-	NewLocation.VersionNumber = MajorVersion;
 	NewLocation.ExecutablePath = BaseExecutablePath / TEXT("devenv.exe");
 #if VSACCESSOR_HAS_DTE
 	NewLocation.ROTMoniker = FString::Printf(TEXT("!VisualStudio.DTE.%d.0"), MajorVersion);
@@ -1091,29 +1046,6 @@ void FVisualStudioSourceCodeAccessor::AddVisualStudioVersion(const int MajorVers
 			Locations.Add(NewLocation);
 		}
 	}
-}
-
-TArray<FVisualStudioSourceCodeAccessor::VisualStudioLocation> FVisualStudioSourceCodeAccessor::GetPrioritizedVisualStudioVersions(const FString& InSolution) const
-{
-	TArray<VisualStudioLocation> PrioritizedLocations = Locations;
-	
-	int32 SolutionVersion = GetVisualStudioVersionForSolution(InSolution);
-	if (SolutionVersion == 0)
-	{
-		SolutionVersion = GetVisualStudioVersionForCompiler();
-	}
-
-	if (SolutionVersion != 0)
-	{
-		PrioritizedLocations.StableSort([&](const VisualStudioLocation& InFirst, const VisualStudioLocation& InSecond) -> bool
-		{
-			const int32 FirstSortWeight = (InFirst.VersionNumber == SolutionVersion) ? 1 : 0;
-			const int32 SecondSortWeight = (InSecond.VersionNumber == SolutionVersion) ? 1 : 0;
-			return FirstSortWeight >= SecondSortWeight;
-		});
-	}
-	
-	return PrioritizedLocations;
 }
 
 bool FVisualStudioSourceCodeAccessor::RunVisualStudioAndOpenSolutionAndFiles(const FString& ExecutablePath, const FString& SolutionPath, const TArray<FileOpenRequest>* const Requests) const
@@ -1173,8 +1105,8 @@ bool FVisualStudioSourceCodeAccessor::RunVisualStudioAndOpenSolutionAndFiles(con
 
 bool FVisualStudioSourceCodeAccessor::CanAccessSourceCode() const
 {
-	// True if we have any versions of VS installed
-	return Locations.Num() > 0;
+	FString Path;
+	return CanRunVisualStudio(Path);
 }
 
 FName FVisualStudioSourceCodeAccessor::GetFName() const

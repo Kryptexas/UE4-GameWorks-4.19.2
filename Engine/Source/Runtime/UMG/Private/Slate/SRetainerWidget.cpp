@@ -365,7 +365,7 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 				AllottedGeometry.ToPaintGeometry(),
 				&SurfaceBrush,
 				MyClippingRect,
-				ESlateDrawEffect::NoGamma | ESlateDrawEffect::PreMultipliedAlpha,
+				ESlateDrawEffect::NoGamma | ESlateDrawEffect::AlphaCompositing,
 				FinalColorAndOpacity);
 			
 			TSharedRef<SRetainerWidget> SharedMutableThis = SharedThis(MutableThis);

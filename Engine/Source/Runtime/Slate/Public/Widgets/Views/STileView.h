@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
-#include "SListView.h"
 
 
 /**
@@ -214,7 +213,6 @@ public:
 			// Once we run out of vertical and horizontal space, we stop generating widgets.
 			float WidthUsedSoFar = 0.0f;
 			float HeightUsedSoFar = 0.0f;
-			float WidgetHeightSoFar = 0.0f;
 			// Index of the item at which we start generating based on how far scrolled down we are
 			int32 StartIndex = FMath::Max( 0, FMath::FloorToInt(ClampedScrollOffset / NumItemsWide) * NumItemsWide );
 
@@ -224,7 +222,6 @@ public:
 			// Actually generate the widgets.
 			bool bKeepGenerating = true;
 			bool bNewRow = true;
-			bool bFirstRow = true;
 			double NumRowsShownOnScreen = 0;
 			for( int32 ItemIndex = StartIndex; bKeepGenerating && ItemIndex < SourceItems->Num(); ++ItemIndex )
 			{
@@ -233,24 +230,15 @@ public:
 				if (bNewRow)
 				{
 					bNewRow = false;
-					WidgetHeightSoFar += ItemHeight;
-
-					float RowFraction = 1.0f;
-					if (bFirstRow)
-					{
-						bFirstRow = false;
-						RowFraction = 1.0f - FMath::Max(FMath::Fractional(ClampedScrollOffset / NumItemsWide), 0.0f);
-					}
-
-					HeightUsedSoFar += ItemHeight * RowFraction;
+					HeightUsedSoFar += ItemHeight;
 
 					if (HeightUsedSoFar > MyGeometry.Size.Y)
 					{
-						NumRowsShownOnScreen += FMath::Max(1.0f - ((HeightUsedSoFar - MyGeometry.Size.Y) / ItemHeight), 0.0f);
+						NumRowsShownOnScreen += 1.0f - ((HeightUsedSoFar - MyGeometry.Size.Y) / ItemHeight);
 					}
 					else
 					{
-						NumRowsShownOnScreen += RowFraction;
+						++NumRowsShownOnScreen;
 					}
 				}
 
@@ -267,7 +255,7 @@ public:
 					bNewRow = true;
 
 					// Stop when we've generated a widget that's partially clipped by the bottom of the list.
-					if ( HeightUsedSoFar >= MyGeometry.Size.Y )
+					if ( HeightUsedSoFar > MyGeometry.Size.Y + ItemHeight )
 					{
 						bKeepGenerating = false;
 					}
@@ -277,7 +265,7 @@ public:
 			// We have completed the generation pass. The WidgetGenerator will clean up unused Widgets.
 			this->WidgetGenerator.OnEndGenerationPass();
 
-			return STableViewBase::FReGenerateResults(ClampedScrollOffset, WidgetHeightSoFar, NumRowsShownOnScreen, bAtEndOfList);
+			return STableViewBase::FReGenerateResults(ClampedScrollOffset, HeightUsedSoFar, NumRowsShownOnScreen, bAtEndOfList);
 		}
 
 		return STableViewBase::FReGenerateResults(0, 0, 0, false);
@@ -337,59 +325,5 @@ protected:
 		const float ItemWidth = this->GetItemWidth();
 		const int32 NumItemsWide = ItemWidth > 0 ? FMath::FloorToInt(this->PanelGeometryLastTick.Size.X / ItemWidth) : 1;
 		return FMath::Max(1, NumItemsWide);
-	}
-
-	/**
-	* If there is a pending request to scroll an item into view, do so.
-	*
-	* @param ListViewGeometry  The geometry of the listView; can be useful for centering the item.
-	*/
-	virtual typename SListView<ItemType>::EScrollIntoViewResult ScrollIntoView(const FGeometry& ListViewGeometry) override
-	{
-		if (TListTypeTraits<ItemType>::IsPtrValid(this->ItemToScrollIntoView) && this->ItemsSource != nullptr)
-		{
-			const int32 IndexOfItem = this->ItemsSource->Find(TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType(this->ItemToScrollIntoView));
-			if (IndexOfItem != INDEX_NONE)
-			{
-				const float NumItemsHigh = ListViewGeometry.Size.Y / this->GetItemHeight();
-				float NumLiveWidgets = this->GetNumLiveWidgets();
-				if (NumLiveWidgets == 0 && this->IsPendingRefresh())
-				{
-					// Use the last number of widgets on screen to estimate if we actually need to scroll.
-					NumLiveWidgets = this->LastGenerateResults.ExactNumRowsOnScreen;
-
-					// If we still don't have any widgets, we're not in a situation where we can scroll an item into view
-					// (probably as nothing has been generated yet), so we'll defer this again until the next frame
-					if (NumLiveWidgets == 0)
-					{
-						return SListView<ItemType>::EScrollIntoViewResult::Deferred;
-					}
-				}
-
-				// Only scroll the item into view if it's not already in the visible range
-				const int32 NumItemsWide = GetNumItemsWide();
-				const float Index = (IndexOfItem / NumItemsWide) * NumItemsWide;
-				const float IndexPlusOne = ((IndexOfItem / NumItemsWide) + 1) * NumItemsWide;
-				if (Index < this->ScrollOffset || IndexPlusOne > (this->ScrollOffset + NumItemsHigh * NumItemsWide))
-				{
-					// Scroll the top of the listview to the item in question
-					float NewScrollOffset = Index;
-					// Center the list view on the item in question.
-					NewScrollOffset -= ((NumItemsHigh - 1.0f) * NumItemsWide * 0.5f);
-					// And clamp the scroll offset within the allowed limits
-					NewScrollOffset = FMath::Clamp(NewScrollOffset, 0.0f, GetNumItemsBeingObserved() - NumItemsWide * NumItemsHigh);
-
-					this->SetScrollOffset(NewScrollOffset);
-				}
-
-				this->RequestListRefresh();
-
-				this->ItemToNotifyWhenInView = this->ItemToScrollIntoView;
-			}
-
-			TListTypeTraits<ItemType>::ResetPtr(this->ItemToScrollIntoView);
-		}
-
-		return SListView<ItemType>::EScrollIntoViewResult::Success;
 	}
 };

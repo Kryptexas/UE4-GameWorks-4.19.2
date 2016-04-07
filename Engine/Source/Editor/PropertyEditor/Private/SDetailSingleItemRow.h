@@ -14,7 +14,6 @@ public:
 		: _ColumnSizeData() {}
 
 		SLATE_ARGUMENT( FDetailColumnSizeData, ColumnSizeData )
-		SLATE_ARGUMENT( bool, AllowFavoriteSystem)
 	SLATE_END_ARGS()
 
 	/**
@@ -22,8 +21,6 @@ public:
 	 */
 	void Construct( const FArguments& InArgs, FDetailLayoutCustomization* InCustomization, bool bHasMultipleColumns, TSharedRef<IDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView );
 
-	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 protected:
 	virtual bool OnContextMenuOpening( FMenuBuilder& MenuBuilder ) override;
 private:
@@ -37,15 +34,9 @@ private:
 	bool IsKeyframeButtonEnabled(TSharedRef<IDetailTreeNode> InTreeNode) const;
 	FReply OnAddKeyframeClicked();
 	bool IsHighlighted() const;
-
-	const FSlateBrush* GetFavoriteButtonBrush() const;
-	FReply OnFavoriteToggle();
-	void AllowShowFavorite();
 private:
-	bool bMouseHoverWidget;
 	TWeakPtr<IDetailKeyframeHandler> KeyframeHandler;
 	/** Customization for this widget */
 	FDetailLayoutCustomization* Customization;
 	FDetailColumnSizeData ColumnSizeData;
-	bool bAllowFavoriteSystem;
 };

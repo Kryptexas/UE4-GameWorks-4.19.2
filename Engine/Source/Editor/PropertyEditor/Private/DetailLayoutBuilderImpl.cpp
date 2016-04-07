@@ -124,10 +124,8 @@ void FDetailLayoutBuilderImpl::BuildCategories( const FCategoryMap& CategoryMap,
 	for( FCategoryMap::TConstIterator It(CategoryMap); It; ++It )
 	{
 		TSharedRef<FDetailCategoryImpl> DetailCategory = It.Value().ToSharedRef();
-		//If there is a delimiter in the name it mean its a sub category, we dont show sub category at the root level
-		FString CategoryDelimiterString;
-		CategoryDelimiterString.AppendChar(FPropertyNodeConstants::CategoryDelimiterChar);
-		const bool bCategoryHidden = GetDetailsView().IsCategoryHiddenByClass(DetailCategory->GetCategoryName()) || ForceHiddenCategories.Contains(DetailCategory->GetCategoryName()) || DetailCategory->GetCategoryName().ToString().Contains(CategoryDelimiterString);
+
+		const bool bCategoryHidden = GetDetailsView().IsCategoryHiddenByClass( DetailCategory->GetCategoryName() ) || ForceHiddenCategories.Contains( DetailCategory->GetCategoryName() );
 
 		if( !bCategoryHidden )
 		{

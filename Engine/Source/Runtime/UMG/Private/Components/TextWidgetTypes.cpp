@@ -18,7 +18,6 @@ UTextLayoutWidget::UTextLayoutWidget(const FObjectInitializer& ObjectInitializer
 	Justification = ETextJustify::Left;
 	AutoWrapText = false;
 	WrapTextAt = 0.0f;
-	WrappingPolicy = ETextWrappingPolicy::DefaultWrapping;
 	Margin = FMargin(0.0f);
 	LineHeightPercentage = 1.0f;
 }

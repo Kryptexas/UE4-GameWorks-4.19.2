@@ -4,7 +4,8 @@
 	AnimationUtils.h: Skeletal mesh animation utilities.
 =============================================================================*/ 
 
-#pragma once
+#ifndef __ANIMATIONUTILS_H__
+#define __ANIMATIONUTILS_H__
 
 #include "Animation/AnimSequence.h"
 
@@ -271,3 +272,6 @@ private:
 	static UAnimCompress* GetDefaultAnimationCompressionAlgorithm();
 
 };
+
+
+#endif // __ANIMATIONUTILS_H__

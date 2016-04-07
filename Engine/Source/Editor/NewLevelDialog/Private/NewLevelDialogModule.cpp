@@ -31,8 +31,11 @@ public:
 
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
+		bool bEnableGammaCorrection = true;
+		bool bAllowBlending = false;
+
 		FSlateDrawElement::MakeViewport(
-			OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), SharedThis( this ), MyClippingRect, ESlateDrawEffect::NoBlending, InWidgetStyle.GetColorAndOpacityTint());
+			OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), SharedThis( this ), MyClippingRect, bEnableGammaCorrection, bAllowBlending, ESlateDrawEffect::None, InWidgetStyle.GetColorAndOpacityTint());
 		return LayerId;
 	}
 

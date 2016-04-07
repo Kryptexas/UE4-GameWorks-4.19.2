@@ -2365,16 +2365,14 @@ void FLevelEditorActionCallbacks::OnAudioMutedChanged(bool bMuted)
 
 void FLevelEditorActionCallbacks::SnapObjectToView_Clicked()
 {
-	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "SnapObjectToView", "Snap Object to View"));
 	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 	{
 		AActor* Actor = Cast<AActor>(*It);
-		Actor->Modify();
-		FVector Location = GCurrentLevelEditingViewportClient->GetViewLocation();
-		FRotator Rotation = GCurrentLevelEditingViewportClient->GetViewRotation();
+		FVector location = GCurrentLevelEditingViewportClient->GetViewLocation();
+		FRotator rotation = GCurrentLevelEditingViewportClient->GetViewRotation();
 
-		Actor->SetActorLocation(Location);
-		Actor->SetActorRotation(Rotation);
+		Actor->SetActorLocation(location);
+		Actor->SetActorRotation(rotation);
 	}
 
 }

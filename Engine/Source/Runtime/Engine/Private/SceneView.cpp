@@ -610,8 +610,6 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	DrawDynamicFlags = EDrawDynamicFlags::None;
 
 #if WITH_EDITOR
-	bUsePixelInspector = false;
-
 	EditorViewBitflag = InitOptions.EditorViewBitflag;
 
 	SelectionOutlineColor = GEngine->GetSelectionOutlineColor();

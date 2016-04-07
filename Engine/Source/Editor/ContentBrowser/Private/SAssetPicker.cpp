@@ -107,7 +107,6 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 			.OnTextChanged( this, &SAssetPicker::OnSearchBoxChanged )
 			.OnTextCommitted( this, &SAssetPicker::OnSearchBoxCommitted )
 			.DelayChangeNotificationsWhileTyping( true )
-			.OnKeyDownHandler( this, &SAssetPicker::HandleKeyDownFromSearchBox )
 		];
 
 		HorizontalBox->AddSlot()
@@ -254,7 +253,7 @@ EActiveTimerReturnType SAssetPicker::SetFocusPostConstruct( double InCurrentTime
 	return EActiveTimerReturnType::Continue;
 }
 
-FReply SAssetPicker::HandleKeyDownFromSearchBox(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	// Up and down move thru the filtered list
 	int32 SelectionDelta = 0;
@@ -267,23 +266,17 @@ FReply SAssetPicker::HandleKeyDownFromSearchBox(const FGeometry& MyGeometry, con
 	{
 		SelectionDelta = +1;
 	}
-
-	if (SelectionDelta != 0)
+	else if (InKeyEvent.GetKey() == EKeys::Enter)
 	{
-		AssetViewPtr->AdjustActiveSelection(SelectionDelta);
+		TArray<FAssetData> SelectionSet = AssetViewPtr->GetSelectedAssets();
+		HandleAssetsActivated(SelectionSet, EAssetTypeActivationMethod::Opened);
 
 		return FReply::Handled();
 	}
 
-	return FReply::Unhandled();
-}
-
-FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
-{
-	if (InKeyEvent.GetKey() == EKeys::Enter)
+	if (SelectionDelta != 0)
 	{
-		TArray<FAssetData> SelectionSet = AssetViewPtr->GetSelectedAssets();
-		HandleAssetsActivated(SelectionSet, EAssetTypeActivationMethod::Opened);
+		AssetViewPtr->AdjustActiveSelection(SelectionDelta);
 
 		return FReply::Handled();
 	}

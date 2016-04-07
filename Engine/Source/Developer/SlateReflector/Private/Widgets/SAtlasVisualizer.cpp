@@ -360,7 +360,6 @@ void SAtlasVisualizer::Construct( const FArguments& InArgs )
 						.ViewportSize(FVector2D(DesiredViewportSize.X, DesiredViewportSize.Y))
 						.IgnoreTextureAlpha(false)
 						.EnableBlending(true)
-						.PreMultipliedAlpha(false)
 					]
 				]
 			]

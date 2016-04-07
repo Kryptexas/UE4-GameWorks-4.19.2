@@ -74,8 +74,9 @@ void FIntervalStructCustomization<NumericType>::CustomizeHeader(TSharedRef<IProp
 		}
 	}
 
-	bAllowInvertedInterval = Property->HasMetaData(TEXT("AllowInvertedInterval"));
-	bClampToMinMaxLimits = Property->HasMetaData(TEXT("ClampToMinMaxLimits"));
+	// Make weak pointers to be passed as payloads to the widgets
+	TWeakPtr<IPropertyHandle> MinValueWeakPtr = MinValueHandle;
+	TWeakPtr<IPropertyHandle> MaxValueWeakPtr = MaxValueHandle;
 
 	// Build the widgets
 	HeaderRow.NameContent()
@@ -96,13 +97,13 @@ void FIntervalStructCustomization<NumericType>::CustomizeHeader(TSharedRef<IProp
 			.VAlign(VAlign_Center)
 			[
 				SNew(SNumericEntryBox<NumericType>)
-				.Value(this, &FIntervalStructCustomization<NumericType>::OnGetValue, EIntervalField::Min)
+				.Value(this, &FIntervalStructCustomization<NumericType>::OnGetValue, MinValueWeakPtr)
 				.MinValue(MinAllowedValue)
 				.MinSliderValue(MinAllowedValue)
-				.MaxValue(this, &FIntervalStructCustomization<NumericType>::OnGetMaxValue)
-				.MaxSliderValue(this, &FIntervalStructCustomization<NumericType>::OnGetMaxValue)
-				.OnValueCommitted(this, &FIntervalStructCustomization<NumericType>::OnValueCommitted, EIntervalField::Min)
-				.OnValueChanged(this, &FIntervalStructCustomization<NumericType>::OnValueChanged, EIntervalField::Min)
+				.MaxValue(this, &FIntervalStructCustomization<NumericType>::OnGetValue, MaxValueWeakPtr)
+				.MaxSliderValue(this, &FIntervalStructCustomization<NumericType>::OnGetValue, MaxValueWeakPtr)
+				.OnValueCommitted(this, &FIntervalStructCustomization<NumericType>::OnValueCommitted, MinValueWeakPtr)
+				.OnValueChanged(this, &FIntervalStructCustomization<NumericType>::OnValueChanged, MinValueWeakPtr)
 				.OnBeginSliderMovement(this, &FIntervalStructCustomization<NumericType>::OnBeginSliderMovement)
 				.OnEndSliderMovement(this, &FIntervalStructCustomization<NumericType>::OnEndSliderMovement)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
@@ -121,13 +122,13 @@ void FIntervalStructCustomization<NumericType>::CustomizeHeader(TSharedRef<IProp
 			.VAlign(VAlign_Center)
 			[
 				SNew(SNumericEntryBox<NumericType>)
-				.Value(this, &FIntervalStructCustomization<NumericType>::OnGetValue, EIntervalField::Max)
-				.MinValue(this, &FIntervalStructCustomization<NumericType>::OnGetMinValue)
-				.MinSliderValue(this, &FIntervalStructCustomization<NumericType>::OnGetMinValue)
+				.Value(this, &FIntervalStructCustomization<NumericType>::OnGetValue, MaxValueWeakPtr)
+				.MinValue(this, &FIntervalStructCustomization<NumericType>::OnGetValue, MinValueWeakPtr)
+				.MinSliderValue(this, &FIntervalStructCustomization<NumericType>::OnGetValue, MinValueWeakPtr)
 				.MaxValue(MaxAllowedValue)
 				.MaxSliderValue(MaxAllowedValue)
-				.OnValueCommitted(this, &FIntervalStructCustomization<NumericType>::OnValueCommitted, EIntervalField::Max)
-				.OnValueChanged(this, &FIntervalStructCustomization<NumericType>::OnValueChanged, EIntervalField::Max)
+				.OnValueCommitted(this, &FIntervalStructCustomization<NumericType>::OnValueCommitted, MaxValueWeakPtr)
+				.OnValueChanged(this, &FIntervalStructCustomization<NumericType>::OnValueChanged, MaxValueWeakPtr)
 				.OnBeginSliderMovement(this, &FIntervalStructCustomization<NumericType>::OnBeginSliderMovement)
 				.OnEndSliderMovement(this, &FIntervalStructCustomization<NumericType>::OnEndSliderMovement)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
@@ -156,80 +157,40 @@ void FIntervalStructCustomization<NumericType>::CustomizeChildren(TSharedRef<IPr
  *****************************************************************************/
 
 template <typename NumericType>
-static TOptional<NumericType> GetValue(IPropertyHandle* Handle)
+TOptional<NumericType> FIntervalStructCustomization<NumericType>::OnGetValue(TWeakPtr<IPropertyHandle> ValueWeakPtr) const
 {
+	auto ValueSharedPtr = ValueWeakPtr.Pin();
+
 	NumericType Value;
-	if (Handle->GetValue(Value) == FPropertyAccess::Success)
+	if (ValueSharedPtr->GetValue(Value) == FPropertyAccess::Success)
 	{
 		return TOptional<NumericType>(Value);
 	}
 
+	// Value couldn't be accessed. Return an unset value
 	return TOptional<NumericType>();
 }
 
 template <typename NumericType>
-TOptional<NumericType> FIntervalStructCustomization<NumericType>::OnGetValue(EIntervalField Field) const
+void FIntervalStructCustomization<NumericType>::OnValueCommitted(NumericType NewValue, ETextCommit::Type CommitType, TWeakPtr<IPropertyHandle> HandleWeakPtr)
 {
-	return GetValue<NumericType>((Field == EIntervalField::Min) ? MinValueHandle.Get() : MaxValueHandle.Get());
-}
-
-template <typename NumericType>
-TOptional<NumericType> FIntervalStructCustomization<NumericType>::OnGetMinValue() const
-{
-	if (bClampToMinMaxLimits)
+	auto HandleSharedPtr = HandleWeakPtr.Pin();
+	if (HandleSharedPtr.IsValid() && (!bIsUsingSlider || (bIsUsingSlider && ShouldAllowSpin())))
 	{
-		return GetValue<NumericType>(MinValueHandle.Get());
-	}
-
-	return MinAllowedValue;
-}
-
-template <typename NumericType>
-TOptional<NumericType> FIntervalStructCustomization<NumericType>::OnGetMaxValue() const
-{
-	if (bClampToMinMaxLimits)
-	{
-		return GetValue<NumericType>(MaxValueHandle.Get());
-	}
-
-	return MaxAllowedValue;
-}
-
-template <typename NumericType>
-void FIntervalStructCustomization<NumericType>::SetValue(NumericType NewValue, EIntervalField Field, EPropertyValueSetFlags::Type Flags)
-{
-	IPropertyHandle* Handle = (Field == EIntervalField::Min) ? MinValueHandle.Get() : MaxValueHandle.Get();
-	IPropertyHandle* OtherHandle = (Field == EIntervalField::Min) ? MaxValueHandle.Get() : MinValueHandle.Get();
-
-	const TOptional<NumericType> OtherValue = GetValue<NumericType>(OtherHandle);
-	const bool bOutOfRange = OtherValue.IsSet() && ((Field == EIntervalField::Min && NewValue > OtherValue.GetValue()) || (Field == EIntervalField::Max && NewValue < OtherValue.GetValue()));
-
-	if (!bOutOfRange || bAllowInvertedInterval)
-	{
-		ensure(Handle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
-	}
-	else if (!bClampToMinMaxLimits)
-	{
-		ensure(Handle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
-		ensure(OtherHandle->SetValue(NewValue, Flags) == FPropertyAccess::Success);
+		ensure(HandleSharedPtr->SetValue(NewValue) == FPropertyAccess::Success);
 	}
 }
 
 template <typename NumericType>
-void FIntervalStructCustomization<NumericType>::OnValueCommitted(NumericType NewValue, ETextCommit::Type CommitType, EIntervalField Field)
-{
-	if (!bIsUsingSlider || (bIsUsingSlider && ShouldAllowSpin()))
-	{
-		SetValue(NewValue, Field);
-	}
-}
-
-template <typename NumericType>
-void FIntervalStructCustomization<NumericType>::OnValueChanged(NumericType NewValue, EIntervalField Field)
+void FIntervalStructCustomization<NumericType>::OnValueChanged(NumericType NewValue, TWeakPtr<IPropertyHandle> HandleWeakPtr)
 {
 	if (bIsUsingSlider && ShouldAllowSpin())
 	{
-		SetValue(NewValue, Field, EPropertyValueSetFlags::InteractiveChange);
+		auto HandleSharedPtr = HandleWeakPtr.Pin();
+		if (HandleSharedPtr.IsValid())
+		{
+			ensure(HandleSharedPtr->SetValue(NewValue, EPropertyValueSetFlags::InteractiveChange) == FPropertyAccess::Success);
+		}
 	}
 }
 

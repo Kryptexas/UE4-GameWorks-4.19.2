@@ -74,6 +74,7 @@ FDetailWidgetRow FDetailLayoutCustomization::GetWidgetRow() const
 	}
 }
 
+
 FDetailCategoryImpl::FDetailCategoryImpl( FName InCategoryName, TSharedRef<FDetailLayoutBuilderImpl> InDetailLayout )
 	: HeaderContentWidget( NULL )
 	, DetailLayoutBuilder( InDetailLayout )
@@ -86,18 +87,13 @@ FDetailCategoryImpl::FDetailCategoryImpl( FName InCategoryName, TSharedRef<FDeta
 	, bHasFilterStrings( false )
 	, bHasVisibleDetails( true )
 	, bIsCategoryVisible( true )
-	, bFavoriteCategory( false )
 {
 	const UStruct* BaseStruct = InDetailLayout->GetDetailsView().GetBaseStruct();
 	// Use the base class name if there is one otherwise this is a generic category not specific to a class
 	FName BaseStructName = BaseStruct ? BaseStruct->GetFName() : FName("Generic");
 
-	//Path is separate by '.' so convert category delimiter from '|' to '.'
-	FString CategoryDelimiterString;
-	CategoryDelimiterString.AppendChar(FPropertyNodeConstants::CategoryDelimiterChar);
-	FString CategoryPathDelimiterString;
-	CategoryPathDelimiterString.AppendChar(TCHAR('.'));
-	CategoryPathName = BaseStructName.ToString() + TEXT(".") + CategoryName.ToString().Replace(*CategoryDelimiterString, *CategoryPathDelimiterString);
+	CategoryPathName = BaseStructName.ToString() + TEXT(".") + CategoryName.ToString();
+
 	bool bUserShowAdvancedConfigValue = false;
 	GConfig->GetBool( TEXT("DetailCategoriesAdvanced"), *CategoryPathName, bUserShowAdvancedConfigValue, GEditorPerProjectIni );
 
@@ -508,7 +504,7 @@ bool FDetailCategoryImpl::GetSavedExpansionState( IDetailTreeNode& InTreeNode ) 
 
 bool FDetailCategoryImpl::ContainsOnlyAdvanced() const
 {
-	return !bFavoriteCategory && SimpleChildNodes.Num() == 0 && AdvancedChildNodes.Num() > 0;
+	return SimpleChildNodes.Num() == 0 && AdvancedChildNodes.Num() > 0;
 }
 
 void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FText& LocalizedNameOverride )
@@ -549,7 +545,7 @@ void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FText& Loc
 }
 
 
-TSharedRef<ITableRow> FDetailCategoryImpl::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem)
+TSharedRef<ITableRow> FDetailCategoryImpl::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) 
 {
 	return
 		SNew( SDetailCategoryTableRow, AsShared(), OwnerTable )
@@ -612,7 +608,7 @@ void FDetailCategoryImpl::GenerateNodesFromCustomizations( const FCustomizationL
 	{
 		const FDetailLayoutCustomization& Customization = InCustomizationList[CustomizationIndex];
 		// When building default layouts cull default properties which have been customized
-		if(bFavoriteCategory || ( Customization.IsValidCustomization() && ( !bDefaultLayouts || !IsCustomProperty( Customization.GetPropertyNode() ) ) ) )
+		if( Customization.IsValidCustomization() && ( !bDefaultLayouts || !IsCustomProperty( Customization.GetPropertyNode() ) ) )
 		{
 			TSharedRef<FDetailItemNode> NewNode = MakeShareable( new FDetailItemNode( Customization, AsShared(), IsParentEnabled ) );
 			NewNode->Initialize();
@@ -785,7 +781,7 @@ void FDetailCategoryImpl::GetChildren( TArray< TSharedRef<IDetailTreeNode> >& Ou
 void FDetailCategoryImpl::FilterNode( const FDetailFilter& InFilter )
 {
 	bHasFilterStrings = InFilter.FilterStrings.Num() > 0;
-	bForceAdvanced = bFavoriteCategory || bHasFilterStrings || InFilter.bShowAllAdvanced == true || ContainsOnlyAdvanced();
+	bForceAdvanced = bHasFilterStrings || InFilter.bShowAllAdvanced == true || ContainsOnlyAdvanced();
 
 	bHasVisibleDetails = false;
 

@@ -27,20 +27,13 @@ void USoundClassGraph::RebuildGraph()
 {
 	check(RootSoundClass);
 
-	// Don't allow initial graph rebuild to affect package dirty state; remember current state...
-	UPackage* Package = GetOutermost();
-	const bool bIsDirty = Package->IsDirty();
-
-	Modify();
+	Modify(false);
 
 	RemoveAllNodes();
 
 	ConstructNodes(RootSoundClass, 0, 0);
 
 	NotifyGraphChanged();
-
-	// ...and restore it
-	Package->SetDirtyFlag(bIsDirty);
 }
 
 void USoundClassGraph::AddDroppedSoundClasses(const TArray<USoundClass*>& SoundClasses, int32 NodePosX, int32 NodePosY)

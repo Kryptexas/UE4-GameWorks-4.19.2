@@ -505,15 +505,6 @@ public:
 	 */
 	void ClearKeyboardFocus(const EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
-#if WITH_EDITOR
-	/**
-	* Gets a delegate that is invoked before the input key get process by slate widgets bubble system.
-	* Its read only and you cannot mark the input as handled.
-	*/
-	DECLARE_EVENT_OneParam(FSlateApplication, FOnApplicationPreInputKeyDownListener, const FKeyEvent&);
-	FOnApplicationPreInputKeyDownListener& OnApplicationPreInputKeyDownListener() { return OnApplicationPreInputKeyDownListenerEvent; }
-#endif //WITH_EDITOR
-
 	/**
 	 * Returns the current modifier keys state
 	 *
@@ -987,7 +978,7 @@ public:
 
 public:
 
-	void SetNavigationConfig( TSharedRef<FNavigationConfig> Config );
+	void SetNavigationConfig( FNavigationConfig&& Config );
 
 	/** Called when the slate application is being shut down. */
 	void OnShutdown();
@@ -1724,7 +1715,7 @@ private:
 	TArray< TSharedPtr<FCacheElementPools> > ReleasedCachedElementLists;
 
 	/** Configured fkeys to control navigation */
-	TSharedRef<FNavigationConfig> NavigationConfig;
+	FNavigationConfig NavigationConfig;
 
 	/** Delegate for pre slate tick */
 	FSlateTickEvent PreTickEvent;
@@ -1734,12 +1725,4 @@ private:
 
 	/** Critical section to avoid multiple threads calling Slate Tick when we're synchronizing between the Slate Loading Thread and the Game Thread. */
 	FCriticalSection SlateTickCriticalSection;
-
-#if WITH_EDITOR
-	/**
-	* Delegate that is invoked before the input key get process by slate widgets bubble system.
-	* User Function cannot mark the input as handled.
-	*/
-	FOnApplicationPreInputKeyDownListener OnApplicationPreInputKeyDownListenerEvent;
-#endif // WITH_EDITOR
 };

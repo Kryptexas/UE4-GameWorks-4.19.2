@@ -370,8 +370,6 @@ private:
 
 	explicit FText( FString InSourceString );
 
-	FText( FString InSourceString, FTextDisplayStringRef InDisplayString );
-
 	FText( FString InSourceString, const FString& InNamespace, const FString& InKey, uint32 InFlags=0 );
 
 	friend CORE_API FArchive& operator<<( FArchive& Ar, FText& Value );

@@ -84,13 +84,15 @@ struct FCharacterRenderData
 	bool HasKerning;
 };
 
-/**
- * Interface to all Slate font textures, both atlased and non-atlased
+
+/** 
+ * Representation of a texture for fonts in which characters are packed tightly based on their bounding rectangle 
  */
-class ISlateFontTexture
+class SLATECORE_API FSlateFontAtlas : public FSlateTextureAtlas
 {
 public:
-	virtual ~ISlateFontTexture() {}
+	FSlateFontAtlas( uint32 InWidth, uint32 InHeight );
+	virtual ~FSlateFontAtlas();
 
 	/**
 	 * Returns the texture resource used by Slate
@@ -101,21 +103,11 @@ public:
 	 * Returns the texture resource used the Engine
 	 */
 	virtual class FTextureResource* GetEngineTexture() = 0;
-
+	
 	/**
-	 * Releases rendering resources of this texture
+	 * Releases rendering resources of this cache
 	 */
-	virtual void ReleaseResources() {}
-};
-
-/** 
- * Representation of a texture for fonts in which characters are packed tightly based on their bounding rectangle 
- */
-class SLATECORE_API FSlateFontAtlas : public ISlateFontTexture, public FSlateTextureAtlas
-{
-public:
-	FSlateFontAtlas( uint32 InWidth, uint32 InHeight );
-	virtual ~FSlateFontAtlas();
+	virtual void ReleaseResources(){}
 
 	/**
 	 * Flushes all cached data.
@@ -130,10 +122,9 @@ public:
 	const struct FAtlasedTextureSlot* AddCharacter( const FCharacterRenderData& CharInfo );
 };
 
-class ISlateFontAtlasFactory
+class SLATECORE_API ISlateFontAtlasFactory
 {
 public:
 	virtual FIntPoint GetAtlasSize() const = 0;
-	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const = 0;
-	virtual TSharedPtr<ISlateFontTexture> CreateNonAtlasedTexture(const uint32 InWidth, const uint32 InHeight, const TArray<uint8>& InRawData) const = 0;
+	virtual TSharedRef<class FSlateFontAtlas> CreateFontAtlas() const = 0;
 };

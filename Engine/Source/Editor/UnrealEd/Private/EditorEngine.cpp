@@ -122,8 +122,6 @@
 #include "Engine/CoreSettings.h"
 #include "ShaderCompiler.h"
 
-#include "PixelInspectorModule.h"
-
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
@@ -1443,12 +1441,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	bool bAllWindowsHidden = !bHasFocus && GEditor->AreAllWindowsHidden();
 	if( !bAllWindowsHidden )
 	{
-		FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
-		if (PixelInspectorModule != nullptr && PixelInspectorModule->IsPixelInspectorEnable())
-		{
-			PixelInspectorModule->ReadBackSync();
-		}
-
 		// Render view parents, then view children.
 		bool bEditorFrameNonRealtimeViewportDrawn = false;
 		if (GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->IsVisible())
@@ -2936,7 +2928,7 @@ void UEditorEngine::ConvertSelectedBrushesToVolumes( UClass* VolumeClass )
 
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.OverrideLevel = CurActorLevel;
-			ABrush* NewVolume = World->SpawnActor<ABrush>( VolumeClass, CurBrushActor->GetActorTransform());
+			ABrush* NewVolume = World->SpawnActor<ABrush>( VolumeClass, CurBrushActor->GetActorLocation(), FRotator::ZeroRotator );
 			if ( NewVolume )
 			{
 				NewVolume->PreEditChange( NULL );

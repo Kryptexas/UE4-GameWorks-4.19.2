@@ -198,7 +198,8 @@ int32 SColorGradientEditor::OnPaint( const FPaintArgs& Args, const FGeometry& Al
 				Stops,
 				Orient_Vertical,
 				MyClippingRect,
-				DrawEffects | ESlateDrawEffect::NoGamma
+				DrawEffects,
+				false
 			);	
 		}
 

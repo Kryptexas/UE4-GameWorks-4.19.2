@@ -185,13 +185,14 @@ TSharedRef<FTextCompositionHighlighter> FTextCompositionHighlighter::Create()
 	return MakeShareable(new FTextCompositionHighlighter());
 }
 
-FTextSelectionHighlighter::FTextSelectionHighlighter()
+FTextSelectionRunRenderer::FTextSelectionRunRenderer()
 {
 }
 
-int32 FTextSelectionHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 FTextSelectionRunRenderer::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	const FVector2D Location(Line.Offset.X + OffsetX, Line.Offset.Y);
+	FVector2D Location(Block->GetLocationOffset());
+	Location.Y = Line.Offset.Y;
 
 	// If we've not been set to an explicit color, calculate a suitable one from the linked color
 	const FLinearColor SelectionBackgroundColorAndOpacity = DefaultStyle.SelectedBackgroundColor.IsColorSpecified()
@@ -203,7 +204,7 @@ int32 FTextSelectionHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayo
 
 	// We still want to show a small selection outline on empty lines to make it clear that the line itself is selected despite being empty
 	const float MinHighlightWidth = (Line.Range.IsEmpty()) ? 4.0f * AllottedGeometry.Scale : 0.0f;
-	const float HighlightWidth = FMath::Max(Width, MinHighlightWidth);
+	const float HighlightWidth = FMath::Max(Block->GetSize().X, MinHighlightWidth);
 	if (HighlightWidth > 0.0f)
 	{
 		// Draw the actual highlight rectangle
@@ -218,12 +219,20 @@ int32 FTextSelectionHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayo
 			);
 	}
 
-	return LayerId;
+	/*
+	FLinearColor InvertedForeground = FLinearColor::White - InWidgetStyle.GetForegroundColor();
+	InvertedForeground.A = InWidgetStyle.GetForegroundColor().A;
+
+	FWidgetStyle WidgetStyle( InWidgetStyle );
+	WidgetStyle.SetForegroundColor( InvertedForeground );
+	*/
+
+	return Run->OnPaint(Args, Line, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
-TSharedRef<FTextSelectionHighlighter> FTextSelectionHighlighter::Create()
+TSharedRef<FTextSelectionRunRenderer> FTextSelectionRunRenderer::Create()
 {
-	return MakeShareable(new FTextSelectionHighlighter());
+	return MakeShareable(new FTextSelectionRunRenderer());
 }
 
 } // namespace SlateEditableTextTypes

@@ -100,7 +100,7 @@ FDetailCategoryGroupNode::FDetailCategoryGroupNode( const FDetailNodeList& InChi
 {
 }
 
-TSharedRef< ITableRow > FDetailCategoryGroupNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem)
+TSharedRef< ITableRow > FDetailCategoryGroupNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities )
 {
 	return
 		SNew( SDetailCategoryTableRow, AsShared(), OwnerTable )

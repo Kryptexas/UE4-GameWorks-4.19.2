@@ -657,7 +657,9 @@ int32 FAudioSection::OnPaintSection( FSequencerSectionPainter& Painter ) const
 			Painter.SectionGeometry.ToPaintGeometry(FVector2D(StoredXOffset, 0), FVector2D(StoredXSize, Painter.SectionGeometry.Size.Y)),
 			WaveformThumbnail,
 			Painter.SectionClippingRect,
-			(Painter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect) | ESlateDrawEffect::NoGamma,
+			false,
+			true,
+			Painter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			FLinearColor::White
 		);
 	}

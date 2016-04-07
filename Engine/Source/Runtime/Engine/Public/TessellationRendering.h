@@ -4,8 +4,10 @@
 	TessellationRendering.h: Tessellation rendering definitions.
 =============================================================================*/
 
-#pragma once
+#ifndef __TESSELLATIONRENDERING_H__
+#define __TESSELLATIONRENDERING_H__
 
 /** Returns true if the Material and Vertex Factory combination require adjacency information. */
 extern ENGINE_API bool RequiresAdjacencyInformation(UMaterialInterface* Material, const FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel);
 
+#endif

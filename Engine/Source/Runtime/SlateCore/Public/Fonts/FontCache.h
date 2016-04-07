@@ -58,16 +58,16 @@ struct FShapedGlyphFontAtlasData
 	/** The horizontal distance from the origin to the leftmost border of the glyph bitmap */
 	int16 HorizontalOffset;
 	/** Start X location of the glyph in the texture */
-	uint16 StartU;
+	float StartU;
 	/** Start Y location of the glyph in the texture */
-	uint16 StartV;
+	float StartV;
 	/** X Size of the glyph in the texture */
-	uint16 USize;
+	float USize;
 	/** Y Size of the glyph in the texture */
-	uint16 VSize;
+	float VSize;
 	/** Index to a specific texture in the font cache. */
 	uint8 TextureIndex;
-	/** True if this entry is valid, false otherwise. */
+	/** 1 if this entry is valid, 0 otherwise. */
 	bool Valid;
 
 	FShapedGlyphFontAtlasData()
@@ -92,8 +92,8 @@ struct FShapedGlyphEntry
 	TSharedPtr<FShapedGlyphFaceData> FontFaceData;
 	/** The index of this glyph in the FreeType face */
 	uint32 GlyphIndex;
-	/** The index of this glyph from the source text. The source indices may skip characters if the sequence contains ligatures, additionally, some characters produce multiple glyphs leading to duplicate source indices */
-	int32 SourceIndex;
+	/** The index of this glyph from the source text. The cluster indices may skip characters if the sequence contains ligatures, additionally, some characters produce multiple glyphs leading to duplicate cluster indices */
+	int32 ClusterIndex;
 	/** The amount to advance in X before drawing the next glyph in the sequence */
 	int16 XAdvance;
 	/** The amount to advance in Y before drawing the next glyph in the sequence */
@@ -114,15 +114,6 @@ struct FShapedGlyphEntry
 	 */
 	uint8 NumCharactersInGlyph;
 	/**
-	 * The number of source grapheme clusters represented by this glyph
-	 * This is typically 1, however will be greater for ligatures, or may be 0 if a single character produces multiple glyphs
-	 */
-	uint8 NumGraphemeClustersInGlyph;
-	/**
-	 * The reading direction of the text this glyph was shaped from
-	 */
-	TextBiDi::ETextDirection TextDirection;
-	/**
 	 * True if this is a visible glyph that should be drawn.
 	 * False if the glyph is invisible (eg, whitespace or a control code) and should skip drawing, but still include its advance amount.
 	 */
@@ -131,15 +122,13 @@ struct FShapedGlyphEntry
 	FShapedGlyphEntry()
 		: FontFaceData()
 		, GlyphIndex(0)
-		, SourceIndex(0)
+		, ClusterIndex(0)
 		, XAdvance(0)
 		, YAdvance(0)
 		, XOffset(0)
 		, YOffset(0)
 		, Kerning(0)
 		, NumCharactersInGlyph(0)
-		, NumGraphemeClustersInGlyph(0)
-		, TextDirection(TextBiDi::ETextDirection::LeftToRight)
 		, bIsVisible(false)
 	{
 	}
@@ -190,6 +179,39 @@ private:
 	uint32 KeyHash;
 };
 
+/** Information about the reading direction of a block of clusters in a shaped glyph sequence */
+struct FShapedGlyphClusterBlock
+{
+	/** The reading direction of this cluster */
+	TextBiDi::ETextDirection TextDirection;
+	/** Start index of this cluster (from the source text) */
+	int32 ClusterStartIndex;
+	/** End index of this cluster (from the source text) */
+	int32 ClusterEndIndex;
+	/** Index of the first glyph (visually) in this cluster block */
+	int32 ShapedGlyphStartIndex;
+	/** Index of the last glyph (visually) in this cluster block */
+	int32 ShapedGlyphEndIndex;
+
+	FShapedGlyphClusterBlock()
+		: TextDirection(TextBiDi::ETextDirection::LeftToRight)
+		, ClusterStartIndex(INDEX_NONE)
+		, ClusterEndIndex(INDEX_NONE)
+		, ShapedGlyphStartIndex(INDEX_NONE)
+		, ShapedGlyphEndIndex(INDEX_NONE)
+	{
+	}
+
+	FShapedGlyphClusterBlock(const TextBiDi::ETextDirection InTextDirection, const int32 InClusterStartIndex, const int32 InClusterEndIndex)
+		: TextDirection(InTextDirection)
+		, ClusterStartIndex(InClusterStartIndex)
+		, ClusterEndIndex(InClusterEndIndex)
+		, ShapedGlyphStartIndex(INDEX_NONE)
+		, ShapedGlyphEndIndex(INDEX_NONE)
+	{
+	}
+};
+
 /** Information for rendering a shaped text sequence */
 class SLATECORE_API FShapedGlyphSequence
 {
@@ -206,7 +228,7 @@ public:
 		int32 TextLen;
 	};
 
-	FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToRender, const int16 InTextBaseline, const uint16 InMaxTextHeight, const UObject* InFontMaterial, const FSourceTextRange& InSourceTextRange);
+	FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToRender, TArray<FShapedGlyphClusterBlock> InGlyphClusterBlocks, const int16 InTextBaseline, const uint16 InMaxTextHeight, const UObject* InFontMaterial, const FSourceTextRange& InSourceTextRange);
 	~FShapedGlyphSequence();
 
 	/** Get the amount of memory allocated to this sequence */
@@ -257,6 +279,7 @@ public:
 	{
 		FGlyphOffsetResult()
 			: Glyph(nullptr)
+			, GlyphTextDirection(TextBiDi::ETextDirection::LeftToRight)
 			, GlyphOffset(0)
 			, CharacterIndex(0)
 		{
@@ -264,20 +287,24 @@ public:
 
 		explicit FGlyphOffsetResult(const int32 InCharacterIndex)
 			: Glyph(nullptr)
+			, GlyphTextDirection(TextBiDi::ETextDirection::LeftToRight)
 			, GlyphOffset(0)
 			, CharacterIndex(InCharacterIndex)
 		{
 		}
 
-		FGlyphOffsetResult(const FShapedGlyphEntry* InGlyph, const int32 InGlyphOffset)
+		FGlyphOffsetResult(const FShapedGlyphEntry* InGlyph, const TextBiDi::ETextDirection InGlyphTextDirection, const int32 InGlyphOffset)
 			: Glyph(InGlyph)
+			, GlyphTextDirection(InGlyphTextDirection)
 			, GlyphOffset(InGlyphOffset)
-			, CharacterIndex(InGlyph->SourceIndex)
+			, CharacterIndex(InGlyph->ClusterIndex)
 		{
 		}
 
 		/** The glyph that was hit. May be null if we hit outside the range of any glyph */
 		const FShapedGlyphEntry* Glyph;
+		/** The reading direction of the text the glyph belongs to */
+		TextBiDi::ETextDirection GlyphTextDirection;
 		/** The offset to the left edge of the hit glyph */
 		int32 GlyphOffset;
 		/** The character index that was hit (set to the start or end index if we fail to hit a glyph) */
@@ -288,14 +315,14 @@ public:
 	 * Get the information for the glyph at the specified position in pixels along the string horizontally
 	 * @return The result data (see FGlyphOffsetResult)
 	 */
-	FGlyphOffsetResult GetGlyphAtOffset(FSlateFontCache& InFontCache, const int32 InHorizontalOffset, const int32 InStartOffset = 0) const;
+	FGlyphOffsetResult GetGlyphAtOffset(FSlateFontCache& InFontCache, const int32 InHorizontalOffset) const;
 
 	/**
 	 * Get the information for the glyph at the specified position in pixels along the string horizontally
 	 * @note The indices used here are relative to the start of the text we were shaped from, even if we were only shaped from a sub-section of that text
 	 * @return The result data (see FGlyphOffsetResult), or an unset value if we couldn't find the character (eg, because you started or ended on a merged ligature, or because the range is out-of-bounds)
 	 */
-	TOptional<FGlyphOffsetResult> GetGlyphAtOffset(FSlateFontCache& InFontCache, const int32 InStartIndex, const int32 InEndIndex, const int32 InHorizontalOffset, const int32 InStartOffset = 0, const bool InIncludeKerningWithPrecedingGlyph = true) const;
+	TOptional<FGlyphOffsetResult> GetGlyphAtOffset(FSlateFontCache& InFontCache, int32 InStartIndex, int32 InEndIndex, const int32 InHorizontalOffset, const bool InIncludeKerningWithPrecedingGlyph = true) const;
 
 	/**
 	 * Get the kerning value between the given entry and the next entry in the sequence
@@ -316,36 +343,36 @@ private:
 	FShapedGlyphSequence(const FShapedGlyphSequence&);
 	FShapedGlyphSequence& operator=(const FShapedGlyphSequence&);
 
-	/** Helper function to share some common logic between the bound and unbound GetGlyphAtOffset functions */
-	bool HasFoundGlyphAtOffset(FSlateFontCache& InFontCache, const int32 InHorizontalOffset, const FShapedGlyphEntry& InCurrentGlyph, const int32 InCurrentGlyphIndex, int32& InOutCurrentOffset, const FShapedGlyphEntry*& OutMatchedGlyph) const;
-
 	/**
-	 * Enumerate all of the glyphs within the given source index range
+	 * Enumerate all of the glyphs within the given cluster index range
 	 * @note The indices used here are relative to the start of the text we were shaped from, even if we were only shaped from a sub-section of that text
-	 * @return EnumerationComplete if we found the start and end point and enumerated the glyphs, EnumerationAborted if the callback returned false, or EnumerationFailed (eg, because you started or ended on a merged ligature, or because the range is out-of-bounds)
+	 * @return True if we found the start and end point and enumerated the glyphs, false otherwise (eg, because you started or ended on a merged ligature, or because the range is out-of-bounds)
 	 */
-	enum class EEnumerateGlyphsResult : uint8 { EnumerationFailed, EnumerationAborted, EnumerationComplete };
-	typedef TFunctionRef<bool(const FShapedGlyphEntry&, int32)> FForEachShapedGlyphEntryCallback;
-	EEnumerateGlyphsResult EnumerateGlyphsInSourceRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const;
+	typedef TFunctionRef<void(const FShapedGlyphEntry&)> FForEachShapedGlyphEntryCallback;
+	typedef TFunctionRef<void(const FShapedGlyphClusterBlock&)> FForEachShapedGlyphClusterBlockCallback;
+	bool EnumerateGlyphsInClusterRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const;
+	bool EnumerateGlyphsInClusterRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphClusterBlockCallback& InBeginClusterBlockCallback, const FForEachShapedGlyphClusterBlockCallback& InEndClusterBlockCallback, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const;
 
-	/** Contains the information needed when performing a reverse look-up from a source index to the corresponding shaped glyph */
-	struct FSourceIndexToGlyphData
+	/** Contains the information needed when performing a reverse look-up from a cluster index to the corresponding shaped glyph */
+	struct FClusterIndexToGlyphData
 	{
-		FSourceIndexToGlyphData()
-			: GlyphIndex(INDEX_NONE)
+		FClusterIndexToGlyphData()
+			: ClusterBlockIndex(INDEX_NONE)
+			, GlyphIndex(INDEX_NONE)
 			, AdditionalGlyphIndices()
 		{
 		}
 
-		explicit FSourceIndexToGlyphData(const int32 InGlyphIndex)
-			: GlyphIndex(InGlyphIndex)
+		FClusterIndexToGlyphData(const int32 InClusterBlockIndex, const int32 InGlyphIndex)
+			: ClusterBlockIndex(InClusterBlockIndex)
+			, GlyphIndex(InGlyphIndex)
 			, AdditionalGlyphIndices()
 		{
 		}
 
 		bool IsValid() const
 		{
-			return GlyphIndex != INDEX_NONE;
+			return ClusterBlockIndex != INDEX_NONE && GlyphIndex != INDEX_NONE;
 		}
 
 		int32 GetLowestGlyphIndex() const
@@ -358,38 +385,29 @@ private:
 			return (AdditionalGlyphIndices.Num() > 0) ? AdditionalGlyphIndices.Last() : GlyphIndex;
 		}
 
+		int32 ClusterBlockIndex;
 		int32 GlyphIndex;
 		TArray<int32> AdditionalGlyphIndices;
 	};
 
-	/** A map of source indices to their shaped glyph data indices. Stored internally as an array so we can perform a single allocation */
-	struct FSourceIndicesToGlyphData
+	/** A map of character indices to their shaped glyph data indices. Stored internally as an array so we can perform a single allocation */
+	struct FClusterIndicesToGlyphData
 	{
 	public:
-		explicit FSourceIndicesToGlyphData(const FSourceTextRange& InSourceTextRange)
+		explicit FClusterIndicesToGlyphData(const FSourceTextRange& InSourceTextRange)
 			: SourceTextRange(InSourceTextRange)
 			, GlyphDataArray()
 		{
 			GlyphDataArray.SetNum(InSourceTextRange.TextLen);
 		}
 
-		FORCEINLINE int32 GetSourceTextStartIndex() const
-		{
-			return SourceTextRange.TextStart;
-		}
-
-		FORCEINLINE int32 GetSourceTextEndIndex() const
-		{
-			return SourceTextRange.TextStart + SourceTextRange.TextLen;
-		}
-
-		FORCEINLINE FSourceIndexToGlyphData* GetGlyphData(const int32 InSourceTextIndex)
+		FORCEINLINE FClusterIndexToGlyphData* GetGlyphData(const int32 InSourceTextIndex)
 		{
 			const int32 InternalIndex = InSourceTextIndex - SourceTextRange.TextStart;
 			return (GlyphDataArray.IsValidIndex(InternalIndex)) ? &GlyphDataArray[InternalIndex] : nullptr;
 		}
 
-		FORCEINLINE const FSourceIndexToGlyphData* GetGlyphData(const int32 InSourceTextIndex) const
+		FORCEINLINE const FClusterIndexToGlyphData* GetGlyphData(const int32 InSourceTextIndex) const
 		{
 			const int32 InternalIndex = InSourceTextIndex - SourceTextRange.TextStart;
 			return (GlyphDataArray.IsValidIndex(InternalIndex)) ? &GlyphDataArray[InternalIndex] : nullptr;
@@ -402,11 +420,13 @@ private:
 
 	private:
 		FSourceTextRange SourceTextRange;
-		TArray<FSourceIndexToGlyphData> GlyphDataArray;
+		TArray<FClusterIndexToGlyphData> GlyphDataArray;
 	};
 
 	/** Array of glyphs in this sequence. This data will be ordered so that you can iterate and draw left-to-right, which means it will be backwards for right-to-left languages */
 	TArray<FShapedGlyphEntry> GlyphsToRender;
+	/** Array of cluster blocks used when mapping from the source text to the shaped glyphs */
+	TArray<FShapedGlyphClusterBlock> GlyphClusterBlocks;
 	/** The baseline to use when drawing the glyphs in this sequence */
 	int16 TextBaseline;
 	/** The maximum height of any glyph in the font we're using */
@@ -417,8 +437,8 @@ private:
 	int32 SequenceWidth;
 	/** The set of fonts being used by the glyphs within this sequence */
 	TArray<TWeakPtr<FFreeTypeFace>> GlyphFontFaces;
-	/** A map of source indices to their shaped glyph data indices - used to perform efficient reverse look-up */
-	FSourceIndicesToGlyphData SourceIndicesToGlyphData;
+	/** A map of character indices to their shaped glyph data indices - used to perform efficient reverse look-up */
+	FClusterIndicesToGlyphData ClusterIndicesToGlyphData;
 };
 
 /** Information for rendering one character */
@@ -433,13 +453,13 @@ struct SLATECORE_API FCharacterEntry
 	/** Scale that was applied when rendering this character */
 	float FontScale;
 	/** Start X location of the character in the texture */
-	uint16 StartU;
+	float StartU;
 	/** Start Y location of the character in the texture */
-	uint16 StartV;
+	float StartV;
 	/** X Size of the character in the texture */
-	uint16 USize;
+	float USize;
 	/** Y Size of the character in the texture */
-	uint16 VSize;
+	float VSize;
 	/** The vertical distance from the baseline to the topmost border of the character */
 	int16 VerticalOffset;
 	/** The vertical distance from the origin to the left most border of the character */
@@ -460,6 +480,16 @@ struct SLATECORE_API FCharacterEntry
 	FCharacterEntry()
 	{
 		FMemory::Memzero( this, sizeof(FCharacterEntry) );
+	}
+
+	/**
+	 * Checks if the character entry is valid (I.E has been cached)
+	 * 
+	 * @param InEntry The entry to check
+	 */
+	FORCEINLINE bool IsCached() const
+	{
+		return Valid;
 	}
 };
 
@@ -526,7 +556,7 @@ private:
 class SLATECORE_API FCharacterList
 {
 public:
-	FCharacterList( const FSlateFontKey& InFontKey, FSlateFontCache& InFontCache );
+	FCharacterList( const FSlateFontKey& InFontKey, const FSlateFontCache& InFontCache );
 
 	/* @return Is the character in this list */
 	bool IsValidIndex( TCHAR Character ) const
@@ -593,7 +623,7 @@ private:
 	 * 
 	 * @param Character	The character to cache
 	 */
-	FCharacterEntry CacheCharacter(TCHAR Character);
+	const FCharacterEntry& CacheCharacter( TCHAR Character );
 
 
 private:
@@ -607,7 +637,7 @@ private:
 	/** Font for this character list */
 	FSlateFontKey FontKey;
 	/** Reference to the font cache for accessing new unseen characters */
-	FSlateFontCache& FontCache;
+	const FSlateFontCache& FontCache;
 	/** The history revision of the cached composite font */
 	int32 CompositeFontHistoryRevision;
 	/** Number of directly indexed entries */
@@ -682,12 +712,12 @@ public:
 	 * @param FontScale			The scale to apply to the font
 	 * @param OutCharacterEntries	Populated array of character entries. Indices of characters in Text match indices in this array
 	 */
-	class FCharacterList& GetCharacterList( const FSlateFontInfo &InFontInfo, float FontScale );
+	class FCharacterList& GetCharacterList( const FSlateFontInfo &InFontInfo, float FontScale ) const;
 
 	/**
 	 * Get the atlas information for the given shaped glyph. This information will be cached if required 
 	 */
-	FShapedGlyphFontAtlasData GetShapedGlyphFontAtlasData( const FShapedGlyphEntry& InShapedGlyph );
+	FShapedGlyphFontAtlasData GetShapedGlyphFontAtlasData( const FShapedGlyphEntry& InShapedGlyph ) const;
 
 	/** 
 	 * Add a new entries into a cache atlas
@@ -697,11 +727,11 @@ public:
 	 * @param FontScale		The font scale to use
 	 * @return true if the characters could be cached. false if the cache is full
 	 */
-	bool AddNewEntry( TCHAR Character, const FSlateFontKey& InKey, FCharacterEntry& OutCharacterEntry );
+	bool AddNewEntry( TCHAR Character, const FSlateFontKey& InKey, FCharacterEntry& OutCharacterEntry ) const;
 
-	bool AddNewEntry( const FShapedGlyphEntry& InShapedGlyph, FShapedGlyphFontAtlasData& OutAtlasData );
+	bool AddNewEntry( const FShapedGlyphEntry& InShapedGlyph, FShapedGlyphFontAtlasData& OutAtlasData ) const;
 
-	bool AddNewEntry( const FCharacterRenderData InRenderData, uint8& OutTextureIndex, uint16& OutGlyphX, uint16& OutGlyphY, uint16& OutGlyphWidth, uint16& OutGlyphHeight );
+	bool AddNewEntry( const FCharacterRenderData InRenderData, int32& OutAtlasIndex, const FAtlasedTextureSlot*& OutSlot ) const;
 
 	/**
 	 * Flush the given object out of the cache
@@ -734,8 +764,8 @@ public:
 	 * @param Index	The index of the texture 
 	 * @return Handle to the texture resource
 	 */
-	class FSlateShaderResource* GetSlateTextureResource( uint32 Index ) { return AllFontTextures[Index]->GetSlateTexture(); }
-	class FTextureResource* GetEngineTextureResource( uint32 Index ) { return AllFontTextures[Index]->GetEngineTexture(); }
+	class FSlateShaderResource* GetSlateTextureResource( uint32 Index ) { return FontAtlases[Index]->GetSlateTexture(); }
+	class FTextureResource* GetEngineTextureResource( uint32 Index ) { return FontAtlases[Index]->GetEngineTexture(); }
 
 	/**
 	 * Returns the font to use from the default typeface
@@ -815,7 +845,7 @@ public:
 	/**
 	 * Clears just the cached font data, but leaves the atlases alone
 	 */
-	void FlushData();
+	void FlushData() const;
 
 private:
 	// Non-copyable
@@ -825,7 +855,7 @@ private:
 	/**
 	 * Clears all cached data from the cache
 	 */
-	void FlushCache();
+	void FlushCache() const;
 
 	/** Called after the active culture has changed */
 	void HandleCultureChanged();
@@ -854,32 +884,17 @@ private:
 	TUniquePtr<FSlateTextShaper> TextShaper;
 
 	/** Mapping Font keys to cached data */
-	TMap<FSlateFontKey, TSharedRef< class FCharacterList > > FontToCharacterListCache;
+	mutable TMap<FSlateFontKey, TSharedRef< class FCharacterList > > FontToCharacterListCache;
 
 	/** Mapping shaped glyphs to their cached atlas data */
-	TMap<FShapedGlyphEntryKey, TSharedRef<FShapedGlyphFontAtlasData>> ShapedGlyphToAtlasData;
+	mutable TMap<FShapedGlyphEntryKey, TSharedRef<FShapedGlyphFontAtlasData>> ShapedGlyphToAtlasData;
 
 	/** Array of all font atlases */
-	TArray< TSharedRef<FSlateFontAtlas> > FontAtlases;
-
-	/** Array of any non-atlased font textures */
-	TArray< TSharedRef<ISlateFontTexture> > NonAtlasedTextures;
-
-	/** Array of all font textures - both atlased and non-atlased */
-	TArray< TSharedRef<ISlateFontTexture> > AllFontTextures;
+	mutable TArray< TSharedRef<FSlateFontAtlas> > FontAtlases;
 
 	/** Factory for creating new font atlases */
 	TSharedRef<ISlateFontAtlasFactory> FontAtlasFactory;
 
 	/** Whether or not we have a pending request to flush the cache when it is safe to do so */
-	volatile bool bFlushRequested;
-
-	/** Number of atlas pages we can have before we request that the cache be flushed */
-	int32 MaxAtlasPagesBeforeFlushRequest;
-
-	/** Number of non-atlased textures we can have before we request that the cache be flushed */
-	int32 MaxNonAtlasedTexturesBeforeFlushRequest;
-
-	/** The frame counter the last time the font cache was asked to be flushed */
-	uint64 FrameCounterLastFlushRequest;
+	volatile mutable bool bFlushRequested;
 };

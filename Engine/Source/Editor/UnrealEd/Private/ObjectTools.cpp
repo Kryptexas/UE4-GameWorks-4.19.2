@@ -1496,7 +1496,6 @@ namespace ObjectTools
 
 		// Now delete all packages that have become empty
 		bool bMakeWritable = false;
-		bool bSilent = false;
 		for ( int32 PackageFileIdx = 0; PackageFileIdx < PackageFilesToDelete.Num(); ++PackageFileIdx )
 		{
 			const FString& PackageFilename = PackageFilesToDelete[PackageFileIdx];
@@ -1543,15 +1542,10 @@ namespace ObjectTools
 				if(IFileManager::Get().IsReadOnly(*PackageFilename))
 				{
 					EAppReturnType::Type ReturnType = EAppReturnType::No;
-					if(!bMakeWritable && !bSilent)
+					if(!bMakeWritable)
 					{
-						FFormatNamedArguments Args;
-						Args.Add(TEXT("Filename"), FText::FromString(PackageFilename));
-						const FText Message = FText::Format(NSLOCTEXT("ObjectTools", "DeleteReadOnlyWarning", "File '{Filename}' is read-only on disk, are you sure you want to delete it?"), Args);
-
-						ReturnType = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAll, Message);
+						ReturnType = FMessageDialog::Open(EAppMsgType::YesNoYesAll, NSLOCTEXT("ObjectTools", "DeleteReadOnlyWarning", "File is read-only on disk, are you sure you want to delete it?"));
 						bMakeWritable = ReturnType == EAppReturnType::YesAll;
-						bSilent = ReturnType == EAppReturnType::NoAll;
 					}
 
 					if(bMakeWritable || ReturnType == EAppReturnType::Yes)
@@ -1724,7 +1718,7 @@ namespace ObjectTools
 		return DeleteModel->GetDeletedObjectCount();
 	}
 
-	static bool MakeReadOnlyPackageWritable(UObject* ObjectToDelete, bool& bMakeWritable, bool& bSilent)
+	static bool MakeReadOnlyPackageWritable(UObject* ObjectToDelete, bool& bMakeWritable)
 	{
 		// If an object's package is read only, and source control is not enabled, ask the user whether they wish
 		// to make it writable.
@@ -1739,15 +1733,10 @@ namespace ObjectTools
 				if (IFileManager::Get().IsReadOnly(*PackageFilename))
 				{
 					EAppReturnType::Type ReturnType = EAppReturnType::No;
-					if (!bMakeWritable && !bSilent)
+					if (!bMakeWritable)
 					{
-						FFormatNamedArguments Args;
-						Args.Add(TEXT("Filename"), FText::FromString(PackageFilename));
-						const FText Message = FText::Format(NSLOCTEXT("ObjectTools", "DeleteReadOnlyWarning", "File '{Filename}' is read-only on disk, are you sure you want to delete it?"), Args);
-
-						ReturnType = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAll, Message);
+						ReturnType = FMessageDialog::Open(EAppMsgType::YesNoYesAll, NSLOCTEXT("ObjectTools", "DeleteReadOnlyWarning", "File is read-only on disk, are you sure you want to delete it?"));
 						bMakeWritable = ReturnType == EAppReturnType::YesAll;
-						bSilent = ReturnType == EAppReturnType::NoAll;
 					}
 
 					if (bMakeWritable || ReturnType == EAppReturnType::Yes)
@@ -1773,7 +1762,6 @@ namespace ObjectTools
 
 		bool bSawSuccessfulDelete = false;
 		bool bMakeWritable = false;
-		bool bSilent = false;
 
 		for ( int32 Index = 0; Index < ObjectsToDelete.Num(); Index++ )
 		{
@@ -1786,7 +1774,7 @@ namespace ObjectTools
 			}
 
 			// Early exclusion for assets contained in read-only packages if the user chooses not to write enable them
-			if (!MakeReadOnlyPackageWritable(ObjectToDelete, bMakeWritable, bSilent))
+			if (!MakeReadOnlyPackageWritable(ObjectToDelete, bMakeWritable))
 			{
 				continue;
 			}
@@ -1922,7 +1910,6 @@ namespace ObjectTools
 		TArray<UObject*> ObjectsToDelete;
 		bool bNeedsGarbageCollection = false;
 		bool bMakeWritable = false;
-		bool bSilent = false;
 
 		// Clear audio components to allow previewed sounds to be consolidated
 		GEditor->ClearPreviewComponents();
@@ -1934,7 +1921,7 @@ namespace ObjectTools
 			GEditor->GetSelectedObjects()->Deselect( CurrentObject );
 
 			// Early exclusion for assets contained in read-only packages if the user chooses not to write enable them
-			if (!MakeReadOnlyPackageWritable(CurrentObject, bMakeWritable, bSilent))
+			if (!MakeReadOnlyPackageWritable(CurrentObject, bMakeWritable))
 			{
 				continue;
 			}

@@ -2,10 +2,9 @@
 
 #pragma once
 
-/** This class is used to control which FKeys should move focus */
-class SLATE_API FNavigationConfig : public TSharedFromThis<FNavigationConfig>
+/** This structure is used to control which FKeys should move focus */
+struct FNavigationConfig
 {
-public:
 	/** Keys that should move focus left */
 	TSet<FKey> Left;
 
@@ -18,9 +17,26 @@ public:
 	/** Keys that should move focus down*/
 	TSet<FKey> Down;
 
-	FNavigationConfig();
+	FNavigationConfig()
+	{
+		// left
+		Left.Emplace( EKeys::Left );
+		Left.Emplace( EKeys::Gamepad_DPad_Left );
+		Left.Emplace( EKeys::Gamepad_LeftStick_Left );
+		
+		// right
+		Right.Emplace( EKeys::Right );
+		Right.Emplace( EKeys::Gamepad_DPad_Right );
+		Right.Emplace( EKeys::Gamepad_LeftStick_Right  );
 
-	virtual ~FNavigationConfig();
+		// up
+		Up.Emplace( EKeys::Up );
+		Up.Emplace( EKeys::Gamepad_DPad_Up );
+		Up.Emplace( EKeys::Gamepad_LeftStick_Up );
 
-	virtual EUINavigation GetNavigationDirectionFromKey(const FKeyEvent& InKeyEvent) const;
+		// down
+		Down.Emplace( EKeys::Down );
+		Down.Emplace( EKeys::Gamepad_DPad_Down );
+		Down.Emplace( EKeys::Gamepad_LeftStick_Down );
+	}
 };

@@ -18,7 +18,7 @@ static bool IsSupportedPlatform(ITargetPlatform* Platform)
 
 void SDeviceOutputLog::Construct( const FArguments& InArgs )
 {
-	MessagesTextMarshaller = FOutputLogTextLayoutMarshaller::Create(TArray<TSharedPtr<FLogMessage>>(), &Filter);
+	MessagesTextMarshaller = FOutputLogTextLayoutMarshaller::Create(TArray<TSharedPtr<FLogMessage>>());
 
 	MessagesTextBox = SNew(SMultiLineEditableTextBox)
 		.Style(FEditorStyle::Get(), "Log.TextBox")

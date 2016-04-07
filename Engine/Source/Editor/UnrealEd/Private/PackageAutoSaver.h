@@ -120,6 +120,12 @@ private:
 	/** Flag for whether auto-save warning notification has been launched */
 	bool bAutoSaveNotificationLaunched;
 
+	/** Were we saving worlds last time an auto-save ran? */
+	bool bWasAutoSavingMaps;
+
+	/** Were we saving worlds last time an auto-save ran? */
+	bool bWasAutoSavingContent;
+
 	/** If we are delaying the time a little bit because we failed to save */
 	bool bDelayingDueToFailedSave;
 
@@ -129,11 +135,8 @@ private:
 	/** Packages that have been dirtied and not saved by the user, mapped to their latest auto-save file */
 	TMap<TWeakObjectPtr<UPackage>, FString> DirtyPackagesForUserSave;
 
-	/** Maps that have been dirtied and not saved by the auto-saver */
-	TSet<TWeakObjectPtr<UPackage>> DirtyMapsForAutoSave;
-
-	/** Content that has been dirtied and not saved by the auto-saver */
-	TSet<TWeakObjectPtr<UPackage>> DirtyContentForAutoSave;
+	/** Packages that have been dirtied and not saved by the auto-saver */
+	TSet<TWeakObjectPtr<UPackage>> DirtyPackagesForAutoSave;
 
 	/** Restore information that was loaded following a crash */
 	TMap<FString, FString> PackagesThatCanBeRestored;

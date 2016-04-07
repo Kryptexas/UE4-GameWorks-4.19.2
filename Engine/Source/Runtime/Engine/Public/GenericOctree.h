@@ -4,7 +4,8 @@
 	GenericOctree.h: Generic octree definition.
 =============================================================================*/
 
-#pragma once
+#ifndef __GENERIC_OCTREE_H__
+#define __GENERIC_OCTREE_H__
 
 class FOctreeElementId;
 
@@ -764,3 +765,4 @@ private:
 
 #include "GenericOctree.inl"
 
+#endif

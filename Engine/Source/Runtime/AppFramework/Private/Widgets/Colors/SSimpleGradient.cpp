@@ -49,7 +49,8 @@ int32 SSimpleGradient::OnPaint( const FPaintArgs& Args, const FGeometry& Allotte
 		GradientStops,
 		Orientation,
 		MyClippingRect,
-		DrawEffects | ESlateDrawEffect::NoGamma
+		DrawEffects,
+		false
 	);
 
 	return LayerId + 1;

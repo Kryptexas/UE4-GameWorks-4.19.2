@@ -1620,9 +1620,10 @@ FMatrix FAnimationViewportClient::GetWidgetCoordSystem() const
 		{
 			USkeletalMeshSocket* Socket = PreviewSkelMeshComp->SocketsOfInterest.Last().Socket;
 
-			FTransform SocketMatrix = Socket->GetSocketTransform( PreviewSkelMeshComp.Get() );
-			
-			return SocketMatrix.ToMatrixNoScale().RemoveTranslation();
+			FMatrix SocketMatrix;
+			Socket->GetSocketMatrix( SocketMatrix, PreviewSkelMeshComp.Get() );
+
+			return SocketMatrix.RemoveTranslation();
 		}
 		else if ( SelectedWindActor.IsValid() )
 		{

@@ -2,7 +2,6 @@
 
 #include "SlatePrivatePCH.h"
 #include "ShapedTextCache.h"
-#include "BreakIterator.h"
 
 FShapedGlyphSequencePtr FShapedTextCache::FindShapedText(const FCachedShapedTextKey& InKey) const
 {
@@ -124,54 +123,61 @@ int32 ShapedTextCacheUtil::FindCharacterIndexAtOffset(const FShapedTextCacheRef&
 
 	// We need to handle the fact that the found glyph may have been a ligature, and if so, we need to measure each part of the ligature to find the best character index match
 	const FShapedGlyphSequence::FGlyphOffsetResult& GlyphOffsetResultValue = GlyphOffsetResult.GetValue();
-	if (GlyphOffsetResultValue.Glyph && GlyphOffsetResultValue.Glyph->NumGraphemeClustersInGlyph > 1)
+	if (GlyphOffsetResultValue.Glyph && GlyphOffsetResultValue.Glyph->NumCharactersInGlyph > 1)
 	{
-		// Process each grapheme cluster within the ligature
-		const FString LigatureString = FString(GlyphOffsetResultValue.Glyph->NumCharactersInGlyph, InText + GlyphOffsetResultValue.Glyph->SourceIndex);
-		TSharedRef<IBreakIterator> GraphemeBreakIterator = FBreakIterator::CreateCharacterBoundaryIterator();
-		GraphemeBreakIterator->SetString(LigatureString);
-
-		FCachedShapedTextKey LigatureKey = InRunKey;
-		LigatureKey.TextRange = FTextRange(0, LigatureString.Len());
-
 		int32 CurrentOffset = GlyphOffsetResultValue.GlyphOffset;
-		if (GlyphOffsetResultValue.Glyph->TextDirection == TextBiDi::ETextDirection::LeftToRight)
-		{
-			int32 PrevCharIndex = GraphemeBreakIterator->ResetToBeginning();
-			for (int32 CurrentCharIndex = GraphemeBreakIterator->MoveToNext(); CurrentCharIndex != INDEX_NONE; CurrentCharIndex = GraphemeBreakIterator->MoveToNext())
-			{
-				FShapedGlyphSequenceRef GraphemeShapedText = GetShapedTextSubSequence(InShapedTextCache, LigatureKey, FTextRange(PrevCharIndex, CurrentCharIndex), *LigatureString, GlyphOffsetResultValue.Glyph->TextDirection);
-				
-				const FShapedGlyphSequence::FGlyphOffsetResult GraphemeOffsetResult = GraphemeShapedText->GetGlyphAtOffset(FontCache, InHorizontalOffset, CurrentOffset);
-				if (GraphemeOffsetResult.Glyph)
-				{
-					return GlyphOffsetResultValue.Glyph->SourceIndex + GraphemeOffsetResult.CharacterIndex;
-				}
+		int32 PrevCharIndex = INDEX_NONE;
 
-				PrevCharIndex = CurrentCharIndex;
-				CurrentOffset += GraphemeShapedText->GetMeasuredWidth();
+		FCharacterList& CharacterList = FontCache.GetCharacterList(InRunKey.FontInfo, InRunKey.Scale);
+
+		auto TestAndUpdateForCharacter = [&](const int32 InCurrentCharIndex) -> bool
+		{
+			FCharacterEntry CurrentCharEntry = CharacterList.GetCharacter(InText[InCurrentCharIndex], InRunKey.FontInfo.FontFallback);
+
+			if (PrevCharIndex != INDEX_NONE)
+			{
+				CurrentOffset += CharacterList.GetKerning(CharacterList.GetCharacter(InText[PrevCharIndex], InRunKey.FontInfo.FontFallback), CurrentCharEntry);
 			}
 
-			return GlyphOffsetResultValue.Glyph->SourceIndex + GlyphOffsetResultValue.Glyph->NumCharactersInGlyph;
+			const int32 TotalCharSpacing = CurrentCharEntry.HorizontalOffset + CurrentCharEntry.XAdvance;
+
+			// Round our test toward the character's center position
+			if (InHorizontalOffset < (CurrentOffset + (TotalCharSpacing / 2)))
+			{
+				return true;
+			}
+
+			CurrentOffset += TotalCharSpacing;
+			PrevCharIndex = InCurrentCharIndex;
+
+			return false;
+		};
+
+		if (GlyphOffsetResultValue.GlyphTextDirection == TextBiDi::ETextDirection::LeftToRight)
+		{
+			const int32 StartCharIndex = GlyphOffsetResultValue.Glyph->ClusterIndex;
+			const int32 EndCharIndex = GlyphOffsetResultValue.Glyph->ClusterIndex + GlyphOffsetResultValue.Glyph->NumCharactersInGlyph;
+
+			for (int32 CurrentCharIndex = StartCharIndex; CurrentCharIndex < EndCharIndex; ++CurrentCharIndex)
+			{
+				if (TestAndUpdateForCharacter(CurrentCharIndex))
+				{
+					return CurrentCharIndex;
+				}
+			}
 		}
 		else
 		{
-			int32 PrevCharIndex = GraphemeBreakIterator->ResetToEnd();
-			for (int32 CurrentCharIndex = GraphemeBreakIterator->MoveToPrevious(); CurrentCharIndex != INDEX_NONE; CurrentCharIndex = GraphemeBreakIterator->MoveToPrevious())
+			const int32 StartCharIndex = GlyphOffsetResultValue.Glyph->ClusterIndex + GlyphOffsetResultValue.Glyph->NumCharactersInGlyph;
+			const int32 EndCharIndex = GlyphOffsetResultValue.Glyph->ClusterIndex;
+			
+			for (int32 CurrentCharIndex = StartCharIndex - 1; CurrentCharIndex >= EndCharIndex; --CurrentCharIndex)
 			{
-				FShapedGlyphSequenceRef GraphemeShapedText = GetShapedTextSubSequence(InShapedTextCache, LigatureKey, FTextRange(CurrentCharIndex, PrevCharIndex), *LigatureString, GlyphOffsetResultValue.Glyph->TextDirection);
-
-				const FShapedGlyphSequence::FGlyphOffsetResult GraphemeOffsetResult = GraphemeShapedText->GetGlyphAtOffset(FontCache, InHorizontalOffset, CurrentOffset);
-				if (GraphemeOffsetResult.Glyph)
+				if (TestAndUpdateForCharacter(CurrentCharIndex))
 				{
-					return GlyphOffsetResultValue.Glyph->SourceIndex + ((PrevCharIndex != INDEX_NONE) ? PrevCharIndex : GraphemeOffsetResult.CharacterIndex);
+					return (PrevCharIndex != INDEX_NONE) ? PrevCharIndex : CurrentCharIndex;
 				}
-
-				PrevCharIndex = CurrentCharIndex;
-				CurrentOffset += GraphemeShapedText->GetMeasuredWidth();
 			}
-
-			return GlyphOffsetResultValue.Glyph->SourceIndex;
 		}
 	}
 

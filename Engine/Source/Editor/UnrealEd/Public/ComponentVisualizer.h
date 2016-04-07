@@ -3,9 +3,6 @@
 #pragma once
 
 struct FViewportClick;
-class FLevelEditorViewportClient;
-class FEditorViewportClient;
-
 
 struct HComponentVisProxy : public HHitProxy
 {
@@ -23,7 +20,6 @@ struct HComponentVisProxy : public HHitProxy
 
 	TWeakObjectPtr<const UActorComponent> Component;
 };
-
 
 /** Base class for a component visualizer, that draw editor information for a particular component class */
 class UNREALED_API FComponentVisualizer : public TSharedFromThis<FComponentVisualizer>

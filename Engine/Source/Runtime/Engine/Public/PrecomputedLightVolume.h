@@ -4,7 +4,8 @@
 	PrecomputedLightVolume.h: Declarations for precomputed light volumes.
 =============================================================================*/
 
-#pragma once
+#ifndef __PRECOMPUTEDLIGHTVOLUME_H__
+#define __PRECOMPUTEDLIGHTVOLUME_H__
 
 #include "GenericOctree.h"
 #include "GenericOctreePublic.h"
@@ -176,3 +177,5 @@ private:
 	/** Octree used to accelerate interpolation searches. */
 	FLightVolumeOctree* OctreeForRendering;
 };
+
+#endif

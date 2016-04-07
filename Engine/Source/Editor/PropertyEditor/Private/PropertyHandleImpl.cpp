@@ -28,37 +28,20 @@ FPropertyValueImpl::~FPropertyValueImpl()
 {
 }
 
-void FPropertyValueImpl::EnumerateObjectsToModify( FPropertyNode* InPropertyNode, const EnumerateObjectsToModifyFuncRef& InObjectsToModifyCallback ) const
+void FPropertyValueImpl::GetObjectsToModify( TArray<FObjectBaseAddress>& ObjectsToModify, FPropertyNode* InPropertyNode ) const
 {
 	// Find the parent object node which contains offset addresses for reading a property value on an object
 	FComplexPropertyNode* ComplexNode = InPropertyNode->FindComplexParent();
 	if (ComplexNode)
 	{
 		const bool bIsStruct = FComplexPropertyNode::EPT_StandaloneStructure == ComplexNode->GetPropertyType();
-		const int32 NumInstances = ComplexNode->GetInstancesNum();
-		for (int32 Index = 0; Index < NumInstances; ++Index)
+		for (int32 Index = 0; Index < ComplexNode->GetInstancesNum(); ++Index)
 		{
 			UObject*	Object = ComplexNode->GetInstanceAsUObject(Index).Get();
 			uint8*		Addr = InPropertyNode->GetValueBaseAddress(ComplexNode->GetMemoryOfInstance(Index));
-			if (!InObjectsToModifyCallback(FObjectBaseAddress(Object, Addr, bIsStruct), Index, NumInstances))
-			{
-				break;
-			}
+			ObjectsToModify.Add(FObjectBaseAddress(Object, Addr, bIsStruct));
 		}
 	}
-}
-
-void FPropertyValueImpl::GetObjectsToModify( TArray<FObjectBaseAddress>& ObjectsToModify, FPropertyNode* InPropertyNode ) const
-{
-	EnumerateObjectsToModify(InPropertyNode, [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjectIndex, const int32 NumObjects) -> bool
-	{
-		if (ObjectIndex == 0)
-		{
-			ObjectsToModify.Reserve(ObjectsToModify.Num() + NumObjects);
-		}
-		ObjectsToModify.Add(ObjectToModify);
-		return true;
-	});
 }
 
 FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& OutString, FPropertyNode* InPropertyNode, const bool bAllowAlternateDisplayValue ) const
@@ -256,6 +239,14 @@ FString FPropertyValueImpl::GetPropertyValueArray() const
 bool FPropertyValueImpl::SendTextToObjectProperty( const FString& Text, EPropertyValueSetFlags::Type Flags )
 {
 	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
+	bool bIsLazyObjectProperty = PropertyNodePin.IsValid() && PropertyNodePin->GetProperty() && PropertyNodePin->GetProperty()->GetClass() == ULazyObjectProperty::StaticClass();
+
+	if (IsAnyOuterObjectFromEngine() && !FPackageName::IsEnginePackageName(Text) && !bIsLazyObjectProperty)
+	{
+		UE_LOG(LogPropertyNode, Log, TEXT("Cannot assign a Project object %s to an Engine property."), *Text);
+		return false;
+	}
+	
 	if( PropertyNodePin.IsValid() )
 	{
 		FComplexPropertyNode* ParentNode = PropertyNodePin->FindComplexParent();
@@ -492,48 +483,44 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 	return Result;
 }
 
-void FPropertyValueImpl::EnumerateRawData( const IPropertyHandle::EnumerateRawDataFuncRef& InRawDataCallback )
-{
-	EnumerateObjectsToModify(PropertyNode.Pin().Get(), [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjectIndex, const int32 NumObjects) -> bool
-	{
-		return InRawDataCallback(ObjectToModify.BaseAddress, ObjectIndex, NumObjects);
-	});
-}
-
-void FPropertyValueImpl::EnumerateConstRawData( const IPropertyHandle::EnumerateConstRawDataFuncRef& InRawDataCallback ) const
-{
-	EnumerateObjectsToModify(PropertyNode.Pin().Get(), [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjectIndex, const int32 NumObjects) -> bool
-	{
-		return InRawDataCallback(ObjectToModify.BaseAddress, ObjectIndex, NumObjects);
-	});
-}
-
 void FPropertyValueImpl::AccessRawData( TArray<void*>& RawData )
 {
-	RawData.Empty();
-	EnumerateObjectsToModify(PropertyNode.Pin().Get(), [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjectIndex, const int32 NumObjects) -> bool
+	TArray<FObjectBaseAddress> ObjectAddresses;
+	GetObjectsToModify(ObjectAddresses, PropertyNode.Pin().Get());
+
+	if (ObjectAddresses.Num() > 0)
 	{
-		if (ObjectIndex == 0)
+		RawData.Empty();
+		RawData.AddZeroed(ObjectAddresses.Num());
+		for (int32 ObjectIndex = 0; ObjectIndex < ObjectAddresses.Num(); ++ObjectIndex)
 		{
-			RawData.Reserve(NumObjects);
+			const FObjectBaseAddress& Cur = ObjectAddresses[ObjectIndex];
+			if (Cur.BaseAddress != nullptr)
+			{
+				RawData[ObjectIndex] = Cur.BaseAddress;
+			}
 		}
-		RawData.Add(ObjectToModify.BaseAddress);
-		return true;
-	});
+	}
 }
 
 void FPropertyValueImpl::AccessRawData( TArray<const void*>& RawData ) const
 {
-	RawData.Empty();
-	EnumerateObjectsToModify(PropertyNode.Pin().Get(), [&](const FObjectBaseAddress& ObjectToModify, const int32 ObjectIndex, const int32 NumObjects) -> bool
+	TArray<FObjectBaseAddress> ObjectAddresses;
+	GetObjectsToModify(ObjectAddresses, PropertyNode.Pin().Get());
+
+	if (ObjectAddresses.Num() > 0)
 	{
-		if (ObjectIndex == 0)
+		RawData.Empty();
+		RawData.AddZeroed(ObjectAddresses.Num());
+		for (int32 ObjectIndex = 0; ObjectIndex < ObjectAddresses.Num(); ++ObjectIndex)
 		{
-			RawData.Reserve(NumObjects);
+			const FObjectBaseAddress& Cur = ObjectAddresses[ObjectIndex];
+			if (Cur.BaseAddress != nullptr)
+			{
+				RawData[ObjectIndex] = Cur.BaseAddress;
+			}
 		}
-		RawData.Add(ObjectToModify.BaseAddress);
-		return true;
-	});
+	}
 }
 
 void FPropertyValueImpl::SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged )
@@ -678,6 +665,28 @@ FPropertyAccess::Result FPropertyValueImpl::GetValueAsDisplayText( FText& OutTex
 	return Res;
 }
 
+bool FPropertyValueImpl::IsAnyOuterObjectFromEngine() const
+{
+	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
+	if (PropertyNodePin.IsValid())
+	{
+		FObjectPropertyNode* ObjectNode = PropertyNodePin->FindObjectItemParent();
+		if (ObjectNode)
+		{
+			for (int32 ObjectIndex = 0; ObjectIndex < ObjectNode->GetNumObjects(); ++ObjectIndex)
+			{
+				const FAssetData AssetData(ObjectNode->GetUObject(ObjectIndex));
+				if (FPackageName::IsEnginePackageName(AssetData.ObjectPath.ToString()))
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 FPropertyAccess::Result FPropertyValueImpl::SetValueAsString( const FString& InValue, EPropertyValueSetFlags::Type Flags )
 {
 	FPropertyAccess::Result Result = FPropertyAccess::Fail;
@@ -819,6 +828,7 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 				if (!InterfaceThatMustBeImplemented || SelectedClass->ImplementsInterface(InterfaceThatMustBeImplemented))
 				{
 					FString const ClassPathName = SelectedClass->GetPathName();
+					const bool bIsEngineClass = FPackageName::IsEnginePackageName(ClassPathName);
 
 					TArray<FText> RestrictReasons;
 					if (PropertyNodePin->IsRestricted(ClassPathName, RestrictReasons))
@@ -826,7 +836,13 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 						check(RestrictReasons.Num() > 0);
 						FMessageDialog::Open(EAppMsgType::Ok, RestrictReasons[0]);
 					}
-					else 
+					else if (IsAnyOuterObjectFromEngine() && !bIsEngineClass)
+					{
+						FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
+							NSLOCTEXT("UnrealEd", "ClassAssignmentsFailed", "Cannot assign Project class {0} to an Engine property."),
+							FText::FromString(ClassPathName)));
+					}
+					else
 					{
 						
 						Res = SetValueAsString(ClassPathName, EPropertyValueSetFlags::DefaultFlags);
@@ -1696,16 +1712,6 @@ void FPropertyHandleBase::GetOuterObjects( TArray<UObject*>& OuterObjects ) cons
 
 }
 
-void FPropertyHandleBase::EnumerateRawData( const EnumerateRawDataFuncRef& InRawDataCallback )
-{
-	Implementation->EnumerateRawData( InRawDataCallback );
-}
-
-void FPropertyHandleBase::EnumerateConstRawData( const EnumerateConstRawDataFuncRef& InRawDataCallback ) const
-{
-	Implementation->EnumerateConstRawData( InRawDataCallback );
-}
-
 void FPropertyHandleBase::AccessRawData( TArray<void*>& RawData )
 {
 	Implementation->AccessRawData( RawData );
@@ -1715,6 +1721,7 @@ void FPropertyHandleBase::AccessRawData( TArray<const void*>& RawData ) const
 {
 	Implementation->AccessRawData(RawData);
 }
+
 
 void FPropertyHandleBase::SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged )
 {

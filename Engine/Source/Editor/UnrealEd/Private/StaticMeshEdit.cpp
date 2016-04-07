@@ -976,20 +976,17 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 			SrcModel->ScreenSize = ExistingMeshDataPtr->ExistingLODData[i].ExistingScreenSize;
 		}
 
-		// Restore the section info
-		if (ExistingMeshDataPtr->ExistingSectionInfoMap.Map.Num() > 0)
+		// Restore the section info		
+		for (int32 i = 0; i < NewMesh->RenderData->LODResources.Num(); i++)
 		{
-			for (int32 i = 0; i < NewMesh->RenderData->LODResources.Num(); i++)
+			FStaticMeshLODResources& LOD = NewMesh->RenderData->LODResources[i];
+			int32 NumSections = LOD.Sections.Num();
+			for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
 			{
-				FStaticMeshLODResources& LOD = NewMesh->RenderData->LODResources[i];
-				int32 NumSections = LOD.Sections.Num();
-				for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+				FMeshSectionInfo OldSectionInfo = ExistingMeshDataPtr->ExistingSectionInfoMap.Get(i, SectionIndex);
+				if(NewMesh->Materials.IsValidIndex(OldSectionInfo.MaterialIndex))
 				{
-					FMeshSectionInfo OldSectionInfo = ExistingMeshDataPtr->ExistingSectionInfoMap.Get(i, SectionIndex);
-					if (NewMesh->Materials.IsValidIndex(OldSectionInfo.MaterialIndex))
-					{
-						NewMesh->SectionInfoMap.Set(i, SectionIndex, OldSectionInfo);
-					}
+					NewMesh->SectionInfoMap.Set(i, SectionIndex, OldSectionInfo);
 				}
 			}
 		}

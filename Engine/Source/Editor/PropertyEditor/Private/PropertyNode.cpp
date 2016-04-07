@@ -50,7 +50,6 @@ FPropertyNode::FPropertyNode(void)
 	, MaxChildDepthAllowed(FPropertyNodeConstants::NoDepthRestrictions)
 	, PropertyNodeFlags (EPropertyNodeFlags::NoFlags)
 	, bRebuildChildrenRequested( false )
-	, PropertyPath(TEXT(""))
 {
 }
 
@@ -174,8 +173,6 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 	{
 		RebuildChildren();
 	}
-
-	PropertyPath = FPropertyNode::CreatePropertyPath(this->AsShared())->ToString();
 }
 
 /**

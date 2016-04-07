@@ -2373,7 +2373,7 @@ struct FTextStyles
 	};
 
 	/** Convert the given text style into run meta-information, so that valid source rich-text formatting can be generated for it */
-	static FRunInfo CreateRunInfo(const TSharedPtr<FFontFamily>& InFontFamily, const uint16 InFontSize, const EFontStyle::Flags InFontStyle, const FLinearColor& InFontColor)
+	static FRunInfo CreateRunInfo(const TSharedPtr<FFontFamily>& InFontFamily, const uint8 InFontSize, const EFontStyle::Flags InFontStyle, const FLinearColor& InFontColor)
 	{
 		FString FontStyleString;
 		if(InFontStyle == EFontStyle::Regular)
@@ -2401,7 +2401,7 @@ struct FTextStyles
 	}
 
 	/** Explode some run meta-information back out into its component text style parts */
-	void ExplodeRunInfo(const FRunInfo& InRunInfo, TSharedPtr<FFontFamily>& OutFontFamily, uint16& OutFontSize, EFontStyle::Flags& OutFontStyle, FLinearColor& OutFontColor) const
+	void ExplodeRunInfo(const FRunInfo& InRunInfo, TSharedPtr<FFontFamily>& OutFontFamily, uint8& OutFontSize, EFontStyle::Flags& OutFontStyle, FLinearColor& OutFontColor) const
 	{
 		check(AvailableFontFamilies.Num());
 
@@ -2419,7 +2419,7 @@ struct FTextStyles
 		const FString* const FontSizeString = InRunInfo.MetaData.Find(TEXT("FontSize"));
 		if(FontSizeString)
 		{
-			OutFontSize = static_cast<uint16>(FPlatformString::Atoi(**FontSizeString));
+			OutFontSize = static_cast<uint8>(FPlatformString::Atoi(**FontSizeString));
 		}
 
 		OutFontStyle = EFontStyle::Regular;
@@ -2449,7 +2449,7 @@ struct FTextStyles
 	}
 
 	/** Convert the given text style into a text block style for use by Slate */
-	static FTextBlockStyle CreateTextBlockStyle(const TSharedPtr<FFontFamily>& InFontFamily, const uint16 InFontSize, const EFontStyle::Flags InFontStyle, const FLinearColor& InFontColor)
+	static FTextBlockStyle CreateTextBlockStyle(const TSharedPtr<FFontFamily>& InFontFamily, const uint8 InFontSize, const EFontStyle::Flags InFontStyle, const FLinearColor& InFontColor)
 	{
 		FName FontName = InFontFamily->RegularFont;
 		if((InFontStyle & EFontStyle::Bold) && (InFontStyle & EFontStyle::Italic))
@@ -2476,7 +2476,7 @@ struct FTextStyles
 	FTextBlockStyle CreateTextBlockStyle(const FRunInfo& InRunInfo) const
 	{
 		TSharedPtr<FFontFamily> FontFamily;
-		uint16 FontSize;
+		uint8 FontSize;
 		EFontStyle::Flags FontStyle;
 		FLinearColor FontColor;
 		ExplodeRunInfo(InRunInfo, FontFamily, FontSize, FontStyle, FontColor);
@@ -2697,9 +2697,9 @@ public:
 										.AutoWidth()
 										[
 											SNew(SBox)
-											.MinDesiredWidth(24)
+											.WidthOverride(24)
 											[
-												SNew(SNumericEntryBox<uint16>)
+												SNew(SNumericEntryBox<uint8>)
 												.Value(this, &SRichTextEditTest::GetFontSize)
 												.OnValueCommitted(this, &SRichTextEditTest::SetFontSize)
 											]
@@ -2977,12 +2977,12 @@ protected:
 		return SNew(STextBlock).Text(SourceEntry->DisplayName);
 	}
 
-	TOptional<uint16> GetFontSize() const
+	TOptional<uint8> GetFontSize() const
 	{
 		return FontSize;
 	}
 
-	void SetFontSize(uint16 NewValue, ETextCommit::Type)
+	void SetFontSize(uint8 NewValue, ETextCommit::Type)
 	{		
 		FontSize = NewValue;
 		StyleSelectedText();
@@ -3141,7 +3141,7 @@ protected:
 	FTextStyles TextStyles;
 
 	TSharedPtr<FTextStyles::FFontFamily> ActiveFontFamily;
-	uint16 FontSize;
+	uint8 FontSize;
 	FTextStyles::EFontStyle::Flags FontStyle;
 	FLinearColor FontColor;
 };

@@ -117,7 +117,6 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.Margin(InArgs._Margin)
 					.WrapTextAt(InArgs._WrapTextAt)
 					.AutoWrapText(InArgs._AutoWrapText)
-					.WrappingPolicy(InArgs._WrappingPolicy)
 					.HScrollBar(HScrollBar)
 					.VScrollBar(VScrollBar)
 					.OnHScrollBarUserScrolled(InArgs._OnHScrollBarUserScrolled)
@@ -279,11 +278,6 @@ void SMultiLineEditableTextBox::SetWrapTextAt(const TAttribute<float>& InWrapTex
 void SMultiLineEditableTextBox::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
 {
 	EditableText->SetAutoWrapText(InAutoWrapText);
-}
-
-void SMultiLineEditableTextBox::SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy)
-{
-	EditableText->SetWrappingPolicy(InWrappingPolicy);
 }
 
 void SMultiLineEditableTextBox::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)

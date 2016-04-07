@@ -13,8 +13,6 @@
 typedef const FAssetData& FAssetFilterType;
 typedef TFilterCollection<FAssetFilterType> FAssetFilterCollectionType;
 
-class UFactory;
-
 /** The view modes used in SAssetView */
 namespace EAssetViewType
 {

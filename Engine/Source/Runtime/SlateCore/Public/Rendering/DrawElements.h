@@ -153,10 +153,15 @@ public:
 		ShapedGlyphSequence = InShapedGlyphSequence;
 	}
 
-	void SetGradientPayloadProperties( const TArray<FSlateGradientStop>& InGradientStops, EOrientation InGradientType )
+	void SetGradientPayloadProperties( const TArray<FSlateGradientStop>& InGradientStops, EOrientation InGradientType, bool bInGammaCorrect )
 	{
 		GradientStops = InGradientStops;
 		GradientType = InGradientType;
+
+		if ( !bInGammaCorrect )
+		{
+			BatchFlags |= ESlateBatchDrawFlag::NoGamma;
+		}
 	}
 
 	void SetSplinePayloadProperties( const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, float InThickness, const FLinearColor& InTint )
@@ -179,13 +184,27 @@ public:
 		bAntialias = bInAntialias;
 	}
 
-	void SetViewportPayloadProperties( const TSharedPtr<const ISlateViewport>& InViewport, const FLinearColor& InTint )
+	void SetViewportPayloadProperties( const TSharedPtr<const ISlateViewport>& InViewport, const FLinearColor& InTint, bool bInGammaCorrect, bool bInAllowBlending )
 	{
 		Tint = InTint;
 		ViewportRenderTargetTexture = InViewport->GetViewportRenderTargetTexture();
 		bAllowViewportScaling = InViewport->AllowScaling();
 		bViewportTextureAlphaOnly = InViewport->IsViewportTextureAlphaOnly();
 		bRequiresVSync = InViewport->RequiresVsync();
+
+		if ( !bInGammaCorrect )
+		{
+			BatchFlags |= ESlateBatchDrawFlag::NoGamma;
+		}
+
+		if ( !bInAllowBlending )
+		{
+			BatchFlags |= ESlateBatchDrawFlag::NoBlending;
+		}
+		else
+		{
+			BatchFlags |= ESlateBatchDrawFlag::AlphaCompositing;
+		}
 	}
 
 	void SetCustomDrawerPayloadProperties( const TSharedPtr<ICustomSlateElement, ESPMode::ThreadSafe>& InCustomDrawer )
@@ -357,7 +376,7 @@ public:
 	 * @param InClippingRect           Parts of the element are clipped if it falls outside of this rectangle
 	 * @param InDrawEffects            Optional draw effects to apply
 	 */
-	SLATECORE_API static void MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None );
+	SLATECORE_API static void MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, bool bGammaCorrect = true );
 
 	/**
 	 * Creates a spline element
@@ -405,7 +424,7 @@ public:
 	 * @param InDrawEffects            Optional draw effects to apply
 	 * @param InTint                   Color to tint the element
 	 */
-	SLATECORE_API static void MakeViewport( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TSharedPtr<const ISlateViewport> Viewport, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White );
+	SLATECORE_API static void MakeViewport( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TSharedPtr<const ISlateViewport> Viewport, const FSlateRect& InClippingRect, bool bGammaCorrect = true, bool bAllowBlending = true, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White );
 
 	/**
 	 * Creates a custom element which can be used to manually draw into the Slate render target with graphics API calls rather than Slate elements

@@ -1403,20 +1403,6 @@ void FAssetContextMenu::ExecuteRename()
 
 void FAssetContextMenu::ExecuteDelete()
 {
-	// Don't allow asset deletion during PIE
-	if (GIsEditor)
-	{
-		UEditorEngine* Editor = GEditor;
-		FWorldContext* PIEWorldContext = GEditor->GetPIEWorldContext();
-		if (PIEWorldContext)
-		{
-			FNotificationInfo Notification(LOCTEXT("CannotDeleteAssetInPIE", "Assets cannot be deleted while in PIE."));
-			Notification.ExpireDuration = 3.0f;
-			FSlateNotificationManager::Get().AddNotification(Notification);
-			return;
-		}
-	}
-
 	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
 	if(AssetViewSelectedAssets.Num() > 0)
 	{
@@ -1672,11 +1658,10 @@ void FAssetContextMenu::ExecuteSCCCheckOut()
 	if ( PackagesToCheckOut.Num() > 0 )
 	{
 		// Update the source control status of all potentially relevant packages
-		if (ISourceControlModule::Get().GetProvider().Execute(ISourceControlOperation::Create<FUpdateStatus>(), PackagesToCheckOut) == ECommandResult::Succeeded)
-		{
-			// Now check them out
-			FEditorFileUtils::CheckoutPackages(PackagesToCheckOut);
-		}
+		ISourceControlModule::Get().GetProvider().Execute(ISourceControlOperation::Create<FUpdateStatus>(), PackagesToCheckOut);
+
+		// Now check them out
+		FEditorFileUtils::CheckoutPackages(PackagesToCheckOut);
 	}
 }
 
@@ -1801,7 +1786,26 @@ void FAssetContextMenu::ExecuteSCCSync()
 {
 	TArray<FString> PackageNames;
 	GetSelectedPackageNames(PackageNames);
-	ContentBrowserUtils::SyncPackagesFromSourceControl(PackageNames);
+	TArray<FString> PackageFileNames = SourceControlHelpers::PackageFilenames(PackageNames);
+
+	TArray<UPackage*> Packages;
+	GetSelectedPackages(Packages);
+
+	FText ErrorMessage;
+	PackageTools::UnloadPackages(Packages, ErrorMessage);
+	if(!ErrorMessage.IsEmpty())
+	{
+		FMessageDialog::Open( EAppMsgType::Ok, ErrorMessage );
+	}
+	else
+	{
+		ISourceControlModule::Get().GetProvider().Execute(ISourceControlOperation::Create<FSync>(), PackageFileNames);
+		for( TArray<FString>::TConstIterator PackageIter( PackageNames ); PackageIter; ++PackageIter )
+		{
+			PackageTools::LoadPackage(*PackageIter);
+		}
+		ExecuteSCCRefresh();
+	}
 }
 
 void FAssetContextMenu::ExecuteEnableSourceControl()

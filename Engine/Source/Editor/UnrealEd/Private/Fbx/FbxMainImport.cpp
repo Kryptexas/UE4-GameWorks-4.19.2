@@ -472,35 +472,12 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo, bool 
 		for ( int32 GeometryIndex = 0; GeometryIndex < Scene->GetGeometryCount(); GeometryIndex++ )
 		{
 			FbxGeometry * Geometry = Scene->GetGeometry(GeometryIndex);
+			
 			if (Geometry->GetAttributeType() == FbxNodeAttribute::eMesh)
 			{
 				FbxNode* GeoNode = Geometry->GetNode();
-				FbxMesh* Mesh = (FbxMesh*)Geometry;
-				//Skip staticmesh sub LOD group that will be merge with the other same lod index mesh
-				if (GeoNode && Mesh->GetDeformerCount(FbxDeformer::eSkin) <= 0)
-				{
-					FbxNode* ParentNode = RecursiveFindParentLodGroup(GeoNode->GetParent());
-					if (ParentNode != nullptr && ParentNode->GetNodeAttribute() && ParentNode->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
-					{
-						bool IsLodRoot = false;
-						for (int32 ChildIndex = 0; ChildIndex < ParentNode->GetChildCount(); ++ChildIndex)
-						{
-							FbxNode *MeshNode = FindLODGroupNode(ParentNode, ChildIndex);
-							if (GeoNode == MeshNode)
-							{
-								IsLodRoot = true;
-								break;
-							}
-						}
-						if (!IsLodRoot)
-						{
-							//Skip static mesh sub LOD
-							continue;
-						}
-					}
-				}
 				SceneInfo.TotalGeometryNum++;
-				
+				FbxMesh* Mesh = (FbxMesh*)Geometry;
 				SceneInfo.MeshInfo.AddZeroed(1);
 				FbxMeshInfo& MeshInfo = SceneInfo.MeshInfo.Last();
 				if(Geometry->GetName()[0] != '\0')
@@ -519,10 +496,11 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo, bool 
 					FbxNode* ParentNode = RecursiveFindParentLodGroup(GeoNode->GetParent());
 					if (ParentNode != nullptr && ParentNode->GetNodeAttribute() && ParentNode->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 					{
+						FbxNodeAttribute* LODGroup = ParentNode->GetNodeAttribute();
 						MeshInfo.LODGroup = MakeString(ParentNode->GetName());
 						for (int32 LODIndex = 0; LODIndex < ParentNode->GetChildCount(); LODIndex++)
 						{
-							FbxNode *MeshNode = FindLODGroupNode(ParentNode, LODIndex, GeoNode);
+							FbxNode *MeshNode = FindLODGroupNode(ParentNode, LODIndex);
 							if (GeoNode == MeshNode)
 							{
 								MeshInfo.LODLevel = LODIndex;
@@ -1301,55 +1279,25 @@ void FFbxImporter::ValidateAllMeshesAreReferenceByNodeAttribute()
 	}
 }
 
-FbxNode *FFbxImporter::RecursiveGetFirstMeshNode(FbxNode* Node, FbxNode* NodeToFind)
+FbxNode *FFbxImporter::RecursiveGetFirstMeshNode(FbxNode* Node)
 {
 	if (Node->GetMesh() != nullptr)
 		return Node;
 	for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
 	{
-		FbxNode *MeshNode = RecursiveGetFirstMeshNode(Node->GetChild(ChildIndex), NodeToFind);
-		if (NodeToFind == nullptr)
-		{
-			if (MeshNode != nullptr)
-			{
-				return MeshNode;
-			}
-		}
-		else if (MeshNode == NodeToFind)
-		{
+		FbxNode *MeshNode = RecursiveGetFirstMeshNode(Node->GetChild(ChildIndex));
+		if (MeshNode != nullptr)
 			return MeshNode;
-		}
 	}
 	return nullptr;
 }
 
-void FFbxImporter::RecursiveGetAllMeshNode(TArray<FbxNode *> &OutAllNode, FbxNode* Node)
-{
-	if (Node->GetMesh() != nullptr)
-	{
-		OutAllNode.Add(Node);
-		return;
-	}
-	for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
-	{
-		RecursiveGetAllMeshNode(OutAllNode, Node->GetChild(ChildIndex));
-	}
-}
-
-FbxNode* FFbxImporter::FindLODGroupNode(FbxNode* NodeLodGroup, int32 LodIndex, FbxNode *NodeToFind)
+FbxNode* FFbxImporter::FindLODGroupNode(FbxNode* NodeLodGroup, int32 LodIndex)
 {
 	check(NodeLodGroup->GetChildCount() >= LodIndex);
 	FbxNode *ChildNode = NodeLodGroup->GetChild(LodIndex);
 
-	return RecursiveGetFirstMeshNode(ChildNode, NodeToFind);
-}
-
-void FFbxImporter::FindAllLODGroupNode(TArray<FbxNode*> &OutNodeInLod, FbxNode* NodeLodGroup, int32 LodIndex)
-{
-	check(NodeLodGroup->GetChildCount() >= LodIndex);
-	FbxNode *ChildNode = NodeLodGroup->GetChild(LodIndex);
-
-	RecursiveGetAllMeshNode(OutNodeInLod, ChildNode);
+	return RecursiveGetFirstMeshNode(ChildNode);
 }
 
 FbxNode *FFbxImporter::RecursiveFindParentLodGroup(FbxNode *ParentNode)

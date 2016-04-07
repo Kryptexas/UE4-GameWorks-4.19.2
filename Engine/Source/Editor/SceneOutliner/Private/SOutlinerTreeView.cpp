@@ -265,7 +265,6 @@ namespace SceneOutliner
 	{
 		Item = InArgs._Item->AsShared();
 		SceneOutlinerWeak = SceneOutliner;
-		LastHighlightInteractionTime = 0.0;
 
 		auto Args = FSuperRowType::FArguments()
 			.Style(&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("SceneOutliner.TableViewRow"));

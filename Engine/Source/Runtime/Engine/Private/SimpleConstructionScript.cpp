@@ -43,8 +43,8 @@ namespace
 USimpleConstructionScript::USimpleConstructionScript(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	RootNode_DEPRECATED = nullptr;
-	DefaultSceneRootNode = nullptr;
+	RootNode_DEPRECATED = NULL;
+	DefaultSceneRootNode = NULL;
 
 #if WITH_EDITOR
 	bIsConstructingEditorComponents = false;
@@ -527,6 +527,7 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 					}
 				}
 
+
 				// Create the new component instance and any child components it may have
 				UActorComponent* InstancedComponent = RootNode->ExecuteNodeOnActor(Actor, ParentComponent != nullptr ? ParentComponent : RootComponent, &RootTransform, bIsDefaultTransform);
 				if(InstancedComponent != nullptr)
@@ -572,30 +573,6 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 		Actor->SetRootComponent(SceneComp);
 		SceneComp->RegisterComponent();
 	}
-}
-
-void USimpleConstructionScript::CreateNameToSCSNodeMap()
-{
-	const TArray<USCS_Node*>& Nodes = GetAllNodes();
-	NameToSCSNodeMap.Reserve(Nodes.Num() * 2);
-
-	for (USCS_Node* SCSNode : Nodes)
-	{
-		if (SCSNode)
-		{
-			NameToSCSNodeMap.Add(SCSNode->GetVariableName(), SCSNode);
-
-			if (SCSNode->ComponentTemplate)
-			{
-				NameToSCSNodeMap.Add(SCSNode->ComponentTemplate->GetFName(), SCSNode);
-			}
-		}
-	}
-}
-
-void USimpleConstructionScript::RemoveNameToSCSNodeMap()
-{
-	NameToSCSNodeMap.Reset();
 }
 
 #if WITH_EDITOR
@@ -806,11 +783,6 @@ USCS_Node* USimpleConstructionScript::FindParentNode(USCS_Node* InNode) const
 
 USCS_Node* USimpleConstructionScript::FindSCSNode(const FName InName) const
 {
-	if (NameToSCSNodeMap.Num() > 0)
-	{
-		return NameToSCSNodeMap.FindRef(InName);
-	}
-
 	for( USCS_Node* SCSNode : GetAllNodes() )
 	{
 		if (SCSNode && (SCSNode->GetVariableName() == InName || (SCSNode->ComponentTemplate && SCSNode->ComponentTemplate->GetFName() == InName)))
