@@ -82,7 +82,7 @@ void SGameLayerManager::AddWidgetForPlayer(ULocalPlayer* Player, TSharedRef<SWid
 	TSharedPtr<FPlayerLayer> PlayerLayer = FindOrCreatePlayerLayer(Player);
 	
 	// NOTE: Returns FSimpleSlot but we're ignoring here.  Could be used for alignment though.
-	PlayerLayer->Widget->AddSlot(ZOrder)
+	PlayerLayer->Overlay->AddSlot(ZOrder)
 	[
 		ViewportContent
 	];
@@ -94,7 +94,7 @@ void SGameLayerManager::RemoveWidgetForPlayer(ULocalPlayer* Player, TSharedRef<S
 	if ( PlayerLayerPtr )
 	{
 		TSharedPtr<FPlayerLayer> PlayerLayer = *PlayerLayerPtr;
-		PlayerLayer->Widget->RemoveSlot(ViewportContent);
+		PlayerLayer->Overlay->RemoveSlot(ViewportContent);
 	}
 }
 
@@ -104,7 +104,7 @@ void SGameLayerManager::ClearWidgetsForPlayer(ULocalPlayer* Player)
 	if ( PlayerLayerPtr )
 	{
 		TSharedPtr<FPlayerLayer> PlayerLayer = *PlayerLayerPtr;
-		PlayerLayer->Widget->ClearChildren();
+		PlayerLayer->Overlay->ClearChildren();
 	}
 }
 
@@ -132,7 +132,7 @@ bool SGameLayerManager::AddLayerForPlayer(ULocalPlayer* Player, const FName& Lay
 
 		PlayerLayer->Layers.Add(LayerName, Layer);
 
-		PlayerLayer->Widget->AddSlot(ZOrder)
+		PlayerLayer->Overlay->AddSlot(ZOrder)
 		[
 			Layer->AsWidget()
 		];
@@ -232,8 +232,11 @@ TSharedPtr<SGameLayerManager::FPlayerLayer> SGameLayerManager::FindOrCreatePlaye
 		TSharedPtr<FPlayerLayer> NewLayer = MakeShareable(new FPlayerLayer());
 
 		// Create a new overlay widget to house any widgets we want to display for the player.
-		NewLayer->Widget = SNew(SOverlay)
-			.AddMetaData(StopNavigation);
+		NewLayer->Root = SNew(SScissorRectBox)
+			[
+				SAssignNew(NewLayer->Overlay, SOverlay)
+				.AddMetaData(StopNavigation)
+			];
 		
 		// Add the overlay to the player canvas, which we'll update every frame to match
 		// the dimensions of the player's split screen rect.
@@ -242,10 +245,7 @@ TSharedPtr<SGameLayerManager::FPlayerLayer> SGameLayerManager::FindOrCreatePlaye
 			.VAlign(VAlign_Fill)
 			.Expose(NewLayer->Slot)
 			[
-				SNew(SScissorRectBox)
-				[
-					NewLayer->Widget.ToSharedRef()
-				]
+				NewLayer->Root.ToSharedRef()
 			];
 
 		PlayerLayerPtr = &PlayerLayers.Add(LocalPlayer, NewLayer);
@@ -278,7 +278,7 @@ void SGameLayerManager::RemoveMissingPlayerLayers(const TArray<ULocalPlayer*>& G
 void SGameLayerManager::RemovePlayerWidgets(ULocalPlayer* LocalPlayer)
 {
 	TSharedPtr<FPlayerLayer> Layer = PlayerLayers.FindRef(LocalPlayer);
-	PlayerCanvas->RemoveSlot(Layer->Widget.ToSharedRef());
+	PlayerCanvas->RemoveSlot(Layer->Root.ToSharedRef());
 
 	PlayerLayers.Remove(LocalPlayer);
 }
