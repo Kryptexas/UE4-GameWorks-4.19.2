@@ -76,7 +76,7 @@ struct FWindowTransparency
 class FOverlayPopupLayer : public FPopupLayer
 {
 public:
-	FOverlayPopupLayer(const TSharedRef<SWidget>& HostWidget, const TSharedRef<SWidget>& PopupContent, TSharedPtr<SOverlay> Overlay);
+	FOverlayPopupLayer(const TSharedRef<SWidget>& InitHostWidget, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay);
 
 	virtual void Remove() override;
 

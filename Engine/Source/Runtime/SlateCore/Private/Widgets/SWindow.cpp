@@ -12,9 +12,9 @@ namespace SWindowDefs
 	static const int32 CornerRadius = 6;
 }
 
-FOverlayPopupLayer::FOverlayPopupLayer(const TSharedRef<SWidget>& HostWidget, const TSharedRef<SWidget>& PopupContent, TSharedPtr<SOverlay> Overlay)
-	: FPopupLayer(HostWidget, PopupContent)
-	, Overlay(Overlay)
+FOverlayPopupLayer::FOverlayPopupLayer(const TSharedRef<SWidget>& InitHostWidget, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay)
+	: FPopupLayer(InitHostWidget, InitPopupContent)
+	, Overlay(InitOverlay)
 {
 	Overlay->AddSlot()
 	[
