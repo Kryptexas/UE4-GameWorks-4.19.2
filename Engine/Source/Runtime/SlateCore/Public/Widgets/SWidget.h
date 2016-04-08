@@ -106,9 +106,9 @@ public:
 class FPopupLayer : public TSharedFromThis<FPopupLayer>
 {
 public:
-	FPopupLayer(const TSharedRef<SWidget>& HostWidget, const TSharedRef<SWidget>& PopupContent)
-		: HostWidget(HostWidget)
-		, PopupContent(PopupContent)
+	FPopupLayer(const TSharedRef<SWidget>& InitHostWidget, const TSharedRef<SWidget>& InitPopupContent)
+		: HostWidget(InitHostWidget)
+		, PopupContent(InitPopupContent)
 	{
 	}
 
