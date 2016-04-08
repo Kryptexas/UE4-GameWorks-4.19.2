@@ -7,6 +7,7 @@
 
 DECLARE_DELEGATE_RetVal_OneParam( bool, FNetObjectIsDynamic, const UObject*);
 
+class FOutBunch;
 
 //
 // Information about a field.
@@ -136,7 +137,7 @@ class COREUOBJECT_API UPackageMap : public UObject
 
 	virtual void		ReceivedNak( const int32 NakPacketId ) { }
 	virtual void		ReceivedAck( const int32 AckPacketId ) { }
-	virtual void		NotifyBunchCommit( const int32 OutPacketId, const TArray< FNetworkGUID > & ExportNetGUIDs ) { }
+	virtual void		NotifyBunchCommit( const int32 OutPacketId, const FOutBunch* OutBunch ) { }
 
 	virtual void		GetNetGUIDStats(int32& AckCount, int32& UnAckCount, int32& PendingCount) { }
 

@@ -22,12 +22,94 @@
 #include "Net/DataBunch.h"
 #include "PackageMapClient.generated.h"
 
+class FRepLayout;
+class FOutBunch;
+
+class ENGINE_API FCompatibleRepLayoutCmd
+{
+public:
+	FCompatibleRepLayoutCmd() : bExported( false ), Handle( 0 ), CompatibleChecksum( 0 ), bIncompatible( false )
+	{
+	}
+
+	FCompatibleRepLayoutCmd( const uint32 InHandle, const uint32 InCompatibleChecksum, const FString InName, FString InType ) :
+		bExported( false ),
+		Handle( InHandle ),
+		CompatibleChecksum( InCompatibleChecksum ),
+		Name( InName ),
+		Type( InType ),
+		bIncompatible( false )
+	{
+	}
+
+	friend FArchive& operator<<( FArchive& Ar, FCompatibleRepLayoutCmd& C )
+	{
+		uint8 Flags = C.bExported ? 1 : 0;
+
+		Ar << Flags;
+
+		if ( Ar.IsLoading() )
+		{
+			C.bExported = Flags == 1 ? true : false;
+		}
+
+		if ( C.bExported )
+		{
+			Ar.SerializeIntPacked( C.Handle );
+			Ar << C.CompatibleChecksum << C.Name << C.Type;
+		}
+
+		return Ar;
+	}
+
+
+	bool		bExported;
+	uint32		Handle;
+	uint32		CompatibleChecksum;
+	FString		Name;
+	FString		Type;
+
+	// Transient properties
+	bool		bIncompatible;		// If true, we've already determined that this property isn't compatible. We use this to curb warning spam.
+};
+
+class ENGINE_API FCompatibleRepLayout
+{
+public:
+	FCompatibleRepLayout() : PathNameIndex( 0 ) { }
+
+	FString								PathName;
+	uint32								PathNameIndex;
+	TArray< FCompatibleRepLayoutCmd >	Cmds;
+
+	friend FArchive& operator<<( FArchive& Ar, FCompatibleRepLayout& C )
+	{
+		Ar << C.PathName;
+
+		Ar.SerializeIntPacked( C.PathNameIndex );
+
+		uint32 NumCmds = C.Cmds.Num();
+		Ar.SerializeIntPacked( NumCmds );
+
+		if ( Ar.IsLoading() )
+		{
+			C.Cmds.AddDefaulted( ( int32 )NumCmds );
+		}
+
+		for ( int32 i = 0; i < C.Cmds.Num(); i++ )
+		{
+			Ar << C.Cmds[i];
+		}
+
+		return Ar;
+	}
+};
 
 /** Stores an object with path associated with FNetworkGUID */
 class FNetGuidCacheObject
 {
 public:
-	FNetGuidCacheObject() : NetworkChecksum( 0 ), PackageChecksum( 0 ), ReadOnlyTimestamp( 0 ), bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ), bIsBroken( 0 )
+	FNetGuidCacheObject() : NetworkChecksum( 0 ), ReadOnlyTimestamp( 0 ), bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ), bIsBroken( 0 )
 	{
 	}
 
@@ -37,7 +119,6 @@ public:
 	FNetworkGUID				OuterGUID;
 	FName						PathName;
 	uint32						NetworkChecksum;			// Network checksum saved, used to determine backwards compatible
-	uint32						PackageChecksum;			// If this is a package, this is the guid to expect
 
 	double						ReadOnlyTimestamp;			// Time in second when we should start timing out after going read only
 
@@ -52,6 +133,13 @@ class ENGINE_API FNetGUIDCache
 public:
 	FNetGUIDCache( UNetDriver * InDriver );
 
+	enum ENetworkChecksumMode
+	{
+		NETCHECKSUM_None			= 0,
+		NETCHECKSUM_SaveAndUse		= 1,
+		NETCHECKSUM_SaveButIgnore	= 2,
+	};
+
 	void			CleanReferences();
 	bool			SupportsObject( const UObject* Object ) const;
 	bool			IsDynamicObject( const UObject* Object );
@@ -62,7 +150,7 @@ public:
 	void			RegisterNetGUID_Internal( const FNetworkGUID& NetGUID, const FNetGuidCacheObject& CacheObject );
 	void			RegisterNetGUID_Server( const FNetworkGUID& NetGUID, const UObject* Object );
 	void			RegisterNetGUID_Client( const FNetworkGUID& NetGUID, const UObject* Object );
-	void			RegisterNetGUIDFromPath_Client( const FNetworkGUID& NetGUID, const FString& PathName, const FNetworkGUID& OuterGUID, const uint32 NetworkChecksum, const uint32 PackageChecksum, const bool bNoLoad, const bool bIgnoreWhenMissing );
+	void			RegisterNetGUIDFromPath_Client( const FNetworkGUID& NetGUID, const FString& PathName, const FNetworkGUID& OuterGUID, const uint32 NetworkChecksum, const bool bNoLoad, const bool bIgnoreWhenMissing );
 	UObject *		GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped );
 	bool			ShouldIgnoreWhenMissing( const FNetworkGUID& NetGUID ) const;
 	bool			IsGUIDRegistered( const FNetworkGUID& NetGUID ) const;
@@ -70,12 +158,10 @@ public:
 	bool			IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const;
 	FString			FullNetGUIDPath( const FNetworkGUID& NetGUID ) const;
 	void			GenerateFullNetGUIDPath_r( const FNetworkGUID& NetGUID, FString& FullPath ) const;
-	void			SetIgnorePackageMismatchOverride( const bool bInIgnorePackageMismatchOverride ) { bIgnorePackageMismatchOverride = bInIgnorePackageMismatchOverride; }
 	bool			ShouldIgnorePackageMismatch() const;
 	uint32			GetClassNetworkChecksum( const UClass* Class );
 	uint32			GetNetworkChecksum( const UObject* Obj );
-	void			SetShouldUseNetworkChecksum( const bool bInUseNetworkChecksum );
-	bool			ShouldUseNetworkChecksum() const;
+	void			SetNetworkChecksumMode( const ENetworkChecksumMode NewMode );
 
 	void			AsyncPackageCallback(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result);
 	
@@ -89,8 +175,19 @@ public:
 
 	TMap< FName, FNetworkGUID >						PendingAsyncPackages;
 
-	bool											bUseNetworkChecksum;
-	bool											bIgnorePackageMismatchOverride;
+	ENetworkChecksumMode							NetworkChecksumMode;
+
+	/** Maps FRepLayout class owner to the respective FCompatibleRepLayout */
+	TMap < FString, TSharedPtr< FCompatibleRepLayout > >	CompatibleRepLayoutMap;
+
+	/** Maps rep layout path to assigned index */
+	TMap < FString, uint32 >								CompatibleRepLayoutPathToIndex;
+
+	/** Maps rep layout index to assigned path */
+	TMap < uint32, FString >								CompatibleRepLayoutIndexToPath;
+
+	/** Current index used when filling in CompatibleRepLayoutPathToIndex/CompatibleRepLayoutIndexToPath */
+	int32													UniqueCompatibleRepLayoutPathIndex;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// History for debugging entries in the guid cache
@@ -135,11 +232,11 @@ public:
 
 	virtual void ReceivedNak( const int32 NakPacketId ) override;
 	virtual void ReceivedAck( const int32 AckPacketId ) override;
-	virtual void NotifyBunchCommit( const int32 OutPacketId, const TArray< FNetworkGUID > & ExportNetGUIDs ) override;
+	virtual void NotifyBunchCommit( const int32 OutPacketId, const FOutBunch* OutBunch ) override;
 	virtual void GetNetGUIDStats(int32 &AckCount, int32 &UnAckCount, int32 &PendingCount) override;
 
 	void ReceiveNetGUIDBunch( FInBunch &InBunch );
-	bool AppendExportBunches(TArray<FOutBunch *>& OutgoingBunches);
+	void AppendExportBunches(TArray<FOutBunch *>& OutgoingBunches);
 
 	TMap<FNetworkGUID, int32>	NetGUIDExportCountMap;	// How many times we've exported each NetGUID on this connection. Public for ListNetGUIDExports 
 
@@ -160,7 +257,19 @@ public:
 
 	class UNetConnection* GetConnection() { return Connection; }
 
+	void SyncPackageMapExportAckStatus( const UPackageMapClient* Source );
+
+	/** Functions to help with exporting/importing replayout property info */
+	TSharedPtr< FCompatibleRepLayout >	TrackCompatibleRepLayout( const FRepLayout* RepLayout );
+	void								TrackCompatibleRepLayoutCmd( const FRepLayout* RepLayout, FCompatibleRepLayout* CompatibleRepLayout, const int32 CmdIndex );
+	TSharedPtr< FCompatibleRepLayout >	GetCompatibleRepLayoutChecked( UObject* Owner ) const;
+	void								SerializeCompatibleReplayoutMap( FArchive& Ar );
+
 protected:
+
+	/** Functions to help with exporting/importing replayout property info */
+	void								AppendCompatibleRepLayoutExports( TArray<FOutBunch *>& OutgoingBunches );
+	void								ReceiveCompatibleRepLayoutExports( FInBunch &InBunch );
 
 	bool	ExportNetGUID( FNetworkGUID NetGUID, const UObject* Object, FString PathName, UObject* ObjOuter );
 	void	ExportNetGUIDHeader();
@@ -192,4 +301,10 @@ protected:
 	TSharedPtr< FNetGUIDCache >			GuidCache;
 
 	TArray< FNetworkGUID >				MustBeMappedGuidsInLastBunch;
+
+	/** List of rep layout cmd exports that need to go out on next bunch */
+	TSet< uint64 >						CompatibleRepLayoutCmdExports;
+
+	TMap < uint32, bool >									CompatibleRepLayoutPathExported;
+	TMap < uint64, bool >									CompatibleRepLayoutCmdExported;
 };

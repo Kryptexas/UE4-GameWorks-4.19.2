@@ -13,6 +13,7 @@ DECLARE_CYCLE_STAT( TEXT( "Http replay decompress time" ), STAT_HttpReplay_Decom
 
 static TAutoConsoleVariable<FString> CVarMetaFilterOverride( TEXT( "httpReplay.MetaFilterOverride" ), TEXT( "" ), TEXT( "" ) );
 static TAutoConsoleVariable<float> CVarChunkUploadDelayInSeconds( TEXT( "httpReplay.ChunkUploadDelayInSeconds" ), 10.0f, TEXT( "" ) );
+static TAutoConsoleVariable<int> CVarMaxCacheSize( TEXT( "httpReplay.MaxCacheSize" ), 1024 * 1024 * 10, TEXT( "" ) );		// 10 MB cache by default
 
 class FNetworkReplayListItem : public FOnlineJsonSerializable
 {
@@ -328,6 +329,59 @@ void FHttpNetworkReplayStreamer::AddCustomRequestToQueue( TSharedPtr< FQueuedHtt
 	UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::AddCustomRequestToQueue. Type: %s" ), EQueuedHttpRequestType::ToString( Request->Type ) );
 
 	QueuedHttpRequests.Add( Request );
+}
+
+void FHttpNetworkReplayStreamer::AddResponseToCache( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse )
+{
+	if ( !HttpRequest.IsValid() )
+	{
+		return;
+	}
+
+	if ( !HttpResponse.IsValid() )
+	{
+		return;
+	}
+
+	// Add to cache (or freshen existing entry)
+	ResponseCache.Add( HttpRequest->GetURL(), FCachedResponse( HttpResponse, FPlatformTime::Seconds() ) );
+
+	// Anytime we add something to cache, make sure it's within budget
+	CleanupResponseCache();
+}
+
+void FHttpNetworkReplayStreamer::CleanupResponseCache()
+{
+	// Remove older entries until we're under the CVarMaxCacheSize threshold
+	while ( ResponseCache.Num() )
+	{
+		double OldestTime = 0.0;
+		FString OldestKey;
+		uint32 TotalSize = 0;
+
+		for ( auto It = ResponseCache.CreateIterator(); It; ++It )
+		{
+			if ( OldestKey.IsEmpty() || It.Value().LastAccessTime < OldestTime )
+			{
+				OldestTime = It.Value().LastAccessTime;
+				OldestKey = It.Key();
+			}
+
+			// Accumulate total cache size
+			TotalSize += It.Value().Response->GetContent().Num();
+		}
+
+		check( !OldestKey.IsEmpty() );
+
+		const uint32 MaxCacheSize = CVarMaxCacheSize.GetValueOnGameThread();
+
+		if ( TotalSize <= MaxCacheSize )
+		{
+			break;	// We're good
+		}
+
+		ResponseCache.Remove( OldestKey );
+	}
 }
 
 static FString BuildRequestErrorString( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse )
@@ -1677,6 +1731,9 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 		{
 			if ( HttpResponse->GetContent().Num() > 0 )
 			{
+				// Add response to response cache
+				AddResponseToCache( HttpRequest, HttpResponse );
+
 				if ( SupportsCompression() )
 				{
 					SCOPE_CYCLE_COUNTER( STAT_HttpReplay_DecompressTime );
@@ -1759,6 +1816,9 @@ void FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished( FHttpRequestPtr
 			GotoCheckpointDelegate = FOnCheckpointReadyDelegate();
 			return;
 		}
+
+		// Add response to response cache
+		AddResponseToCache( HttpRequest, HttpResponse );
 
 		// Get the checkpoint data
 		if ( SupportsCompression() )
@@ -2055,6 +2115,26 @@ bool FHttpNetworkReplayStreamer::ProcessNextHttpRequest()
 		}
 
 		InFlightHttpRequest = QueuedRequest;
+
+		FCachedResponse* CachedResponse = ResponseCache.Find( InFlightHttpRequest->Request->GetURL() );
+
+		if ( CachedResponse != nullptr )
+		{
+			if ( InFlightHttpRequest->Request->OnProcessRequestComplete().IsBound() )
+			{
+				// If we have this response in the cache, process it now
+				CachedResponse->LastAccessTime = FPlatformTime::Seconds();
+				InFlightHttpRequest->Request->OnProcessRequestComplete().ExecuteIfBound( InFlightHttpRequest->Request, CachedResponse->Response, true );
+
+				// We can now immediately process next request
+				return ProcessNextHttpRequest();
+			}
+			else
+			{
+				// Should never happen, but just in case
+				ResponseCache.Remove( InFlightHttpRequest->Request->GetURL() );
+			}
+		}
 
 		ProcessRequestInternal( InFlightHttpRequest->Request );
 

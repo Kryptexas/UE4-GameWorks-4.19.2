@@ -914,7 +914,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			Bunch.bDormant				= Bunch.bClose ? Reader.ReadBit() : 0;
 			Bunch.bReliable				= Reader.ReadBit();
 			Bunch.ChIndex				= Reader.ReadInt( MAX_CHANNELS );
-			Bunch.bHasGUIDs				= Reader.ReadBit();
+			Bunch.bHasPackageMapExports	= Reader.ReadBit();
 			Bunch.bHasMustBeMappedGUIDs	= Reader.ReadBit();
 			Bunch.bPartial				= Reader.ReadBit();
 
@@ -971,7 +971,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				return;
 			}
 
-			if (Bunch.bHasGUIDs)
+			if ( Bunch.bHasPackageMapExports )
 			{
 				Driver->NetGUIDInBytes += (BunchDataBits + (HeaderPos - IncomingStartPos)) >> 3;
 			}
@@ -1305,7 +1305,7 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 	}
 	Header.WriteBit( Bunch.bReliable );
 	Header.WriteIntWrapped(Bunch.ChIndex, MAX_CHANNELS);
-	Header.WriteBit( Bunch.bHasGUIDs );
+	Header.WriteBit( Bunch.bHasPackageMapExports );
 	Header.WriteBit( Bunch.bHasMustBeMappedGUIDs );
 	Header.WriteBit( Bunch.bPartial );
 
@@ -1349,12 +1349,12 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 
 	UE_LOG(LogNetTraffic, Verbose, TEXT("UNetConnection::SendRawBunch. ChIndex: %d. Bits: %d. PacketId: %d"), Bunch.ChIndex, Bunch.GetNumBits(), Bunch.PacketId );
 
-	if ( PackageMap && Bunch.bHasGUIDs )
+	if ( PackageMap && Bunch.bHasPackageMapExports )
 	{
-		PackageMap->NotifyBunchCommit( Bunch.PacketId, Bunch.ExportNetGUIDs );
+		PackageMap->NotifyBunchCommit( Bunch.PacketId, &Bunch );
 	}
 
-	if (Bunch.bHasGUIDs)
+	if ( Bunch.bHasPackageMapExports )
 	{
 		Driver->NetGUIDOutBytes += (Header.GetNumBits() + Bunch.GetNumBits()) >> 3;
 	}
