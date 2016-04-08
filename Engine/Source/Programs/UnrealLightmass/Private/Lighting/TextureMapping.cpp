@@ -427,7 +427,8 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 						MappingContext, 
 						RandomStream, 
 						GatherInfo, 
-						true, /** bSkyLightingOnly */
+						true, /* bSkyLightingOnly */
+						true, /* bGatheringForCachedDirectLighting */
 						false);
 
 

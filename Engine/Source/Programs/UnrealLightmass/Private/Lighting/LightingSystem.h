@@ -2334,6 +2334,7 @@ private:
 		float SampleRadius,
 		int32 BounceNumber,
 		bool bSkyLightingOnly,
+		bool bGatheringForCachedDirectLighting,
 		bool bDebugThisTexel,
 		FStaticLightingMappingContext& MappingContext,
 		FLMRandomStream& RandomStream,
@@ -2363,6 +2364,7 @@ private:
 		FLMRandomStream& RandomStream,
 		FLightingCacheGatherInfo& GatherInfo,
 		bool bSkyLightingOnly,
+		bool bGatheringForCachedDirectLighting,
 		bool bDebugThisTexel) const;
 
 	/** Final gather using uniform sampling to estimate the incident radiance function. */
