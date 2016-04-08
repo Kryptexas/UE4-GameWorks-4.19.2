@@ -1181,7 +1181,6 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 
 				FbxNode* Link = SortedLinks[SourceTrackIdx];
 				FbxNode * LinkParent = Link->GetParent();
-				FString LinkParentName = LinkParent->GetName();
 				for(FbxTime CurTime = AnimTimeSpan.GetStart(); CurTime <= AnimTimeSpan.GetStop(); CurTime += TimeIncrement)
 				{
 					// save global trasnform

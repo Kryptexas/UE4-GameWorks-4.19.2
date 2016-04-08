@@ -180,6 +180,11 @@ public:
 	 * @returns The arguments used to create the buffer.
 	 */
 	FSharedPoolPolicyData::CreationArguments GetCreationArguments(const FVertexBufferAndSRV& Resource);
+	
+	/** Frees the resource
+	 * @param Resource The buffer to prepare for release from the pool permanently.
+	 */
+	void FreeResource(FVertexBufferAndSRV Resource);
 };
 
 /** A pool for vertex buffers with consistent usage, bucketed for efficiency. */

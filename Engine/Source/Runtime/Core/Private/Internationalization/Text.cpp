@@ -218,6 +218,13 @@ FText::FText( FString InSourceString )
 	TextData->SetTextHistory(FTextHistory_Base(MoveTemp(InSourceString)));
 }
 
+FText::FText( FString InSourceString, FTextDisplayStringRef InDisplayString )
+	: TextData(new TLocalizedTextData<FTextHistory_Base>(MoveTemp(InDisplayString)))
+	, Flags(0)
+{
+	TextData->SetTextHistory(FTextHistory_Base(MoveTemp(InSourceString)));
+}
+
 FText::FText( FString InSourceString, const FString& InNamespace, const FString& InKey, uint32 InFlags )
 	: TextData(new TLocalizedTextData<FTextHistory_Base>(FTextLocalizationManager::Get().GetDisplayString(InNamespace, InKey, &InSourceString)))
 	, Flags(InFlags)
@@ -991,14 +998,15 @@ FString FText::GetInvariantTimeZone()
 
 bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutText, const FString* const SourceString )
 {
-	TSharedPtr< FString, ESPMode::ThreadSafe > FoundString = FTextLocalizationManager::Get().FindDisplayString( Namespace, Key, SourceString );
+	FTextDisplayStringPtr FoundString = FTextLocalizationManager::Get().FindDisplayString( Namespace, Key, SourceString );
 
 	if ( FoundString.IsValid() )
 	{
-		OutText = FText( SourceString ? *SourceString : FString(), Namespace, Key );
+		OutText = FText( SourceString ? *SourceString : FString(), FoundString.ToSharedRef() );
+		return true;
 	}
 
-	return FoundString.IsValid();
+	return false;
 }
 
 CORE_API FArchive& operator<<(FArchive& Ar, FText& Value)

@@ -271,7 +271,7 @@ bool UK2Node_GetClassDefaults::HasExternalDependencies(TArray<class UStruct*>* O
 
 void UK2Node_GetClassDefaults::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) 
 {
-	Super::ReallocatePinsDuringReconstruction(OldPins);
+	AllocateDefaultPins();
 
 	// Recreate output pins based on the previous input class
 	UEdGraphPin* OldClassPin = FindClassPin(OldPins);
@@ -279,6 +279,8 @@ void UK2Node_GetClassDefaults::ReallocatePinsDuringReconstruction(TArray<UEdGrap
 	{
 		CreateOutputPins(InputClass);
 	}
+
+	RestoreSplitPins(OldPins);
 }
 
 FNodeHandlingFunctor* UK2Node_GetClassDefaults::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

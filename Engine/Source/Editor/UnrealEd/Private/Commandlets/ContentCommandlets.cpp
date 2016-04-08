@@ -10,7 +10,7 @@
 #include "PackageHelperFunctions.h"
 #include "PackageTools.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogContentCommandlet, Log, All);
+DEFINE_LOG_CATEGORY(LogContentCommandlet);
 
 #include "AssetRegistryModule.h"
 
@@ -236,19 +236,51 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 	}
 
 	FString ClassList;
-	for ( int32 SwitchIdx = 0; SwitchIdx < Switches.Num(); SwitchIdx++ )
+	for (const FString& CurrentSwitch : Switches)
 	{
-		const FString& CurrentSwitch = Switches[SwitchIdx];
 		if ( FParse::Value(*CurrentSwitch, TEXT("RESAVECLASS="), ClassList, false) )
 		{
 			TArray<FString> ClassNames;
 			ClassList.ParseIntoArray(ClassNames, TEXT(","), true);
-			for ( int32 Idx = 0; Idx < ClassNames.Num(); Idx++ )
+			for (const FString& ClassName : ClassNames)
 			{
-				ResaveClasses.AddUnique(*ClassNames[Idx]);
+				ResaveClasses.AddUnique(*ClassName);
 			}
 
 			break;
+		}
+	}
+
+	/** determine if we should check subclasses of ResaveClasses */
+	bool bIncludeChildClasses = Switches.Contains(TEXT("IncludeChildClasses"));
+	if (bIncludeChildClasses && ResaveClasses.Num() == 0)
+	{
+		// Sanity check fail
+		UE_LOG(LogContentCommandlet, Error, TEXT("AllowSubclasses param requires ResaveClass param."));
+		return 1;
+	}
+
+	if (bIncludeChildClasses)
+	{
+		// Can't use ranged for here because the array grows inside of this loop.
+		// Also, no need to iterate over the newly added objects as we know
+		// we have found all of their subclasses too (IsChildOf guarantees that).
+		const int32 NumResaveClasses = ResaveClasses.Num();
+		for (int32 ClassIndex = 0; ClassIndex < NumResaveClasses; ++ClassIndex)
+		{
+			// Find the class object and then all derived classes
+			UClass* ResaveClass = FindObject<UClass>(ANY_PACKAGE, *ResaveClasses[ClassIndex].ToString());
+			if (ResaveClass)
+			{
+				for (TObjectIterator<UClass> It; It; ++It)
+				{
+					UClass* MaybeChildClass = *It;
+					if (MaybeChildClass->IsChildOf(ResaveClass))
+					{
+						ResaveClasses.AddUnique(MaybeChildClass->GetFName());
+					}
+				}
+			}
 		}
 	}
 
@@ -429,6 +461,8 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 					PackagesToDelete.Empty();
 					Package = NULL;
 
+					if (bAutoCheckOut)
+					{
 					if (SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()))
 					{
 						UE_LOG(LogContentCommandlet, Display, TEXT("Revert '%s' from source control..."), *Filename);
@@ -463,6 +497,7 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 						}
 					}
 				}
+			}
 			}
 
 			// Now based on the computation above we will see if we should actually attempt
@@ -579,6 +614,8 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	bAutoCheckIn = bAutoCheckOut && Switches.Contains(TEXT("AutoCheckIn"));
 	/** determine if we are building lighting for the map packages on the pass. **/
 	bShouldBuildLighting = Switches.Contains(TEXT("buildlighting"));
+	/** determine if we can skip the version changelist check */
+	bIgnoreChangelist = Switches.Contains(TEXT("IgnoreChangelist"));
 
 	TArray<FString> PackageNames;
 	int32 ResultCode = InitializeResaveParameters(Tokens, PackageNames);
@@ -687,10 +724,8 @@ FText UResavePackagesCommandlet::GetChangelistDescription() const
 }
 
 
-bool UResavePackagesCommandlet::PerformPreloadOperations( FLinkerLoad* PackageLinker, bool& bSavePackage )
+void UResavePackagesCommandlet::PerformPreloadOperations( FLinkerLoad* PackageLinker, bool& bSavePackage )
 {
-	bool bResult = false;
-
 	const int32 UE4PackageVersion = PackageLinker->Summary.GetFileVersionUE4();
 	const int32 LicenseeUE4PackageVersion = PackageLinker->Summary.GetFileVersionLicenseeUE4();
 
@@ -699,7 +734,6 @@ bool UResavePackagesCommandlet::PerformPreloadOperations( FLinkerLoad* PackageLi
 	if ( MinResaveUE4Version != IGNORE_PACKAGE_VERSION && UE4PackageVersion < MinResaveUE4Version )
 	{
 		bSavePackage = false;
-		bResult = true;
 	}
 
 	// Check if this package meets the maximum requirements.
@@ -710,42 +744,36 @@ bool UResavePackagesCommandlet::PerformPreloadOperations( FLinkerLoad* PackageLi
 
 	// If the package was saved with a higher engine version do not try to resave it. This also addresses problem with people 
 	// building editor locally and resaving content with a 0 CL version (e.g. BUILD_FROM_CL == 0)
-	if (PackageLinker->Summary.SavedByEngineVersion.GetChangelist() > FEngineVersion::Current().GetChangelist())
+	if (!bIgnoreChangelist && PackageLinker->Summary.SavedByEngineVersion.GetChangelist() > FEngineVersion::Current().GetChangelist())
 	{
 		UE_LOG(LogContentCommandlet, Warning, TEXT("Skipping resave of %s due to engine version mismatch (Package:%d, Editor:%d "), 
 			*PackageLinker->GetArchiveName(),
 			PackageLinker->Summary.SavedByEngineVersion.GetChangelist(), 
 			FEngineVersion::Current().GetChangelist());
 		bSavePackage = false;
-		bResult = true;	
 	}
 
 	// If not, don't resave it.
 	if ( !bAllowResave )
 	{
 		bSavePackage = false;
-		bResult = true;
 	}
 
 	// Check if the package contains any instances of the class that needs to be resaved.
 	if ( bSavePackage && ResaveClasses.Num() > 0 )
 	{
 		bSavePackage = false;
-		for (int32 ExportIndex = 0; ExportIndex < PackageLinker->ExportMap.Num(); ExportIndex++)
+		for (int32 ExportIndex = 0; !bSavePackage && ExportIndex < PackageLinker->ExportMap.Num(); ExportIndex++)
 		{
-			if ( ResaveClasses.Contains(PackageLinker->GetExportClassName(ExportIndex)) )
+			FName ExportClassName = PackageLinker->GetExportClassName(ExportIndex);
+			if (ResaveClasses.Contains(ExportClassName))
 			{
 				bSavePackage = true;
 				break;
 			}
 		}
-
-		bResult = true;
 	}
-
-	return bResult;
 }
-
 
 bool UResavePackagesCommandlet::CheckoutFile(const FString& Filename)
 {

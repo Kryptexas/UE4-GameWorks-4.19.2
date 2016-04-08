@@ -971,6 +971,7 @@ void SLevelViewport::OnMapChanged( UWorld* World, EMapChangeType MapChangeType )
 			}
 	
 			ResetNewLevelViewFlags();
+			LevelViewportClient->ResetViewForNewMap();
 
 			bool bInitializedOrthoViewport = false;
 			for (int32 ViewportType = 0; ViewportType < LVT_MAX; ViewportType++)

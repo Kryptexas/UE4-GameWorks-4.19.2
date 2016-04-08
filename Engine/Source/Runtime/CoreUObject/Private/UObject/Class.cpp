@@ -4976,12 +4976,6 @@ void UDynamicClass::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 	Super::AddReferencedObjects(This, Collector);
 }
 
-void UDynamicClass::PostLoad()
-{
-	Super::PostLoad();
-	GetDefaultObject(true);
-}
-
 void UDynamicClass::PurgeClass(bool bRecompilingOnLoad)
 {
 	Super::PurgeClass(bRecompilingOnLoad);

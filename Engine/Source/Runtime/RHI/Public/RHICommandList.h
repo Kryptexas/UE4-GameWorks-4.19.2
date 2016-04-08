@@ -1329,29 +1329,6 @@ struct FRHICommandUpdateTextureReference : public FRHICommand<FRHICommandUpdateT
 #define CMD_CONTEXT(Method) GetContext().RHI##Method
 #define COMPUTE_CONTEXT(Method) GetComputeContext().RHI##Method
 
-struct FRHIBeginAsyncComputeJob_DrawThread : public FRHICommand<FRHIBeginAsyncComputeJob_DrawThread>
-{
-	EAsyncComputePriority Priority; 
-	FORCEINLINE_DEBUGGABLE FRHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority InPriority) : Priority(InPriority) {}
-	RHI_API void Execute(FRHICommandListBase& CmdList);
-};
-
-struct FRHIEndAsyncComputeJob_DrawThread : public FRHICommand<FRHIEndAsyncComputeJob_DrawThread>
-{
-	uint32 FenceIndex;
-
-	FORCEINLINE_DEBUGGABLE FRHIEndAsyncComputeJob_DrawThread(uint32 InFenceIndex) : FenceIndex(InFenceIndex) {}
-	RHI_API void Execute(FRHICommandListBase& CmdList);
-};
-
-struct FRHIGraphicsWaitOnAsyncComputeJob : public FRHICommand<FRHIGraphicsWaitOnAsyncComputeJob>
-{
-	uint32 FenceIndex;
-
-	FORCEINLINE_DEBUGGABLE FRHIGraphicsWaitOnAsyncComputeJob(uint32 InFenceIndex) : FenceIndex(InFenceIndex) {}
-	RHI_API void Execute(FRHICommandListBase& CmdList);
-};
-
 template<> void FRHICommandSetShaderParameter<FComputeShaderRHIParamRef, ECmdList::ECompute>::Execute(FRHICommandListBase& CmdList);
 template<> void FRHICommandSetShaderUniformBuffer<FComputeShaderRHIParamRef, ECmdList::ECompute>::Execute(FRHICommandListBase& CmdList);
 template<> void FRHICommandSetShaderTexture<FComputeShaderRHIParamRef, ECmdList::ECompute>::Execute(FRHICommandListBase& CmdList);
@@ -2085,39 +2062,6 @@ public:
 		new (AllocCommand<FRHICommandDebugBreak>()) FRHICommandDebugBreak();
 #endif
 	}
-
-	FORCEINLINE_DEBUGGABLE void BeginAsyncComputeJob_DrawThread( EAsyncComputePriority Priority )
-	{
-		if (Bypass())
-		{
-			CMD_CONTEXT(BeginAsyncComputeJob_DrawThread)(Priority);
-			return;
-		}
-		new (AllocCommand<FRHIBeginAsyncComputeJob_DrawThread>()) FRHIBeginAsyncComputeJob_DrawThread(Priority);
-	}
-
-	FORCEINLINE_DEBUGGABLE uint32 EndAsyncComputeJob_DrawThread()
-	{
-		uint32 FenceIndex = GRHIFenceAllocator.AllocFenceIndex();
-
-		if (Bypass())
-		{
-			CMD_CONTEXT(EndAsyncComputeJob_DrawThread)(FenceIndex);
-			return FenceIndex;
-		}
-		new (AllocCommand<FRHIEndAsyncComputeJob_DrawThread>()) FRHIEndAsyncComputeJob_DrawThread(FenceIndex);
-		return FenceIndex;
-	}
-
-	FORCEINLINE_DEBUGGABLE void GraphicsWaitOnAsyncComputeJob( uint32 FenceIndex )
-	{
-		if (Bypass())
-		{
-			CMD_CONTEXT(GraphicsWaitOnAsyncComputeJob)(FenceIndex);
-			return;
-		}
-		new (AllocCommand<FRHIGraphicsWaitOnAsyncComputeJob>()) FRHIGraphicsWaitOnAsyncComputeJob(FenceIndex);
-	}
 };
 
 class RHI_API FRHIAsyncComputeCommandList : public FRHICommandListBase
@@ -2224,7 +2168,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetAsyncComputeBudget)(Budget);
+			COMPUTE_CONTEXT(SetAsyncComputeBudget)(Budget);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetAsyncComputeBudget<ECmdList::ECompute>>()) FRHICommandSetAsyncComputeBudget<ECmdList::ECompute>(Budget);
@@ -2760,6 +2704,13 @@ public:
 		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
 		GDynamicRHI->RHIReadSurfaceData(Texture,Rect,OutData,InFlags);
 	}
+
+	FORCEINLINE void ReadSurfaceData(FTextureRHIParamRef Texture, FIntRect Rect, TArray<FLinearColor>& OutData, FReadSurfaceDataFlags InFlags)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_ReadSurfaceData_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+		GDynamicRHI->RHIReadSurfaceData(Texture, Rect, OutData, InFlags);
+	}
 	
 	FORCEINLINE void MapStagingSurface(FTextureRHIParamRef Texture,void*& OutData,int32& OutWidth,int32& OutHeight)
 	{
@@ -2781,7 +2732,7 @@ public:
 		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
 		GDynamicRHI->RHIReadSurfaceFloatData(Texture,Rect,OutData,CubeFace,ArrayIndex,MipIndex);
 	}
-	
+
 	FORCEINLINE void Read3DSurfaceFloatData(FTextureRHIParamRef Texture,FIntRect Rect,FIntPoint ZMinMax,TArray<FFloat16Color>& OutData)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_Read3DSurfaceFloatData_Flush);
@@ -2912,6 +2863,11 @@ public:
 	{
 		FScopedRHIThreadStaller StallRHIThread(*this);
 		GDynamicRHI->RHIVirtualTextureSetFirstMipVisible(Texture, FirstMip);
+	}
+
+	FORCEINLINE void CopySubTextureRegion(FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox)
+	{
+		GDynamicRHI->RHICopySubTextureRegion(SourceTexture, DestinationTexture, SourceBox, DestinationBox);
 	}
 	
 	FORCEINLINE void ExecuteCommandList(FRHICommandList* CmdList)

@@ -128,6 +128,12 @@ public:
 			+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
+					MakeValidationMessage(TEXT("Icons.Error"), LOCTEXT("CookOnTheFlyDoesntSupportServer", "Cook on the fly doesn't support server target configurations").ToString(), ELauncherProfileValidationErrors::CookOnTheFlyDoesntSupportServer)
+				]
+
+			+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
 					MakeValidationMessage(TEXT("Icons.Error"), LOCTEXT("UnversionedAndIncrimental", "Unversioned build cannot be incremental.").ToString(), ELauncherProfileValidationErrors::UnversionedAndIncrimental)
 				]
 

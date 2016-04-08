@@ -54,7 +54,7 @@ namespace FPropertyNodeConstants
 	const int32 NoDepthRestrictions = -1;
 
 	/** Character used to deliminate sub-categories in category path names */
-	const TCHAR CategoryDelimiterChar = TCHAR( ',' );
+	const TCHAR CategoryDelimiterChar = TCHAR( '|' );
 };
 
 class FPropertySettings
@@ -417,6 +417,26 @@ public:
 	 * Sets the display name override to use instead of the display name
 	 */
 	virtual void SetDisplayNameOverride( const FText& InDisplayNameOverride ) {}
+
+	/**
+	* @return true if the property is mark as a favorite
+	*/
+	virtual void SetFavorite(bool FavoriteValue) {}
+
+	/**
+	* @return true if the property is mark as a favorite
+	*/
+	virtual bool IsFavorite() const { return false; }
+
+	/**
+	* Set the permission to display the favorite icon
+	*/
+	virtual void SetCanDisplayFavorite(bool CanDisplayFavoriteIcon) {}
+
+	/**
+	* Set the permission to display the favorite icon
+	*/
+	virtual bool CanDisplayFavorite() const { return false; }
 
 	/**
 	 * @return The formatted display name for the property in this node                                                              
@@ -803,6 +823,11 @@ protected:
 	 * to regular metadata, which is stored per-class)
 	 */
 	TMap<FName, FString> InstanceMetaData;
+
+	/**
+	* The property path for this property
+	*/
+	FString PropertyPath;
 };
 
 class FComplexPropertyNode : public FPropertyNode

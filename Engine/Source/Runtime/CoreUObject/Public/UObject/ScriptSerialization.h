@@ -316,6 +316,16 @@
 			XFER(int32);
 			break;
 		}
+		case EX_Int64Const:
+		{
+			XFER(int64);
+			break;
+		}
+		case EX_UInt64Const:
+		{
+			XFER(uint64);
+			break;
+		}
 		case EX_SkipOffsetConst:
 		{
 			XFER(CodeSkipSizeType);

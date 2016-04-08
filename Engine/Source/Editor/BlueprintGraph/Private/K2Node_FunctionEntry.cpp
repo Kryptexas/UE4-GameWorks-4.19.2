@@ -333,6 +333,14 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 
 		// Find the associated UFunction
 		UFunction* Function = FindField<UFunction>(CompilerContext.Blueprint->SkeletonGeneratedClass, *OriginalNode->GetOuter()->GetName());
+
+		// When regenerating on load, we may need to import text on certain properties to force load the assets
+		TSharedPtr<FStructOnScope> LocalVarData;
+		if (CompilerContext.Blueprint->bIsRegeneratingOnLoad)
+		{
+			LocalVarData = MakeShareable(new FStructOnScope(Function));
+		}
+
 		for (TFieldIterator<UProperty> It(Function); It; ++It)
 		{
 			if (const UProperty* Property = *It)
@@ -400,6 +408,16 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 							}
 							else
 							{
+								if (CompilerContext.Blueprint->bIsRegeneratingOnLoad)
+								{
+									// When regenerating on load, we want to force load assets referenced by local variables.
+									// This functionality is already handled when generating Terms in the Kismet Compiler for Arrays and Structs, so we do not have to worry about them.
+									if (LocalVar.VarType.PinCategory == Schema->PC_Object || LocalVar.VarType.PinCategory == Schema->PC_Class || LocalVar.VarType.PinCategory == Schema->PC_Interface)
+									{
+										FBlueprintEditorUtils::PropertyValueFromString(Property, LocalVar.DefaultValue, LocalVarData->GetStructMemory());
+									}
+								}
+
 								// Set the default value
 								Schema->TrySetDefaultValue(*SetPin, LocalVar.DefaultValue);
 							}

@@ -64,8 +64,8 @@ public:
 	/**
 	 * Handle rendering thread starting/stopping
 	 */
-	void CreateAutoreleasePool();
-	void DrainAutoreleasePool();
+	static void CreateAutoreleasePool();
+	static void DrainAutoreleasePool();
 
 	/**
 	 * Do anything necessary to prepare for any kind of draw call 
@@ -92,7 +92,7 @@ public:
 		return QueryBuffer.ToSharedRef();
 	}
 
-    void SubmitCommandsHint(bool const bCreateNew = true);
+    void SubmitCommandsHint(bool const bCreateNew = true, bool const bWait = false);
 	void SubmitCommandBufferAndWait();
 	void SubmitComputeCommandBufferAndWait();
 	void ResetRenderCommandEncoder();
@@ -107,15 +107,16 @@ public:
 	void StartTiming(class FMetalEventNode* EventNode);
 	void EndTiming(class FMetalEventNode* EventNode);
 
-protected:
+	static void MakeCurrent(FMetalContext* Context);
 	void InitFrame(bool const bImmediateContext);
 	void FinishFrame();
 
+protected:
 	/** Create & set the current command buffer, waiting on outstanding command buffers if required. */
 	void CreateCurrentCommandBuffer(bool bWait);
 
 	/**
-	 * Possibly switch from compute to graphics
+	 * Possibly switch from blit or compute to graphics
 	 */
 	void ConditionalSwitchToGraphics();
 	
@@ -123,6 +124,14 @@ protected:
 	 * Switch to blitting
 	 */
 	void ConditionalSwitchToBlit();
+	
+	/**
+	 * Switch to compute
+	 */
+	void ConditionalSwitchToCompute();
+	
+	/** Conditionally submit based on the number of outstanding draw/dispatch ops. */
+	void ConditionalSubmit();
 	
 	/** Apply the SRT before drawing */
 	void CommitGraphicsResourceTables();
@@ -176,11 +185,11 @@ protected:
 	/** the slot to store a per-thread context ref */
 	static uint32 CurrentContextTLSSlot;
 	
-	/**
-	 * Internal counter used for resource table caching.
-	 * INDEX_NONE means caching is not allowed.
-	 */
-	uint32 ResourceTableFrameCounter;
+	/** The number of outstanding draw & dispatch commands in the current command buffer, used to commit command buffers at encoder boundaries when sufficiently large. */
+	uint32 OutstandingOpCount;
+	
+	/** Whether the validation layer is enabled */
+	bool bValidationEnabled;
 };
 
 
@@ -239,7 +248,7 @@ private:
 	TSet<id> FreeList;
 	struct FMetalDelayedFreeList
 	{
-		FEvent* Signal;
+		dispatch_semaphore_t Signal;
 		TSet<id> FreeList;
 	};
 	TArray<FMetalDelayedFreeList*> DelayedFreeLists;

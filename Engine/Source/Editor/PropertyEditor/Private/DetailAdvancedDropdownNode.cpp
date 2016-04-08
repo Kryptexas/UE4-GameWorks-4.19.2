@@ -180,7 +180,7 @@ private:
 };
 
 
-TSharedRef< ITableRow > FAdvancedDropdownNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities )
+TSharedRef< ITableRow > FAdvancedDropdownNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem)
 {
 	return 
 		SNew( SAdvancedDropdownRow, OwnerTable, bIsTopNode, bDisplayShowAdvancedMessage, bShowSplitter )

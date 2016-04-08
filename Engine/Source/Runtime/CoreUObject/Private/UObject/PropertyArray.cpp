@@ -113,9 +113,61 @@ void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defau
 	// need to know how much data this call to SerializeItem consumes, so mark where we are
 	int32 DataOffset = Ar.Tell();
 
-	for( int32 i=0; i<n; i++ )
+	// If we're using a custom property list, first serialize any explicit indices
+	int32 i = 0;
+	bool bSerializeRemainingItems = true;
+	bool bUsingCustomPropertyList = Ar.ArUseCustomPropertyList;
+	if (bUsingCustomPropertyList && Ar.ArCustomPropertyList != nullptr)
 	{
-		Inner->SerializeItem( Ar, ArrayHelper.GetRawPtr(i) );
+		// Initially we only serialize indices that are explicitly specified (in order)
+		bSerializeRemainingItems = false;
+
+		const FCustomPropertyListNode* CustomPropertyList = Ar.ArCustomPropertyList;
+		const FCustomPropertyListNode* PropertyNode = CustomPropertyList;
+		while (PropertyNode && i < n && !bSerializeRemainingItems)
+		{
+			if (PropertyNode->Property != Inner)
+			{
+				// A null property value signals that we should serialize the remaining array values in full starting at this index
+				if (PropertyNode->Property == nullptr)
+				{
+					i = PropertyNode->ArrayIndex;
+				}
+
+				bSerializeRemainingItems = true;
+			}
+			else
+			{
+				// Set a temporary node to represent the item
+				FCustomPropertyListNode ItemNode = *PropertyNode;
+				ItemNode.ArrayIndex = 0;
+				ItemNode.PropertyListNext = nullptr;
+				Ar.ArCustomPropertyList = &ItemNode;
+
+				// Serialize the item at this array index
+				i = PropertyNode->ArrayIndex;
+				Inner->SerializeItem(Ar, ArrayHelper.GetRawPtr(i));
+				PropertyNode = PropertyNode->PropertyListNext;
+
+				// Restore the current property list
+				Ar.ArCustomPropertyList = CustomPropertyList;
+			}
+		}
+	}
+
+	if (bSerializeRemainingItems)
+	{
+		// Temporarily suspend the custom property list (as we need these items to be serialized in full)
+		Ar.ArUseCustomPropertyList = false;
+
+		// Serialize each item until we get to the end of the array
+		while (i < n)
+		{
+			Inner->SerializeItem(Ar, ArrayHelper.GetRawPtr(i++));
+		}
+
+		// Restore use of the custom property list (if it was previously enabled)
+		Ar.ArUseCustomPropertyList = bUsingCustomPropertyList;
 	}
 
 	if (Ar.UE4Ver() >= VER_UE4_INNER_ARRAY_TAG_INFO && Ar.IsSaving() && InnerTag.Type == NAME_StructProperty)

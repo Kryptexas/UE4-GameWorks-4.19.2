@@ -451,10 +451,17 @@ void AActor::RerunConstructionScripts()
 	}
 }
 
+void AActor::FixComponentsFromDynamicClass()
+{
+
+}
+
 void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform)
 {
 	check(!IsPendingKill());
 	check(!HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed));
+
+	FixComponentsFromDynamicClass();
 
 	// ensure that any existing native root component gets this new transform
 	// we can skip this in the default case as the given transform will be the root component's transform
@@ -483,24 +490,26 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 	// If this actor has a blueprint lineage, go ahead and run the construction scripts from least derived to most
 	if( (ParentBPClassStack.Num() > 0)  )
 	{
-		if( bErrorFree )
+		if (bErrorFree)
 		{
 			// Prevent user from spawning actors in User Construction Script
 			TGuardValue<bool> AutoRestoreISCS(GetWorld()->bIsRunningConstructionScript, true);
-			for( int32 i = ParentBPClassStack.Num() - 1; i >= 0; i-- )
+			for (int32 i = ParentBPClassStack.Num() - 1; i >= 0; i--)
 			{
 				const UBlueprintGeneratedClass* CurrentBPGClass = ParentBPClassStack[i];
 				check(CurrentBPGClass);
-				if(CurrentBPGClass->SimpleConstructionScript)
+				USimpleConstructionScript* SCS = CurrentBPGClass->SimpleConstructionScript;
+				if (SCS)
 				{
-					CurrentBPGClass->SimpleConstructionScript->ExecuteScriptOnActor(this, Transform, bIsDefaultTransform);
+					SCS->CreateNameToSCSNodeMap();
+					SCS->ExecuteScriptOnActor(this, Transform, bIsDefaultTransform);
 				}
 				// Now that the construction scripts have been run, we can create timelines and hook them up
 				UBlueprintGeneratedClass::CreateComponentsForActor(CurrentBPGClass, this);
 			}
 
 			// If we passed in cached data, we apply it now, so that the UserConstructionScript can use the updated values
-			if(InstanceDataCache)
+			if (InstanceDataCache)
 			{
 				InstanceDataCache->ApplyToActor(this, ECacheApplyPhase::PostSimpleConstructionScript);
 			}
@@ -536,6 +545,17 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 			if (InstanceDataCache)
 			{
 				InstanceDataCache->ApplyToActor(this, ECacheApplyPhase::PostUserConstructionScript);
+			}
+
+			// Remove name to SCS_Node cached map
+			for (const UBlueprintGeneratedClass* CurrentBPGClass : ParentBPClassStack)
+			{
+				check(CurrentBPGClass);
+				USimpleConstructionScript* SCS = CurrentBPGClass->SimpleConstructionScript;
+				if (SCS)
+				{
+					SCS->RemoveNameToSCSNodeMap();
+				}
 			}
 		}
 		else
@@ -671,6 +691,9 @@ UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedC
 			ArCustomPropertyList = InPropertyList;
 			ArUseCustomPropertyList = true;
 			ArWantBinaryPropertySerialization = true;
+
+			// Set this flag to emulate things that would happen in the SDO case when this flag is set (e.g. - not setting 'bHasBeenCreated').
+			ArPortFlags |= PPF_Duplicate;
 		}
 	};
 

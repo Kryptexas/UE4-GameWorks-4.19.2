@@ -2384,6 +2384,11 @@ public:
 	 */
 	virtual void SerializeDefaultObject(UObject* Object, FArchive& Ar);
 
+	/** Wraps the PostLoad() call for the class default object.
+	 * @param Object the default object to call PostLoad() on
+	 */
+	virtual void PostLoadDefaultObject(UObject* Object) { Object->PostLoad(); }
+
 	/** 
 	 * Purges out the properties of this class in preparation for it to be regenerated
 	 * @param bRecompilingOnLoad - true if we are recompiling on load
@@ -2507,7 +2512,6 @@ public:
 
 	// UObject interface.
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	virtual void PostLoad() override;
 
 	// UClass interface
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;

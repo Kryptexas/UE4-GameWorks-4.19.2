@@ -515,61 +515,6 @@ bool FPackageName::IsValidLongPackageName(const FString& InLongPackageName, bool
 	return bValidRoot;
 }
 
-bool FPackageName::IsEnginePackageName(const FString& InLongPackageName)
-{
-	const auto& Paths = FLongPackagePathsSingleton::Get();
-
-	UPackage* TransientPackage = GetTransientPackage();
-	if (TransientPackage && InLongPackageName.StartsWith(TransientPackage->GetName()))
-	{
-		// Don't consider the transient package to be an engine package; it is as yet undefined.
-		// This can lead to issues later if it is saved as an engine package, but we can't do anything about that.
-		return false;
-	}
-	else if (InLongPackageName.StartsWith(Paths.ScriptRootPath))
-	{
-		// Query the module name following the /Script/ prefix with the module manager to determine whether it is an engine or a game module
-		int32 StartModuleNameIndex;
-		if (InLongPackageName.FindLastChar(TEXT('/'), StartModuleNameIndex))
-		{
-			int32 EndModuleNameIndex;
-			if (InLongPackageName.FindLastChar(TEXT('.'), EndModuleNameIndex))
-			{
-				const FString ModuleNameString = InLongPackageName.Mid(StartModuleNameIndex + 1, EndModuleNameIndex - StartModuleNameIndex - 1);
-				const FName ModuleName = FName(*ModuleNameString);
-				if (FModuleManager::Get().IsModuleLoaded(ModuleName))
-				{
-					FModuleStatus ModuleStatus;
-					if (FModuleManager::Get().QueryModule(ModuleName, ModuleStatus))
-					{
-						return !ModuleStatus.bIsGameModule;
-					}
-				}
-			}
-		}
-
-		return false;
-	}
-	else
-	{
-		// Query content roots to see if they lie within the engine path or not
-		for (const auto& Pair : Paths.ContentRootToPath)
-		{
-			const FString EnginePath = FPaths::EngineDir();
-
-			if (InLongPackageName.StartsWith(Pair.RootPath))
-			{
-				if (Pair.ContentPath.StartsWith(EnginePath))
-				{
-					return true;
-				}
-			}
-		}
-	}
-
-	return false;
-}
-
 void FPackageName::RegisterMountPoint(const FString& RootPath, const FString& ContentPath)
 {
 	FLongPackagePathsSingleton& Paths = FLongPackagePathsSingleton::Get();

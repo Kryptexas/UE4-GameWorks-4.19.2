@@ -7,6 +7,7 @@
 #include "MetalRHIPrivate.h"
 
 #include "MetalCommandEncoder.h"
+#include "MetalProfiler.h"
 
 #pragma mark - Public C++ Boilerplate -
 
@@ -110,8 +111,13 @@ void FMetalCommandEncoder::Reset(void)
 		[DepthStencilState release];
 		DepthStencilState = nil;
 	}
-	[RenderPassDesc release];
-	RenderPassDesc = nil;
+	
+	if(RenderPassDesc)
+	{
+		UNTRACK_OBJECT(STAT_MetalRenderPassDescriptorCount, RenderPassDesc);
+		[RenderPassDesc release];
+		RenderPassDesc = nil;
+	}
 	
 	[DebugGroups removeAllObjects];
 	

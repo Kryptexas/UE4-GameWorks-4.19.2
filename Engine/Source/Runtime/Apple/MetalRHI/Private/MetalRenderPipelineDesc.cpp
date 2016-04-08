@@ -67,7 +67,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 	{
 		id<MTLDevice> Device = GetMetalDeviceContext().GetDevice();
 		PipelineState = [Device newRenderPipelineStateWithDescriptor:PipelineDescriptor error : &Error];
-		TRACK_OBJECT(PipelineState);
+		TRACK_OBJECT(STAT_MetalRenderPipelineStateCount, PipelineState);
 		if(PipelineState)
 		{
 			[MetalPipelineCache setObject:PipelineState forKey:PipelineDescriptor];

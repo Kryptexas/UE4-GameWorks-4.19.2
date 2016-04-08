@@ -19,6 +19,9 @@ UCheckBox::UCheckBox(const FObjectInitializer& ObjectInitializer)
 	Padding_DEPRECATED = SlateDefaults._Padding.Get();
 
 	BorderBackgroundColor_DEPRECATED = FLinearColor::White;
+
+	IsFocusable = true;
+
 }
 
 void UCheckBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -34,6 +37,7 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 		.OnCheckStateChanged( BIND_UOBJECT_DELEGATE(FOnCheckStateChanged, SlateOnCheckStateChangedCallback) )
 		.Style(&WidgetStyle)
 		.HAlign( HorizontalAlignment )
+		.IsFocusable(IsFocusable)
 		;
 
 	if ( GetChildrenCount() > 0 )

@@ -26,6 +26,9 @@ public:
 	/** Returns the blueprint exec node for this context */
 	TSharedPtr<class FScriptExecutionBlueprint> GetBlueprintExecNode() const { return BlueprintNode; }
 
+	/** Add event execution node */
+	void AddEventNode(TSharedPtr<FScriptExecutionNode> EventExecNode);
+
 	/** Returns true if an execution node exists for the instance */
 	BLUEPRINTPROFILER_API bool HasProfilerDataForInstance(const FName InstanceName) const;
 
@@ -41,6 +44,12 @@ public:
 	/** Returns the function context matching the supplied name providing it exists */
 	TSharedPtr<class FBlueprintFunctionContext> GetFunctionContext(const FName FunctionNameIn) const;
 
+	/** Adds a manually created function context */
+	void AddFunctionContext(const FName FunctionName, TSharedPtr<class FBlueprintFunctionContext> FunctionContext)
+	{
+		FunctionContexts.Add(FunctionName) = FunctionContext; 
+	}
+
 	/** Returns if this context has an execution node for the specified graph node */
 	BLUEPRINTPROFILER_API bool HasProfilerDataForNode(const UEdGraphNode* GraphNode) const;
 
@@ -53,16 +62,10 @@ public:
 private:
 
 	/** Creates and returns a new function context, returns existing if present  */
-	TSharedPtr<FBlueprintFunctionContext> CreateFunctionContext(const FName FunctionNameIn);
+	TSharedPtr<FBlueprintFunctionContext> CreateFunctionContext(UEdGraph* Graph);
 
 	/** Walks the blueprint and maps events and functions ready for profiling data */
 	bool MapBlueprintExecution();
-
-	/** Locates and generates event contexts for any input events passed in */
-	void CreateInputEvents(const TArray<UK2Node*>& InputEventNodes);
-
-	/** Maps each blueprint node following execution wires */
-	TSharedPtr<FScriptExecutionNode> MapNodeExecution(TSharedPtr<FBlueprintFunctionContext> FunctionContext, UEdGraphNode* NodeToMap);
 
 private:
 
@@ -90,11 +93,11 @@ class FBlueprintFunctionContext : public TSharedFromThis<FBlueprintFunctionConte
 {
 public:
 
-	FBlueprintFunctionContext(UFunction* FunctionIn, TWeakObjectPtr<UBlueprintGeneratedClass> BPGC)
-		: Function(FunctionIn)
-		, BlueprintClass(BPGC)
-	{
-	}
+	/** Initialise the function context from the graph */
+	void InitialiseContextFromGraph(TSharedPtr<FBlueprintExecutionContext> BlueprintContext, UEdGraph* Graph);
+
+	/** Map Function */
+	void MapFunction();
 
 	/** Returns if the function context is fully formed */
 	bool IsContextValid() const { return Function.IsValid() && BlueprintClass.IsValid(); }
@@ -120,15 +123,71 @@ public:
 	/** Returns the execution node representing the node name */
 	TSharedPtr<FScriptExecutionNode> GetProfilerDataForNode(const FName NodeName);
 
-protected:
+	/** Adds all function entry points to node as children */
+	void AddCallSiteEntryPointsToNode(TSharedPtr<FScriptExecutionNode> CallingNode) const;
+
+	/** Returns the function name for this context */
+	FName GetFunctionName() const { return FunctionName; }
+
+private:
 
 	friend FBlueprintExecutionContext;
 
 	/** Utility to create execution node */
 	TSharedPtr<FScriptExecutionNode> CreateExecutionNode(FScriptExecNodeParams& InitParams);
 
+	/** Adds and links in a new function entry point */
+	void AddEntryPoint(TSharedPtr<FScriptExecutionNode> EntryPoint);
+
+	/** Adds a new function exit point */
+	void AddExitPoint(TSharedPtr<FScriptExecutionNode> ExitPoint);
+
+	/** Locates and generates event contexts for any input events passed in */
+	void CreateInputEvents(TSharedPtr<FBlueprintExecutionContext> BlueprintContextIn, const TArray<UK2Node*>& InputEventNodes);
+
+	/** Processes and detects any cyclic links making the linkage safe for traversal */
+	bool DetectCyclicLinks(TSharedPtr<FScriptExecutionNode> ExecNode, TSet<TSharedPtr<FScriptExecutionNode>>& Filter);
+
+	// --Execution mapping functionality
+
+	/** Maps each blueprint node following execution wires */
+	TSharedPtr<FScriptExecutionNode> MapNodeExecution(UEdGraphNode* NodeToMap);
+
+	/** Maps input pin execution */
+	void MapInputPins(TSharedPtr<FScriptExecutionNode> ExecNode, const TArray<UEdGraphPin*>& Pins);
+
+	/** Maps pin execution */
+	void MapExecPins(TSharedPtr<FScriptExecutionNode> ExecNode, const TArray<UEdGraphPin*>& Pins);
+
+	/** Maps execution pin tunnel entry */
+	TSharedPtr<FScriptExecutionNode> MapTunnelEntry(const FName TunnelName, const UEdGraphPin* ExecPin, const UEdGraphPin* TunnelPin, const int32 PinScriptOffset);
+
+	// --Tunnel mapping functionality
+
+	/** Maps the tunnel point into the instanced graph, creating the instanced graph if not already existing. */
+	void MapTunnelInstance(UK2Node_Tunnel* TunnelInstance);
+
+	/** Returns the tunnel function context that the tunnel node invokes */
+	TSharedPtr<FBlueprintFunctionContext> GetTunnelContextFromNode(const UEdGraphNode* TunnelNode) const;
+
+	/** Returns the registered tunnel execution entry point given the tunnel name */
+	TSharedPtr<FScriptExecutionNode> GetTunnelEntryPoint(const FName TunnelName) const;
+
+	/** Returns the registered tunnel exit points given the tunnel name */
+	void GetTunnelExitPoints(const FName TunnelName, TArray<TSharedPtr<FScriptExecutionNode>>& ExitPointsOut) const;
+
+	/** Maps input and output pins in a tunnel graph */
+	void MapTunnelIO(UEdGraph* TunnelGraph);
+
+	/** Returns the tunnel Id associated with the tunnel name */
+	int32 GetTunnelIdFromName(const FName TunnelName) const;
+
 private:
 
+	/** The function name */
+	FName FunctionName;
+	/** The Owning Blueprint context */
+	TWeakPtr<FBlueprintExecutionContext> BlueprintContext;
 	/** The UFunction this context represents */
 	TWeakObjectPtr<UFunction> Function;
 	/** The blueprint generated class for the owning blueprint */
@@ -139,6 +198,18 @@ private:
 	TMap<int32, TWeakObjectPtr<const UEdGraphPin>> ScriptOffsetToPins;
 	/** Execution nodes containing profiling data */
 	TMap<FName, TSharedPtr<FScriptExecutionNode>> ExecutionNodes;
+	/** Graph entry points */
+	TArray<TSharedPtr<FScriptExecutionNode>> EntryPoints;
+	/** Graph exit points */
+	TArray<TSharedPtr<FScriptExecutionNode>> ExitPoints;
+	/** Map associating function entry points to execution points */
+	TMap<FName, TSharedPtr<FScriptExecutionNode>> TunnelEntryPointMap;
+	/** Map associating function entry points to exit points */
+	TMap<FName, TArray<TSharedPtr<FScriptExecutionNode>>> TunnelExitPointMap;
+	/** Staging tunnel name during mapping */
+	FName StagingTunnelName;
+	/** Map of tunnel Ids */
+	TMap<FName, int32> TunnelIds;
 };
 
 //////////////////////////////////////////////////////////////////////////

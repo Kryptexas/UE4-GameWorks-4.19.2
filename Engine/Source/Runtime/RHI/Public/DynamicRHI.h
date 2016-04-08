@@ -453,15 +453,6 @@ public:
 	virtual void RHIPopEvent() = 0;
 
 	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) = 0;
-
-	/** Start AsyncCompute command stream recording (no effect if not supported) */
-	virtual void RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) = 0;
-
-	/** End AsyncCompute command stream recording (no effect if not supported) */
-	virtual void RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex) = 0;
-
-	/** Wait for AsyncCompute command stream to finish (no effect if not supported) */
-	virtual void RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex) = 0;
 };
 
 /** The interface which is implemented by the dynamically bound RHI. */
@@ -963,6 +954,9 @@ public:
 	// FlushType: Flush Immediate (seems wrong)
 	virtual void RHIReadSurfaceData(FTextureRHIParamRef Texture, FIntRect Rect, TArray<FColor>& OutData, FReadSurfaceDataFlags InFlags) = 0;
 
+	// FlushType: Flush Immediate (seems wrong)
+	virtual void RHIReadSurfaceData(FTextureRHIParamRef Texture, FIntRect Rect, TArray<FLinearColor>& OutData, FReadSurfaceDataFlags InFlags) {}
+
 	/** Watch out for OutData to be 0 (can happen on DXGI_ERROR_DEVICE_REMOVED), don't call RHIUnmapStagingSurface in that case. */
 	// FlushType: Flush Immediate (seems wrong)
 	virtual void RHIMapStagingSurface(FTextureRHIParamRef Texture, void*& OutData, int32& OutWidth, int32& OutHeight) = 0;
@@ -1145,6 +1139,9 @@ public:
 
 	//Utilities
 	virtual void EnableIdealGPUCaptureOptions(bool bEnable);
+
+	/* Copy the source box pixels in the destination box texture, return true if implemented for the current platform*/
+	virtual bool RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTexture, FTexture2DRHIParamRef DestinationTexture, FBox2D SourceBox, FBox2D DestinationBox) { return false; }
 };
 
 /** A global pointer to the dynamically bound RHI implementation. */

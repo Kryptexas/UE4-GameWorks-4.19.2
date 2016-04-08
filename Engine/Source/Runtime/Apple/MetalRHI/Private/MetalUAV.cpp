@@ -189,6 +189,16 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView_RenderTh
 	}
 }
 
+FShaderResourceViewRHIRef FMetalDynamicRHI::CreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint8 Format)
+{
+	return GDynamicRHI->RHICreateShaderResourceView(VertexBuffer, Stride, Format);
+}
+
+FShaderResourceViewRHIRef FMetalDynamicRHI::CreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FIndexBufferRHIParamRef Buffer)
+{
+	return GDynamicRHI->RHICreateShaderResourceView(Buffer);
+}
+
 FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint8 Format)
 {
 	return GDynamicRHI->RHICreateShaderResourceView(VertexBuffer, Stride, Format);
@@ -231,9 +241,17 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FVertexB
 
 FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FIndexBufferRHIParamRef BufferRHI)
 {
-	UE_LOG(LogRHI, Fatal, TEXT("Metal RHI doesn't support RHICreateShaderResourceView with FIndexBufferRHIParamRef yet!"));
+	FMetalIndexBuffer* Buffer = ResourceCast(BufferRHI);
 	
-	return FShaderResourceViewRHIRef();
+	FMetalShaderResourceView* SRV = new FMetalShaderResourceView;
+	SRV->SourceVertexBuffer = nullptr;
+	SRV->SourceIndexBuffer = Buffer;
+	SRV->TextureView = nullptr;
+	
+	UE_LOG(LogRHI, Warning, TEXT("FShaderCache doesn't support RHICreateShaderResourceView with FIndexBufferRHIParamRef yet!"));
+	//FShaderCache::LogSRV(SRV, VertexBufferRHI, Stride, Format);
+	
+	return SRV;
 }
 
 FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)
@@ -336,5 +354,36 @@ void FMetalRHICommandContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef Unorde
 		
 		// If there are problems you may need to add calls to restore the render command encoder at this point
 		// but we don't generally want to do that.
+	}
+}
+
+FComputeFenceRHIRef FMetalDynamicRHI::RHICreateComputeFence(const FName& Name)
+{
+	return new FMetalComputeFence(Name);
+}
+
+void FMetalComputeFence::Wait()
+{
+	check(CommandBuffer);
+	check(CommandBuffer.status > MTLCommandBufferStatusEnqueued);
+}
+
+void FMetalRHICommandContext::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFence)
+{
+	if (WriteComputeFence)
+	{
+		FMetalComputeFence* Fence = ResourceCast(WriteComputeFence);
+		Fence->Write(Context->GetCurrentCommandBuffer());
+		RHISubmitCommandsHint();
+	}
+}
+
+void FMetalRHICommandContext::RHIWaitComputeFence(FComputeFenceRHIParamRef InFence)
+{
+	if (InFence)
+	{
+		checkf(InFence->GetWriteEnqueued(), TEXT("ComputeFence: %s waited on before being written. This will hang the GPU."), *InFence->GetName().ToString());
+		FMetalComputeFence* Fence = ResourceCast(InFence);
+		Fence->Wait();
 	}
 }

@@ -1083,6 +1083,8 @@ public:
 
 	// Constants
 	DECLARE_FUNCTION(execIntConst);
+	DECLARE_FUNCTION(execInt64Const);
+	DECLARE_FUNCTION(execUInt64Const);
 	DECLARE_FUNCTION(execSkipOffsetConst);
 	DECLARE_FUNCTION(execFloatConst);
 	DECLARE_FUNCTION(execStringConst);

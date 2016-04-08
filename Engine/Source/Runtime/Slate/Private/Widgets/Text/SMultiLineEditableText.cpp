@@ -69,7 +69,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 
 	EditableTextLayout = MakeUnique<FSlateEditableTextLayout>(*this, InArgs._Text, TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, Marshaller.ToSharedRef(), Marshaller.ToSharedRef());
 	EditableTextLayout->SetHintText(InArgs._HintText);
-	EditableTextLayout->SetTextWrapping(InArgs._WrapTextAt, InArgs._AutoWrapText);
+	EditableTextLayout->SetTextWrapping(InArgs._WrapTextAt, InArgs._AutoWrapText, InArgs._WrappingPolicy);
 	EditableTextLayout->SetMargin(InArgs._Margin);
 	EditableTextLayout->SetJustification(InArgs._Justification);
 	EditableTextLayout->SetLineHeightPercentage(InArgs._LineHeightPercentage);
@@ -144,6 +144,11 @@ void SMultiLineEditableText::SetWrapTextAt(const TAttribute<float>& InWrapTextAt
 void SMultiLineEditableText::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
 {
 	EditableTextLayout->SetAutoWrapText(InAutoWrapText);
+}
+
+void SMultiLineEditableText::SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy)
+{
+	EditableTextLayout->SetWrappingPolicy(InWrappingPolicy);
 }
 
 void SMultiLineEditableText::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)

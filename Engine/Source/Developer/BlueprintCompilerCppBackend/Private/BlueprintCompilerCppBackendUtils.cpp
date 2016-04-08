@@ -813,7 +813,7 @@ void FEmitHelper::EmitLifetimeReplicatedPropsImpl(FEmitterLocalContext& EmitterC
 	}
 }
 
-FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject)
+FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject, const FText* OptionalTextLiteral)
 {
 	auto Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -823,6 +823,11 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 	}
 	else if (UEdGraphSchema_K2::PC_Text == Type.PinCategory)
 	{
+		ensure(OptionalTextLiteral);
+		if (OptionalTextLiteral)
+		{
+			return UTextProperty::GenerateCppCodeForTextValue(*OptionalTextLiteral, FString());
+		}
 		return FString::Printf(TEXT("FText::FromString(%s)"), *UStrProperty::ExportCppHardcodedText(CustomValue, EmitterContext.DefaultTarget->Indent));
 	}
 	else if (UEdGraphSchema_K2::PC_Float == Type.PinCategory)
@@ -1140,7 +1145,7 @@ FString FEmitHelper::DefaultValue(FEmitterLocalContext& EmitterContext, const FE
 		return FString::Printf(TEXT("%s{}"), *InnerTypeName);
 	}
 
-	return LiteralTerm(EmitterContext, Type, FString(), nullptr);
+	return LiteralTerm(EmitterContext, Type, FString(), nullptr, &FText::GetEmpty());
 }
 
 UFunction* FEmitHelper::GetOriginalFunction(UFunction* Function)
@@ -1169,12 +1174,12 @@ UFunction* FEmitHelper::GetOriginalFunction(UFunction* Function)
 	return Function;
 }
 
-bool FEmitHelper::ShouldHandleAsNativeEvent(UFunction* Function)
+bool FEmitHelper::ShouldHandleAsNativeEvent(UFunction* Function, bool bOnlyIfOverridden)
 {
 	check(Function);
 	auto OriginalFunction = FEmitHelper::GetOriginalFunction(Function);
 	check(OriginalFunction);
-	if (OriginalFunction != Function)
+	if (!bOnlyIfOverridden || (OriginalFunction != Function))
 	{
 		const uint32 FlagsToCheckMask = EFunctionFlags::FUNC_Event | EFunctionFlags::FUNC_BlueprintEvent | EFunctionFlags::FUNC_Native;
 		const uint32 FlagsToCheck = OriginalFunction->FunctionFlags & FlagsToCheckMask;

@@ -680,7 +680,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId, uint64 FbxUniqueId, UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData)
 {
 	TArray<FbxNode*> FbxMeshArray;
-	UStaticMesh* NewMesh = NULL;
+	UStaticMesh* FirstBaseMesh = NULL;
 	FbxNode* Node = NULL;
 
 	// get meshes in Fbx file
@@ -723,35 +723,33 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId
 		return Mesh;
 	}
 
-	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, false);
+	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, !ImportOptions->bImportMaterials);
 
 	if (Node)
 	{
 		FbxNode* NodeParent = RecursiveFindParentLodGroup(Node->GetParent());
-		// Don't import materials and textures during a reimport
-		ImportOptions->bImportMaterials = true;
-		ImportOptions->bImportTextures = true;
 
 		// if the Fbx mesh is a part of LODGroup, update LOD
 		if (NodeParent && NodeParent->GetNodeAttribute() && NodeParent->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 		{
-			FbxNode *MeshNode = FindLODGroupNode(NodeParent, 0);
-			if(MeshNode != nullptr)
-				NewMesh = ImportStaticMesh(Mesh->GetOutermost(), MeshNode, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
-			if (NewMesh)
+			TArray<UStaticMesh*> BaseMeshes;
+			TArray<FbxNode*> AllNodeInLod;
+			FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
+			FirstBaseMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+			if(FirstBaseMesh)
 			{
 				// import LOD meshes
 				for (int32 LODIndex = 1; LODIndex < NodeParent->GetChildCount(); LODIndex++)
 				{
-					MeshNode = FindLODGroupNode(NodeParent, LODIndex);
-					if(MeshNode != nullptr)
-						ImportStaticMesh(Mesh->GetOutermost(), MeshNode, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, LODIndex);
+					AllNodeInLod.Empty();
+					FindAllLODGroupNode(AllNodeInLod, NodeParent, LODIndex);
+					ImportStaticMeshAsSingle(Mesh->GetOutermost(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, FirstBaseMesh, LODIndex);
 				}
 			}
 		}
 		else
 		{
-			NewMesh = ImportStaticMesh(Mesh->GetOutermost(), Node, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+			FirstBaseMesh = ImportStaticMesh(Mesh->GetOutermost(), Node, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
 		}
 	}
 	else
@@ -759,7 +757,7 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId
 		// no FBX mesh match, maybe the Unreal mesh is imported from multiple FBX mesh (enable option "Import As Single")
 		if (FbxMeshArray.Num() > 0)
 		{
-			NewMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), FbxMeshArray, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+			FirstBaseMesh = ImportStaticMeshAsSingle(Mesh->GetOutermost(), FbxMeshArray, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
 		}
 		else // no mesh found in the FBX file
 		{
@@ -767,8 +765,8 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId
 		}
 	}
 	//Don't restore materials when reimporting scene
-	RestoreExistingMeshData(ExistMeshDataPtr, NewMesh);
-	return NewMesh;
+	RestoreExistingMeshData(ExistMeshDataPtr, FirstBaseMesh);
+	return FirstBaseMesh;
 }
 
 
@@ -845,29 +843,37 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 		}
 	}
 	
-	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, true);
+	UFbxAssetImportData* ImportData = Cast<UFbxAssetImportData>(Mesh->AssetImportData);
+	ImportOptions->bImportMaterials = ImportData->bImportMaterials;
+	ImportOptions->bImportTextures = ImportData->bImportMaterials;
+
+	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, !ImportOptions->bImportMaterials);
 
 	if (Node)
 	{
 		FbxNode* NodeParent = RecursiveFindParentLodGroup(Node->GetParent());
-		// Don't import materials and textures during a reimport
-		ImportOptions->bImportMaterials = false;
-		ImportOptions->bImportTextures = false;
-		
+
 		// if the Fbx mesh is a part of LODGroup, update LOD
 		if (NodeParent && NodeParent->GetNodeAttribute() && NodeParent->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 		{
-			FbxNode *MeshNode = FindLODGroupNode(NodeParent, 0);
-			if(MeshNode != nullptr)
-				NewMesh = ImportStaticMesh(Mesh->GetOuter(), MeshNode, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, 0);
-			if (NewMesh)
+			TArray<FbxNode*> AllNodeInLod;
+			FindAllLODGroupNode(AllNodeInLod, NodeParent, 0);
+			if (AllNodeInLod.Num() > 0)
+			{
+				NewMesh = ImportStaticMeshAsSingle(Mesh->GetOuter(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, Mesh, 0);
+			}
+
+			if (NewMesh && ImportOptions->bImportStaticMeshLODs)
 			{
 				// import LOD meshes
 				for (int32 LODIndex = 1; LODIndex < NodeParent->GetChildCount(); LODIndex++)
 				{
-					MeshNode = FindLODGroupNode(NodeParent, LODIndex);
-					if (MeshNode != nullptr)
-						ImportStaticMesh(Mesh->GetOuter(), MeshNode, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, Mesh, LODIndex);
+					AllNodeInLod.Empty();
+					FindAllLODGroupNode(AllNodeInLod, NodeParent, LODIndex);
+					if (AllNodeInLod.Num() > 0)
+					{
+						ImportStaticMeshAsSingle(Mesh->GetOuter(), AllNodeInLod, *Mesh->GetName(), RF_Public | RF_Standalone, TemplateImportData, NewMesh, LODIndex);
+					}
 				}
 			}
 		}

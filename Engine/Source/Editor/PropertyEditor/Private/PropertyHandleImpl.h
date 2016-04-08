@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "PropertyHandle.h"
+
 class FObjectBaseAddress
 {
 public:
@@ -64,12 +66,21 @@ public:
 	FString GetPropertyValueArray() const;
 
 	/**
+	 * Enumerate the objects that need to be modified from the passed in property node
+	 *
+	 * @param InPropertyNode			The property node to get objects from
+	 * @param InObjectsToModifyCallback	The function to call for each object
+	 */
+	typedef TFunctionRef<bool(const FObjectBaseAddress& /*ObjectToModify*/, const int32 /*ObjectIndex*/, const int32 /*NumObjects*/)> EnumerateObjectsToModifyFuncRef; /** Return true to continue enumeration */
+	void EnumerateObjectsToModify( FPropertyNode* InPropertyNode, const EnumerateObjectsToModifyFuncRef& InObjectsToModifyCallback ) const;
+
+	/**
 	 * Gets the objects that need to be modified from the passed in property node
 	 * 
 	 * @param ObjectsToModify	The addresses of the objects to modify
 	 * @param InPropertyNode	The property node to get objects from
 	 */
-	void GetObjectsToModify( TArray<FObjectBaseAddress>& ObjectsToModify, FPropertyNode* InPropertyNode ) const ;
+	void GetObjectsToModify( TArray<FObjectBaseAddress>& ObjectsToModify, FPropertyNode* InPropertyNode ) const;
 
 	/**
 	 * Gets the union of values with the appropriate type for the property set
@@ -116,6 +127,14 @@ public:
 	FPropertyAccess::Result ImportText( const FString& InValue, EPropertyValueSetFlags::Type Flags );
 	FPropertyAccess::Result ImportText( const FString& InValue, FPropertyNode* PropertyNode, EPropertyValueSetFlags::Type Flags );
 	FPropertyAccess::Result ImportText( const TArray<FObjectBaseAddress>& InObjects, const TArray<FString>& InValues, FPropertyNode* PropertyNode, EPropertyValueSetFlags::Type Flags );
+
+	/**
+	 * Enumerate the raw data of this property.  (Each pointer can be cast to the property data type)
+	 *
+	 * @param InRawDataCallback		The function to call for each data
+	 */ 
+	void EnumerateRawData( const IPropertyHandle::EnumerateRawDataFuncRef& InRawDataCallback );
+	void EnumerateConstRawData( const IPropertyHandle::EnumerateConstRawDataFuncRef& InRawDataCallback ) const;
 
 	/**
 	 * Accesses the raw data of this property. 
@@ -317,8 +336,6 @@ protected:
 	 */
 	FPropertyAccess::Result GetPropertyValueText( FText& OutText, FPropertyNode* InPropertyNode, const bool bAllowAlternateDisplayValue ) const;
 
-	bool IsAnyOuterObjectFromEngine() const;
-
 protected:
 	/** Property node used to access UProperty and address of object to change */
 	TWeakPtr<FPropertyNode> PropertyNode;
@@ -387,6 +404,8 @@ public:
 	virtual TSharedPtr<IPropertyHandle> GetChildHandle( uint32 ChildIndex ) const override;
 	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName, bool bRecurse = true ) const override;
 	virtual TSharedPtr<IPropertyHandle> GetParentHandle() const override;
+	virtual void EnumerateRawData( const EnumerateRawDataFuncRef& InRawDataCallback ) override;
+	virtual void EnumerateConstRawData( const EnumerateConstRawDataFuncRef& InRawDataCallback ) const override;
 	virtual void AccessRawData( TArray<void*>& RawData ) override;
 	virtual void AccessRawData( TArray<const void*>& RawData ) const override;
 	virtual uint32 GetNumOuterObjects() const override;

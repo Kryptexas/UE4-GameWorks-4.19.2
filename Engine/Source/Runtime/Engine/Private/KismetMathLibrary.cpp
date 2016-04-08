@@ -236,6 +236,11 @@ int32 UKismetMathLibrary::Or_IntInt(int32 A, int32 B)
 	return A | B;
 }
 
+int32 UKismetMathLibrary::Not_Int(int32 A)
+{
+	return ~A;
+}
+
 int32 UKismetMathLibrary::SignOfInteger(int32 A)
 {
 	return FMath::Sign<int32>(A);

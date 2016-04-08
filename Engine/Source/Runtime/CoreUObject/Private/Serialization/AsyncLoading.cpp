@@ -2014,6 +2014,16 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 
 			if (Linker)
 			{
+				// Dynamic Class doesn't require/use pre-loading (or post-loading). 
+				// The CDO is created at this point, because now it's safe to solve cyclic dependencies.
+				for (FObjectExport& Export : Linker->ExportMap)
+				{
+					if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Export.Object))
+					{
+						DynamicClass->GetDefaultObject(true);
+					}
+				}
+
 				CreateClustersFromPackage(Linker);
 
 				// give a hint to the IO system that we are done with this file for now

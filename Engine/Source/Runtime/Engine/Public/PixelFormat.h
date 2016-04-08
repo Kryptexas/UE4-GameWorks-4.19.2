@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#ifndef __PixelFormat_h__
-#define __PixelFormat_h__
+#pragma once
 
 enum EPixelFormat
 {
@@ -123,4 +122,3 @@ enum EPixelFormat
 	op(PF_BC6H) \
 	op(PF_BC7)
 
-#endif		// __PixelFormat_h__

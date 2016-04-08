@@ -469,6 +469,20 @@ public:
 					Writer << Value;
 				}
 			}
+			else if (CoerceProperty->IsA(UInt64Property::StaticClass()))
+			{
+				int64 Value = 0;
+				LexicalConversion::FromString(Value, *(Term->Name));
+				Writer << EX_Int64Const;
+				Writer << Value;
+			}
+			else if (CoerceProperty->IsA(UUInt64Property::StaticClass()))
+			{
+				uint64 Value = 0;
+				LexicalConversion::FromString(Value, *(Term->Name));
+				Writer << EX_UInt64Const;
+				Writer << Value;
+			}
 			else if (CoerceProperty->IsA(UByteProperty::StaticClass()))
 			{
 				UByteProperty* ByteProp = CastChecked< UByteProperty >( CoerceProperty );

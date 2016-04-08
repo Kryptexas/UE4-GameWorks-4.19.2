@@ -1599,6 +1599,60 @@ FTextureReferenceRHIRef FD3D11DynamicRHI::RHICreateTextureReference(FLastRenderT
 	return new FD3D11TextureReference(this,LastRenderTime);
 }
 
+bool FD3D11DynamicRHI::RHICopySubTextureRegion(FTexture2DRHIParamRef SourceTextureRHI, FTexture2DRHIParamRef DestinationTextureRHI, FBox2D SourceBox, FBox2D DestinationBox)
+{
+	FD3D11Texture2D* SourceTexture = ResourceCast(SourceTextureRHI);
+	FD3D11Texture2D* DestinationTexture = ResourceCast(DestinationTextureRHI);
+
+	//Make sure the source box is fitting on right and top side of the source texture, no need to offset the destination
+	if (SourceBox.Max.X >= (float)SourceTexture->GetSizeX())
+	{
+		float Delta = (SourceBox.Max.X - (float)SourceTexture->GetSizeX());
+		SourceBox.Max.X -= Delta;
+	}
+	if (SourceBox.Max.Y >= (float)SourceTexture->GetSizeY())
+	{
+		float Delta = (SourceBox.Max.Y - (float)SourceTexture->GetSizeY());
+		SourceBox.Max.Y -= Delta;
+	}
+
+	int32 DestinationOffsetX = 0;
+	int32 DestinationOffsetY = 0;
+	int32 SourceStartX = SourceBox.Min.X;
+	int32 SourceEndX = SourceBox.Max.X;
+	int32 SourceStartY = SourceBox.Min.Y;
+	int32 SourceEndY = SourceBox.Max.Y;
+	//If the source box is not fitting on the left bottom side, offset the result so the destination pixel match the expectation
+	if (SourceStartX < 0)
+	{
+		DestinationOffsetX -= SourceStartX;
+		SourceStartX = 0;
+	}
+	if (SourceStartY < 0)
+	{
+		DestinationOffsetY -= SourceStartY;
+		SourceStartY = 0;
+	}
+
+	D3D11_BOX SourceBoxAdjust =
+	{
+		SourceStartX,
+		SourceStartY,
+		0,
+		SourceEndX,
+		SourceEndY,
+		1
+	};
+
+	check(GPixelFormats[SourceTexture->GetFormat()].BlockSizeX == 1);
+	check(GPixelFormats[SourceTexture->GetFormat()].BlockSizeY == 1);
+	check(GPixelFormats[DestinationTexture->GetFormat()].BlockSizeX == 1);
+	check(GPixelFormats[DestinationTexture->GetFormat()].BlockSizeY == 1);
+	ID3D11Texture2D* DestinationRessource = DestinationTexture->GetResource();
+	Direct3DDeviceIMContext->CopySubresourceRegion(DestinationRessource, 0, DestinationBox.Min.X + DestinationOffsetX, DestinationBox.Min.Y + DestinationOffsetY, 0, SourceTexture->GetResource(), 0, &SourceBoxAdjust);
+	return true;
+}
+
 void FD3D11DynamicRHI::RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRefRHI, FTextureRHIParamRef NewTextureRHI)
 {
 	// Updating texture references is disallowed while the RHI could be caching them in referenced resource tables.

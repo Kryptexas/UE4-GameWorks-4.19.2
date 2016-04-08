@@ -1219,9 +1219,6 @@ void FLightPropagationVolume::Update( FRHICommandListImmediate& RHICmdList, FVie
 
 	LpvWriteUniformBuffer.SetContents( *LpvWriteUniformBufferParams );
 
-	// Begin the async compute job
-	RHICmdList.BeginAsyncComputeJob_DrawThread(AsyncComputePriority_High);
-
 	check(View.GetFeatureLevel() == ERHIFeatureLevel::SM5);
 
 	bool bSecondaryOcclusion	= (SecondaryOcclusionStrength > 0.001f); 
@@ -1310,21 +1307,11 @@ void FLightPropagationVolume::Update( FRHICommandListImmediate& RHICmdList, FVie
 		DispatchComputeShader( RHICmdList, *Shader, LPV_GRIDRES/4, LPV_GRIDRES/4, LPV_GRIDRES/4 );
 		Shader->UnbindBuffers(RHICmdList, ShaderParams);
 	}
-
-	// End the async compute job
-	AsyncJobFenceID = RHICmdList.EndAsyncComputeJob_DrawThread();
 }
 
 
 void FLightPropagationVolume::InsertGPUWaitForAsyncUpdate(FRHICommandListImmediate& RHICmdList)
 {
-#if USE_ASYNC_COMPUTE_CONTEXT
-	if ( AsyncJobFenceID != -1 )
-	{
-		RHICmdList.GraphicsWaitOnAsyncComputeJob(AsyncJobFenceID);
-		AsyncJobFenceID = -1;
-	}
-#endif
 }
 
 /**

@@ -107,15 +107,6 @@ public:
 	virtual void RHIBeginScene() final override;
 	virtual void RHIEndScene() final override;
 
-	/** Start AsyncCompute command stream recording (no effect if not supported) */
-	virtual void RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) final override {}
-
-	/** End AsyncCompute command stream recording (no effect if not supported) */
-	virtual void RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex) final override {}
-
-	/** Wait for AsyncCompute command stream to finish (no effect if not supported) */
-	virtual void RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex) final override {}
-
 	inline FVulkanCommandBufferManager* GetCommandBufferManager()
 	{
 		return CommandBufferManager;

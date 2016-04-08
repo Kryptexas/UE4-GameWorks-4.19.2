@@ -229,7 +229,7 @@ struct FEmitHelper
 
 	static void EmitLifetimeReplicatedPropsImpl(FEmitterLocalContext& EmitterContext);
 
-	static FString LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject);
+	static FString LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject, const FText* OptionalTextLiteral = nullptr);
 
 	static FString DefaultValue(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type);
 
@@ -237,7 +237,7 @@ struct FEmitHelper
 
 	static UFunction* GetOriginalFunction(UFunction* Function);
 
-	static bool ShouldHandleAsNativeEvent(UFunction* Function);
+	static bool ShouldHandleAsNativeEvent(UFunction* Function, bool bOnlyIfOverridden = true);
 
 	static bool ShouldHandleAsImplementableEvent(UFunction* Function);
 

@@ -5388,7 +5388,11 @@ void FHeaderParser::CompileDelegateDeclaration(FClasses& AllClasses, const TCHAR
 			FError::Throwf(TEXT("Unexpected token following UDELEGATE(): %s"), Token.Identifier);
 
 		DelegateMacro = Token.Identifier;
-		CheckAllow(CurrentScopeName, ENestAllowFlags::TypeDecl);
+
+		//Workaround for UE-28897
+		const FStructScope* CurrentStructScope = TopNest->GetScope() ? TopNest->GetScope()->AsStructScope() : nullptr;
+		const bool bDynamicClassScope = CurrentStructScope && CurrentStructScope->GetStruct() && FClass::IsDynamic(CurrentStructScope->GetStruct());
+		CheckAllow(CurrentScopeName, bDynamicClassScope ? ENestAllowFlags::ImplicitDelegateDecl : ENestAllowFlags::TypeDecl);
 	}
 	else
 	{

@@ -9,22 +9,33 @@ namespace EScriptExecutionNodeFlags
 {
 	enum Type
 	{
-		None				= 0x00000000,	// No Flags
-		Class				= 0x00000001,	// Class
-		Instance			= 0x00000002,	// Instance
-		Event				= 0x00000004,	// Event
-		CustomEvent			= 0x00000008,	// Custom Event
-		Container			= 0x00000007,	// Container type - Class, Instance or Event.
-		FunctionCall		= 0x00000010,	// Function Call
-		MacroCall			= 0x00000020,	// Macro Call
-		CallSite			= 0x00000030,	// Function / Macro call site
-		MacroNode			= 0x00000100,	// Macro Node
-		ConditionalBranch	= 0x00000200,	// Node has multiple exit pins using a jump
-		SequentialBranch	= 0x00000400,	// Node has multiple exit pins ran in sequence
-		BranchNode			= 0x00000600,	// BranchNode
-		Node				= 0x00000800,	// Node timing
-		ExecPin				= 0x00001000,	// Exec pin dummy node
-		PureNode			= 0x00002000	// Pure node (no exec pins)
+		None						= 0x00000000,	// No Flags
+		Class						= 0x00000001,	// Class
+		Instance					= 0x00000002,	// Instance
+		Event						= 0x00000004,	// Event
+		CustomEvent					= 0x00000008,	// Custom Event
+		FunctionCall				= 0x00000010,	// Function Call
+		MacroCall					= 0x00000020,	// Macro Call
+		MacroNode					= 0x00000100,	// Macro Node
+		ConditionalBranch			= 0x00000200,	// Node has multiple exit pins using a jump
+		SequentialBranch			= 0x00000400,	// Node has multiple exit pins ran in sequence
+		Node						= 0x00000800,	// Node timing
+		ExecPin						= 0x00001000,	// Exec pin dummy node
+		PureNode					= 0x00002000,	// Pure node (no exec pins)
+		FunctionTunnel				= 0x00010000,	// Tunnel function
+		TunnelEntryPin				= 0x00020000,	// Tunnel entry pin
+		TunnelExitPin				= 0x00040000,	// Tunnel exit pin
+		ReEntrantTunnelPin			= 0x00080000,	// Re-Entrant tunnel pin
+		TunnelThenPin				= 0x00100000,	// Tunnel final exit or exec then pin
+		PureChain					= 0x00200000,	// Pure node call chain
+		CyclicLinkage				= 0x00400000,	// Marks execution path as cyclic.
+		InvalidTrace				= 0x00800000,	// Indicates that node doesn't contain a valid script trace.
+									// Groups
+		CallSite					= FunctionCall|MacroCall|FunctionTunnel,
+		BranchNode					= ConditionalBranch|SequentialBranch,
+		TunnelPin					= TunnelEntryPin|TunnelExitPin,
+		PureStats					= PureNode|PureChain,
+		Container					= Class|Instance|Event|CustomEvent|TunnelPin|ExecPin|PureChain
 	};
 }
 
@@ -59,21 +70,6 @@ public:
 		TSharedPtr<class FScriptExecutionNode> LinkedNode;
 	};
 
-	/** Returns the parent node */
-	TSharedPtr<class FScriptExecutionNode> GetParentNode() { return ParentNode; }
-
-	/** Sets the parent node */
-	void SetParentNode(TSharedPtr<class FScriptExecutionNode> InParentNode) { ParentNode = InParentNode; }
-
-	/** Returns the pure nodes map */
-	TMap<int32, TSharedPtr<class FScriptExecutionNode>>& GetPureNodes() { return PureNodes; }
-
-	/** Returns the number of pure nodes */
-	int32 GetNumPureNodes() const { return PureNodes.Num(); }
-
-	/** Add pure node */
-	void AddPureNode(const int32 PinScriptOffset, TSharedPtr<class FScriptExecutionNode> PureNode);
-
 	/** Returns the linked nodes map */
 	TMap<int32, TSharedPtr<class FScriptExecutionNode>>& GetLinkedNodes() { return LinkedNodes; }
 
@@ -82,6 +78,9 @@ public:
 
 	/** Add linked node */
 	void AddLinkedNode(const int32 PinScriptOffset, TSharedPtr<class FScriptExecutionNode> LinkedNode);
+
+	/** Returns linked node by matching script offset */
+	TSharedPtr<class FScriptExecutionNode> GetLinkedNodeByScriptOffset(const int32 PinScriptOffset);
 
 	/** Returns the child nodes map */
 	TArray<TSharedPtr<class FScriptExecutionNode>>& GetChildNodes() { return ChildNodes; }
@@ -97,10 +96,6 @@ public:
 
 protected:
 
-	/** Parent node */
-	TSharedPtr<class FScriptExecutionNode> ParentNode;
-	/** Pure nodes */
-	TMap<int32, TSharedPtr<class FScriptExecutionNode>> PureNodes;
 	/** Linked nodes */
 	TMap<int32, TSharedPtr<class FScriptExecutionNode>> LinkedNodes;
 	/** Child nodes */
@@ -159,8 +154,6 @@ struct KISMET_API FScriptExecNodeParams
 //////////////////////////////////////////////////////////////////////////
 // FScriptExecutionNode
 
-typedef TSet<TWeakObjectPtr<const UObject>> FExecNodeFilter;
-
 class KISMET_API FScriptExecutionNode : public FScriptNodeExecLinkage, public FScriptNodePerfData, public TSharedFromThis<FScriptExecutionNode>
 {
 public:
@@ -210,6 +203,9 @@ public:
 	/** Returns if this node is also a pure node (i.e. no exec input pin) */
 	bool IsPureNode() const { return (NodeFlags & EScriptExecutionNodeFlags::PureNode) != 0U; }
 
+	/** Returns if this node is a pure chain node */
+	bool IsPureChain() const { return (NodeFlags & EScriptExecutionNodeFlags::PureChain) != 0U; }
+
 	/** Returns if this event potentially multiple exit sites */
 	bool IsBranch() const { return (NodeFlags & EScriptExecutionNodeFlags::BranchNode) != 0U; }
 
@@ -246,6 +242,12 @@ public:
 	/** Sets the current expansion state for widget UI */
 	void SetExpanded(bool bIsExpanded) { bExpansionState = bIsExpanded; }
 
+	/** Returns the pure chain node associated with this exec node (if one exists) */
+	TSharedPtr<FScriptExecutionNode> GetPureChainNode();
+
+	/** Returns pure node script code range */
+	FInt32Range GetPureNodeScriptCodeRange() const { return PureNodeScriptCodeRange; }
+
 	/** Sets the pure node script code range */
 	void SetPureNodeScriptCodeRange(FInt32Range InScriptCodeRange) { PureNodeScriptCodeRange = InScriptCodeRange; }
 
@@ -266,14 +268,11 @@ public:
 
 protected:
 
+	/** Returns Tunnel Linear Execution Trace */
+	void MapTunnelLinearExecution(FTracePath& TraceInOut) const;
+
 	/** Get all pure nodes - private implementation */
 	void GetAllPureNodes_Internal(TMap<int32, TSharedPtr<FScriptExecutionNode>>& PureNodesOut, const FInt32Range& ScriptCodeRange);
-
-	/** Get linear execution path - private implementation */
-	void GetLinearExecutionPath_Internal(FExecNodeFilter& Filter, TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath);
-
-	/** Refresh Stats - private implementation */
-	void RefreshStats_Internal(const FTracePath& TracePath, FExecNodeFilter& VisitedStats);
 
 protected:
 

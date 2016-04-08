@@ -996,8 +996,8 @@ void FD3D12DefaultBufferPool::AllocDefaultResource(const D3D12_RESOURCE_DESC& De
 
 	const void* Data = (InitialData) ? InitialData->pData : nullptr;
 
-	const bool PoolResource = Desc.Width < Allocator->MaximumAllocationSizeForPooling &&
-		((Desc.Width % (1024 * 64)) != 0);
+	const bool PoolResource = (Desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) == 0 &&
+		Desc.Width < Allocator->MaximumAllocationSizeForPooling && ((Desc.Width % (1024 * 64)) != 0);
 
 	if (PoolResource)
 	{

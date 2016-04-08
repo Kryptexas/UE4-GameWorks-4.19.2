@@ -44,6 +44,9 @@ protected:
 	/** This is called on each created object after the property text is imported */
 	virtual void ProcessConstructedObject(UObject* CreatedObject);
 
+	/** Post handling of constructed objects by the factory */
+	virtual void PostProcessConstructedObjects() {};
+
 	/** Util to ensure that InName is a valid name for a new object within InParent. Will rename any existing object within InParent if it is called InName. */
 	static void ClearObjectNameUsage(UObject* InParent, FName InName);
 };

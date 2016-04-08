@@ -245,9 +245,7 @@ int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) c
 				PaintGeometry,
 				Thumbnail,
 				ThumbnailClipRect,
-				false,
-				false,
-				DrawEffects
+				DrawEffects | ESlateDrawEffect::NoGamma | ESlateDrawEffect::NoBlending
 				);
 		}
 

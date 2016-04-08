@@ -507,6 +507,9 @@ public:
 	/** Can generate native code for current blueprint */
 	bool CanGenerateNativeCode() const;
 
+	/** Returns if the blueprint profiler is enabled in editor settings. */
+	bool IsProfilerAvailable() const;
+
 	/** Returns if the blueprint profiler is currently active. */
 	bool IsProfilerActive() const;
 
@@ -913,9 +916,6 @@ protected:
 
 	/** Attempts to invoke the details tab if it's currently possible to. */
 	void TryInvokingDetailsTab(bool bFlash = true);
-
-	/** Returns true if the blueprint profiler is valid for the current editor and mode */
-	bool IsBlueprintProfilerSupported() const;
 
 private:
 

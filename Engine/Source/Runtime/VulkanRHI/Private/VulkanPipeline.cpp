@@ -313,7 +313,7 @@ void FVulkanPipelineStateCache::Save(FString& CacheFilename)
 	Ar << SizeOfDiskEntry;
 	Ar << DiskEntries;
 	TArray<uint8> DeviceCache;
-	SIZE_T Size = 0;
+	size_t Size = 0;
 	VERIFYVULKANRESULT(vkGetPipelineCacheData(Device->GetInstanceHandle(), PipelineCache, &Size, nullptr));
 	if (Size > 0)
 	{

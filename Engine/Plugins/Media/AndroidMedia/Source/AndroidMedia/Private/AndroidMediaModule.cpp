@@ -27,6 +27,16 @@ public:
 				SupportedFileTypes.Add(TEXT("3gpp"), LOCTEXT("Format3gpp", "3GPP Multimedia File"));
 				SupportedFileTypes.Add(TEXT("aac"), LOCTEXT("FormatAac", "MPEG-2 Advanced Audio Coding File"));
 				SupportedFileTypes.Add(TEXT("mp4"), LOCTEXT("FormatMp4", "MPEG-4 Movie"));
+
+				// initialize supported URI schemes
+				SupportedUriSchemes.Add(TEXT("http://"));
+				SupportedUriSchemes.Add(TEXT("httpd://"));
+				SupportedUriSchemes.Add(TEXT("https://"));
+				SupportedUriSchemes.Add(TEXT("mms://"));
+				SupportedUriSchemes.Add(TEXT("rtsp://"));
+				SupportedUriSchemes.Add(TEXT("rtspt://"));
+				SupportedUriSchemes.Add(TEXT("rtspu://"));
+
 				MediaModule->RegisterPlayerFactory(*this);
 			}
 		}
@@ -65,13 +75,31 @@ public:
 
 	virtual bool SupportsUrl(const FString& Url) const override
 	{
-		return SupportedFileTypes.Contains(FPaths::GetExtension(Url));
+		const FString Extension = FPaths::GetExtension(Url);
+
+		if (!Extension.IsEmpty() && SupportedFileTypes.Contains(Extension))
+		{
+			return true;
+		}
+
+		for (const FString& Scheme : SupportedUriSchemes)
+		{
+			if (Url.StartsWith(Scheme))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 private:
 
 	// The collection of supported media file types.
 	FMediaFileTypes SupportedFileTypes;
+
+	/** The collection of supported URI schemes. */
+	TArray<FString> SupportedUriSchemes;
 
 	bool IsSupported()
 	{

@@ -36,6 +36,7 @@ public:
 		, _VScrollBar()
 		, _WrapTextAt(0.0f)
 		, _AutoWrapText(false)
+		, _WrappingPolicy(ETextWrappingPolicy::DefaultWrapping)
 		, _SelectAllTextOnCommit( false )
 		, _BackgroundColor()		
 		, _Padding()
@@ -147,6 +148,9 @@ public:
 			desired size will not be clamped.  This works best in cases where the text block's size is not affecting other widget's layout. */
 		SLATE_ATTRIBUTE( bool, AutoWrapText )
 
+		/** The wrapping policy to use */
+		SLATE_ATTRIBUTE( ETextWrappingPolicy, WrappingPolicy )
+
 		/** Whether to select all text when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
 
@@ -250,6 +254,9 @@ public:
 
 	/** See AutoWrapText attribute */
 	void SetAutoWrapText(const TAttribute<bool>& InAutoWrapText);
+
+	/** Set WrappingPolicy attribute */
+	void SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy);
 
 	/** See LineHeightPercentage attribute */
 	void SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage);

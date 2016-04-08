@@ -18,7 +18,7 @@ DEFINE_LOG_CATEGORY(LogVulkanRHI);
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
 
-static VkBool32 DebugReportFunction(
+static VkBool32 VKAPI_PTR DebugReportFunction(
 	VkDebugReportFlagsEXT			msgFlags,
 	VkDebugReportObjectTypeEXT		objType,
     uint64_t						srcObject,
@@ -80,7 +80,7 @@ void FVulkanDynamicRHI::SetupDebugLayerCallback()
 		VkDebugReportCallbackCreateInfoEXT CreateInfo;
 		FMemory::Memzero(CreateInfo);
 		CreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-		CreateInfo.pfnCallback = &DebugReportFunction;
+		CreateInfo.pfnCallback = DebugReportFunction;
 		CreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARN_BIT_EXT;
 #if VULKAN_ENABLE_API_DUMP
 		CreateInfo.flags |= VK_DEBUG_REPORT_INFO_BIT_EXT;

@@ -8,6 +8,7 @@
 
 #include "MetalCommandQueue.h"
 #include "MetalCommandList.h"
+#include "MetalProfiler.h"
 #if METAL_STATISTICS
 #include "MetalStatistics.h"
 #include "ModuleManager.h"
@@ -34,7 +35,7 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 #if METAL_STATISTICS
 	IMetalStatisticsModule* StatsModule = FModuleManager::Get().LoadModulePtr<IMetalStatisticsModule>(TEXT("MetalStatistics"));
 	
-	if(StatsModule)
+	if(StatsModule && (![Device.name containsString:@"AMD"] || FParse::Param(FCommandLine::Get(),TEXT("metalstats"))))
 	{
 		Statistics = StatsModule->CreateMetalStatistics(CommandQueue);
 		if(!Statistics->SupportsStatistics())
@@ -62,7 +63,9 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
 {
 	@autoreleasepool
 	{
-		return [[CommandQueue commandBuffer] retain];
+		id<MTLCommandBuffer> CmdBuffer = [[CommandQueue commandBuffer] retain];
+		TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
+		return CmdBuffer;
 	}
 }
 
@@ -71,13 +74,17 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
 	@autoreleasepool
 	{
 		static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
-		return bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
+		id<MTLCommandBuffer> CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
+		TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
+		return CmdBuffer;
 	}
 }
 
 void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandBuffer)
 {
 	check(CommandBuffer);
+	UNTRACK_OBJECT(STAT_MetalCommandBufferCount, CommandBuffer);
+	
 	[CommandBuffer commit];
 	[CommandBuffer release];
 }

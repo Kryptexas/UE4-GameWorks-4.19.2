@@ -6,6 +6,7 @@
 #include "EdGraph/EdGraph.h"
 #include "EdGraphSchema_K2.h"
 #include "K2Node_EditablePinBase.h"
+#include "Engine/LevelScriptBlueprint.h"
 
 class  USCS_Node;
 struct FComponentKey;
@@ -374,6 +375,9 @@ public:
 
 	/** Look to see if an event already exists to override a particular function */
 	static class UK2Node_Event* FindOverrideForFunction(const UBlueprint* Blueprint, const UClass* SignatureClass, FName SignatureName);
+
+	/** Find the Custom Event if it already exists in the Blueprint */
+	static class UK2Node_Event* FindCustomEventNode(const UBlueprint* Blueprint, FName const CustomName);
 
 
 	/** Returns all nodes in all graphs of the specified class */

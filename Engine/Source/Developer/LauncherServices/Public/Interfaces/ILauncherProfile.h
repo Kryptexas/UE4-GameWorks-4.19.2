@@ -177,6 +177,9 @@ namespace ELauncherProfileValidationErrors
 
 		/** Shipping doesn't support commandline options can't use cook on the fly */
 		ShippingDoesntSupportCommandlineOptionsCantUseCookOnTheFly,
+
+		/** Cook on the fly doesn't support server target platforms */
+		CookOnTheFlyDoesntSupportServer,
 	};
 }
 

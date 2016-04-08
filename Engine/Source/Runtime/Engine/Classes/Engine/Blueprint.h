@@ -730,6 +730,9 @@ public:
 	/** Message log for storing upgrade notes that were generated within the Blueprint, will be displayed to the compiler results each compiler and will remain until saving */
 	TSharedPtr<class FCompilerResultsLog> UpgradeNotesLog;
 
+	/** Message log for storing pre-compile errors/notes/warnings that will only last until the next Blueprint compile */
+	TSharedPtr<class FCompilerResultsLog> PreCompileLog;
+
 	/** 
 	 * Sends a message to the CurrentMessageLog, if there is one available.  Otherwise, defaults to logging to the normal channels.
 	 * Should use this for node and blueprint actions that happen during compilation!

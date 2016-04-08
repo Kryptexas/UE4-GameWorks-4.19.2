@@ -41,13 +41,17 @@ void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry
 	ScissorRect = GSlateScissorRect;
 
 	DataPayload.BatchFlags = ESlateBatchDrawFlag::None;
+	if ( InDrawEffects & ESlateDrawEffect::NoBlending )
+	{
+		DataPayload.BatchFlags |= ESlateBatchDrawFlag::NoBlending;
+	}
+	if ( InDrawEffects & ESlateDrawEffect::PreMultipliedAlpha )
+	{
+		DataPayload.BatchFlags |= ESlateBatchDrawFlag::PreMultipliedAlpha;
+	}
 	if ( InDrawEffects & ESlateDrawEffect::NoGamma )
 	{
 		DataPayload.BatchFlags |= ESlateBatchDrawFlag::NoGamma;
-	}
-	if ( InDrawEffects & ESlateDrawEffect::AlphaCompositing )
-	{
-		DataPayload.BatchFlags |= ESlateBatchDrawFlag::AlphaCompositing;
 	}
 }
 
@@ -171,14 +175,14 @@ void FSlateDrawElement::MakeShapedText( FSlateWindowElementList& ElementList, ui
 	DrawElt.DataPayload.SetShapedTextPayloadProperties(InShapedGlyphSequence, InTint);
 }
 
-void FSlateDrawElement::MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, bool bGammaCorrect )
+void FSlateDrawElement::MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects )
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Gradient;
-	DrawElt.DataPayload.SetGradientPayloadProperties( InGradientStops, InGradientType, bGammaCorrect );
+	DrawElt.DataPayload.SetGradientPayloadProperties( InGradientStops, InGradientType );
 }
 
 
@@ -210,14 +214,14 @@ void FSlateDrawElement::MakeLines(FSlateWindowElementList& ElementList, uint32 I
 }
 
 
-void FSlateDrawElement::MakeViewport( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TSharedPtr<const ISlateViewport> Viewport, const FSlateRect& InClippingRect, bool bGammaCorrect, bool bAllowBlending, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
+void FSlateDrawElement::MakeViewport( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TSharedPtr<const ISlateViewport> Viewport, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint )
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Viewport;
-	DrawElt.DataPayload.SetViewportPayloadProperties( Viewport, InTint, bGammaCorrect, bAllowBlending );
+	DrawElt.DataPayload.SetViewportPayloadProperties( Viewport, InTint );
 }
 
 

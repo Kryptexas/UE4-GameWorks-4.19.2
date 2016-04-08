@@ -64,7 +64,6 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 			}
 			else if (bNoexportProperty || Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate) || (!bAllowProtected && Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)))
 			{
-				ensure(EPropertyAccessOperator::None != AccessOperator);
 				const FString OperatorStr = (EPropertyAccessOperator::Dot == AccessOperator) ? TEXT("&") : TEXT("");
 				const FString ContainerStr = (EPropertyAccessOperator::None == AccessOperator) ? TEXT("this") : OuterPath;
 				const FString GetPtrStr = bNoexportProperty
@@ -269,7 +268,7 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UScriptStruct* S
 		if (OutResult)
 		{
 			const FLinearColor* LinearColor = reinterpret_cast<const FLinearColor*>(ValuePtr);
-			*OutResult = FString::Printf(TEXT("FLinearColor(%f, %f, %f, %f)"), LinearColor->R, LinearColor->B, LinearColor->G, LinearColor->A);
+			*OutResult = FString::Printf(TEXT("FLinearColor(%f, %f, %f, %f)"), LinearColor->R, LinearColor->G, LinearColor->B, LinearColor->A);
 		}
 		return true;
 	}
@@ -279,7 +278,7 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UScriptStruct* S
 		if (OutResult)
 		{
 			const FColor* Color = reinterpret_cast<const FColor*>(ValuePtr);
-			*OutResult = FString::Printf(TEXT("FColor(%d, %d, %d, %d)"), Color->R, Color->B, Color->G, Color->A);
+			*OutResult = FString::Printf(TEXT("FColor(%d, %d, %d, %d)"), Color->R, Color->G, Color->B, Color->A);
 		}
 		return true;
 	}
@@ -509,6 +508,17 @@ struct FNonativeComponentData
 				, FEmitDefaultValueHelper::EPropertyAccessOperator::Pointer);
 		}
 
+	}
+
+	void EmitForcedPostLoad(FEmitterLocalContext& Context)
+	{
+		Context.AddLine(FString::Printf(TEXT("if(%s && !%s->IsTemplate())"), *NativeVariablePropertyName, *NativeVariablePropertyName));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+		Context.AddLine(FString::Printf(TEXT("%s->SetFlags(RF_NeedPostLoad |RF_NeedPostLoadSubobjects);"), *NativeVariablePropertyName));
+		Context.AddLine(FString::Printf(TEXT("%s->ConditionalPostLoad();"), *NativeVariablePropertyName));
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
 	}
 };
 
@@ -853,7 +863,7 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 
 	// Components that must be fixed after serialization
 	TArray<FString> NativeCreatedComponentProperties;
-
+	TArray<FNonativeComponentData> ComponentsToInit;
 	{
 		UObject* CDO = BPGC->GetDefaultObject(false);
 
@@ -923,8 +933,6 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 		const bool bErrorFree = UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(BPGC, BPGCStack);
 		if (bErrorFree)
 		{
-			TArray<FNonativeComponentData> ComponentsToInit;
-
 			// Start at the base of the hierarchy so that dependencies are handled first.
 			for (int32 i = BPGCStack.Num() - 1; i >= 0; --i)
 			{
@@ -962,10 +970,9 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 		// Generate ctor init code for generated Blueprint class property values that may differ from parent class defaults (or that otherwise belong to the generated Blueprint class).
 		for (auto Property : TFieldRange<const UProperty>(BPGC))
 		{
-			const bool bNewProperty = Property->GetOwnerStruct() == BPGC;
-			const bool bIsAccessible = bNewProperty || !Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate);
-			if (bIsAccessible && !HandledProperties.Contains(Property))
+			if (!HandledProperties.Contains(Property))
 			{
+				const bool bNewProperty = Property->GetOwnerStruct() == BPGC;
 				OuterGenerate(Context, Property, TEXT(""), reinterpret_cast<const uint8*>(CDO), bNewProperty ? nullptr : reinterpret_cast<const uint8*>(ParentCDO), EPropertyAccessOperator::None, true);
 			}
 		}
@@ -973,7 +980,24 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));
 
+	// TODO: this mechanism could be required by other instanced subobjects.
 	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::Regular;
+	Context.ResetPropertiesForInaccessibleStructs();
+	if (BPGC->IsChildOf<AActor>() && ComponentsToInit.Num())
+	{
+		Context.Header.AddLine(TEXT("virtual void FixComponentsFromDynamicClass() override;"));
+		Context.AddLine(FString::Printf(TEXT("void %s::FixComponentsFromDynamicClass()"), *CppClassName));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+		Context.AddLine(TEXT("Super::FixComponentsFromDynamicClass();"));
+		for (auto& ComponentToInit : ComponentsToInit)
+		{
+			ComponentToInit.EmitForcedPostLoad(Context);
+		}
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
+	}
+
 	Context.ResetPropertiesForInaccessibleStructs();
 	Context.AddLine(FString::Printf(TEXT("void %s::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)"), *CppClassName));
 	Context.AddLine(TEXT("{"));
@@ -981,7 +1005,7 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 	Context.AddLine(TEXT("Super::PostLoadSubobjects(OuterInstanceGraph);"));
 	for (auto& ComponentToFix : NativeCreatedComponentProperties)
 	{
-		Context.AddLine(FString::Printf(TEXT("if(ensure(%s))"), *ComponentToFix));
+		Context.AddLine(FString::Printf(TEXT("if(%s)"), *ComponentToFix));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
 		Context.AddLine(FString::Printf(TEXT("%s->CreationMethod = EComponentCreationMethod::Native;"), *ComponentToFix));

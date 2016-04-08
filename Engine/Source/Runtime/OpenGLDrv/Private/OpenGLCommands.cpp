@@ -3603,21 +3603,6 @@ void FOpenGLDynamicRHI::RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRe
 	}
 }
 
-void FOpenGLDynamicRHI::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) 
-{
-	UE_LOG(LogRHI, Fatal,TEXT("%s not implemented yet"),ANSI_TO_TCHAR(__FUNCTION__));
-}
-
-void FOpenGLDynamicRHI::RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex)
-{
-	UE_LOG(LogRHI, Fatal,TEXT("%s not implemented yet"),ANSI_TO_TCHAR(__FUNCTION__));
-}
-
-void FOpenGLDynamicRHI::RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex)
-{
-	UE_LOG(LogRHI, Fatal,TEXT("%s not implemented yet"),ANSI_TO_TCHAR(__FUNCTION__));
-}
-
 void FOpenGLDynamicRHI::RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data)
 {
 	UE_LOG(LogRHI, Fatal,TEXT("OpenGL Render path does not support multiple Viewports!"));

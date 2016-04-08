@@ -191,9 +191,9 @@ static NSOpenGLContext* CreateContext( NSOpenGLContext* SharedContext )
 
 void MacOpenGLContextReconfigurationCallBack(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags, void* UserInfo)
 {
-    if(GMacUseAutomaticGraphicsSwitching && (Flags & kCGDisplaySetModeFlag))
-    {
-        // Display has been reconfigured so find the online GPU so we may adapt to the new capabilities.
+	if(GMacUseAutomaticGraphicsSwitching && (Flags & kCGDisplaySetModeFlag))
+	{
+		// Display has been reconfigured so find the online GPU so we may adapt to the new capabilities.
 		GLint NumberOfRenderers = 0;
 		CGLRendererInfoObj RendererInfo;
 		CGLQueryRendererInfo(0xffffffff, &RendererInfo, &NumberOfRenderers);
@@ -212,7 +212,7 @@ void MacOpenGLContextReconfigurationCallBack(CGDirectDisplayID Display, CGDispla
 			
 			CGLDestroyRendererInfo(RendererInfo);
 		}
-    }
+	}
 }
 	
 /*------------------------------------------------------------------------------
@@ -232,6 +232,7 @@ FPlatformOpenGLContext::FPlatformOpenGLContext()
 , VirtualScreen(0)
 , VendorID(0)
 , RendererID(0)
+, RendererIndex(-1)
 , SupportsDepthFetchDuringDepthTest(true)
 {
 	FMemory::Memzero(ViewportSize);
@@ -422,14 +423,15 @@ void FPlatformOpenGLContext::VerifyCurrentContext()
 		CGLError Error = CGLGetParameter(Current, kCGLCPCurrentRendererID, &RendererID);
 		check(Error == kCGLNoError && RendererID != 0);
 		
+		CGLPixelFormatObj CurrentPixelFormat = CGLGetPixelFormat(Current);
+		
 		// When using automatic graphics switching each context much switch to use the same GPU, so that we idle the other GPU.
 		// Or when using an explicit renderer for automatic or multiple GPU setups we want to prevent the OS switching it for us.
 		// We have to do this ourselves because we have offscreen contexts which OS X is quite happy to leave running on an offline GPU, but that's bad for laptops.
 		int32 const RendererToMatch = GMacExplicitRendererID ? GMacExplicitRendererID : GMacCurrentRendererID;
-		bool const bGPUChange = (GMacUseAutomaticGraphicsSwitching || GMacUseMultipleGPUs && GMacExplicitRendererID);
+		bool const bGPUChange = (GMacUseAutomaticGraphicsSwitching || (GMacUseMultipleGPUs && GMacExplicitRendererID));
 		if(bGPUChange && RendererID != RendererToMatch)
 		{
-			CGLPixelFormatObj CurrentPixelFormat = CGLGetPixelFormat(Current);
 			GLint NumVirtualScreens = 0;
 			CGLDescribePixelFormat(CurrentPixelFormat, 0, kCGLPFAVirtualScreenCount, &NumVirtualScreens);
 			if(NumVirtualScreens > 1)
@@ -500,6 +502,45 @@ void FPlatformOpenGLContext::VerifyCurrentContext()
 				}
 			}
 			check(PlatformContext->VendorID != 0);
+			
+			// The available GPUs.
+			TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = FPlatformMisc::GetGPUDescriptors();
+			
+			GLint DisplayMask = 0;
+			CGLDescribePixelFormat(CurrentPixelFormat, 0, kCGLPFADisplayMask, &DisplayMask);
+			
+			GLint bOnline = 0;
+			GLint VRAM = 0;
+			
+			GLint NumberOfRenderers = 0;
+			CGLRendererInfoObj RendererInfo;
+			CGLQueryRendererInfo(DisplayMask, &RendererInfo, &NumberOfRenderers);
+			if(RendererInfo)
+			{
+				for(uint32 i = 0; i < NumberOfRenderers; i++)
+				{
+					GLint TheRendererID = 0;
+					CGLDescribeRenderer(RendererInfo, i, kCGLRPRendererID, &TheRendererID);
+					if(TheRendererID == PlatformContext->RendererID)
+					{
+						CGLDescribeRenderer(RendererInfo, i, kCGLRPOnline, &bOnline);
+						CGLDescribeRenderer(RendererInfo, i, kCGLRPVideoMemoryMegabytes, &VRAM);
+						break;
+					}
+				}
+				
+				CGLDestroyRendererInfo(RendererInfo);
+			}
+			
+			for(uint32 i = 0; i < GPUs.Num(); i++)
+			{
+				if(PlatformContext->VendorID == GPUs[i].GPUVendorId && GPUs[i].GPUMemoryMB == VRAM && (GPUs[i].GPUVendorId != 0x1002 || !GPUs[i].GPUHeadless == bOnline))
+				{
+					PlatformContext->RendererIndex = i;
+					break;
+				}
+			}
+			check(PlatformContext->RendererIndex >= 0);
 			
 			// Renderer IDs matchup to driver kexts, so switching based on them will allow us to target workarouds to many GPUs
 			// which exhibit the same unfortunate driver bugs without having to parse their individual ID strings.

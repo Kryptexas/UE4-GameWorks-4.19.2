@@ -138,6 +138,8 @@ UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitial
 	FAutoReimportDirectoryConfig Default;
 	Default.SourceDirectory = TEXT("/Game/");
 	AutoReimportDirectorySettings.Add(Default);
+
+	bPromptBeforeAutoImporting = true;
 }
 
 

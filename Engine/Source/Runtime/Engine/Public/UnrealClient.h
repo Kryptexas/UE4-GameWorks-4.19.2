@@ -78,6 +78,16 @@ public:
 	 * @return True if the read succeeded.
 	 */
 	ENGINE_API bool ReadFloat16Pixels(TArray<FFloat16Color>& OutputBuffer,ECubeFace CubeFace=CubeFace_PosX);
+	
+	/**
+	 * Reads the viewport's displayed pixels into the given color buffer.
+	 * @param OutputBuffer - Linear color array to store the value
+	 * @param CubeFace - optional cube face for when reading from a cube render target
+	 * @return True if the read succeeded.
+	 */
+	ENGINE_API bool ReadLinearColorPixels(TArray<FLinearColor>& OutputBuffer, FReadSurfaceDataFlags InFlags = FReadSurfaceDataFlags(RCM_MinMax, CubeFace_MAX), FIntRect InRect = FIntRect(0, 0, 0, 0));
+
+	ENGINE_API bool ReadLinearColorPixelsPtr(FLinearColor* OutImageBytes, FReadSurfaceDataFlags InFlags = FReadSurfaceDataFlags(RCM_MinMax, CubeFace_MAX), FIntRect InRect = FIntRect(0, 0, 0, 0));
 
 protected:
 

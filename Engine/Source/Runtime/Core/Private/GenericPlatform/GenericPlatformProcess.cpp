@@ -526,7 +526,7 @@ bool FGenericPlatformProcess::IsFirstInstance()
 {
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
 	return GIsFirstInstance;
-#elif
+#else
 	return true;
 #endif
 }

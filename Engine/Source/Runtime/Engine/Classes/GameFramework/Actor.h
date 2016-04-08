@@ -2245,6 +2245,9 @@ public:
 	 */
 	void ExecuteConstruction(const FTransform& Transform, const class FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform = false);
 
+	// Forces PostLoad call on natively created components, that were originally in SCS
+	virtual void FixComponentsFromDynamicClass();
+
 	/**
 	 * Called when an instance of this class is placed (in editor) or spawned.
 	 * @param	Transform			The transform the actor was constructed at.

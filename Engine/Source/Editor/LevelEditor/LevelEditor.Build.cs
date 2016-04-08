@@ -68,6 +68,7 @@ public class LevelEditor : ModuleRules
                 "HierarchicalLODOutliner",
                 "HierarchicalLODUtilities",
 				"MaterialShaderQualitySettings",
+                "PixelInspectorModule",
 			}
 		);
 

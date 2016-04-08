@@ -518,6 +518,9 @@ protected:
 	/** Internal method used to help recursively build the cached property list for serialization. */
 	void BuildCachedPropertyList(FCustomPropertyListNode** CurrentNode, const UStruct* CurrentScope, int32* CurrentSourceIdx = nullptr) const;
 
+	/** Internal method used to help recursively build a cached sub property list from an array property for serialization. */
+	void BuildCachedArrayPropertyList(const UArrayProperty* ArraySubPropertyNode, FCustomPropertyListNode** CurrentNode, int32* CurrentSourceIdx) const;
+
 private:
 	/** Internal property list that's used in binary object serialization at component instancing time. */
 	mutable TIndirectArray<FCustomPropertyListNode> CachedPropertyListForSerialization;
@@ -616,6 +619,7 @@ public:
 	virtual UObject* GetArchetypeForCDO() const override;
 #endif //WITH_EDITOR
 	virtual void SerializeDefaultObject(UObject* Object, FArchive& Ar) override;
+	virtual void PostLoadDefaultObject(UObject* Object) override;
 	virtual bool IsFunctionImplementedInBlueprint(FName InFunctionName) const override;
 	virtual uint8* GetPersistentUberGraphFrame(UObject* Obj, UFunction* FuncToCheck) const override;
 	virtual void CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty = false, bool bSkipSuperClass = false) const override;
@@ -690,6 +694,9 @@ public:
 protected:
 	/** Internal helper method used to recursively build the custom property list that's used for post-construct initialization. */
 	void BuildCustomPropertyListForPostConstruction(FCustomPropertyListNode*& InPropertyList, UStruct* InStruct, const uint8* DataPtr, const uint8* DefaultDataPtr);
+
+	/** Internal helper method used to recursively build a custom property list from an array property used for post-construct initialization. */
+	void BuildCustomArrayPropertyListForPostConstruction(UArrayProperty* ArrayProperty, FCustomPropertyListNode*& InPropertyList, const uint8* DataPtr, const uint8* DefaultDataPtr);
 
 private:
 	/** List of native class-owned properties that differ from defaults. This is used to optimize property initialization during post-construction by minimizing the number of native class-owned property values that get copied to the new instance. */

@@ -81,18 +81,6 @@ void FD3D11BaseShaderResource::SetDirty(bool bInDirty, uint32 CurrentFrame)
 	ensureMsgf((GEnableDX11TransitionChecks == 0) || !(CurrentGPUAccess == EResourceTransitionAccess::EReadable && bDirty), TEXT("ShaderResource is dirty, but set to Readable."));
 }
 
-void FD3D11DynamicRHI::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) 
-{  
-}
-
-void FD3D11DynamicRHI::RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex)
-{ 
-}
-
-void FD3D11DynamicRHI::RHIGraphicsWaitOnAsyncComputeJob( uint32 FenceIndex )
-{ 
-}
-
 // Vertex state.
 void FD3D11DynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
 {

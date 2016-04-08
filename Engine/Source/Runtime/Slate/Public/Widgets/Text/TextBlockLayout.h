@@ -17,6 +17,7 @@ public:
 			const TAttribute<FText>& InHighlightText, 
 			const TAttribute<float>& InWrapTextAt, 
 			const TAttribute<bool>& InAutoWrapText, 
+			const TAttribute<ETextWrappingPolicy>& InWrappingPolicy, 
 			const TAttribute<FMargin>& InMargin, 
 			const TAttribute<float>& InLineHeightPercentage, 
 			const TAttribute<ETextJustify::Type>& InJustification
@@ -25,6 +26,7 @@ public:
 			, HighlightText(InHighlightText)
 			, WrapTextAt(InWrapTextAt)
 			, AutoWrapText(InAutoWrapText)
+			, WrappingPolicy(InWrappingPolicy)
 			, Margin(InMargin)
 			, LineHeightPercentage(InLineHeightPercentage)
 			, Justification(InJustification)
@@ -35,6 +37,7 @@ public:
 		const TAttribute<FText>& HighlightText;
 		const TAttribute<float>& WrapTextAt;
 		const TAttribute<bool>& AutoWrapText;
+		const TAttribute<ETextWrappingPolicy> WrappingPolicy;
 		const TAttribute<FMargin>& Margin;
 		const TAttribute<float>& LineHeightPercentage;
 		const TAttribute<ETextJustify::Type>& Justification;

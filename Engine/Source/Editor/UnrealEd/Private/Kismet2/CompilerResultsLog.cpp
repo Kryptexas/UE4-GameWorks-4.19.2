@@ -65,7 +65,7 @@ UObject const* FBacktrackMap::FindSourceObject(UObject const* PossiblyDuplicated
 //////////////////////////////////////////////////////////////////////////
 // FCompilerResultsLog
 
-FCompilerResultsLog::FCompilerResultsLog()
+FCompilerResultsLog::FCompilerResultsLog(bool bIsCompatibleWithEvents/* = true*/)
 	: NumErrors(0)
 	, NumWarnings(0)
 	, bSilentMode(false)
@@ -75,7 +75,7 @@ FCompilerResultsLog::FCompilerResultsLog()
 	, EventDisplayThresholdMs(0)
 {
 	CurrentEventScope = nullptr;
-	if(CurrentEventTarget == nullptr)
+	if(bIsCompatibleWithEvents && CurrentEventTarget == nullptr)
 	{
 		CurrentEventTarget = this;
 	}
@@ -281,7 +281,15 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 	{
 		if(Severity == EMessageSeverity::CriticalError || Severity == EMessageSeverity::Error)
 		{
-			UE_LOG(LogBlueprint, Error, TEXT("Compiler %s"), *Line->ToText().ToString());
+			if(IsRunningCommandlet())
+			{
+				UE_LOG(LogBlueprint, Error, TEXT("Compiler %s from Source: %s"), *Line->ToText().ToString(), *SourcePath);
+			}
+			else
+			{
+				// in editor the compiler log is 'rich' and we don't need to annotate with the blueprint name:
+				UE_LOG(LogBlueprint, Error, TEXT("Compiler %s"), *Line->ToText().ToString());
+			}
 		}
 		else if(Severity == EMessageSeverity::Warning || Severity == EMessageSeverity::PerformanceWarning)
 		{

@@ -7,16 +7,20 @@
 //////////////////////////////////////////////////////////////////////////
 // FScriptNodeExecLinkage
 
-void FScriptNodeExecLinkage::AddPureNode(const int32 PinScriptOffset, TSharedPtr<class FScriptExecutionNode> PureNode)
-{
-	TSharedPtr<class FScriptExecutionNode>& Result = PureNodes.FindOrAdd(PinScriptOffset);
-	Result = PureNode;
-}
-
 void FScriptNodeExecLinkage::AddLinkedNode(const int32 PinScriptOffset, TSharedPtr<class FScriptExecutionNode> LinkedNode)
 {
 	TSharedPtr<class FScriptExecutionNode>& Result = LinkedNodes.FindOrAdd(PinScriptOffset);
 	Result = LinkedNode;
+}
+
+TSharedPtr<FScriptExecutionNode> FScriptNodeExecLinkage::GetLinkedNodeByScriptOffset(const int32 PinScriptOffset)
+{
+	TSharedPtr<FScriptExecutionNode> Result;
+	if (TSharedPtr<FScriptExecutionNode>* SearchResult = LinkedNodes.Find(PinScriptOffset))
+	{
+		Result = *SearchResult;
+	}
+	return Result;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -99,24 +103,67 @@ bool FScriptExecutionNode::operator == (const FScriptExecutionNode& NodeIn) cons
 
 void FScriptExecutionNode::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath)
 {
-	FExecNodeFilter Filter;
-	GetLinearExecutionPath_Internal(Filter, LinearExecutionNodes, TracePath);
+	LinearExecutionNodes.Add(FLinearExecPath(AsShared(), TracePath));
+	FTracePath NewTracePath(TracePath);
+	if (HasFlags(EScriptExecutionNodeFlags::FunctionTunnel))
+	{
+		MapTunnelLinearExecution(NewTracePath);
+	}
+	if (GetNumLinkedNodes() == 1)
+	{
+		for (auto NodeIter : LinkedNodes)
+		{
+			if (HasFlags(EScriptExecutionNodeFlags::PureStats))
+			{
+				continue;
+			}
+			else
+			{
+				if (NodeIter.Key != INDEX_NONE && !HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
+				{
+					NewTracePath.AddExitPin(NodeIter.Key);
+				}
+				if (NodeIter.Value->HasFlags(EScriptExecutionNodeFlags::FunctionTunnel))
+				{
+					LinearExecutionNodes.Add(FLinearExecPath(NodeIter.Value, NewTracePath));
+					for (auto TunnelExit : NodeIter.Value->LinkedNodes)
+					{
+						if (TunnelExit.Value->HasFlags(EScriptExecutionNodeFlags::TunnelThenPin))
+						{
+							MapTunnelLinearExecution(NewTracePath);
+							NewTracePath.AddExitPin(TunnelExit.Key);
+							TunnelExit.Value->GetLinearExecutionPath(LinearExecutionNodes, NewTracePath);
+							break;
+						}
+					}
+				}
+				else
+				{
+					NodeIter.Value->GetLinearExecutionPath(LinearExecutionNodes, NewTracePath);
+				}
+			}
+		}
+	}
 }
 
-void FScriptExecutionNode::GetLinearExecutionPath_Internal(FExecNodeFilter& Filter, TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath)
+void FScriptExecutionNode::MapTunnelLinearExecution(FTracePath& Trace) const
 {
-	if (!Filter.Contains(ObservedObject))
+	if (HasFlags(EScriptExecutionNodeFlags::FunctionTunnel))
 	{
-		Filter.Add(ObservedObject);
-		LinearExecutionNodes.Add(FLinearExecPath(AsShared(), TracePath));
-		if (GetNumLinkedNodes() == 1)
+		for (auto ChildIter : ChildNodes)
 		{
-			FTracePath NewTracePath(TracePath);
-			for (auto NodeIter : LinkedNodes)
+			ChildIter->MapTunnelLinearExecution(Trace);
+		}
+	}
+	else if (GetNumLinkedNodes() == 1)
+	{
+		for (auto NodeIter : LinkedNodes)
+		{
+			if (!NodeIter.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
 			{
-				NewTracePath.AddExitPin(NodeIter.Key);
-				NodeIter.Value->GetLinearExecutionPath_Internal(Filter, LinearExecutionNodes, NewTracePath);
+				Trace.AddExitPin(NodeIter.Key);
 			}
+			NodeIter.Value->MapTunnelLinearExecution(Trace);
 		}
 	}
 }
@@ -124,7 +171,11 @@ void FScriptExecutionNode::GetLinearExecutionPath_Internal(FExecNodeFilter& Filt
 EScriptStatContainerType::Type FScriptExecutionNode::GetStatisticContainerType() const
 {
 	EScriptStatContainerType::Type Result = EScriptStatContainerType::Standard;
-	if (HasFlags(EScriptExecutionNodeFlags::Instance|EScriptExecutionNodeFlags::Event|EScriptExecutionNodeFlags::CallSite))
+	if (HasFlags(EScriptExecutionNodeFlags::ExecPin|EScriptExecutionNodeFlags::TunnelPin))
+	{
+		Result = EScriptStatContainerType::NewExecutionPath;
+	}
+	else if (HasFlags(EScriptExecutionNodeFlags::Container))
 	{
 		Result = EScriptStatContainerType::Container;
 	}
@@ -132,136 +183,128 @@ EScriptStatContainerType::Type FScriptExecutionNode::GetStatisticContainerType()
 	{
 		Result = EScriptStatContainerType::SequentialBranch;
 	}
-	else if (HasFlags(EScriptExecutionNodeFlags::ExecPin))
-	{
-		Result = EScriptStatContainerType::NewExecutionPath;
-	}
 	return Result;
 }
 
 void FScriptExecutionNode::RefreshStats(const FTracePath& TracePath)
 {
-	FExecNodeFilter StatFilter;
-	RefreshStats_Internal(TracePath, StatFilter);
-}
-
-void FScriptExecutionNode::RefreshStats_Internal(const FTracePath& TracePath, FExecNodeFilter& VisitedStats)
-{
-	if (!VisitedStats.Find(ObservedObject))
+	// Process stat update
+	bool bRefreshChildStats = false;
+	bool bRefreshLinkStats = true;
+	TArray<TSharedPtr<FScriptPerfData>> BlueprintPooledStats;
+	// Update stats based on type
+	switch(GetStatisticContainerType())
 	{
-		// Update visited stats
-		if (!HasFlags(EScriptExecutionNodeFlags::Container))
+		case EScriptStatContainerType::Container:
 		{
-			VisitedStats.Add(ObservedObject);
+			GetInstancePerfDataByTracePath(TracePath, BlueprintPooledStats);
+			bRefreshChildStats = true;
+			break;
 		}
-		// Process stat update
-		bool bRefreshChildStats = false;
-		bool bRefreshLinkStats = true;
-		TArray<TSharedPtr<FScriptPerfData>> BlueprintPooledStats;
-		// Update stats based on type
-		switch(GetStatisticContainerType())
+		case EScriptStatContainerType::Standard:
+		case EScriptStatContainerType::SequentialBranch:
 		{
-			case EScriptStatContainerType::Container:
-			{
-				// Only consider stat data on this path
-				GetInstancePerfDataByTracePath(TracePath, BlueprintPooledStats);
-				bRefreshChildStats = true;
-				break;
-			}
-			case EScriptStatContainerType::Standard:
-			case EScriptStatContainerType::SequentialBranch:
-			{
-				// Only consider stat data on this path
-				GetInstancePerfDataByTracePath(TracePath, BlueprintPooledStats);
-				break;
-			}
-			case EScriptStatContainerType::NewExecutionPath:
-			{
-				TSet<FName> AllInstances;
-				// Refresh child stats and copy as branch stats - this is a dummy entry
-				for (auto ChildIter : ChildNodes)
-				{
-					// Fill out instance data that can be missing because its a dummy node, or the code below can fail.
-					for (auto InstanceIter : ChildIter->InstanceInputPinToPerfDataMap)
-					{
-						if (InstanceIter.Key != NAME_None)
-						{
-							AllInstances.Add(InstanceIter.Key);
-						}
-					}
-					ChildIter->RefreshStats_Internal(TracePath, VisitedStats);
-				}
-				for (auto InstanceIter : AllInstances)
-				{
-					if (InstanceIter != NAME_None)
-					{
-						TSharedPtr<FScriptPerfData> InstancePerfData = GetPerfDataByInstanceAndTracePath(InstanceIter, TracePath);
-						InstancePerfData->Reset();
-						BlueprintPooledStats.Add(InstancePerfData);
+			GetInstancePerfDataByTracePath(TracePath, BlueprintPooledStats);
 
-						for (auto ChildIter : ChildNodes)
-						{
-							TSharedPtr<FScriptPerfData> ChildPerfData = ChildIter->GetPerfDataByInstanceAndTracePath(InstanceIter, TracePath);
-							InstancePerfData->AddBranchData(*ChildPerfData.Get());
-						}
-					}
-				}
-				// Update Blueprint stats as branches
-				TSharedPtr<FScriptPerfData> BlueprintData = GetBlueprintPerfDataByTracePath(TracePath);
-				BlueprintData->Reset();
-
-				for (auto BlueprintChildDataIter : BlueprintPooledStats)
-				{
-					BlueprintData->AddBranchData(*BlueprintChildDataIter.Get());
-				}
-				BlueprintPooledStats.Reset(0);
-				bRefreshLinkStats = false;
-				break;
+			// Refresh attached pure chain stats (if present)
+			TSharedPtr<FScriptExecutionNode> PureChainNode = GetPureChainNode();
+			if (PureChainNode.IsValid())
+			{
+				PureChainNode->RefreshStats(TracePath);
 			}
+			break;
 		}
-		// Refresh Child Links
-		if (bRefreshChildStats)
+		case EScriptStatContainerType::NewExecutionPath:
 		{
+			TSet<FName> AllInstances;
+			// Refresh child stats and copy as branch stats - this is a dummy entry
 			for (auto ChildIter : ChildNodes)
 			{
-				ChildIter->RefreshStats_Internal(TracePath, VisitedStats);
-			}
-		}
-		// Refresh All links
-		if (bRefreshLinkStats)
-		{
-			if (!IsPureNode())
-			{
-				TMap<int32, TSharedPtr<FScriptExecutionNode>> AllPureNodes;
-				GetAllPureNodes(AllPureNodes);
-
-				AllPureNodes.KeySort(TLess<int32>());
-
-				FTracePath PureTracePath(TracePath);
-				for (auto PureIter : AllPureNodes)
+				// Fill out instance data that can be missing because its a dummy node, or the code below can fail.
+				for (auto InstanceIter : ChildIter->InstanceInputPinToPerfDataMap)
 				{
-					PureTracePath.AddExitPin(PureIter.Key);
-					PureIter.Value->RefreshStats(PureTracePath);
+					if (InstanceIter.Key != NAME_None)
+					{
+						AllInstances.Add(InstanceIter.Key);
+					}
+				}
+				ChildIter->RefreshStats(TracePath);
+			}
+			for (auto InstanceIter : AllInstances)
+			{
+				if (InstanceIter != NAME_None)
+				{
+					TSharedPtr<FScriptPerfData> InstancePerfData = GetPerfDataByInstanceAndTracePath(InstanceIter, TracePath);
+					InstancePerfData->Reset();
+					BlueprintPooledStats.Add(InstancePerfData);
+
+					for (auto ChildIter : ChildNodes)
+					{
+						TSharedPtr<FScriptPerfData> ChildPerfData = ChildIter->GetPerfDataByInstanceAndTracePath(InstanceIter, TracePath);
+						InstancePerfData->AddBranchData(*ChildPerfData.Get());
+					}
 				}
 			}
-
-			for (auto LinkIter : LinkedNodes)
-			{
-				FTracePath LinkTracePath(TracePath);
-				LinkTracePath.AddExitPin(LinkIter.Key);
-				LinkIter.Value->RefreshStats_Internal(LinkTracePath, VisitedStats);
-			}
-		}
-		// Update the owning blueprint stats
-		if (BlueprintPooledStats.Num() > 0)
-		{
+			// Update Blueprint stats as branches
 			TSharedPtr<FScriptPerfData> BlueprintData = GetBlueprintPerfDataByTracePath(TracePath);
 			BlueprintData->Reset();
 
 			for (auto BlueprintChildDataIter : BlueprintPooledStats)
 			{
-				BlueprintData->AddData(*BlueprintChildDataIter.Get());
+				BlueprintData->AddBranchData(*BlueprintChildDataIter.Get());
 			}
+			BlueprintPooledStats.Reset(0);
+			bRefreshLinkStats = false;
+			break;
+		}
+	}
+	// Refresh Child Links
+	if (bRefreshChildStats)
+	{
+		for (auto ChildIter : ChildNodes)
+		{
+			ChildIter->RefreshStats(TracePath);
+		}
+	}
+	// Refresh All links
+	if (bRefreshLinkStats)
+	{
+		if (IsPureChain())
+		{
+			TMap<int32, TSharedPtr<FScriptExecutionNode>> AllPureNodes;
+			GetAllPureNodes(AllPureNodes);
+
+			FTracePath PureTracePath(TracePath);
+			for (auto PureIter : AllPureNodes)
+			{
+				PureTracePath.AddExitPin(PureIter.Key);
+				PureIter.Value->RefreshStats(PureTracePath);
+			}
+		}
+		else
+		{
+			for (auto LinkIter : LinkedNodes)
+			{
+				FTracePath LinkTracePath(TracePath);
+				if (HasFlags(EScriptExecutionNodeFlags::FunctionTunnel))
+				{
+					MapTunnelLinearExecution(LinkTracePath);
+				}
+				//if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::DummyTrace))
+				LinkTracePath.AddExitPin(LinkIter.Key);
+				LinkIter.Value->RefreshStats(LinkTracePath);
+			}
+		}
+	}
+	// Update the owning blueprint stats
+	if (BlueprintPooledStats.Num() > 0)
+	{
+		TSharedPtr<FScriptPerfData> BlueprintData = GetBlueprintPerfDataByTracePath(TracePath);
+		BlueprintData->Reset();
+
+		for (auto BlueprintChildDataIter : BlueprintPooledStats)
+		{
+			BlueprintData->AddData(*BlueprintChildDataIter.Get());
 		}
 	}
 }
@@ -283,19 +326,37 @@ void FScriptExecutionNode::GetAllExecNodes(TMap<FName, TSharedPtr<FScriptExecuti
 void FScriptExecutionNode::GetAllPureNodes(TMap<int32, TSharedPtr<class FScriptExecutionNode>>& PureNodesOut)
 {
 	GetAllPureNodes_Internal(PureNodesOut, PureNodeScriptCodeRange);
+
+	// Sort pure nodes by script offset (execution order).
+	PureNodesOut.KeySort(TLess<int32>());
 }
 
 void FScriptExecutionNode::GetAllPureNodes_Internal(TMap<int32, TSharedPtr<class FScriptExecutionNode>>& PureNodesOut, const FInt32Range& ScriptCodeRange)
 {
-	for (auto PureIter : PureNodes)
+	for (auto LinkIter : LinkedNodes)
 	{
-		PureIter.Value->GetAllPureNodes_Internal(PureNodesOut, ScriptCodeRange);
+		LinkIter.Value->GetAllPureNodes_Internal(PureNodesOut, ScriptCodeRange);
 
-		if (ScriptCodeRange.Contains(PureIter.Key))
+		if (LinkIter.Value->IsPureNode() && ScriptCodeRange.Contains(LinkIter.Key))
 		{
-			PureNodesOut.Add(PureIter.Key, PureIter.Value);
+			PureNodesOut.Add(LinkIter.Key, LinkIter.Value);
 		}
 	}
+}
+
+TSharedPtr<FScriptExecutionNode> FScriptExecutionNode::GetPureChainNode()
+{
+	TSharedPtr<FScriptExecutionNode> Result;
+
+	for (auto ChildIter : ChildNodes)
+	{
+		if (ChildIter->IsPureChain())
+		{
+			Result = ChildIter;
+		}
+	}
+
+	return Result;
 }
 
 void FScriptExecutionNode::NavigateToObject() const

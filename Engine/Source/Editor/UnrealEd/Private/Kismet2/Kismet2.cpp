@@ -498,7 +498,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 				FDefaultEventNodeData Data = DataIt.Value();
 				if (NewBP->GeneratedClass->IsChildOf(Data.TargetClass))
 				{
-					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], Data.EventName, NewBP->GeneratedClass, NodePositionY);
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], Data.EventName, Data.TargetClass, NodePositionY);
 				}
 			}
 
@@ -683,6 +683,9 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 {
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileBlueprint);
+
+	// Wipe the PreCompile log, any generated messages are now irrelevant
+	BlueprintObj->PreCompileLog.Reset();
 
 	// Broadcast pre-compile
 #if WITH_EDITOR

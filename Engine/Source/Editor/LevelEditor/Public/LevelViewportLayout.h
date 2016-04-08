@@ -10,7 +10,7 @@
 #include "LevelViewportActions.h"
 
 class ILevelEditor;
-class SLevelViewport;
+class SLevelEditor;
 class FLevelViewportLayout;
 
 /** Arguments for constructing a viewport */

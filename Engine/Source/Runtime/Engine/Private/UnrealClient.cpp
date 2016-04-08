@@ -171,6 +171,71 @@ bool FRenderTarget::ReadFloat16Pixels(TArray<FFloat16Color>& OutputBuffer,ECubeF
 	return ReadFloat16Pixels((FFloat16Color*)&(OutputBuffer[0]), CubeFace);
 }
 
+/**
+* Reads the viewport's displayed pixels into a preallocated color buffer.
+* @param OutImageData - LinearColor array to fill!
+* @param CubeFace - optional cube face for when reading from a cube render target
+* @return True if the read succeeded.
+*/
+bool FRenderTarget::ReadLinearColorPixels(TArray<FLinearColor> &OutImageData, FReadSurfaceDataFlags InFlags, FIntRect InRect)
+{
+	if (InRect == FIntRect(0, 0, 0, 0))
+	{
+		InRect = FIntRect(0, 0, GetSizeXY().X, GetSizeXY().Y);
+	}
+
+	// Read the render target surface data back.	
+	struct FReadSurfaceContext
+	{
+		FRenderTarget* SrcRenderTarget;
+		TArray<FLinearColor>* OutData;
+		FIntRect Rect;
+		FReadSurfaceDataFlags Flags;
+	};
+
+	OutImageData.Reset();
+	FReadSurfaceContext ReadSurfaceContext =
+	{
+		this,
+		&OutImageData,
+		InRect,
+		InFlags
+	};
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		ReadSurfaceCommand,
+		FReadSurfaceContext, Context, ReadSurfaceContext,
+		{
+			RHICmdList.ReadSurfaceData(
+			Context.SrcRenderTarget->GetRenderTargetTexture(),
+				Context.Rect,
+				*Context.OutData,
+				Context.Flags
+				);
+		});
+	FlushRenderingCommands();
+
+	return true;
+}
+
+/**
+* Reads the viewport's displayed pixels into a preallocated color buffer.
+* @param OutputBuffer - RGBA8 values will be stored in this buffer
+* @return True if the read succeeded.
+*/
+bool FRenderTarget::ReadLinearColorPixelsPtr(FLinearColor* OutImageBytes, FReadSurfaceDataFlags InFlags, FIntRect InRect)
+{
+	TArray<FLinearColor> SurfaceData;
+
+	bool bResult = ReadLinearColorPixels(SurfaceData, InFlags, InRect);
+	if (bResult)
+	{
+		FMemory::Memcpy(OutImageBytes, &SurfaceData[0], SurfaceData.Num() * sizeof(FLinearColor));
+	}
+
+	return bResult;
+}
+
 /** 
 * @return display gamma expected for rendering to this render target 
 */

@@ -313,6 +313,16 @@ public:
 	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) const = 0;
 
 	/**
+	 * Enumerate the raw data of this property.  (Each pointer can be cast to the property data type)
+	 *
+	 * @param InRawDataCallback		The function to call for each data
+	 */ 
+	typedef TFunctionRef<bool(void* /*RawData*/, const int32 /*DataIndex*/, const int32 /*NumDatas*/)> EnumerateRawDataFuncRef; /** Return true to continue enumeration */
+	typedef TFunctionRef<bool(const void* /*RawData*/, const int32 /*DataIndex*/, const int32 /*NumDatas*/)> EnumerateConstRawDataFuncRef; /** Return true to continue enumeration */
+	virtual void EnumerateRawData( const EnumerateRawDataFuncRef& InRawDataCallback ) = 0;
+	virtual void EnumerateConstRawData( const EnumerateConstRawDataFuncRef& InRawDataCallback ) const = 0;
+
+	/**
 	 * Accesses the raw data of this property.  (Each pointer can be cast to the property data type)
 	 *
 	 * @param RawData	An array of raw data.  The elements in this array are the raw data for this property on each of the objects in the  property editor

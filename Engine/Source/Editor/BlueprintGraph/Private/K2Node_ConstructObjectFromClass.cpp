@@ -54,16 +54,13 @@ void UK2Node_ConstructObjectFromClass::AllocateDefaultPins()
 
 	// Add blueprint pin
 	UEdGraphPin* ClassPin = CreatePin(EGPD_Input, K2Schema->PC_Class, TEXT(""), GetClassPinBaseClass(), false, false, FK2Node_ConstructObjectFromClassHelper::ClassPinName);
-	SetPinToolTip(*ClassPin, LOCTEXT("ClassPinDescription", "The object class you want to spawn"));
-
+	
 	// Result pin
 	UEdGraphPin* ResultPin = CreatePin(EGPD_Output, K2Schema->PC_Object, TEXT(""), GetClassPinBaseClass(), false, false, K2Schema->PN_ReturnValue);
-	SetPinToolTip(*ResultPin, LOCTEXT("ResultPinDescription", "The spawned object"));
-
+	
 	if (UseOuter())
 	{
 		UEdGraphPin* OuterPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), UObject::StaticClass(), false, false, FK2Node_ConstructObjectFromClassHelper::OuterPinName);
-		SetPinToolTip(*OuterPin, LOCTEXT("OuterPinDescription", "Owner of the created object"));
 	}
 
 	Super::AllocateDefaultPins();
@@ -169,6 +166,7 @@ void UK2Node_ConstructObjectFromClass::ReallocatePinsDuringReconstruction(TArray
 	{
 		CreatePinsForClass(UseSpawnClass);
 	}
+	RestoreSplitPins(OldPins);
 }
 
 bool UK2Node_ConstructObjectFromClass::IsSpawnVarPin(UEdGraphPin* Pin)
@@ -230,6 +228,15 @@ void UK2Node_ConstructObjectFromClass::PinConnectionListChanged(UEdGraphPin* Pin
 	{
 		OnClassPinChanged();
 	}
+}
+
+void UK2Node_ConstructObjectFromClass::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const
+{
+	SetPinToolTip(*GetClassPin(), LOCTEXT("ClassPinDescription", "The object class you want to construct"));
+	SetPinToolTip(*GetResultPin(), LOCTEXT("ResultPinDescription", "The constructed object"));
+	SetPinToolTip(*GetOuterPin(), LOCTEXT("OuterPinDescription", "Owner of the constructed object"));
+
+	return Super::GetPinHoverText(Pin, HoverTextOut);
 }
 
 void UK2Node_ConstructObjectFromClass::PinDefaultValueChanged(UEdGraphPin* ChangedPin) 

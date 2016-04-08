@@ -847,22 +847,12 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityFlattenCS,TEXT("PostProcessVelocityFl
 
 
 FRCPassPostProcessVelocityFlatten::FRCPassPostProcessVelocityFlatten()
-	: AsyncJobFenceID(-1)
 {}
 
 void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& Context)
 {
 	SCOPED_DRAW_EVENT(Context.RHICmdList, VelocityFlatten);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
-
-	if (AsyncJobFenceID != -1)
-	{
-		// If we run with AsyncCompute we use the same node twice, once to start the AsyncCompute and once to wait for the result.
-		// The later one is happening here.
-		Context.RHICmdList.GraphicsWaitOnAsyncComputeJob(AsyncJobFenceID);
-		AsyncJobFenceID = -1;
-		return;
-	}
 
 	if(!InputDesc)
 	{
@@ -878,15 +868,7 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 
 	TShaderMapRef< FPostProcessVelocityFlattenCS > ComputeShader( Context.GetShaderMap() );
 
-	const bool bAsyncComputeEnabled = IsAsyncComputeEnabled();
-
 	SetRenderTarget(Context.RHICmdList, FTextureRHIRef(), FTextureRHIRef());
-
-	if(bAsyncComputeEnabled)
-	{
-		// If AsyncCompute is enabled we start recording the commands for that
-		Context.RHICmdList.BeginAsyncComputeJob_DrawThread(AsyncComputePriority_Default);
-	}
 
 	Context.SetViewportAndCallRHI( View.ViewRect );
 	Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -900,14 +882,6 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 	FIntPoint ThreadGroupCountValue = GetNumTiles16x16(View.ViewRect.Size());
 	DispatchComputeShader(Context.RHICmdList, *ComputeShader, ThreadGroupCountValue.X, ThreadGroupCountValue.Y, 1);
 
-#if USE_ASYNC_COMPUTE_CONTEXT
-	if ( AsyncJobFenceID != -1 )
-	{
-		Context.RHICmdList.GraphicsWaitOnAsyncComputeJob(AsyncJobFenceID);
-		AsyncJobFenceID = -1;
-	}
-#endif
-
 	//	void FD3D11DynamicRHI::RHIGraphicsWaitOnAsyncComputeJob( uint32 FenceIndex )
 	Context.RHICmdList.FlushComputeShaderCache();
 
@@ -917,22 +891,6 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget0.TargetableTexture, DestRenderTarget0.ShaderResourceTexture, false, FResolveParams());
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget1.TargetableTexture, DestRenderTarget1.ShaderResourceTexture, false, FResolveParams());
-
-	// we want this pass to be executed another time
-	// so we do this: CompositeContext.Process(VelocityFlattenPass, TEXT("VelocityFlattenPass"));
-	// and this: bProcessWasCalled = false;
-	if(bAsyncComputeEnabled)
-	{
-		// we end recording the commands for AsyncCompute and get back a number to wait for it with GraphicsWaitOnAsyncComputeJob()
-		AsyncJobFenceID = Context.RHICmdList.EndAsyncComputeJob_DrawThread();
-
-		// mark it not processed so it gets executed a second time
-		bProcessWasCalled = false;
-
-		// we run this Process() two times and want to not get the dependencies processed twice (could be moved into the ComposingGraph iteration, slower but easier coding)
-		SetInput(ePId_Input0, FRenderingCompositeOutputRef());
-		SetInput(ePId_Input1, FRenderingCompositeOutputRef());
-	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessVelocityFlatten::ComputeOutputDesc(EPassOutputId InPassOutputId) const

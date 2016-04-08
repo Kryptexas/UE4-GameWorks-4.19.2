@@ -6,6 +6,8 @@
 #include "Factories.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "UnrealExporter.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 /////////////////////////////////////////////////////
 // FGraphObjectTextFactory
@@ -15,7 +17,9 @@ struct FGraphObjectTextFactory : public FCustomizableTextObjectFactory
 {
 public:
 	TSet<UEdGraphNode*> SpawnedNodes;
+	TSet<UEdGraphNode*> SubstituteNodes;
 	const UEdGraph* DestinationGraph;
+	TArray<FName> ExtraNamesInUse;
 public:
 	FGraphObjectTextFactory(const UEdGraph* InDestinationGraph)
 		: FCustomizableTextObjectFactory(GWarn)
@@ -54,7 +58,8 @@ protected:
 			if(!Node->CanPasteHere(DestinationGraph))
 			{
 				// Attempt to create a substitute node if it cannot be pasted (note: the return value can be NULL, indicating that the node cannot be pasted into the graph)
-				Node = DestinationGraph->GetSchema()->CreateSubstituteNode(Node, DestinationGraph, &InstanceGraph);
+				Node = DestinationGraph->GetSchema()->CreateSubstituteNode(Node, DestinationGraph, &InstanceGraph, ExtraNamesInUse);
+				SubstituteNodes.Add(Node);
 			}
 
 			if(Node != CreatedObject)
@@ -69,6 +74,23 @@ protected:
 				SpawnedNodes.Add(Node);
 
 				Node->GetGraph()->Nodes.Add(Node);
+			}
+		}
+	}
+
+	virtual void PostProcessConstructedObjects() override
+	{
+		if (SubstituteNodes.Num() > 0)
+		{
+			// Display a notification to inform the user that the variable type was invalid (likely due to corruption), it should no longer appear in the list.
+			FNotificationInfo Info(NSLOCTEXT("EdGraphUtilities", "SubstituteNodesWarning", "Conflicting nodes substituted during paste!"));
+			Info.ExpireDuration = 3.0f;
+			Info.bUseLargeFont = false;
+			Info.Image = FCoreStyle::Get().GetBrush(TEXT("MessageLog.Warning"));
+			TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+			if (Notification.IsValid())
+			{
+				Notification->SetCompletionState(SNotificationItem::CS_None);
 			}
 		}
 	}
@@ -394,6 +416,32 @@ void FEdGraphUtilities::RegisterVisualPinConnectionFactory(TSharedPtr<FGraphPane
 void FEdGraphUtilities::UnregisterVisualPinConnectionFactory(TSharedPtr<FGraphPanelPinConnectionFactory> OldFactory)
 {
     VisualPinConnectionFactories.Remove(OldFactory);
+}
+
+void FEdGraphUtilities::FNodeVisitor::TraverseNodes(UEdGraphNode* Node)
+{
+	VisitedNodes.Add(Node);
+	TouchNode(Node);
+
+	// Follow every pin
+	for (int32 i = 0; i < Node->Pins.Num(); ++i)
+	{
+		UEdGraphPin* MyPin = Node->Pins[i];
+
+		// And every connection to the pin
+		for (int32 j = 0; j < MyPin->LinkedTo.Num(); ++j)
+		{
+			UEdGraphPin* OtherPin = MyPin->LinkedTo[j];
+			if (OtherPin)
+			{
+				UEdGraphNode* OtherNode = OtherPin->GetOwningNodeUnchecked();
+				if (OtherNode && !VisitedNodes.Contains(OtherNode))
+				{
+					TraverseNodes(OtherNode);
+				}
+			}
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

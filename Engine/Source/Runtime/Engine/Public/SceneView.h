@@ -649,6 +649,11 @@ public:
 	/** Current buffer visualization mode */
 	FName CurrentBufferVisualizationMode;
 
+#if WITH_EDITOR
+	/* Whether to use the pixel inspector */
+	bool bUsePixelInspector;
+#endif //WITH_EDITOR
+
 	/**
 	* These can be used to override material parameters across the scene without recompiling shaders.
 	* The last component is how much to include of the material's value for that parameter, so 0 will completely remove the material's value.

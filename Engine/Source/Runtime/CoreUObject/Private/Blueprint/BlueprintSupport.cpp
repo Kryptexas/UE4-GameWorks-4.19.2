@@ -863,8 +863,31 @@ void FLinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 			{
 				FObjectImport& Import = ImportMap[ImportIndex];
 
-				const FLinkerLoad* SourceLinker = (Import.SourceLinker != nullptr) ? Import.SourceLinker :
-					(Import.XObject != nullptr) ? Import.XObject->GetLinker() : nullptr;
+				FLinkerLoad* SourceLinker = Import.SourceLinker;
+				// we cannot rely on Import.SourceLinker being set, if you look 
+				// at FLinkerLoad::CreateImport(), you'll see in game builds 
+				// that we try to circumvent the normal Import loading with a
+				// FindImportFast() call... if this is successful (the import 
+				// has already been somewhat loaded), then we don't fill out the 
+				// SourceLinker field
+				if (SourceLinker == nullptr)
+				{
+					if (Import.XObject != nullptr)
+					{
+						SourceLinker = Import.XObject->GetLinker();
+						//if (SourceLinker == nullptr)
+						//{
+						//	UPackage* ImportPkg = Import.XObject->GetOutermost();
+						//	// we use this package as placeholder for our 
+						//	// placeholders, so make sure to skip those (all other
+						//	// imports should belong to another package)
+						//	if (ImportPkg && ImportPkg != LinkerRoot)
+						//	{
+						//		SourceLinker = FindExistingLinkerForPackage(ImportPkg);
+						//	}
+						//}
+					}					
+				}
 
 				const UPackage* SourcePackage = (SourceLinker != nullptr) ? SourceLinker->LinkerRoot : nullptr;
 				// this package may not have introduced any (possible) cyclic 
@@ -901,9 +924,9 @@ void FLinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 				{
 					// in case this is a user defined struct, we have to resolve any 
 					// deferred dependencies in the struct 
-					if (Import.SourceLinker != nullptr)
+					if (SourceLinker != nullptr)
 					{
-						Import.SourceLinker->ResolveDeferredDependencies(StructObj);
+						SourceLinker->ResolveDeferredDependencies(StructObj);
 					}
 				}
 			}
@@ -1047,10 +1070,10 @@ int32 FLinkerLoad::ResolveDependencyPlaceholder(FLinkerPlaceholderBase* Placehol
 	// if we can't rely on the Import object's RF_LoadCompleted flag, then its
 	// owner class should at least have it
 	DEFERRED_DEPENDENCY_CHECK( (RealImportObj == nullptr) || bExpectsLoadCompleteFlag ||
-		(FunctionOwner && FunctionOwner->HasAnyFlags(RF_LoadCompleted)) );
+		(FunctionOwner && FunctionOwner->HasAnyFlags(RF_LoadCompleted | RF_Dynamic)) );
 
 	DEFERRED_DEPENDENCY_CHECK(RealImportObj != PlaceholderObj);
-	DEFERRED_DEPENDENCY_CHECK(!bExpectsLoadCompleteFlag || RealImportObj->HasAnyFlags(RF_LoadCompleted));
+	DEFERRED_DEPENDENCY_CHECK(!bExpectsLoadCompleteFlag || RealImportObj->HasAnyFlags(RF_LoadCompleted | RF_Dynamic));
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 	int32 ReplacementCount = 0;
@@ -1211,6 +1234,31 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 	// have to)... we do however need it here in FinalizeBlueprint(), because
 	// we need it ran for any super-classes before we regen
 	ResolveAllImports();
+
+	// interfaces can invalidate classes which implement them (when the  
+	// interface is regenerated), they essentially define the makeup of the  
+	// implementing class; so here, like we do with the parent class above, we  
+	// ensure that all implemented interfaces are finalized first - this helps  
+	// avoid cyclic issues where an interface ends up invalidating a dependent  
+	// class by being regenerated after the class (see UE-28846)
+	for (const FImplementedInterface& InterfaceDesc : LoadClass->Interfaces)
+	{
+		FLinkerLoad* InterfaceLinker = (InterfaceDesc.Class) ? InterfaceDesc.Class->GetLinker() : nullptr;
+		if ((InterfaceLinker != nullptr) && InterfaceLinker->IsBlueprintFinalizationPending())
+		{
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+			// the interface import should have been properly resolved above, in 
+			// ResolveAllImports()
+			if (!ensure(!InterfaceLinker->HasUnresolvedDependencies()))
+#else 
+			if (InterfaceLinker->HasUnresolvedDependencies())
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+			{
+				InterfaceLinker->ResolveDeferredDependencies(InterfaceDesc.Class);
+			}
+			InterfaceLinker->FinalizeBlueprint(InterfaceDesc.Class);
+		}
+	}
 
 	// replace any export placeholders that were created, and serialize in the 
 	// class's CDO

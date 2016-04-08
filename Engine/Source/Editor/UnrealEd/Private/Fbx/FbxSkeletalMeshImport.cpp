@@ -1185,7 +1185,7 @@ bool UnFbx::FFbxImporter::FillSkeletalMeshImportData(TArray<FbxNode*>& NodeArray
 	return true;
 }
 
-USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, bool* bCancelOperation, TArray<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData, bool bCreateRenderData )
+USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, int32 LodIndex, bool* bCancelOperation, TArray<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData, bool bCreateRenderData )
 {
 	if (NodeArray.Num() == 0)
 	{
@@ -1229,7 +1229,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 #endif// #if WITH_APEX_CLOTHING
 
 			ExistingSkelMesh->PreEditChange(NULL);
-			ExistSkelMeshDataPtr = SaveExistingSkelMeshData(ExistingSkelMesh,!ImportOptions->bImportScene);
+			ExistSkelMeshDataPtr = SaveExistingSkelMeshData(ExistingSkelMesh,!ImportOptions->bImportMaterials);
 		}
 		// if any other object exists, we can't import with this name
 		else if (ExistingObject)
@@ -1384,7 +1384,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		}
 	}
 
-	if(InParent != GetTransientPackage())
+	if(LodIndex == 0)
 	{
 		// Create PhysicsAsset if requested and if physics asset is null
 		if (ImportOptions->bCreatePhysicsAsset )
@@ -1605,20 +1605,38 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 				FbxNode *SkeletalMeshNode = Node;
 				if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 				{
-					SkeletalMeshNode = FindLODGroupNode(Node, 0);
-				}
-
-				if (SkeletalMeshNode != nullptr && SkeletalMeshNode->GetNodeAttribute() && SkeletalMeshNode->GetNodeAttribute()->GetUniqueID() == SkeletalMeshFbxUID)
-				{
-					FbxNodes = SkeletalMeshNodes;
-					if (OutSkeletalMeshArray != nullptr)
+					TArray<FbxNode*> NodeInLod;
+					FindAllLODGroupNode(NodeInLod, Node, 0);
+					for (FbxNode *MeshNode : NodeInLod)
 					{
-						for (FbxNode *NodeReimport : (*SkeletalMeshNodes))
+						if (MeshNode != nullptr && MeshNode->GetNodeAttribute() && MeshNode->GetNodeAttribute()->GetUniqueID() == SkeletalMeshFbxUID)
 						{
-							OutSkeletalMeshArray->Add(NodeReimport);
+							FbxNodes = SkeletalMeshNodes;
+							if (OutSkeletalMeshArray != nullptr)
+							{
+								for (FbxNode *NodeReimport : (*SkeletalMeshNodes))
+								{
+									OutSkeletalMeshArray->Add(NodeReimport);
+								}
+							}
+							break;
 						}
 					}
-					break;
+				}
+				else
+				{
+					if (SkeletalMeshNode != nullptr && SkeletalMeshNode->GetNodeAttribute() && SkeletalMeshNode->GetNodeAttribute()->GetUniqueID() == SkeletalMeshFbxUID)
+					{
+						FbxNodes = SkeletalMeshNodes;
+						if (OutSkeletalMeshArray != nullptr)
+						{
+							for (FbxNode *NodeReimport : (*SkeletalMeshNodes))
+							{
+								OutSkeletalMeshArray->Add(NodeReimport);
+							}
+						}
+						break;
+					}
 				}
 			}
 			if (FbxNodes != nullptr)
@@ -1647,9 +1665,9 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 		// set import options, how about others?
 		if (!ImportOptions->bImportScene)
 		{
-			//When importing a scene those options are set by the user
-			ImportOptions->bImportMaterials = false;
-			ImportOptions->bImportTextures = false;
+			UFbxAssetImportData* ImportData = Cast<UFbxAssetImportData>(Mesh->AssetImportData);
+			ImportOptions->bImportMaterials = ImportData->bImportMaterials;
+			ImportOptions->bImportTextures = ImportData->bImportMaterials;
 		}
 		//In case of a scene reimport animations are reimport later so its ok to hardcode animation to false here
 		ImportOptions->bImportAnimations = false;
@@ -1679,17 +1697,18 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 				FbxNode* Node = (*FbxNodes)[j];
 				if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 				{
+					TArray<FbxNode*> NodeInLod;
 					if (Node->GetChildCount() > LODIndex)
 					{
-						FbxNode *MeshNode = FindLODGroupNode(Node, LODIndex);
-						if(MeshNode != nullptr)
-							SkelMeshNodeArray.Add(MeshNode);
+						FindAllLODGroupNode(NodeInLod, Node, LODIndex);
 					}
 					else // in less some LODGroups have less level, use the last level
 					{
-						FbxNode *MeshNode = FindLODGroupNode(Node, Node->GetChildCount() - 1);
-						if (MeshNode != nullptr)
-							SkelMeshNodeArray.Add(MeshNode);
+						FindAllLODGroupNode(NodeInLod, Node, Node->GetChildCount() - 1);
+					}
+					for (FbxNode *MeshNode : NodeInLod)
+					{
+						SkelMeshNodeArray.Add(MeshNode);
 					}
 				}
 				else
@@ -1700,13 +1719,13 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 
 			if (LODIndex == 0)
 			{
-				NewMesh = ImportSkeletalMesh( Mesh->GetOuter(), SkelMeshNodeArray, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData);
+				NewMesh = ImportSkeletalMesh( Mesh->GetOuter(), SkelMeshNodeArray, *Mesh->GetName(), RF_Public|RF_Standalone, TemplateImportData, LODIndex);
 			}
-			else if (NewMesh) // the base skeletal mesh is imported successfully
+			else if (NewMesh && ImportOptions->bImportSkeletalMeshLODs) // the base skeletal mesh is imported successfully
 			{
 				USkeletalMesh* BaseSkeletalMesh = Cast<USkeletalMesh>(NewMesh);
-				UObject *LODObject = ImportSkeletalMesh( GetTransientPackage(), SkelMeshNodeArray, NAME_None, RF_NoFlags, TemplateImportData);
-				ImportSkeletalMeshLOD( Cast<USkeletalMesh>(LODObject), BaseSkeletalMesh, LODIndex, false);
+				UObject *LODObject = ImportSkeletalMesh( NewMesh->GetOutermost(), SkelMeshNodeArray, NAME_None, RF_Transient, TemplateImportData, LODIndex);
+				ImportSkeletalMeshLOD( Cast<USkeletalMesh>(LODObject), BaseSkeletalMesh, LODIndex);
 
 				// Set LOD Model's DisplayFactor
 				// if this LOD is newly added, then set DisplayFactor
@@ -2573,6 +2592,12 @@ void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkelet
 		if (InSkeletalMesh->Materials[MatIdx].MaterialInterface != NULL)
 		{
 			LODMatIndex = BaseSkeletalMesh->Materials.Find(InSkeletalMesh->Materials[MatIdx]);
+		}
+
+		// Add the missing materials to the USkeletalMesh
+		if (LODMatIndex == INDEX_NONE)
+		{
+			LODMatIndex = BaseSkeletalMesh->Materials.Add(InSkeletalMesh->Materials[MatIdx]);
 		}
 
 		// If we didn't just use the index - but make sure its within range of the Materials array.

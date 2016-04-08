@@ -398,7 +398,9 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 					const uint32 ExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst;
 					const FString ActualArg = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, ExportFlags, false);
 					const FString NoConstType = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, ExportFlags, true);
-					EmitterContext.AddLine(FString::Printf(TEXT("%s = const_cast<%s>(%s__const);"), *ActualArg, *NoConstType, *FEmitHelper::GetCppName(Property)));
+					const FString TypeDefName = FString(TEXT("T")) + EmitterContext.GenerateUniqueLocalName();
+					EmitterContext.AddLine(FString::Printf(TEXT("typedef %s %s;"), *NoConstType, *TypeDefName));
+					EmitterContext.AddLine(FString::Printf(TEXT("%s = *const_cast<%s *>(&%s__const);"), *ActualArg, *TypeDefName, *FEmitHelper::GetCppName(Property)));
 				}
 			}
 			DeclareLocalVariables(EmitterContext, LocalVariables);
@@ -660,10 +662,11 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 	check(SourceEnum);
 	FCodeText Header;
 	Header.AddLine(TEXT("#pragma once"));
+	const FString EnumCppName = *FEmitHelper::GetCppName(SourceEnum);
 	// use GetBaseFilename() so that we can coordinate #includes and filenames
 	Header.AddLine(FString::Printf(TEXT("#include \"%s.generated.h\""), *FEmitHelper::GetBaseFilename(SourceEnum)));
 	Header.AddLine(FString::Printf(TEXT("UENUM(BlueprintType, %s )"), *FEmitHelper::ReplaceConvertedMetaData(SourceEnum)));
-	Header.AddLine(FString::Printf(TEXT("enum class %s  : uint8"), *FEmitHelper::GetCppName(SourceEnum)));
+	Header.AddLine(FString::Printf(TEXT("enum class %s  : uint8"), *EnumCppName));
 	Header.AddLine(TEXT("{"));
 	Header.IncreaseIndent();
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
@@ -672,11 +675,32 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 		const int32 ElemValue = Index;
 
 		const FString& DisplayNameMD = SourceEnum->GetMetaData(TEXT("DisplayName"), ElemValue);// TODO: value or index?
-		const FString Meta = DisplayNameMD.IsEmpty() ? FString() : FString::Printf(TEXT("UMETA(DisplayName = \"%s\")"), *DisplayNameMD);
+		const FString Meta = DisplayNameMD.IsEmpty() ? FString() : FString::Printf(TEXT("UMETA(DisplayName = \"%s\")"), *DisplayNameMD.ReplaceCharWithEscapedChar());
 		Header.AddLine(FString::Printf(TEXT("%s = %d %s,"), *ElemName, ElemValue, *Meta));
 	}
 	Header.DecreaseIndent();
 	Header.AddLine(TEXT("};"));
+	/*
+	Header.AddLine(FString::Printf(TEXT("FString %s__GetUserFriendlyName(int32 InValue)"), *EnumCppName));
+	Header.AddLine(TEXT("{"));
+	Header.IncreaseIndent();
+
+	Header.AddLine(TEXT("switch(InValue)"));
+	Header.AddLine(TEXT("{"));
+	Header.IncreaseIndent();
+	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
+	{
+		const FString DisplayNameStr = SourceEnum->GetEnumText(Index).ToString().ReplaceCharWithEscapedChar();
+		Header.AddLine(FString::Printf(TEXT("case %s::%s: return FString(TEXT(\"%s\"));"), *EnumCppName, *SourceEnum->GetEnumName(Index), *DisplayNameStr));
+	}
+	Header.DecreaseIndent();
+	Header.AddLine(TEXT("};"));
+
+	Header.AddLine(TEXT("ensure(false);"));
+	Header.AddLine(TEXT("return FString();"));
+	Header.DecreaseIndent();
+	Header.AddLine(TEXT("};"));
+	*/
 	return Header.Result;
 }
 

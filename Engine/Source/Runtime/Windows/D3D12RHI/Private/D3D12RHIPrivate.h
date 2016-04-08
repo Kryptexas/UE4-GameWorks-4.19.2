@@ -795,9 +795,6 @@ public:
 	virtual void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect) final override;
 	virtual void RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth) final override;
 	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) final override;
-	virtual void RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) override;
-	virtual void RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex) override;
-	virtual void RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex) override;
 
 	virtual void RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect, bool bForceShaderClear);
 };

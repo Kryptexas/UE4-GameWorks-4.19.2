@@ -117,7 +117,7 @@ var UE_JavaScriptLibary = {
     xhr.open(_verb, _url, true);
     xhr.responseType = 'arraybuffer';
 
-    // set all headers. 
+    // set all headers.
     var _headerArray = _headers.split("%");
     for(var headerArrayidx = 0; headerArrayidx < _headerArray.length; headerArrayidx++){
       var header = _headerArray[headerArrayidx].split(":");

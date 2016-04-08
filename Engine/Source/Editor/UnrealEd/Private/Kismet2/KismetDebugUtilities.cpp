@@ -142,7 +142,11 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 		case EBlueprintExceptionType::AccessViolation:
 			if ( GIsEditor && GIsPlayInEditorWorld )
 			{
-				TSharedRef<FTokenizedMessage> ErrorMessage = FMessageLog("PIE").Error(LOCTEXT("RuntimeErrorMessage", "Blueprint Runtime Error from function:"));
+				// declared as its own variable since it's flushed (logs pushed
+				// to std output) on destruction - we want the full message 
+				// constructed before it's logged
+				FMessageLog PIEMessageLog("PIE");
+				TSharedRef<FTokenizedMessage> ErrorMessage = PIEMessageLog.Error(LOCTEXT("RuntimeErrorMessage", "Blueprint Runtime Error from function:"));
 
 				// NOTE: StackFrame.Node is not a blueprint node like you may think ("Node" has some legacy meaning)
 				FString GeneratedFuncName = FString::Printf(TEXT("'%s'"), *StackFrame.Node->GetName());

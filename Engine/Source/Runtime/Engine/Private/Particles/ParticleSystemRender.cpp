@@ -1532,6 +1532,10 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 
 			FMeshParticleInstanceVertices* InstanceVerticesCPU = NULL;
 
+			// For OpenGL's we can't assume that it is OK to leave the PrevTransformBuffer buffer unbound.
+			// Doing so can lead to undefined behaviour if the buffer is referenced in the shader even if protected by a branch that is not meant to be taken.
+			bool const bGeneratePrevTransformBuffer = (Source.MeshMotionBlurOffset || IsOpenGLPlatform(ShaderPlatform));
+
 			if(bInstanced)
 			{
 				FGlobalDynamicVertexBuffer::FAllocation Allocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * InstanceVertexStride );
@@ -1543,11 +1547,49 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * DynamicParameterVertexStride );
 				}
 
-				if (Source.MeshMotionBlurOffset && FeatureLevel >= ERHIFeatureLevel::SM4)
+				if (bGeneratePrevTransformBuffer)
 				{
 					PrevTransformBuffer = MeshVertexFactory->LockPreviousTransformBuffer(ParticleCount);
 				}
-
+				
+				if (PrevTransformBuffer && !Source.MeshMotionBlurOffset)
+				{
+					SCOPE_CYCLE_COUNTER(STAT_ParticlePackingTime);
+					int32 ActiveParticleCount = Source.ActiveParticleCount;
+					if ((Source.MaxDrawCount >= 0) && (ActiveParticleCount > Source.MaxDrawCount))
+					{
+						ActiveParticleCount = Source.MaxDrawCount;
+					}
+					
+					int32 PrevTransformVertexStride = sizeof(FVector4) * 3;
+					
+					uint8* TempPrevTranformVert = (uint8*)PrevTransformBuffer;
+					
+					for (int32 i = ActiveParticleCount - 1; i >= 0; i--)
+					{
+						FVector4* PrevTransformVertex = (FVector4*)TempPrevTranformVert;
+						
+						const int32	CurrentIndex	= Source.DataContainer.ParticleIndices[i];
+						const uint8* ParticleBase	= Source.DataContainer.ParticleData + CurrentIndex * Source.ParticleStride;
+						const FBaseParticle& Particle		= *((const FBaseParticle*) ParticleBase);
+						
+						// Instance to world transformation. Translation (Instance world position) is packed into W
+						FMatrix TransMat(FMatrix::Identity);
+						GetParticleTransform(Particle, Proxy, View, TransMat);
+						
+						// Transpose on CPU to allow for simpler shader code to perform the transform.
+						const FMatrix Transpose = TransMat.GetTransposed();
+						
+						PrevTransformVertex[0] = FVector4(Transpose.M[0][0], Transpose.M[0][1], Transpose.M[0][2], Transpose.M[0][3]);
+						PrevTransformVertex[1] = FVector4(Transpose.M[1][0], Transpose.M[1][1], Transpose.M[1][2], Transpose.M[1][3]);
+						PrevTransformVertex[2] = FVector4(Transpose.M[2][0], Transpose.M[2][1], Transpose.M[2][2], Transpose.M[2][3]);
+						
+						TempPrevTranformVert += PrevTransformVertexStride;
+					}
+					
+					PrevTransformBuffer = nullptr;
+				}
+				
 				if(Allocation.IsValid() && (!bUsesDynamicParameter || DynamicParameterAllocation.IsValid()))
 				{
 					// Fill instance buffer.
@@ -1566,11 +1608,11 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					}
 				}
 
-				if (Source.MeshMotionBlurOffset && FeatureLevel >= ERHIFeatureLevel::SM4)
+				if (bGeneratePrevTransformBuffer)
 				{
 					MeshVertexFactory->UnlockPreviousTransformBuffer();
 				}
-
+				
 				MeshVertexFactory->SetInstanceBuffer(Allocation.VertexBuffer, Allocation.VertexOffset, InstanceVertexStride);
 				MeshVertexFactory->SetDynamicParameterBuffer(DynamicParameterAllocation.VertexBuffer, DynamicParameterAllocation.VertexOffset , GetDynamicParameterVertexStride());
 			}
@@ -1587,7 +1629,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 				}
 
 				void* PrevTransformBuffer = nullptr;
-				if (Source.MeshMotionBlurOffset && FeatureLevel >= ERHIFeatureLevel::SM4)
+				if (bGeneratePrevTransformBuffer)
 				{
 					InstanceVerticesCPU->PrevTransformDataAllocationsCPU.Reset(ParticleCount);
 					InstanceVerticesCPU->PrevTransformDataAllocationsCPU.AddUninitialized(ParticleCount);

@@ -15,7 +15,6 @@ namespace
 			: PropertyHandle(InPropertyHandle)
 			, PropertyUtilities(InPropertyUtilities)
 		{
-			RefreshRawData();
 		}
 
 		virtual bool IsMultiLineText() const override
@@ -47,7 +46,7 @@ namespace
 
 		virtual int32 GetNumTexts() const override
 		{
-			RefreshRawData();
+			const TArray<FText*>& RawTextData = SyncRawTextData();
 
 			return (PropertyHandle->IsValidHandle())
 				? RawTextData.Num() 
@@ -56,22 +55,19 @@ namespace
 
 		virtual FText GetText(const int32 InIndex) const override
 		{
-			RefreshRawData();
+			const TArray<FText*>& RawTextData = SyncRawTextData();
 
 			if (PropertyHandle->IsValidHandle())
 			{
 				check(RawTextData.IsValidIndex(InIndex));
-				if (RawTextData[InIndex])
-				{
-					return *RawTextData[InIndex];
-				}
+				return *RawTextData[InIndex];
 			}
 			return FText::GetEmpty();
 		}
 
 		virtual void SetText(const int32 InIndex, const FText& InText) override
 		{
-			RefreshRawData();
+			const TArray<FText*>& RawTextData = SyncRawTextData();
 
 			if (PropertyHandle->IsValidHandle())
 			{
@@ -95,8 +91,6 @@ namespace
 				PropertyHandle->NotifyPostChange();
 				PropertyHandle->NotifyFinishedChangingProperties();
 			}
-
-			RefreshRawData();
 		}
 
 		virtual void RequestRefresh() override
@@ -108,20 +102,26 @@ namespace
 		}
 
 	private:
-		void RefreshRawData() const
+		const TArray<FText*>& SyncRawTextData() const
 		{
-			RawTextData.Empty();
+			// Sync the scratch data array with the current property data
+			RawTextDataScratchArray.Reset();
 
 			if (PropertyHandle->IsValidHandle())
 			{
-				auto& RawData = reinterpret_cast<TArray<void*>&>(RawTextData);
-				PropertyHandle->AccessRawData(RawData);
+				PropertyHandle->EnumerateRawData([&](void* RawData, const int32 DataIndex, const int32 NumDatas) -> bool
+				{
+					RawTextDataScratchArray.Add(static_cast<FText*>(RawData));
+					return true;
+				});
 			}
+
+			return RawTextDataScratchArray;
 		}
 
 		TSharedRef<IPropertyHandle> PropertyHandle;
 		TSharedPtr<IPropertyUtilities> PropertyUtilities;
-		mutable TArray<FText*> RawTextData;
+		mutable TArray<FText*> RawTextDataScratchArray;
 	};
 }
 

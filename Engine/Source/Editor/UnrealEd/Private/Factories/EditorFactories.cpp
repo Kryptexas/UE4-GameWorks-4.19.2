@@ -5346,6 +5346,7 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 		ImportObjectProperties((uint8*)CreatedObject, *PropText, CreatedObject->GetClass(), CreatedObject, CreatedObject, WarningContext, 0, 0, &InstanceGraph);
 		ProcessConstructedObject(CreatedObject);
 	}
+	PostProcessConstructedObjects();
 }
 
 

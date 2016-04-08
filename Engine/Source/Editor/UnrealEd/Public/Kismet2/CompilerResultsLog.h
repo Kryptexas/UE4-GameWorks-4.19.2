@@ -103,7 +103,7 @@ protected:
 	FString SourcePath;
 
 public:
-	FCompilerResultsLog();
+	FCompilerResultsLog(bool bIsCompatibleWithEvents = true);
 	virtual ~FCompilerResultsLog();
 
 	/** Register this log with the MessageLog module */

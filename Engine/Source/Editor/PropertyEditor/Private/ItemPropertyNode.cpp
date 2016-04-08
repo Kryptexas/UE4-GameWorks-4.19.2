@@ -10,7 +10,7 @@
 FItemPropertyNode::FItemPropertyNode(void)
 	: FPropertyNode()
 {
-
+	bCanDisplayFavorite = false;
 }
 
 FItemPropertyNode::~FItemPropertyNode(void)
@@ -272,6 +272,56 @@ void FItemPropertyNode::InitChildNodes()
 			}
 		}
 	}
+}
+
+void FItemPropertyNode::SetFavorite(bool FavoriteValue)
+{
+	const FObjectPropertyNode* CurrentObjectNode = FindObjectItemParent();
+	if (CurrentObjectNode == nullptr || CurrentObjectNode->GetNumObjects() <= 0)
+		return;
+	const UClass *ObjectClass = CurrentObjectNode->GetObjectBaseClass();
+	if (ObjectClass == nullptr)
+		return;
+	FString FullPropertyPath = ObjectClass->GetName() + TEXT(":") + PropertyPath;
+	if (FavoriteValue)
+	{
+		GConfig->SetBool(TEXT("DetailPropertyFavorites"), *FullPropertyPath, FavoriteValue, GEditorPerProjectIni);
+	}
+	else
+	{
+		GConfig->RemoveKey(TEXT("DetailPropertyFavorites"), *FullPropertyPath, GEditorPerProjectIni);
+	}
+}
+
+bool FItemPropertyNode::IsFavorite() const
+{
+	const FObjectPropertyNode* CurrentObjectNode = FindObjectItemParent();
+	if (CurrentObjectNode == nullptr ||CurrentObjectNode->GetNumObjects() <= 0)
+		return false;
+	const UClass *ObjectClass = CurrentObjectNode->GetObjectBaseClass();
+	if (ObjectClass == nullptr)
+		return false;
+	FString FullPropertyPath = ObjectClass->GetName() + TEXT(":") + PropertyPath;
+	bool FavoritesPropertyValue = false;
+	if (!GConfig->GetBool(TEXT("DetailPropertyFavorites"), *FullPropertyPath, FavoritesPropertyValue, GEditorPerProjectIni))
+		return false;
+	return FavoritesPropertyValue;
+}
+
+/**
+* Set the permission to display the favorite icon
+*/
+void FItemPropertyNode::SetCanDisplayFavorite(bool CanDisplayFavoriteIcon)
+{
+	bCanDisplayFavorite = CanDisplayFavoriteIcon;
+}
+
+/**
+* Set the permission to display the favorite icon
+*/
+bool FItemPropertyNode::CanDisplayFavorite() const
+{
+	return bCanDisplayFavorite;
 }
 
 void FItemPropertyNode::SetDisplayNameOverride( const FText& InDisplayNameOverride )

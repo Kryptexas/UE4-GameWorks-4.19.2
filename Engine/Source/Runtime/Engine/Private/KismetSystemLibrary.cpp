@@ -390,6 +390,18 @@ void UKismetSystemLibrary::K2_ClearTimerHandle(UObject* WorldContextObject, FTim
 	}
 }
 
+void UKismetSystemLibrary::K2_ClearAndInvalidateTimerHandle(UObject* WorldContextObject, FTimerHandle& Handle)
+{
+	if (Handle.IsValid())
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		if (World)
+		{
+			World->GetTimerManager().ClearTimer(Handle);
+		}
+	}
+}
+
 void UKismetSystemLibrary::K2_PauseTimer(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;

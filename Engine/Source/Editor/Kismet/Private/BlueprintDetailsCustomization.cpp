@@ -554,6 +554,58 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 			.Font(DetailFontInfo)
 		]
 	];
+
+	TSharedPtr<SToolTip> BitmaskTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarBitmaskTooltip", "Whether or not to treat this variable as a bitmask."), nullptr, DocLink, TEXT("Bitmask"));
+
+	Category.AddCustomRow(LOCTEXT("IsVariableBitmaskLabel", "Bitmask"))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::BitmaskVisibility))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("IsVariableBitmaskLabel", "Bitmask"))
+		.ToolTip(BitmaskTooltip)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	[
+		SNew(SCheckBox)
+		.IsChecked(this, &FBlueprintVarActionDetails::OnBitmaskCheckboxState)
+		.OnCheckStateChanged(this, &FBlueprintVarActionDetails::OnBitmaskChanged)
+		.IsEnabled(IsVariableInBlueprint())
+		.ToolTip(BitmaskTooltip)
+	];
+
+	BitmaskEnumTypeNames.Empty();
+	BitmaskEnumTypeNames.Add(MakeShareable(new FString(LOCTEXT("BitmaskEnumTypeName_None", "None").ToString())));
+	for (TObjectIterator<UEnum> EnumIt; EnumIt; ++EnumIt)
+	{
+		UEnum* CurrentEnum = *EnumIt;
+		if (UEdGraphSchema_K2::IsAllowableBlueprintVariableType(CurrentEnum) && CurrentEnum->HasMetaData(TEXT("Bitflags")))
+		{
+			BitmaskEnumTypeNames.Add(MakeShareable(new FString(CurrentEnum->GetFName().ToString())));
+		}
+	}
+
+	TSharedPtr<SToolTip> BitmaskEnumTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarBitmaskEnumTooltip", "If this is a bitmask, choose an optional enumeration type for the flags."), nullptr, DocLink, TEXT("Bitmask Flags"));
+	
+	Category.AddCustomRow(LOCTEXT("BitmaskEnumLabel", "Bitmask Enum"))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::BitmaskVisibility))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("BitmaskEnumLabel", "Bitmask Enum"))
+		.ToolTip(BitmaskEnumTooltip)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	[
+		SNew(STextComboBox)
+		.OptionsSource(&BitmaskEnumTypeNames)
+		.InitiallySelectedItem(GetBitmaskEnumTypeName())
+		.OnSelectionChanged(this, &FBlueprintVarActionDetails::OnBitmaskEnumTypeChanged)
+		.IsEnabled(IsVariableInBlueprint() && OnBitmaskCheckboxState() == ECheckBoxState::Checked)
+	];
+
 	ReplicationOptions.Empty();
 	ReplicationOptions.Add(MakeShareable(new FString("None")));
 	ReplicationOptions.Add(MakeShareable(new FString("Replicated")));
@@ -1708,6 +1760,109 @@ EVisibility FBlueprintVarActionDetails::RangeVisibility() const
 		}
 	}
 	return EVisibility::Collapsed;
+}
+
+EVisibility FBlueprintVarActionDetails::BitmaskVisibility() const
+{
+	UProperty* VariableProperty = CachedVariableProperty.Get();
+	if (VariableProperty && IsABlueprintVariable(VariableProperty) && VariableProperty->IsA(UIntProperty::StaticClass()))
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Collapsed;
+}
+
+ECheckBoxState FBlueprintVarActionDetails::OnBitmaskCheckboxState() const
+{
+	UProperty* Property = CachedVariableProperty.Get();
+	if (Property)
+	{
+		return (Property && Property->HasMetaData(FBlueprintMetadata::MD_Bitmask)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return ECheckBoxState::Unchecked;
+}
+
+void FBlueprintVarActionDetails::OnBitmaskChanged(ECheckBoxState InNewState)
+{
+	const FName VarName = CachedVariableName;
+	if (VarName != NAME_None)
+	{
+		const bool bIsBitmask = (InNewState == ECheckBoxState::Checked);
+		if (bIsBitmask)
+		{
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_Bitmask, TEXT(""));
+		}
+		else
+		{
+			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_Bitmask);
+		}
+
+		TArray<UK2Node_Variable*> VariableNodes;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(GetBlueprintObj(), VariableNodes);
+
+		for (TArray<UK2Node_Variable*>::TConstIterator NodeIt(VariableNodes); NodeIt; ++NodeIt)
+		{
+			UK2Node_Variable* CurrentNode = *NodeIt;
+			if (VarName == CurrentNode->GetVarName())
+			{
+				CurrentNode->ReconstructNode();
+			}
+		}
+	}
+}
+
+TSharedPtr<FString> FBlueprintVarActionDetails::GetBitmaskEnumTypeName() const
+{
+	TSharedPtr<FString> Result;
+	const FName VarName = CachedVariableName;
+
+	if (BitmaskEnumTypeNames.Num() > 0 && VarName != NAME_None)
+	{
+		Result = BitmaskEnumTypeNames[0];
+
+		FString OutValue;
+		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum, OutValue);
+
+		for (int32 i = 1; i < BitmaskEnumTypeNames.Num(); ++i)
+		{
+			if (OutValue == *BitmaskEnumTypeNames[i])
+			{
+				Result = BitmaskEnumTypeNames[i];
+				break;
+			}
+		}
+	}
+
+	return Result;
+}
+
+void FBlueprintVarActionDetails::OnBitmaskEnumTypeChanged(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo)
+{
+	const FName VarName = CachedVariableName;
+	if (VarName != NAME_None)
+	{
+		if (ItemSelected == BitmaskEnumTypeNames[0])
+		{
+			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum);
+		}
+		else if(ItemSelected.IsValid())
+		{
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum, *ItemSelected);
+		}
+
+		TArray<UK2Node_Variable*> VariableNodes;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(GetBlueprintObj(), VariableNodes);
+
+		for (TArray<UK2Node_Variable*>::TConstIterator NodeIt(VariableNodes); NodeIt; ++NodeIt)
+		{
+			UK2Node_Variable* CurrentNode = *NodeIt;
+			if (VarName == CurrentNode->GetVarName())
+			{
+				CurrentNode->ReconstructNode();
+			}
+		}
+	}
 }
 
 TSharedPtr<FString> FBlueprintVarActionDetails::GetVariableReplicationType() const

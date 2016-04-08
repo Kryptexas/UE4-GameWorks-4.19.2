@@ -510,7 +510,7 @@ bool FBlueprintEditor::IsInAScriptingMode() const
 
 bool FBlueprintEditor::OnRequestClose()
 {
-	if (IsBlueprintProfilerSupported() && GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	if (IsProfilerAvailable())
 	{
 		TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID)->RequestCloseTab();
 	}
@@ -1682,7 +1682,7 @@ void FBlueprintEditor::InitBlueprintEditor(
 	PostLayoutBlueprintEditorInitialization();
 
 	// Ensure the profiler UI respects the current state if it had previously been enabled.
-	if (IsBlueprintProfilerSupported())
+	if (IsProfilerAvailable())
 	{
 		bool bOpenProfilerTab = false;
 		if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
@@ -2486,7 +2486,7 @@ void FBlueprintEditor::CreateDefaultCommands()
 	// Blueprint Profiler Commands
 	ToolkitCommands->MapAction(FFullBlueprintEditorCommands::Get().ToggleProfiler,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::ToggleProfiler),
-		FCanExecuteAction(),
+		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsProfilerAvailable),
 		FIsActionChecked::CreateSP(this, &FBlueprintEditor::IsProfilerActive));
 
 	// New document actions
@@ -2572,9 +2572,29 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanGenerateNativeCode));
 }
 
+bool FBlueprintEditor::IsProfilerAvailable() const
+{
+	bool bIsBPProfilerSupported = false;
+	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	{
+		if (GetToolkitFName() == FName("BlueprintEditor") && GetCurrentMode() == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
+		{
+			if (auto Blueprint = GetBlueprintObj())
+			{
+				if (Blueprint->BlueprintType == BPTYPE_Normal || Blueprint->BlueprintType == BPTYPE_LevelScript)
+				{
+					bIsBPProfilerSupported = true;
+				}
+			}
+		}
+	}
+	return bIsBPProfilerSupported;
+
+}
+
 bool FBlueprintEditor::IsProfilerActive() const
 {
-	if (IsBlueprintProfilerSupported() && GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	if (IsProfilerAvailable())
 	{
 		IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
 		return ProfilerModule.IsProfilerEnabled();
@@ -2584,7 +2604,7 @@ bool FBlueprintEditor::IsProfilerActive() const
 
 void FBlueprintEditor::ToggleProfiler()
 {
-	if (IsBlueprintProfilerSupported() && GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	if (IsProfilerAvailable())
 	{
 		IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
 		ProfilerModule.ToggleProfilingCapture();
@@ -2598,22 +2618,6 @@ void FBlueprintEditor::ToggleProfiler()
 			TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID)->RequestCloseTab();
 		}
 	}
-}
-
-bool FBlueprintEditor::IsBlueprintProfilerSupported() const
-{
-	bool bIsBPProfilerSupported = false;
-	if (GetToolkitFName() == FName("BlueprintEditor") && GetCurrentMode() == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
-	{
-		if (auto Blueprint = GetBlueprintObj())
-		{
-			if (Blueprint->BlueprintType == BPTYPE_Normal || Blueprint->BlueprintType == BPTYPE_LevelScript)
-			{
-				bIsBPProfilerSupported = true;
-			}
-		}
-	}
-	return bIsBPProfilerSupported;
 }
 
 void FBlueprintEditor::OpenNativeCodeGenerationTool()
@@ -5474,6 +5478,13 @@ void FBlueprintEditor::PasteNodes()
 	}
 
 	PasteNodesHere(FocusedGraphEd->GetCurrentGraph(), FocusedGraphEd->GetPasteLocation());
+
+	// Dump any temporary pre-compile warnings to the compiler log.
+	UBlueprint* BlueprintObj = GetBlueprintObj();
+	if (BlueprintObj->PreCompileLog.IsValid())
+	{
+		DumpMessagesToCompilerLog(BlueprintObj->PreCompileLog->Messages, true);
+	}
 }
 
 

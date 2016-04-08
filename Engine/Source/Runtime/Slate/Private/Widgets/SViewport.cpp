@@ -26,6 +26,7 @@ void SViewport::Construct( const FArguments& InArgs )
 	bEnableBlending = InArgs._EnableBlending;
 	bEnableStereoRendering = InArgs._EnableStereoRendering;
 	bIgnoreTextureAlpha = InArgs._IgnoreTextureAlpha;
+	bPreMultipliedAlpha = InArgs._PreMultipliedAlpha;
 	ViewportInterface = InArgs._ViewportInterface;
 	ViewportSize = InArgs._ViewportSize;
 
@@ -70,6 +71,23 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 		DrawEffects |= ESlateDrawEffect::IgnoreTextureAlpha;
 	}
 
+	// Should we perform gamma correction?
+	if( !bEnableGammaCorrection )
+	{
+		DrawEffects |= ESlateDrawEffect::NoGamma;
+	}
+
+	// Show we enable blending?
+	if( !bEnableBlending )
+	{
+		DrawEffects |= ESlateDrawEffect::NoBlending;
+	}
+	// Should we use pre-multiplied alpha?
+	else if( bPreMultipliedAlpha )
+	{
+		DrawEffects |= ESlateDrawEffect::PreMultipliedAlpha;
+	}
+
 	TSharedPtr<ISlateViewport> ViewportInterfacePin = ViewportInterface.Pin();
 
 	// Tell the interface that we are drawing.
@@ -78,13 +96,12 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 		ViewportInterfacePin->OnDrawViewport( AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 	}
 
-
 	// Only draw a quad if not rendering directly to the backbuffer
 	if( !ShouldRenderDirectly() )
 	{
 		if( ViewportInterfacePin.IsValid() && ViewportInterfacePin->GetViewportRenderTargetTexture() != nullptr )
 		{
-			FSlateDrawElement::MakeViewport( OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), ViewportInterfacePin, MyClippingRect, bEnableGammaCorrection, bEnableBlending, DrawEffects, InWidgetStyle.GetColorAndOpacityTint() );
+			FSlateDrawElement::MakeViewport( OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), ViewportInterfacePin, MyClippingRect, DrawEffects, InWidgetStyle.GetColorAndOpacityTint() );
 		}
 		else
 		{

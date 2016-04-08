@@ -60,6 +60,7 @@ protected:
 		InWidget.SetJustification(Justification);
 		InWidget.SetAutoWrapText(AutoWrapText);
 		InWidget.SetWrapTextAt(WrapTextAt != 0 ? WrapTextAt : TAttribute<float>());
+		InWidget.SetWrappingPolicy(WrappingPolicy);
 		InWidget.SetMargin(Margin);
 		InWidget.SetLineHeightPercentage(LineHeightPercentage);
 	}
@@ -79,6 +80,10 @@ protected:
 	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
 	float WrapTextAt;
+
+	/** The wrapping policy to use. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
+	ETextWrappingPolicy WrappingPolicy;
 
 	/** The amount of blank space left around the edges of text area. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)

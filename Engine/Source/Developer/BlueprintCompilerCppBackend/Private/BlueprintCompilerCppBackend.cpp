@@ -564,7 +564,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		}
 		Result += FunctionToCallOriginalName;
 
-		if (Statement.bIsParentContext && FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall))
+		if (Statement.bIsParentContext && FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall, false))
 		{
 			ensure(!bCallOnDifferentObject);
 			Result += TEXT("_Implementation");
@@ -606,7 +606,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 	const FString PSC_Self(TEXT("self"));
 	if (Term->bIsLiteral)
 	{
-		return FEmitHelper::LiteralTerm(EmitterContext, Term->Type, Term->Name, Term->ObjectLiteral);
+		return FEmitHelper::LiteralTerm(EmitterContext, Term->Type, Term->Name, Term->ObjectLiteral, &Term->TextLiteral);
 	}
 	else if (Term->InlineGeneratedParameter)
 	{

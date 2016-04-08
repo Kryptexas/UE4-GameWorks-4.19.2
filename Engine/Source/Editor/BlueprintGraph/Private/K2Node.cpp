@@ -289,27 +289,7 @@ void UK2Node::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
 	AllocateDefaultPins();
 
-	for (auto OldPin : OldPins)
-	{
-		if (OldPin->ParentPin)
-		{
-			// find the new pin that corresponds to parent, and split it if it isn't already split
-			for (auto NewPin : Pins)
-			{
-				if (FCString::Stricmp(*(NewPin->PinName), *(OldPin->ParentPin->PinName)) == 0)
-				{
-					// Make sure we're not dealing with a menu node
-					UEdGraph* OuterGraph = GetGraph();
-					if (OuterGraph && OuterGraph->Schema && NewPin->SubPins.Num() == 0)
-					{
-						NewPin->PinType = OldPin->ParentPin->PinType;
-						GetSchema()->SplitPin(NewPin);
-						break;
-					}
-				}
-			}
-		}
-	}
+	RestoreSplitPins(OldPins);
 }
 
 void UK2Node::PostReconstructNode()
@@ -475,6 +455,32 @@ UK2Node::ERedirectType UK2Node::ShouldRedirectParam(const TArray<FString>& OldPi
 	}
 
 	return ERedirectType_None;
+}
+
+void UK2Node::RestoreSplitPins(TArray<UEdGraphPin*>& OldPins)
+{
+	// necessary to recreate split pins and keep their wires
+	for (auto OldPin : OldPins)
+	{
+		if (OldPin->ParentPin)
+		{
+			// find the new pin that corresponds to parent, and split it if it isn't already split
+			for (auto NewPin : Pins)
+			{
+				if (FCString::Stricmp(*(NewPin->PinName), *(OldPin->ParentPin->PinName)) == 0)
+				{
+					// Make sure we're not dealing with a menu node
+					UEdGraph* OuterGraph = GetGraph();
+					if (OuterGraph && OuterGraph->Schema && NewPin->SubPins.Num() == 0)
+					{
+						NewPin->PinType = OldPin->ParentPin->PinType;
+						GetSchema()->SplitPin(NewPin);
+						break;
+					}
+				}
+			}
+		}
+	}
 }
 
 UK2Node::ERedirectType UK2Node::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
