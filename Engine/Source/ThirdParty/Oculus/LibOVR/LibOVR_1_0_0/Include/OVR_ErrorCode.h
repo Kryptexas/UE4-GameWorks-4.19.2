@@ -1,7 +1,7 @@
 /********************************************************************************//**
 \file  OVR_ErrorCode.h
 \brief     This header provides LibOVR error code declarations.
-\copyright Copyright 2015 Oculus VR, LLC All Rights reserved.
+\copyright Copyright 2015-2016 Oculus VR, LLC All Rights reserved.
 *************************************************************************************/
 
 #ifndef OVR_ErrorCode_h
@@ -137,6 +137,9 @@ typedef enum ovrErrorType_
     ovrError_TrackerDriverFailure       = -4012,   ///< The sensor driver has encountered a problem.
     ovrError_TrackerNRFFailure          = -4013,   ///< The sensor wireless subsystem has encountered a problem.
     ovrError_HardwareGone               = -4014,   ///< The hardware has been unplugged
+    ovrError_NordicEnabledNoSync        = -4015,   ///< The nordic indicates that sync is enabled but it is not sending sync pulses
+    ovrError_NordicSyncNoFrames         = -4016,   ///< It looks like we're getting a sync signal, but no camera frames have been received
+    ovrError_CatastrophicFailure        = -4017,   ///< A catastrophic failure has occurred.  We will attempt to recover by resetting the device
 
     ovrError_HMDFirmwareMismatch        = -4100,   ///< The HMD Firmware is out of date and is unacceptable.
     ovrError_TrackerFirmwareMismatch    = -4101,   ///< The sensor Firmware is out of date and is unacceptable.

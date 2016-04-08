@@ -1,7 +1,7 @@
 /********************************************************************************//**
 \file      OVR_CAPI.h
 \brief     Keys for CAPI proprty function calls
-\copyright Copyright 2014 Oculus VR, LLC All Rights reserved.
+\copyright Copyright 2015 Oculus VR, LLC All Rights reserved.
 ************************************************************************************/
 
 #ifndef OVR_CAPI_Keys_h

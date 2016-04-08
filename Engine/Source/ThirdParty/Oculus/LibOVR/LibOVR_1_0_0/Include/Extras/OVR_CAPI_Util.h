@@ -1,7 +1,7 @@
 /********************************************************************************//**
 \file      OVR_CAPI_Util.h
 \brief     This header provides LibOVR utility function declarations
-\copyright Copyright 2015 Oculus VR, LLC All Rights reserved.
+\copyright Copyright 2015-2016 Oculus VR, LLC All Rights reserved.
 *************************************************************************************/
 
 #ifndef OVR_CAPI_Util_h
