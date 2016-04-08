@@ -18,8 +18,7 @@ namespace UnrealBuildTool.Rules
 				    "UnrealEd",
 					"UMG",
 					"LevelEditor",
-					"HeadMountedDisplay",
-					"Launch"	// @todo vreditor urgent: Hack needed to access GNewWorldToMetersScale
+					"HeadMountedDisplay"
 				}
 			);
 

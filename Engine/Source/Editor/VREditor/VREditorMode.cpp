@@ -1766,7 +1766,7 @@ void FVREditorMode::SetWorldToMetersScale( const float NewWorldToMetersScale )
 	// @todo vreditor: This is bad because we're clobbering the world settings which will be saved with the map.  Instead we need to 
 	// be able to apply an override before the scene view gets it
 
-	LAUNCH_API extern float GNewWorldToMetersScale;
+	ENGINE_API extern float GNewWorldToMetersScale;
 	GNewWorldToMetersScale = NewWorldToMetersScale;
 }
 

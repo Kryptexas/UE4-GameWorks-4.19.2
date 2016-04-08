@@ -2593,8 +2593,6 @@ uint64 FScopedSampleMallocChurn::DumpFrame = 0;
 
 #endif
 
-LAUNCH_API float GNewWorldToMetersScale = 0.0f;
-
 void FEngineLoop::Tick()
 {
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
@@ -2704,6 +2702,8 @@ void FEngineLoop::Tick()
 
 		// @todo vreditor urgent: Temporary hack to allow world-to-meters to be set before
 		// input is polled for motion controller devices each frame.
+#if WITH_ENGINE
+		extern ENGINE_API float GNewWorldToMetersScale;
 		if( GNewWorldToMetersScale != 0.0f && GWorld != nullptr )
 		{
 			if( GNewWorldToMetersScale != GWorld->GetWorldSettings()->WorldToMeters )
@@ -2711,6 +2711,7 @@ void FEngineLoop::Tick()
 				GWorld->GetWorldSettings()->WorldToMeters = GNewWorldToMetersScale;
 			}
 		}
+#endif	// WITH_ENGINE
 
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{

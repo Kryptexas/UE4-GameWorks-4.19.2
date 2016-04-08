@@ -20,6 +20,10 @@
 #include "Editor.h"
 #endif 
 
+// @todo vreditor urgent: Temporary hack to allow world-to-meters to be set before
+// input is polled for motion controller devices each frame.
+ENGINE_API float GNewWorldToMetersScale = 0.0f;
+
 AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.DoNotCreateDefaultSubobject(TEXT("Sprite")))
 {
