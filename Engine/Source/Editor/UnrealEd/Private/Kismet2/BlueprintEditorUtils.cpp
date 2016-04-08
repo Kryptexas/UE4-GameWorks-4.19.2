@@ -1770,7 +1770,10 @@ void FBlueprintEditorUtils::RecreateClassMetaData(UBlueprint* Blueprint, UClass*
 	{
 		if (!ParentClass->HasMetaData(FBlueprintMetadata::MD_IgnoreCategoryKeywordsInSubclasses))
 		{
-			FEditorCategoryUtils::GetClassHideCategories(ParentClass, AllHideCategories);
+			// we want the categories just as they appear in the parent class 
+			// (set bHomogenize to false) - especially since homogenization 
+			// could inject spaces
+			FEditorCategoryUtils::GetClassHideCategories(ParentClass, AllHideCategories, /*bHomogenize =*/false);
 			if (ParentClass->HasMetaData(TEXT("ShowCategories")))
 			{
 				Class->SetMetaData(TEXT("ShowCategories"), *ParentClass->GetMetaData("ShowCategories"));
@@ -1820,11 +1823,26 @@ void FBlueprintEditorUtils::RecreateClassMetaData(UBlueprint* Blueprint, UClass*
 
 	for (FString HideCategory : Blueprint->HideCategories)
 	{
-		HideCategory.ReplaceInline(TEXT(" "), TEXT(""));
+		auto& CharArray = HideCategory.GetCharArray();
+
+		int32 SpaceIndex = CharArray.Find(TEXT(' '));
+		while (SpaceIndex != INDEX_NONE)
+		{
+			CharArray.RemoveAt(SpaceIndex);
+			if (SpaceIndex >= CharArray.Num())
+			{
+				break;
+			}
+
+			TCHAR& WordStartingChar = CharArray[SpaceIndex];
+			WordStartingChar = FChar::ToUpper(WordStartingChar);
+
+			CharArray.Find(TEXT(' '), SpaceIndex);
+		}
 		AllHideCategories.Add(HideCategory);
 	}
 
-	if (AllHideCategories.Num())
+	if (AllHideCategories.Num() > 0)
 	{
 		Class->SetMetaData(TEXT("HideCategories"), *FString::Join(AllHideCategories, TEXT(" ")));
 	}
@@ -2799,7 +2817,7 @@ UK2Node_Event* FBlueprintEditorUtils::FindOverrideForFunction(const UBlueprint* 
 		UK2Node_Event* EventNode = AllEvents[i];
 		check(EventNode);
 		if(	EventNode->bOverrideFunction == true &&
-			EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode()) == SignatureClass &&
+			EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode())->IsChildOf(SignatureClass) &&
 			EventNode->EventReference.GetMemberName() == SignatureName )
 		{
 			return EventNode;
@@ -2808,6 +2826,28 @@ UK2Node_Event* FBlueprintEditorUtils::FindOverrideForFunction(const UBlueprint* 
 
 	return NULL;
 }
+
+UK2Node_Event* FBlueprintEditorUtils::FindCustomEventNode(const UBlueprint* Blueprint, FName const CustomName)
+{
+	UK2Node_Event* FoundNode = nullptr;
+
+	if (CustomName != NAME_None)
+	{
+		TArray<UK2Node_Event*> AllEvents;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(Blueprint, AllEvents);
+
+		for (UK2Node_Event* EventNode : AllEvents)
+		{
+			if (EventNode->CustomFunctionName == CustomName)
+			{
+				FoundNode = EventNode;
+				break;
+			}
+		}
+	}
+	return FoundNode;
+}
+
 
 void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TSet<TWeakObjectPtr<UBlueprint>>& Dependencies, TSet<TWeakObjectPtr<UStruct>>& OutUDSDependencies)
 {
@@ -2976,8 +3016,9 @@ bool FBlueprintEditorUtils::IsDataOnlyBlueprint(const UBlueprint* Blueprint)
 		return false;
 	}
 	
-	// No extra functions, other than the user construction script
-	if ((Blueprint->FunctionGraphs.Num() > 1) || (Blueprint->MacroGraphs.Num() > 0))
+	// No extra functions, other than the user construction script(only AActor and subclasses of AActor have)
+	auto DefaultFunctionNum = (Blueprint->ParentClass && Blueprint->ParentClass->IsChildOf(AActor::StaticClass())) ? 1 : 0;
+	if ((Blueprint->FunctionGraphs.Num() > DefaultFunctionNum) || (Blueprint->MacroGraphs.Num() > 0))
 	{
 		return false;
 	}
@@ -5784,7 +5825,8 @@ namespace
 			}
 			else
 			{
-				UEdGraphNode* CustomEventNode = CurrentGraph->GetSchema()->CreateSubstituteNode(EventNode, CurrentGraph, NULL);
+				TArray<FName> DummyExtraNameList;
+				UEdGraphNode* CustomEventNode = CurrentGraph->GetSchema()->CreateSubstituteNode(EventNode, CurrentGraph, NULL, DummyExtraNameList);
 				if (ensure(CustomEventNode))
 				{
 					// Destroy the old event node (this will also break all pin links and remove it from the graph)
@@ -5899,6 +5941,7 @@ static void ConformInterfaceByName(UBlueprint* Blueprint, FBPInterfaceDescriptio
 
 		// check to make sure that there aren't any interface methods that we originally 
 		// implemented as events, but have since switched to functions 
+		TArray<FName> ExtraNameList;
 		for (UK2Node_Event* EventNode : ImplementedEvents)
 		{
 			// if this event belongs to something other than this interface
@@ -5916,7 +5959,7 @@ static void ConformInterfaceByName(UBlueprint* Blueprint, FBPInterfaceDescriptio
 
 			UEdGraph* EventGraph = EventNode->GetGraph();
 			// we've already implemented this interface function as an event (which we need to replace)
-			UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(EventGraph->GetSchema()->CreateSubstituteNode(EventNode, EventGraph, NULL));
+			UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(EventGraph->GetSchema()->CreateSubstituteNode(EventNode, EventGraph, NULL, ExtraNameList));
 			if (CustomEventNode == NULL)
 			{
 				continue;
@@ -8353,7 +8396,7 @@ void FBlueprintEditorUtils::HandleDisableEditableWhenInherited(UObject* Modified
 void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData)
 {
 	// Recursively gathers properties that differ from class/struct defaults, and fills out the cooked property list structure.
-	TFunction<void(UStruct*, const uint8*, const uint8*)> RecursivePropertyGatherLambda = [&](UStruct* InStruct, const uint8* DataPtr, const uint8* DefaultDataPtr)
+	TFunction<void(UStruct*, const uint8*, const uint8*)> RecursivePropertyGatherLambda = [&OutData, &RecursivePropertyGatherLambda](UStruct* InStruct, const uint8* DataPtr, const uint8* DefaultDataPtr)
 	{
 		for (UProperty* Property = InStruct->PropertyLink; Property; Property = Property->PropertyLinkNext)
 		{
@@ -8375,6 +8418,59 @@ void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* Compon
 
 						RecursivePropertyGatherLambda(StructProperty->Struct, PropertyValue, DefaultPropertyValue);
 
+						// Prepend the struct property only if there is at least one changed sub-property.
+						if (NumChangedProperties < OutData.ChangedPropertyList.Num())
+						{
+							OutData.ChangedPropertyList.Insert(ChangedPropertyInfo, NumChangedProperties);
+						}
+					}
+					else if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property))
+					{
+						FScriptArrayHelper ArrayValueHelper(ArrayProperty, PropertyValue);
+						FScriptArrayHelper DefaultArrayValueHelper(ArrayProperty, DefaultPropertyValue);
+
+						int32 NumChangedProperties = OutData.ChangedPropertyList.Num();
+						FBlueprintComponentChangedPropertyInfo ChangedArrayPropertyInfo = ChangedPropertyInfo;
+
+						for (int32 ArrayValueIndex = 0; ArrayValueIndex < ArrayValueHelper.Num(); ++ArrayValueIndex)
+						{
+							ChangedArrayPropertyInfo.ArrayIndex = ArrayValueIndex;
+							const uint8* ArrayPropertyValue = ArrayValueHelper.GetRawPtr(ArrayValueIndex);
+
+							if (ArrayValueIndex < DefaultArrayValueHelper.Num())
+							{
+								const uint8* DefaultArrayPropertyValue = DefaultArrayValueHelper.GetRawPtr(ArrayValueIndex);
+
+								if (UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner))
+								{
+									int32 NumChangedArrayProperties = OutData.ChangedPropertyList.Num();
+
+									RecursivePropertyGatherLambda(InnerStructProperty->Struct, ArrayPropertyValue, DefaultArrayPropertyValue);
+
+									// Prepend the struct property only if there is at least one changed sub-property.
+									if (NumChangedArrayProperties < OutData.ChangedPropertyList.Num())
+									{
+										OutData.ChangedPropertyList.Insert(ChangedArrayPropertyInfo, NumChangedArrayProperties);
+									}
+								}
+								else if(!ArrayProperty->Inner->Identical(ArrayPropertyValue, DefaultArrayPropertyValue, PPF_None))
+								{
+									// Emit the index of the individual array value that differs from the default value
+									OutData.ChangedPropertyList.Add(ChangedArrayPropertyInfo);
+								}
+							}
+							else
+							{
+								// Emit the "end" of differences with the default value (signals that remaining values should be copied in full)
+								ChangedArrayPropertyInfo.PropertyName = NAME_None;
+								OutData.ChangedPropertyList.Add(ChangedArrayPropertyInfo);
+
+								// Don't need to record anything else.
+								break;
+							}
+						}
+
+						// Prepend the array property as changed only if we also wrote out any of the inner value as changed.
 						if (NumChangedProperties < OutData.ChangedPropertyList.Num())
 						{
 							OutData.ChangedPropertyList.Insert(ChangedPropertyInfo, NumChangedProperties);

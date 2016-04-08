@@ -17,7 +17,6 @@ namespace BlueprintProfilerStatText
 	const FName ColumnId_Name("Name");
 	const FName ColumnId_InclusiveTime("InclusiveTime");
 	const FName ColumnId_Time("Time");
-	const FName ColumnId_PureTime("PureTime");
 	const FName ColumnId_MaxTime("MaxTime");
 	const FName ColumnId_MinTime("MinTime");
 	const FName ColumnId_Samples("Samples");
@@ -26,7 +25,6 @@ namespace BlueprintProfilerStatText
 	const FText ColumnText_Name(LOCTEXT("Name", "Name") );
 	const FText ColumnText_InclusiveTime(LOCTEXT("InclusiveTime", "Inclusive Time (ms)"));
 	const FText ColumnText_Time(LOCTEXT("Time", "Time (ms)"));
-	const FText ColumnText_PureTime(LOCTEXT("PureTime", "Pure Time (ms)"));
 	const FText ColumnText_MaxTime(LOCTEXT("MaxTime", "Max Time (ms)"));
 	const FText ColumnText_MinTime(LOCTEXT("MinTime", "Min Time (ms)"));
 	const FText ColumnText_Samples(LOCTEXT("Samples", "Samples"));
@@ -78,7 +76,6 @@ const FName SProfilerStatRow::GetStatName(const EBlueprintProfilerStat::Type Sta
 		case EBlueprintProfilerStat::TotalTime:		return BlueprintProfilerStatText::ColumnId_TotalTime;
 		case EBlueprintProfilerStat::InclusiveTime:	return BlueprintProfilerStatText::ColumnId_InclusiveTime;
 		case EBlueprintProfilerStat::Time:			return BlueprintProfilerStatText::ColumnId_Time;
-		case EBlueprintProfilerStat::PureTime:		return BlueprintProfilerStatText::ColumnId_PureTime;
 		case EBlueprintProfilerStat::MaxTime:		return BlueprintProfilerStatText::ColumnId_MaxTime;
 		case EBlueprintProfilerStat::MinTime:		return BlueprintProfilerStatText::ColumnId_MinTime;
 		case EBlueprintProfilerStat::Samples:		return BlueprintProfilerStatText::ColumnId_Samples;
@@ -94,12 +91,160 @@ const FText SProfilerStatRow::GetStatText(const EBlueprintProfilerStat::Type Sta
 		case EBlueprintProfilerStat::TotalTime:		return BlueprintProfilerStatText::ColumnText_TotalTime;
 		case EBlueprintProfilerStat::InclusiveTime:	return BlueprintProfilerStatText::ColumnText_InclusiveTime;
 		case EBlueprintProfilerStat::Time:			return BlueprintProfilerStatText::ColumnText_Time;
-		case EBlueprintProfilerStat::PureTime:		return BlueprintProfilerStatText::ColumnText_PureTime;
 		case EBlueprintProfilerStat::MaxTime:		return BlueprintProfilerStatText::ColumnText_MaxTime;
 		case EBlueprintProfilerStat::MinTime:		return BlueprintProfilerStatText::ColumnText_MinTime;
 		case EBlueprintProfilerStat::Samples:		return BlueprintProfilerStatText::ColumnText_Samples;
 		default:									return FText::GetEmpty();
 	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+// FBPProfilerStatOptions
+
+void FBPProfilerStatDiplayOptions::SetActiveInstance(const FName InstanceName)
+{
+	if (ActiveInstance != InstanceName && HasFlags(ScopeToDebugInstance))
+	{
+		Flags |= Modified;
+	}
+	ActiveInstance = InstanceName;
+}
+
+void FBPProfilerStatDiplayOptions::SetActiveGraph(const FName GraphName)
+{
+	if (ActiveGraph != GraphName && HasFlags(GraphFilter))
+	{
+		Flags |= Modified;
+	}
+	ActiveGraph = GraphName;
+}
+
+TSharedRef<SWidget> FBPProfilerStatDiplayOptions::CreateToolbar()
+{
+	return	
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.HAlign(HAlign_Right)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(FMargin(5,0))
+			[
+				SNew(SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("FilterToGraph", "Filter to Graph"))
+				]
+				.IsChecked<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::GetChecked, GraphFilter)
+				.OnCheckStateChanged<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::OnChecked, GraphFilter)
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(FMargin(5,0))
+			[
+				SNew(SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("DisplayPureStats", "Pure Timings"))
+				]
+				.IsChecked<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::GetChecked, DisplayPure)
+				.OnCheckStateChanged<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::OnChecked, DisplayPure)
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(FMargin(5,0))
+			[
+				SNew(SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ShowInstancesCheck", "Show Instances"))
+				]
+				.IsChecked<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::GetChecked, DisplayByInstance)
+				.OnCheckStateChanged<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::OnChecked, DisplayByInstance)
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(FMargin(5,0))
+			[
+				SNew(SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("InstanceFilterCheck", "Debug Filter Scope"))
+				]
+				.IsChecked<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::GetChecked, ScopeToDebugInstance)
+				.OnCheckStateChanged<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::OnChecked, ScopeToDebugInstance)
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(FMargin(5,0))
+			[
+				SNew(SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("AutoItemExpansion", "Auto Expand Statistics"))
+				]
+				.IsChecked<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::GetChecked, AutoExpand)
+				.OnCheckStateChanged<FBPProfilerStatDiplayOptions, uint32>(this, &FBPProfilerStatDiplayOptions::OnChecked, AutoExpand)
+			]
+		];
+}
+
+ECheckBoxState FBPProfilerStatDiplayOptions::GetChecked(const uint32 FlagsIn) const
+{
+	ECheckBoxState CheckedState;
+	if (FlagsIn & ScopeToDebugInstance)
+	{
+		if (HasFlags(DisplayByInstance))
+		{
+			CheckedState = HasFlags(ScopeToDebugInstance) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		}
+		else
+		{
+			CheckedState = ECheckBoxState::Undetermined;
+		}
+	}
+	else
+	{
+		CheckedState = HasAllFlags(FlagsIn) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return CheckedState;
+}
+
+void FBPProfilerStatDiplayOptions::OnChecked(ECheckBoxState NewState, const uint32 FlagsIn)
+{
+	if (NewState == ECheckBoxState::Checked)
+	{
+		Flags |= FlagsIn;
+	}
+	else
+	{
+		Flags &= ~FlagsIn;
+	}
+	Flags |= Modified;
+}
+
+bool FBPProfilerStatDiplayOptions::IsFiltered(TSharedPtr<FScriptExecutionNode> Node) const
+{
+	bool bFilteredOut = !HasFlags(EDisplayFlags::DisplayPure) && Node->HasFlags(EScriptExecutionNodeFlags::PureStats);
+	if (Node->IsEvent() && HasFlags(EDisplayFlags::GraphFilter))
+	{
+		if (Node->GetGraphName() == UEdGraphSchema_K2::FN_UserConstructionScript)
+		{
+			bFilteredOut = ActiveGraph != UEdGraphSchema_K2::FN_UserConstructionScript;
+		}
+		else
+		{
+			bFilteredOut = ActiveGraph == UEdGraphSchema_K2::FN_UserConstructionScript;
+		}
+	}
+	return bFilteredOut;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -124,7 +269,11 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 				.Padding(FMargin(5,0))
 				[
 					SNew(SHyperlink)
+		#if TRACEPATH_DEBUG
+					.Text(FText::FromName(ExecNode->GetName()))
+		#else
 					.Text(ExecNode->GetDisplayName())
+		#endif
 					.Style(FEditorStyle::Get(), "HoverOnlyHyperlink")
 					.ToolTipText(ExecNode->GetToolTipText())
 					.OnNavigate(this, &FBPProfilerStatWidget::NavigateTo)
@@ -143,8 +292,7 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 		{
 			TAttribute<FText> TextAttr(LOCTEXT("NonApplicableStat", ""));
 			TAttribute<FSlateColor> ColorAttr;
-			const uint32 NonNodeStats = EScriptExecutionNodeFlags::Class|EScriptExecutionNodeFlags::Instance|EScriptExecutionNodeFlags::Event|
-										EScriptExecutionNodeFlags::BranchNode|EScriptExecutionNodeFlags::CallSite|EScriptExecutionNodeFlags::ExecPin;
+			const uint32 NonNodeStats = EScriptExecutionNodeFlags::Container|EScriptExecutionNodeFlags::CallSite|EScriptExecutionNodeFlags::BranchNode|EScriptExecutionNodeFlags::ExecPin;
 
 			if (ColumnName == BlueprintProfilerStatText::ColumnId_TotalTime)
 			{
@@ -156,7 +304,7 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_InclusiveTime)
 			{
-				if (!ExecNode->HasFlags(NonNodeStats))
+				if (ExecNode->HasFlags(NonNodeStats))
 				{
 					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetInclusiveTimingText);
 					ColorAttr = TAttribute<FSlateColor>(PerformanceStats.Get(), &FScriptPerfData::GetInclusiveHeatColor);
@@ -168,14 +316,6 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 				{
 					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetNodeTimingText);
 					ColorAttr = TAttribute<FSlateColor>(PerformanceStats.Get(), &FScriptPerfData::GetNodeHeatColor);
-				}
-			}
-			else if (ColumnName == BlueprintProfilerStatText::ColumnId_PureTime)
-			{
-				if (!ExecNode->HasFlags(NonNodeStats))
-				{
-					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetPureNodeTimingText);
-					ColorAttr = TAttribute<FSlateColor>(PerformanceStats.Get(), &FScriptPerfData::GetInclusiveHeatColor);
 				}
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_MaxTime)
@@ -216,41 +356,21 @@ void FBPProfilerStatWidget::NavigateTo() const
 	}
 }
 
-void FBPProfilerStatWidget::GenerateExecNodeWidgets(const FName InstanceName, const FName FilterGraph)
+void FBPProfilerStatWidget::GenerateExecNodeWidgets(const TSharedPtr<FBPProfilerStatDiplayOptions> DisplayOptions)
 {
 	if (ExecNode.IsValid())
 	{
 		// Grab Performance Stats
-		PerformanceStats = ExecNode->GetPerfDataByInstanceAndTracePath(InstanceName, WidgetTracePath);
-		// Handle branch creation
+		PerformanceStats = ExecNode->GetPerfDataByInstanceAndTracePath(DisplayOptions->GetActiveInstance(), WidgetTracePath);
 		CachedChildren.Reset(0);
-		if (ExecNode->IsBranch())
+
+		if (ExecNode->HasFlags(EScriptExecutionNodeFlags::PureStats))
 		{
-			for (auto LinkIter : ExecNode->GetLinkedNodes())
-			{
-				TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
-				FTracePath LinkPath(WidgetTracePath);
-				LinkPath.AddExitPin(LinkIter.Key);
-				LinkIter.Value->GetLinearExecutionPath(LinearExecNodes, LinkPath);
-				for (auto LinearPathIter : LinearExecNodes)
-				{
-					TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
-					NewLinkedNode->GenerateExecNodeWidgets(InstanceName, FilterGraph);
-					CachedChildren.Add(NewLinkedNode);
-				}
-			}
-		}
-		else
-		{
-			// @TODO - filter out pure nodes?
-			if (!ExecNode->IsPureNode())
+			if (ExecNode->IsPureChain())
 			{
 				// Get the full pure node chain associated with this exec node.
 				TMap<int32, TSharedPtr<FScriptExecutionNode>> AllPureNodes;
 				ExecNode->GetAllPureNodes(AllPureNodes);
-
-				// Sort pure nodes by script offset (execution order).
-				AllPureNodes.KeySort(TLess<int32>());
 
 				// Build trace path, tree view node widget and register perf stats for tracking.
 				FTracePath PureTracePath(WidgetTracePath);
@@ -258,34 +378,67 @@ void FBPProfilerStatWidget::GenerateExecNodeWidgets(const FName InstanceName, co
 				{
 					PureTracePath.AddExitPin(Iter.Key);
 					TSharedPtr<FBPProfilerStatWidget> NewPureChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(Iter.Value, PureTracePath));
-					NewPureChildNode->GenerateExecNodeWidgets(InstanceName, FilterGraph);
-					CachedChildren.Add(NewPureChildNode);
+					NewPureChildNode->GenerateExecNodeWidgets(DisplayOptions);
+
+					// Pure nodes are shown in reverse execution order.
+					CachedChildren.Insert(NewPureChildNode, 0);
 				}
 			}
-
+		}
+		else
+		{
 			for (auto Iter : ExecNode->GetChildNodes())
 			{
 				// Filter out events based on graph
-				bool bFiltered = (Iter->IsEvent() && FilterGraph != NAME_None) ? IsEventFiltered(Iter, FilterGraph) : false;
-				if (!bFiltered)
+				if (!DisplayOptions->IsFiltered(Iter))
 				{
 					TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
 					FTracePath ChildTracePath(WidgetTracePath);
 					Iter->GetLinearExecutionPath(LinearExecNodes, ChildTracePath);
 					if (LinearExecNodes.Num() > 1)
 					{
+						TSharedPtr<FBPProfilerStatWidget> ChildContainer = AsShared();
 						for (auto LinearPathIter : LinearExecNodes)
 						{
-							TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
-							NewLinkedNode->GenerateExecNodeWidgets(InstanceName, FilterGraph);
-							CachedChildren.Add(NewLinkedNode);
+							if (!DisplayOptions->IsFiltered(LinearPathIter.LinkedNode))
+							{
+								TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
+								NewLinkedNode->GenerateExecNodeWidgets(DisplayOptions);
+								ChildContainer->CachedChildren.Add(NewLinkedNode);
+								if (LinearPathIter.LinkedNode->HasFlags(EScriptExecutionNodeFlags::Container))
+								{
+									ChildContainer = NewLinkedNode;
+								}
+							}
 						}
 					}
 					else
 					{
 						TSharedPtr<FBPProfilerStatWidget> NewChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(Iter, ChildTracePath));
-						NewChildNode->GenerateExecNodeWidgets(InstanceName, FilterGraph);
+						NewChildNode->GenerateExecNodeWidgets(DisplayOptions);
 						CachedChildren.Add(NewChildNode);
+					}
+				}
+			}
+			if (ExecNode->IsBranch())
+			{
+				for (auto LinkIter : ExecNode->GetLinkedNodes())
+				{
+					if (!DisplayOptions->IsFiltered(LinkIter.Value))
+					{
+						TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
+						FTracePath LinkPath(WidgetTracePath);
+						if (!LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
+						{
+							LinkPath.AddExitPin(LinkIter.Key);
+						}
+						LinkIter.Value->GetLinearExecutionPath(LinearExecNodes, LinkPath);
+						for (auto LinearPathIter : LinearExecNodes)
+						{
+							TSharedPtr<FBPProfilerStatWidget> NewLinkedNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(LinearPathIter.LinkedNode, LinearPathIter.TracePath));
+							NewLinkedNode->GenerateExecNodeWidgets(DisplayOptions);
+							CachedChildren.Add(NewLinkedNode);
+						}
 					}
 				}
 			}
@@ -361,23 +514,6 @@ bool FBPProfilerStatWidget::ProbeChildWidgetExpansionStates()
 		ExecNode->SetExpanded(true);
 	}
 	return bIsExpanded;
-}
-
-bool FBPProfilerStatWidget::IsEventFiltered(TSharedPtr<FScriptExecutionNode> InEventNode, FName GraphFilter) const
-{
-	bool bEventFiltered = false;
-	if (InEventNode.IsValid() && InEventNode->IsEvent())
-	{
-		if (InEventNode->GetGraphName() == UEdGraphSchema_K2::FN_UserConstructionScript)
-		{
-			bEventFiltered = GraphFilter != UEdGraphSchema_K2::FN_UserConstructionScript;
-		}
-		else
-		{
-			bEventFiltered = GraphFilter == UEdGraphSchema_K2::FN_UserConstructionScript;
-		}
-	}
-	return bEventFiltered;
 }
 
 #undef LOCTEXT_NAMESPACE

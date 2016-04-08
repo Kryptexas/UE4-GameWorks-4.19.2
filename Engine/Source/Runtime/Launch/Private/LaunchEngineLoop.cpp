@@ -290,6 +290,11 @@ bool LaunchSetGameName(const TCHAR *InCmdLine, FString& OutGameProjectFilePathUn
 		{
 			// Try to use the executable name as the game name.
 			LocalGameName = FPlatformProcess::ExecutableName();
+			int32 FirstCharToRemove = INDEX_NONE;
+			if (LocalGameName.FindChar(TCHAR('-'), FirstCharToRemove))
+			{
+				LocalGameName = LocalGameName.Left(FirstCharToRemove);
+			}
 			FApp::SetGameName(*LocalGameName);
 
 			// Check it's not UE4Game, otherwise assume a uproject file relative to the game project directory

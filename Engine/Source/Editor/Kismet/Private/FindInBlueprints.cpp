@@ -1250,7 +1250,10 @@ FText SFindInBlueprints::GetUncachedBlueprintWarningText() const
 	}
 	else
 	{
-		ReturnDisplayText = FText::Format(LOCTEXT("UncachedBlueprints", "Search incomplete. {Count} Blueprints are not indexed!"), Args);
+		Args.Add(TEXT("UnindexedCount"), FindInBlueprintManager.GetNumberUncachedBlueprints());
+		Args.Add(TEXT("OutOfDateCount"), OutOfDateWithLastSearchBPCount);
+
+		ReturnDisplayText = FText::Format(LOCTEXT("UncachedBlueprints", "Search incomplete. {Count} ({UnindexedCount} Unindexed/{OutOfDateCount} Out-of-Date) Blueprints need to be indexed!"), Args);
 
 		if (FailedToCacheCount > 0)
 		{

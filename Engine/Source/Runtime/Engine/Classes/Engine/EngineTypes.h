@@ -2559,7 +2559,7 @@ struct FTimerHandle
 
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("%d"), Handle);
+		return FString::Printf(TEXT("%ull"), Handle);
 	}
 
 private:

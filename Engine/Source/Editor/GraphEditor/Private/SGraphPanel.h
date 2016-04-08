@@ -157,6 +157,9 @@ public:
 	/** Straighten any connections attached to the specified pin, optionally limiting to the specified pin to align */
 	void StraightenConnections(UEdGraphPin* SourcePin, UEdGraphPin* PinToAlign = nullptr);
 
+	/** When the graph panel needs to be dynamically refreshing for animations, this function is registered to tick and invalidate the UI. */
+	EActiveTimerReturnType InvalidatePerTick(double InCurrentTime, float InDeltaTime);
+
 protected:
 
 	void NotifyGraphChanged ( const struct FEdGraphEditAction& InAction);
@@ -286,4 +289,10 @@ private:
 
 	/** Returns the pin that we're considering as hovered if we are hovering over a spline; may be null */
 	class SGraphPin* GetBestPinFromHoveredSpline() const;
+
+	/** Handle to timer callback that allows the UI to refresh it's arrangement each tick, allows animations to occur within the UI */
+	TWeakPtr<FActiveTimerHandle> ActiveTimerHandleInvalidatePerTick;
+
+	/** Amount of time left to invalidate the UI per tick */
+	float TimeLeftToInvalidatePerTick;
 };

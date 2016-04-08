@@ -136,7 +136,8 @@ public:
 	
 	COREUOBJECT_API static void KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity);
 
-	int32 ReadInt();
+	template<typename TNumericType>
+	TNumericType ReadInt();
 	float ReadFloat();
 	FName ReadName();
 	UObject* ReadObject();
@@ -199,15 +200,16 @@ inline FFrame::FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFr
 #endif
 }
 
-inline int32 FFrame::ReadInt()
+template<typename TNumericType>
+inline TNumericType FFrame::ReadInt()
 {
-	int32 Result;
+	TNumericType Result;
 #ifdef REQUIRES_ALIGNED_INT_ACCESS
-	FMemory::Memcpy(&Result, Code, sizeof(int32));
+	FMemory::Memcpy(&Result, Code, sizeof(TNumericType));
 #else
-	Result = *(int32*)Code;
+	Result = *(TNumericType*)Code;
 #endif
-	Code += sizeof(int32);
+	Code += sizeof(TNumericType);
 	return Result;
 }
 

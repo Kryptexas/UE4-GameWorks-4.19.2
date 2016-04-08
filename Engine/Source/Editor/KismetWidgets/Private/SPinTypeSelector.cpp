@@ -191,8 +191,9 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 
 FText SPinTypeSelector::GetTypeDescription() const
 {
+	const FString& PinSubCategory = TargetPinType.Get().PinSubCategory;
 	const UObject* PinSubCategoryObject = TargetPinType.Get().PinSubCategoryObject.Get();
-	if (PinSubCategoryObject)
+	if (PinSubCategory != UEdGraphSchema_K2::PSC_Bitmask && PinSubCategoryObject)
 	{
 		if (auto Field = Cast<const UField>(PinSubCategoryObject))
 		{
@@ -386,7 +387,7 @@ TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem I
 
 	FFormatNamedArguments Args;
 
-	if(PinType.PinSubCategoryObject.IsValid())
+	if(PinType.PinSubCategory != UEdGraphSchema_K2::PSC_Bitmask && PinType.PinSubCategoryObject.IsValid())
 	{
 		Args.Add(TEXT("TypeName"), InItem->GetDescription());
 	}

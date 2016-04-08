@@ -105,6 +105,10 @@ const FName FBlueprintMetadata::MD_DynamicOutputParam(TEXT("DynamicOutputParam")
 const FName FBlueprintMetadata::MD_ArrayParam(TEXT("ArrayParm"));
 const FName FBlueprintMetadata::MD_ArrayDependentParam(TEXT("ArrayTypeDependentParams"));
 
+const FName FBlueprintMetadata::MD_Bitmask(TEXT("Bitmask"));
+const FName FBlueprintMetadata::MD_BitmaskEnum(TEXT("BitmaskEnum"));
+const FName FBlueprintMetadata::MD_Bitflags(TEXT("Bitflags"));
+
 //////////////////////////////////////////////////////////////////////////
 
 #define LOCTEXT_NAMESPACE "KismetSchema"
@@ -553,6 +557,7 @@ const FString UEdGraphSchema_K2::PC_Asset(TEXT("asset"));
 const FString UEdGraphSchema_K2::PC_AssetClass(TEXT("assetclass"));
 const FString UEdGraphSchema_K2::PSC_Self(TEXT("self"));
 const FString UEdGraphSchema_K2::PSC_Index(TEXT("index"));
+const FString UEdGraphSchema_K2::PSC_Bitmask(TEXT("bitmask"));
 const FString UEdGraphSchema_K2::PN_Execute(TEXT("execute"));
 const FString UEdGraphSchema_K2::PN_Then(TEXT("then"));
 const FString UEdGraphSchema_K2::PN_Completed(TEXT("Completed"));
@@ -2210,7 +2215,13 @@ private:
 	static FString GenerateTypeData(const FEdGraphPinType& PinType)
 	{
 		auto Obj = PinType.PinSubCategoryObject.Get();
-		return FString::Printf(TEXT("%s;%s;%s"), *PinType.PinCategory, *PinType.PinSubCategory, Obj ? *Obj->GetPathName() : TEXT(""));
+		FString PinSubCategory = PinType.PinSubCategory;
+		if (PinSubCategory.StartsWith(UEdGraphSchema_K2::PSC_Bitmask))
+		{
+			// Exclude the bitmask subcategory string from integral types so that autocast will work.
+			PinSubCategory = TEXT("");
+		}
+		return FString::Printf(TEXT("%s;%s;%s"), *PinType.PinCategory, *PinSubCategory, Obj ? *Obj->GetPathName() : TEXT(""));
 	}
 
 	static FString GenerateCastData(const FEdGraphPinType& InputPinType, const FEdGraphPinType& OutputPinType)
@@ -3152,11 +3163,24 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 	else if (Cast<const UIntProperty>(TestProperty) != NULL)
 	{
 		TypeOut.PinCategory = PC_Int;
+
+		if (TestProperty->HasMetaData(FBlueprintMetadata::MD_Bitmask))
+		{
+			TypeOut.PinSubCategory = PSC_Bitmask;
+		}
 	}
 	else if (const UByteProperty* ByteProperty = Cast<const UByteProperty>(TestProperty))
 	{
 		TypeOut.PinCategory = PC_Byte;
-		TypeOut.PinSubCategoryObject = ByteProperty->Enum;
+
+		if (TestProperty->HasMetaData(FBlueprintMetadata::MD_Bitmask))
+		{
+			TypeOut.PinSubCategory = PSC_Bitmask;
+		}
+		else
+		{
+			TypeOut.PinSubCategoryObject = ByteProperty->Enum;
+		}
 	}
 	else if (Cast<const UNameProperty>(TestProperty) != NULL)
 	{
@@ -3188,6 +3212,16 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 	{
 		TypeOut.PinCategory = TEXT("bad_type");
 		return false;
+	}
+
+	if (TypeOut.PinSubCategory == PSC_Bitmask)
+	{
+		FString BitmaskEnumName = TestProperty->GetMetaData(TEXT("BitmaskEnum"));
+		if(!BitmaskEnumName.IsEmpty())
+		{
+			// @TODO: Potentially replace this with a serialized UEnum reference on the UProperty (e.g. UByteProperty::Enum)
+			TypeOut.PinSubCategoryObject = FindObject<UEnum>(ANY_PACKAGE, *BitmaskEnumName);
+		}
 	}
 
 	return true;
@@ -3314,9 +3348,9 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 {
 	FText PropertyText;
 
-	if (Type.PinSubCategoryObject != NULL)
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+	if (Type.PinSubCategory != Schema->PSC_Bitmask && Type.PinSubCategoryObject != NULL)
 	{
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 		if (Type.PinCategory == Schema->PC_Byte)
 		{
 			FFormatNamedArguments Args;
@@ -3902,6 +3936,11 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			{
 				return true;
 			}
+		}
+		else if (PC_Byte == Output.PinCategory || PC_Int == Output.PinCategory)
+		{
+			// Bitmask integral types are compatible with non-bitmask integral types (of the same word size).
+			return Output.PinSubCategory.StartsWith(PSC_Bitmask) || Input.PinSubCategory.StartsWith(PSC_Bitmask);
 		}
 		else if (PC_Delegate == Output.PinCategory || PC_MCDelegate == Output.PinCategory)
 		{
@@ -5425,7 +5464,7 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, boo
 	}
 }
 
-UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const UEdGraph* Graph, FObjectInstancingGraph* InstanceGraph) const
+UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const UEdGraph* Graph, FObjectInstancingGraph* InstanceGraph, TArray<FName>& InOutExtraNames) const
 {
 	// If this is an event node, create a unique custom event node as a substitute
 	UK2Node_Event* EventNode = Cast<UK2Node_Event>(Node);
@@ -5448,7 +5487,7 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 		if(Blueprint && Blueprint->SkeletonGeneratedClass)
 		{
 			// Gather all names in use by the Blueprint class
-			TArray<FName> ExistingNamesInUse;
+			TArray<FName> ExistingNamesInUse = InOutExtraNames;
 			FBlueprintEditorUtils::GetFunctionNameList(Blueprint, ExistingNamesInUse);
 			FBlueprintEditorUtils::GetClassVariableList(Blueprint, ExistingNamesInUse);
 
@@ -5476,58 +5515,91 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 			FString FunctionName;
 			const UK2Node_ActorBoundEvent* ActorBoundEventNode = Cast<const UK2Node_ActorBoundEvent>(EventNode);
 			const UK2Node_ComponentBoundEvent* CompBoundEventNode = Cast<const UK2Node_ComponentBoundEvent>(EventNode);
-			if(ActorBoundEventNode)
-			{
-				FString TargetName = TEXT("None");
-				if(ActorBoundEventNode->EventOwner)
-				{
-					TargetName = ActorBoundEventNode->EventOwner->GetActorLabel();
-				}
 
-				FunctionName = FString::Printf(TEXT("%s_%s"), *ActorBoundEventNode->DelegatePropertyName.ToString(), *TargetName);
-			}
-			else if(CompBoundEventNode)
+			const UEdGraphNode* PreExistingNode = nullptr;
+			
+			if (InstanceGraph)
 			{
-				FunctionName = FString::Printf(TEXT("%s_%s"), *CompBoundEventNode->DelegatePropertyName.ToString(), *CompBoundEventNode->ComponentPropertyName.ToString());
-			}
-			else if(EventNode->CustomFunctionName != NAME_None)
-			{
-				FunctionName = EventNode->CustomFunctionName.ToString();
-			}
-			else if(EventNode->bOverrideFunction)
-			{
-				FunctionName = EventNode->EventReference.GetMemberName().ToString();
+				// Use a generic name for the new custom event
+				FunctionName = TEXT("CustomEvent");
 			}
 			else
 			{
-				FunctionName = CustomEventNode->GetName().Replace(TEXT("K2Node_"), TEXT(""), ESearchCase::CaseSensitive);
+				// Create a name for the custom event based off the original function
+				if (ActorBoundEventNode)
+				{
+					FString TargetName = TEXT("None");
+					if (ActorBoundEventNode->EventOwner)
+					{
+						TargetName = ActorBoundEventNode->EventOwner->GetActorLabel();
+					}
+
+					FunctionName = FString::Printf(TEXT("%s_%s"), *ActorBoundEventNode->DelegatePropertyName.ToString(), *TargetName);
+					PreExistingNode = FKismetEditorUtilities::FindBoundEventForActor(ActorBoundEventNode->GetReferencedLevelActor(), ActorBoundEventNode->DelegatePropertyName);
+				}
+				else if (CompBoundEventNode)
+				{
+					FunctionName = FString::Printf(TEXT("%s_%s"), *CompBoundEventNode->DelegatePropertyName.ToString(), *CompBoundEventNode->ComponentPropertyName.ToString());
+					PreExistingNode = FKismetEditorUtilities::FindBoundEventForComponent(Blueprint, CompBoundEventNode->DelegatePropertyName, CompBoundEventNode->ComponentPropertyName);
+				}
+				else if (EventNode->CustomFunctionName != NAME_None)
+				{
+					FunctionName = EventNode->CustomFunctionName.ToString();
+				}
+				else if (EventNode->bOverrideFunction)
+				{
+					FunctionName = EventNode->EventReference.GetMemberName().ToString();
+				}
+				else
+				{
+					FunctionName = CustomEventNode->GetName().Replace(TEXT("K2Node_"), TEXT(""), ESearchCase::CaseSensitive);
+				}
 			}
 
-			// Ensure that the new event name doesn't already exist as a variable or function name
-			if(InstanceGraph)
+			// Ensure the name does not overlap with other names
+			CustomEventNode->CustomFunctionName = FName(*FunctionName, FNAME_Find);
+			if (CustomEventNode->CustomFunctionName != NAME_None
+				&& ExistingNamesInUse.Contains(CustomEventNode->CustomFunctionName))
 			{
-				FunctionName += TEXT("_Copy");
-				CustomEventNode->CustomFunctionName = FName(*FunctionName, FNAME_Find);
-				if(CustomEventNode->CustomFunctionName != NAME_None
-					&& ExistingNamesInUse.Contains(CustomEventNode->CustomFunctionName))
+				int32 i = 0;
+				FString TempFuncName;
+
+				do
 				{
-					int32 i = 0;
-					FString TempFuncName;
+					TempFuncName = FString::Printf(TEXT("%s_%d"), *FunctionName, ++i);
+					CustomEventNode->CustomFunctionName = FName(*TempFuncName, FNAME_Find);
+				} while (CustomEventNode->CustomFunctionName != NAME_None
+					&& ExistingNamesInUse.Contains(CustomEventNode->CustomFunctionName));
 
-					do 
-					{
-						TempFuncName = FString::Printf(TEXT("%s_%d"), *FunctionName, ++i);
-						CustomEventNode->CustomFunctionName = FName(*TempFuncName, FNAME_Find);
-					}
-					while(CustomEventNode->CustomFunctionName != NAME_None
-						&& ExistingNamesInUse.Contains(CustomEventNode->CustomFunctionName));
+				FunctionName = TempFuncName;
+			}
 
-					FunctionName = TempFuncName;
+			if (ActorBoundEventNode)
+			{
+				PreExistingNode = FKismetEditorUtilities::FindBoundEventForActor(ActorBoundEventNode->GetReferencedLevelActor(), ActorBoundEventNode->DelegatePropertyName);
+			}
+			else if (CompBoundEventNode)
+			{
+				PreExistingNode = FKismetEditorUtilities::FindBoundEventForComponent(Blueprint, CompBoundEventNode->DelegatePropertyName, CompBoundEventNode->ComponentPropertyName);
+			}
+			else
+			{
+				if (Cast<UK2Node_CustomEvent>(EventNode))
+				{
+					PreExistingNode = FBlueprintEditorUtils::FindCustomEventNode(Blueprint, EventNode->CustomFunctionName);
+				}
+				else
+				{
+					check(EventNode->FindEventSignatureFunction() != nullptr);
+					UClass* ClassOwner = EventNode->FindEventSignatureFunction()->GetOwnerClass()->GetAuthoritativeClass();
+
+					PreExistingNode = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventNode->FindEventSignatureFunction()->GetFName());
 				}
 			}
 
 			// Should be a unique name now, go ahead and assign it
 			CustomEventNode->CustomFunctionName = FName(*FunctionName);
+			InOutExtraNames.Add(CustomEventNode->CustomFunctionName);
 
 			// Copy the pins from the old node to the new one that's replacing it
 			CustomEventNode->Pins = EventNode->Pins;
@@ -5570,13 +5642,31 @@ UEdGraphNode* UEdGraphSchema_K2::CreateSubstituteNode(UEdGraphNode* Node, const 
 				}
 			}
 
+			if (PreExistingNode)
+			{
+				if (!Blueprint->PreCompileLog.IsValid())
+				{
+					Blueprint->PreCompileLog = TSharedPtr<FCompilerResultsLog>(new FCompilerResultsLog(false));
+					Blueprint->PreCompileLog->bSilentMode = false;
+					Blueprint->PreCompileLog->bAnnotateMentionedNodes = false;
+				}
+
+				// Append a warning to the node and to the logs
+				CustomEventNode->bHasCompilerMessage = true;
+				CustomEventNode->ErrorType = EMessageSeverity::Warning;
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("NodeName"), CustomEventNode->GetNodeTitle(ENodeTitleType::ListView));
+				Args.Add(TEXT("OriginalNodeName"), FText::FromString(PreExistingNode->GetName()));
+				CustomEventNode->ErrorMsg = FText::Format(LOCTEXT("ReverseUpgradeWarning", "Conflicted with {OriginalNodeName} and was replaced as a Custom Event!"), Args).ToString();
+				Blueprint->PreCompileLog->Warning(*LOCTEXT("ReverseUpgradeWarning_Log", "Pasted node @@  conflicted with @@ and was replaced as a Custom Event!").ToString(), CustomEventNode, PreExistingNode);
+			}
 			// Return the new custom event node that we just created as a substitute for the original event node
 			return CustomEventNode;
 		}
 	}
 
 	// Use the default logic in all other cases
-	return UEdGraphSchema::CreateSubstituteNode(Node, Graph, InstanceGraph);
+	return UEdGraphSchema::CreateSubstituteNode(Node, Graph, InstanceGraph, InOutExtraNames);
 }
 
 int32 UEdGraphSchema_K2::GetNodeSelectionCount(const UEdGraph* Graph) const

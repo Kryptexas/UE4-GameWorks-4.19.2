@@ -155,6 +155,13 @@ private:
 	FText OnGetMetaKeyValue(FName Key) const;
 	void OnMetaKeyValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo, FName Key);
 	EVisibility RangeVisibility() const;
+
+	ECheckBoxState OnBitmaskCheckboxState() const;
+	EVisibility BitmaskVisibility() const;
+	void OnBitmaskChanged(ECheckBoxState InNewState);
+
+	TSharedPtr<FString> GetBitmaskEnumTypeName() const;
+	void OnBitmaskEnumTypeChanged(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo);
 	
 	TSharedPtr<FString> GetVariableReplicationType() const;
 	void OnChangeReplication(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo);
@@ -199,6 +206,9 @@ private:
 
 	/** Array of replication options for our combo text box */
 	TArray<TSharedPtr<FString>> ReplicationOptions;
+
+	/** Array of enum type names for integers used as bitmasks */
+	TArray<TSharedPtr<FString>> BitmaskEnumTypeNames;
 
 	/** The widget used when in variable name editing mode */ 
 	TSharedPtr<SEditableTextBox> VarNameEditableTextBox;

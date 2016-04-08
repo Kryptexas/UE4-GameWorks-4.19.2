@@ -1534,7 +1534,7 @@ IMPLEMENT_VM_FUNCTION( EX_WireTracepoint, execWireTracepoint );
 void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 {
 #if !UE_BUILD_SHIPPING
-	const EScriptInstrumentation::Type EventType = static_cast<EScriptInstrumentation::Type>(Stack.ReadInt());
+	const EScriptInstrumentation::Type EventType = static_cast<EScriptInstrumentation::Type>(Stack.ReadInt<int32>());
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor)
 	{
@@ -2284,9 +2284,21 @@ IMPLEMENT_VM_FUNCTION( EX_ClearMulticastDelegate, execClearMulticastDelegate );
 
 void UObject::execIntConst( FFrame& Stack, RESULT_DECL )
 {
-	*(int32*)RESULT_PARAM = Stack.ReadInt();
+	*(int32*)RESULT_PARAM = Stack.ReadInt<int32>();
 }
 IMPLEMENT_VM_FUNCTION( EX_IntConst, execIntConst );
+
+void UObject::execInt64Const(FFrame& Stack, RESULT_DECL)
+{
+	*(int64*)RESULT_PARAM = Stack.ReadInt<int64>();
+}
+IMPLEMENT_VM_FUNCTION(EX_Int64Const, execInt64Const);
+
+void UObject::execUInt64Const(FFrame& Stack, RESULT_DECL)
+{
+	*(uint64*)RESULT_PARAM = Stack.ReadInt<uint64>();
+}
+IMPLEMENT_VM_FUNCTION(EX_UInt64Const, execUInt64Const);
 
 void UObject::execSkipOffsetConst( FFrame& Stack, RESULT_DECL )
 {
@@ -2473,7 +2485,7 @@ IMPLEMENT_VM_FUNCTION( EX_TransformConst, execTransformConst );
 void UObject::execStructConst( FFrame& Stack, RESULT_DECL )
 {
 	UScriptStruct* ScriptStruct = CastChecked<UScriptStruct>(Stack.ReadObject());
-	int32 SerializedSize = Stack.ReadInt();
+	int32 SerializedSize = Stack.ReadInt<int32>();
 
 	// Temporarily disabling this check because we can't assume the serialized size
 	// will match the struct size on all platforms (like win64 vs win32 cooked)
@@ -2517,7 +2529,7 @@ IMPLEMENT_VM_FUNCTION( EX_SetArray, execSetArray );
 void UObject::execArrayConst(FFrame& Stack, RESULT_DECL)
 {
 	UProperty* InnerProperty = CastChecked<UProperty>(Stack.ReadObject());
-	int32 Num = Stack.ReadInt();
+	int32 Num = Stack.ReadInt<int32>();
 	check(RESULT_PARAM);
 	FScriptArrayHelper ArrayHelper = FScriptArrayHelper::CreateHelperFormInnerProperty(InnerProperty, RESULT_PARAM);
 	ArrayHelper.EmptyValues(Num);

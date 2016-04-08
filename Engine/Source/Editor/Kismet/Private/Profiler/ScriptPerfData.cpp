@@ -10,18 +10,34 @@ FNumberFormattingOptions FScriptPerfData::StatNumberFormat;
 float FScriptPerfData::RecentSampleBias = 0.2f;
 float FScriptPerfData::HistoricalSampleBias = 0.8f;
 float FScriptPerfData::NodePerformanceThreshold = 1.f;
-float FScriptPerfData::PureNodePerformanceThreshold = 1.f;
 float FScriptPerfData::InclusivePerformanceThreshold = 1.5f;
 float FScriptPerfData::MaxPerformanceThreshold = 2.f;
 
-void FScriptPerfData::AddEventTiming(const double PureNodeTimingIn, const double NodeTimingIn)
+void FScriptPerfData::AddEventTiming(const double NodeTimingIn)
 {
 	const double TimingInMs = NodeTimingIn * 1000;
-	const double PureNodeTimingInMs = PureNodeTimingIn * 1000;
 	NodeTiming = (TimingInMs * RecentSampleBias) + (NodeTiming * HistoricalSampleBias);
-	PureNodeTiming = (PureNodeTimingInMs * RecentSampleBias) + (PureNodeTiming * HistoricalSampleBias);
-	InclusiveTiming = NodeTiming + PureNodeTiming;
-	TotalTiming += NodeTimingIn + PureNodeTimingIn;
+	MaxTiming = FMath::Max<double>(MaxTiming, NodeTiming);
+	MinTiming = FMath::Min<double>(MinTiming, NodeTiming);
+	TotalTiming += NodeTimingIn;
+	NumSamples++;
+}
+
+void FScriptPerfData::AddPureChainTiming(const double PureNodeTimingIn)
+{
+	const double PureTimingInMs = PureNodeTimingIn * 1000;
+	const double NewInclusiveTimingInMs = NodeTiming + PureTimingInMs;
+	InclusiveTiming = (NewInclusiveTimingInMs * RecentSampleBias) + (InclusiveTiming * HistoricalSampleBias);
+	TotalTiming += PureNodeTimingIn;
+	MaxTiming = FMath::Max<double>(MaxTiming, InclusiveTiming);
+	MinTiming = FMath::Min<double>(MinTiming, InclusiveTiming);
+}
+
+void FScriptPerfData::AddInclusiveTiming(const double InclusiveNodeTimingIn)
+{
+	const double TimingInMs = InclusiveNodeTimingIn * 1000;
+	InclusiveTiming = (TimingInMs * RecentSampleBias) + (InclusiveTiming * HistoricalSampleBias);
+	TotalTiming += InclusiveNodeTimingIn;
 	NumSamples++;
 	MaxTiming = FMath::Max<double>(MaxTiming, InclusiveTiming);
 	MinTiming = FMath::Min<double>(MinTiming, InclusiveTiming);
@@ -33,8 +49,10 @@ void FScriptPerfData::AddData(const FScriptPerfData& DataIn)
 	{
 		// Accumulate data, find min, max values
 		NodeTiming += DataIn.NodeTiming;
-		PureNodeTiming += DataIn.PureNodeTiming;
-		InclusiveTiming = NodeTiming + PureNodeTiming;
+		if (DataIn.InclusiveTiming > 0.0)
+		{
+			InclusiveTiming += DataIn.InclusiveTiming;
+		}
 		TotalTiming += DataIn.TotalTiming;
 		NumSamples += DataIn.NumSamples;
 		MaxTiming = FMath::Max<double>(MaxTiming, DataIn.MaxTiming);
@@ -53,7 +71,6 @@ void FScriptPerfData::AddBranchData(const FScriptPerfData& DataIn)
 void FScriptPerfData::Reset()
 {
 	NodeTiming = 0.0;
-	PureNodeTiming = 0.0;
 	InclusiveTiming = 0.0;
 	TotalTiming = 0.0;
 	NumSamples = 0;
@@ -75,17 +92,6 @@ void FScriptPerfData::SetNodePerformanceThreshold(const float NodePerformanceThr
 FSlateColor FScriptPerfData::GetNodeHeatColor() const
 {
 	const float Value = 1.f - FMath::Min<float>(NodeTiming / NodePerformanceThreshold, 1.f);
-	return FLinearColor(1.f, Value, Value);
-}
-
-void FScriptPerfData::SetPureNodePerformanceThreshold(const float PureNodePerformanceThresholdIn)
-{
-	PureNodePerformanceThreshold = PureNodePerformanceThresholdIn;
-}
-
-FSlateColor FScriptPerfData::GetPureNodeHeatColor() const
-{
-	const float Value = 1.f - FMath::Min<float>(PureNodeTiming / PureNodePerformanceThreshold, 1.f);
 	return FLinearColor(1.f, Value, Value);
 }
 
@@ -113,56 +119,54 @@ FSlateColor FScriptPerfData::GetMaxTimeHeatColor() const
 
 FText FScriptPerfData::GetNodeTimingText() const
 {
-	return FText::AsNumber(GetNodeTiming(), &StatNumberFormat);
-}
-
-FText FScriptPerfData::GetPureNodeTimingText() const
-{
-	const double CurrentPureTiming = GetPureTiming();
-	if (CurrentPureTiming == 0.0)
+	if (NodeTiming > 0.0)
 	{
-		return FText::GetEmpty();
+		return FText::AsNumber(NodeTiming, &StatNumberFormat);
 	}
-	else
-	{
-		return FText::AsNumber(CurrentPureTiming, &StatNumberFormat);
-	}
+	return FText::GetEmpty();
 }
 
 FText FScriptPerfData::GetInclusiveTimingText() const
 {
-	const double CurrentPureTiming = GetPureTiming();
-	if (CurrentPureTiming == 0.0)
+	if (InclusiveTiming > 0.0)
 	{
-		return FText::GetEmpty();
+		return FText::AsNumber(InclusiveTiming, &StatNumberFormat);
 	}
-	else
-	{
-		return FText::AsNumber(GetInclusiveTiming(), &StatNumberFormat);
-	}
+	return FText::GetEmpty();
 }
 
 FText FScriptPerfData::GetMaxTimingText() const
 {
-	const double MaximumTime = GetMaxTiming();
-	const bool bMaxTimeInitialised = MaximumTime != -MAX_dbl;
-	return FText::AsNumber(bMaxTimeInitialised ? MaximumTime : 0.0, &StatNumberFormat);
+	if (MaxTiming != -MAX_dbl)
+	{
+		return FText::AsNumber(MaxTiming, &StatNumberFormat);
+	}
+	return FText::GetEmpty();
 }
 
 FText FScriptPerfData::GetMinTimingText() const
 {
-	const double MinimumTime = GetMinTiming();
-	const bool bMinTimeInitialised = MinimumTime != MAX_dbl;
-	return FText::AsNumber(bMinTimeInitialised ? MinimumTime : 0.0, &StatNumberFormat);
+	if (MinTiming != MAX_dbl)
+	{
+		return FText::AsNumber(MinTiming, &StatNumberFormat);
+	}
+	return FText::GetEmpty();
 }
 
 FText FScriptPerfData::GetTotalTimingText() const
 {
-	// Covert back up to seconds for total time.
-	return FText::AsNumber(GetTotalTiming(), &StatNumberFormat);
+	if (TotalTiming > 0.0)
+	{
+		return FText::AsNumber(TotalTiming, &StatNumberFormat);
+	}
+	return FText::GetEmpty();
 }
 
 FText FScriptPerfData::GetSamplesText() const
 {
-	return FText::AsNumber(GetSampleCount());
+	if (NumSamples > 0)
+	{
+		return FText::AsNumber(NumSamples);
+	}
+	return FText::GetEmpty();
 }

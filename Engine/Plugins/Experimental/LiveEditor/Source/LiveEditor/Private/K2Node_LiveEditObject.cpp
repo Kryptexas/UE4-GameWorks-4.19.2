@@ -244,6 +244,7 @@ void UK2Node_LiveEditObject::ReallocatePinsDuringReconstruction(TArray<UEdGraphP
 	{
 		CreatePinsForClass(UseSpawnClass);
 	}
+	RestoreSplitPins(OldPins);
 }
 
 FNodeHandlingFunctor* UK2Node_LiveEditObject::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

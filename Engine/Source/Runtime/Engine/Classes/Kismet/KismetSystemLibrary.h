@@ -393,8 +393,15 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * Clears a set timer.
 	 * @param Handle		The handle of the timer to clear.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Clear Timer by Handle", WorldContext="WorldContextObject"), Category="Utilities|Time")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Clear Timer by Handle", WorldContext="WorldContextObject", DeprecatedFunction, DeprecationMessage = "Use Clear and Invalidate Timer by Handle. Note: you no longer need to reset your handle yourself after switching to the new function."), Category="Utilities|Time")
 	static void K2_ClearTimerHandle(UObject* WorldContextObject, FTimerHandle Handle);
+
+	/**
+	 * Clears a set timer.
+	 * @param Handle		The handle of the timer to clear.
+	 */
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "Clear and Invalidate Timer by Handle", WorldContext="WorldContextObject"), Category="Utilities|Time")
+	static void K2_ClearAndInvalidateTimerHandle(UObject* WorldContextObject, UPARAM(ref) FTimerHandle& Handle);
 
 	/**
 	 * Pauses a set timer at its current elapsed time.

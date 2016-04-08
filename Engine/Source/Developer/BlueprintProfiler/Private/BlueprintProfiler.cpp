@@ -185,9 +185,12 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 					{
 						FEventRange NewEventRange;
 						NewEventRange.BlueprintContext = GetBlueprintContext(CurrEvent.GetObjectPath());
-						NewEventRange.InstanceName = MapBlueprintInstance(NewEventRange.BlueprintContext, InstanceEvent.GetObjectPath());
-						NewEventRange.StartIdx = EventIdx;
-						ScriptEventRanges.Push(NewEventRange);
+						if (NewEventRange.BlueprintContext.IsValid())
+						{
+							NewEventRange.InstanceName = MapBlueprintInstance(NewEventRange.BlueprintContext, InstanceEvent.GetObjectPath());
+							NewEventRange.StartIdx = EventIdx;
+							ScriptEventRanges.Push(NewEventRange);
+						}
 					}
 				}
 				InstrumentationEventQueue.RemoveAt(EventIdx, 2, false);
@@ -196,13 +199,15 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 			case EScriptInstrumentation::Event:
 			{
 				// Nested events such as calls from event dispatchers.
-				check(ScriptEventRanges.Num() > 0);
-				FEventRange& LastEventRange = ScriptEventRanges.Last();
-				FEventRange NewEventRange;
-				NewEventRange.BlueprintContext = LastEventRange.BlueprintContext;
-				NewEventRange.InstanceName = LastEventRange.InstanceName;
-				NewEventRange.StartIdx = EventIdx;
-				ScriptEventRanges.Push(NewEventRange);
+				if (ScriptEventRanges.Num() > 0)
+				{
+					FEventRange& LastEventRange = ScriptEventRanges.Last();
+					FEventRange NewEventRange;
+					NewEventRange.BlueprintContext = LastEventRange.BlueprintContext;
+					NewEventRange.InstanceName = LastEventRange.InstanceName;
+					NewEventRange.StartIdx = EventIdx;
+					ScriptEventRanges.Push(NewEventRange);
+				}
 				break;
 			}
 			case EScriptInstrumentation::Stop:
@@ -346,7 +351,6 @@ FName FBlueprintProfiler::MapBlueprintInstance(TSharedPtr<FBlueprintExecutionCon
 		// Link to parent blueprint entry
 		TSharedPtr<FScriptExecutionBlueprint> BlueprintNode = BlueprintContext->GetBlueprintExecNode();
 		BlueprintNode->AddInstance(InstanceNode);
-		InstanceNode->SetParentNode(BlueprintNode);
 		// Fill out events from the blueprint root node
 		for (int32 NodeIdx = 0; NodeIdx < BlueprintNode->GetNumChildren(); ++NodeIdx)
 		{

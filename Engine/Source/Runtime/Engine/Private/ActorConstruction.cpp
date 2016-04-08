@@ -451,10 +451,17 @@ void AActor::RerunConstructionScripts()
 	}
 }
 
+void AActor::FixComponentsFromDynamicClass()
+{
+
+}
+
 void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform)
 {
 	check(!IsPendingKill());
 	check(!HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed));
+
+	FixComponentsFromDynamicClass();
 
 	// ensure that any existing native root component gets this new transform
 	// we can skip this in the default case as the given transform will be the root component's transform
@@ -684,6 +691,9 @@ UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedC
 			ArCustomPropertyList = InPropertyList;
 			ArUseCustomPropertyList = true;
 			ArWantBinaryPropertySerialization = true;
+
+			// Set this flag to emulate things that would happen in the SDO case when this flag is set (e.g. - not setting 'bHasBeenCreated').
+			ArPortFlags |= PPF_Duplicate;
 		}
 	};
 

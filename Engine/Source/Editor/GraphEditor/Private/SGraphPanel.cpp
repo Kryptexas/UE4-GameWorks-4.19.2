@@ -105,6 +105,8 @@ void SGraphPanel::Construct( const SGraphPanel::FArguments& InArgs )
 
 	SavedMousePosForOnPaintEventLocalSpace = FVector2D::ZeroVector;
 	PreviousFrameSavedMousePosForSplineOverlap = FVector2D::ZeroVector;
+
+	TimeLeftToInvalidatePerTick = 0.0f;
 }
 
 SGraphPanel::~SGraphPanel()
@@ -683,6 +685,15 @@ void SGraphPanel::AddPinToHoverSet(UEdGraphPin* HoveredPin)
 {
 	CurrentHoveredPins.Add(HoveredPin);
 	TimeWhenMouseEnteredPin = FSlateApplication::Get().GetCurrentTime();
+
+	// About covers the fade in time when highlighting pins or splines.
+	TimeLeftToInvalidatePerTick += 1.5f;
+
+	// This handle should always be for this function
+	if (!ActiveTimerHandleInvalidatePerTick.IsValid())
+	{
+		ActiveTimerHandleInvalidatePerTick = RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SGraphPanel::InvalidatePerTick));
+	}
 }
 
 void SGraphPanel::RemovePinFromHoverSet(UEdGraphPin* UnhoveredPin)
@@ -1661,4 +1672,20 @@ void SGraphPanel::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	Collector.AddReferencedObject( GraphObj );
 	Collector.AddReferencedObject( GraphObjToDiff );
+}
+
+EActiveTimerReturnType SGraphPanel::InvalidatePerTick(double InCurrentTime, float InDeltaTime)
+{
+	// Invalidate the layout so it will redraw.
+	Invalidate(EInvalidateWidget::Layout);
+
+	TimeLeftToInvalidatePerTick -= InDeltaTime;
+
+	// When the time is done, stop the invalidation per tick because the UI will be static once more.
+	if (TimeLeftToInvalidatePerTick <= 0.0f)
+	{
+		TimeLeftToInvalidatePerTick = 0.0f;
+		return EActiveTimerReturnType::Stop;
+	}
+	return EActiveTimerReturnType::Continue;
 }

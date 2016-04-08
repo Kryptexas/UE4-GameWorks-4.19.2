@@ -1641,15 +1641,24 @@ FString FFindInBlueprintSearchManager::GatherBlueprintSearchMetadata(const UBlue
 
 	// Gather all graph searchable data
 	TArray< UEdGraph* > SubGraphs;
-	BlueprintSearchMetaDataHelpers::GatherGraphSearchData(Writer, Blueprint, Blueprint->UbergraphPages, FFindInBlueprintSearchTags::FiB_UberGraphs, &SubGraphs);
-	BlueprintSearchMetaDataHelpers::GatherGraphSearchData(Writer, Blueprint, Blueprint->FunctionGraphs, FFindInBlueprintSearchTags::FiB_Functions, &SubGraphs);
-	BlueprintSearchMetaDataHelpers::GatherGraphSearchData(Writer, Blueprint, Blueprint->MacroGraphs, FFindInBlueprintSearchTags::FiB_Macros, &SubGraphs);
 
-	// Gather all interface graphs as functions
-	for (const FBPInterfaceDescription& InterfaceDesc : Blueprint->ImplementedInterfaces)
+	// Gather normal event graphs
+	BlueprintSearchMetaDataHelpers::GatherGraphSearchData(Writer, Blueprint, Blueprint->UbergraphPages, FFindInBlueprintSearchTags::FiB_UberGraphs, &SubGraphs);
+	
+	// We have interface graphs and function graphs to put into the Functions category. We cannot do them separately, so we must compile the full list
 	{
-		BlueprintSearchMetaDataHelpers::GatherGraphSearchData(Writer, Blueprint, InterfaceDesc.Graphs, FFindInBlueprintSearchTags::FiB_Functions, &SubGraphs);
+		TArray<UEdGraph*> CompleteGraphList;
+		CompleteGraphList.Append(Blueprint->FunctionGraphs);
+		// Gather all interface graphs as functions
+		for (const FBPInterfaceDescription& InterfaceDesc : Blueprint->ImplementedInterfaces)
+		{
+			CompleteGraphList.Append(InterfaceDesc.Graphs);
+		}
+		BlueprintSearchMetaDataHelpers::GatherGraphSearchData(Writer, Blueprint, CompleteGraphList, FFindInBlueprintSearchTags::FiB_Functions, &SubGraphs);
 	}
+
+	// Gather Macros
+	BlueprintSearchMetaDataHelpers::GatherGraphSearchData(Writer, Blueprint, Blueprint->MacroGraphs, FFindInBlueprintSearchTags::FiB_Macros, &SubGraphs);
 
 	// Sub graphs are processed separately so that they do not become children in the TreeView, cluttering things up if the tree is deep
 	BlueprintSearchMetaDataHelpers::GatherGraphSearchData(Writer, Blueprint, SubGraphs, FFindInBlueprintSearchTags::FiB_SubGraphs, NULL);

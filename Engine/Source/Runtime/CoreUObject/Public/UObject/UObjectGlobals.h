@@ -920,6 +920,16 @@ private:
 	 */
 	static void InitPropertiesFromCustomList(const FCustomPropertyListNode* InPropertyList, UStruct* InStruct, uint8* DataPtr, const uint8* DefaultDataPtr);
 
+	/**
+	* Helper method to assist with initializing from an array property with an explicit item list.
+	*
+	* @param	ArrayProperty		the array property for which the given property list applies
+	* @param	InPropertyList		only these properties (indices) will be copied from defaults
+	* @param	DataPtr				destination address (where to start copying values to)
+	* @param	DefaultDataPtr		source address (where to start copying the defaults data from)
+	*/
+	static void InitArrayPropertyFromCustomList(const UArrayProperty* ArrayProperty, const FCustomPropertyListNode* InPropertyList, uint8* DataPtr, const uint8* DefaultDataPtr);
+
 	bool IsInstancingAllowed() const;
 
 	/**

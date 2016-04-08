@@ -1460,6 +1460,16 @@ void EndLoad()
 				}
 			}
 
+			// Dynamic Class doesn't require/use pre-loading (or post-loading). 
+			// The CDO is created at this point, because now it's safe to solve cyclic dependencies.
+			for (UObject* Obj : ObjLoaded)
+			{
+				if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Obj))
+				{
+					DynamicClass->GetDefaultObject(true);
+				}
+			}
+
 			// Create clusters after all objects have been loaded
 			extern int32 GCreateGCClusters;
 			if (FPlatformProperties::RequiresCookedData() && !GIsInitialLoad && GCreateGCClusters && !GUObjectArray.IsOpenForDisregardForGC())
@@ -2531,9 +2541,13 @@ void FObjectInitializer::PostConstructInit()
 	if (!Obj->HasAnyFlags(RF_NeedLoad) || bIsDeferredInitializer)
 #endif // !USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	{
-		if (bIsCDO || Class->HasAnyClassFlags(CLASS_PerObjectConfig))
+		if ((bIsCDO && !Class->HasAnyFlags(RF_Dynamic)) || Class->HasAnyClassFlags(CLASS_PerObjectConfig))
 		{
 			Obj->LoadConfig(NULL, NULL, bIsCDO ? UE4::LCPF_ReadParentSections : UE4::LCPF_None);
+		}
+		else if (bIsCDO && Class->HasAnyFlags(RF_Dynamic) && Class->HasAnyClassFlags(CLASS_Config))
+		{
+			Obj->LoadConfig(Class);
 		}
 		if (bAllowInstancing)
 		{
@@ -2799,9 +2813,72 @@ void FObjectInitializer::InitPropertiesFromCustomList(const FCustomPropertyListN
 				InitPropertiesFromCustomList(CustomPropertyListNode->SubPropertyList, StructProperty->Struct, PropertyValue, DefaultPropertyValue);
 			}
 		}
+		else if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CustomPropertyListNode->Property))
+		{
+			// This should never be NULL; we should not be recording the ArrayProperty without at least one sub property, but we'll verify just to be sure.
+			if (ensure(CustomPropertyListNode->SubPropertyList != nullptr))
+			{
+				InitArrayPropertyFromCustomList(ArrayProperty, CustomPropertyListNode->SubPropertyList, PropertyValue, DefaultPropertyValue);
+			}
+		}
 		else
 		{
 			CustomPropertyListNode->Property->CopySingleValue(PropertyValue, DefaultPropertyValue);
+		}
+	}
+}
+
+void FObjectInitializer::InitArrayPropertyFromCustomList(const UArrayProperty* ArrayProperty, const FCustomPropertyListNode* InPropertyList, uint8* DataPtr, const uint8* DefaultDataPtr)
+{
+	FScriptArrayHelper DstArrayValueHelper(ArrayProperty, DataPtr);
+	FScriptArrayHelper SrcArrayValueHelper(ArrayProperty, DefaultDataPtr);
+
+	int32 Num = SrcArrayValueHelper.Num();
+
+	if (!(ArrayProperty->Inner->PropertyFlags & CPF_IsPlainOldData))
+	{
+		DstArrayValueHelper.EmptyAndAddValues(Num);
+	}
+	else
+	{
+		DstArrayValueHelper.EmptyAndAddUninitializedValues(Num);
+	}
+
+	for (const FCustomPropertyListNode* CustomArrayPropertyListNode = InPropertyList; CustomArrayPropertyListNode; CustomArrayPropertyListNode = CustomArrayPropertyListNode->PropertyListNext)
+	{
+		int32 ArrayIndex = CustomArrayPropertyListNode->ArrayIndex;
+
+		uint8* DstArrayItemValue = DstArrayValueHelper.GetRawPtr(ArrayIndex);
+		const uint8* SrcArrayItemValue = SrcArrayValueHelper.GetRawPtr(ArrayIndex);
+
+		// A null property value signals that we should serialize the remaining array values in full starting at this index
+		if (CustomArrayPropertyListNode->Property == nullptr)
+		{
+			int32 Size = ArrayProperty->Inner->ElementSize;
+
+			if (!(ArrayProperty->Inner->PropertyFlags & CPF_IsPlainOldData))
+			{
+				for (int32 i = 0; i < Num - ArrayIndex; i++)
+				{
+					ArrayProperty->Inner->CopyCompleteValue(DstArrayItemValue + i * Size, SrcArrayItemValue + i * Size);
+				}
+			}
+			else
+			{
+				FMemory::Memcpy(DstArrayItemValue, SrcArrayItemValue, (Num - ArrayIndex) * Size);
+			}
+		}
+		else if (const UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner))
+		{
+			InitPropertiesFromCustomList(CustomArrayPropertyListNode->SubPropertyList, InnerStructProperty->Struct, DstArrayItemValue, SrcArrayItemValue);
+		}
+		else if (const UArrayProperty* InnerArrayProperty = Cast<UArrayProperty>(ArrayProperty->Inner))
+		{
+			InitArrayPropertyFromCustomList(InnerArrayProperty, CustomArrayPropertyListNode->SubPropertyList, DstArrayItemValue, SrcArrayItemValue);
+		}
+		else
+		{
+			ArrayProperty->Inner->CopyCompleteValue(DstArrayItemValue, SrcArrayItemValue);
 		}
 	}
 }

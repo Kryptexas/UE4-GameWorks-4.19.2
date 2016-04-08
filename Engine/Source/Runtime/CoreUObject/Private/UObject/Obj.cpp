@@ -738,7 +738,15 @@ void UObject::ConditionalPostLoad()
 
 		{
 			FExclusiveLoadPackageTimeTracker::FScopedPostLoadTracker Tracker(this);
-			PostLoad();
+
+			if (HasAnyFlags(RF_ClassDefaultObject))
+			{
+				GetClass()->PostLoadDefaultObject(this);
+			}
+			else
+			{
+				PostLoad();
+			}
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

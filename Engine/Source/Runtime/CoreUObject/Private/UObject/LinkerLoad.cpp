@@ -2916,7 +2916,15 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 		}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
-		CreateExportAndPreload(ExportIndex, bForcePreload);
+		UObject* LoadedObject = CreateExportAndPreload(ExportIndex, bForcePreload);
+		// DynamicClass could be created without calling CreateImport. The imported objects will be required later when a CDO is created.
+		if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(LoadedObject))
+		{
+			for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num(); ++ImportIndex)
+			{
+				CreateImport(ImportIndex);
+			}
+		}
 
 		// If needed send a heartbeat, but no need to do it too often
 		if (bShouldTickHeartBeat && (ExportIndex % 10) == 0)
@@ -3487,6 +3495,15 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 			if (Export.Object)
 			{
 				Export.Object->SetLinker(this, Index);
+				if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Export.Object))
+				{
+					// Dynamic Class doesn't require/use pre-loading (or post-loading), but at this point the class is not fully initialized. 
+					// The CDO is created (in a custom code) at the end of loading (when it's safe to solve cyclic dependencies).
+					if (!DynamicClass->GetDefaultObject(false))
+					{
+						FUObjectThreadContext::Get().ObjLoaded.Add(Export.Object);
+					}
+				}
 			}
 			return Export.Object;
 		}

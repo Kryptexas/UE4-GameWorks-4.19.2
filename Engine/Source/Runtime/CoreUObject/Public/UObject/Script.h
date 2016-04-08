@@ -201,8 +201,8 @@ enum EExprToken
 	EX_EndArray				= 0x32,
 	//						= 0x33,
 	EX_UnicodeStringConst   = 0x34, // Unicode string constant.
-	//						= 0x35,
-	//						= 0x36,
+	EX_Int64Const			= 0x35,	// 64-bit integer constant.
+	EX_UInt64Const			= 0x36,	// 64-bit unsigned integer constant.
 	//						= 0x37,
 	EX_PrimitiveCast		= 0x38,	// A casting operator for primitives which reads the type as the subsequent byte
 	//						= 0x39,
