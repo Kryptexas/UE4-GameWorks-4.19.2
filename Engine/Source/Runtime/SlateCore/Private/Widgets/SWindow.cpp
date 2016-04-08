@@ -18,7 +18,7 @@ FOverlayPopupLayer::FOverlayPopupLayer(const TSharedRef<SWidget>& InitHostWidget
 {
 	Overlay->AddSlot()
 	[
-		PopupContent
+		InitPopupContent
 	];
 }
 
