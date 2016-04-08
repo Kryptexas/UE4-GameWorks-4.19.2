@@ -56,15 +56,16 @@ half PhongApprox( half Roughness, half RoL )
 {
 	half a = Roughness * Roughness;			// 1 mul
 	half a2 = a * a;						// 1 mul
-	float rcp_a2 = rcp(a2);					// 1 rcp
+	half rcp_a2 = rcp(a2);					// 1 rcp
 	//half rcp_a2 = exp2( -6.88886882 * Roughness + 6.88886882 );
 
 	// Spherical Gaussian approximation: pow( x, n ) ~= exp( (n + 0.775) * (x - 1) )
 	// Phong: n = 0.5 / a2 - 0.5
 	// 0.5 / ln(2), 0.275 / ln(2)
 	half c = 0.72134752 * rcp_a2 + 0.39674113;	// 1 mad
-	return rcp_a2 * exp2( c * RoL - c );		// 2 mad, 1 exp2, 1 mul
+	half p = rcp_a2 * exp2(c * RoL - c);		// 2 mad, 1 exp2, 1 mul
 	// Total 7 instr
+	return min(p, rcp_a2); // make sure we don't overflow (Mali GPUs)
 }
 
 #if !FULLY_ROUGH
