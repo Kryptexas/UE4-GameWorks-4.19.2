@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>cxa demangle</Name>
-  <Location>//depot/UE4/Engine/Source/ThirdParty/Android/cxa_demangle</Location>
-  <Date>2015-09-04T18:32:02.3527481-04:00</Date>
+  <Location>/Engine/Source/ThirdParty/Android/cxa_demangle</Location>
+  <Date>2016-04-08T13:58:25.4507836-04:00</Date>
   <Function>Provides compilation host management for the Distcc compiler</Function>
   <Justification>In order to use distcc to improve Mac build times we need dmucs to manage distribution of compile jobs between active Mac compile hosts</Justification>
   <Platforms>
@@ -12,9 +12,13 @@
     <Product>UDK4</Product>
     <Product>UE4</Product>
   </Products>
-  <TpsType />
-  <Eula>http://www.gnu.org/licenses/old-licenses/gpl-2.0.html</Eula>
-  <RedistributeTo />
+  <TpsType>lib</TpsType>
+  <Eula>https://android.googlesource.com/platform/external/libcxxabi_35a/+/master/LICENSE.TXT</Eula>
+  <RedistributeTo>
+    <EndUserGroup>Licensees</EndUserGroup>
+    <EndUserGroup>Git</EndUserGroup>
+    <EndUserGroup>P4</EndUserGroup>
+  </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>false</IsSourceAvailable>
   <NoticeType>Full EULA Text</NoticeType>
@@ -39,5 +43,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.</Notification>
-  <LicenseFolder />
+  <LicenseFolder>/Engine/Source/ThirdParty/Licenses/CXA DEMANGLE_LICENSE.txt</LicenseFolder>
 </TpsData>
