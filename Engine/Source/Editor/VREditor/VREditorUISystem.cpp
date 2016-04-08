@@ -215,8 +215,6 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 								( Event == IE_Pressed && Hand.bIsModifierPressed ) ||
 								( Event == IE_Released && Hand.bIsRightClickingOnUI );
 
-							UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>( HitResult.GetComponent() );
-							if( WidgetComponent )
 							{
 								FVector2D LastLocalHitLocation = WidgetComponent->GetLastLocalHitLocation();
 
@@ -395,7 +393,6 @@ void FVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 					FWidgetPath WidgetPathUnderFinger = FWidgetPath( WidgetComponent->GetHitWidgetPath( HitResult.ImpactPoint, /*bIgnoreEnabledStatus*/ false ) );
 					if ( WidgetPathUnderFinger.IsValid() )
 					{
-						FVirtualHand& Hand = Owner.GetVirtualHand(HandIndex);
 						Hand.bIsHovering = true;
 						Hand.HoverLocation = HitResult.ImpactPoint;
 

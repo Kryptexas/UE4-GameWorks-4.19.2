@@ -267,16 +267,21 @@ FVREditorWorldInteraction::FVREditorWorldInteraction( FVREditorMode& InitOwner )
 	  TransformablesInterpolationStartTime( FTimespan::Zero() ),
 	  TransformablesInterpolationDuration( 1.0f ),
 	  PlacingMaterialOrTextureAsset( nullptr ),
+	  LastWorldToMetersScale( 100.0f ),
 	  TransformGizmoActor( nullptr ),
 	  GizmoLocalBounds( FBox( 0 ) ),
 	  bDraggedSinceLastSelection( false ),
 	  LastDragGizmoStartTransform( FTransform::Identity ),
 	  bIsTeleporting( false ),
 	  TeleportLerpAlpha( 0 ),
-	  DockSelectDistance ( 100 ),
+	  TeleportStartLocation( FVector::ZeroVector ),
+	  TeleportGoalLocation( FVector::ZeroVector ),
 	  bJustTeleported( false ),
+	  TeleportSound( nullptr ),
+	  DropMaterialOrMaterialSound( nullptr ),
+	  DockSelectDistance( 100 ),
 	  FloatingUIAssetDraggedFrom( nullptr )
-{
+	{
 	// Register to find out about VR input events
 	Owner.OnVRAction().AddRaw( this, &FVREditorWorldInteraction::OnVRAction );
 	Owner.OnVRHoverUpdate().AddRaw( this, &FVREditorWorldInteraction::OnVRHoverUpdate );

@@ -589,8 +589,10 @@ void FVREditorMode::SpawnAvatarMeshActor()
 	// Setup our avatar
 	if( AvatarMeshActor == nullptr )
 	{
-		const bool bWithSceneComponent = true;
-		AvatarMeshActor = SpawnTransientSceneActor( AActor::StaticClass(), TEXT( "AvatarMesh" ), bWithSceneComponent );
+		{
+			const bool bWithSceneComponent = true;
+			AvatarMeshActor = SpawnTransientSceneActor( AActor::StaticClass(), TEXT( "AvatarMesh" ), bWithSceneComponent );
+		}
 
 		// Give us a head mesh
 		{
@@ -1325,16 +1327,16 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 		const bool bShouldDrawWorldMovementPostProcess = WorldMovementGridOpacity > KINDA_SMALL_NUMBER;
 		if( bShouldDrawWorldMovementPostProcess != bIsDrawingWorldMovementPostProcess )
 		{
-			UPostProcessComponent* PostProcessComponent = GetPostProcessComponent();
+			UPostProcessComponent* PostProcess = GetPostProcessComponent();
 			if( bShouldDrawWorldMovementPostProcess )
 			{
-				PostProcessComponent->AddOrUpdateBlendable( WorldMovementPostProcessMaterial );
+				PostProcess->AddOrUpdateBlendable( WorldMovementPostProcessMaterial );
 				bIsDrawingWorldMovementPostProcess = true;
 			}
 			else
 			{
 				bIsDrawingWorldMovementPostProcess = false;
-				PostProcessComponent->Settings.RemoveBlendable( WorldMovementPostProcessMaterial );
+				PostProcess->Settings.RemoveBlendable( WorldMovementPostProcessMaterial );
 			}
 		}
 
