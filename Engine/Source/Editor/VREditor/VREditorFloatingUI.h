@@ -205,9 +205,6 @@ private:
 	/** Fade alpha, for visibility transitions */
 	float FadeAlpha;
 
-	/** To check if this UI should rotate towards the head */
-	bool bRotateToHead;
-
 	/** Collision on when showing UI */
 	bool bCollisionOnShowUI;
 

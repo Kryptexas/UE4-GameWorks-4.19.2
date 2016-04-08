@@ -100,8 +100,6 @@ FVREditorMode::FVREditorMode()
 	: bWantsToExitMode( false ),
 	  bIsFullyInitialized( false ),
 	  AppTimeModeEntered( FTimespan::Zero() ),
-	  MotionControllerID( 0 ),	// @todo vreditor minor: We only support a single controller, and we assume the first controller are the motion controls
-	  LastFrameNumberInputWasPolled( 0 ),
 	  AvatarMeshActor( nullptr ),
 	  HeadMeshComponent( nullptr ),
 	  WorldMovementGridMeshComponent( nullptr ),
@@ -112,14 +110,16 @@ FVREditorMode::FVREditorMode()
 	  SnapGridActor( nullptr ),
 	  SnapGridMeshComponent( nullptr ),
 	  SnapGridMID( nullptr ),
-	  PostProcessComponent( nullptr ),
 	  ScaleProgressMeshComponent( nullptr ),
 	  CurrentScaleProgressMeshComponent( nullptr ),
 	  UserScaleIndicatorText( nullptr ),
-	  CurrentGizmoType( EGizmoHandleTypes::All ),
-	  bFirstTick( true ),
+	  PostProcessComponent( nullptr ),
+	  MotionControllerID( 0 ),	// @todo vreditor minor: We only support a single controller, and we assume the first controller are the motion controls
+	  LastFrameNumberInputWasPolled( 0 ),
 	  UISystem(),
-	  WorldInteraction()
+	  WorldInteraction(),
+	  CurrentGizmoType( EGizmoHandleTypes::All ),
+	  bFirstTick( true )
 {
 	FEditorDelegates::MapChange.AddRaw( this, &FVREditorMode::OnMapChange );
 	FEditorDelegates::BeginPIE.AddRaw( this, &FVREditorMode::OnBeginPIE );

@@ -19,24 +19,28 @@ namespace VREd
 
 
 AVREditorFloatingUI::AVREditorFloatingUI()
-	: Scale( 1.0f ),
+	: LocalRotation( FRotator( 90.0f, 180.0f, 0.0f ) ),
+	  RelativeOffset( FVector::ZeroVector ),
+	  SlateWidget( nullptr ),
+	  UserWidget( nullptr ),
+	  WidgetComponent( nullptr ),
+	  Scale( 1.0f ),
+	  Resolution( 0, 0 ),
+	  Owner( nullptr ),
 	  DockedTo( EDockedTo::Nothing ),
 	  PreviousDockedTo( EDockedTo::Nothing ),
-	  SlateWidget( nullptr ),
 	  UserWidgetClass( nullptr ),
-	  UserWidget( nullptr ),
-	  Resolution( 0, 0 ),
-	  WidgetComponent( nullptr ),
 	  bShouldBeVisible(),
 	  FadeAlpha( 1.0f ),
-	  LocalRotation( FRotator( 90.0f, 180.0f, 0.0f ) ),
 	  bCollisionOnShowUI( true ),
 	  FadeDelay( 0.0f ),
+	  InitialScale( 1.0f ),
 	  bIsMoving( false ),
 	  MoveToTransform( FTransform() ),
 	  StartMoveToTransform( FTransform() ),
 	  MoveToAlpha( 0.0f ),
-	  MoveToTime( 0.0f )
+	  MoveToTime( 0.0f ),
+	  MoveToResultDock( EDockedTo::Nothing )
 {
 	const bool bTransient = true;
 	USceneComponent* SceneComponent = CreateDefaultSubobject<USceneComponent>( TEXT( "SceneComponent" ), bTransient );

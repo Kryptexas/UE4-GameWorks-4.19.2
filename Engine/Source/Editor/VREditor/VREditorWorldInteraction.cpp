@@ -109,36 +109,36 @@ struct DVector
 	double Y;
 	double Z;
 
-	DVector::DVector()
+	DVector()
 	{
 	}
 
-	DVector::DVector( const DVector& V )
+	DVector( const DVector& V )
 		: X( V.X ), Y( V.Y ), Z( V.Z )
 	{
 	}
 
-	DVector::DVector( const FVector& V )
+	DVector( const FVector& V )
 		: X( V.X ), Y( V.Y ), Z( V.Z )
 	{
 	}
 
-	DVector::DVector( double InX, double InY, double InZ )
+	DVector( double InX, double InY, double InZ )
 		: X( InX ), Y( InY ), Z( InZ )
 	{
 	}
 
-	DVector DVector::operator+( const DVector& V ) const
+	DVector operator+( const DVector& V ) const
 	{
 		return DVector( X + V.X, Y + V.Y, Z + V.Z );
 	}
 
-	DVector DVector::operator-( const DVector& V ) const
+	DVector operator-( const DVector& V ) const
 	{
 		return DVector( X - V.X, Y - V.Y, Z - V.Z );
 	}
 
-	DVector DVector::operator*( double Scale ) const
+	DVector operator*( double Scale ) const
 	{
 		return DVector( X * Scale, Y * Scale, Z * Scale );
 	}

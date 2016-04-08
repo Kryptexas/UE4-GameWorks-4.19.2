@@ -80,13 +80,20 @@ FVREditorUISystem::FVREditorUISystem( FVREditorMode& InitOwner )
 	  FloatingUIs(),
 	  QuickMenuUI( nullptr ),
 	  QuickRadialMenu( nullptr ),
+	  RadialMenuHideDelayTime( 0.0f ),
 	  QuickMenuWidgetClass( nullptr ),
 	  QuickRadialWidgetClass( nullptr ),
-	  DraggingUI( nullptr ),
+	  TutorialWidgetClass( nullptr ),
 	  DraggingUIHandIndex( INDEX_NONE ),
 	  DraggingUIOffsetTransform( FTransform::Identity ),
-	  RadialMenuHideDelayTime( 0.0f ),
+	  DraggingUI( nullptr ),
 	  bRefocusViewport(false),
+	  StartDragUISound( nullptr ),
+	  StopDragUISound( nullptr ),
+	  HideUISound( nullptr ),
+	  ShowUISound( nullptr ),
+	  bDraggedDockFromHandPassedThreshold( false ),
+	  LastDraggingHoverLocation( FVector::ZeroVector ),
 	  bSetDefaultLayout( true )
 {
 	// Register to find out about VR events
