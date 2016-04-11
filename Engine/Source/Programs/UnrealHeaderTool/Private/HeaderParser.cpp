@@ -996,7 +996,7 @@ UField* FHeaderParser::FindField
 )
 {
 	check(InIdentifier);
-	FName InName( InIdentifier, FNAME_Find, true );
+	FName InName(InIdentifier, FNAME_Find);
 	if (InName != NAME_None)
 	{
 		for( ; Scope; Scope = Cast<UStruct>(Scope->GetOuter()) )
@@ -1293,13 +1293,13 @@ UEnum* FHeaderParser::CompileEnum()
 			case UEnum::ECppForm::Namespaced:
 			case UEnum::ECppForm::EnumClass:
 			{
-				NewTag = FName(*FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, TagToken.Identifier), FNAME_Add, true);
+				NewTag = FName(*FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, TagToken.Identifier), FNAME_Add);
 			}
 			break;
 
 			case UEnum::ECppForm::Regular:
 			{
-				NewTag = FName(TagToken.Identifier, FNAME_Add, true);
+				NewTag = FName(TagToken.Identifier, FNAME_Add);
 			}
 			break;
 		}
@@ -4227,7 +4227,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 	// If this is the first time seeing the property name, then flag it for replace instead of add
 	const EFindName FindFlag = VarProperty.PropertyFlags & CPF_Config ? GetFindFlagForPropertyName(VarProperty.Identifier) : FNAME_Add;
 	// create the FName for the property, splitting (ie Unnamed_3 -> Unnamed,3)
-	FName PropertyName(VarProperty.Identifier, FindFlag, true);
+	FName PropertyName(VarProperty.Identifier, FindFlag);
 
 	// Add property.
 	UProperty* NewProperty = NULL;

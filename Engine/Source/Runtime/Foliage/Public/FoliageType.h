@@ -291,13 +291,14 @@ public:
 	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta=(HideObjectType=true))
 	TEnumAsByte<EHasCustomNavigableGeometry::Type> CustomNavigableGeometry;
 
+#if WITH_EDITORONLY_DATA
 	/** Bitflag to represent in which editor views this foliage mesh is hidden. */
 	UPROPERTY(transient)
 	uint64 HiddenEditorViews;
 
 	UPROPERTY()
 	uint32 IsSelected:1;
-
+#endif
 public:
 	// PROCEDURAL
 
@@ -454,6 +455,14 @@ public:
 	/* If checked, foliage instances no longer matching the vertex color constraint will be removed by the Reapply too */
 	UPROPERTY(EditDefaultsOnly, Category=Reapply)
 	uint32 ReapplyVertexColorMask:1;
+
+public:
+	// SCALABILITY
+
+	// Enable for detail meshes that don't really affect the game. Disable for anything important.
+	// Typically, this will be enabled for small meshes without collision (e.g. grass) and disabled for large meshes with collision (e.g. trees)
+	UPROPERTY(EditAnywhere, Category=Scalability)
+	uint32 bEnableDensityScaling:1;
 
 private:
 

@@ -55,6 +55,13 @@ static TAutoConsoleVariable<int32> CVarEffectsQuality(
 	TEXT(" 0:low, 1:med, 2:high, 3:epic, default: 3"),
 	ECVF_ScalabilityGroup);
 
+static TAutoConsoleVariable<int32> CVarFoliageQuality(
+	TEXT("sg.FoliageQuality"),
+	3,
+	TEXT("Scalability quality state (internally used by scalability system, ini load/save or using SCALABILITY console command)\n")
+	TEXT(" 0:low, 1:med, 2:high, 3:epic, default: 3"),
+	ECVF_ScalabilityGroup);
+
 namespace Scalability
 {
 	// Select a the correct quality level for the given benchmark value and thresholds
@@ -217,29 +224,9 @@ void OnChangeResolutionQuality(IConsoleVariable* Var)
 {
 	SetResolutionQualityLevel(Var->GetFloat());
 }
-void OnChangeViewDistanceQuality(IConsoleVariable* Var)
+void OnChangeQuality(IConsoleVariable* Var, const TCHAR* GroupName)
 {
-	SetGroupQualityLevel(TEXT("ViewDistanceQuality"), Var->GetInt());
-}
-void OnChangeAntiAliasingQuality(IConsoleVariable* Var)
-{
-	SetGroupQualityLevel(TEXT("AntiAliasingQuality"), Var->GetInt());
-}
-void OnChangeShadowQuality(IConsoleVariable* Var)
-{
-	SetGroupQualityLevel(TEXT("ShadowQuality"), Var->GetInt());
-}
-void OnChangePostProcessQuality(IConsoleVariable* Var)
-{
-	SetGroupQualityLevel(TEXT("PostProcessQuality"), Var->GetInt());
-}
-void OnChangeTextureQuality(IConsoleVariable* Var)
-{
-	SetGroupQualityLevel(TEXT("TextureQuality"), Var->GetInt());
-}
-void OnChangeEffectsQuality(IConsoleVariable* Var)
-{
-	SetGroupQualityLevel(TEXT("EffectsQuality"), Var->GetInt());
+	SetGroupQualityLevel(GroupName, Var->GetInt());
 }
 
 void InitScalabilitySystem()
@@ -257,12 +244,13 @@ void InitScalabilitySystem()
 	}
 
 	CVarResolutionQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeResolutionQuality));
-	CVarViewDistanceQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeViewDistanceQuality));
-	CVarAntiAliasingQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeAntiAliasingQuality));
-	CVarShadowQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeShadowQuality));
-	CVarPostProcessQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangePostProcessQuality));
-	CVarTextureQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeTextureQuality));
-	CVarEffectsQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeEffectsQuality));
+	CVarViewDistanceQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeQuality, TEXT("ViewDistanceQuality")));
+	CVarAntiAliasingQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeQuality, TEXT("AntiAliasingQuality")));
+	CVarShadowQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeQuality, TEXT("ShadowQuality")));
+	CVarPostProcessQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeQuality, TEXT("PostProcessQuality")));
+	CVarTextureQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeQuality, TEXT("TextureQuality")));
+	CVarEffectsQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeQuality, TEXT("EffectsQuality")));
+	CVarFoliageQuality.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeQuality, TEXT("FoliageQuality")));
 }
 
 /** Get the percentage scale for a given quality level */
@@ -295,6 +283,7 @@ FQualityLevels BenchmarkQualityLevels(uint32 WorkScale, float CPUMultiplier, flo
 	Results.PostProcessQuality = ComputeOptionFromPerfIndex(TEXT("PostProcessQuality"), CPUPerfIndex, GPUPerfIndex);
 	Results.TextureQuality = ComputeOptionFromPerfIndex(TEXT("TextureQuality"), CPUPerfIndex, GPUPerfIndex);
 	Results.EffectsQuality = ComputeOptionFromPerfIndex(TEXT("EffectsQuality"), CPUPerfIndex, GPUPerfIndex);
+	Results.FoliageQuality = ComputeOptionFromPerfIndex(TEXT("FoliageQuality"), CPUPerfIndex, GPUPerfIndex);
 	Results.CPUBenchmarkResults = CPUPerfIndex;
 	Results.GPUBenchmarkResults = GPUPerfIndex;
 
@@ -390,6 +379,7 @@ void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 		PrintGroupInfo(TEXT("PostProcessQuality"), bInfoMode);
 		PrintGroupInfo(TEXT("TextureQuality"), bInfoMode);
 		PrintGroupInfo(TEXT("EffectsQuality"), bInfoMode);
+		PrintGroupInfo(TEXT("FoliageQuality"), bInfoMode);
 
 		if (CPUBenchmarkValue >= 0.0f)
 		{
@@ -411,6 +401,7 @@ void SetQualityLevels(const FQualityLevels& QualityLevels)
 	CVarPostProcessQuality.AsVariable()->Set(QualityLevels.PostProcessQuality, ECVF_SetByScalability);
 	CVarTextureQuality.AsVariable()->Set(QualityLevels.TextureQuality, ECVF_SetByScalability);
 	CVarEffectsQuality.AsVariable()->Set(QualityLevels.EffectsQuality, ECVF_SetByScalability);
+	CVarFoliageQuality.AsVariable()->Set(QualityLevels.FoliageQuality, ECVF_SetByScalability);
 }
 
 FQualityLevels GetQualityLevels()
@@ -425,6 +416,7 @@ FQualityLevels GetQualityLevels()
 	Ret.PostProcessQuality = CVarPostProcessQuality.GetValueOnGameThread();
 	Ret.TextureQuality = CVarTextureQuality.GetValueOnGameThread();
 	Ret.EffectsQuality = CVarEffectsQuality.GetValueOnGameThread();
+	Ret.FoliageQuality = CVarFoliageQuality.GetValueOnGameThread();
 
 	return Ret;
 }
@@ -452,6 +444,7 @@ void FQualityLevels::SetFromSingleQualityLevel(int32 Value)
 	PostProcessQuality = Value;
 	TextureQuality = Value;
 	EffectsQuality = Value;
+	FoliageQuality = Value;
 }
 
 // Returns the overall value if all settings are set to the same thing
@@ -461,7 +454,7 @@ int32 FQualityLevels::GetSingleQualityLevel() const
 	int32 Result = ViewDistanceQuality;
 
 	const int32 Target = ViewDistanceQuality;
-	if ((Target == AntiAliasingQuality) && (Target == ShadowQuality) && (Target == PostProcessQuality) && (Target == TextureQuality) && (Target == EffectsQuality))
+	if ((Target == AntiAliasingQuality) && (Target == ShadowQuality) && (Target == PostProcessQuality) && (Target == TextureQuality) && (Target == EffectsQuality) && (Target == FoliageQuality))
 	{
 		if (GetRenderScaleLevelFromQualityLevel(Target) == ResolutionQuality)
 		{
@@ -491,6 +484,7 @@ void LoadState(const FString& IniName)
 	GConfig->GetInt(Section, TEXT("sg.PostProcessQuality"), State.PostProcessQuality, IniName);
 	GConfig->GetInt(Section, TEXT("sg.TextureQuality"), State.TextureQuality, IniName);
 	GConfig->GetInt(Section, TEXT("sg.EffectsQuality"), State.EffectsQuality, IniName);
+	GConfig->GetInt(Section, TEXT("sg.FoliageQuality"), State.FoliageQuality, IniName);
 
 	SetQualityLevels(State);
 }
@@ -511,6 +505,7 @@ void SaveState(const FString& IniName)
 	GConfig->SetInt(Section, TEXT("sg.PostProcessQuality"), State.PostProcessQuality, IniName);
 	GConfig->SetInt(Section, TEXT("sg.TextureQuality"), State.TextureQuality, IniName);
 	GConfig->SetInt(Section, TEXT("sg.EffectsQuality"), State.EffectsQuality, IniName);
+	GConfig->SetInt(Section, TEXT("sg.FoliageQuality"), State.FoliageQuality, IniName);
 }
 
 void RecordQualityLevelsAnalytics(bool bAutoApplied)
@@ -528,6 +523,7 @@ void RecordQualityLevelsAnalytics(bool bAutoApplied)
 		Attributes.Add(FAnalyticsEventAttribute(TEXT("PostProcessQuality"), State.PostProcessQuality));
 		Attributes.Add(FAnalyticsEventAttribute(TEXT("TextureQuality"), State.TextureQuality));
 		Attributes.Add(FAnalyticsEventAttribute(TEXT("EffectsQuality"), State.EffectsQuality));
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("FoliageQuality"), State.TextureQuality));
 		Attributes.Add(FAnalyticsEventAttribute(TEXT("AutoAppliedSettings"), bAutoApplied));
 
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Performance.ScalabiltySettings"), Attributes);

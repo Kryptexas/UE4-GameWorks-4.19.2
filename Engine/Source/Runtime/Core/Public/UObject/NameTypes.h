@@ -547,7 +547,7 @@ public:
 	 */
 	FORCEINLINE ANSICHAR const* GetPlainANSIString() const
 	{
-		return GetDisplayNameEntry()->GetAnsiName();		
+		return GetDisplayNameEntry()->GetAnsiName();
 	}
 
 	/**
@@ -681,7 +681,7 @@ public:
 	 * Takes an FName and checks to see that it follows the rules that Unreal requires for package or group names.
 	 *
 	 * @param	InReason		If the check fails, this string is filled in with the reason why.
-	 * @param	bIsGroupName	if true, check legallity for a group name, else check legality for a package name
+	 * @param	bIsGroupName	if true, check legality for a group name, else check legality for a package name
 	 *
 	 * @return	true if the name is valid
 	 */
@@ -715,7 +715,7 @@ public:
 	/**
 	 * Create an FName with a hardcoded string index.
 	 *
-	 * @param N The harcdcoded value the string portion of the name will have. The number portion will be NAME_NO_NUMBER
+	 * @param N The hardcoded value the string portion of the name will have. The number portion will be NAME_NO_NUMBER
 	 */
 	FORCEINLINE FName( EName N )
 		: ComparisonIndex( N )
@@ -730,7 +730,7 @@ public:
 	/**
 	 * Create an FName with a hardcoded string index and (instance).
 	 *
-	 * @param N The harcdcoded value the string portion of the name will have
+	 * @param N The hardcoded value the string portion of the name will have
 	 * @param InNumber The hardcoded value for the number portion of the name
 	 */
 	FORCEINLINE FName( EName N, int32 InNumber )
@@ -799,10 +799,13 @@ public:
 	 *
 	 * @param Name			Value for the string portion of the name
 	 * @param FindType		Action to take (see EFindName)
-	 * @param unused
 	 */
-	FName( const WIDECHAR*  Name, EFindName FindType=FNAME_Add, bool bUnused=true );
-	FName( const ANSICHAR* Name, EFindName FindType=FNAME_Add, bool bUnused=true );
+	FName(const WIDECHAR* Name, EFindName FindType=FNAME_Add);
+	FName(const ANSICHAR* Name, EFindName FindType=FNAME_Add);
+
+	// Deprecated bUnused
+	DEPRECATED(4.12, "Removed bUnused from FName") FName(const WIDECHAR* Name, EFindName FindType, bool bUnused) : FName(Name, FindType) { }
+	DEPRECATED(4.12, "Removed bUnused from FName") FName(const ANSICHAR* Name, EFindName FindType, bool bUnused) : FName(Name, FindType) { }
 
 	/**
 	 * Create an FName. If FindType is FNAME_Find, and the string part of the name 
@@ -825,7 +828,7 @@ public:
 	 * Create an FName with a hardcoded string index.
 	 *
 	 * @param HardcodedIndex	The hardcoded value the string portion of the name will have. 
-	 * @param Name				The hardcoded name to intialize
+	 * @param Name				The hardcoded name to initialize
 	 */
 	explicit FName( EName HardcodedIndex, const TCHAR* Name );
 

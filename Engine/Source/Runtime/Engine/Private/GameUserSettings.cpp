@@ -649,6 +649,16 @@ int32 UGameUserSettings::GetPostProcessingQuality() const
 	return ScalabilityQuality.PostProcessQuality;
 }
 
+void UGameUserSettings::SetFoliageQuality(int32 Value)
+{
+	ScalabilityQuality.FoliageQuality = FMath::Clamp(Value, 0, 3);
+}
+
+int32 UGameUserSettings::GetFoliageQuality() const
+{
+	return ScalabilityQuality.FoliageQuality;
+}
+
 UGameUserSettings* UGameUserSettings::GetGameUserSettings()
 {
 	return GEngine->GetGameUserSettings();

@@ -393,7 +393,7 @@ int32							FName::NumWideNames;
  * @param Name Value for the string portion of the name
  * @param FindType Action to take (see EFindName)
  */
-FName::FName( const WIDECHAR* Name, EFindName FindType, bool )
+FName::FName(const WIDECHAR* Name, EFindName FindType)
 {
 	if (Name)
 	{
@@ -405,7 +405,7 @@ FName::FName( const WIDECHAR* Name, EFindName FindType, bool )
 	}
 }
 
-FName::FName( const ANSICHAR* Name, EFindName FindType, bool )
+FName::FName(const ANSICHAR* Name, EFindName FindType)
 {
 	if (Name)
 	{

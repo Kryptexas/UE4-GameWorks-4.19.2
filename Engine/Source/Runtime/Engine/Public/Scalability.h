@@ -21,6 +21,7 @@ namespace Scalability
 		int32 PostProcessQuality;
 		int32 TextureQuality;
 		int32 EffectsQuality;
+		int32 FoliageQuality;
 
 		float CPUBenchmarkResults;
 		float GPUBenchmarkResults;

@@ -223,6 +223,9 @@ public:
 	 */
 	void ReleasePerInstanceRenderData();
 
+	// Number of instances in the render-side instance buffer
+	virtual int32 GetNumRenderInstances() const { return PerInstanceSMData.Num() + RemovedInstances.Num(); }
+
 private:
 	/** Creates body instances for all instances owned by this component */
 	void CreateAllInstanceBodies();
@@ -232,7 +235,7 @@ private:
 
 	/** Sets up new instance data to sensible defaults, creates physics counterparts if possible */
 	void SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform);
-	
+
 protected:
 	/** Request to navigation system to update only part of navmesh occupied by specified instance */
 	virtual void PartialNavigationUpdate(int32 InstanceIdx);

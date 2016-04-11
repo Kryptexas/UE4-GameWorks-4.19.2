@@ -759,10 +759,12 @@ void UBodySetup::Serialize(FArchive& Ar)
 	bool bCooked = Ar.IsCooking();
 	Ar << bCooked;
 
+#if !WITH_RUNTIME_PHYSICS_COOKING
 	if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading())
 	{
 		UE_LOG(LogPhysics, Fatal, TEXT("This platform requires cooked packages, and physX data was not cooked into %s."), *GetFullName());
 	}
+#endif //!WITH_RUNTIME_PHYSICS_COOKING
 
 	if (bCooked)
 	{
