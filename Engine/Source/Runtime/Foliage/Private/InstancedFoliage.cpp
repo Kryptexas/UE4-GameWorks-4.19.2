@@ -2350,9 +2350,15 @@ void AInstancedFoliageActor::PostLoad()
 			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 			UFoliageType* FoliageType = MeshPair.Key;
 
+			UStaticMesh* StaticMesh = FoliageType->GetStaticMesh();
+			if (StaticMesh)
+			{
+				// if we ReallocateClusters or CheckComponentClass below then we need the mesh fully loaded to build the HISMC tree successfully
+				StaticMesh->ConditionalPostLoad();
+			}
+
 			if (MeshInfo.Instances.Num() && MeshInfo.Component == nullptr)
 			{
-				const UStaticMesh* StaticMesh = FoliageType->GetStaticMesh();
 				FFormatNamedArguments Arguments;
 				if (StaticMesh)
 				{

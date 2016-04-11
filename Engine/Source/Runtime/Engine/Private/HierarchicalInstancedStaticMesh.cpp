@@ -2055,6 +2055,9 @@ void UHierarchicalInstancedStaticMeshComponent::PostBuildStats()
 
 void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 {
+	// If we try to build the tree with the static mesh not fully loaded, we can end up in an inconsistent state which ends in a crash later
+	checkSlow(!StaticMesh || !StaticMesh->HasAnyFlags(RF_NeedPostLoad));
+
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UHierarchicalInstancedStaticMeshComponent_BuildTree);
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
@@ -2101,7 +2104,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 		Exchange(SortedInstances, Builder->Result->SortedInstances);
 
 		FlushAccumulatedNavigationUpdates();
-				
+
 		PostBuildStats();
 	}
 }
@@ -2330,6 +2333,9 @@ void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThread
 
 void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 {
+	// If we try to build the tree with the static mesh not fully loaded, we can end up in an inconsistent state which ends in a crash later
+	checkSlow(!StaticMesh || !StaticMesh->HasAnyFlags(RF_NeedPostLoad));
+
 	check(!bIsAsyncBuilding);
 
 	// Verify that the mesh is valid before using it.
