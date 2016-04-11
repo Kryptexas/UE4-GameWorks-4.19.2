@@ -1014,9 +1014,18 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 	if (USkeletalMeshComponent* MasterSMC = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get()))
 	{
 		// propagate BP-driven curves from the master SMC...
-		if (MasterSMC->SkeletalMesh && MasterSMC->MorphTargetCurves.Num() > 0)
+		if (SkeletalMesh)
 		{
-			FAnimationRuntime::AppendActiveVertexAnims(MasterSMC->SkeletalMesh, MasterSMC->MorphTargetCurves, ActiveVertexAnims);
+			if (MasterSMC->MorphTargetCurves.Num() > 0)
+			{
+				FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MasterSMC->MorphTargetCurves, ActiveVertexAnims);
+			}
+
+			// if slave also has it, add it here. 
+			if (MorphTargetCurves.Num() > 0)
+			{
+				FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MorphTargetCurves, ActiveVertexAnims);
+			}
 		}
 
 		// ...then append any animation-driven curves from the master SMC
