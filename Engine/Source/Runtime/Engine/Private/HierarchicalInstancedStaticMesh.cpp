@@ -1893,12 +1893,13 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 	// If we're updating an instance in the tree and can't do it in-place because the transform has changed, we have to remove it and re-add it
 	if (!bDoInPlaceUpdate)
 	{
-		// Treat the old instance render data like a removal.
-		RemovedInstances.Add(RenderIndex);
-
 		// Allocate a new instance render order ID, rendered last (it is now an unbuilt instance)
+		const int32 OldRenderIndex = RenderIndex;
 		RenderIndex = PerInstanceSMData.Num() + RemovedInstances.Num();
 		InstanceReorderTable[InstanceIndex] = RenderIndex;
+
+		// Treat the old instance render data like a removal.
+		RemovedInstances.Add(OldRenderIndex);
 	}
 
 	bool Result = Super::UpdateInstanceTransform(InstanceIndex, NewInstanceTransform, bWorldSpace, bMarkRenderStateDirty);
