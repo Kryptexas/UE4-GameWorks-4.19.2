@@ -1623,7 +1623,10 @@ void FSequencer::VerticalScroll(float ScrollAmountUnits)
 
 
 FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object )
-{
+{	
+	//@todo Disabled in 4.11 because they can cause scene corruption and won't be compatible with spawnables in 4.12
+	return FGuid();
+
 	UMovieSceneSequence* Sequence = GetFocusedMovieSceneSequence();
 	if (!Sequence->AllowsSpawnableObjects())
 	{
