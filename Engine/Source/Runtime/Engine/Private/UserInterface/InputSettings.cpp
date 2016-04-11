@@ -13,9 +13,7 @@
 
 UInputSettings::UInputSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, bCaptureMouseOnLaunch(true)
 	, DefaultViewportMouseCaptureMode(EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown)
-	, bDefaultViewportMouseLock(true)
 {
 }
 

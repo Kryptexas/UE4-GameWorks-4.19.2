@@ -116,7 +116,6 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	, HighResScreenshotDialog(NULL)
 	, bIgnoreInput(false)
 	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
-	, bLockDuringCapture(true)
 	, bHideCursorDuringCapture(false)
 	, AudioDeviceHandle(INDEX_NONE)
 	, bHasAudioFocus(false)
@@ -176,7 +175,6 @@ UGameViewportClient::UGameViewportClient(FVTableHelper& Helper)
 	, bIgnoreInput(false)
 	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
 	, bHideCursorDuringCapture(false)
-	, bLockDuringCapture(true)
 	, AudioDeviceHandle(INDEX_NONE)
 	, bHasAudioFocus(false)
 {
@@ -279,7 +277,6 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 
 	// Set the projects default viewport mouse capture mode
 	MouseCaptureMode = GetDefault<UInputSettings>()->DefaultViewportMouseCaptureMode;
-	bLockDuringCapture = GetDefault<UInputSettings>()->bDefaultViewportMouseLock;
 
 	// Create the cursor Widgets
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
@@ -2049,10 +2046,7 @@ void UGameViewportClient::VerifyPathRenderingComponents()
 	}
 }
 
-bool UGameViewportClient::CaptureMouseOnLaunch()
-{
-	return GetDefault<UInputSettings>()->bCaptureMouseOnLaunch;
-}
+
 
 bool UGameViewportClient::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 {
