@@ -24,6 +24,7 @@ public:
 	FString GPUFamily;
 	FString GLVersion;
 	bool bSupportsFloatingPointRenderTargets;
+	bool bSupportsTextureHalfFloat;
 	bool bSupportsFrameBufferFetch;
 	TArray<FString> TargetPlatformNames;
 
@@ -35,6 +36,7 @@ private:
 		GPUFamily = "NVIDIA Tegra";
 		GLVersion = "4.4.0";
 		bSupportsFloatingPointRenderTargets = true;
+		bSupportsTextureHalfFloat = true;
 		TargetPlatformNames.Add(TEXT("Android_GL4"));
 #else
 		// this is only valid in the game thread, make sure we are initialized there before being called on other threads!
@@ -109,6 +111,7 @@ private:
 #endif
 
 		bSupportsFloatingPointRenderTargets = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
+		bSupportsTextureHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_half_float"));
 		bSupportsFrameBufferFetch = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_NV_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_ARM_shader_framebuffer_fetch"));
 #endif
 		GAndroidGPUInfoReady = true;

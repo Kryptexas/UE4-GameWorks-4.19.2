@@ -569,7 +569,7 @@ FString FAndroidMisc::GetGLVersion()
 
 bool FAndroidMisc::SupportsFloatingPointRenderTargets()
 {
-	return FAndroidGPUInfo::Get().bSupportsFloatingPointRenderTargets;
+	return FAndroidGPUInfo::Get().bSupportsFloatingPointRenderTargets && FAndroidGPUInfo::Get().bSupportsTextureHalfFloat;
 }
 
 bool FAndroidMisc::SupportsShaderFramebufferFetch()
