@@ -19,7 +19,7 @@ namespace UnrealBuildTool
 		// --------------------------------------------------
 		// --------------------------------------------------
 		static string SDKBase { get { return Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, "Source", "ThirdParty", "HTML5", "emsdk")); } }
-		static string EMSCRIPTEN_ROOT { get { return Path.Combine(SDKBase, "emscripten", SDKVersion); } }
+		static public string EMSCRIPTEN_ROOT { get { return Path.Combine(SDKBase, "emscripten", SDKVersion); } }
 		// --------------------------------------------------
 		// --------------------------------------------------
 		static string CURRENT_PLATFORM
@@ -124,10 +124,19 @@ namespace UnrealBuildTool
 
         public static string SetUpEmscriptenConfigFile()
 		{
+			// the following are for diff checks for file timestamps
+			string SaveDotEmscripten = DOT_EMSCRIPTEN + ".save";
+			if (File.Exists(SaveDotEmscripten))
+			{
+				File.Delete(SaveDotEmscripten);
+			}
+			string config_old = "";
+
 			// make a fresh .emscripten resource file
 			if (File.Exists(DOT_EMSCRIPTEN))
 			{
-				File.Delete(DOT_EMSCRIPTEN);
+				config_old = File.ReadAllText(DOT_EMSCRIPTEN);
+				File.Move(DOT_EMSCRIPTEN, SaveDotEmscripten);
 			}
 
 			// the best way to generate .emscripten resource file,
@@ -161,9 +170,23 @@ namespace UnrealBuildTool
 				// and PYTHON (reduce warnings on EMCC_DEBUG=1)
 				string pyth = Regex.Replace(PYTHON, @"\\", @"\\");
 				string optz = Regex.Replace(Path.Combine(LLVM_ROOT, "optimizer") + PLATFORM_EXE, @"\\", @"\\");
-				File.WriteAllText(DOT_EMSCRIPTEN, Regex.Replace(
+				string txt = Regex.Replace(
 							Regex.Replace(File.ReadAllText(DOT_EMSCRIPTEN), "#(PYTHON).*", "$1 = '" + pyth + "'"),
-							"# (EMSCRIPTEN_NATIVE_OPTIMIZER).*", "$1 = '" + optz + "'"));
+							"# (EMSCRIPTEN_NATIVE_OPTIMIZER).*", "$1 = '" + optz + "'");
+				File.WriteAllText(DOT_EMSCRIPTEN, txt);
+			// --------------------------------------------------
+			if (File.Exists(SaveDotEmscripten))
+			{
+				if ( config_old.Equals(txt, StringComparison.Ordinal) )
+				{	// preserve file timestamp -- otherwise, emscripten "system libs" will always be recompiled
+					File.Delete(DOT_EMSCRIPTEN);
+					File.Move(SaveDotEmscripten, DOT_EMSCRIPTEN);
+				}
+				else
+				{
+					File.Delete(SaveDotEmscripten);
+				}
+			}
 			// --------------------------------------------------
 			// --------------------------------------------------
 			// restore a few things
