@@ -3246,6 +3246,7 @@ void FKismetCompilerContext::Compile()
 		++TimelineIndex;
 	}
 
+
 	CleanAndSanitizeClass(TargetClass, OldCDO);
 
 	FKismetCompilerVMBackend Backend_VM(Blueprint, Schema, *this);

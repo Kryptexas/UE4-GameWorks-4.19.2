@@ -125,9 +125,11 @@ protected:
 
 private:
 	/** Current Asset being played **/
+	UPROPERTY(transient)
 	UAnimationAsset* CurrentAsset;
 
 	/** Current vertex anim being played **/
+	UPROPERTY(transient)
 	UVertexAnimation* CurrentVertexAnim;
 
 	/** Random cached values to play each asset **/

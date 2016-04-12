@@ -3,6 +3,10 @@
 /*=============================================================================
 	ShadowProjectionPixelShader.usf: Pixel shader for projecting a shadow depth buffer onto the scene.
 =============================================================================*/
+#ifndef FORCE_FLOATS
+// TODO: remove this requirement: Iphone6/Metal needs full float for the depth comparison.
+#define FORCE_FLOATS (COMPILER_METAL)
+#endif
 
 #include "Common.usf"
 

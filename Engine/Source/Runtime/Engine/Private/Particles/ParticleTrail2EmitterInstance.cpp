@@ -92,54 +92,45 @@ void FParticleTrailsEmitterInstance_Base::Tick(float DeltaTime, bool bSuppressSp
 		// Handle EmitterTime setup, looping, etc.
 		float EmitterDelay = Tick_EmitterTimeSetup(DeltaTime, LODLevel);
 
-		if (bEnabled)
-		{
-			// Update the source data (position, etc.)
-			UpdateSourceData(DeltaTime, bFirstTime);
+		// Update the source data (position, etc.)
+		UpdateSourceData(DeltaTime, bFirstTime);
 
-			// Kill off any dead particles
-			KillParticles();
+		// Kill off any dead particles
+		KillParticles();
 
-			// Spawn Particles...
-			SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
+		// Spawn Particles...
+		SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
 
-			// Reset particle parameters.
-			ResetParticleParameters(DeltaTime);
+		// Reset particle parameters.
+		ResetParticleParameters(DeltaTime);
 
-			// Update existing particles (might respawn dying ones).
-			Tick_ModuleUpdate(DeltaTime, LODLevel);
+		// Update existing particles (might respawn dying ones).
+		Tick_ModuleUpdate(DeltaTime, LODLevel);
 
-			// Module post update 
-			Tick_ModulePostUpdate(DeltaTime, LODLevel);
+		// Module post update 
+		Tick_ModulePostUpdate(DeltaTime, LODLevel);
 
-			// Update the orbit data...
-			// 	UpdateOrbitData(DeltaTime);
+		// Update the orbit data...
+		// 	UpdateOrbitData(DeltaTime);
 
-			// Calculate bounding box and simulate velocity.
-			UpdateBoundingBox(DeltaTime);
+		// Calculate bounding box and simulate velocity.
+		UpdateBoundingBox(DeltaTime);
 
-			// Perform any final updates...
-			Tick_ModuleFinalUpdate(DeltaTime, LODLevel);
+		// Perform any final updates...
+		Tick_ModuleFinalUpdate(DeltaTime, LODLevel);
 
-			// Recalculate tangents, if enabled
-			Tick_RecalculateTangents(DeltaTime, LODLevel);
+		// Recalculate tangents, if enabled
+		Tick_RecalculateTangents(DeltaTime, LODLevel);
 
-			CurrentMaterial = LODLevel->RequiredModule->Material;
+		CurrentMaterial = LODLevel->RequiredModule->Material;
 
-			// Invalidate the contents of the vertex/index buffer.
-			IsRenderDataDirty = 1;
+		// Invalidate the contents of the vertex/index buffer.
+		IsRenderDataDirty = 1;
 
-			// 'Reset' the emitter time so that the delay functions correctly
-			EmitterTime += CurrentDelay;
-			RunningTime += DeltaTime;
-			LastTickTime = Component->GetWorld() ? Component->GetWorld()->GetTimeSeconds() : 0.0f;
-		}
-		else
-		{
-			// 'Reset' the emitter time so that the delay functions correctly
-			EmitterTime += CurrentDelay;
-			FakeBursts();
-		}
+		// 'Reset' the emitter time so that the delay functions correctly
+		EmitterTime += CurrentDelay;
+		RunningTime += DeltaTime;
+		LastTickTime = Component->GetWorld() ? Component->GetWorld()->GetTimeSeconds() : 0.0f;
 		
 		// Reset particles position offset
 		PositionOffsetThisTick = FVector::ZeroVector;
@@ -513,40 +504,40 @@ void FParticleTrailsEmitterInstance_Base::KillParticles(int32 InTrailIdx, int32 
 
 		{
 			// Find the end particle
-			FTrailsBaseTypeDataPayload* TrailData = nullptr;
-			FBaseParticle *Particle = nullptr;
+			FTrailsBaseTypeDataPayload* EndTrailData = nullptr;
+			FBaseParticle *EndParticle = nullptr;
 			int32 EndIndex;
-			GetTrailEnd<FTrailsBaseTypeDataPayload>(InTrailIdx, EndIndex, TrailData, Particle);
-
+			GetTrailEnd<FTrailsBaseTypeDataPayload>(InTrailIdx, EndIndex, EndTrailData, EndParticle);
+			if (EndParticle)
 			{
-				if (TrailData && TrailData->TrailIndex == InTrailIdx)
+				if (EndTrailData && EndTrailData->TrailIndex == InTrailIdx)
 				{
-					while ((TrailData != NULL) && (KilledCount < InKillCount))
+					while ((EndTrailData != NULL) && (KilledCount < InKillCount))
 					{
 						// Mark it for death...
-						Particle->RelativeTime = 1.1f;
+						EndParticle->RelativeTime = 1.1f;
 						KilledCount++;
 						// See if there is a 'prev'
-						int32 Prev = TRAIL_EMITTER_GET_PREV(TrailData->Flags);
+						int32 Prev = TRAIL_EMITTER_GET_PREV(EndTrailData->Flags);
 						if (Prev != TRAIL_EMITTER_NULL_PREV)
 						{
-							Particle = (FBaseParticle*)(ParticleData + (ParticleStride * Prev));
-							TrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)Particle + TypeDataOffset));
-							if (TRAIL_EMITTER_IS_START(TrailData->Flags))
+							EndParticle = (FBaseParticle*)(ParticleData + (ParticleStride * Prev));
+							EndTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
+							if (TRAIL_EMITTER_IS_START(EndTrailData->Flags))
 							{
 								// Don't kill the start, no matter what...
-								TrailData = NULL;
+								EndTrailData = NULL;
 							}
-							else if (TRAIL_EMITTER_IS_DEADTRAIL(TrailData->Flags))
+							else if (TRAIL_EMITTER_IS_DEADTRAIL(EndTrailData->Flags))
 							{
 								// Nothing to do in this case.
-								TrailData->TriangleCount = 0;
-								TrailData->RenderingInterpCount = 1;
+								EndTrailData->TriangleCount = 0;
+								EndTrailData->RenderingInterpCount = 1;
 							}
 						}
 					}
 
-					if (TrailData == NULL)
+					if (EndTrailData == NULL)
 					{
 						// Force it to exit the loop...
 						KilledCount = InKillCount;
@@ -665,6 +656,7 @@ bool FParticleTrailsEmitterInstance_Base::GetParticleInTrail(
 				}
 				break;
 			}
+
 
 			if (bItsGood == true)
 			{
@@ -2299,8 +2291,8 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					else
 					{
 						// Fall back to the emitter location??
-						OutPosition = AsyncComponentToWorld.GetLocation();
-						OutTangent = Component->GetAsyncPartSysVelocity();
+						OutPosition = SourceEmitter->Component->GetComponentLocation();
+						OutTangent = Component->PartSysVelocity;
 						//@todo. How to handle this... can potentially cause a jump from the emitter to the
 						// particle...
 						SourceTimes[InTrailIdx] = 0.0f;
@@ -2308,7 +2300,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					}
 					OutTangentStrength = OutTangent.SizeSquared();
 					//@todo. Allow particle rotation to define up??
-					OutUp = AsyncComponentToWorld.GetScaledAxis( EAxis::Z );
+					OutUp = SourceEmitter->Component->ComponentToWorld.GetScaledAxis(EAxis::Z);
 
 					//@todo. Where to get rotation from????
 					OutRotation = FQuat(0,0,0,1);
@@ -2329,32 +2321,14 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 
 				if (SourceActor)
 				{
-					FTransform ActorToWorld = FTransform::Identity;
-					FVector SourceActorVelocity = FVector::ZeroVector;
-					if(IsInGameThread())
-					{
-						ActorToWorld = SourceActor->ActorToWorld();
-						SourceActorVelocity = SourceActor->GetVelocity();
-					}
-					else
-					{
-						const TArray<FParticleSysParam>& AsyncParticleSysParams = Component->GetAsyncInstanceParameters();
-						for(const FParticleSysParam& ParticleSysParam : AsyncParticleSysParams)
-						{
-							if(ParticleSysParam.Actor == SourceActor)
-							{
-								ActorToWorld = ParticleSysParam.GetAsyncActorToWorld();
-								SourceActorVelocity = ParticleSysParam.GetAsyncActorVelocity();
-							}
-						}
-					}
+					FTransform ActorToWorld = SourceActor->ActorToWorld();
 					OutPosition = ActorToWorld.GetLocation();
 					FRotator TempRotator = ActorToWorld.Rotator();
 					OutRotation = FQuat(TempRotator);
-					OutTangent = SourceActorVelocity;
+					OutTangent = SourceActor->GetVelocity();
 					OutTangentStrength = OutTangent.SizeSquared();
 
-					OutUp = ActorToWorld.TransformVector(FVector(0.f,0.f,1.f));
+					OutUp = ActorToWorld.TransformVector(FVector(0.f, 0.f, 1.f));
 
 					bSourceWasSet = true;
 				}
@@ -2365,7 +2339,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 
 	if (bSourceWasSet == false)
 	{
-		OutPosition = AsyncComponentToWorld.GetLocation();
+		OutPosition = Component->GetComponentLocation();
 		if (SourceModule && (SourceModule->SourceOffsetCount > 0))
 		{
 			FVector SourceOffsetValue;
@@ -2374,15 +2348,15 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 				if (CurrentLODLevel && (CurrentLODLevel->RequiredModule->bUseLocalSpace == false))
 				{
 					// Transform it
-					SourceOffsetValue = AsyncComponentToWorld.TransformVector(SourceOffsetValue);
+					SourceOffsetValue = Component->ComponentToWorld.TransformVector(SourceOffsetValue);
 				}
 				OutPosition += SourceOffsetValue;
 			}
 		}
-		OutRotation = AsyncComponentToWorld.GetRotation();
-		OutTangent = Component->GetAsyncPartSysVelocity();
+		OutRotation = Component->GetComponentQuat();
+		OutTangent = Component->PartSysVelocity;
 		OutTangentStrength = OutTangent.SizeSquared();
-		OutUp = AsyncComponentToWorld.GetScaledAxis( EAxis::Z );
+		OutUp = Component->ComponentToWorld.GetScaledAxis(EAxis::Z);
 
 		bSourceWasSet = true;
 	}
@@ -3432,13 +3406,11 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 			int32 CheckStartIndex = ParticleIndices[FindTrailIdx];
 			DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckStartIndex);
 			FAnimTrailTypeDataPayload* CheckTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)CheckParticle + TypeDataOffset));
-
 			if (CheckTrailData->TrailIndex == TrailIdx)
 			{
 				if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
 				{
 					CheckTrailData->Flags = TRAIL_EMITTER_SET_DEADTRAIL(CheckTrailData->Flags);
-					SetDeadIndex(CheckTrailData->TrailIndex, CheckStartIndex);
 				}
 			}
 		}

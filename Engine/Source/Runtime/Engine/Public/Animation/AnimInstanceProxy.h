@@ -461,7 +461,6 @@ protected:
 	/** Initialize the root node - split into a separate function for backwards compatibility (initialization order) reasons */
 	void InitializeRootNode();
 
-
 private:
 	/** Object ptr to our UAnimInstance */
 	mutable UObject* AnimInstanceObject;
@@ -470,9 +469,11 @@ private:
 	IAnimClassInterface* AnimClassInterface;
 
 	/** Skeleton we are using, only used for comparison purposes */
+	UPROPERTY(transient)
 	USkeleton* Skeleton;
 
 	/** Skeletal mesh component we are attached to */
+	UPROPERTY(transient)
 	USkeletalMeshComponent* SkeletalMeshComponent;
 
 	/** The last time passed into PreUpdate() */

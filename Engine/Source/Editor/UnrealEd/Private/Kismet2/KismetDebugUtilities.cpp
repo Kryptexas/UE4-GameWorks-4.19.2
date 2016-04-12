@@ -146,8 +146,9 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 				// to std output) on destruction - we want the full message 
 				// constructed before it's logged
 				FMessageLog PIEMessageLog("PIE");
-				TSharedRef<FTokenizedMessage> ErrorMessage = PIEMessageLog.Error(LOCTEXT("RuntimeErrorMessage", "Blueprint Runtime Error from function:"));
-
+				TSharedRef<FTokenizedMessage> ErrorMessage = PIEMessageLog.Error(LOCTEXT("RuntimeErrorMessage", "Blueprint Runtime Error:"));
+				ErrorMessage->AddToken(FTextToken::Create(Info.GetDescription()));
+				ErrorMessage->AddToken(FTextToken::Create(LOCTEXT("RuntimeErrorBlueprintFunction", "from function:")));
 				// NOTE: StackFrame.Node is not a blueprint node like you may think ("Node" has some legacy meaning)
 				FString GeneratedFuncName = FString::Printf(TEXT("'%s'"), *StackFrame.Node->GetName());
 				// a log token, telling us specifically where the exception is coming from (here

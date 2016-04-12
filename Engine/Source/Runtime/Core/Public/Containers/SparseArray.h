@@ -386,6 +386,29 @@ public:
 		return bResult;
 	}
 
+	/** Compacts the allocated elements into a contiguous index range. Does not change the iteration order of the elements. */
+	/** Returns true if any elements were relocated, false otherwise. */
+	bool CompactStable()
+	{
+		if (NumFreeIndices == 0)
+		{
+			return false;
+		}
+
+		// Copy the existing elements to a new array.
+		TSparseArray<ElementType,Allocator> CompactedArray;
+		CompactedArray.Empty(Num());
+		for(TConstIterator It(*this);It;++It)
+		{
+			new(CompactedArray.AddUninitialized()) ElementType(*It);
+		}
+
+		// Replace this array with the compacted array.
+		Exchange(*this,CompactedArray);
+
+		return true;
+	}
+
 	/** Sorts the elements using the provided comparison class. */
 	template<typename PREDICATE_CLASS>
 	void Sort( const PREDICATE_CLASS& Predicate )

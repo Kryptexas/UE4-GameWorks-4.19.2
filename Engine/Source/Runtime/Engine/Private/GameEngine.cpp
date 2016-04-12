@@ -345,6 +345,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	.AutoCenter(AutoCenterType)
 	.ScreenPosition(FVector2D(WinX, WinY))
 	.FocusWhenFirstShown(true)
+	.SaneWindowPlacement(AutoCenterType == EAutoCenter::None)
 	.UseOSWindowBorder(true);
 
 	const bool bShowImmediately = false;

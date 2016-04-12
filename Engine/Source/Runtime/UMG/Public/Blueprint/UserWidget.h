@@ -141,6 +141,7 @@ public:
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
+	virtual void Serialize(FArchive& Ar) override;
 	//~ End UObject Interface
 
 	virtual bool Initialize();

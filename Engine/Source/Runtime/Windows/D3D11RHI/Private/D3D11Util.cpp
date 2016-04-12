@@ -276,9 +276,14 @@ void VerifyComRefCount(IUnknown* Object,int32 ExpectedRefs,const TCHAR* Code,con
 	{
 		Object->AddRef();
 		NumRefs = Object->Release();
+
+		checkSlow(NumRefs == ExpectedRefs);
+
 		if (NumRefs != ExpectedRefs)
 		{
-			UE_LOG(LogD3D11RHI,Fatal,
+			UE_LOG(
+				LogD3D11RHI,
+				Error,
 				TEXT("%s:(%d): %s has %d refs, expected %d"),
 				Filename,
 				Line,

@@ -1513,10 +1513,13 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			}
 #endif
 
-			if( Package == NULL )
+			if (Package == NULL)
 			{
-				LogCookerMessage( FString::Printf(TEXT("Error loading %s!"), *BuildFilename), EMessageSeverity::Error );
-				UE_LOG(LogCook, Error, TEXT("Error loading %s!"), *BuildFilename );
+				if ((!IsCookOnTheFlyMode()) || (!IsCookingInEditor()))
+				{
+					LogCookerMessage(FString::Printf(TEXT("Error loading %s!"), *BuildFilename), EMessageSeverity::Error);
+					UE_LOG(LogCook, Error, TEXT("Error loading %s!"), *BuildFilename);
+				}
 				Result |= COSR_ErrorLoadingPackage;
 			}
 			else

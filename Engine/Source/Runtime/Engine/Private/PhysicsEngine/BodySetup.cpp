@@ -1034,10 +1034,12 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format, bool bRuntimeOnlyOptimize
 #if WITH_PHYSX
 	if (!bContainedData)
 	{
+#if !defined(WITH_RUNTIME_PHYSICS_COOKING) || !WITH_RUNTIME_PHYSICS_COOKING
 		if (FPlatformProperties::RequiresCookedData())
 		{
 			UE_LOG(LogPhysics, Error, TEXT("Attempt to build physics data for %s when we are unable to. This platform requires cooked packages."), *GetPathName());
 		}
+#endif
 
 		if (AggGeom.ConvexElems.Num() == 0 && (CDP == NULL || CDP->ContainsPhysicsTriMeshData(bMeshCollideAll) == false))
 		{

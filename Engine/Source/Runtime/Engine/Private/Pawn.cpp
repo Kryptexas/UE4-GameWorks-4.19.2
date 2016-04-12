@@ -152,9 +152,9 @@ void APawn::UpdateNavAgent()
 	}
 }
 
-void APawn::SetCanAffectNavigationGeneration(bool bNewValue)
+void APawn::SetCanAffectNavigationGeneration(bool bNewValue, bool bForceUpdate)
 {
-	if (bCanAffectNavigationGeneration != bNewValue)
+	if (bCanAffectNavigationGeneration != bNewValue || bForceUpdate)
 	{
 		bCanAffectNavigationGeneration = bNewValue;
 
@@ -907,6 +907,18 @@ void APawn::EditorApplyRotation(const FRotator& DeltaRotation, bool bAltDown, bo
 	if( Controller )
 	{
 		Controller->SetControlRotation( GetActorRotation() );
+	}
+}
+
+void APawn::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	static const FName NAME_CanAffectNavigationGeneration = FName(TEXT("bCanAffectNavigationGeneration"));
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.Property != nullptr && PropertyChangedEvent.Property->GetFName() == NAME_CanAffectNavigationGeneration)
+	{
+		SetCanAffectNavigationGeneration(bCanAffectNavigationGeneration, /*bForceUpdate=*/true);
 	}
 }
 #endif

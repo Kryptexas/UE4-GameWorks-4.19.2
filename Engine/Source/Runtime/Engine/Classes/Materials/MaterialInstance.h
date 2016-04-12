@@ -419,7 +419,7 @@ protected:
 	void SetScalarParameterValueInternal(FName ParameterName, float Value);
 	void SetTextureParameterValueInternal(FName ParameterName, class UTexture* Value);
 	void SetFontParameterValueInternal(FName ParameterName, class UFont* FontValue, int32 FontPage);
-	void ClearParameterValuesInternal();
+	void ClearParameterValuesInternal(const bool bAllParameters = true);
 
 	/** Initialize the material instance's resources. */
 	ENGINE_API void InitResources();

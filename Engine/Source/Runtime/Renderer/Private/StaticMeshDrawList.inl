@@ -24,6 +24,9 @@ void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove()
 
 	checkSlow(LocalDrawingPolicyLink->SetId == SetId);
 
+	check(LocalDrawingPolicyLink->Elements[ElementIndex].Mesh->MaterialRenderProxy);
+	LocalDrawingPolicyLink->Elements[ElementIndex].Mesh->MaterialRenderProxy->SetUnreferencedInDrawList();
+
 	// Unlink the mesh from this draw list.
 	LocalDrawingPolicyLink->Elements[ElementIndex].Mesh->UnlinkDrawList(this);
 	LocalDrawingPolicyLink->Elements[ElementIndex].Mesh = NULL;
@@ -216,6 +219,9 @@ void TStaticMeshDrawList<DrawingPolicyType>::AddMesh(
 	new(DrawingPolicyLink->CompactElements) FElementCompact(Mesh->Id);
 	TotalBytesUsed += DrawingPolicyLink->Elements.GetAllocatedSize() - PreviousElementsSize + DrawingPolicyLink->CompactElements.GetAllocatedSize() - PreviousCompactElementsSize;
 	Mesh->LinkDrawList(Element->Handle);
+
+	check(Element->Mesh->MaterialRenderProxy);
+	Element->Mesh->MaterialRenderProxy->SetReferencedInDrawList();
 }
 
 template<typename DrawingPolicyType>

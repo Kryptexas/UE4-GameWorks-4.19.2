@@ -50,10 +50,8 @@ void SSuperSearchBox::Construct( const FArguments& InArgs )
 {
 	// Allow style to be optionally overridden, but fallback to SSearchBox default if not specified
 	const FSearchBoxStyle* InStyle = InArgs._Style.IsSet() ? InArgs._Style.GetValue() : &FCoreStyle::Get().GetWidgetStyle<FSearchBoxStyle>("SearchBox");
-	const FComboBoxStyle* InSearchEngineStyle = InArgs._SearchEngineComboBoxStyle.IsSet() ? InArgs._SearchEngineComboBoxStyle.GetValue() : &FCoreStyle::Get().GetWidgetStyle<FComboBoxStyle>("ComboBox");
 
 	CurrentSearchEngine = InArgs._SearchEngine;
-	SearchEngineChanged = InArgs._OnSearchEngineChanged;
 
 	ChildSlot
 	[
@@ -62,20 +60,6 @@ void SSuperSearchBox::Construct( const FArguments& InArgs )
 		.Method( EPopupMethod::UseCurrentWindow )
 		[
 			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SComboBox< TSharedPtr<ESearchEngine> >)
-				.ComboBoxStyle(InSearchEngineStyle)
-				.OptionsSource(&SearchEngines)
-				.OnGenerateWidget(this, &SSuperSearchBox::GenerateSearchEngineItem)
-				.OnSelectionChanged(this, &SSuperSearchBox::HandleSearchEngineChanged)
-				.ContentPadding(FMargin(4.0f, 1.0f))
-				[
-					SNew(STextBlock)
-					.Text(this, &SSuperSearchBox::GetSelectedSearchEngineText)
-				]
-			]
 
 			+ SHorizontalBox::Slot()
 			[
@@ -111,39 +95,9 @@ void SSuperSearchBox::Construct( const FArguments& InArgs )
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-TSharedRef<SWidget> SSuperSearchBox::GenerateSearchEngineItem(TSharedPtr<ESearchEngine> SearchEngine)
+void SSuperSearchBox::SetSearchEngine(ESearchEngine SearchEngine)
 {
-	return SNew(STextBlock)
-		.Text(GetSearchEngineText(*SearchEngine));
-}
-
-void SSuperSearchBox::HandleSearchEngineChanged(TSharedPtr<ESearchEngine> InSearchEngine, ESelectInfo::Type)
-{
-	CurrentSearchEngine = *InSearchEngine;
-
-	SearchEngineChanged.Execute(CurrentSearchEngine);
-
-	//Broadcast to anyone registered
-	//FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
-//	SuperSearchModule.GetSearchEngineChanged().Broadcast(CurrentSearchEngine);
-}
-
-FText SSuperSearchBox::GetSelectedSearchEngineText() const
-{
-	return GetSearchEngineText(CurrentSearchEngine);
-}
-
-FText SSuperSearchBox::GetSearchEngineText(ESearchEngine Type) const
-{
-	switch ( Type )
-	{
-	case ESearchEngine::Google:
-		return LOCTEXT("Google", "Google");
-	case ESearchEngine::Bing:
-		return LOCTEXT("Bing", "Bing");
-	}
-
-	return FText::GetEmpty();
+	CurrentSearchEngine = SearchEngine;
 }
 
 int32 GetNumRealSuggestions(const TArray< TSharedPtr<FSearchEntry> > & Suggestions)
@@ -479,7 +433,6 @@ void SSuperSearchBox::OnTextChanged(const FText& InText)
 	else
 	{
 		ClearSuggestions();
-		SuggestionBox->SetIsOpen(false);
 	}
 }
 
@@ -764,9 +717,6 @@ void SSuperSearchBox::MarkActiveSuggestion()
 void SSuperSearchBox::ClearSuggestions()
 {
 	SelectedSuggestion = INDEX_NONE;
-	SuggestionBox->SetIsOpen(false);
-	SelectedSuggestion = INDEX_NONE;
-	SuggestionBox->SetIsOpen(false);
 	Suggestions.Empty();
 }
 

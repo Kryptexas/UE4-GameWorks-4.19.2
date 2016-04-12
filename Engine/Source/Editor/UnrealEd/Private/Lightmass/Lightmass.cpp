@@ -439,7 +439,6 @@ FLightmassExporter::~FLightmassExporter()
 		for (int32 i = 0; i < OpenedMaterialExportChannels.Num(); ++i)
 		{
 			int32 Result = Swarm.CloseChannel(OpenedMaterialExportChannels[i]);
-			check(Result >= 0);
 		}
 	}
 	else if (ExportStage == CleanupMaterialExport)
@@ -447,7 +446,6 @@ FLightmassExporter::~FLightmassExporter()
 		for (int32 i = CurrentAmortizationIndex; i < OpenedMaterialExportChannels.Num(); ++i)
 		{
 			int32 Result = Swarm.CloseChannel(OpenedMaterialExportChannels[i]);
-			check(Result >= 0);
 		}
 	}
 }

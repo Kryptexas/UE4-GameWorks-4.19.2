@@ -891,12 +891,12 @@ void FPhysXErrorCallback::reportError(PxErrorCode::Enum e, const char* message, 
 	if (e == PxErrorCode::eOUT_OF_MEMORY || e == PxErrorCode::eINTERNAL_ERROR || e == PxErrorCode::eABORT)
 	{
 		UE_LOG(LogPhysics, Error, TEXT("%s"), *ErrorString);
-		ensureMsgf(false, TEXT("%s"), *ErrorString);
+		//ensureMsgf(false, TEXT("%s"), *ErrorString);
 	}
 	else if (e == PxErrorCode::eINVALID_PARAMETER || e == PxErrorCode::eINVALID_OPERATION)
 	{
 		UE_LOG(LogPhysics, Error, TEXT("%s"), *ErrorString);
-		ensureMsgf(false, TEXT("%s"), *ErrorString);
+		//ensureMsgf(false, TEXT("%s"), *ErrorString);
 	}
 	else if (e == PxErrorCode::ePERF_WARNING)
 	{

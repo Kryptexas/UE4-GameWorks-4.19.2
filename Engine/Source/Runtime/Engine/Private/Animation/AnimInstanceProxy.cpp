@@ -512,17 +512,21 @@ void FAnimInstanceProxy::ReinitializeSlotNodes()
 
 void FAnimInstanceProxy::RegisterSlotNodeWithAnimInstance(FName SlotNodeName)
 {
-	// message log access means we need to run this in the game thread
-	check(IsInGameThread());
-
 	// verify if same slot node name exists
 	// then warn users, this is invalid
 	if (SlotWeightTracker.Contains(SlotNodeName))
 	{
 		UClass* ActualAnimClass = IAnimClassInterface::GetActualAnimClass(GetAnimClassInterface());
 		FString ClassNameString = ActualAnimClass ? ActualAnimClass->GetName() : FString("Unavailable");
-
+		if (IsInGameThread())
+		{
+			// message log access means we need to run this in the game thread
 		FMessageLog("AnimBlueprint").Warning(FText::Format(LOCTEXT("AnimInstance_SlotNode", "SLOTNODE: '{0}' in animation instance class {1} already exists. Remove duplicates from the animation graph for this class."), FText::FromString(SlotNodeName.ToString()), FText::FromString(ClassNameString)));
+		}
+		else
+		{
+			UE_LOG(LogAnimation, Warning, TEXT("SLOTNODE: '%s' in animation instance class %s already exists. Remove duplicates from the animation graph for this class."), *SlotNodeName.ToString(), *ClassNameString);
+		}
 		return;
 	}
 

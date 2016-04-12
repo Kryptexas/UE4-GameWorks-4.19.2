@@ -105,11 +105,16 @@ FPlatformOpenGLDevice::FPlatformOpenGLDevice()
 {
 }
 
+// call out to JNI to see if the application was packaged for GearVR
+extern bool AndroidThunkCpp_IsGearVRApplication();
+
 void FPlatformOpenGLDevice::Init()
 {
 	extern void InitDebugContext();
 
-	AndroidEGL::GetInstance()->InitSurface(false, true);
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("FPlatformOpenGLDevice:Init"));
+	bool bCreateSurface = !AndroidThunkCpp_IsGearVRApplication();
+	AndroidEGL::GetInstance()->InitSurface(false, bCreateSurface);
 	PlatformRenderingContextSetup(this);
 
 	LoadEXT();
@@ -406,6 +411,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		// This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension
 		// OpenGL ES 3.1 V@127.0 (GIT@I1af360237c)
 		bRequiresShaderFramebufferFetchUndef = !bSupportsShaderFramebufferFetch;
+		bRequiresARMShaderFramebufferFetchDepthStencilUndef = !bSupportsShaderDepthStencilFetch;
 
 		// Adreno 2xx doesn't work with packed depth stencil enabled
 		if (RendererString.Contains(TEXT("Adreno (TM) 2")))

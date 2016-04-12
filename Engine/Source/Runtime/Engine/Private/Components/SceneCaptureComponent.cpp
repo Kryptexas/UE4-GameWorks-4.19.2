@@ -322,6 +322,9 @@ void USceneCaptureComponent2D::UpdateContent()
 	if (World && World->Scene && IsVisible())
 	{
 		// Defer until after updates finish
+		// Needs some CS because of parallel updates.
+		static FCriticalSection CriticalSection;
+		FScopeLock ScopeLock(&CriticalSection);
 		SceneCapturesToUpdateMap.AddUnique(World, this);
 	}	
 }
@@ -574,6 +577,9 @@ void USceneCaptureComponentCube::UpdateContent()
 	if (World && World->Scene && IsVisible())
 	{
 		// Defer until after updates finish
+		// Needs some CS because of parallel updates.
+		static FCriticalSection CriticalSection;
+		FScopeLock ScopeLock(&CriticalSection);
 		CubedSceneCapturesToUpdateMap.AddUnique( World, this );
 	}	
 }

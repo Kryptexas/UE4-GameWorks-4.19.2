@@ -131,7 +131,7 @@ bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Componen
 		{
 			return false;
 		}
-
+		
 		Parent = CreatePackage(nullptr, *ValidatedAssetPath);
 	}
 

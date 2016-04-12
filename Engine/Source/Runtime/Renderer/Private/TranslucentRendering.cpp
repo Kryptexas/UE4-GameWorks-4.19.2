@@ -1009,7 +1009,8 @@ void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveScen
 
 	bool bCanBeSeparate = CVarEnabled
 		&& FeatureLevel >= ERHIFeatureLevel::SM4
-		&& (ViewInfo.Family->EngineShowFlags.PostProcessing || ViewInfo.Family->EngineShowFlags.ShaderComplexity)
+		&& ViewInfo.Family->EngineShowFlags.PostProcessing 
+		&& !ViewInfo.Family->EngineShowFlags.ShaderComplexity
 		&& ViewInfo.Family->EngineShowFlags.SeparateTranslucency;
 
 	// add to list of sepaate translucency prims 

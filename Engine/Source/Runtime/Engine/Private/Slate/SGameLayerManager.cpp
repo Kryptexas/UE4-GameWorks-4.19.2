@@ -322,7 +322,7 @@ FVector2D SGameLayerManager::GetAspectRatioInset(ULocalPlayer* LocalPlayer) cons
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_SGameLayerManager_GetAspectRatioInset);
 	FVector2D Offset(0.f, 0.f);
-	if (LocalPlayer)
+	if ( LocalPlayer )
 	{
 		FSceneViewInitOptions ViewInitOptions;
 		if (LocalPlayer->CalcSceneViewInitOptions(ViewInitOptions, LocalPlayer->ViewportClient->Viewport))

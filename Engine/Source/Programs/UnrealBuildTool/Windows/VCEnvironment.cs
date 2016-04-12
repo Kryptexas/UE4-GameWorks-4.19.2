@@ -79,8 +79,8 @@ namespace UnrealBuildTool
 			NetFxSDKExtensionDir = FindNetFxSDKExtensionInstallationFolder();
 			VisualCppDir = FindVisualCppInstallationFolder(WindowsPlatform.Compiler);
 			WindowsSDKExtensionHeaderLibVersion = FindWindowsSDKExtensionLatestVersion(WindowsSDKExtensionDir);
-			UniversalCRTDir = FindUniversalCRTInstallationFolder();
-			UniversalCRTVersion = FindUniversalCRTVersion(UniversalCRTDir);
+			UniversalCRTDir = bSupportWindowsXP ? "" : FindUniversalCRTInstallationFolder();
+			UniversalCRTVersion = bSupportWindowsXP ? "0.0.0.0" : FindUniversalCRTVersion(UniversalCRTDir);
 
 			VSToolPath32Bit = GetVSToolPath32Bit(BaseVSToolPath);
 			VSToolPath64Bit = GetVSToolPath64Bit(BaseVSToolPath);
@@ -110,7 +110,7 @@ namespace UnrealBuildTool
             }
 
 			// Setup the INCLUDE environment variable
-			List<string> IncludePaths = GetVisualCppIncludePaths(VisualCppDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion);
+			List<string> IncludePaths = GetVisualCppIncludePaths(VisualCppDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, bSupportWindowsXP);
 			if(InitialIncludePaths != null)
 			{
 				IncludePaths.Add(InitialIncludePaths);
@@ -118,7 +118,7 @@ namespace UnrealBuildTool
             Environment.SetEnvironmentVariable("INCLUDE", String.Join(";", IncludePaths));
 			
 			// Setup the LIB environment variable
-            List<string> LibraryPaths = GetVisualCppLibraryPaths(VisualCppDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, Platform);
+            List<string> LibraryPaths = GetVisualCppLibraryPaths(VisualCppDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, Platform, bSupportWindowsXP);
 			if(InitialLibraryPaths != null)
 			{
 				LibraryPaths.Add(InitialLibraryPaths);
@@ -518,7 +518,7 @@ namespace UnrealBuildTool
 		{
 			// Get the version string
 			string VisualCppVersion;
-			switch (WindowsPlatform.Compiler)
+			switch (Version)
 			{
 				case WindowsCompiler.VisualStudio2015:
 					VisualCppVersion = "14.0";
@@ -588,7 +588,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Sets the Visual C++ INCLUDE environment variable
 		/// </summary>
-		static List<string> GetVisualCppIncludePaths(string VisualCppDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion)
+		static List<string> GetVisualCppIncludePaths(string VisualCppDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, bool bSupportWindowsXP)
 		{
 			List<string> IncludePaths = new List<string>();
 
@@ -617,7 +617,11 @@ namespace UnrealBuildTool
 			}
 
 			// Add the Windows SDK paths
-			if (WindowsPlatform.bUseWindowsSDK10)
+			if (bSupportWindowsXP)
+			{
+				IncludePaths.Add(Path.Combine(WindowsSDKDir, "include"));
+			}
+			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
 			{
 				IncludePaths.Add(Path.Combine(WindowsSDKDir, "include", WindowsSDKLibVersion, "shared"));
 				IncludePaths.Add(Path.Combine(WindowsSDKDir, "include", WindowsSDKLibVersion, "um"));
@@ -644,7 +648,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Sets the Visual C++ LIB environment variable
 		/// </summary>
-		static List<string> GetVisualCppLibraryPaths(string VisualCppDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, CPPTargetPlatform Platform)
+		static List<string> GetVisualCppLibraryPaths(string VisualCppDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, CPPTargetPlatform Platform, bool bSupportWindowsXP)
 		{
 			List<string> LibraryPaths = new List<string>();
 
@@ -713,11 +717,25 @@ namespace UnrealBuildTool
 			// Add the standard Windows SDK paths
 			if (Platform == CPPTargetPlatform.Win32)
 			{
+				if (bSupportWindowsXP)
+				{
+					LibraryPaths.Add(Path.Combine(WindowsSDKDir, "Lib"));
+				}
+				else
+				{
 				LibraryPaths.Add(Path.Combine(WindowsSDKDir, "lib", WindowsSDKLibVersion, "um", "x86"));
+			}
 			}
 			else
 			{
+				if (bSupportWindowsXP)
+				{
+					LibraryPaths.Add(Path.Combine(WindowsSDKDir, "Lib", "x64"));
+				}
+			else
+			{
 				LibraryPaths.Add(Path.Combine(WindowsSDKDir, "lib", WindowsSDKLibVersion, "um", "x64"));
+			}
 			}
 
 			// Add the existing library paths

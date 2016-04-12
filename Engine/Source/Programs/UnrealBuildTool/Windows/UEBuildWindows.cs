@@ -89,7 +89,10 @@ namespace UnrealBuildTool
 
 				if (bBuildShaderFormats)
 				{
-					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+					if (!SupportWindowsXP)
+					{
+						Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+					}
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
 
 					string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
@@ -118,10 +121,20 @@ namespace UnrealBuildTool
 			if(SupportWindowsXP)
 			{
 				Rules.DynamicallyLoadedModuleNames.Remove("D3D12RHI");
+				Rules.DynamicallyLoadedModuleNames.Remove("D3D11RHI");
+				Rules.DynamicallyLoadedModuleNames.Remove("ShaderFormatD3D");
+				Rules.DynamicallyLoadedModuleNames.Remove("OculusRift");
+				Rules.DynamicallyLoadedModuleNames.Remove("OculusLibrary");
+				Rules.DynamicallyLoadedModuleNames.Remove("OculusInput");
+				Rules.DynamicallyLoadedModuleNames.Remove("OculusAudio");
 				Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
+				Rules.PrivateDependencyModuleNames.Remove("DX11");
+				Rules.PrivateDependencyModuleNames.Remove("D3D11RHI");
+				Rules.PrivateDependencyModuleNames.Remove("DX12");
+				Rules.PrivateDependencyModuleNames.Remove("D3D12RHI");
 
 				// If we're targeting Windows XP, then always delay-load D3D11 as it won't exist on that architecture
-				if(ModuleName == "DX11")
+				if (ModuleName == "DX11")
 				{
 					Rules.PublicDelayLoadDLLs.Add("d3d11.dll");
 					Rules.PublicDelayLoadDLLs.Add("dxgi.dll");
@@ -491,10 +504,14 @@ namespace UnrealBuildTool
 						Log.TraceWarning("Visual C++ 2015 toolchain does not appear to be correctly installed. Please verify that \"Common Tools for Visual C++ 2015\" was selected when installing Visual Studio 2015.");
 					}
 				}
+				else if (!Utils.IsRunningOnMono && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2013;
+				}
 				else
 				{
-					// Finally assume 2015 is installed to defer errors somewhere else like VCToolChain
-					CachedCompiler = WindowsCompiler.VisualStudio2015;
+					// Finally assume 2015 (and 2013 on non-Windows platforms) is installed to defer errors somewhere else like VCToolChain
+					CachedCompiler = Utils.IsRunningOnMono ? WindowsCompiler.VisualStudio2013 : WindowsCompiler.VisualStudio2015;
 				}
 
 				return CachedCompiler.Value;
@@ -528,6 +545,13 @@ namespace UnrealBuildTool
 
 		/// True if we allow using addresses larger than 2GB on 32 bit builds
 		public static bool bBuildLargeAddressAwareBinary = true;
+
+		/// VS2015 updated some of the CRT definitions but not all of the Windows SDK has been updated to match.
+		/// Microsoft provides legacy_stdio_definitions library to enable building with VS2015 until they fix everything up.
+		public static bool bNeedsLegacyStdioDefinitionsLib
+		{
+			get { return Compiler == WindowsCompiler.VisualStudio2015; }
+		}
 
 		/// <summary>
 		/// True if VS EnvDTE is available (false when building using Visual Studio Express)
@@ -857,7 +881,13 @@ namespace UnrealBuildTool
 		/// <returns>New platform context object</returns>
 		public override UEBuildPlatformContext CreateContext(FileReference ProjectFile)
 		{
-			return new WindowsPlatformContext(Platform, ProjectFile);
+			WindowsPlatformContext Context = new WindowsPlatformContext(Platform, ProjectFile);
+			if (Context.SupportWindowsXP)
+			{
+				// There are still issues with VS2015's support for XP. For now we need to lock it to the 2013 toolchain.
+				CachedCompiler = WindowsCompiler.VisualStudio2013;
+			}
+            return Context;
 		}
 	}
 

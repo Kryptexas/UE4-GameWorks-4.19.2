@@ -300,6 +300,12 @@ public:
 		Pairs.Compact();
 	}
 
+	/** Compacts the pair set to remove holes. Does not change the iteration order of the elements. */
+	FORCEINLINE void CompactStable()
+	{
+		Pairs.CompactStable();
+	}
+
 	/** Preallocates enough memory to contain Number elements */
 	FORCEINLINE void Reserve(int32 Number)
 	{

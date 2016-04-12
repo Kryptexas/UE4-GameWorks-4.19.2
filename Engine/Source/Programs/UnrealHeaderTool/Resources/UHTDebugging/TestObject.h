@@ -7,6 +7,9 @@
 
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 
+DECLARE_DYNAMIC_DELEGATE_OneParam(FRegularDelegate, int32, SomeArgument);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FDelegateWithDelegateParam, FRegularDelegate const &, RegularDelegate);
+
 UCLASS()
 class UTestObject : public UObject
 {

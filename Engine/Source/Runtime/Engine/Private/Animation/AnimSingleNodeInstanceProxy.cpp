@@ -46,7 +46,7 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 
 				if (bCanProcessAdditiveAnimationsLocal)
 				{
-					Sequence->GetAdditiveBasePose(Output.Pose, Output.Curve, ExtractionContext);
+				Sequence->GetAdditiveBasePose(Output.Pose, Output.Curve, ExtractionContext);
 				}
 				else
 				{
@@ -435,3 +435,4 @@ void FAnimSingleNodeInstanceProxy::SetBlendSpaceInput(const FVector& InBlendInpu
 {
 	BlendSpaceInput = InBlendInput;
 }
+
