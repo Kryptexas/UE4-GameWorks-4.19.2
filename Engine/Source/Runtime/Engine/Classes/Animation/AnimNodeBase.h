@@ -430,6 +430,7 @@ struct FExposedValueCopyRecord
 
 	void PostSerialize(const FArchive& Ar);
 
+	// HACK for hotfix - re-used for boolean property copies
 	UPROPERTY()
 	UProperty* SourceProperty_DEPRECATED;
 
@@ -454,10 +455,10 @@ struct FExposedValueCopyRecord
 	UPROPERTY()
 	EPostCopyOperation PostCopyOperation;
 
-	// Cached source copy ptr
+	// Cached source copy ptr - HACK for hotfix - also cached container ptr for bools
 	void* Source;
 
-	// Cached dest copy ptr
+	// Cached dest copy ptr - HACK for hotfix - also cached container ptr for bools
 	void* Dest;
 };
 
