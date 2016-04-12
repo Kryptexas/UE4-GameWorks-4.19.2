@@ -85,7 +85,7 @@ FORCEINLINE OVR::Recti ToOVRRecti(const FIntRect& rect)
 {
 	return OVR::Recti(rect.Min.X, rect.Min.Y, rect.Size().X, rect.Size().Y);
 }
-
+#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 //-------------------------------------------------------------------------------------------------
 // FOculusRiftPlugin
@@ -110,9 +110,10 @@ public:
 		return FModuleManager::LoadModuleChecked< FOculusRiftPlugin >( "OculusRift" );
 	}
 
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	ovrResult CreateSession(ovrSession* session, ovrGraphicsLuid* luid);
 	static void DestroySession(ovrSession session);
-
+#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 public:
 	/** IModuleInterface */
 	virtual void ShutdownModule() override;
@@ -127,9 +128,11 @@ public:
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
 
 	/** IOculusRiftPlugin */
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	virtual bool PoseToOrientationAndPosition(const ovrPosef& Pose, FQuat& OutOrientation, FVector& OutPosition) const override;
 	virtual class FOvrSessionShared* GetSession() override;
 	virtual bool GetCurrentTrackingState(ovrTrackingState* TrackingState) override;
+#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 protected:
 	bool bInitialized;
@@ -142,6 +145,7 @@ protected:
 // FSettings
 //-------------------------------------------------------------------------------------------------
 
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 class FSettings : public FHMDSettings
 {
 public:
