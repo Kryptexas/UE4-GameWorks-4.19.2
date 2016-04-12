@@ -1465,6 +1465,8 @@ FIntRect FViewport::CalculateViewExtents(float AspectRatio, const FIntRect& View
 			const int32 NewSizeY = FMath::Max(1, FMath::RoundToInt( CurrentSizeX / AdjustedAspectRatio ) );
 			Result.Min.Y = FMath::RoundToInt( 0.5f * (CurrentSizeY - NewSizeY) );
 			Result.Max.Y = Result.Min.Y + NewSizeY;
+			Result.Min.Y += ViewRect.Min.Y;
+			Result.Max.Y += ViewRect.Min.Y;
 		}
 		// Otherwise - will place bars on the sides.
 		else
@@ -1472,6 +1474,8 @@ FIntRect FViewport::CalculateViewExtents(float AspectRatio, const FIntRect& View
 			const int32 NewSizeX = FMath::Max(1, FMath::RoundToInt( CurrentSizeY * AdjustedAspectRatio ) );
 			Result.Min.X = FMath::RoundToInt( 0.5f * (CurrentSizeX - NewSizeX) );
 			Result.Max.X = Result.Min.X + NewSizeX;
+			Result.Min.X += ViewRect.Min.X;
+			Result.Max.X += ViewRect.Min.X;
 		}
 	}
 

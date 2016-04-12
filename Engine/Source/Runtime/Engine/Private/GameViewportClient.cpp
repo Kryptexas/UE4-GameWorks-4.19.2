@@ -771,6 +771,37 @@ static UCanvas* GetCanvasByName(FName CanvasName)
 	return *FoundCanvas;
 }
 
+/** Util to gather and sort view extensions */
+static void GatherViewExtensions(FViewport* InViewport, TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> >& OutViewExtensions)
+{
+	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
+	{
+		auto HmdViewExt = GEngine->HMDDevice->GetViewExtension();
+		if (HmdViewExt.IsValid())
+		{
+			OutViewExtensions.Add(HmdViewExt);
+		}
+	}
+
+	for (auto ViewExt : GEngine->ViewExtensions)
+	{
+		if (ViewExt.IsValid())
+		{
+			OutViewExtensions.Add(ViewExt);
+		}
+	}
+
+	struct SortPriority
+	{
+		bool operator () (const TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe>& A, const TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe>& B) const
+		{
+			return A->GetPriority() > B->GetPriority();
+		}
+	};
+
+	Sort(OutViewExtensions.GetData(), OutViewExtensions.Num(), SortPriority());
+}
+
 void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 {
 	//Valid SceneCanvas is required.  Make this explicit.
@@ -813,20 +844,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		EngineShowFlags)
 		.SetRealtimeUpdate(true));
 
-	// Allow HMD to modify the view later, just before rendering
-	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
-	{
-		auto HmdViewExt = GEngine->HMDDevice->GetViewExtension();
-		if (HmdViewExt.IsValid())
-		{
-			ViewFamily.ViewExtensions.Add(HmdViewExt);
-		}
-	}
-
-	if (GEngine->ViewExtensions.Num())
-	{
-		ViewFamily.ViewExtensions.Append(GEngine->ViewExtensions.GetData(), GEngine->ViewExtensions.Num());
-	}
+	GatherViewExtensions(InViewport, ViewFamily.ViewExtensions);
 
 	for (auto ViewExt : ViewFamily.ViewExtensions)
 	{
@@ -1027,17 +1045,10 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	// Update level streaming.
 	GetWorld()->UpdateLevelStreaming();
 
-	// Draw the player views.
-	if (!bDisableWorldRendering && !bUIDisableWorldRendering && PlayerViewMap.Num() > 0) //-V560
+	// Find largest rectangle bounded by all rendered views.
+	uint32 MinX=InViewport->GetSizeXY().X, MinY=InViewport->GetSizeXY().Y, MaxX=0, MaxY=0;
+	uint32 TotalArea = 0;
 	{
-		GetRendererModule().BeginRenderingViewFamily(SceneCanvas,&ViewFamily);
-	}
-
-	// Clear areas of the rendertarget (backbuffer) that aren't drawn over by the views.
-	{
-		// Find largest rectangle bounded by all rendered views.
-		uint32 MinX=InViewport->GetSizeXY().X, MinY=InViewport->GetSizeXY().Y, MaxX=0, MaxY=0;
-		uint32 TotalArea = 0;
 		for( int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex )
 		{
 			const FSceneView* View = ViewFamily.Views[ViewIndex];
@@ -1064,34 +1075,44 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 				TotalArea = (MaxX - MinX) * (MaxY - MinY);
 			}
 		}
+	}
+	
+	// If the views don't cover the entire bounding rectangle, clear the entire buffer.
+	bool bBufferCleared = false;
+	if ( ViewFamily.Views.Num() == 0 || TotalArea != (MaxX-MinX)*(MaxY-MinY) || bDisableWorldRendering )
+	{
+		SceneCanvas->DrawTile(0,0,InViewport->GetSizeXY().X,InViewport->GetSizeXY().Y,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
+		bBufferCleared = true;
+	}
 
-		// If the views don't cover the entire bounding rectangle, clear the entire buffer.
-		if ( ViewFamily.Views.Num() == 0 || TotalArea != (MaxX-MinX)*(MaxY-MinY) || bDisableWorldRendering )
+	// Draw the player views.
+	if (!bDisableWorldRendering && !bUIDisableWorldRendering && PlayerViewMap.Num() > 0) //-V560
+	{
+		GetRendererModule().BeginRenderingViewFamily(SceneCanvas,&ViewFamily);
+	}
+
+	// Clear areas of the rendertarget (backbuffer) that aren't drawn over by the views.
+	if (!bBufferCleared)
+	{
+		// clear left
+		if( MinX > 0 )
 		{
-			SceneCanvas->DrawTile(0,0,InViewport->GetSizeXY().X,InViewport->GetSizeXY().Y,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
+			SceneCanvas->DrawTile(0,0,MinX,InViewport->GetSizeXY().Y,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
 		}
-		else
+		// clear right
+		if( MaxX < (uint32)InViewport->GetSizeXY().X )
 		{
-			// clear left
-			if( MinX > 0 )
-			{
-				SceneCanvas->DrawTile(0,0,MinX,InViewport->GetSizeXY().Y,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
-			}
-			// clear right
-			if( MaxX < (uint32)InViewport->GetSizeXY().X )
-			{
-				SceneCanvas->DrawTile(MaxX,0,InViewport->GetSizeXY().X,InViewport->GetSizeXY().Y,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
-			}
-			// clear top
-			if( MinY > 0 )
-			{
-				SceneCanvas->DrawTile(MinX,0,MaxX,MinY,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
-			}
-			// clear bottom
-			if( MaxY < (uint32)InViewport->GetSizeXY().Y )
-			{
-				SceneCanvas->DrawTile(MinX,MaxY,MaxX,InViewport->GetSizeXY().Y,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
-			}
+			SceneCanvas->DrawTile(MaxX,0,InViewport->GetSizeXY().X,InViewport->GetSizeXY().Y,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
+		}
+		// clear top
+		if( MinY > 0 )
+		{
+			SceneCanvas->DrawTile(MinX,0,MaxX,MinY,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
+		}
+		// clear bottom
+		if( MaxY < (uint32)InViewport->GetSizeXY().Y )
+		{
+			SceneCanvas->DrawTile(MinX,MaxY,MaxX,InViewport->GetSizeXY().Y,0.0f,0.0f,1.0f,1.f,FLinearColor::Black,NULL,false);
 		}
 	}
 	

@@ -723,6 +723,9 @@ void FSceneView::UpdateViewMatrix()
 	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
 	InvViewMatrix = ViewMatrices.GetInvViewMatrix();
 	InvViewProjectionMatrix = ViewMatrices.GetInvProjMatrix() * InvViewMatrix;
+
+	// Derive the view frustum from the view projection matrix.
+	GetViewFrustumBounds(ViewFrustum, ViewProjectionMatrix, false);
 }
 
 void FSceneView::SetScaledViewRect(FIntRect InScaledViewRect)

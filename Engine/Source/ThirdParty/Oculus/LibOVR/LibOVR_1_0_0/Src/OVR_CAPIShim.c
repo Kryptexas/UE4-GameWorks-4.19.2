@@ -3,16 +3,16 @@
 Filename    :   OVR_CAPIShim.c
 Content     :   CAPI DLL user library
 Created     :   November 20, 2014
-Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
+Copyright   :   Copyright 2014-2016 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License");
+Licensed under the Oculus VR Rift SDK License Version 3.3 (the "License");
 you may not use the Oculus VR Rift SDK except in compliance with the License,
 which is provided at the time of installation or download, or which
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.2
+http://www.oculusvr.com/licenses/LICENSE-3.3
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -64,12 +64,15 @@ limitations under the License.
     #pragma warning(disable: 4996) // 'getenv': This function or variable may be unsafe.
 #endif
 
-// SHA-256 of string 'OculusSDK0.8'
-static const uint8_t VersionSHA256[] = {
-	0x47, 0x38, 0x2c, 0xfe, 0x10, 0xc6, 0x96, 0x98, 0xdc, 0x90, 0x32, 0xe0, 0x55, 0x2a, 0xe6, 0x0f,
-	0x33, 0x2e, 0x27, 0xb0, 0xa8, 0x07, 0xfe, 0xff, 0xb6, 0x7e, 0x79, 0x70, 0xa6, 0xb2, 0x89, 0xcc};
+static const uint8_t OculusSDKUniqueIdentifier[] = 
+{
+    0x9E, 0xB2, 0x0B, 0x1A, 0xB7, 0x97, 0x09, 0x20, 0xE0, 0xFB, 0x83, 0xED, 0xF8, 0x33, 0x5A, 0xEB, 
+    0x80, 0x4D, 0x8E, 0x92, 0x20, 0x69, 0x13, 0x56, 0xB4, 0xBB, 0xC4, 0x85, 0xA7, 0x9E, 0xA4, 0xFE,
+    OVR_MAJOR_VERSION, OVR_MINOR_VERSION, OVR_PATCH_VERSION
+};
 
-static const uint8_t VersionXOR = 0xc9;
+static const uint8_t OculusSDKUniqueIdentifierXORResult = 0xcb;
+
 
 // -----------------------------------------------------------------------------------
 // ***** OVR_ENABLE_DEVELOPER_SEARCH
@@ -432,11 +435,248 @@ static ovrBool OVR_GetCurrentModuleDirectory(FilePathCharType* directoryPath, si
 
 #endif
 
+#if defined(_WIN32)
+
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable: 4201)
+#endif
+
+#include <Softpub.h>
+#include <Wincrypt.h>
+
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
+
+// Expected certificates:
+#define ExpectedNumCertificates 3
+typedef struct CertificateEntry_t {
+    const wchar_t* Issuer;
+    const wchar_t* Subject;
+} CertificateEntry;
+
+CertificateEntry NewCertificateChain[ExpectedNumCertificates] = {
+    { L"DigiCert SHA2 Assured ID Code Signing CA", L"Oculus VR, LLC" },
+    { L"DigiCert Assured ID Root CA", L"DigiCert SHA2 Assured ID Code Signing CA" },
+    { L"DigiCert Assured ID Root CA", L"DigiCert Assured ID Root CA" },
+};
+
+#define CertificateChainCount 1
+CertificateEntry* AllowedCertificateChains[CertificateChainCount] = {
+    NewCertificateChain
+};
+
+typedef WINCRYPT32API
+DWORD
+(WINAPI *PtrCertGetNameStringW)(
+    PCCERT_CONTEXT pCertContext,
+    DWORD dwType,
+    DWORD dwFlags,
+    void *pvTypePara,
+    LPWSTR pszNameString,
+    DWORD cchNameString
+    );
+typedef LONG (WINAPI *PtrWinVerifyTrust)(HWND hwnd, GUID *pgActionID,
+                                  LPVOID pWVTData);
+typedef CRYPT_PROVIDER_DATA * (WINAPI *PtrWTHelperProvDataFromStateData)(HANDLE hStateData);
+typedef CRYPT_PROVIDER_SGNR * (WINAPI *PtrWTHelperGetProvSignerFromChain)(
+    CRYPT_PROVIDER_DATA *pProvData, DWORD idxSigner, BOOL fCounterSigner, DWORD idxCounterSigner);
+
+PtrCertGetNameStringW m_PtrCertGetNameStringW = 0;
+PtrWinVerifyTrust m_PtrWinVerifyTrust = 0;
+PtrWTHelperProvDataFromStateData m_PtrWTHelperProvDataFromStateData = 0;
+PtrWTHelperGetProvSignerFromChain m_PtrWTHelperGetProvSignerFromChain = 0;
+
+typedef enum ValidateCertificateContentsResult_
+{
+    VCCRSuccess          =  0,
+    VCCRErrorCertCount   = -1,
+    VCCRErrorTrust       = -2,
+    VCCRErrorValidation  = -3
+} ValidateCertificateContentsResult;
+
+static ValidateCertificateContentsResult ValidateCertificateContents(CertificateEntry* chain, CRYPT_PROVIDER_SGNR* cps)
+{
+    int certIndex;
+
+    if (!cps ||
+        !cps->pasCertChain ||
+        cps->csCertChain != ExpectedNumCertificates)
+    {
+        return VCCRErrorCertCount;
+    }
+
+    for (certIndex = 0; certIndex < ExpectedNumCertificates; ++certIndex)
+    {
+        CRYPT_PROVIDER_CERT* pCertData = &cps->pasCertChain[certIndex];
+        wchar_t subjectStr[400] = { 0 };
+        wchar_t issuerStr[400] = { 0 };
+
+        if ((pCertData->fSelfSigned && !pCertData->fTrustedRoot) ||
+            pCertData->fTestCert)
+        {
+            return VCCRErrorTrust;
+        }
+
+        m_PtrCertGetNameStringW(
+            pCertData->pCert,
+            CERT_NAME_ATTR_TYPE,
+            0,
+            szOID_COMMON_NAME,
+            subjectStr,
+            ARRAYSIZE(subjectStr));
+
+        m_PtrCertGetNameStringW(
+            pCertData->pCert,
+            CERT_NAME_ATTR_TYPE,
+            CERT_NAME_ISSUER_FLAG,
+            0,
+            issuerStr,
+            ARRAYSIZE(issuerStr));
+
+        if (wcscmp(subjectStr, chain[certIndex].Subject) != 0 ||
+            wcscmp(issuerStr, chain[certIndex].Issuer) != 0)
+        {
+            return VCCRErrorValidation;
+        }
+    }
+
+    return VCCRSuccess;
+}
+
+#define OVR_SIGNING_CONVERT_PTR(ftype, fptr, procaddr) { \
+        union { ftype p1; ModuleFunctionType p2; } u; \
+        u.p2 = procaddr; \
+        fptr = u.p1; }
+
+static HANDLE OVR_Win32_SignCheck(FilePathCharType* fullPath)
+{
+    HANDLE hFile = INVALID_HANDLE_VALUE;
+    WINTRUST_FILE_INFO fileData;
+    WINTRUST_DATA wintrustData;
+    GUID actionGUID = WINTRUST_ACTION_GENERIC_VERIFY_V2;
+    LONG resultStatus;
+    int verified = 0;
+    HMODULE libWinTrust = LoadLibraryW(L"wintrust");
+    HMODULE libCrypt32 = LoadLibraryW(L"crypt32");
+    if (libWinTrust == NULL || libCrypt32 == NULL)
+    {
+        return INVALID_HANDLE_VALUE;
+    }
+
+    OVR_SIGNING_CONVERT_PTR(PtrCertGetNameStringW, m_PtrCertGetNameStringW, GetProcAddress(libCrypt32, "CertGetNameStringW"));
+    OVR_SIGNING_CONVERT_PTR(PtrWinVerifyTrust, m_PtrWinVerifyTrust, GetProcAddress(libWinTrust, "WinVerifyTrust"));
+    OVR_SIGNING_CONVERT_PTR(PtrWTHelperProvDataFromStateData, m_PtrWTHelperProvDataFromStateData, GetProcAddress(libWinTrust, "WTHelperProvDataFromStateData"));
+    OVR_SIGNING_CONVERT_PTR(PtrWTHelperGetProvSignerFromChain, m_PtrWTHelperGetProvSignerFromChain, GetProcAddress(libWinTrust, "WTHelperGetProvSignerFromChain"));
+
+    if (m_PtrCertGetNameStringW == NULL || m_PtrWinVerifyTrust == NULL ||
+        m_PtrWTHelperProvDataFromStateData == NULL || m_PtrWTHelperGetProvSignerFromChain == NULL)
+    {
+        return INVALID_HANDLE_VALUE;
+    }
+
+    if (!fullPath)
+    {
+        return INVALID_HANDLE_VALUE;
+    }
+
+    hFile = CreateFileW(fullPath, GENERIC_READ, FILE_SHARE_READ,
+                        0, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, 0);
+
+    if (hFile == INVALID_HANDLE_VALUE)
+    {
+        return INVALID_HANDLE_VALUE;
+    }
+
+    ZeroMemory(&fileData, sizeof(fileData));
+    fileData.cbStruct      = sizeof(fileData);
+    fileData.pcwszFilePath = fullPath;
+    fileData.hFile         = hFile;
+
+    ZeroMemory(&wintrustData, sizeof(wintrustData));
+    wintrustData.cbStruct      = sizeof(wintrustData);
+    wintrustData.pFile         = &fileData;
+    wintrustData.dwUnionChoice = WTD_CHOICE_FILE; // Specify WINTRUST_FILE_INFO.
+    wintrustData.dwUIChoice    = WTD_UI_NONE; // Do not display any UI.
+    wintrustData.dwUIContext   = WTD_UICONTEXT_EXECUTE; // Hint that this is about app execution.
+    wintrustData.fdwRevocationChecks = WTD_REVOKE_NONE;
+    wintrustData.dwProvFlags = WTD_REVOCATION_CHECK_NONE;
+    wintrustData.dwStateAction = WTD_STATEACTION_VERIFY;
+    wintrustData.hWVTStateData = 0;
+
+    resultStatus = m_PtrWinVerifyTrust(
+        (HWND)INVALID_HANDLE_VALUE, // Do not display any UI.
+        &actionGUID, // V2 verification
+        &wintrustData);
+
+    if (resultStatus == ERROR_SUCCESS &&
+        wintrustData.hWVTStateData != 0 &&
+        wintrustData.hWVTStateData != INVALID_HANDLE_VALUE)
+    {
+        CRYPT_PROVIDER_DATA* cpd = m_PtrWTHelperProvDataFromStateData(wintrustData.hWVTStateData);
+        if (cpd && cpd->csSigners == 1)
+        {
+            CRYPT_PROVIDER_SGNR* cps = m_PtrWTHelperGetProvSignerFromChain(cpd, 0, FALSE, 0);
+            int chainIndex;
+            for (chainIndex = 0; chainIndex < CertificateChainCount; ++chainIndex)
+            {
+                CertificateEntry* chain = AllowedCertificateChains[chainIndex];
+                if (0 == ValidateCertificateContents(chain, cps))
+                {
+                    verified = 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    wintrustData.dwStateAction = WTD_STATEACTION_CLOSE;
+
+    m_PtrWinVerifyTrust(
+        (HWND)INVALID_HANDLE_VALUE, // Do not display any UI.
+        &actionGUID, // V2 verification
+        &wintrustData);
+
+    if (verified != 1)
+    {
+        CloseHandle(hFile);
+        return INVALID_HANDLE_VALUE;
+    }
+
+    return hFile;
+}
+
+#endif // #if defined(_WIN32)
 
 static ModuleHandleType OVR_OpenLibrary(const FilePathCharType* libraryPath)
 {
     #if defined(_WIN32)
-        return LoadLibraryW(libraryPath);
+        DWORD fullPathNameLen = 0;
+        FilePathCharType fullPath[MAX_PATH] = { 0 };
+        HANDLE hFilePinned = INVALID_HANDLE_VALUE;
+        ModuleHandleType hModule = 0;
+        fullPathNameLen = GetFullPathNameW(libraryPath, MAX_PATH, fullPath, 0);
+        if (fullPathNameLen <= 0 || fullPathNameLen >= MAX_PATH)
+        {
+            return 0;
+        }
+        fullPath[MAX_PATH - 1] = 0;
+
+        hFilePinned = OVR_Win32_SignCheck(fullPath);
+        if (hFilePinned == INVALID_HANDLE_VALUE)
+        {
+            return 0;
+        }
+
+        hModule = LoadLibraryW(fullPath);
+
+        if (hFilePinned != INVALID_HANDLE_VALUE)
+        {
+            CloseHandle(hFilePinned);
+        }
+
+        return hModule;
     #else
         // Don't bother trying to dlopen() a file that is not even there.
         if (access(libraryPath, X_OK | R_OK ) != 0)
@@ -499,14 +739,16 @@ static ModuleHandleType OVR_FindLibraryPath(int requestedProductVersion, int req
             const char* pBitDepth = "32";
         #endif
     #elif defined(__APPLE__)
-		// For Apple platforms we are using a Universal Binary LibOVRRT dylib which has both 32 and 64 in it.
-	#else // Other Unix.
+        // For Apple platforms we are using a Universal Binary LibOVRRT dylib which has both 32 and 64 in it.
+    #else // Other Unix.
         #if defined(__x86_64__)
             const char* pBitDepth = "64";
         #else
             const char* pBitDepth = "32";
         #endif
     #endif
+
+    (void)requestedProductVersion;
 
     moduleHandle = ModuleHandleTypeNull;
     if(libraryPathCapacity)
@@ -640,20 +882,17 @@ static ModuleHandleType OVR_FindLibraryPath(int requestedProductVersion, int req
     #endif // OVR_ENABLE_DEVELOPER_SEARCH
 
     {
-        FilePathCharType cwDir[OVR_MAX_PATH]; // Will be filled in below.
-        FilePathCharType appDir[OVR_MAX_PATH];
+        #if !defined(_WIN32)
+            FilePathCharType cwDir[OVR_MAX_PATH]; // Will be filled in below.
+            FilePathCharType appDir[OVR_MAX_PATH];
+        #endif
         size_t i;
 
         #if defined(_WIN32)
-            FilePathCharType  moduleDir[OVR_MAX_PATH];
-            const FilePathCharType* directoryArray[5];
-            directoryArray[0] = cwDir;
-            directoryArray[1] = moduleDir;
-            directoryArray[2] = appDir;
-            directoryArray[3] = developerDir;   // Developer directory.
-            directoryArray[4] = L"";            // No directory, which causes Windows to use the standard search strategy to find the DLL.
-
-            OVR_GetCurrentModuleDirectory(moduleDir, sizeof(moduleDir)/sizeof(moduleDir[0]), ovrTrue);
+            // On Windows, only search the developer directory and the usual path
+            const FilePathCharType* directoryArray[2];
+            directoryArray[0] = developerDir; // Developer directory.
+            directoryArray[1] = L""; // No directory, which causes Windows to use the standard search strategy to find the DLL.
 
         #elif defined(__APPLE__)
             // https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/dyld.1.html
@@ -720,8 +959,10 @@ static ModuleHandleType OVR_FindLibraryPath(int requestedProductVersion, int req
             directoryArray[4] = "/usr/lib/";
         #endif
 
-        OVR_GetCurrentWorkingDirectory(cwDir, sizeof(cwDir) / sizeof(cwDir[0]));
-        OVR_GetCurrentApplicationDirectory(appDir, sizeof(appDir) / sizeof(appDir[0]), ovrTrue, NULL);
+        #if !defined(_WIN32)
+            OVR_GetCurrentWorkingDirectory(cwDir, sizeof(cwDir) / sizeof(cwDir[0]));
+            OVR_GetCurrentApplicationDirectory(appDir, sizeof(appDir) / sizeof(appDir[0]), ovrTrue, NULL);
+        #endif
 
         // Versioned file expectations.
         //     Windows: LibOVRRT<BIT_DEPTH>_<PRODUCT_VERSION>_<MAJOR_VERSION>.dll                                  // Example: LibOVRRT64_1_1.dll -- LibOVRRT 64 bit, product 1, major version 1, minor/patch/build numbers unspecified in the name.
@@ -748,13 +989,29 @@ static ModuleHandleType OVR_FindLibraryPath(int requestedProductVersion, int req
         for(i = 0; i < sizeof(directoryArray)/sizeof(directoryArray[0]); ++i)
         {
             #if defined(_WIN32)
-                printfResult = swprintf(libraryPath, libraryPathCapacity, L"%lsLibOVRRT%hs_%d_%d.dll", directoryArray[i], pBitDepth, requestedProductVersion, requestedMajorVersion);
+                printfResult = swprintf(libraryPath, libraryPathCapacity, L"%lsLibOVRRT%hs_%d.dll", directoryArray[i], pBitDepth, requestedMajorVersion);
+
+                if (*directoryArray[i] == 0)
+                {
+                    int k;
+                    FilePathCharType foundPath[MAX_PATH] = { 0 };
+                    DWORD searchResult = SearchPathW(NULL, libraryPath, NULL, MAX_PATH, foundPath, NULL);
+                    if (searchResult <= 0 || searchResult >= libraryPathCapacity)
+                    {
+                        continue;
+                    }
+                    foundPath[MAX_PATH - 1] = 0;
+                    for (k = 0; k < MAX_PATH; ++k)
+                    {
+                        libraryPath[k] = foundPath[k];
+                    }
+                }
 
             #elif defined(__APPLE__)
                 // https://developer.apple.com/library/mac/documentation/MacOSX/Conceptual/BPFrameworks/Concepts/VersionInformation.html
                 // Macintosh application bundles have the option of embedding dependent frameworks within the application
                 // bundle itself. A problem with that is that it doesn't support vendor-supplied updates to the framework.
-                printfResult = snprintf(libraryPath, libraryPathCapacity, "%sLibOVRRT_%d.framework/Versions/%d/LibOVRRT_%d", directoryArray[i], requestedProductVersion, requestedMajorVersion, requestedProductVersion);
+                printfResult = snprintf(libraryPath, libraryPathCapacity, "%sLibOVRRT.framework/Versions/%d/LibOVRRT", directoryArray[i], requestedMajorVersion);
 
             #else // Unix
                 // Applications that depend on the OS (e.g. ld-linux / ldd) can rely on the library being in a common location
@@ -762,7 +1019,7 @@ static ModuleHandleType OVR_FindLibraryPath(int requestedProductVersion, int req
                 // or can rely on the LD_LIBRARY_PATH environment variable being set. It's generally not recommended that applications
                 // depend on LD_LIBRARY_PATH be globally modified, partly due to potentialy security issues.
                 // Currently we check the current application directory, current working directory, and then /usr/lib and possibly others.
-                printfResult = snprintf(libraryPath, libraryPathCapacity, "%slibOVRRT%s_%d.so.%d", directoryArray[i], pBitDepth, requestedProductVersion, requestedMajorVersion);
+                printfResult = snprintf(libraryPath, libraryPathCapacity, "%slibOVRRT%s.so.%d", directoryArray[i], pBitDepth, requestedMajorVersion);
             #endif
 
             if((printfResult >= 0) && (printfResult < (int)libraryPathCapacity))
@@ -805,24 +1062,26 @@ OVR_DECLARE_IMPORT(ovrBool,          ovr_Shutdown, ())
 OVR_DECLARE_IMPORT(const char*,      ovr_GetVersionString, ())
 OVR_DECLARE_IMPORT(void,             ovr_GetLastErrorInfo, (ovrErrorInfo* errorInfo))
 OVR_DECLARE_IMPORT(ovrHmdDesc,       ovr_GetHmdDesc, (ovrSession session))
+OVR_DECLARE_IMPORT(unsigned int,     ovr_GetTrackerCount, (ovrSession session))
+OVR_DECLARE_IMPORT(ovrTrackerDesc,   ovr_GetTrackerDesc, (ovrSession session, unsigned int trackerDescIndex))
 OVR_DECLARE_IMPORT(ovrResult,        ovr_Create, (ovrSession* pSession, ovrGraphicsLuid* pLuid))
 OVR_DECLARE_IMPORT(void,             ovr_Destroy, (ovrSession session))
 OVR_DECLARE_IMPORT(ovrResult,        ovr_GetSessionStatus, (ovrSession session, ovrSessionStatus* sessionStatus))
-OVR_DECLARE_IMPORT(unsigned int,     ovr_GetEnabledCaps, (ovrSession session))
-OVR_DECLARE_IMPORT(void,             ovr_SetEnabledCaps, (ovrSession session, unsigned int hmdCaps))
-OVR_DECLARE_IMPORT(unsigned int,     ovr_GetTrackingCaps, (ovrSession session))
-OVR_DECLARE_IMPORT(ovrResult,        ovr_ConfigureTracking, (ovrSession session, unsigned int requestedTrackingCaps, unsigned int requiredTrackingCaps))
-OVR_DECLARE_IMPORT(void,             ovr_RecenterPose, (ovrSession session))
+OVR_DECLARE_IMPORT(ovrResult,         ovr_SetTrackingOriginType, (ovrSession session, ovrTrackingOrigin origin))
+OVR_DECLARE_IMPORT(ovrTrackingOrigin, ovr_GetTrackingOriginType, (ovrSession session))
+
+OVR_DECLARE_IMPORT(ovrResult,        ovr_RecenterTrackingOrigin, (ovrSession session))
+OVR_DECLARE_IMPORT(void,             ovr_ClearShouldRecenterFlag, (ovrSession session))
 OVR_DECLARE_IMPORT(ovrTrackingState, ovr_GetTrackingState, (ovrSession session, double absTime, ovrBool latencyMarker))
-OVR_DECLARE_IMPORT(ovrResult,        ovr_GetInputState, (ovrSession session, unsigned int controllerMask, ovrInputState*))
-OVR_DECLARE_IMPORT(ovrResult,        ovr_SetControllerVibration, (ovrSession session, unsigned int controllerTypeMask, float frequency, float amplitude))
+OVR_DECLARE_IMPORT(ovrTrackerPose,   ovr_GetTrackerPose, (ovrSession session, unsigned int index))
+OVR_DECLARE_IMPORT(ovrResult,        ovr_GetInputState, (ovrSession session, ovrControllerType controllerType, ovrInputState*))
+OVR_DECLARE_IMPORT(unsigned int,     ovr_GetConnectedControllerTypes, (ovrSession session))
+OVR_DECLARE_IMPORT(ovrResult,        ovr_SetControllerVibration, (ovrSession session, ovrControllerType controllerType, float frequency, float amplitude))
 OVR_DECLARE_IMPORT(ovrSizei,         ovr_GetFovTextureSize, (ovrSession session, ovrEyeType eye, ovrFovPort fov, float pixelsPerDisplayPixel))
 OVR_DECLARE_IMPORT(ovrResult,        ovr_SubmitFrame, (ovrSession session, long long frameIndex, const ovrViewScaleDesc* viewScaleDesc, ovrLayerHeader const * const * layerPtrList, unsigned int layerCount))
 OVR_DECLARE_IMPORT(ovrEyeRenderDesc, ovr_GetRenderDesc, (ovrSession session, ovrEyeType eyeType, ovrFovPort fov))
 OVR_DECLARE_IMPORT(double,           ovr_GetPredictedDisplayTime, (ovrSession session, long long frameIndex))
 OVR_DECLARE_IMPORT(double,           ovr_GetTimeInSeconds, ())
-OVR_DECLARE_IMPORT(void,             ovr_ResetBackOfHeadTracking, (ovrSession session))
-OVR_DECLARE_IMPORT(void,             ovr_ResetMulticameraTracking, (ovrSession session))
 OVR_DECLARE_IMPORT(ovrBool,          ovr_GetBool, (ovrSession session, const char* propertyName, ovrBool defaultVal))
 OVR_DECLARE_IMPORT(ovrBool,          ovr_SetBool, (ovrSession session, const char* propertyName, ovrBool value))
 OVR_DECLARE_IMPORT(int,              ovr_GetInt, (ovrSession session, const char* propertyName, int defaultVal))
@@ -836,15 +1095,29 @@ OVR_DECLARE_IMPORT(ovrBool,          ovr_SetString, (ovrSession session, const c
 OVR_DECLARE_IMPORT(int,              ovr_TraceMessage, (int level, const char* message))
 
 #if defined (_WIN32)
-OVR_DECLARE_IMPORT(ovrResult, ovr_CreateSwapTextureSetD3D11, (ovrSession session, ID3D11Device* device, const D3D11_TEXTURE2D_DESC* desc, unsigned int miscFlags, ovrSwapTextureSet** outTextureSet))
-OVR_DECLARE_IMPORT(ovrResult, ovr_CreateMirrorTextureD3D11,  (ovrSession session, ID3D11Device* device, const D3D11_TEXTURE2D_DESC* desc, unsigned int miscFlags, ovrTexture** outMirrorTexture))
+OVR_DECLARE_IMPORT(ovrResult, ovr_CreateTextureSwapChainDX, (ovrSession session, IUnknown* d3dPtr, const ovrTextureSwapChainDesc* desc, ovrTextureSwapChain* outTextureChain))
+OVR_DECLARE_IMPORT(ovrResult, ovr_CreateMirrorTextureDX, (ovrSession session, IUnknown* d3dPtr, const ovrMirrorTextureDesc* desc, ovrMirrorTexture* outMirrorTexture))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetTextureSwapChainBufferDX, (ovrSession session, ovrTextureSwapChain chain, int index, IID iid, void** ppObject))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetMirrorTextureBufferDX, (ovrSession session, ovrMirrorTexture mirror, IID iid, void** ppObject))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetAudioDeviceOutWaveId, (UINT* deviceOutId))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetAudioDeviceInWaveId, (UINT* deviceInId))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetAudioDeviceOutGuidStr, (WCHAR* deviceOutStrBuffer))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetAudioDeviceOutGuid, (GUID* deviceOutGuid))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetAudioDeviceInGuidStr, (WCHAR* deviceInStrBuffer))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetAudioDeviceInGuid, (GUID* deviceInGuid))
 #endif
 
-OVR_DECLARE_IMPORT(ovrResult, ovr_CreateSwapTextureSetGL, (ovrSession session, GLuint format, int width, int height, ovrSwapTextureSet** outTextureSet))
-OVR_DECLARE_IMPORT(ovrResult, ovr_CreateMirrorTextureGL,  (ovrSession session, GLuint format, int width, int height, ovrTexture** outMirrorTexture))
+OVR_DECLARE_IMPORT(ovrResult, ovr_CreateTextureSwapChainGL, (ovrSession session, const ovrTextureSwapChainDesc* desc, ovrTextureSwapChain* outTextureChain))
+OVR_DECLARE_IMPORT(ovrResult, ovr_CreateMirrorTextureGL, (ovrSession session, const ovrMirrorTextureDesc* desc, ovrMirrorTexture* outMirrorTexture))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetTextureSwapChainBufferGL, (ovrSession session, ovrTextureSwapChain chain, int index, unsigned int* texId))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetMirrorTextureBufferGL, (ovrSession session, ovrMirrorTexture mirror, unsigned int* texId))
 
-OVR_DECLARE_IMPORT(void, ovr_DestroySwapTextureSet, (ovrSession session, ovrSwapTextureSet* textureSet))
-OVR_DECLARE_IMPORT(void, ovr_DestroyMirrorTexture, (ovrSession session, ovrTexture* textureSet))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetTextureSwapChainLength, (ovrSession session, ovrTextureSwapChain chain, int* length))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetTextureSwapChainCurrentIndex, (ovrSession session, ovrTextureSwapChain chain, int* currentIndex))
+OVR_DECLARE_IMPORT(ovrResult, ovr_GetTextureSwapChainDesc, (ovrSession session, ovrTextureSwapChain chain, ovrTextureSwapChainDesc* desc))
+OVR_DECLARE_IMPORT(ovrResult, ovr_CommitTextureSwapChain, (ovrSession session, ovrTextureSwapChain chain))
+OVR_DECLARE_IMPORT(void, ovr_DestroyTextureSwapChain, (ovrSession session, ovrTextureSwapChain chain))
+OVR_DECLARE_IMPORT(void, ovr_DestroyMirrorTexture, (ovrSession session, ovrMirrorTexture texture))
 OVR_DECLARE_IMPORT(ovrResult, ovr_SetQueueAheadFraction, (ovrSession session, float queueAheadFraction))
 
 OVR_DECLARE_IMPORT(ovrResult, ovr_Lookup, (const char* name, void** data));
@@ -867,24 +1140,25 @@ static ovrResult OVR_LoadSharedLibrary(int requestedProductVersion, int requeste
     OVR_GETFUNCTION(ovr_GetVersionString)
     OVR_GETFUNCTION(ovr_GetLastErrorInfo)
     OVR_GETFUNCTION(ovr_GetHmdDesc)
+    OVR_GETFUNCTION(ovr_GetTrackerCount)
+    OVR_GETFUNCTION(ovr_GetTrackerDesc)
     OVR_GETFUNCTION(ovr_Create)
     OVR_GETFUNCTION(ovr_Destroy)
     OVR_GETFUNCTION(ovr_GetSessionStatus)
-    OVR_GETFUNCTION(ovr_GetEnabledCaps)
-    OVR_GETFUNCTION(ovr_SetEnabledCaps)
-    OVR_GETFUNCTION(ovr_GetTrackingCaps)
-    OVR_GETFUNCTION(ovr_ConfigureTracking)
-    OVR_GETFUNCTION(ovr_RecenterPose)
+    OVR_GETFUNCTION(ovr_SetTrackingOriginType)
+    OVR_GETFUNCTION(ovr_GetTrackingOriginType)
+    OVR_GETFUNCTION(ovr_RecenterTrackingOrigin)
+    OVR_GETFUNCTION(ovr_ClearShouldRecenterFlag)
     OVR_GETFUNCTION(ovr_GetTrackingState)
+    OVR_GETFUNCTION(ovr_GetTrackerPose)
     OVR_GETFUNCTION(ovr_GetInputState)
+    OVR_GETFUNCTION(ovr_GetConnectedControllerTypes)
     OVR_GETFUNCTION(ovr_SetControllerVibration)
     OVR_GETFUNCTION(ovr_GetFovTextureSize)
     OVR_GETFUNCTION(ovr_SubmitFrame)
     OVR_GETFUNCTION(ovr_GetRenderDesc)
     OVR_GETFUNCTION(ovr_GetPredictedDisplayTime)
     OVR_GETFUNCTION(ovr_GetTimeInSeconds)
-    OVR_GETFUNCTION(ovr_ResetBackOfHeadTracking)
-    OVR_GETFUNCTION(ovr_ResetMulticameraTracking)
     OVR_GETFUNCTION(ovr_GetBool)
     OVR_GETFUNCTION(ovr_SetBool)
     OVR_GETFUNCTION(ovr_GetInt)
@@ -897,12 +1171,27 @@ static ovrResult OVR_LoadSharedLibrary(int requestedProductVersion, int requeste
     OVR_GETFUNCTION(ovr_SetString)
     OVR_GETFUNCTION(ovr_TraceMessage)
 #if defined (_WIN32)
-    OVR_GETFUNCTION(ovr_CreateSwapTextureSetD3D11)
-    OVR_GETFUNCTION(ovr_CreateMirrorTextureD3D11)
+    OVR_GETFUNCTION(ovr_CreateTextureSwapChainDX)
+    OVR_GETFUNCTION(ovr_CreateMirrorTextureDX)
+    OVR_GETFUNCTION(ovr_GetTextureSwapChainBufferDX)
+    OVR_GETFUNCTION(ovr_GetMirrorTextureBufferDX)
+    OVR_GETFUNCTION(ovr_GetAudioDeviceOutWaveId)
+    OVR_GETFUNCTION(ovr_GetAudioDeviceInWaveId)
+    OVR_GETFUNCTION(ovr_GetAudioDeviceOutGuidStr)
+    OVR_GETFUNCTION(ovr_GetAudioDeviceOutGuid)
+    OVR_GETFUNCTION(ovr_GetAudioDeviceInGuidStr)
+    OVR_GETFUNCTION(ovr_GetAudioDeviceInGuid)
 #endif
-    OVR_GETFUNCTION(ovr_CreateSwapTextureSetGL)
+    OVR_GETFUNCTION(ovr_CreateTextureSwapChainGL)
     OVR_GETFUNCTION(ovr_CreateMirrorTextureGL)
-    OVR_GETFUNCTION(ovr_DestroySwapTextureSet)
+    OVR_GETFUNCTION(ovr_GetTextureSwapChainBufferGL)
+    OVR_GETFUNCTION(ovr_GetMirrorTextureBufferGL)
+
+    OVR_GETFUNCTION(ovr_GetTextureSwapChainLength)
+    OVR_GETFUNCTION(ovr_GetTextureSwapChainCurrentIndex)
+    OVR_GETFUNCTION(ovr_GetTextureSwapChainDesc)
+    OVR_GETFUNCTION(ovr_CommitTextureSwapChain)
+    OVR_GETFUNCTION(ovr_DestroyTextureSwapChain)
     OVR_GETFUNCTION(ovr_DestroyMirrorTexture)
     OVR_GETFUNCTION(ovr_SetQueueAheadFraction)
     OVR_GETFUNCTION(ovr_Lookup)
@@ -919,24 +1208,24 @@ static void OVR_UnloadSharedLibrary()
     ovr_GetVersionStringPtr = NULL;
     ovr_GetLastErrorInfoPtr = NULL;
     ovr_GetHmdDescPtr = NULL;
+    ovr_GetTrackerCountPtr = NULL;
+    ovr_GetTrackerDescPtr = NULL;
     ovr_CreatePtr = NULL;
     ovr_DestroyPtr = NULL;
     ovr_GetSessionStatusPtr = NULL;
-    ovr_GetEnabledCapsPtr = NULL;
-    ovr_SetEnabledCapsPtr = NULL;
-    ovr_GetTrackingCapsPtr = NULL;
-    ovr_ConfigureTrackingPtr = NULL;
-    ovr_RecenterPosePtr = NULL;
+    ovr_SetTrackingOriginTypePtr = NULL;
+    ovr_GetTrackingOriginTypePtr = NULL;
+    ovr_RecenterTrackingOriginPtr = NULL;
     ovr_GetTrackingStatePtr = NULL;
+    ovr_GetTrackerPosePtr = NULL;
     ovr_GetInputStatePtr = NULL;
+    ovr_GetConnectedControllerTypesPtr = NULL;
     ovr_SetControllerVibrationPtr = NULL;
     ovr_GetFovTextureSizePtr = NULL;
     ovr_SubmitFramePtr = NULL;
     ovr_GetRenderDescPtr = NULL;
     ovr_GetPredictedDisplayTimePtr = NULL;
     ovr_GetTimeInSecondsPtr = NULL;
-    ovr_ResetBackOfHeadTrackingPtr = NULL;
-    ovr_ResetMulticameraTrackingPtr = NULL;
     ovr_GetBoolPtr = NULL;
     ovr_SetBoolPtr = NULL;
     ovr_GetIntPtr = NULL;
@@ -948,13 +1237,28 @@ static void OVR_UnloadSharedLibrary()
     ovr_GetStringPtr = NULL;
     ovr_SetStringPtr = NULL;
     ovr_TraceMessagePtr = NULL;
-    #if defined (_WIN32)
-    ovr_CreateSwapTextureSetD3D11Ptr = NULL;
-    ovr_CreateMirrorTextureD3D11Ptr = NULL;
-    #endif
-    ovr_CreateSwapTextureSetGLPtr = NULL;
+#if defined (_WIN32)
+    ovr_CreateTextureSwapChainDXPtr = NULL;
+    ovr_CreateMirrorTextureDXPtr = NULL;
+    ovr_GetTextureSwapChainBufferDXPtr = NULL;
+    ovr_GetMirrorTextureBufferDXPtr = NULL;
+    ovr_GetAudioDeviceInWaveIdPtr = NULL;
+    ovr_GetAudioDeviceOutWaveIdPtr = NULL;
+    ovr_GetAudioDeviceInGuidStrPtr = NULL;
+    ovr_GetAudioDeviceOutGuidStrPtr = NULL;
+    ovr_GetAudioDeviceInGuidPtr = NULL;
+    ovr_GetAudioDeviceOutGuidPtr = NULL;
+#endif
+    ovr_CreateTextureSwapChainGLPtr = NULL;
     ovr_CreateMirrorTextureGLPtr = NULL;
-    ovr_DestroySwapTextureSetPtr = NULL;
+    ovr_GetTextureSwapChainBufferGLPtr = NULL;
+    ovr_GetMirrorTextureBufferGLPtr = NULL;
+
+    ovr_GetTextureSwapChainLengthPtr = NULL;
+    ovr_GetTextureSwapChainCurrentIndexPtr = NULL;
+    ovr_GetTextureSwapChainDescPtr = NULL;
+    ovr_CommitTextureSwapChainPtr = NULL;
+    ovr_DestroyTextureSwapChainPtr = NULL;
     ovr_DestroyMirrorTexturePtr = NULL;
     ovr_SetQueueAheadFractionPtr = NULL;
     ovr_LookupPtr = NULL;
@@ -1007,19 +1311,25 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_Initialize(const ovrInitParams* inputParams)
     ovrResult result;
     ovrInitParams params;
 
+    typedef void (OVR_CDECL *ovr_ReportClientInfoType)(
+        unsigned int compilerVersion,
+        int productVersion, int majorVersion, int minorVersion,
+        int patchVersion, int buildNumber);
+    ovr_ReportClientInfoType reportClientInfo;
+
     // Do something with our version signature hash to prevent
     // it from being optimized out. In this case, compute
     // a cheap CRC.
     uint8_t crc = 0;
     size_t i;
 
-    for (i = 0; i < sizeof(VersionSHA256); ++i)
+    for (i = 0; i < (sizeof(OculusSDKUniqueIdentifier) - 3); ++i) // Minus 3 because we have trailing OVR_MAJOR_VERSION, OVR_MINOR_VERSION, OVR_PATCH_VERSION which vary per version.
     {
-        crc ^= VersionSHA256[i];
+        crc ^= OculusSDKUniqueIdentifier[i];
     }
 
-    assert(crc == VersionXOR);
-    if (crc != VersionXOR)
+    assert(crc == OculusSDKUniqueIdentifierXORResult);
+    if (crc != OculusSDKUniqueIdentifierXORResult)
     {
         return ovrError_Initialize;
     }
@@ -1054,6 +1364,19 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_Initialize(const ovrInitParams* inputParams)
     result = ovr_InitializePtr(&params);
     if (result != ovrSuccess)
         OVR_UnloadSharedLibrary();
+
+    reportClientInfo = (ovr_ReportClientInfoType)(uintptr_t)OVR_DLSYM(hLibOVR, "ovr_ReportClientInfo");
+
+    if (reportClientInfo)
+    {
+        unsigned int mscFullVer = 0;
+#if defined (_MSC_FULL_VER)
+        mscFullVer = _MSC_FULL_VER;
+#endif // _MSC_FULL_VER
+
+        reportClientInfo(mscFullVer, OVR_PRODUCT_VERSION, OVR_MAJOR_VERSION,
+            OVR_MINOR_VERSION, OVR_PATCH_VERSION, OVR_BUILD_NUMBER);
+    }
 
     return result;
 }
@@ -1109,6 +1432,28 @@ OVR_PUBLIC_FUNCTION(ovrHmdDesc) ovr_GetHmdDesc(ovrSession session)
     return ovr_GetHmdDescPtr(session);
 }
 
+OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetTrackerCount(ovrSession session)
+{
+    if (!ovr_GetTrackerCountPtr)
+    {
+        return 0;
+    }
+    
+    return ovr_GetTrackerCountPtr(session);
+}
+
+OVR_PUBLIC_FUNCTION(ovrTrackerDesc) ovr_GetTrackerDesc(ovrSession session, unsigned int trackerDescIndex)
+{
+    if (!ovr_GetTrackerDescPtr)
+    {
+        ovrTrackerDesc trackerDesc;
+        memset(&trackerDesc, 0, sizeof(trackerDesc));
+        return trackerDesc;
+    }
+    
+    return ovr_GetTrackerDescPtr(session, trackerDescIndex);
+}
+
 OVR_PUBLIC_FUNCTION(ovrResult) ovr_Create(ovrSession* pSession, ovrGraphicsLuid* pLuid)
 {
     if (!ovr_CreatePtr)
@@ -1126,44 +1471,50 @@ OVR_PUBLIC_FUNCTION(void) ovr_Destroy(ovrSession session)
 OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetSessionStatus(ovrSession session, ovrSessionStatus* sessionStatus)
 {
     if (!ovr_GetSessionStatusPtr)
+    {
+        if (sessionStatus)
+        {
+            sessionStatus->IsVisible   = ovrFalse;
+            sessionStatus->HmdPresent  = ovrFalse;
+            sessionStatus->HmdMounted  = ovrFalse;
+            sessionStatus->ShouldQuit  = ovrFalse;
+            sessionStatus->DisplayLost = ovrFalse;
+            sessionStatus->ShouldRecenter = ovrFalse;
+        }
+
         return ovrError_NotInitialized;
+    }
+
     return ovr_GetSessionStatusPtr(session, sessionStatus);
 }
 
-OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetEnabledCaps(ovrSession session)
-{
-    if (!ovr_GetEnabledCapsPtr)
-        return 0;
-    return ovr_GetEnabledCapsPtr(session);
-}
 
-OVR_PUBLIC_FUNCTION(void) ovr_SetEnabledCaps(ovrSession session, unsigned int hmdCaps)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_SetTrackingOriginType(ovrSession session, ovrTrackingOrigin origin)
 {
-    if (!ovr_SetEnabledCapsPtr)
-        return;
-    ovr_SetEnabledCapsPtr(session, hmdCaps);
-}
-
-OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetTrackingCaps(ovrSession session)
-{
-    if (!ovr_GetTrackingCapsPtr)
-        return 0;
-    return ovr_GetTrackingCapsPtr(session);
-}
-
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_ConfigureTracking(ovrSession session, unsigned int requestedTrackingCaps,
-                                                         unsigned int requiredTrackingCaps)
-{
-    if (!ovr_ConfigureTrackingPtr)
+    if (!ovr_SetTrackingOriginTypePtr)
         return ovrError_NotInitialized;
-    return ovr_ConfigureTrackingPtr(session, requestedTrackingCaps, requiredTrackingCaps);
+    return ovr_SetTrackingOriginTypePtr(session, origin);
 }
 
-OVR_PUBLIC_FUNCTION(void) ovr_RecenterPose(ovrSession session)
+OVR_PUBLIC_FUNCTION(ovrTrackingOrigin) ovr_GetTrackingOriginType(ovrSession session)
 {
-    if (!ovr_RecenterPosePtr)
+    if (!ovr_GetTrackingOriginTypePtr)
+        return ovrTrackingOrigin_EyeLevel;
+    return ovr_GetTrackingOriginTypePtr(session);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_RecenterTrackingOrigin(ovrSession session)
+{
+    if (!ovr_RecenterTrackingOriginPtr)
+        return ovrError_NotInitialized;
+    return ovr_RecenterTrackingOriginPtr(session);
+}
+
+OVR_PUBLIC_FUNCTION(void) ovr_ClearShouldRecenterFlag(ovrSession session)
+{
+    if (!ovr_ClearShouldRecenterFlagPtr)
         return;
-    ovr_RecenterPosePtr(session);
+    ovr_ClearShouldRecenterFlagPtr(session);
 }
 
 OVR_PUBLIC_FUNCTION(ovrTrackingState) ovr_GetTrackingState(ovrSession session, double absTime, ovrBool latencyMarker)
@@ -1178,7 +1529,21 @@ OVR_PUBLIC_FUNCTION(ovrTrackingState) ovr_GetTrackingState(ovrSession session, d
     return ovr_GetTrackingStatePtr(session, absTime, latencyMarker);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetInputState(ovrSession session, unsigned int controllerMask, ovrInputState* inputState)
+
+OVR_PUBLIC_FUNCTION(ovrTrackerPose) ovr_GetTrackerPose(ovrSession session, unsigned int trackerPoseIndex)
+{
+    if (!ovr_GetTrackerPosePtr)
+    {
+        ovrTrackerPose nullTrackerPose;
+        memset(&nullTrackerPose, 0, sizeof(nullTrackerPose));
+        return nullTrackerPose;
+    }
+
+    return ovr_GetTrackerPosePtr(session, trackerPoseIndex);
+}
+
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetInputState(ovrSession session, ovrControllerType controllerType, ovrInputState* inputState)
 {
     if (!ovr_GetInputStatePtr)
     {
@@ -1186,16 +1551,25 @@ OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetInputState(ovrSession session, unsigned in
             memset(inputState, 0, sizeof(ovrInputState));
         return ovrError_NotInitialized;
     }
-    return ovr_GetInputStatePtr(session, controllerMask, inputState);
+    return ovr_GetInputStatePtr(session, controllerType, inputState);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_SetControllerVibration(ovrSession session, unsigned int controllerTypeMask, float frequency, float amplitude)
+OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetConnectedControllerTypes(ovrSession session)
 {
-	if (!ovr_SetControllerVibrationPtr)
-	{
+    if (!ovr_GetConnectedControllerTypesPtr)
+    {
+        return 0;
+    }
+    return ovr_GetConnectedControllerTypesPtr(session);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_SetControllerVibration(ovrSession session, ovrControllerType controllerType, float frequency, float amplitude)
+{
+    if (!ovr_SetControllerVibrationPtr)
+    {
         return ovrError_NotInitialized;
-	}
-	return ovr_SetControllerVibrationPtr(session, controllerTypeMask, frequency, amplitude);
+    }
+    return ovr_SetControllerVibrationPtr(session, controllerType, frequency, amplitude);
 }
 
 OVR_PUBLIC_FUNCTION(ovrSizei) ovr_GetFovTextureSize(ovrSession session, ovrEyeType eye, ovrFovPort fov,
@@ -1212,60 +1586,190 @@ OVR_PUBLIC_FUNCTION(ovrSizei) ovr_GetFovTextureSize(ovrSession session, ovrEyeTy
 }
 
 #if defined (_WIN32)
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetD3D11(ovrSession session,
-                                                                ID3D11Device* device,
-                                                                const D3D11_TEXTURE2D_DESC* desc,
-                                                                unsigned int miscFlags,
-                                                                ovrSwapTextureSet** outTextureSet)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateTextureSwapChainDX(ovrSession session,
+                                                            IUnknown* d3dPtr,
+                                                            const ovrTextureSwapChainDesc* desc,
+                                                            ovrTextureSwapChain* outTextureSet)
 {
-    if (!ovr_CreateSwapTextureSetD3D11Ptr)
+    if (!ovr_CreateTextureSwapChainDXPtr)
         return ovrError_NotInitialized;
 
-    return ovr_CreateSwapTextureSetD3D11Ptr(session, device, desc, miscFlags, outTextureSet);
+    return ovr_CreateTextureSwapChainDXPtr(session, d3dPtr, desc, outTextureSet);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureD3D11(ovrSession session,
-                                                               ID3D11Device* device,
-                                                               const D3D11_TEXTURE2D_DESC* desc,
-                                                               unsigned int miscFlags,
-                                                               ovrTexture** outMirrorTexture)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureDX(ovrSession session,
+                                                         IUnknown* d3dPtr,
+                                                         const ovrMirrorTextureDesc* desc,
+                                                         ovrMirrorTexture* outMirrorTexture)
 {
-    if (!ovr_CreateMirrorTextureD3D11Ptr)
+    if (!ovr_CreateMirrorTextureDXPtr)
         return ovrError_NotInitialized;
 
-    return ovr_CreateMirrorTextureD3D11Ptr(session, device, desc, miscFlags, outMirrorTexture);
+    return ovr_CreateMirrorTextureDXPtr(session, d3dPtr, desc, outMirrorTexture);
 }
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetTextureSwapChainBufferDX(ovrSession session,
+                                                               ovrTextureSwapChain chain,
+                                                               int index,
+                                                               IID iid,
+                                                               void** ppObject)
+{
+    if (!ovr_GetTextureSwapChainBufferDXPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetTextureSwapChainBufferDXPtr(session, chain, index, iid, ppObject);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetMirrorTextureBufferDX(ovrSession session,
+                                                            ovrMirrorTexture mirror,
+                                                            IID iid,
+                                                            void** ppObject)
+{
+    if (!ovr_GetMirrorTextureBufferDXPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetMirrorTextureBufferDXPtr(session, mirror, iid, ppObject);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetAudioDeviceOutWaveId(unsigned int* deviceOutId)
+{
+    if (!ovr_GetAudioDeviceOutWaveIdPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetAudioDeviceOutWaveIdPtr(deviceOutId);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetAudioDeviceInWaveId(unsigned int* deviceInId)
+{
+    if (!ovr_GetAudioDeviceInWaveIdPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetAudioDeviceInWaveIdPtr(deviceInId);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetAudioDeviceOutGuidStr(WCHAR* deviceOutStrBuffer)
+{
+    if (!ovr_GetAudioDeviceOutGuidStrPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetAudioDeviceOutGuidStrPtr(deviceOutStrBuffer);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetAudioDeviceOutGuid(GUID* deviceOutGuid)
+{
+    if (!ovr_GetAudioDeviceOutGuidPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetAudioDeviceOutGuidPtr(deviceOutGuid);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetAudioDeviceInGuidStr(WCHAR* deviceInStrBuffer)
+{
+    if (!ovr_GetAudioDeviceInGuidStrPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetAudioDeviceInGuidStrPtr(deviceInStrBuffer);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetAudioDeviceInGuid(GUID* deviceInGuid)
+{
+    if (!ovr_GetAudioDeviceInGuidPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetAudioDeviceInGuidPtr(deviceInGuid);
+}
+
 #endif
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetGL(ovrSession session, GLuint format,
-                                                             int width, int height,
-                                                             ovrSwapTextureSet** outTextureSet)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateTextureSwapChainGL(ovrSession session,
+                                                            const ovrTextureSwapChainDesc* desc,
+                                                            ovrTextureSwapChain* outTextureSet)
 {
-    if (!ovr_CreateSwapTextureSetGLPtr)
+    if (!ovr_CreateTextureSwapChainGLPtr)
         return ovrError_NotInitialized;
 
-    return ovr_CreateSwapTextureSetGLPtr(session, format, width, height, outTextureSet);
+    return ovr_CreateTextureSwapChainGLPtr(session, desc, outTextureSet);
 }
 
-OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureGL(ovrSession session, GLuint format,
-                                                            int width, int height,
-                                                            ovrTexture** outMirrorTexture)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureGL(ovrSession session,
+                                                         const ovrMirrorTextureDesc* desc,
+                                                         ovrMirrorTexture* outMirrorTexture)
 {
     if (!ovr_CreateMirrorTextureGLPtr)
         return ovrError_NotInitialized;
 
-    return ovr_CreateMirrorTextureGLPtr(session, format, width, height, outMirrorTexture);
+    return ovr_CreateMirrorTextureGLPtr(session, desc, outMirrorTexture);
 }
 
-OVR_PUBLIC_FUNCTION(void) ovr_DestroySwapTextureSet(ovrSession session, ovrSwapTextureSet* textureSet)
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetTextureSwapChainBufferGL(ovrSession session,
+                                                               ovrTextureSwapChain chain,
+                                                               int index,
+                                                               unsigned int* texId)
 {
-    if (!ovr_DestroySwapTextureSetPtr)
+    if (!ovr_GetTextureSwapChainBufferGLPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetTextureSwapChainBufferGLPtr(session, chain, index, texId);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetMirrorTextureBufferGL(ovrSession session,
+                                                            ovrMirrorTexture mirror,
+                                                            unsigned int* texId)
+{
+    if (!ovr_GetMirrorTextureBufferGLPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetMirrorTextureBufferGLPtr(session, mirror, texId);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetTextureSwapChainLength(ovrSession session,
+                                                             ovrTextureSwapChain chain,
+                                                             int* length)
+{
+    if (!ovr_GetTextureSwapChainLengthPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetTextureSwapChainLengthPtr(session, chain, length);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetTextureSwapChainCurrentIndex(ovrSession session,
+                                                                   ovrTextureSwapChain chain,
+                                                                   int* currentIndex)
+{
+    if (!ovr_GetTextureSwapChainCurrentIndexPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetTextureSwapChainCurrentIndexPtr(session, chain, currentIndex);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetTextureSwapChainDesc(ovrSession session,
+                                                           ovrTextureSwapChain chain,
+                                                           ovrTextureSwapChainDesc* desc)
+{
+    if (!ovr_GetTextureSwapChainDescPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_GetTextureSwapChainDescPtr(session, chain, desc);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_CommitTextureSwapChain(ovrSession session,
+                                                          ovrTextureSwapChain chain)
+{
+    if (!ovr_CommitTextureSwapChainPtr)
+        return ovrError_NotInitialized;
+
+    return ovr_CommitTextureSwapChainPtr(session, chain);
+}
+
+OVR_PUBLIC_FUNCTION(void) ovr_DestroyTextureSwapChain(ovrSession session, ovrTextureSwapChain chain)
+{
+    if (!ovr_DestroyTextureSwapChainPtr)
         return;
 
-    ovr_DestroySwapTextureSetPtr(session, textureSet);
+    ovr_DestroyTextureSwapChainPtr(session, chain);
 }
 
-OVR_PUBLIC_FUNCTION(void) ovr_DestroyMirrorTexture(ovrSession session, ovrTexture* mirrorTexture)
+OVR_PUBLIC_FUNCTION(void) ovr_DestroyMirrorTexture(ovrSession session, ovrMirrorTexture mirrorTexture)
 {
     if (!ovr_DestroyMirrorTexturePtr)
         return;
@@ -1313,20 +1817,6 @@ OVR_PUBLIC_FUNCTION(double) ovr_GetTimeInSeconds()
     if (!ovr_GetTimeInSecondsPtr)
         return 0.;
     return ovr_GetTimeInSecondsPtr();
-}
-
-OVR_PUBLIC_FUNCTION(void) ovr_ResetBackOfHeadTracking(ovrSession session)
-{
-    if (!ovr_ResetBackOfHeadTrackingPtr)
-        return;
-    ovr_ResetBackOfHeadTrackingPtr(session);
-}
-
-OVR_PUBLIC_FUNCTION(void) ovr_ResetMulticameraTracking(ovrSession session)
-{
-    if (!ovr_ResetMulticameraTrackingPtr)
-        return;
-    ovr_ResetMulticameraTrackingPtr(session);
 }
 
 OVR_PUBLIC_FUNCTION(ovrBool) ovr_GetBool(ovrSession session, const char* propertyName, ovrBool defaultVal)

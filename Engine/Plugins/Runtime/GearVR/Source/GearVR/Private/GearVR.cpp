@@ -8,7 +8,6 @@
 #include "Android/AndroidApplication.h"
 #include "RHIStaticStates.h"
 #include "SceneViewport.h"
-//#include "Android/AndroidEGL.h"
 
 #include <android_native_app_glue.h>
 
@@ -32,7 +31,7 @@ class FGearVRPlugin : public IGearVRPlugin
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
 
 	// Pre-init the HMD module
-	virtual void PreInit() override;
+	virtual bool PreInit() override;
 
 	FString GetModulePriorityKeyName() const
 	{
@@ -84,36 +83,33 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FGearVRPlugin::Crea
 	return NULL;
 }
 
-void FGearVRPlugin::PreInit()
+bool FGearVRPlugin::PreInit()
 {
 #if GEARVR_SUPPORTED_PLATFORMS
-	if (!AndroidThunkCpp_IsGearVRApplication())
+	if (AndroidThunkCpp_IsGearVRApplication())
 	{
-		UE_LOG(LogHMD, Log, TEXT("GearVR: not packaged for GearVR"));
-		// don't do anything if we aren't packaged for GearVR
-		return;
+		UE_LOG(LogHMD, Log, TEXT("GearVR: it is packaged for GearVR!"));
+		return true;
 	}
-	UE_LOG(LogHMD, Log, TEXT("GearVR: it is packaged for GearVR!"));
+	UE_LOG(LogHMD, Log, TEXT("GearVR: not packaged for GearVR"));
+	// don't do anything if we aren't packaged for GearVR
 #endif//GEARVR_SUPPORTED_PLATFORMS
+	return false;
 }
 
 
 #if GEARVR_SUPPORTED_PLATFORMS
 FSettings::FSettings()
 	: RenderTargetSize(OVR_DEFAULT_EYE_RENDER_TARGET_WIDTH * 2, OVR_DEFAULT_EYE_RENDER_TARGET_HEIGHT)
-	, HeadModel(FVector::ZeroVector)
 {
 	CpuLevel = 2;
 	GpuLevel = 3;
 	HFOVInRadians = FMath::DegreesToRadians(90.f);
 	VFOVInRadians = FMath::DegreesToRadians(90.f);
-	HmdToEyeViewOffset[0] = HmdToEyeViewOffset[1] = OVR::Vector3f(0,0,0);
 	IdealScreenPercentage = ScreenPercentage = SavedScrPerc = 100.f;
 
-	const ovrHeadModelParms headModelParms = vrapi_DefaultHeadModelParms();
-	InterpupillaryDistance = headModelParms.InterpupillaryDistance;
-	HeadModel.X = headModelParms.HeadModelDepth;
-	HeadModel.Z = headModelParms.HeadModelHeight;
+	HeadModelParms = vrapi_DefaultHeadModelParms();
+	InterpupillaryDistance = HeadModelParms.InterpupillaryDistance;
 
 	Flags.bStereoEnabled = false; Flags.bHMDEnabled = true;
 	Flags.bUpdateOnRT = Flags.bTimeWarp = true;
@@ -265,11 +261,10 @@ bool FGearVR::GetEyePoses(const FGameFrame& InFrame, ovrPosef outEyePoses[2], ov
 		FMemory::Memzero(identityQ);
 		identityQ.w = 1;
 		outTracking.HeadPose.Pose.Orientation = identityQ;
-		const OVR::Vector3f OvrHeadModel = ToOVRVector<OVR::Vector3f>(InFrame.GetSettings()->HeadModel); // HeadModel is already in meters here
-		const OVR::Vector3f HmdToEyeViewOffset0 = (OVR::Vector3f)InFrame.GetSettings()->HmdToEyeViewOffset[0];
-		const OVR::Vector3f HmdToEyeViewOffset1 = (OVR::Vector3f)InFrame.GetSettings()->HmdToEyeViewOffset[1];
-		const OVR::Vector3f transl0 = OvrHeadModel + HmdToEyeViewOffset0;
-		const OVR::Vector3f transl1 = OvrHeadModel + HmdToEyeViewOffset1;
+		const OVR::Vector3f HmdToEyeViewOffset0 = OVR::Vector3f(-InFrame.GetSettings()->HeadModelParms.InterpupillaryDistance * 0.5f, 0, 0); // -X <=, +X => (OVR coord sys)
+		const OVR::Vector3f HmdToEyeViewOffset1 = OVR::Vector3f(InFrame.GetSettings()->HeadModelParms.InterpupillaryDistance * 0.5f, 0, 0);  // -X <=, +X => (OVR coord sys)
+		const OVR::Vector3f transl0 = HmdToEyeViewOffset0;
+		const OVR::Vector3f transl1 = HmdToEyeViewOffset1;
 		outEyePoses[0].Orientation = outEyePoses[1].Orientation = outTracking.HeadPose.Pose.Orientation;
 		outEyePoses[0].Position = transl0;
 		outEyePoses[1].Position = transl1;
@@ -303,18 +298,19 @@ bool FGearVR::GetEyePoses(const FGameFrame& InFrame, ovrPosef outEyePoses[2], ov
 	}
 	outTracking = vrapi_GetPredictedTracking(*OvrMobile, predictedTime);
 
+	outTracking = vrapi_ApplyHeadModel(&InFrame.GetSettings()->HeadModelParms, &outTracking);
 	const OVR::Posef hmdPose = (OVR::Posef)outTracking.HeadPose.Pose;
-	const OVR::Vector3f OvrHeadModel = ToOVRVector<OVR::Vector3f>(InFrame.GetSettings()->HeadModel); // HeadModel is already in meters here
-	const OVR::Vector3f HmdToEyeViewOffset0 = (OVR::Vector3f)InFrame.GetSettings()->HmdToEyeViewOffset[0];
-	const OVR::Vector3f HmdToEyeViewOffset1 = (OVR::Vector3f)InFrame.GetSettings()->HmdToEyeViewOffset[1];
-	const OVR::Vector3f transl0 = hmdPose.Orientation.Rotate(OvrHeadModel + HmdToEyeViewOffset0);
-	const OVR::Vector3f transl1 = hmdPose.Orientation.Rotate(OvrHeadModel + HmdToEyeViewOffset1);
+	const OVR::Vector3f HmdToEyeViewOffset0 = OVR::Vector3f(-InFrame.GetSettings()->HeadModelParms.InterpupillaryDistance * 0.5f, 0, 0); // -X <=, +X => (OVR coord sys)
+	const OVR::Vector3f HmdToEyeViewOffset1 = OVR::Vector3f(InFrame.GetSettings()->HeadModelParms.InterpupillaryDistance * 0.5f, 0, 0);  // -X <=, +X => (OVR coord sys)
+	const OVR::Vector3f transl0 = hmdPose.Orientation.Rotate(HmdToEyeViewOffset0);
+	const OVR::Vector3f transl1 = hmdPose.Orientation.Rotate(HmdToEyeViewOffset1);
 
-	// Currently HmdToEyeViewOffset is only a 3D vector
-	// (Negate HmdToEyeViewOffset because offset is a view matrix offset and not a camera offset)
 	outEyePoses[0].Orientation = outEyePoses[1].Orientation = outTracking.HeadPose.Pose.Orientation;
-	outEyePoses[0].Position = transl0;
-	outEyePoses[1].Position = transl1;
+	outEyePoses[0].Position = OVR::Vector3f(outTracking.HeadPose.Pose.Position) + transl0;
+	outEyePoses[1].Position = OVR::Vector3f(outTracking.HeadPose.Pose.Position) + transl1;
+
+	//UE_LOG(LogHMD, Log, TEXT("LEFTEYE: Pos %.3f %.3f %.3f"), ToFVector(outEyePoses[0].Position).X, ToFVector(outEyePoses[0].Position).Y, ToFVector(outEyePoses[0].Position).Z);
+	//UE_LOG(LogHMD, Log, TEXT("RIGHEYE: Pos %.3f %.3f %.3f"), ToFVector(outEyePoses[1].Position).X, ToFVector(outEyePoses[1].Position).Y, ToFVector(outEyePoses[1].Position).Z);
 	return true;
 }
 
@@ -465,6 +461,21 @@ FString FGearVR::GetVersionString() const
 	return s;
 }
 
+void FGearVR::GetRawSensorData(SensorData& OutData)
+{
+	FMemory::Memset(OutData, 0);
+	const auto frame = GetFrame();
+	if (!frame)
+	{
+		return;
+	}
+	OutData.AngularAcceleration = ToFVector(frame->HeadPose.AngularAcceleration);
+	OutData.LinearAcceleration = ToFVector(frame->HeadPose.LinearAcceleration);
+	OutData.AngularVelocity = ToFVector(frame->HeadPose.AngularVelocity);
+	OutData.LinearVelocity = ToFVector(frame->HeadPose.LinearVelocity);
+	OutData.TimeInSeconds = frame->HeadPose.TimeInSeconds;
+}
+
 void FGearVR::OnScreenModeChange(EWindowMode::Type WindowMode)
 {
 	//EnableStereo(WindowMode != EWindowMode::Windowed);
@@ -601,7 +612,7 @@ void FGearVR::CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, 
 		{
 			if (!frame->Flags.bOrientationChanged)
 			{
-				UE_LOG(LogHMD, Log, TEXT("Orientation wasn't applied to a camera in frame %d"), int(GFrameCounter));
+				UE_LOG(LogHMD, Log, TEXT("Orientation wasn't applied to a camera in frame %d"), int(CurrentFrameNumber.GetValue()));
 			}
 
 			FVector CurEyePosition;
@@ -810,7 +821,12 @@ void FGearVR::Startup()
 		return;
 	}
 
-	GetSettings()->HeadModel *= HeadModelScale;
+	ovrHeadModelParms& HeadModel = GetSettings()->HeadModelParms;
+	HeadModel.InterpupillaryDistance *= HeadModelScale;
+	HeadModel.EyeHeight *= HeadModelScale;
+	HeadModel.HeadModelDepth *= HeadModelScale;
+	HeadModel.HeadModelHeight *= HeadModelScale;
+
 	GetSettings()->MinimumVsyncs = MinimumVsyncs;
 	GetSettings()->CpuLevel = CpuLevel;
 	GetSettings()->GpuLevel = GpuLevel;
@@ -917,10 +933,6 @@ void FGearVR::UpdateStereoRenderingParams()
 	}
 	if (IsInitialized())
 	{
-		CurrentSettings->HmdToEyeViewOffset[0] = CurrentSettings->HmdToEyeViewOffset[1] = OVR::Vector3f(0,0,0);
-		CurrentSettings->HmdToEyeViewOffset[0].x = -CurrentSettings->InterpupillaryDistance * 0.5f; // -X <=, +X => (OVR coord sys)
-		CurrentSettings->HmdToEyeViewOffset[1].x = CurrentSettings->InterpupillaryDistance * 0.5f;  // -X <=, +X => (OVR coord sys)
-
 		const int SuggestedEyeResolutionWidth  = vrapi_GetSystemPropertyInt(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH);
 		const int SuggestedEyeResolutionHeight = vrapi_GetSystemPropertyInt(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT);
 
@@ -1093,7 +1105,7 @@ void FGearVR::DrawDebug(UCanvas* Canvas)
 	const auto frame = GetCurrentFrame();
 	if (frame)
 	{
-		if (frame->Settings->Flags.bDrawTrackingCameraFrustum)
+		if (frame->Settings->Flags.bDrawSensorFrustum)
 		{
 			DrawDebugTrackingCameraFrustum(GWorld, Canvas->SceneView->ViewRotation, Canvas->SceneView->ViewLocation);
 		}

@@ -114,10 +114,7 @@ public:
 	int				CpuLevel;
 	int				GpuLevel;
 
-	/** Vector defining center eye offset for head neck model in meters */
-	FVector			HeadModel;
-
-	OVR::Vector3f	HmdToEyeViewOffset[2]; 
+	ovrHeadModelParms HeadModelParms;
 
 	FSettings();
 	virtual ~FSettings() override {}
@@ -354,9 +351,16 @@ public:
 
 	virtual void DrawDebug(UCanvas* Canvas) override;
 
+	/**
+	* Reports raw sensor data. If HMD doesn't support any of the parameters then it should be set to zero.
+	*
+	* @param OutData	(out) SensorData structure to be filled in.
+	*/
+	virtual void GetRawSensorData(SensorData& OutData) override;
+
 	virtual bool HandleInputKey(class UPlayerInput*, const FKey& Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 
-	//virtual FHMDLayerManager* GetLayerManager() override { return nullptr; }
+	virtual FHMDLayerManager* GetLayerManager() override { return nullptr; }
 
 	/** Constructor */
 	FGearVR();

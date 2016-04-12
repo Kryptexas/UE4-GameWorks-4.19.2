@@ -34,7 +34,7 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 	FViewExtension& RenderContext = *this;
 	FGameFrame* CurrentFrame = static_cast<FGameFrame*>(RenderContext.RenderFrame.Get());
 
-	if (bFrameBegun || !CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled() || !ViewFamily.RenderTarget->GetRenderTargetTexture())
+	if (bFrameBegun || !CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled() || !ViewFamily.RenderTarget->GetRenderTargetTexture() || pPresentBridge->NeedsToKillHmd())
 	{
 		return;
 	}
@@ -61,6 +61,7 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 	
 	pPresentBridge->BeginRendering(RenderContext, ViewFamily.RenderTarget->GetRenderTargetTexture());
 
+	FOvrSessionShared::AutoSession OvrSession(Session);
 	const double DisplayTime = ovr_GetPredictedDisplayTime(OvrSession, RenderContext.RenderFrame->FrameNumber);
 
 	RenderContext.bFrameBegun = true;
@@ -93,6 +94,16 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 	const FTransform NewRelativeTransform(NewOrientation, NewPosition);
 
 	Delegate->ApplyLateUpdate(ViewFamily.Scene, OldRelativeTransform, NewRelativeTransform);
+
+	if (ViewFamily.Views[0])
+	{
+		const FQuat ViewOrientation = ViewFamily.Views[0]->ViewRotation.Quaternion();
+		CurrentFrame->PlayerOrientation = ViewOrientation * CurrentFrame->LastHmdOrientation.Inverse();
+		//UE_LOG(LogHMD, Log, TEXT("PLAYER: Pos %.3f %.3f %.3f"), CurrentFrame->PlayerLocation.X, CurrentFrame->PlayerLocation.Y, CurrentFrame->PlayerLocation.Z);
+		//UE_LOG(LogHMD, Log, TEXT("VIEW  : Yaw %.3f Pitch %.3f Roll %.3f"), FRotator(ViewOrientation).Yaw, FRotator(ViewOrientation).Pitch, FRotator(ViewOrientation).Roll);
+		//UE_LOG(LogHMD, Log, TEXT("HEAD  : Yaw %.3f Pitch %.3f Roll %.3f"), FRotator(CurrentFrame->LastHmdOrientation).Yaw, FRotator(CurrentFrame->LastHmdOrientation).Pitch, FRotator(CurrentFrame->LastHmdOrientation).Roll);
+		//UE_LOG(LogHMD, Log, TEXT("PLAYER: Yaw %.3f Pitch %.3f Roll %.3f"), FRotator(CurrentFrame->PlayerOrientation).Yaw, FRotator(CurrentFrame->PlayerOrientation).Pitch, FRotator(CurrentFrame->PlayerOrientation).Roll);
+	}
 }
 
 void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)
@@ -113,7 +124,7 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 		FVector	CurrentEyePosition;
 		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->CurEyeRenderPose[eyeIdx], CurrentEyeOrientation, CurrentEyePosition);
 
-		FQuat ViewOrientation = View.ViewRotation.Quaternion();
+		const FQuat ViewOrientation = View.ViewRotation.Quaternion();
 
 		// recalculate delta control orientation; it should match the one we used in CalculateStereoViewOffset on a game thread.
 		FVector GameEyePosition;
@@ -155,19 +166,6 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 		{
 			View.UpdateViewMatrix();
 		}
-
-		if (View.StereoPass == eSSP_LEFT_EYE) // collect PlayerOrientation only once
-		{
-			FQuat HeadOrientation;
-			FVector HeadLocation;
-			CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->CurHeadPose, HeadOrientation, HeadLocation);
-
-			CurrentFrame->PlayerOrientation = ViewOrientation * HeadOrientation.Inverse();
-			//UE_LOG(LogHMD, Log, TEXT("PLAYER: Pos %.3f %.3f %.3f"), CurrentFrame->PlayerLocation.X, CurrentFrame->PlayerLocation.Y, CurrentFrame->PlayerLocation.Z);
-			//UE_LOG(LogHMD, Log, TEXT("VIEW  : Yaw %.3f Pitch %.3f Roll %.3f"), FRotator(ViewOrientation).Yaw, FRotator(ViewOrientation).Pitch, FRotator(ViewOrientation).Roll);
-			//UE_LOG(LogHMD, Log, TEXT("HEAD  : Yaw %.3f Pitch %.3f Roll %.3f"), FRotator(HeadOrientation).Yaw, FRotator(HeadOrientation).Pitch, FRotator(HeadOrientation).Roll);
-			//UE_LOG(LogHMD, Log, TEXT("PLAYER: Yaw %.3f Pitch %.3f Roll %.3f"), FRotator(CurrentFrame->PlayerOrientation).Yaw, FRotator(CurrentFrame->PlayerOrientation).Pitch, FRotator(CurrentFrame->PlayerOrientation).Roll);
-		}
 	}
 }
 
@@ -176,14 +174,20 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 // FOculusRiftHMD
 //-------------------------------------------------------------------------------------------------
 
-bool FOculusRiftHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)
+bool FOculusRiftHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InTexFlags, uint32 InTargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)
 {
 	check(Index == 0);
-	return pCustomPresent->AllocateRenderTargetTexture(SizeX, SizeY, Format, NumMips, InFlags, TargetableTextureFlags, OutTargetableTexture, OutShaderResourceTexture, NumSamples);
+	uint32 LayerFlags = 0;
+	if (GetSettings()->Flags.bHQDistortion)
+	{
+		LayerFlags |= FCustomPresent::HighQuality;
+	}
+	pCustomPresent->AllocateRenderTargetTexture(SizeX, SizeY, Format, InTexFlags, LayerFlags, OutTargetableTexture, OutShaderResourceTexture);
+	return true;
 }
 
 void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, 
-	FIntRect DstRect, FIntRect SrcRect) const
+	FIntRect DstRect, FIntRect SrcRect, bool bAlphaPremultiply) const
 {
 	check(IsInRenderingThread());
 
@@ -212,7 +216,16 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
 	RHICmdList.SetViewport(DstRect.Min.X, DstRect.Min.Y, 0, DstRect.Max.X, DstRect.Max.Y, 1.0f);
 
-	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	if (bAlphaPremultiply)
+	{
+		// for quads, write RGBA, RGB = src.rgb * src.a + dst.rgb * 0, A = src.a + dst.a * 0
+		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
+	}
+	else
+	{
+		// for mirror window
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	}
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
@@ -272,7 +285,15 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 		else if (RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEye)
 		{
 			auto FrameSettings = RenderContext->GetFrameSettings();
-			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, FIntRect(), FrameSettings->EyeRenderViewport[0]);
+			FIntRect SrcViewRect(FrameSettings->EyeRenderViewport[0]);
+
+			// avoid vignetting caused by HiddenAreaMesh masking
+			SrcViewRect.Min.X = 150;
+			SrcViewRect.Min.Y = 150;
+			SrcViewRect.Max.X -= 150;
+			SrcViewRect.Max.Y -= 150;
+
+			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, FIntRect(), SrcViewRect);
 		}
 	}
 }
@@ -502,11 +523,6 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 
 			FString Str, StatusStr;
 			// First row
-// 			Str = FString::Printf(TEXT("TimeWarp: %s"), (FrameSettings->Flags.bTimeWarp) ? TEXT("ON") : TEXT("OFF"));
-// 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
-// 
-// 			Y += RowHeight;
-
 			//Str = FString::Printf(TEXT("VSync: %s"), (FrameSettings->Flags.bVSync) ? TEXT("ON") : TEXT("OFF"));
 			//Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 			//Y += RowHeight;
@@ -545,6 +561,7 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 			{
 				float latencies[5] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 				const int numOfEntries = sizeof(latencies) / sizeof(latencies[0]);
+				FOvrSessionShared::AutoSession OvrSession(Session);
 				if (ovr_GetFloatArray(OvrSession, "DK2Latency", latencies, numOfEntries) == numOfEntries)
 				{
 					Y += RowHeight;
@@ -568,6 +585,10 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 			X = (int32)LeftPos + 200;
 			Y = (int32)TopPos;
 
+			Str = FString::Printf(TEXT("HQ dist: %s"), (FrameSettings->Flags.bHQDistortion) ? TEXT("ON") : TEXT("OFF"));
+			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
+			Y += RowHeight;
+
 			StatusStr = ((FrameSettings->SupportedTrackingCaps & ovrTrackingCap_Position) != 0) ?
 				((FrameSettings->Flags.bHmdPosTracking) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
 			Str = FString::Printf(TEXT("PosTr: %s"), *StatusStr);
@@ -578,9 +599,10 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 			Y += RowHeight;
 
-			Str = FString::Printf(TEXT("IPD: %.2f mm"), FrameSettings->InterpupillaryDistance*1000.f);
-			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
-			Y += RowHeight;
+			const float IAD = FMath::Abs(FrameSettings->EyeRenderDesc[0].HmdToEyeOffset.x) + FMath::Abs(FrameSettings->EyeRenderDesc[1].HmdToEyeOffset.x);
+ 			Str = FString::Printf(TEXT("IAD: %.2f mm"), IAD * 1000.f);
+ 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
+ 			Y += RowHeight;
 
 // 			StatusStr = ((FrameSettings->SupportedHmdCaps & ovrHmdCap_LowPersistence) != 0) ?
 // 				((FrameSettings->Flags.bLowPersistenceMode) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
@@ -597,7 +619,7 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 
 		//TODO:  Where can I get context!?
 		UWorld* MyWorld = GWorld;
-		if (Canvas && Canvas->SceneView && FrameSettings->Flags.bDrawTrackingCameraFrustum)
+		if (Canvas && Canvas->SceneView && FrameSettings->Flags.bDrawSensorFrustum)
 		{
 			DrawDebugTrackingCameraFrustum(MyWorld, Canvas->SceneView->ViewRotation, Canvas->SceneView->ViewLocation);
 		}
@@ -625,6 +647,10 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 	}
 
 	FRHIViewport* const ViewportRHI = InViewport.GetViewportRHI().GetReference();
+	if (!ViewportRHI)
+	{
+		return;
+	}
 
 	TSharedPtr<SWindow> Window = CachedWindow.Pin();
 	if (ViewportWidget)
@@ -685,19 +711,26 @@ void FOculusRiftHMD::ShutdownRendering()
 // FCustomPresent
 //-------------------------------------------------------------------------------------------------
 
-FCustomPresent::FCustomPresent()
+FCustomPresent::FCustomPresent(FOvrSessionSharedParamRef InOvrSession)
 	: FRHICustomPresent(nullptr)
-	, OvrSession(nullptr)
-	, LayerMgr(this)
+	, Session(InOvrSession)
+	, LayerMgr(MakeShareable(new FLayerManager(this)))
 	, MirrorTexture(nullptr)
 	, NeedToKillHmd(0)
-	, bInitialized(false)
 	, bNeedReAllocateTextureSet(true)
 	, bNeedReAllocateMirrorTexture(true)
+	, bReady(false)
 {
+	LayerMgr->Startup();
 	// grab a pointer to the renderer module for displaying our mirror window
 	static const FName RendererModuleName("Renderer");
 	RendererModule = FModuleManager::GetModulePtr<IRendererModule>(RendererModuleName);
+}
+
+void FCustomPresent::Shutdown()
+{
+	Reset();
+	LayerMgr->Shutdown();
 }
 
 void FCustomPresent::SetRenderContext(FHMDViewExtension* InRenderContext)
@@ -769,18 +802,36 @@ void FCustomPresent::UpdateLayers(FRHICommandListImmediate& RHICmdList)
 {
 	check(IsInRenderingThread());
 
-	if (RenderContext.IsValid())
+	if (RenderContext.IsValid() && !IsSubmitFrameLocked())
 	{
 		if (RenderContext->ShowFlags.Rendering)
 		{
 			check(RenderContext->GetRenderFrame());
 
-			LayerMgr.PreSubmitUpdate_RenderThread(RHICmdList, RenderContext->GetRenderFrame());
+			LayerMgr->PreSubmitUpdate_RenderThread(RHICmdList, RenderContext->GetRenderFrame(), RenderContext->ShowFlags.Rendering);
 		}
 	}
 }
 
-bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)
+uint32 FCustomPresent::GetNumMipLevels(uint32 w, uint32 h, uint32 InCreateTexFlags)
+{
+	uint32 n = 1;
+	while (w > 1 || h > 1)
+	{
+		// Static images should have full set of mipmaps, while eye buffers may have only a number of multiples of 2 mipmaps.
+		if ((InCreateTexFlags & EyeBuffer) != 0 && ((w & 1) != 0 || (h & 1) != 0))
+		{
+			break;
+		}
+		w >>= 1;
+		h >>= 1;
+		n++;
+	}
+	check(n >= 3);
+	return n;
+}
+
+bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 TextureFlags, uint32 LayerFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture)
 {
 	check(SizeX != 0 && SizeY != 0);
 
@@ -790,43 +841,66 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 	}
 
 	// it is possible that eye layer is not added to RenderLayers yet, or previously allocated textureSet is not transferred there yet.
-	const FHMDLayerDesc* pEyeLayerDesc = LayerMgr.GetLayerDesc(0);
+	const FHMDLayerDesc* pEyeLayerDesc = LayerMgr->GetLayerDesc(0);
 	check(pEyeLayerDesc);
 	auto TextureSet = pEyeLayerDesc->GetTextureSet();
+	bool bEyeLayerIsHQ = false;
+	bool bEyeLayerShouldBeHQ = (LayerFlags & HighQuality) != 0;
 	if (!TextureSet.IsValid())
 	{
 		// grab texture set from the RenderLayers; this should be fine, since RT is suspended.
 		check(GIsRenderingThreadSuspended);
-		const FHMDRenderLayer* pEyeLayer = LayerMgr.GetRenderLayer_RenderThread_NoLock(0);
+		const FHMDRenderLayer* pEyeLayer = LayerMgr->GetRenderLayer_RenderThread_NoLock(0);
 		if (pEyeLayer)
 		{
 			TextureSet = pEyeLayer->GetLayerDesc().GetTextureSet();
+			bEyeLayerIsHQ = pEyeLayer->GetLayerDesc().IsHighQuality();
 		}
 	}
 
-	if (!bNeedReAllocateTextureSet && (!TextureSet.IsValid() || (TextureSet->GetSizeX() != SizeX || TextureSet->GetSizeY() != SizeY)))
+	if (!bNeedReAllocateTextureSet)
 	{
-		UE_LOG(LogHMD, Log, TEXT("Need to reallocate eye buffer, reason: %s"), (TextureSet.IsValid()) ? TEXT("size changed") : TEXT("no textureset was allocated"));
-		bNeedReAllocateTextureSet = true;
+		if (!TextureSet.IsValid() || (TextureSet->GetSizeX() != SizeX || TextureSet->GetSizeY() != SizeY) || bEyeLayerIsHQ != bEyeLayerShouldBeHQ)
+		{
+			UE_LOG(LogHMD, Log, TEXT("Need to reallocate eye buffer, reason: %s"), (TextureSet.IsValid()) ? TEXT("size / quality changed") : TEXT("no textureset was allocated"));
+			bNeedReAllocateTextureSet = true;
+		}
+		else if (TextureSet.IsValid())
+		{
+			OutTargetableTexture = TextureSet->GetRHITexture2D();
+			OutShaderResourceTexture = TextureSet->GetRHITexture2D();
+			return true;
+		}
 	}
-	else if (TextureSet.IsValid())
+	else
 	{
-		OutTargetableTexture = TextureSet->GetRHITexture2D();
-		OutShaderResourceTexture = TextureSet->GetRHITexture2D();
-		return true;
+		UE_LOG(LogHMD, Log, TEXT("Reallocation of eye buffer was requested"));
 	}
 
-	if (OvrSession && bNeedReAllocateTextureSet)
+	if (Session->IsActive() && bNeedReAllocateTextureSet)
 	{
-		FTexture2DSetProxyRef ColorTextureSet = CreateTextureSet(SizeX, SizeY, EPixelFormat(Format), NumMips, TexCreate_RenderTargetable | TexCreate_ShaderResource);
+		uint32 NumMips = 1;
+		if (bEyeLayerShouldBeHQ)
+		{
+			NumMips = 0; //automatically determine number of mips necessary
+		}
+
+		if (TextureSet.IsValid())
+		{
+			TextureSet->ReleaseResources();
+			LayerMgr->InvalidateTextureSets();
+		}
+
+		FTexture2DSetProxyRef ColorTextureSet = CreateTextureSet(SizeX, SizeY, EPixelFormat(Format), NumMips, DefaultEyeBuffer);
 		if (ColorTextureSet.IsValid())
 		{
 			// update the eye layer textureset. at the moment only one eye layer is supported
-			const FHMDLayerDesc* pEyeLayerDesc = LayerMgr.GetLayerDesc(0);
+			const FHMDLayerDesc* pEyeLayerDesc = LayerMgr->GetLayerDesc(0);
 			check(pEyeLayerDesc);
 			FHMDLayerDesc EyeLayerDesc = *pEyeLayerDesc;
+			EyeLayerDesc.SetHighQuality(bEyeLayerShouldBeHQ);
 			EyeLayerDesc.SetTextureSet(ColorTextureSet);
-			LayerMgr.UpdateLayer(EyeLayerDesc);
+			LayerMgr->UpdateLayer(EyeLayerDesc);
 
 			bNeedReAllocateTextureSet = false;
 			bNeedReAllocateMirrorTexture = true;
@@ -847,48 +921,87 @@ void FCustomPresent::FinishRendering()
 
 	check(RenderContext.IsValid());
 
-	if (RenderContext->bFrameBegun)
+	if (!IsSubmitFrameLocked())
 	{
-		ovrResult res = LayerMgr.SubmitFrame(RenderContext.Get());
-		if (!OVR_SUCCESS(res))
+		if (RenderContext->bFrameBegun)
 		{
-			if (res == ovrError_DisplayLost || res == ovrError_NoHmd)
+			FOvrSessionShared::AutoSession OvrSession(Session);
+			ovrResult res = LayerMgr->SubmitFrame_RenderThread(OvrSession, RenderContext->GetRenderFrame(), RenderContext->ShowFlags.Rendering);
+			if (!OVR_SUCCESS(res))
 			{
-				UE_CLOG(!bNeedReAllocateTextureSet, LogHMD, Log, TEXT("DisplayLost, mark texturesets invalid...."));
-				bNeedReAllocateMirrorTexture = bNeedReAllocateTextureSet = true;
-				FPlatformAtomics::InterlockedExchange(&NeedToKillHmd, 1);
+				if (res == ovrError_DisplayLost || res == ovrError_NoHmd)
+				{
+					UE_CLOG(!bNeedReAllocateTextureSet, LogHMD, Log, TEXT("DisplayLost, mark texturesets invalid...."));
+					bNeedReAllocateMirrorTexture = bNeedReAllocateTextureSet = true;
+					FPlatformAtomics::InterlockedExchange(&NeedToKillHmd, 1);
+				}
 			}
-		}
 
-		// Update frame stats
+			// Update frame stats
 #if STATS
-		struct
-		{
-			float LatencyRender;
-			float LatencyTimewarp;
-			float LatencyPostPresent;
-			float ErrorRender;
-			float ErrorTimewarp;
-		} DK2Latency;
+			struct
+			{
+				float LatencyRender;
+				float LatencyTimewarp;
+				float LatencyPostPresent;
+				float ErrorRender;
+				float ErrorTimewarp;
+			} DK2Latency;
 
-		const unsigned int DK2LatencyCount = sizeof(DK2Latency) / sizeof(float);
+			const unsigned int DK2LatencyCount = sizeof(DK2Latency) / sizeof(float);
 
-		if (ovr_GetFloatArray(RenderContext->OvrSession, "DK2Latency", (float*)&DK2Latency, DK2LatencyCount) == DK2LatencyCount)
-		{
-			SET_FLOAT_STAT(STAT_LatencyRender, DK2Latency.LatencyRender * 1000.0f);
-			SET_FLOAT_STAT(STAT_LatencyTimewarp, DK2Latency.LatencyTimewarp * 1000.0f);
-			SET_FLOAT_STAT(STAT_LatencyPostPresent, DK2Latency.LatencyPostPresent * 1000.0f);
-			SET_FLOAT_STAT(STAT_ErrorRender, DK2Latency.ErrorRender * 1000.0f);
-			SET_FLOAT_STAT(STAT_ErrorTimewarp, DK2Latency.ErrorTimewarp * 1000.0f);
-		}
+			if (ovr_GetFloatArray(OvrSession, "DK2Latency", (float*)&DK2Latency, DK2LatencyCount) == DK2LatencyCount)
+			{
+				SET_FLOAT_STAT(STAT_LatencyRender, DK2Latency.LatencyRender * 1000.0f);
+				SET_FLOAT_STAT(STAT_LatencyTimewarp, DK2Latency.LatencyTimewarp * 1000.0f);
+				SET_FLOAT_STAT(STAT_LatencyPostPresent, DK2Latency.LatencyPostPresent * 1000.0f);
+				SET_FLOAT_STAT(STAT_ErrorRender, DK2Latency.ErrorRender * 1000.0f);
+				SET_FLOAT_STAT(STAT_ErrorTimewarp, DK2Latency.ErrorTimewarp * 1000.0f);
+			}
 #endif
-	}
-	else
-	{
-		UE_LOG(LogHMD, Warning, TEXT("Skipping frame: FinishRendering called with no corresponding BeginRendering (was BackBuffer re-allocated?)"));
+		}
+		else if (!RenderContext->GetFrameSettings()->Flags.bPauseRendering)
+		{
+			UE_LOG(LogHMD, Warning, TEXT("Skipping frame: FinishRendering called with no corresponding BeginRendering (was BackBuffer re-allocated?)"));
+		}
 	}
 	RenderContext->bFrameBegun = false;
 	SetRenderContext(nullptr);
+}
+
+void FCustomPresent::Reset_RenderThread()
+{
+	if (MirrorTexture)
+	{
+		FOvrSessionShared::AutoSession OvrSession(Session);
+		ovr_DestroyMirrorTexture(OvrSession, MirrorTexture);
+		MirrorTextureRHI = nullptr;
+		MirrorTexture = nullptr;
+	}
+
+	if (RenderContext.IsValid())
+	{
+		RenderContext->bFrameBegun = false;
+		SetRenderContext(nullptr);
+	}
+}
+
+void FCustomPresent::Reset()
+{
+	if (IsInGameThread())
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(ResetD3D,
+		FCustomPresent*, Bridge, this,
+		{
+			Bridge->Reset_RenderThread();
+		});
+		// Wait for all resources to be released
+		FlushRenderingCommands();
+	}
+	else
+	{
+		Reset_RenderThread();
+	}
 }
 
 #endif // OCULUS_RIFT_SUPPORTED_PLATFORMS

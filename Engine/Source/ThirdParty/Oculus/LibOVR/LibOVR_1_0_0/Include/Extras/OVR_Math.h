@@ -1,7 +1,7 @@
 /********************************************************************************//**
 \file      OVR_Math.h
 \brief     Implementation of 3D primitives such as vectors, matrices.
-\copyright Copyright 2014 Oculus VR, LLC All Rights reserved.
+\copyright Copyright 2015 Oculus VR, LLC All Rights reserved.
 *************************************************************************************/
 
 #ifndef OVR_Math_h
@@ -674,7 +674,7 @@ public:
     T       LengthSq() const                     { return (x * x + y * y + z * z); }
 
     // Return vector length.
-    T       Length() const                       { return sqrt(LengthSq()); }
+    T       Length() const                       { return (T)sqrt(LengthSq()); }
 
     // Returns squared distance between two points represented by vectors.
     T       DistanceSq(Vector3 const& b) const         { return (*this - b).LengthSq(); }
@@ -1514,7 +1514,7 @@ public:
     // assuming negative direction of the axis). Standard formula: q(t) * V * q(t)^-1. 
     Vector3<T> Rotate(const Vector3<T>& v) const
     {
-        OVR_MATH_ASSERT(IsNormalized());
+        OVR_MATH_ASSERT(isnan(w) || IsNormalized());
 
         // rv = q * (v,0) * q'
         // Same as rv = v + real * cross(imag,v)*2 + cross(imag, cross(imag,v)*2);
@@ -2496,8 +2496,8 @@ public:
     //       negative axis direction.
     static Matrix4 RotationY(T angle)
     {
-        T sina = sin(angle);
-        T cosa = cos(angle);
+        T sina = (T)sin(angle);
+        T cosa = (T)cos(angle);
         return Matrix4(cosa,  0,   sina, 
                        0,     1,   0,
                        -sina, 0,   cosa);

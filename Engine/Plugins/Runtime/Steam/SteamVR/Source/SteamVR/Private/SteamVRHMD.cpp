@@ -76,6 +76,27 @@ public:
 		SteamVRHMD->SetUnrealControllerIdAndHandToDeviceIdMap(InUnrealControllerIdAndHandToDeviceIdMap);
 	}
 
+	virtual bool IsHMDConnected() override
+	{
+		TSharedPtr<FSteamVRHMD, ESPMode::ThreadSafe > Device;
+
+		// Pre-init...need to bootstrap loading things to see if it's connected
+		if (!VRSystem)
+		{
+			// Create a temporary device just for initialization purposes
+			Device = MakeShareable(new FSteamVRHMD(this));
+			
+		}
+
+		// Normal, just check if we're connected
+		if (VRSystem)
+		{
+			return VRSystem->IsTrackedDeviceConnected(vr::k_unTrackedDeviceIndex_Hmd);
+		}
+
+		return false;
+	}
+
 private:
 	vr::IVRSystem* VRSystem;
 };
@@ -529,6 +550,7 @@ bool FSteamVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		if (FParse::Value(Cmd, TEXT("E="), val))
 		{
 			IPD = val;
+			return true;
 		}
 	}
 	else if (FParse::Command(&Cmd, TEXT("HMD")))

@@ -47,12 +47,11 @@ public:
 	/**
 	 * Returns current ovrSession handle
 	 */
-	virtual struct ovrHmdStruct* GetSession() = 0;
+	virtual class FOvrSessionShared* GetSession() = 0;
 
 	/**
 	 * Returns current ovrTrackingState
 	 */
 	virtual bool GetCurrentTrackingState(struct ovrTrackingState_* TrackingState) = 0;
-
 };
 

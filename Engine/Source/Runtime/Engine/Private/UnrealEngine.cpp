@@ -1086,23 +1086,26 @@ void UEngine::PreExit()
 
 	delete ScreenSaverInhibitorRunnable;
 
+	ShutdownHMD();
+}
+
+void UEngine::ShutdownHMD()
+{
 	// we can't just nulify these pointers here since RenderThread still might use them.
+	auto SavedStereo = StereoRenderingDevice;
+	auto SavedHMD = HMDDevice;
+	auto SavedViewExtentions = ViewExtensions;
 	{
-		auto SavedStereo = StereoRenderingDevice;
-		auto SavedHMD = HMDDevice;
-		auto SavedViewExtentions = ViewExtensions;
+		FSuspendRenderingThread Suspend(false);
+		StereoRenderingDevice.Reset();
+		HMDDevice.Reset();
+		for (auto& ViewExt : ViewExtensions)
 		{
-			FSuspendRenderingThread Suspend(false);
-			StereoRenderingDevice.Reset();
-			HMDDevice.Reset();
-			for (auto& ViewExt : ViewExtensions)
-			{
-				ViewExt.Reset();
-			}
-			ViewExtensions.Empty();
+			ViewExt.Reset();
 		}
-		// shutdown will occur here.
+		ViewExtensions.Empty();
 	}
+	// shutdown will occur here.
 }
 
 void UEngine::TickDeferredCommands()
@@ -2056,16 +2059,44 @@ bool UEngine::InitializeHMDDevice()
 		// No reason to connect an HMD on a dedicated server.  Also fixes dedicated servers stealing the oculus connection.
 		else if (!HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(), TEXT("nohmd")) && !IsRunningDedicatedServer())
 		{
-			// Get a list of plugins that implement this feature
-			TArray<IHeadMountedDisplayModule*> HMDImplementations = IModularFeatures::Get().GetModularFeatureImplementations<IHeadMountedDisplayModule>(IHeadMountedDisplayModule::GetModularFeatureName());
-			HMDImplementations.Sort(FHMDPluginSorter());
-			for (auto HMDModuleIt = HMDImplementations.CreateIterator(); HMDModuleIt && !HMDDevice.IsValid(); ++HMDModuleIt)
+			// Get a list of modules that implement this feature
+			FName Type = IHeadMountedDisplayModule::GetModularFeatureName();
+			IModularFeatures& ModularFeatures = IModularFeatures::Get();
+			TArray<IHeadMountedDisplayModule*> HMDModules = ModularFeatures.GetModularFeatureImplementations<IHeadMountedDisplayModule>(Type);
+
+			// Sort modules by priority
+			HMDModules.Sort(IHeadMountedDisplayModule::FCompareModulePriority());
+
+			// Select first module able to create an HMDDevice
+			IHeadMountedDisplayModule* HMDModuleSelected = nullptr;
+
+			for (auto HMDModuleIt = HMDModules.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
 			{
-				HMDDevice = (*HMDModuleIt)->CreateHeadMountedDisplay();
+				IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
+				HMDDevice = HMDModule->CreateHeadMountedDisplay();
+
 				if (HMDDevice.IsValid())
 				{
-					StereoRenderingDevice = HMDDevice;
+					HMDModuleSelected = HMDModule;
+					break;
 				}
+			}
+
+			// Unregister modules which were not selected, since they will not be used.
+			for (auto HMDModuleIt = HMDModules.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
+			{
+				IHeadMountedDisplayModule* HMDModule = *HMDModuleIt;
+
+				if(HMDModule != HMDModuleSelected)
+				{
+					ModularFeatures.UnregisterModularFeature(Type, HMDModule);
+				}
+			}
+
+			// If we found a valid HMDDevice, use this as our StereoRenderingDevice
+			if (HMDDevice.IsValid())
+			{
+				StereoRenderingDevice = HMDDevice;
 			}
 		}
 	}
