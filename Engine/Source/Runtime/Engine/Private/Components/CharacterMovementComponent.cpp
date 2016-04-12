@@ -1271,7 +1271,7 @@ void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const F
 
 		// Apply Root Motion rotation after movement is complete.
 		const FQuat RootMotionRotationQuat = WorldSpaceRootMotionTransform.GetRotation();
-		if( !RootMotionRotationQuat.IsIdentity() )
+		if( !RootMotionRotationQuat.Equals(FQuat::Identity, SMALL_NUMBER))
 		{
 			const FQuat NewActorRotationQuat = RootMotionRotationQuat * UpdatedComponent->GetComponentQuat();
 			MoveUpdatedComponent(FVector::ZeroVector, NewActorRotationQuat, true);
@@ -1828,7 +1828,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		{
 			const FQuat OldActorRotationQuat = UpdatedComponent->GetComponentQuat();
 			const FQuat RootMotionRotationQuat = RootMotionParams.RootMotionTransform.GetRotation();
-			if( !RootMotionRotationQuat.IsIdentity() )
+			if( !RootMotionRotationQuat.Equals(FQuat::Identity, SMALL_NUMBER) )
 			{
 				const FQuat NewActorRotationQuat = RootMotionRotationQuat * OldActorRotationQuat;
 				MoveUpdatedComponent(FVector::ZeroVector, NewActorRotationQuat, true);
