@@ -461,13 +461,6 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		UE_LOG(LogRHI, Warning, TEXT("Disabling support for GL_EXT_texture_format_BGRA8888"));
 		bSupportsBGRA8888 = false;
 	}
-
-	// We assume that when GL_EXT_color_buffer_half_float is supported GL_OES_texture_half_float is supported too
-	// Although some devices do not report GL_OES_texture_half_float (S7 Mali)
-	if (bSupportsColorBufferHalfFloat)
-	{
-		bSupportsTextureHalfFloat = true;
-	}
 }
 
 
