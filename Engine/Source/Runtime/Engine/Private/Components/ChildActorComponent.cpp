@@ -349,17 +349,22 @@ void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
 	if(ChildActor != nullptr && !GExitPurge)
 	{
 		// if still alive, destroy, otherwise just clear the pointer
-		if(!ChildActor->IsPendingKill())
+		if (!ChildActor->IsPendingKillOrUnreachable())
 		{
 #if WITH_EDITOR
 			if (CachedInstanceData)
 			{
 				delete CachedInstanceData;
+				CachedInstanceData = nullptr;
 			}
 #else
 			check(!CachedInstanceData);
 #endif
-			CachedInstanceData = new FChildActorComponentInstanceData(this);
+			// If we're already tearing down we won't be needing this
+			if (!HasAnyFlags(RF_BeginDestroyed))
+			{
+				CachedInstanceData = new FChildActorComponentInstanceData(this);
+			}
 
 			UWorld* World = ChildActor->GetWorld();
 			// World may be nullptr during shutdown
