@@ -168,6 +168,7 @@ float UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(UObject* WorldCo
 {
 	return WorldContext ? WorldContext->GetWorld()->GetWorldSettings()->WorldToMeters : 0.f;
 }
+
 void UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(TEnumAsByte<EHMDTrackingOrigin::Type> InOrigin)
 {
 	if (GEngine->HMDDevice.IsValid())

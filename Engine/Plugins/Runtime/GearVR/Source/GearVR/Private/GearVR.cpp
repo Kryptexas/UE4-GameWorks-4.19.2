@@ -9,10 +9,6 @@
 #include "RHIStaticStates.h"
 #include "SceneViewport.h"
 
-#if GEARVR_SUPPORTED_PLATFORMS
-#include "VrApi_Helpers.h"
-#endif
-
 #include <android_native_app_glue.h>
 
 //---------------------------------------------------

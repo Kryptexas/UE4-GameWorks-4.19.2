@@ -7,8 +7,6 @@
 
 #include "AndroidApplication.h"
 
-extern bool AndroidThunkCpp_HasMetaDataKey(const FString& Key);
-
 bool GAndroidGPUInfoReady = false;
 
 // call out to JNI to see if the application was packaged for GearVR

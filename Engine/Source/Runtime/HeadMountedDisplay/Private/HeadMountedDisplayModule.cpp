@@ -135,6 +135,7 @@ void IHeadMountedDisplay::ApplyLateUpdate(FSceneInterface* Scene, const FTransfo
 	}
 	LateUpdatePrimitives.Reset();
 }
+
 bool IHeadMountedDisplay::DoesAppUseVRFocus() const
 {
 	return FApp::UseVRFocus();

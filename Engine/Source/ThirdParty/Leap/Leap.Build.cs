@@ -15,6 +15,10 @@ public class Leap : ModuleRules
 
             string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Leap/lib";
 			string LibraryName = "Leap";
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+			{
+				LibraryName += "d";
+			}
 
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{

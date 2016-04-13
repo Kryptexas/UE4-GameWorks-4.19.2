@@ -351,8 +351,6 @@ public:
 
 	virtual void DrawDebug(UCanvas* Canvas) override;
 
-	virtual bool HandleInputKey(class UPlayerInput*, const FKey& Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
-
 	/**
 	* Reports raw sensor data. If HMD doesn't support any of the parameters then it should be set to zero.
 	*

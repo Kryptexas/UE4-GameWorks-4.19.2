@@ -4,16 +4,6 @@
 #include "HeadMountedDisplayFunctionLibrary.generated.h"
 
 UENUM()
-namespace ETrackingOriginSelector
-{
-	enum Type
-	{
-		Eye UMETA(DisplayName = "Eye Level"),
-		Floor UMETA(DisplayName = "Floor Level"),
-	};
-}
-
-UENUM()
 namespace EOrientPositionSelector
 {
 	enum Type

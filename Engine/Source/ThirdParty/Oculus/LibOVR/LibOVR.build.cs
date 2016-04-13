@@ -13,12 +13,11 @@ public class LibOVR : ModuleRules
     {
         Type = ModuleType.External;
 
-		string OculusSDKBaseDir =
-			System.IO.Path.Combine( UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR/" +
-									"/LibOVR_" + LibOVR_Major + "_" +
-									LibOVR_Minor + "_" + LibOVR_Patch );
-
-		PublicIncludePaths.Add(OculusSDKBaseDir + "/Include");
-		PublicIncludePaths.Add(OculusSDKBaseDir + "/Src");
+        PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR/" +
+                                   "/LibOVR_" + LibOVR_Major + "_" +
+                                   LibOVR_Minor + "_" + LibOVR_Patch + "/Include");
+        PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR/" +
+                                   "/LibOVR_" + LibOVR_Major + "_" +
+                                   LibOVR_Minor + "_" + LibOVR_Patch + "/Src");
     }
 }

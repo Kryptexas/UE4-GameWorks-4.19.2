@@ -47,8 +47,6 @@ public:
 	TSharedPtr< FUICommandInfo > OpenClassViewer;
 	TSharedPtr< FUICommandInfo > OpenWidgetReflector;
 
-	TSharedPtr< FUICommandInfo > ToggleVR;
-
 	TSharedPtr< FUICommandInfo > VisitWiki;
 	TSharedPtr< FUICommandInfo > VisitForums;
 	TSharedPtr< FUICommandInfo > VisitAskAQuestionPage;

@@ -33,7 +33,6 @@ public class UnrealEd : ModuleRules
 				"DesktopPlatform",
                 "EnvironmentQueryEditor",
 				"GameProjectGeneration",
-				"HeadMountedDisplay",
 				"ProjectTargetPlatformEditor",
 				"ImageWrapper",
 				"MainFrame",
