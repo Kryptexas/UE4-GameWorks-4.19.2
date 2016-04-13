@@ -1310,16 +1310,31 @@ void FHeadMountedDisplay::DrawSeaOfCubes(UWorld* World, FVector ViewLocation)
 }
 #endif // #if !UE_BUILD_SHIPPING
 
-uint32 FHeadMountedDisplay::CreateLayerEx(UTexture2D* InTexture, int32 InPrioirity, FHMDLayerManager::LayerOriginType InLayerOriginType)
+static FHMDLayerManager::LayerOriginType ConvertLayerType(IStereoLayers::ELayerType InLayerType)
+{
+	switch (InLayerType)
+	{
+	case IStereoLayers::WorldLocked:
+		return FHMDLayerManager::Layer_WorldLocked;
+	case IStereoLayers::TorsoLocked:
+		return FHMDLayerManager::Layer_TorsoLocked;
+	case IStereoLayers::FaceLocked:
+		return FHMDLayerManager::Layer_HeadLocked;
+	default:
+		return FHMDLayerManager::Layer_UnknownOrigin;
+	};
+}
+
+uint32 FHeadMountedDisplay::CreateLayer(const IStereoLayers::FLayerDesc& InLayerDesc)
 {
 	FHMDLayerManager* pLayerMgr = GetLayerManager();
 	if (pLayerMgr)
 	{
-		if (InTexture)
+		if (InLayerDesc.Texture)
 		{
 			uint32 id;
-			TSharedPtr<FHMDLayerDesc> layer = pLayerMgr->AddLayer(FHMDLayerDesc::Quad, InPrioirity, InLayerOriginType, id);
-			layer->SetTexture(InTexture);
+			TSharedPtr<FHMDLayerDesc> layer = pLayerMgr->AddLayer(FHMDLayerDesc::Quad, InLayerDesc.Priority, ConvertLayerType(InLayerDesc.Type), id);
+			SetLayerDesc(id, InLayerDesc);
 			return id;
 		}
 		else
@@ -1329,11 +1344,6 @@ uint32 FHeadMountedDisplay::CreateLayerEx(UTexture2D* InTexture, int32 InPrioiri
 		}
 	}
 	return 0;
-}
-
-uint32 FHeadMountedDisplay::CreateLayer(UTexture2D* InTexture, int32 InPrioirity, bool bInHeadLocked)
-{
-	return CreateLayerEx(InTexture, InPrioirity, (bInHeadLocked) ? FHMDLayerManager::Layer_HeadLocked : FHMDLayerManager::Layer_WorldLocked);
 }
 
 void FHeadMountedDisplay::DestroyLayer(uint32 LayerId)
@@ -1348,58 +1358,73 @@ void FHeadMountedDisplay::DestroyLayer(uint32 LayerId)
 	}
 }
 
-void FHeadMountedDisplay::SetTransform(uint32 LayerId, const FTransform& InTransform)
+void FHeadMountedDisplay::SetLayerDesc(uint32 LayerId, const IStereoLayers::FLayerDesc& InLayerDesc)
 {
-	if (LayerId > 0)
+	if (LayerId == 0)
 	{
-		FHMDLayerManager* pLayerMgr = GetLayerManager();
-		if (pLayerMgr)
-		{
-			const FHMDLayerDesc* pLayer = pLayerMgr->GetLayerDesc(LayerId);
-			if (pLayer && pLayer->GetType() == FHMDLayerDesc::Quad)
-			{
-				FHMDLayerDesc Layer = *pLayer;
-				Layer.SetTransform(InTransform);
-				pLayerMgr->UpdateLayer(Layer);
-			}
-		}
+		return;
+	}
+
+	FHMDLayerManager* pLayerMgr = GetLayerManager();
+	if (!pLayerMgr)
+	{
+		return;
+	}
+
+	const FHMDLayerDesc* pLayer = pLayerMgr->GetLayerDesc(LayerId);
+	if (pLayer && pLayer->GetType() == FHMDLayerDesc::Quad)
+	{
+		FHMDLayerDesc Layer = *pLayer;
+		Layer.SetLockedToHead(InLayerDesc.Type == IStereoLayers::ELayerType::FaceLocked);
+		Layer.SetLockedToTorso(InLayerDesc.Type == IStereoLayers::ELayerType::TorsoLocked);
+		Layer.SetTexture(InLayerDesc.Texture);
+		Layer.SetQuadSize(InLayerDesc.QuadSize);
+		Layer.SetTransform(InLayerDesc.Transform);
+		Layer.SetTextureViewport(InLayerDesc.UVRect);
+		pLayerMgr->UpdateLayer(Layer);
 	}
 }
 
-void FHeadMountedDisplay::SetQuadSize(uint32 LayerId, const FVector2D& InSize)
+bool FHeadMountedDisplay::GetLayerDesc(uint32 LayerId, IStereoLayers::FLayerDesc& OutLayerDesc)
 {
-	if (LayerId > 0)
+	if (LayerId == 0)
 	{
-		FHMDLayerManager* pLayerMgr = GetLayerManager();
-		if (pLayerMgr)
-		{
-			const FHMDLayerDesc* pLayer = pLayerMgr->GetLayerDesc(LayerId);
-			if (pLayer && pLayer->GetType() == FHMDLayerDesc::Quad)
-			{
-				FHMDLayerDesc Layer = *pLayer;
-				Layer.SetQuadSize(InSize);
-				pLayerMgr->UpdateLayer(Layer);
-			}
-		}
+		return false;
 	}
-}
 
-void FHeadMountedDisplay::SetTextureViewport(uint32 LayerId, const FBox2D& UVRect)
-{
-	if (LayerId > 0)
+	const FHMDLayerManager* pLayerMgr = GetLayerManager();
+	if (!pLayerMgr)
 	{
-		FHMDLayerManager* pLayerMgr = GetLayerManager();
-		if (pLayerMgr)
-		{
-			const FHMDLayerDesc* pLayer = pLayerMgr->GetLayerDesc(LayerId);
-			if (pLayer && pLayer->GetType() == FHMDLayerDesc::Quad)
-			{
-				FHMDLayerDesc Layer = *pLayer;
-				Layer.SetTextureViewport(UVRect);
-				pLayerMgr->UpdateLayer(Layer);
-			}
-		}
+		return false;
 	}
+
+	const FHMDLayerDesc* pLayer = pLayerMgr->GetLayerDesc(LayerId);
+	if (!pLayer || pLayer->GetType() != FHMDLayerDesc::Quad)
+	{
+		return false;
+	}
+
+	FHMDLayerDesc Layer = *pLayer;
+	OutLayerDesc.Priority = Layer.GetPriority();
+	OutLayerDesc.QuadSize = Layer.GetQuadSize();
+	OutLayerDesc.Texture = dynamic_cast<UTexture2D*>(Layer.GetTexture());
+	OutLayerDesc.Transform = Layer.GetTransform();
+	OutLayerDesc.UVRect = Layer.GetTextureViewport();
+
+	if (Layer.IsHeadLocked())
+	{
+		OutLayerDesc.Type = IStereoLayers::ELayerType::FaceLocked;
+	}
+	else if (Layer.IsTorsoLocked())
+	{
+		OutLayerDesc.Type = IStereoLayers::ELayerType::TorsoLocked;
+	}
+	else
+	{
+		OutLayerDesc.Type = IStereoLayers::ELayerType::WorldLocked;
+	}
+
+	return true;
 }
 
 void FHeadMountedDisplay::QuantizeBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY, uint32 DividableBy)
@@ -1440,6 +1465,11 @@ void FHMDLayerDesc::SetTransform(const FTransform& InTrn)
 
 void FHMDLayerDesc::SetQuadSize(const FVector2D& InSize)
 {
+	if (QuadSize == InSize)
+	{
+		return;
+	}
+
 	QuadSize = InSize;
 	bTransformHasChanged = true;
 	LayerManager.SetDirty();
@@ -1447,6 +1477,11 @@ void FHMDLayerDesc::SetQuadSize(const FVector2D& InSize)
 
 void FHMDLayerDesc::SetTexture(UTexture* InTexture)
 {
+	if (Texture == InTexture)
+	{
+		return;
+	}
+
 	Texture = InTexture;
 	bTextureHasChanged = true;
 	LayerManager.SetDirty();
@@ -1461,8 +1496,29 @@ void FHMDLayerDesc::SetTextureSet(FTextureSetProxyParamRef InTextureSet)
 
 void FHMDLayerDesc::SetTextureViewport(const FBox2D& InUVRect)
 {
+	if (!InUVRect.bIsValid)
+	{
+		return;
+	}
+
+	if (TextureUV == InUVRect && TextureUV.bIsValid)
+	{
+		return;
+	}
+
 	TextureUV = InUVRect;
 	bTransformHasChanged = true;
+	LayerManager.SetDirty();
+}
+
+void FHMDLayerDesc::SetPriority(uint32 InPriority)
+{
+	if (Priority == InPriority)
+	{
+		return;
+	}
+
+	Priority = InPriority;
 	LayerManager.SetDirty();
 }
 

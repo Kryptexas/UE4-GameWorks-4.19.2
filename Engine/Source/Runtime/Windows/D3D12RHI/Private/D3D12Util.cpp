@@ -285,9 +285,14 @@ namespace D3D12RHI
 		{
 			Object->AddRef();
 			NumRefs = Object->Release();
+
+			checkSlow(NumRefs != ExpectedRefs);
+
 			if (NumRefs != ExpectedRefs)
 			{
-				UE_LOG(LogD3D12RHI, Fatal,
+				UE_LOG(
+					LogD3D12RHI,
+					Error,
 					TEXT("%s:(%d): %s has %d refs, expected %d"),
 					Filename,
 					Line,

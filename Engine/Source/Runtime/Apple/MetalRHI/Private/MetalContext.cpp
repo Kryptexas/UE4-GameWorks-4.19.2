@@ -50,8 +50,8 @@ static void LocalReleaseAutoreleasePool(void *Pool)
 {
 	if (Pool)
 	{
-		[(NSAutoreleasePool*)Pool release];
-	}
+	[(NSAutoreleasePool*)Pool release];
+}
 }
 
 #if PLATFORM_MAC
@@ -361,7 +361,7 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 		dispatch_semaphore_signal(CommandBufferSemaphore);
 		dispatch_semaphore_signal(Signal);
 		dispatch_release(Signal);
-	 }];
+	}];
 	
 	// enqueue a present if desired
 	if (bPresent)
@@ -616,7 +616,7 @@ void FMetalContext::FinishFrame()
 	// Issue any outstanding commands.
 	if (CurrentCommandBuffer)
 	{
-		SubmitCommandsHint(false);
+	SubmitCommandsHint(false);
 	}
 	
 	// make sure first SetRenderTarget goes through
@@ -684,7 +684,7 @@ void FMetalContext::SubmitCommandsHint(bool const bCreateNew, bool const bWait)
 
 void FMetalContext::SubmitCommandBufferAndWait()
 {
-	// kick the whole buffer
+    // kick the whole buffer
     // Commit to hand the commandbuffer off to the gpu
 	// Wait for completion as requested.
     SubmitCommandsHint(true, true);
@@ -730,29 +730,29 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	if(UE_BUILD_DEBUG || bValidationEnabled)
 	{
-		MTLVertexDescriptor* Layout = CurrentBoundShaderState->VertexDeclaration->Layout;
-		if(Layout && Layout.layouts)
+	MTLVertexDescriptor* Layout = CurrentBoundShaderState->VertexDeclaration->Layout;
+	if(Layout && Layout.layouts)
+	{
+		for (uint32 i = 0; i < MaxMetalStreams; i++)
 		{
-			for (uint32 i = 0; i < MaxMetalStreams; i++)
+			auto Attribute = [Layout.attributes objectAtIndexedSubscript:i];
+			if(Attribute)
 			{
-				auto Attribute = [Layout.attributes objectAtIndexedSubscript:i];
-				if(Attribute)
-				{
-					auto BufferLayout = [Layout.layouts objectAtIndexedSubscript:Attribute.bufferIndex];
-					uint32 BufferLayoutStride = BufferLayout ? BufferLayout.stride : 0;
-					uint64 MetalSize = StateCache.GetVertexBuffer(Attribute.bufferIndex) ? (uint64)StateCache.GetVertexBuffer(Attribute.bufferIndex).length : 0llu;
+				auto BufferLayout = [Layout.layouts objectAtIndexedSubscript:Attribute.bufferIndex];
+				uint32 BufferLayoutStride = BufferLayout ? BufferLayout.stride : 0;
+				uint64 MetalSize = StateCache.GetVertexBuffer(Attribute.bufferIndex) ? (uint64)StateCache.GetVertexBuffer(Attribute.bufferIndex).length : 0llu;
 
-					if(!(BufferLayoutStride == StateCache.GetVertexStride(Attribute.bufferIndex) || (MetalSize > 0 && StateCache.GetVertexStride(Attribute.bufferIndex) == 0 && StateCache.GetVertexBuffer(Attribute.bufferIndex) && MetalSize == BufferLayoutStride)))
-					{
-						FString Report = FString::Printf(TEXT("Vertex Layout Mismatch: Index: %d, Buffer: %p, Len: %lld, Decl. Stride: %d, Stream Stride: %d"), Attribute.bufferIndex, StateCache.GetVertexBuffer(Attribute.bufferIndex), MetalSize, BufferLayoutStride, StateCache.GetVertexStride(Attribute.bufferIndex));
+				if(!(BufferLayoutStride == StateCache.GetVertexStride(Attribute.bufferIndex) || (MetalSize > 0 && StateCache.GetVertexStride(Attribute.bufferIndex) == 0 && StateCache.GetVertexBuffer(Attribute.bufferIndex) && MetalSize == BufferLayoutStride)))
+				{
+					FString Report = FString::Printf(TEXT("Vertex Layout Mismatch: Index: %d, Buffer: %p, Len: %lld, Decl. Stride: %d, Stream Stride: %d"), Attribute.bufferIndex, StateCache.GetVertexBuffer(Attribute.bufferIndex), MetalSize, BufferLayoutStride, StateCache.GetVertexStride(Attribute.bufferIndex));
 						
 						UE_LOG(LogMetal, Warning, TEXT("%s"), *Report);
 						
 						if (GEmitDrawEvents)
-						{
+					{
 							CommandEncoder.PushDebugGroup(Report.GetNSString());
 							CommandEncoder.PopDebugGroup();
-						}
+					}
 					}
 				}
 			}
@@ -768,7 +768,9 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	bool bRestoreState = false;
 	if (IsValidRef(CurrentBoundShaderState->PixelShader) && (CurrentBoundShaderState->PixelShader->Bindings.InOutMask & 0x8000) && StateCache.GetRenderPipelineDesc().PipelineDescriptor.depthAttachmentPixelFormat == MTLPixelFormatInvalid && !FShaderCache::IsPredrawCall())
 	{
-		UE_LOG(LogMetal, Warning, TEXT("Binding a temporary depth-stencil surface as the bound shader pipeline writes to depth/stencil but no depth/stencil surface was bound!"));
+#if UE_BUILD_DEBUG
+		UE_LOG(LogMetal, Warning, TEXT("Binding a temporary depth-stencil surface as the bound shader pipeline that writes to depth/stencil but no depth/stencil surface was bound!"));
+#endif
 		check(StateCache.GetRenderTargetArraySize() <= 1);
 		CGSize FBSize = StateCache.GetFrameBufferSize();
 		
@@ -907,9 +909,9 @@ void FMetalContext::SetShaderResourceView(EShaderFrequency ShaderStage, uint32 B
 			}
 		}
 		else if (VB)
-		{
-			GetCommandEncoder().SetShaderBuffer(ShaderStage, VB->Buffer, 0, BindIndex);
-		}
+			{
+				GetCommandEncoder().SetShaderBuffer(ShaderStage, VB->Buffer, 0, BindIndex);
+			}
 		else if (IB)
 		{
 			GetCommandEncoder().SetShaderBuffer(ShaderStage, IB->Buffer, 0, BindIndex);

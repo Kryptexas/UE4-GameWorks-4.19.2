@@ -4,7 +4,6 @@
 
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
-#include "IStereoLayers.h"
 
 class FHeadMountedDisplay;
 
@@ -388,8 +387,10 @@ public:
 	void SetTextureViewport(const FBox2D&);
 	FBox2D GetTextureViewport() const { return TextureUV; }
 
-	ELayerTypeMask GetType() const { return ELayerTypeMask(Id & TypeMask); }
+	void SetPriority(uint32);
 	uint32 GetPriority() const { return Priority; }
+
+	ELayerTypeMask GetType() const { return ELayerTypeMask(Id & TypeMask); }
 	uint32 GetId() const { return Id; }
 
 	void SetHighQuality(bool bHQ = true) { bHighQuality = bHQ; }
@@ -718,13 +719,13 @@ public:
 
 	virtual FHMDLayerManager* GetLayerManager() { return nullptr; }
 
-	virtual uint32 CreateLayerEx(UTexture2D* InTexture, int32 InPrioirity, FHMDLayerManager::LayerOriginType InLayerOriginType);
+	virtual IStereoLayers* GetStereoLayers() { return this; }
+
 	//** IStereoLayers implementation
-	virtual uint32 CreateLayer(UTexture2D* InTexture, int32 InPrioirity, bool bFixedToFace = false) override;
+	virtual uint32 CreateLayer(const IStereoLayers::FLayerDesc& InLayerDesc) override;
 	virtual void DestroyLayer(uint32 LayerId) override;
-	virtual void SetTransform(uint32 LayerId, const FTransform& InTransform) override;
-	virtual void SetQuadSize(uint32 LayerId, const FVector2D& InSize) override;
-	virtual void SetTextureViewport(uint32 LayerId, const FBox2D& UVRect) override;
+	virtual void SetLayerDesc(uint32 LayerId, const IStereoLayers::FLayerDesc& InLayerDesc) override;
+	virtual bool GetLayerDesc(uint32 LayerId, IStereoLayers::FLayerDesc& OutLayerDesc) override;
 
 	virtual class FAsyncLoadingSplash* GetAsyncLoadingSplash() const { return nullptr; }
 

@@ -67,7 +67,7 @@ static TAutoConsoleVariable<int32> CVarUseHaltonDistribution(
 static TAutoConsoleVariable<float> CVarGrassDensityScale(
 	TEXT("grass.densityScale"),
 	1,
-	TEXT("Multiplier on all grass densities.  Do a grass.flushcache or grass.flushcachepie afterwards as appropriate."));
+	TEXT("Multiplier on all grass densities."));
 
 static TAutoConsoleVariable<int32> CVarGrassEnable(
 	TEXT("grass.Enable"),
@@ -99,6 +99,24 @@ DECLARE_CYCLE_STAT(TEXT("Grass Start Comp"), STAT_FoliageGrassStartComp, STATGRO
 DECLARE_CYCLE_STAT(TEXT("Grass End Comp"), STAT_FoliageGrassEndComp, STATGROUP_Foliage);
 DECLARE_CYCLE_STAT(TEXT("Grass Destroy Comps"), STAT_FoliageGrassDestoryComp, STATGROUP_Foliage);
 DECLARE_CYCLE_STAT(TEXT("Grass Update"), STAT_GrassUpdate, STATGROUP_Foliage);
+
+static void GrassCVarSinkFunction()
+{
+	static float CachedGrassDensityScale = 1.0f;
+	float GrassDensityScale = CVarGrassDensityScale.GetValueOnGameThread();
+
+	if (GrassDensityScale != CachedGrassDensityScale)
+	{
+		CachedGrassDensityScale = GrassDensityScale;
+
+		for (auto* Landscape : TObjectRange<ALandscapeProxy>(RF_ClassDefaultObject | RF_ArchetypeObject, true, EInternalObjectFlags::PendingKill))
+		{
+			Landscape->FlushGrassComponents(nullptr, false);
+		}
+	}
+}
+
+static FAutoConsoleVariableSink CVarGrassSink(FConsoleCommandDelegate::CreateStatic(&GrassCVarSinkFunction));
 
 //
 // Grass weightmap rendering

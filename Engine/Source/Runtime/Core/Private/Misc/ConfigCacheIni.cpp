@@ -331,7 +331,7 @@ void FConfigFile::CombineFromBuffer(const FString& Buffer)
 				{
 					// Remove if present.
 					CurrentSection->RemoveSingle( Start, ProcessedValue );
-					CurrentSection->Compact();
+					CurrentSection->CompactStable();
 				}
 				else if ( Cmd=='.' )
 				{

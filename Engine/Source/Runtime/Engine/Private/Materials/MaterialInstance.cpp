@@ -1124,7 +1124,7 @@ void UMaterialInstanceDynamic::CopyScalarAndVectorParameters(const UMaterialInte
 		UMaterial* BaseMaterial = GetMaterial();
 
 		// first, clear out all the parameter values
-		ClearParameterValuesInternal();
+		ClearParameterValuesInternal(false);
 
 		// scalar
 		{
@@ -2285,12 +2285,16 @@ void UMaterialInstance::SetFontParameterValueInternal(FName ParameterName,class 
 	}
 }
 
-void UMaterialInstance::ClearParameterValuesInternal()
+void UMaterialInstance::ClearParameterValuesInternal(const bool bAllParameters)
 {
 	VectorParameterValues.Empty();
 	ScalarParameterValues.Empty();
-	TextureParameterValues.Empty();
-	FontParameterValues.Empty();
+
+	if(bAllParameters)
+	{
+		TextureParameterValues.Empty();
+		FontParameterValues.Empty();
+	}
 
 	for (int32 ResourceIndex = 0; ResourceIndex < ARRAY_COUNT(Resources); ++ResourceIndex)
 	{

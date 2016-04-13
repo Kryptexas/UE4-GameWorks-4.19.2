@@ -946,6 +946,7 @@ void FSlateRHIResourceManager::BeginReleasingRenderData(const FSlateRenderDataHa
 void FSlateRHIResourceManager::ReleaseCachedRenderData(FRHICommandListImmediate& RHICmdList, const FSlateRenderDataHandle* RenderHandle, const ILayoutCache* LayoutCacher)
 {
 	check(IsInRenderingThread());
+	check(RenderHandle);
 
 	FCachedRenderBuffers* PooledBuffer = CachedBuffers.FindRef(RenderHandle);
 	if ( ensure(PooledBuffer != nullptr) )
@@ -991,10 +992,10 @@ void FSlateRHIResourceManager::ReleaseCachedBuffer(FRHICommandListImmediate& RHI
 	}
 	else
 	{
-		PooledBuffer->VertexBuffer.Destroy();
-		PooledBuffer->IndexBuffer.Destroy();
-		delete PooledBuffer;
-	}
+			PooledBuffer->VertexBuffer.Destroy();
+			PooledBuffer->IndexBuffer.Destroy();
+			delete PooledBuffer;
+		}
 }
 
 void FSlateRHIResourceManager::ReleaseResources()

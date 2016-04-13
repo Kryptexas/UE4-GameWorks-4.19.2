@@ -96,6 +96,9 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 	UPROPERTY()
 	int32 NumBuiltInstances;
 
+	// Normally equal to NumBuiltInstances, but can be lower if density scaling is in effect
+	int32 NumBuiltRenderInstances;
+
 	// Bounding box of any built instances (cached from the ClusterTree)
 	UPROPERTY()
 	FBox BuiltInstanceBounds;
@@ -107,6 +110,14 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 	// Bounds of each individual unbuilt instance, used for LOD calculation
 	UPROPERTY()
 	TArray<FBox> UnbuiltInstanceBoundsList;
+
+	// Enable for detail meshes that don't really affect the game. Disable for anything important.
+	// Typically, this will be enabled for small meshes without collision (e.g. grass) and disabled for large meshes with collision (e.g. trees)
+	UPROPERTY()
+	uint32 bEnableDensityScaling:1;
+
+	// Which instances have been removed by foliage density scaling?
+	TBitArray<> ExcludedDueToDensityScaling;
 
 	// The number of nodes in the occlusion layer
 	UPROPERTY()
@@ -153,6 +164,8 @@ public:
 	void GetOverlappingBoxTransforms(const FBox& Box, TArray<FTransform>& OutTransforms) const;
 
 	virtual bool ShouldCreatePhysicsState() const override;
+
+	virtual int32 GetNumRenderInstances() const override { return NumBuiltRenderInstances + UnbuiltInstanceBoundsList.Num(); }
 
 	void BuildTree();
 	void BuildTreeAsync();

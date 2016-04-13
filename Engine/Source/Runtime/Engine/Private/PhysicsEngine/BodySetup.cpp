@@ -759,10 +759,12 @@ void UBodySetup::Serialize(FArchive& Ar)
 	bool bCooked = Ar.IsCooking();
 	Ar << bCooked;
 
+#if !WITH_RUNTIME_PHYSICS_COOKING
 	if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading())
 	{
 		UE_LOG(LogPhysics, Fatal, TEXT("This platform requires cooked packages, and physX data was not cooked into %s."), *GetFullName());
 	}
+#endif //!WITH_RUNTIME_PHYSICS_COOKING
 
 	if (bCooked)
 	{
@@ -1032,10 +1034,12 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format, bool bRuntimeOnlyOptimize
 #if WITH_PHYSX
 	if (!bContainedData)
 	{
+#if !defined(WITH_RUNTIME_PHYSICS_COOKING) || !WITH_RUNTIME_PHYSICS_COOKING
 		if (FPlatformProperties::RequiresCookedData())
 		{
 			UE_LOG(LogPhysics, Error, TEXT("Attempt to build physics data for %s when we are unable to. This platform requires cooked packages."), *GetPathName());
 		}
+#endif
 
 		if (AggGeom.ConvexElems.Num() == 0 && (CDP == NULL || CDP->ContainsPhysicsTriMeshData(bMeshCollideAll) == false))
 		{

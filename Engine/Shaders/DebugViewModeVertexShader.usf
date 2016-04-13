@@ -75,10 +75,6 @@
 #if NUM_MATERIAL_TEXCOORDS_VERTEX > 3
 		Output.TexCoord23.zw = MaterialParameters.TexCoords[3];
 #endif
-
-#if INSTANCED_STEREO
-		Output.EyeIndex = Interpolants.FactoryInterpolants.EyeIndex;
-#endif
 		
 		return Output;
 	}
@@ -129,11 +125,6 @@ void Main(
 	Output.Position = WorldPos;
 	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToDS(Input, VFIntermediates, VertexParameters);
 
-#if INSTANCED_STEREO
-	Output.FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex = PackEyeIndex(EyeIndex, bIsInstancedStereo);
-	Output.FactoryInterpolants.EyeIndex = EyeIndex;
-#endif
-
 #else
 	ISOLATE
 	{
@@ -182,11 +173,15 @@ void Main(
 		Output.TexCoord23.zw = VertexParameters.TexCoords[3];
 #endif
 
-#if INSTANCED_STEREO
-	Output.EyeIndex = EyeIndex;
-#endif
+#endif // USING_TESSELLATION
 
-#endif
+	#if INSTANCED_STEREO
+		#if USING_TESSELLATION	
+			Output.FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex = PackEyeIndex(EyeIndex, bIsInstancedStereo);
+		#else
+			Output.PackedEyeIndex = PackEyeIndex(EyeIndex, bIsInstancedStereo);
+		#endif
+	#endif
 
 	OutputVertexID( Output );
 }

@@ -306,6 +306,8 @@ bool UPlayerInput::InputTouch(uint32 Handle, ETouchType::Type Type, const FVecto
 	{
 	case ETouchType::Began:
 		KeyState.EventAccumulator[IE_Pressed].Add(++EventCount);
+		// store current touch location paired with event id
+		TouchEventLocations.Add(EventCount, Touches[Handle]);
 		if (KeyState.bDownPrevious == false)
 		{
 			UWorld* World = GetWorld();
@@ -317,6 +319,8 @@ bool UPlayerInput::InputTouch(uint32 Handle, ETouchType::Type Type, const FVecto
 			if ((WorldRealTimeSeconds - KeyState.LastUpDownTransitionTime) < GetDefault<UInputSettings>()->DoubleClickTime)
 			{
 				KeyState.EventAccumulator[IE_DoubleClick].Add(++EventCount);
+				// store current touch location paired with event id
+				TouchEventLocations.Add(EventCount, Touches[Handle]);
 			}
 
 			// just went down
@@ -326,15 +330,16 @@ bool UPlayerInput::InputTouch(uint32 Handle, ETouchType::Type Type, const FVecto
 
 	case ETouchType::Ended:
 		KeyState.EventAccumulator[IE_Released].Add(++EventCount);
+		// store current touch location paired with event id
+		TouchEventLocations.Add(EventCount, Touches[Handle]);
 		break;
 
 	default:
 		KeyState.EventAccumulator[IE_Repeat].Add(++EventCount);
+		// store current touch location paired with event id
+		TouchEventLocations.Add(EventCount, Touches[Handle]);
 		break;
 	}
-
-	// store current touch location paired with event id
-	TouchEventLocations.Add(EventCount, Touches[Handle]);
 
 	// accumulate deltas until processed next
 	KeyState.SampleCountAccumulator++;

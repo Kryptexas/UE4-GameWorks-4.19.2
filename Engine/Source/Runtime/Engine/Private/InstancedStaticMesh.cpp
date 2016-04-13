@@ -72,14 +72,14 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 	bool bUseRemapTable = InComponent->PerInstanceSMData.Num() == InComponent->InstanceReorderTable.Num();
 
 	int32 NumRealInstances = InComponent->PerInstanceSMData.Num();
-	int32 NumRemoved = InComponent->RemovedInstances.Num();
+	int32 NumRenderInstances = InComponent->GetNumRenderInstances();
 
 	// Allocate the vertex data storage type.
 	AllocateData();
 
 	SetupCPUAccess(InComponent);
 
-	NumInstances = NumRealInstances + NumRemoved;
+	NumInstances = NumRenderInstances;
 	InstanceData->AllocateInstances(NumInstances);
 
 	// Setup our random number generator such that random values are generated consistently for any
@@ -90,12 +90,16 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 	{
 		const FInstancedStaticMeshInstanceData& Instance = InComponent->PerInstanceSMData[InstanceIndex];
 		const int32 DestInstanceIndex = bUseRemapTable ? InComponent->InstanceReorderTable[InstanceIndex] : InstanceIndex;
-		InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
+		if (DestInstanceIndex != INDEX_NONE)
+		{
+			InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
+		}
 	}
 
 	SetPerInstanceEditorData(InComponent, InHitProxies);
 
 	// Hide any removed instances
+	int32 NumRemoved = InComponent->RemovedInstances.Num();
 	if (NumRemoved)
 	{
 		check(bUseRemapTable);
@@ -141,7 +145,10 @@ void FStaticMeshInstanceBuffer::SetPerInstanceEditorData(UInstancedStaticMeshCom
 			// Record if the instance is selected
 			bool bSelected = InstanceIndex < InComponent->SelectedInstances.Num() && InComponent->SelectedInstances[InstanceIndex];
 			const int32 DestInstanceIndex = bUseRemapTable ? InComponent->InstanceReorderTable[InstanceIndex] : InstanceIndex;
-			InstanceData->SetInstanceEditorData(DestInstanceIndex, HitProxyColor, bSelected);
+			if (DestInstanceIndex != INDEX_NONE)
+			{
+				InstanceData->SetInstanceEditorData(DestInstanceIndex, HitProxyColor, bSelected);
+			}
 		}
 	}
 #endif

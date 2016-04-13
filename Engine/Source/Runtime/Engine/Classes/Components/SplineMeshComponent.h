@@ -306,7 +306,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	// Destroys the body setup, used to clear collision if the mesh goes missing
 	void DestroyBodySetup();
-#if WITH_EDITOR
+#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 	// Builds collision for the spline mesh (if collision is enabled)
 	void RecreateCollision();
 #endif

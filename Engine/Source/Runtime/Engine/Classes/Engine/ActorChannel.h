@@ -143,17 +143,26 @@ public:
 	void CleanupReplicators( const bool bKeepReplicators = false );
 
 	/** Writes the header for a content block of properties / RPCs for the given object (either the actor a subobject of the actor) */
-	void BeginContentBlock( UObject* Obj, FOutBunch &Bunch );
+	void WriteContentBlockHeader( UObject* Obj, FOutBunch &Bunch, const bool bHasRepLayout );
 
 	/** Writes the header for a content block specifically for deleting sub-objects */
-	void BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNetworkGUID & GuidToDelete );
+	void WriteContentBlockForSubObjectDelete( FOutBunch & Bunch, FNetworkGUID & GuidToDelete );
 
-	/** Writes the footer for a content block of properties / RPCs for the given object (either the actor a subobject of the actor) */
-	void EndContentBlock( UObject *Obj, FOutBunch &Bunch, const FClassNetCache* ClassCache = nullptr );
+	/** Writes header and payload of content block */
+	int32 WriteContentBlockPayload( UObject* Obj, FOutBunch &Bunch, const bool bHasRepLayout, FNetBitWriter& Payload );
 
 	/** Reads the header of the content block and instantiates the subobject if necessary */
-	UObject* ReadContentBlockHeader(FInBunch& Bunch, bool& bObjectDeleted);
+	UObject* ReadContentBlockHeader( FInBunch& Bunch, bool& bObjectDeleted, bool& bOutHasRepLayout );
 
+	/** Reads content block header and payload */
+	UObject* ReadContentBlockPayload( FInBunch &Bunch, FNetBitReader& OutPayload, bool& bOutHasRepLayout );
+
+	/** Writes property/function header and data blob to network stream */
+	int32 WriteFieldHeaderAndPayload( FNetBitWriter& Bunch, const FClassNetCache* ClassCache, const FFieldNetCache * FieldCache, FNetBitWriter& Payload );
+
+	/** Reads property/function header and data blob from network stream */
+	bool ReadFieldHeaderAndPayload( UObject* Object, const FClassNetCache* ClassCache, FNetBitReader& Bunch, const FFieldNetCache** OutField, FNetBitReader& OutPayload ) const;
+		
 	/** Returns the replicator for the actor associated with this channel. Guaranteed to exist. */
 	FObjectReplicator & GetActorReplicationData();
 

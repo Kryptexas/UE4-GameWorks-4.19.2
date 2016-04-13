@@ -103,7 +103,7 @@ public:
 	/** Takes Data, and compares against shadow state to log differences */
 	bool ValidateAgainstState( const UObject* ObjectState );
 
-	static bool SerializeCustomDeltaProperty( UNetConnection * Connection, void* Src, UProperty * Property, int32 ArrayDim, FNetBitWriter & OutBunch, TSharedPtr<INetDeltaBaseState> & NewFullState, TSharedPtr<INetDeltaBaseState> & OldState );
+	static bool SerializeCustomDeltaProperty( UNetConnection * Connection, void* Src, UProperty * Property, uint32 ArrayIndex, FNetBitWriter & OutBunch, TSharedPtr<INetDeltaBaseState> & NewFullState, TSharedPtr<INetDeltaBaseState> & OldState );
 
 	/** Packet was dropped */
 	void	ReceivedNak( int32 NakPacketId );
@@ -111,13 +111,11 @@ public:
 	void	Serialize(FArchive& Ar);
 
 	/** Writes dirty properties to bunch */
-	void	ReplicateCustomDeltaProperties( FOutBunch & Bunch, FReplicationFlags RepFlags, bool & bContentBlockWritten );
+	void	ReplicateCustomDeltaProperties( FNetBitWriter & Bunch, FReplicationFlags RepFlags );
 	bool	ReplicateProperties( FOutBunch & Bunch, FReplicationFlags RepFlags );
 	void	PostSendBunch(FPacketIdRange & PacketRange, uint8 bReliable);
 	
-	const FFieldNetCache* ReadField( const FClassNetCache* ClassCache, FInBunch& Bunch ) const;
-
-	bool	ReceivedBunch( FInBunch & Bunch, const FReplicationFlags& RepFlags, bool & bOutHasUnmapped );
+	bool	ReceivedBunch( FNetBitReader& Bunch, const FReplicationFlags& RepFlags, const bool bHasRepLayout, bool& bOutHasUnmapped );
 	void	PostReceivedBunch();
 
 	void	ForceRefreshUnreliableProperties();
@@ -156,4 +154,10 @@ public:
 	}
 
 	void QueuePropertyRepNotify( UObject* Object, UProperty * Property, const int32 ElementIndex, TArray< uint8 > & MetaData );
+
+	void WritePropertyHeaderAndPayload(
+		UObject*			Object,
+		UProperty*			Property,
+		FNetBitWriter&		Bunch,
+		FNetBitWriter&		Payload ) const;
 };

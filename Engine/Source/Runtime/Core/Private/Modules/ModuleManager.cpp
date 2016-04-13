@@ -449,27 +449,35 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason(const F
 							(FInitializeModuleFunctionPtr)FPlatformProcess::GetDllExport(ModuleInfo->Handle, TEXT("InitializeModule"));
 						if (InitializeModuleFunctionPtr != NULL)
 						{
-							// Initialize the module!
-							ModuleInfo->Module = MakeShareable(InitializeModuleFunctionPtr());
-
-							if (ModuleInfo->Module.IsValid())
+							if ( ModuleInfo->Module.IsValid() )
 							{
-								// Startup the module
-								ModuleInfo->Module->StartupModule();
-
-								// Module was started successfully!  Fire callbacks.
-								ModulesChangedEvent.Broadcast(InModuleName, EModuleChangeReason::ModuleLoaded);
-
-								// Set the return parameter
+								// Assign the already loaded module into the return value, otherwise the return value gives the impression the module failed load!
 								LoadedModule = ModuleInfo->Module;
 							}
 							else
 							{
-								UE_LOG(LogModuleManager, Warning, TEXT("ModuleManager: Unable to load module '%s' because InitializeModule function failed (returned NULL pointer.)"), *ModuleFileToLoad);
+								// Initialize the module!
+								ModuleInfo->Module = MakeShareable(InitializeModuleFunctionPtr());
 
-								FPlatformProcess::FreeDllHandle(ModuleInfo->Handle);
-								ModuleInfo->Handle = NULL;
-								OutFailureReason = EModuleLoadResult::FailedToInitialize;
+								if ( ModuleInfo->Module.IsValid() )
+								{
+									// Startup the module
+									ModuleInfo->Module->StartupModule();
+
+									// Module was started successfully!  Fire callbacks.
+									ModulesChangedEvent.Broadcast(InModuleName, EModuleChangeReason::ModuleLoaded);
+
+									// Set the return parameter
+									LoadedModule = ModuleInfo->Module;
+								}
+								else
+								{
+									UE_LOG(LogModuleManager, Warning, TEXT("ModuleManager: Unable to load module '%s' because InitializeModule function failed (returned NULL pointer.)"), *ModuleFileToLoad);
+
+									FPlatformProcess::FreeDllHandle(ModuleInfo->Handle);
+									ModuleInfo->Handle = NULL;
+									OutFailureReason = EModuleLoadResult::FailedToInitialize;
+								}
 							}
 						}
 						else

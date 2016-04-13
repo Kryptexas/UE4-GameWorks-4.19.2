@@ -202,6 +202,14 @@ public:
 	// Returns the post-processing quality (0..3, higher is better)
 	UFUNCTION(BlueprintCallable, Category=Settings)
 	int32 GetPostProcessingQuality() const;
+	
+	// Sets the post-processing quality (0..3, higher is better)
+	UFUNCTION(BlueprintCallable, Category=Settings)
+	void SetFoliageQuality(int32 Value);
+
+	// Returns the post-processing quality (0..3, higher is better)
+	UFUNCTION(BlueprintCallable, Category=Settings)
+	int32 GetFoliageQuality() const;
 
 	/** Checks if any user settings is different from current */
 	UFUNCTION(BlueprintPure, Category=Settings)

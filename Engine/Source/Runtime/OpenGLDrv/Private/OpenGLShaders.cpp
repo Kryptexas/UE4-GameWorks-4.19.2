@@ -587,18 +587,22 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 			// Cache it; compile status will be checked later on link (always caching will prevent multiple attempts to compile a failed shader)
 			GetOpenGLCompiledShaderCache().Add(Key, Resource);
 		}
-#if PLATFORM_IOS // fix for running out of memory in the driver when compiling a lot of shaders on the first frame
+	}
+
+#if PLATFORM_IOS // fix for running out of memory in the driver when compiling/linking a lot of shaders on the first frame
+    if (FOpenGL::IsLimitingShaderCompileCount())
+    {
         static int CompileCount = 0;
         CompileCount++;
-        if (CompileCount == 5000)
+        if (CompileCount == 2500)
         {
             glFlush();
             CompileCount = 0;
         }
+    }
 #endif
-	}
 
-	Shader = new ShaderType();
+    Shader = new ShaderType();
 	Shader->Resource = Resource;
 	Shader->Bindings = Header.Bindings;
 	Shader->UniformBuffersCopyInfo = Header.UniformBuffersCopyInfo;
@@ -633,6 +637,7 @@ void OPENGLDRV_API GetCurrentOpenGLShaderDeviceCapabilities(FOpenGLShaderDeviceC
 	Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA = GSupportsRenderTargetFormat_PF_FloatRGBA;
 	Capabilities.bSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
 	Capabilities.bRequiresShaderFramebufferFetchUndef = FOpenGL::RequiresShaderFramebufferFetchUndef();
+	Capabilities.bRequiresARMShaderFramebufferFetchDepthStencilUndef = FOpenGL::RequiresARMShaderFramebufferFetchDepthStencilUndef();
 	Capabilities.bRequiresDontEmitPrecisionForTextureSamplers = FOpenGL::RequiresDontEmitPrecisionForTextureSamplers();
 	Capabilities.bSupportsShaderTextureLod = FOpenGL::SupportsShaderTextureLod();
 	Capabilities.bSupportsShaderTextureCubeLod = FOpenGL::SupportsShaderTextureCubeLod();
@@ -755,6 +760,13 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 				// This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension
 				// OpenGL ES 3.1 V@127.0 (GIT@I1af360237c)
 				AppendCString(GlslCode, "#undef GL_EXT_shader_framebuffer_fetch\n");
+			}
+
+			if (Capabilities.bRequiresARMShaderFramebufferFetchDepthStencilUndef && TypeEnum == GL_FRAGMENT_SHADER)
+			{
+				// This is to avoid a bug in Adreno drivers that define GL_ARM_shader_framebuffer_fetch_depth_stencil even when device does not support this extension
+				// OpenGL ES 3.1 V@127.0 (GIT@I1af360237c)
+				AppendCString(GlslCode, "#undef GL_ARM_shader_framebuffer_fetch_depth_stencil\n");
 			}
 
 			// This #define fixes compiler errors on Android (which doesn't seem to support textureCubeLodEXT)

@@ -476,7 +476,7 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 		return false;
 	}
 
-	GuidCache->SetIgnorePackageMismatchOverride( true );
+	GuidCache->SetNetworkChecksumMode( FNetGUIDCache::NETCHECKSUM_SaveButIgnore );
 
 	// Playback, local machine is a client, and the demo stream acts "as if" it's the server.
 	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
@@ -693,8 +693,7 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 		return false;
 	}
 
-	GuidCache->SetIgnorePackageMismatchOverride( true );
-	GuidCache->SetShouldUseNetworkChecksum( true );
+	GuidCache->SetNetworkChecksumMode( FNetGUIDCache::NETCHECKSUM_SaveButIgnore );
 
 	check( World != NULL );
 
@@ -1191,7 +1190,6 @@ static void SerializeGuidCache( TSharedPtr< class FNetGUIDCache > GuidCache, FAr
 		*CheckpointArchive << It.Value().OuterGUID;
 		*CheckpointArchive << PathName;
 		*CheckpointArchive << It.Value().NetworkChecksum;
-		*CheckpointArchive << It.Value().PackageChecksum;
 
 		uint8 Flags = 0;
 		
@@ -1236,6 +1234,9 @@ void UDemoNetDriver::SaveCheckpoint()
 	// First, save the current guid cache
 	SerializeGuidCache( GuidCache, CheckpointArchive );
 
+	// Save the compatible rep layout map
+	( ( UPackageMapClient* )ClientConnections[0]->PackageMap )->SerializeCompatibleReplayoutMap( *CheckpointArchive );
+
 	const uint32 GuidCacheSize = CheckpointArchive->TotalSize();
 
 	FURL CheckpointURL;
@@ -1251,6 +1252,9 @@ void UDemoNetDriver::SaveCheckpoint()
 	CheckpointConnection->PlayerController->Player			= CheckpointConnection;
 	CheckpointConnection->PlayerController->NetConnection	= CheckpointConnection;
 	//CheckpointConnection->OwningActor						= CheckpointConnection->PlayerController;
+
+	// Sync up ack status, so we don't send what we've already explicity saved from above
+	( ( UPackageMapClient* )CheckpointConnection->PackageMap )->SyncPackageMapExportAckStatus( ( UPackageMapClient* )ClientConnections[0]->PackageMap );
 
 	// Make sure we have the exact same actor channel indexes
 	for ( auto It = ClientConnections[0]->ActorChannels.CreateIterator(); It; ++It )
@@ -2308,6 +2312,10 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	GuidCache->ObjectLookup.Empty();
 	GuidCache->NetGUIDLookup.Empty();
 
+	GuidCache->CompatibleRepLayoutMap.Empty();
+	GuidCache->CompatibleRepLayoutPathToIndex.Empty();
+	GuidCache->CompatibleRepLayoutIndexToPath.Empty();
+
 	// Restore the spectator controller packagemap entry (so we find it when we process the checkpoint)
 	if ( SpectatorGUID.IsValid() )
 	{
@@ -2350,7 +2358,6 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 		*GotoCheckpointArchive << CacheObject.OuterGUID;
 		*GotoCheckpointArchive << PathName;
 		*GotoCheckpointArchive << CacheObject.NetworkChecksum;
-		*GotoCheckpointArchive << CacheObject.PackageChecksum;
 
 		CacheObject.PathName = FName( *PathName );
 
@@ -2362,6 +2369,9 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 
 		GuidCache->ObjectLookup.Add( Guid, CacheObject );
 	}
+
+	// Read in the compatible rep layouts in this checkpoint
+	( ( UPackageMapClient* )ServerConnection->PackageMap )->SerializeCompatibleReplayoutMap( *GotoCheckpointArchive );
 
 	ReadDemoFrameIntoPlaybackPackets( *GotoCheckpointArchive );
 

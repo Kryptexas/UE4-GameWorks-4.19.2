@@ -244,7 +244,7 @@ UObject* StaticFindObject( UClass* ObjectClass, UObject* InObjectPackage, const 
 		return NULL;
 	}
 
-	FName ObjectName(*InName, FNAME_Add, true);
+	FName ObjectName(*InName, FNAME_Add);
 	return StaticFindObjectFast(ObjectClass, ObjectPackage, ObjectName, ExactClass, bAnyPackage);
 }
 
@@ -554,7 +554,7 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 		Result = FindObject<UPackage>( InOuter, *InName );
 		if( Result == NULL )
 		{
-			FName NewPackageName(*InName, FNAME_Add, true);
+			FName NewPackageName(*InName, FNAME_Add);
 			if (FPackageName::IsShortPackageName(NewPackageName))
 			{
 				UE_LOG(LogUObjectGlobals, Warning, TEXT("Attempted to create a package with a short package name: %s Outer: %s"), PackageName, InOuter ? *InOuter->GetFullName() : TEXT("NullOuter"));

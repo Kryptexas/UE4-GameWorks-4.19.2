@@ -504,13 +504,11 @@ void USplineMeshComponent::UpdateRenderStateAndCollision()
 {
 	MarkRenderStateDirty();
 
-#if WITH_EDITOR
-	if (!GetWorld()->AreActorsInitialized())
-	{
-		DestroyBodySetup();
-		RecreatePhysicsState();
-	}
-#endif // WITH_EDITOR
+#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
+	DestroyBodySetup();
+	RecreateCollision();
+	RecreatePhysicsState();
+#endif // WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 
 	bMeshDirty = false;
 }
@@ -886,7 +884,7 @@ void USplineMeshComponent::GetMeshId(FString& OutMeshId)
 
 void USplineMeshComponent::CreatePhysicsState()
 {
-#if WITH_EDITOR
+#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 	// With editor code we can recreate the collision if the mesh changes
 	const FGuid MeshBodySetupGuid = (StaticMesh != NULL ? StaticMesh->BodySetup->BodySetupGuid : FGuid());
 	if (CachedMeshBodySetupGuid != MeshBodySetupGuid)
@@ -976,7 +974,7 @@ void USplineMeshComponent::DestroyBodySetup()
 }
 
 
-#if WITH_EDITOR
+#if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 void USplineMeshComponent::RecreateCollision()
 {
 	if (StaticMesh && IsCollisionEnabled())

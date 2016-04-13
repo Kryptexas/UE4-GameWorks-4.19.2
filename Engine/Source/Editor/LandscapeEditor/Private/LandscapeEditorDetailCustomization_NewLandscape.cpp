@@ -1526,13 +1526,14 @@ FReply FLandscapeEditorStructCustomization_FLandscapeImportLayer::OnLayerFilenam
 
 bool FLandscapeEditorStructCustomization_FLandscapeImportLayer::ShouldFilterLayerInfo(const FAssetData& AssetData, FName LayerName)
 {
-	ULandscapeLayerInfoObject* LayerInfo = CastChecked<ULandscapeLayerInfoObject>(AssetData.GetAsset());
-	if (LayerInfo->LayerName != LayerName)
+	const FString* const LayerNameMetaData = AssetData.TagsAndValues.Find("LayerName");
+	if (LayerNameMetaData && !LayerNameMetaData->IsEmpty())
 	{
-		return true;
+		return FName(**LayerNameMetaData) != LayerName;
 	}
 
-	return false;
+	ULandscapeLayerInfoObject* LayerInfo = CastChecked<ULandscapeLayerInfoObject>(AssetData.GetAsset());
+	return LayerInfo->LayerName != LayerName;
 }
 
 EVisibility FLandscapeEditorStructCustomization_FLandscapeImportLayer::GetImportLayerCreateVisibility(TSharedRef<IPropertyHandle> PropertyHandle_LayerInfo)

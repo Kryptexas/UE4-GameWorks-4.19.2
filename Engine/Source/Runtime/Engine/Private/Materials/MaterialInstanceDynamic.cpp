@@ -232,7 +232,15 @@ void UMaterialInstanceDynamic::CopyInterpParameters(UMaterialInstance* Source)
 			SetVectorParameterValue(it.ParameterName, it.ParameterValue);
 		}
 
-		// the other parameters don't interpolate but if we expose this to blueprints we could copy them for consistency
+		for (auto& it : Source->TextureParameterValues)
+		{
+			SetTextureParameterValue(it.ParameterName, it.ParameterValue);
+		}
+
+		for (auto& it : Source->FontParameterValues)
+		{
+			SetFontParameterValue(it.ParameterName, it.FontValue, it.FontPage);
+		}
 	}
 }
 

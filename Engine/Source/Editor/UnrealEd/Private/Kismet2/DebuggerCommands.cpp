@@ -1159,6 +1159,10 @@ void RecordLastExecutedPlayMode()
 			PlayModeString = TEXT("InNewProcess");
 			break;
 
+		case PlayMode_InVR:
+			PlayModeString = TEXT("InVR");
+			break;
+
 		case PlayMode_Simulate:
 			PlayModeString = TEXT("Simulate");
 			break;

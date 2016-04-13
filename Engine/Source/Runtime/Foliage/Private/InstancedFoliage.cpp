@@ -288,7 +288,9 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	CullDistance.Max = 0;
 	bEnableStaticLighting_DEPRECATED = true;
 	MinimumLayerWeight = 0.5f;
+#if WITH_EDITORONLY_DATA
 	IsSelected = false;
+#endif
 	DensityAdjustmentFactor = 1.0f;
 	CollisionWithWorld = false;
 	CollisionScale = FVector(0.9f, 0.9f, 0.9f);
@@ -330,7 +332,10 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	Curve->AddKey(1.f, 1.f);
 
 	UpdateGuid = FGuid::NewGuid();
+#if WITH_EDITORONLY_DATA
 	HiddenEditorViews = 0;
+#endif
+	bEnableDensityScaling = false;
 
 #if WITH_EDITORONLY_DATA
 	// Deprecated since FFoliageCustomVersion::FoliageTypeCustomization
@@ -864,6 +869,12 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 		if (Component->bUseAsOccluder != FoliageType->bUseAsOccluder)
 		{
 			Component->bUseAsOccluder = FoliageType->bUseAsOccluder;
+			bNeedsMarkRenderStateDirty = true;
+		}
+
+		if (Component->bEnableDensityScaling != FoliageType->bEnableDensityScaling)
+		{
+			Component->bEnableDensityScaling = FoliageType->bEnableDensityScaling;
 			bNeedsMarkRenderStateDirty = true;
 		}
 
@@ -2381,9 +2392,15 @@ void AInstancedFoliageActor::PostLoad()
 			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 			UFoliageType* FoliageType = MeshPair.Key;
 
+			// Make sure the mesh has been PostLoaded as if not it can be considered invalid resulting in a bad tree
+			UStaticMesh* StaticMesh = FoliageType->GetStaticMesh();
+			if (StaticMesh)
+			{
+				StaticMesh->ConditionalPostLoad();
+			}
+
 			if (MeshInfo.Instances.Num() && MeshInfo.Component == nullptr)
 			{
-				const UStaticMesh* StaticMesh = FoliageType->GetStaticMesh();
 				FFormatNamedArguments Arguments;
 				if (StaticMesh)
 				{
@@ -2426,7 +2443,7 @@ void AInstancedFoliageActor::PostLoad()
 			}
 			
 			// Clean up case where embeded instances had their static mesh deleted
-			if (FoliageType->IsNotAssetOrBlueprint() && FoliageType->GetStaticMesh() == nullptr)
+			if (FoliageType->IsNotAssetOrBlueprint() && StaticMesh == nullptr)
 			{
 				OnFoliageTypeMeshChangedEvent.Broadcast(FoliageType);
 				RemoveFoliageType(&FoliageType, 1);

@@ -248,16 +248,37 @@ bool FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar)
 	// send back a reply if the command wrote anything back out
 	if (Out.Num() && Result )
 	{
-		int32 NumUnsolictedFiles = UnsolictedFiles.Num();
+		int32 NumUnsolictedFiles = 0;
+
+
 		if (bSendUnsolicitedFiles)
 		{
+			int64 MaxMemoryAllowed = 50 * 1024 * 1024;
+			for (const auto& Filename : UnsolictedFiles)
+			{
+				// get file timestamp and send it to client
+				FDateTime ServerTimeStamp = Sandbox->GetTimeStamp(*Filename);
+
+				TArray<uint8> Contents;
+				// open file
+				int64 FileSize = Sandbox->FileSize(*Filename);
+
+				if (MaxMemoryAllowed > FileSize)
+				{
+					MaxMemoryAllowed -= FileSize;
+					++NumUnsolictedFiles;
+				}
+			}
 			Out << NumUnsolictedFiles;
 		}
-
+		
 		UE_LOG(LogFileServer, Verbose, TEXT("Returning payload with %d bytes"), Out.Num());
 
 		// send back a reply
 		Result &= SendPayload( Out );
+
+		TArray<FString> UnprocessedUnsolictedFiles;
+		UnprocessedUnsolictedFiles.Empty(NumUnsolictedFiles);
 
 		if (bSendUnsolicitedFiles && Result )
 		{
@@ -270,8 +291,7 @@ bool FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar)
 
 				Result &= SendPayload(OutUnsolicitedFile);
 			}
-
-			UnsolictedFiles.Empty();
+			UnsolictedFiles.RemoveAt(0, NumUnsolictedFiles);
 		}
 	}
 
@@ -891,7 +911,7 @@ void FNetworkFileServerClientConnection::ProcessHeartbeat( FArchive& In, FArchiv
 /* FStreamingNetworkFileServerConnection callbacks
  *****************************************************************************/
 
-void FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchive& Out )
+bool FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchive& Out )
 {
 	// get file timestamp and send it to client
 	FDateTime ServerTimeStamp = Sandbox->GetTimeStamp(*Filename);
@@ -930,6 +950,7 @@ void FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchiv
 	uint64 FileSize = Contents.Num();
 	Out << FileSize;
 	Out.Serialize(Contents.GetData(), FileSize);
+	return true;
 }
 
 

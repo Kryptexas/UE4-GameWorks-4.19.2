@@ -84,6 +84,7 @@ bool FOculusRiftPlugin::Initialize()
 	return bInitialized;
 }
 
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 ovrResult FOculusRiftPlugin::CreateSession(ovrSession* session, ovrGraphicsLuid* luid)
 {
 	ovrResult result;
@@ -135,6 +136,7 @@ void FOculusRiftPlugin::DestroySession(ovrSession session)
 {
 	ovr_Destroy(session);
 }
+#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 void FOculusRiftPlugin::ShutdownModule()
 {
@@ -227,12 +229,12 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FOculusRiftPlugin::
 	return NULL;
 }
 
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 bool FOculusRiftPlugin::PoseToOrientationAndPosition(const ovrPosef& Pose, FQuat& OutOrientation, FVector& OutPosition) const
 {
 	check(IsInGameThread());
 	bool bRetVal = false;
 
-#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	IHeadMountedDisplay* HMD = HeadMountedDisplay.Pin().Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
 	{
@@ -245,7 +247,7 @@ bool FOculusRiftPlugin::PoseToOrientationAndPosition(const ovrPosef& Pose, FQuat
 			bRetVal = true;
 		}
 	}
-#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
+
 	return bRetVal;
 }
 
@@ -253,14 +255,13 @@ class FOvrSessionShared* FOculusRiftPlugin::GetSession()
 {
 	check(IsInGameThread());
 
-#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	IHeadMountedDisplay* HMD = HeadMountedDisplay.Pin().Get();
 	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
 	{
 		FOculusRiftHMD* OculusHMD = static_cast<FOculusRiftHMD*>(HMD);
 		return OculusHMD->Session.Get();
 	}
-#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
+
 	return nullptr;
 }
 
@@ -269,7 +270,6 @@ bool FOculusRiftPlugin::GetCurrentTrackingState(ovrTrackingState* TrackingState)
 	check(IsInGameThread());
 	bool bRetVal = false;
 
-#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	IHeadMountedDisplay* HMD = HeadMountedDisplay.Pin().Get();
 	if (TrackingState && HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
 	{
@@ -281,9 +281,10 @@ bool FOculusRiftPlugin::GetCurrentTrackingState(ovrTrackingState* TrackingState)
 			bRetVal = true;
 		}
 	}
-#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
+
 	return bRetVal;
 }
+#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 IMPLEMENT_MODULE( FOculusRiftPlugin, OculusRift )
 
@@ -1100,8 +1101,13 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			if (LID2)
 			{
 				FTransform tr(FRotator(0, -30, 0), FVector(100, 0, 0));
-				StereoL->SetTransform(LID2, tr);
-				StereoL->SetQuadSize(LID2, FVector2D(25, 25));
+				
+				IStereoLayers::FLayerDesc LayerDesc;
+				StereoL->GetLayerDesc(LID2, LayerDesc);
+
+				LayerDesc.Transform = tr;
+				LayerDesc.QuadSize = FVector2D(25, 25);
+				StereoL->SetLayerDesc(LID2, LayerDesc);
 			}
 			return true;
 		}
@@ -1109,7 +1115,11 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 		{
 			if (LID1)
 			{
-				StereoL->SetTextureViewport(LID1, FBox2D(FVector2D(0.25, 0.25), FVector2D(0.75, 0.75)));
+				IStereoLayers::FLayerDesc LayerDesc;
+				StereoL->GetLayerDesc(LID1, LayerDesc);
+
+				LayerDesc.UVRect = FBox2D(FVector2D(0.25, 0.25), FVector2D(0.75, 0.75));
+				StereoL->SetLayerDesc(LID1, LayerDesc);
 			}
 			return true;
 		}
@@ -1124,18 +1134,24 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 
 			if (LID1 == 0)
 			{
-				LID1 = StereoL->CreateLayer(LoadingTexture, 10);
-				FTransform tr(FVector(400, 30, 130));
-				StereoL->SetTransform(LID1, tr);
-				StereoL->SetQuadSize(LID1, FVector2D(200, 200));
+				IStereoLayers::FLayerDesc LayerDesc;
+				LayerDesc.Texture = LoadingTexture;
+				LayerDesc.Priority = 10;
+				LayerDesc.Transform = FTransform(FVector(400, 30, 130));
+				LayerDesc.QuadSize = FVector2D(200, 200);
+				LayerDesc.Type = IStereoLayers::ELayerType::WorldLocked;
+				LID1 = StereoL->CreateLayer(LayerDesc);
 			}
 
 			if (LID2 == 0)
 			{
-				LID2 = StereoL->CreateLayer(LoadingTexture, 11, true);
-				FTransform tr(FRotator(0, 30, 0), FVector(300, 0, 0));
-				StereoL->SetTransform(LID2, tr);
-				StereoL->SetQuadSize(LID2, FVector2D(100, 100));
+				IStereoLayers::FLayerDesc LayerDesc;
+				LayerDesc.Texture = LoadingTexture;
+				LayerDesc.Priority = 11;
+				LayerDesc.Transform = FTransform(FRotator(0, 30, 0), FVector(300, 0, 0));
+				LayerDesc.QuadSize = FVector2D(100, 100);
+				LayerDesc.Type = IStereoLayers::FaceLocked;
+				LID2 = StereoL->CreateLayer(LayerDesc);
 			}
 		}
 		return true;

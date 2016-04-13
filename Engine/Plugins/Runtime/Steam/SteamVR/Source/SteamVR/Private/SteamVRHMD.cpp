@@ -589,6 +589,7 @@ bool FSteamVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		if (FParse::Value(Cmd, TEXT("E="), val))
 		{
 			IPD = val;
+			return true;
 		}
 	}
 	else if (FParse::Command(&Cmd, TEXT("HMD")))

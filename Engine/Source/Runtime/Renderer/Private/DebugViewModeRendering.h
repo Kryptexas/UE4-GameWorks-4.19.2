@@ -7,6 +7,7 @@ DebugViewModeRendering.h: Contains definitions for rendering debug viewmodes.
 #pragma once
 
 #include "DebugViewModeHelpers.h"
+#include "ShaderParameterUtils.h"
 
 static const int32 NumStreamingAccuracyColors = 5;
 static const int32 MaxStreamingAccuracyMips = 11;
@@ -19,7 +20,12 @@ class FDebugViewModeVS : public FMeshMaterialShader
 	DECLARE_SHADER_TYPE(FDebugViewModeVS,MeshMaterial);
 protected:
 
-	FDebugViewModeVS(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer) : FMeshMaterialShader(Initializer) {}
+	FDebugViewModeVS(const FMeshMaterialShaderType::CompiledShaderInitializerType& Initializer) : FMeshMaterialShader(Initializer)
+	{
+		IsInstancedStereoParameter.Bind(Initializer.ParameterMap, TEXT("bIsInstancedStereo"));
+		InstancedEyeIndexParameter.Bind(Initializer.ParameterMap, TEXT("InstancedEyeIndex"));
+	}
+
 	FDebugViewModeVS() {}
 
 public:
@@ -32,12 +38,35 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& Material,const FSceneView& View)
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,Material,View,ESceneRenderTargetsMode::DontSet);
+
+		if (IsInstancedStereoParameter.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), IsInstancedStereoParameter, false);
+		}
+
+		if (InstancedEyeIndexParameter.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, 0);
+		}
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
 	{
 		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement,DrawRenderState);
 	}
+
+	virtual bool Serialize(FArchive& Ar)
+	{
+		const bool Result = FMeshMaterialShader::Serialize(Ar);
+		Ar << IsInstancedStereoParameter;
+		Ar << InstancedEyeIndexParameter;
+		return Result;
+	}
+
+private:
+
+	FShaderParameter IsInstancedStereoParameter;
+	FShaderParameter InstancedEyeIndexParameter;
 };
 
 /**

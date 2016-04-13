@@ -1399,7 +1399,14 @@ public:
 	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const = 0;
 	bool IsSelected() const { return bSelected; }
 	bool IsHovered() const { return bHovered; }
-	bool IsDeleted() const { return DeletedFlag != 0; }
+	bool IsDeleted() const
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		return DeletedFlag != 0;
+#else
+		return false;
+#endif
+	}
 
 	// FRenderResource interface.
 	ENGINE_API virtual void InitDynamicRHI() override;
@@ -1413,6 +1420,29 @@ public:
 	void SetSubsurfaceProfileRT(const USubsurfaceProfile* Ptr) { SubsurfaceProfileRT = Ptr; }
 	const USubsurfaceProfile* GetSubsurfaceProfileRT() const { return SubsurfaceProfileRT; }
 
+	void SetReferencedInDrawList() const
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		bIsStaticDrawListReferenced = 1;
+#endif
+	}
+
+	void SetUnreferencedInDrawList() const
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		bIsStaticDrawListReferenced = 0;
+#endif
+	}
+
+	bool IsReferencedInDrawList() const
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		return bIsStaticDrawListReferenced == 1;
+#else
+		return false;
+#endif
+	}
+
 private:
 
 	/** true if the material is selected. */
@@ -1423,7 +1453,10 @@ private:
 	const USubsurfaceProfile* SubsurfaceProfileRT;
 
 	/** For tracking down a bug accessing a deleted proxy. */
-	int32 DeletedFlag;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	mutable int32 DeletedFlag : 1;
+	mutable int32 bIsStaticDrawListReferenced : 1;
+#endif
 
 	/** 
 	 * Tracks all material render proxies in all scenes, can only be accessed on the rendering thread.

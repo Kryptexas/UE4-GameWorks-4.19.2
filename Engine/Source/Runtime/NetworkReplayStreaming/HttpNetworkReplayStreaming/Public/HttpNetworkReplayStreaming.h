@@ -181,6 +181,17 @@ public:
 	virtual bool PreProcess( FHttpNetworkReplayStreamer* Streamer, const FString& ServerURL, const FString& SessionName ) override;
 };
 
+class FCachedResponse
+{
+public:
+	FCachedResponse( FHttpResponsePtr InResponse, const double InLastAccessTime ) : Response( InResponse ), LastAccessTime( InLastAccessTime )
+	{
+	}
+	
+	FHttpResponsePtr	Response;
+	double				LastAccessTime;
+};
+
 /**
  * Http network replay streaming manager
  */
@@ -237,6 +248,8 @@ public:
 	virtual void AddOrUpdateEvent( const FString& Name, const uint32 TimeInMS, const FString& Group, const FString& Meta, const TArray<uint8>& Data ) override;
 	void AddRequestToQueue( const EQueuedHttpRequestType::Type Type, TSharedPtr< class IHttpRequest > Request, const int32 InMaxRetries = 0, const float InRetryDelay = 0.0f );
 	void AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest > Request );
+	void AddResponseToCache( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse );
+	void CleanupResponseCache();
 	bool RetryRequest( TSharedPtr< FQueuedHttpRequest > Request, FHttpResponsePtr HttpResponse );
 	void EnumerateCheckpoints();
 	void ConditionallyEnumerateCheckpoints();
@@ -314,9 +327,11 @@ public:
 	TArray< TSharedPtr< FQueuedHttpRequest > >	QueuedHttpRequests;
 	TSharedPtr< FQueuedHttpRequest >			InFlightHttpRequest;
 
-	TSet< FString >					EventGroupSet;
+	TSet< FString >						EventGroupSet;
 
-	uint32							TotalUploadBytes;
+	uint32								TotalUploadBytes;
+
+	TMap< FString, FCachedResponse >	ResponseCache;
 };
 
 class HTTPNETWORKREPLAYSTREAMING_API FHttpNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory, public FTickableGameObject

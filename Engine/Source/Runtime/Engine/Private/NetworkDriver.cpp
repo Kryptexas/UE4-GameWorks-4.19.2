@@ -1225,27 +1225,29 @@ void UNetDriver::InternalProcessRemoteFunction
 		Bunch.bReliable = 1;
 	}
 
-	// Queue unreliable multicast 
-	bool QueueBunch = (!Bunch.bReliable && Function->FunctionFlags & FUNC_NetMulticast);
+	// verify we haven't overflowed unacked bunch buffer (Connection is not net ready)
+	//@warning: needs to be after parameter evaluation for script stack integrity
+	if ( Bunch.IsError() )
+	{
+		if ( !Bunch.bReliable )
+		{
+			// Not reliable, so not fatal. This can happen a lot in debug builds at startup if client is slow to get in game
+			UE_LOG( LogNet, Warning, TEXT( "Can't send function '%s' on '%s': Reliable buffer overflow. FieldCache->FieldNetIndex: %d Max %d. Ch MaxPacket: %d" ), *Function->GetName(), *Actor->GetName(), FieldCache->FieldNetIndex, ClassCache->GetMaxIndex(), Ch->Connection->MaxPacket );
+		}
+		else
+		{
+			// The connection has overflowed the reliable buffer. We cannot recover from this. Disconnect this user.
+			UE_LOG( LogNet, Warning, TEXT( "Closing connection. Can't send function '%s' on '%s': Reliable buffer overflow. FieldCache->FieldNetIndex: %d Max %d. Ch MaxPacket: %d." ), *Function->GetName(), *Actor->GetName(), FieldCache->FieldNetIndex, ClassCache->GetMaxIndex(), Ch->Connection->MaxPacket );
 
-	if (!QueueBunch)
-	{
-		Ch->BeginContentBlock(TargetObj, Bunch);
-	}
-	
-	//UE_LOG(LogScript, Log, TEXT("   Call %s"),Function->GetFullName());
-	if ( Connection->InternalAck )
-	{
-		uint32 Checksum = FieldCache->FieldChecksum;
-		Bunch << Checksum;
-	}
-	else
-	{
-		check( FieldCache->FieldNetIndex <= ClassCache->GetMaxIndex() );
-		Bunch.WriteIntWrapped(FieldCache->FieldNetIndex, ClassCache->GetMaxIndex()+1);
-	}
+			FString ErrorMsg = NSLOCTEXT( "NetworkErrors", "ClientReliableBufferOverflow", "Outgoing reliable buffer overflow" ).ToString();
+			FNetControlMessage<NMT_Failure>::Send( Connection, ErrorMsg );
+			Connection->FlushNet( true );
+			Connection->Close();
 
-	const int HeaderBits = Bunch.GetNumBits();
+			PerfCountersIncrement( TEXT( "ClosedConnectionsDueToReliableBufferOverflow" ) );
+		}
+		return;
+	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	extern TAutoConsoleVariable< int32 > CVarNetReliableDebug;
@@ -1295,35 +1297,30 @@ void UNetDriver::InternalProcessRemoteFunction
 		}
 	}
 
-	// verify we haven't overflowed unacked bunch buffer (Connection is not net ready)
-	//@warning: needs to be after parameter evaluation for script stack integrity
-	if (Bunch.IsError())
-	{
-		if (!Bunch.bReliable)
-		{
-			// Not reliable, so not fatal. This can happen a lot in debug builds at startup if client is slow to get in game
-			UE_LOG(LogNet, Warning, TEXT("Can't send function '%s' on '%s': Reliable buffer overflow. FieldCache->FieldNetIndex: %d Max %d. Ch MaxPacket: %d"), *Function->GetName(), *Actor->GetName(), FieldCache->FieldNetIndex, ClassCache->GetMaxIndex(), Ch->Connection->MaxPacket);
-		}
-		else
-		{
-			// The connection has overflowed the reliable buffer. We cannot recover from this. Disconnect this user.
-			UE_LOG(LogNet, Warning, TEXT("Closing connection. Can't send function '%s' on '%s': Reliable buffer overflow. FieldCache->FieldNetIndex: %d Max %d. Ch MaxPacket: %d."), *Function->GetName(), *Actor->GetName(), FieldCache->FieldNetIndex, ClassCache->GetMaxIndex(), Ch->Connection->MaxPacket);
-
-			FString ErrorMsg = NSLOCTEXT("NetworkErrors", "ClientReliableBufferOverflow", "Outgoing reliable buffer overflow").ToString();
-			FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
-			Connection->FlushNet(true);
-			Connection->Close();
-
-			PerfCountersIncrement(TEXT("ClosedConnectionsDueToReliableBufferOverflow"));
-		}
-		return;
-	}
+	FNetBitWriter TempWriter( Bunch.PackageMap, 0 );
 
 	// Use the replication layout to send the rpc parameter values
 	TSharedPtr<FRepLayout> RepLayout = GetFunctionRepLayout( Function );
-	RepLayout->SendPropertiesForRPC( Actor, Function, Ch, Bunch, Parms );
+	RepLayout->SendPropertiesForRPC( Actor, Function, Ch, TempWriter, Parms );
 
-	const int ParameterBits = Bunch.GetNumBits() - HeaderBits;
+	int32 HeaderBits	= 0;
+	int32 ParameterBits	= 0;
+
+	// Queue unreliable multicast 
+	bool QueueBunch = ( !Bunch.bReliable && Function->FunctionFlags & FUNC_NetMulticast );
+
+	if ( QueueBunch )
+	{
+		Ch->WriteFieldHeaderAndPayload( Bunch, ClassCache, FieldCache, TempWriter );
+		ParameterBits = Bunch.GetNumBits();
+	}
+	else
+	{
+		FNetBitWriter TempBlockWriter( Bunch.PackageMap, 0 );
+		Ch->WriteFieldHeaderAndPayload( TempBlockWriter, ClassCache, FieldCache, TempWriter );
+		ParameterBits = TempBlockWriter.GetNumBits();
+		HeaderBits = Ch->WriteContentBlockPayload( TargetObj, Bunch, false, TempBlockWriter );
+	}
 
 	// Destroy the memory used for the copied out parameters
 	for ( int32 i = 0; i < LocalOutParms.Num(); i++ )
@@ -1331,14 +1328,6 @@ void UNetDriver::InternalProcessRemoteFunction
 		check( LocalOutParms[i]->HasAnyPropertyFlags( CPF_OutParm ) );
 		LocalOutParms[i]->DestroyValue_InContainer( Parms );
 	}
-
-	// Write footer for content we just wrote
-	if ( !QueueBunch )
-	{
-		Ch->EndContentBlock( TargetObj, Bunch );
-	}
-
-	const int FooterBits = Bunch.GetNumBits() - HeaderBits - ParameterBits;
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.RPC.Debug"));
 	bool LogAsWarning = (CVar && CVar->GetValueOnGameThread() == 1);
@@ -1356,7 +1345,7 @@ void UNetDriver::InternalProcessRemoteFunction
 	else
 	{
 		// Make sure we're tracking all the bits in the bunch
-		check(Bunch.GetNumBits() == HeaderBits + ParameterBits + FooterBits);
+		check(Bunch.GetNumBits() == HeaderBits + ParameterBits);
 
 		if (QueueBunch)
 		{
@@ -1370,7 +1359,7 @@ void UNetDriver::InternalProcessRemoteFunction
 				UE_LOG(LogNetTraffic, Log,		TEXT("      Queing unreliable multicast RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
 			}
 
-			NETWORK_PROFILER(GNetworkProfiler.TrackQueuedRPC(Connection, TargetObj, Actor, Function, HeaderBits, ParameterBits, FooterBits));
+			NETWORK_PROFILER(GNetworkProfiler.TrackQueuedRPC(Connection, TargetObj, Actor, Function, HeaderBits, ParameterBits, 0));
 			Ch->QueueRemoteFunctionBunch(TargetObj, Function, Bunch);
 		}
 		else
@@ -1384,7 +1373,7 @@ void UNetDriver::InternalProcessRemoteFunction
 				UE_LOG(LogNetTraffic, Log,		TEXT("      Sent RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
 			}
 
-			NETWORK_PROFILER(GNetworkProfiler.TrackSendRPC(Actor, Function, HeaderBits, ParameterBits, FooterBits, Connection));
+			NETWORK_PROFILER(GNetworkProfiler.TrackSendRPC(Actor, Function, HeaderBits, ParameterBits, 0, Connection));
 			Ch->SendBunch( &Bunch, 1 );
 		}
 	}
