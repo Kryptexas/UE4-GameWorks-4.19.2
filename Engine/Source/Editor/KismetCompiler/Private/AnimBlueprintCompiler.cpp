@@ -1975,7 +1975,7 @@ static UEdGraphNode* FollowKnots(UEdGraphPin* FromPin, UEdGraphPin*& DestPin)
 		{
 			if(UEdGraphPin* InputPin = FindFirstInputPin(KnotNode))
 			{
-				if(InputPin->LinkedTo[0])
+				if(InputPin->LinkedTo.Num() > 0 && InputPin->LinkedTo[0])
 				{
 					DestPin = InputPin->LinkedTo[0];
 					LinkedNode = InputPin->LinkedTo[0]->GetOwningNode();
