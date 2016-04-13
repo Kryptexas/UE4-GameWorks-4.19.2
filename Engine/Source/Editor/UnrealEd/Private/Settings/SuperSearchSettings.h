@@ -2,8 +2,6 @@
 
 #pragma once
 
-#if WITH_EDITOR
-
 #include "Engine/DeveloperSettings.h"
 #include "SuperSearchModule.h"
 #include "SuperSearchSettings.generated.h"
@@ -12,7 +10,7 @@
  * 
  */
 UCLASS(config=EditorSettings, meta=( DisplayName="Super Search" ))
-class SUPERSEARCH_API USuperSearchSettings : public UDeveloperSettings
+class USuperSearchSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 
@@ -28,5 +26,3 @@ public:
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 };
-
-#endif

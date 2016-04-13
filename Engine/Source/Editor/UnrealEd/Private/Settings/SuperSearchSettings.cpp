@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SuperSearchPrivatePCH.h"
-
-#if WITH_EDITOR
+#include "UnrealEd.h"
 
 #include "SuperSearchSettings.h"
 
@@ -24,5 +22,3 @@ void USuperSearchSettings::PostEditChangeProperty(struct FPropertyChangedEvent& 
 		FSuperSearchModule::Get().SetSearchEngine(SearchEngine);
 	}
 }
-
-#endif

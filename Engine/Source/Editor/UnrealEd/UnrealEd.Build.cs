@@ -50,7 +50,6 @@ public class UnrealEd : ModuleRules
 				"SourceCodeAccess",
 				"ReferenceViewer",
                 "IntroTutorials",
-                "SuperSearch",
 				"OutputLog",
 				"Landscape",
                 "Niagara",
@@ -122,7 +121,8 @@ public class UnrealEd : ModuleRules
 				"Sockets",
 				"SoundClassEditor",
 				"SoundCueEditor",
-				"SourceControlWindows", 
+				"SourceControlWindows",
+                "SuperSearch",
 				"StatsViewer",
 				"SwarmInterface",
 				"TargetPlatform",
@@ -189,7 +189,6 @@ public class UnrealEd : ModuleRules
 				"ImageWrapper",
 				"Blutility",
 				"IntroTutorials",
-                "SuperSearch",
 				"WorkspaceMenuStructure",
 				"PlacementMode",
 				"NiagaraEditor",
@@ -236,6 +235,7 @@ public class UnrealEd : ModuleRules
 			{
                 "GraphEditor",
 				"Kismet",
+                "SuperSearch",
             }
 		); 
 
