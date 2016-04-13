@@ -209,6 +209,10 @@ void USkeletalMeshComponent::RegisterPostPhysicsTick(bool bRegister)
 				{
 					PostPhysicsTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
 				}
+
+				// 4.11.2 Hack (UE-24725): set up this tick prereq in case this other function is used.
+				// It's usually not, but our tick function is private and if someone else needs to set up a prereq they can use the public one in the base class.
+				PostPhysicsComponentTick.AddPrerequisite(this, PostPhysicsTickFunction);
 			}
 		}
 		else
