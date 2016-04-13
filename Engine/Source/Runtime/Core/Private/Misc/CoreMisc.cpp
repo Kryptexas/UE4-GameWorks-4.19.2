@@ -835,23 +835,47 @@ void FCommandLine::Parse(const TCHAR* InCmdLine, TArray<FString>& Tokens, TArray
 -----------------------------------------------------------------------------*/
 void FMaintenance::DeleteOldLogs()
 {
-	int32 PurgeLogsDays = 0;
+	int32 PurgeLogsDays = -1; // -1 means don't delete old files
+	int32 MaxLogFilesOnDisk = -1; // -1 means keep all files
 	GConfig->GetInt(TEXT("LogFiles"), TEXT("PurgeLogsDays"), PurgeLogsDays, GEngineIni);
-	if (PurgeLogsDays >= 0)
+	GConfig->GetInt(TEXT("LogFiles"), TEXT("MaxLogFilesOnDisk"), MaxLogFilesOnDisk, GEngineIni);
+	if (PurgeLogsDays >= 0 || MaxLogFilesOnDisk >= 0)
 	{
 		// get a list of files in the log dir
 		TArray<FString> Files;
 		IFileManager::Get().FindFiles(Files, *FString::Printf(TEXT("%s*.*"), *FPaths::GameLogDir()), true, false);
+		for (FString& Filename : Files)
+		{
+			Filename = FPaths::GameLogDir() / Filename;
+		}
+
+		// If required, trim the number of files on disk
+		if (MaxLogFilesOnDisk >= 0 && Files.Num() > MaxLogFilesOnDisk)
+		{
+			struct FSortByDateNewestFirst
+			{
+				bool operator()(const FString& A, const FString& B) const
+				{
+					const FDateTime TimestampA = IFileManager::Get().GetTimeStamp(*A);
+					const FDateTime TimestampB = IFileManager::Get().GetTimeStamp(*B);
+					return TimestampB < TimestampA;
+				}
+			};
+			Files.Sort(FSortByDateNewestFirst());
+			while (Files.Num() && Files.Num() > MaxLogFilesOnDisk)
+			{
+				IFileManager::Get().Delete(*Files.Pop());
+			}
+		}
 
 		// delete all those with the backup text in their name and that are older than the specified number of days
 		double MaxFileAgeSeconds = 60.0 * 60.0 * 24.0 * double(PurgeLogsDays);
-		for (int32 i = 0; i < Files.Num(); i++)
+		for (const FString& Filename : Files)
 		{
-			FString FullFileName = FPaths::GameLogDir() + Files[i];
-			if (FullFileName.Contains(BACKUP_LOG_FILENAME_POSTFIX) && IFileManager::Get().GetFileAgeSeconds(*FullFileName) > MaxFileAgeSeconds)
+			if (Filename.Contains(BACKUP_LOG_FILENAME_POSTFIX) && IFileManager::Get().GetFileAgeSeconds(*Filename) > MaxFileAgeSeconds)
 			{
-				UE_LOG(LogStreaming, Log, TEXT("Deleting old log file %s"), *Files[i]);
-				IFileManager::Get().Delete(*FullFileName);
+				UE_LOG(LogStreaming, Log, TEXT("Deleting old log file %s"), *Filename);
+				IFileManager::Get().Delete(*Filename);
 			}
 		}
 
@@ -859,7 +883,7 @@ void FMaintenance::DeleteOldLogs()
 		TArray<FString> Directories;
 		IFileManager::Get().FindFiles( Directories, *FString::Printf( TEXT( "%s/UE4CC*" ), *FPaths::GameLogDir() ), false, true );
 
-		for (auto Dir : Directories)
+		for (const FString& Dir : Directories)
 		{
 			const FString CrashContextDirectory = FPaths::GameLogDir() / Dir;
 			const FDateTime DirectoryAccessTime = IFileManager::Get().GetTimeStamp( *CrashContextDirectory );

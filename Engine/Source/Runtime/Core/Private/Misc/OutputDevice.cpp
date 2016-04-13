@@ -47,11 +47,13 @@ const TCHAR* FOutputDevice::VerbosityToString(ELogVerbosity::Type Verbosity)
 
 FString FOutputDevice::FormatLogLine( ELogVerbosity::Type Verbosity, const class FName& Category, const TCHAR* Message /*= nullptr*/, ELogTimes::Type LogTime /*= ELogTimes::None*/, const double Time /*= -1.0*/ )
 {
+	const bool bShowCategory = GPrintLogCategory && Category != NAME_None;
 	FString Format;
+
 	switch (LogTime)
 	{
 		case ELogTimes::SinceGStartTime:
-		{
+		{																	
 			const double RealTime = Time == -1.0f ? FPlatformTime::Seconds() - GStartTime : Time;
 			Format = FString::Printf( TEXT( "[%07.2f][%3d]" ), RealTime, GFrameCounter % 1000 );
 			break;
@@ -63,19 +65,21 @@ FString FOutputDevice::FormatLogLine( ELogVerbosity::Type Verbosity, const class
 
 		default:
 			break;
-	}
-
-	bool bShowCategory = GPrintLogCategory && Category != NAME_None;
+	}	
 
 	if (bShowCategory)
 	{
 		if (Verbosity != ELogVerbosity::Log)
 		{
-			Format += Category.ToString() + TEXT(":") + VerbosityToString(Verbosity) + TEXT(": ");
+			Format += Category.ToString();
+			Format += TEXT(":");
+			Format += VerbosityToString(Verbosity);
+			Format += TEXT(": ");
 		}
 		else
 		{
-			Format += Category.ToString() + TEXT(": ");
+			Format += Category.ToString();
+			Format += TEXT(": ");
 		}
 	}
 	else
@@ -83,7 +87,8 @@ FString FOutputDevice::FormatLogLine( ELogVerbosity::Type Verbosity, const class
 		if (Verbosity != ELogVerbosity::Log)
 		{
 #if !HACK_HEADER_GENERATOR
-			Format += FString(VerbosityToString(Verbosity)) + TEXT(": ");
+			Format += VerbosityToString(Verbosity);
+			Format += TEXT(": ");
 #endif
 		}
 	}

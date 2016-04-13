@@ -2845,21 +2845,28 @@ namespace UnrealBuildTool
 					}
 					else
 					{
+						OriginalFileNameWithoutNumberSuffix = OriginalFileNameWithoutExtension;
+
 						// Remove "-####-Platform-Configuration" suffix in Debug configuration
 						int IndexOfSecondLastHyphen = OriginalFileNameWithoutExtension.LastIndexOf('-', IndexOfLastHyphen - 1, IndexOfLastHyphen);
-						int IndexOfThirdLastHyphen = OriginalFileNameWithoutExtension.LastIndexOf('-', IndexOfSecondLastHyphen - 1, IndexOfSecondLastHyphen);
-
-						if (!int.TryParse(OriginalFileNameWithoutExtension.Substring(IndexOfThirdLastHyphen + 1, IndexOfSecondLastHyphen - IndexOfThirdLastHyphen - 1), out NumberSuffix))
+						if (IndexOfSecondLastHyphen >= 0)
 						{
-							throw new BuildException("Expected produced item file name '{0}' to contain a numbered suffix when hot reloading second time.", OriginalFileNameWithoutExtension);
+							int IndexOfThirdLastHyphen = OriginalFileNameWithoutExtension.LastIndexOf('-', IndexOfSecondLastHyphen - 1, IndexOfSecondLastHyphen);
+							if (IndexOfThirdLastHyphen >= 0)
+							{
+								if (int.TryParse(OriginalFileNameWithoutExtension.Substring(IndexOfThirdLastHyphen + 1, IndexOfSecondLastHyphen - IndexOfThirdLastHyphen - 1), out NumberSuffix))
+								{
+									OriginalFileNameWithoutNumberSuffix = OriginalFileNameWithoutExtension.Substring(0, IndexOfThirdLastHyphen);
+									PlatformConfigSuffix = OriginalFileNameWithoutExtension.Substring(IndexOfSecondLastHyphen);
+									bHasNumberSuffix = true;
+								}
+							}
 						}
-
-						OriginalFileNameWithoutNumberSuffix = OriginalFileNameWithoutExtension.Substring(0, IndexOfThirdLastHyphen);
-						PlatformConfigSuffix = OriginalFileNameWithoutExtension.Substring(IndexOfSecondLastHyphen);
 					}
 
 					// Figure out which suffix to use
 					string UniqueSuffix = null;
+					if (bHasNumberSuffix)
 					{
 						int FirstHyphenIndex = OriginalFileNameWithoutNumberSuffix.IndexOf('-');
 						if (FirstHyphenIndex == -1)
@@ -2889,9 +2896,14 @@ namespace UnrealBuildTool
 							UniqueSuffix = "-" + (new Random((int)(DateTime.Now.Ticks % Int32.MaxValue)).Next(10000)).ToString();
 						}
 					}
+					else
+					{
+						UniqueSuffix = string.Empty;
+					}
 					string NewFileNameWithoutExtension = OriginalFileNameWithoutNumberSuffix + UniqueSuffix + PlatformConfigSuffix;
 
 					// Find the response file in the command line.  We'll need to make a copy of it with our new file name.
+					if (bHasNumberSuffix)
 					{
 						string ResponseFileExtension = ".response";
 						int ResponseExtensionIndex = Action.CommandArguments.IndexOf(ResponseFileExtension, StringComparison.InvariantCultureIgnoreCase);

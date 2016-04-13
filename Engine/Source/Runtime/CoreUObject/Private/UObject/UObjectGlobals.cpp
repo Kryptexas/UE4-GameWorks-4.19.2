@@ -9,6 +9,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/UObjectAnnotation.h"
 #include "UObject/UObjectThreadContext.h"
+#include "UObject/LinkerManager.h"
 #include "BlueprintSupport.h" // for FDeferredObjInitializerTracker
 #include "ExclusiveLoadPackageTimeTracker.h"
 #include "AssetRegistryInterface.h"
@@ -1533,11 +1534,11 @@ void EndLoad()
 
 		// Dissociate all linker import and forced export object references, since they
 		// may be destroyed, causing their pointers to become invalid.
-		DissociateImportsAndForcedExports();
+		FLinkerManager::Get().DissociateImportsAndForcedExports();
 
 		// close any linkers' loaders that were requested to be closed once GObjBeginLoadCount goes to 0
-		auto PackagesToClose = MoveTemp(ThreadContext.DelayedLinkerClosePackages);
-		for (auto Linker: PackagesToClose)
+		TArray<FLinkerLoad*> PackagesToClose = MoveTemp(ThreadContext.DelayedLinkerClosePackages);
+		for (FLinkerLoad* Linker : PackagesToClose)
 		{
 			if (Linker)
 			{

@@ -2073,7 +2073,7 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 	}
 
 	// Simulate what EndLoad does.
-	DissociateImportsAndForcedExports(); //@todo: this should be avoidable
+	FLinkerManager::Get().DissociateImportsAndForcedExports(); //@todo: this should be avoidable
 	PreLoadIndex = 0;
 	PostLoadIndex = 0;
 	

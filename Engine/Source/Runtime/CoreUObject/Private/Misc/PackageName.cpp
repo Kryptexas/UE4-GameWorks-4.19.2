@@ -675,11 +675,8 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FPackageName::SearchForPackageOnDisk"), STAT_PackageName_SearchForPackageOnDisk, STATGROUP_LoadTime);
 	
-	// This function may take a long time to complete so make sure the heartbeat is reset
-	if (IsInGameThread())
-	{
-		FThreadHeartBeat::Get().HeartBeat();
-	}
+	// This function may take a long time to complete, so suspend heartbeat measure while we're here
+	FSlowHeartBeatScope SlowHeartBeatScope(GGameThreadId);
 
 	bool bResult = false;
 	double StartTime = FPlatformTime::Seconds();
@@ -722,12 +719,6 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 		{
 			// Search directly on disk. Very slow!
 			IFileManager::Get().FindFilesRecursive(Results, *Paths[PathIndex], *PackageWildcard, true, false);
-
-			// Send a heartbeat now too
-			if (IsInGameThread())
-			{
-				FThreadHeartBeat::Get().HeartBeat();
-			}
 
 			for (int32 FileIndex = 0; FileIndex < Results.Num(); ++FileIndex)
 			{			

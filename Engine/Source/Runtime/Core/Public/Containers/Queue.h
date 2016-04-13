@@ -182,4 +182,9 @@ private:
 
 	/** Holds a pointer to the tail of the list. */
 	TNode* Tail;
+
+private:
+	// Non-copyable
+	TQueue(const TQueue&);
+	TQueue& operator=(const TQueue&);
 };

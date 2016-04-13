@@ -135,6 +135,7 @@
     <Compile Include="Android\AndroidProjectGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Utilities\HashSetExtensions.cs" />
     <Compile Include="UWP\UEBuildUWP.cs" />
     <Compile Include="UWP\UWPDeploy.cs" />
     <Compile Include="UWP\UWPProjectGenerator.cs" />

@@ -9,7 +9,10 @@ FThreadHeartBeat::FThreadHeartBeat()
 {
 	// We don't care about programs for now so no point in spawning the extra thread
 #if !IS_PROGRAM
-	Thread = FRunnableThread::Create(this, TEXT("FHeartBeatThread"), 0, TPri_BelowNormal);
+	if (FPlatformProcess::SupportsMultithreading())
+	{
+		Thread = FRunnableThread::Create(this, TEXT("FHeartBeatThread"), 0, TPri_BelowNormal);
+	}
 #endif
 
 	if (GConfig)
@@ -52,6 +55,7 @@ uint32 FThreadHeartBeat::Run()
 			TArray<FString> StackLines;
 			StackTraceText.ParseIntoArrayLines(StackLines);
 
+			// Dump the callstack and the thread name to log
 			FString ThreadName(ThreadThatHung == GGameThreadId ? TEXT("GameThread") : FThreadManager::Get().GetThreadName(ThreadThatHung));
 			if (ThreadName.IsEmpty())
 			{
@@ -63,6 +67,7 @@ uint32 FThreadHeartBeat::Run()
 				UE_LOG(LogCore, Error, TEXT("%s"), *StackLine);
 			}
 			
+			// Assert (on the current thread unfortunately) with a trimmed stack.
 			FString StackTrimmed;
 			for (int32 LineIndex = 0; LineIndex < StackLines.Num() && StackTrimmed.Len() < 512; ++LineIndex)
 			{
@@ -91,8 +96,8 @@ void FThreadHeartBeat::HeartBeat()
 {
 	uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
 	FScopeLock HeartBeatLock(&HeartBeatCritical);
-	double& HeartBeatTime = ThreadHeartBeat.FindOrAdd(ThreadId);
-	HeartBeatTime = FPlatformTime::Seconds();
+	FHeartBeatInfo& HeartBeatInfo = ThreadHeartBeat.FindOrAdd(ThreadId);
+	HeartBeatInfo.LastHeartBeatTime = FPlatformTime::Seconds();
 }
 
 uint32 FThreadHeartBeat::CheckHeartBeat()
@@ -101,14 +106,15 @@ uint32 FThreadHeartBeat::CheckHeartBeat()
 #if !WITH_EDITORONLY_DATA && !IS_PROGRAM && !UE_BUILD_DEBUG
 	if (HangDuration > 0.0 && bReadyToCheckHeartbeat && !GIsRequestingExit && !FPlatformMisc::IsDebuggerPresent())
 	{
-		const double Duration = 25.0;
+		// Check heartbeat for all threads and return thread ID of the thread that hung.
 		const double CurrentTime = FPlatformTime::Seconds();
 		FScopeLock HeartBeatLock(&HeartBeatCritical);
-		for (TPair<uint32, double>& LastHeartBeat : ThreadHeartBeat)
+		for (TPair<uint32, FHeartBeatInfo>& LastHeartBeat : ThreadHeartBeat)
 		{
-			if ((CurrentTime - LastHeartBeat.Value) > Duration)
+			FHeartBeatInfo& HeartBeatInfo =  LastHeartBeat.Value;
+			if (HeartBeatInfo.SuspendedCount == 0 && (CurrentTime - HeartBeatInfo.LastHeartBeatTime) > HangDuration)
 			{
-				LastHeartBeat.Value = CurrentTime;
+				HeartBeatInfo.LastHeartBeatTime = CurrentTime;
 				return LastHeartBeat.Key;
 			}
 		}
@@ -122,4 +128,23 @@ void FThreadHeartBeat::KillHeartBeat()
 	uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
 	FScopeLock HeartBeatLock(&HeartBeatCritical);
 	ThreadHeartBeat.Remove(ThreadId);
+}
+
+uint32 FThreadHeartBeat::SuspendHeartBeat()
+{
+	uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
+	FScopeLock HeartBeatLock(&HeartBeatCritical);
+	FHeartBeatInfo& HeartBeatInfo = ThreadHeartBeat.FindOrAdd(ThreadId);
+	HeartBeatInfo.SuspendedCount++;
+	return ThreadId;
+}
+void FThreadHeartBeat::ResumeHeartBeat(uint32 ThreadId)
+{
+	FScopeLock HeartBeatLock(&HeartBeatCritical);
+	FHeartBeatInfo& HeartBeatInfo = ThreadHeartBeat.FindOrAdd(ThreadId);	
+	if (--HeartBeatInfo.SuspendedCount == 0)
+	{
+		HeartBeatInfo.LastHeartBeatTime = FPlatformTime::Seconds();
+	}
+	check(HeartBeatInfo.SuspendedCount >= 0);
 }

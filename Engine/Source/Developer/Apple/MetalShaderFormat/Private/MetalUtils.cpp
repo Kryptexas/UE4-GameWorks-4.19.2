@@ -35,7 +35,7 @@ static int GetIndexSuffix(const char* Prefix, int PrefixLength, const char* Sema
 	{
 		Semantic += PrefixLength;
 		int Index = 0;
-		if (isdigit(*Semantic))
+		if (isdigit((unsigned char)*Semantic))
 		{
 			Index = (*Semantic) - '0';
 
@@ -44,7 +44,7 @@ static int GetIndexSuffix(const char* Prefix, int PrefixLength, const char* Sema
 			{
 				return Index;
 			}
-			else if (isdigit(*Semantic))
+			else if (isdigit((unsigned char)*Semantic))
 			{
 				Index = Index * 10 + (*Semantic) - '0';
 				++Semantic;
