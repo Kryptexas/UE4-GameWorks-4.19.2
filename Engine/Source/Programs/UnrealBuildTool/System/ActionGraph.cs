@@ -366,7 +366,7 @@ namespace UnrealBuildTool
 				HashSet<Action> UnlinkedActions = ActionsToExecute.Where(Action => Action.ActionType == ActionType.Link && !ProducedItems.Overlaps(Action.PrerequisiteItems)).ToHashSet();
 
 				// Remove unlinked items
-				ActionsToExecute = new HashSet<Action>(ActionsToExecute.Except(UnlinkedActions));
+				ActionsToExecute.ExceptWith(UnlinkedActions);
 
 				// Re-add unlinked items which produce things which are dependencies of other actions
 				for (;;)
@@ -390,6 +390,9 @@ namespace UnrealBuildTool
 						break;
 					}
 				}
+
+				// Remove actions that are wholly dependent on unlinked actions
+				ActionsToExecute = ActionsToExecute.Where(Action => Action.PrerequisiteItems.Count == 0 || !Action.PrerequisiteItems.Select(Item => Item.ProducingAction).ToHashSet().IsSubsetOf(UnlinkedActions)).ToHashSet();
 			}
 
 			if (BuildConfiguration.bPrintPerformanceInfo)
