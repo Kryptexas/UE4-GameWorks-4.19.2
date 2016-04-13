@@ -1022,6 +1022,32 @@ FBox AActor::GetComponentsBoundingBox(bool bNonColliding) const
 	return Box;
 }
 
+FBox AActor::CalculateComponentsBoundingBoxInLocalSpace( bool bNonColliding ) const
+{
+	FBox Box( 0 );
+
+	const FTransform& ActorToWorld = GetTransform();
+	const FTransform WorldToActor = ActorToWorld.Inverse();
+
+	for( const UActorComponent* ActorComponent : GetComponents() )
+	{
+		const UPrimitiveComponent* PrimComp = Cast<const UPrimitiveComponent>( ActorComponent );
+		if( PrimComp )
+		{
+			// Only use collidable components to find collision bounding box.
+			if( PrimComp->IsRegistered() && ( bNonColliding || PrimComp->IsCollisionEnabled() ) )
+			{
+				const FTransform ComponentToActor = PrimComp->ComponentToWorld * WorldToActor;
+				FBoxSphereBounds ActorSpaceComponentBounds = PrimComp->CalcBounds( ComponentToActor );
+
+				Box += ActorSpaceComponentBounds.GetBox();
+			}
+		}
+	}
+
+	return Box;
+}
+
 bool AActor::CheckStillInWorld()
 {
 	if (IsPendingKill())

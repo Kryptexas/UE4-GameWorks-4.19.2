@@ -12,6 +12,22 @@ namespace SWindowDefs
 	static const int32 CornerRadius = 6;
 }
 
+FOverlayPopupLayer::FOverlayPopupLayer(const TSharedRef<SWidget>& InitHostWidget, const TSharedRef<SWidget>& InitPopupContent, TSharedPtr<SOverlay> InitOverlay)
+	: FPopupLayer(InitHostWidget, InitPopupContent)
+	, Overlay(InitOverlay)
+{
+	Overlay->AddSlot()
+	[
+		InitPopupContent
+	];
+}
+
+void FOverlayPopupLayer::Remove()
+{
+	Overlay->RemoveSlot(GetContent());
+}
+
+
 
 /**
  * An internal overlay used by Slate to support in-window pop ups and tooltips.
@@ -175,6 +191,7 @@ private:
 	TPanelChildren<FPopupLayerSlot> Children;
 	TWeakPtr<SWindow> OwnerWindow;
 };
+
 
 FVector2D SWindow::GetWindowSizeFromClientSize(FVector2D InClientSize)
 {
@@ -519,7 +536,7 @@ void SWindow::ConstructWindowInternals()
 			]
 		];
 	}
-	else if( bHasOSWindowBorder )
+	else if ( bHasOSWindowBorder || bVirtualWindow )
 	{
 		this->ChildSlot
 		[
@@ -677,7 +694,7 @@ FSlateRect SWindow::GetNonMaximizedRectInScreen() const
 	int Width = 0;
 	int Height = 0;
 	
-	if ( NativeWindow->GetRestoredDimensions(X, Y, Width, Height) )
+	if ( NativeWindow.IsValid() && NativeWindow->GetRestoredDimensions(X, Y, Width, Height) )
 	{
 		return FSlateRect( X, Y, X+Width, Y+Height );
 	}
@@ -1046,6 +1063,16 @@ void SWindow::RemoveOverlaySlot( const TSharedRef<SWidget>& InContent )
 	}
 }
 
+TSharedPtr<FPopupLayer> SWindow::OnVisualizePopup(const TSharedRef<SWidget>& PopupContent)
+{
+	if ( WindowOverlay.IsValid() )
+	{
+		return MakeShareable(new FOverlayPopupLayer(SharedThis(this), PopupContent, WindowOverlay));
+	}
+
+	return TSharedPtr<FPopupLayer>();
+}
+
 /** Return a new slot in the popup layer. Assumes that the window has a popup layer. */
 FPopupLayerSlot& SWindow::AddPopupLayerSlot()
 {
@@ -1111,10 +1138,11 @@ void SWindow::RequestDestroyWindow()
 /** Warning: use Request Destroy Window whenever possible!  This method destroys the window immediately! */
 void SWindow::DestroyWindowImmediately()
 {
-	check( NativeWindow.IsValid() );
-
-	// Destroy the native window
-	NativeWindow->Destroy();
+	if ( NativeWindow.IsValid() )
+	{
+		// Destroy the native window
+		NativeWindow->Destroy();
+	}
 }
 
 /** Calls the OnWindowClosed delegate when this window is about to be closed */
@@ -1199,12 +1227,22 @@ bool SWindow::IsVisible() const
 
 bool SWindow::IsWindowMaximized() const
 {
-	return NativeWindow->IsMaximized();
+	if ( NativeWindow.IsValid() )
+	{
+		return NativeWindow->IsMaximized();
+	}
+
+	return false;
 }
 
 bool SWindow::IsWindowMinimized() const
 {
-	return NativeWindow->IsMinimized();
+	if ( NativeWindow.IsValid() )
+	{
+		return NativeWindow->IsMinimized();
+	}
+
+	return false;
 }
 
 
@@ -1705,10 +1743,18 @@ SWindow::SWindow()
 int32 SWindow::PaintWindow( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	LayerId = Paint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-	LayerId = OutDrawElements.PaintDeferred( LayerId );
+	//LayerId = OutDrawElements.PaintDeferred( LayerId );
 	return LayerId;
 }
 
+int32 SWindow::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	OutDrawElements.BeginDeferredGroup();
+	int32 MaxLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	OutDrawElements.EndDeferredGroup();
+
+	return MaxLayer;
+}
 
 FOptionalSize SWindow::GetTitleBarSize() const
 {

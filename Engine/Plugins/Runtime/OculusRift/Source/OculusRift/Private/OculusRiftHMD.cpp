@@ -683,12 +683,14 @@ void FOculusRiftHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, F
 	const ovrTrackerDesc TrackerDesc = ovr_GetTrackerDesc(OvrSession, 0);
 	const ovrTrackerPose TrackerPose = ovr_GetTrackerPose(OvrSession, 0);
 
-	check(frame->WorldToMetersScale >= 0);
-	OutCameraDistance = SENSOR_FOCAL_DISTANCE * frame->WorldToMetersScale;
+	const float WorldToMetersScale = frame->GetWorldToMetersScale();
+	check(WorldToMetersScale >= 0);
+
+	OutCameraDistance = SENSOR_FOCAL_DISTANCE * WorldToMetersScale;
 	OutHFOV = FMath::RadiansToDegrees(TrackerDesc.FrustumHFovInRadians);
 	OutVFOV = FMath::RadiansToDegrees(TrackerDesc.FrustumVFovInRadians);
-	OutNearPlane = TrackerDesc.FrustumNearZInMeters * frame->WorldToMetersScale;
-	OutFarPlane = TrackerDesc.FrustumFarZInMeters * frame->WorldToMetersScale;
+	OutNearPlane = TrackerDesc.FrustumNearZInMeters * WorldToMetersScale;
+	OutFarPlane = TrackerDesc.FrustumFarZInMeters * WorldToMetersScale;
 
 	// Check if the sensor pose is available
 	if (TrackerPose.TrackerFlags & (ovrTracker_Connected | ovrTracker_PoseTracked))
@@ -740,9 +742,11 @@ void FGameFrame::PoseToOrientationAndPosition(const ovrPosef& InPose, FQuat& Out
 {
 	OutOrientation = ToFQuat(InPose.Orientation);
 
-	check(WorldToMetersScale >= 0);
+	const float FinalWorldToMetersScale = GetWorldToMetersScale();
+	check( FinalWorldToMetersScale >= 0);
+
 	// correct position according to BaseOrientation and BaseOffset. 
-	const FVector Pos = (ToFVector_M2U(OVR::Vector3f(InPose.Position), WorldToMetersScale) - (Settings->BaseOffset * WorldToMetersScale)) * CameraScale3D;
+	const FVector Pos = (ToFVector_M2U(OVR::Vector3f(InPose.Position), FinalWorldToMetersScale) - (Settings->BaseOffset * FinalWorldToMetersScale)) * CameraScale3D;
 	OutPosition = Settings->BaseOrientation.Inverse().RotateVector(Pos);
 
 	// apply base orientation correction to OutOrientation
@@ -1164,6 +1168,20 @@ FString FOculusRiftHMD::GetVersionString() const
 	return s;
 }
 
+
+void FOculusRiftHMD::UseImplicitHmdPosition( bool bInImplicitHmdPosition ) 
+{ 
+	if( GEnableVREditorHacks )
+	{
+		const auto frame = GetFrame();
+		if( frame )
+		{
+			frame->Flags.bPlayerControllerFollowsHmd = bInImplicitHmdPosition;
+		}
+	}
+}
+
+
 void FOculusRiftHMD::RecordAnalytics()
 {
 	if (FEngineAnalytics::IsAvailable())
@@ -1238,8 +1256,23 @@ class FSceneViewport* FOculusRiftHMD::FindSceneViewport()
 #if WITH_EDITOR
 	else
 	{
-		UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine);
-		return (FSceneViewport*)(EditorEngine->GetPIEViewport());
+		UEditorEngine* EditorEngine = CastChecked<UEditorEngine>(GEngine);
+		FSceneViewport* PIEViewport = (FSceneViewport*)EditorEngine->GetPIEViewport();
+		if( PIEViewport != nullptr && PIEViewport->IsStereoRenderingAllowed() )
+		{
+			// PIE is setup for stereo rendering
+			return PIEViewport;
+		}
+		else
+		{
+			// Check to see if the active editor viewport is drawing in stereo mode
+			// @todo vreditor: Should work with even non-active viewport!
+			FSceneViewport* EditorViewport = (FSceneViewport*)EditorEngine->GetActiveViewport();
+			if( EditorViewport != nullptr && EditorViewport->IsStereoRenderingAllowed() )
+			{
+				return EditorViewport;
+			}
+		}
 	}
 #endif
 	return nullptr;
@@ -1568,7 +1601,7 @@ void FOculusRiftHMD::GetOrthoProjection(int32 RTWidth, int32 RTHeight, float Ort
 
 	const FSettings* FrameSettings = frame->GetSettings();
 
-	OrthoDistance /= frame->WorldToMetersScale; // This is meters from the camera (viewer) that we place the ortho plane.
+	OrthoDistance /= frame->GetWorldToMetersScale(); // This is meters from the camera (viewer) that we place the ortho plane.
 
     const OVR::Vector2f orthoScale[2] = 
 	{
@@ -1651,8 +1684,10 @@ bool FOculusRiftHMD::IsHeadTrackingAllowed() const
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
+		// @todo vreditor: We need to do a pass over VREditor code and make sure we are handling the VR modes correctly.  HeadTracking can be enabled without Stereo3D, for example
+		// @todo vreditor: Added GEnableVREditorHacks check below to allow head movement in non-PIE editor; needs revisit
 		UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
-		return Session->IsActive() && (!EdEngine || EdEngine->bUseVRPreviewForPlayWorld || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl) &&	(Settings->Flags.bHeadTrackingEnforced || GEngine->IsStereoscopic3D());
+		return Session->IsActive() && (!EdEngine || ( GEnableVREditorHacks || EdEngine->bUseVRPreviewForPlayWorld ) || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl) &&	(Settings->Flags.bHeadTrackingEnforced || GEngine->IsStereoscopic3D());
 	}
 #endif//WITH_EDITOR
 	return Session->IsActive() && FHeadMountedDisplay::IsHeadTrackingAllowed();
@@ -1675,11 +1710,6 @@ FOculusRiftHMD::FOculusRiftHMD()
 
 	Settings = MakeShareable(new FSettings);
 
-	if (GIsEditor)
-	{
-		Settings->Flags.bOverrideScreenPercentage = true;
-		Settings->ScreenPercentage = 100;
-	}
 	RendererModule = nullptr;
 	Startup();
 }
@@ -2310,6 +2340,8 @@ void FOculusRiftHMD::OnBeginPlay()
 	// This call make sense when 'Play' is used from the Editor;
 	if (GIsEditor)
 	{
+		// @todo vreditor: Ideally only do this if we're going into a Stereo PIE session (or we're already in one)
+		// if( FindSceneViewport() != nullptr && FindSceneViewport()->IsStereoRenderingAllowed() )
 		if (Splash.IsValid())
 		{
 			Splash->Hide(FAsyncLoadingSplash::ShowManually);
@@ -2330,6 +2362,7 @@ void FOculusRiftHMD::OnEndPlay()
 {
 	if (GIsEditor)
 	{
+		// @todo vreditor: If we add support for starting PIE while in VR Editor, we don't want to kill stereo mode when exiting PIE
 		EnableStereo(false);
 		ReleaseDevice();
 

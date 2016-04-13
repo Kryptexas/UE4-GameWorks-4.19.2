@@ -701,8 +701,9 @@ class FStaticMeshComponentRecreateRenderStateContext
 public:
 
 	/** Initialization constructor. */
-	FStaticMeshComponentRecreateRenderStateContext( UStaticMesh* InStaticMesh, bool InUnbuildLighting = true )
-	: bUnbuildLighting( InUnbuildLighting )
+	FStaticMeshComponentRecreateRenderStateContext( UStaticMesh* InStaticMesh, bool InUnbuildLighting = true, bool InRefreshBounds = false )
+		: bUnbuildLighting( InUnbuildLighting ),
+		  bRefreshBounds( InRefreshBounds )
 	{
 		for ( TObjectIterator<UStaticMeshComponent> It;It;++It )
 		{
@@ -738,6 +739,11 @@ public:
 				Component->InvalidateLightingCache();
 			}
 
+			if( bRefreshBounds )
+			{
+				Component->UpdateBounds();
+			}
+
 			if ( Component->IsRegistered() && !Component->bRenderStateCreated )
 			{
 				Component->CreateRenderState_Concurrent();
@@ -749,6 +755,7 @@ private:
 
 	TArray<UStaticMeshComponent*> StaticMeshComponents;
 	bool bUnbuildLighting;
+	bool bRefreshBounds;
 };
 
 /**

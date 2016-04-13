@@ -246,7 +246,7 @@ class UNREALED_API ULevelEditorViewportSettings
 	int32 MouseScrollCameraSpeed;
 
 	/** The sensitivity of mouse movement when rotating the camera. */
-	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(ClampMin="0.0",ClampMax="1.0") )
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName="Mouse Sensitivity", ClampMin="0.0",ClampMax="1.0") )
 	float MouseSensitivty;
 	
 	/** Whether or not to invert the direction of middle mouse panning in viewports */
@@ -272,6 +272,10 @@ class UNREALED_API ULevelEditorViewportSettings
 	/** Direction of the scroll gesture for orthographic viewports */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName="Scroll gesture direction for orthographic viewports"))
 	EScrollGestureDirection ScrollGestureDirectionForOrthoViewports;
+
+	/** Enables joystick-based camera movement in 3D level editing viewports */
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName="Level Editor Joystick Controls" ) )
+	bool bLevelEditorJoystickControls;
 
 public:
 

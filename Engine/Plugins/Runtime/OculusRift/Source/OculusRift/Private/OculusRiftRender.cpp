@@ -124,6 +124,19 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 		FVector	CurrentEyePosition;
 		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->CurEyeRenderPose[eyeIdx], CurrentEyeOrientation, CurrentEyePosition);
 
+		// If we use bPlayerControllerFollowsHmd then we must apply full EyePosition (HeadPosition == 0).
+		// Otherwise, we will apply only a difference between EyePosition and HeadPosition, since
+		// HeadPosition is supposedly already applied.
+		if (!CurrentFrame->Flags.bPlayerControllerFollowsHmd && GEnableVREditorHacks)
+		{
+			FVector HeadPosition;
+			FQuat HeadOrient;
+			CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->HeadPose, HeadOrient, HeadPosition);
+
+			CurrentEyePosition += HeadPosition;
+		}
+
+
 		const FQuat ViewOrientation = View.ViewRotation.Quaternion();
 
 		// recalculate delta control orientation; it should match the one we used in CalculateStereoViewOffset on a game thread.
@@ -133,7 +146,10 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->EyeRenderPose[eyeIdx], GameEyeOrient, GameEyePosition);
 		const FQuat DeltaControlOrientation =  ViewOrientation * GameEyeOrient.Inverse();
 		// make sure we use the same viewrotation as we had on a game thread
-		check(View.ViewRotation == CurrentFrame->CachedViewRotation[eyeIdx]);
+		if( !GEnableVREditorHacks )	// @todo vreditor: This assert goes off sometimes when dragging properties in the details pane (UE-27540)
+		{
+			check(View.ViewRotation == CurrentFrame->CachedViewRotation[eyeIdx]);
+		}
 
 		if (CurrentFrame->Flags.bOrientationChanged)
 		{
@@ -187,7 +203,7 @@ bool FOculusRiftHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uin
 }
 
 void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, 
-	FIntRect DstRect, FIntRect SrcRect, bool bAlphaPremultiply) const
+	FIntRect DstRect, FIntRect SrcRect, bool bAlphaPremultiply, const bool bClearRenderTargetToBlackFirst ) const
 {
 	check(IsInRenderingThread());
 
@@ -214,6 +230,15 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, &SrcTextureRHI, 1);
 
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
+
+	if( bClearRenderTargetToBlackFirst )
+	{
+		const bool bClearColor = true;
+		const bool bClearDepth = false;
+		const bool bClearStencil = false;
+		RHICmdList.Clear( bClearColor, FLinearColor::Black, bClearDepth, 0.0f, bClearStencil, 0, FIntRect() );
+	}
+
 	RHICmdList.SetViewport(DstRect.Min.X, DstRect.Min.Y, 0, DstRect.Max.X, DstRect.Max.Y, 1.0f);
 
 	if (bAlphaPremultiply)
@@ -282,18 +307,71 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 				destRect.Max.X += BackBuffer->GetSizeX() / 2;
 			}
 		}
-		else if (RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEye)
+		else if (RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEye ||
+				 RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeLetterboxed || 
+				 RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeCroppedToFill )
 		{
+			const bool bLetterbox = ( RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeLetterboxed );
+			const bool bCropToFill = ( RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_SingleEyeCroppedToFill );
+
 			auto FrameSettings = RenderContext->GetFrameSettings();
+
+			const FIntRect BackBufferRect = FIntRect( 0, 0, BackBuffer->GetSizeX(), BackBuffer->GetSizeY() );
+			FIntRect DstViewRect = BackBufferRect;
 			FIntRect SrcViewRect(FrameSettings->EyeRenderViewport[0]);
 
-			// avoid vignetting caused by HiddenAreaMesh masking
-			SrcViewRect.Min.X = 150;
-			SrcViewRect.Min.Y = 150;
-			SrcViewRect.Max.X -= 150;
-			SrcViewRect.Max.Y -= 150;
+			if( bLetterbox || bCropToFill )
+			{
+				const float SrcRectAspect = (float)SrcViewRect.Width() / (float)SrcViewRect.Height();
+				const float DstRectAspect = (float)DstViewRect.Width() / (float)DstViewRect.Height();
 
-			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, FIntRect(), SrcViewRect);
+				if( SrcRectAspect < 1.0f )
+				{
+					// Source is taller than destination
+					if( bCropToFill )
+					{
+						// Crop top/bottom
+						const float DesiredSrcHeight = SrcViewRect.Height() * ( SrcRectAspect / DstRectAspect );
+						const int32 HalfHeightDiff = FMath::TruncToInt( ( (float)SrcViewRect.Height() - DesiredSrcHeight ) * 0.5f );
+						SrcViewRect.Min.Y += HalfHeightDiff;
+						SrcViewRect.Max.Y -= HalfHeightDiff;
+					}
+					else
+					{
+						// Column-boxing
+						const float DesiredDstWidth = DstViewRect.Width() * ( SrcRectAspect / DstRectAspect );
+						const int32 HalfWidthDiff = FMath::TruncToInt( ( (float)DstViewRect.Width() - DesiredDstWidth ) * 0.5f );
+						DstViewRect.Min.X += HalfWidthDiff;
+						DstViewRect.Max.X -= HalfWidthDiff;
+					}
+				}
+				else
+				{
+					// Source is wider than destination
+					if( bCropToFill )
+					{
+						// Crop left/right
+						const float DesiredSrcWidth = SrcViewRect.Width() * ( DstRectAspect / SrcRectAspect );
+						const int32 HalfWidthDiff = FMath::TruncToInt( ( (float)SrcViewRect.Width() - DesiredSrcWidth ) * 0.5f );
+						SrcViewRect.Min.X += HalfWidthDiff;
+						SrcViewRect.Max.X -= HalfWidthDiff;
+					}
+					else
+					{
+						// Letter-boxing
+						const float DesiredDstHeight = DstViewRect.Height() * ( DstRectAspect / SrcRectAspect );
+						const int32 HalfHeightDiff = FMath::TruncToInt( ( (float)DstViewRect.Height() - DesiredDstHeight ) * 0.5f );
+						DstViewRect.Min.Y += HalfHeightDiff;
+						DstViewRect.Max.Y -= HalfHeightDiff;
+					}
+				}
+			}
+
+			// Only clear the destination buffer if we're copying to a sub-rect of the viewport.  We don't want to see
+			// leftover pixels from a previous frame
+			const bool bClearRenderTargetToBlackFirst = ( DstViewRect != BackBufferRect );
+
+			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, DstViewRect, SrcViewRect, false, bClearRenderTargetToBlackFirst);
 		}
 	}
 }
@@ -554,7 +632,7 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 
 			Y += RowHeight;
-			Str = FString::Printf(TEXT("W-to-m scale: %.2f uu/m"), frame->WorldToMetersScale);
+			Str = FString::Printf(TEXT("W-to-m scale: %.2f uu/m"), frame->GetWorldToMetersScale());
 			Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 
 			//if ((FrameSettings->SupportedHmdCaps & ovrHmdCap_DynamicPrediction) != 0)
@@ -668,7 +746,7 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 	}
 	if (!Settings->IsStereoEnabled())
 	{
-		if ((!bUseSeparateRenderTarget || GIsEditor) && ViewportRHI)
+		if ((!bUseSeparateRenderTarget || GIsEditor) && ViewportRHI)	// @todo vreditor: What does this check mean?  I think this is needed when going from Stereo back to 2D within a session
 		{
 			ViewportRHI->SetCustomPresent(nullptr);
 		}

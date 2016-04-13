@@ -180,6 +180,8 @@ public:
 		eMirrorWindow_Distorted,
 		eMirrorWindow_Undistorted,
 		eMirrorWindow_SingleEye,
+		eMirrorWindow_SingleEyeLetterboxed,
+		eMirrorWindow_SingleEyeCroppedToFill,
 
 		eMirrorWindow_Total_
 	};
@@ -341,7 +343,7 @@ public:
 	virtual FTexture2DSetProxyRef CreateTextureSet(const uint32 InSizeX, const uint32 InSizeY, const EPixelFormat InSrcFormat, const uint32 InNumMips = 1, uint32 InCreateTexFlags = ECreateTexFlags::Default) = 0;
 
 	// Copies one texture to another
-	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect(), bool bAlphaPremultiply = false) const;
+	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect(), bool bAlphaPremultiply = false, const bool bClearRenderTargetToBlackFirst = false) const;
 
 	FLayerManager* GetLayerMgr() { return static_cast<FLayerManager*>(LayerMgr.Get()); }
 	void UpdateLayers(FRHICommandListImmediate& RHICmdList);
@@ -507,6 +509,9 @@ public:
 
 	virtual void					 SetTrackingOrigin(EHMDTrackingOrigin::Type) override;
 	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() override;
+
+	virtual void UseImplicitHmdPosition( bool bInImplicitHmdPosition ) override;
+
 protected:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CreateNewGameFrame() const override;
 	virtual TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> CreateNewSettings() const override;

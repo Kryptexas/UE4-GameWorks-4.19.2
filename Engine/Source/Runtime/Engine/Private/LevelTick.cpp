@@ -1072,6 +1072,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 	SCOPE_CYCLE_COUNTER(STAT_WorldTickTime);
 
+	// @todo vreditor: In the VREditor, this isn't actually wrapping the whole frame.  That would have to happen in EditorEngine.cpp's Tick.  However, it didn't seem to affect anything when I tried that.
 	if (GEngine->HMDDevice.IsValid())
 	{
 		GEngine->HMDDevice->OnStartGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );

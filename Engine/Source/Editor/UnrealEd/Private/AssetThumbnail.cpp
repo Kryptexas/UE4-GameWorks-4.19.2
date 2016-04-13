@@ -518,15 +518,17 @@ private:
 
 	FText GetLabelText() const
 	{
-		if ( Label == EThumbnailLabel::ClassName )
+		if( Label != EThumbnailLabel::NoLabel )
 		{
-			return GetAssetClassDisplayName();
+			if ( Label == EThumbnailLabel::ClassName )
+			{
+				return GetAssetClassDisplayName();
+			}
+			else if ( Label == EThumbnailLabel::AssetName ) 
+			{
+				return GetAssetDisplayName();
+			}
 		}
-		else if ( Label == EThumbnailLabel::AssetName ) 
-		{
-			return GetAssetDisplayName();
-		}
-
 		return FText::GetEmpty();
 	}
 

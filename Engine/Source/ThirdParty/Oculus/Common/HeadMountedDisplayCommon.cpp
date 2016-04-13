@@ -71,7 +71,7 @@ float FHMDSettings::GetActualScreenPercentage() const
 
 FHMDGameFrame::FHMDGameFrame() :
 	FrameNumber(0),
-	WorldToMetersScale(100.f)
+	WorldToMetersScaleWhileInFrame(100.f)
 {
 	LastHmdOrientation = FQuat::Identity;
 	LastHmdPosition = FVector::ZeroVector;
@@ -87,6 +87,26 @@ TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> FHMDGameFrame::Clone() const
 	TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> NewFrame = MakeShareable(new FHMDGameFrame(*this));
 	return NewFrame;
 }
+
+
+float FHMDGameFrame::GetWorldToMetersScale() const
+{
+	if( Flags.bOutOfFrame && IsInGameThread() && GWorld != nullptr )
+	{
+		// We're not currently rendering a frame, so just use whatever world to meters the main world is using.
+		// This can happen when we're polling input in the main engine loop, before ticking any worlds.
+		return GWorld->GetWorldSettings()->WorldToMeters;
+	}
+
+	return WorldToMetersScaleWhileInFrame;
+}
+
+
+void FHMDGameFrame::SetWorldToMetersScale( const float NewWorldToMetersScale )
+{
+	WorldToMetersScaleWhileInFrame = NewWorldToMetersScale;
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 FHMDViewExtension::FHMDViewExtension(FHeadMountedDisplay* InDelegate)
@@ -210,7 +230,7 @@ bool FHeadMountedDisplay::OnStartGameFrame(FWorldContext& WorldContext)
 {
 	check(IsInGameThread());
 
-	if (!WorldContext.World() || !WorldContext.World()->IsGameWorld())
+	if( !WorldContext.World() || ( !( GEnableVREditorHacks && WorldContext.WorldType == EWorldType::Editor ) && !WorldContext.World()->IsGameWorld() ) )	// @todo vreditor: (Also see OnEndGameFrame()) Kind of a hack here so we can use VR in editor viewports.  We need to consider when running GameWorld viewports inside the editor with VR.
 	{
 		// ignore all non-game worlds
 		return false;
@@ -276,11 +296,11 @@ bool FHeadMountedDisplay::OnStartGameFrame(FWorldContext& WorldContext)
 
 	if (Settings->Flags.bWorldToMetersOverride)
 	{
-		CurrentFrame->WorldToMetersScale = Settings->WorldToMetersScale;
+		CurrentFrame->SetWorldToMetersScale( Settings->WorldToMetersScale );
 	}
 	else
 	{
-		CurrentFrame->WorldToMetersScale = WorldContext.World()->GetWorldSettings()->WorldToMeters;
+		CurrentFrame->SetWorldToMetersScale( WorldContext.World()->GetWorldSettings()->WorldToMeters );
 	}
 
 	if (Settings->Flags.bCameraScale3DOverride)
@@ -303,7 +323,7 @@ bool FHeadMountedDisplay::OnEndGameFrame(FWorldContext& WorldContext)
 
 	FHMDGameFrame* const CurrentGameFrame = Frame.Get();
 
-	if (!WorldContext.World() || !WorldContext.World()->IsGameWorld() || !CurrentGameFrame)
+	if( !WorldContext.World() || ( !( GEnableVREditorHacks && WorldContext.WorldType == EWorldType::Editor ) && !WorldContext.World()->IsGameWorld() ) || !CurrentGameFrame )
 	{
 		// ignore all non-game worlds
 		return false;
@@ -1034,8 +1054,8 @@ FVector FHeadMountedDisplay::GetNeckPosition(const FQuat& CurrentOrientation, co
 		return FVector::ZeroVector;
 	}
 	FVector UnrotatedPos = CurrentOrientation.Inverse().RotateVector(CurrentPosition);
-	UnrotatedPos.X -= frame->Settings->NeckToEyeInMeters.X * frame->WorldToMetersScale;
-	UnrotatedPos.Z -= frame->Settings->NeckToEyeInMeters.Y * frame->WorldToMetersScale;
+	UnrotatedPos.X -= frame->Settings->NeckToEyeInMeters.X * frame->GetWorldToMetersScale();
+	UnrotatedPos.Z -= frame->Settings->NeckToEyeInMeters.Y * frame->GetWorldToMetersScale();
 	return UnrotatedPos;
 }
 
@@ -1046,7 +1066,7 @@ void FHeadMountedDisplay::ApplyHmdRotation(APlayerController* PC, FRotator& View
 	{
 		return;
 	}
-	if (!frame->Settings->Flags.bPlayerControllerFollowsHmd)
+	if( !frame->Settings->Flags.bPlayerControllerFollowsHmd )
 	{
 		return;
 	}
@@ -1141,7 +1161,7 @@ void FHeadMountedDisplay::DrawDebugTrackingCameraFrustum(UWorld* World, const FR
 	const FQuat DeltaControlOrientation = ViewRotation.Quaternion() * HeadOrient.Inverse();
 
 	orient = DeltaControlOrientation * orient;
-	if (frame->Flags.bPositionChanged && !frame->Flags.bPlayerControllerFollowsHmd)
+	if( frame->Flags.bPositionChanged && ( !frame->Flags.bPlayerControllerFollowsHmd ) )
 	{
 		origin = origin - HeadPosition;
 	}

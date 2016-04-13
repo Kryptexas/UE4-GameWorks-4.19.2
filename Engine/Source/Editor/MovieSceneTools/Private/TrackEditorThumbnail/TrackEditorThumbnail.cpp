@@ -20,9 +20,9 @@ public:
 
 	float CurrentWorldTime, DeltaWorldTime;
 
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass = eSSP_FULL) override
 	{
-		FSceneView* View = FEditorViewportClient::CalcSceneView(ViewFamily);
+		FSceneView* View = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
 
 		// Artificially set the world times so that graphics settings apply correctly (we don't tick the world when rendering thumbnails)
 		ViewFamily->CurrentWorldTime = CurrentWorldTime;

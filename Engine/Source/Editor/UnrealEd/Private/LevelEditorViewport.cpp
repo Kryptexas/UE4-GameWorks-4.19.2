@@ -50,6 +50,7 @@
 #include "SNotificationList.h"
 #include "ComponentEditorUtils.h"
 #include "Settings/EditorProjectSettings.h"
+#include "IHeadMountedDisplay.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -159,19 +160,7 @@ static FVector4 AttemptToSnapLocationToOriginPlane( const FViewportCursorLocatio
 	return Location;
 }
 
-/**
- * Helper function that attempts to use the provided object/asset to create an actor to place.
- *
- * @param	InLevel			Level in which to drop actor
- * @param	ObjToUse		Asset to attempt to use for an actor to place
- * @param	CursorLocation	Location of the cursor while dropping
- * @param	bSelectActors	If true, select the newly dropped actors (defaults: true)
- * @param	ObjectFlags		The flags to place on the actor when it is spawned
- * @param	FactoryToUse	The preferred actor factory to use (optional)
- *
- * @return	true if the object was successfully used to place an actor; false otherwise
- */
-static TArray<AActor*> AttemptDropObjAsActors( ULevel* InLevel, UObject* ObjToUse, const FViewportCursorLocation& CursorLocation, bool bSelectActors, EObjectFlags ObjectFlags, UActorFactory* FactoryToUse, const FName Name = NAME_None )
+TArray<AActor*> FLevelEditorViewportClient::TryPlacingActorFromObject( ULevel* InLevel, UObject* ObjToUse, bool bSelectActors, EObjectFlags ObjectFlags, UActorFactory* FactoryToUse, const FName Name )
 {
 	TArray<AActor*> PlacedActors;
 
@@ -386,7 +375,7 @@ static bool TryAndCreateMaterialInput( UMaterial* UnrealMaterial, EMaterialKind:
 	return true;
 }
 
-static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
+UObject* FLevelEditorViewportClient::GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 {
 	FString TextureShortName = FPackageName::GetShortName( UnrealTexture->GetOutermost()->GetName() );
 
@@ -526,7 +515,7 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 				else
 				{
 					// Turn dropped textures into materials
-					ObjToUse = GetOrCreateMaterialFromTexture(DroppedObjAsTexture);
+					ObjToUse = FLevelEditorViewportClient::GetOrCreateMaterialFromTexture(DroppedObjAsTexture);
 				}
 			}
 
@@ -823,7 +812,7 @@ bool FLevelEditorViewportClient::DropObjectsOnBackground(FViewportCursorLocation
 		ensure( AssetObj );
 
 		// Attempt to create actors from the dropped object
-		TArray<AActor*> NewActors = AttemptDropObjAsActors(GetWorld()->GetCurrentLevel(), AssetObj, Cursor, bSelectActors, ObjectFlags, FactoryToUse);
+		TArray<AActor*> NewActors = TryPlacingActorFromObject(GetWorld()->GetCurrentLevel(), AssetObj, bSelectActors, ObjectFlags, FactoryToUse);
 
 		if ( NewActors.Num() > 0 )
 		{
@@ -865,7 +854,7 @@ bool FLevelEditorViewportClient::DropObjectsOnActor(FViewportCursorLocation& Cur
 		if (!bAppliedToActor)
 		{
 			// Attempt to create actors from the dropped object
-			TArray<AActor*> NewActors = AttemptDropObjAsActors(GetWorld()->GetCurrentLevel(), DroppedObject, Cursor, bSelectActors, ObjectFlags, FactoryToUse);
+			TArray<AActor*> NewActors = TryPlacingActorFromObject(GetWorld()->GetCurrentLevel(), DroppedObject, bSelectActors, ObjectFlags, FactoryToUse);
 
 			if ( NewActors.Num() > 0 )
 			{
@@ -911,7 +900,7 @@ bool FLevelEditorViewportClient::DropObjectsOnBSPSurface(FSceneView* View, FView
 		if (!bAppliedToActor)
 		{
 			// Attempt to create actors from the dropped object
-			TArray<AActor*> NewActors = AttemptDropObjAsActors(GetWorld()->GetCurrentLevel(), DroppedObject, Cursor, bSelectActors, ObjectFlags, FactoryToUse);
+			TArray<AActor*> NewActors = TryPlacingActorFromObject(GetWorld()->GetCurrentLevel(), DroppedObject, bSelectActors, ObjectFlags, FactoryToUse);
 
 			if (NewActors.Num() > 0)
 			{
@@ -1534,6 +1523,7 @@ FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelVi
 	, bOnlyMovedPivot(false)
 	, bLockedCameraView(true)
 	, bReceivedFocusRecently(false)
+	, bAlwaysShowModeWidgetAfterSelectionChanges(true)
 	, SpriteCategoryVisibility()
 	, World(nullptr)
 	, TrackingTransaction()
@@ -1617,7 +1607,7 @@ void FLevelEditorViewportClient::InitializeVisibilityFlags()
 	SpriteCategoryVisibility.Init(true, GUnrealEd->SpriteIDToIndexMap.Num());
 }
 
-FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
+FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
 {
 	bWasControlledByOtherViewport = false;
 
@@ -1665,7 +1655,7 @@ FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFami
 		}
 	}
 
-	FSceneView* View = FEditorViewportClient::CalcSceneView(ViewFamily);
+	FSceneView* View = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
 
 	View->SpriteCategoryVisibility = SpriteCategoryVisibility;
 	View->bCameraCut = bEditorCameraCut;
@@ -3543,10 +3533,10 @@ EMouseCursor::Type FLevelEditorViewportClient::GetCursor(FViewport* Viewport,int
 	if( Viewport->IsCursorVisible() && !bWidgetAxisControlledByDrag && !HitProxy )
 	{
 		if( HoveredObjects.Num() > 0 )
-	{
+		{
 			ClearHoverFromObjects();
 			Invalidate( false, false );
-	}
+		}
 	}
 
 	return CursorType;
@@ -3668,6 +3658,11 @@ void FLevelEditorViewportClient::CheckHoveredHitProxy( HHitProxy* HoveredHitProx
 		}
 	}
 
+	UpdateHoveredObjects( NewHoveredObjects );
+}
+
+void FLevelEditorViewportClient::UpdateHoveredObjects( const TSet<FViewportHoverTarget>& NewHoveredObjects )
+{
 	// Check to see if there are any hovered objects that need to be updated
 	{
 		bool bAnyHoverChanges = false;
@@ -3687,9 +3682,9 @@ void FLevelEditorViewportClient::CheckHoveredHitProxy( HHitProxy* HoveredHitProx
 			}
 		}
 
-		for( TSet<FViewportHoverTarget>::TIterator It( NewHoveredObjects ); It; ++It )
+		for( TSet<FViewportHoverTarget>::TConstIterator It( NewHoveredObjects ); It; ++It )
 		{
-			FViewportHoverTarget& NewHoverTarget = *It;
+			const FViewportHoverTarget& NewHoverTarget = *It;
 			if( !HoveredObjects.Contains( NewHoverTarget ) )
 			{
 				// Add hover effect to this object
@@ -3908,7 +3903,6 @@ void FLevelEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInter
 		}
 	}
 
-
 	Mark.Pop();
 }
 
@@ -4050,15 +4044,6 @@ void FLevelEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFa
 		{
 				View.ColorScale = FLinearColor(ColorScale.X,ColorScale.Y,ColorScale.Z);
 		}
-	}
-
-	if (ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) == 0 || !AllowsCinematicPreview())
-	{
-		// in the editor, disable camera motion blur and other rendering features that rely on the former frame
-		// unless the view port is Matinee controlled
-		ViewFamily.EngineShowFlags.CameraInterpolation = 0;
-		// keep the image sharp - ScreenPercentage is an optimization and should not affect the editor
-		ViewFamily.EngineShowFlags.SetScreenPercentage(false);
 	}
 
 	TSharedPtr<FDragDropOperation> DragOperation = FSlateApplication::Get().GetDragDroppingContent();
@@ -4281,7 +4266,7 @@ bool FLevelEditorViewportClient::OverrideHighResScreenshotCaptureRegion(FIntRect
  *
  * @param	InHoverTarget	The hoverable object to add the effect to
  */
-void FLevelEditorViewportClient::AddHoverEffect( FViewportHoverTarget& InHoverTarget )
+void FLevelEditorViewportClient::AddHoverEffect( const FViewportHoverTarget& InHoverTarget )
 {
 	AActor* ActorUnderCursor = InHoverTarget.HoveredActor;
 	UModel* ModelUnderCursor = InHoverTarget.HoveredModel;
@@ -4315,7 +4300,7 @@ void FLevelEditorViewportClient::AddHoverEffect( FViewportHoverTarget& InHoverTa
  *
  * @param	InHoverTarget	The hoverable object to remove the effect from
  */
-void FLevelEditorViewportClient::RemoveHoverEffect( FViewportHoverTarget& InHoverTarget )
+void FLevelEditorViewportClient::RemoveHoverEffect( const FViewportHoverTarget& InHoverTarget )
 {
 	AActor* CurHoveredActor = InHoverTarget.HoveredActor;
 	if( CurHoveredActor != nullptr )

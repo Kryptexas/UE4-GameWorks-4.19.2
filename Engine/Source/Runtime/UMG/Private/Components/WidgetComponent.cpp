@@ -14,6 +14,8 @@
 #include "SGameLayerManager.h"
 #include "Slate/WidgetRenderer.h"
 #include "Slate/SWorldWidgetScreenLayer.h"
+#include "Widgets/LayerManager/STooltipPresenter.h"
+#include "Widgets/Layout/SPopup.h"
 
 DECLARE_CYCLE_STAT(TEXT("3DHitTesting"), STAT_Slate3DHitTesting, STATGROUP_Slate);
 
@@ -248,7 +250,7 @@ public:
 		Result.bOpaqueRelevance = ( BlendMode == EWidgetBlendMode::Opaque || BlendMode == EWidgetBlendMode::Masked );
 		Result.bMaskedRelevance = BlendMode == EWidgetBlendMode::Masked;
 		// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
-		Result.bSeparateTranslucencyRelevance = Result.bSeparateTranslucencyRelevance = (BlendMode == EWidgetBlendMode::Transparent);
+		Result.bSeparateTranslucencyRelevance = Result.bNormalTranslucencyRelevance = (BlendMode == EWidgetBlendMode::Transparent);
 		Result.bDynamicRelevance = true;
 		Result.bShadowRelevance = IsShadowCast(View);
 		Result.bEditorPrimitiveRelevance = false;
@@ -299,7 +301,7 @@ public:
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Slate3DHitTesting);
 
-		if( World.IsValid() && ensure( World->IsGameWorld() ) )
+		if( World.IsValid() /*&& ensure( World->IsGameWorld() )*/ )
 		{
 			UWorld* SafeWorld = World.Get();
 			if ( SafeWorld )
@@ -339,11 +341,11 @@ public:
 		{
 			UWidgetComponent* WidgetComponent = Component.Get();
 			// Check if visible;
-			if ( WidgetComponent && WidgetComponent->GetSlateWidget().IsValid() )
+			if ( WidgetComponent && WidgetComponent->GetSlateWindow().IsValid() )
 			{
 				FGeometry WidgetGeom;
 
-				ArrangedChildren.AddWidget( FArrangedWidget( WidgetComponent->GetSlateWidget().ToSharedRef(), WidgetGeom.MakeChild( WidgetComponent->GetDrawSize(), FSlateLayoutTransform() ) ) );
+				ArrangedChildren.AddWidget( FArrangedWidget( WidgetComponent->GetSlateWindow().ToSharedRef(), WidgetGeom.MakeChild( WidgetComponent->GetDrawSize(), FSlateLayoutTransform() ) ) );
 			}
 		}
 	}
@@ -362,7 +364,7 @@ public:
 				{
 					UWidgetComponent* WidgetComponent = Component.Get();
 					// Check if visible;
-					if ( WidgetComponent && WidgetComponent->GetSlateWidget() == ChildWidget )
+					if ( WidgetComponent && WidgetComponent->GetSlateWindow() == ChildWidget )
 					{
 						if ( UPrimitiveComponent* HitComponent = GetHitResultAtScreenPositionAndCache(TargetPlayer->PlayerController, LocalMouseCoordinate) )
 						{
@@ -441,6 +443,8 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	, DrawSize( FIntPoint( 500, 500 ) )
 	, MaxInteractionDistance( 1000.f )
 	, BackgroundColor( FLinearColor::Transparent )
+	, TintColorAndOpacity( FLinearColor::White )
+	, OpacityFromTexture( 1.0f )
 	, BlendMode( EWidgetBlendMode::Masked )
 	, bIsOpaque_DEPRECATED( false )
 	, bIsTwoSided( false )
@@ -548,11 +552,11 @@ FCollisionShape UWidgetComponent::GetCollisionShape(float Inflation) const
 
 		if( bUseLegacyRotation )
 		{
-			BoxHalfExtent = ( FVector(DrawSize.X * 0.5f, DrawSize.Y * 0.5f, 1.0f) * ComponentToWorld.GetScale3D() ) + Inflation;
+			BoxHalfExtent = ( FVector(DrawSize.X * 0.5f, DrawSize.Y * 0.5f, 0.01f) * ComponentToWorld.GetScale3D() ) + Inflation;
 		}
 		else
 		{
-			BoxHalfExtent = ( FVector(1.0f, DrawSize.X * 0.5f, DrawSize.Y * 0.5f) * ComponentToWorld.GetScale3D() ) + Inflation;
+			BoxHalfExtent = ( FVector(0.01f, DrawSize.X * 0.5f, DrawSize.Y * 0.5f) * ComponentToWorld.GetScale3D() ) + Inflation;
 		}
 
 		if ( Inflation < 0.0f )
@@ -581,22 +585,7 @@ void UWidgetComponent::OnRegister()
 			if ( GetWorld()->IsGameWorld() )
 			{
 				TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
-
-				if ( GameViewportWidget.IsValid() )
-				{
-					TSharedPtr<ICustomHitTestPath> CustomHitTestPath = GameViewportWidget->GetCustomHitTestPath();
-					if ( !CustomHitTestPath.IsValid() )
-					{
-						CustomHitTestPath = MakeShareable(new FWidget3DHitTester(GetWorld()));
-						GameViewportWidget->SetCustomHitTestPath(CustomHitTestPath);
-					}
-
-					TSharedPtr<FWidget3DHitTester> Widget3DHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
-					if ( Widget3DHitTester->GetWorld() == GetWorld() )
-					{
-						Widget3DHitTester->RegisterWidgetComponent(this);
-					}
-				}
+				RegisterHitTesterWithViewport(GameViewportWidget);
 			}
 
 			if( !MaterialInstance )
@@ -627,18 +616,7 @@ void UWidgetComponent::OnUnregister()
 		TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
 		if( GameViewportWidget.IsValid() )
 		{
-			TSharedPtr<ICustomHitTestPath> CustomHitTestPath = GameViewportWidget->GetCustomHitTestPath();
-			if( CustomHitTestPath.IsValid() )
-			{
-				TSharedPtr<FWidget3DHitTester> WidgetHitTestPath = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
-
-				WidgetHitTestPath->UnregisterWidgetComponent( this );
-
-				if ( WidgetHitTestPath->GetNumRegisteredComponents() == 0 )
-				{
-					GameViewportWidget->SetCustomHitTestPath( nullptr );
-				}
-			}
+			UnregisterHitTesterWithViewport(GameViewportWidget);
 		}
 	}
 
@@ -650,6 +628,46 @@ void UWidgetComponent::OnUnregister()
 #endif
 
 	Super::OnUnregister();
+}
+
+void UWidgetComponent::RegisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget)
+{
+#if !UE_SERVER
+	if ( ViewportWidget.IsValid() )
+	{
+		TSharedPtr<ICustomHitTestPath> CustomHitTestPath = ViewportWidget->GetCustomHitTestPath();
+		if ( !CustomHitTestPath.IsValid() )
+		{
+			CustomHitTestPath = MakeShareable(new FWidget3DHitTester(GetWorld()));
+			ViewportWidget->SetCustomHitTestPath(CustomHitTestPath);
+		}
+
+		TSharedPtr<FWidget3DHitTester> Widget3DHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+		if ( Widget3DHitTester->GetWorld() == GetWorld() )
+		{
+			Widget3DHitTester->RegisterWidgetComponent(this);
+		}
+	}
+#endif
+
+}
+
+void UWidgetComponent::UnregisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget)
+{
+#if !UE_SERVER
+	TSharedPtr<ICustomHitTestPath> CustomHitTestPath = ViewportWidget->GetCustomHitTestPath();
+	if ( CustomHitTestPath.IsValid() )
+	{
+		TSharedPtr<FWidget3DHitTester> WidgetHitTestPath = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+
+		WidgetHitTestPath->UnregisterWidgetComponent(this);
+
+		if ( WidgetHitTestPath->GetNumRegisteredComponents() == 0 )
+		{
+			ViewportWidget->SetCustomHitTestPath(nullptr);
+		}
+	}
+#endif
 }
 
 void UWidgetComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
@@ -669,7 +687,7 @@ void UWidgetComponent::ReleaseResources()
 	}
 
 	WidgetRenderer.Reset();
-	SlateWidget.Reset();
+	SlateWindow.Reset();
 	HitTestGrid.Reset();
 }
 
@@ -684,27 +702,22 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 		UpdateWidget();
 
-		if ( Widget == nullptr )
+		if ( Widget == nullptr && !SlateWidget.IsValid() )
 		{
 			return;
 		}
 
-		if ( Space != EWidgetSpace::Screen )
-		{
-			const float RenderTimeThreshold = .5f;
-			if ( IsVisible() )
-			{
-				// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
-				if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
-				{
-					DrawWidgetToRenderTarget(DeltaTime);
-				}
-			}
-		}
-		else
-		{
-			if ( Widget && !Widget->IsDesignTime() )
-			{
+	    if ( Space != EWidgetSpace::Screen )
+	    {
+			if ( ShouldDrawWidget() )
+		    {
+			    DrawWidgetToRenderTarget(DeltaTime);
+		    }
+	    }
+	    else
+	    {
+			if ( ( Widget && !Widget->IsDesignTime() ) || SlateWidget.IsValid() )
+		    {
 				UWorld* ThisWorld = GetWorld();
 
 				ULocalPlayer* TargetPlayer = GetOwnerPlayer();
@@ -756,6 +769,21 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 #endif // !UE_SERVER
 }
 
+bool UWidgetComponent::ShouldDrawWidget() const
+{
+	const float RenderTimeThreshold = .5f;
+	if ( IsVisible() )
+	{
+		// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
+		if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
 {
 	if ( GUsingNullRHI )
@@ -763,7 +791,7 @@ void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
 		return;
 	}
 
-	if ( !SlateWidget.IsValid() )
+	if ( !SlateWindow.IsValid() )
 	{
 		return;
 	}
@@ -780,7 +808,7 @@ void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
 	WidgetRenderer->DrawWindow(
 		RenderTarget,
 		HitTestGrid.ToSharedRef(),
-		SlateWidget.ToSharedRef(),
+		SlateWindow.ToSharedRef(),
 		DrawScale,
 		DrawSize,
 		DeltaTime);
@@ -879,7 +907,10 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 		static FName IsOpaqueName("bIsOpaque");
 		static FName IsTwoSidedName("bIsTwoSided");
 		static FName BackgroundColorName("BackgroundColor");
+		static FName TintColorAndOpacityName("TintColorAndOpacity");
+		static FName OpacityFromTextureName("OpacityFromTexture");
 		static FName ParabolaDistortionName(TEXT("ParabolaDistortion"));
+		static FName BlendModeName( TEXT( "BlendMode" ) );
 
 		auto PropertyName = Property->GetFName();
 
@@ -890,16 +921,21 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 		}
 		else if ( PropertyName == DrawSizeName || PropertyName == PivotName )
 		{
-			UpdateBodySetup(true);
 			MarkRenderStateDirty();
+			UpdateBodySetup(true);
+			RecreatePhysicsState();
 		}
-		else if ( PropertyName == IsOpaqueName || PropertyName == IsTwoSidedName )
+		else if ( PropertyName == IsOpaqueName || PropertyName == IsTwoSidedName || PropertyName == BlendModeName )
 		{
 			UpdateMaterialInstance();
-			MarkRenderStateDirty();
 		}
 		else if( PropertyName == BackgroundColorName || PropertyName == ParabolaDistortionName )
 		{
+			MarkRenderStateDirty();
+		}
+		else if( PropertyName == TintColorAndOpacityName || PropertyName == OpacityFromTextureName )
+		{
+			UpdateMaterialInstanceParameters();
 			MarkRenderStateDirty();
 		}
 	}
@@ -919,10 +955,13 @@ void UWidgetComponent::InitWidget()
 		}
 		
 #if WITH_EDITOR
-		if ( Widget && !GetWorld()->IsGameWorld() )
+		if ( Widget && !GetWorld()->IsGameWorld() && !bEditTimeUsable )
 		{
-			// Prevent native ticking of editor component previews
-			Widget->SetDesignerFlags(EWidgetDesignFlags::Designing);
+			if( !GEnableVREditorHacks )
+			{
+				// Prevent native ticking of editor component previews
+				Widget->SetDesignerFlags(EWidgetDesignFlags::Designing);
+			}
 		}
 #endif
 	}
@@ -944,6 +983,11 @@ ULocalPlayer* UWidgetComponent::GetOwnerPlayer() const
 
 void UWidgetComponent::SetWidget(UUserWidget* InWidget)
 {
+	if( InWidget != nullptr )
+	{
+		SetSlateWidget( nullptr );
+	}
+
 	if ( Widget )
 	{
 		RemoveWidgetFromScreen();
@@ -956,6 +1000,24 @@ void UWidgetComponent::SetWidget(UUserWidget* InWidget)
 	UpdateWidget();
 }
 
+void UWidgetComponent::SetSlateWidget( const TSharedPtr<SWidget>& InSlateWidget )
+{
+	if( Widget != nullptr )
+	{
+		SetWidget( nullptr );
+	}
+
+	if( SlateWidget.IsValid() )
+	{
+		RemoveWidgetFromScreen();
+		SlateWidget.Reset();
+	}
+
+	SlateWidget = InSlateWidget;
+
+	UpdateWidget();
+}
+
 void UWidgetComponent::UpdateWidget()
 {
 	// Don't do any work if Slate is not initialized
@@ -963,15 +1025,15 @@ void UWidgetComponent::UpdateWidget()
 	{
 		if ( Space != EWidgetSpace::Screen )
 		{
-			TSharedPtr<SWidget> NewWidget;
+			TSharedPtr<SWidget> NewSlateWidget;
 			if (Widget)
 			{
-				NewWidget = Widget->TakeWidget();
+				NewSlateWidget = Widget->TakeWidget();
 			}
 
-			if ( !SlateWidget.IsValid() )
+			if ( !SlateWindow.IsValid() )
 			{
-				SlateWidget = SNew(SVirtualWindow).Size(DrawSize);
+				SlateWindow = SNew(SVirtualWindow).Size(DrawSize);
 			}
 
 			if ( !HitTestGrid.IsValid() )
@@ -979,20 +1041,33 @@ void UWidgetComponent::UpdateWidget()
 				HitTestGrid = MakeShareable(new FHittestGrid);
 			}
 
-			SlateWidget->Resize(DrawSize);
+			SlateWindow->Resize(DrawSize);
 
-			if (NewWidget.IsValid())
+			if ( NewSlateWidget.IsValid() )
 			{
-				SlateWidget->SetContent(NewWidget.ToSharedRef());
+				if ( NewSlateWidget != CurrentSlateWidget )
+				{
+					CurrentSlateWidget = NewSlateWidget;
+					SlateWindow->SetContent(NewSlateWidget.ToSharedRef());
+				}
+			}
+			else if( SlateWidget.IsValid() )
+			{
+				if ( SlateWidget != CurrentSlateWidget )
+				{
+					CurrentSlateWidget = SlateWidget;
+					SlateWindow->SetContent(SlateWidget.ToSharedRef());
+				}
 			}
 			else
 			{
-				SlateWidget->SetContent(SNullWidget::NullWidget);
+				CurrentSlateWidget = SNullWidget::NullWidget;
+				SlateWindow->SetContent( SNullWidget::NullWidget );
 			}
 		}
 		else
 		{
-			SlateWidget.Reset();
+			SlateWindow.Reset();
 		}
 	}
 }
@@ -1096,7 +1171,7 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 
 			BoxElem->X = DrawSize.X;
 			BoxElem->Y = DrawSize.Y;
-			BoxElem->Z = 1.0f;
+			BoxElem->Z = 0.01f;
 		}
 		else
 		{
@@ -1104,7 +1179,7 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 				-( DrawSize.X * 0.5f ) + ( DrawSize.X * Pivot.X ),
 				-( DrawSize.Y * 0.5f ) + ( DrawSize.Y * Pivot.Y ));
 			
-			BoxElem->X = 1.0f;
+			BoxElem->X = 0.01f;
 			BoxElem->Y = DrawSize.X;
 			BoxElem->Z = DrawSize.Y;
 		}
@@ -1145,6 +1220,11 @@ UUserWidget* UWidgetComponent::GetUserWidgetObject() const
 	return Widget;
 }
 
+const TSharedPtr<SWidget>& UWidgetComponent::GetSlateWidget() const
+{
+	return SlateWidget;
+}
+
 TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath(FVector WorldHitLocation, bool bIgnoreEnabledStatus, float CursorRadius)
 {
 	FVector2D LocalHitLocation;
@@ -1172,9 +1252,9 @@ TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath(FVector WorldHitLoc
 	return ArrangedWidgets;
 }
 
-TSharedPtr<SWidget> UWidgetComponent::GetSlateWidget() const
+TSharedPtr<SWindow> UWidgetComponent::GetSlateWindow() const
 {
-	return SlateWidget;
+	return SlateWindow;
 }
 
 FVector2D UWidgetComponent::GetDrawSize() const
@@ -1190,6 +1270,7 @@ void UWidgetComponent::SetDrawSize(FVector2D Size)
 	{
 		DrawSize = NewDrawSize;
 		MarkRenderStateDirty();
+		UpdateBodySetup( true );
 		RecreatePhysicsState();
 	}
 }
@@ -1204,9 +1285,60 @@ void UWidgetComponent::SetMaxInteractionDistance(float Distance)
 	MaxInteractionDistance = Distance;
 }
 
+void UWidgetComponent::SetBlendMode( const EWidgetBlendMode NewBlendMode )
+{
+	if( NewBlendMode != this->BlendMode )
+	{
+		this->BlendMode = NewBlendMode;
+		if( IsRegistered() )
+		{
+			UpdateMaterialInstance();
+		}
+	}
+}
+
+void UWidgetComponent::SetTwoSided( const bool bWantTwoSided )
+{
+	if( bWantTwoSided != this->bIsTwoSided )
+	{
+		this->bIsTwoSided = bWantTwoSided;
+		if( IsRegistered() )
+		{
+			UpdateMaterialInstance();
+		}
+	}
+}
+
+void UWidgetComponent::SetBackgroundColor( const FLinearColor NewBackgroundColor )
+{
+	if( NewBackgroundColor != this->BackgroundColor)
+	{
+		this->BackgroundColor = NewBackgroundColor;
+		MarkRenderStateDirty();
+	}
+}
+
+void UWidgetComponent::SetTintColorAndOpacity( const FLinearColor NewTintColorAndOpacity )
+{
+	if( NewTintColorAndOpacity != this->TintColorAndOpacity )
+	{
+		this->TintColorAndOpacity = NewTintColorAndOpacity;
+		UpdateMaterialInstanceParameters();
+	}
+}
+
+void UWidgetComponent::SetOpacityFromTexture( const float NewOpacityFromTexture )
+{
+	if( NewOpacityFromTexture != this->OpacityFromTexture )
+	{
+		this->OpacityFromTexture = NewOpacityFromTexture;
+		UpdateMaterialInstanceParameters();
+	}
+}
+
 TSharedPtr< SWindow > UWidgetComponent::GetVirtualWindow() const
 {
-	return StaticCastSharedPtr<SWindow>(SlateWidget);
+	return StaticCastSharedPtr<SWindow>(SlateWindow);
 }
 
 void UWidgetComponent::PostLoad()
@@ -1259,11 +1391,22 @@ void UWidgetComponent::UpdateMaterialInstance()
 
 	MaterialInstance = UMaterialInstanceDynamic::Create(Parent, this);
 
+	UpdateMaterialInstanceParameters();
+
+	if( IsRegistered() )
+	{
+		MarkRenderStateDirty();
+	}
+}
+
+void UWidgetComponent::UpdateMaterialInstanceParameters()
+{
 	if( MaterialInstance )
 	{
 		MaterialInstance->SetTextureParameterValue("SlateUI", RenderTarget);
+		MaterialInstance->SetVectorParameterValue("TintColorAndOpacity", TintColorAndOpacity);
+		MaterialInstance->SetScalarParameterValue("OpacityFromTexture", OpacityFromTexture);
 	}
-
 }
 
 void UWidgetComponent::SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass)

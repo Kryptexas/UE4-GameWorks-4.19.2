@@ -808,7 +808,6 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Initialize the HMDs and motion controllers, if any
 	InitializeHMDDevice();
-	InitializeMotionControllers();
 
 	// Disable the screensaver when running the game.
 	if( GIsClient && !GIsEditor )
@@ -984,8 +983,10 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// Connect the engine analytics provider
 	FEngineAnalytics::Initialize();
 
-	//Load the streaming pause rendering module.
-	FModuleManager::LoadModulePtr<IModuleInterface>(TEXT("StreamingPauseRendering"));
+	// Dynamically load engine runtime modules
+	{
+		FModuleManager::Get().LoadModuleChecked( TEXT( "StreamingPauseRendering" ) );
+	}
 
 	bool bIsRHS = true;
 	if (GConfig)
@@ -2102,17 +2103,6 @@ bool UEngine::InitializeHMDDevice()
 	}
  
 	return StereoRenderingDevice.IsValid();
-}
-
-bool UEngine::InitializeMotionControllers()
-{
-	TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>(IMotionController::GetModularFeatureName());
-	for (auto MotionController : MotionControllers)
-	{
-		MotionControllerDevices.AddUnique(MotionController);
-	}
-
-	return (MotionControllerDevices.Num() > 0);
 }
 
 void UEngine::RecordHMDAnalytics()

@@ -538,7 +538,10 @@ public:
 
 	/**
 	 * Returns the number of bounds of the mesh.
+	 *
+	 * @return	The bounding box represented as box origin with extents and also a sphere that encapsulates that box
 	 */
+	UFUNCTION( BlueprintPure, Category="StaticMesh" )
 	ENGINE_API FBoxSphereBounds GetBounds() const;
 
 	/** Returns the bounding box, in local space including bounds extension(s), of the StaticMesh asset */
@@ -638,6 +641,9 @@ public:
 
 	void EnforceLightmapRestrictions();
 
+	/** Calculates the extended bounds */
+	ENGINE_API void CalculateExtendedBounds();
+
 #if WITH_EDITOR
 
 	/**
@@ -679,8 +685,6 @@ private:
 	 */
 	void CacheDerivedData();
 
-	/** Calculates the extended bounds */
-	void CalculateExtendedBounds();
 
 	FOnPreMeshBuild PreMeshBuild;
 	FOnPostMeshBuild PostMeshBuild;

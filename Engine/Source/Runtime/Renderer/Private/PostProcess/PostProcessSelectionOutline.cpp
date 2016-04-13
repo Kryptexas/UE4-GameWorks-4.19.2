@@ -343,7 +343,6 @@ void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext&
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
-	Context.RHICmdList.Clear(true, FLinearColor::Black, false, (float)ERHIZBuffer::FarPlane, false, 0, ViewRect);
 	Context.SetViewportAndCallRHI(ViewRect);
 
 	// set the state

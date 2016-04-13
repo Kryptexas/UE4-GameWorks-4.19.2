@@ -54,7 +54,7 @@ struct FViewportHoverTarget
 	}
 };
 
-struct FTrackingTransaction
+struct UNREALED_API FTrackingTransaction
 {
 	/** State of this transaction */
 	struct ETransactionState
@@ -131,7 +131,7 @@ public:
 	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
 	// End of FViewElementDrawer interface
 	
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass = eSSP_FULL) override;
 
 	////////////////////////////
 	// FEditorViewportClient interface
@@ -370,14 +370,14 @@ public:
 	 *
 	 * @param	InHoverTarget	The hoverable object to add the effect to
 	 */
-	static void AddHoverEffect( struct FViewportHoverTarget& InHoverTarget );
+	static void AddHoverEffect( const struct FViewportHoverTarget& InHoverTarget );
 
 	/**
 	 * Static: Removes a hover effect to the specified object
 	 *
 	 * @param	InHoverTarget	The hoverable object to remove the effect from
 	 */
-	static void RemoveHoverEffect( struct FViewportHoverTarget& InHoverTarget );
+	static void RemoveHoverEffect( const struct FViewportHoverTarget& InHoverTarget );
 
 	/**
 	 * Static: Clears viewport hover effects from any objects that currently have that
@@ -523,6 +523,33 @@ public:
 	{
 		SoundShowFlags = InSoundShowFlags;
 	}
+
+	void UpdateHoveredObjects( const TSet<FViewportHoverTarget>& NewHoveredObjects );
+
+	/**
+	 * Static: Attempts to place the specified object in the level, returning one or more newly-created actors if successful.
+	 * IMPORTANT: The placed actor's location must be first set using GEditor->ClickLocation and GEditor->ClickPlane.
+	 *
+	 * @param	InLevel			Level in which to drop actor
+	 * @param	ObjToUse		Asset to attempt to use for an actor to place
+	 * @param	CursorLocation	Location of the cursor while dropping
+	 * @param	bSelectActors	If true, select the newly dropped actors (defaults: true)
+	 * @param	ObjectFlags		The flags to place on the actor when it is spawned
+	 * @param	FactoryToUse	The preferred actor factory to use (optional)
+	 *
+	 * @return	true if the object was successfully used to place an actor; false otherwise
+	 */
+	static TArray<AActor*> TryPlacingActorFromObject( ULevel* InLevel, UObject* ObjToUse, bool bSelectActors, EObjectFlags ObjectFlags, UActorFactory* FactoryToUse, const FName Name = NAME_None );
+
+	/**
+	 * Static: Given a texture, returns a material for that texture, creating a new asset if necessary.  This is used
+	 * for dragging and dropping assets into the scene
+	 *
+	 * @param	UnrealTexture	Texture that we need a material for
+	 *
+	 * @return	The material that uses this texture, or null if we couldn't find or create one
+	 */
+	static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture );
 
 protected:
 	/** 
@@ -715,6 +742,8 @@ public:
 	/** Whether this viewport recently received focus. Used to determine whether component selection is permissible. */
 	bool bReceivedFocusRecently;
 
+	/** When enabled, the Unreal transform widget will become visible after an actor is selected, even if it was turned off via a show flag */
+	bool bAlwaysShowModeWidgetAfterSelectionChanges;
 private:
 	/** The actors that are currently being placed in the viewport via dragging */
 	static TArray< TWeakObjectPtr< AActor > > DropPreviewActors;

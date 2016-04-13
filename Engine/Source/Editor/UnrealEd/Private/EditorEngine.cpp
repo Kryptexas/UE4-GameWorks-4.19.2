@@ -717,6 +717,9 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 
 		FModuleManager::Get().LoadModule(TEXT("LogVisualizer"));
 		FModuleManager::Get().LoadModule(TEXT("HotReload"));
+
+		// Load VR Editor support
+		FModuleManager::Get().LoadModuleChecked( TEXT( "VREditor" ) );
 	}
 
 	SlowTask.EnterProgressFrame(10);

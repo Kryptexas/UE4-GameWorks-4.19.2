@@ -203,6 +203,11 @@ bool SWidget::OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent )
 	return false;
 }
 
+TSharedPtr<FPopupLayer> SWidget::OnVisualizePopup(const TSharedRef<SWidget>& PopupContent)
+{
+	return TSharedPtr<FPopupLayer>();
+}
+
 FReply SWidget::OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	return FReply::Unhandled();
@@ -675,6 +680,11 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 					);
 			}
 		}
+	}
+
+	if ( OutDrawElements.ShouldResolveDeferred() )
+	{
+		NewLayerID = OutDrawElements.PaintDeferred(NewLayerID);
 	}
 
 	return NewLayerID;

@@ -139,6 +139,26 @@ public:
 	/** @return Whether or not this viewport supports stereo rendering */
 	bool IsStereoRenderingAllowed() const { return bEnableStereoRendering; }
 
+	/**
+	 * Sets whether this viewport can render directly to the back buffer.  Advanced use only
+	 * 
+	 * @param	bInRenderDirectlyToWindow	Whether we should be able to render to the back buffer
+	 */
+	void SetRenderDirectlyToWindow( const bool bInRenderDirectlyToWindow )
+	{
+		bRenderDirectlyToWindow = bInRenderDirectlyToWindow;
+	}
+
+	/**
+	 * Sets whether stereo rendering is allowed for this viewport.  Advanced use only
+	 * 
+	 * @param	bInEnableStereoRendering	Whether stereo rendering should be allowed for this viewport
+	 */
+	void EnableStereoRendering( const bool bInEnableStereoRendering )
+	{
+		bEnableStereoRendering = bInEnableStereoRendering;
+	}
+
 	/** 
 	 * Sets whether this viewport is active. 
 	 * While active, a persistent Active Timer is registered and a Slate tick/paint pass is guaranteed every frame.

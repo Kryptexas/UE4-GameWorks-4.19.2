@@ -69,6 +69,7 @@
 #include "IPortalApplicationWindow.h"
 #include "IPortalServiceLocator.h"
 #include "MaterialShaderQualitySettings.h"
+#include "IVREditorModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -2055,6 +2056,34 @@ void FLevelEditorActionCallbacks::OpenMarketplace()
 }
 }
 
+
+void FLevelEditorActionCallbacks::ToggleVR()
+{
+	IVREditorModule& VREditorModule = IVREditorModule::Get();
+	VREditorModule.EnableVREditor( !VREditorModule.IsVREditorEnabled() );
+}
+
+
+bool FLevelEditorActionCallbacks::ToggleVR_CanExecute()
+{
+	IVREditorModule& VREditorModule = IVREditorModule::Get();
+	return VREditorModule.IsVREditorAvailable();
+}
+
+
+bool FLevelEditorActionCallbacks::ToggleVR_IsChecked()
+{
+	IVREditorModule& VREditorModule = IVREditorModule::Get();
+	return VREditorModule.IsVREditorEnabled();
+}
+
+
+bool FLevelEditorActionCallbacks::ToggleVR_IsVisible()
+{
+	return GetDefault<UEditorExperimentalSettings>()->bEnableVREditing;
+}
+
+
 bool FLevelEditorActionCallbacks::CanSelectGameModeBlueprint()
 {
 	bool bCheckOutNeeded = false;
@@ -3058,6 +3087,8 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( OpenMarketplace, "Open Marketplace", "Opens the Marketplace", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( AddMatinee, "Add Matinee", "Creates a new matinee actor to edit", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( EditMatinee, "Edit Matinee", "Selects a Matinee to edit", EUserInterfaceActionType::Button, FInputChord() );
+
+	UI_COMMAND( ToggleVR, "Toggle VR", "Toggles VR (Virtual Reality) mode", EUserInterfaceActionType::ToggleButton, FInputChord( EModifierKey::Alt, EKeys::Tilde ) );
 
 	UI_COMMAND( OpenLevelBlueprint, "Open Level Blueprint", "Edit the Level Blueprint for the current level", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( CheckOutProjectSettingsConfig, "Check Out", "Checks out the project settings config file so the game mode can be set.", EUserInterfaceActionType::Button, FInputChord() );

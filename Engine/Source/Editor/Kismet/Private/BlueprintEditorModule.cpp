@@ -158,7 +158,10 @@ void FBlueprintUndoRedoHandler::PostUndo(bool bSuccess)
 void FBlueprintUndoRedoHandler::PostRedo(bool bSuccess)
 {
 	// Note: We add 1 to get the correct slot, because the transaction buffer will have decremented the UndoCount prior to getting here.
-	FixSubObjectReferencesPostUndoRedo(GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - (GEditor->Trans->GetUndoCount() + 1)));
+	if( GEditor->Trans->GetQueueLength() > 0 )
+	{
+		FixSubObjectReferencesPostUndoRedo(GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - (GEditor->Trans->GetUndoCount() + 1)));
+	}
 }
 
 void FBlueprintEditorModule::StartupModule()

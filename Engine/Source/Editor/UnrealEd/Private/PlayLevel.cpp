@@ -3014,7 +3014,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				bool bUseOSWndBorder = false;
 				bool bRenderDirectlyToWindow = false;
 				bool bEnableStereoRendering = false;
-				if (bUseVRPreviewForPlayWorld)
+				if (bUseVRPreviewForPlayWorld)	// @todo vreditor: Is not having an OS window border a problem?  We could spawn a dedicated VR window if so.  What about true fullscreen in VR?
 				{
 					// modify window and viewport properties for VR.
 					bUseOSWndBorder = true;
@@ -3458,6 +3458,8 @@ void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
 			}
 		}
 	}
+
+	FEditorDelegates::OnSwitchBeginPIEAndSIE.Broadcast( bIsSimulatingInEditor );
 }
 
 int32 UEditorEngine::OnSwitchWorldForSlatePieWindow( int32 WorldID )

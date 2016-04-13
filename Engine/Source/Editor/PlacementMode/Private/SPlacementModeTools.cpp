@@ -246,7 +246,18 @@ FReply SPlacementAssetEntry::OnDragDetected(const FGeometry& MyGeometry, const F
 {
 	bIsPressed = false;
 
-	return FReply::Handled().BeginDragDrop( FAssetDragDropOp::New( Item->AssetData, Item->Factory ) );
+	TArray<FAssetData> DraggedAssetDatas;
+	DraggedAssetDatas.Add( Item->AssetData );
+	FEditorDelegates::OnAssetDragStarted.Broadcast( DraggedAssetDatas, Item->Factory );
+
+	if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
+	{
+		return FReply::Handled().BeginDragDrop( FAssetDragDropOp::New( Item->AssetData, Item->Factory ) );
+	}
+	else
+	{
+		return FReply::Handled();
+	}
 }
 
 bool SPlacementAssetEntry::IsPressed() const

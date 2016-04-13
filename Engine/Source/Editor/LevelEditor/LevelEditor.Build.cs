@@ -25,7 +25,9 @@ public class LevelEditor : ModuleRules
 			new string[] {
 				"Settings",
 				"UserFeedback",
-				"IntroTutorials"
+				"IntroTutorials",
+				"HeadMountedDisplay",
+				"VREditor"
 			}
 		);
 
@@ -90,7 +92,9 @@ public class LevelEditor : ModuleRules
 				"UserFeedback",
 				"ReferenceViewer",
 				"SizeMap",
-                "IntroTutorials"
+                "IntroTutorials",
+				"HeadMountedDisplay",
+				"VREditor"
 			}
 		);
 	}

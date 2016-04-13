@@ -436,7 +436,6 @@ public:
 	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
 	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice) override;
 	virtual void ReceivedFocus(FViewport* Viewport) override;
-	virtual void OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected)  override;
 	virtual void MouseEnter(FViewport* Viewport,int32 x, int32 y) override;
 	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;
 	virtual void MouseLeave( FViewport* Viewport ) override;
@@ -569,9 +568,10 @@ public:
 	/**
 	 * Configures the specified FSceneView object with the view and projection matrices for this viewport.
 	 * @param	View		The view to be configured.  Must be valid.
+	 * @param	StereoPass	Which eye we're drawing this view for when in stereo mode
 	 * @return	A pointer to the view within the view family which represents the viewport's primary view.
 	 */
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily);
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass = eSSP_FULL);
 
 	/** 
 	 * @return The scene being rendered in this viewport
@@ -939,6 +939,9 @@ public:
 		return ModeTools;
 	}
 
+	/** Get the editor viewport widget */
+	TSharedPtr<SEditorViewport> GetEditorViewportWidget() const { return EditorViewportWidget.Pin(); }
+
 protected:
 
 	/** Camera speed setting */
@@ -1244,6 +1247,9 @@ public:
 
 	/** The viewport's scene view state. */
 	FSceneViewStateReference ViewState;
+
+	/** Viewport view state when stereo rendering is enabled */
+	FSceneViewStateReference StereoViewState;
 
 	/** A set of flags that determines visibility for various scene elements. */
 	FEngineShowFlags		EngineShowFlags;

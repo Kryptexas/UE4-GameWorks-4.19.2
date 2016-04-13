@@ -15,6 +15,7 @@ namespace EThumbnailLabel
 	{
 		ClassName,
 		AssetName,
+		NoLabel
 	};
 };
 

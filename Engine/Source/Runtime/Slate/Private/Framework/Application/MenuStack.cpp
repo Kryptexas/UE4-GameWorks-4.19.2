@@ -213,7 +213,7 @@ TSharedRef<IMenu> FMenuStack::Push(const FWidgetPath& InOwnerPath, const TShared
 		ActiveMethod = InMethod.IsSet() ? FPopupMethodReply::UseMethod(InMethod.GetValue()) : QueryPopupMethod(InOwnerPath);
 
 		// The host window is determined when a new root menu is pushed
-		SetHostWindow(InOwnerPath.GetWindow());
+		SetHostPath(InOwnerPath);
 	}
 
 	return PushInternal(ParentMenu, InContent, Anchor, TransitionEffect, bFocusImmediately, ActiveMethod.GetShouldThrottle(), bIsCollapsedByParent, bEnablePerPixelTransparency);
@@ -248,7 +248,7 @@ TSharedRef<IMenu> FMenuStack::PushHosted(const FWidgetPath& InOwnerPath, const T
 		ActiveMethod = FPopupMethodReply::UseMethod(EPopupMethod::UseCurrentWindow);
 
 		// The host window is determined when a new root menu is pushed
-		SetHostWindow(InOwnerPath.GetWindow());
+		SetHostPath(InOwnerPath);
 	}
 
 	return PushHosted(ParentMenu, InMenuHost, InContent, OutWrappedContent, TransitionEffect, ShouldThrottle);
@@ -583,27 +583,32 @@ void FMenuStack::DismissInternal(int32 FirstStackIndexToRemove)
 	}
 }
 
-void FMenuStack::SetHostWindow(TSharedPtr<SWindow> InWindow)
+void FMenuStack::SetHostPath(const FWidgetPath& InOwnerPath)
 {
-	if (HostWindow != InWindow)
+	if ( HostPopupLayer.IsValid() )
 	{
-		// If the host window is changing, remove the popup panel from the previous host
-		if (HostWindow.IsValid() && HostWindowPopupPanel.IsValid())
+		if ( !InOwnerPath.ContainsWidget(HostPopupLayer->GetHost()) )
 		{
-			HostWindow->RemoveOverlaySlot(HostWindowPopupPanel.ToSharedRef());
+			HostPopupLayer->Remove();
+			HostPopupLayer.Reset();
 			HostWindowPopupPanel.Reset();
 		}
+	}
 
-		HostWindow = InWindow;
+	HostWindow = InOwnerPath.IsValid() ? InOwnerPath.GetWindow() : TSharedPtr<SWindow>();
 
-		// If the host window is changing, add a popup panel to the new host
-		if (HostWindow.IsValid())
+	if ( HostWindow.IsValid() && !HostWindowPopupPanel.IsValid() )
+	{
+		TSharedRef<SMenuPanel> NewHostWindowPopupPanel = SNew(SMenuPanel);
+		for ( int i = InOwnerPath.Widgets.Num() - 1; i >= 0; i-- )
 		{
-			// setup a popup layer on the new window
-			HostWindow->AddOverlaySlot()
-			[
-				SAssignNew(HostWindowPopupPanel, SMenuPanel)
-			];
+			const TSharedRef<SWidget>& HostWidget = InOwnerPath.Widgets[i].Widget;
+			HostPopupLayer = HostWidget->OnVisualizePopup(NewHostWindowPopupPanel);
+			if ( HostPopupLayer.IsValid() )
+			{
+				HostWindowPopupPanel = NewHostWindowPopupPanel;
+				break;
+			}
 		}
 	}
 }
@@ -634,7 +639,7 @@ void FMenuStack::OnMenuDestroyed(TSharedRef<IMenu> InMenu)
 				FSlateThrottleManager::Get().LeaveResponsiveMode(ThrottleHandle);
 			}
 
-			SetHostWindow(TSharedPtr<SWindow>());
+			SetHostPath(FWidgetPath());
 		}
 	}
 }
@@ -716,7 +721,7 @@ void FMenuStack::OnWindowDestroyed(TSharedRef<SWindow> InWindow)
 		Stack.Empty();
 		CachedContentMap.Empty();
 
-		SetHostWindow(TSharedPtr<SWindow>());
+		SetHostPath(FWidgetPath());
 	}
 	else
 	{

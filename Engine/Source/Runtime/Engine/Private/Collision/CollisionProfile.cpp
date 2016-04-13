@@ -6,7 +6,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCollisionProfile, Warning, All)
 
 #define MIN_CUSTOMIZABLE_COLLISIONCHANNEL	ECC_GameTraceChannel1
 #define MAX_CUSTOMIZABLE_COLLISIONCHANNEL	ECC_GameTraceChannel18
-#define IS_VALID_COLLISIONCHANNEL(x) ((x)> ECC_Destructible && (x) < ECC_OverlapAll_Deprecated)
+#define IS_VALID_COLLISIONCHANNEL(x) ((x)> ECC_EditorGizmo && (x) < ECC_OverlapAll_Deprecated)
 
 // do not chnage this name. This value is serialize to other object, if you change, it will mess up serialization, you'll need to fix up name by versioning
 FName UCollisionProfile::CustomCollisionProfileName = FName(TEXT("Custom"));
@@ -338,7 +338,7 @@ void UCollisionProfile::LoadProfileConfig(bool bForceInit)
 			ECollisionChannel CollisionChannel = (ECollisionChannel)EnumIndex;
 			// for any engine level collision profile, we hard coded here
 			// meta data doesn't work in cooked build, so we'll have to manually handle them
-			if ((CollisionChannel == ECC_Visibility) || (CollisionChannel == ECC_Camera))
+			if ((CollisionChannel == ECC_Visibility) || (CollisionChannel == ECC_Camera) || (CollisionChannel == ECC_EditorGizmo))
 			{
 				// remove from object query flags
 				FCollisionQueryFlag::Get().RemoveFromAllObjectsQueryFlag(CollisionChannel);
@@ -356,6 +356,7 @@ void UCollisionProfile::LoadProfileConfig(bool bForceInit)
 	// Now Load Channel setups, and set display names if customized
 	// also initialize DefaultResposneContainer with default response for each channel
 	FCollisionResponseContainer::DefaultResponseContainer.SetAllChannels(ECR_Block);
+	FCollisionResponseContainer::DefaultResponseContainer.SetResponse( ECC_EditorGizmo, ECR_Ignore );
 
 	// we can't guarantee that DefaultChannelResponses was loaded ordered (from
 	// config) - in the following loop, we fill out TraceTypeMapping and 

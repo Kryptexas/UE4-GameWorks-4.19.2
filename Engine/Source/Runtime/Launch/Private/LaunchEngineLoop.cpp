@@ -2700,6 +2700,19 @@ void FEngineLoop::Tick()
 			}
 		}
 
+		// @todo vreditor urgent: Temporary hack to allow world-to-meters to be set before
+		// input is polled for motion controller devices each frame.
+#if WITH_ENGINE
+		extern ENGINE_API float GNewWorldToMetersScale;
+		if( GNewWorldToMetersScale != 0.0f && GWorld != nullptr )
+		{
+			if( GNewWorldToMetersScale != GWorld->GetWorldSettings()->WorldToMeters )
+			{
+				GWorld->GetWorldSettings()->WorldToMeters = GNewWorldToMetersScale;
+			}
+		}
+#endif	// WITH_ENGINE
+
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_SlateInput);

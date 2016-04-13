@@ -2332,10 +2332,16 @@ public:
 	virtual void OutsideWorldBounds();
 
 	/** 
-	 *	Returns the bounding box of all components in this Actor.
+	 *	Returns the world space bounding box of all components in this Actor.
 	 *	@param bNonColliding Indicates that you want to include non-colliding components in the bounding box
 	 */
 	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const;
+
+	/** 
+	 *	Calculates the actor space bounding box of all components in this Actor.  This is slower than GetComponentsBoundingBox(), because the local bounds of the components are not cached -- they are recalculated every time this function is called.
+	 *	@param bNonColliding Indicates that you want to include non-colliding components in the bounding box
+	 */
+	virtual FBox CalculateComponentsBoundingBoxInLocalSpace(bool bNonColliding = false) const;
 
 	/* Get half-height/radius of a big axis-aligned cylinder around this actors registered colliding components, or all registered components if bNonColliding is false. */
 	virtual void GetComponentsBoundingCylinder(float& CollisionRadius, float& CollisionHalfHeight, bool bNonColliding = false) const;

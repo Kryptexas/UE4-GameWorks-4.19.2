@@ -8273,19 +8273,23 @@ void FBlueprintEditor::TryInvokingDetailsTab(bool bFlash)
 
 		// We don't want to force this tab into existence when the blueprint editor isn't in the foreground and actively
 		// being interacted with.  So we make sure the window it's in is focused and the tab is in the foreground.
-		if ( BlueprintTab.IsValid() && BlueprintTab->IsForeground() && BlueprintTab->GetParentWindow()->HasFocusedDescendants()  )
+		if ( BlueprintTab.IsValid() && BlueprintTab->IsForeground() )
 		{
-			if (!Inspector.IsValid() || !Inspector->GetOwnerTab().IsValid() || Inspector->GetOwnerTab()->GetDockArea().IsValid())
+			TSharedPtr<SWindow> ParentWindow = BlueprintTab->GetParentWindow();
+			if ( ParentWindow.IsValid() && ParentWindow->HasFocusedDescendants() )
 			{
-				// Show the details panel if it doesn't exist.
-				TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
-
-				if(bFlash)
+				if ( !Inspector.IsValid() || !Inspector->GetOwnerTab().IsValid() || Inspector->GetOwnerTab()->GetDockArea().IsValid() )
 				{
-					TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
-					if(OwnerTab.IsValid())
+					// Show the details panel if it doesn't exist.
+					TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
+
+					if ( bFlash )
 					{
-						OwnerTab->FlashTab();
+						TSharedPtr<SDockTab> OwnerTab = Inspector->GetOwnerTab();
+						if ( OwnerTab.IsValid() )
+						{
+							OwnerTab->FlashTab();
+						}
 					}
 				}
 			}

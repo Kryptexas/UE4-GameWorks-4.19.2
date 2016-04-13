@@ -301,6 +301,13 @@ private:
 
 	void WindowRenderTargetUpdate(FSlateRenderer* Renderer, SWindow* Window);
 
+	/** @return Returns true if we should always render to a separate render target (rather than rendering directly to the
+	    viewport backbuffer, taking into account any temporary requirements of head-mounted displays */
+	bool UseSeparateRenderTarget() const
+	{
+		return bUseSeparateRenderTarget || bForceSeparateRenderTarget;
+	}
+
 private:
 	/** An intermediate reply state that is reset whenever an input event is generated */
 	FReply CurrentReplyState;
@@ -334,6 +341,8 @@ private:
 	bool bRequiresVsync;
 	/** true if this viewport renders to a separate render target.  false to render directly to the windows back buffer */
 	bool bUseSeparateRenderTarget;
+	/** True if we should force use of a separate render target because the HMD needs it. */
+	bool bForceSeparateRenderTarget;
 	/** Whether or not we are currently resizing */
 	bool bIsResizing;
 	/** Delegate that is fired off in ResizeFrame after ResizeViewport */

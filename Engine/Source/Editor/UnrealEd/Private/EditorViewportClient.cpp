@@ -28,6 +28,8 @@
 #include "AssetEditorModeManager.h"
 #include "Components/DirectionalLightComponent.h"
 #include "PixelInspectorModule.h"
+#include "IHeadMountedDisplay.h"
+#include "SceneViewExtension.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -235,6 +237,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, Viewport(NULL)
 	, ViewportType(LVT_Perspective)
 	, ViewState()
+	, StereoViewState()
 	, EngineShowFlags(ESFIM_Editor)
 	, LastEngineShowFlags(ESFIM_Game)
 	, ExposureSettings()
@@ -309,6 +312,8 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	//Widget->SetUsesEditorModeTools(ModeTools);
 
 	ViewState.Allocate();
+
+	// NOTE: StereoViewState will be allocated on demand, for viewports than end up drawing in stereo
 
 	// add this client to list of views, and remember the index
 	ViewIndex = GEditor->AllViewportClients.Add(this);
@@ -630,15 +635,33 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 //
 // Configures the specified FSceneView object with the view and projection matrices for this viewport. 
 
-FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
+FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
 {
+    const bool bStereoRendering = StereoPass != eSSP_FULL;
+
 	FSceneViewInitOptions ViewInitOptions;
 
 	FViewportCameraTransform& ViewTransform = GetViewTransform();
 	const ELevelViewportType EffectiveViewportType = GetViewportType();
 
-	const FVector& ViewLocation = ViewTransform.GetLocation();
-	const FRotator& ViewRotation = ViewTransform.GetRotation();
+	ViewInitOptions.ViewOrigin = ViewTransform.GetLocation();
+	FRotator ViewRotation = ViewTransform.GetRotation();
+
+
+	// Apply head tracking!  Note that this won't affect what the editor *thinks* the view location and rotation is, it will
+	// only affect the rendering of the scene.
+	if( bStereoRendering && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed() )
+	{
+		FQuat CurrentHmdOrientation;
+		FVector CurrentHmdPosition;
+		GEngine->HMDDevice->GetCurrentOrientationAndPosition( CurrentHmdOrientation, CurrentHmdPosition );
+
+		const FQuat VisualRotation = ViewRotation.Quaternion() * CurrentHmdOrientation;
+		ViewRotation = VisualRotation.Rotator();
+		ViewRotation.Normalize();
+	}
+
+
 
 	const FIntPoint ViewportSizeXY = Viewport->GetSizeXY();
 
@@ -651,10 +674,19 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 	const bool bConstrainAspectRatio = bUseControllingActorViewInfo && ControllingActorViewInfo.bConstrainAspectRatio;
 	const EAspectRatioAxisConstraint AspectRatioAxisConstraint = GetDefault<ULevelEditorViewportSettings>()->AspectRatioAxisConstraint;
 
-	ViewInitOptions.ViewOrigin = ViewLocation;
+	AWorldSettings* WorldSettings = nullptr;
+	if( GetScene() != nullptr && GetScene()->GetWorld() != nullptr )
+	{
+		WorldSettings = GetScene()->GetWorld()->GetWorldSettings();
+	}
+	if( WorldSettings != nullptr )
+	{
+		ViewInitOptions.WorldToMetersScale = WorldSettings->WorldToMeters;
+	}
 
 	if (bUseControllingActorViewInfo)
 	{
+		// @todo vreditor: Not stereo friendly yet
 		ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix(ViewRotation) * FMatrix(
 			FPlane(0, 0, 1, 0),
 			FPlane(1, 0, 0, 0),
@@ -668,91 +700,129 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 		//
 		if (EffectiveViewportType == LVT_Perspective)
 		{
+		    // If stereo rendering is enabled, update the size and offset appropriately for this pass
+		    // @todo vreditor: Also need to update certain other use cases of ViewFOV like culling, streaming, etc.  (needs accessor)
+		    float ActualFOV = ViewFOV;
+		    if( bStereoRendering )
+		    {
+				if( GEngine->HMDDevice.IsValid() )
+				{
+					float HMDVerticalFOV, HMDHorizontalFOV;
+					GEngine->HMDDevice->GetFieldOfView( HMDHorizontalFOV, HMDVerticalFOV );
+					if( HMDHorizontalFOV > 0 )
+					{
+						ActualFOV = HMDHorizontalFOV;
+					}
+				}
+
+		        int32 X = 0;
+		        int32 Y = 0;
+		        uint32 SizeX = ViewportSizeXY.X;
+		        uint32 SizeY = ViewportSizeXY.Y;
+			    GEngine->StereoRenderingDevice->AdjustViewRect( StereoPass, X, Y, SizeX, SizeY );
+		        const FIntRect StereoViewRect = FIntRect( X, Y, X + SizeX, Y + SizeY );
+		        ViewInitOptions.SetViewRectangle( StereoViewRect );
+			
+				GEngine->StereoRenderingDevice->CalculateStereoViewOffset( StereoPass, ViewRotation, ViewInitOptions.WorldToMetersScale, ViewInitOptions.ViewOrigin );
+			}
+
 			if (bUsingOrbitCamera)
 			{
-				ViewInitOptions.ViewRotationMatrix = FTranslationMatrix(ViewLocation) * ViewTransform.ComputeOrbitMatrix();
+				// @todo vreditor: Not stereo friendly yet
+				ViewInitOptions.ViewRotationMatrix = FTranslationMatrix( ViewInitOptions.ViewOrigin ) * ViewTransform.ComputeOrbitMatrix();
 			}
 			else
 			{
-				ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix(ViewRotation);
+			    // Create the view matrix
+			    ViewInitOptions.ViewRotationMatrix = FInverseRotationMatrix( ViewRotation );
 			}
 
+		    // Rotate view 90 degrees
 			ViewInitOptions.ViewRotationMatrix = ViewInitOptions.ViewRotationMatrix * FMatrix(
 				FPlane(0, 0, 1, 0),
 				FPlane(1, 0, 0, 0),
 				FPlane(0, 1, 0, 0),
 				FPlane(0, 0, 0, 1));
-
-			float MinZ = GetNearClipPlane();
-			float MaxZ = MinZ;
-			// Avoid zero ViewFOV's which cause divide by zero's in projection matrix
-			float MatrixFOV = FMath::Max(0.001f, ViewFOV) * (float)PI / 360.0f;
-
-			if (bConstrainAspectRatio)
-			{
-				if ((int32)ERHIZBuffer::IsInverted != 0)
-				{
-					ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
-						MatrixFOV,
-						MatrixFOV,
-						1.0f,
-						AspectRatio,
-						MinZ,
-						MaxZ
-						);
-				}
-				else
-				{
-					ViewInitOptions.ProjectionMatrix = FPerspectiveMatrix(
-						MatrixFOV,
-						MatrixFOV,
-						1.0f,
-						AspectRatio,
-						MinZ,
-						MaxZ
-						);
-				}
-			}
-			else
-			{
-				float XAxisMultiplier;
-				float YAxisMultiplier;
-
-				if (((ViewportSizeXY.X > ViewportSizeXY.Y) && (AspectRatioAxisConstraint == AspectRatio_MajorAxisFOV)) || (AspectRatioAxisConstraint == AspectRatio_MaintainXFOV))
-				{
-					//if the viewport is wider than it is tall
-					XAxisMultiplier = 1.0f;
-					YAxisMultiplier = ViewportSizeXY.X / (float)ViewportSizeXY.Y;
-				}
-				else
-				{
-					//if the viewport is taller than it is wide
-					XAxisMultiplier = ViewportSizeXY.Y / (float)ViewportSizeXY.X;
-					YAxisMultiplier = 1.0f;
-				}
-
-				if ((int32)ERHIZBuffer::IsInverted != 0)
-				{
-					ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
-						MatrixFOV,
-						MatrixFOV,
-						XAxisMultiplier,
-						YAxisMultiplier,
-						MinZ,
-						MaxZ
-						);
-				}
-				else
-				{
-					ViewInitOptions.ProjectionMatrix = FPerspectiveMatrix(
-						MatrixFOV,
-						MatrixFOV,
-						XAxisMultiplier,
-						YAxisMultiplier,
-						MinZ,
-						MaxZ
-						);
-				}
+    
+		    if( bStereoRendering )
+		    {
+			    // @todo vreditor: bConstrainAspectRatio is ignored in this path, as it is in the game client as well currently
+			    // Let the stereoscopic rendering device handle creating its own projection matrix, as needed
+			    ViewInitOptions.ProjectionMatrix = GEngine->StereoRenderingDevice->GetStereoProjectionMatrix( StereoPass, ActualFOV );
+		    }
+		    else
+		    {
+			    const float MinZ = GetNearClipPlane();
+			    const float MaxZ = MinZ;
+			    // Avoid zero ViewFOV's which cause divide by zero's in projection matrix
+			    const float MatrixFOV = FMath::Max(0.001f, ActualFOV) * (float)PI / 360.0f;
+    
+			    if (bConstrainAspectRatio)
+			    {
+				    if ((int32)ERHIZBuffer::IsInverted != 0)
+				    {
+					    ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
+						    MatrixFOV,
+						    MatrixFOV,
+						    1.0f,
+						    AspectRatio,
+						    MinZ,
+						    MaxZ
+						    );
+				    }
+				    else
+				    {
+					    ViewInitOptions.ProjectionMatrix = FPerspectiveMatrix(
+						    MatrixFOV,
+						    MatrixFOV,
+						    1.0f,
+						    AspectRatio,
+						    MinZ,
+						    MaxZ
+						    );
+				    }
+			    }
+			    else
+			    {
+				    float XAxisMultiplier;
+				    float YAxisMultiplier;
+    
+				    if (((ViewportSizeXY.X > ViewportSizeXY.Y) && (AspectRatioAxisConstraint == AspectRatio_MajorAxisFOV)) || (AspectRatioAxisConstraint == AspectRatio_MaintainXFOV))
+				    {
+					    //if the viewport is wider than it is tall
+					    XAxisMultiplier = 1.0f;
+					    YAxisMultiplier = ViewportSizeXY.X / (float)ViewportSizeXY.Y;
+				    }
+				    else
+				    {
+					    //if the viewport is taller than it is wide
+					    XAxisMultiplier = ViewportSizeXY.Y / (float)ViewportSizeXY.X;
+					    YAxisMultiplier = 1.0f;
+				    }
+    
+				    if ((int32)ERHIZBuffer::IsInverted != 0)
+				    {
+					    ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
+						    MatrixFOV,
+						    MatrixFOV,
+						    XAxisMultiplier,
+						    YAxisMultiplier,
+						    MinZ,
+						    MaxZ
+						    );
+				    }
+				    else
+				    {
+					    ViewInitOptions.ProjectionMatrix = FPerspectiveMatrix(
+						    MatrixFOV,
+						    MatrixFOV,
+						    XAxisMultiplier,
+						    YAxisMultiplier,
+						    MinZ,
+						    MaxZ
+						    );
+				    }
+			    }
 			}
 		}
 		else
@@ -773,7 +843,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 					FPlane(1, 0, 0, 0),
 					FPlane(0, -1, 0, 0),
 					FPlane(0, 0, -1, 0),
-					FPlane(0, 0, -ViewLocation.Z, 1));
+					FPlane(0, 0, -ViewInitOptions.ViewOrigin.Z, 1));
 			}
 			else if (EffectiveViewportType == LVT_OrthoXZ)
 			{
@@ -781,7 +851,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 					FPlane(1, 0, 0, 0),
 					FPlane(0, 0, -1, 0),
 					FPlane(0, 1, 0, 0),
-					FPlane(0, 0, -ViewLocation.Y, 1));
+					FPlane(0, 0, -ViewInitOptions.ViewOrigin.Y, 1));
 			}
 			else if (EffectiveViewportType == LVT_OrthoYZ)
 			{
@@ -789,7 +859,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 					FPlane(0, 0, 1, 0),
 					FPlane(1, 0, 0, 0),
 					FPlane(0, 1, 0, 0),
-					FPlane(0, 0, ViewLocation.X, 1));
+					FPlane(0, 0, ViewInitOptions.ViewOrigin.X, 1));
 			}
 			else if (EffectiveViewportType == LVT_OrthoNegativeXY)
 			{
@@ -797,7 +867,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 					FPlane(-1, 0, 0, 0),
 					FPlane(0, -1, 0, 0),
 					FPlane(0, 0, 1, 0),
-					FPlane(0, 0, -ViewLocation.Z, 1));
+					FPlane(0, 0, -ViewInitOptions.ViewOrigin.Z, 1));
 			}
 			else if (EffectiveViewportType == LVT_OrthoNegativeXZ)
 			{
@@ -805,7 +875,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 					FPlane(-1, 0, 0, 0),
 					FPlane(0, 0, 1, 0),
 					FPlane(0, 1, 0, 0),
-					FPlane(0, 0, -ViewLocation.Y, 1));
+					FPlane(0, 0, -ViewInitOptions.ViewOrigin.Y, 1));
 			}
 			else if (EffectiveViewportType == LVT_OrthoNegativeYZ)
 			{
@@ -813,7 +883,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 					FPlane(0, 0, -1, 0),
 					FPlane(-1, 0, 0, 0),
 					FPlane(0, 1, 0, 0),
-					FPlane(0, 0, ViewLocation.X, 1));
+					FPlane(0, 0, ViewInitOptions.ViewOrigin.X, 1));
 			}
 			else if (EffectiveViewportType == LVT_OrthoFreelook)
 			{
@@ -821,7 +891,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 					FPlane(0, 0, 1, 0),
 					FPlane(1, 0, 0, 0),
 					FPlane(0, 1, 0, 0),
-					FPlane(0, 0, ViewLocation.X, 1));
+					FPlane(0, 0, ViewInitOptions.ViewOrigin.X, 1));
 			}
 			else
 			{
@@ -843,8 +913,16 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 		}
 	}
 
+	// Allocate our stereo view state on demand, so that only viewports that actually use stereo features have one
+	if( bStereoRendering && StereoViewState.GetReference() == nullptr )
+	{
+		StereoViewState.Allocate();
+	}
+
 	ViewInitOptions.ViewFamily = ViewFamily;
-	ViewInitOptions.SceneViewStateInterface = ViewState.GetReference();
+	ViewInitOptions.SceneViewStateInterface = ( ( StereoPass != eSSP_RIGHT_EYE ) ? ViewState.GetReference() : StereoViewState.GetReference() );
+	ViewInitOptions.StereoPass = StereoPass;
+	
 	ViewInitOptions.ViewElementDrawer = this;
 
 	ViewInitOptions.BackgroundColor = GetBackgroundColor();
@@ -865,11 +943,14 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
+	View->ViewLocation = ViewTransform.GetLocation();
+	View->ViewRotation = ViewRotation;
+
 	View->SubduedSelectionOutlineColor = GEngine->GetSubduedSelectionOutlineColor();
 
 	ViewFamily->Views.Add(View);
 
-	View->StartFinalPostprocessSettings(ViewLocation);
+	View->StartFinalPostprocessSettings( View->ViewLocation );
 
 	if (bUseControllingActorViewInfo)
 	{
@@ -881,6 +962,11 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 	}
 
 	View->EndFinalPostprocessSettings(ViewInitOptions);
+
+	for (int ViewExt = 0; ViewExt < ViewFamily->ViewExtensions.Num(); ViewExt++)
+	{
+		ViewFamily->ViewExtensions[ViewExt]->SetupView(*ViewFamily, *View);
+	}
 
 	return View;
 }
@@ -981,6 +1067,21 @@ void FEditorViewportClient::Tick(float DeltaTime)
 		UpdateGestureDelta();
 
 		EndCameraMovement();
+	}
+
+	const bool bStereoRendering = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D( Viewport );
+	if( bStereoRendering )
+	{
+		// Every frame, we'll push our camera position to the HMD device, so that it can properly compute a head-relative offset for each eye
+		if( GEngine->HMDDevice->IsHeadTrackingAllowed() )
+		{
+			GEngine->HMDDevice->UseImplicitHmdPosition( false );
+
+			FQuat PlayerOrientation = GetViewRotation().Quaternion();
+			FVector PlayerLocation = GetViewLocation();
+
+			GEngine->HMDDevice->UpdatePlayerCamera( PlayerOrientation, PlayerLocation );
+		}
 	}
 
 	if ( bIsTracking )
@@ -1444,16 +1545,18 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 			CameraController->GetConfig().bPlanarCamera = (RecordingInterpEd->GetCameraMovementScheme() == MatineeConstants::ECameraScheme::CAMERA_SCHEME_PLANAR_CAM);
 		}
 
-		//Now update for cached joystick info (relative movement first)
-		UpdateCameraMovementFromJoystick(true, CameraController->GetConfig());
-
-		//if we're not playing any cinematics right now
-		if (!bIgnoreJoystickControls)
+		if( GetDefault<ULevelEditorViewportSettings>()->bLevelEditorJoystickControls )
 		{
-			//Now update for cached joystick info (absolute movement second)
-			UpdateCameraMovementFromJoystick(false, CameraController->GetConfig());
-		}
+			//Now update for cached joystick info (relative movement first)
+			UpdateCameraMovementFromJoystick(true, CameraController->GetConfig());
 
+			//if we're not playing any cinematics right now
+			if (!bIgnoreJoystickControls)
+			{
+				//Now update for cached joystick info (absolute movement second)
+				UpdateCameraMovementFromJoystick(false, CameraController->GetConfig());
+			}
+		}
 
 		FVector NewViewLocation = GetViewLocation();
 		FRotator NewViewRotation = GetViewRotation();
@@ -2859,6 +2962,10 @@ void FEditorViewportClient::AddReferencedObjects( FReferenceCollector& Collector
 	{
 		ViewState.GetReference()->AddReferencedObjects(Collector);
 	}
+	if (StereoViewState.GetReference())
+	{
+		StereoViewState.GetReference()->AddReferencedObjects(Collector);
+	}
 }
 
 void FEditorViewportClient::ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
@@ -3069,6 +3176,20 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		DeltaTimeSeconds = World->GetDeltaSeconds();
 	}
 
+	// Allow HMD to modify the view later, just before rendering
+	const bool bStereoRendering = GEngine->IsStereoscopic3D( InViewport );
+	FCanvas* DebugCanvas = Viewport->GetDebugCanvas();
+	if (DebugCanvas)
+	{
+		DebugCanvas->SetScaledToRenderTarget(bStereoRendering);
+		DebugCanvas->SetStereoRendering(bStereoRendering);
+	}
+	if (Canvas)
+	{
+		Canvas->SetScaledToRenderTarget(bStereoRendering);
+		Canvas->SetStereoRendering(bStereoRendering);
+	}
+
 	// Setup a FSceneViewFamily/FSceneView for the viewport.
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 		Canvas->GetRenderTarget(),
@@ -3078,6 +3199,47 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		.SetRealtimeUpdate( IsRealtime() ));
 
 	ViewFamily.EngineShowFlags = EngineShowFlags;
+
+	if( ModeTools->GetActiveMode( FBuiltinEditorModes::EM_InterpEdit ) == 0 || !AllowsCinematicPreview() )
+	{
+		if( !EngineShowFlags.Game )
+		{
+			// in the editor, disable camera motion blur and other rendering features that rely on the former frame
+			// unless the view port is Matinee controlled
+			ViewFamily.EngineShowFlags.CameraInterpolation = 0;
+		}
+
+		if( !bStereoRendering )
+		{
+			// Keep the image sharp - ScreenPercentage is an optimization and should not affect the editor (except when
+			// stereo is enabled, as many HMDs require this for proper visuals
+			ViewFamily.EngineShowFlags.SetScreenPercentage( false );
+		}
+	}
+
+	// Allow HMD to modify the view later, just before rendering
+	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
+	{
+		auto HmdViewExt = GEngine->HMDDevice->GetViewExtension();
+		if (HmdViewExt.IsValid())
+		{
+			ViewFamily.ViewExtensions.Add(HmdViewExt);
+		}
+
+		// Allow HMD to modify screen settings
+		GEngine->HMDDevice->UpdateScreenSettings(Viewport);
+	}
+
+	if (GEngine->ViewExtensions.Num())
+	{
+		ViewFamily.ViewExtensions.Append(GEngine->ViewExtensions.GetData(), GEngine->ViewExtensions.Num());
+	}
+
+	for (auto ViewExt : ViewFamily.ViewExtensions)
+	{
+		ViewExt->SetupViewFamily(ViewFamily);
+	}
+
 	EngineShowFlagOverride(ESFIM_Editor, GetViewMode(), ViewFamily.EngineShowFlags, CurrentBufferVisualizationMode);
 	EngineShowFlagOrthographicOverride(IsPerspective(), ViewFamily.EngineShowFlags);
 
@@ -3087,16 +3249,25 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 
 	ViewFamily.LandscapeLODOverride = LandscapeLODOverride;
 
-	FSceneView* View = CalcSceneView( &ViewFamily );
+	FSceneView* View = nullptr;
 
-	SetupViewForRendering(ViewFamily,*View);
-
-	FSlateRect SafeFrame;
-	View->CameraConstrainedViewRect = View->UnscaledViewRect;
-	if (CalculateEditorConstrainedViewRect(SafeFrame, Viewport))
+	// Stereo rendering
+	int32 NumViews = bStereoRendering ? 2 : 1;
+	for( int StereoViewIndex = 0; StereoViewIndex < NumViews; ++StereoViewIndex )
 	{
-		View->CameraConstrainedViewRect = FIntRect(SafeFrame.Left, SafeFrame.Top, SafeFrame.Right, SafeFrame.Bottom);
-	}
+		const EStereoscopicPass StereoPass = !bStereoRendering ? eSSP_FULL : ( ( StereoViewIndex == 0 ) ? eSSP_LEFT_EYE : eSSP_RIGHT_EYE );
+
+		View = CalcSceneView( &ViewFamily, StereoPass );
+
+		SetupViewForRendering(ViewFamily,*View);
+
+	    FSlateRect SafeFrame;
+	    View->CameraConstrainedViewRect = View->UnscaledViewRect;
+	    if (CalculateEditorConstrainedViewRect(SafeFrame, Viewport))
+	    {
+		    View->CameraConstrainedViewRect = FIntRect(SafeFrame.Left, SafeFrame.Top, SafeFrame.Right, SafeFrame.Bottom);
+	    }
+ 	}
 
 	if (IsAspectRatioConstrained())
 	{
@@ -3104,6 +3275,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		Canvas->Clear(FLinearColor::Black);
 	}
 	
+	// Draw the 3D scene
 	GetRendererModule().BeginRenderingViewFamily(Canvas,&ViewFamily);
 
 	DrawCanvas( *Viewport, *View, *Canvas );
@@ -3128,7 +3300,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	{
 		Widget->DrawHUD( Canvas );
 	}
-
+    
 	// Axes indicators
 	if (bDrawAxes && !ViewFamily.EngineShowFlags.Game && !GLevelEditorModeTools().IsViewportUIHidden())
 	{
@@ -3182,18 +3354,27 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 				break;
 			}
 		}
-	}
-
-	FCanvas* DebugCanvas = Viewport->GetDebugCanvas();
-
+	}    
+   
+	// NOTE: DebugCanvasObject will be created by UDebugDrawService::Draw() if it doesn't already exist.
 	UDebugDrawService::Draw(ViewFamily.EngineShowFlags, Viewport, View, DebugCanvas);
-
+	UCanvas* DebugCanvasObject = FindObjectChecked<UCanvas>(GetTransientPackage(),TEXT("DebugCanvasObject"));
+	DebugCanvasObject->Canvas = DebugCanvas;
+	DebugCanvasObject->Init( Viewport->GetSizeXY().X, Viewport->GetSizeXY().Y, View );
+    
 	// Stats display
 	if( IsRealtime() && ShouldShowStats() && DebugCanvas)
 	{
 		const int32 XPos = 4;
 		TArray< FDebugDisplayProperty > EmptyPropertyArray;
 		DrawStatsHUD( World, Viewport, DebugCanvas, NULL, EmptyPropertyArray, GetViewLocation(), GetViewRotation() );
+	}
+
+	if( bStereoRendering && GEngine->HMDDevice.IsValid() )
+	{
+#if !UE_BUILD_SHIPPING
+		GEngine->HMDDevice->DrawDebug(DebugCanvasObject);
+#endif
 	}
 
 	if(!IsRealtime())
@@ -4410,28 +4591,6 @@ void FEditorViewportClient::Invalidate(bool bInvalidateChildViews, bool bInvalid
 		}
 	}
 }
-
-void FEditorViewportClient::OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected)
-{
-	FCachedJoystickState* CurrentState = JoystickStateMap.FindRef(InControllerID);
-	//joystick is now disabled, delete if needed
-	if (!bInConnected)
-	{
-		JoystickStateMap.Remove(InControllerID);
-		delete CurrentState;
-	}
-	else
-	{
-		if (CurrentState == NULL)
-		{
-			/** Create new joystick state for cached input*/
-			CurrentState = new FCachedJoystickState();
-			CurrentState->JoystickType = InType;
-			JoystickStateMap.Add(InControllerID, CurrentState);
-		}
-	}
-}
-
 
 void FEditorViewportClient::MouseEnter(FViewport* InViewport,int32 x, int32 y)
 {

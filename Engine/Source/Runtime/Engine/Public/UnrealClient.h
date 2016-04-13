@@ -752,13 +752,6 @@ public:
 
 	virtual bool WantsPollingMouseMovement(void) const { return true; }
 
-	/**
-	 * Sets whether or not a controller is actively plugged in
-	 * @param InControllID - Unique ID of the joystick
-	 * @param bInConnected - true, if the joystick is valid for input
-	 */
-	virtual void OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected) {};
-
 	virtual void MouseEnter( FViewport* Viewport,int32 x, int32 y ) {}
 
 	virtual void MouseLeave( FViewport* Viewport ) {}

@@ -248,7 +248,7 @@ public:
 	 *
 	 * @return	the factory that is responsible for creating actors for the specified asset type.
 	 */
-	static UActorFactory* GetFactoryForAsset( const FAssetData& DropData, bool bRequireValidObject=false );
+	UNREALED_API static UActorFactory* GetFactoryForAsset( const FAssetData& DropData, bool bRequireValidObject=false );
 
 	/**
 	 * Find the appropriate actor factory for an asset.

@@ -216,6 +216,7 @@ public class UnrealEd : ModuleRules
                 "PortalServices",
                 "GeometryCacheEd",
                 "BlueprintNativeCodeGen",
+				"VREditor"
 			}
 		);
 

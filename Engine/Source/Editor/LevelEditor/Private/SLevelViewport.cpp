@@ -136,7 +136,7 @@ void SLevelViewport::Construct(const FArguments& InArgs)
 	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().AddRaw(this, &SLevelViewport::HandleViewportSettingChanged);
 
 	ParentLayout = InArgs._ParentLayout;
-	ParentLevelEditor = InArgs._ParentLevelEditor;
+	ParentLevelEditor = StaticCastSharedRef<SLevelEditor>( InArgs._ParentLevelEditor.Pin().ToSharedRef() );
 	ConfigKey = InArgs._ConfigKey;
 
 	// Store border brushes for differentiating between active and inactive viewports
@@ -2485,7 +2485,10 @@ void SLevelViewport::OnActorSelectionChanged(const TArray<UObject*>& NewSelectio
 	// On the first actor selection after entering Game View, enable the selection show flag
 	if (IsVisible() && IsInGameView() && NewSelection.Num() != 0)
 	{
-		LevelViewportClient->EngineShowFlags.SetModeWidgets(true);
+		if( LevelViewportClient->bAlwaysShowModeWidgetAfterSelectionChanges )
+		{
+			LevelViewportClient->EngineShowFlags.SetModeWidgets(true);
+		}
 		LevelViewportClient->EngineShowFlags.SetSelection(true);
 		LevelViewportClient->EngineShowFlags.SetSelectionOutline(GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline);
 	}

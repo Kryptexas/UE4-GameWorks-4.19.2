@@ -106,7 +106,6 @@ FOculusInput::FOculusInput( const TSharedRef< FGenericApplicationMessageHandler 
 		ControllerPair.UnrealControllerIndex = 0; //???? NextUnrealControllerIndex++;
 
 		IModularFeatures::Get().RegisterModularFeature( GetModularFeatureName(), this );
-		GEngine->MotionControllerDevices.AddUnique(this);
 
 		UE_LOG(LogOcInput, Log, TEXT("OculusInput is initialized. Init status %d. Runtime version: %s"), int(initStatus), *FString(ANSI_TO_TCHAR(ovr_GetVersionString())));
 	}
