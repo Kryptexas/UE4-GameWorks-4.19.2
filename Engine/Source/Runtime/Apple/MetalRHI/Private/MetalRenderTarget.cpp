@@ -625,7 +625,7 @@ void FMetalDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, F
 		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
 		
 		id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
-		[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:Stride destinationBytesPerImage:BytesPerImage];
+		[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:AlignedStride destinationBytesPerImage:BytesPerImage];
 		
 		//kick the current command buffer.
 		Context->SubmitCommandBufferAndWait();
