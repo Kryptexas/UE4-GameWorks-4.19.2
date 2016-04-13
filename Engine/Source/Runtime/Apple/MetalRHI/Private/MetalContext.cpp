@@ -210,7 +210,7 @@ void FMetalDeviceContext::BeginFrame()
 	FPlatformTLS::SetTlsValue(CurrentContextTLSSlot, this);
 }
 
-void FMetalDeviceContext::EndFrame()
+void FMetalDeviceContext::ClearFreeList()
 {
 	while(DelayedFreeLists.Num())
 	{
@@ -232,6 +232,12 @@ void FMetalDeviceContext::EndFrame()
 			break;
 		}
 	}
+}
+
+void FMetalDeviceContext::EndFrame()
+{
+	ClearFreeList();
+	
 	if(FrameCounter != GFrameNumberRenderThread)
 	{
 		FrameCounter = GFrameNumberRenderThread;

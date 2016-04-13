@@ -197,6 +197,7 @@ public:
 	void ReleaseObject(id Object);
 	
 	void BeginFrame();
+	void ClearFreeList();
 	void EndFrame();
 	
 	/** RHIBeginScene helper */

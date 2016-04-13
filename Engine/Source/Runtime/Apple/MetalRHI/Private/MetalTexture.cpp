@@ -8,6 +8,15 @@
 #include "MetalProfiler.h" // for STAT_MetalTexturePageOffTime
 
 uint8 FMetalSurface::NextKey = 1; // 0 is reserved for MTLPixelFormatInvalid
+static int32 ActiveUploads = 0;
+
+int32 GMetalMaxOutstandingAsyncTexUploads = 0;
+FAutoConsoleVariableRef CVarMetalMaxOutstandingAsyncTexUploads(
+	TEXT("rhi.Metal.MaxOutstandingAsyncTexUploads"),
+	GMetalMaxOutstandingAsyncTexUploads,
+	TEXT("The maximum number of outstanding asynchronous texture uploads allowed to be pending in Metal. After the limit is reached the next upload will wait for all outstanding operations to complete and purge the waiting free-lists in order to reduce peak memory consumption. Defaults to 0 (infinite), set to a value > 0 limit the number."),
+	ECVF_ReadOnly|ECVF_RenderThreadSafe
+	);
 
 /** Texture reference class. */
 class FMetalTextureReference : public FRHITextureReference
@@ -885,6 +894,10 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 		{
 			SCOPED_AUTORELEASE_POOL;
 			
+			int32 Count = FPlatformAtomics::InterlockedIncrement(&ActiveUploads);
+			
+			bool const bWait = ((GetMetalDeviceContext().GetNumActiveContexts() == 1) && (GMetalMaxOutstandingAsyncTexUploads > 0) && (Count >= GMetalMaxOutstandingAsyncTexUploads));
+			
 			// @todo: gather these all up over a frame
 			id<MTLCommandBuffer> CommandBuffer = GetMetalDeviceContext().CreateCommandBuffer(false/*bRetainReferences*/);
 			
@@ -894,7 +907,17 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 			[Blitter copyFromBuffer:LockedMemory[MipIndex] sourceOffset:0 sourceBytesPerRow:Stride sourceBytesPerImage:BytesPerImage sourceSize:Region.size toTexture:Texture destinationSlice:ArrayIndex destinationLevel:MipIndex destinationOrigin:Region.origin];
 			
 			[Blitter endEncoding];
-			GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, false);
+			[CommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> CompletedBuffer)
+			{
+				FPlatformAtomics::InterlockedDecrement(&ActiveUploads);
+			}];
+			GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, bWait);
+			GetMetalDeviceContext().ReleaseObject(LockedMemory[MipIndex]);
+			
+			if (bWait)
+			{
+				GetMetalDeviceContext().ClearFreeList();
+			}
 		}
 		else
 #else
@@ -906,9 +929,8 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 #endif
 		{
 			[Texture replaceRegion:Region mipmapLevel:MipIndex slice:ArrayIndex withBytes:[LockedMemory[MipIndex] contents] bytesPerRow:Stride bytesPerImage:BytesPerImage];
+			[LockedMemory[MipIndex] release];
 		}
-		
-		GetMetalDeviceContext().ReleaseObject(LockedMemory[MipIndex]);
 		LockedMemory[MipIndex] = nullptr;
     }
 }
