@@ -811,18 +811,21 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 			if (Texture.storageMode == MTLStorageModePrivate)
 			{
 				[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:LockedMemory[MipIndex] destinationOffset:0 destinationBytesPerRow:DestStride destinationBytesPerImage:MipBytes];
+
+				//kick the current command buffer.
+				GetMetalDeviceContext().SubmitCommandBufferAndWait();
 			}
 			else
 #endif
 			{
 #if METAL_API_1_1 && PLATFORM_MAC
 				[Blitter synchronizeTexture:Texture slice:ArrayIndex level:MipIndex];
+
+				//kick the current command buffer.
+				GetMetalDeviceContext().SubmitCommandBufferAndWait();
 #endif
 				[Texture getBytes:LockedMemory[MipIndex] bytesPerRow:DestStride bytesPerImage:MipBytes fromRegion:Region mipmapLevel:MipIndex slice:ArrayIndex];
 			}
-			
-			//kick the current command buffer.
-			GetMetalDeviceContext().SubmitCommandBufferAndWait();
 			
 #if PLATFORM_MAC
 			// Pack RGBA8_sRGB into R8_sRGB for Mac.
