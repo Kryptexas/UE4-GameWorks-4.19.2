@@ -233,13 +233,6 @@ public:
 	}
 
 
-	DEPRECATED(4.10, "This function is deprecated. Please use LinkHead.")
-	FORCEINLINE void Link(ContainerType*& Before)
-	{
-		LinkHead(Before);
-	}
-
-
 	/**
 	 * Returns whether element is currently linked.
 	 *

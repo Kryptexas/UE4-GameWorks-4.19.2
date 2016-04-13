@@ -249,10 +249,8 @@ public:
 			default: FatalErrorUndefinedSubtype(); break;
 			};
 		}
-		else
-		{
-			return false;
-		}
+
+		return false;
 	}
 
 	friend FArchive& operator<<(FArchive& Ar,TUnion& Union)

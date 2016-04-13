@@ -409,7 +409,10 @@ FORCEINLINE int32 FIntVector::Num()
 
 FORCEINLINE int32 FIntVector::Size() const
 {
-	return int32(FMath::Sqrt(float(X * X + Y * Y + Z * Z)));
+	int64 X64 = (int64)X;
+	int64 Y64 = (int64)Y;
+	int64 Z64 = (int64)Z;
+	return int32(FMath::Sqrt(float(X64 * X64 + Y64 * Y64 + Z64 * Z64)));
 }
 
 

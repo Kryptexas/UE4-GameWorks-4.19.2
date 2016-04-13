@@ -3682,14 +3682,37 @@ namespace UnrealBuildTool
 			if (!string.IsNullOrEmpty(Rules.PakSigningKeysFile))
 			{
 				string FullFilename = Path.Combine(ProjectDirectory.FullName, Rules.PakSigningKeysFile);
+
+				Log.TraceInformation("Adding signing keys to executable from '{0}'", FullFilename);
+
 				if (File.Exists(FullFilename))
 				{
 					string[] Lines = File.ReadAllLines(FullFilename);
-					if (Lines.Length == 3)
+					List<string> Keys = new List<string>();
+					foreach (string Line in Lines)
+					{
+						if (!string.IsNullOrEmpty(Line))
+						{
+							if (Line.StartsWith("0x"))
+							{
+								Keys.Add(Line.Trim());
+							}
+						}
+					}
+
+					if (Keys.Count == 3)
 					{
 						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_MODULUS=\"" + Lines[1] + "\"");
 						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_EXPONENT=\"" + Lines[2] + "\"");
 					}
+					else
+					{
+						Log.TraceWarning("Contents of signing key file are invalid so will be ignored");
+					}
+				}
+				else
+				{
+					Log.TraceWarning("Signing key file is missing! Executable will not include signing keys");
 				}
 			}
 

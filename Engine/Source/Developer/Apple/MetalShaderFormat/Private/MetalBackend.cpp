@@ -233,7 +233,7 @@ static void InsertRange( TCBDMARangeMap& CBAllRanges, unsigned SourceCB, unsigne
 	SDMARange Range = { SourceCB, SourceOffset, Size, DestCBIndex, DestCBPrecision, DestOffset };
 
 	TDMARangeList& CBRanges = CBAllRanges[SourceDestCBKey];
-//printf("* InsertRange: %08x\t%d:%d - %d:%c:%d:%d\n", SourceDestCBKey, SourceCB, SourceOffset, DestCBIndex, DestCBPrecision, DestOffset, Size);
+//printf("* InsertRange: %08x\t%u:%u - %u:%c:%u:%u\n", SourceDestCBKey, SourceCB, SourceOffset, DestCBIndex, DestCBPrecision, DestOffset, Size);
 	if (CBRanges.empty())
 	{
 		CBRanges.push_back(Range);
@@ -326,7 +326,7 @@ static void DumpSortedRanges(TDMARangeList& SortedRanges)
 	for (auto i = SortedRanges.begin(); i != SortedRanges.end(); ++i )
 	{
 		auto o = *i;
-		printf("\t%d:%d - %d:%c:%d:%d\n", o.SourceCB, o.SourceOffset, o.DestCBIndex, o.DestCBPrecision, o.DestOffset, o.Size);
+		printf("\t%u:%u - %u:%c:%u:%u\n", o.SourceCB, o.SourceOffset, o.DestCBIndex, o.DestCBPrecision, o.DestOffset, o.Size);
 	}
 }
 
@@ -808,7 +808,7 @@ protected:
 							print_type_post(PtrType);
 							ralloc_asprintf_append(
 								buffer,
-								" [[ texture(%d) ]]", Entry->offset
+								" [[ texture(%u) ]]", Entry->offset
 								);
 						}
 					}
@@ -1617,7 +1617,7 @@ protected:
 					case 4:
 					case 3:
 					case 2:
-						ralloc_asprintf_append(buffer, "%d", deref->image_index->type->vector_elements);
+						ralloc_asprintf_append(buffer, "%u", deref->image_index->type->vector_elements);
 						//fallthrough
 					case 1:
 						ralloc_asprintf_append(buffer, ")(");
@@ -2488,7 +2488,7 @@ protected:
 		{
 			glsl_packed_uniform& Uniform = *Iter;
 			ANSICHAR Name[32];
-			FCStringAnsi::Sprintf(Name, "%si%d", glsl_variable_tag_from_parser_target(Frequency), Uniform.offset);
+			FCStringAnsi::Sprintf(Name, "%si%u", glsl_variable_tag_from_parser_target(Frequency), Uniform.offset);
 			int32 Offset = Buffers.GetIndex(Name, Backend->bIsDesktop);
 			check(Offset != -1);
 			ralloc_asprintf_append(
@@ -2601,7 +2601,7 @@ protected:
 						{
 							if (bNeedsHeader)
 							{
-								ralloc_asprintf_append(buffer, "// @PackedUB: %s(%d): ",
+								ralloc_asprintf_append(buffer, "// @PackedUB: %s(%u): ",
 									block->name,
 									CBIndex);
 								bNeedsHeader = false;
@@ -2653,7 +2653,7 @@ protected:
 				}
 
 				check(IterList->DestCBIndex == 0);
-				ralloc_asprintf_append(buffer, "%d:%d-%c:%d:%d", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
+				ralloc_asprintf_append(buffer, "%u:%u-%c:%u:%u", IterList->SourceCB, IterList->SourceOffset, IterList->DestCBPrecision, IterList->DestOffset, IterList->Size);
 			}
 		}
 

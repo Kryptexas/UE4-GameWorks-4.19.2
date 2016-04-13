@@ -724,31 +724,9 @@ public:
 	 *
 	 * @returns Pointer to first array entry or nullptr if ArrayMax == 0.
 	 */
-	DEPRECATED(4.6, "This function is deprecated as it does the same as GetData(). Please use GetData() instead.")
-	FORCEINLINE ElementType* GetTypedData()
-	{
-		return (ElementType*)AllocatorInstance.GetAllocation();
-	}
-
-	/**
-	 * Helper function for returning a typed pointer to the first array entry.
-	 *
-	 * @returns Pointer to first array entry or nullptr if ArrayMax == 0.
-	 */
 	FORCEINLINE ElementType* GetData()
 	{
 		return (ElementType*)AllocatorInstance.GetAllocation();
-	}
-
-	/**
-	 * Helper function for returning a typed pointer to the first array entry.
-	 *
-	 * @returns Pointer to first array entry or nullptr if ArrayMax == 0.
-	 */
-	DEPRECATED(4.6, "This function is deprecated as it does the same as GetData(). Please use GetData() instead.")
-	FORCEINLINE const ElementType* GetTypedData() const
-	{
-		return (const ElementType*)AllocatorInstance.GetAllocation();
 	}
 
 	/**
@@ -1076,34 +1054,6 @@ public:
 	FORCEINLINE int32 FindLastByPredicate(Predicate Pred) const
 	{
 		return FindLastByPredicate(Pred, ArrayNum);
-	}
-
-	/**
-	 * Finds element within the array that fulfills given predicate.
-	 *
-	 * @param MatchFunctorType A functor object with implemented
-	 *                         bool Matches(const ElementType& Element) method
-	 *                         that returns true if given element is the one we
-	 *                         look for.
-	 *
-	 * @returns Index of the found element. INDEX_NONE otherwise.
-	 */
-	template<typename MatchFunctorType>
-	DEPRECATED(4.6, "This function is deprecated as it does the same as IndexOfByPredicate(). Please use IndexOfByPredicate() instead.")
-	int32 FindMatch(const MatchFunctorType& Matcher) const
-	{
-		const ElementType* const RESTRICT DataEnd = GetData() + ArrayNum;
-		for (const ElementType* RESTRICT Data = GetData();
-			Data < DataEnd;
-			Data++
-			)
-		{
-			if (Matcher.Matches(*Data))
-			{
-				return static_cast<int32>(Data - GetData());
-			}
-		}
-		return INDEX_NONE;
 	}
 
 	/**
@@ -2035,19 +1985,6 @@ public:
 		{
 			ResizeTo(Number);
 		}
-	}
-	
-	/**
-	 * Sets the size of the array. The added elements will be uninitialized.
-	 *
-	 * @param Number The number of elements that the array should be able to
-	 *               contain after allocation.
-	 */
-	DEPRECATED(4.8, "Init is deprecated - please use SetNumUninitialized(Number) instead.")
-	void Init(int32 Number)
-	{
-		Empty(Number);
-		AddUninitialized(Number);
 	}
 
 	/**
@@ -3119,31 +3056,9 @@ public:
 	 *
 	 * @returns Pointer to first array entry or nullptr if this->ArrayMax == 0.
 	 */
-	DEPRECATED(4.6, "This function is deprecated as it does the same as GetData(). Please use GetData() instead.")
-	FORCEINLINE T** GetTypedData()
-	{
-		return (T**)Array.GetData();
-	}
-
-	/**
-	 * Helper function for returning a typed pointer to the first array entry.
-	 *
-	 * @returns Pointer to first array entry or nullptr if this->ArrayMax == 0.
-	 */
 	FORCEINLINE T** GetData()
 	{
 		return (T**)Array.GetData();
-	}
-
-	/**
-	 * Helper function for returning a typed pointer to the first array entry.
-	 *
-	 * @returns Pointer to first array entry or nullptr if this->ArrayMax == 0.
-	 */
-	DEPRECATED(4.6, "This function is deprecated as it does the same as GetData(). Please use GetData() instead.")
-	FORCEINLINE const T** GetTypedData() const
-	{
-		return (const T**)Array.GetData();
 	}
 
 	/**
@@ -3420,38 +3335,12 @@ public:
 	}
 
 	/**
-	 * Adds a new item to the end of the array, possibly reallocating the
-	 * whole array to fit.
-	 *
-	 * @param Item The item to add.
-	 *
-	 * @returns Index to the new item.
-	 */
-	DEPRECATED(4.6, "This function is deprecated as it does the same as Add(). Please use Add() instead.")
-	FORCEINLINE int32 AddRawItem(T* Item)
-	{
-		return Array.Add(Item);
-	}
-
-	/**
 	 * Inserts a given element into the array at given location.
 	 *
 	 * @param Item The element to insert.
 	 * @param Index Tells where to insert the new elements.
 	 */
 	FORCEINLINE void Insert(T* Item, int32 Index)
-	{
-		Array.Insert(Item, Index);
-	}
-
-	/**
-	 * Inserts a given element into the array at given location.
-	 *
-	 * @param Item The element to insert.
-	 * @param Index Tells where to insert the new elements.
-	 */
-	DEPRECATED(4.6, "This function is deprecated as it does the same as Insert(). Please use Insert() instead.")
-	FORCEINLINE void InsertRawItem(T* Item, int32 Index)
 	{
 		Array.Insert(Item, Index);
 	}

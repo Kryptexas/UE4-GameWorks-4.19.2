@@ -328,6 +328,21 @@ public:
 	}
 	FORCEINLINE bool GetAutoEmitLineTerminator() const	{	return bAutoEmitLineTerminator;	}
 
+	/** 
+	 * Dumps the contents of this output device's buffer to an archive (supported by output device that have a memory buffer) 
+	 * @param Ar Archive to dump the buffer to
+	 */
+	virtual void Dump(FArchive& Ar)
+	{
+	}
+
+	/**
+	* @return whether this output device is a memory-only device
+	*/
+	virtual bool IsMemoryOnly() const
+	{
+		return false;
+	}
 
 	/**
 	 * @return whether this output device can be used on any thread.

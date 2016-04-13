@@ -351,15 +351,6 @@ void DeleteLoader(FLinkerLoad* Loader)
 	FLinkerManager::Get().RemoveLinker(Loader);
 }
 
-/**
- * Dissociates all linker import and forced export object references. This currently needs to 
- * happen as the referred objects might be destroyed at any time.
- */
-void DissociateImportsAndForcedExports()
-{
-	FLinkerManager::Get().DissociateImportsAndForcedExports();
-}
-
 static void LogGetPackageLinkerError(FArchiveUObject* LinkerArchive, const TCHAR* InFilename, const FText& InFullErrorMessage, const FText& InSummaryErrorMessage, UObject* InOuter, uint32 LoadFlags)
 {
 	static FName NAME_LoadErrors("LoadErrors");

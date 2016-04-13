@@ -2349,12 +2349,6 @@ COREUOBJECT_API void DeleteLoaders();
 /** Queues linker for deletion */
 COREUOBJECT_API void DeleteLoader(FLinkerLoad* Loader);
 
-/**
- * Dissociates all linker import and forced export object references. This currently needs to 
- * happen as the referred objects might be destroyed at any time.
- */
-void DissociateImportsAndForcedExports();
-
 COREUOBJECT_API FLinkerLoad* GetPackageLinker( UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, UPackageMap* Sandbox, FGuid* CompatibleGuid );
 
 /**

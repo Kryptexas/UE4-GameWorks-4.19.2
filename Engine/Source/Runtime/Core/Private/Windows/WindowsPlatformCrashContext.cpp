@@ -318,8 +318,24 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 					WerReportAddFile( ReportHandle, *MinidumpFileName, WerFileTypeMinidump, WER_FILE_ANONYMOUS_DATA );
 				}
 
-				const FString LogFileName = FPaths::GameLogDir() / FApp::GetGameName() + TEXT( ".log" );
-				WerReportAddFile( ReportHandle, *LogFileName, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );
+				const FString LogFileName = FPlatformOutputDevices::GetAbsoluteLogFilename();
+				// If we have a memory only log, make sure it's dumped to file before we attach it to the report
+				bool bHasLogFile = !FPlatformOutputDevices::GetLog()->IsMemoryOnly();
+				if (!bHasLogFile)
+				{
+					FArchive* LogFile = IFileManager::Get().CreateFileWriter(*LogFileName, FILEWRITE_AllowRead);
+					if (LogFile)
+					{
+						FPlatformOutputDevices::GetLog()->Dump(*LogFile);
+						LogFile->Flush();
+						delete LogFile;
+						bHasLogFile = true;
+					}
+				}
+				if (bHasLogFile)
+				{
+					WerReportAddFile(ReportHandle, *LogFileName, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA);
+				}
 
 				const FString CrashVideoPath = FPaths::GameLogDir() / TEXT( "CrashVideo.avi" );
 				WerReportAddFile( ReportHandle, *CrashVideoPath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );		
@@ -400,6 +416,12 @@ static bool bReentranceGuard = false;
  */
 void NewReportEnsure( const TCHAR* ErrorMessage )
 {
+	if (ReportCrashCallCount > 0)
+	{
+		// Don't report ensures after we've crashed. They simply may be a result of the crash as
+		// the engine is already in a bad state.
+		return;
+	}
 	// Simple re-entrance guard.
 	EnsureLock.Lock();
 
