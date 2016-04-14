@@ -18,7 +18,7 @@ ATP_PuzzleBlockGrid::ATP_PuzzleBlockGrid()
 	ScoreText->SetRelativeLocation(FVector(200.f,0.f,0.f));
 	ScoreText->SetRelativeRotation(FRotator(90.f,0.f,0.f));
 	ScoreText->SetText(FText::Format(LOCTEXT("ScoreFmt", "Score: {0}"), FText::AsNumber(0)));
-	ScoreText->AttachTo(DummyRoot);
+	ScoreText->SetupAttachment(DummyRoot);
 
 	// Set defaults
 	Size = 3;

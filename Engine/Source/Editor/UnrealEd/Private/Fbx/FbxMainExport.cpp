@@ -1268,7 +1268,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 			for( int32 ComponentIndex = 0; ComponentIndex < ActorComponents.Num(); ++ComponentIndex )
 			{
 				UActorComponent* Component = ActorComponents[ComponentIndex];
-				USceneComponent* SceneComp = CastChecked<USceneComponent>(Component);
+				USceneComponent* SceneComp = Cast<USceneComponent>(Component);
 
 				if (SceneComp && SceneComp->bHiddenInGame)
 				{

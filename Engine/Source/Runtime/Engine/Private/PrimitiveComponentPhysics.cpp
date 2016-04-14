@@ -775,7 +775,7 @@ void UPrimitiveComponent::WeldTo(USceneComponent* InParent, FName InSocketName /
 	//automatically attach if needed
 	if (GetAttachParent() != InParent || GetAttachSocketName() != InSocketName)
 	{
-		AttachTo(InParent, InSocketName, EAttachLocation::KeepWorldPosition);
+		AttachToComponent(InParent, FAttachmentTransformRules::KeepWorldTransform, InSocketName);
 	}
 
 	WeldToImplementation(InParent, InSocketName);

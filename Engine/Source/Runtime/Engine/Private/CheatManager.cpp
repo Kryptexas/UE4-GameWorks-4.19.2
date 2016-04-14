@@ -188,9 +188,9 @@ void UCheatManager::God()
 	}
 }
 
-void UCheatManager::Slomo( float T )
+void UCheatManager::Slomo(float NewTimeDilation)
 {
-	GetOuterAPlayerController()->GetWorldSettings()->TimeDilation = FMath::Clamp(T, 0.0001f, 20.0f);
+	GetOuterAPlayerController()->GetWorldSettings()->SetTimeDilation(NewTimeDilation);
 }
 
 void UCheatManager::DamageTarget(float DamageAmount)
@@ -1065,15 +1065,21 @@ void UCheatManager::BugItWorker( FVector TheLocation, FRotator TheRotation )
 {
 	UE_LOG(LogCheatManager, Log,  TEXT("BugItGo to: %s %s"), *TheLocation.ToString(), *TheRotation.ToString() );
 
+	// ghost so we can go anywhere
 	Ghost();
 
 	APlayerController* const MyPlayerController = GetOuterAPlayerController();
-	if (MyPlayerController->GetPawn())
+	APawn* const MyPawn = MyPlayerController->GetPawn();
+	if (MyPawn)
 	{
-		MyPlayerController->GetPawn()->TeleportTo( TheLocation, TheRotation );
-		MyPlayerController->GetPawn()->FaceRotation( TheRotation, 0.0f );
+		MyPawn->TeleportTo(TheLocation, TheRotation);
+		MyPawn->FaceRotation(TheRotation, 0.0f);
 	}
 	MyPlayerController->SetControlRotation(TheRotation);
+
+	// ghost again in case teleporting changed the movememt mode
+	Ghost();
+	GetOuterAPlayerController()->ClientMessage(TEXT("BugItGo: Ghost mode is ON"));
 }
 
 

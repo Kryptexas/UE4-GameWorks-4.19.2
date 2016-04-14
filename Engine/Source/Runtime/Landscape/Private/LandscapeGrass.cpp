@@ -712,14 +712,14 @@ bool ULandscapeComponent::IsGrassMapOutdated() const
 bool ULandscapeComponent::CanRenderGrassMap() const
 {
 	// Check we can render
-	UWorld* World = GetWorld();
-	if (!GIsEditor || GUsingNullRHI || !World || World->IsGameWorld() || World->FeatureLevel < ERHIFeatureLevel::SM4 || !SceneProxy)
+	UWorld* ComponentWorld = GetWorld();
+	if (!GIsEditor || GUsingNullRHI || !ComponentWorld || ComponentWorld->IsGameWorld() || ComponentWorld->FeatureLevel < ERHIFeatureLevel::SM4 || !SceneProxy)
 	{
 		return false;
 	}
 
 	// Check we can render the material
-	if (!MaterialInstance->GetMaterialResource(GetWorld()->FeatureLevel)->HasValidGameThreadShaderMap())
+	if (!MaterialInstance->GetMaterialResource(ComponentWorld->FeatureLevel)->HasValidGameThreadShaderMap())
 	{
 		return false;
 	}
@@ -1693,7 +1693,7 @@ void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* Onl
 				{
 					SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
 					Used->ClearInstances();
-					Used->DetachFromParent(false, false);
+					Used->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, false));
 					Used->DestroyComponent();
 				}
 				Iter.RemoveCurrent();
@@ -1723,7 +1723,7 @@ void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* Onl
 		{
 			SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
 			Component->ClearInstances();
-			Component->DetachFromParent(false, false);
+			Component->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, false));
 			Component->DestroyComponent();
 		}
 
@@ -1738,7 +1738,7 @@ void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* Onl
 		{
 			SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
 			CastChecked<UHierarchicalInstancedStaticMeshComponent>(Component)->ClearInstances();
-			Component->DetachFromParent(false, false);
+			Component->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, false));
 			Component->DestroyComponent();
 		}
 
@@ -2066,7 +2066,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										{
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassAttachComp);
 
-											HierarchicalInstancedStaticMeshComponent->AttachTo(GetRootComponent());
+											HierarchicalInstancedStaticMeshComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 											FTransform DesiredTransform = GetRootComponent()->ComponentToWorld;
 											DesiredTransform.RemoveScaling();
 											HierarchicalInstancedStaticMeshComponent->SetWorldTransform(DesiredTransform);
@@ -2219,7 +2219,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 				{
 					SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
 					HComponent->ClearInstances();
-					HComponent->DetachFromParent(false, false);
+					HComponent->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, false));
 					HComponent->DestroyComponent();
 					FoliageComponents.Remove(HComponent);
 				}

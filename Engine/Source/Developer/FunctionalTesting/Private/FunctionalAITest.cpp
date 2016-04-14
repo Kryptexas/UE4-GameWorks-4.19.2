@@ -102,11 +102,11 @@ bool AFunctionalAITest::StartTest(const TArray<FString>& Params)
 			}
 			else
 			{
-				FString FailureMessage = FString::Printf(TEXT("Spawn set \'%s\' contains invalid entry at index %d")
+				const FString SpawnFailureMessage = FString::Printf(TEXT("Spawn set \'%s\' contains invalid entry at index %d")
 					, *SpawnSet.Name.ToString()
 					, SpawnIndex);
 
-				UE_LOG(LogFunctionalTest, Warning, TEXT("%s"), *FailureMessage);
+				UE_LOG(LogFunctionalTest, Warning, TEXT("%s"), *SpawnFailureMessage);
 
 				bSuccessfullySpawnedAll = false;
 			}
@@ -175,27 +175,27 @@ void AFunctionalAITest::CleanUp()
 
 FString AFunctionalAITest::GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const
 {
-	FString Result;
+	FString ResultStr;
 
 	if (SpawnedPawns.Num() > 0)
 	{
 		if (CurrentSpawnSetName.Len() > 0 && CurrentSpawnSetName != TEXT("None"))
 		{
-			Result = FString::Printf(TEXT("spawn set \'%s\', pawns: "), *CurrentSpawnSetName);
+			ResultStr = FString::Printf(TEXT("spawn set \'%s\', pawns: "), *CurrentSpawnSetName);
 		}
 		else
 		{
-			Result = TEXT("pawns: ");
+			ResultStr = TEXT("pawns: ");
 		}
 		
 
 		for (int32 PawnIndex = 0; PawnIndex < SpawnedPawns.Num(); ++PawnIndex)
 		{
-			Result += FString::Printf(TEXT("%s, "), *GetNameSafe(SpawnedPawns[PawnIndex]));
+			ResultStr += FString::Printf(TEXT("%s, "), *GetNameSafe(SpawnedPawns[PawnIndex]));
 		}
 	}
 
-	return Result;
+	return ResultStr;
 }
 
 FString AFunctionalAITest::GetReproString() const

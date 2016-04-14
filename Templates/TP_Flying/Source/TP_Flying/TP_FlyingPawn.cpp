@@ -23,7 +23,7 @@ ATP_FlyingPawn::ATP_FlyingPawn()
 
 	// Create a spring arm component
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm0"));
-	SpringArm->AttachTo(RootComponent);
+	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 160.0f; // The camera follows at this distance behind the character	
 	SpringArm->SocketOffset = FVector(0.f,0.f,60.f);
 	SpringArm->bEnableCameraLag = false;
@@ -31,7 +31,7 @@ ATP_FlyingPawn::ATP_FlyingPawn()
 
 	// Create camera component 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera0"));
-	Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
+	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false; // Don't rotate camera with controller
 
 	// Set handling parameters

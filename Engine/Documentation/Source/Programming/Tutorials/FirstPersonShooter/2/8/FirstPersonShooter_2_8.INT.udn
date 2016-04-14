@@ -96,7 +96,7 @@ A common approach for building FPS games is to use two separate character meshes
 		if (FirstPersonMesh != NULL)
 		{
 			FirstPersonMesh->SetOnlyOwnerSee(true);  // only the owning player will see this mesh
-			FirstPersonMesh->AttachParent = FirstPersonCameraComponent;
+			FirstPersonMesh->SetupAttachment(FirstPersonCameraComponent);
 			FirstPersonMesh->bCastDynamicShadow = false;
 			FirstPersonMesh->CastShadow = false;
 		}
@@ -134,7 +134,7 @@ A common approach for building FPS games is to use two separate character meshes
 		
 			if (FirstPersonCameraComponent != NULL)
 			{
-				FirstPersonCameraComponent->AttachParent = GetCapsuleComponent();
+				FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
 				// Position the camera a bit above the eyes
 				FirstPersonCameraComponent->RelativeLocation = FVector(0.f, 0.f, 50.f + BaseEyeHeight);
 				// Allow the pawn to control rotation
@@ -147,7 +147,7 @@ A common approach for building FPS games is to use two separate character meshes
 			if (FirstPersonMesh != NULL)
 			{
 				FirstPersonMesh->SetOnlyOwnerSee(true);  // only the owning player will see this mesh
-				FirstPersonMesh->AttachParent = FirstPersonCameraComponent;
+				FirstPersonMesh->SetupAttachment(FirstPersonCameraComponent);
 				FirstPersonMesh->bCastDynamicShadow = false;
 				FirstPersonMesh->CastShadow = false;
 			}

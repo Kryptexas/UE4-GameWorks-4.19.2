@@ -122,7 +122,7 @@ protected:
 	void AdvanceCurrent()
 	{
 		// Look at current Iter
-		Current = Cast<T>(*Iter);
+		Current = Iter ? Cast<T>(*Iter) : nullptr;
 
 		// Advance if we have to
 		while(Iter && (!Current || (LocalOnly && !Current->IsLocalController())))

@@ -37,10 +37,10 @@ ASceneCapture2D::ASceneCapture2D(const FObjectInitializer& ObjectInitializer)
 	DrawFrustum = CreateDefaultSubobject<UDrawFrustumComponent>(TEXT("DrawFrust0"));
 	DrawFrustum->AlwaysLoadOnClient = false;
 	DrawFrustum->AlwaysLoadOnServer = false;
-	DrawFrustum->AttachParent = GetMeshComp();
+	DrawFrustum->SetupAttachment(GetMeshComp());
 
 	CaptureComponent2D = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("NewSceneCaptureComponent2D"));
-	CaptureComponent2D->AttachParent = GetMeshComp();
+	CaptureComponent2D->SetupAttachment(GetMeshComp());
 }
 
 void ASceneCapture2D::OnInterpToggle(bool bEnable)
@@ -93,10 +93,10 @@ ASceneCaptureCube::ASceneCaptureCube(const FObjectInitializer& ObjectInitializer
 	DrawFrustum = CreateDefaultSubobject<UDrawFrustumComponent>(TEXT("DrawFrust0"));
 	DrawFrustum->AlwaysLoadOnClient = false;
 	DrawFrustum->AlwaysLoadOnServer = false;
-	DrawFrustum->AttachParent = GetMeshComp();
+	DrawFrustum->SetupAttachment(GetMeshComp());
 
 	CaptureComponentCube = CreateDefaultSubobject<USceneCaptureComponentCube>(TEXT("NewSceneCaptureComponentCube"));
-	CaptureComponentCube->AttachParent = GetMeshComp();
+	CaptureComponentCube->SetupAttachment(GetMeshComp());
 }
 
 void ASceneCaptureCube::OnInterpToggle(bool bEnable)
@@ -332,7 +332,7 @@ void USceneCaptureComponent2D::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	if (bCaptureEveryFrame)
 	{
-		UpdateComponentToWorld(false);
+		UpdateComponentToWorld();
 	}
 }
 
@@ -340,6 +340,7 @@ static TMultiMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<USceneCaptureComponent2D
 
 void USceneCaptureComponent2D::UpdateContent()
 {
+	UWorld* World = GetWorld();
 	if (World && World->Scene && IsVisible())
 	{
 		// Defer until after updates finish
@@ -403,14 +404,14 @@ APlanarReflection::APlanarReflection(const FObjectInitializer& ObjectInitializer
 	RootComponent = PlanarReflectionComponent;
 
 	UBoxComponent* DrawInfluenceBox = CreateDefaultSubobject<UBoxComponent>(TEXT("DrawBox0"));
-	DrawInfluenceBox->AttachParent = PlanarReflectionComponent;
+	DrawInfluenceBox->SetupAttachment(PlanarReflectionComponent);
 	DrawInfluenceBox->bUseEditorCompositing = true;
 	DrawInfluenceBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	PlanarReflectionComponent->PreviewBox = DrawInfluenceBox;
 
 	GetMeshComp()->SetWorldRotation(FRotator(0, 0, 0));
 	GetMeshComp()->SetWorldScale3D(FVector(4, 4, 1));
-	GetMeshComp()->AttachParent = PlanarReflectionComponent;
+	GetMeshComp()->SetupAttachment(PlanarReflectionComponent);
 }
 
 void APlanarReflection::OnInterpToggle(bool bEnable)
@@ -496,7 +497,7 @@ void UPlanarReflectionComponent::CreateRenderState_Concurrent()
 	if (ShouldComponentAddToScene() && ShouldRender())
 	{
 		SceneProxy = new FPlanarReflectionSceneProxy(this, RenderTarget);
-		World->Scene->AddPlanarReflection(this);
+		GetWorld()->Scene->AddPlanarReflection(this);
 	}
 }
 
@@ -506,7 +507,7 @@ void UPlanarReflectionComponent::SendRenderTransform_Concurrent()
 
 	if (SceneProxy)
 	{
-		World->Scene->UpdatePlanarReflectionTransform(this);
+		GetWorld()->Scene->UpdatePlanarReflectionTransform(this);
 	}
 
 	Super::SendRenderTransform_Concurrent();
@@ -518,7 +519,7 @@ void UPlanarReflectionComponent::DestroyRenderState_Concurrent()
 
 	if (SceneProxy)
 	{
-		World->Scene->RemovePlanarReflection(this);
+		GetWorld()->Scene->RemovePlanarReflection(this);
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			FDestroyPlanarReflectionCommand,
@@ -601,7 +602,7 @@ void USceneCaptureComponentCube::TickComponent(float DeltaTime, enum ELevelTick 
 
 	if (bCaptureEveryFrame)
 	{
-		UpdateComponentToWorld(false);
+		UpdateComponentToWorld();
 	}
 }
 
@@ -609,6 +610,7 @@ static TMultiMap<TWeakObjectPtr<UWorld>, TWeakObjectPtr<USceneCaptureComponentCu
 
 void USceneCaptureComponentCube::UpdateContent()
 {
+	UWorld* World = GetWorld();
 	if (World && World->Scene && IsVisible())
 	{
 		// Defer until after updates finish

@@ -213,6 +213,9 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent* Component, UAnimSeq
 	AnimationObject->SequenceLength = 0.f;
 	AnimationObject->NumFrames = 0;
 
+	RecordedCurves.Reset();
+	UIDList = nullptr;
+
 	USkeleton* AnimSkeleton = AnimationObject->GetSkeleton();
 	// add all frames
 	for (int32 BoneIndex=0; BoneIndex <PreviousSpacesBases.Num(); ++BoneIndex)
@@ -294,7 +297,36 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 
 		// post-process applies compression etc.
 		// @todo figure out why removing redundant keys is inconsistent
-		AnimationObject->RawCurveData.RemoveRedundantKeys();
+
+		// add to real curve data 
+		if (RecordedCurves.Num() == NumFrames && UIDList)
+		{
+			for (int32 CurveIndex = 0; CurveIndex < (*UIDList).Num(); ++CurveIndex)
+			{
+				USkeleton::AnimCurveUID UID = (*UIDList)[CurveIndex];
+
+				FFloatCurve* FloatCurveData = nullptr;
+
+				for (int32 FrameIndex = 0; FrameIndex < NumFrames; ++FrameIndex)
+				{
+					const float TimeToRecord = FrameIndex*IntervalTime;
+					FCurveElement& CurCurve = RecordedCurves[FrameIndex][CurveIndex];
+					if (FrameIndex == 0)
+					{
+						// add one and save the cache
+						AnimationObject->RawCurveData.AddFloatCurveKey(UID, CurCurve.Flags, TimeToRecord, CurCurve.Value);
+						FloatCurveData = static_cast<FFloatCurve*>(AnimationObject->RawCurveData.GetCurveData(UID, FRawCurveTracks::FloatType));
+					}
+					else if (FloatCurveData)
+					{
+						FloatCurveData->FloatCurve.AddKey(TimeToRecord, CurCurve.Value);
+					}
+				}
+			}
+	
+		}
+
+		//AnimationObject->RawCurveData.RemoveRedundantKeys();
 		AnimationObject->PostProcessSequence();
 
 		// restore old settings
@@ -359,6 +391,14 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 	UniqueNotifyStates.Empty();
 
 	return NULL;
+}
+
+void FAnimationRecorder::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	if (AnimationObject)
+	{
+		Collector.AddReferencedObject(AnimationObject);
+	}
 }
 
 void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float DeltaTime)
@@ -467,7 +507,7 @@ void FAnimationRecorder::Record(USkeletalMeshComponent* Component, FTransform co
 		for (int32 TrackIndex=0; TrackIndex <AnimationObject->RawAnimationData.Num(); ++TrackIndex)
 		{
 			// verify if this bone exists in skeleton
-			int32 BoneTreeIndex = AnimationObject->GetSkeletonIndexFromTrackIndex(TrackIndex);
+			int32 BoneTreeIndex = AnimationObject->GetSkeletonIndexFromRawDataTrackIndex(TrackIndex);
 			if (BoneTreeIndex != INDEX_NONE)
 			{
 				int32 BoneIndex = AnimSkeleton->GetMeshBoneIndexFromSkeletonBoneIndex(Component->SkeletalMesh, BoneTreeIndex);
@@ -493,11 +533,18 @@ void FAnimationRecorder::Record(USkeletalMeshComponent* Component, FTransform co
 			}
 		}
 
-		const float TimeToRecord = FrameToAdd*IntervalTime;
-		for (int32 CurveIndex = 0; CurveIndex < AnimationCurves.Elements.Num(); ++CurveIndex)
+		// each RecordedCurves contains all elements
+		if (AnimationCurves.Elements.Num() > 0)
 		{
-			USkeleton::AnimCurveUID UID = (*AnimationCurves.UIDList)[CurveIndex];
-			AnimationObject->RawCurveData.AddFloatCurveKey(UID, AnimationCurves.Elements[CurveIndex].Flags, TimeToRecord, AnimationCurves.Elements[CurveIndex].Value);
+			RecordedCurves.Add(AnimationCurves.Elements);
+			if (UIDList == nullptr)
+			{
+				UIDList = AnimationCurves.UIDList;
+			}
+			else
+			{
+				ensureAlways(UIDList == AnimationCurves.UIDList);
+			}
 		}
 
 		LastFrame = FrameToAdd;

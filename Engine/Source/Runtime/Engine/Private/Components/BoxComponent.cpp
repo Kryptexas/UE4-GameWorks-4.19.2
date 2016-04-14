@@ -144,10 +144,10 @@ FPrimitiveSceneProxy* UBoxComponent::CreateSceneProxy()
 
 		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 		{
-			const bool bVisible = !bDrawOnlyIfSelected || IsSelected();
+			const bool bProxyVisible = !bDrawOnlyIfSelected || IsSelected();
 
 			FPrimitiveViewRelevance Result;
-			Result.bDrawRelevance = IsShown(View) && bVisible;
+			Result.bDrawRelevance = IsShown(View) && bProxyVisible;
 			Result.bDynamicRelevance = true;
 			Result.bShadowRelevance = IsShadowCast(View);
 			Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);

@@ -262,11 +262,6 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	 */
 	void RefreshCurveBoneControllers();
 
-	/**
-	 * Apply all Transform Curves to the RawAnimationData of the animation
-	 */
-	void BakeAnimation();
-
 	/** 
 	 * Enable Controllers
 	 * This is used by when editing, when controller has to be disabled

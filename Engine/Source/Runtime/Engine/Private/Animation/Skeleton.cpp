@@ -626,13 +626,14 @@ void USkeleton::SetBoneTranslationRetargetingMode(const int32& BoneIndex, EBoneT
 	}
 }
 
-int32 USkeleton::GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq)
+int32 USkeleton::GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq, const bool bUseRawData)
 {
+	const TArray<FTrackToSkeletonMap>& TrackToSkelMap = bUseRawData ? InAnimSeq->TrackToSkeletonMapTable : InAnimSeq->CompressedTrackToSkeletonMapTable;
 	if( InSkeletonBoneIndex != INDEX_NONE )
 	{
-		for (int32 TrackIndex=0; TrackIndex<InAnimSeq->TrackToSkeletonMapTable.Num(); ++TrackIndex)
+		for (int32 TrackIndex = 0; TrackIndex<TrackToSkelMap.Num(); ++TrackIndex)
 		{
-			const FTrackToSkeletonMap& TrackToSkeleton = InAnimSeq->TrackToSkeletonMapTable[TrackIndex];
+			const FTrackToSkeletonMap& TrackToSkeleton = TrackToSkelMap[TrackIndex];
 			if( TrackToSkeleton.BoneTreeIndex == InSkeletonBoneIndex )
 			{
 				return TrackIndex;

@@ -705,11 +705,13 @@ void UCharacterMovementComponent::SetDefaultMovementMode()
 	}
 	else if ( !CharacterOwner || MovementMode != DefaultLandMovementMode )
 	{
+		const float SavedVelocityZ = Velocity.Z;
 		SetMovementMode(DefaultLandMovementMode);
 
 		// Avoid 1-frame delay if trying to walk but walking fails at this location.
 		if (MovementMode == MOVE_Walking && GetMovementBase() == NULL)
 		{
+			Velocity.Z = SavedVelocityZ; // Prevent temporary walking state from zeroing Z velocity.
 			SetMovementMode(MOVE_Falling);
 		}
 	}
@@ -1001,6 +1003,17 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 	// We don't update if simulating physics (eg ragdolls).
 	if (bIsSimulatingPhysics)
 	{
+		// Update camera to ensure client gets updates even when physics move him far away from point where simulation started
+		if (CharacterOwner->Role == ROLE_AutonomousProxy && GetNetMode() == NM_Client)
+		{
+			APlayerController* PC = Cast<APlayerController>(CharacterOwner->GetController());
+			APlayerCameraManager* PlayerCameraManager = (PC ? PC->PlayerCameraManager : NULL);
+			if (PlayerCameraManager != NULL && PlayerCameraManager->bUseClientSideCameraUpdates)
+			{
+				PlayerCameraManager->bShouldSendClientSideCameraUpdate = true;
+			}
+		}
+
 		return;
 	}
 
@@ -1047,7 +1060,7 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 			// Between net updates from the client we need to update position if based on another object,
 			// otherwise the object will move on intermediate frames and we won't follow it.
 			MaybeUpdateBasedMovement(DeltaTime);
-			SaveBaseLocation();
+			MaybeSaveBaseLocation();
 		}
 	}
 	else if (CharacterOwner->Role == ROLE_SimulatedProxy)
@@ -1087,7 +1100,6 @@ void UCharacterMovementComponent::PostPhysicsTickComponent(float DeltaTime, FCha
 	{
 		UpdateBasedMovement(DeltaTime);
 		SaveBaseLocation();
-
 		bDeferUpdateBasedMovement = false;
 	}
 }
@@ -1491,7 +1503,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 	// Call custom post-movement events. These happen after the scoped movement completes in case the events want to use the current state of overlaps etc.
 	CallMovementUpdateDelegate(DeltaSeconds, OldLocation, OldVelocity);
 
-	SaveBaseLocation();
+	MaybeSaveBaseLocation();
 	UpdateComponentVelocity();
 	bJustTeleported = false;
 
@@ -1541,22 +1553,35 @@ void UCharacterMovementComponent::MaybeUpdateBasedMovement(float DeltaSeconds)
 		
 		if (!bBaseIsSimulatingPhysics || !bAllowDefer)
 		{
+			bDeferUpdateBasedMovement = false;
 			UpdateBasedMovement(DeltaSeconds);
-			PostPhysicsTickFunction.SetTickFunctionEnable(false);
+			// If previously simulated, go back to using normal tick dependencies.
+			if (PostPhysicsTickFunction.IsTickFunctionEnabled())
+			{
+				PostPhysicsTickFunction.SetTickFunctionEnable(false);
+				MovementBaseUtility::AddTickDependency(PrimaryComponentTick, MovementBase);
+			}
 		}
 		else
 		{
 			// defer movement base update until after physics
 			bDeferUpdateBasedMovement = true;
-			PostPhysicsTickFunction.SetTickFunctionEnable(true);
+			// If previously not simulating, remove tick dependencies and use post physics tick function.
+			if (!PostPhysicsTickFunction.IsTickFunctionEnabled())
+			{
+				PostPhysicsTickFunction.SetTickFunctionEnable(true);
+				MovementBaseUtility::RemoveTickDependency(PrimaryComponentTick, MovementBase);
+			}
 		}
 	}
 }
 
-// todo: deprecated, remove.
 void UCharacterMovementComponent::MaybeSaveBaseLocation()
 {
-	SaveBaseLocation();
+	if (!bDeferUpdateBasedMovement)
+	{
+		SaveBaseLocation();
+	}
 }
 
 // @todo UE4 - handle lift moving up and down through encroachment
@@ -1666,6 +1691,14 @@ void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 			}
 			else
 			{
+				// hack - transforms between local and world space introducing slight error FIXMESTEVE - discuss with engine team: just skip the transforms if no rotation?
+				FVector BaseMoveDelta = NewBaseLocation - OldBaseLocation;
+				if (!bRotationChanged && (BaseMoveDelta.X == 0.f) && (BaseMoveDelta.Y == 0.f))
+				{
+					DeltaPosition.X = 0.f;
+					DeltaPosition.Y = 0.f;
+				}
+
 				FHitResult MoveOnBaseHit(1.f);
 				const FVector OldLocation = UpdatedComponent->GetComponentLocation();
 				MoveUpdatedComponent(DeltaPosition, FinalQuat, true, &MoveOnBaseHit);
@@ -1928,7 +1961,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 	// Call external post-movement events. These happen after the scoped movement completes in case the events want to use the current state of overlaps etc.
 	CallMovementUpdateDelegate(DeltaSeconds, OldLocation, OldVelocity);
 
-	SaveBaseLocation();
+	MaybeSaveBaseLocation();
 	UpdateComponentVelocity();
 
 	const bool bHasAuthority = CharacterOwner && CharacterOwner->HasAuthority();
@@ -3184,11 +3217,20 @@ void UCharacterMovementComponent::PhysSwimming(float deltaTime, int32 Iterations
 	float NetFluidFriction  = 0.f;
 	float Depth = ImmersionDepth();
 	float NetBuoyancy = Buoyancy * Depth;
-	if( !HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity() && (Velocity.Z > 0.5f*GetMaxSpeed()) && (NetBuoyancy != 0.f) )
+	float OriginalAccelZ = Acceleration.Z;
+	bool bLimitedUpAccel = false;
+
+	if (!HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity() && (Velocity.Z > 0.33f * MaxSwimSpeed) && (NetBuoyancy != 0.f))
 	{
 		//damp positive Z out of water
-		Velocity.Z = Velocity.Z * Depth;
+		Velocity.Z = FMath::Max(0.33f * MaxSwimSpeed, Velocity.Z * Depth*Depth);
 	}
+	else if (Depth < 0.65f)
+	{
+		bLimitedUpAccel = (Acceleration.Z > 0.f);
+		Acceleration.Z = FMath::Min(0.1f, Acceleration.Z);
+	}
+
 	Iterations++;
 	FVector OldLocation = UpdatedComponent->GetComponentLocation();
 	bJustTeleported = false;
@@ -3214,6 +3256,19 @@ void UCharacterMovementComponent::PhysSwimming(float deltaTime, int32 Iterations
 
 	if ( Hit.Time < 1.f && CharacterOwner)
 	{
+		if (bLimitedUpAccel && (Velocity.Z >= 0.f))
+		{
+			// allow upward velocity at surface if against obstacle
+			Velocity.Z += OriginalAccelZ * deltaTime;
+			Adjusted = Velocity * (1.f - Hit.Time)*deltaTime;
+			Swim(Adjusted, Hit);
+			if (!IsSwimming())
+			{
+				StartNewPhysics(remainingTime, Iterations);
+				return;
+			}
+		}
+
 		const FVector GravDir = FVector(0.f,0.f,-1.f);
 		const FVector VelDir = Velocity.GetSafeNormal();
 		const float UpDown = GravDir | VelDir;
@@ -4770,15 +4825,15 @@ bool UCharacterMovementComponent::TryToLeaveNavWalking()
 
 void UCharacterMovementComponent::OnTeleported()
 {
-	bJustTeleported = true;
 	if (!HasValidData())
 	{
 		return;
 	}
+	bool bWasFalling = (MovementMode == MOVE_Falling);
+	bJustTeleported = true;
 
 	// Find floor at current location
 	UpdateFloorFromAdjustment();
-	SaveBaseLocation();
 
 	// Validate it. We don't want to pop down to walking mode from very high off the ground, but we'd like to keep walking if possible.
 	UPrimitiveComponent* OldBase = CharacterOwner->GetMovementBase();
@@ -4795,39 +4850,21 @@ void UCharacterMovementComponent::OnTeleported()
 	}
 
 	// If we were walking but no longer have a valid base or floor, start falling.
-	if (!CurrentFloor.IsWalkableFloor() || (OldBase && !NewBase))
+	const float SavedVelocityZ = Velocity.Z;
+	SetDefaultMovementMode();
+	if ((MovementMode == MOVE_Walking) && (!CurrentFloor.IsWalkableFloor() || (OldBase && !NewBase)))
 	{
-		if (DefaultLandMovementMode == MOVE_Walking)
-		{
-			SetMovementMode(MOVE_Falling);
-		}
-		else
-		{
-			SetDefaultMovementMode();
-		}
-	}
-}
-
-
-/** Internal. */
-FVector CharAngularVelocity(FRotator const& OldRot, FRotator const& NewRot, float DeltaTime)
-{
-	FVector RetAngVel(0.f);
-
-	if (OldRot != NewRot)
-	{
-		float const InvDeltaTime = 1.f / DeltaTime;
-		FQuat const DeltaQRot = (NewRot - OldRot).Quaternion();
-
-		FVector Axis; 
-		float Angle;
-		DeltaQRot.ToAxisAndAngle(Axis, Angle);
-
-		RetAngVel = Axis * Angle * InvDeltaTime;
-		RetAngVel.DiagnosticCheckNaN();
+		// If we are walking but no longer have a valid base or floor, start falling.
+		Velocity.Z = SavedVelocityZ;
+		SetMovementMode(MOVE_Falling);
 	}
 
-	return RetAngVel;
+	if (bWasFalling && IsMovingOnGround())
+	{
+		ProcessLanded(CurrentFloor.HitResult, 0.f, 0);
+	}
+
+	MaybeSaveBaseLocation();
 }
 
 float GetAxisDeltaRotation(float InAxisRotationRate, float DeltaTime)
@@ -8513,6 +8550,7 @@ void UCharacterMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 		if (SetupActorComponentTickFunction(&PostPhysicsTickFunction))
 		{
 			PostPhysicsTickFunction.Target = this;
+			PostPhysicsTickFunction.AddPrerequisite(this, this->PrimaryComponentTick);
 		}
 	}
 	else

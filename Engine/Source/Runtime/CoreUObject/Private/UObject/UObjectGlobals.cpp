@@ -1905,6 +1905,7 @@ UObject* StaticDuplicateObjectEx( FObjectDuplicationParameters& Parameters )
 			if ( !DupObjectInfo.DuplicatedObject->IsTemplate() )
 			{
 				// Don't want to call PostLoad on class duplicated CDOs
+				TGuardValue<bool> GuardIsRoutingPostLoad(FUObjectThreadContext::Get().IsRoutingPostLoad, true);
 				DupObjectInfo.DuplicatedObject->ConditionalPostLoad();
 			}
 			DupObjectInfo.DuplicatedObject->CheckDefaultSubobjects();
@@ -2042,7 +2043,7 @@ bool StaticAllocateObjectErrorTests( UClass* InClass, UObject* InOuter, FName In
 void NotifyConstructedDuringAsyncLoading(UObject* Object, bool bSubObject);
 
 /**
-* For object overwrites, the class may want to persist some info over the re-intialize
+* For object overwrites, the class may want to persist some info over the re-initialize
 * this is only used for classes in the script compiler
 **/
 //@todo UE4 this is clunky
@@ -2307,7 +2308,7 @@ FObjectInitializer::FObjectInitializer()
 	: Obj(nullptr)
 	, ObjectArchetype(nullptr)
 	, bCopyTransientsFromClassDefaults(false)
-	, bShouldIntializePropsFromArchetype(false)
+	, bShouldInitializePropsFromArchetype(false)
 	, bSubobjectClassInitializationAllowed(true)
 	, InstanceGraph(nullptr)
 	, LastConstructedObject(nullptr)
@@ -2323,12 +2324,12 @@ FObjectInitializer::FObjectInitializer()
 	ThreadContext.PushInitializer(this);
 }	
 
-FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph)
+FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldInitializeProps, struct FObjectInstancingGraph* InInstanceGraph)
 	: Obj(InObj)
 	, ObjectArchetype(InObjectArchetype)
 	  // if the SubobjectRoot NULL, then we want to copy the transients from the template, otherwise we are doing a duplicate and we want to copy the transients from the class defaults
 	, bCopyTransientsFromClassDefaults(bInCopyTransientsFromClassDefaults)
-	, bShouldIntializePropsFromArchetype(bInShouldIntializeProps)
+	, bShouldInitializePropsFromArchetype(bInShouldInitializeProps)
 	, bSubobjectClassInitializationAllowed(true)
 	, InstanceGraph(InInstanceGraph)
 	, LastConstructedObject(nullptr)
@@ -2503,7 +2504,7 @@ void FObjectInitializer::PostConstructInit()
 	}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
-	if (bShouldIntializePropsFromArchetype)
+	if (bShouldInitializePropsFromArchetype)
 	{
 		UClass* BaseClass = (bIsCDO && !GIsDuplicatingClassForReinstancing) ? SuperClass : Class;
 		if (BaseClass == NULL)
@@ -2554,7 +2555,7 @@ void FObjectInitializer::PostConstructInit()
 		{
 			// Instance subobject templates for non-cdo blueprint classes or when using non-CDO template.
 			const bool bInitPropsWithArchetype = Class->GetDefaultObject(false) == NULL || Class->GetDefaultObject(false) != ObjectArchetype || Class->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
-			if ((!bIsCDO || bShouldIntializePropsFromArchetype) && Class->HasAnyClassFlags(CLASS_HasInstancedReference) && bInitPropsWithArchetype)
+			if ((!bIsCDO || bShouldInitializePropsFromArchetype) && Class->HasAnyClassFlags(CLASS_HasInstancedReference) && bInitPropsWithArchetype)
 			{
 				// Only blueprint generated CDOs can have their subobjects instanced.
 				check(!bIsCDO || !Class->HasAnyClassFlags(CLASS_Intrinsic|CLASS_Native));

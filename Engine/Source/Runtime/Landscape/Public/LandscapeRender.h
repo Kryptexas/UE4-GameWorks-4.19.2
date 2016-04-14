@@ -631,9 +631,9 @@ public:
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
-		return Parent->GetMaterial(FeatureLevel);
+		return Parent->GetMaterial(InFeatureLevel);
 	}
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
@@ -700,9 +700,9 @@ public:
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
-		return Parent->GetMaterial(FeatureLevel);
+		return Parent->GetMaterial(InFeatureLevel);
 	}
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
@@ -749,9 +749,9 @@ public:
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
-		return Parent->GetMaterial(FeatureLevel);
+		return Parent->GetMaterial(InFeatureLevel);
 	}
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
@@ -796,9 +796,9 @@ public:
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
-		return Parent->GetMaterial(FeatureLevel);
+		return Parent->GetMaterial(InFeatureLevel);
 	}
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{

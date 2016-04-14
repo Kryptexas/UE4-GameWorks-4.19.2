@@ -1141,7 +1141,7 @@ public:
 	 */
 	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1) const;
 	/**
-	 * Reintialize a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
+	 * Reinitialize a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
 	 *
 	 * @param	Dest		Pointer to memory to reinitialize
 	 * @param	ArrayDim	Number of elements in the array

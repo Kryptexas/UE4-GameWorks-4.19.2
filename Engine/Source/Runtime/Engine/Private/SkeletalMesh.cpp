@@ -2941,6 +2941,34 @@ void USkeletalMesh::PostLoad()
 		}
 #endif // WITH_EDITOR
 	}
+
+	// validate influences for existing clothing
+	if(FSkeletalMeshResource* SkelResource = GetImportedResource())
+	{
+		for(int32 LODIndex = 0; LODIndex < SkelResource->LODModels.Num(); ++LODIndex)
+		{
+			FStaticLODModel& CurLODModel = SkelResource->LODModels[LODIndex];
+
+			for(FSkelMeshSection& CurSection : CurLODModel.Sections)
+			{
+				if(CurSection.CorrespondClothSectionIndex != INDEX_NONE)
+				{
+					// We have cloth on this section, check to make sure influences are in range
+					FSkelMeshChunk& CorrespondingChunk = CurLODModel.Chunks[CurSection.ChunkIndex];
+					if(CorrespondingChunk.MaxBoneInfluences > MAX_INFLUENCES_PER_STREAM)
+					{
+						UE_LOG(LogSkeletalMesh, Warning, TEXT("Chunk %d for LOD %d in skeletal mesh %s has clothing associated but has %d influences. Clothing only supports a maximum of %d influences - reduce influences on chunk and reimport mesh."),
+							CurSection.ChunkIndex,
+							LODIndex,
+							*GetName(),
+							CorrespondingChunk.MaxBoneInfluences,
+							MAX_INFLUENCES_PER_STREAM);
+					}
+				}
+			}
+		}
+	}
+
 #endif // WITH_APEX_CLOTHING
 
 	if( GetLinkerUE4Version() < VER_UE4_REFERENCE_SKELETON_REFACTOR )
@@ -4144,6 +4172,7 @@ void ASkeletalMeshActor::PreviewSetAnimPosition(FName SlotName, int32 ChannelInd
 {
 	if(CanPlayAnimation(InAnimSequence))
 	{
+		TWeakObjectPtr<class UAnimMontage>& CurrentlyPlayingMontage = CurrentlyPlayingMontages.FindOrAdd(SlotName);
 		FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, CurrentlyPlayingMontage, InPosition, bLooping, bFireNotifies, DeltaTime);
 	}
 }
@@ -4290,6 +4319,7 @@ void ASkeletalMeshActor::SetAnimPosition(FName SlotName, int32 ChannelIndex, UAn
 {
 	if (CanPlayAnimation(InAnimSequence))
 	{
+		TWeakObjectPtr<class UAnimMontage>& CurrentlyPlayingMontage = CurrentlyPlayingMontages.FindOrAdd(SlotName);
 		FAnimMontageInstance::SetMatineeAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, CurrentlyPlayingMontage, InPosition, bLooping);
 	}
 }
@@ -4691,7 +4721,7 @@ void FSkeletalMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVi
 	GetMeshElementsConditionallySelectable(Views, ViewFamily, true, VisibilityMap, Collector);
 }
 
-void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const
+void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, bool bInSelectable, uint32 VisibilityMap, FMeshElementCollector& Collector) const
 {
 	if( !MeshObject )
 	{
@@ -4741,7 +4771,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 				continue;
 			}
 
-			GetDynamicElementsSection(Views, ViewFamily, VisibilityMap, LODModel, LODIndex, Section, Chunk, SectionElementInfo, CustomLeftRightVectors, bSelectable, Collector);
+			GetDynamicElementsSection(Views, ViewFamily, VisibilityMap, LODModel, LODIndex, Section, Chunk, SectionElementInfo, CustomLeftRightVectors, bInSelectable, Collector);
 		}
 	}
 
@@ -4766,7 +4796,7 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 
 void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
 	const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, const FSkelMeshChunk& Chunk, 
-	const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bSelectable, FMeshElementCollector& Collector ) const
+	const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bInSelectable, FMeshElementCollector& Collector ) const
 {
 	// If hidden skip the draw
 	if (Section.bDisabled || MeshObject->IsMaterialHidden(LODIndex,SectionElementInfo.UseMaterialIndex))
@@ -4810,7 +4840,7 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 				continue;
 			}
 
-			Mesh.bSelectable = bSelectable;
+			Mesh.bSelectable = bInSelectable;
 			BatchElement.FirstIndex = Section.BaseIndex;
 
 			BatchElement.IndexBuffer = LODModel.MultiSizeIndexContainer.GetIndexBuffer();
@@ -4933,14 +4963,14 @@ void FSkeletalMeshSceneProxy::GetShadowShapes(TArray<FCapsuleShape>& CapsuleShap
 	SCOPE_CYCLE_COUNTER(STAT_GetShadowShapes);
 
 	const TArray<FMatrix>& ReferenceToLocalMatrices = MeshObject->GetReferenceToLocalMatrices();
-	const FMatrix& LocalToWorld = GetLocalToWorld();
+	const FMatrix& ProxyLocalToWorld = GetLocalToWorld();
 
 	int32 CapsuleIndex = CapsuleShapes.Num();
 	CapsuleShapes.SetNum(CapsuleShapes.Num() + ShadowCapsuleData.Num(), false);
 
 	for(const TPair<int32, FCapsuleShape>& CapsuleData : ShadowCapsuleData)
 	{
-		FMatrix ReferenceToWorld = ReferenceToLocalMatrices[CapsuleData.Key] * LocalToWorld;
+		FMatrix ReferenceToWorld = ReferenceToLocalMatrices[CapsuleData.Key] * ProxyLocalToWorld;
 		const float MaxScale = ReferenceToWorld.GetScaleVector().GetMax();
 
 		FCapsuleShape& NewCapsule = CapsuleShapes[CapsuleIndex++];
@@ -5010,19 +5040,19 @@ int32 FSkeletalMeshSceneProxy::GetCurrentLODIndex()
  */
 void FSkeletalMeshSceneProxy::DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const
 {
-	FMatrix LocalToWorld, WorldToLocal;
-	if (!GetWorldMatrices(LocalToWorld, WorldToLocal))
+	FMatrix ProxyLocalToWorld, WorldToLocal;
+	if (!GetWorldMatrices(ProxyLocalToWorld, WorldToLocal))
 	{
 		return; // Cannot draw this, world matrix not valid
 	}
 
-	FMatrix ScalingMatrix = LocalToWorld;
+	FMatrix ScalingMatrix = ProxyLocalToWorld;
 	FVector TotalScale = ScalingMatrix.ExtractScaling();
 
 	// Only if valid
 	if( !TotalScale.IsNearlyZero() )
 	{
-		FTransform LocalToWorldTransform(LocalToWorld);
+		FTransform LocalToWorldTransform(ProxyLocalToWorld);
 
 		TArray<FTransform>* BoneSpaceBases = MeshObject->GetSpaceBases();
 		if(BoneSpaceBases)

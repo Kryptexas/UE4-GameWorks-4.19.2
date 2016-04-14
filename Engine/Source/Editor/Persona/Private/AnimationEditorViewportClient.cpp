@@ -101,6 +101,7 @@ FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene&
 	DrawHelper.bDrawGrid = ConfigOption->bShowGrid;
 
 	LocalAxesMode = static_cast<ELocalAxesMode::Type>(ConfigOption->DefaultLocalAxesSelection);
+	BoneDrawMode = static_cast<EBoneDrawMode::Type>(ConfigOption->DefaultBoneDrawSelection);
 
 	WidgetMode = FWidget::WM_Rotate;
 
@@ -370,7 +371,7 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 			DrawMeshSubsetBones(PreviewSkelMeshComp.Get(), PreviewSkelMeshComp->BonesOfInterest, PDI);
 		}
 		// otherwise, if we display bones, display
-		if ( PreviewSkelMeshComp->bDisplayBones )
+		if ( BoneDrawMode != EBoneDrawMode::None )
 		{
 			DrawMeshBones(PreviewSkelMeshComp.Get(), PDI);
 		}
@@ -936,11 +937,21 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 	{
 		// see if you have anim sequence that has transform curves
 		UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->GetCurrentAsset());
-		if ( Sequence && Sequence->DoesNeedRebake() )
+		if (Sequence)
 		{
-			InfoString = TEXT("Animation is being edited. To apply to raw animation data, click \"Apply\"");
-			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
-			CurYOffset += YL + 2;
+			if (Sequence->DoesNeedRebake())
+			{
+				InfoString = TEXT("Animation is being edited. To apply to raw animation data, click \"Apply\"");
+				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
+				CurYOffset += YL + 2;
+			}
+
+			if (Sequence->DoesNeedRecompress())
+			{
+				InfoString = TEXT("Animation is being edited. To apply to compressed data (and recalculate baked additives), click \"Apply\"");
+				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
+				CurYOffset += YL + 2;
+			}
 		}
 	}
 
@@ -1762,6 +1773,17 @@ bool FAnimationViewportClient::IsLocalAxesModeSet( ELocalAxesMode::Type AxesMode
 	return LocalAxesMode == AxesMode;
 }
 
+void FAnimationViewportClient::SetBoneDrawMode(EBoneDrawMode::Type AxesMode)
+{
+	BoneDrawMode = AxesMode;
+	ConfigOption->SetDefaultBoneDrawSelection(AxesMode);
+}
+
+bool FAnimationViewportClient::IsBoneDrawModeSet(EBoneDrawMode::Type AxesMode) const
+{
+	return BoneDrawMode == AxesMode;
+}
+
 void FAnimationViewportClient::DrawBonesFromTransforms(TArray<FTransform>& Transforms, UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI, FLinearColor BoneColour, FLinearColor RootBoneColour) const
 {
 	if ( Transforms.Num() > 0 )
@@ -1877,41 +1899,47 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshCompo
 		for ( int32 Index=0; Index<RequiredBones.Num(); ++Index )
 		{
 			const int32 BoneIndex = RequiredBones[Index];
-			const int32 ParentIndex = MeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-			FVector Start, End;
-			FLinearColor LineColor = BoneColours[BoneIndex];
 
-			if (ParentIndex >=0)
+			if ((BoneDrawMode == EBoneDrawMode::All) ||
+				((BoneDrawMode == EBoneDrawMode::Selected) && SelectedBones.Contains(BoneIndex) )
+				)
 			{
-				Start = WorldTransforms[ParentIndex].GetLocation();
-				End = WorldTransforms[BoneIndex].GetLocation();
-			}
-			else
-			{
-				Start = FVector::ZeroVector;
-				End = WorldTransforms[BoneIndex].GetLocation();
-			}
+				const int32 ParentIndex = MeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+				FVector Start, End;
+				FLinearColor LineColor = BoneColours[BoneIndex];
 
-			static const float SphereRadius = 1.0f;
-			TArray<FVector> Verts;
+				if (ParentIndex >= 0)
+				{
+					Start = WorldTransforms[ParentIndex].GetLocation();
+					End = WorldTransforms[BoneIndex].GetLocation();
+				}
+				else
+				{
+					Start = FVector::ZeroVector;
+					End = WorldTransforms[BoneIndex].GetLocation();
+				}
 
-			//Calc cone size 
-			FVector EndToStart = (Start-End);
-			float ConeLength = EndToStart.Size();
-			float Angle = FMath::RadiansToDegrees(FMath::Atan(SphereRadius / ConeLength));
+				static const float SphereRadius = 1.0f;
+				TArray<FVector> Verts;
 
-			//Render Sphere for bone end point and a cone between it and its parent.
-			PDI->SetHitProxy( new HPersonaBoneProxy( MeshComponent->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex)) );
-			DrawWireSphere(PDI, End, LineColor, SphereRadius, 10, SDPG_Foreground);
-			DrawWireCone(PDI, Verts, FRotationMatrix::MakeFromX(EndToStart)*FTranslationMatrix(End), ConeLength, Angle, 4, LineColor, SDPG_Foreground);
-			PDI->SetHitProxy( NULL );
-		
-			// draw gizmo
-			if( (LocalAxesMode == ELocalAxesMode::All) || 
-				((LocalAxesMode == ELocalAxesMode::Selected) && SelectedBones.Contains(BoneIndex)) 
-			  )
-			{
-				RenderGizmo(WorldTransforms[BoneIndex], PDI);
+				//Calc cone size 
+				FVector EndToStart = (Start - End);
+				float ConeLength = EndToStart.Size();
+				float Angle = FMath::RadiansToDegrees(FMath::Atan(SphereRadius / ConeLength));
+
+				//Render Sphere for bone end point and a cone between it and its parent.
+				PDI->SetHitProxy(new HPersonaBoneProxy(MeshComponent->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex)));
+				DrawWireSphere(PDI, End, LineColor, SphereRadius, 10, SDPG_Foreground);
+				DrawWireCone(PDI, Verts, FRotationMatrix::MakeFromX(EndToStart)*FTranslationMatrix(End), ConeLength, Angle, 4, LineColor, SDPG_Foreground);
+				PDI->SetHitProxy(NULL);
+
+				// draw gizmo
+				if ((LocalAxesMode == ELocalAxesMode::All) ||
+					((LocalAxesMode == ELocalAxesMode::Selected) && SelectedBones.Contains(BoneIndex))
+					)
+				{
+					RenderGizmo(WorldTransforms[BoneIndex], PDI);
+				}
 			}
 		}
 	}
@@ -2295,6 +2323,25 @@ FText FAnimationViewportClient::GetGravityScaleLabel() const
 		.SetMinimumFractionalDigits(2)
 		.SetMaximumFractionalDigits(2);
 	return FText::AsNumber(SliderValue, &FormatOptions);
+}
+
+void FAnimationViewportClient::ToggleCPUSkinning()
+{
+	if (PreviewSkelMeshComp.IsValid())
+	{
+		PreviewSkelMeshComp->bCPUSkinning = !PreviewSkelMeshComp->bCPUSkinning;
+		PreviewSkelMeshComp->MarkRenderStateDirty();
+		Invalidate();
+	}
+}
+
+bool FAnimationViewportClient::IsSetCPUSkinningChecked() const
+{
+	if (PreviewSkelMeshComp.IsValid())
+	{
+		return PreviewSkelMeshComp->bCPUSkinning;
+	}
+	return false;
 }
 
 void FAnimationViewportClient::ToggleShowNormals()

@@ -173,7 +173,7 @@ void AGameMode::InitGame(const FString& MapName, const FString& Options, FString
 		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
 		if (SessionInt.IsValid())
 		{
-			SessionSettings = SessionInt->GetSessionSettings(GameSessionName);
+			SessionSettings = SessionInt->GetSessionSettings(GameSession->SessionName);
 		}
 
 		// Attempt to login, returning true means an async login is in flight
@@ -1543,7 +1543,7 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 	// don't store if it's an old PlayerState from the previous level or if it's a spectator
 	if (!PlayerState->bFromPreviousLevel && !PlayerState->bOnlySpectator)
 	{
-		APlayerState* NewPlayerState = PlayerState->Duplicate();
+		APlayerState* const NewPlayerState = PlayerState->Duplicate();
 		if (NewPlayerState)
 		{
 			GetWorld()->GameState->RemovePlayerState(NewPlayerState);
@@ -1563,15 +1563,22 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 			const bool bUseUniqueIdCheck = bIsConsole || bHasValidUniqueId;
 			
 			// make sure no duplicates
-			for (int32 i=0; i < InactivePlayerArray.Num(); i++)
+			for (int32 Idx = 0; Idx < InactivePlayerArray.Num(); ++Idx)
 			{
-				const APlayerState* CurrentPlayerState = InactivePlayerArray[i];
-				if ((CurrentPlayerState == NULL) || CurrentPlayerState->IsPendingKill() ||
-					(!bUseUniqueIdCheck && bHasValidNetworkAddress && (CurrentPlayerState->SavedNetworkAddress == NewPlayerState->SavedNetworkAddress)) ||
-					(bUseUniqueIdCheck && (CurrentPlayerState->UniqueId == NewPlayerState->UniqueId)))
+				APlayerState* const CurrentPlayerState = InactivePlayerArray[Idx];
+				if ((CurrentPlayerState == nullptr) || CurrentPlayerState->IsPendingKill())
 				{
-					InactivePlayerArray.RemoveAt(i,1);
-					i--;
+					// already destroyed, just remove it
+					InactivePlayerArray.RemoveAt(Idx, 1);
+					Idx--;
+				}
+				else if ( (!bUseUniqueIdCheck && bHasValidNetworkAddress && (CurrentPlayerState->SavedNetworkAddress == NewPlayerState->SavedNetworkAddress))
+						|| (bUseUniqueIdCheck && (CurrentPlayerState->UniqueId == NewPlayerState->UniqueId)) )
+				{
+					// destroy the playerstate, then remove it from the tracking
+					CurrentPlayerState->Destroy();
+					InactivePlayerArray.RemoveAt(Idx, 1);
+					Idx--;
 				}
 			}
 			InactivePlayerArray.Add(NewPlayerState);
@@ -1579,7 +1586,20 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 			// cap at 16 saved PlayerStates
 			if ( InactivePlayerArray.Num() > 16 )
 			{
-				InactivePlayerArray.RemoveAt(0, InactivePlayerArray.Num() - 16);
+				int32 const NumToRemove = InactivePlayerArray.Num() - 16;
+
+				// destroy the extra inactive players
+				for (int Idx = 0; Idx < NumToRemove; ++Idx)
+				{
+					APlayerState* const PS = InactivePlayerArray[Idx];
+					if (PS != nullptr)
+					{
+						PS->Destroy();
+					}
+				}
+
+				// and then remove them from the tracking array
+				InactivePlayerArray.RemoveAt(0, NumToRemove);
 			}
 		}
 	}

@@ -103,7 +103,7 @@ FSceneViewState::FSceneViewState()
 		TranslucencyLightingCacheAllocations[CascadeIndex] = NULL;
 	}
 
-	bIntializedGlobalDistanceFieldOrigins = false;
+	bInitializedGlobalDistanceFieldOrigins = false;
 	GlobalDistanceFieldUpdateIndex = 0;
 
 	ShadowOcclusionQueryMaps.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);

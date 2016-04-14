@@ -108,7 +108,7 @@ namespace UnrealBuildTool
 					Result += " /Ob2";
 				}
 
-				// Perform runtime checks for (s) stack frames and (u) unintialized variables
+				// Perform runtime checks for (s) stack frames and (u) uninitialized variables
 				// RTC1 == RTCsu
 				Result += " /RTC1";
 			}

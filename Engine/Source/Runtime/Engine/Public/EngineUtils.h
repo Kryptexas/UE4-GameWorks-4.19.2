@@ -397,7 +397,7 @@ private:
 	 */
 	static bool CanIterateLevel(ULevel* Level)
 	{
-		return Level->bIsVisible;
+		return Level->bIsVisible || Level->bIsAssociatingLevel;
 	}
 };
 
@@ -484,7 +484,7 @@ private:
 	 */
 	static bool CanIterateLevel(ULevel* Level)
 	{
-		return Level->bIsVisible;
+		return Level->bIsVisible || Level->bIsAssociatingLevel;
 	}
 };
 

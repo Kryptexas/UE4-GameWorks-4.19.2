@@ -24,7 +24,7 @@ UVREditorUniformScaleGizmoHandleGroup::UVREditorUniformScaleGizmoHandleGroup()
 
 	UniformScaleHandle->SetStaticMesh( UniformScaleMesh );
 	UniformScaleHandle->SetMobility( EComponentMobility::Movable );
-	UniformScaleHandle->AttachTo( this );
+	UniformScaleHandle->SetupAttachment( this );
 
 	UniformScaleHandle->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 	UniformScaleHandle->SetCollisionResponseToAllChannels( ECR_Ignore );

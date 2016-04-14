@@ -78,6 +78,7 @@ class ENGINE_API UInputSettings
 	// UObject interface
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	virtual void PostReloadConfig( class UProperty* PropertyThatWasLoaded ) override;
 #endif
 
 	virtual void PostInitProperties() override;
@@ -107,4 +108,6 @@ class ENGINE_API UInputSettings
 private:
 	/** When changes are made to the default mappings, push those changes out to PlayerInput key maps */
 	void ForceRebuildKeymaps();
+
+	void PopulateAxisConfigs();
 };

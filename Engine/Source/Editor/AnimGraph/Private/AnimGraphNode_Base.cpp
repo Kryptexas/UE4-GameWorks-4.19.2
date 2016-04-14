@@ -363,15 +363,12 @@ void UAnimGraphNode_Base::GetPinHoverText(const UEdGraphPin& Pin, FString& Hover
 	}
 }
 
-void UAnimGraphNode_Base::HandleAnimReferenceCollection(UAnimationAsset* AnimAsset, TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimationSequences) const
+void UAnimGraphNode_Base::HandleAnimReferenceCollection(UAnimationAsset* AnimAsset, TArray<UAnimationAsset*>& AnimationAssets) const
 {
-	if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(AnimAsset))
+	if(AnimAsset)
 	{
-		AnimationSequences.AddUnique(AnimSequence);
-	}
-	else
-	{
-		ComplexAnims.AddUnique(AnimAsset);
-		AnimAsset->GetAllAnimationSequencesReferred(AnimationSequences);
+		AnimationAssets.AddUnique(AnimAsset);
+		// anim sequence still should call this
+		AnimAsset->GetAllAnimationSequencesReferred(AnimationAssets);
 	}
 }

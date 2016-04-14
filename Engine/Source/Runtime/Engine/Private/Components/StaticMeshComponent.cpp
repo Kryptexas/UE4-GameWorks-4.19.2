@@ -401,6 +401,25 @@ void UStaticMeshComponent::CheckForErrors()
 			->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_SimulatePhyNoSimpleCollision", "{0} : Using bSimulatePhysics but StaticMesh has not simple collision."), FText::FromString(GetName()) ) ));
 	}
 
+	// Warn if component with collision enabled, but no collision data
+	if (StaticMesh != NULL && GetCollisionEnabled() != ECollisionEnabled::NoCollision)
+	{
+		int32 NumSectionsWithCollision = StaticMesh->GetNumSectionsWithCollision();
+		int32 NumCollisionPrims = (StaticMesh->BodySetup != nullptr) ? StaticMesh->BodySetup->AggGeom.GetElementCount() : 0;
+
+		if (NumSectionsWithCollision == 0 && NumCollisionPrims == 0)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
+			Arguments.Add(TEXT("StaticMeshName"), FText::FromString(StaticMesh->GetName()));
+
+			FMessageLog("MapCheck").Warning()
+				->AddToken(FUObjectToken::Create(Owner))
+				->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_CollisionEnabledNoCollisionGeom", "Collision enabled but StaticMesh ({StaticMeshName}) has no simple or complex collision."), Arguments)))
+				->AddToken(FMapErrorToken::Create(FMapErrors::CollisionEnabledNoCollisionGeom));
+		}
+	}
+
 	if( Mobility == EComponentMobility::Movable &&
 		CastShadow && 
 		bCastDynamicShadow && 

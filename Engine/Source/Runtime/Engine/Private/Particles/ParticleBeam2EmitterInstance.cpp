@@ -432,9 +432,9 @@ void FParticleBeam2EmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning
  *	@param	DeltaTime			The current time slice
  *	@param	CurrentLODLevel		The current LOD level for the instance
  */
-void FParticleBeam2EmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+void FParticleBeam2EmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
-	UParticleModuleTypeDataBase* TypeData = Cast<UParticleModuleTypeDataBase>(CurrentLODLevel->TypeDataModule);
+	UParticleModuleTypeDataBase* TypeData = Cast<UParticleModuleTypeDataBase>(InCurrentLODLevel->TypeDataModule);
 	if (TypeData)
 	{
 		// The order of the update here is VERY important
@@ -461,7 +461,7 @@ void FParticleBeam2EmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UPart
 			BeamModule_Noise->Update(this, GetModuleDataOffset(BeamModule_Noise), DeltaTime);
 		}
 
-		FParticleEmitterInstance::Tick_ModulePostUpdate(DeltaTime, CurrentLODLevel);
+		FParticleEmitterInstance::Tick_ModulePostUpdate(DeltaTime, InCurrentLODLevel);
 	}
 }
 
@@ -948,7 +948,7 @@ void FParticleBeam2EmitterInstance::DetermineVertexAndTriangleCount()
 {
 	// Need to determine # tris per beam...
 	int32 VerticesToRender = 0;
-	int32 TrianglesToRender = 0;
+	int32 EmitterTrianglesToRender = 0;
 
 	check(BeamTypeData);
 	int32 Sheets = BeamTypeData->Sheets ? BeamTypeData->Sheets : 1;
@@ -987,18 +987,18 @@ void FParticleBeam2EmitterInstance::DetermineVertexAndTriangleCount()
 			VerticesToRender += (BeamData->TriangleCount + 2) * Sheets;
 			// 4 Degenerates Per Sheet (except for last one)
 			LocalTriangles	+= (Sheets - 1) * 4;
-			TrianglesToRender += LocalTriangles;
+			EmitterTrianglesToRender += LocalTriangles;
 			// Multiple beams?
 			if (i < (ActiveParticles - 1))
 			{
 				// 4 Degenerates Per Beam (except for last one)
-				TrianglesToRender	+= 4;
+				EmitterTrianglesToRender	+= 4;
 			}
 		}
 	}
 
 	VertexCount = VerticesToRender;
-	TriangleCount = TrianglesToRender;
+	TriangleCount = EmitterTrianglesToRender;
 }
 
 

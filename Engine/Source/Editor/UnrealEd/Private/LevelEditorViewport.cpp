@@ -401,7 +401,7 @@ UObject* FLevelEditorViewportClient::GetOrCreateMaterialFromTexture( UTexture* U
 	}
 
 	// create an unreal material asset
-	auto MaterialFactory = NewObject<UMaterialFactoryNew>();
+	UMaterialFactoryNew* MaterialFactory = NewObject<UMaterialFactoryNew>();
 
 	UMaterial* UnrealMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(
 		UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone | RF_Public, NULL, GWarn );
@@ -500,8 +500,8 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 	if (ComponentToApplyTo && !ComponentToApplyTo->IsCreatedByConstructionScript())
 	{
 		// MESH/DECAL
-		auto MeshComponent = Cast<UMeshComponent>(ComponentToApplyTo);
-		auto DecalComponent = Cast<UDecalComponent>(ComponentToApplyTo);
+		UMeshComponent* MeshComponent = Cast<UMeshComponent>(ComponentToApplyTo);
+		UDecalComponent* DecalComponent = Cast<UDecalComponent>(ComponentToApplyTo);
 		if (MeshComponent || DecalComponent)
 		{
 			// Dropping a texture?
@@ -535,7 +535,7 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 		}
 
 		// SKELETAL MESH COMPONENT
-		auto SkeletalMeshComponent = Cast<USkeletalMeshComponent>(ComponentToApplyTo);
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(ComponentToApplyTo);
 		if (SkeletalMeshComponent)
 		{
 			// Dropping an Anim Blueprint?
@@ -660,7 +660,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 
 		TInlineComponentArray<USceneComponent*> SceneComponents;
 		ActorToApplyTo->GetComponents(SceneComponents);
-		for (auto SceneComp : SceneComponents)
+		for (USceneComponent* SceneComp : SceneComponents)
 		{
 			bResult |= AttemptApplyObjToComponent(ObjToUse, SceneComp, TargetMaterialSlot, bTest);
 		}
@@ -846,7 +846,7 @@ bool FLevelEditorViewportClient::DropObjectsOnActor(FViewportCursorLocation& Cur
 		GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "CreateActors", "Create Actors"));
 	}
 
-	for ( auto DroppedObject : DroppedObjects )
+	for ( UObject* DroppedObject : DroppedObjects )
 	{
 		const bool bIsTestApplication = bCreateDropPreview;
 		const bool bAppliedToActor = ( FactoryToUse == nullptr ) ? AttemptApplyObjToActor( DroppedObject, DroppedUponActor, DroppedUponSlot, bIsTestApplication ) : false;
@@ -893,7 +893,7 @@ bool FLevelEditorViewportClient::DropObjectsOnBSPSurface(FSceneView* View, FView
 		GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "CreateActors", "Create Actors"));
 	}
 
-	for (auto DroppedObject : DroppedObjects)
+	for (UObject* DroppedObject : DroppedObjects)
 	{
 		const bool bAppliedToActor = (!bCreateDropPreview && FactoryToUse == NULL) ? AttemptApplyObjAsMaterialToSurface(DroppedObject, TargetProxy, Cursor) : false;
 
@@ -1045,6 +1045,7 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 	// Also, build a list of valid AActor* pointers
 	FVector ActorOrigin = FVector::ZeroVector;
 	TArray<AActor*> DraggingActors;
+	TArray<AActor*> IgnoreActors;
 	for ( auto ActorIt = DropPreviewActors.CreateConstIterator(); ActorIt; ++ActorIt )
 	{
 		AActor* DraggingActor = (*ActorIt).Get();
@@ -1052,6 +1053,8 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 		if ( DraggingActor )
 		{
 			DraggingActors.Add(DraggingActor);
+			IgnoreActors.Add(DraggingActor);
+			DraggingActor->GetAllChildActors(IgnoreActors);
 			ActorOrigin += DraggingActor->GetActorLocation();
 		}
 	}
@@ -1073,7 +1076,7 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 	FSceneView* View = CalcSceneView( &ViewFamily );
 	FViewportCursorLocation Cursor(View, this, MouseX, MouseY);
 
-	const FActorPositionTraceResult TraceResult = IsDroppingOn2DLayer() ? TraceForPositionOn2DLayer(Cursor) : FActorPositioning::TraceWorldForPositionWithDefault(Cursor, *View, &DraggingActors);
+	const FActorPositionTraceResult TraceResult = IsDroppingOn2DLayer() ? TraceForPositionOn2DLayer(Cursor) : FActorPositioning::TraceWorldForPositionWithDefault(Cursor, *View, &IgnoreActors);
 
 	GEditor->UnsnappedClickLocation = TraceResult.Location;
 	GEditor->ClickLocation = TraceResult.Location;
@@ -1107,7 +1110,8 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 			.UseStartTransform(PreDragActorTransforms.FindRef(Actor))
 			.UsePlacementExtent(Actor->GetPlacementExtent());
 
-		const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData);
+		FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData);
+		ActorTransform.SetScale3D(Actor->GetActorScale3D());		// preserve scaling
 
 		Actor->SetActorTransform(ActorTransform);
 		Actor->SetIsTemporarilyHiddenInEditor(false);
@@ -1298,7 +1302,7 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 							// The target component is selected, so try applying the object to every selected component
 							for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
 							{
-								auto SceneComponent = Cast<USceneComponent>(*It);
+								USceneComponent* SceneComponent = Cast<USceneComponent>(*It);
 								AttemptApplyObjToComponent(DroppedObjects[0], SceneComponent, TargetMaterialSlot, bCreateDropPreview);
 								bResult = true;
 							}
@@ -1456,7 +1460,7 @@ void FTrackingTransaction::Begin(const FText& Description)
 	}
 
 	// Modify unique group actors
-	for (auto* GroupActor : GroupActors)
+	for (AGroupActor* GroupActor : GroupActors)
 	{
 		GroupActor->Modify();
 	}
@@ -1903,7 +1907,7 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 		}
 		else if (HitProxy->IsA(HActor::StaticGetType()))
 		{
-			auto ActorHitProxy = (HActor*)HitProxy;
+			HActor* ActorHitProxy = (HActor*)HitProxy;
 
 			// We want to process the click on the component only if:
 			// 1. The actor clicked is already selected
@@ -2114,7 +2118,7 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 void TrimLineToFrustum(const FConvexVolume& Frustum, FVector& Start, FVector& End)
 {
 	FVector Intersection;
-	for (const auto& Plane : Frustum.Planes)
+	for (const FPlane& Plane : Frustum.Planes)
 	{
 		if (FMath::SegmentPlaneIntersection(Start, End, Plane, Intersection))
 		{
@@ -2153,7 +2157,7 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 
 
 	// Loop over all the actors and attempt to snap them along the drag axis normal
-	for (auto* Actor : Actors)
+	for (AActor* Actor : Actors)
 	{
 		// Use the Delta of the Mode tool with the actor pre drag location to avoid accumulating snapping offsets
 		FVector NewActorPosition;
@@ -2217,7 +2221,7 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 			// Move the actor to the position of the trace hit using the spawn offset rules
 			// We only do this if we found a valid hit (we don't want to move the actor in front of the camera by default)
 
-			const auto* Factory = GEditor->FindActorFactoryForActorClass(Actor->GetClass());
+			const UActorFactory* Factory = GEditor->FindActorFactoryForActorClass(Actor->GetClass());
 			
 			const FTransform* PreDragActorTransform = PreDragActorTransforms.Find(Actor);
 			check(PreDragActorTransform);
@@ -2232,7 +2236,7 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 			FTransform ActorTransform = FActorPositioning::GetSurfaceAlignedTransform(PositioningData);
 			
 			ActorTransform.SetScale3D(Actor->GetActorScale3D());
-			if (auto* RootComponent = Actor->GetRootComponent())
+			if (USceneComponent* RootComponent = Actor->GetRootComponent())
 			{
 				RootComponent->SetWorldTransform(ActorTransform);
 			}
@@ -3173,7 +3177,7 @@ void FLevelEditorViewportClient::ApplyDeltaToActors(const FVector& InDrag,
 				}
 
 				// Now actually apply the delta to the appropriate component(s)
-				for (auto SceneComp : ComponentsToMove)
+				for (USceneComponent* SceneComp : ComponentsToMove)
 				{
 					ApplyDeltaToComponent(SceneComp, InDrag, InRot, ModifiedScale);
 				}

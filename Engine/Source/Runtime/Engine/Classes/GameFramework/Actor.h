@@ -423,7 +423,7 @@ protected:
 	 * Collision primitive that defines the transform (location, rotation, scale) of this Actor.
 	 */
 	UPROPERTY()
-	class USceneComponent* RootComponent;
+	USceneComponent* RootComponent;
 
 #if WITH_EDITORONLY_DATA
 	/** Local space pivot offset for the actor */
@@ -754,7 +754,7 @@ public:
 
 	/** Returns the RootComponent of this Actor */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetRootComponent"), Category="Utilities|Transformation")
-	class USceneComponent* K2_GetRootComponent() const;
+	USceneComponent* K2_GetRootComponent() const;
 
 	/** Returns velocity (in cm/s (Unreal Units/second) of the rootcomponent if it is either using physics or has an associated MovementComponent */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
@@ -766,9 +766,9 @@ public:
 	 * @param NewLocation	The new location to teleport the Actor to.
 	 * @param bSweep		Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
 	 *						Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
-	 * @param bTeleport		Whether we teleport the physics state (if physics collision is enabled for this object).
-	 *						If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
-	 *						If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 * @param Teleport		How we teleport the physics state (if physics collision is enabled for this object).
+	 *						If equal to ETeleportType::TeleportPhysics, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *						If equal to ETeleportType::None, physics velocity is updated based on the change in position (affecting ragdoll parts).
 	 *						If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 * @param OutSweepHitResult The hit result from the move if swept.
 	 * @return	Whether the location was successfully set if not swept, or whether movement occurred if swept.
@@ -779,11 +779,25 @@ public:
 	 * Set the Actor's rotation instantly to the specified rotation.
 	 * 
 	 * @param	NewRotation	The new rotation for the Actor.
+	 * @param	bTeleportPhysics Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *			If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *			If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
 	 * @return	Whether the rotation was successfully set.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	bool SetActorRotation(FRotator NewRotation);
-	bool SetActorRotation(const FQuat& NewRotation);
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "SetActorRotation"), Category="Utilities|Transformation")
+	bool K2_SetActorRotation(FRotator NewRotation, bool bTeleportPhysics);
+	
+	/**
+	* Set the Actor's rotation instantly to the specified rotation.
+	*
+	* @param	NewRotation	The new rotation for the Actor.
+	* @param	Teleport	How we teleport the physics state (if physics collision is enabled for this object).
+	*						If equal to ETeleportType::TeleportPhysics, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	*						If equal to ETeleportType::None, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	* @return	Whether the rotation was successfully set.
+	*/
+	bool SetActorRotation(FRotator NewRotation, ETeleportType Teleport = ETeleportType::None);
+	bool SetActorRotation(const FQuat& NewRotation, ETeleportType Teleport = ETeleportType::None);
 
 	/** 
 	 * Move the actor instantly to the specified location and rotation.
@@ -1070,15 +1084,34 @@ public:
 	 *  Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered. 
 	 *   @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
 	 */
-	void AttachRootComponentTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = false);
+	DEPRECATED(4.12, "Please use AttachToComponent.")
+	void AttachRootComponentTo(USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = false);
 
 	/**
-	*  Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered.
-	*   @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
-	*/
+	 *  Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered.
+	 *   @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
+	 */
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "AttachActorToComponent", AttachLocationType = "KeepRelativeOffset", DeprecatedFunction, DeprecationMessage = "Use AttachToComponent instead"), Category = "Utilities|Transformation")
+	void K2_AttachRootComponentTo(USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "AttachActorToComponent", AttachLocationType = "KeepRelativeOffset"), Category = "Utilities|Transformation")
-	void K2_AttachRootComponentTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
+
+	/**
+	 * Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered.
+	 * @param  Parent					Parent to attach to.
+	 * @param  SocketName				Optional socket to attach to on the parent.
+	 * @param  AttachmentRules			How to handle transforms when attaching.
+	 * @param  bWeldSimulatedBodies		Whether to weld together simulated physics bodies.
+	 */
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "AttachToComponent", bWeldSimulatedBodies = true), Category = "Utilities|Transformation")
+	void K2_AttachToComponent(USceneComponent* Parent, FName SocketName, EAttachmentRule LocationRule, EAttachmentRule RotationRule, EAttachmentRule ScaleRule, bool bWeldSimulatedBodies);
+
+	/**
+	 * Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered.
+	 * @param  Parent					Parent to attach to.
+	 * @param  AttachmentRules			How to handle transforms and welding when attaching.
+	 * @param  SocketName				Optional socket to attach to on the parent.
+	 */
+	void AttachToComponent(USceneComponent* Parent, const FAttachmentTransformRules& AttachmentRules, FName SocketName = NAME_None);
 
 	/**
 	 * Attaches the RootComponent of this Actor to the RootComponent of the supplied actor, optionally at a named socket.
@@ -1086,6 +1119,7 @@ public:
 	 * @param InSocketName				Socket name to attach to, if any
 	 * @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
 	 */
+	DEPRECATED(4.12, "Please use AttachToActor.")
 	void AttachRootComponentToActor(AActor* InParentActor, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = false);
 
 	/**
@@ -1093,29 +1127,72 @@ public:
 	*   @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
 	*/
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "AttachActorToActor", AttachLocationType = "KeepRelativeOffset"), Category = "Utilities|Transformation")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "AttachActorToActor", AttachLocationType = "KeepRelativeOffset", DeprecatedFunction, DeprecationMessage = "Use AttachToActor instead"), Category = "Utilities|Transformation")
 	void K2_AttachRootComponentToActor(AActor* InParentActor, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
+
+	/**
+	 * Attaches the RootComponent of this Actor to the RootComponent of the supplied actor, optionally at a named socket.
+	 * @param ParentActor				Actor to attach this actor's RootComponent to
+	 * @param AttachmentRules			How to handle transforms and modification when attaching.
+	 * @param SocketName				Socket name to attach to, if any
+	 */
+	void AttachToActor(AActor* ParentActor, const FAttachmentTransformRules& AttachmentRules, FName SocketName = NAME_None);
+
+	/**
+	 * Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered.
+	 * @param ParentActor				Actor to attach this actor's RootComponent to
+	 * @param SocketName				Socket name to attach to, if any
+	 * @param LocationRule				How to handle translation when attaching.
+	 * @param RotationRule				How to handle rotation when attaching.
+	 * @param ScaleRule					How to handle scale when attaching.
+	 * @param bWeldSimulatedBodies		Whether to weld together simulated physics bodies.
+	 */
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "AttachToActor", bWeldSimulatedBodies=true), Category = "Utilities|Transformation")
+	void K2_AttachToActor(AActor* ParentActor, FName SocketName, EAttachmentRule LocationRule, EAttachmentRule RotationRule, EAttachmentRule ScaleRule, bool bWeldSimulatedBodies);
 
 	/** 
 	 *  Snap the RootComponent of this Actor to the supplied Actor's root component, optionally at a named socket. It is not valid to call this on components that are not Registered. 
 	 *  If InSocketName == NAME_None, it will attach to origin of the InParentActor. 
 	 */
 	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use AttachRootComponentTo with EAttachLocation::SnapToTarget option instead", DisplayName = "SnapActorTo"), Category="Utilities|Transformation")
-	void SnapRootComponentTo(AActor* InParentActor, FName InSocketName = NAME_None);
+	void SnapRootComponentTo(AActor* InParentActor, FName InSocketName);
 
 	/** 
 	 *  Detaches the RootComponent of this Actor from any SceneComponent it is currently attached to. 
 	 *   @param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName = "DetachActorFromActor"), Category="Utilities|Transformation")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "DetachActorFromActor", DeprecatedFunction, DeprecationMessage = "Use DetachFromActor instead"), Category="Utilities|Transformation")
 	void DetachRootComponentFromParent(bool bMaintainWorldPosition = true);
 
 	/** 
-	 *	Detaches all SceneComponents in this Actor from the supplied parent SceneComponent. 
+	 * Detaches the RootComponent of this Actor from any SceneComponent it is currently attached to. 
+	 * @param  LocationRule				How to handle translation when detaching.
+	 * @param  RotationRule				How to handle rotation when detaching.
+	 * @param  ScaleRule				How to handle scale when detaching.
+	 */
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "DetachFromActor"), Category="Utilities|Transformation")
+	void K2_DetachFromActor(EDetachmentRule LocationRule = EDetachmentRule::KeepRelative, EDetachmentRule RotationRule = EDetachmentRule::KeepRelative, EDetachmentRule ScaleRule = EDetachmentRule::KeepRelative);
+
+	/** 
+	 * Detaches the RootComponent of this Actor from any SceneComponent it is currently attached to. 
+	 * @param  DetachmentRules			How to handle transforms when detaching.
+	 */
+	void DetachFromActor(const FDetachmentTransformRules& DetachmentRules);
+
+	/** 
+	 *	DEPRECATED: Detaches all SceneComponents in this Actor from the supplied parent SceneComponent. 
 	 *	@param InParentComponent		SceneComponent to detach this actor's components from
 	 *	@param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same
 	 */
-	void DetachSceneComponentsFromParent(class USceneComponent* InParentComponent, bool bMaintainWorldPosition = true);
+	DEPRECATED(4.12, "Please use DetachAllSceneComponents")
+	void DetachSceneComponentsFromParent(USceneComponent* InParentComponent, bool bMaintainWorldPosition = true);
+
+	/**
+	*	Detaches all SceneComponents in this Actor from the supplied parent SceneComponent.
+	*	@param InParentComponent		SceneComponent to detach this actor's components from
+	*	@param DetachmentRules			Rules to apply when detaching components
+	*/
+	void DetachAllSceneComponents(class USceneComponent* InParentComponent, const FDetachmentTransformRules& DetachmentRules);
 
 	//~==============================================================================
 	// Tags
@@ -1535,13 +1612,13 @@ public:
 	}
 
 	/** Returns this actor's root component. */
-	FORCEINLINE class USceneComponent* GetRootComponent() const { return RootComponent; }
+	FORCEINLINE USceneComponent* GetRootComponent() const { return RootComponent; }
 
 	/**
 	 * Returns this actor's default attachment component for attaching children to
 	 * @return The scene component to be used as parent
 	 */
-	virtual class USceneComponent* GetDefaultAttachComponent() const { return GetRootComponent(); }
+	virtual USceneComponent* GetDefaultAttachComponent() const { return GetRootComponent(); }
 
 	/** Returns this actor's root component cast to a primitive component */
 	DEPRECATED(4.5, "Use GetRootComponent() and cast manually if needed")
@@ -1551,7 +1628,7 @@ public:
 	 * Sets root component to be the specified component.  NewRootComponent's owner should be this actor.
 	 * @return true if successful
 	 */
-	bool SetRootComponent(class USceneComponent* NewRootComponent);
+	bool SetRootComponent(USceneComponent* NewRootComponent);
 
 	/** Returns the transform of the RootComponent of this Actor*/ 
 	FORCEINLINE FTransform GetActorTransform() const

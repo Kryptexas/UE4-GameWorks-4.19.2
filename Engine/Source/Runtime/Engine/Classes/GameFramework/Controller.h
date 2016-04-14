@@ -96,6 +96,12 @@ protected:
 	UPROPERTY()
 	uint32 bIsPlayerController:1;
 
+	/** Ignores movement input. Stacked state storage, Use accessor function IgnoreMoveInput() */
+	uint8 IgnoreMoveInput;
+
+	/** Ignores look input. Stacked state storage, use accessor function IgnoreLookInput(). */
+	uint8 IgnoreLookInput;
+
 	/**
 	  * Physically attach the Controller to the specified Pawn, so that our position reflects theirs.
 	  * The attachment persists during possession of the pawn. The Controller's rotation continues to match the ControlRotation.
@@ -293,6 +299,40 @@ public:
 	/** Aborts the move the controller is currently performing */
 	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
 	virtual void StopMovement();
+
+	/**
+	* Locks or unlocks movement input, consecutive calls stack up and require the same amount of calls to undo, or can all be undone using ResetIgnoreMoveInput.
+	* @param bNewMoveInput	If true, move input is ignored. If false, input is not ignored.
+	*/
+	UFUNCTION(BlueprintCallable, Category="Input")
+	virtual void SetIgnoreMoveInput(bool bNewMoveInput);
+
+	/** Stops ignoring move input by resetting the ignore move input state. */
+	UFUNCTION(BlueprintCallable, Category="Input", meta = (Keywords = "ClearIgnoreMoveInput"))
+	virtual void ResetIgnoreMoveInput();
+
+	/** Returns true if movement input is ignored. */
+	UFUNCTION(BlueprintCallable, Category="Input")
+	virtual bool IsMoveInputIgnored() const;
+
+	/**
+	* Locks or unlocks look input, consecutive calls stack up and require the same amount of calls to undo, or can all be undone using ResetIgnoreLookInput.
+	* @param bNewLookInput	If true, look input is ignored. If false, input is not ignored.
+	*/
+	UFUNCTION(BlueprintCallable, Category="Input")
+	virtual void SetIgnoreLookInput(bool bNewLookInput);
+
+	/** Stops ignoring look input by resetting the ignore look input state. */
+	UFUNCTION(BlueprintCallable, Category="Input", meta=(Keywords="ClearIgnoreLookInput"))
+	virtual void ResetIgnoreLookInput();
+
+	/** Returns true if look input is ignored. */
+	UFUNCTION(BlueprintCallable, Category="Input")
+	virtual bool IsLookInputIgnored() const;
+
+	/** Reset move and look input ignore flags. */
+	UFUNCTION(BlueprintCallable, Category="Input")
+	virtual void ResetIgnoreInputFlags();
 
 protected:
 	/** State entered when inactive (no possessed pawn, not spectating, etc). */

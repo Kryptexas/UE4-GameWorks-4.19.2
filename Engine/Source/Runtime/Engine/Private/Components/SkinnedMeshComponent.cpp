@@ -697,13 +697,13 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 		&& ( (GetNumSpaceBases() == SkeletalMesh->RefSkeleton.GetNum()) || (MasterPhysicsAsset) );
 
 	const bool bDetailModeAllowsRendering = (DetailMode <= GetCachedScalabilityCVars().DetailMode);
-	const bool bVisible = ( bDetailModeAllowsRendering && (ShouldRender() || bCastHiddenShadow));
+	const bool bIsVisible = ( bDetailModeAllowsRendering && (ShouldRender() || bCastHiddenShadow));
 
 	const bool bHasPhysBodies = PhysicsAsset && PhysicsAsset->BodySetup.Num();
 	const bool bMasterHasPhysBodies = MasterPhysicsAsset && MasterPhysicsAsset->BodySetup.Num();
 
 	// if not visible, or we were told to use fixed bounds, use skelmesh bounds
-	if ( (!bVisible || bComponentUseFixedSkelBounds) && SkeletalMesh ) 
+	if ( (!bIsVisible || bComponentUseFixedSkelBounds) && SkeletalMesh ) 
 	{
 		FBoxSphereBounds RootAdjustedBounds = SkeletalMesh->GetBounds();
 		RootAdjustedBounds.Origin += RootOffset; // Adjust bounds by root bone translation
@@ -1257,7 +1257,7 @@ class USkeletalMeshSocket const* USkinnedMeshComponent::GetSocketByName(FName In
 	}
 	else
 	{
-		UE_LOG(LogSkinnedMeshComp, Warning,TEXT("GetSocketByName(): No SkeletalMesh for %s"), *GetName());
+		UE_LOG(LogSkinnedMeshComp, Warning,TEXT("GetSocketByName(%s): No SkeletalMesh for %s"), *InSocketName.ToString(), *GetName());
 	}
 
 	return Socket;

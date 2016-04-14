@@ -371,7 +371,7 @@ bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) con
 	return AffectsBounds(Primitive->Bounds);
 }
 
-bool ULightComponent::AffectsBounds(const FBoxSphereBounds& Bounds) const
+bool ULightComponent::AffectsBounds(const FBoxSphereBounds& InBounds) const
 {
 	return true;
 }
@@ -675,6 +675,7 @@ void ULightComponent::CreateRenderState_Concurrent()
 
 	if (bAffectsWorld)
 	{
+		UWorld* World = GetWorld();
 		if (bVisible && !bHidden)
 		{
 			// Add the light to the scene.
@@ -697,14 +698,14 @@ void ULightComponent::CreateRenderState_Concurrent()
 void ULightComponent::SendRenderTransform_Concurrent()
 {
 	// Update the scene info's transform for this light.
-	World->Scene->UpdateLightTransform(this);
+	GetWorld()->Scene->UpdateLightTransform(this);
 	Super::SendRenderTransform_Concurrent();
 }
 
 void ULightComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();
-	World->Scene->RemoveLight(this);
+	GetWorld()->Scene->RemoveLight(this);
 }
 
 /** Set brightness of the light */
@@ -717,6 +718,7 @@ void ULightComponent::SetIntensity(float NewIntensity)
 		Intensity = NewIntensity;
 
 		// Use lightweight color and brightness update 
+		UWorld* World = GetWorld();
 		if( World && World->Scene )
 		{
 			//@todo - remove from scene if brightness or color becomes 0
@@ -734,6 +736,7 @@ void ULightComponent::SetIndirectLightingIntensity(float NewIntensity)
 		IndirectLightingIntensity = NewIntensity;
 
 		// Use lightweight color and brightness update 
+		UWorld* World = GetWorld();
 		if( World && World->Scene )
 		{
 			//@todo - remove from scene if brightness or color becomes 0
@@ -754,6 +757,7 @@ void ULightComponent::SetLightColor(FLinearColor NewLightColor, bool bSRGB)
 		LightColor	= NewColor;
 
 		// Use lightweight color and brightness update 
+		UWorld* World = GetWorld();
 		if( World && World->Scene )
 		{
 			//@todo - remove from scene if brightness or color becomes 0
@@ -772,6 +776,7 @@ void ULightComponent::SetTemperature(float NewTemperature)
 		Temperature = NewTemperature;
 
 		// Use lightweight color and brightness update 
+		UWorld* World = GetWorld();
 		if( World && World->Scene )
 		{
 			//@todo - remove from scene if brightness or color becomes 0
@@ -899,6 +904,7 @@ FVector ULightComponent::GetDirection() const
 
 void ULightComponent::UpdateColorAndBrightness()
 {
+	UWorld* World = GetWorld();
 	if( World && World->Scene )
 	{
 		World->Scene->UpdateLightColorAndBrightness( this );

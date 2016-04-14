@@ -1741,13 +1741,37 @@ bool UStaticMesh::IsReadyForFinishDestroy()
 	return ReleaseResourcesFence.IsFenceComplete();
 }
 
+int32 UStaticMesh::GetNumSectionsWithCollision() const
+{
+#if WITH_EDITORONLY_DATA
+	int32 NumSectionsWithCollision = 0;
+
+	if (RenderData && RenderData->LODResources.Num() > 0)
+	{
+		// Find how many sections have collision enabled
+		const int32 UseLODIndex = FMath::Clamp(LODForCollision, 0, RenderData->LODResources.Num() - 1);
+		const FStaticMeshLODResources& CollisionLOD = RenderData->LODResources[UseLODIndex];
+		for (int32 SectionIndex = 0; SectionIndex < CollisionLOD.Sections.Num(); ++SectionIndex)
+		{
+			if (SectionInfoMap.Get(UseLODIndex, SectionIndex).bEnableCollision)
+			{
+				NumSectionsWithCollision++;
+			}
+		}
+	}
+
+	return NumSectionsWithCollision;
+#else
+	return 0;
+#endif
+}
+
 void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	int32 NumTriangles = 0;
 	int32 NumVertices = 0;
 	int32 NumUVChannels = 0;
 	int32 NumLODs = 0;
-	int32 NumSectionsWithCollision = 0;
 
 	if (RenderData && RenderData->LODResources.Num() > 0)
 	{
@@ -1756,20 +1780,9 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		NumVertices = LOD.VertexBuffer.GetNumVertices();
 		NumUVChannels = LOD.VertexBuffer.GetNumTexCoords();
 		NumLODs = RenderData->LODResources.Num();
-
-#if WITH_EDITORONLY_DATA
-		// Find how many sections have collision enabled
-		const int32 UseLODIndex = FMath::Clamp(LODForCollision, 0, RenderData->LODResources.Num() - 1);
-		FStaticMeshLODResources& CollisionLOD = RenderData->LODResources[UseLODIndex];
-		for (int32 SectionIndex = 0; SectionIndex < CollisionLOD.Sections.Num(); ++SectionIndex)
-		{
-			if (SectionInfoMap.Get(UseLODIndex, SectionIndex).bEnableCollision)
-			{
-				NumSectionsWithCollision++;
-			}
-		}
-#endif
 	}
+
+	int32 NumSectionsWithCollision = GetNumSectionsWithCollision();
 
 	int32 NumCollisionPrims = 0;
 	if ( BodySetup != NULL )

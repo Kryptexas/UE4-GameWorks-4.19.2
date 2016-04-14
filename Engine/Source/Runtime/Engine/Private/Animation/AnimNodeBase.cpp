@@ -413,9 +413,12 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 		check(SourceProperty);
 		if(UArrayProperty* SourceArrayProperty = Cast<UArrayProperty>(SourceProperty))
 		{
-			FScriptArrayHelper ArrayHelper(SourceArrayProperty, SourceProperty->ContainerPtrToValuePtr<uint8>(AnimInstanceObject));
-			check(ArrayHelper.IsValidIndex(CopyRecord.SourceArrayIndex));
-			CopyRecord.Source = ArrayHelper.GetRawPtr(CopyRecord.SourceArrayIndex);
+			// the compiler should not be generating any code that calls down this path at the moment - it is untested
+			check(false);
+		//	FScriptArrayHelper ArrayHelper(SourceArrayProperty, SourceProperty->ContainerPtrToValuePtr<uint8>(AnimInstanceObject));
+		//	check(ArrayHelper.IsValidIndex(CopyRecord.SourceArrayIndex));
+		//	CopyRecord.Source = ArrayHelper.GetRawPtr(CopyRecord.SourceArrayIndex);
+		//	CopyRecord.Size = ArrayHelper.Num() * SourceArrayProperty->Inner->GetSize();
 		}
 		else
 		{
@@ -425,10 +428,16 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 				UStructProperty* SourceStructProperty = CastChecked<UStructProperty>(SourceProperty);
 				UProperty* SourceStructSubProperty = SourceStructProperty->Struct->FindPropertyByName(CopyRecord.SourceSubPropertyName);
 				CopyRecord.Source = SourceStructSubProperty->ContainerPtrToValuePtr<uint8>(Source, CopyRecord.SourceArrayIndex);
+				CopyRecord.Size = SourceStructSubProperty->GetSize();
+				CopyRecord.CachedBoolSourceProperty = Cast<UBoolProperty>(SourceStructSubProperty);
+				CopyRecord.CachedSourceContainer = Source;
 			}
 			else
 			{
 				CopyRecord.Source = SourceProperty->ContainerPtrToValuePtr<uint8>(AnimInstanceObject, CopyRecord.SourceArrayIndex);
+				CopyRecord.Size = SourceProperty->GetSize();
+				CopyRecord.CachedBoolSourceProperty = Cast<UBoolProperty>(SourceProperty);
+				CopyRecord.CachedSourceContainer = AnimInstanceObject;
 			}
 		}
 
@@ -437,10 +446,14 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			FScriptArrayHelper ArrayHelper(DestArrayProperty, CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimNode));
 			check(ArrayHelper.IsValidIndex(CopyRecord.DestArrayIndex));
 			CopyRecord.Dest = ArrayHelper.GetRawPtr(CopyRecord.DestArrayIndex);
+			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
+			CopyRecord.CachedDestContainer = AnimNode;
 		}
 		else
 		{
 			CopyRecord.Dest = CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimNode, CopyRecord.DestArrayIndex);
+			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
+			CopyRecord.CachedDestContainer = AnimNode;
 		}
 	}
 
@@ -466,12 +479,23 @@ void FExposedValueHandler::Execute(const FAnimationBaseContext& Context) const
 		{
 		case EPostCopyOperation::None:
 			{
-				FMemory::Memcpy(CopyRecord.Dest, CopyRecord.Source, CopyRecord.Size);
+				if (CopyRecord.CachedBoolSourceProperty != nullptr && CopyRecord.CachedBoolDestProperty != nullptr)
+				{
+					bool bValue = CopyRecord.CachedBoolSourceProperty->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
+					CopyRecord.CachedBoolDestProperty->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, bValue, CopyRecord.DestArrayIndex);
+				}
+				else
+				{
+					FMemory::Memcpy(CopyRecord.Dest, CopyRecord.Source, CopyRecord.Size);
+				}
 			}
 			break;
 		case EPostCopyOperation::LogicalNegateBool:
 			{
-				*(bool*)CopyRecord.Dest = !(*(bool*)CopyRecord.Source);
+				check(CopyRecord.CachedBoolSourceProperty != nullptr && CopyRecord.CachedBoolDestProperty != nullptr);
+
+				bool bValue = CopyRecord.CachedBoolSourceProperty->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
+				CopyRecord.CachedBoolDestProperty->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, !bValue, CopyRecord.DestArrayIndex);
 			}
 			break;
 		}

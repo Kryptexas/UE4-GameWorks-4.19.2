@@ -753,7 +753,18 @@ bool SKismetInspector::IsPropertyEditingEnabled() const
 
 	if (BlueprintEditorPtr.IsValid())
 	{
-		bIsEditable = BlueprintEditorPtr.Pin()->InEditingMode();
+		if (GetDefault<UEditorExperimentalSettings>()->bAllowPotentiallyUnsafePropertyEditing == false)
+		{
+			bIsEditable = BlueprintEditorPtr.Pin()->InEditingMode();
+		}
+		else
+		{
+			// This function is essentially for PIE use so if we are NOT doing PIE use the normal path
+			if (GEditor->GetPIEWorldContext() == nullptr)
+			{
+				bIsEditable = BlueprintEditorPtr.Pin()->InEditingMode();
+			}
+		}
 	}
 
 	for (const TWeakObjectPtr<UObject>& SelectedObject : SelectedObjects)

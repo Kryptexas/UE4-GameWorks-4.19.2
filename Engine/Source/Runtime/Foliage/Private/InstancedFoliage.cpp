@@ -724,7 +724,7 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 
 	UpdateComponentSettings(InSettings);
 
-	Component->AttachTo(InIFA->GetRootComponent());
+	Component->SetupAttachment(InIFA->GetRootComponent());
 
 	if (InIFA->GetRootComponent()->IsRegistered())
 	{

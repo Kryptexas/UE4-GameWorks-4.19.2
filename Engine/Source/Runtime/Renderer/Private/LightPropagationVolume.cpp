@@ -1459,7 +1459,7 @@ void FSceneViewState::SetupLightPropagationVolume(FSceneView& View, FSceneViewFa
 		return;
 	}
 
-	const ERHIFeatureLevel::Type FeatureLevel = View.GetFeatureLevel();
+	const ERHIFeatureLevel::Type ViewFeatureLevel = View.GetFeatureLevel();
 
 	if (View.StereoPass == eSSP_RIGHT_EYE)
 	{
@@ -1470,7 +1470,7 @@ void FSceneViewState::SetupLightPropagationVolume(FSceneView& View, FSceneViewFa
 			FSceneViewState* PrimaryViewState = PrimaryView->State->GetConcreteViewState();
 			if (PrimaryViewState)
 			{
-				LightPropagationVolume = PrimaryViewState->GetLightPropagationVolume(FeatureLevel);
+				LightPropagationVolume = PrimaryViewState->GetLightPropagationVolume(ViewFeatureLevel);
 				if (LightPropagationVolume.IsValid())
 				{
 					bIsStereoView = true;
@@ -1480,7 +1480,7 @@ void FSceneViewState::SetupLightPropagationVolume(FSceneView& View, FSceneViewFa
 	}
 	else
 	{
-		if (UseLightPropagationVolumeRT(FeatureLevel) && IsLPVSupported(GShaderPlatformForFeatureLevel[FeatureLevel]))
+		if (UseLightPropagationVolumeRT(ViewFeatureLevel) && IsLPVSupported(GShaderPlatformForFeatureLevel[ViewFeatureLevel]))
 		{
 			LightPropagationVolume = new FLightPropagationVolume();
 		}

@@ -274,24 +274,18 @@ void UGameplayTasksComponent::RemoveResourceConsumingTask(UGameplayTask& Task)
 	}
 }
 
-void UGameplayTasksComponent::EndAllResourceConsumingTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner)// , bool bNotifyOwner)
+void UGameplayTasksComponent::EndAllResourceConsumingTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner)
 {
-	{
-		FEventLock ScopeEventLock(this);
+	FEventLock ScopeEventLock(this);
 
-		// can't reuse FindAllTasksOwnedBy here, it's important to remove from queue immediately
-		for (int32 Idx = TaskPriorityQueue.Num() - 1; Idx >= 0; Idx--)
+	for (int32 Idx = 0; Idx < TaskPriorityQueue.Num(); Idx++)
+	{
+		if (TaskPriorityQueue[Idx] && TaskPriorityQueue[Idx]->GetTaskOwner() == &TaskOwner)
 		{
-			if (TaskPriorityQueue[Idx] && TaskPriorityQueue[Idx]->GetTaskOwner() == &TaskOwner)
-			{
-				UGameplayTask* Task = TaskPriorityQueue[Idx];
-				TaskPriorityQueue[Idx] = nullptr;
-				Task->TaskOwnerEnded();
-			}
+			// finish task, remove event will be processed after all locks are cleared
+			TaskPriorityQueue[Idx]->TaskOwnerEnded();
 		}
 	}
-
-	UpdateTaskActivations();
 }
 
 bool UGameplayTasksComponent::FindAllTasksOwnedBy(const IGameplayTaskOwnerInterface& TaskOwner, TArray<UGameplayTask*>& FoundTasks) const
@@ -311,19 +305,11 @@ bool UGameplayTasksComponent::FindAllTasksOwnedBy(const IGameplayTaskOwnerInterf
 
 void UGameplayTasksComponent::ProcessTaskEvents()
 {
-	static const int32 MaxIterations = 16;
 	bInEventProcessingInProgress = true;
 
 	int32 IterCounter = 0;
 	while (TaskEvents.Num() > 0)
 	{
-		IterCounter++;
-		if (IterCounter > MaxIterations)
-		{
-			UE_VLOG(this, LogGameplayTasks, Error, TEXT("UGameplayTasksComponent::ProcessTaskEvents has exceeded allowes number of iterations. Check your GameplayTasks for logic loops!"));
-			break;
-		}
-
 		for (int32 EventIndex = 0; EventIndex < TaskEvents.Num(); ++EventIndex)
 		{
 			UE_VLOG(this, LogGameplayTasks, Verbose, TEXT("UGameplayTasksComponent::ProcessTaskEvents: %s event %s")
@@ -421,28 +407,27 @@ void UGameplayTasksComponent::UpdateTaskActivations()
 		FGameplayResourceSet ResourcesBlocked;
 		for (int32 TaskIndex = 0; TaskIndex < TaskPriorityQueue.Num(); ++TaskIndex)
 		{
-			// allow nulls in queue, can be introduced by EndAllResourceConsumingTasksOwnedBy or custom logic in task pause handler
-			// but we still need to walk through it in order
-			if (TaskPriorityQueue[TaskIndex] == nullptr)
+			if (ensure(TaskPriorityQueue[TaskIndex]))
 			{
-				bHasNulls = true;
-				continue;
-			}
+				const FGameplayResourceSet RequiredResources = TaskPriorityQueue[TaskIndex]->GetRequiredResources();
+				const FGameplayResourceSet ClaimedResources = TaskPriorityQueue[TaskIndex]->GetClaimedResources();
+				if (RequiredResources.GetOverlap(ResourcesBlocked).IsEmpty())
+				{
+					// postpone activations, it's some tasks (like MoveTo) require pausing old ones first
+					ActivationList.Add(TaskPriorityQueue[TaskIndex]);
+					ResourcesClaimed.AddSet(ClaimedResources);
+				}
+				else
+				{
+					TaskPriorityQueue[TaskIndex]->PauseInTaskQueue();
+				}
 
-			const FGameplayResourceSet RequiredResources = TaskPriorityQueue[TaskIndex]->GetRequiredResources();
-			const FGameplayResourceSet ClaimedResources = TaskPriorityQueue[TaskIndex]->GetClaimedResources();
-			if (RequiredResources.GetOverlap(ResourcesBlocked).IsEmpty())
-			{
-				// postpone activations, it's some tasks (like MoveTo) require pausing old ones first
-				ActivationList.Add(TaskPriorityQueue[TaskIndex]);
-				ResourcesClaimed.AddSet(ClaimedResources);
+				ResourcesBlocked.AddSet(ClaimedResources);
 			}
 			else
 			{
-				TaskPriorityQueue[TaskIndex]->PauseInTaskQueue();
+				bHasNulls = true;
 			}
-
-			ResourcesBlocked.AddSet(ClaimedResources);
 		}
 
 		for (int32 Idx = 0; Idx < ActivationList.Num(); Idx++)

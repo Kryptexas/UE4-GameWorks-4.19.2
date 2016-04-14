@@ -75,7 +75,7 @@ public:
 		Landscape->Modify();
 		Landscape->SplineComponent = NewObject<ULandscapeSplinesComponent>(Landscape, NAME_None, RF_Transactional);
 		Landscape->SplineComponent->RelativeScale3D = Scale3D;
-		Landscape->SplineComponent->AttachTo(Landscape->GetRootComponent());
+		Landscape->SplineComponent->AttachToComponent(Landscape->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 		Landscape->SplineComponent->ShowSplineEditorMesh(true);
 	}
 
@@ -686,10 +686,10 @@ public:
 							UControlPointMeshComponent* MeshComponent = ControlPoint->LocalMeshComponent;
 							MeshComponent->Modify();
 							MeshComponent->UnregisterComponent();
-							MeshComponent->DetachFromParent(true);
+							MeshComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 							MeshComponent->InvalidateLightingCache();
 							MeshComponent->Rename(nullptr, ToLandscape);
-							MeshComponent->AttachTo(ToLandscape->SplineComponent, NAME_None, EAttachLocation::KeepWorldPosition);
+							MeshComponent->AttachToComponent(ToLandscape->SplineComponent, FAttachmentTransformRules::KeepWorldTransform);
 
 							verifySlow(FromProxy->SplineComponent->MeshComponentLocalOwnersMap.Remove(MeshComponent) == 1);
 							ToLandscape->SplineComponent->MeshComponentLocalOwnersMap.Add(MeshComponent, ControlPoint);
@@ -770,10 +770,10 @@ public:
 						{
 							MeshComponent->Modify();
 							MeshComponent->UnregisterComponent();
-							MeshComponent->DetachFromParent(true);
+							MeshComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 							MeshComponent->InvalidateLightingCache();
 							MeshComponent->Rename(nullptr, ToLandscape);
-							MeshComponent->AttachTo(ToLandscape->SplineComponent, NAME_None, EAttachLocation::KeepWorldPosition);
+							MeshComponent->AttachToComponent(ToLandscape->SplineComponent, FAttachmentTransformRules::KeepWorldTransform);
 
 							verifySlow(FromProxy->SplineComponent->MeshComponentLocalOwnersMap.Remove(MeshComponent) == 1);
 							ToLandscape->SplineComponent->MeshComponentLocalOwnersMap.Add(MeshComponent, Segment);

@@ -46,7 +46,7 @@ version:4.9
 1. Next, we will create and attach a visible sphere from a **Static Mesh** asset that has a radius of 50. Since this doesn't perfectly line up with the 40-radius Sphere Component we just created, we'll scale it down to 80%. We also need to move it down by 40 units in order to have its center line up with the center of the Sphere Component.
 			// Create and position a mesh component so we can see where our sphere is
 			UStaticMeshComponent* SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualRepresentation"));
-			SphereVisual->AttachTo(RootComponent);
+			SphereVisual->SetupAttachment(RootComponent);
 			static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
 			if (SphereVisualAsset.Succeeded())
 			{
@@ -60,7 +60,7 @@ version:4.9
 1. We can now attach an inactive Particle System Component to our hierarchy. We can manipulate this component in code, and will later set up an input to turn it on or off. Notice that the Particle System Component is attached directly to the Static Mesh Component, not to the root. It is also slightly offset from the bottom-center of the mesh so that it will be more visible during play.
 			// Create a particle system that we can activate or deactivate
 			OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
-			OurParticleSystem->AttachTo(SphereVisual);
+			OurParticleSystem->SetupAttachment(SphereVisual);
 			OurParticleSystem->bAutoActivate = false;
 			OurParticleSystem->SetRelativeLocation(FVector(-20.0f, 0.0f, 20.0f));
 			static ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(TEXT("/Game/StarterContent/Particles/P_Fire.P_Fire"));
@@ -72,7 +72,7 @@ version:4.9
 1. A Spring Arm Component can provide us with a smoother attachment point for our camera by allowing our camera to accelerate and decelerate more slowly than the Pawn it is following. It also has a built-in feature that prevents the camera from going through solid objects, for situations such as when a player backs into a corner in a third-person game. While it isn't necessary, it can be a very fast and easy way to get smoother-feeling camera work into a game.
 			// Use a spring arm to give the camera smooth, natural-feeling motion.
 			USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
-			SpringArm->AttachTo(RootComponent);
+			SpringArm->SetupAttachment(RootComponent);
 			SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
 			SpringArm->TargetArmLength = 400.0f;
 			SpringArm->bEnableCameraLag = true;
@@ -81,7 +81,7 @@ version:4.9
 1. The actual Camera Component is easy to create, and we don't require any special settings. The **Spring Arm** has a special built-in socket that we can attach to, rather than attaching to its base.
 			// Create a camera and attach to our spring arm
 			UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
-			Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
+			Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
 1. Now that our components are created and attached, we should set this Pawn to be controlled by the default player. The following code is all we need:
 			// Take control of the default player
@@ -148,7 +148,7 @@ Our new Pawn now has a collection of useful Components attached to it, and is re
 
 				// Create and position a mesh component so we can see where our sphere is
 				UStaticMeshComponent* SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualRepresentation"));
-				SphereVisual->AttachTo(RootComponent);
+				SphereVisual->SetupAttachment(RootComponent);
 				static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
 				if (SphereVisualAsset.Succeeded())
 				{
@@ -159,7 +159,7 @@ Our new Pawn now has a collection of useful Components attached to it, and is re
 
 				// Create a particle system that we can activate or deactivate
 				OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
-				OurParticleSystem->AttachTo(SphereVisual);
+				OurParticleSystem->SetupAttachment(SphereVisual);
 				OurParticleSystem->bAutoActivate = false;
 				OurParticleSystem->SetRelativeLocation(FVector(-20.0f, 0.0f, 20.0f));
 				static ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(TEXT("/Game/StarterContent/Particles/P_Fire.P_Fire"));
@@ -170,7 +170,7 @@ Our new Pawn now has a collection of useful Components attached to it, and is re
 
 				// Use a spring arm to give the camera smooth, natural-feeling motion.
 				USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
-				SpringArm->AttachTo(RootComponent);
+				SpringArm->SetupAttachment(RootComponent);
 				SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
 				SpringArm->TargetArmLength = 400.0f;
 				SpringArm->bEnableCameraLag = true;
@@ -178,7 +178,7 @@ Our new Pawn now has a collection of useful Components attached to it, and is re
 
 				// Create a camera and attach to our spring arm
 				UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
-				Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
+				Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
 				// Take control of the default player
 				AutoPossessPlayer = EAutoReceiveInput::Player0;

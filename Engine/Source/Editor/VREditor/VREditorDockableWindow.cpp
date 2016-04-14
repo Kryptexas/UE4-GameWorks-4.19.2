@@ -33,7 +33,7 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 		WindowMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "WindowMesh" ) );
 		WindowMeshComponent->SetStaticMesh( WindowMesh );
 		WindowMeshComponent->SetMobility( EComponentMobility::Movable );
-		WindowMeshComponent->AttachTo( RootComponent );
+		WindowMeshComponent->SetupAttachment( RootComponent );
 
 		WindowMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 		WindowMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Ignore );
@@ -58,7 +58,7 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 		SelectionBarMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionBarMesh" ) );
 		SelectionBarMeshComponent->SetStaticMesh( SelectionMesh );
 		SelectionBarMeshComponent->SetMobility( EComponentMobility::Movable );
-		SelectionBarMeshComponent->AttachTo( RootComponent );
+		SelectionBarMeshComponent->SetupAttachment( RootComponent );
 
 		SelectionBarMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 		SelectionBarMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Ignore );
@@ -103,7 +103,7 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 		CloseButtonMeshComponent= CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "CloseButtonMesh" ) );
 		CloseButtonMeshComponent->SetStaticMesh( CloseButtonMesh );
 		CloseButtonMeshComponent->SetMobility( EComponentMobility::Movable );
-		CloseButtonMeshComponent->AttachTo( RootComponent );
+		CloseButtonMeshComponent->SetupAttachment( RootComponent );
 
 		CloseButtonMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 		CloseButtonMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Ignore );

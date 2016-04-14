@@ -143,23 +143,23 @@ ASphereReflectionCapture::ASphereReflectionCapture(const FObjectInitializer& Obj
 #if WITH_EDITORONLY_DATA
 	if (GetSpriteComponent())
 	{
-		GetSpriteComponent()->AttachParent = SphereComponent;
+		GetSpriteComponent()->SetupAttachment(SphereComponent);
 	}
 	if (GetCaptureOffsetComponent())
 	{
-		GetCaptureOffsetComponent()->AttachParent = SphereComponent;
+		GetCaptureOffsetComponent()->SetupAttachment(SphereComponent);
 	}
 #endif	//WITH_EDITORONLY_DATA
 
 	UDrawSphereComponent* DrawInfluenceRadius = CreateDefaultSubobject<UDrawSphereComponent>(TEXT("DrawRadius0"));
-	DrawInfluenceRadius->AttachParent = GetCaptureComponent();
+	DrawInfluenceRadius->SetupAttachment(GetCaptureComponent());
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	SphereComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
 	DrawCaptureRadius = CreateDefaultSubobject<UDrawSphereComponent>(TEXT("DrawRadius1"));
-	DrawCaptureRadius->AttachParent = GetCaptureComponent();
+	DrawCaptureRadius->SetupAttachment(GetCaptureComponent());
 	DrawCaptureRadius->bDrawOnlyIfSelected = true;
 	DrawCaptureRadius->bUseEditorCompositing = true;
 	DrawCaptureRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -197,15 +197,15 @@ ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectIni
 #if WITH_EDITORONLY_DATA
 	if (GetSpriteComponent())
 	{
-		GetSpriteComponent()->AttachParent = BoxComponent;
+		GetSpriteComponent()->SetupAttachment(BoxComponent);
 	}
 	if (GetCaptureOffsetComponent())
 	{
-		GetCaptureOffsetComponent()->AttachParent = BoxComponent;
+		GetCaptureOffsetComponent()->SetupAttachment(BoxComponent);
 	}
 #endif	//WITH_EDITORONLY_DATA
 	UBoxComponent* DrawInfluenceBox = CreateDefaultSubobject<UBoxComponent>(TEXT("DrawBox0"));
-	DrawInfluenceBox->AttachParent = GetCaptureComponent();
+	DrawInfluenceBox->SetupAttachment(GetCaptureComponent());
 	DrawInfluenceBox->bDrawOnlyIfSelected = true;
 	DrawInfluenceBox->bUseEditorCompositing = true;
 	DrawInfluenceBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -213,7 +213,7 @@ ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectIni
 	BoxComponent->PreviewInfluenceBox = DrawInfluenceBox;
 
 	UBoxComponent* DrawCaptureBox = CreateDefaultSubobject<UBoxComponent>(TEXT("DrawBox1"));
-	DrawCaptureBox->AttachParent = GetCaptureComponent();
+	DrawCaptureBox->SetupAttachment(GetCaptureComponent());
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
 	DrawCaptureBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -231,15 +231,15 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 #if WITH_EDITORONLY_DATA
 	if (GetSpriteComponent())
 	{
-		GetSpriteComponent()->AttachParent = PlaneComponent;
+		GetSpriteComponent()->SetupAttachment(PlaneComponent);
 	}
 	if (GetCaptureOffsetComponent())
 	{
-		GetCaptureOffsetComponent()->AttachParent = PlaneComponent;
+		GetCaptureOffsetComponent()->SetupAttachment(PlaneComponent);
 	}
 #endif	//#if WITH_EDITORONLY_DATA
 	UDrawSphereComponent* DrawInfluenceRadius = CreateDefaultSubobject<UDrawSphereComponent>(TEXT("DrawRadius0"));
-	DrawInfluenceRadius->AttachParent = GetCaptureComponent();
+	DrawInfluenceRadius->SetupAttachment(GetCaptureComponent());
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bAbsoluteScale = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
@@ -247,7 +247,7 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 	PlaneComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
 	UBoxComponent* DrawCaptureBox = CreateDefaultSubobject<UBoxComponent>(TEXT("DrawBox1"));
-	DrawCaptureBox->AttachParent = GetCaptureComponent();
+	DrawCaptureBox->SetupAttachment(GetCaptureComponent());
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
 	DrawCaptureBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -786,7 +786,7 @@ void UReflectionCaptureComponent::CreateRenderState_Concurrent()
 
 	if (ShouldRender())
 	{
-		World->Scene->AddReflectionCapture(this);
+		GetWorld()->Scene->AddReflectionCapture(this);
 	}
 }
 
@@ -800,7 +800,7 @@ void UReflectionCaptureComponent::SendRenderTransform_Concurrent()
 
 		if (ShouldRender())
 		{
-			World->Scene->UpdateReflectionCaptureTransform(this);
+			GetWorld()->Scene->UpdateReflectionCaptureTransform(this);
 		}
 	}
 
@@ -810,7 +810,7 @@ void UReflectionCaptureComponent::SendRenderTransform_Concurrent()
 void UReflectionCaptureComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();
-	World->Scene->RemoveReflectionCapture(this);
+	GetWorld()->Scene->RemoveReflectionCapture(this);
 }
 
 void UReflectionCaptureComponent::PostInitProperties()
@@ -1112,6 +1112,7 @@ void UReflectionCaptureComponent::PreSave()
 	// This is done on save of the package, because this capture data can only be generated by the renderer
 	// So we must make efforts to ensure that it is generated in the editor, because it can't be generated during cooking when missing
 	// Note: This will only work when registered
+	UWorld* World = GetWorld();
 	if (World)
 	{
 		ReadbackFromGPU(World);
@@ -1428,6 +1429,7 @@ void UReflectionCaptureComponent::PreFeatureLevelChange(ERHIFeatureLevel::Type P
 	if (PendingFeatureLevel == ERHIFeatureLevel::ES2 || PendingFeatureLevel == ERHIFeatureLevel::ES3_1)
 	{
 		// generate encoded hdr data for ES2 preview mode.
+		UWorld* World = GetWorld();
 		if (World != nullptr)
 		{
 			// Capture full hdr derived data first.

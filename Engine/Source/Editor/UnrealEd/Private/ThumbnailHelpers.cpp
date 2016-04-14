@@ -681,13 +681,12 @@ void FAnimationSequenceThumbnailScene::CleanupComponentChildren(USceneComponent*
 {
 	if (Component)
 	{
-		for (int32 I = 0; I < Component->AttachChildren.Num(); ++I)
+		for(int32 ComponentIdx = Component->GetAttachChildren().Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
 		{
-			CleanupComponentChildren(Component->AttachChildren[I]);
-			Component->AttachChildren[I]->DestroyComponent();
+			CleanupComponentChildren(Component->GetAttachChildren()[ComponentIdx]);
+			Component->GetAttachChildren()[ComponentIdx]->DestroyComponent();
 		}
-
-		Component->AttachChildren.Empty();
+		check(Component->GetAttachChildren().Num() == 0);
 	}
 }
 
@@ -807,13 +806,12 @@ void FBlendSpaceThumbnailScene::CleanupComponentChildren(USceneComponent* Compon
 {
 	if (Component)
 	{
-		for (int32 I = 0; I < Component->AttachChildren.Num(); ++I)
+		for (int32 ComponentIdx = Component->GetAttachChildren().Num() - 1; ComponentIdx >= 0; --ComponentIdx)
 		{
-			CleanupComponentChildren(Component->AttachChildren[I]);
-			Component->AttachChildren[I]->DestroyComponent();
+			CleanupComponentChildren(Component->GetAttachChildren()[ComponentIdx]);
+			Component->GetAttachChildren()[ComponentIdx]->DestroyComponent();
 		}
-
-		Component->AttachChildren.Empty();
+		check(Component->GetAttachChildren().Num() == 0);
 	}
 }
 
@@ -918,13 +916,12 @@ void FAnimBlueprintThumbnailScene::CleanupComponentChildren(USceneComponent* Com
 {
 	if (Component)
 	{
-		for (int32 I = 0; I < Component->AttachChildren.Num(); ++I)
+		for (int32 ComponentIdx = Component->GetAttachChildren().Num() - 1; ComponentIdx >= 0; --ComponentIdx)
 		{
-			CleanupComponentChildren(Component->AttachChildren[I]);
-			Component->AttachChildren[I]->DestroyComponent();
+			CleanupComponentChildren(Component->GetAttachChildren()[ComponentIdx]);
+			Component->GetAttachChildren()[ComponentIdx]->DestroyComponent();
 		}
-
-		Component->AttachChildren.Empty();
+		check(Component->GetAttachChildren().Num() == 0);
 	}
 }
 
@@ -1065,16 +1062,16 @@ UActorComponent* FClassActorThumbnailScene::CreateComponentInstanceFromTemplate(
 {
 	check(ComponentTemplate);
 
-	UActorComponent* NewComponent = NULL;
+	UActorComponent* NewComponent = nullptr;
 	EObjectFlags FlagMask = RF_AllFlags & ~RF_ArchetypeObject;
 	if ( GetTransientPackage()->IsA(ComponentTemplate->GetClass()->ClassWithin) )
 	{
 		NewComponent = Cast<UActorComponent>( StaticDuplicateObject(ComponentTemplate, GetTransientPackage(), NAME_None, FlagMask ) );
 
 		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewComponent);
-		if ( NewSceneComp != NULL )
+		if ( NewSceneComp != nullptr)
 		{
-			NewSceneComp->AttachParent = NULL;
+			NewSceneComp->SetupAttachment(nullptr);
 		}
 	}
 	else
@@ -1086,7 +1083,7 @@ UActorComponent* FClassActorThumbnailScene::CreateComponentInstanceFromTemplate(
 		
 		// Preserve relative location, rotation, scale, parent, and children if the template was a scene component.
 		USceneComponent* SceneCompTemplate = Cast<USceneComponent>(ComponentTemplate);
-		if ( SceneCompTemplate != NULL )
+		if ( SceneCompTemplate != nullptr)
 		{
 			// Preserve relative location, rotation and scale
 			// The parent and children are excluded as they will be references to the template components
@@ -1094,8 +1091,7 @@ UActorComponent* FClassActorThumbnailScene::CreateComponentInstanceFromTemplate(
 			NewSceneComp->RelativeLocation = SceneCompTemplate->RelativeLocation;
 			NewSceneComp->RelativeRotation = SceneCompTemplate->RelativeRotation;
 			NewSceneComp->RelativeScale3D = SceneCompTemplate->RelativeScale3D;
-			NewSceneComp->AttachChildren.Empty();
-			NewSceneComp->AttachParent = NULL;
+			NewSceneComp->SetupAttachment(nullptr);
 		}
 	}
 
@@ -1187,7 +1183,7 @@ void FBlueprintThumbnailScene::InstanceComponents(USCS_Node* CurrentNode, UScene
 				if ( ParentComponent != NULL )
 				{
 					// Do the attachment
-					NewSceneComp->AttachTo(ParentComponent, CurrentNode->AttachToName);
+					NewSceneComp->SetupAttachment(ParentComponent, CurrentNode->AttachToName);
 				}
 				else
 				{
@@ -1236,8 +1232,8 @@ TArray<UPrimitiveComponent*> FBlueprintThumbnailScene::GetPooledVisualizableComp
 	}
 	else
 	{
-		// We need to find the RootComponent in order to property transform the components
-		USceneComponent* RootComponent = NULL;
+		// We need to find the RootComponent in order to properly transform the components
+		USceneComponent* RootComponent = nullptr;
 		TArray<UActorComponent*> AllCreatedActorComponents;
 		TMap<UActorComponent*, UActorComponent*> NativeInstanceMap;
 
@@ -1252,10 +1248,10 @@ TArray<UPrimitiveComponent*> FBlueprintThumbnailScene::GetPooledVisualizableComp
 			for ( auto CompIt = Components.CreateConstIterator(); CompIt; ++CompIt )
 			{
 				UActorComponent* Comp = *CompIt;
-				if ( Comp != NULL )
+				if ( Comp != nullptr )
 				{
 					UActorComponent* InstancedComponent = CreateComponentInstanceFromTemplate(Comp);
-					if ( InstancedComponent != NULL )
+					if ( InstancedComponent != nullptr )
 					{
 						NativeInstanceMap.Add(Comp, InstancedComponent);
 					}
@@ -1266,16 +1262,16 @@ TArray<UPrimitiveComponent*> FBlueprintThumbnailScene::GetPooledVisualizableComp
 			for ( auto CompIt = NativeInstanceMap.CreateConstIterator(); CompIt; ++CompIt )
 			{
 				UActorComponent* ActorComp = CompIt.Value();
-				if(ActorComp != NULL)
+				if(ActorComp != nullptr)
 				{
 					AllCreatedActorComponents.Add(ActorComp);
 
 					USceneComponent* SceneComp = Cast<USceneComponent>(ActorComp);
-					if(SceneComp != NULL)
+					if(SceneComp != nullptr)
 					{
-						if(SceneComp->AttachParent != NULL)
+						if(SceneComp->GetAttachParent() != nullptr)
 						{
-							SceneComp->AttachParent = Cast<USceneComponent>(NativeInstanceMap.FindRef(SceneComp->AttachParent));
+							SceneComp->SetupAttachment(Cast<USceneComponent>(NativeInstanceMap.FindRef(SceneComp->GetAttachParent())), SceneComp->GetAttachSocketName());
 						}
 						else if(CompIt.Key() == CDO->GetRootComponent())
 						{
@@ -1285,9 +1281,10 @@ TArray<UPrimitiveComponent*> FBlueprintThumbnailScene::GetPooledVisualizableComp
 							RootComponent->SetRelativeTransform( FTransform::Identity );
 						}
 
-						for(auto ChildCompIt = SceneComp->AttachChildren.CreateIterator(); ChildCompIt; ++ChildCompIt)
+						TArray<USceneComponent*>& AttachedChildren = FDirectAttachChildrenAccessor::Get(SceneComp);
+						for (USceneComponent*& AttachedChild : AttachedChildren)
 						{
-							*ChildCompIt = Cast<USceneComponent>(NativeInstanceMap.FindRef(*ChildCompIt));
+							AttachedChild = Cast<USceneComponent>(NativeInstanceMap.FindRef(AttachedChild));
 						}
 					}
 				}
@@ -1510,9 +1507,9 @@ TArray<UPrimitiveComponent*> FClassThumbnailScene::GetPooledVisualizableComponen
 					USceneComponent* SceneComp = Cast<USceneComponent>(ActorComp);
 					if(SceneComp != NULL)
 					{
-						if(SceneComp->AttachParent != NULL)
+						if(SceneComp->GetAttachParent() != NULL)
 						{
-							SceneComp->AttachParent = Cast<USceneComponent>(NativeInstanceMap.FindRef(SceneComp->AttachParent));
+							SceneComp->SetupAttachment(Cast<USceneComponent>(NativeInstanceMap.FindRef(SceneComp->GetAttachParent())),SceneComp->GetAttachSocketName());
 						}
 						else if(CompIt.Key() == CDO->GetRootComponent())
 						{
@@ -1522,9 +1519,10 @@ TArray<UPrimitiveComponent*> FClassThumbnailScene::GetPooledVisualizableComponen
 							RootComponent->SetRelativeTransform( FTransform::Identity );
 						}
 
-						for(auto ChildCompIt = SceneComp->AttachChildren.CreateIterator(); ChildCompIt; ++ChildCompIt)
+						TArray<USceneComponent*>& AttachedChildren = FDirectAttachChildrenAccessor::Get(SceneComp);
+						for (USceneComponent*& AttachedChild : AttachedChildren)
 						{
-							*ChildCompIt = Cast<USceneComponent>(NativeInstanceMap.FindRef(*ChildCompIt));
+							AttachedChild = Cast<USceneComponent>(NativeInstanceMap.FindRef(AttachedChild));
 						}
 					}
 				}

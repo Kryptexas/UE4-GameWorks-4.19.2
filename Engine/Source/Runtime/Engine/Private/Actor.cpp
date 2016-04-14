@@ -299,7 +299,7 @@ void AActor::ClearCrossLevelReferences()
 {
 	if(RootComponent && GetRootComponent()->GetAttachParent() && (GetOutermost() != GetRootComponent()->GetAttachParent()->GetOutermost()))
 	{
-		GetRootComponent()->DetachFromParent();
+		GetRootComponent()->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 	}
 }
 
@@ -577,8 +577,8 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 		// Migrate any attachment to the new root
 		if(OldRoot->GetAttachParent())
 		{
-			RootComponent->AttachTo(OldRoot->GetAttachParent());
-			OldRoot->DetachFromParent();
+			RootComponent->SetupAttachment(OldRoot->GetAttachParent());
+			OldRoot->SetupAttachment(nullptr);
 		}
 
 		// Reset the transform on the old component
@@ -1391,14 +1391,31 @@ bool AActor::HasNetOwner() const
 
 void AActor::K2_AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=true*/)
 {
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	AttachRootComponentTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=false*/)
 {
 	if(RootComponent && InParent)
 	{
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RootComponent->AttachTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	}
+}
+
+void AActor::K2_AttachToComponent(USceneComponent* Parent, FName SocketName, EAttachmentRule LocationRule, EAttachmentRule RotationRule, EAttachmentRule ScaleRule, bool bWeldSimulatedBodies)
+{
+	AttachToComponent(Parent, FAttachmentTransformRules(LocationRule, RotationRule, ScaleRule, bWeldSimulatedBodies), SocketName);
+}
+
+void AActor::AttachToComponent(USceneComponent* Parent, const FAttachmentTransformRules& AttachmentRules, FName SocketName)
+{
+	if (RootComponent && Parent)
+	{
+		RootComponent->AttachToComponent(Parent, AttachmentRules, SocketName);
 	}
 }
 
@@ -1415,13 +1432,13 @@ void AActor::OnRep_AttachmentReplication()
 				RootComponent->RelativeLocation = AttachmentReplication.LocationOffset;
 				RootComponent->RelativeRotation = AttachmentReplication.RotationOffset;
 				RootComponent->RelativeScale3D = AttachmentReplication.RelativeScale3D;
-				RootComponent->AttachTo(AttachParentComponent, AttachmentReplication.AttachSocket);
+				RootComponent->AttachToComponent(AttachParentComponent, FAttachmentTransformRules::KeepRelativeTransform,  AttachmentReplication.AttachSocket);
 			}
 		}
 	}
 	else
 	{
-		DetachRootComponentFromParent();
+		DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
 
 		// Handle the case where an object was both detached and moved on the server in the same frame.
 		// Calling this extraneously does not hurt but will properly fire events if the movement state changed while attached.
@@ -1432,7 +1449,9 @@ void AActor::OnRep_AttachmentReplication()
 
 void AActor::K2_AttachRootComponentToActor(AActor* InParentActor, FName InSocketName /*= NAME_None*/, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=true*/)
 {
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	AttachRootComponentToActor(InParentActor, InSocketName, AttachLocationType, bWeldSimulatedBodies);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 void AActor::AttachRootComponentToActor(AActor* InParentActor, FName InSocketName /*= NAME_None*/, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*=false*/)
@@ -1442,7 +1461,26 @@ void AActor::AttachRootComponentToActor(AActor* InParentActor, FName InSocketNam
 		USceneComponent* ParentDefaultAttachComponent = InParentActor->GetDefaultAttachComponent();
 		if (ParentDefaultAttachComponent)
 		{
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 			RootComponent->AttachTo(ParentDefaultAttachComponent, InSocketName, AttachLocationType, bWeldSimulatedBodies );
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+		}
+	}
+}
+
+void AActor::K2_AttachToActor(AActor* ParentActor, FName SocketName, EAttachmentRule LocationRule, EAttachmentRule RotationRule, EAttachmentRule ScaleRule, bool bWeldSimulatedBodies)
+{
+	AttachToActor(ParentActor, FAttachmentTransformRules(LocationRule, RotationRule, ScaleRule, bWeldSimulatedBodies), SocketName);
+}
+
+void AActor::AttachToActor(AActor* ParentActor, const FAttachmentTransformRules& AttachmentRules, FName SocketName)
+{
+	if (RootComponent && ParentActor)
+	{
+		USceneComponent* ParentDefaultAttachComponent = ParentActor->GetDefaultAttachComponent();
+		if (ParentDefaultAttachComponent)
+		{
+			RootComponent->AttachToComponent(ParentDefaultAttachComponent, AttachmentRules, SocketName);
 		}
 	}
 }
@@ -1463,11 +1501,31 @@ void AActor::DetachRootComponentFromParent(bool bMaintainWorldPosition)
 {
 	if(RootComponent)
 	{
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		RootComponent->DetachFromParent(bMaintainWorldPosition);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	}
+}
+
+void AActor::K2_DetachFromActor(EDetachmentRule LocationRule /*= EDetachmentRule::KeepRelative*/, EDetachmentRule RotationRule /*= EDetachmentRule::KeepRelative*/, EDetachmentRule ScaleRule /*= EDetachmentRule::KeepRelative*/)
+{
+	DetachFromActor(FDetachmentTransformRules(LocationRule, RotationRule, ScaleRule, true));
+}
+
+void AActor::DetachFromActor(const FDetachmentTransformRules& DetachmentRules)
+{
+	if (RootComponent)
+	{
+		RootComponent->DetachFromComponent(DetachmentRules);
 	}
 }
 
 void AActor::DetachSceneComponentsFromParent(USceneComponent* InParentComponent, bool bMaintainWorldPosition)
+{
+	DetachAllSceneComponents(InParentComponent, bMaintainWorldPosition ? FDetachmentTransformRules::KeepWorldTransform : FDetachmentTransformRules::KeepRelativeTransform);
+}
+
+void AActor::DetachAllSceneComponents(USceneComponent* InParentComponent, const FDetachmentTransformRules& DetachmentRules)
 {
 	if (InParentComponent != NULL)
 	{
@@ -1479,7 +1537,7 @@ void AActor::DetachSceneComponentsFromParent(USceneComponent* InParentComponent,
 			USceneComponent* SceneComp = Components[Index];
 			if (SceneComp->GetAttachParent() == InParentComponent)
 			{
-				SceneComp->DetachFromParent(bMaintainWorldPosition);
+				SceneComp->DetachFromComponent(DetachmentRules);
 			}
 		}
 	}
@@ -2977,7 +3035,7 @@ bool AActor::SetActorLocation(const FVector& NewLocation, bool bSweep, FHitResul
 	return false;
 }
 
-bool AActor::SetActorRotation(FRotator NewRotation)
+bool AActor::SetActorRotation(FRotator NewRotation, ETeleportType Teleport)
 {
 #if ENABLE_NAN_DIAGNOSTIC
 	if (NewRotation.ContainsNaN())
@@ -2988,13 +3046,13 @@ bool AActor::SetActorRotation(FRotator NewRotation)
 #endif
 	if (RootComponent)
 	{
-		return RootComponent->MoveComponent(FVector::ZeroVector, NewRotation, true);
+		return RootComponent->MoveComponent(FVector::ZeroVector, NewRotation, true, nullptr, MOVECOMP_NoFlags, Teleport);
 	}
 
 	return false;
 }
 
-bool AActor::SetActorRotation(const FQuat& NewRotation)
+bool AActor::SetActorRotation(const FQuat& NewRotation, ETeleportType Teleport)
 {
 #if ENABLE_NAN_DIAGNOSTIC
 	if (NewRotation.ContainsNaN())
@@ -3004,7 +3062,7 @@ bool AActor::SetActorRotation(const FQuat& NewRotation)
 #endif
 	if (RootComponent)
 	{
-		return RootComponent->MoveComponent(FVector::ZeroVector, NewRotation, true);
+		return RootComponent->MoveComponent(FVector::ZeroVector, NewRotation, true, nullptr, MOVECOMP_NoFlags, Teleport);
 	}
 
 	return false;
@@ -4236,6 +4294,11 @@ const int32 AActor::GetNumUncachedStaticLightingInteractions() const
 bool AActor::K2_SetActorLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
 	return SetActorLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
+}
+
+bool AActor::K2_SetActorRotation(FRotator NewRotation, bool bTeleportPhysics)
+{
+	return SetActorRotation(NewRotation, TeleportFlagToEnum(bTeleportPhysics));
 }
 
 bool AActor::K2_SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)

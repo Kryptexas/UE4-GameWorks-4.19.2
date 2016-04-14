@@ -14,6 +14,11 @@
 #include "StaticMeshResources.h"
 #include "HierarchicalLODVolume.h"
 
+#include "IProjectManager.h"
+#include "MessageLog.h"
+#include "UObjectToken.h"
+#include "MapErrors.h"
+
 #include "Editor.h"
 #include "Editor/EditorEngine.h"
 #include "BSPOps.h"
@@ -239,6 +244,18 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 				LODActor->SetActorLocation(OutProxyLocation);
 				LODActor->SubObjects = OutAssets;
 
+				// Check resulting mesh and give a warning if it exceeds the vertex / triangle cap for certain platforms
+				FProjectStatus ProjectStatus;
+				if (IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus) && (ProjectStatus.IsTargetPlatformSupported(TEXT("Android")) || ProjectStatus.IsTargetPlatformSupported(TEXT("IOS"))))
+				{
+					if (MainMesh->RenderData.IsValid() && MainMesh->RenderData->LODResources.Num() && MainMesh->RenderData->LODResources[0].IndexBuffer.Is32Bit())
+					{
+						FMessageLog("HLODResults").Warning()							
+							->AddToken(FUObjectToken::Create(LODActor))
+							->AddToken(FTextToken::Create(LOCTEXT("HLODError_MeshNotBuildTwo", " Mesh has more that 65535 vertices, incompatible with mobile; forcing 16-bit (will probably cause rendering issues).")));
+					}
+				}
+
 				// At the moment this assumes a fixed field of view of 90 degrees (horizontal and vertical axi)
 				static const float FOVRad = 90.0f * (float)PI / 360.0f;
 				static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);
@@ -248,6 +265,8 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 
 				// Freshly build so mark not dirty
 				LODActor->SetIsDirty(false);
+
+
 
 				return true;
 			}

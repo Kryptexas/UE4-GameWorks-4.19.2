@@ -565,7 +565,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 			{
 				for (USceneComponent* SceneComponent : SceneComponents)
 				{
-					ChildActor->DetachSceneComponentsFromParent(SceneComponent, true);
+					ChildActor->DetachAllSceneComponents(SceneComponent, FDetachmentTransformRules::KeepWorldTransform);
 				}
 #if WITH_EDITOR
 				if( GIsEditor )

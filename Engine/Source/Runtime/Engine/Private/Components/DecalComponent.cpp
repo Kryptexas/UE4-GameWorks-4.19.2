@@ -186,7 +186,7 @@ void UDecalComponent::CreateRenderState_Concurrent()
 	// Mimics UPrimitiveComponent's visibility logic, although without the UPrimitiveCompoent visibility flags
 	if ( ShouldComponentAddToScene() && ShouldRender() )
 	{
-		World->Scene->AddDecal(this);
+		GetWorld()->Scene->AddDecal(this);
 	}
 }
 
@@ -195,7 +195,7 @@ void UDecalComponent::SendRenderTransform_Concurrent()
 	//If Decal isn't hidden update its transform.
 	if ( ShouldComponentAddToScene() && ShouldRender() )
 	{
-		World->Scene->UpdateDecalTransform(this);
+		GetWorld()->Scene->UpdateDecalTransform(this);
 	}
 
 	Super::SendRenderTransform_Concurrent();
@@ -209,6 +209,6 @@ const UObject* UDecalComponent::AdditionalStatObject() const
 void UDecalComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();
-	World->Scene->RemoveDecal(this);
+	GetWorld()->Scene->RemoveDecal(this);
 }
 

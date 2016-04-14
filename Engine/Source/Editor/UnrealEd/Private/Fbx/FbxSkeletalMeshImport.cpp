@@ -2190,6 +2190,7 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 	TotalMatrixForNormal = TotalMatrixForNormal.Transpose();
 
 	int32 ControlPointsIndex;
+	bool bInvalidPositionFound = false;
 	for( ControlPointsIndex = 0 ; ControlPointsIndex < ControlPointsCount ;ControlPointsIndex++ )
 	{
 		FbxVector4 Position;
@@ -2201,11 +2202,30 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 		{
 			Position = Mesh->GetControlPoints()[ControlPointsIndex];
 		}																	 
+
 		FbxVector4 FinalPosition;
 		FinalPosition = TotalMatrix.MultT(Position);
-		ImportData.Points[ControlPointsIndex+ExistPointNum] = Converter.ConvertPos(FinalPosition);
+		FVector ConvertedPosition = Converter.ConvertPos(FinalPosition);
+
+		// ensure user when this happens if attached to debugger
+		if (!ensure(ConvertedPosition.ContainsNaN() == false))
+		{
+			if (!bInvalidPositionFound)
+			{
+				bInvalidPositionFound = true;
+			}
+
+			ConvertedPosition = FVector::ZeroVector;
+		}
+
+		ImportData.Points[ControlPointsIndex+ExistPointNum] = ConvertedPosition;
 	}
-	
+
+	if (bInvalidPositionFound)
+	{
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_InvalidPosition", "Invalid position (NaN or Inf) found from source position for mesh '{0}'. Please verify if the source asset contains valid position. "), FText::FromString(Mesh->GetName()))), FFbxErrors::SkeletalMesh_InvalidPosition);
+	}
+
 	bool OddNegativeScale = IsOddNegativeScale(TotalMatrix);
 	
 	int32 TriangleCount = Mesh->GetPolygonCount();

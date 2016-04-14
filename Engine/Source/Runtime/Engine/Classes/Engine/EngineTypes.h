@@ -51,6 +51,107 @@ namespace EBrowseReturnVal
 	};
 }
 
+/** Rules for attaching components - needs to be kept synced to EDetachmentRule */
+UENUM()
+enum class EAttachmentRule : uint8
+{
+	/** Keeps current relative transform as the relative transform to the new parent. */
+	KeepRelative,
+
+	/** Automatically calculates the relative transform such that the attached component maintains the same world transform. */
+	KeepWorld,
+
+	/** Snaps transform to the attach point */
+	SnapToTarget,
+};
+
+/** Rules for attaching components */
+struct ENGINE_API FAttachmentTransformRules
+{
+	/** Various preset attachment rules. Note that these default rules do NOT by default weld simulated bodies */
+	static FAttachmentTransformRules KeepRelativeTransform;
+	static FAttachmentTransformRules KeepWorldTransform;
+	static FAttachmentTransformRules SnapToTargetNotIncludingScale;
+	static FAttachmentTransformRules SnapToTargetIncludingScale;
+
+	FAttachmentTransformRules(EAttachmentRule InRule, bool bInWeldSimulatedBodies)
+		: LocationRule(InRule)
+		, RotationRule(InRule)
+		, ScaleRule(InRule)
+		, bWeldSimulatedBodies(bInWeldSimulatedBodies)
+	{}
+
+	FAttachmentTransformRules(EAttachmentRule InLocationRule, EAttachmentRule InRotationRule, EAttachmentRule InScaleRule, bool bInWeldSimulatedBodies)
+		: LocationRule(InLocationRule)
+		, RotationRule(InRotationRule)
+		, ScaleRule(InScaleRule)
+		, bWeldSimulatedBodies(bInWeldSimulatedBodies)
+	{}
+
+	/** The rule to apply to location when attaching */
+	EAttachmentRule LocationRule;
+
+	/** The rule to apply to rotation when attaching */
+	EAttachmentRule RotationRule;
+
+	/** The rule to apply to scale when attaching */
+	EAttachmentRule ScaleRule;
+
+	/** Whether to weld simulated bodies together when attaching */
+	bool bWeldSimulatedBodies;
+};
+
+/** Rules for detaching components - needs to be kept synced to EAttachmentRule */
+UENUM()
+enum class EDetachmentRule : uint8
+{
+	/** Keeps current relative transform. */
+	KeepRelative,
+
+	/** Automatically calculates the relative transform such that the detached component maintains the same world transform. */
+	KeepWorld,
+};
+
+/** Rules for detaching components */
+struct ENGINE_API FDetachmentTransformRules
+{
+	/** Various preset detachment rules */
+	static FDetachmentTransformRules KeepRelativeTransform;
+	static FDetachmentTransformRules KeepWorldTransform;
+
+	FDetachmentTransformRules(EDetachmentRule InRule, bool bInCallModify)
+		: LocationRule(InRule)
+		, RotationRule(InRule)
+		, ScaleRule(InRule)
+		, bCallModify(bInCallModify)
+	{}
+
+	FDetachmentTransformRules(EDetachmentRule InLocationRule, EDetachmentRule InRotationRule, EDetachmentRule InScaleRule, bool bInCallModify)
+		: LocationRule(InLocationRule)
+		, RotationRule(InRotationRule)
+		, ScaleRule(InScaleRule)
+		, bCallModify(bInCallModify)
+	{}
+
+	FDetachmentTransformRules(const FAttachmentTransformRules& AttachmentRules, bool bInCallModify)
+		: LocationRule(AttachmentRules.LocationRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+		, RotationRule(AttachmentRules.RotationRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+		, ScaleRule(AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+		, bCallModify(bInCallModify)
+	{}
+
+	/** The rule to apply to location when detaching */
+	EDetachmentRule LocationRule;
+
+	/** The rule to apply to rotation when detaching */
+	EDetachmentRule RotationRule;
+
+	/** The rule to apply to scale when detaching */
+	EDetachmentRule ScaleRule;
+
+	/** Whether to call Modify() on the components concerned when detaching */
+	bool bCallModify;
+};
 
 UENUM()
 namespace EAttachLocation
@@ -665,6 +766,11 @@ struct FResponseChannel
 	FResponseChannel( FName InChannel, ECollisionResponse InResponse )
 		: Channel(InChannel)
 		, Response(InResponse) {}
+
+	bool operator==(const FResponseChannel& Other) const
+	{
+		return Channel == Other.Channel && Response == Other.Response;
+	}
 };
 
 

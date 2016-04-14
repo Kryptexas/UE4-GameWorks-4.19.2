@@ -1071,17 +1071,6 @@ int32 UAnimPreviewInstance::MontagePreview_FindLastSection(int32 StartSectionIdx
 	return ResultIdx;
 }
 
-void UAnimPreviewInstance::BakeAnimation()
-{
-	FAnimPreviewInstanceProxy& Proxy = GetProxyOnGameThread<FAnimPreviewInstanceProxy>();
-	if (UAnimSequence* Sequence = Cast<UAnimSequence>(Proxy.GetCurrentAsset()))
-	{
-		FScopedTransaction ScopedTransaction(LOCTEXT("BakeAnimation", "Bake Animation"));
-		Sequence->Modify(true);
-		Sequence->BakeTrackCurvesToRawAnimation();
-	}
-}
-
 void UAnimPreviewInstance::EnableControllers(bool bEnable)
 {
 	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().EnableControllers(bEnable);

@@ -127,7 +127,7 @@ void UActorRecording::GetSceneComponents(TArray<USceneComponent*>& OutArray, boo
 		TInlineComponentArray<USceneComponent*> OwnedComponents(ActorToRecord.Get());
 		for(USceneComponent* OwnedComponent : OwnedComponents)
 		{
-			if(OwnedComponent->AttachParent == nullptr && OwnedComponent != RootComponent)
+			if(OwnedComponent->GetAttachParent() == nullptr && OwnedComponent != RootComponent)
 			{
 				OutArray.Add(OwnedComponent);
 			}
@@ -507,9 +507,9 @@ bool UActorRecording::IsRecording() const
 
 static FName FindParentComponentOwnerClassName(USceneComponent* SceneComponent, UBlueprint* Blueprint)
 {
-	if(SceneComponent->AttachParent)
+	if(SceneComponent->GetAttachParent())
 	{
-		FName AttachName = SceneComponent->AttachParent->GetFName();
+		FName AttachName = SceneComponent->GetAttachParent()->GetFName();
 
 		// see if we can find this component in the BP inheritance hierarchy
 		while(Blueprint)
@@ -569,11 +569,11 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 
 				// look for a similar attach parent in the current structure
 				bool bAdded = false;
-				if(SceneComponent->AttachParent != nullptr)
+				if(SceneComponent->GetAttachParent() != nullptr)
 				{
-					FName AttachName = SceneComponent->AttachParent->GetFName();
+					FName AttachName = SceneComponent->GetAttachParent()->GetFName();
 					NewSCSNode->ParentComponentOrVariableName = AttachName;
-					NewSCSNode->bIsParentComponentNative = SceneComponent->AttachParent->CreationMethod == EComponentCreationMethod::Native;
+					NewSCSNode->bIsParentComponentNative = SceneComponent->GetAttachParent()->CreationMethod == EComponentCreationMethod::Native;
 					NewSCSNode->ParentComponentOwnerClassName = FindParentComponentOwnerClassName(SceneComponent, Blueprint);
 
 					USCS_Node* ParentSCSNode = Blueprint->SimpleConstructionScript->FindSCSNode(AttachName);
@@ -590,9 +590,9 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 					Blueprint->SimpleConstructionScript->AddNode(NewSCSNode);
 				}
 
-				if(SceneComponent->AttachSocketName != NAME_None)
+				if(SceneComponent->GetAttachSocketName() != NAME_None)
 				{
-					NewSCSNode->AttachToName = SceneComponent->AttachSocketName;
+					NewSCSNode->AttachToName = SceneComponent->GetAttachSocketName();
 				}
 			}
 			else

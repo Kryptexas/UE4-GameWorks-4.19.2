@@ -204,8 +204,8 @@ void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
 	UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(InAnimInstance->GetClass());
 	AnimBlueprintGeneratedClass->GetAnimBlueprintDebugData().RecordNodeVisitArray(UpdatedNodesThisFrame);
 #endif
-
 	InAnimInstance->NotifyQueue.Append(NotifyQueue);
+	InAnimInstance->NotifyQueue.ApplyMontageNotifies(*this);
 }
 
 FAnimTickRecord& FAnimInstanceProxy::CreateUninitializedTickRecord(int32 GroupIndex, FAnimGroupInstance*& OutSyncGroupPtr)

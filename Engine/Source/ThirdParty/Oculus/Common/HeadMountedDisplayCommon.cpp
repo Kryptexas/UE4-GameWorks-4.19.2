@@ -1276,7 +1276,7 @@ void FHeadMountedDisplay::DrawSeaOfCubes(UWorld* World, FVector ViewLocation)
 		const FVector SeaOfCubesOrigin = ViewLocation + (CenterOffsetInMeters * frame->Settings->WorldToMetersScale);
 
 		UInstancedStaticMeshComponent* ISMComponent = NewObject<UInstancedStaticMeshComponent>();
-		ISMComponent->AttachTo(SeaOfCubesActor->GetStaticMeshComponent());
+		ISMComponent->SetupAttachment(SeaOfCubesActor->GetStaticMeshComponent());
 		ISMComponent->SetStaticMesh(BoxMesh);
 		ISMComponent->SetMaterial(0, BoxMat);
 		ISMComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);

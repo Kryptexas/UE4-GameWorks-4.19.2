@@ -1226,8 +1226,8 @@ void FPersona::CreateDefaultCommands()
 		);
 
 	ToolkitCommands->MapAction(FPersonaCommands::Get().ApplyAnimation,
-			FExecuteAction::CreateSP(this, &FPersona::OnBakeAnimation),
-			FCanExecuteAction::CreateSP(this, &FPersona::CanBakeAnimation),
+			FExecuteAction::CreateSP(this, &FPersona::OnApplyRawAnimChanges),
+			FCanExecuteAction::CreateSP(this, &FPersona::CanApplyRawAnimChanges),
 			FIsActionChecked(),
 			FIsActionButtonVisible::CreateSP(this, &FPersona::IsInPersonaMode, FPersonaModes::AnimationEditMode)
 			);
@@ -1469,8 +1469,12 @@ void FPersona::OnConvertToSequenceEvaluator()
 		// because of SetAndCenterObject kicks in after new node is added
 		// will need to disable that first
 		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+
 		// Update the graph so that the node will be refreshed
 		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
 	}
 }
@@ -1519,8 +1523,12 @@ void FPersona::OnConvertToSequencePlayer()
 		// because of SetAndCenterObject kicks in after new node is added
 		// will need to disable that first
 		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+
 		// Update the graph so that the node will be refreshed
 		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
 	}
 }
@@ -1588,8 +1596,12 @@ void FPersona::OnConvertToBlendSpaceEvaluator()
 		// because of SetAndCenterObject kicks in after new node is added
 		// will need to disable that first
 		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+
 		// Update the graph so that the node will be refreshed
 		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
 	}
 }
@@ -1656,6 +1668,9 @@ void FPersona::OnConvertToBlendSpacePlayer()
 		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
 		// Update the graph so that the node will be refreshed
 		FocusedGraphEd->NotifyGraphChanged();
+		// It's possible to leave invalid objects in the selection set if they get GC'd, so clear it out
+		FocusedGraphEd->ClearSelectionSet();
+
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetAnimBlueprint());
 	}
 }
@@ -2367,7 +2382,7 @@ bool FPersona::AttachObjectToPreviewComponent( UObject* Object, FName AttachTo, 
 		PreviewComponent->Modify();
 
 		// Attach component to the preview component
-		SceneComponent->AttachTo(PreviewComponent, AttachTo);
+		SceneComponent->SetupAttachment(PreviewComponent, AttachTo);
 		SceneComponent->RegisterComponent();
 		return true;
 	}
@@ -2695,21 +2710,33 @@ void FPersona::OnSetKey()
 	}
 }
 
-bool FPersona::CanBakeAnimation() const
+bool FPersona::CanApplyRawAnimChanges() const
 {
 	UAnimSequence* AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
 	// ideally would be great if we can only show if something changed
-	return (AnimSequence && AnimSequence->DoesNeedRebake());
+	return (AnimSequence && (AnimSequence->DoesNeedRebake() || AnimSequence->DoesNeedRecompress()));
 }
 
-void FPersona::OnBakeAnimation()
+void FPersona::OnApplyRawAnimChanges()
 {
 	UAnimSequence* AnimSequence = Cast<UAnimSequence>(GetAnimationAssetBeingEdited());
 	if(AnimSequence)
 	{
 		UDebugSkelMeshComponent* Component = GetPreviewMeshComponent();
 		// now bake
-		Component->PreviewInstance->BakeAnimation();
+		if (AnimSequence->DoesNeedRebake())
+		{
+			FScopedTransaction ScopedTransaction(LOCTEXT("BakeAnimation", "Bake Animation"));
+			AnimSequence->Modify(true);
+			AnimSequence->BakeTrackCurvesToRawAnimation();
+		}
+
+		if (AnimSequence->DoesNeedRecompress())
+		{
+			FScopedTransaction ScopedTransaction(LOCTEXT("BakeAnimation", "Bake Animation"));
+			AnimSequence->Modify(true);
+			AnimSequence->RequestSyncAnimRecompression(false);
+		}
 	}
 }
 

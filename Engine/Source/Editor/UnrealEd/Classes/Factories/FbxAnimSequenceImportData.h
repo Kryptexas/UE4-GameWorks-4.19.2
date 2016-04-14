@@ -59,6 +59,10 @@ class UNREALED_API UFbxAnimSequenceImportData : public UFbxAssetImportData
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings)
 	bool bImportCustomAttribute;
 
+	/** Set material curve type for the custom attribute*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings, meta = (EditCondition = "bImportCustomAttribute", DisplayName="   Set Material Curve Type"))
+	bool bSetMaterialDriveParameterOnCustomAttribute;
+
 	/** If enabled, this will import a curve within the animation */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings)
 	bool bPreserveLocalTransform;

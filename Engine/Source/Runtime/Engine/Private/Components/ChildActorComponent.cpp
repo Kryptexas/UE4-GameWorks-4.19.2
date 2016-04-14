@@ -32,7 +32,7 @@ void UChildActorComponent::OnRegister()
 				// we can't attach in CreateChildActor since it has intermediate Mobility set up
 				// causing spam with inconsistent mobility set up
 				// so moving Attach to happen in Register
-				ChildRoot->AttachTo(this, NAME_None, EAttachLocation::SnapToTarget);
+				ChildRoot->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 			}
 		}
 	}
@@ -69,7 +69,7 @@ void UChildActorComponent::PostEditUndo()
 	// This hack exists to fix up known cases where the AttachChildren array is broken in very problematic ways.
 	// The correct fix will be to use a Transaction Annotation at the SceneComponent level, however, it is too risky
 	// to do right now, so this will go away when that is done.
-	for (USceneComponent*& Component : AttachChildren)
+	for (USceneComponent*& Component : FDirectAttachChildrenAccessor::Get(this))
 	{
 		if (Component)
 		{
@@ -124,7 +124,7 @@ FChildActorComponentInstanceData::FChildActorComponentInstanceData(const UChildA
 		USceneComponent* ChildRootComponent = Component->GetChildActor()->GetRootComponent();
 		if (ChildRootComponent)
 		{
-			for (USceneComponent* AttachedComponent : ChildRootComponent->AttachChildren)
+			for (USceneComponent* AttachedComponent : ChildRootComponent->GetAttachChildren())
 			{
 				if (AttachedComponent)
 				{
@@ -133,7 +133,7 @@ FChildActorComponentInstanceData::FChildActorComponentInstanceData(const UChildA
 					{
 						FAttachedActorInfo Info;
 						Info.Actor = AttachedActor;
-						Info.SocketName = AttachedComponent->AttachSocketName;
+						Info.SocketName = AttachedComponent->GetAttachSocketName();
 						Info.RelativeTransform = AttachedComponent->GetRelativeTransform();
 						AttachedActors.Add(Info);
 					}
@@ -216,7 +216,7 @@ void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstan
 					if (AttachedRootComponent)
 					{
 						AttachedActor->DetachRootComponentFromParent();
-						AttachedRootComponent->AttachTo(ChildActorRoot, AttachInfo.SocketName, EAttachLocation::KeepWorldPosition);
+						AttachedRootComponent->AttachToComponent(ChildActorRoot, FAttachmentTransformRules::KeepWorldTransform, AttachInfo.SocketName);
 						AttachedRootComponent->SetRelativeTransform(AttachInfo.RelativeTransform);
 						AttachedRootComponent->UpdateComponentToWorld();
 					}
@@ -322,7 +322,7 @@ void UChildActorComponent::CreateChildActor()
 					const FComponentInstanceDataCache* ComponentInstanceData = (CachedInstanceData ? CachedInstanceData->ComponentInstanceData : nullptr);
 					ChildActor->FinishSpawning(ComponentToWorld, false, ComponentInstanceData);
 
-					ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTarget);
+					ChildActor->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 				}
 			}
 		}
@@ -342,17 +342,22 @@ void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
 	if (ChildActor != nullptr && !GExitPurge)
 	{
 		// if still alive, destroy, otherwise just clear the pointer
-		if (!ChildActor->IsPendingKill())
+		if (!ChildActor->IsPendingKillOrUnreachable())
 		{
 #if WITH_EDITOR
 			if (CachedInstanceData)
 			{
 				delete CachedInstanceData;
+				CachedInstanceData = nullptr;
 			}
 #else
 			check(!CachedInstanceData);
 #endif
-			CachedInstanceData = new FChildActorComponentInstanceData(this);
+			// If we're already tearing down we won't be needing this
+			if (!HasAnyFlags(RF_BeginDestroyed))
+			{
+				CachedInstanceData = new FChildActorComponentInstanceData(this);
+			}
 
 			UWorld* World = ChildActor->GetWorld();
 			// World may be nullptr during shutdown

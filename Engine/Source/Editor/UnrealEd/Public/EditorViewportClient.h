@@ -1005,6 +1005,9 @@ public:
 	/** Override the far clipping plane. Set to a negative value to disable the override. */
 	void OverrideFarClipPlane(const float InFarPlane);
 
+	/** When collision draw mode changes, this function allows hidden objects to be drawn, so hidden colliding objects can be seen */
+	void UpdateHiddenCollisionDrawing();
+
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
 	void InvalidateViewportWidget();

@@ -191,10 +191,11 @@ struct FAINamedID
 {
 	const typename TCounter::Type Index;
 	const FName Name;
+private:
+	static AIMODULE_API TCounter Counter;
 protected:
 	static TCounter& GetCounter() 
 	{ 
-		static TCounter Counter;
 		return Counter;
 	}
 
@@ -240,11 +241,11 @@ template<typename TCounter>
 struct FAIGenericID
 {
 	const typename TCounter::Type Index;
-protected:
+private:
+	static AIMODULE_API TCounter Counter;
 protected:
 	static TCounter& GetCounter()
 	{
-		static TCounter Counter;
 		return Counter;
 	}
 

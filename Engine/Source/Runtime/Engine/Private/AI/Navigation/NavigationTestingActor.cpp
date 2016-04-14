@@ -360,7 +360,7 @@ FVector ANavigationTestingActor::FindClosestWallLocation() const
 	if (AsRecastNavMesh)
 	{
 		FVector TmpOutLocation = FNavigationSystem::InvalidLocation;
-		const float Distance = AsRecastNavMesh->FindDistanceToWall(GetActorLocation(), UNavigationQueryFilter::GetQueryFilter(*MyNavData, FilterClass), FLT_MAX, &TmpOutLocation);
+		const float Distance = AsRecastNavMesh->FindDistanceToWall(GetActorLocation(), UNavigationQueryFilter::GetQueryFilter(*MyNavData, this, FilterClass), FLT_MAX, &TmpOutLocation);
 		return TmpOutLocation;
 	}
 	
@@ -450,7 +450,7 @@ FPathFindingQuery ANavigationTestingActor::BuildPathFindingQuery(const ANavigati
 	check(Goal);
 	if (MyNavData)
 	{
-		return FPathFindingQuery(this, *MyNavData, GetNavAgentLocation(), Goal->GetNavAgentLocation(), UNavigationQueryFilter::GetQueryFilter(*MyNavData, FilterClass));
+		return FPathFindingQuery(this, *MyNavData, GetNavAgentLocation(), Goal->GetNavAgentLocation(), UNavigationQueryFilter::GetQueryFilter(*MyNavData, this, FilterClass));
 	}
 	
 	return FPathFindingQuery();

@@ -265,19 +265,19 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 			}
 		}
 		// Figure out which socket the received data came from.
-		UIpConnection* Connection = NULL;
-		UIpConnection* ServerConnection = GetServerConnection();
-		if (ServerConnection)
+		UIpConnection* Connection = nullptr;
+		UIpConnection* MyServerConnection = GetServerConnection();
+		if (MyServerConnection)
 		{
-			if ((*ServerConnection->RemoteAddr == *FromAddr))
+			if ((*MyServerConnection->RemoteAddr == *FromAddr))
 			{
-				Connection = ServerConnection;
+				Connection = MyServerConnection;
 			}
 			else
 			{
 				UE_LOG(LogNet, Warning, TEXT("Incoming ip address doesn't match expected server address: Actual: %s Expected: %s"),
 					*FromAddr->ToString(true),
-					ServerConnection->RemoteAddr.IsValid() ? *ServerConnection->RemoteAddr->ToString(true) : TEXT("Invalid"));
+					MyServerConnection->RemoteAddr.IsValid() ? *MyServerConnection->RemoteAddr->ToString(true) : TEXT("Invalid"));
 			}
 		}
 		for( int32 i=0; i<ClientConnections.Num() && !Connection; i++ )

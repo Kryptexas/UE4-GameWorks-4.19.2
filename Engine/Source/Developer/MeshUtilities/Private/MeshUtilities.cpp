@@ -5206,7 +5206,6 @@ static void RetrieveValidStaticMeshComponentsForMerging(AActor* InActor, TArray<
 	OutComponents.Append(Components);
 }
 
-
 void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const struct FMeshProxySettings& InMeshProxySettings, UPackage* InOuter, const FString& InProxyBasePackageName, const FGuid InGuid, FCreateProxyDelegate InProxyCreatedDelegate, const bool bAllowAsync, const float ScreenAreaSize)
 {
 	FScopedSlowTask MainTask(100, (LOCTEXT("MeshUtilities_CreateProxyMesh", "Creating Proxy Mesh")));
@@ -5357,7 +5356,7 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 	Data->InProxySettings = InMeshProxySettings;
 	Data->ProxyBasePackageName = InProxyBasePackageName;
 	Data->CallbackDelegate = InProxyCreatedDelegate;
-
+	
 	// Add this proxy job to map	
 	Processor->AddProxyJob(InGuid, Data);
 
@@ -5371,11 +5370,11 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 	// Choose Simplygon Swarm (if available) or local proxy lod method
 	if (DistributedMeshMerging != nullptr && GetDefault<UEditorPerProjectUserSettings>()->bUseSimplygonSwarm && bAllowAsync)
 	{
-		DistributedMeshMerging->ProxyLOD(MergeData, InMeshProxySettings, FlattenedMaterials, InGuid);
+		DistributedMeshMerging->ProxyLOD(MergeData, Data->InProxySettings, FlattenedMaterials, InGuid);
 	}
 	else
 	{
-		MeshMerging->ProxyLOD(MergeData, InMeshProxySettings, FlattenedMaterials, InGuid);
+		MeshMerging->ProxyLOD(MergeData, Data->InProxySettings, FlattenedMaterials, InGuid);
 		Processor->Tick(0); // make sure caller gets merging results
 	}
 }
@@ -5657,17 +5656,18 @@ static void ExportStaticMeshLOD(const FStaticMeshLODResources& StaticMeshLOD, FR
 	}
 }
 
-const bool IsLandscapeHit(const FVector& RayOrigin, const FVector& RayEndPoint, const UWorld* World, const TArray<ALandscapeProxy*>& LandscapeProxies)
+
+
+const bool IsLandscapeHit(const FVector& RayOrigin, const FVector& RayEndPoint, const UWorld* World, const TArray<ALandscapeProxy*>& LandscapeProxies, FVector& OutHitLocation)
 {
 	static FName TraceTag = FName(TEXT("LandscapeTrace"));
 	TArray<FHitResult> Results;
 	// Each landscape component has 2 collision shapes, 1 of them is specific to landscape editor
 	// Trace only ECC_Visibility channel, so we do hit only Editor specific shape
 	World->LineTraceMultiByObjectType(Results, RayOrigin, RayEndPoint, FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility), FCollisionQueryParams(TraceTag, true));
-	
+
 	bool bHitLandscape = false;
-	FVector OutHitLocation;
-	
+
 	for (const FHitResult& HitResult : Results)
 	{
 		ULandscapeHeightfieldCollisionComponent* CollisionComponent = Cast<ULandscapeHeightfieldCollisionComponent>(HitResult.Component.Get());
@@ -5686,6 +5686,7 @@ const bool IsLandscapeHit(const FVector& RayOrigin, const FVector& RayEndPoint, 
 
 	return bHitLandscape;
 }
+
 
 void CullTrianglesFromVolumesAndUnderLandscapes(const UStaticMeshComponent* InMeshComponent, FRawMesh &OutRawMesh)
 {
@@ -5731,7 +5732,7 @@ void CullTrianglesFromVolumesAndUnderLandscapes(const UStaticMeshComponent* InMe
 	TArray<bool> VertexVisible;
 	VertexVisible.AddZeroed(OutRawMesh.VertexPositions.Num());
 	int32 Index = 0;
-	
+
 	for (const FVector& Position : OutRawMesh.VertexPositions)
 	{
 		// Start with setting visibility to true on all vertices
@@ -5754,10 +5755,11 @@ void CullTrianglesFromVolumesAndUnderLandscapes(const UStaticMeshComponent* InMe
 			{
 				const FVector Start = Position;
 				FVector End = Position - (WORLD_MAX * FVector::UpVector);
-				const bool IsAboveLandscape = IsLandscapeHit(Start, End, World, Landscapes);
+				FVector OutHit;
+				const bool IsAboveLandscape = IsLandscapeHit(Start, End, World, Landscapes, OutHit);
 
 				End = Position + (WORLD_MAX * FVector::UpVector);
-				const bool IsUnderneathLandscape = IsLandscapeHit(Start, End, World, Landscapes);
+				const bool IsUnderneathLandscape = IsLandscapeHit(Start, End, World, Landscapes, OutHit);
 
 				// Vertex is visible when above landscape (with actual landscape underneath) or if there is no landscape beneath or above the vertex (falls outside of landscape bounds)
 				VertexVisible[Index] = (IsAboveLandscape && !IsUnderneathLandscape) || (!IsAboveLandscape && !IsUnderneathLandscape);
@@ -5798,13 +5800,6 @@ void CullTrianglesFromVolumesAndUnderLandscapes(const UStaticMeshComponent* InMe
 		TriangleVisible[TriangleIndex] = AboveLandscape;
 		bCreateNewMesh |= !AboveLandscape;
 
-		for (int32 WedgeIndex = 0; WedgeIndex < 3; ++WedgeIndex)
-		{
-			AboveLandscape |= VertexVisible[OutRawMesh.WedgeIndices[(TriangleIndex * 3) + WedgeIndex]];
-		}
-		TriangleVisible[TriangleIndex] = AboveLandscape;
-		bCreateNewMesh |= !AboveLandscape;
-		
 	}
 
 	// Check whether or not we have to create a new mesh
@@ -5857,9 +5852,7 @@ void CullTrianglesFromVolumesAndUnderLandscapes(const UStaticMeshComponent* InMe
 
 		OutRawMesh = NewRawMesh;
 	}
-
 }
-
 
 void PropagateSplineDeformationToRawMesh(const USplineMeshComponent* InSplineMeshComponent, FRawMesh &OutRawMesh) 
 {
@@ -6072,18 +6065,15 @@ bool FMeshUtilities::ConstructRawMesh(
 		ComponentToWorldTransform.SetScale3D(ComponentToWorldTransform.GetScale3D()*BuildSettings.BuildScale3D);
 	}
 
-	// Transform raw mesh vertex data by the Static Mesh Component's component to world transformation	
-	TransformRawMeshVertexData(ComponentToWorldTransform, OutRawMesh);
-	
 	// If specified propagate painted vertex colors into our raw mesh
 	if (bPropagateVertexColours)
 	{
 		PropagatePaintedColorsToRawMesh(InMeshComponent, InLODIndex, OutRawMesh);
 	}
 
-	// Remove all triangles underneath terrain
-	CullTrianglesFromVolumesAndUnderLandscapes(InMeshComponent, OutRawMesh);
-	
+	// Transform raw mesh vertex data by the Static Mesh Component's component to world transformation	
+	TransformRawMeshVertexData(ComponentToWorldTransform, OutRawMesh);	
+
 	// Culling triangles could lead to an entirely empty RawMesh (all vertices culled)
 	if (!OutRawMesh.IsValid())
 	{
@@ -7001,26 +6991,26 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	FRawMeshExt MergedMesh;
 	FMemory::Memset(&MergedMesh, 0, sizeof(MergedMesh));
 
+	// Remap material indices regardless of baking out materials or not (could give a draw call decrease)
+	TArray<bool> MeshShouldBakeVertexData;
+	TMap<FMeshIdAndLOD, TArray<int32> > NewMaterialMap;
+	TArray<UMaterialInterface*> NewStaticMeshMaterials;
+	FMaterialUtilities::RemapUniqueMaterialIndices(
+		UniqueMaterials,
+		SourceMeshes,
+		MaterialMap,
+		InSettings.MaterialSettings,
+		InSettings.bBakeVertexData,
+		InSettings.bMergeMaterials,
+		MeshShouldBakeVertexData,
+		NewMaterialMap,
+		NewStaticMeshMaterials);
+	// Use shared material data.
+	Exchange(MaterialMap, NewMaterialMap);
+	Exchange(UniqueMaterials, NewStaticMeshMaterials);
+
 	if (InSettings.bMergeMaterials)
 	{
-		TArray<bool> MeshShouldBakeVertexData;
-		TMap<FMeshIdAndLOD, TArray<int32> > NewMaterialMap;
-		TArray<UMaterialInterface*> NewStaticMeshMaterials;
-		FMaterialUtilities::RemapUniqueMaterialIndices(
-			UniqueMaterials,
-			SourceMeshes,
-			MaterialMap,
-			InSettings.MaterialSettings,
-			InSettings.bBakeVertexData,
-			InSettings.bMergeMaterials,
-			MeshShouldBakeVertexData,
-			NewMaterialMap,
-			NewStaticMeshMaterials);
-		// Use shared material data.
-		Exchange(MaterialMap, NewMaterialMap);
-		Exchange(UniqueMaterials, NewStaticMeshMaterials);
-
-
 		// Should merge flattened materials into one texture
 		MainTask.EnterProgressFrame(20, LOCTEXT("MeshUtilities_MergeStaticMeshComponents_MergingMaterials", "Merging Materials"));
 
@@ -7319,22 +7309,30 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			StaticMesh->Materials.Add(Material);
 		}
 
-		if (InSettings.bMergePhysicsData && BodySetupSource)
+		if (InSettings.bMergePhysicsData)
 		{
 			StaticMesh->CreateBodySetup();
-			StaticMesh->BodySetup->CopyBodyPropertiesFrom(BodySetupSource);
-			StaticMesh->BodySetup->AggGeom = FKAggregateGeom();
+			if (BodySetupSource)
+			{
+				StaticMesh->BodySetup->CopyBodyPropertiesFrom(BodySetupSource);
+			}
 
+			StaticMesh->BodySetup->AggGeom = FKAggregateGeom();
 			for (const FRawMeshExt& SourceMesh : SourceMeshes)
 			{
 				StaticMesh->BodySetup->AddCollisionFrom(SourceMesh.AggGeom);
+				// Copy section/collision info from first LOD level in source static mesh
+				if (SourceMesh.MeshLODData[0].SourceStaticMesh)
+				{
+					StaticMesh->SectionInfoMap.CopyFrom(SourceMesh.MeshLODData[0].SourceStaticMesh->SectionInfoMap);
+				}				
 			}
 		}
 
-		MainTask.EnterProgressFrame(10, LOCTEXT("MeshUtilities_MergeStaticMeshComponents_BuildingStaticMesh", "Building Static Mesh"));
+		MainTask.EnterProgressFrame(10, LOCTEXT("MeshUtilities_MergeStaticMeshComponents_BuildingStaticMesh", "Building Static Mesh")); 
 
 		StaticMesh->Build(bSilent);
-		StaticMesh->PostEditChange();
+		StaticMesh->PostEditChange();	
 
 		OutAssetsToSync.Add(StaticMesh);
 		OutMergedActorLocation = MergedAssetPivot;

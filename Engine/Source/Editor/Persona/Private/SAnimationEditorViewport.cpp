@@ -434,6 +434,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 	TSharedRef<FAnimationViewportClient> EditorViewportClientRef = GetAnimationViewportClient();
 
 	CommandList.MapAction(
+		MenuActions.SetCPUSkinning,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FAnimationViewportClient::ToggleCPUSkinning),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FAnimationViewportClient::IsSetCPUSkinningChecked));
+
+	CommandList.MapAction(
 		MenuActions.SetShowNormals,
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FAnimationViewportClient::ToggleShowNormals ),
 		FCanExecuteAction(),
@@ -489,12 +495,6 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowMorphTargets),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMorphTargets));
-
-	CommandList.MapAction( 
-		ViewportShowMenuCommands.ShowBones,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowBones),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingBones));
 
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ShowBoneNames,
@@ -570,6 +570,25 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowSockets),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingSockets));
+
+	// Set bone local axes mode
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowBoneDrawNone,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetBoneDrawMode, (int32)EBoneDrawMode::None),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsBoneDrawModeSet, (int32)EBoneDrawMode::None));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowBoneDrawSelected,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetBoneDrawMode, (int32)EBoneDrawMode::Selected),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsBoneDrawModeSet, (int32)EBoneDrawMode::Selected));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowBoneDrawAll,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetBoneDrawMode, (int32)EBoneDrawMode::All),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsBoneDrawModeSet, (int32)EBoneDrawMode::All));
 
 	// Set bone local axes mode
 	CommandList.MapAction( 
@@ -844,16 +863,6 @@ int32 SAnimationEditorViewportTabBody::GetLODModelCount() const
 	return 0;
 }
 
-void SAnimationEditorViewportTabBody::OnShowBones()
-{
-	if (UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent)
-	{
-		PreviewComponent->bDisplayBones = !PreviewComponent->bDisplayBones;
-		PreviewComponent->MarkRenderStateDirty();
-		RefreshViewport();
-	}
-}
-
 void SAnimationEditorViewportTabBody::OnShowMorphTargets()
 {
 	if (UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent)
@@ -925,12 +934,6 @@ bool SAnimationEditorViewportTabBody::IsPreviewingAnimation() const
 	return (PreviewComponent && PreviewComponent->PreviewInstance && (PreviewComponent->PreviewInstance == PreviewComponent->GetAnimInstance()));
 }
 
-bool SAnimationEditorViewportTabBody::IsShowingBones() const
-{
-	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
-	return PreviewComponent != NULL && PreviewComponent->bDisplayBones;
-}
-
 bool SAnimationEditorViewportTabBody::IsShowingMorphTargets() const
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
@@ -999,6 +1002,18 @@ bool SAnimationEditorViewportTabBody::IsShowingBoneWeight() const
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 	return PreviewComponent != NULL && PreviewComponent->bDrawBoneInfluences;
+}
+
+void SAnimationEditorViewportTabBody::OnSetBoneDrawMode(int32 BoneDrawMode)
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->SetBoneDrawMode((EBoneDrawMode::Type)BoneDrawMode);
+}
+
+bool SAnimationEditorViewportTabBody::IsBoneDrawModeSet(int32 BoneDrawMode) const
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	return AnimViewportClient->IsBoneDrawModeSet((EBoneDrawMode::Type)BoneDrawMode);
 }
 
 void SAnimationEditorViewportTabBody::OnSetLocalAxesMode(int32 LocalAxesMode)

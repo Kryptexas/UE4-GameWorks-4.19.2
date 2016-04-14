@@ -952,7 +952,7 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 		FFloatCurve * CurveToImport = static_cast<FFloatCurve *>(TargetSequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 		if(CurveToImport==NULL)
 		{
-			if(TargetSequence->RawCurveData.AddCurveData(Uid, CurveFlags))
+			if (TargetSequence->RawCurveData.AddCurveData(Uid, ACF_DefaultCurve | CurveFlags))
 			{
 				CurveToImport = static_cast<FFloatCurve *> (TargetSequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 			}
@@ -965,8 +965,11 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 		else
 		{
 			CurveToImport->FloatCurve.Reset();
+			// if existing add these curve flags. 
+			CurveToImport->SetCurveTypeFlags(CurveFlags | CurveToImport->GetCurveTypeFlags());
 		}
 
+		TargetSequence->MarkRawDataAsModified();
 		return ImportCurve(FbxCurve, CurveToImport, AnimTimeSpan, ValueScale);
 	}
 
@@ -1105,7 +1108,13 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 							const FText StatusUpate = FText::Format(LOCTEXT("ImportingCustomAttributeCurvesDetail", "Importing Custom Attribute [{CurveName}]"), Args);
 							GWarn->StatusUpdate(CurLinkIndex + 1, TotalLinks, StatusUpate);
 
-							ImportCurveToAnimSequence(DestSeq, FinalCurveName, AnimCurve,  ACF_DefaultCurve, AnimTimeSpan);
+							int32 CurveFlags = 0;
+							if (ImportOptions->bSetMaterialDriveParameterOnCustomAttribute)
+							{
+								CurveFlags |= ACF_DrivesMaterial;
+							}
+
+							ImportCurveToAnimSequence(DestSeq, FinalCurveName, AnimCurve, CurveFlags, AnimTimeSpan);
 						}
 											
 					}
@@ -1150,7 +1159,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		FMatrix AddedMatrix = Converter.ConvertMatrix(FbxAddedMatrix);
 
 		const int32 NumSamplingKeys = FMath::FloorToInt(AnimTimeSpan.GetDuration().GetSecondDouble() * ResampleRate);
-		const FbxTime TimeIncrement = (NumSamplingKeys > 1)? AnimTimeSpan.GetDuration() / (NumSamplingKeys - 1) : AnimTimeSpan.GetDuration();
+		const FbxTime TimeIncrement = AnimTimeSpan.GetDuration() / FMath::Max(NumSamplingKeys, 1);
 		for(int32 SourceTrackIdx = 0; SourceTrackIdx < FbxRawBoneNames.Num(); ++SourceTrackIdx)
 		{
 			int32 NumKeysForTrack = 0;
@@ -1281,6 +1290,9 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		}
 
 		DestSeq->NumFrames = TotalNumKeys;
+
+		DestSeq->MarkRawDataAsModified();
+
 		GWarn->EndSlowTask();
 	}
 

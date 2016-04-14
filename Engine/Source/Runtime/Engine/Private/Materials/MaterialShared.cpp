@@ -1806,13 +1806,13 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 
 	TArray<FMaterialResource*> ResourcesToCache;
 
-	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type FeatureLevel)
+	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type InFeatureLevel)
 	{
-		const FMaterial* MaterialNoFallback = GetMaterialNoFallback(FeatureLevel);
+		const FMaterial* MaterialNoFallback = GetMaterialNoFallback(InFeatureLevel);
 
 		if (MaterialNoFallback && MaterialNoFallback->GetRenderingThreadShaderMap())
 		{
-			const FMaterial* Material = GetMaterial(FeatureLevel);
+			const FMaterial* Material = GetMaterial(InFeatureLevel);
 
 			// Do not cache uniform expressions for fallback materials. This step could
 			// be skipped where we don't allow for asynchronous shader compiling.
@@ -1822,7 +1822,7 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 			{
 				FMaterialRenderContext MaterialRenderContext(this , *Material, nullptr);
 				MaterialRenderContext.bShowSelection = GIsEditor;
-				EvaluateUniformExpressions(UniformExpressionCache[(int32)FeatureLevel], MaterialRenderContext);
+				EvaluateUniformExpressions(UniformExpressionCache[(int32)InFeatureLevel], MaterialRenderContext);
 			}
 			else
 			{

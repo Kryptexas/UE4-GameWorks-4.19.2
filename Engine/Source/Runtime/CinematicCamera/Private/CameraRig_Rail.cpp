@@ -22,10 +22,10 @@ ACameraRig_Rail::ACameraRig_Rail(const FObjectInitializer& ObjectInitializer)
 	RootComponent = TransformComponent;
 
 	RailSplineComponent = CreateDefaultSubobject<USplineComponent>(TEXT("RailSplineComponent"));
-	RailSplineComponent->AttachParent = TransformComponent;
+	RailSplineComponent->SetupAttachment(TransformComponent);
 
 	RailCameraMount = CreateDefaultSubobject<USceneComponent>(TEXT("RailCameraMount"));
-	RailCameraMount->AttachParent = RailSplineComponent;
+	RailCameraMount->SetupAttachment(RailSplineComponent);
 
 	if (!IsRunningCommandlet() && !IsRunningDedicatedServer())
 	{
@@ -44,7 +44,7 @@ ACameraRig_Rail::ACameraRig_Rail(const FObjectInitializer& ObjectInitializer)
 			PreviewMesh_Mount->CastShadow = false;
 			PreviewMesh_Mount->PostPhysicsComponentTick.bCanEverTick = false;
 
-			PreviewMesh_Mount->AttachParent = RailCameraMount;
+			PreviewMesh_Mount->SetupAttachment(RailCameraMount);
 		}
 	}
 }
@@ -63,7 +63,7 @@ USplineMeshComponent* ACameraRig_Rail::CreateSplinePreviewSegment()
 		Segment->CastShadow = false;
 		Segment->PostPhysicsComponentTick.bCanEverTick = false;
 	 
-		Segment->AttachParent = TransformComponent;
+		Segment->SetupAttachment(TransformComponent);
 		Segment->RegisterComponent();
 	}
 

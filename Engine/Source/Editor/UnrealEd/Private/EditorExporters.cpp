@@ -471,7 +471,7 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 				ExportRootScope = nullptr;
 
 				Ar.Logf( TEXT("%sEnd Actor\r\n"), FCString::Spc(TextIndent) );
-				Actor->AttachRootComponentToActor(ParentActor, SocketName, EAttachLocation::KeepWorldPosition);
+				Actor->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform, SocketName);
 
 				// Restore dynamic delegate bindings.
 				UBlueprintGeneratedClass::BindDynamicDelegates(Actor->GetClass(), Actor);

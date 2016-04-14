@@ -57,14 +57,14 @@ bool AOnlineBeaconHost::InitHost()
 	return false;
 }
 
-void AOnlineBeaconHost::HandleNetworkFailure(UWorld* World, class UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
+void AOnlineBeaconHost::HandleNetworkFailure(UWorld* World, class UNetDriver* InNetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
 {
-	if (NetDriver && NetDriver->NetDriverName == NetDriverName)
+	if (InNetDriver && InNetDriver->NetDriverName == NetDriverName)
 	{
 		// Timeouts from clients are ignored
 		if (FailureType != ENetworkFailure::ConnectionTimeout)
 		{
-			Super::HandleNetworkFailure(World, NetDriver, FailureType, ErrorString);
+			Super::HandleNetworkFailure(World, InNetDriver, FailureType, ErrorString);
 		}
 	}
 }

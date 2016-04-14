@@ -732,12 +732,12 @@ void FDeferredShadingSceneRenderer::RenderReflectionCaptureSpecularBounceForAllV
 
 bool FDeferredShadingSceneRenderer::ShouldDoReflectionEnvironment() const
 {
-	const ERHIFeatureLevel::Type FeatureLevel = Scene->GetFeatureLevel();
+	const ERHIFeatureLevel::Type SceneFeatureLevel = Scene->GetFeatureLevel();
 
-	return IsReflectionEnvironmentAvailable(FeatureLevel)
+	return IsReflectionEnvironmentAvailable(SceneFeatureLevel)
 		&& Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num()
 		&& ViewFamily.EngineShowFlags.ReflectionEnvironment
-		&& (FeatureLevel == ERHIFeatureLevel::SM4 || Scene->ReflectionSceneData.CubemapArray.IsValid());
+		&& (SceneFeatureLevel == ERHIFeatureLevel::SM4 || Scene->ReflectionSceneData.CubemapArray.IsValid());
 }
 
 void GatherAndSortReflectionCaptures(const FScene* Scene, TArray<FReflectionCaptureSortData>& OutSortData, int32& OutNumBoxCaptures, int32& OutNumSphereCaptures)

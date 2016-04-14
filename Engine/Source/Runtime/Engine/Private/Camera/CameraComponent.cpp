@@ -78,7 +78,7 @@ void UCameraComponent::OnRegister()
 		if (ProxyMeshComponent == nullptr)
 		{
 			ProxyMeshComponent = NewObject<UStaticMeshComponent>(MyOwner, NAME_None, RF_Transactional | RF_TextExportTransient);
-			ProxyMeshComponent->AttachTo(this);
+			ProxyMeshComponent->SetupAttachment(this);
 			ProxyMeshComponent->AlwaysLoadOnClient = false;
 			ProxyMeshComponent->AlwaysLoadOnServer = false;
 			ProxyMeshComponent->StaticMesh = CameraMesh;
@@ -93,7 +93,7 @@ void UCameraComponent::OnRegister()
 		if (DrawFrustum == nullptr)
 		{
 			DrawFrustum = NewObject<UDrawFrustumComponent>(MyOwner, NAME_None, RF_Transactional | RF_TextExportTransient);
-			DrawFrustum->AttachTo(this);
+			DrawFrustum->SetupAttachment(this);
 			DrawFrustum->AlwaysLoadOnClient = false;
 			DrawFrustum->AlwaysLoadOnServer = false;
 			DrawFrustum->CreationMethod = CreationMethod;

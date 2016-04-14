@@ -2683,7 +2683,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			{
 				ULandscapeSplinesComponent* OldSplines = OldLandscapeActor->SplineComponent;
 				ULandscapeSplinesComponent* NewSplines = DuplicateObject<ULandscapeSplinesComponent>(OldSplines, Landscape, OldSplines->GetFName());
-				NewSplines->AttachTo(Landscape->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition);
+				NewSplines->AttachToComponent(Landscape->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
 
 				const FVector OldSplineScale = OldSplines->GetRelativeTransform().GetScale3D();
 				NewSplines->SetRelativeScale3D(FVector(OldSplineScale.X / LandscapeScaleFactor, OldSplineScale.Y / LandscapeScaleFactor, OldSplineScale.Z));

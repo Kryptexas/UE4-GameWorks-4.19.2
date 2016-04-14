@@ -1062,11 +1062,11 @@ static void ConformComponentsUtils::ConformRemovedNativeComponents(UObject* BpCd
 		if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
 		{
 			// If the component in the Blueprint CDO was attached to a component that's been removed, update the Blueprint's component instance to match the archetype in the native parent CDO.
-			if (DestroyedComponents.Contains(SceneComponent->AttachParent))
+			if (DestroyedComponents.Contains(SceneComponent->GetAttachParent()))
 			{
 				if (USceneComponent* NativeArchetype = Cast<USceneComponent>(FindNativeArchetype(SceneComponent)))
 				{
-					USceneComponent* NewAttachParent = NativeArchetype->AttachParent;
+					USceneComponent* NewAttachParent = NativeArchetype->GetAttachParent();
 					if (NewAttachParent)
 					{
 						// Make sure we use the instance that's owned by the Blueprint CDO and not the native parent CDO's instance.
@@ -1076,7 +1076,7 @@ static void ConformComponentsUtils::ConformRemovedNativeComponents(UObject* BpCd
 						}
 					}
 
-					SceneComponent->AttachParent = NewAttachParent;
+					SceneComponent->SetupAttachment(NewAttachParent);
 				}
 			}
 		}
@@ -1277,7 +1277,7 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 					}
 				}
 				// If we're not attached to a blueprint component, add ourself to the root node or the SCS root component:
-				else if (SceneComponent->AttachParent == nullptr)
+				else if (SceneComponent->GetAttachParent() == nullptr)
 				{
 					if (OptionalNewRootNode != nullptr)
 					{
@@ -1291,25 +1291,25 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 					}
 				}
 				// If we're attached to a blueprint component look it up as the variable name is the component name
-				else if (SceneComponent->AttachParent->IsCreatedByConstructionScript())
+				else if (SceneComponent->GetAttachParent()->IsCreatedByConstructionScript())
 				{
 					USCS_Node* ParentSCSNode = nullptr;
-					if (USCS_Node** ParentSCSNodePtr = InstanceComponentToNodeMap.Find(SceneComponent->AttachParent))
+					if (USCS_Node** ParentSCSNodePtr = InstanceComponentToNodeMap.Find(SceneComponent->GetAttachParent()))
 					{
 						ParentSCSNode = *ParentSCSNodePtr;
 					}
-					else if (Components.Contains(SceneComponent->AttachParent))
+					else if (Components.Contains(SceneComponent->GetAttachParent()))
 					{
 						// since you cannot rely on the order of the supplied  
 						// Components array, we might be looking for a parent 
 						// that hasn't been added yet
-						ParentSCSNode = FAddComponentsToBlueprintImpl::MakeComponentCopy(SceneComponent->AttachParent, SCS, InstanceComponentToNodeMap);
+						ParentSCSNode = FAddComponentsToBlueprintImpl::MakeComponentCopy(SceneComponent->GetAttachParent(), SCS, InstanceComponentToNodeMap);
 					}
 					else
 					{
 						for (UBlueprint* ParentBlueprint : ParentBPStack)
 						{
-							ParentSCSNode = ParentBlueprint->SimpleConstructionScript->FindSCSNode(SceneComponent->AttachParent->GetFName());
+							ParentSCSNode = ParentBlueprint->SimpleConstructionScript->FindSCSNode(SceneComponent->GetAttachParent()->GetFName());
 							if (ParentSCSNode)
 							{
 								break;
@@ -1328,16 +1328,16 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 						ParentSCSNode->AddChildNode(SCSNode);
 					}
 				}
-				else if ((SceneComponent->AttachParent->CreationMethod == EComponentCreationMethod::Native) && !bHarvesting)
+				else if ((SceneComponent->GetAttachParent()->CreationMethod == EComponentCreationMethod::Native) && !bHarvesting)
 				{
 					// If we're attached to a component that will be native in the new blueprint
 					SCS->AddNode(SCSNode);
-					SCSNode->SetParent(SceneComponent->AttachParent);
+					SCSNode->SetParent(SceneComponent->GetAttachParent());
 				}
 				else
 				{
 					// Otherwise check if we've already created the parents' new SCS node and attach to that or cache it off to do next pass
-					USCS_Node** ParentSCSNode = InstanceComponentToNodeMap.Find(SceneComponent->AttachParent);
+					USCS_Node** ParentSCSNode = InstanceComponentToNodeMap.Find(SceneComponent->GetAttachParent());
 					if (ParentSCSNode)
 					{
 						(*ParentSCSNode)->AddChildNode(SCSNode);
@@ -1354,9 +1354,28 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 	// Hook up the remaining components nodes that the parent's node was missing when it was processed
 	for (auto ComponentIt = SceneComponentsToAdd.CreateConstIterator(); ComponentIt; ++ComponentIt)
 	{
-		InstanceComponentToNodeMap.FindChecked(ComponentIt.Key()->AttachParent)->AddChildNode(ComponentIt.Value());
+		InstanceComponentToNodeMap.FindChecked(ComponentIt.Key()->GetAttachParent())->AddChildNode(ComponentIt.Value());
 	}
 }
+
+struct FResetSceneComponentAfterCopy
+{
+private:
+	static void Reset(USceneComponent* Component)
+	{
+		Component->RelativeLocation = FVector::ZeroVector;
+		Component->RelativeRotation = FRotator::ZeroRotator;
+
+		// Clear out the attachment info after having copied the properties from the source actor
+		Component->SetupAttachment(nullptr);
+		FDirectAttachChildrenAccessor::Get(Component).Empty();
+
+		// Ensure the light mass information is cleaned up
+		Component->InvalidateLightingCache();
+	}
+
+	friend class FKismetEditorUtilities;
+};
 
 UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName BlueprintName, UObject* Outer, AActor* Actor, const bool bReplaceActor )
 {
@@ -1392,15 +1411,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FName Bluepri
 
 				if (USceneComponent* Scene = CDO->GetRootComponent())
 				{
-					Scene->RelativeLocation = FVector::ZeroVector;
-					Scene->RelativeRotation = FRotator::ZeroRotator;
-
-					// Clear out the attachment info after having copied the properties from the source actor
-					Scene->AttachParent = NULL;
-					Scene->AttachChildren.Empty();
-
-					// Ensure the light mass information is cleaned up
-					Scene->InvalidateLightingCache();
+					FResetSceneComponentAfterCopy::Reset(Scene);
 				}
 			}
 

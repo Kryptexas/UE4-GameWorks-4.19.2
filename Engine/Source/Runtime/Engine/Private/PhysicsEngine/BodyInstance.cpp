@@ -210,6 +210,28 @@ void FCollisionResponse::UpdateResponseContainerFromArray()
 		}
 	}
 }
+
+bool FCollisionResponse::operator==(const FCollisionResponse& Other) const
+{
+	bool bCollisionResponseEqual = ResponseArray.Num() == Other.ResponseArray.Num();
+	if(bCollisionResponseEqual)
+	{
+		for(int32 ResponseIdx = 0; ResponseIdx < ResponseArray.Num(); ++ResponseIdx)
+		{
+			for(int32 InternalIdx = 0; InternalIdx < ResponseArray.Num(); ++InternalIdx)
+			{
+				if(ResponseArray[ResponseIdx].Channel == Other.ResponseArray[InternalIdx].Channel)
+				{
+					bCollisionResponseEqual &= ResponseArray[ResponseIdx] == Other.ResponseArray[InternalIdx];
+					break;
+				}
+			}
+			
+		}
+	}
+
+	return bCollisionResponseEqual;
+}
 ////////////////////////////////////////////////////////////////////////////
 
 FBodyInstance::FBodyInstance()
@@ -2633,7 +2655,7 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 		{
 			if (OwnerComponentInst->GetAttachParent())
 			{
-				OwnerComponentInst->DetachFromParent(true);
+				OwnerComponentInst->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 			}
 			
 			if (bSimulatePhysics == false)	//if we're switching from kinematic to simulated
@@ -2805,6 +2827,10 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, ETeleportTy
 			}
 		});
 	}
+	else if(WeldParent)
+	{
+		WeldParent->SetWeldedBodyTransform(this, NewTransform);
+	}
 #endif  // WITH_PHYSX
 
 #if WITH_BOX2D
@@ -2820,6 +2846,12 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, ETeleportTy
 		BodyInstancePtr->SetTransform(NewLocation2D, NewAngle);
 	}
 #endif
+}
+
+void FBodyInstance::SetWeldedBodyTransform(FBodyInstance* TheirBody, const FTransform& NewTransform)
+{
+	UnWeld(TheirBody);
+	Weld(TheirBody, NewTransform);
 }
 
 template <bool NeedsLock>
@@ -2994,9 +3026,9 @@ FBox FBodyInstance::GetBodyBounds() const
 	FBox Bounds;
 
 #if WITH_PHYSX
-	ExecuteOnPxRigidBodyReadOnly(this, [&](const PxRigidBody* PRigidBody)
+	ExecuteOnPxRigidActorReadOnly(this, [&](const PxRigidActor* PRigidActor)
 	{
-		PxBounds3 PBounds = PRigidBody->getWorldBounds();
+		PxBounds3 PBounds = PRigidActor->getWorldBounds();
 
 		Bounds.Min = P2UVector(PBounds.minimum);
 		Bounds.Max = P2UVector(PBounds.maximum);

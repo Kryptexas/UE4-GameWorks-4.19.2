@@ -552,7 +552,7 @@ public:
 	 *
 	 * @return	Index of Track of Animation Sequence
 	 */
-	ENGINE_API int32 GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq);
+	ENGINE_API int32 GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq, const bool bUseRawData);
 
 	/** 
 	 * Get Bone Tree Index from Reference Bone Index

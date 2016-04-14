@@ -445,6 +445,12 @@ void SEditorViewport::ToggleShowFlag(uint32 EngineShowFlagIndex)
 	bool bOldState = Client->EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
 	Client->EngineShowFlags.SetSingleFlag(EngineShowFlagIndex, !bOldState);
 
+	// If changing collision flag, need to do special handling for hidden objects
+	if (EngineShowFlagIndex == FEngineShowFlags::EShowFlag::SF_Collision)
+	{
+		Client->UpdateHiddenCollisionDrawing();
+	}
+
 	// Invalidate clients which aren't real-time so we see the changes
 	Client->Invalidate();
 }

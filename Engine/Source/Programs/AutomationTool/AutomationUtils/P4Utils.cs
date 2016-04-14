@@ -461,7 +461,7 @@ namespace AutomationTool
 		private static bool? bAllowSubmit;
 
 		/// <summary>
-		/// Sets up P4Enabled, AllowSubmit properties. Note that this does not intialize P4 environment.
+		/// Sets up P4Enabled, AllowSubmit properties. Note that this does not initialize P4 environment.
 		/// </summary>
 		/// <param name="CommandsToExecute">Commands to execute</param>
 		/// <param name="Commands">Commands</param>

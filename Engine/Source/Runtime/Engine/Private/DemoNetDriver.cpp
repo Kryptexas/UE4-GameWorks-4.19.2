@@ -2630,10 +2630,10 @@ TSharedPtr<FObjectReplicator> UDemoNetConnection::CreateReplicatorForNewActorCha
 	// To handle rewinding net startup actors in replays properly, we need to
 	// initialize the shadow state with the object's current state.
 	// Afterwards, we will copy the CDO state to object's current state with repnotifies disabled.
-	UDemoNetDriver* Driver = GetDriver();
+	UDemoNetDriver* NetDriver = GetDriver();
 	AActor* Actor = Cast<AActor>(Object);
 
-	const bool bIsCheckpointStartupActor = Driver && Driver->IsLoadingCheckpoint() && Actor && Actor->IsNetStartupActor();
+	const bool bIsCheckpointStartupActor = NetDriver && NetDriver->IsLoadingCheckpoint() && Actor && Actor->IsNetStartupActor();
 	const bool bUseDefaultState = !bIsCheckpointStartupActor;
 
 	NewReplicator->InitWithObject(Object, this, bUseDefaultState);

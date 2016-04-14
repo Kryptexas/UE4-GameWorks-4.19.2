@@ -411,8 +411,11 @@ void UGameplayTask::OnGameplayTaskDeactivated(UGameplayTask& Task)
 	// cleanup after deactivation
 	if (&Task == ChildTask)
 	{
-		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Verbose, TEXT("%s> Child task deactivated: %s"), *GetName(), *Task.GetName());
-		ChildTask = nullptr;
+		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Verbose, TEXT("%s> Child task deactivated: %s (state: %s)"), *GetName(), *Task.GetName(), *Task.GetTaskStateName());
+		if (Task.IsFinished())
+		{
+			ChildTask = nullptr;
+		}
 	}
 }
 

@@ -194,11 +194,6 @@ private:
 	/** Preview mode related function **/
 	void SetPreviewMode( int32 PreviewMode );
 
-	/** Show Bones of SkeletalMesh **/
-	void OnShowBones();
-
-	bool IsShowingBones() const;
-
 	/** Show Morphtarget of SkeletalMesh **/
 	void OnShowMorphTargets();
 
@@ -243,6 +238,12 @@ private:
 
 	/** Function to check whether bone weights are displayed or not*/
 	bool IsShowingBoneWeight() const;
+
+	/** Function to set Local axes mode of the specificed type */
+	void OnSetBoneDrawMode(int32 BoneDrawMode);
+
+	/** Local axes mode checking function for the specificed type*/
+	bool IsBoneDrawModeSet(int32 BoneDrawMode) const;
 
 	/** Function to set Local axes mode of the specificed type */
 	void OnSetLocalAxesMode( int32 LocalAxesMode );

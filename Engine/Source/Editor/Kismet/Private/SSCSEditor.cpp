@@ -543,7 +543,7 @@ void FSCSEditorTreeNode::AddChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 					{
 						Owner->SetRootComponent(ParentInstance);
 					}
-					ChildInstance->AttachTo(ParentInstance, NAME_None, EAttachLocation::KeepWorldPosition);
+					ChildInstance->AttachToComponent(ParentInstance, FAttachmentTransformRules::KeepWorldTransform);
 				}
 			}
 		}
@@ -980,7 +980,7 @@ void FSCSEditorTreeNodeInstanceAddedComponent::RemoveMeAsChild()
 	check(ChildInstance != nullptr);
 
 	// Handle detachment at the instance level
-	ChildInstance->DetachFromParent(true);
+	ChildInstance->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 }
 
 void FSCSEditorTreeNodeInstanceAddedComponent::OnCompleteRename(const FText& InNewName)
@@ -2374,7 +2374,7 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 						SceneComponentTemplate->Modify();
 
 						// Reset the attach socket name
-						SceneComponentTemplate->AttachSocketName = NAME_None;
+						SceneComponentTemplate->SetupAttachment(SceneComponentTemplate->GetAttachParent(), NAME_None);
 						USCS_Node* SCS_Node = DroppedNodePtr->GetSCSNode();
 						if(SCS_Node)
 						{
@@ -2509,7 +2509,7 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 				SceneComponentTemplate->Modify();
 
 				// Reset the attach socket name
-				SceneComponentTemplate->AttachSocketName = NAME_None;
+				SceneComponentTemplate->SetupAttachment(SceneComponentTemplate->GetAttachParent(), NAME_None);
 				USCS_Node* SCS_Node = DroppedNodePtr->GetSCSNode();
 				if(SCS_Node)
 				{
@@ -2657,7 +2657,7 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 				SceneComponentTemplate->Modify();
 
 				// Reset the attach socket name
-				SceneComponentTemplate->AttachSocketName = NAME_None;
+				SceneComponentTemplate->SetupAttachment(SceneComponentTemplate->GetAttachParent(), NAME_None);
 				USCS_Node* SCS_Node = DroppedNodePtr->GetSCSNode();
 				if(SCS_Node)
 				{
@@ -3830,7 +3830,7 @@ void SSCSEditor::OnDuplicateComponent()
 					if (EditorMode == EComponentEditorMode::BlueprintSCS)
 					{
 						// Ensure that any native attachment relationship inherited from the original copy is removed (to prevent a GLEO assertion)
-						NewSceneComponent->DetachFromParent(true);
+						NewSceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 					}
 					
 					// Attempt to locate the original node in the SCS tree
@@ -4615,7 +4615,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 				USceneComponent* RootComponent = ActorInstance->GetRootComponent();
 				if (RootComponent)
 				{
-					NewSceneComponent->AttachTo(RootComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
+					NewSceneComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
 				}
 				else
 				{

@@ -148,7 +148,7 @@ void FParticleTrailsEmitterInstance_Base::Tick(float DeltaTime, bool bSuppressSp
  *	@param	DeltaTime			The current time slice
  *	@param	CurrentLODLevel		The current LOD level for the instance
  */
-void FParticleTrailsEmitterInstance_Base::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+void FParticleTrailsEmitterInstance_Base::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
 }
 
@@ -848,7 +848,7 @@ void TrailsBase_CalculateTangent(
  *	@param	DeltaTime			The current time slice
  *	@param	CurrentLODLevel		The current LOD level for the instance
  */
-void FParticleRibbonEmitterInstance::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+void FParticleRibbonEmitterInstance::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
 	if (TrailTypeData->bTangentRecalculationEveryFrame == true)
 	{
@@ -2551,9 +2551,9 @@ void FParticleRibbonEmitterInstance::DetermineVertexAndTriangleCount()
  *
  *	@return	bool		true if GetDynamicData should continue, false if it should return NULL
  */
-bool FParticleRibbonEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel)
+bool FParticleRibbonEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* InCurrentLODLevel)
 {
-	if (FParticleEmitterInstance::IsDynamicDataRequired(CurrentLODLevel) == true)
+	if (FParticleEmitterInstance::IsDynamicDataRequired(InCurrentLODLevel) == true)
 	{
 		if (/*(TrailTypeData->bClipSourceSegement == true) &&*/ (ActiveParticles < 2))
 		{
@@ -2909,7 +2909,7 @@ void FParticleAnimTrailEmitterInstance::RecalculateTangentAndInterpolationParam(
  *	@param	DeltaTime			The current time slice
  *	@param	CurrentLODLevel		The current LOD level for the instance
  */
-void FParticleAnimTrailEmitterInstance::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+void FParticleAnimTrailEmitterInstance::Tick_RecalculateTangents(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 {
 	if (TrailTypeData->bTangentRecalculationEveryFrame == true)
 	{

@@ -25,7 +25,7 @@ ATP_TwinStickPawn::ATP_TwinStickPawn()
 
 	// Create a camera boom...
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->AttachTo(RootComponent);
+	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->bAbsoluteRotation = true; // Don't want arm to rotate when ship does
 	CameraBoom->TargetArmLength = 1200.f;
 	CameraBoom->RelativeRotation = FRotator(-80.f, 0.f, 0.f);
@@ -33,7 +33,7 @@ ATP_TwinStickPawn::ATP_TwinStickPawn()
 
 	// Create a camera...
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
-	CameraComponent->AttachTo(CameraBoom, USpringArmComponent::SocketName);
+	CameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	CameraComponent->bUsePawnControlRotation = false;	// Camera does not rotate relative to arm
 
 	// Movement

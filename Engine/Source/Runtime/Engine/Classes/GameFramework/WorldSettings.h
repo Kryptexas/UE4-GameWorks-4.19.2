@@ -491,6 +491,22 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(transient)
 	float DemoPlayTimeDilation;
 
+	/** Lowest acceptable global time dilation. */
+	UPROPERTY(config, EditAnywhere, Category = Tick, AdvancedDisplay)
+	float MinGlobalTimeDilation;
+	
+	/** Highest acceptable global time dilation. */
+	UPROPERTY(config, EditAnywhere, Category = Tick, AdvancedDisplay)
+	float MaxGlobalTimeDilation;
+
+	/** Smallest possible frametime, not considering dilation. Equiv to 1/FastestFPS. */
+	UPROPERTY(config, EditAnywhere, Category = Tick, AdvancedDisplay)
+	float MinUndilatedFrameTime;
+
+	/** Largest possible frametime, not considering dilation. Equiv to 1/SlowestFPS. */
+	UPROPERTY(config, EditAnywhere, Category = Tick, AdvancedDisplay)
+	float MaxUndilatedFrameTime;
+
 	// If paused, FName of person pausing the game.
 	UPROPERTY(transient, replicated)
 	class APlayerState* Pauser;
@@ -555,6 +571,9 @@ public:
 	 * Returns the delta time to be used by the tick. Can be overridden if game specific logic is needed.
 	 */
 	virtual float FixupDeltaSeconds(float DeltaSeconds, float RealDeltaSeconds);
+
+	/** Sets the global time dilation value (subject to clamping). Returns the final value that was set. */
+	virtual float SetTimeDilation(float NewTimeDilation);
 
 	/**
 	 * Called by GameMode.HandleMatchIsWaitingToStart, calls BeginPlay on all actors

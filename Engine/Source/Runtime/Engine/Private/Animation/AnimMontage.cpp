@@ -378,12 +378,9 @@ void UAnimMontage::PostLoad()
 		{
 			for (FAnimSegment& Segment : Slot.AnimTrack.AnimSegments)
 			{
-				UAnimSequence * Sequence = Cast<UAnimSequence>(Segment.AnimReference);
-				if (Sequence && !Sequence->bRootMotionSettingsCopiedFromMontage)
+				if (Segment.AnimReference)
 				{
-					Sequence->bEnableRootMotion = true;
-					Sequence->RootMotionRootLock = RootMotionRootLock;
-					Sequence->bRootMotionSettingsCopiedFromMontage = true;
+					Segment.AnimReference->EnableRootMotionSettingFromMontage(true, RootMotionRootLock);
 				}
 			}
 		}
@@ -396,10 +393,11 @@ void UAnimMontage::PostLoad()
 		{
 			if ( SlotAnimTracks[I].AnimTrack.AnimSegments.Num() > 0 )
 			{
-				UAnimSequence * Sequence = Cast<UAnimSequence>(SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference);
-				if ( Sequence && Sequence->RefPoseSeq )
+				UAnimSequenceBase* SequenceBase = SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference;
+				UAnimSequence* BaseAdditivePose = (SequenceBase) ? SequenceBase->GetAdditiveBasePose() : nullptr;
+				if (BaseAdditivePose)
 				{
-					PreviewBasePose = Sequence->RefPoseSeq;
+					PreviewBasePose = BaseAdditivePose;
 					MarkPackageDirty();
 					break;
 				}
@@ -414,10 +412,10 @@ void UAnimMontage::PostLoad()
 		{
 			if ( SlotAnimTracks[I].AnimTrack.AnimSegments.Num() > 0 )
 			{
-				UAnimSequence * Sequence = Cast<UAnimSequence>(SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference);
-				if ( Sequence && Sequence->GetSkeleton() != MySkeleton )
+				UAnimSequenceBase* SequenceBase = SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference;
+				if (SequenceBase && SequenceBase->GetSkeleton() != MySkeleton )
 				{
-					SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference = 0;
+					SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference = nullptr;
 					MarkPackageDirty();
 					break;
 				}
@@ -942,17 +940,17 @@ const TArray<class UAnimMetaData*> UAnimMontage::GetSectionMetaData(FName Sectio
 }
 
 #if WITH_EDITOR
-bool UAnimMontage::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences)
+bool UAnimMontage::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets)
 {
 	for (auto Iter = SlotAnimTracks.CreateConstIterator(); Iter; ++Iter)
 	{
 		const FSlotAnimationTrack& Track = (*Iter);
-		Track.AnimTrack.GetAllAnimationSequencesReferred(AnimationSequences);
+		Track.AnimTrack.GetAllAnimationSequencesReferred(AnimationAssets);
 	}
-	return (AnimationSequences.Num() > 0);
+	return (AnimationAssets.Num() > 0);
 }
 
-void UAnimMontage::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap)
+void UAnimMontage::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
 	for (auto Iter = SlotAnimTracks.CreateIterator(); Iter; ++Iter)
 	{
@@ -1123,6 +1121,38 @@ FMarkerSyncAnimPosition UAnimMontage::GetMarkerSyncPositionfromMarkerIndicies(in
 {
 	return MarkerData.GetMarkerSyncPositionfromMarkerIndicies(PrevMarker, NextMarker, CurrentTime, SequenceLength);
 }
+
+void UAnimMontage::InvalidateRecursiveAsset()
+{
+	for (FSlotAnimationTrack& SlotTrack : SlotAnimTracks)
+	{
+		SlotTrack.AnimTrack.InvalidateRecursiveAsset(this);
+	}
+}
+
+bool UAnimMontage::ContainRecursive(TArray<UAnimCompositeBase*>& CurrentAccumulatedList) 
+{
+	// am I included already?
+	if (CurrentAccumulatedList.Contains(this))
+	{
+		return true;
+	}
+
+	// otherwise, add myself to it
+	CurrentAccumulatedList.Add(this);
+
+	for (FSlotAnimationTrack& SlotTrack : SlotAnimTracks)
+	{
+		// otherwise send to animation track
+		if (SlotTrack.AnimTrack.ContainRecursive(CurrentAccumulatedList))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 // MontageInstance
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -1847,6 +1877,7 @@ void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTra
 	if (AnimInstance.IsValid())
 	{
 		TArray<const FAnimNotifyEvent*> Notifies;
+		TMap<FName, TArray<const FAnimNotifyEvent*>> NotifyMap;
 
 		// We already break up AnimMontage update to handle looping, so we guarantee that PreviousPos and CurrentPos are contiguous.
 		Montage->GetAnimNotifiesFromDeltaPositions(PreviousTrackPos, CurrentTrackPos, Notifies);
@@ -1858,17 +1889,13 @@ void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTra
 		// we'll do this for all slots for now
 		for (auto SlotTrack = Montage->SlotAnimTracks.CreateIterator(); SlotTrack; ++SlotTrack)
 		{
-			if (AnimInstance->IsSlotNodeRelevantForNotifies(SlotTrack->SlotName))
-			{
-				for (auto AnimSegment = SlotTrack->AnimTrack.AnimSegments.CreateIterator(); AnimSegment; ++AnimSegment)
-				{
-					AnimSegment->GetAnimNotifiesFromTrackPositions(PreviousTrackPos, CurrentTrackPos, Notifies);
-				}
-			}
+			TArray<const FAnimNotifyEvent*>& SlotTrackNotifies = NotifyMap.FindOrAdd(SlotTrack->SlotName);
+			SlotTrack->AnimTrack.GetAnimNotifiesFromTrackPositions(PreviousTrackPos, CurrentTrackPos, SlotTrackNotifies);
 		}
 
 		// Queue all these notifies.
 		AnimInstance->NotifyQueue.AddAnimNotifies(Notifies, NotifyWeight);
+		AnimInstance->NotifyQueue.AddAnimNotifies(NotifyMap, NotifyWeight);
 	}
 
 	// Update active state branching points, before we handle the immediate tick marker.

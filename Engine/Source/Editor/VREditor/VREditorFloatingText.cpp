@@ -46,7 +46,7 @@ AFloatingText::AFloatingText()
 
 		FirstLineComponent->SetStaticMesh( LineSegmentCylinderMesh );
 		FirstLineComponent->SetMobility( EComponentMobility::Movable );
-		FirstLineComponent->AttachParent = SceneComponent;
+		FirstLineComponent->SetupAttachment( SceneComponent );
 		
 		FirstLineComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 
@@ -64,7 +64,7 @@ AFloatingText::AFloatingText()
 
 		JointSphereComponent->SetStaticMesh( JointSphereMesh );
 		JointSphereComponent->SetMobility( EComponentMobility::Movable );
-		JointSphereComponent->AttachParent = SceneComponent;
+		JointSphereComponent->SetupAttachment( SceneComponent );
 
 		JointSphereComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 
@@ -83,7 +83,7 @@ AFloatingText::AFloatingText()
 
 		SecondLineComponent->SetStaticMesh( LineSegmentCylinderMesh );
 		SecondLineComponent->SetMobility( EComponentMobility::Movable );
-		SecondLineComponent->AttachParent = SceneComponent;
+		SecondLineComponent->SetupAttachment( SceneComponent );
 
 		SecondLineComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 
@@ -120,7 +120,7 @@ AFloatingText::AFloatingText()
 		check( TextComponent != nullptr );
 
 		TextComponent->SetMobility( EComponentMobility::Movable );
-		TextComponent->AttachParent = SceneComponent;
+		TextComponent->SetupAttachment( SceneComponent );
 
 		TextComponent->SetCollisionProfileName( UCollisionProfile::NoCollision_ProfileName );
 

@@ -708,10 +708,10 @@ public:
 	 * @param	InObj object to initialize, from static allocate object, after construction
 	 * @param	InObjectArchetype object to initialize properties from
 	 * @param	bInCopyTransientsFromClassDefaults - if true, copy transient from the class defaults instead of the pass in archetype ptr (often these are the same)
-	 * @param	bInShouldIntializeProps false is a special case for changing base classes in UCCMake
+	 * @param	bInShouldInitializeProps false is a special case for changing base classes in UCCMake
 	 * @param	InInstanceGraph passed instance graph
 	 */
-	FObjectInitializer(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph = NULL);
+	FObjectInitializer(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldInitializeProps, struct FObjectInstancingGraph* InInstanceGraph = NULL);
 
 	~FObjectInitializer();
 
@@ -1062,15 +1062,15 @@ private:
 	UObject* ObjectArchetype;
 	/**  if true, copy the transients from the DefaultsClass defaults, otherwise copy the transients from DefaultData **/
 	bool bCopyTransientsFromClassDefaults;
-	/**  If true, intialize the properties **/
-	bool bShouldIntializePropsFromArchetype;
+	/**  If true, initialize the properties **/
+	bool bShouldInitializePropsFromArchetype;
 	/**  Only true until ObjectInitializer has not reached the base UObject class */
 	bool bSubobjectClassInitializationAllowed;
 	/**  Instance graph **/
 	struct FObjectInstancingGraph* InstanceGraph;
 	/**  List of component classes to override from derived classes **/
 	mutable FOverrides ComponentOverrides;
-	/**  List of component classes to intialize after the C++ constructors **/
+	/**  List of component classes to initialize after the C++ constructors **/
 	mutable FSubobjectsToInit ComponentInits;
 #if !UE_BUILD_SHIPPING
 	/** List of all subobject names constructed for this object */

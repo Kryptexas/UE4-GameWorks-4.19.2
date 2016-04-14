@@ -315,7 +315,8 @@ void UPrimitiveComponent::RegisterComponentTickFunctions(bool bRegister)
 			}
 
 			// Set a prereq for the post physics tick to happen after physics is finished
-			if (World != NULL)
+			UWorld* World = GetWorld();
+			if (World != nullptr)
 			{
 				PostPhysicsComponentTick.AddPrerequisite(World, World->EndPhysicsTickFunction);
 			}
@@ -363,7 +364,7 @@ void UPrimitiveComponent::CreateRenderState_Concurrent()
 	// If the primitive isn't hidden and the detail mode setting allows it, add it to the scene.
 	if (ShouldComponentAddToScene())
 	{
-		World->Scene->AddPrimitive(this);
+		GetWorld()->Scene->AddPrimitive(this);
 	}
 }
 
@@ -376,7 +377,7 @@ void UPrimitiveComponent::SendRenderTransform_Concurrent()
 	if( bDetailModeAllowsRendering && (ShouldRender() || bCastHiddenShadow))
 	{
 		// Update the scene info's transform for this primitive.
-		World->Scene->UpdatePrimitiveTransform(this);
+		GetWorld()->Scene->UpdatePrimitiveTransform(this);
 	}
 
 	Super::SendRenderTransform_Concurrent();
@@ -406,6 +407,7 @@ void UPrimitiveComponent::OnRegister()
 
 void UPrimitiveComponent::OnUnregister()
 {
+	UWorld* World = GetWorld();
 	if (World && World->Scene)
 	{
 		World->Scene->ReleasePrimitive(this);
@@ -488,21 +490,17 @@ FActorComponentInstanceData* UPrimitiveComponent::GetComponentInstanceData() con
 
 void UPrimitiveComponent::OnAttachmentChanged()
 {
+	UWorld* World = GetWorld();
 	if (World && World->Scene)
 	{
 		World->Scene->UpdatePrimitiveAttachment(this);
 	}
 }
 
-void UPrimitiveComponent::OnChildAttached(USceneComponent* ChildComponent)
-{
-	Super::OnChildAttached(ChildComponent);
-}
-
-
 void UPrimitiveComponent::DestroyRenderState_Concurrent()
 {
 	// Remove the primitive from the scene.
+	UWorld* World = GetWorld();
 	if(World && World->Scene)
 	{
 		World->Scene->RemovePrimitive(this);
@@ -540,7 +538,7 @@ void UPrimitiveComponent::CreatePhysicsState()
 
 #if UE_WITH_PHYSICS
 			// Create the body.
-			BodyInstance.InitBody(BodySetup, BodyTransform, this, World->GetPhysicsScene());
+			BodyInstance.InitBody(BodySetup, BodyTransform, this, GetWorld()->GetPhysicsScene());
 #endif //UE_WITH_PHYSICS
 
 #if WITH_EDITOR
@@ -573,14 +571,26 @@ void UPrimitiveComponent::EnsurePhysicsStateCreated()
 	}
 }
 
-void UPrimitiveComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
+bool UPrimitiveComponent::IsWelded() const
 {
-	Super::OnUpdateTransform(bSkipPhysicsMove, Teleport);
+	return GetBodyInstance() != GetBodyInstance(NAME_None, false);
+}
+
+void UPrimitiveComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
+{
+	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
 
 	// Always send new transform to physics
-	if(bPhysicsStateCreated && !bSkipPhysicsMove)
+	if(bPhysicsStateCreated && !(UpdateTransformFlags & EUpdateTransformFlags::SkipPhysicsUpdate))
 	{
-		SendPhysicsTransform(Teleport);
+		//If we update transform of welded bodies directly (i.e. on the actual component) we need to update the shape transforms of the parent.
+		//If the parent is updated, any welded shapes are automatically updated so we don't need to do this physx update.
+		//If the parent is updated and we are NOT welded, the child still needs to update physx
+		const bool bTransformSetDirectly = !(UpdateTransformFlags & EUpdateTransformFlags::PropagateFromParent);
+		if( bTransformSetDirectly || !IsWelded())
+		{
+			SendPhysicsTransform(Teleport);
+		}
 	}
 }
 
@@ -1007,7 +1017,7 @@ bool UPrimitiveComponent::ShouldCreatePhysicsState() const
 	}
 
 	// if it shouldn't create physics state, but if world wants to enable trace collision for components, allow it
-	if (!bShouldCreatePhysicsState && World && World->bEnableTraceCollision)
+	if (!bShouldCreatePhysicsState && GetWorld() && GetWorld()->bEnableTraceCollision)
 	{
 		bShouldCreatePhysicsState = true;
 	}
@@ -1852,7 +1862,7 @@ void UPrimitiveComponent::DispatchWakeEvents(int32 WakeEvent, FName BoneName)
 	}
 	
 	//now update children that are welded
-	for(USceneComponent* SceneComp : AttachChildren)
+	for(USceneComponent* SceneComp : GetAttachChildren())
 	{
 		if(UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(SceneComp))
 		{
@@ -2315,7 +2325,7 @@ const TArray<FOverlapInfo>* UPrimitiveComponent::ConvertRotationOverlapsToCurren
 bool UPrimitiveComponent::AreAllCollideableDescendantsRelative(bool bAllowCachedValue) const
 {
 	UPrimitiveComponent* MutableThis = const_cast<UPrimitiveComponent*>(this);
-	if (AttachChildren.Num() > 0)
+	if (GetAttachChildren().Num() > 0)
 	{
 		UWorld* MyWorld = GetWorld();
 		check(MyWorld);
@@ -2328,9 +2338,8 @@ bool UPrimitiveComponent::AreAllCollideableDescendantsRelative(bool bAllowCached
 
 		// Check all descendant PrimitiveComponents
 		TInlineComponentArray<USceneComponent*> ComponentStack;
-		ComponentStack.Reserve(FMath::Max<uint32>(NumInlinedActorComponents, AttachChildren.Num()));
 
-		ComponentStack.Append(AttachChildren);
+		ComponentStack.Append(GetAttachChildren());
 		while (ComponentStack.Num() > 0)
 		{
 			USceneComponent* const CurrentComp = ComponentStack.Pop(false);
@@ -2349,7 +2358,7 @@ bool UPrimitiveComponent::AreAllCollideableDescendantsRelative(bool bAllowCached
 					}
 				}
 
-				ComponentStack.Append(CurrentComp->AttachChildren);
+				ComponentStack.Append(CurrentComp->GetAttachChildren());
 			}
 		}
 	}
@@ -2367,7 +2376,7 @@ void UPrimitiveComponent::BeginPlay()
 		//Since the object is physically simulated it can't be attached
 		const bool bSavedDisableDetachmentUpdateOverlaps = bDisableDetachmentUpdateOverlaps;
 		bDisableDetachmentUpdateOverlaps = true;
-		DetachFromParent(/*MaintainWorldPosition =*/ true);
+		DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 		bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
 	}
 }
@@ -2553,13 +2562,17 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 	}
 
 	// now update any children down the chain.
-	for (int32 ChildIdx=0; ChildIdx<AttachChildren.Num(); ++ChildIdx)
+	// since on overlap events could manipulate the child array we need to take a copy
+	// of it to avoid missing any children if one is removed from the middle
+	TInlineComponentArray<USceneComponent*> AttachedChildren;
+	AttachedChildren.Append(GetAttachChildren());
+
+	for (USceneComponent* const ChildComp : AttachedChildren)
 	{
-		USceneComponent* const ChildComp = AttachChildren[ChildIdx];
 		if (ChildComp)
 		{
 			// Do not pass on OverlapsAtEndLocation, it only applied to this component.
-			ChildComp->UpdateOverlaps(NULL, bDoNotifies, NULL);
+			ChildComp->UpdateOverlaps(nullptr, bDoNotifies, nullptr);
 		}
 	}
 

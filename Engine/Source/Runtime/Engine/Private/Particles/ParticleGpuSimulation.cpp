@@ -2956,10 +2956,10 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	/**
 	 * Retrieves the material render proxy with which to render sprites.
 	 */
-	virtual const FMaterialRenderProxy* GetMaterialRenderProxy(bool bSelected) override
+	virtual const FMaterialRenderProxy* GetMaterialRenderProxy(bool bInSelected) override
 	{
 		check( Material );
-		return Material->GetRenderProxy( bSelected );
+		return Material->GetRenderProxy( bInSelected );
 	}
 
 	/**
@@ -3111,7 +3111,7 @@ public:
 	 *
 	 *	@return	bool		true if GetDynamicData should continue, false if it should return NULL
 	 */
-	virtual bool IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel) override
+	virtual bool IsDynamicDataRequired(UParticleLODLevel* InCurrentLODLevel) override
 	{
 		bool bShouldRender = (ActiveParticles >= 0 || TilesToClear.Num() || NewParticles.Num());
 		bool bCanRender = (FXSystem != NULL) && (Component != NULL) && (Component->FXSystem == FXSystem);
@@ -4048,23 +4048,23 @@ private:
 		return false;
 	}
 
-	virtual float Tick_SpawnParticles(float DeltaTime, UParticleLODLevel* CurrentLODLevel, bool bSuppressSpawning, bool bFirstTime) override
+	virtual float Tick_SpawnParticles(float DeltaTime, UParticleLODLevel* InCurrentLODLevel, bool bSuppressSpawning, bool bFirstTime) override
 	{
 		return 0.0f;
 	}
 
-	virtual void Tick_ModulePreUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+	virtual void Tick_ModulePreUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
 	{
 	}
 
-	virtual void Tick_ModuleUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel) override
+	virtual void Tick_ModuleUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel) override
 	{
 		// We cannot update particles that have spawned, but modules such as BoneSocket and Skel Vert/Surface may need to perform calculations each tick.
 		UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
 		check(HighestLODLevel);
-		for (int32 ModuleIndex = 0; ModuleIndex < CurrentLODLevel->UpdateModules.Num(); ModuleIndex++)
+		for (int32 ModuleIndex = 0; ModuleIndex < InCurrentLODLevel->UpdateModules.Num(); ModuleIndex++)
 		{
-			UParticleModule* CurrentModule	= CurrentLODLevel->UpdateModules[ModuleIndex];
+			UParticleModule* CurrentModule	= InCurrentLODLevel->UpdateModules[ModuleIndex];
 			if (CurrentModule && CurrentModule->bEnabled && CurrentModule->bUpdateModule && CurrentModule->bUpdateForGPUEmitter)
 			{
 				CurrentModule->Update(this, GetModuleDataOffset(HighestLODLevel->UpdateModules[ModuleIndex]), DeltaTime);
@@ -4072,18 +4072,18 @@ private:
 		}
 	}
 
-	virtual void Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel) override
+	virtual void Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel) override
 	{
 	}
 
-	virtual void Tick_ModuleFinalUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel) override
+	virtual void Tick_ModuleFinalUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel) override
 	{
 		// We cannot update particles that have spawned, but modules such as BoneSocket and Skel Vert/Surface may need to perform calculations each tick.
 		UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
 		check(HighestLODLevel);
-		for (int32 ModuleIndex = 0; ModuleIndex < CurrentLODLevel->UpdateModules.Num(); ModuleIndex++)
+		for (int32 ModuleIndex = 0; ModuleIndex < InCurrentLODLevel->UpdateModules.Num(); ModuleIndex++)
 		{
-			UParticleModule* CurrentModule	= CurrentLODLevel->UpdateModules[ModuleIndex];
+			UParticleModule* CurrentModule	= InCurrentLODLevel->UpdateModules[ModuleIndex];
 			if (CurrentModule && CurrentModule->bEnabled && CurrentModule->bFinalUpdateModule && CurrentModule->bUpdateForGPUEmitter)
 			{
 				CurrentModule->FinalUpdate(this, GetModuleDataOffset(HighestLODLevel->UpdateModules[ModuleIndex]), DeltaTime);
@@ -4107,9 +4107,9 @@ private:
 		return NULL;
 	}
 
-	virtual uint32 CalculateParticleStride(uint32 ParticleSize) override
+	virtual uint32 CalculateParticleStride(uint32 InParticleSize) override
 	{
-		return ParticleSize;
+		return InParticleSize;
 	}
 
 	virtual void ResetParticleParameters(float DeltaTime) override

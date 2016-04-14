@@ -343,7 +343,7 @@ static const float HeightOffset = 0.01f;
 /** inscattered light along ray x+tv, when sun in direction s (=S[L]-T(x,x0)S[L]|x0) */
 float3 GetInscatterColor(float FogDepth, float3 X, float T, float3 V, float3 S, float Radius, float Mu, out float3 Attenuation, bool bIsSceneGeometry) 
 {
-    float3 Result = float3(0.f, 0.f, 0.f); 	// X in space and ray looking in space, intialize
+    float3 Result = float3(0.f, 0.f, 0.f); 	// X in space and ray looking in space, initialize
 	Attenuation = float3(1.f, 1.f, 1.f);
 
 	float D = -Radius * Mu - sqrt(Radius * Radius * (Mu * Mu - 1.0) + RadiusAtmosphere * RadiusAtmosphere);

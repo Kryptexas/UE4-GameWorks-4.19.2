@@ -638,7 +638,7 @@ void FPhAT::CreateInternalWidgets()
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	Properties = PropertyModule.CreateDetailView( Args );
 	Properties->SetObject(SharedData->EditorSimOptions);
-	Properties->OnFinishedChangingProperties().AddLambda([this](const FPropertyChangedEvent& Event) { RefreshPreviewViewport(); });
+	Properties->OnFinishedChangingProperties().AddSP(this, &FPhAT::OnFinishedChangingProperties);
 
 	HierarchyControl = 
 	SNew(SBorder)
@@ -661,6 +661,20 @@ void FPhAT::CreateInternalWidgets()
 			.DefaultLabel( LOCTEXT( "Hierarchy", "Hierarchy" ) )
 		)
 	];
+}
+
+void FPhAT::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
+{
+	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	// Update bounds bodies and setup when bConsiderForBounds was changed
+	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UBodySetup, bConsiderForBounds)))
+	{
+		SharedData->PhysicsAsset->UpdateBoundsBodiesArray();
+		SharedData->PhysicsAsset->UpdateBodySetupIndexMap();
+	}
+
+	RefreshPreviewViewport();
 }
 
 FText FPhAT::GetRepeatLastSimulationToolTip() const

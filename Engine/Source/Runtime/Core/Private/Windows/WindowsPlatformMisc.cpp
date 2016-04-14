@@ -2663,10 +2663,10 @@ FGPUDriverInfo FWindowsPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescr
 			}
 			if(DriverLocation.Left(20) == TEXT("\\HKEY_LOCAL_MACHINE\\"))		// not case sensitive
 			{
-				FString Key = DriverLocation.RightChop(20);
+				FString DriverLocationKey = DriverLocation.RightChop(20);
 				
 				FGPUDriverInfo Local;
-				GetVideoDriverDetails(Key, Local);
+				GetVideoDriverDetails(DriverLocationKey, Local);
 
 				if(!Local.IsValid())
 				{

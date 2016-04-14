@@ -46,9 +46,9 @@ public:
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const class FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const class FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const
 	{
-		return Parent->GetMaterial(FeatureLevel);
+		return Parent->GetMaterial(InFeatureLevel);
 	}
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
@@ -647,9 +647,9 @@ void ALandscapeGizmoActiveActor::SetTargetLandscape(ULandscapeInfo* LandscapeInf
 		MarginZ = TargetLandscapeInfo->DrawScale.Z * 3;
 		Width = Height = TargetLandscapeInfo->DrawScale.X * (TargetLandscapeInfo->ComponentSizeQuads+1);
 
-		float LengthZ;
-		FVector NewLocation = TargetLandscapeInfo->GetLandscapeCenterPos(LengthZ);
-		SetLength(LengthZ);
+		float NewLengthZ;
+		FVector NewLocation = TargetLandscapeInfo->GetLandscapeCenterPos(NewLengthZ);
+		SetLength(NewLengthZ);
 		SetActorLocation( NewLocation, false );
 		SetActorRotation(FRotator::ZeroRotator);
 	}
@@ -687,9 +687,9 @@ void ALandscapeGizmoActiveActor::FitToSelection()
 			float ScaleXY = TargetLandscapeInfo->DrawScale.X;
 			Width = ScaleXY * (MaxX - MinX + 1) / (GetRootComponent()->RelativeScale3D.X);
 			Height = ScaleXY * (MaxY - MinY + 1) / (GetRootComponent()->RelativeScale3D.Y);
-			float LengthZ;
-			FVector NewLocation = TargetLandscapeInfo->GetLandscapeCenterPos(LengthZ, MinX, MinY, MaxX, MaxY);
-			SetLength(LengthZ);
+			float NewLengthZ;
+			FVector NewLocation = TargetLandscapeInfo->GetLandscapeCenterPos(NewLengthZ, MinX, MinY, MaxX, MaxY);
+			SetLength(NewLengthZ);
 			SetActorLocation(NewLocation, false);
 			SetActorRotation(FRotator::ZeroRotator);
 			// Reset Z render scale values...

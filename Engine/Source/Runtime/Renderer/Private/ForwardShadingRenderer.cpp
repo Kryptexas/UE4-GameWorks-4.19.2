@@ -60,10 +60,10 @@ void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLis
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo = nullptr;
 
 		FViewInfo& ViewInfo = Views[ViewIndex];
-		FScene* Scene = (FScene*)ViewInfo.Family->Scene;
-		if (bDynamicShadows && Scene->SimpleDirectionalLight)
+		FScene* ViewScene = (FScene*)ViewInfo.Family->Scene;
+		if (bDynamicShadows && ViewScene->SimpleDirectionalLight)
 		{
-			int32 LightId = Scene->SimpleDirectionalLight->Id;
+			int32 LightId = ViewScene->SimpleDirectionalLight->Id;
 			if (VisibleLightInfos.IsValidIndex(LightId))
 			{
 				const FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightId];
@@ -96,10 +96,10 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		return;
 	}
 
-	auto FeatureLevel = ViewFamily.GetFeatureLevel();
+	const ERHIFeatureLevel::Type ViewFeatureLevel = ViewFamily.GetFeatureLevel();
 
 	// Initialize global system textures (pass-through if already initialized).
-	GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
+	GSystemTextures.InitializeTextures(RHICmdList, ViewFeatureLevel);
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	// Allocate the maximum scene render target space for the current view family.

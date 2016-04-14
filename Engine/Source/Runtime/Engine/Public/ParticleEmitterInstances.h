@@ -727,10 +727,10 @@ struct FScopeCycleCounterEmitter : public FCycleCounter
 	{
 		if (Object)
 		{
-			TStatId StatId = Object->SpriteTemplate->GetStatID();
-			if (FThreadStats::IsCollectingData(StatId))
+			TStatId SpriteStatId = Object->SpriteTemplate->GetStatID();
+			if (FThreadStats::IsCollectingData(SpriteStatId))
 			{
-				Start(StatId);
+				Start(SpriteStatId);
 			}
 		}
 	}

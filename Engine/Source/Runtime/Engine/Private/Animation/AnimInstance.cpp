@@ -1572,6 +1572,12 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 		return 0.f;
 	}
 
+	if (!Asset->CanBeUsedInMontage())
+	{
+		UE_LOG(LogAnimMontage, Warning, TEXT("This animation isn't supported to play as montage"));
+		return 0.f;
+	}
+
 	// now play
 	UAnimMontage* NewMontage = NewObject<UAnimMontage>();
 	NewMontage->SetSkeleton(AssetSkeleton);
@@ -1610,21 +1616,27 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	{
 		// user warning
 		UE_LOG(LogAnimMontage, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
-		return NULL;
+		return nullptr;
 	}
 
 	if (SlotNodeName == NAME_None)
 	{
 		// user warning
 		UE_LOG(LogAnimMontage, Warning, TEXT("SlotNode Name is required. Make sure to add Slot Node in your anim graph and name it."));
-		return NULL;
+		return nullptr;
 	}
 
 	USkeleton* AssetSkeleton = Asset->GetSkeleton();
 	if (!CurrentSkeleton->IsCompatible(AssetSkeleton))
 	{
 		UE_LOG(LogAnimMontage, Warning, TEXT("The Skeleton isn't compatible"));
-		return NULL;
+		return nullptr;
+	}
+
+	if (!Asset->CanBeUsedInMontage())
+	{
+		UE_LOG(LogAnimMontage, Warning, TEXT("This animation isn't supported to play as montage"));
+		return nullptr;
 	}
 
 	// now play

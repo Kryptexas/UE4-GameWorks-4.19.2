@@ -72,6 +72,7 @@ void UBodySetup::CopyBodyPropertiesFrom(const UBodySetup* FromSetup)
 	PhysMaterial = FromSetup->PhysMaterial;
 	PhysicsType = FromSetup->PhysicsType;
 	bDoubleSidedGeometry = FromSetup->bDoubleSidedGeometry;
+	CollisionTraceFlag = FromSetup->CollisionTraceFlag;
 }
 
 void UBodySetup::AddCollisionFrom(const FKAggregateGeom& FromAggGeom)

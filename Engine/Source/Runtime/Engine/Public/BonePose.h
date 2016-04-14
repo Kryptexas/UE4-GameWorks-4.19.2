@@ -557,16 +557,8 @@ void FCSPose<PoseType>::CalculateComponentSpaceTransform(BoneIndexType BoneIndex
 	// current Bones(Index) should contain LocalPoses.
 	FTransform& Bone = Pose[BoneIndex];
 	FTransform& ParentBone = Pose[ParentIndex];
-	// this is temporary bandaid trying to avoid crash
-	// but this will hide issue also, as this will set to identity
-	if (!ensure(!Pose[BoneIndex].ContainsNaN()))
-	{
-		Pose[BoneIndex].SetIdentity();
-	}
-	if (!ensure(!Pose[ParentIndex].ContainsNaN()))
-	{
-		Pose[ParentIndex].SetIdentity();
-	}
+	check(!Pose[BoneIndex].ContainsNaN());
+	check(!Pose[ParentIndex].ContainsNaN());
 
 	FTransform ComponentTransform = Pose[BoneIndex] * Pose[ParentIndex];
 	check(!ComponentTransform.ContainsNaN());

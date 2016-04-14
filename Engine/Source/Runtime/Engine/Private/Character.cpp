@@ -72,7 +72,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 		ArrowComponent->bTreatAsASprite = true;
 		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Characters;
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Characters;
-		ArrowComponent->AttachParent = CapsuleComponent;
+		ArrowComponent->SetupAttachment(CapsuleComponent);
 		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
@@ -94,7 +94,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 		Mesh->bCastDynamicShadow = true;
 		Mesh->bAffectDynamicIndirectLighting = true;
 		Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-		Mesh->AttachParent = CapsuleComponent;
+		Mesh->SetupAttachment(CapsuleComponent);
 		static FName MeshCollisionProfileName(TEXT("CharacterMesh"));
 		Mesh->SetCollisionProfileName(MeshCollisionProfileName);
 		Mesh->bGenerateOverlapEvents = false;
@@ -550,34 +550,32 @@ namespace MovementBaseUtility
 		{
 			if (BoneName != NAME_None)
 			{
-				const USkeletalMeshComponent* SkeletalBase = Cast<USkeletalMeshComponent>(MovementBase);
-				if (SkeletalBase)
+				bool bFoundBone = false;
+				const USkinnedMeshComponent* SkinnedBase = Cast<USkinnedMeshComponent>(MovementBase);
+				if (SkinnedBase)
 				{
-					const int32 BoneIndex = SkeletalBase->GetBoneIndex(BoneName);
-					if (BoneIndex != INDEX_NONE)
+					// Check if this socket or bone exists (DoesSocketExist checks for either, as does requesting the transform).
+					if (SkinnedBase->DoesSocketExist(BoneName))
 					{
-						const FTransform BoneTransform = SkeletalBase->GetBoneTransform(BoneIndex);
-						OutLocation = BoneTransform.GetLocation();
-						OutQuat = BoneTransform.GetRotation();
-						return true;
+						SkinnedBase->GetSocketWorldLocationAndRotation(BoneName, OutLocation, OutQuat);
+						bFoundBone = true;
 					}
-
-					const USkeletalMeshSocket* Socket = SkeletalBase->GetSocketByName(BoneName);
-					if (Socket != nullptr)
+					else
 					{
-						const FTransform SocketTransform = Socket->GetSocketTransform(SkeletalBase);
-						OutLocation = SocketTransform.GetLocation();
-						OutQuat = SocketTransform.GetRotation();
-						return true;
+						UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Invalid bone or socket '%s' for SkinnedMeshComponent base %s"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
 					}
-
-					UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Invalid bone '%s' for SkeletalMeshComponent base %s"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
-					return false;
 				}
 				else
 				{
-					UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Requested bone '%s' for non-SkeletalMeshComponent base %s"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
+					UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Requested bone or socket '%s' for non-SkinnedMeshComponent base %s, this is not supported"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
 				}
+
+				if (!bFoundBone)
+				{
+					OutLocation = MovementBase->GetComponentLocation();
+					OutQuat = MovementBase->GetComponentQuat();
+				}
+				return bFoundBone;
 			}
 
 			// No bone supplied
@@ -624,10 +622,15 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 
 		if (CharacterMovement)
 		{
+			const bool bBaseIsSimulating = NewBaseComponent && NewBaseComponent->IsSimulatingPhysics();
 			if (bBaseChanged)
 			{
 				MovementBaseUtility::RemoveTickDependency(CharacterMovement->PrimaryComponentTick, OldBase);
-				MovementBaseUtility::AddTickDependency(CharacterMovement->PrimaryComponentTick, NewBaseComponent);
+				// We use a special post physics function if simulating, otherwise add normal tick prereqs.
+				if (!bBaseIsSimulating)
+				{
+					MovementBaseUtility::AddTickDependency(CharacterMovement->PrimaryComponentTick, NewBaseComponent);
+				}
 			}
 
 			if (NewBaseComponent)
@@ -635,12 +638,13 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 				// Update OldBaseLocation/Rotation as those were referring to a different base
 				// ... but not when handling replication for proxies (since they are going to copy this data from the replicated values anyway)
 				if (!bInBaseReplication)
-				{					
+				{
+					// Force base location and relative position to be computed since we have a new base or bone so the old relative offset is meaningless.
 					CharacterMovement->SaveBaseLocation();
 				}
 
-				// Enable pre-cloth tick if we are standing on a physics object, as we need to to use post-physics transforms
-				CharacterMovement->PostPhysicsTickFunction.SetTickFunctionEnable(NewBaseComponent->IsSimulatingPhysics());
+				// Enable PostPhysics tick if we are standing on a physics object, as we need to to use post-physics transforms
+				CharacterMovement->PostPhysicsTickFunction.SetTickFunctionEnable(bBaseIsSimulating);
 			}
 			else
 			{

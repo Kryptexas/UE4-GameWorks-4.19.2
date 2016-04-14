@@ -1888,7 +1888,9 @@ void FAnimBlueprintCompiler::FEvaluationHandlerRecord::PatchFunctionNameAndCopyR
 		if(AnimNodeSinglePropertyHandler.SimpleCopyPropertyName != NAME_None)
 		{
 			UProperty* SimpleCopyPropertySource = TargetObject->GetClass()->FindPropertyByName(AnimNodeSinglePropertyHandler.SimpleCopyPropertyName);
-			if (SimpleCopyPropertySource)
+
+			// we dont support copying *from* array properties at the moment
+			if (SimpleCopyPropertySource && !SimpleCopyPropertySource->IsA<UArrayProperty>())
 			{
 				if (AnimNodeSinglePropertyHandler.ArrayPins.Num() > 0)
 				{
@@ -1965,7 +1967,7 @@ void FAnimBlueprintCompiler::FEvaluationHandlerRecord::PatchFunctionNameAndCopyR
 			}
 			else
 			{
-				// property removed?
+				// property removed or unsupported property
 				bOnlyUsesCopyRecords = false;
 			}
 		}
@@ -2014,11 +2016,15 @@ static UEdGraphNode* FollowKnots(UEdGraphPin* FromPin, UEdGraphPin*& DestPin)
 		{
 			if(UEdGraphPin* InputPin = FindFirstInputPin(KnotNode))
 			{
-				if(InputPin->LinkedTo[0])
+				if (InputPin->LinkedTo.Num() > 0 && InputPin->LinkedTo[0])
 				{
 					DestPin = InputPin->LinkedTo[0];
 					LinkedNode = InputPin->LinkedTo[0]->GetOwningNode();
 					KnotNode = Cast<UK2Node_Knot>(LinkedNode);
+				}
+				else
+				{
+					KnotNode = nullptr;
 				}
 			}
 		}

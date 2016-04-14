@@ -25,7 +25,7 @@ class COREUOBJECT_API UObjectBase
 		);
 protected:
 	UObjectBase() :
-		 Name(NoInit)  // screwy, but the name was already set and we don't want to set it again
+		 NamePrivate(NoInit)  // screwy, but the name was already set and we don't want to set it again
 	{
 	}
 	/**
@@ -110,15 +110,15 @@ public:
 	}
 	FORCEINLINE UClass* GetClass() const
 	{
-		return Class;
+		return ClassPrivate;
 	}
 	FORCEINLINE UObject* GetOuter() const
 	{
-		return Outer;
+		return OuterPrivate;
 	}
 	FORCEINLINE FName GetFName() const
 	{
-		return Name;
+		return NamePrivate;
 	}
 
 	/** 
@@ -216,13 +216,13 @@ private:
 	int32								InternalIndex;
 
 	/** Class the object belongs to. */
-	UClass*							Class;
+	UClass*							ClassPrivate;
 
 	/** Name of this object */
-	FName							Name;
+	FName							NamePrivate;
 
 	/** Object this object resides in. */
-	UObject*						Outer;
+	UObject*						OuterPrivate;
 
 
 	/** Stat id of this object, 0 if nobody asked for it yet */

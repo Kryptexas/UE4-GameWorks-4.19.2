@@ -379,6 +379,8 @@ private:
 	float LastKnownScale;
 
 public:
+
+	float GetLastKnownScale() const { return LastKnownScale; }
 	/** Sets the LinearX Motion Type
 	*	@param MotionType	New Motion Type
 	*/

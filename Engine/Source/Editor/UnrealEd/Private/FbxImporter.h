@@ -126,6 +126,7 @@ struct FBXImportOptions
 	bool	bPreserveLocalTransform;
 	bool	bDeleteExistingMorphTargetCurves;
 	bool	bImportCustomAttribute;
+	bool	bSetMaterialDriveParameterOnCustomAttribute;
 
 	/** This allow to add a prefix to the material name when unreal material get created.	
 	*   This prefix can just modify the name of the asset for materials (i.e. TEXT("Mat"))

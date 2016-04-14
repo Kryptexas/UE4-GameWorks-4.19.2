@@ -842,7 +842,7 @@ void ComputeUpdateRegionsAndUpdateViewState(
 			ClipmapViewState.PrimitiveModifiedBounds.Append(PrimitiveModifiedBounds);
 
 			const bool bForceFullUpdate = bReallocated
-				|| !View.ViewState->bIntializedGlobalDistanceFieldOrigins
+				|| !View.ViewState->bInitializedGlobalDistanceFieldOrigins
 				// Detect when max occlusion distance has changed
 				|| ClipmapViewState.CachedMaxOcclusionDistance != MaxOcclusionDistance
 				|| ClipmapViewState.CachedGlobalDistanceFieldViewDistance != Scene->GlobalDistanceFieldViewDistance;
@@ -934,7 +934,7 @@ void ComputeUpdateRegionsAndUpdateViewState(
 
 					// Store the location of the full update
 					ClipmapViewState.FullUpdateOrigin = GridCenter;
-					View.ViewState->bIntializedGlobalDistanceFieldOrigins = true;
+					View.ViewState->bInitializedGlobalDistanceFieldOrigins = true;
 				}
 
 				ClipmapViewState.PrimitiveModifiedBounds.Reset();

@@ -216,7 +216,7 @@ class UStaticMeshComponent* UVREditorGizmoHandleGroup::CreateMeshHandle( class U
 
 	HandleComponent->SetStaticMesh( HandleMesh );
 	HandleComponent->SetMobility( EComponentMobility::Movable );
-	HandleComponent->AttachTo( this );
+	HandleComponent->SetupAttachment( this );
 
 	HandleComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 	HandleComponent->SetCollisionResponseToAllChannels( ECR_Ignore );

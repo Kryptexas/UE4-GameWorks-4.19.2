@@ -1019,11 +1019,10 @@ public:
 	/** Update controller's view rotation as pawn's base rotates */
 	virtual void UpdateBasedRotation(FRotator& FinalRotation, const FRotator& ReducedRotation);
 
-	/** Update (or defer updating) OldBaseLocation and OldBaseQuat if there is a valid movement base. */
-	DEPRECATED(4.4, "CharacterMovementComponent::MaybeSaveBaseLocation() will be removed, call SaveBaseLocation().")
+	/** Call SaveBaseLocation() if not deferring updates (bDeferUpdateBasedMovement is false). */
 	virtual void MaybeSaveBaseLocation();
 
-	/** Update OldBaseLocation and OldBaseQuat if there is a valid movement base, and store the relative location/rotation if necessary. */
+	/** Update OldBaseLocation and OldBaseQuat if there is a valid movement base, and store the relative location/rotation if necessary. Ignores bDeferUpdateBasedMovement and forces the update. */
 	virtual void SaveBaseLocation();
 
 	/** changes physics based on MovementMode */

@@ -1359,10 +1359,9 @@ UNavigationPath* UNavigationSystem::FindPathToLocationSynchronously(UObject* Wor
 		}
 
 		check(NavigationData);
-		FPathFindingQuery Query(PathfindingContext, *NavigationData, PathStart, PathEnd);
-		Query.QueryFilter = UNavigationQueryFilter::GetQueryFilter(*NavigationData, FilterClass);
 
-		FPathFindingResult Result = NavSys->FindPathSync(Query, EPathFindingMode::Regular);
+		const FPathFindingQuery Query(PathfindingContext, *NavigationData, PathStart, PathEnd, UNavigationQueryFilter::GetQueryFilter(*NavigationData, PathfindingContext, FilterClass));
+		const FPathFindingResult Result = NavSys->FindPathSync(Query, EPathFindingMode::Regular);
 		if (Result.IsSuccessful())
 		{
 			ResultPath->SetPath(Result.Path);
@@ -1408,7 +1407,7 @@ bool UNavigationSystem::NavigationRaycast(UObject* WorldContextObject, const FVe
 
 		if (NavData != NULL)
 		{
-			bRaycastBlocked = NavData->Raycast(RayStart, RayEnd, HitLocation, UNavigationQueryFilter::GetQueryFilter(*NavData, FilterClass));
+			bRaycastBlocked = NavData->Raycast(RayStart, RayEnd, HitLocation, UNavigationQueryFilter::GetQueryFilter(*NavData, Querier, FilterClass));
 		}
 	}
 
@@ -3585,7 +3584,8 @@ FVector UNavigationSystem::ProjectPointToNavigation(UObject* WorldContextObject,
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			NavSys->ProjectPointToNavigation(Point, ProjectedPoint, QueryExtent.IsNearlyZero() ? INVALID_NAVEXTENT : QueryExtent, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, FilterClass));
+			NavSys->ProjectPointToNavigation(Point, ProjectedPoint, QueryExtent.IsNearlyZero() ? INVALID_NAVEXTENT : QueryExtent, UseNavData,
+				UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
 		}
 	}
 
@@ -3603,7 +3603,7 @@ FVector UNavigationSystem::GetRandomPoint(UObject* WorldContextObject, ANavigati
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			NavSys->GetRandomPoint(RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, FilterClass));
+			NavSys->GetRandomPoint(RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
 		}
 	}
 
@@ -3621,7 +3621,7 @@ FVector UNavigationSystem::GetRandomReachablePointInRadius(UObject* WorldContext
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			NavSys->GetRandomReachablePointInRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, FilterClass));
+			NavSys->GetRandomReachablePointInRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
 		}
 	}
 
@@ -3639,7 +3639,7 @@ FVector UNavigationSystem::GetRandomPointInNavigableRadius(UObject* WorldContext
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			NavSys->GetRandomPointInNavigableRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, FilterClass));
+			NavSys->GetRandomPointInNavigableRadius(Origin, Radius, RandomPoint, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContext, FilterClass));
 		}
 	}
 
@@ -3655,7 +3655,7 @@ ENavigationQueryResult::Type UNavigationSystem::GetPathCost(UObject* WorldContex
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			return NavSys->GetPathCost(PathStart, PathEnd, OutPathCost, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, FilterClass));
+			return NavSys->GetPathCost(PathStart, PathEnd, OutPathCost, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
 		}
 	}
 
@@ -3673,7 +3673,7 @@ ENavigationQueryResult::Type UNavigationSystem::GetPathLength(UObject* WorldCont
 		ANavigationData* UseNavData = NavData ? NavData : NavSys->GetMainNavData(FNavigationSystem::DontCreate);
 		if (UseNavData)
 		{
-			return NavSys->GetPathLength(PathStart, PathEnd, OutPathLength, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, FilterClass));
+			return NavSys->GetPathLength(PathStart, PathEnd, OutPathLength, UseNavData, UNavigationQueryFilter::GetQueryFilter(*UseNavData, WorldContextObject, FilterClass));
 		}
 	}
 

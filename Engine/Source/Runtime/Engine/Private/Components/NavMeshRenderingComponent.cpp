@@ -956,8 +956,8 @@ void FNavMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>&
 
 			for (int32 Index = 0; Index < ProxyData.OctreeBounds.Num(); ++Index)
 			{
-				const FBoxCenterAndExtent& Bounds = ProxyData.OctreeBounds[Index];
-				DrawDebugBox(PDI, Bounds.Center, Bounds.Extent, FColor::White);
+				const FBoxCenterAndExtent& ProxyBounds = ProxyData.OctreeBounds[Index];
+				DrawDebugBox(PDI, ProxyBounds.Center, ProxyBounds.Extent, FColor::White);
 			}
 
 			// Draw Mesh
@@ -1274,7 +1274,7 @@ void UNavMeshRenderingComponent::OnUnregister()
 FPrimitiveSceneProxy* UNavMeshRenderingComponent::CreateSceneProxy()
 {
 #if WITH_RECAST && !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-	FPrimitiveSceneProxy* SceneProxy = nullptr;
+	FPrimitiveSceneProxy* NavMeshSceneProxy = nullptr;
 
 	const bool bShowNavigation = IsNavigationShowFlagSet(GetWorld());
 
@@ -1291,10 +1291,10 @@ FPrimitiveSceneProxy* UNavMeshRenderingComponent::CreateSceneProxy()
 			TArray<int32> EmptyTileSet;
 			ProxyData.GatherData(NavMesh, DetailFlags, EmptyTileSet);
 
-			SceneProxy = new FNavMeshSceneProxy(this, &ProxyData);
+			NavMeshSceneProxy = new FNavMeshSceneProxy(this, &ProxyData);
 		}
 	}
-	return SceneProxy;
+	return NavMeshSceneProxy;
 #else
 	return nullptr;
 #endif //WITH_RECAST && !UE_BUILD_SHIPPING && !UE_BUILD_TEST

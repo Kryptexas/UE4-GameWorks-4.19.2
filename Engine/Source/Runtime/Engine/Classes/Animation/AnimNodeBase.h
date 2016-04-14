@@ -425,6 +425,10 @@ struct FExposedValueCopyRecord
 		, DestArrayIndex(0)
 		, Size(0)
 		, PostCopyOperation(EPostCopyOperation::None)
+		, CachedBoolSourceProperty(nullptr)
+		, CachedBoolDestProperty(nullptr)
+		, CachedSourceContainer(nullptr)
+		, CachedDestContainer(nullptr)
 		, Source(nullptr)
 		, Dest(nullptr)
 	{}
@@ -454,6 +458,20 @@ struct FExposedValueCopyRecord
 
 	UPROPERTY()
 	EPostCopyOperation PostCopyOperation;
+
+	// cached source property for performing boolean operations
+	UPROPERTY(Transient)
+	UBoolProperty* CachedBoolSourceProperty;
+
+	// cached dest property for performing boolean operations
+	UPROPERTY(Transient)
+	UBoolProperty* CachedBoolDestProperty;
+
+	// cached source container for use with boolean operations
+	void* CachedSourceContainer;
+
+	// cached dest container for use with boolean operations
+	void* CachedDestContainer;
 
 	// Cached source copy ptr
 	void* Source;

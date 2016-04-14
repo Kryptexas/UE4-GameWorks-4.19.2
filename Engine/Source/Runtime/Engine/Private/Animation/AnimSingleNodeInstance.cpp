@@ -32,6 +32,14 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 	FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
 	Proxy.SetAnimationAsset(NewAsset, GetSkelMeshComponent(), bInIsLooping, InPlayRate);
 
+	// if composite, we want to make sure this is valid
+	// this is due to protect recursive created composite
+	// however, if we support modifying asset outside of viewport, it will have to be called whenever modified
+	if (UAnimCompositeBase* CompositeBase = Cast<UAnimCompositeBase>(NewAsset))
+	{
+		CompositeBase->InvalidateRecursiveAsset();
+	}
+
 	UAnimMontage* Montage = Cast<UAnimMontage>(NewAsset);
 	if ( Montage!=NULL )
 	{

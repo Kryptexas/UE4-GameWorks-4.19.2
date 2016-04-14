@@ -3568,7 +3568,7 @@ void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const
 		{
 			AActor* OldParentActor = ChildRoot->GetAttachParent()->GetOwner();
 			OldParentActor->Modify();
-			ChildRoot->DetachFromParent(true);
+			ChildRoot->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 
 			GEngine->BroadcastLevelActorDetached(ChildActor, OldParentActor);
 		}
@@ -3577,12 +3577,12 @@ void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const
 		if(ParentRoot->IsAttachedTo(ChildRoot))
 		{
 			ParentRoot->GetAttachParent()->GetOwner()->Modify();
-			ParentRoot->DetachFromParent(true);
+			ParentRoot->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 		}
 
 		// Snap to socket if a valid socket name was provided, otherwise attach without changing the relative transform
 		const bool bValidSocketName = !SocketName.IsNone() && ParentRoot->DoesSocketExist(SocketName);
-		ChildRoot->AttachTo(ParentRoot, SocketName, bValidSocketName ? EAttachLocation::SnapToTarget : EAttachLocation::KeepWorldPosition);
+		ChildRoot->AttachToComponent(ParentRoot, bValidSocketName ? FAttachmentTransformRules::SnapToTargetNotIncludingScale : FAttachmentTransformRules::KeepWorldTransform, SocketName);
 
 		// Refresh editor in case child was translated after snapping to socket
 		RedrawLevelEditingViewports();
@@ -3604,7 +3604,7 @@ bool UEditorEngine::DetachSelectedActors()
 		{
 			AActor* OldParentActor = RootComp->GetAttachParent()->GetOwner();
 			OldParentActor->Modify();
-			RootComp->DetachFromParent(true);
+			RootComp->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 			bDetachOccurred = true;
 			Actor->SetFolderPath_Recursively(OldParentActor->GetFolderPath());
 		}
@@ -4462,7 +4462,7 @@ namespace ReattachActorsHelper
 						if (CanParentActors(ParentActor, ChildActor))
 						{
 							// Attach the previously attached and newly converted actor to the current converted actor.
-							ChildActor->AttachRootComponentToActor(ParentActor, CurrentAttachment.AttachedActors[AttachedIdx].SocketName, EAttachLocation::KeepWorldPosition);
+							ChildActor->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform, CurrentAttachment.AttachedActors[AttachedIdx].SocketName);
 						}
 					}
 
@@ -4475,7 +4475,7 @@ namespace ReattachActorsHelper
 					if (CanParentActors(ParentActor, ChildActor))
 					{
 						// Since the actor was not converted, reattach the unconverted actor.
-						ChildActor->AttachRootComponentToActor(ParentActor, CurrentAttachment.AttachedActors[AttachedIdx].SocketName, EAttachLocation::KeepWorldPosition);
+						ChildActor->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform, CurrentAttachment.AttachedActors[AttachedIdx].SocketName);
 					}
 				}
 
@@ -4493,7 +4493,7 @@ namespace ReattachActorsHelper
 
 					if (CanParentActors(ParentActor, ChildActor))
 					{
-						ChildActor->AttachRootComponentToActor(ParentActor, CurrentAttachment.ParentActor.SocketName, EAttachLocation::KeepWorldPosition);
+						ChildActor->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform, CurrentAttachment.ParentActor.SocketName);
 					}
 				}
 
@@ -4507,7 +4507,7 @@ namespace ReattachActorsHelper
 				if (ParentActor && CanParentActors(ParentActor, ChildActor))
 				{
 					// The parent was not converted, attach to the unconverted parent.
-					ChildActor->AttachRootComponentToActor(ParentActor, CurrentAttachment.ParentActor.SocketName, EAttachLocation::KeepWorldPosition);
+					ChildActor->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform, CurrentAttachment.ParentActor.SocketName);
 				}
 			}
 		}

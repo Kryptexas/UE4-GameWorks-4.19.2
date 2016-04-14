@@ -2994,20 +2994,15 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 						UParticleModuleOrbit* LastOrbit = SpriteTemplate->LODLevels[0]->OrbitModules[LODLevel->OrbitModules.Num() - 1];
 						check(LastOrbit);
 					
-						uint32 OrbitModuleOffset = *SpriteTemplate->ModuleOffsetMap.Find(LastOrbit);
+						uint32 SpriteOrbitModuleOffset = *SpriteTemplate->ModuleOffsetMap.Find(LastOrbit);
 						if (OrbitModuleOffset != 0)
 						{
-							FOrbitChainModuleInstancePayload &OrbitPayload = *(FOrbitChainModuleInstancePayload*)((uint8*)&Particle + OrbitModuleOffset);
-
-							FVector OrbitOffset = OrbitPayload.Offset;
-							FVector PrevOrbitOffset = OrbitPayload.PreviousOffset;
-							FVector Location = Particle.Location;
-							FVector OldLocation = Particle.OldLocation;
+							const FOrbitChainModuleInstancePayload &OrbitPayload = *(FOrbitChainModuleInstancePayload*)((uint8*)&Particle + SpriteOrbitModuleOffset);
 
 							//this should be our current position
-							FVector NewPos = Location + OrbitOffset;	
+							const FVector NewPos =  Particle.Location + OrbitPayload.Offset;	
 							//this should be our previous position
-							FVector OldPos = OldLocation + PrevOrbitOffset;
+							const FVector OldPos = Particle.OldLocation + OrbitPayload.PreviousOffset;
 
 							NewDirection = NewPos - OldPos;
 						}	
@@ -3319,11 +3314,11 @@ void FParticleMeshEmitterInstance::PostSpawn(FBaseParticle* Particle, float Inte
 	}
 }
 
-bool FParticleMeshEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel)
+bool FParticleMeshEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* InCurrentLODLevel)
 {
 	return MeshTypeData->Mesh != NULL
 		&& MeshTypeData->Mesh->HasValidRenderData()
-		&& FParticleEmitterInstance::IsDynamicDataRequired(CurrentLODLevel);
+		&& FParticleEmitterInstance::IsDynamicDataRequired(InCurrentLODLevel);
 }
 
 /**

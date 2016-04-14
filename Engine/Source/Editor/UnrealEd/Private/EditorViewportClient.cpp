@@ -30,6 +30,7 @@
 #include "PixelInspectorModule.h"
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -4512,9 +4513,31 @@ bool FEditorViewportClient::IsSetShowBoundsChecked() const
 	return EngineShowFlags.Bounds;
 }
 
+void FEditorViewportClient::UpdateHiddenCollisionDrawing()
+{
+	FSceneInterface* SceneInterface = GetScene();
+	if (SceneInterface != nullptr)
+	{
+		UWorld* World = SceneInterface->GetWorld();
+		if (World != nullptr)
+		{
+			// See if this is a collision view mode
+			bool bCollisionMode = EngineShowFlags.Collision || EngineShowFlags.CollisionVisibility || EngineShowFlags.CollisionPawn;
+
+			// Tell engine to create proxies for hidden components, so we can still draw collision
+			World->bCreateRenderStateForHiddenComponents = bCollisionMode;
+
+			// Need to recreate scene proxies when this flag changes.
+			FGlobalComponentRecreateRenderStateContext Recreate;
+		}
+	}
+}
+
+
 void FEditorViewportClient::SetShowCollision()
 {
 	EngineShowFlags.SetCollision(!EngineShowFlags.Collision);
+	UpdateHiddenCollisionDrawing();
 	Invalidate();
 }
 
@@ -4543,6 +4566,7 @@ void FEditorViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 		ApplyViewMode(OrthoViewModeIndex, false, EngineShowFlags);
 	}
 
+	UpdateHiddenCollisionDrawing();
 	Invalidate();
 }
 
@@ -4560,6 +4584,7 @@ void FEditorViewportClient::SetViewModes(const EViewModeIndex InPerspViewModeInd
 		ApplyViewMode(OrthoViewModeIndex, false, EngineShowFlags);
 	}
 
+	UpdateHiddenCollisionDrawing();
 	Invalidate();
 }
 

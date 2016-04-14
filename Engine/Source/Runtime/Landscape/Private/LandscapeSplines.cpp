@@ -790,7 +790,7 @@ ULandscapeSplinesComponent* ULandscapeSplinesComponent::GetStreamingSplinesCompo
 				ComponentLandscapeProxy->Modify();
 				ComponentLandscapeProxy->SplineComponent = NewObject<ULandscapeSplinesComponent>(ComponentLandscapeProxy, NAME_None, RF_Transactional);
 				ComponentLandscapeProxy->SplineComponent->RelativeScale3D = RelativeScale3D;
-				ComponentLandscapeProxy->SplineComponent->AttachTo(ComponentLandscapeProxy->GetRootComponent());
+				ComponentLandscapeProxy->SplineComponent->AttachToComponent(ComponentLandscapeProxy->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 			}
 			if (ComponentLandscapeProxy->SplineComponent)
 			{
@@ -818,7 +818,7 @@ ULandscapeSplinesComponent* ULandscapeSplinesComponent::GetStreamingSplinesCompo
 				Proxy->Modify();
 				Proxy->SplineComponent = NewObject<ULandscapeSplinesComponent>(Proxy, NAME_None, RF_Transactional);
 				Proxy->SplineComponent->RelativeScale3D = RelativeScale3D;
-				Proxy->SplineComponent->AttachTo(Proxy->GetRootComponent());
+				Proxy->SplineComponent->AttachToComponent(Proxy->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 			}
 			return Proxy->SplineComponent;
 		}
@@ -1426,7 +1426,7 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 			MeshComponentOuterActor->Modify();
 			MeshComponent = NewObject<UControlPointMeshComponent>(MeshComponentOuterActor, NAME_None, RF_Transactional | RF_TextExportTransient);
 			MeshComponent->bSelected = bSelected;
-			MeshComponent->AttachTo(MeshComponentOuterSplines);
+			MeshComponent->AttachToComponent(MeshComponentOuterSplines, FAttachmentTransformRules::KeepRelativeTransform);
 			bComponentNeedsRegistering = true;
 
 			if (MeshComponentOuterSplines == OuterSplines)
@@ -2114,7 +2114,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				MeshComponentOuterActor->Modify();
 				MeshComponent = NewObject<USplineMeshComponent>(MeshComponentOuterActor, NAME_None, RF_Transactional | RF_TextExportTransient);
 				MeshComponent->bSelected = bSelected;
-				MeshComponent->AttachTo(MeshComponentOuterSplines);
+				MeshComponent->AttachToComponent(MeshComponentOuterSplines, FAttachmentTransformRules::KeepRelativeTransform);
 				if (MeshComponentOuterSplines == OuterSplines)
 				{
 					LocalMeshComponents.Add(MeshComponent);

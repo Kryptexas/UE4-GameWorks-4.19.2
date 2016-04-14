@@ -69,7 +69,7 @@ void FMovieScene3DTransformPropertyRecorder::FinalizeSection()
 			for (int32 TrackIndex = 0; TrackIndex < AnimSequence->RawAnimationData.Num(); ++TrackIndex)
 			{
 				// verify if this bone exists in skeleton
-				int32 BoneTreeIndex = AnimSequence->GetSkeletonIndexFromTrackIndex(TrackIndex);
+				int32 BoneTreeIndex = AnimSequence->GetSkeletonIndexFromRawDataTrackIndex(TrackIndex);
 				if (BoneTreeIndex != INDEX_NONE)
 				{
 					int32 BoneIndex = AnimSkeleton->GetMeshBoneIndexFromSkeletonBoneIndex(SkeletalMesh, BoneTreeIndex);

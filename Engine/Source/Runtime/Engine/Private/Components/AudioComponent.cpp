@@ -124,9 +124,9 @@ void UAudioComponent::SetSound( USoundBase* NewSound )
 	}
 }
 
-void UAudioComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
+void UAudioComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
 {
-	Super::OnUpdateTransform(bSkipPhysicsMove, Teleport);
+	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
 
 	if (bIsActive && !bPreviewComponent)
 	{
@@ -169,7 +169,6 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 	++ActiveCount;
 
 	// Whether or not we managed to actually try to play the sound
-	bool bPlayedSound = false;
 	if (Sound && (World == nullptr || World->bAllowAudioPlayback))
 	{
 		if (FAudioDevice* AudioDevice = GetAudioDevice())
@@ -182,84 +181,73 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 
 			AudioDevice->GetMaxDistanceAndFocusFactor(Sound, World, Location, AttenuationSettingsToApply, &MaxDistance, &FocusFactor);
 
-			if (Sound->IsLooping() || AudioDevice->SoundIsAudible(Sound, World, Location, AttenuationSettingsToApply, MaxDistance, FocusFactor))
+			FActiveSound NewActiveSound;
+			NewActiveSound.SetAudioComponent(this);
+			NewActiveSound.World = GetWorld();
+			NewActiveSound.Sound = Sound;
+			NewActiveSound.SoundClassOverride = SoundClassOverride;
+			NewActiveSound.ConcurrencySettings = ConcurrencySettings;
+
+			NewActiveSound.VolumeMultiplier = (VolumeModulationMax + ((VolumeModulationMin - VolumeModulationMax) * FMath::SRand())) * VolumeMultiplier;
+			// The priority used for the active sound is the audio component's priority scaled with the sound's priority
+			if (bOverridePriority)
 			{
-				FActiveSound NewActiveSound;
-				NewActiveSound.SetAudioComponent(this);
-				NewActiveSound.World = GetWorld();
-				NewActiveSound.Sound = Sound;
-				NewActiveSound.SoundClassOverride = SoundClassOverride;
-				NewActiveSound.ConcurrencySettings = ConcurrencySettings;
-
-				NewActiveSound.VolumeMultiplier = (VolumeModulationMax + ((VolumeModulationMin - VolumeModulationMax) * FMath::SRand())) * VolumeMultiplier;
-				// The priority used for the active sound is the audio component's priority scaled with the sound's priority
-				if (bOverridePriority)
-				{
-					NewActiveSound.Priority = Priority;
-				}
-				else
-				{
-					NewActiveSound.Priority = Sound->Priority;
-				}
-
-				NewActiveSound.PitchMultiplier = (PitchModulationMax + ((PitchModulationMin - PitchModulationMax) * FMath::SRand())) * PitchMultiplier;
-				NewActiveSound.bEnableLowPassFilter = bEnableLowPassFilter;
-				NewActiveSound.LowPassFilterFrequency = LowPassFilterFrequency;
-				NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
-				NewActiveSound.SubtitlePriority = SubtitlePriority;
-
-				NewActiveSound.bShouldRemainActiveIfDropped = bShouldRemainActiveIfDropped;
-				NewActiveSound.bHandleSubtitles = (!bSuppressSubtitles || OnQueueSubtitles.IsBound());
-				NewActiveSound.bIgnoreForFlushing = bIgnoreForFlushing;
-
-				NewActiveSound.bIsUISound = bIsUISound;
-				NewActiveSound.bIsMusic = bIsMusic;
-				NewActiveSound.bAlwaysPlay = bAlwaysPlay;
-				NewActiveSound.bReverb = bReverb;
-				NewActiveSound.bCenterChannelOnly = bCenterChannelOnly;
-				NewActiveSound.bIsPreviewSound = bIsPreviewSound;
-				NewActiveSound.bLocationDefined = !bPreviewComponent;
-				if (NewActiveSound.bLocationDefined)
-				{
-					NewActiveSound.Transform = ComponentToWorld;
-				}
-
-				NewActiveSound.bAllowSpatialization = bAllowSpatialization;
-				NewActiveSound.bHasAttenuationSettings = (AttenuationSettingsToApply != nullptr);
-				if (NewActiveSound.bHasAttenuationSettings)
-				{
-					NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
-					NewActiveSound.FocusPriorityScale = AttenuationSettingsToApply->GetFocusPriorityScale(AudioDevice->GlobalFocusSettings, FocusFactor);
-				}
-
-				NewActiveSound.MaxDistance = MaxDistance;
-
-				NewActiveSound.InstanceParameters = InstanceParameters;
-				NewActiveSound.TargetAdjustVolumeMultiplier = FadeVolumeLevel;
-
-				if (FadeInDuration > 0.0f)
-				{
-					NewActiveSound.CurrentAdjustVolumeMultiplier = 0.f;
-					NewActiveSound.TargetAdjustVolumeStopTime = FadeInDuration;
-				}
-				else
-				{
-					NewActiveSound.CurrentAdjustVolumeMultiplier = FadeVolumeLevel;
-				}
-
-				// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
-				AudioDevice->AddNewActiveSound(NewActiveSound);
-				bIsActive = true;
-				bPlayedSound = true;
+				NewActiveSound.Priority = Priority;
 			}
-		}
-	}
+			else
+			{
+				NewActiveSound.Priority = Sound->Priority;
+			}
 
-	// Failed to actually try and play the sound so notify that the sound is complete.
-	// This will destroy the audio component if this is the last active sound on the audio component
-	if (!bPlayedSound)
-	{
-		PlaybackCompleted(true);
+			NewActiveSound.PitchMultiplier = (PitchModulationMax + ((PitchModulationMin - PitchModulationMax) * FMath::SRand())) * PitchMultiplier;
+			NewActiveSound.bEnableLowPassFilter = bEnableLowPassFilter;
+			NewActiveSound.LowPassFilterFrequency = LowPassFilterFrequency;
+			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
+			NewActiveSound.SubtitlePriority = SubtitlePriority;
+
+			NewActiveSound.bShouldRemainActiveIfDropped = bShouldRemainActiveIfDropped;
+			NewActiveSound.bHandleSubtitles = (!bSuppressSubtitles || OnQueueSubtitles.IsBound());
+			NewActiveSound.bIgnoreForFlushing = bIgnoreForFlushing;
+
+			NewActiveSound.bIsUISound = bIsUISound;
+			NewActiveSound.bIsMusic = bIsMusic;
+			NewActiveSound.bAlwaysPlay = bAlwaysPlay;
+			NewActiveSound.bReverb = bReverb;
+			NewActiveSound.bCenterChannelOnly = bCenterChannelOnly;
+			NewActiveSound.bIsPreviewSound = bIsPreviewSound;
+			NewActiveSound.bLocationDefined = !bPreviewComponent;
+			if (NewActiveSound.bLocationDefined)
+			{
+				NewActiveSound.Transform = ComponentToWorld;
+			}
+
+			NewActiveSound.bAllowSpatialization = bAllowSpatialization;
+			NewActiveSound.bHasAttenuationSettings = (AttenuationSettingsToApply != nullptr);
+			if (NewActiveSound.bHasAttenuationSettings)
+			{
+				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
+				NewActiveSound.FocusPriorityScale = AttenuationSettingsToApply->GetFocusPriorityScale(AudioDevice->GlobalFocusSettings, FocusFactor);
+			}
+
+			NewActiveSound.MaxDistance = MaxDistance;
+
+			NewActiveSound.InstanceParameters = InstanceParameters;
+			NewActiveSound.TargetAdjustVolumeMultiplier = FadeVolumeLevel;
+
+			if (FadeInDuration > 0.0f)
+			{
+				NewActiveSound.CurrentAdjustVolumeMultiplier = 0.f;
+				NewActiveSound.TargetAdjustVolumeStopTime = FadeInDuration;
+			}
+			else
+			{
+				NewActiveSound.CurrentAdjustVolumeMultiplier = FadeVolumeLevel;
+			}
+
+			// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
+			AudioDevice->AddNewActiveSound(NewActiveSound);
+			bIsActive = true;
+		}
 	}
 }
 

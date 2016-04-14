@@ -638,7 +638,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* const Heightma
 		}
 
 		CollisionComp->SetRelativeLocation(RelativeLocation);
-		CollisionComp->AttachTo(Proxy->GetRootComponent(), NAME_None);
+		CollisionComp->SetupAttachment(Proxy->GetRootComponent(), NAME_None);
 		Proxy->CollisionComponents.Add(CollisionComp);
 
 		CollisionComp->RenderComponent = this;
@@ -2004,7 +2004,7 @@ LANDSCAPE_API void ALandscapeProxy::Import(
 
 			ULandscapeComponent* LandscapeComponent = NewObject<ULandscapeComponent>(this, NAME_None, RF_Transactional);
 			LandscapeComponent->SetRelativeLocation(FVector(BaseX, BaseY, 0));
-			LandscapeComponent->AttachTo(GetRootComponent(), NAME_None);
+			LandscapeComponent->SetupAttachment(GetRootComponent(), NAME_None);
 			LandscapeComponents.Add(LandscapeComponent);
 			LandscapeComponent->Init(
 				BaseX, BaseY,

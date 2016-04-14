@@ -21,7 +21,7 @@ ATP_RollingBall::ATP_RollingBall()
 
 	// Create a camera boom attached to the root (ball)
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm0"));
-	SpringArm->AttachTo(RootComponent);
+	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->bDoCollisionTest = false;
 	SpringArm->bAbsoluteRotation = true; // Rotation of the ball should not affect rotation of boom
 	SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
@@ -31,7 +31,7 @@ ATP_RollingBall::ATP_RollingBall()
 
 	// Create a camera and attach to boom
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera0"));
-	Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
+	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false; // We don't want the controller rotating the camera
 
 	// Set up forces

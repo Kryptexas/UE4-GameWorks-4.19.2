@@ -98,6 +98,12 @@ struct ENGINE_API FCollisionResponse
 	void SetResponsesArray(const TArray<FResponseChannel>& InChannelResponses);
 	void UpdateResponseContainerFromArray();
 
+	bool operator==(const FCollisionResponse& Other) const;
+	bool operator!=(const FCollisionResponse& Other) const
+	{
+		return !(*this == Other);
+	}
+
 private:
 
 #if 1// @hack until PostLoad is disabled for CDO of BP - WITH_EDITOR
@@ -1051,6 +1057,9 @@ private:
 	 * for example, they would like to re-define CollisionEnabled or ObjectType or ResponseChannels
 	 */
 	void InvalidateCollisionProfileName();
+
+	/** Moves welded bodies within a rigid body (updates their shapes) */
+	void SetWeldedBodyTransform(FBodyInstance* TheirBody, const FTransform& NewTransform);
 		
 	/**
 	 * Return true if the collision profile name is valid
@@ -1062,6 +1071,7 @@ private:
 
 	friend class UCollisionProfile;
 	friend class FBodyInstanceCustomization;
+	friend struct FUpdateCollisionResponseHelper;
 	
 	friend struct FInitBodiesHelper<true>;
 	friend struct FInitBodiesHelper<false>;

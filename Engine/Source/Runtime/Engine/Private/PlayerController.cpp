@@ -84,6 +84,7 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	bForceFeedbackEnabled = true;
 
 	bAutoManageActiveCameraTarget = true;
+	SmoothTargetViewRotationSpeed = 20.f;
 	bHidePawnInCinematicMode = false;
 
 	bIsPlayerController = true;
@@ -612,39 +613,7 @@ void APlayerController::ForceSingleNetUpdateFor(AActor* Target)
 
 void APlayerController::SmoothTargetViewRotation(APawn* TargetPawn, float DeltaSeconds)
 {
-	struct FBlendHelper
-	{
-		/** worker function for APlayerController::SmoothTargetViewRotation() */
-		static float BlendRotation(float DeltaTime, float BlendC, float NewC)
-		{
-			if (FMath::Abs(BlendC - NewC) > 180.f)
-			{
-				if (BlendC > NewC)
-				{
-					NewC += 360.f;
-				}
-				else
-				{
-					BlendC += 360.f;
-				}
-			}
-
-			if (FMath::Abs(BlendC - NewC) > 22.57f)
-			{
-				BlendC = NewC;
-			}
-			else
-			{
-				BlendC = BlendC + (NewC - BlendC) * FMath::Min(1.f, 24.f * DeltaTime);
-			}
-
-			return FRotator::ClampAxis(BlendC);
-		}
-	};
-
-	BlendedTargetViewRotation.Pitch = FBlendHelper::BlendRotation(DeltaSeconds, BlendedTargetViewRotation.Pitch, FRotator::ClampAxis(TargetViewRotation.Pitch));
-	BlendedTargetViewRotation.Yaw = FBlendHelper::BlendRotation(DeltaSeconds, BlendedTargetViewRotation.Yaw, FRotator::ClampAxis(TargetViewRotation.Yaw));
-	BlendedTargetViewRotation.Roll = FBlendHelper::BlendRotation(DeltaSeconds, BlendedTargetViewRotation.Roll, FRotator::ClampAxis(TargetViewRotation.Roll));
+	BlendedTargetViewRotation = FMath::RInterpTo(BlendedTargetViewRotation, TargetViewRotation, DeltaSeconds, SmoothTargetViewRotationSpeed);
 }
 
 
@@ -1596,32 +1565,34 @@ bool APlayerController::ServerUpdateCamera_Validate(FVector_NetQuantize CamLoc, 
 
 void APlayerController::ServerUpdateCamera_Implementation(FVector_NetQuantize CamLoc, int32 CamPitchAndYaw)
 {
+	if (!PlayerCameraManager || !PlayerCameraManager->bUseClientSideCameraUpdates)
+	{
+		return;
+	}
+
 	FPOV NewPOV;
 	NewPOV.Location = CamLoc;
 	
 	NewPOV.Rotation.Yaw = FRotator::DecompressAxisFromShort( (CamPitchAndYaw >> 16) & 65535 );
 	NewPOV.Rotation.Pitch = FRotator::DecompressAxisFromShort(CamPitchAndYaw & 65535);
 
-	if (PlayerCameraManager)
+	if ( PlayerCameraManager->bDebugClientSideCamera )
 	{
-		if ( PlayerCameraManager->bDebugClientSideCamera )
-		{
-			// show differences (on server) between local and replicated camera
-			const FVector PlayerCameraLoc = PlayerCameraManager->GetCameraLocation();
+		// show differences (on server) between local and replicated camera
+		const FVector PlayerCameraLoc = PlayerCameraManager->GetCameraLocation();
 
-			DrawDebugSphere(GetWorld(), PlayerCameraLoc, 10, 10, FColor::Green );
-			DrawDebugSphere(GetWorld(), NewPOV.Location, 10, 10, FColor::Yellow );
-			DrawDebugLine(GetWorld(), PlayerCameraLoc, PlayerCameraLoc + 100*PlayerCameraManager->GetCameraRotation().Vector(), FColor::Green);
-			DrawDebugLine(GetWorld(), NewPOV.Location, NewPOV.Location + 100*NewPOV.Rotation.Vector(), FColor::Yellow);
-		}
-		else
-		{
-			//@TODO: CAMERA: Fat pipe
-			FMinimalViewInfo NewInfo = PlayerCameraManager->CameraCache.POV;
-			NewInfo.Location = NewPOV.Location;
-			NewInfo.Rotation = NewPOV.Rotation;
-			PlayerCameraManager->FillCameraCache(NewInfo);
-		}
+		DrawDebugSphere(GetWorld(), PlayerCameraLoc, 10, 10, FColor::Green );
+		DrawDebugSphere(GetWorld(), NewPOV.Location, 10, 10, FColor::Yellow );
+		DrawDebugLine(GetWorld(), PlayerCameraLoc, PlayerCameraLoc + 100*PlayerCameraManager->GetCameraRotation().Vector(), FColor::Green);
+		DrawDebugLine(GetWorld(), NewPOV.Location, NewPOV.Location + 100*NewPOV.Rotation.Vector(), FColor::Yellow);
+	}
+	else
+	{
+		//@TODO: CAMERA: Fat pipe
+		FMinimalViewInfo NewInfo = PlayerCameraManager->CameraCache.POV;
+		NewInfo.Location = NewPOV.Location;
+		NewInfo.Rotation = NewPOV.Rotation;
+		PlayerCameraManager->FillCameraCache(NewInfo);
 	}
 }
 
@@ -2375,36 +2346,6 @@ void APlayerController::SetCinematicMode( bool bInCinematicMode, bool bAffectsMo
 	}
 }
 
-
-void APlayerController::SetIgnoreMoveInput( bool bNewMoveInput )
-{
-	IgnoreMoveInput = FMath::Max( IgnoreMoveInput + (bNewMoveInput ? +1 : -1), 0 );
-}
-
-void APlayerController::ResetIgnoreMoveInput()
-{
-	IgnoreMoveInput = 0;
-}
-
-bool APlayerController::IsMoveInputIgnored() const
-{
-	return (IgnoreMoveInput > 0);
-}
-
-void APlayerController::SetIgnoreLookInput( bool bNewLookInput )
-{
-	IgnoreLookInput = FMath::Max( IgnoreLookInput + (bNewLookInput ? +1 : -1), 0 );
-}
-
-void APlayerController::ResetIgnoreLookInput()
-{
-	IgnoreLookInput = 0;
-}
-
-bool APlayerController::IsLookInputIgnored() const
-{
-	return (IgnoreLookInput > 0);
-}
 
 void APlayerController::SetViewTargetWithBlend(AActor* NewViewTarget, float BlendTime, EViewTargetBlendFunction BlendFunc, float BlendExp, bool bLockOutgoing)
 {

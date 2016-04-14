@@ -495,7 +495,7 @@ struct FNonativeComponentData
 		if (!ParentVariableName.IsEmpty())
 		{
 			const FString SocketName = (AttachToName == NAME_None) ? FString() : FString::Printf(TEXT(", TEXT(\"%s\")"), *AttachToName.ToString());
-			Context.AddLine(FString::Printf(TEXT("%s->AttachTo(%s %s);"), *NativeVariablePropertyName, *ParentVariableName, *SocketName));
+			Context.AddLine(FString::Printf(TEXT("%s->AttachToComponent(%s, FAttachmentTransformRules::KeepRelativeTransform, %s);"), *NativeVariablePropertyName, *ParentVariableName, *SocketName));
 			// AttachTo is called first in case some properties will be overridden.
 		}
 

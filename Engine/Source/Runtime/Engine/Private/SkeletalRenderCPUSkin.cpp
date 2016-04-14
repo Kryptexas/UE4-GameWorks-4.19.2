@@ -72,36 +72,40 @@ void FFinalSkinVertexBuffer::InitDynamicRHI()
 template <bool bExtraBoneInfluencesT>
 void FFinalSkinVertexBuffer::InitVertexData(FStaticLODModel& LodModel)
 {
-	// Create the buffer rendering resource
-	uint32 Size = LodModel.NumVertices * sizeof(FFinalSkinVertex);
-
-	FRHIResourceCreateInfo CreateInfo;
-	void* Buffer = nullptr;
-	VertexBufferRHI = RHICreateAndLockVertexBuffer(Size,BUF_Dynamic, CreateInfo, Buffer);	
-
-	// Initialize the vertex data
-	// All chunks are combined into one (rigid first, soft next)
-	check(LodModel.VertexBufferGPUSkin.GetNumVertices() == LodModel.NumVertices);
-
-	FFinalSkinVertex* DestVertex = (FFinalSkinVertex*)Buffer;
-	for( uint32 VertexIdx=0; VertexIdx < LodModel.NumVertices; VertexIdx++ )
+	// this used to be check, but during clothing importing (when replacing Apex asset)
+	// it comes here with incomplete data causing crash during that intermediate state
+	// so I'm changing to ensure, and update won't do anything since it contains Invalid VertexBufferRHI
+	if (ensure(LodModel.VertexBufferGPUSkin.GetNumVertices() == LodModel.NumVertices))
 	{
-		const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcVertex = LodModel.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(VertexIdx);
+		// Create the buffer rendering resource
+		uint32 Size = LodModel.NumVertices * sizeof(FFinalSkinVertex);
 
-		DestVertex->Position = LodModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(VertexIdx);
-		DestVertex->TangentX = SrcVertex->TangentX;
-		// w component of TangentZ should already have sign of the tangent basis determinant
-		DestVertex->TangentZ = SrcVertex->TangentZ;
+		// Initialize the vertex data
+		// All chunks are combined into one (rigid first, soft next)
+		FRHIResourceCreateInfo CreateInfo;
+		void* Buffer = nullptr;
+		VertexBufferRHI = RHICreateAndLockVertexBuffer(Size, BUF_Dynamic, CreateInfo, Buffer);
 
-		FVector2D UVs = LodModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(VertexIdx,0);
-		DestVertex->U = UVs.X;
-		DestVertex->V = UVs.Y;
+		FFinalSkinVertex* DestVertex = (FFinalSkinVertex*)Buffer;
+		for (uint32 VertexIdx = 0; VertexIdx < LodModel.NumVertices; VertexIdx++)
+		{
+			const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcVertex = LodModel.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(VertexIdx);
 
-		DestVertex++;
+			DestVertex->Position = LodModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(VertexIdx);
+			DestVertex->TangentX = SrcVertex->TangentX;
+			// w component of TangentZ should already have sign of the tangent basis determinant
+			DestVertex->TangentZ = SrcVertex->TangentZ;
+
+			FVector2D UVs = LodModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(VertexIdx, 0);
+			DestVertex->U = UVs.X;
+			DestVertex->V = UVs.Y;
+
+			DestVertex++;
+		}
+
+		// Unlock the buffer.
+		RHIUnlockVertexBuffer(VertexBufferRHI);
 	}
-
-	// Unlock the buffer.
-	RHIUnlockVertexBuffer(VertexBufferRHI);
 }
 
 void FFinalSkinVertexBuffer::ReleaseDynamicRHI()

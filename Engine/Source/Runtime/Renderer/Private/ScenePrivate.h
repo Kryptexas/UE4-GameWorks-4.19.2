@@ -629,7 +629,7 @@ public:
 
 	class FAOScreenGridResources* AOScreenGridResources;
 
-	bool bIntializedGlobalDistanceFieldOrigins;
+	bool bInitializedGlobalDistanceFieldOrigins;
 	FGlobalDistanceFieldClipmapState GlobalDistanceFieldClipmapState[GMaxGlobalDistanceFieldClipmaps];
 	int32 GlobalDistanceFieldUpdateIndex;
 

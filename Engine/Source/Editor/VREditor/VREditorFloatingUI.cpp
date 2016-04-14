@@ -49,7 +49,7 @@ AVREditorFloatingUI::AVREditorFloatingUI()
 
 	WidgetComponent = CreateDefaultSubobject<UVREditorWidgetComponent>( TEXT( "WidgetComponent" ), bTransient );
 	WidgetComponent->SetEditTimeUsable(true);
-	WidgetComponent->AttachTo( SceneComponent );
+	WidgetComponent->SetupAttachment( SceneComponent );
 
 	InitialScale = Scale;
 }

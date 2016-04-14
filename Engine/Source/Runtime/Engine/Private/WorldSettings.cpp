@@ -135,8 +135,19 @@ void AWorldSettings::OnRep_WorldGravityZ()
 
 float AWorldSettings::FixupDeltaSeconds(float DeltaSeconds, float RealDeltaSeconds)
 {
-	// Clamp time between 2000 fps and 2.5 fps.
-	return FMath::Clamp(DeltaSeconds, 0.0005f, 0.4f);	
+	// DeltaSeconds is assumed to be fully dilated at this time, so we will dilate the clamp range as well
+	float const Dilation = GetEffectiveTimeDilation();
+	float const MinFrameTime = MinUndilatedFrameTime * Dilation;
+	float const MaxFrameTime = MaxUndilatedFrameTime * Dilation;
+
+	// clamp frame time according to desired limits
+	return FMath::Clamp(DeltaSeconds, MinFrameTime, MaxFrameTime);	
+}
+
+float AWorldSettings::SetTimeDilation(float NewTimeDilation)
+{
+	TimeDilation = FMath::Clamp(NewTimeDilation, MinGlobalTimeDilation, MaxGlobalTimeDilation);
+	return TimeDilation;
 }
 
 void AWorldSettings::NotifyBeginPlay()

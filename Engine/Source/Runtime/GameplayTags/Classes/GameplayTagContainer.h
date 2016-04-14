@@ -138,6 +138,9 @@ struct GAMEPLAYTAGS_API FGameplayTag
 	void PostSerialize(const FArchive& Ar);
 	bool NetSerialize_Packed(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
+	/** Used to upgrade a Name property to a GameplayTag struct property */
+	bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
+
 private:
 
 	/** Intentionally private so only the tag manager can use */
@@ -158,6 +161,7 @@ struct TStructOpsTypeTraits< FGameplayTag > : public TStructOpsTypeTraitsBase
 	{
 		WithNetSerializer = true,
 		WithPostSerialize = true,
+		WithSerializeFromMismatchedTag = true,
 	};
 };
 

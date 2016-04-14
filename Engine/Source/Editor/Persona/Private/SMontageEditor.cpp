@@ -620,6 +620,25 @@ void SMontageEditor::RemoveMontageSlot(int32 AnimSlotIndex)
 	}
 }
 
+void SMontageEditor::DuplicateMontageSlot(int32 AnimSlotIndex)
+{
+	if (MontageObj != nullptr && MontageObj->SlotAnimTracks.IsValidIndex(AnimSlotIndex))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("DuplicateSlot", "Duplicate Slot"));
+		MontageObj->Modify();
+
+		FSlotAnimationTrack NewTrack; 
+		NewTrack.SlotName = FAnimSlotGroup::DefaultSlotName;
+
+		NewTrack.AnimTrack = MontageObj->SlotAnimTracks[AnimSlotIndex].AnimTrack;
+
+		MontageObj->SlotAnimTracks.Add(NewTrack);
+		MontageObj->MarkPackageDirty();
+
+		AnimMontagePanel->Update();
+	}
+}
+
 void SMontageEditor::ShowSectionInDetailsView(int32 SectionIndex)
 {
 	UEditorCompositeSection *Obj = Cast<UEditorCompositeSection>(ShowInDetailsView(UEditorCompositeSection::StaticClass()));

@@ -173,6 +173,18 @@ void FBodyInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 		BodyInstances[Iter.GetIndex()] = (FBodyInstance*)(*Iter);
 	}
 
+	TArray<UObject*> OwningObjects;
+	StructPropertyHandle->GetOuterObjects(OwningObjects);
+
+	PrimComponents.Empty(OwningObjects.Num());
+	for(UObject* Obj : OwningObjects)
+	{
+		if(UPrimitiveComponent* PrimComponent = Cast<UPrimitiveComponent>(Obj))
+		{
+			PrimComponents.Add(PrimComponent);	
+		}
+	}
+
 	RefreshCollisionProfiles();
 	
 	// get all parent instances
@@ -1037,17 +1049,54 @@ void FBodyInstanceCustomization::OnCollisionChannelChanged(ECheckBoxState InNewV
 	}
 }
 
+struct FUpdateCollisionResponseHelper
+{
+	FUpdateCollisionResponseHelper(UPrimitiveComponent* InPrimComp, TSharedPtr<IPropertyHandle> InCollisionResponseHandle)
+	: PrimComp(InPrimComp)
+	, CollisionResponsesHandle(InCollisionResponseHandle)
+	{
+		OldCollision = PrimComp->BodyInstance.GetCollisionResponse();
+	}
+
+	~FUpdateCollisionResponseHelper()
+	{
+		if(CollisionResponsesHandle.IsValid())
+		{
+			const SIZE_T PropertyOffset = (SIZE_T)&((UPrimitiveComponent*)0)->BodyInstance.CollisionResponses;
+			check(PropertyOffset < (int32)(-1));
+			const int32 ProeprtyOffset32 = (int32) PropertyOffset;
+
+			TSet<USceneComponent*> UpdatedInstances;
+			FComponentEditorUtils::PropagateDefaultValueChange(PrimComp, CollisionResponsesHandle->GetProperty(), OldCollision, PrimComp->BodyInstance.GetCollisionResponse(), UpdatedInstances, PropertyOffset);
+		}
+	}
+
+	UPrimitiveComponent* PrimComp;
+	TSharedPtr<IPropertyHandle> CollisionResponsesHandle;
+	FCollisionResponse OldCollision;
+};
+
 void FBodyInstanceCustomization::SetResponse(int32 ValidIndex, ECollisionResponse InCollisionResponse)
 {
 	const FScopedTransaction Transaction( LOCTEXT( "ChangeIndividualChannel", "Change Individual Channel" ) );
 
 	CollisionResponsesHandle->NotifyPreChange();
 
-	for (auto Iter=BodyInstances.CreateIterator(); Iter; ++Iter)
+	if(PrimComponents.Num())	//If we have owning prim components we may be in blueprint editor which means we have to propagate to instances.
 	{
-		FBodyInstance* BodyInstance = *Iter;
-
-		BodyInstance->CollisionResponses.SetResponse(ValidCollisionChannels[ValidIndex].CollisionChannel, InCollisionResponse);
+		for (UPrimitiveComponent* PrimComp : PrimComponents)
+		{
+			FUpdateCollisionResponseHelper UpdateCollisionResponseHelper(PrimComp, CollisionResponsesHandle);
+			FBodyInstance& BodyInstance = PrimComp->BodyInstance;
+			BodyInstance.CollisionResponses.SetResponse(ValidCollisionChannels[ValidIndex].CollisionChannel, InCollisionResponse);
+		}
+	}
+	else
+	{
+		for (FBodyInstance* BodyInstance : BodyInstances)
+		{
+			BodyInstance->CollisionResponses.SetResponse(ValidCollisionChannels[ValidIndex].CollisionChannel, InCollisionResponse);
+		}
 	}
 
 	CollisionResponsesHandle->NotifyPostChange();
@@ -1121,25 +1170,52 @@ ECheckBoxState FBodyInstanceCustomization::IsAllCollisionChannelChecked(ECollisi
 void FBodyInstanceCustomization::SetCollisionResponseContainer(const FCollisionResponseContainer& ResponseContainer)
 {
 	// trigget transaction before UpdateCollisionProfile
-	const FScopedTransaction Transaction( LOCTEXT( "Collision", "Collision Channel Changes" ) );
-
-	CollisionResponsesHandle->NotifyPreChange();
-
 	uint32 TotalNumChildren = ValidCollisionChannels.Num();
-	// only go through valid channels
-	for (uint32 Index = 0; Index < TotalNumChildren; ++Index)
+
+	if(TotalNumChildren)
 	{
-		ECollisionChannel Channel = ValidCollisionChannels[Index].CollisionChannel;
-		ECollisionResponse Response = ResponseContainer.GetResponse(Channel);
+		const FScopedTransaction Transaction(LOCTEXT("Collision", "Collision Channel Changes"));
+
+		CollisionResponsesHandle->NotifyPreChange();
+
 
 		// iterate through bodyinstance and fix it
-		for (FBodyInstance* BodyInstance : BodyInstances)
+		if(PrimComponents.Num())	//If we have owning prim components we may be in blueprint editor which means we have to propagate to instances.
 		{
-			BodyInstance->CollisionResponses.SetResponse(Channel, Response);
-		}
-	}
 
-	CollisionResponsesHandle->NotifyPostChange();
+			for (UPrimitiveComponent* PrimComponent : PrimComponents)
+			{
+				FUpdateCollisionResponseHelper UpdateCollisionResponseHelper(PrimComponent, CollisionResponsesHandle);
+			
+				FBodyInstance& BodyInstance = PrimComponent->BodyInstance;
+				// only go through valid channels
+				for (uint32 Index = 0; Index < TotalNumChildren; ++Index)
+				{
+					ECollisionChannel Channel = ValidCollisionChannels[Index].CollisionChannel;
+					ECollisionResponse Response = ResponseContainer.GetResponse(Channel);
+
+					BodyInstance.CollisionResponses.SetResponse(Channel, Response);
+				}
+			}
+		}
+		else
+		{
+			for (FBodyInstance* BodyInstance : BodyInstances)
+			{
+				// only go through valid channels
+				for (uint32 Index = 0; Index < TotalNumChildren; ++Index)
+				{
+					ECollisionChannel Channel = ValidCollisionChannels[Index].CollisionChannel;
+					ECollisionResponse Response = ResponseContainer.GetResponse(Channel);
+
+					BodyInstance->CollisionResponses.SetResponse(Channel, Response);
+				}
+			}
+		}
+
+		CollisionResponsesHandle->NotifyPostChange();
+	}
+	
 }
 
 FBodyInstanceCustomizationHelper::FBodyInstanceCustomizationHelper(const TArray<TWeakObjectPtr<UObject>>& InObjectsCustomized)

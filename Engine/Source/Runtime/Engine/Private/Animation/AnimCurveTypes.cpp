@@ -5,6 +5,9 @@
 #include "Animation/AnimInstance.h"
 #include "AnimationRuntime.h"
 
+
+DECLARE_CYCLE_STAT(TEXT("AnimSeq EvalCurveData"), STAT_AnimSeq_EvalCurveData, STATGROUP_Anim);
+
 /////////////////////////////////////////////////////
 // FFloatCurve
 
@@ -157,6 +160,7 @@ void FTransformCurve::Resize(float NewLength, bool bInsert/* whether insert or r
 
 void FRawCurveTracks::EvaluateCurveData( FBlendedCurve& Curves, float CurrentTime ) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_AnimSeq_EvalCurveData);
 	// evaluate the curve data at the CurrentTime and add to Instance
 	for(auto CurveIter = FloatCurves.CreateConstIterator(); CurveIter; ++CurveIter)
 	{
@@ -454,3 +458,27 @@ bool FRawCurveTracks::DuplicateCurveDataImpl(TArray<DataType> & Curves, USkeleto
 	return false;
 }
 
+FArchive& operator<<(FArchive& Ar, FRawCurveTracks& D)
+{
+	FRawCurveTracks::StaticStruct()->SerializeTaggedProperties(Ar, (uint8*)&D, FRawCurveTracks::StaticStruct(), NULL);
+	D.Serialize(Ar);
+
+	return Ar;
+}
+
+///////////////////////////////////////////////////////////////////////
+// FAnimCurveParam
+
+void FAnimCurveParam::Initialize(USkeleton* Skeleton)
+{
+	// Initialize for curve UID
+	if (Name != NAME_None)
+	{
+		Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, Name, UID);
+	}
+	else
+	{
+		// invalidate current UID
+		UID = FSmartNameMapping::MaxUID;
+	}
+}

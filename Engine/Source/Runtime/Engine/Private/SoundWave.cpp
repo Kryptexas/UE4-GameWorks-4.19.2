@@ -77,7 +77,14 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 	{
 		if (LocalAudioDevice->HasCompressedAudioInfoClass(this) && DecompressionType == DTYPE_Native)
 		{
-			// check(ResourceSize == 0);
+			// In non-editor builds ensure that the "native" sound wave has unloaded its compressed asset at this point.
+			// DTYPE_Native assets fully decompress themselves on load and are supposed to unload the compressed asset when it finishes.
+			// However, in the editor, it's possible for an asset to be DTYPE_Native and not referenced by currently loaded level and thus not
+			// actually loaded (and fully decompressed) before its ResourceSize is queried.
+			if (!GIsEditor)
+			{
+				ensureMsgf(ResourceSize == 0, TEXT("ResourceSize for DTYPE_Native USoundWave '%s' was not 0 (%d)."), *GetName(), ResourceSize);
+			}
 			CalculatedResourceSize = RawPCMDataSize;
 		}
 		else 

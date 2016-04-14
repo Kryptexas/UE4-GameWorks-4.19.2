@@ -10,8 +10,6 @@
 
 DEFINE_LOG_CATEGORY(LogAnimMarkerSync);
 
-DECLARE_CYCLE_STAT(TEXT("AnimSeq EvalCurveData"), STAT_AnimSeq_EvalCurveData, STATGROUP_Anim);
-
 
 /////////////////////////////////////////////////////
 
@@ -124,7 +122,7 @@ void UAnimSequenceBase::SortNotifies()
 void UAnimSequenceBase::GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
 {
 	// Early out if we have no notifies
-	if( (Notifies.Num() == 0) || (DeltaTime == 0.f) )
+	if( (Notifies.Num() == 0) || (DeltaTime == 0.f) || (SequenceLength==0.f))
 	{
 		return;
 	}
@@ -476,9 +474,8 @@ uint8* UAnimSequenceBase::FindArrayProperty(const TCHAR* PropName, UArrayPropert
 
 
 /** Add curve data to Instance at the time of CurrentTime **/
-void UAnimSequenceBase::EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime ) const
+void UAnimSequenceBase::EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime, bool bForceUseRawData) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_AnimSeq_EvalCurveData);
 	RawCurveData.EvaluateCurveData(OutCurve, CurrentTime);
 }
 

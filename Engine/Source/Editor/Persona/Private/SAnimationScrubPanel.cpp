@@ -447,8 +447,6 @@ void SAnimationScrubPanel::OnCropAnimSequence( bool bFromStart, float CurrentTim
 
 				// Crop the raw anim data.
 				AnimSequence->CropRawAnimData( CurrentTime, bFromStart );
-				// Recompress animation from Raw.
-				FAnimationUtils::CompressAnimSequence(AnimSequence, false, false);
 
 				//Resetting slider position to the first frame
 				PreviewInstance->SetPosition( 0.0f, false );
@@ -480,8 +478,6 @@ void SAnimationScrubPanel::OnAppendAnimSequence( bool bFromStart, int32 NumOfFra
 			int32 EndFrame = StartFrame + NumOfFrames;
 			int32 CopyFrame = StartFrame;
 			AnimSequence->InsertFramesToRawAnimData(StartFrame, EndFrame, CopyFrame);
-			// Recompress animation from Raw.
-			FAnimationUtils::CompressAnimSequence(AnimSequence, false, false);
 
 			OnSetInputViewRange.ExecuteIfBound(0, AnimSequence->SequenceLength);
 		}
@@ -508,8 +504,6 @@ void SAnimationScrubPanel::OnInsertAnimSequence( bool bBefore, int32 CurrentFram
 			int32 StartFrame = (bBefore)? CurrentFrame : CurrentFrame + 1;
 			int32 EndFrame = StartFrame + 1;
 			AnimSequence->InsertFramesToRawAnimData(StartFrame, EndFrame, CurrentFrame);
-			// Recompress animation from Raw.
-			FAnimationUtils::CompressAnimSequence(AnimSequence, false, false);
 
 			OnSetInputViewRange.ExecuteIfBound(0, AnimSequence->SequenceLength);
 		}
@@ -548,7 +542,10 @@ void SAnimationScrubPanel::OnReZeroAnimSequence( )
 					RawTrack.PosKeys[i] += ApplyTranslation;
 				}
 
-				FAnimationUtils::CompressAnimSequence(AnimSequence, false, false);
+				// Handle Raw Data changing
+				AnimSequence->MarkRawDataAsModified();
+				AnimSequence->OnRawDataChanged();
+
 				AnimSequence->MarkPackageDirty();
 			}
 		}

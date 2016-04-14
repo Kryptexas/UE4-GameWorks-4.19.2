@@ -533,6 +533,20 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 		return SpawnDialogueAttached(Dialogue, Context, AttachToComponent, AttachPointName, Location, FRotator::ZeroRotator, LocationType, bStopWhenAttachedToDestroyed, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
 	}
 
+	/**
+	 * Will set subtitles to be enabled or disabled.
+	 * @param bEnabled will enable subtitle drawing if true, disable if false.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Audio|Subtitles")
+	static void SetSubtitlesEnabled(bool bEnabled);
+
+	/**
+	 * Returns whether or not subtitles are currently enabled.
+	 * @return true if subtitles are enabled.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Audio|Subtitles")
+	static bool AreSubtitlesEnabled();
+
 	// --- Audio Functions ----------------------------
 	/** Set the sound mix of the audio system for special EQing **/
 	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext = "WorldContextObject"))

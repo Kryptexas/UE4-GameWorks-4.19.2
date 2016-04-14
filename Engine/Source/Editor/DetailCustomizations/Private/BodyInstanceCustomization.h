@@ -98,7 +98,8 @@ private:
 	// default collision profile object
 	UCollisionProfile * CollisionProfile;
 
-	TArray<FBodyInstance*>		BodyInstances;
+	TArray<FBodyInstance*> BodyInstances;
+	TArray<UPrimitiveComponent*>		PrimComponents;
 
 	TArray<FCollisionChannelInfo>	ValidCollisionChannels;
 

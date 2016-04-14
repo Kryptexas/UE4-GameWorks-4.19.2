@@ -70,7 +70,7 @@ AEQSTestingPawn::AEQSTestingPawn(const FObjectInitializer& ObjectInitializer)
 			//SpriteComponent->Mobility = EComponentMobility::Static;
 			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Misc;
 			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Misc;
-			SpriteComponent->AttachParent = RootComponent;
+			SpriteComponent->SetupAttachment(RootComponent);
 			SpriteComponent->bIsScreenSizeScaled = true;
 		}
 	}

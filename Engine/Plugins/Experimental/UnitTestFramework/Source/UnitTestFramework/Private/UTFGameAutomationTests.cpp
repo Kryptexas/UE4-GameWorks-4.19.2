@@ -119,7 +119,7 @@ bool FUTFGameActorTest::RunTest(const FString& ObjectPath)
 		return false;
 	}
 
-	const FString TestName = IUTFUnitTestInterface::Execute_GetTestName(TargetActor);
+	const FString UnitTestName = IUTFUnitTestInterface::Execute_GetTestName(TargetActor);
 	
 	IUTFUnitTestInterface::Execute_ResetTest(TargetActor);
 	EUTFUnitTestResult TestResult = IUTFUnitTestInterface::Execute_GetTestResult(TargetActor);
@@ -128,18 +128,18 @@ bool FUTFGameActorTest::RunTest(const FString& ObjectPath)
 	{
 	case EUTFUnitTestResult::UTF_Success:
 		{
-			AddLogItem(FString::Printf(TEXT("Unit Test '%s': SUCCESS"), *TestName));
+			AddLogItem(FString::Printf(TEXT("Unit Test '%s': SUCCESS"), *UnitTestName));
 		} break;
 
 	case EUTFUnitTestResult::UTF_Failure:
 		{
-			AddError(FString::Printf(TEXT("Unit Test '%s': FAILURE"), *TestName));
+			AddError(FString::Printf(TEXT("Unit Test '%s': FAILURE"), *UnitTestName));
 		} break;
 
 	default:
 	case EUTFUnitTestResult::UTF_Unresolved:
 		{
-			AddWarning(FString::Printf(TEXT("Unit Test '%s': UNRESOLVED"), *TestName));
+			AddWarning(FString::Printf(TEXT("Unit Test '%s': UNRESOLVED"), *UnitTestName));
 		} break;
 	}
 

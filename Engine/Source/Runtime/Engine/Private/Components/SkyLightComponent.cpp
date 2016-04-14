@@ -216,7 +216,7 @@ void USkyLightComponent::CreateRenderState_Concurrent()
 		if (SceneProxy)
 		{
 			// Add the light to the scene.
-			World->Scene->SetSkyLight(SceneProxy);
+			GetWorld()->Scene->SetSkyLight(SceneProxy);
 		}
 	}
 }
@@ -296,7 +296,7 @@ void USkyLightComponent::DestroyRenderState_Concurrent()
 
 	if (SceneProxy)
 	{
-		World->Scene->DisableSkyLight(SceneProxy);
+		GetWorld()->Scene->DisableSkyLight(SceneProxy);
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			FDestroySkyLightCommand,
@@ -704,7 +704,7 @@ ASkyLight::ASkyLight(const FObjectInitializer& ObjectInitializer)
 			GetSpriteComponent()->Sprite = ConstructorStatics.SkyLightTextureObject.Get();
 			GetSpriteComponent()->SpriteInfo.Category = ConstructorStatics.ID_Sky;
 			GetSpriteComponent()->SpriteInfo.DisplayName = ConstructorStatics.NAME_Sky;
-			GetSpriteComponent()->AttachParent = LightComponent;
+			GetSpriteComponent()->SetupAttachment(LightComponent);
 		}
 	}
 #endif // WITH_EDITORONLY_DATA

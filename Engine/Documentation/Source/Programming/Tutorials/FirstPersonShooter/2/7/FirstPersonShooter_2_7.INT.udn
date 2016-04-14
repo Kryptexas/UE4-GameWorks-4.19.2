@@ -99,7 +99,7 @@ At the end of the previous step, the default camera was positioned inside the me
 		
 			if (FirstPersonCameraComponent != NULL)
 			{
-				FirstPersonCameraComponent->AttachParent = GetCapsuleComponent();
+				FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
 			}
 		}
 
@@ -142,7 +142,7 @@ At the end of the previous step, the default camera was positioned inside the me
 		
 			if (FirstPersonCameraComponent != NULL)
 			{
-				FirstPersonCameraComponent->AttachParent = GetCapsuleComponent();
+				FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
 				// Position the camera a bit above the eyes
 				FirstPersonCameraComponent->RelativeLocation = FVector(0.f, 0.f, 50.f + BaseEyeHeight);
 				// Allow the pawn to control rotation

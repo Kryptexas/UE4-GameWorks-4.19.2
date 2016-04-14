@@ -899,6 +899,9 @@ public:
 	bool										bShouldSimulatePhysics;
 
 #if WITH_EDITOR
+	/** If TRUE, 'hidden' components will still create render proxy, so can draw info (see USceneComponent::ShouldRender) */
+	bool										bCreateRenderStateForHiddenComponents;
+
 	/** this is special flag to enable collision by default for components that are not Volume
 	 * currently only used by editor level viewport world, and do not use this for in-game scene
 	 */

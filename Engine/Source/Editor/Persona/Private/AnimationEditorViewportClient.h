@@ -22,6 +22,20 @@ namespace ELocalAxesMode
 };
 
 //////////////////////////////////////////////////////////////////////////
+// EBoneDrawMode
+
+namespace EBoneDrawMode
+{
+	enum Type
+	{
+		None,
+		Selected,
+		All,
+		NumAxesModes
+	};
+};
+
+//////////////////////////////////////////////////////////////////////////
 // ELocalAxesMode
 
 namespace EDisplayInfoMode
@@ -144,6 +158,15 @@ public:
 	/** Get the Bone local axis mode */
 	ELocalAxesMode::Type GetLocalAxesMode() const {return LocalAxesMode;}
 
+	/** Function to set Bone Draw  mode for the EBoneDrawType */
+	void SetBoneDrawMode(EBoneDrawMode::Type AxesMode);
+
+	/** Bone Draw  mode checking function for the EBoneDrawType */
+	bool IsBoneDrawModeSet(EBoneDrawMode::Type AxesMode) const;
+
+	/** Get the Bone local axis mode */
+	EBoneDrawMode::Type GetBoneDrawMode() const { return BoneDrawMode; }
+	
 	/** Returns the desired target of the camera */
 	FSphere GetCameraTarget();
 
@@ -155,6 +178,13 @@ public:
 
 	/* Places the viewport camera at a good location to view the preview target */
 	void FocusViewportOnPreviewMesh();
+
+	/** Callback for toggling the normals show flag. */
+	void ToggleCPUSkinning();
+
+	/** Callback for checking the normals show flag. */
+	bool IsSetCPUSkinningChecked() const;
+
 
 	/** Callback for toggling the normals show flag. */
 	void ToggleShowNormals();
@@ -257,6 +287,9 @@ private:
 
 	/** Control where we display local axes for bones/sockets */
 	ELocalAxesMode::Type LocalAxesMode;
+
+	/** Control where we display local axes for bones/sockets */
+	EBoneDrawMode::Type BoneDrawMode;
 
 	/** User selected color using color picker */
 	FLinearColor SelectedHSVColor;

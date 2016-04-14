@@ -681,11 +681,11 @@ FText SGraphNode_BehaviorTree::GetPinTooltip(UEdGraphPin* GraphPinObj) const
 	FText HoverText = FText::GetEmpty();
 
 	check(GraphPinObj != nullptr);
-	UEdGraphNode* GraphNode = GraphPinObj->GetOwningNode();
-	if (GraphNode != nullptr)
+	UEdGraphNode* OwningGraphNode = GraphPinObj->GetOwningNode();
+	if (OwningGraphNode != nullptr)
 	{
 		FString HoverStr;
-		GraphNode->GetPinHoverText(*GraphPinObj, /*out*/HoverStr);
+		OwningGraphNode->GetPinHoverText(*GraphPinObj, /*out*/HoverStr);
 		if (!HoverStr.IsEmpty())
 		{
 			HoverText = FText::FromString(HoverStr);

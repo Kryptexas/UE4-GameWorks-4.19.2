@@ -25,31 +25,31 @@ ATransformGizmo::ATransformGizmo()
 	TranslationGizmoHandleGroup = CreateDefaultSubobject<UVREditorTranslationGizmoHandleGroup>( TEXT( "TranslationHandles" ), true );
 	TranslationGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	TranslationGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
-	TranslationGizmoHandleGroup->AttachParent = SceneComponent;
+	TranslationGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( TranslationGizmoHandleGroup );
 
 	PlaneTranslationGizmoHandleGroup = CreateDefaultSubobject<UVREditorPlaneTranslationGizmoHandleGroup>( TEXT( "PlaneTranslationHandles" ), true );
 	PlaneTranslationGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	PlaneTranslationGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
-	PlaneTranslationGizmoHandleGroup->AttachParent = SceneComponent;
+	PlaneTranslationGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( PlaneTranslationGizmoHandleGroup );
 
 	RotationGizmoHandleGroup = CreateDefaultSubobject<UVREditorRotationGizmoHandleGroup>( TEXT( "RotationHandles" ), true );
 	RotationGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	RotationGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
-	RotationGizmoHandleGroup->AttachParent = SceneComponent;
+	RotationGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( RotationGizmoHandleGroup );
 
 	StretchGizmoHandleGroup = CreateDefaultSubobject<UVREditorStretchGizmoHandleGroup>( TEXT( "StretchHandles" ), true );
 	StretchGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	StretchGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
-	StretchGizmoHandleGroup->AttachParent = SceneComponent;
+	StretchGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( StretchGizmoHandleGroup );
 
 	UniformScaleGizmoHandleGroup = CreateDefaultSubobject<UVREditorUniformScaleGizmoHandleGroup>( TEXT( "UniformScaleHandles" ), true );
 	UniformScaleGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	UniformScaleGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
-	UniformScaleGizmoHandleGroup->AttachParent = SceneComponent;
+	UniformScaleGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( UniformScaleGizmoHandleGroup );
 
 	const bool bAllowGizmoLighting = false;	// @todo vreditor: Not sure if we want this for gizmos or not yet.  Needs feedback.  Also they're translucent right now.
@@ -80,7 +80,7 @@ ATransformGizmo::ATransformGizmo()
 			check( MeasurementText != nullptr );
 
 			MeasurementText->SetMobility( EComponentMobility::Movable );
-			MeasurementText->AttachParent = SceneComponent;
+			MeasurementText->SetupAttachment( SceneComponent );
 
 			MeasurementText->SetCollisionProfileName( UCollisionProfile::NoCollision_ProfileName );
 

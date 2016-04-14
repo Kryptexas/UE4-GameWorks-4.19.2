@@ -362,7 +362,7 @@ void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* Previ
 
 bool UDebugSkelMeshComponent::ShouldCPUSkin()
 {
-	return bDrawBoneInfluences || bDrawNormals || bDrawTangents || bDrawBinormals;
+	return 	bCPUSkinning || bDrawBoneInfluences || bDrawNormals || bDrawTangents || bDrawBinormals;
 }
 
 

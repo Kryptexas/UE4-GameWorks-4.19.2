@@ -41,7 +41,7 @@ ATP_2DSideScrollerCharacter::ATP_2DSideScrollerCharacter()
 
 	// Create a camera boom attached to the root (capsule)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->AttachTo(RootComponent);
+	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 500.0f;
 	CameraBoom->SocketOffset = FVector(0.0f, 0.0f, 75.0f);
 	CameraBoom->bAbsoluteRotation = true;
@@ -53,7 +53,7 @@ ATP_2DSideScrollerCharacter::ATP_2DSideScrollerCharacter()
 	SideViewCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("SideViewCamera"));
 	SideViewCameraComponent->ProjectionMode = ECameraProjectionMode::Orthographic;
 	SideViewCameraComponent->OrthoWidth = 2048.0f;
-	SideViewCameraComponent->AttachTo(CameraBoom, USpringArmComponent::SocketName);
+	SideViewCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 
 	// Prevent all automatic rotation behavior on the camera, character, and camera component
 	CameraBoom->bAbsoluteRotation = true;
@@ -82,7 +82,7 @@ ATP_2DSideScrollerCharacter::ATP_2DSideScrollerCharacter()
 // 	TextComponent->SetRelativeScale3D(FVector(3.0f, 3.0f, 3.0f));
 // 	TextComponent->SetRelativeLocation(FVector(35.0f, 5.0f, 20.0f));
 // 	TextComponent->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
-// 	TextComponent->AttachTo(RootComponent);
+// 	TextComponent->SetupAttachment(RootComponent);
 
 	// Enable replication on the Sprite component so animations show up when networked
 	GetSprite()->SetIsReplicated(true);

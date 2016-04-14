@@ -326,16 +326,16 @@ const FSlateBrush* SAutomationTestItem::GetSmokeTestImage() const
 
 FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 {
-	FText ToolTip;
+	FText TestToolTip;
 	const int32 PassIndex = TestStatus->GetCurrentPassIndex(ClusterIndex);
 	EAutomationState::Type TestState = TestStatus->GetState( ClusterIndex, PassIndex );
 	if ( TestState == EAutomationState::NotRun )
 	{
-		ToolTip = LOCTEXT("TestToolTipNotRun", "Not Run");
+		TestToolTip = LOCTEXT("TestToolTipNotRun", "Not Run");
 	}
 	else if( TestState == EAutomationState::NotEnoughParticipants )
 	{
-		ToolTip = LOCTEXT("ToolTipNotEnoughParticipants", "This test could not be completed as there were not enough participants.");
+		TestToolTip = LOCTEXT("ToolTipNotEnoughParticipants", "This test could not be completed as there were not enough participants.");
 	}
 	else
 	{
@@ -344,18 +344,18 @@ FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 
 		if (TestState == EAutomationState::InProcess)
 		{
-			ToolTip = FText::Format(LOCTEXT("TestToolTipInProgress", "In progress on: {GameName}"), Args);
+			TestToolTip = FText::Format(LOCTEXT("TestToolTipInProgress", "In progress on: {GameName}"), Args);
 		}
 		else if (TestState == EAutomationState::Success)
 		{
-			ToolTip = FText::Format(LOCTEXT("TestToolTipComplete", "Completed on: {GameName}"), Args);
+			TestToolTip = FText::Format(LOCTEXT("TestToolTipComplete", "Completed on: {GameName}"), Args);
 		}
 		else
 		{
-			ToolTip = FText::Format(LOCTEXT("TestToolTipFailed", "Failed on: {GameName}"), Args);
+			TestToolTip = FText::Format(LOCTEXT("TestToolTipFailed", "Failed on: {GameName}"), Args);
 		}
 	}
-	return ToolTip;
+	return TestToolTip;
 }
 
 

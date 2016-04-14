@@ -103,9 +103,9 @@ void AActor::ResetPropertiesForConstruction()
 	{
 		if (USceneComponent* SC = Cast<USceneComponent>(InComp))
 		{
-			if (SC->AttachParent && SC->AttachParent->GetOwner() == InComp->GetOwner())
+			if (SC->GetAttachParent() && SC->GetAttachParent()->GetOwner() == InComp->GetOwner())
 			{
-				ComponentDepth = CalcComponentAttachDepth(SC->AttachParent, ComponentDepthMap) + 1;
+				ComponentDepth = CalcComponentAttachDepth(SC->GetAttachParent(), ComponentDepthMap) + 1;
 			}
 		}
 		ComponentDepthMap.Add(InComp, ComponentDepth);
@@ -207,6 +207,14 @@ void AActor::RerunConstructionScripts()
 #endif
 	if(bAllowReconstruction)
 	{
+		// Child Actors can be customized in many ways by their parents construction scripts and rerunning directly on them would wipe
+		// that out. So instead we redirect up the hierarchy
+		if (IsChildActor())
+		{
+			GetParentComponent()->GetOwner()->RerunConstructionScripts();
+			return;
+		}
+
 		// Set global flag to let system know we are reconstructing blueprint instances
 		TGuardValue<bool> GuardTemplateNameFlag(GIsReconstructingBlueprintInstances, true);
 
@@ -302,7 +310,7 @@ void AActor::RerunConstructionScripts()
 
 						// Now detach it
 						AttachedActor->Modify();
-						EachRoot->DetachFromParent(true);
+						EachRoot->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 					}
 				}
 				else
@@ -327,7 +335,7 @@ void AActor::RerunConstructionScripts()
 				AttachParentComponent = RootComponent->GetAttachParent();
 				SocketName = RootComponent->GetAttachSocketName();
 				//detach it to remove any scaling 
-				RootComponent->DetachFromParent(true);
+				RootComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 			}
 
 			// Update component transform and remember it so it can be reapplied to any new root component which exists after construction.
@@ -392,7 +400,7 @@ void AActor::RerunConstructionScripts()
 			}
 			if (ChildRoot != nullptr && AttachParentComponent != nullptr)
 			{
-				ChildRoot->AttachTo(AttachParentComponent, SocketName, EAttachLocation::KeepWorldPosition);
+				ChildRoot->AttachToComponent(AttachParentComponent, FAttachmentTransformRules::KeepWorldTransform, SocketName);
 			}
 		}
 
@@ -405,7 +413,7 @@ void AActor::RerunConstructionScripts()
 				USceneComponent* ChildRoot = Info.AttachedActor->GetRootComponent();
 				if (ChildRoot && ChildRoot->GetAttachParent() != RootComponent)
 				{
-					ChildRoot->AttachTo(RootComponent, Info.AttachedToSocket, EAttachLocation::KeepWorldPosition);
+					ChildRoot->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform, Info.AttachedToSocket);
 					if (Info.bSetRelativeTransform)
 					{
 						ChildRoot->SetRelativeTransform(Info.RelativeTransform);
@@ -786,7 +794,7 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 				}
 				else
 				{
-					NewSceneComp->AttachTo(RootComponent);
+					NewSceneComp->SetupAttachment(RootComponent);
 				}
 			}
 
