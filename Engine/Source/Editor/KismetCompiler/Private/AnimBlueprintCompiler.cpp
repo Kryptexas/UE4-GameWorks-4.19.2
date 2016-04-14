@@ -1981,6 +1981,10 @@ static UEdGraphNode* FollowKnots(UEdGraphPin* FromPin, UEdGraphPin*& DestPin)
 					LinkedNode = InputPin->LinkedTo[0]->GetOwningNode();
 					KnotNode = Cast<UK2Node_Knot>(LinkedNode);
 				}
+				else
+				{
+					KnotNode = nullptr;
+				}
 			}
 		}
 		return LinkedNode;
