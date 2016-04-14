@@ -144,7 +144,7 @@ In the `LightSwitchCodeOnly` constructor, C++ is used to:
 
 		Sphere1 = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere1"));
 		Sphere1->InitSphereRadius(250.0f);
-		Sphere1->AttachParent = RootComponent;
+		Sphere1->SetupAttachment(RootComponent);
 
 * Designate the `OnOverlap` function as a delegate called when an Actor overlaps or leaves the SphereComponent.
 
@@ -173,7 +173,7 @@ LightSwitchCodeOnly.cpp
 
 		Sphere1 = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere1"));
 		Sphere1->InitSphereRadius(250.0f);
-		Sphere1->AttachParent = RootComponent;
+		Sphere1->SetupAttachment(RootComponent);
 
 		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// set up a notification for when this component overlaps something
 		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// set up a notification for when this component overlaps something

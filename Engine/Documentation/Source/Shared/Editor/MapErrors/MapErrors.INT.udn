@@ -107,6 +107,13 @@ The specified volume Actor has a zero radius for its collision component and sho
 It looks like the original mesh was changed since this instance's vertex colors were painted down - this may need a refresh.
 [/EXCERPT:VertexColorsNotMatchOriginalMesh]
 
+(#CollisionEnabledNoCollisionGeom)
+[EXCERPT:CollisionEnabledNoCollisionGeom]
+**[Actor] has collision enabled but StaticMesh [StaticMeshName] has no simple or complex collision.**
+
+You want to either set Collision Enabled to No Collision on the Actor, or add collision to the mesh (by adding simple collision shapes, and/or enabling collision on sections)
+[/EXCERPT:CollisionEnabledNoCollisionGeom]
+
 (#ShadowCasterUsingBoundsScale)
 [EXCERPT:ShadowCasterUsingBoundsScale]
 **Actor casts dynamic shadows and has a BoundsScale greater than 1! This will have a large performance hit**

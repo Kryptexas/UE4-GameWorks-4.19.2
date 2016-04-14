@@ -242,13 +242,13 @@ Creating sub-objects, especially components, and modifying sub-objects belonging
 		NewComponent1->AlwaysLoadOnClient = false;
 		NewComponent1->AlwaysLoadOnServer = false;
 		NewComponent1->bAbsoluteScale = true;
-		NewComponent1->AttachParent = NewComponent0;
+		NewComponent1->SetupAttachment(NewComponent0);
 		
 		//Find a component on the parent
 		USpriteComponent* NewComponent2 = ConstructorHelpers::FindComponent<USpriteComponent>(this, TEXT("Sprite"));
 		
 		NewComponent2->SpriteCategoryName = ConstructorStatics.NAME_Wind;
-		NewComponent2->AttachParent = NewComponent0;
+		NewComponent2->SetupAttachment(NewComponent0);
 
 		bNoDelete = true;
 	}

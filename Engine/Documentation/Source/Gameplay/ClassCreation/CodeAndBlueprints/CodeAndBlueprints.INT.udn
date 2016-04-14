@@ -109,7 +109,7 @@ LightSwitchBoth.cpp
 
 		Sphere1 = CreateDefaultSubobject<USphereComponent>(this, TEXT("Sphere1"));
 		Sphere1->InitSphereRadius(250.0f);
-		Sphere1->AttachParent = RootComponent;
+		Sphere1->SetupAttachment(RootComponent);
 
 		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchBoth::OnOverlapBegin);		// set up a notification for when this component overlaps something
 		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchBoth::OnOverlapEnd);		// set up a notification for when this component overlaps something
