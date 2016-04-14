@@ -2469,7 +2469,9 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 			bool bCookPackage = true;
 
 			// don't save Editor resources from the Engine if the target doesn't have editoronly data
-			if (IsCookFlagSet(ECookInitializationFlags::SkipEditorContent) && Name.StartsWith(TEXT("/Engine/Editor")) && !Target->HasEditorOnlyData())
+			if (IsCookFlagSet(ECookInitializationFlags::SkipEditorContent) && 
+				( Name.StartsWith(TEXT("/Engine/Editor")) || Name.StartsWith(TEXT("/Engine/VREditor")) ) && 
+				!Target->HasEditorOnlyData())
 			{
 				bCookPackage = false;
 			}
