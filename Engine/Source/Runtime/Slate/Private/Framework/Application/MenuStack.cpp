@@ -577,9 +577,12 @@ void FMenuStack::DismissAll()
 void FMenuStack::DismissInternal(int32 FirstStackIndexToRemove)
 {
 	// Dismiss the stack in reverse order so we destroy children before parents (causes focusing issues if done the other way around)
-	while (Stack.Num() > 0)
+	for (int32 StackIndex = Stack.Num() - 1; StackIndex >= FirstStackIndexToRemove; --StackIndex)
 	{
-		Stack.Top()->Dismiss();
+		if (Stack.IsValidIndex(StackIndex))
+		{
+			Stack[StackIndex]->Dismiss();
+		}
 	}
 }
 
