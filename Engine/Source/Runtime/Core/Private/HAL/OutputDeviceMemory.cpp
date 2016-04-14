@@ -7,7 +7,7 @@
 #include "CorePrivatePCH.h"
 #include "HAL/OutputDeviceMemory.h"
 
-#define DUMP_LOG_ON_EXIT (PLATFORM_DESKTOP && (!UE_BUILD_SHIPPING || USE_LOGGING_IN_SHIPPING))
+#define DUMP_LOG_ON_EXIT (!NO_LOGGING && PLATFORM_DESKTOP && (!UE_BUILD_SHIPPING || USE_LOGGING_IN_SHIPPING))
 
 FOutputDeviceMemory::FOutputDeviceMemory(int32 InBufferSize /*= 1024 * 1024*/)
 : BufferStartPos(0)
@@ -47,7 +47,9 @@ void FOutputDeviceMemory::Flush()
 
 void FOutputDeviceMemory::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time)
 {
+#if !NO_LOGGING
 	FormatAndSerialize(Data, Verbosity, Category, Time);
+#endif
 }
 
 void FOutputDeviceMemory::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category)
