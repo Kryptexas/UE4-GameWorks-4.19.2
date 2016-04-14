@@ -233,77 +233,35 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdLi
 	}
 }
 
-bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataMasked(FRHICommandList& RHICmdList, FViewInfo& View)
+bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataType(FRHICommandList& RHICmdList, FViewInfo& View, const EBasePassDrawListType DrawType)
 {
+	SCOPED_DRAW_EVENTF(RHICmdList, StaticType, TEXT("Static EBasePassDrawListType=%d"), DrawType);
+
 	bool bDirty = false;
-	const FScene::EBasePassDrawListType MaskedDrawType = FScene::EBasePass_Masked;
+
 	if (!View.IsInstancedStereoPass())
 	{
-		{
-			SCOPED_DRAW_EVENT(RHICmdList, StaticMasked);
-			bDirty |= Scene->BasePassUniformLightMapPolicyDrawList[MaskedDrawType].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
-		}
+		bDirty |= Scene->BasePassUniformLightMapPolicyDrawList[DrawType].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
 	}
 	else
 	{
 		const StereoPair StereoView(Views[0], Views[1], Views[0].StaticMeshVisibilityMap, Views[1].StaticMeshVisibilityMap, Views[0].StaticMeshBatchVisibility, Views[1].StaticMeshBatchVisibility);
-		{
-			SCOPED_DRAW_EVENT(RHICmdList, StaticMasked);
-			bDirty |= Scene->BasePassUniformLightMapPolicyDrawList[MaskedDrawType].DrawVisibleInstancedStereo(RHICmdList, StereoView);
-		}
+		bDirty |= Scene->BasePassUniformLightMapPolicyDrawList[DrawType].DrawVisibleInstancedStereo(RHICmdList, StereoView);
 	}
 
 	return bDirty;
 }
 
-void FDeferredShadingSceneRenderer::RenderBasePassStaticDataMaskedParallel(FParallelCommandListSet& ParallelCommandListSet)
+void FDeferredShadingSceneRenderer::RenderBasePassStaticDataTypeParallel(FParallelCommandListSet& ParallelCommandListSet, const EBasePassDrawListType DrawType)
 {
-	const FScene::EBasePassDrawListType MaskedDrawType = FScene::EBasePass_Masked;
 	if (!ParallelCommandListSet.View.IsInstancedStereoPass())
 	{
-		Scene->BasePassUniformLightMapPolicyDrawList[MaskedDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
+		Scene->BasePassUniformLightMapPolicyDrawList[DrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
 	}
 	else
 	{
 		const StereoPair StereoView(Views[0], Views[1], Views[0].StaticMeshVisibilityMap, Views[1].StaticMeshVisibilityMap, Views[0].StaticMeshBatchVisibility, Views[1].StaticMeshBatchVisibility);
-		Scene->BasePassUniformLightMapPolicyDrawList[MaskedDrawType].DrawVisibleParallelInstancedStereo(StereoView, ParallelCommandListSet);
-	}
-}
-
-bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefault(FRHICommandList& RHICmdList, FViewInfo& View)
-{
-	bool bDirty = false;
-	const FScene::EBasePassDrawListType OpaqueDrawType = FScene::EBasePass_Default;
-	if (!View.IsInstancedStereoPass())
-	{
-		{
-			SCOPED_DRAW_EVENT(RHICmdList, StaticOpaque);
-			bDirty |= Scene->BasePassUniformLightMapPolicyDrawList[OpaqueDrawType].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
-		}
-	}
-	else
-	{
-		const StereoPair StereoView(Views[0], Views[1], Views[0].StaticMeshVisibilityMap, Views[1].StaticMeshVisibilityMap, Views[0].StaticMeshBatchVisibility, Views[1].StaticMeshBatchVisibility);
-		{
-			SCOPED_DRAW_EVENT(RHICmdList, StaticOpaque);
-			bDirty |= Scene->BasePassUniformLightMapPolicyDrawList[OpaqueDrawType].DrawVisibleInstancedStereo(RHICmdList, StereoView);
-		}
-	}
-
-	return bDirty;
-}
-
-void FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefaultParallel(FParallelCommandListSet& ParallelCommandListSet)
-{
-	const FScene::EBasePassDrawListType OpaqueDrawType = FScene::EBasePass_Default;
-	if (!ParallelCommandListSet.View.IsInstancedStereoPass())
-	{
-		Scene->BasePassUniformLightMapPolicyDrawList[OpaqueDrawType].DrawVisibleParallel(ParallelCommandListSet.View.StaticMeshVisibilityMap, ParallelCommandListSet.View.StaticMeshBatchVisibility, ParallelCommandListSet);
-	}
-	else
-	{
-		const StereoPair StereoView(Views[0], Views[1], Views[0].StaticMeshVisibilityMap, Views[1].StaticMeshVisibilityMap, Views[0].StaticMeshBatchVisibility, Views[1].StaticMeshBatchVisibility);
-		Scene->BasePassUniformLightMapPolicyDrawList[OpaqueDrawType].DrawVisibleParallelInstancedStereo(StereoView, ParallelCommandListSet);
+		Scene->BasePassUniformLightMapPolicyDrawList[DrawType].DrawVisibleParallelInstancedStereo(StereoView, ParallelCommandListSet);
 	}
 }
 
@@ -353,13 +311,16 @@ void FDeferredShadingSceneRenderer::AsyncSortBasePassStaticData(const FVector In
 	// If we're not using a depth only pass, sort the static draw list buckets roughly front to back, to maximize HiZ culling
 	// Note that this is only a very rough sort, since it does not interfere with state sorting, and each list is sorted separately
 	if (EarlyZPassMode != DDM_None)
+	{
 		return;
+	}
+
 	SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AsyncSortBasePassStaticData);
 
-	for (int32 DrawType = 0; DrawType < FScene::EBasePass_MAX; ++DrawType)
+	for (int32 DrawType = 0; DrawType < EBasePass_MAX; ++DrawType)
 	{
-			OutSortEvents.Add(TGraphTask<FSortFrontToBackTask<TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> > > >::CreateTask(
-				nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&(Scene->BasePassUniformLightMapPolicyDrawList[DrawType]), InViewPosition));
+		OutSortEvents.Add(TGraphTask<FSortFrontToBackTask<TStaticMeshDrawList<TBasePassDrawingPolicy<FUniformLightMapPolicy> > > >::CreateTask(
+			nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&(Scene->BasePassUniformLightMapPolicyDrawList[DrawType]), InViewPosition));
 	}
 }
 
@@ -371,9 +332,9 @@ void FDeferredShadingSceneRenderer::SortBasePassStaticData(FVector ViewPosition)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_SortStaticDrawLists);
 
-		for (int32 DrawType = 0; DrawType < FScene::EBasePass_MAX; DrawType++)
+		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
-				Scene->BasePassUniformLightMapPolicyDrawList[DrawType].SortFrontToBack(ViewPosition);
+			Scene->BasePassUniformLightMapPolicyDrawList[DrawType].SortFrontToBack(ViewPosition);
 		}
 	}
 }
@@ -395,16 +356,16 @@ bool FDeferredShadingSceneRenderer::RenderBasePassStaticData(FRHICommandList& RH
 	// rendering the default opaque geometry afterward.
 	if (EarlyZPassMode != DDM_None)
 	{
-		bDirty |= RenderBasePassStaticDataMasked(RHICmdList, View);
-		bDirty |= RenderBasePassStaticDataDefault(RHICmdList, View);
+		bDirty |= RenderBasePassStaticDataType(RHICmdList, View, EBasePass_Masked);
+		bDirty |= RenderBasePassStaticDataType(RHICmdList, View, EBasePass_Default);
 	}
 	else
 	{
 		// Otherwise, in the case where we're not using a depth-only pre-pass, there
 		// is an advantage to rendering default opaque first to help cull the more
 		// expensive masked geometry.
-		bDirty |= RenderBasePassStaticDataDefault(RHICmdList, View);
-		bDirty |= RenderBasePassStaticDataMasked(RHICmdList, View);
+		bDirty |= RenderBasePassStaticDataType(RHICmdList, View, EBasePass_Default);
+		bDirty |= RenderBasePassStaticDataType(RHICmdList, View, EBasePass_Masked);
 	}
 	return bDirty;
 }
@@ -419,16 +380,16 @@ void FDeferredShadingSceneRenderer::RenderBasePassStaticDataParallel(FParallelCo
 	// rendering the default opaque geometry afterward.
 	if (EarlyZPassMode != DDM_None)
 	{
-		RenderBasePassStaticDataMaskedParallel(ParallelCommandListSet);
-		RenderBasePassStaticDataDefaultParallel(ParallelCommandListSet);
+		RenderBasePassStaticDataTypeParallel(ParallelCommandListSet, EBasePass_Masked);
+		RenderBasePassStaticDataTypeParallel(ParallelCommandListSet, EBasePass_Default);
 	}
 	else
 	{
 		// Otherwise, in the case where we're not using a depth-only pre-pass, there
 		// is an advantage to rendering default opaque first to help cull the more
 		// expensive masked geometry.
-		RenderBasePassStaticDataDefaultParallel(ParallelCommandListSet);
-		RenderBasePassStaticDataMaskedParallel(ParallelCommandListSet);
+		RenderBasePassStaticDataTypeParallel(ParallelCommandListSet, EBasePass_Default);
+		RenderBasePassStaticDataTypeParallel(ParallelCommandListSet, EBasePass_Masked);
 	}
 }
 

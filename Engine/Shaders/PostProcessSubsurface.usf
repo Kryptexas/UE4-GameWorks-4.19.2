@@ -456,7 +456,7 @@ void SubsurfaceRecombinePS(noperspective float4 UVAndScreenPos : TEXCOORD0, floa
 
 	SDiffuseAndSpecular DiffuseAndSpecular = ReconstructDiffuse(UVSceneColor, ReconstructDiffuseMethod);
 	
-	float3 ExtractedNonSubsurface = DiffuseAndSpecular.Specular * StoredSpecular;
+	float3 ExtractedNonSubsurface = DiffuseAndSpecular.Specular;
 
 	// asset specific color
 	float3 SubsurfaceColor = GetProfileSubsurfaceColor(ScreenSpaceData.GBuffer);

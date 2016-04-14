@@ -521,11 +521,12 @@ public:
 
 	/**
 	 * Get the temp data used in the texture streaming build. Used to debug accuracy.
+	 * @param OutDistanceMultiplier	The component streaming distance multiplier.
 	 * @param LODIndex			LOD index of the query. INDEX_NONE for a value for all LODs.
 	 * @param ElementIndex		Element index of the query. INDEX_NONE for a value for all elements.
 	 * @return					The section data built in the texture streaming build.
 	 */
-	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(int32 LODIndex, int32 ElementIndex) const { return nullptr; }
+	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(float& OutDistanceMultiplier, int32 LODIndex, int32 ElementIndex) const { return nullptr; }
 
 protected:
 

@@ -346,12 +346,14 @@ void FDistanceFieldSceneData::VerifyIntegrity()
 
 void FScene::UpdateSceneSettings(AWorldSettings* WorldSettings)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		UpdateSceneSettings,
 		FScene*, Scene, this,
 		float, DefaultMaxDistanceFieldOcclusionDistance, WorldSettings->DefaultMaxDistanceFieldOcclusionDistance,
+		float, GlobalDistanceFieldViewDistance, WorldSettings->GlobalDistanceFieldViewDistance,
 	{
 		Scene->DefaultMaxDistanceFieldOcclusionDistance = DefaultMaxDistanceFieldOcclusionDistance;
+		Scene->GlobalDistanceFieldViewDistance = GlobalDistanceFieldViewDistance;
 	});
 }
 
@@ -511,6 +513,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	LowerDynamicSkylightColor(FLinearColor::Black)
 ,	SceneLODHierarchy(this)
 ,	DefaultMaxDistanceFieldOcclusionDistance(InWorld->GetWorldSettings()->DefaultMaxDistanceFieldOcclusionDistance)
+,	GlobalDistanceFieldViewDistance(InWorld->GetWorldSettings()->GlobalDistanceFieldViewDistance)
 ,	NumVisibleLights_GameThread(0)
 ,	NumEnabledSkylights_GameThread(0)
 {
@@ -1304,22 +1307,28 @@ const FReflectionCaptureProxy* FScene::FindClosestReflectionCapture(FVector Posi
 	return ClosestCaptureIndex != INDEX_NONE ? ReflectionSceneData.RegisteredReflectionCaptures[ClosestCaptureIndex] : NULL;
 }
 
-const FPlanarReflectionSceneProxy* FScene::FindClosestPlanarReflection(FVector Position) const
+const FPlanarReflectionSceneProxy* FScene::FindClosestPlanarReflection(const FPrimitiveBounds& Bounds) const
 {
 	checkSlow(IsInParallelRenderingThread());
 	const FPlanarReflectionSceneProxy* ClosestPlanarReflection = NULL;
 	float ClosestDistance = FLT_MAX;
+	FBox PrimitiveBoundingBox(Bounds.Origin - Bounds.BoxExtent, Bounds.Origin + Bounds.BoxExtent);
 
 	// Linear search through the scene's planar reflections
 	for (int32 CaptureIndex = 0; CaptureIndex < PlanarReflections.Num(); CaptureIndex++)
 	{
 		FPlanarReflectionSceneProxy* CurrentPlanarReflection = PlanarReflections[CaptureIndex];
-		const float Distance = FMath::Abs(CurrentPlanarReflection->ReflectionPlane.PlaneDot(Position));
+		const FBox ReflectionBounds = CurrentPlanarReflection->WorldBounds;
 
-		if (Distance < ClosestDistance)
+		if (PrimitiveBoundingBox.Intersect(ReflectionBounds))
 		{
-			ClosestDistance = Distance;
-			ClosestPlanarReflection = CurrentPlanarReflection;
+			const float Distance = FMath::Abs(CurrentPlanarReflection->ReflectionPlane.PlaneDot(Bounds.Origin));
+
+			if (Distance < ClosestDistance)
+			{
+				ClosestDistance = Distance;
+				ClosestPlanarReflection = CurrentPlanarReflection;
+			}
 		}
 	}
 

@@ -699,6 +699,19 @@ int TIntermediate::addUsedOffsets(int binding, int offset, int numOffsets)
     return -1; // no collision
 }
 
+// Accumulate used constant_id values.
+//
+// Return false is one was already used.
+bool TIntermediate::addUsedConstantId(int id)
+{
+    if (usedConstantId.find(id) != usedConstantId.end())
+        return false;
+
+    usedConstantId.insert(id);
+
+    return true;
+}
+
 // Recursively figure out how many locations are used up by an input or output type.
 // Return the size of type, as measured by "locations".
 int TIntermediate::computeTypeLocationSize(const TType& type) const

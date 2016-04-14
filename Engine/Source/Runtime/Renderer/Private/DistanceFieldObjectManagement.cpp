@@ -20,7 +20,7 @@ FAutoConsoleVariableRef CVarAOMaxObjectBoundingRadius(
 	TEXT("r.AOMaxObjectBoundingRadius"),
 	GAOMaxObjectBoundingRadius,
 	TEXT("Objects larger than this will not contribute to AO calculations, to improve performance."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOLogObjectBufferReallocation = 0;
@@ -28,7 +28,7 @@ FAutoConsoleVariableRef CVarAOLogObjectBufferReallocation(
 	TEXT("r.AOLogObjectBufferReallocation"),
 	GAOLogObjectBufferReallocation,
 	TEXT(""),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 // Must match equivalent shader defines

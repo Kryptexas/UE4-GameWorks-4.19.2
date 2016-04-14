@@ -729,8 +729,9 @@ static void InitRHICapabilitiesForGL()
 		GRHISupportsTextureStreaming = true;
 	}
 
-	GVertexElementTypeSupport.SetSupported(VET_Half2, FOpenGL::SupportsVertexHalfFloat());
-	GVertexElementTypeSupport.SetSupported(VET_Half4, FOpenGL::SupportsVertexHalfFloat());
+	GVertexElementTypeSupport.SetSupported(VET_Half2,		FOpenGL::SupportsVertexHalfFloat());
+	GVertexElementTypeSupport.SetSupported(VET_Half4,		FOpenGL::SupportsVertexHalfFloat());
+	GVertexElementTypeSupport.SetSupported(VET_URGB10A2N,	FOpenGL::SupportsRGB10A2());
 
 	for (int32 PF = 0; PF < PF_MAX; ++PF)
 	{

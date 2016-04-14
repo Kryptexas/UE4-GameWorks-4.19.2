@@ -300,13 +300,13 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, HLODColoration, SFG_Hidden, LOCTEXT("VisualizeHLOD
 SHOWFLAG_FIXED_IN_SHIPPING(0, QuadOverdraw, SFG_Hidden, LOCTEXT("QuadOverdrawSF", "Quad Overdraw"))
 /** Visualize the overhead of material quads */
 SHOWFLAG_FIXED_IN_SHIPPING(0, ShaderComplexityWithQuadOverdraw, SFG_Hidden, LOCTEXT("ShaderComplexityWithQuadOverdraw", "Shader Complexity With Quad Overdraw"))
-/** Visualize the streaming texture scale in the mesh editors */
-SHOWFLAG_FIXED_IN_SHIPPING(0, WantedMipsAccuracy, SFG_Hidden, LOCTEXT("WantedMipsAccuracy", "Streaming Wanted Mips Accuracy"))
-/** Visualize how accurate is the texel factor is computed on each mesh */
-SHOWFLAG_FIXED_IN_SHIPPING(0, TexelFactorAccuracy, SFG_Hidden, LOCTEXT("TexelFactorAccuracy", "Texel Factor Accuracy"))
-/** Visualize the accuracy of the material texture coordinate scale factors */
-SHOWFLAG_FIXED_IN_SHIPPING(0, TexCoordScaleAccuracy, SFG_Hidden, LOCTEXT("TexCoordScaleAccuray", "Texture Coordinate Scale Accuracy"))
-/** Outputs each texture lookup texcoord scale. Used in the texture streaming build. */
-SHOWFLAG_FIXED_IN_SHIPPING(0, TexCoordAnalysis, SFG_Hidden, LOCTEXT("TexCoordScaleAnalysis", "Texture Coordinate Scale Analysis"))
+/** Visualize the accuracy of the CPU primitive distance when compared with the GPU value */
+SHOWFLAG_FIXED_IN_SHIPPING(0, PrimitiveDistanceAccuracy, SFG_Hidden, LOCTEXT("PrimitiveDistanceAccuracy", "Primitive Distance Accuracy"))
+/** Visualize the accuracy of the CPU mesh texture coordinate size when compared to the GPU value */
+SHOWFLAG_FIXED_IN_SHIPPING(0, MeshTexCoordSizeAccuracy, SFG_Hidden, LOCTEXT("MeshTexCoordSizeAccuracy", "Mesh Texture Coordinate Size Accuracy"))
+/** Visualize the accuracy of CPU material texture coordinate scales when compared to the GPU values */
+SHOWFLAG_FIXED_IN_SHIPPING(0, MaterialTexCoordScalesAccuracy, SFG_Hidden, LOCTEXT("MaterialTexCoordScalesAccuracy", "Material Texture Coordinate Scales Accuracy"))
+/** Outputs the material texture coordinate scales. */
+SHOWFLAG_FIXED_IN_SHIPPING(0, MaterialTexCoordScalesAnalysis, SFG_Hidden, LOCTEXT("MaterialTexCoordScalesAnalysis", "Material Texture Coordinate Scales Analysis"))
 #undef SHOWFLAG_ALWAYS_ACCESSIBLE
 #undef SHOWFLAG_FIXED_IN_SHIPPING

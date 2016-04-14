@@ -201,6 +201,11 @@ struct FMaterialPixelParameters
 #if (ES2_PROFILE || ES3_1_PROFILE)
 	float4 LayerWeights;
 #endif
+
+#if TEX_COORD_SCALE_ANALYSIS
+	/** Parameters used by the MaterialTexCoordScales shader. */
+	FTexCoordScalesParams TexCoordScalesParams;
+#endif
 };
 
 // @todo compat hack

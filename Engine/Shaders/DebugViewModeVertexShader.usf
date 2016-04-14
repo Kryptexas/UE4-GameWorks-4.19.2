@@ -6,11 +6,6 @@
 
 #include "Common.usf"
 
-// This is required to pass the 4 texcoords to the pixel shaders, no matter what the material actually use.
-// This fits with FDebugVSToPS which supports 4 tex coords.
-#define MIN_MATERIAL_TEXCOORDS 4
-
-
 #include "Material.usf"
 #include "VertexFactory.usf"
 

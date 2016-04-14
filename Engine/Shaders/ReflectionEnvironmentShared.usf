@@ -10,22 +10,18 @@
 /** 
  * Compute absolute mip for a reflection capture cubemap given a roughness.
  */
-half ComputeReflectionCaptureMipFromRoughness(half Roughness)
+half ComputeReflectionCaptureMipFromRoughness(half Roughness, half CubemapMaxMip)
 {
 	// Heuristic that maps roughness to mip level
 	// This is done in a way such that a certain mip level will always have the same roughness, regardless of how many mips are in the texture
 	// Using more mips in the cubemap just allows sharper reflections to be supported
 	half LevelFrom1x1 = REFLECTION_CAPTURE_ROUGHEST_MIP - REFLECTION_CAPTURE_ROUGHNESS_MIP_SCALE * log2(Roughness);
-	// Note: must match GReflectionCaptureSize
-	const half HardcodedNumCaptureArrayMips = 7;
-	return HardcodedNumCaptureArrayMips - 1 - LevelFrom1x1;
+	return CubemapMaxMip - 1 - LevelFrom1x1;
 }
 
-float ComputeReflectionCaptureRoughnessFromMip( float Mip )
+float ComputeReflectionCaptureRoughnessFromMip(float Mip, half CubemapMaxMip)
 {
-	// Note: must match GReflectionCaptureSize
-	const half HardcodedNumCaptureArrayMips = 7;
-	float LevelFrom1x1 = HardcodedNumCaptureArrayMips - 1 - Mip;
+	float LevelFrom1x1 = CubemapMaxMip - 1 - Mip;
 	return exp2( ( REFLECTION_CAPTURE_ROUGHEST_MIP - LevelFrom1x1 ) / REFLECTION_CAPTURE_ROUGHNESS_MIP_SCALE );
 }
 
@@ -37,7 +33,7 @@ float4 SkyLightParameters;
 
 float3 GetSkyLightReflection(float3 ReflectionVector, float Roughness, bool bNormalized)
 {
-	float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
+	float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, SkyLightParameters.x);
 	float3 Reflection = TextureCubeSampleLevel(SkyLightCubemap, SkyLightCubemapSampler, ReflectionVector, AbsoluteSpecularMip).rgb;
 
 	BRANCH
@@ -63,7 +59,7 @@ float3 GetSkyLightReflectionSupportingBlend(float3 ReflectionVector, float Rough
 	BRANCH
 	if (SkyLightParameters.w > 0)
 	{
-		float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
+		float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, SkyLightParameters.x);
 		float3 BlendDestinationReflection = TextureCubeSampleLevel(SkyLightBlendDestinationCubemap, SkyLightBlendDestinationCubemapSampler, ReflectionVector, AbsoluteSpecularMip).rgb;
 
 		BRANCH

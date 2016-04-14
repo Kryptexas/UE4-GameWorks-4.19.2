@@ -2543,3 +2543,42 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 		}
 	}
 }
+
+void FPostProcessing::ProcessPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT, TRefCountPtr<IPooledRenderTarget>& OutFilteredSceneColor)
+{
+	{
+		FMemMark Mark(FMemStack::Get());
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
+
+		FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get_Todo_PassContext();
+
+		FRenderingCompositeOutputRef VelocityInput;
+		if(VelocityRT)
+		{
+			VelocityInput = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(VelocityRT));
+		}
+
+		FSceneViewState* ViewState = Context.View.ViewState;
+		EAntiAliasingMethod AntiAliasingMethod = Context.View.FinalPostProcessSettings.AntiAliasingMethod;
+
+		if (AntiAliasingMethod == AAM_TemporalAA && ViewState)
+		{
+			if(VelocityInput.IsValid())
+			{
+				AddTemporalAA( Context, VelocityInput );
+			}
+			else
+			{
+				// black is how we clear the velocity buffer so this means no velocity
+				FRenderingCompositePass* NoVelocity = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSystemTextures.BlackDummy));
+				FRenderingCompositeOutputRef NoVelocityRef(NoVelocity);
+				AddTemporalAA( Context, NoVelocityRef );
+			}
+		}
+
+		CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("ProcessPlanarReflection"));
+
+		OutFilteredSceneColor = Context.FinalOutput.GetOutput()->PooledRenderTarget;
+	}
+}

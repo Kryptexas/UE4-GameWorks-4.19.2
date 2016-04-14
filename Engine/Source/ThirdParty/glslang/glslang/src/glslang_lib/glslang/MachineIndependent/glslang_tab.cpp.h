@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 2.7.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+      Copyright (C) 1984, 1989-1990, 2000-2012 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,9 +30,9 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_YY_C_RELEASEBUILD_GLSLANG_GLSLANG_MACHINEINDEPENDENT_GLSLANG_TAB_CPP_H_INCLUDED
-# define YY_YY_C_RELEASEBUILD_GLSLANG_GLSLANG_MACHINEINDEPENDENT_GLSLANG_TAB_CPP_H_INCLUDED
-/* Debug traces.  */
+#ifndef YY_YY_C_PROJECTS_GLSLANG_GLSLANG_MACHINEINDEPENDENT_GLSLANG_TAB_CPP_H_INCLUDED
+# define YY_YY_C_PROJECTS_GLSLANG_GLSLANG_MACHINEINDEPENDENT_GLSLANG_TAB_CPP_H_INCLUDED
+/* Enabling traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 1
 #endif
@@ -40,11 +40,12 @@
 extern int yydebug;
 #endif
 
-/* Token type.  */
+/* Tokens.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
-  enum yytokentype
-  {
+   /* Put the tokens into the symbol table, so that GDB and other debuggers
+      know about them.  */
+   enum yytokentype {
     ATTRIBUTE = 258,
     VARYING = 259,
     CONST = 260,
@@ -305,12 +306,12 @@ extern int yydebug;
   };
 #endif
 
-/* Value type.  */
-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 
-union YYSTYPE
+#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+typedef union YYSTYPE
 {
-#line 66 "C:/releasebuild/glslang/glslang/MachineIndependent/glslang.y" /* yacc.c:1909  */
+/* Line 2058 of yacc.c  */
+#line 66 "C:/Projects/glslang/glslang/MachineIndependent/glslang.y"
 
     struct {
         glslang::TSourceLoc loc;
@@ -342,16 +343,28 @@ union YYSTYPE
         };
     } interm;
 
-#line 346 "C:/releasebuild/glslang/glslang/MachineIndependent/glslang_tab.cpp.h" /* yacc.c:1909  */
-};
 
-typedef union YYSTYPE YYSTYPE;
+/* Line 2058 of yacc.c  */
+#line 349 "C:/Projects/glslang/glslang/MachineIndependent/glslang_tab.cpp.h"
+} YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
+# define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
 #endif
 
 
-
+#ifdef YYPARSE_PARAM
+#if defined __STDC__ || defined __cplusplus
+int yyparse (void *YYPARSE_PARAM);
+#else
+int yyparse ();
+#endif
+#else /* ! YYPARSE_PARAM */
+#if defined __STDC__ || defined __cplusplus
 int yyparse (glslang::TParseContext* pParseContext);
+#else
+int yyparse ();
+#endif
+#endif /* ! YYPARSE_PARAM */
 
-#endif /* !YY_YY_C_RELEASEBUILD_GLSLANG_GLSLANG_MACHINEINDEPENDENT_GLSLANG_TAB_CPP_H_INCLUDED  */
+#endif /* !YY_YY_C_PROJECTS_GLSLANG_GLSLANG_MACHINEINDEPENDENT_GLSLANG_TAB_CPP_H_INCLUDED  */

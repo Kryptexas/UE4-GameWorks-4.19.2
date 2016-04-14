@@ -522,6 +522,8 @@ public:
 
 	TRefCountPtr<IPooledRenderTarget>& GetSceneColor();
 
+	EPixelFormat GetSceneColorFormat() const;
+
 	// changes depending at which part of the frame this is called
 	bool IsSceneColorAllocated() const;
 
@@ -548,7 +550,7 @@ public:
 
 	void AllocLightAttenuation(FRHICommandList& RHICmdList);
 
-	void AllocateReflectionTargets(FRHICommandList& RHICmdList);
+	void AllocateReflectionTargets(FRHICommandList& RHICmdList, int32 TargetSize);
 
 	void AllocateLightingChannelTexture(FRHICommandList& RHICmdList);
 
@@ -579,10 +581,10 @@ private: // Get...() methods instead of direct access
 	// 0 before BeginRenderingSceneColor and after tone mapping in deferred shading
 	// Permanently allocated for forward shading
 	TRefCountPtr<IPooledRenderTarget> SceneColor[(int32)EShadingPath::Num];
-	// also used as LDR scene color
+	// Light Attenuation is a low precision scratch pad matching the size of the scene color buffer used by many passes.
 	TRefCountPtr<IPooledRenderTarget> LightAttenuation;
 public:
-	// Reflection Environment: Bringing back light accumulation buffer to apply indirect reflections
+	// Light Accumulation is a high precision scratch pad matching the size of the scene color buffer used by many passes.
 	TRefCountPtr<IPooledRenderTarget> LightAccumulation;
 
 	// Reflection Environment: Bringing back light accumulation buffer to apply indirect reflections
@@ -724,8 +726,6 @@ private:
 	// release all allocated targets to the pool
 	void ReleaseAllTargets();
 
-	EPixelFormat GetSceneColorFormat() const;
-
 	/** Get the current scene color target based on our current shading path. Will return a null ptr if there is no valid scene color target  */
 	const TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() const { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)CurrentShadingPath]; }
 	TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)CurrentShadingPath]; }
@@ -739,7 +739,6 @@ private:
 	/** Gets all GBuffers to use.  Returns the number actually used. */
 	int32 GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FRHIRenderTargetView OutRenderTargets[MaxSimultaneousRenderTargets], int32& OutVelocityRTIndex);
 
-private:
 	/** Uniform buffer containing GBuffer resources. */
 	FUniformBufferRHIRef GBufferResourcesUniformBuffer;
 	/** size of the back buffer, in editor this has to be >= than the biggest view port */
@@ -753,9 +752,9 @@ private:
 	/** Whether to use SmallDepthZ for occlusion queries. */
 	bool bUseDownsizedOcclusionQueries;
 	/** To detect a change of the CVar r.GBufferFormat */
-	int CurrentGBufferFormat;
+	int32 CurrentGBufferFormat;
 	/** To detect a change of the CVar r.SceneColorFormat */
-	int CurrentSceneColorFormat;
+	int32 CurrentSceneColorFormat;
 	/** Whether render targets were allocated with static lighting allowed. */
 	bool bAllowStaticLighting;
 	/** To detect a change of the CVar r.Shadow.MaxResolution */

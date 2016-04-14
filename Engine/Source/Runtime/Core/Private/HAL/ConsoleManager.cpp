@@ -535,8 +535,57 @@ IConsoleVariable* FConsoleManager::RegisterConsoleVariableBitRef(const TCHAR* CV
 	return AddConsoleObject(CVarName, new FConsoleVariableBitRef(FlagName, BitNumber, Force0MaskPtr, Force1MaskPtr, Help, (EConsoleVariableFlags)Flags))->AsVariable();
 }
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+// part of the automated test for console variables
+static TAutoConsoleVariable<int32> CVarDebugEarlyDefault(
+	TEXT("con.DebugEarlyDefault"),
+	21,
+	TEXT("used internally to test the console variable system"),
+	ECVF_Default);
+// part of the automated test for console variables
+static TAutoConsoleVariable<int32> CVarDebugEarlyCheat(
+	TEXT("con.DebugEarlyCheat"),
+	22,
+	TEXT("used internally to test the console variable system"),
+	ECVF_Cheat);
+#endif
+
 void FConsoleManager::CallAllConsoleVariableSinks()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	check(IsInGameThread());
+
+	// part of the automated test for console variables
+	// test the console variable system behavior with the ECVF_Cheat flag
+	{
+		static uint32 LocalCounter = 0;
+
+		// after a few calls we assume the ini files are loaded
+		if(LocalCounter == 10)
+		{
+			IConsoleVariable* VarC = IConsoleManager::Get().RegisterConsoleVariable(TEXT("con.DebugLateDefault"), 23, TEXT("used internally to test the console variable system"), ECVF_Default);
+			IConsoleVariable* VarD = IConsoleManager::Get().RegisterConsoleVariable(TEXT("con.DebugLateCheat"), 24, TEXT("used internally to test the console variable system"), ECVF_Cheat);
+
+			int32 ValA = CVarDebugEarlyDefault.GetValueOnGameThread();
+			int32 ValB = CVarDebugEarlyCheat.GetValueOnGameThread();
+			int32 ValC = VarC->GetInt();
+			int32 ValD = VarD->GetInt();
+				
+			// in BaseEngine.ini we set all 4 cvars to "True" but only the non cheat one should pick up the value
+			check(ValA == 1);
+			check(ValB == 22);
+			check(ValC == 1);
+			check(ValD == 24);
+		}
+
+		// count up to 100 and don't warp around
+		if(LocalCounter < 100)
+		{
+			++LocalCounter;
+		}
+	}
+#endif
+
 	if(bCallAllConsoleVariableSinks)
 	{
 		for(uint32 i = 0; i < (uint32)ConsoleVariableChangeSinks.Num(); ++i)
@@ -1143,8 +1192,15 @@ IConsoleObject* FConsoleManager::AddConsoleObject(const TCHAR* Name, IConsoleObj
 		{
 			if(ExistingVar->TestFlags(ECVF_CreatedFromIni))
 			{
-				// The existing one came from the ini, get the value and destroy the existing one (no need to call sink because that will happen after all ini setting have been loaded)
-				Var->Set(*ExistingVar->GetString(), (EConsoleVariableFlags)((uint32)ExistingVar->GetFlags() & ECVF_SetByMask));
+				// This is to prevent cheaters to set a value from an ini of a cvar that is created later
+				// TODO: This is not ideal as it also prevents consolevariables.ini to set the value where we allow that. We could fix that.
+				if(!Var->TestFlags(ECVF_Cheat))
+				{
+					// The existing one came from the ini, get the value
+					Var->Set(*ExistingVar->GetString(), (EConsoleVariableFlags)((uint32)ExistingVar->GetFlags() & ECVF_SetByMask));
+				}
+
+				// destroy the existing one (no need to call sink because that will happen after all ini setting have been loaded)
 				ExistingVar->Release();
 
 				ConsoleObjects.Add(Name, Var);

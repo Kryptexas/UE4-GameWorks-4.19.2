@@ -396,6 +396,9 @@ public:
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
 		ReflectionPlane.Bind(ParameterMap, TEXT("ReflectionPlane"));
+		PlanarReflectionOrigin.Bind(ParameterMap, TEXT("PlanarReflectionOrigin"));
+		PlanarReflectionXAxis.Bind(ParameterMap, TEXT("PlanarReflectionXAxis"));
+		PlanarReflectionYAxis.Bind(ParameterMap, TEXT("PlanarReflectionYAxis"));
 		InverseTransposeMirrorMatrix.Bind(ParameterMap, TEXT("InverseTransposeMirrorMatrix"));
 		PlanarReflectionParameters.Bind(ParameterMap, TEXT("PlanarReflectionParameters"));
 		PlanarReflectionParameters2.Bind(ParameterMap, TEXT("PlanarReflectionParameters2"));
@@ -410,6 +413,9 @@ public:
 	friend FArchive& operator<<(FArchive& Ar,FPlanarReflectionParameters& P)
 	{
 		Ar << P.ReflectionPlane;
+		Ar << P.PlanarReflectionOrigin;
+		Ar << P.PlanarReflectionXAxis;
+		Ar << P.PlanarReflectionYAxis;
 		Ar << P.InverseTransposeMirrorMatrix;
 		Ar << P.PlanarReflectionParameters;
 		Ar << P.PlanarReflectionParameters2;
@@ -422,6 +428,9 @@ public:
 private:
 
 	FShaderParameter ReflectionPlane;
+	FShaderParameter PlanarReflectionOrigin;
+	FShaderParameter PlanarReflectionXAxis;
+	FShaderParameter PlanarReflectionYAxis;
 	FShaderParameter InverseTransposeMirrorMatrix;
 	FShaderParameter PlanarReflectionParameters;
 	FShaderParameter PlanarReflectionParameters2;
@@ -828,14 +837,14 @@ public:
 	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext, float ScreenTextureScaleFactor = 1.0f) const
 	{
 		// If the current debug view shader modes are allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
-		if (AllowDebugViewShaderMode(GetDebugViewShaderMode(), View->GetFeatureLevel()) && AllowDebugViewVSDSHS(View->GetFeatureLevel()))
+		if (View->Family->UseDebugViewVSDSHS())
 		{
 			FDebugViewMode::SetParametersVSHSDS(RHICmdList, MaterialRenderProxy, MaterialResource, *View, VertexFactory, HullShader && DomainShader);
 		}
 		else
 		{
 			// Set the light-map policy.
-			LightMapPolicy.Set(RHICmdList, VertexShader, GetDebugViewShaderMode() == DVSM_None ? PixelShader : nullptr, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);
+			LightMapPolicy.Set(RHICmdList, VertexShader, !UseDebugViewPS() ? PixelShader : nullptr, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);
 
 			VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, bAllowGlobalFog, SceneTextureMode, PolicyContext.bIsInstancedStereo);
 
@@ -850,8 +859,7 @@ public:
 			}
 		}
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (GetDebugViewShaderMode() != DVSM_None)
+		if (UseDebugViewPS())
 		{
 			// If we are in the translucent pass then override the blend mode, otherwise maintain additive blending.
 			if (View->Family->EngineShowFlags.ShaderComplexity && IsTranslucentBlendMode(BlendMode))
@@ -862,7 +870,6 @@ public:
 			FDebugViewMode::GetPSInterface(View->ShaderMap, MaterialResource, GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, MaterialRenderProxy, *MaterialResource, *View);
 		}
 		else
-#endif
 		{
 			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, BlendMode, bEnableEditorPrimitiveDepthTest, SceneTextureMode, ScreenTextureScaleFactor);
 
@@ -914,7 +921,7 @@ public:
 			FGeometryShaderRHIRef()
 			);
 
-		if (AllowDebugViewShaderMode(GetDebugViewShaderMode(), InFeatureLevel))
+		if (UseDebugViewPS())
 		{
 			FDebugViewMode::PatchBoundShaderState(BoundShaderStateInput, MaterialResource, VertexFactory, InFeatureLevel, GetDebugViewShaderMode());
 		}
@@ -936,7 +943,7 @@ public:
 		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
 		// If debug view shader mode are allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
-		if (AllowDebugViewShaderMode(GetDebugViewShaderMode(), View.GetFeatureLevel()) && AllowDebugViewVSDSHS(View.GetFeatureLevel()))
+		if (View.Family->UseDebugViewVSDSHS())
 		{
 			FDebugViewMode::SetMeshVSHSDS(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState, MaterialResource, HullShader && DomainShader);
 		}
@@ -948,7 +955,7 @@ public:
 				View,
 				PrimitiveSceneProxy,
 				VertexShader,
-				GetDebugViewShaderMode() == DVSM_None ? PixelShader : nullptr,
+				!UseDebugViewPS() ? PixelShader : nullptr,
 				VertexShader,
 				PixelShader,
 				VertexFactory,
@@ -964,20 +971,19 @@ public:
 			}
 		}
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (GetDebugViewShaderMode() != DVSM_None)
+		if (UseDebugViewPS())
 		{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			// If we are in the translucent pass or rendering a masked material then override the blend mode, otherwise maintain opaque blending
 			if (View.Family->EngineShowFlags.ShaderComplexity && BlendMode != BLEND_Opaque)
 			{
 				// Add complexity to existing, keep alpha
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One>::GetRHI());
 			}
-
 			FDebugViewMode::GetPSInterface(View.ShaderMap, MaterialResource, GetDebugViewShaderMode())->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.VisualizeLODIndex, BatchElement, DrawRenderState);
+#endif
 		}
 		else
-#endif
 		{
 			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState,BlendMode);
 		}

@@ -530,6 +530,15 @@ void RecordQualityLevelsAnalytics(bool bAutoApplied)
 	}
 }
 
+/** Helper accessor objects */
+FResolutionQualityCVarAccessor::FResolutionQualityCVarAccessor() : FCVarAccessorFloat(CVarResolutionQuality.AsVariable()){}
+FViewDistanceQualityCVarAccessor::FViewDistanceQualityCVarAccessor() : FCVarAccessorInt(CVarViewDistanceQuality.AsVariable()){}
+FAntiAliasingQualityCVarAccessor::FAntiAliasingQualityCVarAccessor() : FCVarAccessorInt(CVarAntiAliasingQuality.AsVariable()){}
+FShadowQualityCVarAccessor::FShadowQualityCVarAccessor() : FCVarAccessorInt(CVarShadowQuality.AsVariable()){}
+FPostProcessQualityCVarAccessor::FPostProcessQualityCVarAccessor() : FCVarAccessorInt(CVarPostProcessQuality.AsVariable()){}
+FTextureQualityCVarAccessor::FTextureQualityCVarAccessor() : FCVarAccessorInt(CVarTextureQuality.AsVariable()){}
+FEffectsQualityCVarAccessor::FEffectsQualityCVarAccessor() : FCVarAccessorInt(CVarEffectsQuality.AsVariable()){}
+
 }
 
 

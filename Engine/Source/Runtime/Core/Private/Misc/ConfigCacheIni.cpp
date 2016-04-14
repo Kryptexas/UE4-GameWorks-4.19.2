@@ -2984,60 +2984,20 @@ void FConfigCacheIni::LoadExternalIniFile(FConfigFile& ConfigFile, const TCHAR* 
 	ConfigFile.Name = IniName;
 }
 
-
-/**
- * Needs to be called after GConfig is set and LoadCoalescedFile was called.
- * Loads the state of console variables.
- * Works even if the variable is registered after the ini file was loaded.
- */
 void FConfigCacheIni::LoadConsoleVariablesFromINI()
 {
-	FString Paths[2];
-	const TCHAR* Sections[2];
+	FString ConsoleVariablesPath = FPaths::EngineDir() + TEXT("Config/ConsoleVariables.ini");
 
-	// First pass tries to read from "../../../Engine/Config/ConsoleVariables.ini" [Startup] section if it exists
-	Paths[0] = FPaths::EngineDir() + TEXT("Config/ConsoleVariables.ini");
-	Sections[0] = TEXT("Startup");
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	// First we read from "../../../Engine/Config/ConsoleVariables.ini" [Startup] section if it exists
+	// This is the only ini file where we allow cheat commands (this is why it's not there for UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	ApplyCVarSettingsFromIni(TEXT("Startup"), *ConsoleVariablesPath, ECVF_SetByConsoleVariablesIni, true);
+#endif
 
-	// Second pass looks at the Engine.ini [ConsoleVariables] section
-	Paths[1] = GEngineIni;
-	Sections[1] = TEXT("ConsoleVariables");
+	// We also apply from Engine.ini [ConsoleVariables] section
+	ApplyCVarSettingsFromIni(TEXT("ConsoleVariables"), *GEngineIni, ECVF_SetBySystemSettingsIni);
 
-	bool bFoundSection = false;
-
-	for(int32 PassIdx=0;PassIdx<2;PassIdx++)
-	{
-		FConfigSection* Section = GConfig->GetSectionPrivate(Sections[PassIdx], false, true, *Paths[PassIdx]);
-
-		if(Section)
-		{
-			for(FConfigSectionMap::TConstIterator It(*Section); It; ++It)
-			{
-				const FString& KeyString = It.Key().GetPlainNameString(); 
-				const FString& ValueString = It.Value().GetValue();
-
-				IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*KeyString);
-
-				if(CVar)
-				{
-					// Set if the variable exists.
-					CVar->Set(*ValueString, ECVF_SetByConsoleVariablesIni);
-				}
-				else
-				{
-					// Create a dummy that is used when someone registers the variable later on.
-					IConsoleManager::Get().RegisterConsoleVariable(*KeyString, *ValueString, TEXT("IAmNoRealVariable"),
-						(uint32)ECVF_Unregistered | (uint32)ECVF_CreatedFromIni | (uint32)ECVF_SetByConsoleVariablesIni);
-				}
-			}
-			bFoundSection = true;
-		}
-	}
-
-	if(bFoundSection)
-	{
 		IConsoleManager::Get().CallAllConsoleVariableSinks();
-	}
 }
 
 void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRootName/*=nullptr*/)
@@ -3335,48 +3295,82 @@ bool FConfigFile::UpdateSinglePropertyInSection(const TCHAR* DiskFilename, const
 	return bSuccessfullyUpdatedFile;
 }
 
-void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFilename, uint32 SetBy)
+// @param IniFile for error reporting
+// to have one single function to set a cvar from ini (handing friendly names, cheats for shipping and message about cheats in non shipping)
+CORE_API void OnSetCVarFromIniEntry(const TCHAR *IniFile, const TCHAR *Key, const TCHAR* Value, uint32 SetBy, bool bAllowCheating)
 {
-	// Lookup the config section for this section and group number
-	TArray<FString> SectionStrings;
-	if (GConfig->GetSection(InSectionName, SectionStrings, InIniFilename))
-	{
-		// Apply each cvar in the group
-		for (int32 VarIndex = 0; VarIndex < SectionStrings.Num(); ++VarIndex)
-		{
-			FString CVarName;
-			FString CVarValue;
-			SectionStrings[VarIndex].Split(TEXT("="), &CVarName, &CVarValue, ESearchCase::CaseSensitive);
+	check(IniFile && Key && Value);
+	check((SetBy & ~ECVF_SetByMask) == 0);
 
-			IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarName);
-			if (CVar)
+	// allow human friendly names
+	if (FCString::Stricmp(Value, TEXT("True")) == 0
+	|| FCString::Stricmp(Value, TEXT("Yes")) == 0
+	|| FCString::Stricmp(Value, TEXT("On")) == 0)
+	{
+		Value = TEXT("1");
+	}
+	else if(FCString::Stricmp(Value, TEXT("False")) == 0
+	|| FCString::Stricmp(Value, TEXT("No")) == 0
+	|| FCString::Stricmp(Value, TEXT("Off")) == 0)
+	{
+		Value = TEXT("0");
+	}
+
+	IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(Key); 
+
+	if(CVar)
+	{
+		bool bCheatFlag = CVar->TestFlags(EConsoleVariableFlags::ECVF_Cheat); 
+		
+		if(SetBy == ECVF_SetByScalability)
+		{
+			if(!CVar->TestFlags(EConsoleVariableFlags::ECVF_Scalability))
 			{
-				if (!CVar->TestFlags(EConsoleVariableFlags::ECVF_Cheat))
+				ensureMsgf(false, TEXT("Scalability.ini can only set ECVF_Scalability console variables ('%s'='%s' is ignored)"), Key, Value);
+				return;
+			}
+		}
+
+		bool bAllowChange = !bCheatFlag || bAllowCheating;
+
+		if(bAllowChange)
+		{
+			CVar->Set(Value, (EConsoleVariableFlags)SetBy);
+		}
+		else
+		{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if(bCheatFlag)
+			{
+				// We have one special cvar to test cheating and here we don't want to both the user of the engine
+				if(FCString::Stricmp(Key, TEXT("con.DebugEarlyCheat")) != 0)
 				{
-					if (FCString::Stricmp(*CVarValue, TEXT("True")) == 0
-						|| FCString::Stricmp(*CVarValue, TEXT("Yes")) == 0
-						|| FCString::Stricmp(*CVarValue, TEXT("On")) == 0)
-					{
-						CVar->Set(1, (EConsoleVariableFlags)SetBy);
-					}
-					else if(FCString::Stricmp(*CVarValue, TEXT("False")) == 0
-						|| FCString::Stricmp(*CVarValue, TEXT("No")) == 0
-						|| FCString::Stricmp(*CVarValue, TEXT("Off")) == 0)
-					{
-						CVar->Set(0, (EConsoleVariableFlags)SetBy);
-					}
-					else
-					{
-						CVar->Set(*CVarValue, (EConsoleVariableFlags)SetBy);
-					}
+					ensureMsgf(false, TEXT("The ini file '%s' tries to set the console variable '%s' marked with ECVF_Cheat, this is only allowed in consolevariables.ini (was always like this in Shipping / Test but the ensure/message is new)"),
+						IniFile, Key);
 				}
 			}
-			else
-			{
-				// Create a dummy that is used when someone registers the variable later on.
-				// this is important for variables created in external modules, such as the game module
-				IConsoleManager::Get().RegisterConsoleVariable(*CVarName, *CVarValue, TEXT("IAmNoRealVariable"), (uint32)ECVF_Unregistered | (uint32)ECVF_CreatedFromIni | SetBy);
-			}
+#endif
+		}
+	}
+	else
+	{
+		// Create a dummy that is used when someone registers the variable later on.
+		// this is important for variables created in external modules, such as the game module
+		IConsoleManager::Get().RegisterConsoleVariable(Key, Value, TEXT("IAmNoRealVariable"),
+			(uint32)ECVF_Unregistered | (uint32)ECVF_CreatedFromIni | SetBy);
+	}
+}
+
+void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFilename, uint32 SetBy, bool bAllowCheating)
+{
+	if(FConfigSection* Section = GConfig->GetSectionPrivate(InSectionName, false, true, InIniFilename))
+	{
+		for(FConfigSectionMap::TConstIterator It(*Section); It; ++It)
+		{
+			const FString& KeyString = It.Key().GetPlainNameString(); 
+			const FString& ValueString = It.Value().GetValue();
+
+			OnSetCVarFromIniEntry(InIniFilename, *KeyString, *ValueString, SetBy, bAllowCheating);
 		}
 	}
 }

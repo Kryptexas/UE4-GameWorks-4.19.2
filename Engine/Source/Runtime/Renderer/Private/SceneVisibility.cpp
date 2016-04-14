@@ -54,14 +54,6 @@ static TAutoConsoleVariable<int32> CVarTemporalAASamples(
 	TEXT("Number of jittered positions for temporal AA (4, 8=default, 16, 32, 64)."),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarWorkaroundJiraFORT16913(
-	TEXT("r.WorkaroundJiraFORT16913"),
-	0,
-	TEXT("Workaround for Jira FORT-16913 which sometimes causes ClearCoat and SubsurfaceScatteringProfile to not render properly.\n")
-	TEXT(" 0: disabled (default)\n")
-	TEXT(" 1: enabled (cost some GPUperformace)"),
-	ECVF_RenderThreadSafe);
-
 #if PLATFORM_MAC // @todo: disabled until rendering problems with HZB occlusion in OpenGL are solved
 static int32 GHZBOcclusion = 0;
 #else
@@ -1253,7 +1245,6 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 	{
 		if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
-			
 			bool bSubmitQueries = !View.bDisableQuerySubmissions;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			bSubmitQueries = bSubmitQueries && !ViewState->HasViewParent() && !ViewState->bIsFrozen;
@@ -1317,9 +1308,9 @@ struct FRelevancePrimSet
 		return NumPrims >= MaxPrims;
 	}
 	template<class TARRAY>
-	FORCEINLINE void AppendTo(TARRAY& Array)
+	FORCEINLINE void AppendTo(TARRAY& DestArray)
 	{
-		Array.Append(Prims, NumPrims);
+		DestArray.Append(Prims, NumPrims);
 	}
 };
 
@@ -1547,7 +1538,7 @@ struct FRelevancePacket
 				&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance || bHasClearCoat))
 			{
 				PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIndex].Origin);
-				PrimitiveSceneInfo->CachedPlanarReflectionProxy = Scene->FindClosestPlanarReflection(Scene->PrimitiveBounds[BitIndex].Origin);
+				PrimitiveSceneInfo->CachedPlanarReflectionProxy = Scene->FindClosestPlanarReflection(Scene->PrimitiveBounds[BitIndex]);
 
 				if (!Scene->ShouldUseDeferredRenderer())
 				{
@@ -1710,12 +1701,6 @@ struct FRelevancePacket
 #endif
 
 		WriteView.ShadingModelMaskInView |= CombinedShadingModelMask;
-
-		if(CVarWorkaroundJiraFORT16913.GetValueOnRenderThread())
-		{
-			WriteView.ShadingModelMaskInView = 0xffff;
-		}
-
 		WriteView.bUsesGlobalDistanceField |= bUsesGlobalDistanceField;
 		WriteView.bUsesLightingChannels |= bUsesLightingChannels;
 		VisibleEditorPrimitives.AppendTo(WriteView.VisibleEditorPrimitives);
@@ -2085,7 +2070,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 			// Subpixel jitter for temporal AA
 			int32 TemporalAASamples = CVarTemporalAASamples.GetValueOnRenderThread();
 		
-			if( TemporalAASamples > 1 )
+			if( TemporalAASamples > 1 && View.bAllowTemporalJitter )
 			{
 				float SampleX, SampleY;
 
@@ -2478,6 +2463,18 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 			}
 		}
 
+		// If the view has any show only primitives, hide everything else
+		if (View.ShowOnlyPrimitives.Num())
+		{
+			for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
+			{
+				if (!View.ShowOnlyPrimitives.Contains(Scene->PrimitiveComponentIds[BitIt.GetIndex()]))
+				{
+					View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
+				}
+			}
+		}
+
 		if (View.bStaticSceneOnly)
 		{
 			for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
@@ -2515,7 +2512,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		FLODSceneTree& HLODTree = Scene->SceneLODHierarchy;
 
 		if (HLODTree.IsActive())
-			{
+		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_ViewVisibilityTime_HLOD);
 			HLODTree.UpdateAndApplyVisibilityStates(View);
 		}
@@ -2523,12 +2520,12 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		MarkAllPrimitivesForReflectionProxyUpdate(Scene);
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_ViewVisibilityTime_ConditionalMarkStaticMeshElementsForUpdate);
-		Scene->ConditionalMarkStaticMeshElementsForUpdate();
+			Scene->ConditionalMarkStaticMeshElementsForUpdate();
 		}
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ViewRelevance);
-				ComputeAndMarkRelevanceForViewParallel(RHICmdList, Scene, View, ViewBit, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
+			ComputeAndMarkRelevanceForViewParallel(RHICmdList, Scene, View, ViewBit, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -2781,7 +2778,9 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 	{		
 		FViewInfo& View = Views[ViewIndex];
 
-		if (!GPostProcessing.AllowFullPostProcessing(View, FeatureLevel))
+		const bool bWillApplyTemporalAA = GPostProcessing.AllowFullPostProcessing(View, FeatureLevel) || (View.bIsPlanarReflection && FeatureLevel >= ERHIFeatureLevel::SM4);
+
+		if (!bWillApplyTemporalAA)
 		{
 			// Disable anti-aliasing if we are not going to be able to apply final post process effects
 			View.FinalPostProcessSettings.AntiAliasingMethod = AAM_None;

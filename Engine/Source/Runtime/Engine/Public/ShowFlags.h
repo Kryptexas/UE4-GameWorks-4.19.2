@@ -354,10 +354,10 @@ private:
 		SetVisualizeSSR(false);
 		SetVisualizeSSS(false);
 		SetVisualizeBloom(false);
-		SetWantedMipsAccuracy(false);
-		SetTexelFactorAccuracy(false);
-		SetTexCoordScaleAccuracy(false);
-		SetTexCoordAnalysis(false);
+		SetPrimitiveDistanceAccuracy(false);
+		SetMeshTexCoordSizeAccuracy(false);
+		SetMaterialTexCoordScalesAccuracy(false);
+		SetMaterialTexCoordScalesAnalysis(false);
 	}
 
 

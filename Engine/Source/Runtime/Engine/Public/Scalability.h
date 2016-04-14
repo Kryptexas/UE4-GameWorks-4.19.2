@@ -90,4 +90,35 @@ namespace Scalability
 
 	/** Maximum single axis scale for render resolution */
 	static const float MaxResolutionScale = 100.0f;
+
+
+	// A set of accessor helper objects that allow fast and thread safe access to the scalability CVars values without giving direct access.
+	ENGINE_API struct FResolutionQualityCVarAccessor : public FCVarAccessorFloat
+	{
+		FResolutionQualityCVarAccessor();
+	};
+	ENGINE_API struct FViewDistanceQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FViewDistanceQualityCVarAccessor();
+	};
+	ENGINE_API struct FAntiAliasingQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FAntiAliasingQualityCVarAccessor();
+	};
+	ENGINE_API struct FShadowQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FShadowQualityCVarAccessor();
+	};
+	ENGINE_API struct FPostProcessQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FPostProcessQualityCVarAccessor();
+	};
+	ENGINE_API struct FTextureQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FTextureQualityCVarAccessor();
+	};
+	ENGINE_API struct FEffectsQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FEffectsQualityCVarAccessor();
+	};
 }

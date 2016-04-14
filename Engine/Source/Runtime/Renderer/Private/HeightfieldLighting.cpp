@@ -23,7 +23,7 @@ FAutoConsoleVariableRef CVarAOHeightfieldOcclusion(
 	TEXT("r.AOHeightfieldOcclusion"),
 	GAOHeightfieldOcclusion,
 	TEXT("Whether to compute AO from heightfields (landscape)"),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GHeightfieldGlobalIllumination = 1;
@@ -31,7 +31,7 @@ FAutoConsoleVariableRef CVarHeightfieldGlobalIllumination(
 	TEXT("r.HeightfieldGlobalIllumination"),
 	GHeightfieldGlobalIllumination,
 	TEXT(""),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GHeightfieldInnerBounceDistance = 3000;
@@ -39,7 +39,7 @@ FAutoConsoleVariableRef CVarHeightfieldInnerBounceDistancer(
 	TEXT("r.HeightfieldInnerBounceDistance"),
 	GHeightfieldInnerBounceDistance,
 	TEXT(""),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GHeightfieldOuterBounceDistanceScale = 3;
@@ -47,7 +47,7 @@ FAutoConsoleVariableRef CVarHeightfieldOuterBounceDistanceScale(
 	TEXT("r.HeightfieldOuterBounceDistanceScale"),
 	GHeightfieldOuterBounceDistanceScale,
 	TEXT(""),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GetGHeightfieldBounceDistance()
@@ -60,7 +60,7 @@ FAutoConsoleVariableRef CVarHeightfieldTargetUnitsPerTexel(
 	TEXT("r.HeightfieldTargetUnitsPerTexel"),
 	GHeightfieldTargetUnitsPerTexel,
 	TEXT(""),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 void FHeightfieldLightingAtlas::InitDynamicRHI()

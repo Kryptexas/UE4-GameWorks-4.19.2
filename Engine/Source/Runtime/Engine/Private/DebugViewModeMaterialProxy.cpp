@@ -43,7 +43,7 @@ void FDebugViewModeMaterialProxy::AddShader(UMaterialInterface* InMaterialInterf
 
 const FMaterial* FDebugViewModeMaterialProxy::GetShader(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material)
 {
-	if (DebugViewShaderMode == DVSM_TexCoordScaleAccuracy || DebugViewShaderMode == DVSM_TexCoordScaleAnalysis)
+	if (DebugViewShaderMode == DVSM_MaterialTexCoordScalesAccuracy || DebugViewShaderMode == DVSM_MaterialTexCoordScalesAnalysis)
 	{
 		FDebugViewModeMaterialProxy** BoundMaterial = DebugMaterialShaderMap.Find(Material);
 		if (BoundMaterial)

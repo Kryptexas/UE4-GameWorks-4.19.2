@@ -27,7 +27,15 @@ public class VulkanRHI : ModuleRules
             //AddEngineThirdPartyPrivateStaticDependencies(Target, "HLSLCC");
         }
 
-		string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+		// Newer SDKs use a different env var, so fallback if not found
+		bool bUsingNewEnvVar = true;
+		string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
+		if (String.IsNullOrEmpty(VulkanSDKPath))
+		{
+			VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+			bUsingNewEnvVar = false;
+		}
+
 		if (!String.IsNullOrEmpty(VulkanSDKPath))
 		{
 			PrivateIncludePaths.Add(VulkanSDKPath + "/Include");
@@ -48,9 +56,13 @@ public class VulkanRHI : ModuleRules
             }
             else
             {
-                if (VulkanSDKPath.Contains("1.0"))
+				if (bUsingNewEnvVar || VulkanSDKPath.Contains("1.0"))
                 {
                     PublicAdditionalLibraries.Add("vulkan-1.lib");
+					if (bUsingNewEnvVar)
+					{
+						PublicAdditionalLibraries.Add("vkstatic.1.lib");
+					}
                 }
                 else
                 {

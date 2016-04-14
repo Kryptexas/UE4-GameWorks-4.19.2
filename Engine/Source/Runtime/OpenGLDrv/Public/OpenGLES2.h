@@ -132,6 +132,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT; }
 	static FORCEINLINE GLenum GetShadowDepthFormat()					{ return GL_DEPTH_COMPONENT; }
 	static FORCEINLINE bool SupportsFramebufferSRGBEnable()				{ return false; }
+	static FORCEINLINE bool SupportsRGB10A2()							{ return bSupportsRGB10A2; }
 
 
 	static FORCEINLINE bool RequiresDontEmitPrecisionForTextureSamplers() { return bRequiresDontEmitPrecisionForTextureSamplers; }
@@ -143,7 +144,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool RequiresARMShaderFramebufferFetchDepthStencilUndef() { return bRequiresARMShaderFramebufferFetchDepthStencilUndef; }
 	static FORCEINLINE bool IsCheckingShaderCompilerHacks()				{ return bIsCheckingShaderCompilerHacks; }
     static FORCEINLINE bool IsLimitingShaderCompileCount()              { return bIsLimitingShaderCompileCount; }
-        
+
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_HALF_FLOAT_OES; }
 
 	static FORCEINLINE GLenum GetVertexHalfFloatFormat()				{ return GL_HALF_FLOAT_OES; }
@@ -511,7 +512,10 @@ public:
 	
 	/* Indicates shader compiler hack checks are being tested */
 	static bool bIsCheckingShaderCompilerHacks;
-    
+
+	/** GL_OES_vertex_type_10_10_10_2 */
+	static bool bSupportsRGB10A2;
+
     /* Indicates shader compiler should be limited */
     static bool bIsLimitingShaderCompileCount;
 };
@@ -749,6 +753,9 @@ public:
 #endif
 #ifndef GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT
 #define GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT 0x8A34
+#endif
+#ifndef GL_UNSIGNED_INT_2_10_10_10_REV
+#define GL_UNSIGNED_INT_2_10_10_10_REV 0x8368
 #endif
 
 // Normalize debug macros due to naming differences across GL versions

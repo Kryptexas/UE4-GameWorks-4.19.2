@@ -260,6 +260,43 @@ private:
 	ERenderQueryType QueryType;
 };
 
+class FIndividualOcclusionHistory
+{
+	TArray<FRenderQueryRHIRef, TInlineAllocator<FOcclusionQueryHelpers::MaxBufferedOcclusionFrames> > PendingOcclusionQuery;
+
+public:
+
+	FORCEINLINE FIndividualOcclusionHistory()
+	{
+		PendingOcclusionQuery.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
+		PendingOcclusionQuery.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
+	}
+
+
+	template<class TOcclusionQueryPool> // here we use a template just to allow this to be inlined without sorting out the header order
+	FORCEINLINE void ReleaseQueries(FRHICommandListImmediate& RHICmdList, TOcclusionQueryPool& Pool, int32 NumBufferedFrames)
+	{
+		for (int32 QueryIndex = 0; QueryIndex < NumBufferedFrames; QueryIndex++)
+		{
+			Pool.ReleaseQuery(PendingOcclusionQuery[QueryIndex]);
+		}
+	}
+
+	FORCEINLINE FRenderQueryRHIRef& GetPastQuery(uint32 FrameNumber, int32 NumBufferedFrames)
+	{
+		// Get the oldest occlusion query
+		const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryLookupIndex(FrameNumber, NumBufferedFrames);
+		return PendingOcclusionQuery[QueryIndex];
+	}
+
+	FORCEINLINE void SetCurrentQuery(uint32 FrameNumber, FRenderQueryRHIParamRef NewQuery, int32 NumBufferedFrames)
+	{
+		// Get the current occlusion query
+		const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(FrameNumber, NumBufferedFrames);
+		PendingOcclusionQuery[QueryIndex] = NewQuery;
+	}
+};
+
 /**
  * Distance cull fading uniform buffer containing faded in
  */
@@ -322,12 +359,14 @@ public:
 		FullUpdateOrigin = FIntVector::ZeroValue;
 		LastPartialUpdateOrigin = FIntVector::ZeroValue;
 		CachedMaxOcclusionDistance = 0;
+		CachedGlobalDistanceFieldViewDistance = 0;
 	}
 
 	FIntVector FullUpdateOrigin;
 	FIntVector LastPartialUpdateOrigin;
 	TArray<FVector4> PrimitiveModifiedBounds;
 	float CachedMaxOcclusionDistance;
+	float CachedGlobalDistanceFieldViewDistance;
 	TRefCountPtr<IPooledRenderTarget> VolumeTexture;
 };
 
@@ -459,6 +498,8 @@ public:
 	FPrimitiveFadingStateMap PrimitiveFadingStates;
 
 	FIndirectLightingCacheAllocation* TranslucencyLightingCacheAllocations[TVC_MAX];
+
+	TMap<int32, FIndividualOcclusionHistory> PlanarReflectionOcclusionHistories;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Are we currently in the state of freezing rendering? (1 frame where we gather what was rendered) */
@@ -989,9 +1030,10 @@ class FReflectionEnvironmentCubemapArray : public FRenderResource
 {
 public:
 
-	FReflectionEnvironmentCubemapArray(ERHIFeatureLevel::Type InFeatureLevel) : 
-		FRenderResource(InFeatureLevel)
-	,	MaxCubemaps(0)
+	FReflectionEnvironmentCubemapArray(ERHIFeatureLevel::Type InFeatureLevel)
+		: FRenderResource(InFeatureLevel)
+		, MaxCubemaps(0)
+		, CubemapSize(0)
 	{}
 
 	virtual void InitDynamicRHI() override;
@@ -1001,13 +1043,15 @@ public:
 	 * Updates the maximum number of cubemaps that this array is allocated for.
 	 * This reallocates the resource but does not copy over the old contents. 
 	 */
-	void UpdateMaxCubemaps(uint32 InMaxCubemaps);
+	void UpdateMaxCubemaps(uint32 InMaxCubemaps, int32 CubemapSize);
 	int32 GetMaxCubemaps() const { return MaxCubemaps; }
+	int32 GetCubemapSize() const { return CubemapSize; }
 	bool IsValid() const { return IsValidRef(ReflectionEnvs); }
 	FSceneRenderTargetItem& GetRenderTarget() const { return ReflectionEnvs->GetRenderTargetItem(); }
 
 protected:
 	uint32 MaxCubemaps;
+	int32 CubemapSize;
 	TRefCountPtr<IPooledRenderTarget> ReflectionEnvs;
 
 	void ReleaseCubeArray();
@@ -1383,7 +1427,7 @@ private:
 		FScene* Scene, 
 		const FIndirectLightingCacheBlock& Block,
 		float& OutDirectionalShadowing, 
-		FSHVectorRGB2& OutIncidentRadiance,
+		FSHVectorRGB3& OutIncidentRadiance,
 		FVector& OutSkyBentNormal);
 
 	/** Interpolates SH samples for a block from all levels. */
@@ -1391,9 +1435,7 @@ private:
 		FScene* Scene, 
 		const FIndirectLightingCacheBlock& Block, 
 		TArray<float>& AccumulatedWeight, 
-		TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance,
-		FVector& CenterSkyBentNormal,
-		float& CenterDirectionalLightShadowing);
+		TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance);
 
 	/** 
 	 * Normalizes, adjusts for SH ringing, and encodes SH samples into a texture format.
@@ -1406,8 +1448,8 @@ private:
 		const TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance,
 		TArray<FFloat16Color>& Texture0Data,
 		TArray<FFloat16Color>& Texture1Data,
-		TArray<FFloat16Color>& Texture2Data,
-		FSHVectorRGB2& SingleSample);
+		TArray<FFloat16Color>& Texture2Data		
+		);
 
 	/** Helper that calculates an effective world position min and size given a bounds. */
 	void CalculateBlockPositionAndSize(const FBoxSphereBounds& Bounds, int32 TexelSize, FVector& OutMin, FVector& OutSize) const;
@@ -1620,13 +1662,6 @@ public:
 	/** An optional FX system associated with the scene. */
 	class FFXSystemInterface* FXSystem;
 
-	enum EBasePassDrawListType
-	{
-		EBasePass_Default=0,
-		EBasePass_Masked,
-		EBasePass_MAX
-	};
-
 	// various static draw lists for this DPG
 
 	/** position-only opaque depth draw list */
@@ -1803,6 +1838,8 @@ public:
 
 	float DefaultMaxDistanceFieldOcclusionDistance;
 
+	float GlobalDistanceFieldViewDistance;
+
 #if WITH_EDITOR
 	/** Editor Pixel inspector */
 	FPixelInspectorData PixelInspectorData;
@@ -1830,7 +1867,7 @@ public:
 	virtual void UpdateDecalTransform(UDecalComponent* Decal) override;
 	virtual void AddReflectionCapture(UReflectionCaptureComponent* Component) override;
 	virtual void RemoveReflectionCapture(UReflectionCaptureComponent* Component) override;
-	virtual void GetReflectionCaptureData(UReflectionCaptureComponent* Component, class FReflectionCaptureFullHDRDerivedData& OutDerivedData) override;
+	virtual void GetReflectionCaptureData(UReflectionCaptureComponent* Component, class FReflectionCaptureFullHDR& OutDerivedData) override;
 	virtual void UpdateReflectionCaptureTransform(UReflectionCaptureComponent* Component) override;
 	virtual void ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureComponent) override;
 	virtual void AddPlanarReflection(class UPlanarReflectionComponent* Component) override;
@@ -1903,7 +1940,7 @@ public:
 	/** Finds the closest reflection capture to a point in space. */
 	const FReflectionCaptureProxy* FindClosestReflectionCapture(FVector Position) const;
 
-	const class FPlanarReflectionSceneProxy* FindClosestPlanarReflection(FVector Position) const;
+	const class FPlanarReflectionSceneProxy* FindClosestPlanarReflection(const FPrimitiveBounds& Bounds) const;
 
 	void FindClosestReflectionCaptures(FVector Position, const FReflectionCaptureProxy* (&SortedByDistanceOUT)[FPrimitiveSceneInfo::MaxCachedReflectionCaptureProxies]) const;
 	

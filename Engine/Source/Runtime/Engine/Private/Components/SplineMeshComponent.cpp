@@ -127,17 +127,19 @@ void FSplineMeshSceneProxy::InitVertexFactory(USplineMeshComponent* InComponent,
 			RenderData->PositionVertexBuffer.GetStride(),
 			VET_Float3
 			);
+
 		Data.TangentBasisComponents[0] = FVertexStreamComponent(
 			&RenderData->VertexBuffer,
-			STRUCT_OFFSET(FStaticMeshFullVertex, TangentX),
+			STRUCT_OFFSET(FStaticMeshFullVertex, RawTangentX),
 			RenderData->VertexBuffer.GetStride(),
-			VET_PackedNormal
+			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis() ? VET_URGB10A2N : VET_PackedNormal
 			);
+
 		Data.TangentBasisComponents[1] = FVertexStreamComponent(
 			&RenderData->VertexBuffer,
 			STRUCT_OFFSET(FStaticMeshFullVertex, TangentZ),
 			RenderData->VertexBuffer.GetStride(),
-			VET_PackedNormal
+			VET_UShort2N
 			);
 		if (bOverrideColorVertexBuffer)
 		{

@@ -13,7 +13,7 @@
 #include "VulkanContext.h"
 #include "VulkanManager.h"
 
-#if UE_VK_API_VERSION < VK_MAKE_VERSION(1, 0, 3)
+#if VK_HEADER_VERSION < 8 && (VK_API_VERSION < VK_MAKE_VERSION(1, 0, 3))
 	#include <vulkan/vk_ext_debug_report.h>
 #endif
 
@@ -195,16 +195,12 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingNumPrimitives(0)
 	, PendingMinVertexIndex(0)
 	, PendingIndexDataStride(0)
-	, DynamicVB(nullptr)
-	, DynamicIB(nullptr)
+	, TempFrameAllocationBuffer(InDevice, VULKAN_TEMP_FRAME_ALLOCATOR_SIZE)
 #if VULKAN_USE_NEW_COMMAND_BUFFERS
 #else
 	, CommandBufferManager(nullptr)
 #endif
 {
-	DynamicIB = new FVulkanDynamicIndexBuffer(*Device);
-	DynamicVB = new FVulkanDynamicVertexBuffer(*Device);
-
 	// Create CommandBufferManager, contain all active buffers
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice);
 }
@@ -215,10 +211,7 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 	delete CommandBufferManager;
 	CommandBufferManager = nullptr;
 
-	delete DynamicVB;
-	DynamicVB = nullptr;
-	delete DynamicIB;
-	DynamicIB = nullptr;
+	TempFrameAllocationBuffer.Destroy();
 }
 
 namespace VulkanRHI
@@ -328,24 +321,6 @@ void FVulkanDynamicRHI::Shutdown()
 
 void FVulkanDynamicRHI::CreateInstance()
 {
-	VkResult Result = VK_SUCCESS;
-
-	//#todo-rco: Do we want to move this somewhere else? RHI agnostic...
-#if VULKAN_HAS_DEBUGGING_ENABLED
-	if (!FPlatformMisc::IsDebuggerPresent())
-	{
-		if (FParse::Param(FCommandLine::Get(),TEXT("AttachDebugger")))
-		{
-			// Wait to attach debugger
-			do
-			{
-				FPlatformProcess::Sleep(0);
-			}
-			while (!FPlatformMisc::IsDebuggerPresent());
-		}
-	}
-#endif	// VULKAN_ENABLE_DRAW_MARKERS
-
 	VkApplicationInfo App;
 	FMemory::Memzero(App);
 	App.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -361,30 +336,28 @@ void FVulkanDynamicRHI::CreateInstance()
 	InstInfo.pNext = nullptr;
 	InstInfo.pApplicationInfo = &App;
 
-	#if VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED
-		GCallbacks.pUserData = &GVulkanMemMgr;
-		GCallbacks.pfnAllocation = &FVulkanMemManager::Alloc;
-		GCallbacks.pfnReallocation = &FVulkanMemManager::Realloc;
-		GCallbacks.pfnFree = &FVulkanMemManager::Free;
-		GCallbacks.pfnInternalAllocation = &FVulkanMemManager::InternalAllocationNotification;
-		GCallbacks.pfnInternalFree = &FVulkanMemManager::InternalFreeNotification;
+#if VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED
+	GCallbacks.pUserData = &GVulkanMemMgr;
+	GCallbacks.pfnAllocation = &FVulkanMemManager::Alloc;
+	GCallbacks.pfnReallocation = &FVulkanMemManager::Realloc;
+	GCallbacks.pfnFree = &FVulkanMemManager::Free;
+	GCallbacks.pfnInternalAllocation = &FVulkanMemManager::InternalAllocationNotification;
+	GCallbacks.pfnInternalFree = &FVulkanMemManager::InternalFreeNotification;
 
-	//@TODO: pass GCallbacks into funcs that take them. currently it's just a nullptr
-	#endif
+//@TODO: pass GCallbacks into funcs that take them. currently it's just a nullptr
+#endif
 
-	TArray<const ANSICHAR*> ValidationLayersInstance;
-	TArray<const ANSICHAR*> GlobalExtensionNames;
-	GetInstanceLayersList(GlobalExtensionNames, ValidationLayersInstance);
+	GetInstanceLayersAndExtensions(InstanceExtensions, InstanceLayers);
 
-	InstInfo.enabledExtensionCount = GlobalExtensionNames.Num();
-	InstInfo.ppEnabledExtensionNames = InstInfo.enabledExtensionCount > 0 ? (const ANSICHAR* const*)GlobalExtensionNames.GetData() : nullptr;
+	InstInfo.enabledExtensionCount = InstanceExtensions.Num();
+	InstInfo.ppEnabledExtensionNames = InstInfo.enabledExtensionCount > 0 ? (const ANSICHAR* const*)InstanceExtensions.GetData() : nullptr;
 	
 	#if VULKAN_HAS_DEBUGGING_ENABLED
-		InstInfo.enabledLayerCount = (GValidationCvar.GetValueOnAnyThread() > 0) ? ValidationLayersInstance.Num() : 0;
-		InstInfo.ppEnabledLayerNames = InstInfo.enabledLayerCount > 0 ? ValidationLayersInstance.GetData() : nullptr;
+		InstInfo.enabledLayerCount = (GValidationCvar.GetValueOnAnyThread() > 0) ? InstanceLayers.Num() : 0;
+		InstInfo.ppEnabledLayerNames = InstInfo.enabledLayerCount > 0 ? InstanceLayers.GetData() : nullptr;
 	#endif
 
-	Result = vkCreateInstance(&InstInfo, nullptr, &Instance);
+	VkResult Result = vkCreateInstance(&InstInfo, nullptr, &Instance);
 	
 	if(Result == VK_ERROR_INCOMPATIBLE_DRIVER)
 	{
@@ -472,11 +445,11 @@ void FVulkanDynamicRHI::InitInstance()
 		GSupportsRenderTargetFormat_PF_G8 = false;	// #todo-rco
 		GSupportsQuads = false;	// Not supported in Vulkan
 		GRHISupportsTextureStreaming = false;	// #todo-rco
-		GRHISupportsRHIThread = 0;//VULKAN_USE_NEW_RESOURCE_MANAGEMENT != 0;	// #todo-rco
+		GRHISupportsRHIThread = false;	// #todo-rco
 
 		//#todo-rco: Leaks/issues still present!
 		// Indicate that the RHI needs to use the engine's deferred deletion queue.
-		GRHINeedsExtraDeletionLatency = 0;//VULKAN_USE_NEW_RESOURCE_MANAGEMENT != 0 && VULKAN_USE_NEW_COMMAND_BUFFERS != 0;
+		GRHINeedsExtraDeletionLatency = false;
 
 		GMaxShadowDepthBufferSizeX =  FPlatformMath::Min<int32>(Props.limits.maxImageDimension2D, GMaxShadowDepthBufferSizeX);
 		GMaxShadowDepthBufferSizeY =  FPlatformMath::Min<int32>(Props.limits.maxImageDimension2D, GMaxShadowDepthBufferSizeY);
@@ -556,6 +529,14 @@ void FVulkanCommandListContext::RHIBeginScene()
 
 void FVulkanCommandListContext::RHIEndScene()
 {
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+	auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	auto& PendingState = Device->GetPendingState();
+	if (PendingState.IsRenderPassActive())
+	{
+		PendingState.RenderPassEnd(CmdBuffer);
+	}
+#endif
 }
 
 void FVulkanCommandListContext::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTargetRHI)
@@ -608,16 +589,14 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 
 void FVulkanCommandListContext::RHIEndFrame()
 {
-#if VULKAN_USE_NEW_COMMAND_BUFFERS && VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	Device->GetDeferredDeletionQueue().Clear();
 #endif
 
 	Device->GetStagingManager().ProcessPendingFree();
+	Device->GetResourceHeapManager().ReleaseFreedPages();
 
 	Device->FrameCounter++;
-
-	DynamicIB->EndFrame();
-	DynamicVB->EndFrame();
 }
 
 void FVulkanCommandListContext::RHIPushEvent(const TCHAR* Name, FColor Color)
@@ -631,8 +610,12 @@ void FVulkanCommandListContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 #if VULKAN_ENABLE_DRAW_MARKERS
 		if (auto VkCmdDbgMarkerBegin = Device->GetCmdDbgMarkerBegin())
 		{
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+			VkCmdDbgMarkerBegin(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle(), TCHAR_TO_ANSI(Name));
+#else
 			FVulkanPendingState& State = Device->GetPendingState();
 			VkCmdDbgMarkerBegin(State.GetCommandBuffer(), TCHAR_TO_ANSI(Name));
+#endif
 		}
 #endif
 
@@ -649,7 +632,11 @@ void FVulkanCommandListContext::RHIPopEvent()
 		if (auto VkCmdDbgMarkerEnd = Device->GetCmdDbgMarkerEnd())
 		{
 			FVulkanPendingState& State = Device->GetPendingState();
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+			VkCmdDbgMarkerEnd(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle());
+#else
 			VkCmdDbgMarkerEnd(State.GetCommandBuffer());
+#endif
 		}
 #endif
 
@@ -719,6 +706,7 @@ FVulkanBuffer::FVulkanBuffer(FVulkanDevice& InDevice, uint32 InSize, VkFlags InU
 
 	Allocation = InDevice.GetMemoryManager().Alloc(MemoryRequirements.size, MemoryRequirements.memoryTypeBits, InMemPropertyFlags, File ? File : __FILE__, Line ? Line : __LINE__);
 	check(Allocation);
+	//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindImageMemory Buf %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buf, (void*)Allocation->GetHandle(), (uint32)0, (uint32)MemoryRequirements.size);
 	VERIFYVULKANRESULT_EXPANDED(vkBindBufferMemory(Device.GetInstanceHandle(), Buf, Allocation->GetHandle(), 0));
 }
 
@@ -964,6 +952,29 @@ void FVulkanBufferView::Create(FVulkanDevice& Device, FVulkanBuffer& Buffer, EPi
 	VERIFYVULKANRESULT(vkCreateBufferView(Device.GetInstanceHandle(), &ViewInfo, nullptr, &View));
 }
 
+void FVulkanBufferView::Create(FVulkanDevice& Device, FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
+{
+	VkBufferViewCreateInfo ViewInfo;
+	FMemory::Memzero(ViewInfo);
+	ViewInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+	ViewInfo.buffer = Buffer->GetHandle();
+
+	check(Format != PF_Unknown);
+	const FPixelFormatInfo& FormatInfo = GPixelFormats[Format];
+	check(FormatInfo.Supported);
+	ViewInfo.format = (VkFormat)FormatInfo.PlatformFormat;
+
+	// @todo vulkan: Because the buffer could be the ring buffer, maybe we should pass in a size here as well (for the sub part of the ring buffer)
+	ViewInfo.offset = Offset;
+	ViewInfo.range = Size;
+	Flags = Buffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+	check(Flags);
+
+	ViewInfo.flags = Flags;
+
+	VERIFYVULKANRESULT(vkCreateBufferView(Device.GetInstanceHandle(), &ViewInfo, nullptr, &View));
+}
+
 void FVulkanBufferView::Destroy(FVulkanDevice& Device)
 {
 	if (View != VK_NULL_HANDLE)
@@ -1201,7 +1212,7 @@ void VulkanSetImageLayout(
 	VkImage Image,
 	VkImageLayout OldLayout,
 	VkImageLayout NewLayout,
-	VkImageSubresourceRange SubresourceRange)
+	const VkImageSubresourceRange& SubresourceRange)
 {
 	check(CmdBuffer != VK_NULL_HANDLE);
 
@@ -1290,29 +1301,34 @@ void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRH
 }
 
 FVulkanRingBuffer::FVulkanRingBuffer(FVulkanDevice* InDevice, uint64 TotalSize, VkFlags Usage)
-	: BufferOffset(0)
+	: VulkanRHI::FDeviceChild(InDevice)
+	, BufferOffset(0)
 	, BufferSize(TotalSize)
-	, Device(InDevice)
+	, MinAlignment(0)
 {
-	Buffer = new FVulkanBuffer(*Device, BufferSize, 
-		Usage, 
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-		true, __FILE__, __LINE__);
+	FRHIResourceCreateInfo CreateInfo;
+	Buffer = InDevice->GetStagingManager().AcquireBuffer(TotalSize, Usage);
+
+	VkMemoryRequirements MemReqs;
+	vkGetBufferMemoryRequirements(InDevice->GetInstanceHandle(), Buffer->GetHandle(), &MemReqs);
+
+	MinAlignment = (uint32)MemReqs.alignment;
 }
 
 FVulkanRingBuffer::~FVulkanRingBuffer()
 {
-	delete Buffer;
+	Device->GetStagingManager().ReleaseBuffer(Buffer);
 }
 
 uint64 FVulkanRingBuffer::AllocateMemory(uint64 Size, uint32 Alignment)
 {
-	uint64 AllocOffset = Align<uint64>(BufferOffset, Device->GetLimits().minTexelBufferOffsetAlignment);//Alignment);
+	Alignment = FMath::Max(Alignment, MinAlignment);
+	uint64 AllocOffset = Align<uint64>(BufferOffset, Alignment);
 
 	// wrap around if needed
 	if (AllocOffset + Size >= BufferSize)
 	{
-		// UE_LOG(LogVulkanRHI, Display, TEXT("Wrapped around the ring buffer. Frame = %lld, size = %lld"), Device->FrameCounter, BufferSize);
+		UE_LOG(LogVulkanRHI, Display, TEXT("Wrapped around the ring buffer. Frame = %lld, size = %lld"), Device->FrameCounter, BufferSize);
 		AllocOffset = 0;
 	}
 
@@ -1320,107 +1336,6 @@ uint64 FVulkanRingBuffer::AllocateMemory(uint64 Size, uint32 Alignment)
 	BufferOffset = AllocOffset + Size;
 
 	return AllocOffset;
-}
-
-FVulkanMultiBuffer::FVulkanMultiBuffer(FVulkanDevice& InDevice, uint32 InSize, EBufferUsageFlags Usage, VkBufferUsageFlagBits VkUsage)
-	: Device(InDevice)
-	, NumBuffers(0)
-	, DynamicBufferIndex(0)
-	, BufferSize(InSize)
-	, RingBufferOffset(0)
-{
-	if (Usage & BUF_Volatile)
-	{
-		NumBuffers = 0;
-		// prefetch some memory, ..... just in case
-		RingBufferOffset = Device.GetVBIBRingBuffer()->AllocateMemory(BufferSize, 1024);
-
-	}
-	else if (Usage & BUF_Dynamic)
-	{
-		NumBuffers = ARRAY_COUNT(Buffers); 
-	}
-	else if (Usage & BUF_Static)
-	{
-		NumBuffers = 1;
-	}
-	else
-	{
-		checkf(false, TEXT("Unspecified number of buffers!"));
-	}
-
-	// allocate as many buffers as needed
-	int32 BufferIndex = 0;
-	for (; BufferIndex < NumBuffers; BufferIndex++)
-	{
-		Buffers[BufferIndex] = new FVulkanBuffer(Device, InSize,
-			VkUsage | (Usage & BUF_ShaderResource ? VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT : 0),
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, false, __FILE__, __LINE__);
-	}
-
-	for (; BufferIndex < ARRAY_COUNT(Buffers); BufferIndex++)
-	{
-		Buffers[BufferIndex] = nullptr;
-	}
-	
-}
-
-FVulkanMultiBuffer::~FVulkanMultiBuffer()
-{
-	for (int32 BufferIndex = 0; BufferIndex < ARRAY_COUNT(Buffers); BufferIndex++)
-	{
-		if (Buffers[BufferIndex])
-		{
-			delete Buffers[BufferIndex];
-			Buffers[BufferIndex] = nullptr;
-		}
-	}
-
-}
-
-FVulkanBuffer* FVulkanMultiBuffer::GetBuffer()
-{
-	if (NumBuffers == 0)
-	{
-		return Device.GetVBIBRingBuffer()->Buffer;
-	}
-	return Buffers[DynamicBufferIndex];
-}
-
-void* FVulkanMultiBuffer::Lock(EResourceLockMode LockMode, uint32 Size, uint32 Offset)
-{
-	if (NumBuffers == 0)
-	{
-		checkf(LockMode == RLM_WriteOnly, TEXT("Volatile buffers are only supported for Write Only locking"));
-		checkf(Offset == 0, TEXT("Volatile buffers are expected to be locked with an Offset of 0 (not %d)"), Offset);
-		// @todo vulkan: what alignment to use???
-		uint32 SizeToAllocate = Size ? Size : BufferSize;
-		RingBufferOffset = Device.GetVBIBRingBuffer()->AllocateMemory(SizeToAllocate, 1024);
-		return Device.GetVBIBRingBuffer()->Buffer->Lock(SizeToAllocate, RingBufferOffset + Offset);
-	}
-	else
-	{
-		// if writing, move to the next one
-		if (LockMode == RLM_WriteOnly)
-		{
-			DynamicBufferIndex = (DynamicBufferIndex + 1) % NumBuffers;
-		}
-
-		return Buffers[DynamicBufferIndex]->Lock(Size, Offset);
-	}
-}
-
-void FVulkanMultiBuffer::Unlock()
-{
-	if (NumBuffers == 0)
-	{
-		// put in a GPU fence so it makes sure CPU write is done
-		Device.GetVBIBRingBuffer()->Buffer->Unlock();
-	}
-	else
-	{
-		Buffers[DynamicBufferIndex]->Unlock();
-	}
 }
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
@@ -1444,8 +1359,6 @@ void FVulkanDynamicRHI::DumpMemory()
 {
 	auto* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->GetMemoryManager().DumpMemory();
-#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
 	RHI->Device->GetResourceHeapManager().DumpMemory();
-#endif
 }
 #endif

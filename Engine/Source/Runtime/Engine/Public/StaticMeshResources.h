@@ -114,8 +114,14 @@ private:
  */
 struct FStaticMeshFullVertex
 {
-	FPackedNormal TangentX;
-	FPackedNormal TangentZ;
+	uint32 RawTangentX;
+	uint32 TangentZ;
+
+	FStaticMeshFullVertex()
+		: RawTangentX(0)
+		, TangentZ(0)
+	{
+	}
 
 	/**
 	* Serializer
@@ -124,7 +130,7 @@ struct FStaticMeshFullVertex
 	*/
 	void Serialize(FArchive& Ar)
 	{
-		Ar << TangentX;
+		Ar << RawTangentX;
 		Ar << TangentZ;
 	}
 };
@@ -389,16 +395,25 @@ public:
 	* Specialized assignment operator, only used when importing LOD's. 
 	*/
 	ENGINE_API void operator=(const FStaticMeshVertexBuffer &Other);
+	
+	FORCEINLINE FVector4 VertexTangentX(uint32 VertexIndex) const
+	{
+		checkSlow(VertexIndex < GetNumVertices());
 
-	FORCEINLINE FPackedNormal& VertexTangentX(uint32 VertexIndex)
-	{
-		checkSlow(VertexIndex < GetNumVertices());
-		return ((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->TangentX;
-	}
-	FORCEINLINE const FPackedNormal& VertexTangentX(uint32 VertexIndex) const
-	{
-		checkSlow(VertexIndex < GetNumVertices());
-		return ((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->TangentX;
+		const uint32* RawTangentXPtr = &((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->RawTangentX;
+
+		FVector4 result = FVector::ZeroVector;
+		if (GetUseHighPrecisionTangentBasis())
+		{
+			result = *reinterpret_cast<const FPackedRGB10A2*>(RawTangentXPtr);
+		}
+		else
+		{
+			auto* PackedNormalX = reinterpret_cast<const FPackedNormal*>(RawTangentXPtr);
+			result = FVector4(*PackedNormalX, PackedNormalX->Vector.W ? 1.0f : -1.0f);
+		}
+
+		return result;
 	}
 
 	/**
@@ -409,20 +424,33 @@ public:
 	*/
 	FORCEINLINE FVector VertexTangentY(uint32 VertexIndex) const
 	{
-		const FPackedNormal& TangentX = VertexTangentX(VertexIndex);
-		const FPackedNormal& TangentZ = VertexTangentZ(VertexIndex);
-		return (FVector(TangentZ) ^ FVector(TangentX)) * ((float)TangentZ.Vector.W  / 127.5f - 1.0f);
+		FVector4 TangentX = VertexTangentX(VertexIndex);
+		FVector  TangentZ = VertexTangentZ(VertexIndex);
+
+		return (TangentZ ^ FVector(TangentX)) * TangentX.W;
 	}
 
-	FORCEINLINE FPackedNormal& VertexTangentZ(uint32 VertexIndex)
+	FORCEINLINE FVector VertexTangentZ(uint32 VertexIndex) const
 	{
 		checkSlow(VertexIndex < GetNumVertices());
-		return ((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->TangentZ;
+
+		return OctDecodeUnit(((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->TangentZ);
 	}
-	FORCEINLINE const FPackedNormal& VertexTangentZ(uint32 VertexIndex) const
+
+	FORCEINLINE void SetVertexTangents(uint32 VertexIndex, FVector X, FVector Y, FVector Z)
 	{
-		checkSlow(VertexIndex < GetNumVertices());
-		return ((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->TangentZ;
+		uint32* RawTangentXPtr = &((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->RawTangentX;
+
+		if (GetUseHighPrecisionTangentBasis())
+		{
+			*reinterpret_cast<FPackedRGB10A2*>(RawTangentXPtr) = FVector4(X, GetBasisDeterminantSign(X, Y, Z));
+		}
+		else
+		{
+			*reinterpret_cast<FPackedNormal*>(RawTangentXPtr) = FVector4(X, GetBasisDeterminantSign(X, Y, Z));
+		}
+
+		((FStaticMeshFullVertex*)(Data + VertexIndex * Stride))->TangentZ = OctEncodeUnit(Z);
 	}
 
 	/**
@@ -470,22 +498,37 @@ public:
 	{
 		return Stride;
 	}
+
 	FORCEINLINE uint32 GetNumVertices() const
 	{
 		return NumVertices;
 	}
+
 	FORCEINLINE uint32 GetNumTexCoords() const
 	{
 		return NumTexCoords;
 	}
+
 	FORCEINLINE bool GetUseFullPrecisionUVs() const
 	{
 		return bUseFullPrecisionUVs;
 	}
+
 	FORCEINLINE void SetUseFullPrecisionUVs(bool UseFull)
 	{
 		bUseFullPrecisionUVs = UseFull;
 	}
+
+	FORCEINLINE bool GetUseHighPrecisionTangentBasis() const
+	{
+		return bUseHighPrecisionTangentBasis;
+	}
+
+	FORCEINLINE void SetUseHighPrecisionTangentBasis(bool bUseHighPrecision)
+	{
+		bUseHighPrecisionTangentBasis = bUseHighPrecision;
+	}
+
 	const uint8* GetRawVertexData() const
 	{
 		check( Data != NULL );
@@ -499,9 +542,56 @@ public:
 	template<int32 NumTexCoords>
 	void ConvertToFullPrecisionUVs();
 
+	/**
+	* Convert the existing data(in place) in this mesh from RGB10A2 to RGBA8 tangent basis encoding.
+	* Without rebuilding the mesh (loss of precision)
+	*/
+	template<int32 NumTexCoordsT>
+	void ConvertToLowPrecisionTangentBasis();
+
 	// FRenderResource interface.
 	virtual void InitRHI() override;
 	virtual FString GetFriendlyName() const override { return TEXT("Static-mesh vertices"); }
+
+	static uint32 OctEncodeUnit(FVector V)
+	{
+		float Proj = 1.0f / FVector::DotProduct(V.GetAbs(), FVector(1.0f));
+
+		FVector2D P(V.X, V.Y);
+		P *= Proj;
+		
+		FVector2D Encoded = (V.Z <= 0.0f) ? (FVector2D::UnitVector - FVector2D(P.Y, P.X).GetAbs()) * P.GetSignVector() : P;
+		
+		Encoded = (Encoded.ClampAxes(-1.0f, 1.0f) * 0.5f + 0.5f) * UINT16_MAX;
+		Encoded = FVector2D(FMath::RoundToInt(Encoded.X), FMath::RoundToInt(Encoded.Y));
+
+		uint32 Packed = (uint32(Encoded.X) << 00) | (uint32(Encoded.Y) << 16);
+
+		return Packed;
+	}
+
+	static FVector OctDecodeUnit(uint32 P)
+	{
+		FVector2D E(
+			float((P >> 00) & UINT16_MAX), 
+			float((P >> 16) & UINT16_MAX)
+			);
+		E = (E / float(UINT16_MAX)) * 2.0f - 1.0f;
+
+		FVector V(E.X, E.Y, 1.0f - FMath::Abs(E.X) - FMath::Abs(E.Y));
+
+		if (V.Z < 0.0f)
+		{
+			FVector2D T = (FVector2D::UnitVector - FVector2D(V.Y, V.X).GetAbs()) * E.GetSignVector();
+
+			V.X = T.X;
+			V.Y = T.Y;
+		}
+
+		V.Normalize();
+
+		return V;
+	}
 
 private:
 
@@ -522,6 +612,9 @@ private:
 
 	/** Corresponds to UStaticMesh::UseFullPrecisionUVs. if true then 32 bit UVs are used */
 	bool bUseFullPrecisionUVs;
+
+	/** If true then RGB10A2 is used to store tangent else RGBA8 */
+	bool bUseHighPrecisionTangentBasis;
 
 	/** Allocates the vertex data storage type. */
 	void AllocateData( bool bNeedsCPUAccess = true );
@@ -794,7 +887,7 @@ public:
 	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const;
 
 #if WITH_EDITORONLY_DATA
-	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(int32 LODIndex, int32 ElementIndex) const override;
+	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(float& OutDistanceMultiplier, int32 LODIndex, int32 ElementIndex) const override;
 #endif
 
 protected:
@@ -921,6 +1014,10 @@ protected:
 #if WITH_EDITORONLY_DATA
 	/** Data shared with the component */
 	TSharedPtr<TArray<FStreamingSectionBuildInfo>, ESPMode::NotThreadSafe> StreamingSectionData;
+	/** The component streaming distance multiplier */
+	float StreamingDistanceMultiplier;
+	/** The mesh streaming texel factor (fallback) */
+	float StreamingTexelFactor;
 
 	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
 	int32 SectionIndexPreview;

@@ -89,7 +89,8 @@ static TAutoConsoleVariable<int32> CVarMinInstancesPerOcclusionQuery(
 static TAutoConsoleVariable<float> CVarFoliageDensityScale(
 	TEXT("foliage.DensityScale"),
 	1.0,
-	TEXT("Controls the amount of foliage to render. Foliage must opt-in to density scaling through the foliage type."));
+	TEXT("Controls the amount of foliage to render. Foliage must opt-in to density scaling through the foliage type."),
+	ECVF_Scalability);
 
 DECLARE_CYCLE_STAT(TEXT("Traversal Time"),STAT_FoliageTraversalTime,STATGROUP_Foliage);
 DECLARE_CYCLE_STAT(TEXT("Build Time"), STAT_FoliageBuildTime, STATGROUP_Foliage);
@@ -1187,6 +1188,7 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 					FMeshBatchElement& BatchElement0 = MeshElement.Elements[0];
 
 					BatchElement0.UserData = ElementParams.PassUserData[SelectionGroupIndex];
+					BatchElement0.bUserDataIsColorVertexBuffer = false;
 					BatchElement0.MaxScreenSize = 1.0;
 					BatchElement0.MinScreenSize = 0.0;
 					BatchElement0.InstancedLODIndex = LODIndex;

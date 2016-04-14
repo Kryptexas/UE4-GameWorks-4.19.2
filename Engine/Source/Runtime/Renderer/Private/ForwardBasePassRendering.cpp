@@ -144,7 +144,7 @@ public:
 		return Scene->SimpleDirectionalLight;
 	}
 
-	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
+	/** Draws the mesh with a specific light-map type */
 	template<typename LightMapPolicyType, int32 NumDynamicPointLights>
 	void Process(
 		FRHICommandList& RHICmdList, 
@@ -153,11 +153,11 @@ public:
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
 		) const
 	{
-		FScene::EBasePassDrawListType DrawType = FScene::EBasePass_Default;		
- 
+		EBasePassDrawListType DrawType = EBasePass_Default;
+
 		if (StaticMesh->IsMasked(Parameters.FeatureLevel))
 		{
-			DrawType = FScene::EBasePass_Masked;	
+			DrawType = EBasePass_Masked;	
 		}
 
 		if ( Scene )
@@ -481,7 +481,7 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 	{
 		SCOPE_CYCLE_COUNTER(STAT_SortStaticDrawLists);
 
-		for (int32 DrawType = 0; DrawType < FScene::EBasePass_MAX; DrawType++)
+		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
 			Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[DrawType].SortFrontToBack(Views[0].ViewLocation);
 		}
@@ -503,12 +503,12 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 			if (SortMode == EBasePassSort::SortPerMesh)
 			{
 				SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-				MaxDraws -= Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[FScene::EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, MaxDraws);
+				MaxDraws -= Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, MaxDraws);
 			}
 			else
 			{
 				SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-				Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[FScene::EBasePass_Default].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
+				Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
 			}
 		}
 
@@ -551,12 +551,12 @@ void FForwardShadingSceneRenderer::RenderForwardShadingBasePass(FRHICommandListI
 		if (SortMode == EBasePassSort::SortPerMesh)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			MaxDraws -= Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[FScene::EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
+			MaxDraws -= Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility,MaxDraws);
 		}
 		else
 		{
 			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[FScene::EBasePass_Masked].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
+			Scene->BasePassForForwardShadingUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisible(RHICmdList, View,View.StaticMeshVisibilityMap,View.StaticMeshBatchVisibility);
 		}
 	}
 }

@@ -221,6 +221,22 @@ inline uint8 GetDefaultLightingChannelMask()
 	return 1;
 }
 
+/*
+* Enumerates available GBufferFormats.
+*/
+UENUM()
+namespace EGBufferFormat
+{
+	// When this enum is updated please update CVarGBufferFormat comments 
+	enum Type
+	{
+		Force8BitsPerChannel = 0 UMETA(DisplayName = "Force 8 Bits Per Channel", ToolTip = "Forces all GBuffers to 8 bits per channel. Intended as profiling for best performance."),
+		Default = 1 UMETA(ToolTip = "See GBuffer allocation function for layout details."),
+		HighPrecisionNormals = 3 UMETA(ToolTip = "Same as Default except normals are encoded at 16 bits per channel."),
+		Force16BitsPerChannel = 5 UMETA(DisplayName = "Force 16 Bits Per Channel", ToolTip = "Forces all GBuffers to 16 bits per channel. Intended as profiling for best quality."),
+	};
+}
+
 /** Controls the way that the width scale property affects animation trails. */
 UENUM()
 enum ETrailWidthMode

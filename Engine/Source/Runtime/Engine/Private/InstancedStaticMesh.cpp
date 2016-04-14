@@ -350,17 +350,19 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 			RenderData->PositionVertexBuffer.GetStride(),
 			VET_Float3
 			);
+
 		Data.TangentBasisComponents[0] = FVertexStreamComponent(
 			&RenderData->VertexBuffer,
-			STRUCT_OFFSET(FStaticMeshFullVertex,TangentX),
+			STRUCT_OFFSET(FStaticMeshFullVertex, RawTangentX),
 			RenderData->VertexBuffer.GetStride(),
-			VET_PackedNormal
+			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis() ? VET_URGB10A2N : VET_PackedNormal
 			);
+
 		Data.TangentBasisComponents[1] = FVertexStreamComponent(
 			&RenderData->VertexBuffer,
-			STRUCT_OFFSET(FStaticMeshFullVertex,TangentZ),
+			STRUCT_OFFSET(FStaticMeshFullVertex, TangentZ),
 			RenderData->VertexBuffer.GetStride(),
-			VET_PackedNormal
+			VET_UShort2N
 			);
 
 
@@ -581,6 +583,7 @@ void FInstancedStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const F
 						{
 							//@todo-rco this is only supporting selection on the first element
 							MeshElement.Elements[0].UserData = PassUserData[SelectionGroupIndex];
+							MeshElement.Elements[0].bUserDataIsColorVertexBuffer = false;
 							MeshElement.bCanApplyViewModeOverrides = true;
 							MeshElement.bUseSelectionOutline = BatchRenderSelection[SelectionGroupIndex];
 							MeshElement.bUseWireframeSelectionColoring = BatchRenderSelection[SelectionGroupIndex];
@@ -628,6 +631,7 @@ void FInstancedStaticMeshSceneProxy::SetupInstancedMeshBatch(int32 LODIndex, int
 	const uint32 NumInstances = InstancedRenderData.PerInstanceRenderData->InstanceBuffer.GetNumInstances();
 	FMeshBatchElement& BatchElement0 = OutMeshBatch.Elements[0];
 	BatchElement0.UserData = (void*)&UserData_AllInstances;
+	BatchElement0.bUserDataIsColorVertexBuffer = false;
 	BatchElement0.InstancedLODIndex = LODIndex;
 	BatchElement0.UserIndex = 0;
 	BatchElement0.bIsInstancedMesh = bInstanced;

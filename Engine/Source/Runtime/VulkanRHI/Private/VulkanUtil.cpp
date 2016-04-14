@@ -372,79 +372,26 @@ void FVulkanDynamicRHI::IssueLongGPUTask()
 	}
 }
 
-#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
-FVulkanBuffer2::FVulkanBuffer2(FVulkanDevice* InDevice, VkBuffer InBuffer, VulkanRHI::FResourceAllocation* InResourceAllocation)
-	: FDeviceChild(InDevice)
-	, Buffer(InBuffer)
-	, ResourceAllocation(InResourceAllocation)
-{
-	check(Buffer != VK_NULL_HANDLE);
-	VERIFYVULKANRESULT(vkBindBufferMemory(InDevice->GetInstanceHandle(), Buffer, ResourceAllocation->GetHandle(), ResourceAllocation->GetOffset()));
-}
-
-FVulkanBuffer2::~FVulkanBuffer2()
-{
-	vkDestroyBuffer(Device->GetInstanceHandle(), Buffer, nullptr);
-	ResourceAllocation = nullptr;
-}
-
-
-VkBuffer FVulkanBuffer2::CreateVulkanBuffer(FVulkanDevice* InDevice, VkDeviceSize Size, VkBufferUsageFlags BufferUsageFlags, VkMemoryRequirements& OutMemoryRequirements)
-{
-	VkDevice Device = InDevice->GetInstanceHandle();
-	VkBuffer Buffer = VK_NULL_HANDLE;
-
-	VkBufferCreateInfo BufferCreateInfo;
-	FMemory::Memzero(BufferCreateInfo);
-	BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	BufferCreateInfo.size = Size;
-	BufferCreateInfo.usage = BufferUsageFlags;
-	VERIFYVULKANRESULT_EXPANDED(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &Buffer));
-
-	vkGetBufferMemoryRequirements(Device, Buffer, &OutMemoryRequirements);
-
-	return Buffer;
-}
-
-VulkanRHI::FResourceAllocation* FVulkanBuffer2::CreateResourceAllocationAndBuffer(FVulkanDevice* Device, VkDeviceSize Size, uint32 InUsage, VkBufferUsageFlags BufferUsageFlags, VkBuffer& OutBuffer)
-{
-	check(Size > 0);
-
-	VkMemoryRequirements MemoryRequirements;
-	OutBuffer = FVulkanBuffer2::CreateVulkanBuffer(Device, Size, BufferUsageFlags, MemoryRequirements);
-
-	const bool bStatic = (InUsage & BUF_Static) != 0;
-	const bool bDynamic = (InUsage & BUF_Dynamic) != 0;
-	const bool bVolatile = (InUsage & BUF_Volatile) != 0;
-
-	//#todo-rco: Not implemented yet
-	check((InUsage & BUF_KeepCPUAccessible) == 0);
-	VulkanRHI::FResourceAllocation* ResourceAllocation = nullptr;
-	if (bDynamic)
-	{
-		//#todo-rco: Allocate in the CPU staging heap
-		ResourceAllocation = Device->GetResourceHeapManager().AllocateCPUStagingResource(MemoryRequirements.size, MemoryRequirements.alignment, __FILE__, __LINE__);
-	}
-#if 0
-	else if (bVolatile)
-	{
-		check(0);
-	}
-#endif
-	else
-	{
-		// Static buffer path
-		ensure(bStatic);
-		ResourceAllocation = Device->GetResourceHeapManager().AllocateGPUOnlyResource(MemoryRequirements.size, MemoryRequirements.alignment, __FILE__, __LINE__);
-	}
-
-	return ResourceAllocation;
-}
-#endif
-
 
 namespace VulkanRHI
 {
+	VkBuffer CreateBuffer(FVulkanDevice* InDevice, VkDeviceSize Size, VkBufferUsageFlags BufferUsageFlags, VkMemoryRequirements& OutMemoryRequirements)
+	{
+		VkDevice Device = InDevice->GetInstanceHandle();
+		VkBuffer Buffer = VK_NULL_HANDLE;
+
+		VkBufferCreateInfo BufferCreateInfo;
+		FMemory::Memzero(BufferCreateInfo);
+		BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.size = Size;
+		BufferCreateInfo.usage = BufferUsageFlags;
+		VERIFYVULKANRESULT_EXPANDED(vkCreateBuffer(Device, &BufferCreateInfo, nullptr, &Buffer));
+
+		vkGetBufferMemoryRequirements(Device, Buffer, &OutMemoryRequirements);
+
+		return Buffer;
+	}
+
 	/**
 	 * Checks that the given result isn't a failure.  If it is, the application exits with an appropriate error message.
 	 * @param	Result - The result code to check
@@ -453,7 +400,7 @@ namespace VulkanRHI
 	 * @param	Filename - The filename of the source file containing Code.
 	 * @param	Line - The line number of Code within Filename.
 	 */
-	void VerifyVulkanResult(VkResult Result, const ANSICHAR* VkFuntion, const ANSICHAR* Filename, uint32 Line)
+	void VerifyVulkanResult(VkResult Result, const ANSICHAR* VkFunction, const ANSICHAR* Filename, uint32 Line)
 	{
 		FString ErrorString;
 		switch (Result)
@@ -487,14 +434,14 @@ namespace VulkanRHI
 		}
 
 		UE_LOG(LogVulkanRHI, Error, TEXT("%s failed, VkResult=%d\n at %s:%u \n with error %s"),
-			ANSI_TO_TCHAR(VkFuntion), (int32)Result, ANSI_TO_TCHAR(Filename), Line, *ErrorString);
+			ANSI_TO_TCHAR(VkFunction), (int32)Result, ANSI_TO_TCHAR(Filename), Line, *ErrorString);
 
 		//#todo-rco: Don't need this yet...
 		//TerminateOnDeviceRemoved(Result);
 		//TerminateOnOutOfMemory(Result, false);
 
 		UE_LOG(LogVulkanRHI, Fatal, TEXT("%s failed, VkResult=%d\n at %s:%u \n with error %s"),
-			ANSI_TO_TCHAR(VkFuntion), (int32)Result, ANSI_TO_TCHAR(Filename), Line, *ErrorString);
+			ANSI_TO_TCHAR(VkFunction), (int32)Result, ANSI_TO_TCHAR(Filename), Line, *ErrorString);
 	}
 }
 

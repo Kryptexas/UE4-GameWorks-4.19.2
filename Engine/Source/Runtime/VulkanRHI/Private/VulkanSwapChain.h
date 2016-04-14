@@ -22,7 +22,7 @@ public:
 	FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice, void* WindowHandle, EPixelFormat& InOutPixelFormat, uint32 Width, uint32 Height,
 		uint32* InOutDesiredNumBackBuffers, TArray<VkImage>& OutImages);
 
-	void Destroy(FVulkanDevice& Device);
+	void Destroy();
 
 #if VULKAN_USE_NEW_COMMAND_BUFFERS
 	void Present(FVulkanQueue* Queue);

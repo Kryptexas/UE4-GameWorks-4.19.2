@@ -56,8 +56,10 @@ FVulkanViewport::FVulkanViewport(FVulkanDynamicRHI* InRHI, void* WindowHandle, u
 
 #if VULKAN_USE_NEW_COMMAND_BUFFERS
 #else
+#if !PLATFORM_ANDROID
 		// Set to present src as the next calls will transition to color optimal
 		check(BackBuffers[Index]->Surface.ImageLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+#endif
 #endif
 	}
 
@@ -75,7 +77,7 @@ FVulkanViewport::~FVulkanViewport()
 		BackBuffers[Index] = nullptr;
 	}
 
-	SwapChain->Destroy(*RHI->Device);
+	SwapChain->Destroy();
 	delete SwapChain;
 
 	RHI->Viewports.Remove(this);
@@ -106,19 +108,21 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 
 		    // Create a write-barrier
 		    WriteBarriers.AddZeroed();
-		    VkImageMemoryBarrier& barrier = WriteBarriers.Last();
-		    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		    barrier.pNext = NULL;
-		    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		    barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		    barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-		    barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-		    barrier.image = Texture->Surface.Image;
-		    barrier.subresourceRange.aspectMask = Texture->MSAASurface->GetAspectMask();
-		    barrier.subresourceRange.baseMipLevel = 0;
-		    barrier.subresourceRange.levelCount = 1;
-		    barrier.subresourceRange.baseArrayLayer = 0;
-		    barrier.subresourceRange.layerCount = 1;
+		    VkImageMemoryBarrier& Barrier = WriteBarriers.Last();
+		    Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		    //Barrier.pNext = NULL;
+		    Barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		    Barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		    Barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+		    Barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+		    Barrier.image = Texture->Surface.Image;
+		    Barrier.subresourceRange.aspectMask = Texture->MSAASurface->GetAspectMask();
+		    //Barrier.subresourceRange.baseMipLevel = 0;
+		    Barrier.subresourceRange.levelCount = 1;
+		    //Barrier.subresourceRange.baseArrayLayer = 0;
+		    Barrier.subresourceRange.layerCount = 1;
+			Barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			Barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		}
 	#endif
 		Attachments.Add(Texture->View.View);
@@ -127,19 +131,21 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 #else
 		// Create a write-barrier
 		WriteBarriers.AddZeroed();
-		VkImageMemoryBarrier& barrier = WriteBarriers.Last();
-		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.pNext = NULL;
-		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		barrier.oldLayout = Texture->Surface.ImageLayout;
-		barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		barrier.image = Texture->Surface.Image;
-		barrier.subresourceRange.aspectMask = Texture->Surface.GetAspectMask();
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
-		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = 1;
+		VkImageMemoryBarrier& Barrier = WriteBarriers.Last();
+		Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		//Barrier.pNext = NULL;
+		Barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		Barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		Barrier.oldLayout = Texture->Surface.ImageLayout;
+		Barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		Barrier.image = Texture->Surface.Image;
+		Barrier.subresourceRange.aspectMask = Texture->Surface.GetAspectMask();
+		//Barrier.subresourceRange.baseMipLevel = 0;
+		Barrier.subresourceRange.levelCount = 1;
+		//Barrier.subresourceRange.baseArrayLayer = 0;
+		Barrier.subresourceRange.layerCount = 1;
+		Barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		Barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 #endif
 		NumColorAttachments++;
 	}
@@ -165,20 +171,22 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 #else
 		// Create a write-barrier
 		WriteBarriers.AddZeroed();
-		VkImageMemoryBarrier& barrier = WriteBarriers.Last();
-		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.pNext = NULL;
-		barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-		barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		barrier.image = Texture->Surface.Image;
+		VkImageMemoryBarrier& Barrier = WriteBarriers.Last();
+		Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		//Barrier.pNext = NULL;
+		Barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		Barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		Barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+		Barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		Barrier.image = Texture->Surface.Image;
+		Barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		Barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-		barrier.subresourceRange.aspectMask = Texture->Surface.GetAspectMask();
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
-		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = 1;
+		Barrier.subresourceRange.aspectMask = Texture->Surface.GetAspectMask();
+		//Barrier.subresourceRange.baseMipLevel = 0;
+		Barrier.subresourceRange.levelCount = 1;
+		//Barrier.subresourceRange.baseArrayLayer = 0;
+		Barrier.subresourceRange.layerCount = 1;
 #endif
 	}
 
@@ -392,6 +400,9 @@ void FVulkanDynamicRHI::Present()
 #if VULKAN_USE_NEW_COMMAND_BUFFERS
 	Device->GetImmediateContext().GetCommandBufferManager()->PrepareForNewActiveCommandBuffer();
 #endif
+
+	//#todo-rco: Consolidate 'end of frame'
+	Device->GetImmediateContext().GetTempFrameAllocationBuffer().Reset();
 
 	DrawingViewport->CurrentBackBuffer = -1;
 	DrawingViewport = nullptr;

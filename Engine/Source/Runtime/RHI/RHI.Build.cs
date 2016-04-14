@@ -21,7 +21,12 @@ public class RHI : ModuleRules
 				//#todo-rco: D3D12 requires different SDK headers not compatible with WinXP
 				DynamicallyLoadedModuleNames.Add("D3D12RHI");
 
-                string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+				string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
+				if (String.IsNullOrEmpty(VulkanSDKPath))
+				{
+					VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+				}
+
                 if (!String.IsNullOrEmpty(VulkanSDKPath))
                 {
                     DynamicallyLoadedModuleNames.Add("VulkanRHI");

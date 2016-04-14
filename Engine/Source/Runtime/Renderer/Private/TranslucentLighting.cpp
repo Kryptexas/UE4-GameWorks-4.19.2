@@ -32,7 +32,7 @@ static FAutoConsoleVariableRef CVarTranslucentVolumeMinFOV(
 	TEXT("r.TranslucentVolumeMinFOV"),
 	GTranslucentVolumeMinFOV,
 	TEXT("Minimum FOV for translucent lighting volume.  Prevents popping in lighting when zooming in."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GTranslucentVolumeFOVSnapFactor = 10;
@@ -40,7 +40,7 @@ static FAutoConsoleVariableRef CTranslucentVolumeFOVSnapFactor(
 	TEXT("r.TranslucentVolumeFOVSnapFactor"),
 	GTranslucentVolumeFOVSnapFactor,
 	TEXT("FOV will be snapped to a factor of this before computing volume bounds."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GUseTranslucencyVolumeBlur = 1;

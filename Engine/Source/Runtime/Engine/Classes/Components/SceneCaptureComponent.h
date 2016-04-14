@@ -27,6 +27,10 @@ class USceneCaptureComponent : public USceneComponent
  	UPROPERTY()
  	TArray<TWeakObjectPtr<UPrimitiveComponent> > HiddenComponents;
 
+	/** The only components to be rendered by this scene capture, if non-empty.*/
+ 	UPROPERTY()
+ 	TArray<TWeakObjectPtr<UPrimitiveComponent> > ShowOnlyComponents;
+
 	/** Whether to update the capture's contents every frame.  If disabled, the component will render once on load and then only when moved. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture)
 	bool bCaptureEveryFrame;
@@ -54,6 +58,14 @@ public:
 	/** Adds all primitive components in the actor to our list of hidden components. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
 	ENGINE_API void HideActorComponents(AActor* InActor);
+
+	/** Adds the component to our list of show-only components. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
+	ENGINE_API void ShowOnlyComponent(UPrimitiveComponent* InComponent);
+
+	/** Adds all primitive components in the actor to our list of show-only components. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
+	ENGINE_API void ShowOnlyActorComponents(AActor* InActor);
 
 	/** Returns the view state, if any, and allocates one if needed. This function can return NULL, e.g. when bCaptureEveryFrame is false. */
 	ENGINE_API FSceneViewStateInterface* GetViewState();

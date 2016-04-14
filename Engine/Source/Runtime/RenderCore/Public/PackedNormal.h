@@ -137,3 +137,146 @@ FORCEINLINE VectorRegister FPackedNormal::GetVectorRegister() const
 	// Return unpacked vector register.
 	return VectorToUnpack;
 }
+
+/** A vector, quantized and packed into 32-bits. */
+struct FPackedRGB10A2
+{
+	union
+	{
+		struct
+		{
+#if PLATFORM_LITTLE_ENDIAN
+			uint32 X : 10;
+			uint32 Y : 10;
+			uint32 Z : 10;
+			uint32 W : 2;
+#else
+			uint32 W : 2;
+			uint32 Z : 10;
+			uint32 Y : 10;
+			uint32 X : 10;
+#endif
+		};
+		uint32		Packed;
+	}				Vector;
+
+	// Constructors.
+
+	FPackedRGB10A2() { Vector.Packed = 0; }
+	FPackedRGB10A2(uint32 InPacked) { Vector.Packed = InPacked; }
+	FPackedRGB10A2(const FVector& InVector) { *this = InVector; }
+	FPackedRGB10A2(const FVector4& InVector) { *this = InVector; }
+	FPackedRGB10A2(uint32 InX, uint32 InY, uint32 InZ, uint32 InW) { Vector.X = InX; Vector.Y = InY; Vector.Z = InZ; Vector.W = InW; }
+
+	// Conversion operators.
+
+	void operator=(const FVector& InVector);
+	void operator=(const FVector4& InVector);
+	operator FVector() const;
+	operator FVector4() const;
+
+	VectorRegister GetVectorRegister() const;
+
+	// Set functions.
+	void Set(const FVector& InVector) { *this = InVector; }
+	void Set(const FVector4& InVector) { *this = InVector; }
+
+	// Equality operator.
+
+	bool operator==(const FPackedRGB10A2& B) const;
+	bool operator!=(const FPackedRGB10A2& B) const;
+
+	// Serializer.
+
+	friend RENDERCORE_API FArchive& operator<<(FArchive& Ar, FPackedRGB10A2& N);
+
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("X=%d Y=%d Z=%d W=%d"), Vector.X, Vector.Y, Vector.Z, Vector.W);
+	}
+
+	static RENDERCORE_API FPackedRGB10A2 ZeroVector;
+};
+
+FORCEINLINE void FPackedRGB10A2::operator=(const FVector& InVector)
+{
+	Vector.X = FMath::Clamp(FMath::TruncToInt(InVector.X * 511.5f + 511.5f), 0, 1023);
+	Vector.Y = FMath::Clamp(FMath::TruncToInt(InVector.Y * 511.5f + 511.5f), 0, 1023);
+	Vector.Z = FMath::Clamp(FMath::TruncToInt(InVector.Z * 511.5f + 511.5f), 0, 1023);
+	Vector.W = 3;
+}
+
+FORCEINLINE void FPackedRGB10A2::operator=(const FVector4& InVector)
+{
+	Vector.X = FMath::Clamp(FMath::TruncToInt(InVector.X * 511.5f + 511.5f), 0, 1023);
+	Vector.Y = FMath::Clamp(FMath::TruncToInt(InVector.Y * 511.5f + 511.5f), 0, 1023);
+	Vector.Z = FMath::Clamp(FMath::TruncToInt(InVector.Z * 511.5f + 511.5f), 0, 1023);
+	Vector.W = FMath::Clamp(FMath::TruncToInt(InVector.W * 1.5f   + 1.5f),   0, 3);
+}
+
+FORCEINLINE bool FPackedRGB10A2::operator==(const FPackedRGB10A2& B) const
+{
+	if (Vector.Packed != B.Vector.Packed)
+		return 0;
+
+	FVector	V1 = *this,
+			V2 = B;
+
+	if (FMath::Abs(V1.X - V2.X) > THRESH_NORMALS_ARE_SAME * 4.0f)
+		return 0;
+
+	if (FMath::Abs(V1.Y - V2.Y) > THRESH_NORMALS_ARE_SAME * 4.0f)
+		return 0;
+
+	if (FMath::Abs(V1.Z - V2.Z) > THRESH_NORMALS_ARE_SAME * 4.0f)
+		return 0;
+
+	return 1;
+}
+
+FORCEINLINE bool FPackedRGB10A2::operator!=(const FPackedRGB10A2& B) const
+{
+	if (Vector.Packed == B.Vector.Packed)
+		return 0;
+
+	FVector	V1 = *this,
+			V2 = B;
+
+	if (FMath::Abs(V1.X - V2.X) > THRESH_NORMALS_ARE_SAME * 4.0f)
+		return 1;
+
+	if (FMath::Abs(V1.Y - V2.Y) > THRESH_NORMALS_ARE_SAME * 4.0f)
+		return 1;
+
+	if (FMath::Abs(V1.Z - V2.Z) > THRESH_NORMALS_ARE_SAME * 4.0f)
+		return 1;
+
+	return 0;
+}
+
+FORCEINLINE FPackedRGB10A2::operator FVector() const
+{
+	VectorRegister VectorToUnpack = GetVectorRegister();
+	// Write to FVector and return it.
+	FVector UnpackedVector;
+	VectorStoreFloat3(VectorToUnpack, &UnpackedVector);
+	return UnpackedVector;
+}
+
+FORCEINLINE FPackedRGB10A2::operator FVector4() const
+{
+	VectorRegister VectorToUnpack = GetVectorRegister();
+	// Write to FVector4 and return it.
+	FVector4 UnpackedVector;
+	VectorStore(VectorToUnpack, &UnpackedVector);
+	return UnpackedVector;
+}
+
+FORCEINLINE VectorRegister FPackedRGB10A2::GetVectorRegister() const
+{
+	VectorRegister VectorToUnpack = VectorLoadRGB10A2((void*)this);
+	VectorToUnpack = VectorMultiplyAdd(VectorToUnpack, MakeVectorRegister(2.0f, 2.0f, 2.0f, 2.0f), MakeVectorRegister(-1.0f, -1.0f, -1.0f, -1.0f));
+	VectorResetFloatRegisters();
+	// Return unpacked vector register.
+	return VectorToUnpack;
+}

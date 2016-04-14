@@ -23,7 +23,7 @@ FAutoConsoleVariableRef CVarAOGlobalDistanceField(
 	GAOGlobalDistanceField,
 	TEXT("Whether to use a global distance field to optimize occlusion cone traces.\n")
 	TEXT("The global distance field is created by compositing object distance fields into clipmaps as the viewer moves through the level."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOUpdateGlobalDistanceField = 1;
@@ -31,7 +31,7 @@ FAutoConsoleVariableRef CVarAOUpdateGlobalDistanceField(
 	TEXT("r.AOUpdateGlobalDistanceField"),
 	GAOUpdateGlobalDistanceField,
 	TEXT("Whether to update the global distance field, useful for debugging."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOGlobalDistanceFieldPartialUpdates = 1;
@@ -39,7 +39,7 @@ FAutoConsoleVariableRef CVarAOGlobalDistanceFieldPartialUpdates(
 	TEXT("r.AOGlobalDistanceFieldPartialUpdates"),
 	GAOGlobalDistanceFieldPartialUpdates,
 	TEXT("Whether to allow partial updates of the global distance field.  When profiling it's useful to disable this and get the worst case composition time that happens on camera cuts."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOGlobalDistanceFieldStaggeredUpdates = 1;
@@ -47,7 +47,7 @@ FAutoConsoleVariableRef CVarAOGlobalDistanceFieldStaggeredUpdatess(
 	TEXT("r.AOGlobalDistanceFieldStaggeredUpdates"),
 	GAOGlobalDistanceFieldStaggeredUpdates,
 	TEXT("Whether to allow the larger clipmaps to be updated less frequently."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOLogGlobalDistanceFieldModifiedPrimitives = 0;
@@ -56,7 +56,7 @@ FAutoConsoleVariableRef CVarAOLogGlobalDistanceFieldModifiedPrimitives(
 	GAOLogGlobalDistanceFieldModifiedPrimitives,
 	TEXT("Whether to log primitive modifications (add, remove, updatetransform) that caused an update of the global distance field.\n")
 	TEXT("This can be useful for tracking down why updating the global distance field is always costing a lot, since it should be mostly cached."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOVisualizeGlobalDistanceField = 0;
@@ -64,15 +64,7 @@ FAutoConsoleVariableRef CVarAOVisualizeGlobalDistanceField(
 	TEXT("r.AOVisualizeGlobalDistanceField"),
 	GAOVisualizeGlobalDistanceField,
 	TEXT("Whether to visualize the global distance field instead of the object DFs with the 'Mesh Distance Fields' Visualize mode"),
-	ECVF_Cheat | ECVF_RenderThreadSafe
-	);
-
-float GAOInnerGlobalDFClipmapDistance = 2500;
-FAutoConsoleVariableRef CVarAOInnerGlobalDFClipmapDistance(
-	TEXT("r.AOInnerGlobalDFClipmapDistance"),
-	GAOInnerGlobalDFClipmapDistance,
-	TEXT("World space distance from the camera that the first clipmap contains."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOGlobalDFClipmapDistanceExponent = 2;
@@ -80,7 +72,7 @@ FAutoConsoleVariableRef CVarAOGlobalDFClipmapDistanceExponent(
 	TEXT("r.AOGlobalDFClipmapDistanceExponent"),
 	GAOGlobalDFClipmapDistanceExponent,
 	TEXT("Exponent used to derive each clipmap's size, together with r.AOInnerGlobalDFClipmapDistance."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOGlobalDFResolution = 128;
@@ -88,7 +80,7 @@ FAutoConsoleVariableRef CVarAOGlobalDFResolution(
 	TEXT("r.AOGlobalDFResolution"),
 	GAOGlobalDFResolution,
 	TEXT("Resolution of the global distance field.  Higher values increase fidelity but also increase memory and composition cost."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOGlobalDFStartDistance = 200;
@@ -97,7 +89,7 @@ FAutoConsoleVariableRef CVarAOGlobalDFStartDistance(
 	GAOGlobalDFStartDistance,
 	TEXT("World space distance along a cone trace to switch to using the global distance field instead of the object distance fields.\n")
 	TEXT("This has to be large enough to hide the low res nature of the global distance field, but smaller values result in faster cone tracing."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 void FGlobalDistanceFieldInfo::UpdateParameterData(float MaxOcclusionDistance)
@@ -802,12 +794,20 @@ bool ShouldUpdateClipmapThisFrame(int32 ClipmapIndex, int32 GlobalDistanceFieldU
 	}
 }
 
-float ComputeClipmapExtent(int32 ClipmapIndex)
+float ComputeClipmapExtent(int32 ClipmapIndex, const FScene* Scene)
 {
-	return GAOInnerGlobalDFClipmapDistance * FMath::Pow(GAOGlobalDFClipmapDistanceExponent, ClipmapIndex);
+	const float InnerClipmapDistance = Scene->GlobalDistanceFieldViewDistance / FMath::Pow(GAOGlobalDFClipmapDistanceExponent, 3);
+	return InnerClipmapDistance * FMath::Pow(GAOGlobalDFClipmapDistanceExponent, ClipmapIndex);
 }
 
-void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo, int32 NumClipmaps, const TArray<FVector4>& PrimitiveModifiedBounds, float MaxOcclusionDistance)
+void ComputeUpdateRegionsAndUpdateViewState(
+	FRHICommandListImmediate& RHICmdList, 
+	const FViewInfo& View, 
+	const FScene* Scene, 
+	FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo, 
+	int32 NumClipmaps, 
+	const TArray<FVector4>& PrimitiveModifiedBounds, 
+	float MaxOcclusionDistance)
 {
 	GlobalDistanceFieldInfo.Clipmaps.AddZeroed(NumClipmaps);
 
@@ -835,7 +835,7 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
 
 			FGlobalDistanceFieldClipmap& Clipmap = GlobalDistanceFieldInfo.Clipmaps[ClipmapIndex];
 
-			const float Extent = ComputeClipmapExtent(ClipmapIndex);
+			const float Extent = ComputeClipmapExtent(ClipmapIndex, Scene);
 			const float CellSize = (Extent * 2) / GAOGlobalDFResolution;
 
 			// Accumulate primitive modifications in the viewstate in case we don't update the clipmap this frame
@@ -844,7 +844,8 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
 			const bool bForceFullUpdate = bReallocated
 				|| !View.ViewState->bIntializedGlobalDistanceFieldOrigins
 				// Detect when max occlusion distance has changed
-				|| ClipmapViewState.CachedMaxOcclusionDistance != MaxOcclusionDistance;
+				|| ClipmapViewState.CachedMaxOcclusionDistance != MaxOcclusionDistance
+				|| ClipmapViewState.CachedGlobalDistanceFieldViewDistance != Scene->GlobalDistanceFieldViewDistance;
 
 			if (ShouldUpdateClipmapThisFrame(ClipmapIndex, View.ViewState->GlobalDistanceFieldUpdateIndex)
 				|| bForceFullUpdate)
@@ -949,6 +950,7 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
 			Clipmap.ScrollOffset = FVector(ClipmapViewState.LastPartialUpdateOrigin - ClipmapViewState.FullUpdateOrigin) * CellSize;
 
 			ClipmapViewState.CachedMaxOcclusionDistance = MaxOcclusionDistance;
+			ClipmapViewState.CachedGlobalDistanceFieldViewDistance = Scene->GlobalDistanceFieldViewDistance;
 		}
 	}
 	else
@@ -959,7 +961,7 @@ void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList
 			AllocateClipmapTexture(RHICmdList, ClipmapIndex, Clipmap.RenderTarget);
 			Clipmap.ScrollOffset = FVector::ZeroVector;
 
-			const float Extent = ComputeClipmapExtent(ClipmapIndex);
+			const float Extent = ComputeClipmapExtent(ClipmapIndex, Scene);
 			FVector Center = View.ViewMatrices.ViewOrigin;
 
 			const float CellSize = (Extent * 2) / GAOGlobalDFResolution;
@@ -998,7 +1000,7 @@ void UpdateGlobalDistanceFieldVolume(
 {
 	if (Scene->DistanceFieldSceneData.NumObjectsInBuffer > 0)
 	{
-		ComputeUpdateRegionsAndUpdateViewState(RHICmdList, View, GlobalDistanceFieldInfo, GMaxGlobalDistanceFieldClipmaps, Scene->DistanceFieldSceneData.PrimitiveModifiedBounds, MaxOcclusionDistance);
+		ComputeUpdateRegionsAndUpdateViewState(RHICmdList, View, Scene, GlobalDistanceFieldInfo, GMaxGlobalDistanceFieldClipmaps, Scene->DistanceFieldSceneData.PrimitiveModifiedBounds, MaxOcclusionDistance);
 
 		// Recreate the view uniform buffer now that we have updated GlobalDistanceFieldInfo
 		//@todo - minimal recreate

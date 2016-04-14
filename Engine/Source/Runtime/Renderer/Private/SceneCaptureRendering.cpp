@@ -13,8 +13,6 @@
 #include "PostProcessAmbient.h"
 #include "PostProcessing.h"
 #include "SceneUtils.h"
-#include "Components/PlanarReflectionComponent.h"
-#include "PlanarReflectionSceneProxy.h"
 
 // Copies into render target, optionally flipping it in the Y-axis
 static void CopyCaptureToTarget(FRHICommandListImmediate& RHICmdList, const FRenderTarget* Target, const FIntPoint& TargetSize, FViewInfo& View, const FIntRect& ViewRect, FTextureRHIParamRef SourceTextureRHI, bool bNeedsFlippedRenderTarget)
@@ -204,13 +202,26 @@ void BuildProjectionMatrix(FIntPoint RenderTargetSize, float FOV, FMatrix& Proje
 	}
 }
 
-FSceneRenderer* CreateSceneRendererForSceneCapture(FScene* Scene, USceneCaptureComponent* SceneCaptureComponent, FRenderTarget* RenderTarget, FIntPoint RenderTargetSize, const FMatrix& ViewRotationMatrix, const FVector& ViewLocation, const FMatrix& ProjectionMatrix, float MaxViewDistance, bool bCaptureSceneColour, FPostProcessSettings* PostProcessSettings, float PostProcessBlendWeight)
+FSceneRenderer* CreateSceneRendererForSceneCapture(
+	FScene* Scene, 
+	USceneCaptureComponent* SceneCaptureComponent, 
+	FRenderTarget* RenderTarget, 
+	FIntPoint RenderTargetSize, 
+	const FMatrix& ViewRotationMatrix, 
+	const FVector& ViewLocation, 
+	const FMatrix& ProjectionMatrix, 
+	float MaxViewDistance, 
+	bool bCaptureSceneColour, 
+	bool bIsPlanarReflection,
+	FPostProcessSettings* PostProcessSettings, 
+	float PostProcessBlendWeight)
 {
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 		RenderTarget,
 		Scene,
 		SceneCaptureComponent->ShowFlags)
-		.SetResolveScene(!bCaptureSceneColour));
+		.SetResolveScene(!bCaptureSceneColour)
+		.SetRealtimeUpdate(bIsPlanarReflection));
 
 	FSceneViewInitOptions ViewInitOptions;
 	ViewInitOptions.SetViewRectangle(FIntRect(0, 0, RenderTargetSize.X, RenderTargetSize.Y));
@@ -232,6 +243,8 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(FScene* Scene, USceneCaptureC
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
 	View->bIsSceneCapture = true;
+	// Note: this has to be set before EndFinalPostprocessSettings
+	View->bIsPlanarReflection = bIsPlanarReflection;
 
 	check(SceneCaptureComponent);
 	for (auto It = SceneCaptureComponent->HiddenComponents.CreateConstIterator(); It; ++It)
@@ -241,6 +254,16 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(FScene* Scene, USceneCaptureC
 		if (PrimitiveComponent)
 		{
 			View->HiddenPrimitives.Add(PrimitiveComponent->ComponentId);
+		}
+	}
+
+	for (auto It = SceneCaptureComponent->ShowOnlyComponents.CreateConstIterator(); It; ++It)
+	{
+		// If the primitive component was destroyed, the weak pointer will return NULL.
+		UPrimitiveComponent* PrimitiveComponent = It->Get();
+		if (PrimitiveComponent)
+		{
+			View->ShowOnlyPrimitives.Add(PrimitiveComponent->ComponentId);
 		}
 	}
 
@@ -279,7 +302,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 		FMatrix ProjectionMatrix;
 		BuildProjectionMatrix(CaptureSize, FOV, ProjectionMatrix);
 
-		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource(), CaptureSize, ViewRotationMatrix, ViewLocation, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, bUseSceneColorTexture, &CaptureComponent->PostProcessSettings, CaptureComponent->PostProcessBlendWeight);
+		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource(), CaptureSize, ViewRotationMatrix, ViewLocation, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, bUseSceneColorTexture, false, &CaptureComponent->PostProcessSettings, CaptureComponent->PostProcessBlendWeight);
 				
 		FTextureRenderTargetResource* TextureRenderTarget = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
 		const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
@@ -354,7 +377,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponentCube* CaptureCompo
 			FMatrix ProjectionMatrix;
 			BuildProjectionMatrix(CaptureSize, FOV, ProjectionMatrix);
 
-			FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource(), CaptureSize, ViewRotationMatrix, Location, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, true, NULL, 0);
+			FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource(), CaptureSize, ViewRotationMatrix, Location, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, true, false, NULL, 0);
 
 			FTextureRenderTargetCubeResource* TextureRenderTarget = static_cast<FTextureRenderTargetCubeResource*>(CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource());
 			const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
@@ -370,133 +393,4 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponentCube* CaptureCompo
 			});
 		}
 	}
-}
-
-void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureComponent, FSceneRenderer& MainSceneRenderer)
-{
-	check(CaptureComponent);
-
-	{
-		//@todo - splitscreen / VR
-		const FSceneView& ParentView = *MainSceneRenderer.ViewFamily.Views[0];
-
-		if (CaptureComponent->RenderTarget != NULL && CaptureComponent->RenderTarget->GetSizeXY() != ParentView.ViewRect.Size())
-		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER( 
-				ReleaseRenderTargetCommand,
-				FPlanarReflectionRenderTarget*, RenderTarget, CaptureComponent->RenderTarget,
-			{
-				RenderTarget->ReleaseResource();
-				delete RenderTarget;
-			});
-
-			CaptureComponent->RenderTarget = NULL;
-		}
-
-		if (CaptureComponent->RenderTarget == NULL)
-		{
-			CaptureComponent->RenderTarget = new FPlanarReflectionRenderTarget(ParentView.ViewRect.Size());
-
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
-				InitRenderTargetCommand,
-				FPlanarReflectionRenderTarget*, RenderTarget, CaptureComponent->RenderTarget,
-				FPlanarReflectionSceneProxy*, SceneProxy, CaptureComponent->SceneProxy,
-			{
-				RenderTarget->InitResource();
-				
-				if (SceneProxy)
-				{
-					SceneProxy->RenderTarget = RenderTarget;
-				}
-			});
-		}
-
-		FMatrix ComponentTransform = CaptureComponent->ComponentToWorld.ToMatrixWithScale();
-		FPlane MirrorPlane = FPlane(ComponentTransform.TransformPosition(FVector::ZeroVector), ComponentTransform.TransformVector(FVector(0, 0, 1)));
-
-		// Create a mirror matrix and premultiply the view transform by it
-		FMirrorMatrix MirrorMatrix(MirrorPlane);
-		FMatrix ViewMatrix(MirrorMatrix * ParentView.ViewMatrices.ViewMatrix);
-		FVector ViewLocation = ViewMatrix.InverseTransformPosition(FVector::ZeroVector);
-		FMatrix ViewRotationMatrix = ViewMatrix.RemoveTranslation();
-		float FOV = FMath::Atan(1.0f / ParentView.ViewMatrices.ProjMatrix.M[0][0]);
-
-		FMatrix ProjectionMatrix;
-		BuildProjectionMatrix(ParentView.ViewRect.Size(), FOV + CaptureComponent->ExtraFOV * (float)PI / 180.0f, ProjectionMatrix);
-
-		FSceneRenderer* SceneRenderer = CreateSceneRendererForSceneCapture(this, CaptureComponent, CaptureComponent->RenderTarget, ParentView.ViewRect.Size(), ViewRotationMatrix, ViewLocation, ProjectionMatrix, CaptureComponent->MaxViewDistanceOverride, true, NULL, 0);
-
-		CaptureComponent->ProjectionWithExtraFOV = ProjectionMatrix;
-
-		if (CaptureComponent->SceneProxy)
-		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
-				UpdateProxyCommand,
-				FMatrix, ProjectionMatrix, ProjectionMatrix,
-				FPlanarReflectionSceneProxy*, SceneProxy, CaptureComponent->SceneProxy,
-			{
-				SceneProxy->ProjectionWithExtraFOV = ProjectionMatrix;
-			});
-		}
-		
-		SceneRenderer->Views[0].bIsPlanarReflection = true;
-		SceneRenderer->Views[0].GlobalClippingPlane = MirrorPlane;
-
-		const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER( 
-			CaptureCommand,
-			FSceneRenderer*, SceneRenderer, SceneRenderer,
-			FPlanarReflectionRenderTarget*, RenderTarget, CaptureComponent->RenderTarget,
-			FName, OwnerName, OwnerName,
-		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderPlanarReflection);
-			UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, RenderTarget, RenderTarget, OwnerName, FResolveParams(), true);
-		});
-	}
-}
-
-void FScene::AddPlanarReflection(UPlanarReflectionComponent* Component)
-{
-	check(Component->SceneProxy);
-	PlanarReflections_GameThread.Add(Component);
-
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		FAddPlanarReflectionCommand,
-		FPlanarReflectionSceneProxy*,SceneProxy,Component->SceneProxy,
-		FScene*,Scene,this,
-	{
-		Scene->ReflectionSceneData.bRegisteredReflectionCapturesHasChanged = true;
-		Scene->PlanarReflections.Add(SceneProxy);
-	});
-}
-
-void FScene::RemovePlanarReflection(UPlanarReflectionComponent* Component) 
-{
-	check(Component->SceneProxy);
-	PlanarReflections_GameThread.Remove(Component);
-
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		FRemovePlanarReflectionCommand,
-		FPlanarReflectionSceneProxy*,SceneProxy,Component->SceneProxy,
-		FScene*,Scene,this,
-	{
-		Scene->ReflectionSceneData.bRegisteredReflectionCapturesHasChanged = true;
-		Scene->PlanarReflections.Remove(SceneProxy);
-	});
-}
-
-void FScene::UpdatePlanarReflectionTransform(UPlanarReflectionComponent* Component)
-{	
-	check(Component->SceneProxy);
-
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-		FUpdatePlanarReflectionCommand,
-		FPlanarReflectionSceneProxy*,SceneProxy,Component->SceneProxy,
-		FMatrix,Transform,Component->ComponentToWorld.ToMatrixWithScale(),
-		FScene*,Scene,this,
-	{
-		Scene->ReflectionSceneData.bRegisteredReflectionCapturesHasChanged = true;
-		SceneProxy->UpdateTransform(Transform);
-	});
 }

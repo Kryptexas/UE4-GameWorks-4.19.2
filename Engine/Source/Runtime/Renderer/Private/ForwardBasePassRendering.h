@@ -657,8 +657,7 @@ public:
 	{
 		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, SceneTextureMode);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (GetDebugViewShaderMode() != DVSM_None)
+		if (UseDebugViewPS())
 		{
 			if (View->Family->EngineShowFlags.ShaderComplexity)
 			{
@@ -676,7 +675,6 @@ public:
 			FDebugViewMode::GetPSInterface(View->ShaderMap, MaterialResource, GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, MaterialRenderProxy, *MaterialResource, *View);
 		}
 		else
-#endif
 		{
 			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, SceneTextureMode, bEnableEditorPrimitiveDepthTest);
 			bool bEncodedHDR = IsMobileHDR32bpp() && !IsMobileHDRMosaic();
@@ -707,7 +705,7 @@ public:
 		}
 		
 		// Set the light-map policy.
-		LightMapPolicy.Set(RHICmdList, VertexShader, GetDebugViewShaderMode() == DVSM_None ? PixelShader : nullptr, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);		
+		LightMapPolicy.Set(RHICmdList, VertexShader, !UseDebugViewPS() ? PixelShader : nullptr, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);		
 	}
 
 	/** 
@@ -719,12 +717,10 @@ public:
 	{
 		FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader->GetPixelShader();
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (GetDebugViewShaderMode() != DVSM_None)
+		if (UseDebugViewPS())
 		{
 			PixelShaderRHIRef = FDebugViewMode::GetPSInterface(GetGlobalShaderMap(InFeatureLevel), MaterialResource, GetDebugViewShaderMode())->GetShader()->GetPixelShader();
 		}
-#endif
 
 		return FBoundShaderStateInput(
 			FMeshDrawingPolicy::GetVertexDeclaration(), 
@@ -753,7 +749,7 @@ public:
 			View,
 			PrimitiveSceneProxy,
 			VertexShader,
-			GetDebugViewShaderMode() == DVSM_None ? PixelShader : nullptr,
+			!UseDebugViewPS() ? PixelShader : nullptr,
 			VertexShader,
 			PixelShader,
 			VertexFactory,
@@ -763,9 +759,9 @@ public:
 		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 		VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (GetDebugViewShaderMode() != DVSM_None)
+		if (UseDebugViewPS())
 		{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			// If we are in the translucent pass or rendering a masked material then override the blend mode, otherwise maintain opaque blending
 			if (View.Family->EngineShowFlags.ShaderComplexity && BlendMode != BLEND_Opaque)
 			{
@@ -774,9 +770,9 @@ public:
 			}
 
 			FDebugViewMode::GetPSInterface(GetGlobalShaderMap(View.FeatureLevel), MaterialResource, GetDebugViewShaderMode())->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.VisualizeLODIndex, BatchElement, DrawRenderState);
+#endif
 		}
 		else
-#endif
 		{
 			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 		}

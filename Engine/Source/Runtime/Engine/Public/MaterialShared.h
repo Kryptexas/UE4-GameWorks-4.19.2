@@ -1147,6 +1147,9 @@ public:
 	/** Returns true if this material is allowed to make development shaders via the global CVar CompileShadersForDevelopment. */
 	virtual bool GetAllowDevelopmentShaderCompile()const{ return true; }
 
+	/** Returns which shadermap this material is bound to. */
+	virtual EMaterialShaderMapUsage::Type GetMaterialShaderMapUsage() const { return EMaterialShaderMapUsage::Default; }
+
 	/**
 	* Get user source code for the material, with a list of code snippets to highlight representing the code for each MaterialExpression
 	* @param OutSource - generated source code

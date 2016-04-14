@@ -60,7 +60,7 @@ struct FLightmassWorldInfoSettings
 	 * Warning: Setting this higher than 1 will greatly increase build times!
 	 * Can be used to increase the GI solver sample counts in order to get higher quality for levels that need it.
 	 * It can be useful to reduce IndirectLightingSmoothness somewhat (~.75) when increasing quality to get defined indirect shadows.
-	 * Note that this can't affect compression artifacts or other texture based artifacts.
+	 * Note that this can't affect compression artifacts, UV seams or other texture based artifacts.
 	 */
 	UPROPERTY(EditAnywhere, Category=LightmassGeneral, AdvancedDisplay, meta=(UIMin = "1.0", UIMax = "4.0"))
 	float IndirectLightingQuality;
@@ -98,8 +98,9 @@ struct FLightmassWorldInfoSettings
 
 	/** 
 	 * Whether to generate textures storing the AO computed by Lightmass.
-	 * These can be accessed through the PrecomputedAmbientOcclusion material node, 
+	 * These can be accessed through the PrecomputedAOMask material node, 
 	 * Which is useful for blending between material layers on environment assets.
+	 * Be sure to set DirectIlluminationOcclusionFraction and IndirectIlluminationOcclusionFraction to 0 if you only want the PrecomputedAOMask!
 	 */
 	UPROPERTY(EditAnywhere, Category=LightmassOcclusion)
 	uint32 bGenerateAmbientOcclusionMaterialMask:1;
@@ -134,7 +135,7 @@ struct FLightmassWorldInfoSettings
 
 	/** 
 	 * Scales the distances at which volume lighting samples are placed.  Volume lighting samples are computed by Lightmass and are used for GI on movable components.
-	 * Using larger scales results in less sample memory usage and reduces Indirect Lighting Cache update times.
+	 * Using larger scales results in less sample memory usage and reduces Indirect Lighting Cache update times, but less accurate transitions between lighting areas.
 	 */
 	UPROPERTY(EditAnywhere, Category=LightmassGeneral, AdvancedDisplay, meta=(UIMin = "0.1", UIMax = "100.0"))
 	float VolumeLightSamplePlacementScale;
@@ -376,8 +377,12 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	FVector DefaultColorScale;
 
 	/** Max occlusion distance used by mesh distance fields, overridden if there is a movable skylight. */
-	UPROPERTY(EditAnywhere, Category=World, meta=(DisplayName = "Default Max DistanceField Occlusion Distance"))
+	UPROPERTY(EditAnywhere, Category=World, meta=(UIMin = "500", UIMax = "5000", DisplayName = "Default Max DistanceField Occlusion Distance"))
 	float DefaultMaxDistanceFieldOcclusionDistance;
+
+	/** Distance from the camera that the global distance field should cover. */
+	UPROPERTY(EditAnywhere, Category=World, meta=(UIMin = "10000", UIMax = "100000", DisplayName = "Global DistanceField View Distance"))
+	float GlobalDistanceFieldViewDistance;
 
 	/************************************/
 	
@@ -519,6 +524,7 @@ public:
 	//~ Begin UObject Interface.
 	virtual void PostLoad() override;
 #if WITH_EDITOR
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	//~ End UObject Interface.
@@ -527,7 +533,7 @@ public:
 	//~ Begin AActor Interface.
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
-#endif
+#endif // WITH_EDITOR
 	virtual void PreInitializeComponents() override;
 	virtual void PostInitializeComponents() override;
 	//~ End AActor Interface.

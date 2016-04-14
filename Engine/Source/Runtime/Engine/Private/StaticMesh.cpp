@@ -50,7 +50,8 @@ FStaticMeshVertexBuffer::FStaticMeshVertexBuffer():
 	Data(NULL),
 	Stride(0),
 	NumVertices(0),
-	bUseFullPrecisionUVs(false)
+	bUseFullPrecisionUVs(false),
+	bUseHighPrecisionTangentBasis(true)
 {}
 
 FStaticMeshVertexBuffer::~FStaticMeshVertexBuffer()
@@ -87,14 +88,9 @@ void FStaticMeshVertexBuffer::Init(const TArray<FStaticMeshBuildVertex>& InVerti
 	{
 		const FStaticMeshBuildVertex& SourceVertex = InVertices[VertexIndex];
 		const uint32 DestVertexIndex = VertexIndex;
-		VertexTangentX(DestVertexIndex) = SourceVertex.TangentX;
-		VertexTangentZ(DestVertexIndex) = SourceVertex.TangentZ;
+		SetVertexTangents(DestVertexIndex, SourceVertex.TangentX, SourceVertex.TangentY, SourceVertex.TangentZ);
 
-		// store the sign of the determinant in TangentZ.W
-		VertexTangentZ(DestVertexIndex).Vector.W = GetBasisDeterminantSignByte( 
-			SourceVertex.TangentX, SourceVertex.TangentY, SourceVertex.TangentZ );
-
-		for(uint32 UVIndex = 0;UVIndex < NumTexCoords;UVIndex++)
+		for(uint32 UVIndex = 0; UVIndex < NumTexCoords; UVIndex++)
 		{
 			SetVertexUV(DestVertexIndex,UVIndex,SourceVertex.UVs[UVIndex]);
 		}
@@ -110,6 +106,8 @@ void FStaticMeshVertexBuffer::Init(const FStaticMeshVertexBuffer& InVertexBuffer
 	NumTexCoords = InVertexBuffer.GetNumTexCoords();
 	NumVertices = InVertexBuffer.GetNumVertices();
 	bUseFullPrecisionUVs = InVertexBuffer.GetUseFullPrecisionUVs();
+	bUseHighPrecisionTangentBasis = InVertexBuffer.GetUseHighPrecisionTangentBasis();
+
 	if ( NumVertices )
 	{
 		AllocateData();
@@ -171,6 +169,38 @@ void FStaticMeshVertexBuffer::ConvertToFullPrecisionUVs()
 	}
 }
 
+template<typename StaticMeshVertexT>
+void ConvertInPlaceLowPrecisionTangentBasis(StaticMeshVertexT* VertexData)
+{
+	auto& SrcVertexData = *VertexData;
+
+	for (int32 VertIdx = 0; VertIdx < SrcVertexData.Num(); ++VertIdx)
+	{
+		auto& SrcVert = SrcVertexData[VertIdx];
+
+		FVector4 FullVector = *reinterpret_cast<FPackedRGB10A2*>(&SrcVert.RawTangentX);
+		*reinterpret_cast<FPackedNormal*>(&SrcVert.RawTangentX) = FullVector;
+	}
+}
+
+template<int32 NumTexCoordsT>
+void FStaticMeshVertexBuffer::ConvertToLowPrecisionTangentBasis()
+{
+	if (bUseHighPrecisionTangentBasis)
+	{
+		if (GetUseFullPrecisionUVs())
+		{
+			ConvertInPlaceLowPrecisionTangentBasis((TStaticMeshVertexData<TStaticMeshFullVertexFloat32UVs<NumTexCoordsT> >*)VertexData);
+		}
+		else
+		{
+			ConvertInPlaceLowPrecisionTangentBasis((TStaticMeshVertexData<TStaticMeshFullVertexFloat16UVs<NumTexCoordsT> >*)VertexData);
+		}
+
+		bUseHighPrecisionTangentBasis = false;
+	}
+}
+
 /**
 * Serializer
 *
@@ -184,7 +214,8 @@ void FStaticMeshVertexBuffer::Serialize( FArchive& Ar, bool bNeedsCPUAccess )
 	FStripDataFlags StripFlags(Ar, 0, VER_UE4_STATIC_SKELETAL_MESH_SERIALIZATION_FIX);
 
 	Ar << NumTexCoords << Stride << NumVertices;
-	Ar << bUseFullPrecisionUVs;								
+	Ar << bUseFullPrecisionUVs;	
+	Ar << bUseHighPrecisionTangentBasis;
 
 	if( Ar.IsLoading() )
 	{
@@ -214,6 +245,7 @@ void FStaticMeshVertexBuffer::operator=(const FStaticMeshVertexBuffer &Other)
 	//VertexData doesn't need to be allocated here because Build will be called next,
 	VertexData = NULL;
 	bUseFullPrecisionUVs = Other.bUseFullPrecisionUVs;
+	bUseHighPrecisionTangentBasis = Other.bUseHighPrecisionTangentBasis;
 }
 
 void FStaticMeshVertexBuffer::InitRHI()
@@ -394,17 +426,19 @@ void FStaticMeshLODResources::InitVertexFactory(
 				Params.LODResources->PositionVertexBuffer.GetStride(),
 				VET_Float3
 				);
+
 			Data.TangentBasisComponents[0] = FVertexStreamComponent(
 				&Params.LODResources->VertexBuffer,
-				STRUCT_OFFSET(FStaticMeshFullVertex,TangentX),
+				STRUCT_OFFSET(FStaticMeshFullVertex, RawTangentX),
 				Params.LODResources->VertexBuffer.GetStride(),
-				VET_PackedNormal
+				Params.LODResources->VertexBuffer.GetUseHighPrecisionTangentBasis() ? VET_URGB10A2N : VET_PackedNormal
 				);
+
 			Data.TangentBasisComponents[1] = FVertexStreamComponent(
 				&Params.LODResources->VertexBuffer,
-				STRUCT_OFFSET(FStaticMeshFullVertex,TangentZ),
+				STRUCT_OFFSET(FStaticMeshFullVertex, TangentZ),
 				Params.LODResources->VertexBuffer.GetStride(),
-				VET_PackedNormal
+				VET_UShort2N
 				);
 
 			// Use the "override" color vertex buffer if one was supplied.  Otherwise, the color vertex stream
@@ -1118,8 +1152,8 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // If static mesh derived data needs to be rebuilt (new format, serialization
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
-// and set this new GUID as the version.
-#define STATICMESH_DERIVEDDATA_VER TEXT("37403C6FB9441A6992E4CB614156E6A")
+// and set this new GUID as the version.                                       
+#define STATICMESH_DERIVEDDATA_VER TEXT("7C4164E1813428CB338EDD50CC040049")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
@@ -1589,7 +1623,7 @@ bool UStaticMesh::GetStreamingTextureFactor(float& OutTexelFactor, FBoxSphereBou
 	}
 
 	OutBounds = TransformedSectionBox;
-	OutTexelFactor = WeightedTexelFactorSum / AreaSum;
+	OutTexelFactor = WeightedTexelFactorSum / AreaSum * FMath::Max(0.0f, StreamingDistanceMultiplier);
 	return true;
 
 #else
@@ -2282,6 +2316,26 @@ void UStaticMesh::PostLoad()
 				case 2: LOD.VertexBuffer.ConvertToFullPrecisionUVs<2>(); break; 
 				case 3: LOD.VertexBuffer.ConvertToFullPrecisionUVs<3>(); break; 
 				case 4: LOD.VertexBuffer.ConvertToFullPrecisionUVs<4>(); break; 
+				}
+			}
+		}
+	}
+
+	if (!GVertexElementTypeSupport.IsSupported(VET_URGB10A2N))
+	{
+		for (int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); ++LODIndex)
+		{
+			if (RenderData->LODResources.IsValidIndex(LODIndex))
+			{
+				FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
+
+				const uint32 NumTexCoords = LOD.VertexBuffer.GetNumTexCoords();
+				switch (NumTexCoords)
+				{
+				case 1: LOD.VertexBuffer.ConvertToLowPrecisionTangentBasis<1>(); break;
+				case 2: LOD.VertexBuffer.ConvertToLowPrecisionTangentBasis<2>(); break;
+				case 3: LOD.VertexBuffer.ConvertToLowPrecisionTangentBasis<3>(); break;
+				case 4: LOD.VertexBuffer.ConvertToLowPrecisionTangentBasis<4>(); break;
 				}
 			}
 		}

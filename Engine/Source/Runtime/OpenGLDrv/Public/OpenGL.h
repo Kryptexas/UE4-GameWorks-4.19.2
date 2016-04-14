@@ -153,6 +153,7 @@ public:
 	static FORCEINLINE bool SupportsSeparateShaderObjects()				{ return false; }
 	static FORCEINLINE bool NeedsVertexAttribRemapTable()				{ return false; }
 	static FORCEINLINE bool SupportsHDR32bppEncodeModeIntrinsic()		{ return false; }
+	static FORCEINLINE bool SupportsRGB10A2()							{ return true; }
 
 
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT16; }

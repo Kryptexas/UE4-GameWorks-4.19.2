@@ -566,8 +566,6 @@ void UStaticMeshComponent::UpdateStreamingTextureData(TArray<UTexture2D*>& Level
 
 		for (const FStreamingSectionBuildInfo& SectionData : *StreamingSectionData)
 		{
-			if (SectionData.MaterialIndex == INDEX_NONE) continue; // Skip the fallback data.
-
 			UMaterialInterface* Material = GetMaterial(SectionData.MaterialIndex);
 
 			Textures.Empty();
@@ -584,7 +582,7 @@ void UStaticMeshComponent::UpdateStreamingTextureData(TArray<UTexture2D*>& Level
 				if (!Texture) continue;
 
 				bool bMaxValid = false;
-				float MaxTexeFactor = 0;
+				float MaxTexelFactor = 0;
 
 				if (Indices.IsValidIndex(TextureIndex))
 				{
@@ -601,7 +599,7 @@ void UStaticMeshComponent::UpdateStreamingTextureData(TArray<UTexture2D*>& Level
 								{
 									TexelFactor = SectionData.TexelFactors[TexCoordInfo.Index];
 								}
-								MaxTexeFactor = FMath::Max<float>(MaxTexeFactor, TexelFactor / TexCoordInfo.Scale);
+								MaxTexelFactor = FMath::Max<float>(MaxTexelFactor, TexelFactor / TexCoordInfo.Scale);
 								bMaxValid = true;
 							}
 						}
@@ -610,7 +608,7 @@ void UStaticMeshComponent::UpdateStreamingTextureData(TArray<UTexture2D*>& Level
 
 				FStreamingTexturePrimitiveInfo& Info = *new(UnpackedData) FStreamingTexturePrimitiveInfo();
 				Info.Texture = Texture;
-				Info.TexelFactor = bMaxValid ? MaxTexeFactor : SectionData.TexelFactors[0];
+				Info.TexelFactor = bMaxValid ? MaxTexelFactor : SectionData.TexelFactors[0];
 				Info.Bounds.Origin = SectionData.BoxOrigin;
 				Info.Bounds.BoxExtent = SectionData.BoxExtent;
 				Info.Bounds.SphereRadius = SectionData.BoxExtent.Size();
@@ -618,18 +616,6 @@ void UStaticMeshComponent::UpdateStreamingTextureData(TArray<UTexture2D*>& Level
 		}
 
 		PackStreamingTextureData(LevelTextures, UnpackedData, StreamingTextureData, Bounds);
-	}
-	else if (!bUseMetrics && bNeedsPrecomputedData)
-	{
-		StreamingTextureData.Empty();
-		StreamingSectionData.Reset();
-
-		StreamingSectionData = TSharedPtr<TArray<FStreamingSectionBuildInfo>, ESPMode::NotThreadSafe>(new TArray<FStreamingSectionBuildInfo>());
-
-		FStreamingSectionBuildInfo& SectionData = *new(*StreamingSectionData) FStreamingSectionBuildInfo();
-		SectionData.BoxOrigin = Bounds.Origin;
-		SectionData.BoxExtent = Bounds.BoxExtent;
-		SectionData.TexelFactors[0] = StaticMesh ? StaticMesh->GetStreamingTextureFactor(0) : 0.f;
 	}
 	else
 	{
@@ -650,14 +636,6 @@ void UStaticMeshComponent::UpdateStreamingSectionData(const FTexCoordScaleMap& T
 
 		const TIndirectArray<FStaticMeshLODResources>& LODResources = StaticMesh->RenderData->LODResources;
 		StreamingSectionData->Reserve(GetNumberOfElements(LODResources) + 1);
-
-		// First section holds fallback data used to compare old streaming results with new one
-		{
-			FStreamingSectionBuildInfo& FallbackData = *new(*StreamingSectionData) FStreamingSectionBuildInfo();
-			FallbackData.BoxOrigin = Bounds.Origin;
-			FallbackData.BoxExtent = Bounds.BoxExtent;
-			FallbackData.TexelFactors[0] = StaticMesh ? StaticMesh->GetStreamingTextureFactor(0) : 0.f;
-		}
 
 		for (int32 LODIndex = 0; LODIndex < LODResources.Num(); ++LODIndex)
 		{
@@ -714,7 +692,6 @@ bool UStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor
 	if (StaticMesh && StaticMesh->RenderData && StaticMesh->RenderData->LODResources.Num() > 0)
 	{
 		OutWorldTexelFactor = OutWorldLightmapFactor = ComponentToWorld.GetMaximumAxisScale();
-
 		OutWorldTexelFactor *= StaticMesh->GetStreamingTextureFactor(0);
 
 		TIndirectArray<FStaticMeshLODResources>& LODResources = StaticMesh->RenderData->LODResources;
@@ -1454,6 +1431,15 @@ void UStaticMeshComponent::PostLoad()
 				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_RepairedPaintedVertexColors", "{MeshName} : Repaired painted vertex colors (slow loading, can be fixed by saving {LevelName})" ), Arguments ) ))
 				->AddToken(FMapErrorToken::Create(FMapErrors::RepairedPaintedVertexColors));
 #endif
+		}
+	}
+
+	// Empty after potential editor fix-up when we don't care about re-saving, e.g. game or client
+	if (!GIsEditor && !IsRunningCommandlet())
+	{
+		for (FStaticMeshComponentLODInfo& LOD : LODData)
+		{
+			LOD.PaintedVertices.Empty();
 		}
 	}
 
@@ -2334,12 +2320,6 @@ FArchive& operator<<(FArchive& Ar,FStaticMeshComponentLODInfo& I)
 	if ( !StripFlags.IsEditorDataStripped() )
 	{
 		Ar << I.PaintedVertices;
-	}
-
-	// Empty when loading and we don't care about saving it again, like e.g. a client.
-	if( Ar.IsLoading() && ( !GIsEditor && !IsRunningCommandlet() ) )
-	{
-		I.PaintedVertices.Empty();
 	}
 
 	return Ar;

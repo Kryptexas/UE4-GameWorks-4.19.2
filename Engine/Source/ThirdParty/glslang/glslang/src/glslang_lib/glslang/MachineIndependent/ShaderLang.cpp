@@ -1,6 +1,7 @@
 //
 //Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
-//Copyright (C) 2013 LunarG, Inc.
+//Copyright (C) 2013-2015 LunarG, Inc.
+//Copyright (C) 2015-2016 Google, Inc.
 //
 //All rights reserved.
 //
@@ -111,7 +112,7 @@ enum EPrecisionClass {
 // A process-global symbol table per version per profile for built-ins common 
 // to multiple stages (languages), and a process-global symbol table per version 
 // per profile per stage for built-ins unique to each stage.  They will be sparsely
-// populated, so they will only only be generated as needed.
+// populated, so they will only be generated as needed.
 // 
 // Each has a different set of built-ins, and we want to preserve that from
 // compile to compile.
@@ -130,7 +131,8 @@ bool InitializeSymbolTable(const TString& builtIns, int version, EProfile profil
     TIntermediate intermediate(language, version, profile);
     
     TParseContext parseContext(symbolTable, intermediate, true, version, profile, spv, vulkan, language, infoSink);
-    TPpContext ppContext(parseContext, TShader::ForbidInclude());
+    TShader::ForbidInclude includer;
+    TPpContext ppContext(parseContext, "", includer);
     TScanContext scanContext(parseContext);
     parseContext.setScanContext(&scanContext);
     parseContext.setPpContext(&ppContext);
@@ -306,7 +308,7 @@ void SetupBuiltinSymbolTable(int version, EProfile profile, int spv, int vulkan)
     glslang::ReleaseGlobalLock();
 }
 
-bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNotFirst, int defaultVersion, int& version, EProfile& profile)
+bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNotFirst, int defaultVersion, int& version, EProfile& profile, int spv)
 {
     const int FirstProfileVersion = 150;
     bool correct = true;
@@ -397,6 +399,23 @@ bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNo
         infoSink.info.message(EPrefixError, "#version: statement must appear first in es-profile shader; before comments or newlines");
     }
 
+    // Check for SPIR-V compatibility
+    if (spv > 0) {
+        if (profile == EEsProfile) {
+            if (version < 310) {
+                correct = false;
+                infoSink.info.message(EPrefixError, "#version: ES shaders for SPIR-V require version 310 or higher");
+                version = 310;
+            }
+        } else {
+            if (version < 140) {
+                correct = false;
+                infoSink.info.message(EPrefixError, "#version: Desktop shaders for SPIR-V require version 140 or higher");
+                version = 140;
+            }
+        }
+    }
+
     // A metacheck on the condition of the compiler itself...
     switch (version) {
 
@@ -464,7 +483,7 @@ bool ProcessDeferred(
     TIntermediate& intermediate, // returned tree, etc.
     ProcessingContext& processingContext,
     bool requireNonempty,
-    const TShader::Includer& includer
+    TShader::Includer& includer
     )
 {
     if (! InitThread())
@@ -532,7 +551,8 @@ bool ProcessDeferred(
         version = defaultVersion;
         profile = defaultProfile;
     }
-    bool goodVersion = DeduceVersionProfile(compiler->infoSink, compiler->getLanguage(), versionNotFirst, defaultVersion, version, profile);
+    int spv = (messages & EShMsgSpvRules) ? 100 : 0;         // TODO find path to get real version number here, for now non-0 is what matters
+    bool goodVersion = DeduceVersionProfile(compiler->infoSink, compiler->getLanguage(), versionNotFirst, defaultVersion, version, profile, spv);
     bool versionWillBeError = (versionNotFound || (profile == EEsProfile && version >= 300 && versionNotFirst));
     bool warnVersionNotFirst = false;
     if (! versionWillBeError && versionNotFirstToken) {
@@ -542,11 +562,12 @@ bool ProcessDeferred(
             versionWillBeError = true;
     }
 
-    int spv = (messages & EShMsgSpvRules) ? 100 : 0;        // TODO find path to get real version number here, for now non-0 is what matters
     int vulkan = (messages & EShMsgVulkanRules) ? 100 : 0;     // TODO find path to get real version number here, for now non-0 is what matters
     intermediate.setVersion(version);
     intermediate.setProfile(profile);
     intermediate.setSpv(spv);
+    if (vulkan)
+        intermediate.setOriginUpperLeft();
     SetupBuiltinSymbolTable(version, profile, spv, vulkan);
     
     TSymbolTable* cachedTable = SharedSymbolTables[MapVersionToIndex(version)]
@@ -569,7 +590,7 @@ bool ProcessDeferred(
 
     TParseContext parseContext(symbolTable, intermediate, false, version, profile, spv, vulkan, compiler->getLanguage(), compiler->infoSink, forwardCompatible, messages);
     glslang::TScanContext scanContext(parseContext);
-    TPpContext ppContext(parseContext, includer);
+    TPpContext ppContext(parseContext, names[numPre]? names[numPre]: "", includer);
     parseContext.setScanContext(&scanContext);
     parseContext.setPpContext(&ppContext);
     parseContext.setLimits(*resources);
@@ -842,7 +863,7 @@ bool PreprocessDeferred(
     bool forceDefaultVersionAndProfile,
     bool forwardCompatible,     // give errors for use of deprecated features
     EShMessages messages,       // warnings/errors/AST; things to print out
-    const TShader::Includer& includer,
+    TShader::Includer& includer,
     TIntermediate& intermediate, // returned tree, etc.
     std::string* outputString)
 {
@@ -881,7 +902,7 @@ bool CompileDeferred(
     bool forwardCompatible,     // give errors for use of deprecated features
     EShMessages messages,       // warnings/errors/AST; things to print out
     TIntermediate& intermediate,// returned tree, etc.
-    const TShader::Includer& includer)
+    TShader::Includer& includer)
 {
     DoFullParse parser;
     return ProcessDeferred(compiler, shaderStrings, numStrings, inputLengths, stringNames,
@@ -1030,9 +1051,10 @@ int ShCompile(
     compiler->infoSink.debug.erase();
 
     TIntermediate intermediate(compiler->getLanguage());
+    TShader::ForbidInclude includer;
     bool success = CompileDeferred(compiler, shaderStrings, numStrings, inputLengths, nullptr,
                                    "", optLevel, resources, defaultVersion, ENoProfile, false,
-                                   forwardCompatible, messages, intermediate, TShader::ForbidInclude());
+                                   forwardCompatible, messages, intermediate, includer);
 
     //
     // Call the machine dependent compiler
@@ -1340,7 +1362,7 @@ void TShader::setStringsWithLengthsAndNames(
 // Returns true for success.
 //
 bool TShader::parse(const TBuiltInResource* builtInResources, int defaultVersion, EProfile defaultProfile, bool forceDefaultVersionAndProfile,
-                    bool forwardCompatible, EShMessages messages, const Includer& includer)
+                    bool forwardCompatible, EShMessages messages, Includer& includer)
 {
     if (! InitThread())
         return false;
@@ -1368,7 +1390,7 @@ bool TShader::preprocess(const TBuiltInResource* builtInResources,
                          bool forceDefaultVersionAndProfile,
                          bool forwardCompatible, EShMessages message,
                          std::string* output_string,
-                         const TShader::Includer& includer)
+                         Includer& includer)
 {
     if (! InitThread())
         return false;

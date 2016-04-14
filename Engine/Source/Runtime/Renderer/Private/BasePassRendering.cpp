@@ -132,6 +132,9 @@ void FPlanarReflectionParameters::SetParameters(FRHICommandList& RHICmdList, FPi
 		ReflectionPlaneValue = ReflectionSceneProxy->ReflectionPlane;
 		PlanarReflectionTextureValue = ReflectionSceneProxy->RenderTarget;
 			
+		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionOrigin, ReflectionSceneProxy->PlanarReflectionOrigin);
+		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionXAxis, ReflectionSceneProxy->PlanarReflectionXAxis);
+		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionYAxis, ReflectionSceneProxy->PlanarReflectionYAxis);
 		SetShaderValue(RHICmdList, ShaderRHI, InverseTransposeMirrorMatrix, ReflectionSceneProxy->InverseTransposeMirrorMatrix);
 		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionParameters, ReflectionSceneProxy->PlanarReflectionParameters);
 		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionParameters2, ReflectionSceneProxy->PlanarReflectionParameters2);
@@ -276,7 +279,7 @@ public:
 		return true;
 	}
 
-	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
+	/** Draws the mesh with a specific light-map type */
 	template<typename LightMapPolicyType>
 	void Process(
 		FRHICommandList& RHICmdList,
@@ -285,16 +288,15 @@ public:
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
 		) const
 	{
-		FScene::EBasePassDrawListType DrawType = FScene::EBasePass_Default;
+		EBasePassDrawListType DrawType = EBasePass_Default;
 
 		if (StaticMesh->IsMasked(Parameters.FeatureLevel))
 		{
-			DrawType = FScene::EBasePass_Masked;
+			DrawType = EBasePass_Masked;
 		}
 
 		if (Scene)
 		{
-
 			// Find the appropriate draw list for the static mesh based on the light-map policy type.
 			TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& DrawList =
 				Scene->GetBasePassDrawList<LightMapPolicyType>(DrawType);

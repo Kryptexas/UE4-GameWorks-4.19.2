@@ -1214,6 +1214,7 @@ public:
 	float InfluenceRadius;
 	float Brightness;
 	uint32 Guid;
+	FVector CaptureOffset;
 
 	// Box properties
 	FMatrix BoxTransform;

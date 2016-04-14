@@ -401,6 +401,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, NormalOverrideParameter(FVector4(0,0,0,1))
 	, RoughnessOverrideParameter(FVector2D(0,1))
 	, HiddenPrimitives(InitOptions.HiddenPrimitives)
+	, ShowOnlyPrimitives(InitOptions.ShowOnlyPrimitives)
 	, LODDistanceFactor(InitOptions.LODDistanceFactor)
 	, bCameraCut(InitOptions.bInCameraCut)
 	, bOriginOffsetThisFrame(InitOptions.bOriginOffsetThisFrame)
@@ -608,6 +609,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	bUseFieldOfViewForLOD = InitOptions.bUseFieldOfViewForLOD;
 	DrawDynamicFlags = EDrawDynamicFlags::None;
+	bAllowTemporalJitter = true;
 
 #if WITH_EDITOR
 	bUsePixelInspector = false;
@@ -1653,8 +1655,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		static uint32 MSAAValue = GShaderPlatformForFeatureLevel[SceneViewFeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACvar->GetValueOnGameThread();
 
 		int32 Quality = FMath::Clamp(CVar->GetValueOnGameThread(), 0, 6);
+		const bool bWillApplyTemporalAA = Family->EngineShowFlags.PostProcessing || bIsPlanarReflection;
 
-		if( !Family->EngineShowFlags.PostProcessing || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
+		if( !bWillApplyTemporalAA || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
 			// Disable antialiasing in GammaLDR mode to avoid jittering.
 			|| (SceneViewFeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0)
 			|| (SceneViewFeatureLevel <= ERHIFeatureLevel::ES3_1 && (MSAAValue > 1))
@@ -1870,10 +1873,11 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	}
 
 	DebugViewShaderMode = ChooseDebugViewShaderMode();
-	if (!AllowDebugViewShaderMode(DebugViewShaderMode, GetFeatureLevel()))
+	if (!AllowDebugViewPS(DebugViewShaderMode, GetShaderPlatform()))
 	{
 		DebugViewShaderMode = DVSM_None;
 	}
+	bUsedDebugViewPSVSHS = DebugViewShaderMode != DVSM_None && AllowDebugViewVSDSHS(GetShaderPlatform());
 #endif
 
 #if !WITH_EDITOR
@@ -2003,49 +2007,6 @@ FSceneViewFamilyContext::~FSceneViewFamilyContext()
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-namespace
-{
-	struct FDebugViewModeOptions
-	{
-		FDebugViewModeOptions() : bEnableQuadOverdraw(false), bEnableStreamingAccuracy(false), bEnableTextureStreamingBuild(false)
-		{
-			// OpenGL shares the same settings as DX on Windows, but some shaders do not compile yet.
-			//@TODO : if (!IsOpenGLPlatform(GMaxRHIShaderPlatform))
-			if (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_PCD3D_SM4)
-			{
-				GConfig->GetBool(TEXT("DebugViewModes"), TEXT("bEnableQuadOverdraw"), bEnableQuadOverdraw, GEngineIni);
-				GConfig->GetBool(TEXT("DebugViewModes"), TEXT("bEnableStreamingAccuracy"), bEnableStreamingAccuracy, GEngineIni);
-				GConfig->GetBool(TEXT("DebugViewModes"), TEXT("bEnableTextureStreamingBuild"), bEnableTextureStreamingBuild, GEngineIni);
-			}			
-
-			ERHIFeatureLevel::Type QuadOverdrawFeature = bEnableQuadOverdraw ? ERHIFeatureLevel::SM5 : ERHIFeatureLevel::Num;
-			ERHIFeatureLevel::Type StreamingAccuracyFeature = bEnableStreamingAccuracy ? ERHIFeatureLevel::SM5 : ERHIFeatureLevel::Num;
-			ERHIFeatureLevel::Type TexCoordScaleFeature = bEnableTextureStreamingBuild ? ERHIFeatureLevel::SM5 : ERHIFeatureLevel::Num;
-
-			static_assert(DVSM_MAX == 9, "Wrong DebugViewShaderMode Count");
-			MinFeatureLevels[DVSM_None] = ERHIFeatureLevel::Num;
-
-			MinFeatureLevels[DVSM_ShaderComplexity] = ERHIFeatureLevel::ES2;
-
-			MinFeatureLevels[DVSM_ShaderComplexityContainedQuadOverhead] = QuadOverdrawFeature;
-			MinFeatureLevels[DVSM_ShaderComplexityBleedingQuadOverhead] = QuadOverdrawFeature;			
-			MinFeatureLevels[DVSM_QuadComplexity] = QuadOverdrawFeature;
-
-			MinFeatureLevels[DVSM_WantedMipsAccuracy] = StreamingAccuracyFeature;
-			MinFeatureLevels[DVSM_TexelFactorAccuracy] = StreamingAccuracyFeature;
-
-			MinFeatureLevels[DVSM_TexCoordScaleAccuracy] = TexCoordScaleFeature;
-			MinFeatureLevels[DVSM_TexCoordScaleAnalysis] = TexCoordScaleFeature;
-		}
-
-		bool bEnableQuadOverdraw;
-		bool bEnableStreamingAccuracy;
-		bool bEnableTextureStreamingBuild;
-
-		ERHIFeatureLevel::Type MinFeatureLevels[DVSM_MAX];
-	};
-}
-
 EDebugViewShaderMode FSceneViewFamily::ChooseDebugViewShaderMode() const
 {
 	if (EngineShowFlags.ShaderComplexity)
@@ -2063,61 +2024,75 @@ EDebugViewShaderMode FSceneViewFamily::ChooseDebugViewShaderMode() const
 			return DVSM_ShaderComplexity;
 		}
 	}
-	else if (EngineShowFlags.WantedMipsAccuracy)
+	else if (EngineShowFlags.PrimitiveDistanceAccuracy)
 	{
-		return DVSM_WantedMipsAccuracy;
+		return DVSM_PrimitiveDistanceAccuracy;
 	}
-	else if (EngineShowFlags.TexelFactorAccuracy)
+	else if (EngineShowFlags.MeshTexCoordSizeAccuracy)
 	{
-		return DVSM_TexelFactorAccuracy;
+		return DVSM_MeshTexCoordSizeAccuracy;
 	}
-	else if (EngineShowFlags.TexCoordAnalysis) // Test before accuracy is set since accuracy could also be set.
+	else if (EngineShowFlags.MaterialTexCoordScalesAnalysis) // Test before accuracy is set since accuracy could also be set.
 	{
-		return DVSM_TexCoordScaleAnalysis;
+		return DVSM_MaterialTexCoordScalesAnalysis;
 	}
-	else if (EngineShowFlags.TexCoordScaleAccuracy)
+	else if (EngineShowFlags.MaterialTexCoordScalesAccuracy)
 	{
-		return DVSM_TexCoordScaleAccuracy;
+		return DVSM_MaterialTexCoordScalesAccuracy;
 	}
 	return DVSM_None;
 }
 
-bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode, ERHIFeatureLevel::Type FeatureLevel)
+bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform)
 {
 #if WITH_EDITOR
-	static const FDebugViewModeOptions Options;
-	check(ShaderMode < DVSM_MAX && FeatureLevel < ERHIFeatureLevel::Num);
-	return FeatureLevel >= Options.MinFeatureLevels[ShaderMode]; 
+	// Those options are used to test compilation on specific platforms
+	static const bool bForceQuadOverdraw = FParse::Param(FCommandLine::Get(), TEXT("quadoverdraw"));
+	static const bool bForceStreamingAccuracy = FParse::Param(FCommandLine::Get(), TEXT("streamingaccuracy"));
+	static const bool bForceTextureStreamingBuild = FParse::Param(FCommandLine::Get(), TEXT("streamingbuild"));
+
+	switch (ShaderMode)
+	{
+	case DVSM_None:
+		return false;
+	case DVSM_ShaderComplexity:
+		return true;
+	case DVSM_ShaderComplexityContainedQuadOverhead:
+	case DVSM_ShaderComplexityBleedingQuadOverhead:
+	case DVSM_QuadComplexity:
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceQuadOverdraw || Platform == SP_PCD3D_SM5);
+	case DVSM_PrimitiveDistanceAccuracy:
+	case DVSM_MeshTexCoordSizeAccuracy:
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceStreamingAccuracy || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5);
+	case DVSM_MaterialTexCoordScalesAccuracy:
+	case DVSM_MaterialTexCoordScalesAnalysis:
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceTextureStreamingBuild || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5);
+	default:
+		return false;
+	}
 #else
 	return ShaderMode == DVSM_ShaderComplexity;
 #endif
 }
 
-bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform)
-{
-	if (ShaderMode == DVSM_None)
-	{
-		return false; // This must always return false as it used to know if there is a debug viewmode enabled.
-	}
-	//@TODO : else if (!IsPCPlatform(Platform))
-	else if (Platform != SP_PCD3D_SM5 && Platform != SP_PCD3D_SM4)
-	{
-		return ShaderMode == DVSM_ShaderComplexity;
-	}
-	else // Otherwise, this will be valid only for the current platform.
-	{
-		return AllowDebugViewShaderMode(ShaderMode, GetMaxSupportedFeatureLevel(Platform));
-	}
-}
-
-bool AllowDebugViewVSDSHS(ERHIFeatureLevel::Type FeatureLevel)
-{
-	return AllowDebugViewShaderMode(DVSM_QuadComplexity, FeatureLevel) || AllowDebugViewShaderMode(DVSM_WantedMipsAccuracy, FeatureLevel) || AllowDebugViewShaderMode(DVSM_TexCoordScaleAnalysis, FeatureLevel);
-}
-
 bool AllowDebugViewVSDSHS(EShaderPlatform Platform)
 {
-	return AllowDebugViewShaderMode(DVSM_QuadComplexity, Platform) || AllowDebugViewShaderMode(DVSM_WantedMipsAccuracy, Platform) || AllowDebugViewShaderMode(DVSM_TexCoordScaleAnalysis, Platform);
+#if WITH_EDITOR
+	// Those options are used to test compilation on specific platforms
+	static const bool bForce = 
+		FParse::Param(FCommandLine::Get(), TEXT("quadoverdraw")) || 
+		FParse::Param(FCommandLine::Get(), TEXT("streamingaccuracy")) || 
+		FParse::Param(FCommandLine::Get(), TEXT("streamingbuild"));
+
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForce || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5);
+#else
+	return false;
+#endif
+}
+
+bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode)
+{
+	return AllowDebugViewPS(ShaderMode, GMaxRHIShaderPlatform);
 }
 
 #endif

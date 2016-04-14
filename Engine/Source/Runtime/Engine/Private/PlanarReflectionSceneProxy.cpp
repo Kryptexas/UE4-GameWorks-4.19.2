@@ -11,7 +11,8 @@
 FPlanarReflectionSceneProxy::FPlanarReflectionSceneProxy(UPlanarReflectionComponent* Component, FPlanarReflectionRenderTarget* InRenderTarget)
 {
 	RenderTarget = InRenderTarget;
-	UpdateTransform(Component->ComponentToWorld.ToMatrixWithScale());
+
+	DistanceFromPlaneFadeEnd = Component->DistanceFromPlaneFadeEnd;
 
 	float ClampedFadeStart = FMath::Max(Component->DistanceFromPlaneFadeStart, 0.0f);
 	float ClampedFadeEnd = FMath::Max(Component->DistanceFromPlaneFadeEnd, 0.0f);
@@ -33,4 +34,10 @@ FPlanarReflectionSceneProxy::FPlanarReflectionSceneProxy(UPlanarReflectionCompon
 	Component->GetProjectionWithExtraFOV(ProjectionWithExtraFOV);
 
 	OwnerName = Component->GetOwner() ? Component->GetOwner()->GetFName() : NAME_None;
+
+	UpdateTransform(Component->ComponentToWorld.ToMatrixWithScale());
+
+	PlanarReflectionId = Component->GetPlanarReflectionId();
+	PrefilterRoughness = Component->PrefilterRoughness;
+	PrefilterRoughnessDistance = Component->PrefilterRoughnessDistance;
 }

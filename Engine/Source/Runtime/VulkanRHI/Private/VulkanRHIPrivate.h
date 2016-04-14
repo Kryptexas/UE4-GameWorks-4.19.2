@@ -330,7 +330,7 @@ private:
 	TArray<VkDescriptorSet> Sets;
 };
 
-void VulkanSetImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageSubresourceRange SubresourceRange);
+void VulkanSetImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, const VkImageSubresourceRange& SubresourceRange);
 
 // Transitions Color Images's first mip/layer/face
 inline void VulkanSetImageLayoutSimple(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, VkImageAspectFlags Aspect = VK_IMAGE_ASPECT_COLOR_BIT)
@@ -383,90 +383,16 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Bind Vertex Streams"), STAT_VulkanBindVertexStre
 
 #endif
 
-
-class FVulkanDynamicIndexBuffer : public FVulkanDynamicPooledBuffer
-{
-public:
-	FVulkanDynamicIndexBuffer(FVulkanDevice& Device);
-
-	//#todo-rco: Check if return value optimization is happening
-	FORCEINLINE FVulkanDynamicLockInfo Lock(VkDeviceSize InSize)
-	{
-		INC_DWORD_STAT_BY(STAT_VulkanDynamicIBSize, InSize);
-		SCOPE_CYCLE_COUNTER(STAT_VulkanDynamicIBLockTime);
-		return FVulkanDynamicPooledBuffer::Lock(InSize);
-	}
-
-	FORCEINLINE void Unlock(FVulkanDynamicLockInfo LockInfo)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_VulkanDynamicIBLockTime);
-		FVulkanDynamicPooledBuffer::Unlock(LockInfo);
-	}
-};
-
-class FVulkanDynamicVertexBuffer : public FVulkanDynamicPooledBuffer
-{
-public:
-	FVulkanDynamicVertexBuffer(FVulkanDevice& Device);
-
-	//#todo-rco: Check if return value optimization is happening
-	FORCEINLINE FVulkanDynamicLockInfo Lock(VkDeviceSize InSize)
-	{
-		INC_DWORD_STAT_BY(STAT_VulkanDynamicVBSize, InSize);
-		SCOPE_CYCLE_COUNTER(STAT_VulkanDynamicVBLockTime);
-		return FVulkanDynamicPooledBuffer::Lock(InSize);
-	}
-
-	FORCEINLINE void Unlock(FVulkanDynamicLockInfo LockInfo)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_VulkanDynamicVBLockTime);
-		FVulkanDynamicPooledBuffer::Unlock(LockInfo);
-	}
-};
-
-
-#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
 namespace VulkanRHI
 {
-	struct FStagingBuffer2 : public VulkanRHI::FDeviceChild, public VulkanRHI::FRefCount
+	struct FPendingBufferLock
 	{
-		VkBuffer Buffer;
-		VkMemoryRequirements MemoryRequirements;
-		TRefCountPtr<VulkanRHI::FResourceAllocation> ResourceAllocation;
-
-		FStagingBuffer2(FVulkanDevice* InDevice, uint32 Size)
-			: FDeviceChild(InDevice)
-		{
-			Buffer = FVulkanBuffer2::CreateVulkanBuffer(InDevice, Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryRequirements);
-		}
-
-		uint32 GetAlignment() const
-		{
-			return (uint32)MemoryRequirements.alignment;
-		}
-
-		void BindAllocation(TRefCountPtr<VulkanRHI::FResourceAllocation> InResourceAllocation)
-		{
-			ResourceAllocation = InResourceAllocation;
-			check(Align(ResourceAllocation->GetOffset(), MemoryRequirements.alignment) == ResourceAllocation->GetOffset());
-			VERIFYVULKANRESULT(vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, ResourceAllocation->GetHandle(), ResourceAllocation->GetOffset()));
-		}
-
-		~FStagingBuffer2()
-		{
-			vkDestroyBuffer(Device->GetInstanceHandle(), Buffer, nullptr);
-		}
-	};
-
-	struct FPendingBuffer2Lock
-	{
-		VulkanRHI::FResourceAllocation* ResourceAllocation;
-		TRefCountPtr<FStagingBuffer2> StagingBuffer;
+		FStagingBuffer* StagingBuffer;
 		uint32 Offset;
 		uint32 Size;
+		EResourceLockMode LockMode;
 	};
 }
-#endif
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
 extern TAutoConsoleVariable<int32> GValidationCvar;

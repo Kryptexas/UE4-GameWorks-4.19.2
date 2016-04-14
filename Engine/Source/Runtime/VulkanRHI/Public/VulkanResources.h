@@ -24,11 +24,12 @@ class FVulkanBufferCPU;
 struct FVulkanTextureBase;
 class FVulkanTexture2D;
 struct FVulkanBufferView;
+class FVulkanResourceMultiBuffer;
 
 namespace VulkanRHI
 {
 	class FDeviceMemoryAllocation;
-	class FResourceAllocation;
+	class FOldResourceAllocation;
 }
 
 /** This represents a vertex declaration that hasn't been combined with a specific shader to create a bound shader. */
@@ -254,6 +255,7 @@ private:
 
 	bool bIsImageOwner;
 	VulkanRHI::FDeviceMemoryAllocation* Allocation;
+	TRefCountPtr<VulkanRHI::FOldResourceAllocation> ResourceAllocation;
 
 	// Used for optimal tiling mode
 	// Intermediate buffer, used to copy image data into the optimal image-buffer.
@@ -288,14 +290,6 @@ class FVulkanBaseShaderResource : public IRefCountedObject
 
 struct FVulkanTextureBase : public FVulkanBaseShaderResource
 {
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		static int32 GetAllocatedCount();
-
-		static int32 GetAllocationBalance();
-
-		inline int32 GetAllocationNumber() const { return AllocationNumber; }
-	#endif
-
 	static FVulkanTextureBase* Cast(FRHITexture* Texture);
 
 	FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType ResourceType, EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bArray, uint32 ArraySize, uint32 NumMips, uint32 NumSamples, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
@@ -311,13 +305,7 @@ struct FVulkanTextureBase : public FVulkanBaseShaderResource
 	FVulkanTextureView MSAAView;
 #endif
 
-	VkImage StagingImage;
-	VkDeviceMemory PixelBufferMemory;
-
 private:
-#if VULKAN_HAS_DEBUGGING_ENABLED
-	int32 AllocationNumber;
-#endif
 };
 
 class FVulkanTexture2D : public FRHITexture2D, public FVulkanTextureBase
@@ -574,6 +562,7 @@ struct FVulkanBufferView : public FRHIResource
 	}
 
 	void Create(FVulkanDevice& Device, FVulkanBuffer& Buffer, EPixelFormat Format, uint32 Offset, uint32 Size);
+	void Create(FVulkanDevice& Device, FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size);
 	void Destroy(FVulkanDevice& Device);
 
 	VkBufferView View;
@@ -613,197 +602,91 @@ private:
 	int32 LockStack;
 };
 
-struct FVulkanRingBuffer
+struct FVulkanRingBuffer : public VulkanRHI::FDeviceChild
 {
 public:
-	FVulkanRingBuffer(FVulkanDevice* Device, uint64 TotalSize, VkFlags Usage);
+	FVulkanRingBuffer(FVulkanDevice* InDevice, uint64 TotalSize, VkFlags Usage);
 	~FVulkanRingBuffer();
 
 	// allocate some space in the ring buffer
 	uint64 AllocateMemory(uint64 Size, uint32 Alignment);
 
-	// track the allocations
-	FVulkanBuffer* Buffer;
+	VulkanRHI::FStagingBuffer* Buffer;
 
 protected:
 	uint64 BufferSize;
 	uint64 BufferOffset;
-	FVulkanDevice* Device;
+	uint32 MinAlignment;
 };
 
-class FVulkanMultiBuffer
+class FVulkanResourceMultiBuffer : public VulkanRHI::FDeviceChild
 {
 public:
-	FVulkanMultiBuffer(FVulkanDevice& InDevice, uint32 InSize, EBufferUsageFlags Usage, VkBufferUsageFlagBits VkUsage);
-	virtual ~FVulkanMultiBuffer();
+	FVulkanResourceMultiBuffer(FVulkanDevice* InDevice, VkBufferUsageFlags InBufferUsageFlags, uint32 InSize, uint32 InUEUsage, FRHIResourceCreateInfo& CreateInfo);
+	virtual ~FVulkanResourceMultiBuffer();
 
-	FVulkanBuffer* GetBuffer();
-	inline uint64 GetOffset()
+	inline VkBuffer GetHandle() const
 	{
-		// for non-ring buffer allocations, this will always be 0, which is what we want, no need for extra checking
-		return RingBufferOffset;
+		if (NumBuffers == 0)
+		{
+			return VolatileLockInfo.Buffer;
+		}
+		return Buffers[DynamicBufferIndex]->GetHandle();
 	}
 
-	inline bool IsDynamic()
+	bool IsDynamic() const
 	{
-		// 1 buffer means static, 0 or N is dynamic of some sort
-		return NumBuffers != 1;
+		return NumBuffers > 1;
 	}
-	void* Lock(EResourceLockMode LockMode, uint32 Size = 0, uint32 Offset = 0);
+
+	inline uint32 GetOffset() const
+	{
+		if (NumBuffers == 0)
+		{
+			return VolatileLockInfo.Offset;
+		}
+		return Buffers[DynamicBufferIndex]->GetOffset();
+	}
+
+	VkBufferUsageFlags GetBufferUsageFlags() const
+	{
+		return BufferUsageFlags;
+	}
+
+	void* Lock(EResourceLockMode LockMode, uint32 Size, uint32 Offset);
 	void Unlock();
 
 protected:
-	FVulkanDevice& Device;
-
-	// 0+ premade buffers (0 for volatile)
-	FVulkanBuffer* Buffers[NUM_RENDER_BUFFERS];
-	// how many there are
-	uint8 NumBuffers;
-	// current buffer for dynamic
-	uint8 DynamicBufferIndex;
-	// size needed for volatile allocations
-	uint32 BufferSize;
-	// current ring buffer allocation for volatile
-	uint64 RingBufferOffset;
+	uint32 UEUsage;
+	VkBufferUsageFlags BufferUsageFlags;
+	uint32 NumBuffers;
+	uint32 DynamicBufferIndex;
+	TArray<TRefCountPtr<VulkanRHI::FBufferSuballocation>> Buffers;
+	VulkanRHI::FTempFrameAllocationBuffer::FTempAllocInfo VolatileLockInfo;
+	friend class FVulkanCommandListContext;
 };
 
-
-#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
-
-class FVulkanBuffer2 : public VulkanRHI::FDeviceChild, public VulkanRHI::FRefCount
+class FVulkanIndexBuffer : public FRHIIndexBuffer, public FVulkanResourceMultiBuffer
 {
 public:
-	FVulkanBuffer2(FVulkanDevice* InDevice, VkBuffer InBuffer, VulkanRHI::FResourceAllocation* InResourceAllocation);
-	virtual ~FVulkanBuffer2();
-
-	inline VkBuffer GetBuffer() const
-	{
-		return Buffer;
-	}
-
-	inline VulkanRHI::FResourceAllocation* GetResourceAllocation()
-	{
-		return ResourceAllocation;
-	}
-
-	static VulkanRHI::FResourceAllocation* FVulkanBuffer2::CreateResourceAllocationAndBuffer(FVulkanDevice* Device, VkDeviceSize Size, uint32 InUsage, VkBufferUsageFlags BufferUsageFlags, VkBuffer& OutBuffer);
-
-	static VkBuffer CreateVulkanBuffer(FVulkanDevice* Device, VkDeviceSize Size, VkBufferUsageFlags BufferUsageFlags, VkMemoryRequirements& OutMemoryRequirements);
-
-protected:
-	VkBuffer Buffer;
-	TRefCountPtr<VulkanRHI::FResourceAllocation> ResourceAllocation;
-};
-
-class FVulkanIndexBuffer : public FRHIIndexBuffer/*, public FVulkanBuffer2*/
-{
-public:
-	FVulkanIndexBuffer(FVulkanDevice* InDevice, VkBuffer InBuffer, VulkanRHI::FResourceAllocation* InResourceAllocation, uint32 InStride, uint32 InSize, uint32 InUsage);
+	FVulkanIndexBuffer(FVulkanDevice* InDevice, uint32 InStride, uint32 InSize, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo);
 
 	inline VkIndexType GetIndexType() const
 	{
 		return IndexType;
 	}
 
-	inline FVulkanBuffer2* GetBuffer()
-	{
-		return Buffer;
-	}
-
-	inline VulkanRHI::FResourceAllocation* GetResourceAllocation()
-	{
-		return Buffer->GetResourceAllocation();
-	}
-
 private:
 	VkIndexType IndexType;
-	TRefCountPtr<FVulkanBuffer2> Buffer;
-	friend class FVulkanCommandListContext;
 };
-#else
-/** Index buffer resource class that stores stride information. */
-class FVulkanIndexBuffer : public FRHIIndexBuffer, public FVulkanMultiBuffer
+
+class FVulkanVertexBuffer : public FRHIVertexBuffer, public FVulkanResourceMultiBuffer
 {
 public:
-	FVulkanIndexBuffer(FVulkanDevice& Device, uint32 InStride, uint32 InSize, uint32 InUsage);
-
-	VkIndexType IndexType;
-};
-#endif
-
-struct FVulkanDynamicLockInfo
-{
-	FVulkanDynamicLockInfo()
-		: Data(nullptr)
-		, Buffer(nullptr)
-		, Offset(0)
-		, PoolElementIndex(-1)
-	{
-	}
-	void* Data;
-	FVulkanBuffer* Buffer;
-	VkDeviceSize Offset;
-	int32 PoolElementIndex;
+	FVulkanVertexBuffer(FVulkanDevice* InDevice, uint32 InSize, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo);
 };
 
-class FVulkanDynamicPooledBuffer
-{
-public:
-	FVulkanDynamicPooledBuffer(FVulkanDevice& Device, uint32 NumPoolElements, const VkDeviceSize* PoolElements, VkBufferUsageFlagBits UsageFlags);
-	virtual ~FVulkanDynamicPooledBuffer();
-
-	FVulkanDynamicLockInfo Lock(VkDeviceSize InSize);
-
-	inline void Unlock(FVulkanDynamicLockInfo LockInfo)
-	{
-		Elements[LockInfo.PoolElementIndex].Unlock(LockInfo);
-	}
-
-	void EndFrame();
-
-protected:
-	enum
-	{
-		NUM_FRAMES = 3,
-	};
-
-	struct FPoolElement
-	{
-		VkDeviceSize NextFreeOffset;
-		VkDeviceSize LastLockSize;
-		FVulkanBuffer* Buffers[NUM_FRAMES];
-		VkDeviceSize Size;
-
-		FPoolElement();
-
-		inline bool CanLock(VkDeviceSize InSize) const
-		{
-			return NextFreeOffset + InSize <= Size;
-		}
-
-		FVulkanDynamicLockInfo Lock(VkDeviceSize InSize);
-		void Unlock(FVulkanDynamicLockInfo LockInfo);
-	};
-
-	TArray<FPoolElement> Elements;
-};
-
-#if 0//VULKAN_USE_NEW_RESOURCE_MANAGEMENT
-#else
-/** Vertex buffer resource class that stores usage type. */
-class FVulkanVertexBuffer : public FRHIVertexBuffer, public FVulkanMultiBuffer
-{
-public:
-	FVulkanVertexBuffer(FVulkanDevice& InDevice, uint32 InSize, uint32 InUsage);
-
-	inline VkFlags GetFlags() const { return Flags; }
-
-private:
-	VkFlags Flags;
-};
-#endif
-
-class FVulkanUniformBuffer : public FRHIUniformBuffer
+class FVulkanUniformBuffer : public FRHIUniformBuffer, public FVulkanResourceMultiBuffer
 {
 public:
 	FVulkanUniformBuffer(FVulkanDevice& Device, const FRHIUniformBufferLayout& InLayout, const void* Contents, EUniformBufferUsage Usage);
@@ -814,10 +697,7 @@ public:
 
 	const TArray<TRefCountPtr<FRHIResource>>& GetResourceTable() const { return ResourceTable; }
 
-	inline FVulkanBuffer* GetRealUB() const { return Buffer.GetReference(); }
-
 private:
-	TRefCountPtr<FVulkanBuffer> Buffer;
 	TArray<TRefCountPtr<FRHIResource>> ResourceTable;
 };
 
@@ -985,7 +865,7 @@ public:
 	void SetBufferViewState(EShaderFrequency Stage, uint32 BindPoint, FVulkanBufferView* View);
 
 	void SetUniformBufferConstantData(FVulkanPendingState& PendingState, EShaderFrequency Stage, uint32 BindPoint, const TArray<uint8>& ConstantData);
-	void SetUniformBuffer(FVulkanPendingState& PendingState, EShaderFrequency Stage, uint32 BindPoint, const FVulkanBuffer* UniformBuffer);
+	void SetUniformBuffer(FVulkanPendingState& PendingState, EShaderFrequency Stage, uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer);
 
 	inline const FVulkanShader* GetShaderPtr(EShaderFrequency Stage) const
 	{
@@ -1125,7 +1005,7 @@ private:
 		const FVulkanTextureBase* Textures[SF_Compute][32];
 		const FVulkanSamplerState* SamplerStates[SF_Compute][32];
 		const FVulkanBufferView* SRVs[SF_Compute][32];
-		const FVulkanBuffer* UBs[SF_Compute][32];
+		const FVulkanUniformBuffer* UBs[SF_Compute][32];
 	};
 	FDebugInfo DebugInfo;
 #endif

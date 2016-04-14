@@ -157,6 +157,9 @@ bool FOpenGLES31::bTimerQueryCanBeDisjoint = true;
 /** GL_NV_timer_query for timestamp queries */
 bool FOpenGLES31::bSupportsNvTimerQuery = false;
 
+/** GL_OES_vertex_type_10_10_10_2 */
+bool FOpenGLES31::bSupportsRGB10A2 = false;
+
 GLint FOpenGLES31::MajorVersion = 0;
 GLint FOpenGLES31::MinorVersion = 0;
 
@@ -274,6 +277,7 @@ void FOpenGLES31::ProcessExtensions( const FString& ExtensionsString )
 	}
 	else
 	{
+		bSupportsRGB10A2 = ExtensionsString.Contains(TEXT("GL_OES_vertex_type_10_10_10_2"));
 		CVarAllowHighQualityLightMaps->Set(0);
 	}
 

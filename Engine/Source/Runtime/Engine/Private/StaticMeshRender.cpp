@@ -98,6 +98,8 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 #if WITH_EDITORONLY_DATA
 	, StreamingSectionData(InComponent->StreamingSectionData)
+	, StreamingDistanceMultiplier(InComponent->StreamingDistanceMultiplier)
+	, StreamingTexelFactor(0)
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -192,6 +194,14 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	{
 		CollisionTraceFlag = BodySetup->GetCollisionTraceFlag();
 	}
+
+#if WITH_EDITORONLY_DATA
+	// Get the fallback data for streaming accuracy viewmodes
+	{
+		float LightmapFactor;
+		InComponent->GetStreamingTextureFactors(StreamingTexelFactor, LightmapFactor);
+	}
+#endif
 }
 
 void UStaticMeshComponent::SetLODDataCount( const uint32 MinSize, const uint32 MaxSize )
@@ -403,18 +413,39 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchI
 }
 
 #if WITH_EDITORONLY_DATA
-const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData(int32 LODIndex, int32 ElementIndex) const
+const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData(float& OutDistanceMultiplier, int32 LODIndex, int32 ElementIndex) const
 {
-	if (StreamingSectionData.IsValid())
+	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnRenderThread() != 0;
+
+	OutDistanceMultiplier = StreamingDistanceMultiplier;
+
+	if (!bUseNewMetrics)
 	{
-		for (const FStreamingSectionBuildInfo& SectionData : *StreamingSectionData)
+		// In this case the element is not in the build data.
+		static FStreamingSectionBuildInfo FallbackData;
+
+		FallbackData.BoxOrigin = GetBounds().Origin;
+		FallbackData.BoxExtent = GetBounds().BoxExtent;
+		for (int32 I = 0; I < FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD; ++I)
 		{
-			if (SectionData.LODIndex == LODIndex && SectionData.ElementIndex == ElementIndex)
+			FallbackData.TexelFactors[I] = StreamingTexelFactor;
+		}
+		return &FallbackData;
+	}
+	else
+	{
+		if (StreamingSectionData.IsValid())
+		{
+			for (const FStreamingSectionBuildInfo& SectionData : *StreamingSectionData)
 			{
-				return &SectionData;
+				if (SectionData.LODIndex == LODIndex && SectionData.ElementIndex == ElementIndex)
+				{
+					return &SectionData;
+				}
 			}
 		}
 	}
+	
 	return nullptr;
 }
 #endif

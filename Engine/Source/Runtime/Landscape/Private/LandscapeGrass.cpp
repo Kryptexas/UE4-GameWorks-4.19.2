@@ -67,7 +67,8 @@ static TAutoConsoleVariable<int32> CVarUseHaltonDistribution(
 static TAutoConsoleVariable<float> CVarGrassDensityScale(
 	TEXT("grass.densityScale"),
 	1,
-	TEXT("Multiplier on all grass densities."));
+	TEXT("Multiplier on all grass densities."),
+	ECVF_Scalability);
 
 static TAutoConsoleVariable<int32> CVarGrassEnable(
 	TEXT("grass.Enable"),

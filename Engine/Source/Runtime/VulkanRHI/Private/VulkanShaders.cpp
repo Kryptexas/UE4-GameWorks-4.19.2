@@ -681,7 +681,7 @@ void FVulkanBoundShaderState::InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, c
 		auto& CurrStream = Streams[StreamIndex];
 
 		// Verify the vertex buffer is set
-		if (!CurrStream.Stream)
+		if (!CurrStream.Stream && !CurrStream.Stream2 && CurrStream.Stream3 == VK_NULL_HANDLE)
 		{
 			// The attribute in stream index is probably compiled out
 			#if VULKAN_HAS_DEBUGGING_ENABLED
@@ -702,7 +702,12 @@ void FVulkanBoundShaderState::InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, c
 			continue;
 		}
 
-		Tmp.VertexBuffers.Add(CurrStream.Stream->GetBufferHandle());
+		Tmp.VertexBuffers.Add(CurrStream.Stream
+			? CurrStream.Stream->GetBufferHandle()
+			: (CurrStream.Stream2
+				? CurrStream.Stream2->GetHandle()
+				: CurrStream.Stream3)
+			);
 		Tmp.VertexOffsets.Add(CurrStream.BufferOffset);
 	}
 
@@ -757,6 +762,8 @@ static inline VkFormat UEToVkFormat(EVertexElementType Type)
 		return VK_FORMAT_R16G16B16A16_UNORM;
 	case VET_Float4:
 		return VK_FORMAT_R32G32B32A32_SFLOAT;
+	case VET_URGB10A2N:
+		return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
 	default:
 		break;
 	}
@@ -993,15 +1000,15 @@ void FVulkanBoundShaderState::SetUniformBufferConstantData(FVulkanPendingState& 
 	}
 }
 
-void FVulkanBoundShaderState::SetUniformBuffer(FVulkanPendingState& PendingState, EShaderFrequency Stage, uint32 BindPoint, const FVulkanBuffer* UniformBuffer)
+void FVulkanBoundShaderState::SetUniformBuffer(FVulkanPendingState& PendingState, EShaderFrequency Stage, uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer)
 {
 	auto* Shader = GetShaderPtr(Stage);
 	uint32 VulkanBindingPoint = Shader->GetBindingTable().UniformBufferBindingIndices[BindPoint];
 
-	check(!UniformBuffer || (UniformBuffer->GetFlags() & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
+	check(!UniformBuffer || (UniformBuffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
 
 	VkDescriptorBufferInfo* BufferInfo = &DescriptorBufferInfoForStage[Stage][BindPoint];
-	BufferInfo->buffer = UniformBuffer->GetBufferHandle();
+	BufferInfo->buffer = UniformBuffer->GetHandle();
 	BufferInfo->range = UniformBuffer->GetSize();
 
 	//#todo-rco: Mark Dirty UB	
@@ -1083,7 +1090,7 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanGlobalUniformPool* Glo
 #if VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS
 	// this is an optimization for the ring buffer to only truly lock once for all uniforms
 	FVulkanRingBuffer* RingBuffer = Device->GetUBRingBuffer();
-	uint8* RingBufferBase = (uint8*)RingBuffer->Buffer->Lock(RingBuffer->Buffer->GetSize(), 0);
+	uint8* RingBufferBase = (uint8*)RingBuffer->Buffer->GetMappedPointer();
 #endif
 
 	//#todo-rco: Compute!
@@ -1149,7 +1156,7 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanGlobalUniformPool* Glo
 					// Here we can specify a more precise buffer update
 					// However, this need to complemented with the buffer map/unmap functionality.
 					//@NOTE: bufferView is for texel buffers
-					BufferInfo->buffer = RingBuffer->Buffer->GetBufferHandle();
+					BufferInfo->buffer = RingBuffer->Buffer->GetHandle();
 					BufferInfo->offset = RingBufferOffset;
 					BufferInfo->range = UBSize;
 
@@ -1180,11 +1187,6 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanGlobalUniformPool* Glo
 			}
 		}
 	}
-
-#if VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS
-	// done with the ring buffer
-	RingBuffer->Buffer->Unlock();
-#endif
 
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 	INC_DWORD_STAT_BY(STAT_VulkanNumUpdateDescriptors, DescriptorWrites.Num());

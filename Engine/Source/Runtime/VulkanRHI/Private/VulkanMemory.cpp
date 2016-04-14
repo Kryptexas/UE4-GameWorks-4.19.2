@@ -125,10 +125,12 @@ namespace VulkanRHI
 #endif
 		++NumAllocations;
 		PeakNumAllocations = FMath::Max(NumAllocations, PeakNumAllocations);
+#if !VULKAN_SINGLE_ALLOCATION_PER_RESOURCE
 		if (NumAllocations == Device->GetLimits().maxMemoryAllocationCount)
 		{
 			UE_LOG(LogVulkanRHI, Warning, TEXT("Hit Maximum # of allocations (%d) reported by device!"), NumAllocations);
 		}
+#endif
 		VERIFYVULKANRESULT(vkAllocateMemory(DeviceHandle, &Info, nullptr, &NewAllocation->Handle));
 
 		uint32 HeapIndex = MemoryProperties.memoryTypes[MemoryTypeIndex].heapIndex;
@@ -173,9 +175,8 @@ namespace VulkanRHI
 				//UE_LOG(LogVulkanRHI, Display, TEXT("\t\tAllocation %d Size %d"), SubIndex, Allocation->Size);
 				TotalSize += Allocation->Size;
 			}
-			UE_LOG(LogVulkanRHI, Display, TEXT("\t\tTotal Allocated %u"), TotalSize);
+			UE_LOG(LogVulkanRHI, Display, TEXT("\t\tTotal Allocated %.2f MB"), TotalSize / 1024.0f / 1024.0f);
 		}
-		NumAllocations = 0;
 	}
 #endif
 	FDeviceMemoryAllocation::~FDeviceMemoryAllocation()
@@ -201,11 +202,15 @@ namespace VulkanRHI
 	}
 
 
-	FResourceAllocation::FResourceAllocation(FResourceHeapPage* InOwner, FDeviceMemoryAllocation* InDeviceMemoryAllocation, uint32 InSize, uint32 InOffset, char* InFile, uint32 InLine)
+	FOldResourceAllocation::FOldResourceAllocation(FOldResourceHeapPage* InOwner, FDeviceMemoryAllocation* InDeviceMemoryAllocation,
+		uint32 InRequestedSize, uint32 InAlignedOffset,
+		uint32 InAllocationSize, uint32 InAllocationOffset, const char* InFile, uint32 InLine)
 		: Owner(InOwner)
 		, DeviceMemoryAllocation(InDeviceMemoryAllocation)
-		, Size(InSize)
-		, Offset(InOffset)
+		, AllocationSize(InAllocationSize)
+		, AllocationOffset(InAllocationOffset)
+		, RequestedSize(InRequestedSize)
+		, AlignedOffset(InAlignedOffset)
 #if VULKAN_TRACK_MEMORY_USAGE
 		, File(InFile)
 		, Line(InLine)
@@ -213,51 +218,87 @@ namespace VulkanRHI
 	{
 	}
 
-	FResourceAllocation::~FResourceAllocation()
+	FOldResourceAllocation::~FOldResourceAllocation()
 	{
 		Owner->ReleaseAllocation(this);
 	}
 
-	void* FResourceAllocation::GetMappedPointer()
+	void FOldResourceAllocation::BindBuffer(FVulkanDevice* Device, VkBuffer Buffer)
 	{
-		check(DeviceMemoryAllocation->CanBeMapped());
-		check(DeviceMemoryAllocation->IsMapped());
-		return (uint8*)DeviceMemoryAllocation->GetMappedPointer() + Offset;
+		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindBufferMemory Buf %p MemHandle %p MemOffset %d Size %u\n"), (void*)StagingBuffer->Buffer, (void*)StagingBuffer->ResourceAllocation->GetHandle(), (uint32)StagingBuffer->ResourceAllocation->GetOffset(), (uint32)MemReqs.size);
+		VkResult Result = vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, GetHandle(), GetOffset());
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		if (Result == VK_ERROR_OUT_OF_DEVICE_MEMORY || Result == VK_ERROR_OUT_OF_HOST_MEMORY)
+		{
+			Device->GetMemoryManager().DumpMemory();
+			Device->GetResourceHeapManager().DumpMemory();
+		}
+#endif
+		VERIFYVULKANRESULT(Result);
 	}
 
+	void FOldResourceAllocation::BindImage(FVulkanDevice* Device, VkImage Image)
+	{
+		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindImageMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, (void*)Allocation->GetHandle(), (uint32)0, (uint32)MemoryRequirements.size);
+		VkResult Result = vkBindImageMemory(Device->GetInstanceHandle(), Image, GetHandle(), GetOffset());
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		if (Result == VK_ERROR_OUT_OF_DEVICE_MEMORY || Result == VK_ERROR_OUT_OF_HOST_MEMORY)
+		{
+			Device->GetMemoryManager().DumpMemory();
+			Device->GetResourceHeapManager().DumpMemory();
+		}
+#endif
+		VERIFYVULKANRESULT(Result);
+	}
 
-	FResourceHeapPage::~FResourceHeapPage()
+	FOldResourceHeapPage::FOldResourceHeapPage(FOldResourceHeap* InOwner, FDeviceMemoryAllocation* InDeviceMemoryAllocation)
+		: Owner(InOwner)
+		, DeviceMemoryAllocation(InDeviceMemoryAllocation)
+		, MaxSize(0)
+		, UsedSize(0)
+		, PeakNumAllocations(0)
+		, FrameFreed(0)
+	{
+		MaxSize = InDeviceMemoryAllocation->GetSize();
+		FPair Pair;
+		Pair.Offset = 0;
+		Pair.Size = MaxSize;
+		FreeList.Add(Pair);
+	}
+
+	FOldResourceHeapPage::~FOldResourceHeapPage()
 	{
 		check(!DeviceMemoryAllocation);
 	}
 
-	FResourceAllocation* FResourceHeapPage::TryAllocate(uint32 Size, uint32 Alignment, char* File, uint32 Line)
+	FOldResourceAllocation* FOldResourceHeapPage::TryAllocate(uint32 Size, uint32 Alignment, const char* File, uint32 Line)
 	{
+		//const uint32 Granularity = Owner->GetOwner()->GetParent()->GetLimits().bufferImageGranularity;
+		FScopeLock ScopeLock(&GAllocationLock);
 		for (int32 Index = 0; Index < FreeList.Num(); ++Index)
 		{
 			FPair& Entry = FreeList[Index];
-			uint32 NewOffset = Align(Entry.Offset, Alignment);
-			uint32 OffsetAdjustment = NewOffset - Entry.Offset;
-			if (OffsetAdjustment + Size <= Entry.Size)
+			uint32 AllocatedOffset = Entry.Offset;
+			uint32 AlignedOffset = Align(Entry.Offset, Alignment);
+			uint32 AlignmentAdjustment = AlignedOffset - Entry.Offset;
+			uint32 AllocatedSize = AlignmentAdjustment + Size;
+			if (AllocatedSize <= Entry.Size)
 			{
-				FScopeLock ScopeLock(&GAllocationLock);
-				uint32 NewFreeOffset = NewOffset + Size;
-				if (OffsetAdjustment + Size < Entry.Size)
+				if (AllocatedSize < Entry.Size)
 				{
-					// Modify current Entry
-					Entry.Offset = NewFreeOffset;
-					Entry.Size -= Size;
+					// Modify current free entry in-place
+					Entry.Size -= AllocatedSize;
+					Entry.Offset += AllocatedSize;
 				}
 				else
 				{
-					check(OffsetAdjustment + Size == Entry.Size);
-					// Remove the complete entry
+					// Remove this free entry
 					FreeList.RemoveAtSwap(Index, 1, false);
 				}
 
-				UsedSize += Size;
+				UsedSize += AllocatedSize;
 
-				auto* NewResourceAllocation = new FResourceAllocation(this, DeviceMemoryAllocation, Size, NewOffset, File, Line);
+				auto* NewResourceAllocation = new FOldResourceAllocation(this, DeviceMemoryAllocation, Size, AlignedOffset, AllocatedSize, AllocatedOffset, File, Line);
 				ResourceAllocations.Add(NewResourceAllocation);
 
 				PeakNumAllocations = FMath::Max(PeakNumAllocations, ResourceAllocations.Num());
@@ -268,19 +309,20 @@ namespace VulkanRHI
 		return nullptr;
 	}
 
-	void FResourceHeapPage::ReleaseAllocation(FResourceAllocation* Allocation)
+	void FOldResourceHeapPage::ReleaseAllocation(FOldResourceAllocation* Allocation)
 	{
 		{
 			FScopeLock ScopeLock(&GAllocationLock);
 			ResourceAllocations.RemoveSingleSwap(Allocation, false);
 
 			FPair NewFree;
-			NewFree.Offset = Allocation->Offset;
-			NewFree.Size = Allocation->Size;
+			NewFree.Offset = Allocation->AllocationOffset;
+			NewFree.Size = Allocation->AllocationSize;
+
 			FreeList.Add(NewFree);
 		}
 
-		UsedSize -= Allocation->Size;
+		UsedSize -= Allocation->AllocationSize;
 		check(UsedSize >= 0);
 
 		if (JoinFreeBlocks())
@@ -289,7 +331,7 @@ namespace VulkanRHI
 		}
 	}
 
-	bool FResourceHeapPage::JoinFreeBlocks()
+	bool FOldResourceHeapPage::JoinFreeBlocks()
 	{
 		FScopeLock ScopeLock(&GAllocationLock);
 		if (FreeList.Num() > 1)
@@ -321,85 +363,142 @@ namespace VulkanRHI
 		return false;
 	}
 
-	FResourceHeap::FResourceHeap(FResourceHeapManager* InOwner, uint32 InMemoryTypeIndex, uint32 InPageSize)
+	FCriticalSection FResourceHeapManager::CS;
+
+	FOldResourceHeap::FOldResourceHeap(FResourceHeapManager* InOwner, uint32 InMemoryTypeIndex, uint32 InPageSize, uint64 InTotalMemory)
 		: Owner(InOwner)
 		, MemoryTypeIndex(InMemoryTypeIndex)
 		, DefaultPageSize(InPageSize)
 		, PeakPageSize(0)
+		, TotalMemory(InTotalMemory)
 		, UsedMemory(0)
 	{
 	}
 
-	FResourceHeap::~FResourceHeap()
+	FOldResourceHeap::~FOldResourceHeap()
 	{
-		FScopeLock ScopeLock(&CriticalSection);
-
-		for (int32 Index = UsedPages.Num() - 1; Index >= 0; --Index)
+		ReleaseFreedPages(true);
+		auto DeletePages = [&](TArray<FOldResourceHeapPage*>& UsedPages)
 		{
-			FResourceHeapPage* Page = UsedPages[Index];
-			if (Page->JoinFreeBlocks())
+			for (int32 Index = UsedPages.Num() - 1; Index >= 0; --Index)
 			{
-				Owner->GetParent()->GetMemoryManager().Free(Page->DeviceMemoryAllocation);
-				delete Page;
+				FOldResourceHeapPage* Page = UsedPages[Index];
+				if (Page->JoinFreeBlocks())
+				{
+					Owner->GetParent()->GetMemoryManager().Free(Page->DeviceMemoryAllocation);
+					delete Page;
+				}
+				else
+				{
+					check(0);
+				}
 			}
-			else
-			{
-				check(0);
-			}
-		}
 
-		check(UsedPages.Num() == 0);
+			check(UsedPages.Num() == 0);
+		};
+		DeletePages(UsedBufferPages);
+		DeletePages(UsedImagePages);
+
 		for (int32 Index = 0; Index < FreePages.Num(); ++Index)
 		{
-			FResourceHeapPage* Page = FreePages[Index];
+			FOldResourceHeapPage* Page = FreePages[Index];
 			Owner->GetParent()->GetMemoryManager().Free(Page->DeviceMemoryAllocation);
 			delete Page;
 		}
 	}
 
-	void FResourceHeap::FreePage(FResourceHeapPage* InPage)
+	void FOldResourceHeap::FreePage(FOldResourceHeapPage* InPage)
 	{
 		FScopeLock ScopeLock(&CriticalSection);
 		check(InPage->JoinFreeBlocks());
-		UsedPages.RemoveSingleSwap(InPage, false);
+		int32 Index = -1;
+		if (UsedBufferPages.Find(InPage, Index))
+		{
+			UsedBufferPages.RemoveAtSwap(Index, 1, false);
+		}
+		else
+		{
+			int32 Removed = UsedImagePages.RemoveSingleSwap(InPage, false);
+			check(Removed);
+		}
+		InPage->FrameFreed = GFrameNumberRenderThread;
 		FreePages.Add(InPage);
+	}
 
-		//#todo-rco: Give free pages back to the OS after N frames?
+	void FOldResourceHeap::ReleaseFreedPages(bool bImmediately)
+	{
+		FOldResourceHeapPage* PageToRelease = nullptr;
+
+		{
+			FScopeLock ScopeLock(&CriticalSection);
+			for (int32 Index = 0; Index < FreePages.Num(); ++Index)
+			{
+				FOldResourceHeapPage* Page = FreePages[Index];
+				if (bImmediately || Page->FrameFreed + NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS < GFrameNumberRenderThread)
+				{
+					PageToRelease = Page;
+					FreePages.RemoveAtSwap(Index, 1, false);
+					break;
+				}
+			}
+		}
+
+		if (PageToRelease)
+		{
+			Owner->GetParent()->GetMemoryManager().Free(PageToRelease->DeviceMemoryAllocation);
+			UsedMemory -= PageToRelease->MaxSize;
+			delete PageToRelease;
+		}
 	}
 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-	void FResourceHeap::DumpMemory()
+	void FOldResourceHeap::DumpMemory()
 	{
-		UE_LOG(LogVulkanRHI, Display, TEXT("%d Free Pages, %d Used Pages, Peak Allocation Size on a Page %d"), FreePages.Num(), UsedPages.Num(), PeakPageSize);
-		uint64 UsedMemory = 0;
-		uint64 FreeMemory = 0;
-		uint32 NumSubAllocations = 0;
-		for (int32 Index = 0; Index < UsedPages.Num(); ++Index)
-		{
-			UsedMemory += UsedPages[Index]->UsedSize;
-			NumSubAllocations += UsedPages[Index]->ResourceAllocations.Num();
-		}
+		UE_LOG(LogVulkanRHI, Display, TEXT("%d Free Pages, total size %.2fMB"), FreePages.Num(), TotalMemory / 1024.0f / 1024.0f);
 
-		for (int32 Index = 0; Index < FreePages.Num(); ++Index)
+		auto DumpPages = [&](TArray<FOldResourceHeapPage*>& UsedPages, const TCHAR* TypeName)
 		{
-			FreeMemory += FreePages[Index]->MaxSize;
-		}
+			UE_LOG(LogVulkanRHI, Display, TEXT("\t%s Pages: %d Used, Peak Allocation Size on a Page %d"), TypeName, UsedPages.Num(), PeakPageSize);
+			uint64 SubAllocUsedMemory = 0;
+			uint64 FreeMemory = 0;
+			uint32 NumSuballocations = 0;
+			for (int32 Index = 0; Index < UsedPages.Num(); ++Index)
+			{
+				SubAllocUsedMemory += UsedPages[Index]->UsedSize;
+				NumSuballocations += UsedPages[Index]->ResourceAllocations.Num();
 
-		UE_LOG(LogVulkanRHI, Display, TEXT("\tUsed Memory %d in %d Suballocations, Free Memory %d"), UsedMemory, NumSubAllocations, FreeMemory);
+				UE_LOG(LogVulkanRHI, Display, TEXT("\t\t%d: %4d suballocs, %4d free chunks (%d used/%d free/%d max)"), Index, UsedPages[Index]->ResourceAllocations.Num(), UsedPages[Index]->FreeList.Num(), UsedPages[Index]->UsedSize, UsedPages[Index]->MaxSize - UsedPages[Index]->UsedSize, UsedPages[Index]->MaxSize);
+			}
+
+			for (int32 Index = 0; Index < FreePages.Num(); ++Index)
+			{
+				FreeMemory += FreePages[Index]->MaxSize;
+			}
+
+			UE_LOG(LogVulkanRHI, Display, TEXT("\tUsed Memory %d in %d Suballocations, Free Memory in pages %d, Heap free memory %.2f MB"), SubAllocUsedMemory, NumSuballocations, FreeMemory, ((float)TotalMemory - UsedMemory) / 1024.0f / 1024.0f);
+		};
+
+		DumpPages(UsedBufferPages, TEXT("Buffer"));
+		DumpPages(UsedImagePages, TEXT("Image"));
+		//UE_LOG(LogVulkanRHI, Display, TEXT("\tUsed Memory %d in %d Suballocations, Free Memory in pages %d, Heap free memory %ull"), SubAllocUsedMemory, NumSuballocations, FreeMemory, TotalMemory - UsedMemory);
 	}
 #endif
 
-	FResourceAllocation* FResourceHeap::AllocateResource(uint32 Size, uint32 Alignment, bool bMapAllocation, char* File, uint32 Line)
+	FOldResourceAllocation* FOldResourceHeap::AllocateResource(uint32 Size, uint32 Alignment, bool bIsImage, bool bMapAllocation, const char* File, uint32 Line)
 	{
 		FScopeLock ScopeLock(&CriticalSection);
 
+		auto& UsedPages = bIsImage ? UsedImagePages : UsedBufferPages;
+#if VULKAN_SINGLE_ALLOCATION_PER_RESOURCE
+		uint32 AllocationSize = Size;
+#else
 		if (Size < DefaultPageSize)
 		{
 			// Check Used pages to see if we can fit this in
 			for (int32 Index = 0; Index < UsedPages.Num(); ++Index)
 			{
-				FResourceHeapPage* Page = UsedPages[Index];
-				FResourceAllocation* ResourceAllocation = Page->TryAllocate(Size, Alignment, File, Line);
+				FOldResourceHeapPage* Page = UsedPages[Index];
+				FOldResourceAllocation* ResourceAllocation = Page->TryAllocate(Size, Alignment, File, Line);
 				if (ResourceAllocation)
 				{
 					return ResourceAllocation;
@@ -409,8 +508,8 @@ namespace VulkanRHI
 
 		for (int32 Index = 0; Index < FreePages.Num(); ++Index)
 		{
-			FResourceHeapPage* Page = FreePages[Index];
-			FResourceAllocation* ResourceAllocation = Page->TryAllocate(Size, Alignment, File, Line);
+			FOldResourceHeapPage* Page = FreePages[Index];
+			FOldResourceAllocation* ResourceAllocation = Page->TryAllocate(Size, Alignment, File, Line);
 			if (ResourceAllocation)
 			{
 				FreePages.RemoveSingleSwap(Page, false);
@@ -418,10 +517,10 @@ namespace VulkanRHI
 				return ResourceAllocation;
 			}
 		}
-
 		uint32 AllocationSize = FMath::Max(Size, DefaultPageSize);
+#endif
 		FDeviceMemoryAllocation* DeviceMemoryAllocation = Owner->GetParent()->GetMemoryManager().Alloc(AllocationSize, MemoryTypeIndex, __FILE__, __LINE__);
-		auto* NewPage = new FResourceHeapPage(this, DeviceMemoryAllocation, AllocationSize);
+		auto* NewPage = new FOldResourceHeapPage(this, DeviceMemoryAllocation);
 		UsedPages.Add(NewPage);
 
 		UsedMemory += AllocationSize;
@@ -436,9 +535,12 @@ namespace VulkanRHI
 		return NewPage->Allocate(Size, Alignment, File, Line);
 	}
 
+
 	FResourceHeapManager::FResourceHeapManager(FVulkanDevice* InDevice)
 		: FDeviceChild(InDevice)
+		, DeviceMemoryManager(&InDevice->GetMemoryManager())
 		, GPUOnlyHeap(nullptr)
+		, CPUStagingHeap(nullptr)
 	{
 	}
 
@@ -452,30 +554,47 @@ namespace VulkanRHI
 		auto& MemoryManager = Device->GetMemoryManager();
 		const uint32 TypeBits = (1 << MemoryManager.GetNumMemoryTypes()) - 1;
 
-		auto& MemoryProperties = MemoryManager.GetMemoryProperties();
+		const auto& MemoryProperties = MemoryManager.GetMemoryProperties();
 
 		//#todo-rco: Hack! Figure out a better way for page size
-		float PercentageHeapForGPU = 0.75;
+		float PercentageAllocationForGPU = 0.95;
+
+		uint32 NumMemoryAllocations = (uint64)Device->GetLimits().maxMemoryAllocationCount;
+		uint32 NumGPUAllocations = (uint32)((float)NumMemoryAllocations * PercentageAllocationForGPU);
+
+		ResourceHeaps.AddZeroed(MemoryProperties.memoryTypeCount);
+		PageSizes.AddZeroed(MemoryProperties.memoryTypeCount);
 
 		{
 			uint32 TypeIndex = 0;
 			VERIFYVULKANRESULT(MemoryManager.GetMemoryTypeFromProperties(TypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &TypeIndex));
-
-			uint32 PageSize = (uint32)((uint64)(MemoryProperties.memoryHeaps[MemoryProperties.memoryTypes[TypeIndex].heapIndex].size * PercentageHeapForGPU) / (uint64)Device->GetLimits().maxMemoryAllocationCount);
-			GPUOnlyHeap = new FResourceHeap(this, TypeIndex, PageSize);
+			uint64 HeapSize = MemoryProperties.memoryHeaps[MemoryProperties.memoryTypes[TypeIndex].heapIndex].size;
+			uint32 PageSize = HeapSize / NumGPUAllocations;
+			GPUOnlyHeap = new FOldResourceHeap(this, TypeIndex, PageSize, HeapSize);
+			ResourceHeaps[TypeIndex] = GPUOnlyHeap;
+			PageSizes[TypeIndex] = PageSize;
 		}
 
 		{
 			uint32 TypeIndex = 0;
 			VERIFYVULKANRESULT(MemoryManager.GetMemoryTypeFromProperties(TypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &TypeIndex));
 
-			uint32 PageSize = (uint32)((uint64)(MemoryProperties.memoryHeaps[MemoryProperties.memoryTypes[TypeIndex].heapIndex].size * (1.0f - PercentageHeapForGPU)) / (uint64)Device->GetLimits().maxMemoryAllocationCount);
-			CPUStagingHeap = new FResourceHeap(this, TypeIndex, PageSize);
+			uint64 HeapSize = MemoryProperties.memoryHeaps[MemoryProperties.memoryTypes[TypeIndex].heapIndex].size;
+			uint32 NumCPUAllocations = NumMemoryAllocations - NumGPUAllocations;
+
+			// Less equal than 512MB might mean PCI express bus, so clamp for smaller pages
+			HeapSize = FMath::Min((uint64)512 * 1024 * 1024, HeapSize);
+			uint32 PageSize = HeapSize / NumCPUAllocations;
+			CPUStagingHeap = new FOldResourceHeap(this, TypeIndex, PageSize, HeapSize);
+			ResourceHeaps[TypeIndex] = CPUStagingHeap;
+			PageSizes[TypeIndex] = PageSize;
 		}
 	}
 
 	void FResourceHeapManager::Deinit()
 	{
+		DestroyResourceAllocations();
+
 		delete GPUOnlyHeap;
 		GPUOnlyHeap = nullptr;
 
@@ -483,40 +602,375 @@ namespace VulkanRHI
 		CPUStagingHeap = nullptr;
 	}
 
+	void FResourceHeapManager::DestroyResourceAllocations()
+	{
+		ReleaseFreedResources(true);
+
+		for (int32 Index = UsedBufferAllocations.Num() - 1; Index >= 0; --Index)
+		{
+			FBufferAllocation* BufferAllocation = UsedBufferAllocations[Index];
+			if (BufferAllocation->JoinFreeBlocks())
+			{
+				BufferAllocation->Destroy(GetParent());
+				GetParent()->GetMemoryManager().Free(BufferAllocation->MemoryAllocation);
+				delete BufferAllocation;
+			}
+			else
+			{
+				check(0);
+			}
+		}
+		UsedBufferAllocations.Empty(0);
+
+		for (int32 Index = 0; Index < FreeBufferAllocations.Num(); ++Index)
+		{
+			FBufferAllocation* BufferAllocation = FreeBufferAllocations[Index];
+			BufferAllocation->Destroy(GetParent());
+			GetParent()->GetMemoryManager().Free(BufferAllocation->MemoryAllocation);
+			delete BufferAllocation;
+		}
+		FreeBufferAllocations.Empty(0);
+	}
+
+	void FResourceHeapManager::ReleaseFreedResources(bool bImmediately)
+	{
+		FBufferAllocation* BufferAllocationToRelease = nullptr;
+
+		{
+			FScopeLock ScopeLock(&CS);
+			for (int32 Index = 0; Index < FreeBufferAllocations.Num(); ++Index)
+			{
+				FBufferAllocation* BufferAllocation = FreeBufferAllocations[Index];
+				if (bImmediately || BufferAllocation->FrameFreed + NUM_FRAMES_TO_WAIT_BEFORE_RELEASING_TO_OS < GFrameNumberRenderThread)
+				{
+					BufferAllocationToRelease = BufferAllocation;
+					FreeBufferAllocations.RemoveAtSwap(Index, 1, false);
+					break;
+				}
+			}
+		}
+
+		if (BufferAllocationToRelease)
+		{
+			BufferAllocationToRelease->Destroy(GetParent());
+			GetParent()->GetMemoryManager().Free(BufferAllocationToRelease->MemoryAllocation);
+			//UsedMemory -= BufferAllocationToRelease->MaxSize;
+			delete BufferAllocationToRelease;
+		}
+	}
+
+	void FResourceHeapManager::ReleaseFreedPages()
+	{
+		if ((GFrameNumberRenderThread % 2) == 0)
+		{
+			CPUStagingHeap->ReleaseFreedPages(false);
+		}
+		else
+		{
+			GPUOnlyHeap->ReleaseFreedPages(false);
+		}
+
+		ReleaseFreedResources(false);
+	}
+
+	FBufferSuballocation* FResourceHeapManager::AllocateBuffer(uint32 Size, VkBufferUsageFlags BufferUsageFlags, VkMemoryPropertyFlags MemoryPropertyFlags, const char* File, uint32 Line)
+	{
+		FScopeLock ScopeLock(&CS);
+
+		for (int32 Index = 0; Index < UsedBufferAllocations.Num(); ++Index)
+		{
+			FBufferAllocation* BufferAllocation = UsedBufferAllocations[Index];
+			if ((BufferAllocation->BufferUsageFlags & BufferUsageFlags) == BufferUsageFlags &&
+				(BufferAllocation->MemoryPropertyFlags & MemoryPropertyFlags) == MemoryPropertyFlags)
+			{
+				FBufferSuballocation* Suballocation = (FBufferSuballocation*)BufferAllocation->TryAllocateNoLocking(Size, File, Line);
+				if (Suballocation)
+				{
+					return Suballocation;
+				}
+			}
+		}
+
+		for (int32 Index = 0; Index < FreeBufferAllocations.Num(); ++Index)
+		{
+			FBufferAllocation* BufferAllocation = FreeBufferAllocations[Index];
+			if ((BufferAllocation->BufferUsageFlags & BufferUsageFlags) == BufferUsageFlags &&
+				(BufferAllocation->MemoryPropertyFlags & MemoryPropertyFlags) == MemoryPropertyFlags)
+			{
+				FBufferSuballocation* Suballocation = (FBufferSuballocation*)BufferAllocation->TryAllocateNoLocking(Size, File, Line);
+				if (Suballocation)
+				{
+					FreeBufferAllocations.RemoveAtSwap(Index, 1, false);
+					UsedBufferAllocations.Add(BufferAllocation);
+					return Suballocation;
+				}
+			}
+		}
+
+		// New Buffer
+		uint32 BufferSize = FMath::Max(Size, (uint32)BufferAllocationSize);
+
+		VkBuffer Buffer;
+		VkBufferCreateInfo BufferCreateInfo;
+		FMemory::Memzero(BufferCreateInfo);
+		BufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		BufferCreateInfo.size = BufferSize;
+		BufferCreateInfo.usage = BufferUsageFlags;
+		VERIFYVULKANRESULT(vkCreateBuffer(Device->GetInstanceHandle(), &BufferCreateInfo, nullptr, &Buffer));
+
+		VkMemoryRequirements MemReqs;
+		vkGetBufferMemoryRequirements(Device->GetInstanceHandle(), Buffer, &MemReqs);
+
+		uint32 MemoryTypeIndex;
+		VERIFYVULKANRESULT(Device->GetMemoryManager().GetMemoryTypeFromProperties(MemReqs.memoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
+
+		auto* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(BufferSize, MemoryTypeIndex, File, Line);
+		VERIFYVULKANRESULT(vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, DeviceMemoryAllocation->GetHandle(), 0));
+		if (MemoryPropertyFlags == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+		{
+			DeviceMemoryAllocation->Map(BufferSize, 0);
+		}
+
+		auto* BufferAllocation = new FBufferAllocation(this, DeviceMemoryAllocation, MemoryTypeIndex, MemoryPropertyFlags, MemReqs.alignment, Buffer, BufferUsageFlags);
+		UsedBufferAllocations.Add(BufferAllocation);
+
+		return (FBufferSuballocation*)BufferAllocation->TryAllocateNoLocking(Size, File, Line);
+	}
+
+	void FResourceHeapManager::ReleaseBuffer(FBufferAllocation* BufferAllocation)
+	{
+		FScopeLock ScopeLock(&CS);
+		check(BufferAllocation->JoinFreeBlocks());
+		UsedBufferAllocations.RemoveSingleSwap(BufferAllocation, false);
+		BufferAllocation->FrameFreed = GFrameNumberRenderThread;
+		FreeBufferAllocations.Add(BufferAllocation);
+	}
+#if 0
+	FImageSuballocation* FResourceHeapManager::AllocateImage(uint32 Size, VkImageUsageFlags ImageUsageFlags, VkMemoryPropertyFlags MemoryPropertyFlags, const char* File, uint32 Line)
+	{
+		FScopeLock ScopeLock(&CS);
+
+		for (int32 Index = 0; Index < UsedImageAllocations.Num(); ++Index)
+		{
+			FImageAllocation* ImageAllocation = UsedImageAllocations[Index];
+			if ((ImageAllocation->ImageUsageFlags & ImageUsageFlags) == ImageUsageFlags &&
+				(ImageAllocation->MemoryPropertyFlags & MemoryPropertyFlags) == MemoryPropertyFlags)
+			{
+				FImageSuballocation* Suballocation = (FImageSuballocation*)ImageAllocation->TryAllocateNoLocking(Size, File, Line);
+				if (Suballocation)
+				{
+					return Suballocation;
+				}
+			}
+		}
+
+		for (int32 Index = 0; Index < FreeImageAllocations.Num(); ++Index)
+		{
+			FImageAllocation* ImageAllocation = FreeImageAllocations[Index];
+			if ((ImageAllocation->ImageUsageFlags & ImageUsageFlags) == ImageUsageFlags &&
+				(ImageAllocation->MemoryPropertyFlags & MemoryPropertyFlags) == MemoryPropertyFlags)
+			{
+				FImageSuballocation* Suballocation = (FImageSuballocation*)ImageAllocation->TryAllocateNoLocking(Size, File, Line);
+				if (Suballocation)
+				{
+					FreeImageAllocations.RemoveAtSwap(Index, 1, false);
+					UsedImageAllocations.Add(ImageAllocation);
+					return Suballocation;
+				}
+			}
+		}
+
+		// New Image
+		uint32 ImageSize = FMath::Max(Size, (uint32)ImageAllocationSize);
+
+		VkImage Image;
+		VkImageCreateInfo ImageCreateInfo;
+		FMemory::Memzero(ImageCreateInfo);
+		ImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO
+		ImageCreateInfo.size = ImageSize;
+		ImageCreateInfo.usage = ImageUsageFlags;
+		VERIFYVULKANRESULT(vkCreateImage(Device->GetInstanceHandle(), &ImageCreateInfo, nullptr, &Image));
+
+		VkMemoryRequirements MemReqs;
+		vkGetImageMemoryRequirements(Device->GetInstanceHandle(), Image, &MemReqs);
+
+		uint32 MemoryTypeIndex;
+		VERIFYVULKANRESULT(Device->GetMemoryManager().GetMemoryTypeFromProperties(MemReqs.memoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
+
+		auto* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(ImageSize, MemoryTypeIndex, File, Line);
+		VERIFYVULKANRESULT(vkBindImageMemory(Device->GetInstanceHandle(), Image, DeviceMemoryAllocation->GetHandle(), 0));
+		if (MemoryPropertyFlags == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+		{
+			DeviceMemoryAllocation->Map(ImageSize, 0);
+		}
+
+		auto* ImageAllocation = new FImageAllocation(this, DeviceMemoryAllocation, MemoryTypeIndex, MemoryPropertyFlags, MemReqs.alignment, Image, ImageUsageFlags);
+		UsedImageAllocations.Add(ImageAllocation);
+
+		return (FImageSuballocation*)ImageAllocation->TryAllocateNoLocking(Size, File, Line);
+	}
+
+	void FResourceHeapManager::ReleaseImage(FImageAllocation* ImageAllocation)
+	{
+		FScopeLock ScopeLock(&CS);
+		check(ImageAllocation->JoinFreeBlocks());
+		UsedImageAllocations.RemoveSingleSwap(ImageAllocation, false);
+		ImageAllocation->FrameFreed = GFrameNumberRenderThread;
+		FreeImageAllocations.Add(ImageAllocation);
+	}
+#endif
+
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	void FResourceHeapManager::DumpMemory()
 	{
-		UE_LOG(LogVulkanRHI, Display, TEXT("GPU Only Heap"));
+		FScopeLock ScopeLock(&CS);
+
+		UE_LOG(LogVulkanRHI, Display, TEXT("GPU Only Heap, Memory Type Index %d"), GPUOnlyHeap->MemoryTypeIndex);
 		GPUOnlyHeap->DumpMemory();
-		UE_LOG(LogVulkanRHI, Display, TEXT("CPU Staging Heap"));
+		UE_LOG(LogVulkanRHI, Display, TEXT("CPU Staging Heap, Memory Type Index %d"), CPUStagingHeap->MemoryTypeIndex);
 		CPUStagingHeap->DumpMemory();
+
+		UE_LOG(LogVulkanRHI, Display, TEXT("Buffer Allocations: %d Used / %d Free"), UsedBufferAllocations.Num(), FreeBufferAllocations.Num());
+		if (UsedBufferAllocations.Num() > 0)
+		{
+			UE_LOG(LogVulkanRHI, Display, TEXT("Index  MemFlags BufferFlags #Suballocs #FreeChunks UsedSize/MaxSize"));
+			for (int32 Index = 0; Index < UsedBufferAllocations.Num(); ++Index)
+			{
+				FBufferAllocation* BA = UsedBufferAllocations[Index];
+				UE_LOG(LogVulkanRHI, Display, TEXT("%6d 0x%06x 0x%08x %6d   %6d    %d/%d"), Index, BA->MemoryPropertyFlags, BA->BufferUsageFlags, BA->Suballocations.Num(), BA->FreeList.Num(), BA->UsedSize, BA->MaxSize);
+			}
+		}
 	}
 #endif
 
 
+	FBufferSuballocation::~FBufferSuballocation()
+	{
+		Owner->Release(this);
+	}
+
+
+	FCriticalSection FBufferAllocation::CS;
+
+	bool FSubresourceAllocator::JoinFreeBlocks()
+	{
+		FScopeLock ScopeLock(&CS);
+		if (FreeList.Num() > 1)
+		{
+			FreeList.Sort();
+
+			for (int32 Index = FreeList.Num() - 1; Index > 0; --Index)
+			{
+				auto& Current = FreeList[Index];
+				auto& Prev = FreeList[Index - 1];
+				if (Prev.Offset + Prev.Size == Current.Offset)
+				{
+					Prev.Size += Current.Size;
+					FreeList.RemoveAt(Index, 1, false);
+				}
+			}
+		}
+
+		if (FreeList.Num() == 1)
+		{
+			if (Suballocations.Num() == 0)
+			{
+				check(UsedSize == 0);
+				checkf(FreeList[0].Offset == 0 && FreeList[0].Size == MaxSize, TEXT("Resource Suballocation leak, should have %d free, only have %d; missing %d bytes"), MaxSize, FreeList[0].Size, MaxSize - FreeList[0].Size);
+				return true;
+			}
+		}
+
+		return false;
+	}
+	
+	FResourceSuballocation* FSubresourceAllocator::TryAllocateNoLocking(uint32 Size, const char* File, uint32 Line)
+	{
+		for (int32 Index = 0; Index < FreeList.Num(); ++Index)
+		{
+			FPair& Entry = FreeList[Index];
+			uint32 AllocatedOffset = Entry.Offset;
+			uint32 AlignedOffset = Align(Entry.Offset, Alignment);
+			uint32 AlignmentAdjustment = AlignedOffset - Entry.Offset;
+			uint32 AllocatedSize = AlignmentAdjustment + Size;
+			if (AllocatedSize <= Entry.Size)
+			{
+				if (AllocatedSize < Entry.Size)
+				{
+					// Modify current free entry in-place
+					Entry.Size -= AllocatedSize;
+					Entry.Offset += AllocatedSize;
+				}
+				else
+				{
+					// Remove this free entry
+					FreeList.RemoveAtSwap(Index, 1, false);
+				}
+
+				UsedSize += AllocatedSize;
+
+				auto* NewSuballocation = CreateSubAllocation(Size, AlignedOffset, AllocatedSize, AllocatedOffset);// , File, Line);
+				Suballocations.Add(NewSuballocation);
+
+				//PeakNumAllocations = FMath::Max(PeakNumAllocations, ResourceAllocations.Num());
+				return NewSuballocation;
+			}
+		}
+
+		return nullptr;
+	}
+
+	void FBufferAllocation::Release(FBufferSuballocation* Suballocation)
+	{
+		{
+			FScopeLock ScopeLock(&CS);
+			Suballocations.RemoveSingleSwap(Suballocation, false);
+
+			FPair NewFree;
+			NewFree.Offset = Suballocation->AllocationOffset;
+			NewFree.Size = Suballocation->AllocationSize;
+
+			FreeList.Add(NewFree);
+		}
+
+		UsedSize -= Suballocation->AllocationSize;
+		check(UsedSize >= 0);
+
+		if (JoinFreeBlocks())
+		{
+			Owner->ReleaseBuffer(this);
+		}
+	}
+
+	void FBufferAllocation::Destroy(FVulkanDevice* Device)
+	{
+		vkDestroyBuffer(Device->GetInstanceHandle(), Buffer, nullptr);
+		Buffer = VK_NULL_HANDLE;
+	}
+
 	FStagingResource::~FStagingResource()
 	{
-		checkf(!Allocation, TEXT("Staging Resource not released!"));
+		checkf(!ResourceAllocation, TEXT("Staging Resource not released!"));
 	}
 
-	void FStagingImage::Destroy(FDeviceMemoryManager& Memory, VkDevice DeviceHandle)
+	void FStagingBuffer::Destroy(VkDevice DeviceHandle)
 	{
-		check(Allocation);
-
-		vkDestroyImage(DeviceHandle, Image, nullptr);
-
-		Memory.Free(Allocation);
-	}
-
-	void FStagingBuffer::Destroy(FDeviceMemoryManager& Memory, VkDevice DeviceHandle)
-	{
-		check(Allocation);
+		check(ResourceAllocation);
 
 		vkDestroyBuffer(DeviceHandle, Buffer, nullptr);
-
-		Memory.Free(Allocation);
+		ResourceAllocation = nullptr;
+		//Memory.Free(Allocation);
 	}
 
+	FStagingManager::~FStagingManager()
+	{
+		check(UsedStagingBuffers.Num() == 0);
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+		check(PendingFreeStagingBuffers.Num() == 0);
+#endif
+		check(FreeStagingBuffers.Num() == 0);
+	}
+	
 	void FStagingManager::Init(FVulkanDevice* InDevice, FVulkanQueue* InQueue)
 	{
 		Device = InDevice;
@@ -525,104 +979,19 @@ namespace VulkanRHI
 
 	void FStagingManager::Deinit()
 	{
-		check(UsedStagingImages.Num() == 0);
-		auto& DeviceMemory = Device->GetMemoryManager();
-		for (int32 Index = 0; Index < FreeStagingImages.Num(); ++Index)
-		{
-			FreeStagingImages[Index]->Destroy(DeviceMemory, Device->GetInstanceHandle());
-			delete FreeStagingImages[Index];
-		}
-
-		FreeStagingImages.Empty(0);
+		ProcessPendingFree(true);
 
 		check(UsedStagingBuffers.Num() == 0);
 		for (int32 Index = 0; Index < FreeStagingBuffers.Num(); ++Index)
 		{
-			FreeStagingBuffers[Index]->Destroy(DeviceMemory, Device->GetInstanceHandle());
+			FreeStagingBuffers[Index]->Destroy(Device->GetInstanceHandle());
 			delete FreeStagingBuffers[Index];
 		}
 
 		FreeStagingBuffers.Empty(0);
 	}
 
-	FStagingImage* FStagingManager::AcquireImage(VkFormat Format, uint32 Width, uint32 Height, uint32 Depth)
-	{
-		//#todo-rco: Better locking!
-		{
-			FScopeLock Lock(&GAllocationLock);
-
-			for (int32 Index = 0; Index < FreeStagingImages.Num(); ++Index)
-			{
-				auto* FreeImage = FreeStagingImages[Index];
-				if (FreeImage->Format == Format && FreeImage->Width == Width && FreeImage->Height == Height && FreeImage->Depth == Depth)
-				{
-					FreeStagingImages.RemoveAtSwap(Index, 1, false);
-					UsedStagingImages.Add(FreeImage);
-					return FreeImage;
-				}
-			}
-		}
-
-		auto* StagingImage = new FStagingImage(Format, Width, Height, Depth);
-
-		VkExtent3D StagingExtent;
-		FMemory::Memzero(StagingExtent);
-		StagingExtent.width = Width;
-		StagingExtent.height = Height;
-		StagingExtent.depth = Depth;
-
-		VkImageCreateInfo StagingImageCreateInfo;
-		FMemory::Memzero(StagingImageCreateInfo);
-		StagingImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		StagingImageCreateInfo.imageType = Depth > 1 ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
-		StagingImageCreateInfo.format = Format;
-		StagingImageCreateInfo.extent = StagingExtent;
-		StagingImageCreateInfo.mipLevels = 1;
-		StagingImageCreateInfo.arrayLayers = 1;
-		StagingImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		StagingImageCreateInfo.tiling = VK_IMAGE_TILING_LINEAR;
-		StagingImageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-		VkDevice VulkanDevice = Device->GetInstanceHandle();
-
-		VERIFYVULKANRESULT(vkCreateImage(VulkanDevice, &StagingImageCreateInfo, nullptr, &StagingImage->Image));
-
-		VkMemoryRequirements MemReqs;
-		vkGetImageMemoryRequirements(VulkanDevice, StagingImage->Image, &MemReqs);
-
-		StagingImage->Allocation = Device->GetMemoryManager().Alloc(MemReqs.size, MemReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, __FILE__, __LINE__);
-
-		VERIFYVULKANRESULT(vkBindImageMemory(VulkanDevice, StagingImage->Image, StagingImage->Allocation->GetHandle(), 0));
-
-		{
-			FScopeLock Lock(&GAllocationLock);
-			UsedStagingImages.Add(StagingImage);
-		}
-		return StagingImage;
-	}
-
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	void FStagingManager::ReleaseImage(FVulkanCmdBuffer* CmdBuffer, FStagingImage*& StagingImage)
-	{
-		FScopeLock Lock(&GAllocationLock);
-		UsedStagingImages.RemoveSingleSwap(StagingImage);
-		FPendingItem* Entry = new (PendingFreeStagingImages) FPendingItem;
-		Entry->CmdBuffer = CmdBuffer;
-		Entry->FenceCounter = CmdBuffer->GetFenceSignaledCounter();
-		Entry->Resource = StagingImage;
-		StagingImage = nullptr;
-	}
-#else
-	void FStagingManager::ReleaseImage(FStagingImage*& StagingImage)
-	{
-		FScopeLock Lock(&GAllocationLock);
-		UsedStagingImages.RemoveSingleSwap(StagingImage);
-		FreeStagingImages.Add(StagingImage);
-		StagingImage = nullptr;
-	}
-#endif
-
-	FStagingBuffer* FStagingManager::AcquireBuffer(uint32 Size)
+	FStagingBuffer* FStagingManager::AcquireBuffer(uint32 Size, VkBufferUsageFlags InUsageFlags)
 	{
 		//#todo-rco: Better locking!
 		{
@@ -631,7 +1000,7 @@ namespace VulkanRHI
 			for (int32 Index = 0; Index < FreeStagingBuffers.Num(); ++Index)
 			{
 				auto* FreeBuffer = FreeStagingBuffers[Index];
-				if (FreeBuffer->Allocation->GetSize() == Size)
+				if (FreeBuffer->ResourceAllocation->GetSize() == Size)
 				{
 					FreeStagingBuffers.RemoveAtSwap(Index, 1, false);
 					UsedStagingBuffers.Add(FreeBuffer);
@@ -646,7 +1015,7 @@ namespace VulkanRHI
 		FMemory::Memzero(StagingBufferCreateInfo);
 		StagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		StagingBufferCreateInfo.size = Size;
-		StagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		StagingBufferCreateInfo.usage = InUsageFlags;
 
 		VkDevice VulkanDevice = Device->GetInstanceHandle();
 
@@ -655,9 +1024,8 @@ namespace VulkanRHI
 		VkMemoryRequirements MemReqs;
 		vkGetBufferMemoryRequirements(VulkanDevice, StagingBuffer->Buffer, &MemReqs);
 
-		StagingBuffer->Allocation = Device->GetMemoryManager().Alloc(MemReqs.size, MemReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, __FILE__, __LINE__);
-
-		VERIFYVULKANRESULT(vkBindBufferMemory(VulkanDevice, StagingBuffer->Buffer, StagingBuffer->Allocation->GetHandle(), 0));
+		StagingBuffer->ResourceAllocation = Device->GetResourceHeapManager().AllocateBufferMemory(MemReqs, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, __FILE__, __LINE__);
+		StagingBuffer->ResourceAllocation->BindBuffer(Device, StagingBuffer->Buffer);
 
 		{
 			FScopeLock Lock(&GAllocationLock);
@@ -673,7 +1041,7 @@ namespace VulkanRHI
 		UsedStagingBuffers.RemoveSingleSwap(StagingBuffer);
 		FPendingItem* Entry = new (PendingFreeStagingBuffers) FPendingItem;
 		Entry->CmdBuffer = CmdBuffer;
-		Entry->FenceCounter = CmdBuffer->GetFenceSignaledCounter();
+		Entry->FenceCounter = CmdBuffer ? CmdBuffer->GetFenceSignaledCounter() : 0;
 		Entry->Resource = StagingBuffer;
 		StagingBuffer = nullptr;
 	}
@@ -687,29 +1055,33 @@ namespace VulkanRHI
 	}
 #endif
 
-	void FStagingManager::ProcessPendingFree()
+	void FStagingManager::ProcessPendingFree(bool bImmediately)
 	{
 #if VULKAN_USE_NEW_COMMAND_BUFFERS
 		FScopeLock Lock(&GAllocationLock);
 		for (int32 Index = PendingFreeStagingBuffers.Num() - 1; Index >= 0; --Index)
 		{
 			FPendingItem& Entry = PendingFreeStagingBuffers[Index];
-			if (Entry.FenceCounter < Entry.CmdBuffer->GetFenceSignaledCounter())
+			if (bImmediately || !Entry.CmdBuffer || Entry.FenceCounter < Entry.CmdBuffer->GetFenceSignaledCounter())
 			{
 				auto* StagingBuffer = (FStagingBuffer*)Entry.Resource;
 				PendingFreeStagingBuffers.RemoveAtSwap(Index, 1, false);
 				FreeStagingBuffers.Add(StagingBuffer);
+
+				//#todo-rco: Release buffers back to OS...
 			}
 		}
 
 		for (int32 Index = PendingFreeStagingImages.Num() - 1; Index >= 0; --Index)
 		{
 			FPendingItem& Entry = PendingFreeStagingImages[Index];
-			if (Entry.FenceCounter < Entry.CmdBuffer->GetFenceSignaledCounter())
+			if (bImmediately || !Entry.CmdBuffer || Entry.FenceCounter < Entry.CmdBuffer->GetFenceSignaledCounter())
 			{
 				auto* StagingImage = (FStagingImage*)Entry.Resource;
 				PendingFreeStagingImages.RemoveAtSwap(Index, 1, false);
 				FreeStagingImages.Add(StagingImage);
+
+				//#todo-rco: Release images back to OS...
 			}
 		}
 #endif
@@ -856,7 +1228,7 @@ namespace VulkanRHI
 
 	void FDeferredDeletionQueue::EnqueueResource(FVulkanCmdBuffer* CmdBuffer, FRefCount* Resource)
 	{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS && VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		Resource->AddRef();
 
 		FEntry Entry;
@@ -872,7 +1244,7 @@ namespace VulkanRHI
 
 	void FDeferredDeletionQueue::ReleaseResources(/*bool bDeleteImmediately*/)
 	{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS && VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		FScopeLock ScopeLock(&CS);
 
 		// Traverse list backwards to the swap switches to elements already tested
@@ -886,5 +1258,58 @@ namespace VulkanRHI
 			}
 		}
 #endif
+	}
+
+	FTempFrameAllocationBuffer::FTempFrameAllocationBuffer(FVulkanDevice* InDevice, uint32 InSize)
+		: FDeviceChild(InDevice)
+		, Size(InSize)
+		, BufferIndex(0)
+		, PeakUsed(0)
+	{
+		for (int32 Index = 0; Index < NUM_RENDER_BUFFERS; ++Index)
+		{
+			Buffer[Index] = InDevice->GetStagingManager().AcquireBuffer(InSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT);
+			MappedData[Index] = (uint8*)Buffer[Index]->GetMappedPointer();
+			CurrentData[Index] = MappedData[Index];
+		}
+	}
+
+	FTempFrameAllocationBuffer::~FTempFrameAllocationBuffer()
+	{
+		check(!Buffer[0]);
+	}
+
+	void FTempFrameAllocationBuffer::Destroy()
+	{
+		for (int32 Index = 0; Index < NUM_RENDER_BUFFERS; ++Index)
+		{
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
+			GetParent()->GetStagingManager().ReleaseBuffer(nullptr, Buffer[Index]);
+#else
+			GetParent()->GetStagingManager().ReleaseBuffer(Buffer[Index]);
+#endif
+		}
+	}
+
+	bool FTempFrameAllocationBuffer::Alloc(uint32 InSize, uint32 InAlignment, FTempAllocInfo& OutInfo)
+	{
+		uint8* AlignedData = (uint8*)Align((uintptr_t)CurrentData[BufferIndex], (uintptr_t)InAlignment);
+		if (AlignedData + InSize <= MappedData[BufferIndex] + Size)
+		{
+			OutInfo.Data = AlignedData;
+			OutInfo.Buffer = Buffer[BufferIndex]->GetHandle();
+			OutInfo.Offset = (uint32)(AlignedData - MappedData[BufferIndex]);
+			CurrentData[BufferIndex] = AlignedData + InSize;
+			PeakUsed = FMath::Max(PeakUsed, (uint32)(CurrentData[BufferIndex] - MappedData[BufferIndex]));
+			return true;
+		}
+
+		return false;
+	}
+
+	void FTempFrameAllocationBuffer::Reset()
+	{
+		BufferIndex = (BufferIndex + 1) % NUM_RENDER_BUFFERS;
+		CurrentData[BufferIndex] = MappedData[BufferIndex];
 	}
 }

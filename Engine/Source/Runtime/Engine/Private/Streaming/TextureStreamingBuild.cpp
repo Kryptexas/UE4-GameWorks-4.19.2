@@ -30,7 +30,7 @@ ENGINE_API void BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLe
 	FDebugViewModeMaterialProxy::ClearAllShaders();
 
 	// Without the new metrics, the shaders will are not compiled, making the texcoord scale viewmode non functional.
-	if (bUseNewMetrics && AllowDebugViewShaderMode(DVSM_TexCoordScaleAnalysis, FeatureLevel))
+	if (bUseNewMetrics && AllowDebugViewPS(DVSM_MaterialTexCoordScalesAnalysis, GetFeatureLevelShaderPlatform(FeatureLevel)))
 	{
 		for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
 		{

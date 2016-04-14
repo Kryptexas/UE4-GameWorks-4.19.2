@@ -37,6 +37,12 @@ FArchive& operator<<(FArchive& Ar,FPackedNormal& N)
 	return Ar;
 }
 
+FArchive& operator<<(FArchive& Ar, FPackedRGB10A2& N)
+{
+	Ar << N.Vector.Packed;
+	return Ar;
+}
+
 //
 //	Pixel format information.
 //

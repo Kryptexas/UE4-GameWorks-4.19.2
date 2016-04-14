@@ -441,6 +441,13 @@ public:
 	FORCEINLINE FVector2D GetSignVector() const;
 
 	/**
+	* Get a copy of this vector with absolute value of each component.
+	*
+	* @return A copy of this vector with absolute value of each component.
+	*/
+	FORCEINLINE FVector2D GetAbs() const;
+
+	/**
 	 * Get a textual representation of the vector.
 	 *
 	 * @return Text describing the vector.
@@ -874,6 +881,10 @@ FORCEINLINE FVector2D FVector2D::GetSignVector() const
 		);
 }
 
+FORCEINLINE FVector2D FVector2D::GetAbs() const
+{
+	return FVector2D(FMath::Abs(X), FMath::Abs(Y));
+}
 
 FORCEINLINE FString FVector2D::ToString() const
 {

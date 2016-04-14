@@ -178,7 +178,7 @@ half3 BlendReflectionCapture(FMaterialPixelParameters MaterialParameters, half R
 half3 BlendReflectionCaptures(FMaterialPixelParameters MaterialParameters, half Roughness)
 {
 	// Compute fractional mip from roughness
-	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
+	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, Frame.ReflectionCubemapMaxMip);
 
 	half3 SpecularIBL = half3(0, 0, 0);
 	half BlendFactor = 1;
@@ -200,7 +200,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	half3 ProjectedCaptureVector = MaterialParameters.ReflectionVector;	
 
 	// Compute fractional mip from roughness
-	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
+	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, Frame.ReflectionCubemapMaxMip);
 	// Fetch from cubemap and convert to linear HDR
 	half3 SpecularIBL = RGBMDecode(ReflectionCubemap.SampleLevel(ReflectionCubemapSampler, ProjectedCaptureVector, AbsoluteSpecularMip), 16.0f);
 #endif
@@ -366,18 +366,27 @@ void Main(
 		#if MATERIALBLENDING_MASKED || MATERIALBLENDING_SOLID
 
 			// Take the normal into account for opaque
-			FTwoBandSHVectorRGB PointIndirectLighting;
-			PointIndirectLighting.R.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[0];
-			PointIndirectLighting.G.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[1];
-			PointIndirectLighting.B.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[2];
+			FThreeBandSHVectorRGB PointIndirectLighting;
+			PointIndirectLighting.R.V0 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[0];
+			PointIndirectLighting.R.V1 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients1[0];
+			PointIndirectLighting.R.V2 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients2[0];
 
-			FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(MaterialParameters.WorldNormal, 1);
+			PointIndirectLighting.G.V0 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[1];
+			PointIndirectLighting.G.V1 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients1[1];
+			PointIndirectLighting.G.V2 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients2[1];
+
+			PointIndirectLighting.B.V0 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[2];
+			PointIndirectLighting.B.V1 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients1[2];
+			PointIndirectLighting.B.V2 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients2[2];
+
+			FThreeBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH3(MaterialParameters.WorldNormal, 1);
 
 			// Compute diffuse lighting which takes the normal into account
-			half3 DiffuseGI = max(half3(0,0,0), DotSH(PointIndirectLighting, DiffuseTransferSH));
+			half3 DiffuseGI = max(half3(0,0,0), DotSH3(PointIndirectLighting, DiffuseTransferSH));
 
 			IndirectIrradiance = Luminance(DiffuseGI);
-			Color += DiffuseColor * DiffuseGI;
+			Color += DiffuseColor * DiffuseGI;			
+
 
 		#else 
 			

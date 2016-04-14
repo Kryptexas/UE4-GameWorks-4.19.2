@@ -2174,43 +2174,45 @@ void GlobalBeginCompileShader(
 			}
 			Input.DumpDebugInfoPath = Input.DumpDebugInfoPath / ShaderTypeName;
 
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("BasePass"), TEXT("BP"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("ForForward"), TEXT("Fwd"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Shadow"), TEXT("Shdw"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightMap"), TEXT("LM"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("EAtmosphereRenderFlag==E_"), TEXT(""));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmospheric"), TEXT("Atm"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmosphere"), TEXT("Atm"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Ambient"), TEXT("Amb"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Perspective"), TEXT("Persp"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Occlusion"), TEXT("Occ"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Position"), TEXT("Pos"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Skylight"), TEXT("Sky"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightingPolicy"), TEXT("LP"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("TranslucentLighting"), TEXT("TranslLight"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Translucency"), TEXT("Transl"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("DistanceField"), TEXT("DistFiel"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Indirect"), TEXT("Ind"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Cached"), TEXT("Cach"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Inject"), TEXT("Inj"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Visualization"), TEXT("Viz"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Instanced"), TEXT("Inst"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Evaluate"), TEXT("Eval"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Landscape"), TEXT("Land"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Dynamic"), TEXT("Dyn"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Vertex"), TEXT("Vtx"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Output"), TEXT("Out"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Directional"), TEXT("Dir"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Irradiance"), TEXT("Irr"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("Deferred"), TEXT("Def"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("true"), TEXT("_1"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("false"), TEXT("_0"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_AO"), TEXT("AO"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_SECONDARY_OCCLUSION"), TEXT("SEC_OCC"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_MULTIPLE_BOUNCES"), TEXT("MULT_BOUNC"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("PostProcess"), TEXT("Post"));
-			Input.DumpDebugInfoPath.ReplaceInline(TEXT("AntiAliasing"), TEXT("AA"));
-
+			if (GDumpShaderDebugInfoShort)
+			{
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("BasePass"), TEXT("BP"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("ForForward"), TEXT("Fwd"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Shadow"), TEXT("Shdw"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightMap"), TEXT("LM"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("EAtmosphereRenderFlag==E_"), TEXT(""));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmospheric"), TEXT("Atm"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Atmosphere"), TEXT("Atm"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Ambient"), TEXT("Amb"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Perspective"), TEXT("Persp"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Occlusion"), TEXT("Occ"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Position"), TEXT("Pos"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Skylight"), TEXT("Sky"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("LightingPolicy"), TEXT("LP"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("TranslucentLighting"), TEXT("TranslLight"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Translucency"), TEXT("Transl"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("DistanceField"), TEXT("DistFiel"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Indirect"), TEXT("Ind"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Cached"), TEXT("Cach"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Inject"), TEXT("Inj"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Visualization"), TEXT("Viz"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Instanced"), TEXT("Inst"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Evaluate"), TEXT("Eval"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Landscape"), TEXT("Land"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Dynamic"), TEXT("Dyn"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Vertex"), TEXT("Vtx"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Output"), TEXT("Out"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Directional"), TEXT("Dir"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Irradiance"), TEXT("Irr"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("Deferred"), TEXT("Def"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("true"), TEXT("_1"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("false"), TEXT("_0"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_AO"), TEXT("AO"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_SECONDARY_OCCLUSION"), TEXT("SEC_OCC"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PROPAGATE_MULTIPLE_BOUNCES"), TEXT("MULT_BOUNC"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("PostProcess"), TEXT("Post"));
+				Input.DumpDebugInfoPath.ReplaceInline(TEXT("AntiAliasing"), TEXT("AA"));
+			}
 		}
 		// Sanitize the name to be used as a path
 		// List mostly comes from set of characters not allowed by windows in a path.  Just try to rename a file and type one of these for the list.

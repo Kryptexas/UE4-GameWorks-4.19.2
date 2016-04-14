@@ -23,7 +23,6 @@
 /** Tile size for the reflection environment compute shader, tweaked for 680 GTX. */
 const int32 GReflectionEnvironmentTileSizeX = 16;
 const int32 GReflectionEnvironmentTileSizeY = 16;
-extern ENGINE_API int32 GReflectionCaptureSize;
 
 extern TAutoConsoleVariable<int32> CVarLPVMixing;
 
@@ -89,22 +88,24 @@ void FReflectionEnvironmentCubemapArray::InitDynamicRHI()
 {
 	if (GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 	{
-
-		const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(GReflectionCaptureSize) + 1;
+		const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(CubemapSize) + 1;
 
 		ReleaseCubeArray();
 
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::CreateCubemapDesc(
-		GReflectionCaptureSize,
-		// Alpha stores sky mask
-		PF_FloatRGBA, 
-		FClearValueBinding::None,
-		TexCreate_None,
-		TexCreate_None,
-		false, 
-		// Cubemap array of 1 produces a regular cubemap, so guarantee it will be allocated as an array
-		FMath::Max<uint32>(MaxCubemaps, 2),
-		NumReflectionCaptureMips));
+		FPooledRenderTargetDesc Desc(
+			FPooledRenderTargetDesc::CreateCubemapDesc(
+				CubemapSize,
+				// Alpha stores sky mask
+				PF_FloatRGBA, 
+				FClearValueBinding::None,
+				TexCreate_None,
+				TexCreate_None,
+				false, 
+				// Cubemap array of 1 produces a regular cubemap, so guarantee it will be allocated as an array
+				FMath::Max<uint32>(MaxCubemaps, 2),
+				NumReflectionCaptureMips
+				)
+			);
 
 		Desc.AutoWritable = false;
 	
@@ -126,9 +127,10 @@ void FReflectionEnvironmentCubemapArray::ReleaseDynamicRHI()
 	ReleaseCubeArray();
 }
 
-void FReflectionEnvironmentCubemapArray::UpdateMaxCubemaps(uint32 InMaxCubemaps)
+void FReflectionEnvironmentCubemapArray::UpdateMaxCubemaps(uint32 InMaxCubemaps, int32 InCubemapSize)
 {
 	MaxCubemaps = InMaxCubemaps;
+	CubemapSize = InCubemapSize;
 
 	// Reallocate the cubemap array
 	if (IsInitialized())
@@ -194,6 +196,7 @@ struct FReflectionCaptureSortData
 	FVector4 CaptureProperties;
 	FMatrix BoxTransform;
 	FVector4 BoxScales;
+	FVector4 CaptureOffset;
 	FTexture* SM4FullHDRCubemap;
 
 	bool operator < (const FReflectionCaptureSortData& Other) const
@@ -216,6 +219,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureProperties,[GMaxNumReflectionCaptures])
 	// Stores the box transform for a box shape, other data is packed for other shapes
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix,BoxTransform,[GMaxNumReflectionCaptures])
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureOffset,[GMaxNumReflectionCaptures])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,BoxScales,[GMaxNumReflectionCaptures])
 END_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData)
 
@@ -263,7 +267,14 @@ public:
 	{
 	}
 
-	void SetParameters(FRHIAsyncComputeCommandListImmediate& RHICmdList, const FSceneView& View, FTextureRHIParamRef SSRTexture, TArray<FReflectionCaptureSortData>& SortData, FUnorderedAccessViewRHIParamRef OutSceneColorUAV, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO)
+	void SetParameters(
+		FRHIAsyncComputeCommandListImmediate& RHICmdList, 
+		const FSceneView& View,
+		FTextureRHIParamRef SSRTexture,
+		TArray<FReflectionCaptureSortData>& SortData,
+		FUnorderedAccessViewRHIParamRef OutSceneColorUAV, 
+		const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO
+		)
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
@@ -301,6 +312,7 @@ public:
 			SamplePositionsBuffer.PositionAndRadius[CaptureIndex] = SortData[CaptureIndex].PositionAndRadius;
 			SamplePositionsBuffer.CaptureProperties[CaptureIndex] = SortData[CaptureIndex].CaptureProperties;
 			SamplePositionsBuffer.BoxTransform[CaptureIndex] = SortData[CaptureIndex].BoxTransform;
+			SamplePositionsBuffer.CaptureOffset[CaptureIndex] = SortData[CaptureIndex].CaptureOffset;
 			SamplePositionsBuffer.BoxScales[CaptureIndex] = SortData[CaptureIndex].BoxScales;
 		}
 
@@ -606,6 +618,7 @@ public:
 		CaptureProperties.Bind(Initializer.ParameterMap, TEXT("CaptureProperties"));
 		CaptureBoxTransform.Bind(Initializer.ParameterMap, TEXT("CaptureBoxTransform"));
 		CaptureBoxScales.Bind(Initializer.ParameterMap, TEXT("CaptureBoxScales"));
+		CaptureOffset.Bind(Initializer.ParameterMap, TEXT("CaptureOffset"));
 		CaptureArrayIndex.Bind(Initializer.ParameterMap, TEXT("CaptureArrayIndex"));
 		ReflectionEnvironmentColorTexture.Bind(Initializer.ParameterMap, TEXT("ReflectionEnvironmentColorTexture"));
 		ReflectionEnvironmentColorTextureArray.Bind(Initializer.ParameterMap, TEXT("ReflectionEnvironmentColorTextureArray"));
@@ -640,6 +653,7 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, CaptureProperties, SortData.CaptureProperties);
 		SetShaderValue(RHICmdList, ShaderRHI, CaptureBoxTransform, SortData.BoxTransform);
 		SetShaderValue(RHICmdList, ShaderRHI, CaptureBoxScales, SortData.BoxScales);
+		SetShaderValue(RHICmdList, ShaderRHI, CaptureOffset, FVector(SortData.CaptureOffset));
 	}
 
 	// FShader interface.
@@ -650,6 +664,7 @@ public:
 		Ar << CaptureProperties;
 		Ar << CaptureBoxTransform;
 		Ar << CaptureBoxScales;
+		Ar << CaptureOffset;
 		Ar << CaptureArrayIndex;
 		Ar << ReflectionEnvironmentColorTexture;
 		Ar << ReflectionEnvironmentColorTextureArray;
@@ -664,6 +679,7 @@ private:
 	FShaderParameter CaptureProperties;
 	FShaderParameter CaptureBoxTransform;
 	FShaderParameter CaptureBoxScales;
+	FShaderParameter CaptureOffset;
 	FShaderParameter CaptureArrayIndex;
 	FShaderResourceParameter ReflectionEnvironmentColorTexture;
 	FShaderResourceParameter ReflectionEnvironmentColorTextureArray;
@@ -752,6 +768,7 @@ void GatherAndSortReflectionCaptures(const FScene* Scene, TArray<FReflectionCapt
 			NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
 			float ShapeTypeValue = (float)CurrentCapture->Shape;
 			NewSortEntry.CaptureProperties = FVector4(CurrentCapture->Brightness, CubemapIndex, ShapeTypeValue, 0);
+			NewSortEntry.CaptureOffset = FVector4(CurrentCapture->CaptureOffset, 0);
 
 			if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
 			{
@@ -1022,6 +1039,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
 			float ShapeTypeValue = (float)CurrentCapture->Shape;
 			NewSortEntry.CaptureProperties = FVector4(CurrentCapture->Brightness, 0, ShapeTypeValue, 0);
+			NewSortEntry.CaptureOffset = FVector4(CurrentCapture->CaptureOffset);
 
 			if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
 			{
@@ -1079,9 +1097,12 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			RenderScreenSpaceReflections(RHICmdList, View, SSROutput);
 		}
 
+		bool bApplyFromSSRTexture = bSSR;
+
 		if (RenderDeferredPlanarReflections(RHICmdList, true, SSROutput))
 		{
 			bRequiresApply = true;
+			bApplyFromSSRTexture = true;
 		}
 
 	    /* Light Accumulation moved to SceneRenderTargets */
@@ -1200,7 +1221,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			}; \
 			break
 
-			switch (((uint32)bSSR << 3) | ((uint32)bReflectionEnv << 2) | ((uint32)bSkyLight << 1) | (uint32)bSupportDFAOIndirectShadowing)
+			switch (((uint32)bApplyFromSSRTexture << 3) | ((uint32)bReflectionEnv << 2) | ((uint32)bSkyLight << 1) | (uint32)bSupportDFAOIndirectShadowing)
 			{
 				CASE(0, 0, 0, 0);
 				CASE(0, 0, 1, 0);

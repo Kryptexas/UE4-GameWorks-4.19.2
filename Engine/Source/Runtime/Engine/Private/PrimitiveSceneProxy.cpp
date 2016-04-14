@@ -497,6 +497,11 @@ bool FPrimitiveSceneProxy::IsShadowCast(const FSceneView* View) const
 			return false;
 		}
 
+		if (View->ShowOnlyPrimitives.Num() > 0 && !View->ShowOnlyPrimitives.Contains(PrimitiveComponentId))
+		{
+			return false;
+		}
+
 #if WITH_EDITOR
 		// For editor views, we use a show flag to determine whether shadows from editor-hidden actors are desired.
 		if(View->Family->EngineShowFlags.Editor && !View->Family->EngineShowFlags.ShadowsFromEditorHiddenActors)

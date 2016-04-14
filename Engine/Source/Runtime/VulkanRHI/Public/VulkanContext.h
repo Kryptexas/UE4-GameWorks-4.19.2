@@ -112,6 +112,11 @@ public:
 		return CommandBufferManager;
 	}
 
+	VulkanRHI::FTempFrameAllocationBuffer& GetTempFrameAllocationBuffer()
+	{
+		return TempFrameAllocationBuffer;
+	}
+
 protected:
 	FVulkanDynamicRHI* RHI;
 	FVulkanDevice* Device;
@@ -120,19 +125,18 @@ protected:
 	void SetShaderUniformBuffer(EShaderFrequency Stage, const FVulkanUniformBuffer* UniformBuffer, int32 BindingIndex);
 
 	/** Some locally global variables to track the pending primitive information uised in RHIEnd*UP functions */
-	FVulkanDynamicLockInfo PendingDrawPrimitiveUPVertexData;
+	VulkanRHI::FTempFrameAllocationBuffer::FTempAllocInfo PendingDrawPrimUPVertexAllocInfo;
 	uint32 PendingNumVertices;
 	uint32 PendingVertexDataStride;
 
-	FVulkanDynamicLockInfo PendingDrawPrimitiveUPIndexData;
+	VulkanRHI::FTempFrameAllocationBuffer::FTempAllocInfo PendingDrawPrimUPIndexAllocInfo;
 	VkIndexType PendingPrimitiveIndexType;
 	uint32 PendingPrimitiveType;
 	uint32 PendingNumPrimitives;
 	uint32 PendingMinVertexIndex;
 	uint32 PendingIndexDataStride;
 
-	class FVulkanDynamicVertexBuffer* DynamicVB;
-	class FVulkanDynamicIndexBuffer* DynamicIB;
+	VulkanRHI::FTempFrameAllocationBuffer TempFrameAllocationBuffer;
 
 	TArray<FString> EventStack;
 

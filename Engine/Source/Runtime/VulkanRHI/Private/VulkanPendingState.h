@@ -128,7 +128,33 @@ public:
 
 	void SetStreamSource(uint32 StreamIndex, FVulkanBuffer* VertexBuffer, uint32 Stride, uint32 Offset)
 	{
-		PendingStreams[StreamIndex].Stream  = VertexBuffer;
+		PendingStreams[StreamIndex].Stream = VertexBuffer;
+		PendingStreams[StreamIndex].Stream2  = nullptr;
+		PendingStreams[StreamIndex].Stream3  = VK_NULL_HANDLE;
+		PendingStreams[StreamIndex].BufferOffset = Offset;
+		if (CurrentState.Shader)
+		{
+			CurrentState.Shader->MarkDirtyVertexStreams();
+		}
+	}
+
+	void SetStreamSource(uint32 StreamIndex, FVulkanResourceMultiBuffer* VertexBuffer, uint32 Stride, uint32 Offset)
+	{
+		PendingStreams[StreamIndex].Stream = nullptr;
+		PendingStreams[StreamIndex].Stream2 = VertexBuffer;
+		PendingStreams[StreamIndex].Stream3  = VK_NULL_HANDLE;
+		PendingStreams[StreamIndex].BufferOffset = Offset;
+		if (CurrentState.Shader)
+		{
+			CurrentState.Shader->MarkDirtyVertexStreams();
+		}
+	}
+
+	void SetStreamSource(uint32 StreamIndex, VkBuffer InBuffer, uint32 Stride, uint32 Offset)
+	{
+		PendingStreams[StreamIndex].Stream = nullptr;
+		PendingStreams[StreamIndex].Stream2 = nullptr;
+		PendingStreams[StreamIndex].Stream3  = InBuffer;
 		PendingStreams[StreamIndex].BufferOffset = Offset;
 		if (CurrentState.Shader)
 		{
@@ -138,8 +164,10 @@ public:
 
 	struct FVertexStream
 	{
-		FVertexStream() : Stream(nullptr), BufferOffset(0) {}
+		FVertexStream() : Stream(nullptr), Stream2(nullptr), Stream3(VK_NULL_HANDLE), BufferOffset(0) {}
 		FVulkanBuffer* Stream;
+		FVulkanResourceMultiBuffer* Stream2;
+		VkBuffer Stream3;
 		uint32 BufferOffset;
 	};
 

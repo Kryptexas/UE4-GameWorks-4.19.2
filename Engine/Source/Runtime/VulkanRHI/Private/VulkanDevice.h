@@ -57,11 +57,6 @@ public:
 		return Gpu;
 	}
 
-	inline FVulkanRingBuffer* GetVBIBRingBuffer()
-	{
-		return VBIBRingBuffer;
-	}
-
 	inline FVulkanRingBuffer* GetUBRingBuffer()
 	{
 		return UBRingBuffer;
@@ -115,14 +110,12 @@ public:
 		return MemoryManager;
 	}
 
-#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
 	VulkanRHI::FResourceHeapManager& GetResourceHeapManager()
 	{
 		return ResourceHeapManager;
 	}
-#endif
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS && VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	VulkanRHI::FDeferredDeletionQueue& GetDeferredDeletionQueue()
 	{
 		return DeferredDeletionQueue;
@@ -150,6 +143,10 @@ public:
 	}
 
 #if VULKAN_ENABLE_DRAW_MARKERS
+
+	typedef void(VKAPI_PTR *PFN_vkCmdDbgMarkerBegin)(VkCommandBuffer commandBuffer, const char *pMarker);
+	typedef void(VKAPI_PTR *PFN_vkCmdDbgMarkerEnd)(VkCommandBuffer commandBuffer);
+
 	PFN_vkCmdDbgMarkerBegin GetCmdDbgMarkerBegin() const
 	{
 		return VkCmdDbgMarkerBegin;
@@ -173,10 +170,8 @@ private:
 	VkDevice Device;
 
 	VulkanRHI::FDeviceMemoryManager MemoryManager;
-#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
 	VulkanRHI::FResourceHeapManager ResourceHeapManager;
-#endif
-#if VULKAN_USE_NEW_COMMAND_BUFFERS && VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	VulkanRHI::FDeferredDeletionQueue DeferredDeletionQueue;
 #endif
 	VulkanRHI::FStagingManager StagingManager;
@@ -200,7 +195,6 @@ private:
 
 	FVulkanCommandListContext* ImmediateContext;
 
-	FVulkanRingBuffer* VBIBRingBuffer;
 	FVulkanRingBuffer* UBRingBuffer;
 
 	void GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers);

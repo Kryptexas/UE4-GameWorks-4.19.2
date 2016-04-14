@@ -963,7 +963,7 @@ public:
 	UPROPERTY(globalconfig)
 	TArray<FLinearColor> HLODColorationColors;
 
-	/** The colors used for TexelFactorAccuracy, WantedMipsAccuracy and TexCoordScaleAccuracy. */
+	/** The colors used for texture streaming accuracy debug view modes. */
 	UPROPERTY(globalconfig)
 	TArray<FLinearColor> StreamingAccuracyColors;
 

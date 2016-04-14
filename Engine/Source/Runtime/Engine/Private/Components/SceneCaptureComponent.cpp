@@ -209,6 +209,27 @@ void USceneCaptureComponent::HideActorComponents(AActor* InActor)
 	}
 }
 
+void USceneCaptureComponent::ShowOnlyComponent(UPrimitiveComponent* InComponent)
+{
+	if (InComponent)
+	{
+		ShowOnlyComponents.Add(InComponent);
+	}
+}
+
+void USceneCaptureComponent::ShowOnlyActorComponents(AActor* InActor)
+{
+	if (InActor)
+	{
+		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
+		InActor->GetComponents(PrimitiveComponents);
+		for (int32 ComponentIndex = 0, NumComponents = PrimitiveComponents.Num(); ComponentIndex < NumComponents; ++ComponentIndex)
+		{
+			ShowOnlyComponents.Add(PrimitiveComponents[ComponentIndex]);
+		}
+	}
+}
+
 FSceneViewStateInterface* USceneCaptureComponent::GetViewState()
 {
 	FSceneViewStateInterface* ViewStateInterface = ViewState.GetReference();
@@ -426,7 +447,7 @@ void APlanarReflection::EditorApplyScale(const FVector& DeltaScale, const FVecto
 
 	UPlanarReflectionComponent* ReflectionComponent = Cast<UPlanarReflectionComponent>(GetPlanarReflectionComponent());
 	check(ReflectionComponent);
-	const FVector ModifiedScale = FVector(0, 0, DeltaScale.Z) * ( AActor::bUsePercentageBasedScaling ? 5000.0f : 50.0f );
+	const FVector ModifiedScale = FVector(0, 0, DeltaScale.Z) * ( AActor::bUsePercentageBasedScaling ? 500.0f : 50.0f );
 	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeStart, ModifiedScale);
 	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeEnd, ModifiedScale);
 	PostEditChange();
@@ -434,6 +455,9 @@ void APlanarReflection::EditorApplyScale(const FVector& DeltaScale, const FVecto
 #endif
 
 // -----------------------------------------------
+
+// 0 is reserved to mean invalid
+int32 NextPlanarReflectionId = 0;
 
 UPlanarReflectionComponent::UPlanarReflectionComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -444,12 +468,23 @@ UPlanarReflectionComponent::UPlanarReflectionComponent(const FObjectInitializer&
 	// Tick in the editor so that bCaptureEveryFrame preview works
 	bTickInEditor = true;
 	RenderTarget = NULL;
+	PrefilterRoughness = .01f;
+	PrefilterRoughnessDistance = 10000;
+	ScreenPercentage = 50;
 	NormalDistortionStrength = 500;
 	DistanceFromPlaneFadeStart = 400;
 	DistanceFromPlaneFadeEnd = 600;
 	AngleFromPlaneFadeStart = 20;
 	AngleFromPlaneFadeEnd = 30;
 	ProjectionWithExtraFOV = FMatrix::Identity;
+
+	ShowFlags.SetLightShafts(0);
+
+	// This is disabled because the math needs to be updated to compute fog from the reflection plane, not the reflected camera position (which is underwater)
+	ShowFlags.SetFog(0);
+
+	NextPlanarReflectionId++;
+	PlanarReflectionId = NextPlanarReflectionId;
 }
 
 void UPlanarReflectionComponent::CreateRenderState_Concurrent()

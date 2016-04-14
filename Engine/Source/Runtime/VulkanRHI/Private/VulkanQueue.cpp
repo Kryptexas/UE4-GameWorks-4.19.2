@@ -1,13 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	VulkanQueue.cpp: Vulkan device RHI implementation.
+	VulkanQueue.cpp: Vulkan Queue implementation.
 =============================================================================*/
 
 #include "VulkanRHIPrivate.h"
 #include "VulkanQueue.h"
 #include "VulkanSwapChain.h"
 #include "VulkanMemory.h"
+
+static int32 GWaitForIdleOnSubmit = 0;
+static FAutoConsoleVariableRef CVarVulkanUseExternalShaderCompiler(
+	TEXT("r.Vulkan.WaitForIdleOnSubmit"),
+	GWaitForIdleOnSubmit,
+	TEXT("Waits for the GPU to be idle on every submit. Useful for tracking GPU hangs.\n")
+	TEXT(" 0: Do not wait(default)\n")
+	TEXT(" 1: Wait"),
+	ECVF_Default
+	);
 
 FVulkanQueue::FVulkanQueue(FVulkanDevice* InDevice, uint32 InFamilyIndex, uint32 InQueueIndex)
 	: 
@@ -136,6 +146,11 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer)
 	SubmitInfo.pCommandBuffers = CmdBuffers;
 	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
 
+	if (GWaitForIdleOnSubmit != 0)
+	{
+		VERIFYVULKANRESULT(vkQueueWaitIdle(Queue));
+	}
+
 	CmdBuffer->State = FVulkanCmdBuffer::EState::Submitted;
 
 	CmdBuffer->GetOwner()->RefreshFenceStatus();
@@ -171,9 +186,10 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer)
 	}
 	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fences[CurrentFenceIndex]->GetHandle()));
 
-#if VULKAN_FORCE_WAIT_FOR_QUEUE
-	VERIFYVULKANRESULT(vkQueueWaitIdle(Queue));
-#endif
+	if (GWaitForIdleOnSubmit != 0)
+	{
+		VERIFYVULKANRESULT(vkQueueWaitIdle(Queue));
+	}
 }
 #endif
 
@@ -188,9 +204,10 @@ void FVulkanQueue::Submit2(VkCommandBuffer CmdBuffer, VulkanRHI::FFence* Fence)
 	check(!Fence || !Fence->IsSignaled());
 	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fence ? Fence->GetHandle() : VK_NULL_HANDLE));
 
-#if VULKAN_FORCE_WAIT_FOR_QUEUE
-	VERIFYVULKANRESULT(vkQueueWaitIdle(Queue));
-#endif
+	if (GWaitForIdleOnSubmit != 0)
+	{
+		VERIFYVULKANRESULT(vkQueueWaitIdle(Queue));
+	}
 }
 #endif
 
@@ -235,7 +252,9 @@ void FVulkanQueue::Present(FVulkanSwapChain* Swapchain, uint32 ImageIndex)
 	Info.swapchainCount = 1;
 	Info.pSwapchains = &Swapchain->SwapChain;
 	Info.pImageIndices = &ImageIndex;
-
+	VkResult OutResult = VK_SUCCESS;
+	Info.pResults = &OutResult;
 	VERIFYVULKANRESULT(QueuePresentKHR(Queue, &Info));
+	VERIFYVULKANRESULT(OutResult);
 }
 #endif

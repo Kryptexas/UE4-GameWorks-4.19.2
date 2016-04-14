@@ -9,9 +9,9 @@ DebugViewModeRendering.cpp: Contains definitions for rendering debug viewmodes.
 #include "SceneFilterRendering.h"
 #include "SceneUtils.h"
 #include "PostProcessing.h"
-#include "WantedMipsAccuracyRendering.h"
-#include "TexelFactorAccuracyRendering.h"
-#include "TexCoordScaleAnalysisRendering.h"
+#include "PrimitiveDistanceAccuracyRendering.h"
+#include "MeshTexCoordSizeAccuracyRendering.h"
+#include "MaterialTexCoordScalesRendering.h"
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FDebugViewModeVS,TEXT("DebugViewModeVertexShader"),TEXT("Main"),SF_Vertex);	
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FDebugViewModeHS,TEXT("DebugViewModeVertexShader"),TEXT("MainHull"),SF_Hull);	
@@ -64,8 +64,6 @@ IMPLEMENT_SHADER_TYPE(,FMissingShaderPS,TEXT("MissingShaderPixelShader"),TEXT("M
 
 void FDebugViewMode::GetMaterialForVSHSDS(const FMaterialRenderProxy** MaterialRenderProxy, const FMaterial** Material, ERHIFeatureLevel::Type FeatureLevel)
 {
-	check(AllowDebugViewVSDSHS(FeatureLevel)); // Shouldn't be called otherwise.
-
 	// If the material was compiled fo VS, return it, otherwise, return the default material.
 	if (!(*Material)->HasVertexPositionOffsetConnected() && (*Material)->GetTessellationMode() == MTM_NoTessellation)
 	{
@@ -94,17 +92,17 @@ IDebugViewModePSInterface* FDebugViewMode::GetPSInterface(TShaderMap<FGlobalShad
 	case DVSM_ShaderComplexity:
 	case DVSM_ShaderComplexityContainedQuadOverhead:
 		return *TShaderMapRef<TShaderComplexityAccumulatePS>(ShaderMap);
-	case DVSM_WantedMipsAccuracy:
-		return *TShaderMapRef<FWantedMipsAccuracyPS>(ShaderMap);
-	case DVSM_TexelFactorAccuracy:
-		return *TShaderMapRef<FTexelFactorAccuracyPS>(ShaderMap);
-	case DVSM_TexCoordScaleAccuracy:
-	case DVSM_TexCoordScaleAnalysis:
+	case DVSM_PrimitiveDistanceAccuracy:
+		return *TShaderMapRef<FPrimitiveDistanceAccuracyPS>(ShaderMap);
+	case DVSM_MeshTexCoordSizeAccuracy:
+		return *TShaderMapRef<FMeshTexCoordSizeAccuracyPS>(ShaderMap);
+	case DVSM_MaterialTexCoordScalesAccuracy:
+	case DVSM_MaterialTexCoordScalesAnalysis:
 	{
 		const FMaterial* MaterialForPS = GetDebugViewMaterialPS(DebugViewShaderMode, Material);
 		if (MaterialForPS)
 		{
-			return MaterialForPS->GetShader<FTexCoordScaleAnalysisPS>(LocalVertexFactory);
+			return MaterialForPS->GetShader<FMaterialTexCoordScalePS>(LocalVertexFactory);
 		}
 		break;
 	}
@@ -125,7 +123,7 @@ void FDebugViewMode::PatchBoundShaderState(
 {
 	const FMaterial* MaterialForPS = Material; // Backup before calling GetMaterialForVSHSDS
 
-	if (AllowDebugViewVSDSHS(FeatureLevel))
+	if (AllowDebugViewVSDSHS(GetFeatureLevelShaderPlatform(FeatureLevel)))
 	{
 		GetMaterialForVSHSDS(nullptr, &Material, FeatureLevel);
 

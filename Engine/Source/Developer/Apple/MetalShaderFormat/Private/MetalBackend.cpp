@@ -1609,7 +1609,7 @@ protected:
 								break;
 						}
 					}
-					
+
 					//#todo-rco: Add language spec to know if indices need to be uint
 					ralloc_asprintf_append(buffer, ",(uint");
 					switch (deref->image_index->type->vector_elements)
@@ -2966,48 +2966,130 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 	return _strdup(code);
 }
 
-struct FMetalCheckRestrictionsVisitor : public ir_hierarchical_visitor
+struct FMetalCheckNonComputeRestrictionsVisitor : public ir_hierarchical_visitor
 {
 	_mesa_glsl_parse_state* ParseState;
-	EHlslShaderFrequency Frequency;
 	bool bErrors;
-	FMetalCheckRestrictionsVisitor(_mesa_glsl_parse_state* InParseState, EHlslShaderFrequency InFrequency)
+	FMetalCheckNonComputeRestrictionsVisitor(_mesa_glsl_parse_state* InParseState)
 		: ParseState(InParseState)
-		, Frequency(InFrequency)
 		, bErrors(false)
 	{
 	}
 
 	virtual ir_visitor_status visit(ir_variable* IR) override
 	{
-		if (Frequency != HSF_ComputeShader)
+		if (IR->type && IR->type->is_image())
 		{
-			if (IR->type && IR->type->is_image())
+			if (IR->name)
 			{
-				if (IR->name)
-				{
-					_mesa_glsl_error(ParseState, "Metal doesn't allow UAV '%s' on non-compute shader stages.", IR->name);
-				}
-				else
-				{
-					_mesa_glsl_error(ParseState, "Metal doesn't allow UAV on non-compute shader stages.");
-				}
-				bErrors = true;
-				return visit_stop;
+				_mesa_glsl_error(ParseState, "Metal doesn't allow UAV '%s' on non-compute shader stages.", IR->name);
 			}
+			else
+			{
+				_mesa_glsl_error(ParseState, "Metal doesn't allow UAV on non-compute shader stages.");
+			}
+			bErrors = true;
+			return visit_stop;
 		}
 
 		return visit_continue;
 	}
 }; 
 
+struct FMetalCheckComputeRestrictionsVisitor : public ir_rvalue_visitor
+{
+	_mesa_glsl_parse_state* ParseState;
+	bool bErrors;
+	enum
+	{
+		Read = 1,
+		Write = 2,
+		ReadWrite = Read | Write,
+	};
+	TMap<ir_variable*, uint32> ImageRW;
+
+	FMetalCheckComputeRestrictionsVisitor(_mesa_glsl_parse_state* InParseState)
+		: ParseState(InParseState)
+		, bErrors(false)
+	{
+	}
+
+	virtual ir_visitor_status visit(ir_variable* IR) override
+	{
+		if (IR->type && IR->type->is_image())
+		{
+			ImageRW.Add(IR, 0);
+		}
+
+		return ir_rvalue_visitor::visit(IR);
+	}
+
+	void VerifyDeReference(ir_dereference* DeRef, bool bWrite)
+	{
+		auto* Var = DeRef->variable_referenced();
+		if (Var && Var->type && Var->type->is_image())
+		{
+			if (bWrite)
+			{
+				ImageRW[Var] |= Write;
+			}
+			else
+			{
+				ImageRW[Var] |= Read;
+			}
+
+			if (ImageRW[Var] == ReadWrite)
+			{
+				_mesa_glsl_error(ParseState, "Metal doesn't allow simultaneous read & write on RWBuffer(s) or RWTexture(s) %s%s%s", Var->name ? "(" : "", Var->name ? Var->name : "", Var->name ? ")" : "");
+				bErrors = true;
+			}
+		}
+	}
+
+	ir_visitor_status visit_leave(ir_assignment *ir) override
+	{
+		auto ReturnValue = ir_rvalue_visitor::visit_leave(ir);
+		if (ReturnValue != visit_stop)
+		{
+			VerifyDeReference(ir->lhs, true);
+			if (bErrors)
+			{
+				return visit_stop;
+			}
+		}
+		return ReturnValue;
+	}
+
+	virtual void handle_rvalue(ir_rvalue **rvalue) override
+	{
+		if (rvalue && *rvalue)
+		{
+			auto* DeRef = (*rvalue)->as_dereference();
+			if (DeRef)
+			{
+				VerifyDeReference(DeRef, in_assignee);
+			}
+		}
+	}
+};
+
 
 bool FMetalCodeBackend::ApplyAndVerifyPlatformRestrictions(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency)
 {
-	FMetalCheckRestrictionsVisitor Visitor(ParseState, Frequency);
-	Visitor.run(Instructions);
+	if (Frequency == HSF_ComputeShader)
+	{
+		FMetalCheckComputeRestrictionsVisitor Visitor(ParseState);
+		Visitor.run(Instructions);
 
-	return !Visitor.bErrors;
+		return !Visitor.bErrors;
+	}
+	else
+	{
+		FMetalCheckNonComputeRestrictionsVisitor Visitor(ParseState);
+		Visitor.run(Instructions);
+
+		return !Visitor.bErrors;
+	}
 }
 
 bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState)

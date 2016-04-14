@@ -423,7 +423,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 	
 #endif
 
-	float Mip = ComputeReflectionCaptureMipFromRoughness( Roughness );
+	float Mip = ComputeReflectionCaptureMipFromRoughness(Roughness, Frame.ReflectionCubemapMaxMip);
 
 	uint NumCapturesAffectingTile = TileNumReflectionCaptures;
 
@@ -485,7 +485,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 
 					// Compute the reprojected vector
 					float3 IntersectPosition = WorldPosition + Intersection * RayDirection;
-					ProjectedCaptureVector = IntersectPosition - CapturePositionAndRadius.xyz;
+					ProjectedCaptureVector = IntersectPosition - (CapturePositionAndRadius.xyz + ReflectionCapture.CaptureOffset[CaptureIndex].xyz);
 
 					// Compute the distance from the receiving pixel to the box for masking
 					// Apply local to world scale to take scale into account without transforming back to world space
@@ -523,7 +523,8 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 					{
 						float FarIntersection = sqrt(Determinant) - QuadraticCoef.y;
 
-						ProjectedCaptureVector = LocalPosition + FarIntersection * RayDirection;
+						float3 LocalIntersectionPosition = LocalPosition + FarIntersection * RayDirection;
+						ProjectedCaptureVector = LocalIntersectionPosition - ReflectionCapture.CaptureOffset[CaptureIndex].xyz;
 						// Note: some compilers don't handle smoothstep min > max (this was 1, .6)
 						//DistanceAlpha = 1.0 - smoothstep(.6, 1, NormalizedDistanceToCapture);
 
@@ -655,7 +656,8 @@ void ReflectionEnvironmentTiledDeferredMain(
 		float a = Square( GBuffer.Roughness );
 		R = lerp( N, R, (1 - a) * ( sqrt(1 - a) + a ) );
 
-	#if 1//APPLY_SSR
+	#if 1
+		// Note: this texture may also contain planar reflections
 		float4 SSR = ScreenSpaceReflections.Load( int3(PixelPos, 0) );
 		Color.rgb = SSR.rgb;
 		Color.a = 1 - SSR.a;

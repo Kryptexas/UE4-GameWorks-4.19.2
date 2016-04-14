@@ -995,5 +995,35 @@ public:
 	
 };
 
+/** Helper class for accessing an int CVar. */
+struct FCVarAccessorInt
+{
+	FCVarAccessorInt(IConsoleVariable* CVar) : Data(CVar->AsVariableInt())	{ check(Data); }
+	FORCEINLINE int32 GetGameThreadValue(){ return Data->GetValueOnAnyThread(true); }
+	FORCEINLINE int32 GetRenderThreadValue(){ return Data->GetValueOnRenderThread(); }
+private:
+	const TConsoleVariableData<int32>* Data;
+};
+
+/** Helper class for accessing a float CVar. */
+struct FCVarAccessorFloat
+{
+	FCVarAccessorFloat(IConsoleVariable* CVar) : Data(CVar->AsVariableFloat())	{ check(Data); }
+	FORCEINLINE float GetGameThreadValue(){ return Data->GetValueOnAnyThread(true); }
+	FORCEINLINE float GetRenderThreadValue(){ return Data->GetValueOnRenderThread(); }
+private:
+	const TConsoleVariableData<float>* Data;
+};
+
+/** Helper class for accessing a string CVar. */
+struct FCVarAccessorString
+{
+	FCVarAccessorString(IConsoleVariable* CVar) : Data(CVar->AsVariableString())	{ check(Data); }
+	FORCEINLINE FString GetGameThreadValue(){ return Data->GetValueOnAnyThread(true); }
+	FORCEINLINE FString GetRenderThreadValue(){ return Data->GetValueOnRenderThread(); }
+private:
+	const TConsoleVariableData<FString>* Data;
+};
+
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogConsoleResponse, Log, All);
 

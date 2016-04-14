@@ -9,6 +9,11 @@ struct CORE_API FRenderingObjectVersion
 		// Before any version changes were made
 		BeforeCustomVersionWasAdded = 0,
 
+		// Added support for 3 band SH in the ILC
+		IndirectLightingCache3BandSupport,
+
+		// Allows specifying resolution for reflecture capture probes
+		CustomReflectionCaptureResolutionSupport,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

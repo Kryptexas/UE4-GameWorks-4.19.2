@@ -71,6 +71,14 @@ FAutoConsoleVariableRef CVarCapsuleSkyAngleScale(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
+float GCapsuleMinSkyAngle = 15;
+FAutoConsoleVariableRef CVarCapsuleMinSkyAngle(
+	TEXT("r.CapsuleMinSkyAngle"),
+	GCapsuleMinSkyAngle,
+	TEXT("Minimum light source angle derived from the precomputed unoccluded sky vector (stationary skylight present)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
 float GCapsuleIndirectShadowMinVisibility = .1f;
 FAutoConsoleVariableRef CVarCapsuleIndirectShadowMinVisibility(
 	TEXT("r.CapsuleIndirectShadowMinVisibility"),
@@ -876,7 +884,8 @@ void FDeferredShadingSceneRenderer::SetupIndirectCapsuleShadows(FRHICommandListI
 			{
 				// Stationary sky light case
 				// Get the indirect shadow direction from the unoccluded sky direction
-				PackedLightDirection = FVector4(Allocation->CurrentSkyBentNormal, Allocation->CurrentSkyBentNormal.W * GCapsuleSkyAngleScale * .5f * PI);
+				const float ConeAngle = FMath::Max(Allocation->CurrentSkyBentNormal.W * GCapsuleSkyAngleScale * .5f * PI, GCapsuleMinSkyAngle * PI / 180.0f);
+				PackedLightDirection = FVector4(Allocation->CurrentSkyBentNormal, ConeAngle);
 			}
 			else if (SkyLight 
 				&& !SkyLight->bHasStaticLighting 
@@ -884,7 +893,7 @@ void FDeferredShadingSceneRenderer::SetupIndirectCapsuleShadows(FRHICommandListI
 				&& View.Family->EngineShowFlags.SkyLighting)
 			{
 				// Movable sky light case
-				const FSHVector3 SkyLightingIntensity = SkyLight->IrradianceEnvironmentMap.GetLuminance();
+				const FSHVector2 SkyLightingIntensity = FSHVectorRGB2(SkyLight->IrradianceEnvironmentMap).GetLuminance();
 				const FVector ExtractedMaxDirection = SkyLightingIntensity.GetMaximumDirection();
 
 				// Get the indirect shadow direction from the primary sky lighting direction
@@ -894,9 +903,9 @@ void FDeferredShadingSceneRenderer::SetupIndirectCapsuleShadows(FRHICommandListI
 			{
 				// Static sky light or no sky light case
 				FSHVectorRGB2 IndirectLighting;
-				IndirectLighting.R = FSHVector2(Allocation->TargetSamplePacked[0]);
-				IndirectLighting.G = FSHVector2(Allocation->TargetSamplePacked[1]);
-				IndirectLighting.B = FSHVector2(Allocation->TargetSamplePacked[2]);
+				IndirectLighting.R = FSHVector2(Allocation->TargetSamplePacked0[0]);
+				IndirectLighting.G = FSHVector2(Allocation->TargetSamplePacked0[1]);
+				IndirectLighting.B = FSHVector2(Allocation->TargetSamplePacked0[2]);
 				const FSHVector2 IndirectLightingIntensity = IndirectLighting.GetLuminance();
 				const FVector ExtractedMaxDirection = IndirectLightingIntensity.GetMaximumDirection();
 

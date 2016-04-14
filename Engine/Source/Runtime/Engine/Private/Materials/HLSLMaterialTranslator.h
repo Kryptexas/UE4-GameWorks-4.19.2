@@ -2673,10 +2673,10 @@ protected:
 
 		FString UVs = CoerceParameter(CoordinateIndex, UVsType);
 
-		if (TextureReferenceIndex != INDEX_NONE)
+		const bool bStoreTexCoordScales = (TextureReferenceIndex != INDEX_NONE && Material && Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
+		if (bStoreTexCoordScales)
 		{
-			// Output GPU coordinate analysis. Stubbed unless in TexCoordScaleAnalysis pixel shader.
-			AddCodeChunk(MCT_Float, TEXT("StoreTexCoordScale(%s, %d)"), *UVs, (int)TextureReferenceIndex);
+			AddCodeChunk(MCT_Float, TEXT("StoreTexCoordScale(Parameters.TexCoordScalesParams, %s, %d)"), *UVs, (int)TextureReferenceIndex);
 		}
 
 		int32 SamplingCodeIndex = AddCodeChunk(
@@ -2689,11 +2689,10 @@ protected:
 			*MipValue1Code
 			);
 
-		if (TextureReferenceIndex != INDEX_NONE)
+		if (bStoreTexCoordScales)
 		{
-			// Output sampling result for the TexCoordScaleAccuracy debug view mode.
 			FString SamplingCode = CoerceParameter(SamplingCodeIndex, MCT_Float4);
-			AddCodeChunk(MCT_Float, TEXT("StoreTexSample(%s, %d)"), *SamplingCode, (int)TextureReferenceIndex);
+			AddCodeChunk(MCT_Float, TEXT("StoreTexSample(Parameters.TexCoordScalesParams, %s, %d)"), *SamplingCode, (int)TextureReferenceIndex);
 		}
 
 		return SamplingCodeIndex;

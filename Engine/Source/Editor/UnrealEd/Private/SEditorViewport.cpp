@@ -351,9 +351,9 @@ void SEditorViewport::BindCommands()
 	MAP_VIEWMODE_ACTION( Commands.ShaderComplexityMode, VMI_ShaderComplexity );
 	MAP_VIEWMODE_ACTION( Commands.QuadOverdrawMode, VMI_QuadOverdraw);
 	MAP_VIEWMODE_ACTION( Commands.ShaderComplexityWithQuadOverdrawMode, VMI_ShaderComplexityWithQuadOverdraw );
-	MAP_VIEWMODE_ACTION( Commands.WantedMipsAccuracyMode, VMI_WantedMipsAccuracy );
-	MAP_VIEWMODE_ACTION( Commands.TexelFactorAccuracyMode, VMI_TexelFactorAccuracy );
-	MAP_VIEWMODE_ACTION( Commands.TexCoordScaleAccuracyMode, VMI_TexCoordScaleAccuracy );
+	MAP_VIEWMODE_ACTION( Commands.TexStreamAccPrimitiveDistanceMode, VMI_PrimitiveDistanceAccuracy );
+	MAP_VIEWMODE_ACTION( Commands.TexStreamAccMeshTexCoordSizeMode, VMI_MeshTexCoordSizeAccuracy );
+	MAP_VIEWMODE_ACTION( Commands.TexStreamAccMaterialTexCoordScalesMode, VMI_MaterialTexCoordScalesAccuracy );
 	MAP_VIEWMODE_ACTION( Commands.StationaryLightOverlapMode, VMI_StationaryLightOverlap );
 	MAP_VIEWMODE_ACTION( Commands.LightmapDensityMode, VMI_LightmapDensity );
 	MAP_VIEWMODE_ACTION( Commands.ReflectionOverrideMode, VMI_ReflectionOverride );

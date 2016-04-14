@@ -477,7 +477,7 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::SetSharedState(
 		DomainShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
 	}
 
-	if (GetDebugViewShaderMode() != DVSM_None)
+	if (UseDebugViewPS())
 	{
 		check(!bInitializeOffsets);
 //later		TShaderMapRef<FShaderComplexityAccumulatePixelShader> ShaderComplexityPixelShader(GetGlobalShaderMap(View->ShaderMap));
@@ -504,7 +504,7 @@ FBoundShaderStateInput TDistortionMeshDrawingPolicy<DistortMeshPolicy>::GetBound
 {
 	FPixelShaderRHIParamRef PixelShaderRHIRef = NULL;
 
-	if (GetDebugViewShaderMode() != DVSM_None)
+	if (UseDebugViewPS())
 	{
 		check(!bInitializeOffsets);
 //later		TShaderMapRef<FShaderComplexityAccumulatePixelShader> ShaderComplexityAccumulatePixelShader(GetGlobalShaderMap(InFeatureLevel));
@@ -562,15 +562,10 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::SetMeshRenderState(
 	}
 	
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// Don't set pixel shader constants if we are overriding with the shader complexity pixel shader
-	if (GetDebugViewShaderMode() == DVSM_None)
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (!bInitializeOffsets && !UseDebugViewPS())
 	{
-		if (!bInitializeOffsets)
-		{
-			DistortPixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
-		}
+		DistortPixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState);
 	}
 	
 	// Set rasterizer state.
