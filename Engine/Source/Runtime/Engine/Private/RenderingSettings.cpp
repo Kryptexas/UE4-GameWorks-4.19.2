@@ -40,9 +40,6 @@ void URendererSettings::PostInitProperties()
 
 	SanatizeReflectionCaptureResolution();
 
-	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
-	UISettings->UpdateDefaultConfigFile();
-
 #if WITH_EDITOR
 	if (IsTemplate())
 	{
