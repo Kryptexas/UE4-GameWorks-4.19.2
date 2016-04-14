@@ -1837,7 +1837,7 @@ FHitResult FVREditorMode::GetHitResultFromLaserPointer( int32 HandIndex, TArray<
 			
 			const FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam;
 
-			const ECollisionChannel CollisionChannel = bOnlyEditorGizmos ? ECC_EditorGizmo : ECC_Visibility;
+			const ECollisionChannel CollisionChannel = bOnlyEditorGizmos ? COLLISION_GIZMO : ECC_Visibility;
 
 			// Don't trace against our own head/hand meshes
 			TraceParams.AddIgnoredActor( AvatarMeshActor );
@@ -1859,13 +1859,13 @@ FHitResult FVREditorMode::GetHitResultFromLaserPointer( int32 HandIndex, TArray<
 			else
 			{
 				FCollisionObjectQueryParams EverythingButGizmos( FCollisionObjectQueryParams::AllObjects );
-				EverythingButGizmos.RemoveObjectTypesToQuery( ECC_EditorGizmo );
+				EverythingButGizmos.RemoveObjectTypesToQuery( COLLISION_GIZMO );
 				bHit = GetWorld()->LineTraceSingleByObjectType( HitResult, LaserPointerStart, LaserPointerEnd, EverythingButGizmos, TraceParams );
 			}
 			if( bHit )
 			{
 				// Is this better than what we have already?  Always prefer transform gizmos even if they were not using
-				// ECC_EditorGizmo (some gizmo handles are opaque and use ECC_Visibility as their collision channel)
+				// COLLISION_GIZMO (some gizmo handles are opaque and use ECC_Visibility as their collision channel)
 				// NOTE: We're treating components of floating UI actors as "gizmos" for the purpose of hit testing as long as the component is not the actual UI widget component
 				const bool bHitResultIsUI = UISystem->IsWidgetAnEditorUIWidget( HitResult.GetComponent() );
 				const bool bHitResultIsGizmo = HitResult.GetActor() != nullptr && ( ( HitResult.GetActor() == WorldInteraction->GetTransformGizmoActor() ) || ( !bHitResultIsUI && HitResult.GetActor()->IsA( AVREditorFloatingUI::StaticClass() ) ) );
