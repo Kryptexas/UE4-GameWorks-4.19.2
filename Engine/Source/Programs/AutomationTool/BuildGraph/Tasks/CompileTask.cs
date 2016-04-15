@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnrealBuildTool;
 using AutomationTool;
+using System.Xml;
 
 namespace AutomationTool
 {
@@ -132,6 +133,29 @@ namespace AutomationTool
 			BuildProducts.UnionWith(Builder.BuildProductFiles.Select(x => new FileReference(x)));
 			BuildProducts.UnionWith(Builder.LibraryBuildProductFiles.Select(x => new FileReference(x)));
 			return true;
+		}
+
+		/// <summary>
+		/// Output this task out to an XML writer.
+		/// </summary>
+		public override void Write(XmlWriter Writer)
+		{
+			foreach (UE4Build.BuildTarget Target in Targets)
+			{
+				CompileTaskParameters Parameters = new CompileTaskParameters();
+				Parameters.Target = Target.TargetName;
+				Parameters.Platform = Target.Platform;
+				Parameters.Configuration = Target.Config;
+				Parameters.Arguments = Target.UBTArgs;
+
+				string TagName;
+				if (TargetToTagName.TryGetValue(Target, out TagName))
+				{
+					Parameters.Tag = TagName;
+				}
+
+				Write(Writer, Parameters);
+			}
 		}
 	}
 }

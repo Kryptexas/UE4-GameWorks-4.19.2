@@ -329,4 +329,11 @@ namespace PlatformInfo
 	* @param InDisplayName - The new display name
 	*/
 	DESKTOPPLATFORM_API void UpdatePlatformDisplayName(FString InPlatformName, FText InDisplayName);
+
+	/**
+	* Returns an EPlatformType value from a string representation.
+	* @param PlatformTypeName The string to get the EPlatformType for.
+	* @return An EPlatformType value.
+	*/
+	DESKTOPPLATFORM_API EPlatformType EPlatformTypeFromString(const FString& PlatformTypeName);
 }

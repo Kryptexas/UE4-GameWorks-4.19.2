@@ -772,6 +772,11 @@ namespace UnrealBuildTool
 
 			if( bGeneratingGameProjectFiles || UnrealBuildTool.IsEngineInstalled() )
 			{
+				if (OnlyGameProject == null)
+				{
+					throw new BuildException("A game project path was not specified, which is required when generating project files using an installed build or passing -game on the command line");
+				}
+
 				GameProjectName = OnlyGameProject.GetFileNameWithoutExtension();
 				if (String.IsNullOrEmpty(GameProjectName))
 				{

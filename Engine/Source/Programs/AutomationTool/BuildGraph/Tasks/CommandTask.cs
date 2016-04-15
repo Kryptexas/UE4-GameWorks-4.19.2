@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AutomationTool;
 using UnrealBuildTool;
+using System.Xml;
 
 namespace BuildGraph.Tasks
 {
@@ -57,6 +58,14 @@ namespace BuildGraph.Tasks
 		{
 			CommandUtils.RunUAT(CommandUtils.CmdEnv, String.Format("{0} {1}", Parameters.Name, Parameters.Arguments ?? ""));
 			return true;
+		}
+
+		/// <summary>
+		/// Output this task out to an XML writer.
+		/// </summary>
+		public override void Write(XmlWriter Writer)
+		{
+			Write(Writer, Parameters);
 		}
 	}
 }

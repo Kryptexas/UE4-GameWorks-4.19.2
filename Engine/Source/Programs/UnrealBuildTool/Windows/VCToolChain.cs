@@ -1833,7 +1833,13 @@ namespace UnrealBuildTool
 		public override void StripSymbols(string SourceFileName, string TargetFileName)
 		{
 			ProcessStartInfo StartInfo = new ProcessStartInfo();
-			StartInfo.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "Microsoft", "VisualStudio", "v12.0", "AppxPackage", "PDBCopy.exe");
+			string PDBCopyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "Microsoft", "VisualStudio", "v14.0", "AppxPackage", "PDBCopy.exe");
+			if (!File.Exists(PDBCopyPath))
+			{
+				// Fall back on VS2013 version
+				PDBCopyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "Microsoft", "VisualStudio", "v12.0", "AppxPackage", "PDBCopy.exe");
+			}
+			StartInfo.FileName = PDBCopyPath;
 			StartInfo.Arguments = String.Format("\"{0}\" \"{1}\" -p", SourceFileName, TargetFileName);
 			StartInfo.UseShellExecute = false;
 			StartInfo.CreateNoWindow = true;

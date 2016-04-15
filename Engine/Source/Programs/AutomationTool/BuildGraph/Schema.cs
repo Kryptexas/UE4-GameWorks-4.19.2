@@ -431,22 +431,22 @@ namespace AutomationTool
 		/// <returns>Type definition for an agent</returns>
 		static XmlSchemaType CreateAgentType()
 		{
-			XmlSchemaChoice GroupChoice = new XmlSchemaChoice();
-			GroupChoice.MinOccurs = 0;
-			GroupChoice.MaxOccursString = "unbounded";
-			GroupChoice.Items.Add(CreateSchemaElement("Property", ScriptSchemaStandardType.Property));
-			GroupChoice.Items.Add(CreateSchemaElement("Local", ScriptSchemaStandardType.Local));
-			GroupChoice.Items.Add(CreateSchemaElement("Node", ScriptSchemaStandardType.Node));
-			GroupChoice.Items.Add(CreateSchemaElement("Warning", ScriptSchemaStandardType.Warning));
-			GroupChoice.Items.Add(CreateSchemaElement("Error", ScriptSchemaStandardType.Error));
+			XmlSchemaChoice AgentChoice = new XmlSchemaChoice();
+			AgentChoice.MinOccurs = 0;
+			AgentChoice.MaxOccursString = "unbounded";
+			AgentChoice.Items.Add(CreateSchemaElement("Property", ScriptSchemaStandardType.Property));
+			AgentChoice.Items.Add(CreateSchemaElement("Local", ScriptSchemaStandardType.Local));
+			AgentChoice.Items.Add(CreateSchemaElement("Node", ScriptSchemaStandardType.Node));
+			AgentChoice.Items.Add(CreateSchemaElement("Warning", ScriptSchemaStandardType.Warning));
+			AgentChoice.Items.Add(CreateSchemaElement("Error", ScriptSchemaStandardType.Error));
 
-			XmlSchemaComplexType GroupType = new XmlSchemaComplexType();
-			GroupType.Name = GetTypeName(ScriptSchemaStandardType.Agent);
-			GroupType.Particle = GroupChoice;
-			GroupType.Attributes.Add(CreateSchemaAttribute("Name", StringTypeName, XmlSchemaUse.Required));
-			GroupType.Attributes.Add(CreateSchemaAttribute("Type", ScriptSchemaStandardType.NameList, XmlSchemaUse.Optional));
-			GroupType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
-			return GroupType;
+			XmlSchemaComplexType AgentType = new XmlSchemaComplexType();
+			AgentType.Name = GetTypeName(ScriptSchemaStandardType.Agent);
+			AgentType.Particle = AgentChoice;
+			AgentType.Attributes.Add(CreateSchemaAttribute("Name", StringTypeName, XmlSchemaUse.Required));
+			AgentType.Attributes.Add(CreateSchemaAttribute("Type", ScriptSchemaStandardType.NameList, XmlSchemaUse.Optional));
+			AgentType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
+			return AgentType;
 		}
 
 		/// <summary>

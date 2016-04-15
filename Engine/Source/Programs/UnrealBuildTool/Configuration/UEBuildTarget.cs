@@ -1682,17 +1682,13 @@ namespace UnrealBuildTool
 		{
 			string FileListPath = "../Intermediate/Build/ExternalFiles.xml";
 
-			// Find all the external modules
-			HashSet<string> ModuleNames = new HashSet<string>();
+			// Find all the modules we depend on
+			HashSet<UEBuildModule> Modules = new HashSet<UEBuildModule>();
 			foreach (UEBuildBinary Binary in AppBinaries)
 			{
 				foreach (UEBuildModule Module in Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false))
 				{
-					UEBuildExternalModule ExternalModule = Module as UEBuildExternalModule;
-					if (ExternalModule != null)
-					{
-						ModuleNames.Add(ExternalModule.Name);
-					}
+					Modules.Add(Module);
 				}
 			}
 
@@ -1702,74 +1698,84 @@ namespace UnrealBuildTool
 			// Get the platform we're building for
 			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 
-			// Add all their include paths
-			foreach (string ModuleName in ModuleNames)
+			foreach (UEBuildModule Module in Modules)
 			{
 				// Create the module rules
 				FileReference ModuleRulesFileName;
-				ModuleRules Rules = CreateModuleRulesAndSetDefaults(ModuleName, out ModuleRulesFileName);
+				ModuleRules Rules = CreateModuleRulesAndSetDefaults(Module.Name, out ModuleRulesFileName);
 
-				// Add the rules file itself
-				FileNames.Add(ModuleRulesFileName.FullName);
-
-				// Get a list of all the library paths
-				List<string> LibraryPaths = new List<string>();
-				LibraryPaths.Add(Directory.GetCurrentDirectory());
-				LibraryPaths.AddRange(Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")).Select(x => Path.GetFullPath(x.Replace('/', '\\'))));
-
-				// Get all the extensions to look for
-				List<string> LibraryExtensions = new List<string>();
-				LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.StaticLibrary));
-				LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.DynamicLinkLibrary));
-
-				// Add all the libraries
-				foreach (string LibraryExtension in LibraryExtensions)
+				// Add Additional Bundle Resources for all modules
+				foreach (UEBuildBundleResource Resource in Rules.AdditionalBundleResources)
 				{
-					foreach (string LibraryName in Rules.PublicAdditionalLibraries)
-					{
-						foreach (string LibraryPath in LibraryPaths)
-						{
-							string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
-							if (File.Exists(LibraryFileName))
-							{
-								FileNames.Add(LibraryFileName);
-							}
+					FileNames.Add(Resource.ResourcePath);
+				}
 
-							string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
-							if (File.Exists(UnixLibraryFileName))
+				// Add all the include paths etc. for external modules
+				UEBuildExternalModule ExternalModule = Module as UEBuildExternalModule;
+				if (ExternalModule != null)
+				{
+					// Add the rules file itself
+					FileNames.Add(ModuleRulesFileName.FullName);
+
+					// Get a list of all the library paths
+					List<string> LibraryPaths = new List<string>();
+					LibraryPaths.Add(Directory.GetCurrentDirectory());
+					LibraryPaths.AddRange(Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")).Select(x => Path.GetFullPath(x.Replace('/', '\\'))));
+
+					// Get all the extensions to look for
+					List<string> LibraryExtensions = new List<string>();
+					LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.StaticLibrary));
+					LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.DynamicLinkLibrary));
+
+					// Add all the libraries
+					foreach (string LibraryExtension in LibraryExtensions)
+					{
+						foreach (string LibraryName in Rules.PublicAdditionalLibraries)
+						{
+							foreach (string LibraryPath in LibraryPaths)
 							{
-								FileNames.Add(UnixLibraryFileName);
+								string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
+								if (File.Exists(LibraryFileName))
+								{
+									FileNames.Add(LibraryFileName);
+								}
+
+								string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
+								if (File.Exists(UnixLibraryFileName))
+								{
+									FileNames.Add(UnixLibraryFileName);
+								}
 							}
 						}
 					}
-				}
 
-				// Add all the additional shadow files
-				foreach (string AdditionalShadowFile in Rules.PublicAdditionalShadowFiles)
-				{
-					string ShadowFileName = Path.GetFullPath(AdditionalShadowFile);
-					if (File.Exists(ShadowFileName))
+					// Add all the additional shadow files
+					foreach (string AdditionalShadowFile in Rules.PublicAdditionalShadowFiles)
 					{
-						FileNames.Add(ShadowFileName);
-					}
-				}
-
-				// Find all the include paths
-				List<string> AllIncludePaths = new List<string>();
-				AllIncludePaths.AddRange(Rules.PublicIncludePaths);
-				AllIncludePaths.AddRange(Rules.PublicSystemIncludePaths);
-
-				// Add all the include paths
-				foreach (string IncludePath in AllIncludePaths.Where(x => !x.StartsWith("$(")))
-				{
-					if (Directory.Exists(IncludePath))
-					{
-						foreach (string IncludeFileName in Directory.EnumerateFiles(IncludePath, "*", SearchOption.AllDirectories))
+						string ShadowFileName = Path.GetFullPath(AdditionalShadowFile);
+						if (File.Exists(ShadowFileName))
 						{
-							string Extension = Path.GetExtension(IncludeFileName).ToLower();
-							if (Extension == ".h" || Extension == ".inl")
+							FileNames.Add(ShadowFileName);
+						}
+					}
+
+					// Find all the include paths
+					List<string> AllIncludePaths = new List<string>();
+					AllIncludePaths.AddRange(Rules.PublicIncludePaths);
+					AllIncludePaths.AddRange(Rules.PublicSystemIncludePaths);
+
+					// Add all the include paths
+					foreach (string IncludePath in AllIncludePaths.Where(x => !x.StartsWith("$(")))
+					{
+						if (Directory.Exists(IncludePath))
+						{
+							foreach (string IncludeFileName in Directory.EnumerateFiles(IncludePath, "*", SearchOption.AllDirectories))
 							{
-								FileNames.Add(IncludeFileName);
+								string Extension = Path.GetExtension(IncludeFileName).ToLower();
+								if (Extension == ".h" || Extension == ".inl")
+								{
+									FileNames.Add(IncludeFileName);
+								}
 							}
 						}
 					}

@@ -152,6 +152,14 @@ namespace BuildGraph.Tasks
 		}
 
 		/// <summary>
+		/// Output this task out to an XML writer.
+		/// </summary>
+		public override void Write(XmlWriter Writer)
+		{
+			Write(Writer, Parameters);
+		}
+
+		/// <summary>
 		/// Find all the build products created by compiling the given project file
 		/// </summary>
 		/// <param name="ProjectFile">Initial project file to read. All referenced projects will also be read.</param>

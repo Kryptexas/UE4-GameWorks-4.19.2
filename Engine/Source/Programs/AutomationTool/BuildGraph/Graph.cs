@@ -51,9 +51,9 @@ namespace AutomationTool
 		public Node EnclosingNode;
 
 		/// <summary>
-		/// The agent group that this diagnostic is declared in. If the entire group is culled from the graph, the message will not be displayed.
+		/// The agent that this diagnostic is declared in. If the entire agent is culled from the graph, the message will not be displayed.
 		/// </summary>
-		public AgentGroup EnclosingGroup;
+		public Agent EnclosingAgent;
 
 		/// <summary>
 		/// The trigger that this diagnostic is declared in. If this trigger is not being run, the message will not be displayed.
@@ -67,14 +67,19 @@ namespace AutomationTool
 	class Graph
 	{
 		/// <summary>
-		/// List of nodes grouped by the agent they will be executed on
+		/// List of agents containing nodes to execute
 		/// </summary>
-		public List<AgentGroup> Groups = new List<AgentGroup>();
+		public List<Agent> Agents = new List<Agent>();
 
 		/// <summary>
 		/// All manual triggers that are part of this graph
 		/// </summary>
 		public Dictionary<string, ManualTrigger> NameToTrigger = new Dictionary<string, ManualTrigger>(StringComparer.InvariantCultureIgnoreCase);
+
+		/// <summary>
+		/// Mapping from name to agent
+		/// </summary>
+		public Dictionary<string, Agent> NameToAgent = new Dictionary<string, Agent>(StringComparer.InvariantCultureIgnoreCase);
 
 		/// <summary>
 		/// Mapping of names to the corresponding node.
@@ -217,13 +222,13 @@ namespace AutomationTool
 			}
 
 			// Remove all the nodes which are not marked to be kept
-			foreach(AgentGroup Group in Groups)
+			foreach(Agent Agent in Agents)
 			{
-				Group.Nodes = Group.Nodes.Where(x => RetainNodes.Contains(x)).ToList();
+				Agent.Nodes = Agent.Nodes.Where(x => RetainNodes.Contains(x)).ToList();
 			}
 
-			// Remove all the empty groups
-			Groups.RemoveAll(x => x.Nodes.Count == 0);
+			// Remove all the empty agents
+			Agents.RemoveAll(x => x.Nodes.Count == 0);
 
 			// Remove all the order dependencies which are no longer part of the graph. Since we don't need to build them, we don't need to wait for them
 			foreach(Node Node in RetainNodes)
@@ -238,7 +243,53 @@ namespace AutomationTool
 			AggregateNameToNodes = AggregateNameToNodes.Where(x => x.Value.All(y => RetainNodes.Contains(y))).ToDictionary(Pair => Pair.Key, Pair => Pair.Value);
 
 			// Remove any diagnostics which are no longer part of the graph
-			Diagnostics.RemoveAll(x => (x.EnclosingNode != null && !RetainNodes.Contains(x.EnclosingNode)) || (x.EnclosingGroup != null && !Groups.Contains(x.EnclosingGroup)));
+			Diagnostics.RemoveAll(x => (x.EnclosingNode != null && !RetainNodes.Contains(x.EnclosingNode)) || (x.EnclosingAgent != null && !Agents.Contains(x.EnclosingAgent)));
+		}
+
+		/// <summary>
+		/// Writes a preprocessed build graph to a script file
+		/// </summary>
+		/// <param name="File">The file to load</param>
+		public void Write(FileReference File, FileReference SchemaFile)
+		{
+			XmlWriterSettings Settings = new XmlWriterSettings();
+			Settings.Indent = true;
+			Settings.IndentChars = "\t";
+
+			using (XmlWriter Writer = XmlWriter.Create(File.FullName, Settings))
+			{
+				Writer.WriteStartElement("BuildGraph", "http://www.epicgames.com/BuildGraph");
+
+				if (SchemaFile != null)
+				{
+					Writer.WriteAttributeString("schemaLocation", "http://www.w3.org/2001/XMLSchema-instance", "http://www.epicgames.com/BuildGraph " + SchemaFile.MakeRelativeTo(File.Directory));
+				}
+
+				foreach (Agent Agent in Agents)
+				{
+					Agent.Write(Writer, null);
+				}
+
+				foreach (ManualTrigger ControllingTrigger in Agents.SelectMany(x => x.Nodes).Where(x => x.ControllingTrigger != null).Select(x => x.ControllingTrigger).Distinct())
+				{
+					Writer.WriteStartElement("Trigger");
+					Writer.WriteAttributeString("Name", ControllingTrigger.QualifiedName);
+					foreach (Agent Agent in Agents)
+					{
+						Agent.Write(Writer, ControllingTrigger);
+					}
+					Writer.WriteEndElement();
+				}
+
+				foreach (KeyValuePair<string, Node[]> Aggregate in AggregateNameToNodes)
+				{
+					Writer.WriteStartElement("Aggregate");
+					Writer.WriteAttributeString("Name", Aggregate.Key);
+					Writer.WriteAttributeString("Requires", String.Join(";", Aggregate.Value.Select(x => x.Name)));
+					Writer.WriteEndElement();
+				}
+				Writer.WriteEndElement();
+			}
 		}
 
 		/// <summary>
@@ -251,7 +302,7 @@ namespace AutomationTool
 		{
 			// Find all the nodes which we're actually going to execute. We'll use this to filter the graph.
 			HashSet<Node> NodesToExecute = new HashSet<Node>();
-			foreach(Node Node in Groups.SelectMany(x => x.Nodes))
+			foreach(Node Node in Agents.SelectMany(x => x.Nodes))
 			{
 				if(!CompletedNodes.Contains(Node))
 				{
@@ -267,17 +318,17 @@ namespace AutomationTool
 			{
 				JsonWriter.WriteObjectStart();
 
-				// Write all the agent groups
+				// Write all the agents
 				JsonWriter.WriteArrayStart("Groups");
-				foreach(AgentGroup Group in Groups)
+				foreach(Agent Agent in Agents)
 				{
-					Node[] Nodes = Group.Nodes.Where(x => NodesToExecute.Contains(x)).ToArray();
+					Node[] Nodes = Agent.Nodes.Where(x => NodesToExecute.Contains(x)).ToArray();
 					if(Nodes.Length > 0)
 					{
 						JsonWriter.WriteObjectStart();
-						JsonWriter.WriteValue("Name", Group.Name);
+						JsonWriter.WriteValue("Name", Agent.Name);
 						JsonWriter.WriteArrayStart("Agent Types");
-						foreach(string AgentType in Group.PossibleTypes)
+						foreach(string AgentType in Agent.PossibleTypes)
 						{
 							JsonWriter.WriteValue(AgentType);
 						}
@@ -309,7 +360,7 @@ namespace AutomationTool
 					{
 						// Find all the nodes that this trigger is dependent on
 						HashSet<Node> Dependencies = new HashSet<Node>();
-						foreach(Node Node in Groups.SelectMany(x => x.Nodes))
+						foreach(Node Node in Agents.SelectMany(x => x.Nodes))
 						{
 							for(ManualTrigger ControllingTrigger = Node.ControllingTrigger; ControllingTrigger != null; ControllingTrigger = ControllingTrigger.Parent)
 							{
@@ -331,7 +382,7 @@ namespace AutomationTool
 						// Write out the object
 						JsonWriter.WriteObjectStart();
 						JsonWriter.WriteValue("Name", Trigger.Name);
-						JsonWriter.WriteValue("AllDependencies", String.Join(";", Groups.SelectMany(x => x.Nodes).Where(x => Dependencies.Contains(x)).Select(x => x.Name)));
+						JsonWriter.WriteValue("AllDependencies", String.Join(";", Agents.SelectMany(x => x.Nodes).Where(x => Dependencies.Contains(x)).Select(x => x.Name)));
 						JsonWriter.WriteValue("DirectDependencies", String.Join(";", Dependencies.Where(x => DirectDependencies.Contains(x)).Select(x => x.Name)));
 						JsonWriter.WriteValue("Notify", String.Join(";", Trigger.NotifyUsers));
 						JsonWriter.WriteObjectEnd();
@@ -360,18 +411,18 @@ namespace AutomationTool
 			foreach(ManualTrigger Trigger in AllTriggers)
 			{
 				// Filter everything by this trigger
-				Dictionary<AgentGroup, Node[]> FilteredGroupToNodes = new Dictionary<AgentGroup,Node[]>();
-				foreach(AgentGroup Group in Groups)
+				Dictionary<Agent, Node[]> FilteredAgentToNodes = new Dictionary<Agent,Node[]>();
+				foreach(Agent Agent in Agents)
 				{
-					Node[] Nodes = Group.Nodes.Where(x => x.ControllingTrigger == Trigger).ToArray();
+					Node[] Nodes = Agent.Nodes.Where(x => x.ControllingTrigger == Trigger).ToArray();
 					if(Nodes.Length > 0)
 					{
-						FilteredGroupToNodes[Group] = Nodes;
+						FilteredAgentToNodes[Agent] = Nodes;
 					}
 				}
 
 				// Skip this trigger if there's nothing to display
-				if(FilteredGroupToNodes.Count == 0)
+				if(FilteredAgentToNodes.Count == 0)
 				{
 					continue;
 				}
@@ -386,13 +437,13 @@ namespace AutomationTool
 					}
 				}
 
-				// Output all the groups for this trigger
-				foreach(AgentGroup Group in Groups)
+				// Output all the agents for this trigger
+				foreach(Agent Agent in Agents)
 				{
 					Node[] Nodes;
-					if(FilteredGroupToNodes.TryGetValue(Group, out Nodes))
+					if(FilteredAgentToNodes.TryGetValue(Agent, out Nodes))
 					{
-						CommandUtils.Log("        Group: {0} ({1})", Group.Name, String.Join(";", Group.PossibleTypes));
+						CommandUtils.Log("        Agent: {0} ({1})", Agent.Name, String.Join(";", Agent.PossibleTypes));
 						foreach(Node Node in Nodes)
 						{
 							CommandUtils.Log("            Node: {0}{1}", Node.Name, CompletedNodes.Contains(Node)? " (completed)" : "");

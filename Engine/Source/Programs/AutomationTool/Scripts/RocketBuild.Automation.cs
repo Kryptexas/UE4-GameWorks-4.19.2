@@ -128,12 +128,28 @@ namespace Rocket
 				BranchConfig.AddNode(new GatherRocketNode(BranchConfig, HostPlatform, TargetPlatforms, LocalOutputDir));
 
 				// Add a node for GitHub promotions
-				if(HostPlatform == UnrealTargetPlatform.Win64)
+				if(HostPlatform == UnrealTargetPlatform.Win64 && !BranchConfig.JobInfo.IsPreflight)
 				{
 					string GitConfigRelativePath = "Engine/Build/Git/UnrealBot.ini";
 					if(CommandUtils.FileExists(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, GitConfigRelativePath)))
 					{
-						BranchConfig.AddNode(new LabelGitHubPromotion(HostPlatform, BranchConfig.HostPlatforms));
+						string BranchName = null;
+						if (BranchConfig.BranchName == "//UE4/Main")
+						{
+							BranchName = "Main";
+						}
+						else if (BranchConfig.BranchName.StartsWith("//UE4/Release-4."))
+						{
+							int MinorVersion;
+							if(int.TryParse(BranchConfig.BranchName.Substring(BranchConfig.BranchName.IndexOf('.') + 1), out MinorVersion))
+							{
+								BranchName = "4." + MinorVersion.ToString();
+							}
+						}
+						if (BranchName != null)
+						{
+							BranchConfig.AddNode(new RunGithubPromotion(HostPlatform, BranchConfig.HostPlatforms, BranchName, CommandUtils.P4Env.Changelist));
+						}
 					}
 				}
 
@@ -326,10 +342,15 @@ namespace Rocket
         }
     }
 
-	public class LabelGitHubPromotion : GUBP.HostPlatformNode
+	public class RunGithubPromotion : GUBP.HostPlatformNode
 	{
-		public LabelGitHubPromotion(UnrealTargetPlatform HostPlatform, List<UnrealTargetPlatform> ForHostPlatforms) : base(HostPlatform)
+		string BranchName;
+		int Changelist;
+
+		public RunGithubPromotion(UnrealTargetPlatform HostPlatform, List<UnrealTargetPlatform> ForHostPlatforms, string InBranchName, int InChangelist) : base(HostPlatform)
 		{
+			BranchName = InBranchName;
+			Changelist = InChangelist;
 			foreach(UnrealTargetPlatform ForHostPlatform in ForHostPlatforms)
 			{
 				AddPseudodependency(GUBP.RootEditorNode.StaticGetFullName(ForHostPlatform));
@@ -340,7 +361,7 @@ namespace Rocket
 
 		public static string StaticGetFullName(UnrealTargetPlatform HostPlatform)
 		{
-			return "LabelGitHubPromotion" + StaticGetHostPlatformSuffix(HostPlatform);
+			return "RunGithubPromotion" + StaticGetHostPlatformSuffix(HostPlatform);
 		}
 
 		public override string GetFullName()
@@ -356,9 +377,9 @@ namespace Rocket
 		public override void DoBuild(GUBP bp)
 		{
 			// Label everything in the branch at this changelist
-			if(CommandUtils.AllowSubmit)
+			if(CommandUtils.IsBuildMachine)
 			{
-				CommandUtils.P4.MakeDownstreamLabel(CommandUtils.P4Env, "GitHub-Promotion", null);
+				CommandUtils.Run("ectool.exe", String.Format("runProcedure GitHub --procedureName \"Run Promotion\" --actualParameter \"Branch={0}\" --actualParameter \"CL={1}\"", BranchName, Changelist), Options: CommandUtils.ERunOptions.None);
 			}
 
 			// Create a dummy build product
@@ -1192,8 +1213,9 @@ namespace Rocket
 				IniLines.Add("");
 			}
 			
-			// Write information about platforms installed in a Rocket build
-			IniLines.Add("[InstalledPlatforms]");
+			// Create list of platform configurations installed in a Rocket build
+			List<InstalledPlatformInfo.InstalledPlatformConfiguration> InstalledConfigs = new List<InstalledPlatformInfo.InstalledPlatformConfiguration>();
+
 			foreach (UnrealTargetPlatform CodeTargetPlatform in CodeTargetPlatforms)
 			{
 				// Bit of a hack to mark these platforms as available in any type of project
@@ -1234,15 +1256,23 @@ namespace Rocket
 					}
 					string ReceiptFileName = TargetReceipt.GetDefaultPath(OutputEnginePath, "UE4Game", CodeTargetPlatform, EngineConfiguration, Architecture);
 
+					// Hack to write Android architecture until we retrieve it from build process -
+					// has to be after getting receipt path as one is shared for all architectures
+					if (string.IsNullOrEmpty(Architecture) && CodeTargetPlatform == UnrealTargetPlatform.Android)
+					{
+						Architecture = "-armv7-es2";
+					}
+
 					if (File.Exists(ReceiptFileName))
 					{
 						// Strip the output folder so that this can be used on any machine
 						ReceiptFileName = new FileReference(ReceiptFileName).MakeRelativeTo(new DirectoryReference(OutputDir));
-						IniLines.Add(string.Format("+InstalledPlatformConfigurations=(PlatformName=\"{0}\", Configuration=\"{1}\", RequiredFile=\"{2}\", ProjectType=\"{3}\", bCanBeDisplayed={4})",
-													CodeTargetPlatform.ToString(), CodeTargetConfiguration.ToString(), ReceiptFileName, ProjectType.ToString(), bCanBeDisplayed.ToString()));
+						InstalledConfigs.Add(new InstalledPlatformInfo.InstalledPlatformConfiguration(CodeTargetConfiguration, CodeTargetPlatform, TargetRules.TargetType.Game, Architecture, ReceiptFileName, ProjectType, bCanBeDisplayed));
 					}
 				}
 			}
+
+			UnrealBuildTool.InstalledPlatformInfo.WriteConfigFileEntries(InstalledConfigs, ref IniLines);
 
 			// Write Rocket specific Analytics settings
 			IniLines.Add("");
