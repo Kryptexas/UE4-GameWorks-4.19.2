@@ -1179,7 +1179,7 @@ void UReflectionCaptureComponent::PostEditChangeProperty(FPropertyChangedEvent& 
 
 	if (PropertyChangedEvent.Property
 		&& (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UReflectionCaptureComponent, bVisible)
-			|| PropertyChangedEvent.MemberProperty && PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UReflectionCaptureComponent, CaptureOffset)))
+			|| (PropertyChangedEvent.MemberProperty && PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UReflectionCaptureComponent, CaptureOffset))))
 	{
 		SetCaptureIsDirty();
 	}
