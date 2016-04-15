@@ -2224,11 +2224,20 @@ void UCookOnTheFlyServer::EditorTick( const float TimeSlice, const TArray<const 
 
 void UCookOnTheFlyServer::OnObjectModified( UObject *ObjectMoving )
 {
+	if (IsGarbageCollecting())
+	{
+		return;
+	}
 	OnObjectUpdated( ObjectMoving );
 }
 
 void UCookOnTheFlyServer::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
+	if (IsGarbageCollecting())
+	{
+		return;
+	}
+
 	OnObjectUpdated( ObjectBeingModified );
 }
 

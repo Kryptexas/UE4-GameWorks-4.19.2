@@ -2332,21 +2332,25 @@ typedef NSArray* (*MTLCopyAllDevices)(void);
 
 bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 {
-	if (FCString::Stricmp(FeatureName, TEXT("Metal")) == 0 && !FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
+	if (FCString::Stricmp(FeatureName, TEXT("Metal")) == 0)
 	{
-		// Find out if there are any Metal devices on the system - some Mac's have none
-		void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
-		if (DLLHandle)
+		// Metal is only permitted on 10.11.4 and above now because of all the bug-fixes Apple made for us in 10.11.4.
+		if (FPlatformMisc::MacOSXVersionCompare(10, 11, 4) >= 0 && !FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
 		{
-			// Use the copy all function because we don't want to invoke a GPU switch at this point on dual-GPU Macbooks
-			MTLCopyAllDevices CopyDevicesPtr = (MTLCopyAllDevices)FPlatformProcess::GetDllExport(DLLHandle, TEXT("MTLCopyAllDevices"));
-			if (CopyDevicesPtr)
+			// Find out if there are any Metal devices on the system - some Mac's have none
+			void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
+			if (DLLHandle)
 			{
-				SCOPED_AUTORELEASE_POOL;
-				NSArray* MetalDevices = CopyDevicesPtr();
-				[MetalDevices autorelease];
-				FPlatformProcess::FreeDllHandle(DLLHandle);
-				return MetalDevices && [MetalDevices count] > 0;
+				// Use the copy all function because we don't want to invoke a GPU switch at this point on dual-GPU Macbooks
+				MTLCopyAllDevices CopyDevicesPtr = (MTLCopyAllDevices)FPlatformProcess::GetDllExport(DLLHandle, TEXT("MTLCopyAllDevices"));
+				if (CopyDevicesPtr)
+				{
+					SCOPED_AUTORELEASE_POOL;
+					NSArray* MetalDevices = CopyDevicesPtr();
+					[MetalDevices autorelease];
+					FPlatformProcess::FreeDllHandle(DLLHandle);
+					return MetalDevices && [MetalDevices count] > 0;
+				}
 			}
 		}
 	}

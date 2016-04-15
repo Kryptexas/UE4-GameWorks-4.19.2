@@ -615,7 +615,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		// Set render to the framebuffer
 		CommandEncoder.SetRenderPassDescriptor(RenderPass, bReset);
 		
-		if (bNeedsClear || !PLATFORM_MAC || IsRHIDeviceNVIDIA())
+		if (bNeedsClear || !PLATFORM_MAC || IsRHIDeviceNVIDIA() || IsRHIDeviceIntel())
 		{
 			CommandEncoder.BeginRenderCommandEncoding();
 		}

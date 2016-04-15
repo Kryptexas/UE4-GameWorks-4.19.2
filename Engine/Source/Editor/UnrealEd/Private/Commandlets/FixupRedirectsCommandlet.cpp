@@ -511,6 +511,12 @@ int32 UFixupRedirectsCommandlet::Main( const FString& Params )
 				continue;
 			}
 
+			// When not updating engine packages, we don't need to spam the log about them.
+			if (!bUpdateEnginePackages && Filename.StartsWith(FPaths::EngineDir()))
+			{
+				continue;
+			}
+
 			// The file should have already been checked out/be writable
 			// If it is read only that means the checkout failed or we are not using source control and we can not write this file.
 			if(bSCCEnabled)

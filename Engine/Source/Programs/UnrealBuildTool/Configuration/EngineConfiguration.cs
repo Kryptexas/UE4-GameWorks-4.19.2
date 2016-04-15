@@ -39,7 +39,7 @@ namespace UnrealBuildTool
 																	"/Script/BuildSettings.BuildSettings", "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "/Script/WindowsTargetPlatform.WindowsTargetSettings",
 																	"/Script/UnrealEd.ProjectPackagingSettings", "/Script/PS4PlatformEditor.PS4TargetSettings", "/Script/XboxOneTargetPlatform.XboxOneTargetSettings",
 																	"/Script/HTML5PlatformEditor.HTML5TargetSettings","PS4SymbolServer","/Script/EngineSettings.GeneralProjectSettings","/Script/XboxOneTargetPlatform.XboxOneTargetSettings",
-                                                                    "/Script/UnrealEd.ProjectPackagingSettings", "InstalledPlatforms"};
+                                                                    "/Script/UnrealEd.ProjectPackagingSettings", "InstalledPlatforms", "XboxOne.ProjectSettings", "OnlineSubsystemGooglePlay.Store"};
 
 		// static creation functions for ini files
 		public static ConfigCacheIni CreateConfigCacheIni(UnrealTargetPlatform Platform, string BaseIniName, DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory = null)
@@ -227,6 +227,10 @@ namespace UnrealBuildTool
 		{
 			IniSection Section;
 			Sections.TryGetValue(SectionName, out Section);
+			if (!RequiredSections.Contains(SectionName))
+			{
+				throw new BuildException("Section Name - {0} - is not being cached. Add the specific section to the RequiredSections list in EngineConfiguration.cs", SectionName);
+			}
 			return Section;
 		}
 

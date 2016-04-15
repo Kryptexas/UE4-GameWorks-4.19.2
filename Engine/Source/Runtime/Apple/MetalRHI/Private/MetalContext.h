@@ -206,6 +206,7 @@ public:
 	void ReleaseObject(id Object);
 	
 	void BeginFrame();
+	void ClearFreeList();
 	void EndFrame();
 	
 	/** RHIBeginScene helper */
@@ -250,6 +251,9 @@ private:
 	{
 		dispatch_semaphore_t Signal;
 		TSet<id> FreeList;
+#if PLATFORM_IOS
+        int FrameCount;
+#endif
 	};
 	TArray<FMetalDelayedFreeList*> DelayedFreeLists;
 	

@@ -1532,9 +1532,9 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 
 			FMeshParticleInstanceVertices* InstanceVerticesCPU = NULL;
 
-			// For OpenGL's we can't assume that it is OK to leave the PrevTransformBuffer buffer unbound.
+			// For OpenGL & Metal we can't assume that it is OK to leave the PrevTransformBuffer buffer unbound.
 			// Doing so can lead to undefined behaviour if the buffer is referenced in the shader even if protected by a branch that is not meant to be taken.
-			bool const bGeneratePrevTransformBuffer = (Source.MeshMotionBlurOffset || IsOpenGLPlatform(ShaderPlatform));
+			bool const bGeneratePrevTransformBuffer = (Source.MeshMotionBlurOffset || IsOpenGLPlatform(ShaderPlatform) || IsMetalPlatform(ShaderPlatform));
 
 			if(bInstanced)
 			{

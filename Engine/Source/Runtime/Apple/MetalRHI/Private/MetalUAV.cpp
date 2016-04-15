@@ -364,8 +364,11 @@ FComputeFenceRHIRef FMetalDynamicRHI::RHICreateComputeFence(const FName& Name)
 
 void FMetalComputeFence::Wait()
 {
-	check(CommandBuffer);
-	check(CommandBuffer.status > MTLCommandBufferStatusEnqueued);
+	if (GSupportsEfficientAsyncCompute)
+	{
+		check(CommandBuffer);
+		check(CommandBuffer.status > MTLCommandBufferStatusEnqueued);
+	}
 }
 
 void FMetalRHICommandContext::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFence)
@@ -374,7 +377,10 @@ void FMetalRHICommandContext::RHITransitionResources(EResourceTransitionAccess T
 	{
 		FMetalComputeFence* Fence = ResourceCast(WriteComputeFence);
 		Fence->Write(Context->GetCurrentCommandBuffer());
-		RHISubmitCommandsHint();
+		if (GSupportsEfficientAsyncCompute)
+		{
+			RHISubmitCommandsHint();
+		}
 	}
 }
 

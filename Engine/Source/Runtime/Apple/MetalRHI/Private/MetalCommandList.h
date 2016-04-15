@@ -55,6 +55,12 @@ public:
 	*/
 	NSArray<id<MTLCommandBuffer>>* GetCommandBuffers() const;
 	
+	/**
+	 * True iff the command-list submits immediately to the command-queue, false if it performs any buffering.
+	 * @returns True iff the command-list submits immediately to the command-queue, false if it performs any buffering.
+	 */
+	bool IsImmediate(void) const { return bImmediate; }
+	
 private:
 #pragma mark - Private Member Variables -
 	FMetalCommandQueue& CommandQueue;

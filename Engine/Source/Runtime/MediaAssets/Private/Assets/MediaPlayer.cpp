@@ -36,6 +36,7 @@ void UMediaPlayer::Close()
 	{
 		Player->Close();
 	}
+	CurrentUrl = FString();
 }
 
 

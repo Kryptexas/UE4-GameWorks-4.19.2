@@ -19,7 +19,7 @@ extern const uint32 UpdateObjectsGroupSize;
 
 inline bool DoesPlatformSupportDistanceFieldAO(EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_XBOXONE;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_XBOXONE || Platform == SP_METAL_SM5;
 }
 
 extern FIntPoint GetBufferSizeForAO();

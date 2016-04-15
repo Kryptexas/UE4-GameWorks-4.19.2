@@ -503,6 +503,7 @@ void FMetalCommandEncoder::PopDebugGroup(void)
 void FMetalCommandEncoder::SetRenderPassDescriptor(MTLRenderPassDescriptor* const RenderPass, bool const bReset)
 {
 	check(IsRenderCommandEncoderActive() == false && IsComputeCommandEncoderActive() == false && IsBlitCommandEncoderActive() == false);
+	check(RenderPass);
 	
 	if(RenderPass != RenderPassDesc)
 	{

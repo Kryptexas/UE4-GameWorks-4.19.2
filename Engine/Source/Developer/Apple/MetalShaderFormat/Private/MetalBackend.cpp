@@ -3027,7 +3027,7 @@ struct FMetalCheckComputeRestrictionsVisitor : public ir_rvalue_visitor
 	void VerifyDeReference(ir_dereference* DeRef, bool bWrite)
 	{
 		auto* Var = DeRef->variable_referenced();
-		if (Var && Var->type && Var->type->is_image())
+		if (Var && Var->type && Var->type->is_image() && !Var->type->sampler_buffer)
 		{
 			if (bWrite)
 			{
@@ -3040,7 +3040,7 @@ struct FMetalCheckComputeRestrictionsVisitor : public ir_rvalue_visitor
 
 			if (ImageRW[Var] == ReadWrite)
 			{
-				_mesa_glsl_error(ParseState, "Metal doesn't allow simultaneous read & write on RWBuffer(s) or RWTexture(s) %s%s%s", Var->name ? "(" : "", Var->name ? Var->name : "", Var->name ? ")" : "");
+				_mesa_glsl_error(ParseState, "Metal doesn't allow simultaneous read & write on RWTexture(s) %s%s%s", Var->name ? "(" : "", Var->name ? Var->name : "", Var->name ? ")" : "");
 				bErrors = true;
 			}
 		}

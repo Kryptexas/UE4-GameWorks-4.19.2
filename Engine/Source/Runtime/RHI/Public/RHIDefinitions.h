@@ -612,7 +612,7 @@ inline bool IsPCPlatform(const EShaderPlatform Platform)
 	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 ||
 		Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 ||
 		Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 ||
-		Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_SM5;
+		Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_MACES3_1;
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
@@ -624,7 +624,7 @@ inline bool IsES2Platform(const EShaderPlatform Platform)
 /** Whether the shader platform corresponds to the ES2/ES3.1 feature level. */
 inline bool IsMobilePlatform(const EShaderPlatform Platform)
 {
-	return IsES2Platform(Platform) || Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID || Platform == SP_VULKAN_PCES3_1;
+	return IsES2Platform(Platform) || Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID || Platform == SP_VULKAN_PCES3_1 || Platform == SP_METAL_MACES3_1;
 }
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
@@ -679,6 +679,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_ES2_IOS:
 		return ERHIFeatureLevel::ES2;
 	case SP_METAL:
+	case SP_METAL_MACES3_1:
 	case SP_PCD3D_ES3_1:
 	case SP_OPENGL_PCES3_1:
 	case SP_VULKAN_PCES3_1:

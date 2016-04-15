@@ -51,7 +51,7 @@ var UE_JavaScriptLibary = {
   UE_SaveGame: function (name, userIndex, indata, insize){
     // user index is not used.
     var _name = Pointer_stringify(name);
-    var gamedata = Module.HEAP8.subarray(indata, indata + insize);
+    var gamedata = Module.HEAPU8.subarray(indata, indata + insize);
     // local storage only takes strings, we need to convert string to base64 before storing.
     var b64encoded = base64EncArr(gamedata);
     $.jStorage.set(_name, b64encoded);
@@ -68,7 +68,7 @@ var UE_JavaScriptLibary = {
     // copy back the decoded array.
     var outdata = Module._malloc(decodedArray.length);
     // view the allocated data as a HEAP8.
-    var dest = Module.HEAP8.subarray(outdata, outdata + decodedArray.length);
+    var dest = Module.HEAPU8.subarray(outdata, outdata + decodedArray.length);
     // copy back.
     for (var i = 0; i < decodedArray.length; ++i) {
       dest[i] = decodedArray[i];

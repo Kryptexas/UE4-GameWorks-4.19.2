@@ -210,7 +210,11 @@ namespace Rocket
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.IOS);
 				}
-				if(HostPlatform == UnrealTargetPlatform.Win64)
+				if (HostPlatform == UnrealTargetPlatform.Win64 || HostPlatform == UnrealTargetPlatform.Mac)
+				{
+					TargetPlatforms.Add(UnrealTargetPlatform.TVOS);
+				}
+				if (HostPlatform == UnrealTargetPlatform.Win64)
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.Linux);
 				}
@@ -282,6 +286,10 @@ namespace Rocket
 			{
 				return UnrealTargetPlatform.Mac;
 			}
+			if (TargetPlatform == UnrealTargetPlatform.TVOS && HostPlatform == UnrealTargetPlatform.Win64 && HostPlatforms.Contains(UnrealTargetPlatform.Mac))
+			{
+				return UnrealTargetPlatform.Mac;
+			}
 			return HostPlatform;
 		}
 
@@ -292,6 +300,10 @@ namespace Rocket
 				return false;
 			}
 			if(HostPlatform == UnrealTargetPlatform.Win64 && TargetPlatform == UnrealTargetPlatform.IOS)
+			{
+				return false;
+			}
+			if (HostPlatform == UnrealTargetPlatform.Win64 && TargetPlatform == UnrealTargetPlatform.TVOS)
 			{
 				return false;
 			}
@@ -1224,6 +1236,7 @@ namespace Rocket
 				{
 					if (CodeTargetPlatform == UnrealTargetPlatform.Mac
 					 || CodeTargetPlatform == UnrealTargetPlatform.IOS
+					 || CodeTargetPlatform == UnrealTargetPlatform.TVOS
 					 || CodeTargetPlatform == UnrealTargetPlatform.Linux
 					 || CodeTargetPlatform == UnrealTargetPlatform.Android
 					 || CodeTargetPlatform == UnrealTargetPlatform.HTML5)

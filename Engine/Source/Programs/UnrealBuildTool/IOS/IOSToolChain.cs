@@ -770,14 +770,15 @@ namespace UnrealBuildTool
 			GenDebugAction.CommandPath = "sh";
 
 			// note that the source and dest are switched from a copy command
-			if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+/*			if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
-				GenDebugAction.CommandArguments = string.Format("-c '/usr/bin/dsymutil \"{0}\" -f -o \"{1}\"; cd \"{1}/..\"; zip -r -y -1 {2}.dSYM.zip {2}.dSYM'",
+				GenDebugAction.CommandArguments = string.Format("-c '/usr/bin/dsymutil \"{0}\" -f -o \"{1}\"; cd \"{3}\"; zip -r -y -1 {2}.dSYM.zip {2}.dSYM'",
 					Executable.AbsolutePath,
 					FullDestPathRoot,
-					Path.GetFileName(Executable.AbsolutePath));
+					Path.GetFileName(Executable.AbsolutePath),
+					Executable.AbsolutePath.Substring(0, Executable.AbsolutePath.LastIndexOf("/")));
 			}
-			else
+			else*/
 			{
 				GenDebugAction.CommandArguments = string.Format("-c '/usr/bin/dsymutil \"{0}\" -f -o \"{1}\"'",
 					Executable.AbsolutePath,
@@ -1122,9 +1123,9 @@ namespace UnrealBuildTool
 					{
 						RPCUtilHelper.CopyFile(RemoteExecutablePath, FilePath.FullName, false);
 
-						if (BuildConfiguration.bGeneratedSYMFile == true)
+						if (BuildConfiguration.bGeneratedSYMFile == true && Path.GetExtension(FilePath.FullName) != ".a")
 						{
-							string DSYMExt = ".app.dSYM.zip";
+							string DSYMExt = ".dSYM";
 							RPCUtilHelper.CopyFile(RemoteExecutablePath + DSYMExt, FilePath.FullName + DSYMExt, false);
 						}
 					}

@@ -134,14 +134,17 @@
 		<copyFile src="$S(EngineDir)/Source/ThirdParty/Oculus/OculusMobile/SDK_1_0_0/Libs/SystemUtils.jar"
 					dst="$S(BuildDir)/libs/SystemUtils.jar" />
 
+		<if condition="bEntitlementCheck">
+			<true>
+				<copyFile src="$S(EngineDir)/Source/ThirdParty/Oculus/OculusMobile/SDK_1_0_0/Libs/vrplatlib.jar"
+							dst="$S(BuildDir)/libs/vrplatlib.jar" />
+			</true>
+		</if>
+
 		<if condition="bRemoveOSIG">
 			<true>
 				<deleteFiles filespec="assets/oculussig_*" />
 			</true>
-			<false>
-				<copyFile src="$S(EngineDir)/Source/ThirdParty/Oculus/OculusMobile/SDK_1_0_0/Libs/vrplatlib.jar"
-							dst="$S(BuildDir)/libs/vrplatlib.jar" />
-			</false>
 		</if>
 	</resourceCopies>
 

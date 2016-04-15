@@ -52,7 +52,8 @@ public class Core : ModuleRules
 				"TargetPlatform",
 				"DerivedDataCache",
                 "InputDevice",
-                "Analytics"
+                "Analytics",
+				"RHI"
 			}
 			);
 

@@ -784,17 +784,24 @@ public partial class Project : CommandUtils
 				int ConfigRootIdx = SrcDirectoryPath.LastIndexOf(ConfigDirectory);
 				string SubpathUnderConfig = (ConfigRootIdx != -1) ? SrcDirectoryPath.Substring(ConfigRootIdx + ConfigDirectory.Length) : "Unknown";
 
-				string NewIniFilename = CombinePaths(SC.ProjectRoot, "Saved", "Temp", SC.PlatformDir, SubpathUnderConfig, "DefaultEngine.ini");
+				string FileName = SrcDirectoryPath.GetHashCode().ToString() + "_DefaultEngine.ini";
+				string NewIniFilename = CombinePaths(SC.ProjectRoot, "Saved", "Temp", SC.PlatformDir, SubpathUnderConfig, FileName);
 				InternalUtils.SafeCreateDirectory(Path.GetDirectoryName(NewIniFilename), true);
 				InternalUtils.SafeCopyFile(Src, NewIniFilename, bFilterSpecialLinesFromIniFiles:true);
 				Src = NewIniFilename;
 			}
 
-			// there can be files that only differ in case only, we don't support that in paks as paks are case-insensitive
-			if (UnrealPakResponseFile.ContainsKey(Src))
-			{
-				throw new AutomationException("Staging manifest already contains {0} (or a file that differs in case only)", Src);
-			}
+            // there can be files that only differ in case only, we don't support that in paks as paks are case-insensitive
+            if (UnrealPakResponseFile.ContainsKey(Src))
+            {
+                if (UnrealPakResponseFile[Src] != Dest)
+                {
+                    throw new AutomationException("Staging manifest already contains {0} (or a file that differs in case only)", Src);
+                }
+                LogWarning("Tried to add duplicate file to stage " + Src + " ignoring second attempt pls fix");
+                continue;
+            }
+
 			UnrealPakResponseFile.Add(Src, Dest);
 		}
 
