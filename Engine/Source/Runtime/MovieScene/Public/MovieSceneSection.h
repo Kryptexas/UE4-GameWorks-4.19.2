@@ -163,9 +163,10 @@ public:
 	/**
 	 * Get the key handles for the keys on the curves within this section
 	 *
-	 * @param KeyHandles The key handles of the keys on the curves within this section
+	 * @param OutKeyHandles Will contain the key handles of the keys on the curves within this section
+	 * @param TimeRange Optional time range that the keys must be in (default = all)
 	 */
-	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const {};
+	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const { };
 
 	/**
 	 * Get the data structure representing the specified key.

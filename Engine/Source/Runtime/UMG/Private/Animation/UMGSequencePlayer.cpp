@@ -242,13 +242,14 @@ EMovieScenePlayerStatus::Type UUMGSequencePlayer::GetPlaybackStatus() const
 	return PlayerStatus;
 }
 
-UObject* UUMGSequencePlayer::GetEventContext() const
+TArray<UObject*> UUMGSequencePlayer::GetEventContexts() const
 {
+	TArray<UObject*> EventContexts;
 	if (UserWidget.IsValid())
 	{
-		return UserWidget.Get();
+		EventContexts.Add(UserWidget.Get());
 	}
-	return nullptr;
+	return EventContexts;
 }
 
 void UUMGSequencePlayer::SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus)

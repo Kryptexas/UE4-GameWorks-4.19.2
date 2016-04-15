@@ -2,7 +2,21 @@
 
 #pragma once
 
-#include "IMovieScenePropertyRecorder.h"
+#include "MovieScene3DTransformSectionRecorderSettings.h"
+
+class FMovieScene3DTransformSectionRecorderFactory : public IMovieSceneSectionRecorderFactory
+{
+public:
+	virtual ~FMovieScene3DTransformSectionRecorderFactory() {}
+
+	virtual bool CanRecordObject(class UObject* InObjectToRecord) const override;
+	virtual UObject* CreateSettingsObject() const override { return NewObject<UMovieScene3DTransformSectionRecorderSettings>(); }
+
+	TSharedPtr<class FMovieScene3DTransformSectionRecorder> CreateSectionRecorder(bool bRecordTransforms, TSharedPtr<class FMovieSceneAnimationSectionRecorder> InAnimRecorder) const;
+
+private:
+	virtual TSharedPtr<IMovieSceneSectionRecorder> CreateSectionRecorder(const struct FActorRecordingSettings& InActorRecordingSettings) const override;
+};
 
 /** Structure used to buffer up transform keys. Keys are inserted into tracks in FinalizeSection() */
 struct FBufferedTransformKey
@@ -19,21 +33,26 @@ struct FBufferedTransformKey
 	float KeyTime;
 };
 
-class FMovieScene3DTransformPropertyRecorder : public IMovieScenePropertyRecorder
+class FMovieScene3DTransformSectionRecorder : public IMovieSceneSectionRecorder
 {
 public:
-	FMovieScene3DTransformPropertyRecorder(TSharedPtr<class FMovieSceneAnimationPropertyRecorder> InAnimRecorder = nullptr) 
-		: AnimRecorder(InAnimRecorder)
+	FMovieScene3DTransformSectionRecorder(bool bInActuallyRecord, TSharedPtr<class FMovieSceneAnimationSectionRecorder> InAnimRecorder = nullptr) 
+		: bRecording(bInActuallyRecord)
+		, AnimRecorder(InAnimRecorder)
 	{}
 
-	virtual ~FMovieScene3DTransformPropertyRecorder() {}
+	virtual ~FMovieScene3DTransformSectionRecorder() {}
 
-	virtual void CreateSection(UObject* InObjectToRecord, class UMovieScene* InMovieScene, const FGuid& Guid, float Time, bool bRecord) override;
+	virtual void CreateSection(UObject* InObjectToRecord, class UMovieScene* InMovieScene, const FGuid& Guid, float Time) override;
 	virtual void FinalizeSection() override;
 	virtual void Record(float CurrentTime) override;
 	virtual void InvalidateObjectToRecord() override
 	{
 		ObjectToRecord = nullptr;
+	}
+	virtual UObject* GetSourceObject() const override
+	{
+		return ObjectToRecord.Get();
 	}
 
 private:
@@ -59,7 +78,7 @@ private:
 	bool bRecording;
 
 	/** Animation recorder we use to sync our transforms to */
-	TSharedPtr<class FMovieSceneAnimationPropertyRecorder> AnimRecorder;
+	TSharedPtr<class FMovieSceneAnimationSectionRecorder> AnimRecorder;
 
 	/** The default transform this recording starts with */
 	FTransform DefaultTransform;

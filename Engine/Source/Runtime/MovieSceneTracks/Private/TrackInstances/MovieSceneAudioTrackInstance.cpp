@@ -161,7 +161,7 @@ void FMovieSceneAudioTrackInstance::PlaySound(UMovieSceneAudioSection* AudioSect
 	Component->bAllowSpatialization = !AudioTrack->IsAMasterTrack();
 	Component->Stop();
 	Component->SetSound(AudioSection->GetSound());
-	Component->SetVolumeMultiplier(1.f);
+	Component->SetVolumeMultiplier(AudioSection->GetAudioVolume());
 	Component->SetPitchMultiplier(PitchMultiplier);
 	Component->bIsUISound = true;
 	Component->Play(Time - AudioSection->GetAudioStartTime());

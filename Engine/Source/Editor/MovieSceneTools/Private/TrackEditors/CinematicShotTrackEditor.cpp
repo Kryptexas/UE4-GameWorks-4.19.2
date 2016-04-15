@@ -403,7 +403,15 @@ void FCinematicShotTrackEditor::NewTake(UMovieSceneCinematicShotSection* Section
 	uint32 TakeNumber = INDEX_NONE;
 	if (MovieSceneToolHelpers::ParseShotName(Section->GetShotDisplayName().ToString(), ShotPrefix, ShotNumber, TakeNumber))
 	{
-		uint32 NewTakeNumber = TakeNumber + 1;
+		TArray<uint32> TakeNumbers;
+		uint32 CurrentTakeNumber;
+		MovieSceneToolHelpers::GatherTakes(Section, TakeNumbers, CurrentTakeNumber);
+		uint32 NewTakeNumber = CurrentTakeNumber;
+		if (TakeNumbers.Num() > 0)
+		{
+			NewTakeNumber = TakeNumbers[TakeNumbers.Num()-1] + 1;
+		}
+
 		FString NewShotName = MovieSceneToolHelpers::ComposeShotName(ShotPrefix, ShotNumber, NewTakeNumber);
 
 		float NewShotStartTime = Section->GetStartTime();
@@ -415,16 +423,19 @@ void FCinematicShotTrackEditor::NewTake(UMovieSceneCinematicShotSection* Section
 		const bool bInsertShot = false;
 		UMovieSceneSubSection* NewShot = CreateShotInternal(NewShotName, NewShotStartTime, Section, bInsertShot);
 
-		UMovieSceneCinematicShotTrack* CinematicShotTrack = FindOrCreateCinematicShotTrack();
-		CinematicShotTrack->RemoveSection(*Section);
-
-		if (NewShot != nullptr)
+		if (NewShot)
 		{
-			NewShot->SetStartTime(NewShotStartTime);
-			NewShot->SetEndTime(NewShotEndTime);
-			NewShot->StartOffset = NewShotStartOffset;
-			NewShot->TimeScale = NewShotTimeScale;
-			NewShot->PrerollTime = NewShotPrerollTime;
+			UMovieSceneCinematicShotTrack* CinematicShotTrack = FindOrCreateCinematicShotTrack();
+			CinematicShotTrack->RemoveSection(*Section);
+
+			if (NewShot != nullptr)
+			{
+				NewShot->SetStartTime(NewShotStartTime);
+				NewShot->SetEndTime(NewShotEndTime);
+				NewShot->StartOffset = NewShotStartOffset;
+				NewShot->TimeScale = NewShotTimeScale;
+				NewShot->PrerollTime = NewShotPrerollTime;
+			}
 		}
 	}
 

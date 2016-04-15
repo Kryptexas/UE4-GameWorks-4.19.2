@@ -116,6 +116,7 @@ void FAnimInstanceProxy::InitializeRootNode()
 	if (RootNode != nullptr)
 	{
 		GameThreadPreUpdateNodes.Reset();
+		DynamicResetNodes.Reset();
 
 		// cache any state machine descriptions we have
 		for(UStructProperty* Property : AnimClassInterface->GetAnimNodeProperties())
@@ -134,6 +135,11 @@ void FAnimInstanceProxy::InitializeRootNode()
 					if (AnimNode->HasPreUpdate())
 					{
 						GameThreadPreUpdateNodes.Add(AnimNode);
+					}
+
+					if(AnimNode->NeedsDynamicReset())
+					{
+						DynamicResetNodes.Add(AnimNode);
 					}
 
 					if(Property->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()))
@@ -1472,6 +1478,14 @@ void FAnimInstanceProxy::RecordStateWeight(const int32& InMachineClassIndex, con
 	{
 		const int32 StateIndex = *BaseIndexPtr + InStateIndex;
 		StateWeightArrays[GetSyncGroupWriteIndex()][StateIndex] = InStateWeight;
+	}
+}
+
+void FAnimInstanceProxy::ResetDynamics()
+{
+	for(FAnimNode_Base* Node : DynamicResetNodes)
+	{
+		Node->ResetDynamics();
 	}
 }
 

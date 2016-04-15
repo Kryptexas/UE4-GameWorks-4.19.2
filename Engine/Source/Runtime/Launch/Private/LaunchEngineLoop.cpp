@@ -2284,6 +2284,7 @@ int32 FEngineLoop::Init()
 	}
 
 	FModuleManager::Get().LoadModule(TEXT("SequenceRecorder"));
+	FModuleManager::Get().LoadModule(TEXT("SequenceRecorderSections"));
 #endif
 
 	GIsRunning = true;

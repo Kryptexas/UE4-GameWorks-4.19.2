@@ -369,21 +369,23 @@ void SPlacementModeTools::Construct( const FArguments& InArgs )
 
 					+ SOverlay::Slot()
 					[
-						SNew(SHorizontalBox)
-
-						+ SHorizontalBox::Slot()
+						SAssignNew(DataDrivenContent, SBox)
 						[
-							SAssignNew(ListView, SListView<TSharedPtr<FPlaceableItem>>)
-							.ListItemsSource(&FilteredItems)
-							.OnGenerateRow(this, &SPlacementModeTools::OnGenerateWidgetForItem)
-							.Visibility(this, &SPlacementModeTools::GetListViewVisibility)
-							.ExternalScrollbar(ScrollBar)
-						]
+							SNew(SHorizontalBox)
 
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							ScrollBar
+							+ SHorizontalBox::Slot()
+							[
+								SAssignNew(ListView, SListView<TSharedPtr<FPlaceableItem>>)
+								.ListItemsSource(&FilteredItems)
+								.OnGenerateRow(this, &SPlacementModeTools::OnGenerateWidgetForItem)
+								.ExternalScrollbar(ScrollBar)
+							]
+
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								ScrollBar
+							]
 						]
 					]
 				]
@@ -453,7 +455,7 @@ void SPlacementModeTools::UpdateFilteredItems()
 		CustomContent->SetContent(Category->CustomGenerator());
 
 		CustomContent->SetVisibility(EVisibility::Visible);
-		ListView->SetVisibility(EVisibility::Collapsed);
+		DataDrivenContent->SetVisibility(EVisibility::Collapsed);
 	}
 	else
 	{
@@ -486,7 +488,7 @@ void SPlacementModeTools::UpdateFilteredItems()
 		}
 
 		CustomContent->SetVisibility(EVisibility::Collapsed);
-		ListView->SetVisibility(EVisibility::Visible);
+		DataDrivenContent->SetVisibility(EVisibility::Visible);
 		ListView->RequestListRefresh();
 	}
 }
@@ -508,15 +510,6 @@ EVisibility SPlacementModeTools::GetFailedSearchVisibility() const
 		return EVisibility::Collapsed;
 	}
 	return EVisibility::Visible;
-}
-
-EVisibility SPlacementModeTools::GetListViewVisibility()const
-{
-	if (IsSearchActive() || FilteredItems.Num())
-	{
-		return EVisibility::Visible;
-	}
-	return EVisibility::Collapsed;
 }
 
 EVisibility SPlacementModeTools::GetTabsVisibility() const

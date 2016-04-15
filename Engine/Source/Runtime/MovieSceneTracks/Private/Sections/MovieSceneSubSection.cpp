@@ -99,3 +99,51 @@ void UMovieSceneSubSection::PostEditChangeProperty(FPropertyChangedEvent& Proper
 	}
 }
 #endif
+
+UMovieSceneSection* UMovieSceneSubSection::SplitSection( float SplitTime )
+{
+	if ( !IsTimeWithinSection( SplitTime ) )
+	{
+		return nullptr;
+	}
+
+	float InitialStartTime = GetStartTime();
+	float InitialStartOffset = StartOffset;
+	float NewStartOffset = ( SplitTime - InitialStartTime ) / TimeScale;
+	NewStartOffset += InitialStartOffset;
+
+	// Ensure start offset is not less than 0
+	NewStartOffset = FMath::Max( NewStartOffset, 0.f );
+
+	UMovieSceneSubSection* NewSection = Cast<UMovieSceneSubSection>( UMovieSceneSection::SplitSection( SplitTime ) );
+	if ( NewSection )
+	{
+		NewSection->StartOffset = NewStartOffset;
+		return NewSection;
+	}
+
+	return nullptr;
+}
+
+void UMovieSceneSubSection::TrimSection( float TrimTime, bool bTrimLeft )
+{
+	if ( !IsTimeWithinSection( TrimTime ) )
+	{
+		return;
+	}
+
+	float InitialStartTime = GetStartTime();
+	float InitialStartOffset = StartOffset;
+
+	UMovieSceneSection::TrimSection( TrimTime, bTrimLeft );
+
+	// If trimming off the left, set the offset of the shot
+	if ( bTrimLeft )
+	{
+		float NewStartOffset = ( TrimTime - InitialStartTime ) / TimeScale;
+		NewStartOffset += InitialStartOffset;
+
+		// Ensure start offset is not less than 0
+		StartOffset = FMath::Max( NewStartOffset, 0.f );
+	}
+}

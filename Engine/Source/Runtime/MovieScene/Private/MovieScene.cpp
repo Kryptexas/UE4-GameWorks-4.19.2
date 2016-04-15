@@ -9,7 +9,7 @@
 
 UMovieScene::UMovieScene(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, InOutRange(FFloatRange::Empty())
+	, SelectionRange(FFloatRange::Empty())
 	, PlaybackRange(FFloatRange::Empty())
 	, InTime_DEPRECATED(FLT_MAX)
 	, OutTime_DEPRECATED(-FLT_MAX)
@@ -25,13 +25,11 @@ UMovieScene::UMovieScene(const FObjectInitializer& ObjectInitializer)
 #if WITH_EDITOR
 
 // @todo sequencer: Some of these methods should only be used by tools, and should probably move out of MovieScene!
-FGuid UMovieScene::AddSpawnable( const FString& Name, UBlueprint* Blueprint )
+FGuid UMovieScene::AddSpawnable( const FString& Name, UObject& ObjectTemplate )
 {
-	check( (Blueprint != nullptr) && (Blueprint->GeneratedClass) );
-
 	Modify();
 
-	FMovieSceneSpawnable NewSpawnable( Name, Blueprint->GeneratedClass );
+	FMovieSceneSpawnable NewSpawnable( Name, ObjectTemplate );
 	Spawnables.Add( NewSpawnable );
 
 	// Add a new binding so that tracks can be added to it
@@ -52,25 +50,10 @@ bool UMovieScene::RemoveSpawnable( const FGuid& Guid )
 			if( CurSpawnable.GetGuid() == Guid )
 			{
 				Modify();
-
-				{
-					UClass* GeneratedClass = CurSpawnable.GetClass();
-					UBlueprint* Blueprint = GeneratedClass ? Cast<UBlueprint>(GeneratedClass->ClassGeneratedBy) : nullptr;
-
-					if (Blueprint)
-					{
-						// @todo sequencer: Also remove created Blueprint inner object.  Is this sufficient?  Needs to work with Undo too!
-						Blueprint->ClearFlags( RF_Standalone );	// @todo sequencer: Probably not needed for Blueprint
-						Blueprint->MarkPendingKill();
-					}
-				}
-
 				RemoveBinding( Guid );
 
-				// Found it!
 				Spawnables.RemoveAt( SpawnableIter.GetIndex() );
-
-
+				
 				bAnythingRemoved = true;
 				break;
 			}

@@ -1007,6 +1007,11 @@ public:
 
 	/** When collision draw mode changes, this function allows hidden objects to be drawn, so hidden colliding objects can be seen */
 	void UpdateHiddenCollisionDrawing();
+	/** Returns the scene depth at the given viewport X,Y */
+	float GetSceneDepthAtLocation(int32 X, int32 Y);
+
+	/** Returns the location of the object at the given viewport X,Y */
+	FVector GetHitProxyObjectLocation(int32 X, int32 Y);
 
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
@@ -1350,6 +1355,8 @@ protected:
 
 	bool bUseControllingActorViewInfo;
 	FMinimalViewInfo ControllingActorViewInfo;
+	TArray<FPostProcessSettings> ControllingActorExtraPostProcessBlends;
+	TArray<float> ControllingActorExtraPostProcessBlendWeights;
 
 	/* Updated on each mouse drag start */
 	uint32 LastMouseX;

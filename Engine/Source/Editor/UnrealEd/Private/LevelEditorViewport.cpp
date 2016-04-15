@@ -2093,6 +2093,7 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 				{
 					bUseControllingActorViewInfo = true;
 					CameraComponent->GetCameraView(0.0f, ControllingActorViewInfo);
+					CameraComponent->GetExtraPostProcessBlends(ControllingActorExtraPostProcessBlends, ControllingActorExtraPostProcessBlendWeights);
 
 					// Post processing is handled by OverridePostProcessingSettings
 					ViewFOV = ControllingActorViewInfo.FOV;

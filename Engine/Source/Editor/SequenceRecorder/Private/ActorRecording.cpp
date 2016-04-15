@@ -4,13 +4,8 @@
 #include "ActorRecording.h"
 #include "SequenceRecorderSettings.h"
 #include "SequenceRecorderUtils.h"
-#include "IMovieScenePropertyRecorder.h"
-#include "MovieSceneSpawnPropertyRecorder.h"
-#include "MovieScene3DTransformPropertyRecorder.h"
-#include "MovieSceneVisibilityPropertyRecorder.h"
-#include "MovieSceneAnimationPropertyRecorder.h"
-#include "MovieSceneParticleTrackPropertyRecorder.h"
-#include "MovieScene3DAttachPropertyRecorder.h"
+#include "MovieScene3DTransformSectionRecorder.h"
+#include "MovieSceneAnimationSectionRecorder.h"
 #include "AssetSelection.h"
 #include "MovieSceneSkeletalAnimationTrack.h"
 #include "MovieSceneSkeletalAnimationSection.h"
@@ -24,8 +19,11 @@
 #include "CameraRig_Crane.h"
 #include "CameraRig_Rail.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "SequenceRecorder.h"
+#include "Runtime/Core/Public/Features/IModularFeatures.h"
 
 static const FName SequencerActorTag(TEXT("SequencerActor"));
+static const FName MovieSceneSectionRecorderFactoryName("MovieSceneSectionRecorderFactory");
 
 UActorRecording::UActorRecording(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -52,15 +50,16 @@ bool UActorRecording::IsRelevantForRecording(AActor* Actor)
 	}
 
 	TInlineComponentArray<USceneComponent*> SceneComponents(Actor);
+	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 
 	for(USceneComponent* SceneComponent : SceneComponents)
 	{
-		if(SceneComponent->IsA<USkeletalMeshComponent>() ||
-			SceneComponent->IsA<UStaticMeshComponent>() ||
-			SceneComponent->IsA<UParticleSystemComponent>() || 
-			SceneComponent->IsA<ULightComponent>())
+		for (TSubclassOf<USceneComponent> ComponentClass : Settings->ComponentClassesToRecord)
 		{
-			return true;
+			if (SceneComponent->IsA(ComponentClass))
+			{
+				return true;
+			}
 		}
 	}
 
@@ -79,9 +78,10 @@ bool UActorRecording::StartRecording(ULevelSequence* CurrentSequence, float Curr
 		}
 		else
 		{
-			TSharedPtr<FMovieSceneAnimationPropertyRecorder> AnimationRecorder = MakeShareable(new FMovieSceneAnimationPropertyRecorder(AnimationSettings, TargetAnimation.Get()));
-			AnimationRecorder->CreateSection(ActorToRecord.Get(), nullptr, FGuid(), 0.0f, true);
-			PropertyRecorders.Add(AnimationRecorder);			
+			TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimationRecorder = MakeShareable(new FMovieSceneAnimationSectionRecorder(AnimationSettings, TargetAnimation.Get()));
+			AnimationRecorder->CreateSection(ActorToRecord.Get(), nullptr, FGuid(), 0.0f);
+			AnimationRecorder->Record(0.0f);
+			SectionRecorders.Add(AnimationRecorder);			
 		}
 	}
 
@@ -163,6 +163,31 @@ void UActorRecording::SyncTrackedComponents(bool bIncludeNonCDO/*=true*/)
 	TArray<USceneComponent*> NewComponentArray;
 	GetSceneComponents(NewComponentArray, bIncludeNonCDO);
 
+	// Expire section recorders that are watching components no longer attached to our actor
+	TSet<USceneComponent*> ExpiredComponents;
+	for (TWeakObjectPtr<USceneComponent>& WeakComponent : TrackedComponents)
+	{
+		if (USceneComponent* Component = WeakComponent.Get())
+		{
+			ExpiredComponents.Add(Component);
+		}
+	}
+	for (USceneComponent* Component : NewComponentArray)
+	{
+		ExpiredComponents.Remove(Component);
+	}
+
+	for (TSharedPtr<IMovieSceneSectionRecorder>& SectionRecorder : SectionRecorders)
+	{
+		if (USceneComponent* Component = Cast<USceneComponent>(SectionRecorder->GetSourceObject()))
+		{
+			if (ExpiredComponents.Contains(Component))
+			{
+				SectionRecorder->InvalidateObjectToRecord();
+			}
+		}
+	}
+
 	TrackedComponents.Reset(NewComponentArray.Num());
 	for(USceneComponent* SceneComponent : NewComponentArray)
 	{
@@ -173,9 +198,9 @@ void UActorRecording::SyncTrackedComponents(bool bIncludeNonCDO/*=true*/)
 void UActorRecording::InvalidateObjectToRecord()
 {
 	ActorToRecord = nullptr;
-	for(auto& PropertyRecorder : PropertyRecorders)
+	for(auto& SectionRecorder : SectionRecorders)
 	{
-		PropertyRecorder->InvalidateObjectToRecord();
+		SectionRecorder->InvalidateObjectToRecord();
 	}
 }
 
@@ -183,12 +208,14 @@ bool UActorRecording::ValidComponent(USceneComponent* SceneComponent) const
 {
 	if(SceneComponent != nullptr)
 	{
-		const bool bIsValidComponent = 
-			SceneComponent->IsA<USkeletalMeshComponent>() ||
-			SceneComponent->IsA<UStaticMeshComponent>() ||
-			SceneComponent->IsA<UParticleSystemComponent>();
-
-		return bIsValidComponent;
+		const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
+		for (TSubclassOf<USceneComponent> ComponentClass : Settings->ComponentClassesToRecord)
+		{
+			if (SceneComponent->IsA(ComponentClass))
+			{
+				return true;
+			}
+		}
 	}
 
 	return false;
@@ -241,44 +268,24 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 		UMovieScene* MovieScene = CurrentSequence->GetMovieScene();
 
 		AActor* Actor = ActorToRecord.Get();
-		FString BlueprintName = GetUniqueSpawnableName(MovieScene, Actor->GetName());
+		FString TemplateName = GetUniqueSpawnableName(MovieScene, Actor->GetName());
 
 		UClass* ActorClass = Actor->GetClass();
-			
-		UBlueprint* Blueprint = nullptr;
+		AActor* ObjectTemplate = DuplicateObject<AActor>(Actor, MovieScene, *TemplateName);
 
-		if(ActorClass->IsChildOf<AWorldSettings>())
+		if (ObjectTemplate)
 		{
-			// we need to create our own substitute blueprint for world settings actors as they are not blueprintable by default
-			Blueprint = FKismetEditorUtilities::CreateBlueprint(AActor::StaticClass(), MovieScene, *BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), NAME_Name);
-		}
-		else
-		{
-			UBlueprint* NewBlueprint = FKismetEditorUtilities::CreateBlueprint(ActorClass, MovieScene, *BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), NAME_Name);
-			if(NewBlueprint)
+			TInlineComponentArray<USkeletalMeshComponent*> SkeletalMeshComponents;
+			ObjectTemplate->GetComponents(SkeletalMeshComponents);
+			for(USkeletalMeshComponent* SkeletalMeshComponent : SkeletalMeshComponents)
 			{
-				// if the duplicated BP has any skel mesh components, set them to single anim instance
-				AActor* CDO = CastChecked<AActor>(NewBlueprint->GeneratedClass->ClassDefaultObject);
-				if(CDO)
-				{
-					TInlineComponentArray<USkeletalMeshComponent*> SkeletalMeshComponents;
-					CDO->GetComponents(SkeletalMeshComponents);	
-					for(USkeletalMeshComponent* SkeletalMeshComponent : SkeletalMeshComponents)
-					{
-						SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-						SkeletalMeshComponent->bEnableUpdateRateOptimizations = false;
-						SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-						SkeletalMeshComponent->ForcedLodModel = 1;
-					}
-				}
-
-				Blueprint = NewBlueprint;
+				SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+				SkeletalMeshComponent->bEnableUpdateRateOptimizations = false;
+				SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+				SkeletalMeshComponent->ForcedLodModel = 1;
 			}
-		}
 
-		if(Blueprint)
-		{
-			Guid = MovieScene->AddSpawnable(BlueprintName, Blueprint);
+			Guid = MovieScene->AddSpawnable(TemplateName, *ObjectTemplate);
 		}
 
 		// now add tracks to record
@@ -288,7 +295,9 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 			FindOrAddFolder(MovieScene);
 
 			// force set recording to record translations as we need this with no animation
-			ActorSettings.bRecordTransforms = true;
+			UMovieScene3DTransformSectionRecorderSettings* TransformSettings = ActorSettings.GetSettingsObject<UMovieScene3DTransformSectionRecorderSettings>();
+			check(TransformSettings);
+			TransformSettings->bRecordTransforms = true;
 
 			// grab components so we can track attachments
 			// don't include non-CDO here as they wont be part of our initial BP (duplicated above)
@@ -316,67 +325,55 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 				}
 			}
 
-			TSharedPtr<FMovieSceneAnimationPropertyRecorder> FirstAnimRecorder = nullptr;
+			TSharedPtr<FMovieSceneAnimationSectionRecorder> FirstAnimRecorder = nullptr;
 			for(USceneComponent* SceneComponent : ValidSceneComponents)
 			{
-				TSharedPtr<FMovieSceneAnimationPropertyRecorder> AnimRecorder = StartRecordingComponentProperties(SceneComponent->GetFName(), SceneComponent, ActorToRecord.Get(), CurrentSequence, CurrentSequenceTime);
+				TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimRecorder = StartRecordingComponentProperties(SceneComponent->GetFName(), SceneComponent, ActorToRecord.Get(), CurrentSequence, CurrentSequenceTime);
 				if(!FirstAnimRecorder.IsValid() && AnimRecorder.IsValid())
 				{
 					FirstAnimRecorder = AnimRecorder;
 				}
 			}
 
-			// add a spawn track so we actually get spawned
-			TSharedPtr<FMovieSceneSpawnPropertyRecorder> SpawnRecorder = MakeShareable(new FMovieSceneSpawnPropertyRecorder);
-			SpawnRecorder->CreateSection(ActorToRecord.Get(), MovieScene, Guid, CurrentSequenceTime, true);
-			PropertyRecorders.Add(SpawnRecorder);
-
 			// we need to create a transform track even if we arent recording transforms
-			TSharedPtr<FMovieScene3DTransformPropertyRecorder> TransformRecorder = MakeShareable(new FMovieScene3DTransformPropertyRecorder(FirstAnimRecorder));
-			TransformRecorder->CreateSection(ActorToRecord.Get(), MovieScene, Guid, CurrentSequenceTime, ActorSettings.bRecordTransforms);
-			PropertyRecorders.Add(TransformRecorder);
+			if (FSequenceRecorder::Get().GetTransformRecorderFactory().CanRecordObject(ActorToRecord.Get()))
+			{
+				UMovieScene3DTransformSectionRecorderSettings* Settings = ActorSettings.GetSettingsObject<UMovieScene3DTransformSectionRecorderSettings>();
+				check(Settings);
 
-			// add a visibility track 
-			TSharedPtr<FMovieSceneVisibilityPropertyRecorder> VisibilityRecorder = MakeShareable(new FMovieSceneVisibilityPropertyRecorder);
-			VisibilityRecorder->CreateSection(ActorToRecord.Get(), MovieScene, Guid, CurrentSequenceTime, ActorSettings.bRecordVisibility);
-			PropertyRecorders.Add(VisibilityRecorder);
+				TSharedPtr<IMovieSceneSectionRecorder> Recorder = FSequenceRecorder::Get().GetTransformRecorderFactory().CreateSectionRecorder(Settings->bRecordTransforms, FirstAnimRecorder);
+				if(Recorder.IsValid())
+				{ 
+					Recorder->CreateSection(ActorToRecord.Get(), MovieScene, Guid, CurrentSequenceTime);
+					Recorder->Record(CurrentSequenceTime);
+					SectionRecorders.Add(Recorder);
+				}
+			}
 
-			// add an attachment track
-			TSharedPtr<FMovieScene3DAttachPropertyRecorder> AttachRecorder = MakeShareable(new FMovieScene3DAttachPropertyRecorder);
-			AttachRecorder->CreateSection(ActorToRecord.Get(), MovieScene, Guid, CurrentSequenceTime, true);
-			PropertyRecorders.Add(AttachRecorder);			
+			TArray<IMovieSceneSectionRecorderFactory*> ModularFeatures = IModularFeatures::Get().GetModularFeatureImplementations<IMovieSceneSectionRecorderFactory>(MovieSceneSectionRecorderFactoryName);
+			for (IMovieSceneSectionRecorderFactory* Factory : ModularFeatures)
+			{
+				if (Factory->CanRecordObject(ActorToRecord.Get()))
+				{
+					TSharedPtr<IMovieSceneSectionRecorder> Recorder = Factory->CreateSectionRecorder(ActorSettings);
+					if (Recorder.IsValid())
+					{
+						Recorder->CreateSection(ActorToRecord.Get(), MovieScene, Guid, CurrentSequenceTime);
+						Recorder->Record(CurrentSequenceTime);
+						SectionRecorders.Add(Recorder);
+					}
+				}
+			}	
 		}
 	}
 }
 
-static FString GetUniquePosessableName(UMovieScene* MovieScene, const FString& BaseName)
-{
-	FString BlueprintName = BaseName;
-	auto DuplName = [&](FMovieScenePossessable& InPosessable)
-	{
-		return InPosessable.GetName() == BlueprintName;
-	};
-
-	int32 Index = 2;
-	FString UniqueString;
-	while (MovieScene->FindPossessable(DuplName))
-	{
-		BlueprintName.RemoveFromEnd(UniqueString);
-		UniqueString = FString::Printf(TEXT(" (%d)"), Index++);
-		BlueprintName += UniqueString;
-	}
-
-	return BlueprintName;
-}
-
-TSharedPtr<FMovieSceneAnimationPropertyRecorder> UActorRecording::StartRecordingComponentProperties(const FName& BindingName, USceneComponent* SceneComponent, UObject* BindingContext, ULevelSequence* CurrentSequence, float CurrentSequenceTime)
+TSharedPtr<FMovieSceneAnimationSectionRecorder> UActorRecording::StartRecordingComponentProperties(const FName& BindingName, USceneComponent* SceneComponent, UObject* BindingContext, ULevelSequence* CurrentSequence, float CurrentSequenceTime)
 {
 	// first create a possessable for this component to be controlled by
 	UMovieScene* OwnerMovieScene = CurrentSequence->GetMovieScene();
 
-	FString Name = GetUniquePosessableName(OwnerMovieScene, BindingName.ToString());
-
-	const FGuid PossessableGuid = OwnerMovieScene->AddPossessable(Name, SceneComponent->GetClass());
+	const FGuid PossessableGuid = OwnerMovieScene->AddPossessable(BindingName.ToString(), SceneComponent->GetClass());
 
 	// Set up parent/child guids for possessables within spawnables
 	FMovieScenePossessable* ChildPossessable = OwnerMovieScene->FindPossessable(PossessableGuid);
@@ -391,43 +388,48 @@ TSharedPtr<FMovieSceneAnimationPropertyRecorder> UActorRecording::StartRecording
 		ParentSpawnable->AddChildPossessable(PossessableGuid);
 	}
 
+	// BindingName must be the component's path relative to its owner Actor
 	FLevelSequenceObjectReference ObjectReference(FUniqueObjectGuid(), BindingName.ToString());
 
 	CurrentSequence->BindPossessableObject(PossessableGuid, ObjectReference);
 
-	TSharedPtr<FMovieSceneAnimationPropertyRecorder> AnimationRecorder;
-	if(SceneComponent->IsA<USkeletalMeshComponent>())
+	// First try built-in animation recorder...
+	TSharedPtr<FMovieSceneAnimationSectionRecorder> AnimationRecorder = nullptr;
+	if (FSequenceRecorder::Get().GetAnimationRecorderFactory().CanRecordObject(SceneComponent))
 	{
-		AnimationRecorder = MakeShareable(new FMovieSceneAnimationPropertyRecorder(AnimationSettings, TargetAnimation.Get()));
-		AnimationRecorder->CreateSection(SceneComponent, OwnerMovieScene, PossessableGuid, CurrentSequenceTime, true);
-		PropertyRecorders.Add(AnimationRecorder);
-	}
-	else if(SceneComponent->IsA<UParticleSystemComponent>())
-	{
-		TSharedPtr<FMovieSceneParticleTrackPropertyRecorder> ParticleTrackRecorder = MakeShareable(new FMovieSceneParticleTrackPropertyRecorder());
-		ParticleTrackRecorder->CreateSection(SceneComponent, OwnerMovieScene, PossessableGuid, CurrentSequenceTime, true);
-		PropertyRecorders.Add(ParticleTrackRecorder);
+		AnimationRecorder = FSequenceRecorder::Get().GetAnimationRecorderFactory().CreateSectionRecorder(this);
+		AnimationRecorder->CreateSection(SceneComponent, OwnerMovieScene, PossessableGuid, CurrentSequenceTime);
+		AnimationRecorder->Record(CurrentSequenceTime);
+		SectionRecorders.Add(AnimationRecorder);
 	}
 
-	// Dont record the root component transforms as this will be taken into account by the actor transform track
-	// Also dont record transforms of skeletal mesh components as they will be taken into account in the actor transform
-	bool bIsCharacterSkelMesh = false;
-	if(SceneComponent->IsA<USkeletalMeshComponent>() && SceneComponent->GetOwner()->IsA<ACharacter>())
+	// ...and transform...
+	if (FSequenceRecorder::Get().GetTransformRecorderFactory().CanRecordObject(SceneComponent))
 	{
-		ACharacter* Character = CastChecked<ACharacter>(SceneComponent->GetOwner());
-		bIsCharacterSkelMesh = SceneComponent == Character->GetMesh();
+		TSharedPtr<IMovieSceneSectionRecorder> Recorder = FSequenceRecorder::Get().GetTransformRecorderFactory().CreateSectionRecorder(true, nullptr);
+		if (Recorder.IsValid())
+		{
+			Recorder->CreateSection(SceneComponent, OwnerMovieScene, PossessableGuid, CurrentSequenceTime);
+			Recorder->Record(CurrentSequenceTime);
+			SectionRecorders.Add(Recorder);
+		}
 	}
 
-	if(SceneComponent != SceneComponent->GetOwner()->GetRootComponent() && !bIsCharacterSkelMesh)
+	// ...now any external recorders
+	TArray<IMovieSceneSectionRecorderFactory*> ModularFeatures = IModularFeatures::Get().GetModularFeatureImplementations<IMovieSceneSectionRecorderFactory>(MovieSceneSectionRecorderFactoryName);
+	for (IMovieSceneSectionRecorderFactory* Factory : ModularFeatures)
 	{
-		TSharedPtr<FMovieScene3DTransformPropertyRecorder> TransformRecorder = MakeShareable(new FMovieScene3DTransformPropertyRecorder);
-		TransformRecorder->CreateSection(SceneComponent, OwnerMovieScene, PossessableGuid, CurrentSequenceTime, true);
-		PropertyRecorders.Add(TransformRecorder);
+		if (Factory->CanRecordObject(SceneComponent))
+		{
+			TSharedPtr<IMovieSceneSectionRecorder> Recorder = Factory->CreateSectionRecorder(ActorSettings);
+			if (Recorder.IsValid())
+			{
+				Recorder->CreateSection(SceneComponent, OwnerMovieScene, PossessableGuid, CurrentSequenceTime);
+				Recorder->Record(CurrentSequenceTime);
+				SectionRecorders.Add(Recorder);
+			}
+		}
 	}
-
-	TSharedPtr<FMovieSceneVisibilityPropertyRecorder> VisibilityRecorder = MakeShareable(new FMovieSceneVisibilityPropertyRecorder);
-	VisibilityRecorder->CreateSection(SceneComponent, OwnerMovieScene, PossessableGuid, CurrentSequenceTime, true);
-	PropertyRecorders.Add(VisibilityRecorder);	
 
 	return AnimationRecorder;
 }
@@ -448,9 +450,9 @@ void UActorRecording::Tick(float DeltaSeconds, ULevelSequence* CurrentSequence, 
 			}
 		}
 
-		for(auto& PropertyRecorder : PropertyRecorders)
+		for(auto& SectionRecorder : SectionRecorders)
 		{
-			PropertyRecorder->Record(CurrentSequenceTime);
+			SectionRecorder->Record(CurrentSequenceTime);
 		}
 	}
 }
@@ -470,39 +472,26 @@ bool UActorRecording::StopRecording(ULevelSequence* CurrentSequence)
 		}
 	}
 
-	FScopedSlowTask SlowTask((float)PropertyRecorders.Num() + 1.0f, FText::Format(NSLOCTEXT("SequenceRecorder", "ProcessingActor", "Processing Actor {0}"), FText::FromString(ActorName)));
+	FScopedSlowTask SlowTask((float)SectionRecorders.Num() + 1.0f, FText::Format(NSLOCTEXT("SequenceRecorder", "ProcessingActor", "Processing Actor {0}"), FText::FromString(ActorName)));
 
 	// stop property recorders
-	for(auto& PropertyRecorder : PropertyRecorders)
+	for(auto& SectionRecorder : SectionRecorders)
 	{
 		SlowTask.EnterProgressFrame();
 
-		PropertyRecorder->FinalizeSection();
+		SectionRecorder->FinalizeSection();
 	}
 
 	SlowTask.EnterProgressFrame();
 
-	PropertyRecorders.Empty();
-
-	if(bNewComponentAddedWhileRecording && CurrentSequence)
-	{
-		UMovieScene* MovieScene = CurrentSequence->GetMovieScene();
-		check(MovieScene);
-
-		FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(Guid);
-		if(Spawnable)
-		{
-			UBlueprint* Blueprint = CastChecked<UBlueprint>(Spawnable->GetClass()->ClassGeneratedBy);
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-		}
-	}
+	SectionRecorders.Empty();
 
 	return true;
 }
 
 bool UActorRecording::IsRecording() const
 {
-	return ActorToRecord.IsValid() && PropertyRecorders.Num() > 0;
+	return ActorToRecord.IsValid() && SectionRecorders.Num() > 0;
 }
 
 static FName FindParentComponentOwnerClassName(USceneComponent* SceneComponent, UBlueprint* Blueprint)
@@ -554,7 +543,7 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 		FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(Guid);
 		check(Spawnable);
 
-		UBlueprint* Blueprint = CastChecked<UBlueprint>(Spawnable->GetClass()->ClassGeneratedBy);
+		AActor* ObjectTemplate = CastChecked<AActor>(Spawnable->GetObjectTemplate());
 
 		for(USceneComponent* SceneComponent : NewComponents)
 		{
@@ -562,38 +551,39 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 			FName NewName;
 			if(SceneComponent->CreationMethod != EComponentCreationMethod::SimpleConstructionScript)
 			{
-				NewName = *FString::Printf(TEXT("Dynamic%s"), *SceneComponent->GetFName().ToString());
-				USCS_Node* NewSCSNode = Blueprint->SimpleConstructionScript->CreateNode(SceneComponent->GetClass(), NewName); 
-				UEditorEngine::CopyPropertiesForUnrelatedObjects(SceneComponent, NewSCSNode->ComponentTemplate);
-				NewSCSNode->ComponentTemplate->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
+				// Give this component a unique name within its parent
+				NewName = *FString::Printf(TEXT("Dynamic%s"), *SceneComponent->GetFName().GetPlainNameString());
+				NewName.SetNumber(1);
+				while (FindObjectFast<UObject>(ObjectTemplate, NewName))
+				{
+					NewName.SetNumber(NewName.GetNumber() + 1);
+				}
+
+				USceneComponent* TemplateRoot = ObjectTemplate->GetRootComponent();
+				USceneComponent* AttachToComponent = TemplateRoot;
 
 				// look for a similar attach parent in the current structure
-				bool bAdded = false;
 				if(SceneComponent->GetAttachParent() != nullptr)
 				{
 					FName AttachName = SceneComponent->GetAttachParent()->GetFName();
-					NewSCSNode->ParentComponentOrVariableName = AttachName;
-					NewSCSNode->bIsParentComponentNative = SceneComponent->GetAttachParent()->CreationMethod == EComponentCreationMethod::Native;
-					NewSCSNode->ParentComponentOwnerClassName = FindParentComponentOwnerClassName(SceneComponent, Blueprint);
 
-					USCS_Node* ParentSCSNode = Blueprint->SimpleConstructionScript->FindSCSNode(AttachName);
-					if(ParentSCSNode)
+					TArray<USceneComponent*> AllChildren;
+					TemplateRoot->GetChildrenComponents(true, AllChildren);
+
+					for (USceneComponent* Child : AllChildren)
 					{
-						ParentSCSNode->AddChildNode(NewSCSNode);
-						bAdded = true;
+						if (Child->GetFName() == AttachName)
+						{
+							AttachToComponent = Child;
+							break;
+						}
 					}
 				}
-			
-				// nothing found - add to root
-				if(!bAdded)
-				{
-					Blueprint->SimpleConstructionScript->AddNode(NewSCSNode);
-				}
 
-				if(SceneComponent->GetAttachSocketName() != NAME_None)
-				{
-					NewSCSNode->AttachToName = SceneComponent->GetAttachSocketName();
-				}
+				USceneComponent* NewTemplateComponent = DuplicateObject<USceneComponent>(SceneComponent, ObjectTemplate, NewName);
+				NewTemplateComponent->AttachToComponent(AttachToComponent, FAttachmentTransformRules::KeepRelativeTransform, SceneComponent->GetAttachSocketName());
+
+				ObjectTemplate->AddInstanceComponent(NewTemplateComponent);
 			}
 			else
 			{

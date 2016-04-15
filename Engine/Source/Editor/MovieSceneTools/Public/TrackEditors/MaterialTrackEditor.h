@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "MovieSceneTrackEditor.h"
+
 
 class UMovieSceneMaterialTrack;
 
@@ -9,7 +11,7 @@ class UMovieSceneMaterialTrack;
 /**
  * Track editor for material parameters.
  */
-class FMaterialTrackEditor
+class MOVIESCENETOOLS_API FMaterialTrackEditor
 	: public FMovieSceneTrackEditor
 {
 public:

@@ -3,10 +3,14 @@
 #pragma once
 
 #include "ISequenceRecorder.h"
+#include "MovieSceneAnimationSectionRecorder.h"
+#include "MovieScene3DTransformSectionRecorder.h"
 
 struct FSequenceRecorder
 {
 public:
+	static FName MovieScenePropertyRecorderFactoryName;
+
 	/** Singleton accessor */
 	static FSequenceRecorder& Get();
 
@@ -73,6 +77,18 @@ public:
 	/** Handle actors being de-spawned */
 	void HandleActorDespawned(AActor* Actor);
 
+	/** Get the built-in animation factory (as this uses special case handling) */
+	const FMovieSceneAnimationSectionRecorderFactory& GetAnimationRecorderFactory() const
+	{
+		return AnimationSectionRecorderFactory;
+	}
+
+	/** Get the built-in transform factory (as this uses special case handling) */
+	const FMovieScene3DTransformSectionRecorderFactory& GetTransformRecorderFactory() const
+	{
+		return TransformSectionRecorderFactory;
+	}
+
 private:
 	/** Starts recording a sequence, possibly delayed */
 	bool StartRecordingInternal(UWorld* World);
@@ -130,4 +146,10 @@ private:
 
 	/** Cached sequence path to record to */
 	FString PathToRecordTo;
+
+	/** Built-in animation recorder factory */
+	FMovieSceneAnimationSectionRecorderFactory AnimationSectionRecorderFactory;
+
+	/** Built-in transform recorder factory */
+	FMovieScene3DTransformSectionRecorderFactory TransformSectionRecorderFactory;
 };

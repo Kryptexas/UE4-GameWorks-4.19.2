@@ -4,31 +4,9 @@
 
 #include "Animation/AnimationRecordingSettings.h"
 #include "Components/SkinnedMeshComponent.h"
+#include "ActorRecordingSettings.h"
 
 #include "ActorRecording.generated.h"
-
-USTRUCT()
-struct FActorRecordingSettings
-{
-	GENERATED_BODY()
-
-	FActorRecordingSettings()
-		: bRecordTransforms(false)
-		, bRecordVisibility(true)
-	{}
-
-public:
-	/** 
-	 * Whether to record actor transforms. This can be useful if you want the actors to end up in specific locations after the sequence. 
-	 * By default we rely on animations to provide transforms, but this can be changed using the "Record In World Space" animation setting.
-	 */
-	UPROPERTY(EditAnywhere, Category = "Actor Recording")
-	bool bRecordTransforms;
-
-	/** Whether to record actor visibility. */
-	UPROPERTY(EditAnywhere, Category = "Actor Recording")
-	bool bRecordVisibility;
-};
 
 UCLASS(MinimalAPI, Transient)
 class UActorRecording : public UObject
@@ -54,8 +32,14 @@ public:
 	/** Simulate a de-spawned actor */
 	void InvalidateObjectToRecord();
 
+	/** Get the Guid that identifies our spawnable in a recorded sequence */
+	const FGuid& GetSpawnableGuid() const
+	{
+		return Guid;
+	}
+
 private:
-	/** Check component valididty for recording */
+	/** Check component validity for recording */
 	bool ValidComponent(USceneComponent* SceneComponent) const;
 
 	/** Adds us to a folder for better sequence organization */
@@ -65,7 +49,7 @@ private:
 	void StartRecordingActorProperties(ULevelSequence* CurrentSequence, float CurrentSequenceTime);
 
 	/** Start recording component properties to a sequence */
-	TSharedPtr<class FMovieSceneAnimationPropertyRecorder> StartRecordingComponentProperties(const FName& BindingName, USceneComponent* SceneComponent, UObject* BindingContext, ULevelSequence* CurrentSequence, float CurrentSequenceTime);
+	TSharedPtr<class FMovieSceneAnimationSectionRecorder> StartRecordingComponentProperties(const FName& BindingName, USceneComponent* SceneComponent, UObject* BindingContext, ULevelSequence* CurrentSequence, float CurrentSequenceTime);
 
 	/** Start recording components that are added at runtime */
 	void StartRecordingNewComponents(ULevelSequence* CurrentSequence, float CurrentSequenceTime);
@@ -96,10 +80,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Animation Recording")
 	FAnimationRecordingSettings AnimationSettings;
 
-	/** Guid that identifies our spawnable in a recorded sequence */
-	FGuid Guid;
-
-	/** Whether this actor recording was triggered from an acotr spawn */
+	/** Whether this actor recording was triggered from an actor spawn */
 	bool bWasSpawnedPostRecord;
 
 private:
@@ -109,12 +90,15 @@ private:
 	/** Used to store/restore URO when recording */
 	bool bEnableUpdateRateOptimizations;
 
-	/** This actor's current set of property recorders */
-	TArray<TSharedPtr<class IMovieScenePropertyRecorder>> PropertyRecorders;
+	/** This actor's current set of section recorders */
+	TArray<TSharedPtr<class IMovieSceneSectionRecorder>> SectionRecorders;
 
 	/** Track components to check if any have changed */
 	TArray<TWeakObjectPtr<USceneComponent>> TrackedComponents;
 
 	/** Flag to track whether we created new components */
 	bool bNewComponentAddedWhileRecording;
+
+	/** Guid that identifies our spawnable in a recorded sequence */
+	FGuid Guid;
 };

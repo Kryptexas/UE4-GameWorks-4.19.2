@@ -126,6 +126,13 @@ public:
 	virtual bool HasSequenceInstanceForSection(UMovieSceneSection& Section) const = 0;
 
 	/**
+	 * Add actors as possessable objects to sequencer.
+	 * 
+	 * @param InActors The actors to add to sequencer.
+	 */
+	virtual void AddActors(const TArray<TWeakObjectPtr<AActor> >& InActors) = 0;
+
+	/**
 	 * Adds a movie scene as a section inside the current movie scene
 	 * 
 	 * @param Sequence The sequence to add.
@@ -250,6 +257,12 @@ public:
 	DECLARE_EVENT_TwoParams(ISequencer, FOnCameraCut, UObject*, bool)
 	virtual FOnCameraCut& OnCameraCut() = 0;
 
+	DECLARE_EVENT_OneParam(ISequencer, FOnPreSave, ISequencer&)
+	virtual FOnPreSave& OnPreSave() = 0;
+
+	DECLARE_EVENT_OneParam(ISequencer, FOnActivateSequence, FMovieSceneSequenceInstance&)
+	virtual FOnActivateSequence& OnActivateSequence() = 0;
+
 	/**
 	 * Gets a handle to runtime information about the object being manipulated by a movie scene
 	 * 
@@ -306,6 +319,9 @@ public:
 
 	/** Turn viewport transport controls on or off */
 	virtual void SetViewportTransportControlsVisibility(bool bVisible) = 0;
+
+	/** Attempt to find a spawned object in the currently focused movie scene, or the template object for the specified binding ID, if possible */
+	virtual UObject* FindSpawnedObjectOrTemplate(const FGuid& BindingId) const = 0;
 
 	/**
 	 * Create a widget containing the spinboxes for setting the working and playback range

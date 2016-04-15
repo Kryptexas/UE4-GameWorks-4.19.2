@@ -33,14 +33,19 @@ void UMovieSceneActorReferenceSection::DilateSection( float DilationFactor, floa
 }
 
 
-void UMovieSceneActorReferenceSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+void UMovieSceneActorReferenceSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const
 {
+	if (!TimeRange.Overlaps(GetRange()))
+	{
+		return;
+	}
+
 	for ( auto It( ActorGuidIndexCurve.GetKeyHandleIterator() ); It; ++It )
 	{
 		float Time = ActorGuidIndexCurve.GetKeyTime( It.Key() );
-		if (IsTimeWithinSection(Time))
+		if (TimeRange.Contains(Time))
 		{
-			KeyHandles.Add(It.Key());
+			OutKeyHandles.Add(It.Key());
 		}
 	}
 }

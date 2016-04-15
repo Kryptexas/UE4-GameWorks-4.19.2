@@ -2,19 +2,30 @@
 
 #pragma once
 
-#include "IMovieScenePropertyRecorder.h"
-
-class FMovieScene3DAttachPropertyRecorder : public IMovieScenePropertyRecorder
+class FMovieScene3DAttachSectionRecorderFactory : public IMovieSceneSectionRecorderFactory
 {
 public:
-	virtual ~FMovieScene3DAttachPropertyRecorder() {}
+	virtual ~FMovieScene3DAttachSectionRecorderFactory() {}
 
-	virtual void CreateSection(UObject* InObjectToRecord, class UMovieScene* InMovieScene, const FGuid& Guid, float Time, bool bRecord) override;
+	virtual TSharedPtr<IMovieSceneSectionRecorder> CreateSectionRecorder(const struct FActorRecordingSettings& InActorRecordingSettings) const override;
+	virtual bool CanRecordObject(class UObject* InObjectToRecord) const override;
+};
+
+class FMovieScene3DAttachSectionRecorder : public IMovieSceneSectionRecorder
+{
+public:
+	virtual ~FMovieScene3DAttachSectionRecorder() {}
+
+	virtual void CreateSection(UObject* InObjectToRecord, class UMovieScene* InMovieScene, const FGuid& Guid, float Time) override;
 	virtual void FinalizeSection() override;
 	virtual void Record(float CurrentTime) override;
 	virtual void InvalidateObjectToRecord() override
 	{
 		ActorToRecord = nullptr;
+	}
+	virtual UObject* GetSourceObject() const override
+	{
+		return ActorToRecord.Get();
 	}
 
 private:
@@ -35,7 +46,4 @@ private:
 
 	/** Identifier of the object we are recording */
 	FGuid ObjectGuid;
-
-	/** Flag if we are actually recording or not */
-	bool bRecording;
 };

@@ -1,21 +1,37 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequenceRecorderPrivatePCH.h"
-#include "MovieSceneAnimationPropertyRecorder.h"
+#include "MovieSceneAnimationSectionRecorder.h"
 #include "MovieSceneSkeletalAnimationTrack.h"
 #include "MovieSceneSkeletalAnimationSection.h"
 #include "MovieScene.h"
 #include "SequenceRecorderUtils.h"
 #include "SequenceRecorderSettings.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "ActorRecording.h"
 
-FMovieSceneAnimationPropertyRecorder::FMovieSceneAnimationPropertyRecorder(FAnimationRecordingSettings& InAnimationSettings, UAnimSequence* InSpecifiedSequence)
-	: Sequence(InSpecifiedSequence)
+TSharedPtr<IMovieSceneSectionRecorder> FMovieSceneAnimationSectionRecorderFactory::CreateSectionRecorder(const FActorRecordingSettings& InActorRecordingSettings) const
+{
+	return nullptr;
+}
+
+TSharedPtr<FMovieSceneAnimationSectionRecorder> FMovieSceneAnimationSectionRecorderFactory::CreateSectionRecorder(UActorRecording* InActorRecording) const
+{
+	return MakeShareable(new FMovieSceneAnimationSectionRecorder(InActorRecording->AnimationSettings, InActorRecording->TargetAnimation.Get()));
+}
+
+bool FMovieSceneAnimationSectionRecorderFactory::CanRecordObject(UObject* InObjectToRecord) const
+{
+	return InObjectToRecord->IsA<USkeletalMeshComponent>();
+}
+
+FMovieSceneAnimationSectionRecorder::FMovieSceneAnimationSectionRecorder(const FAnimationRecordingSettings& InAnimationSettings, UAnimSequence* InSpecifiedSequence)
+	: AnimSequence(InSpecifiedSequence)
 	, AnimationSettings(InAnimationSettings)
 {
 }
 
-void FMovieSceneAnimationPropertyRecorder::CreateSection(UObject* InObjectToRecord, UMovieScene* MovieScene, const FGuid& Guid, float Time, bool bRecord)
+void FMovieSceneAnimationSectionRecorder::CreateSection(UObject* InObjectToRecord, UMovieScene* MovieScene, const FGuid& Guid, float Time)
 {
 	ObjectToRecord = InObjectToRecord;
 
@@ -47,13 +63,12 @@ void FMovieSceneAnimationPropertyRecorder::CreateSection(UObject* InObjectToReco
 
 		ComponentTransform = SkeletalMeshComponent->GetComponentToWorld().GetRelativeTransform(SkeletalMeshComponent->GetOwner()->GetTransform());
 
-		if(!Sequence.IsValid())
+		if(!AnimSequence.IsValid())
 		{
 			// build an asset path
 			const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 
-			FString AssetPath(TEXT("/Game"));
-			AssetPath /= Settings->SequenceRecordingBasePath.Path;
+			FString AssetPath = Settings->SequenceRecordingBasePath.Path;
 			if(Settings->AnimationSubDirectory.Len() > 0)
 			{
 				AssetPath /= Settings->AnimationSubDirectory;
@@ -63,44 +78,40 @@ void FMovieSceneAnimationPropertyRecorder::CreateSection(UObject* InObjectToReco
 			AssetName += TEXT("_");
 			AssetName += Actor->GetActorLabel();
 
-			Sequence = SequenceRecorderUtils::MakeNewAsset<UAnimSequence>(AssetPath, AssetName);
-			if(Sequence.IsValid())
+			AnimSequence = SequenceRecorderUtils::MakeNewAsset<UAnimSequence>(AssetPath, AssetName);
+			if(AnimSequence.IsValid())
 			{
-				FAssetRegistryModule::AssetCreated(Sequence.Get());
+				FAssetRegistryModule::AssetCreated(AnimSequence.Get());
 
 				// set skeleton
-				Sequence->SetSkeleton(SkeletalMeshComponent->SkeletalMesh->Skeleton);
+				AnimSequence->SetSkeleton(SkeletalMeshComponent->SkeletalMesh->Skeleton);
 			}
 		}
 
-		if(Sequence.IsValid())
+		if(AnimSequence.IsValid())
 		{
-			FAnimationRecorderManager::Get().RecordAnimation(SkeletalMeshComponent.Get(), Sequence.Get(), AnimationSettings);
+			FAnimationRecorderManager::Get().RecordAnimation(SkeletalMeshComponent.Get(), AnimSequence.Get(), AnimationSettings);
 
 			if(MovieScene)
 			{
 				UMovieSceneSkeletalAnimationTrack* AnimTrack = MovieScene->AddTrack<UMovieSceneSkeletalAnimationTrack>(Guid);
 				if(AnimTrack)
 				{
-					AnimTrack->AddNewAnimation(Time, Sequence.Get());
+					AnimTrack->AddNewAnimation(Time, AnimSequence.Get());
 					MovieSceneSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimTrack->GetAllSections()[0]);
 				}
 			}
 		}
 	}
-
-	bRecording = bRecord;
 }
 
-void FMovieSceneAnimationPropertyRecorder::FinalizeSection()
+void FMovieSceneAnimationSectionRecorder::FinalizeSection()
 {
-	bRecording = false;
-
-	if(Sequence.IsValid())
+	if(AnimSequence.IsValid())
 	{
 		// enable root motion on the animation
-		Sequence->bEnableRootMotion = true;
-		Sequence->RootMotionRootLock = ERootMotionRootLock::Zero;
+		AnimSequence->bEnableRootMotion = true;
+		AnimSequence->RootMotionRootLock = ERootMotionRootLock::Zero;
 	}
 
 	if(SkeletalMeshComponent.IsValid())
@@ -114,13 +125,13 @@ void FMovieSceneAnimationPropertyRecorder::FinalizeSection()
 		FAnimationRecorderManager::Get().StopRecordingAnimation(SkeletalMeshComponent.Get(), bShowMessage);
 	}
 
-	if(MovieSceneSection.IsValid() && Sequence.IsValid())
+	if(MovieSceneSection.IsValid() && AnimSequence.IsValid())
 	{
-		MovieSceneSection->SetEndTime(MovieSceneSection->GetStartTime() + Sequence->GetPlayLength());
+		MovieSceneSection->SetEndTime(MovieSceneSection->GetStartTime() + AnimSequence->GetPlayLength());
 	}
 }
 
-void FMovieSceneAnimationPropertyRecorder::Record(float CurrentTime)
+void FMovieSceneAnimationSectionRecorder::Record(float CurrentTime)
 {
 	// The animation recorder does most of the work here
 

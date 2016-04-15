@@ -86,8 +86,7 @@ protected:
 	{
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 
-		FViewportTypeDefinition CinematicViewportType = FViewportTypeDefinition::FromType<FCinematicViewportLayoutEntity>();
-		CinematicViewportType.ToggleCommand = FLevelSequenceEditorCommands::Get().ToggleCinematicViewportCommand;
+		FViewportTypeDefinition CinematicViewportType = FViewportTypeDefinition::FromType<FCinematicViewportLayoutEntity>(FLevelSequenceEditorCommands::Get().ToggleCinematicViewportCommand);
 		LevelEditorModule.RegisterViewportType("Cinematic", CinematicViewportType);
 	}
 

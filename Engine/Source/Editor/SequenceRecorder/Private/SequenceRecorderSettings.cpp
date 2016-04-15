@@ -15,6 +15,11 @@ USequenceRecorderSettings::USequenceRecorderSettings(const FObjectInitializer& O
 	bRecordNearbySpawnedActors = true;
 	NearbyActorRecordingProximity = 5000.0f;
 	bRecordWorldSettingsActor = true;
+
+	ComponentClassesToRecord.Add(USkeletalMeshComponent::StaticClass());
+	ComponentClassesToRecord.Add(UStaticMeshComponent::StaticClass());
+	ComponentClassesToRecord.Add(UParticleSystemComponent::StaticClass());
+	ComponentClassesToRecord.Add(ULightComponent::StaticClass());
 }
 
 void USequenceRecorderSettings::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)

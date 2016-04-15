@@ -45,8 +45,7 @@ class MOVIESCENE_API UMovieSceneFolder : public UObject
 	void RemoveChildObjectBinding( const FGuid& InObjectBinding );
 
 
-	virtual void PreSave() override;
-	virtual void PostLoad() override;
+	virtual void Serialize( FArchive& Archive );
 
 
 private:

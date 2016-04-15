@@ -31,13 +31,20 @@ void UMovieSceneByteSection::DilateSection( float DilationFactor, float Origin, 
 }
 
 
-void UMovieSceneByteSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+void UMovieSceneByteSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const
 {
+	if (!TimeRange.Overlaps(GetRange()))
+	{
+		return;
+	}
+
 	for (auto It(ByteCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = ByteCurve.GetKeyTime(It.Key());
-		if (IsTimeWithinSection(Time))
-			KeyHandles.Add(It.Key());
+		if (TimeRange.Contains(Time))
+		{
+			OutKeyHandles.Add(It.Key());
+		}
 	}
 }
 

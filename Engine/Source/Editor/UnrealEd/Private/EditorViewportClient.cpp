@@ -956,6 +956,13 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 	if (bUseControllingActorViewInfo)
 	{
 		View->OverridePostProcessSettings(ControllingActorViewInfo.PostProcessSettings, ControllingActorViewInfo.PostProcessBlendWeight);
+
+		for (int32 ExtraPPBlendIdx = 0; ExtraPPBlendIdx < ControllingActorExtraPostProcessBlends.Num(); ++ExtraPPBlendIdx)
+		{
+			FPostProcessSettings const& PPSettings = ControllingActorExtraPostProcessBlends[ExtraPPBlendIdx];
+			float const Weight = ControllingActorExtraPostProcessBlendWeights[ExtraPPBlendIdx];
+			View->OverridePostProcessSettings(PPSettings, Weight);
+		}
 	}
 	else
 	{
@@ -4240,7 +4247,38 @@ void FEditorViewportClient::OverrideFarClipPlane(const float InFarPlane)
 	FarPlane = InFarPlane;
 }
 
-void FEditorViewportClient::MoveViewportCamera(const FVector& InDrag, const FRotator& InRot, bool bDollyCamera )
+float FEditorViewportClient::GetSceneDepthAtLocation(int32 X, int32 Y)
+{
+	// #todo: in the future we will just sample the depth buffer
+	return 0.f;
+}
+
+FVector FEditorViewportClient::GetHitProxyObjectLocation(int32 X, int32 Y)
+{
+	// #todo: for now we are just getting the actor and using its location for 
+	// depth. in the future we will just sample the depth buffer
+	HHitProxy* const HitProxy = Viewport->GetHitProxy(X, Y);
+	if (HitProxy && HitProxy->IsA(HActor::StaticGetType()))
+	{
+		HActor* const ActorHit = static_cast<HActor*>(HitProxy);
+
+		// dist to component will be more reliable than dist to actor
+		if (ActorHit->PrimComponent != nullptr)
+		{
+			return ActorHit->PrimComponent->GetComponentLocation();
+		}
+
+		if (ActorHit->Actor != nullptr)
+		{
+			return ActorHit->Actor->GetActorLocation();
+		}
+	}
+
+	return FVector::ZeroVector;
+}
+
+
+void FEditorViewportClient::MoveViewportCamera(const FVector& InDrag, const FRotator& InRot, bool bDollyCamera)
 {
 	switch( GetViewportType() )
 	{

@@ -73,7 +73,9 @@ TSharedRef<SWidget> FParticleParameterTrackEditor::OnGetAddParameterMenuContent(
 {
 	FMenuBuilder AddParameterMenuBuilder( true, nullptr );
 
-	AEmitter* Emitter = Cast<AEmitter>( GetSequencer()->GetFocusedMovieSceneSequenceInstance()->FindObject( ObjectBinding, *GetSequencer() ) );
+	TSharedPtr<ISequencer> Sequencer = GetSequencer();
+	AEmitter* Emitter = Sequencer.IsValid() ? Cast<AEmitter>( Sequencer->FindSpawnedObjectOrTemplate( ObjectBinding ) ) : nullptr;
+
 	if ( Emitter != nullptr )
 	{
 		UParticleSystemComponent* ParticleSystemComponent = Emitter->GetParticleSystemComponent();

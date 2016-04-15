@@ -38,11 +38,20 @@ static AssetType* MakeNewAsset(const FString& BaseAssetPath, const FString& Base
 
 	// Create the new asset in the package we just made
 	AssetPath = (BaseAssetPath / AssetName);
-	UObject* Package = CreatePackage(nullptr, *AssetPath);
-	return NewObject<AssetType>(Package, *AssetName, RF_Public | RF_Standalone);
+
+	FString FileName;
+	if(FPackageName::TryConvertLongPackageNameToFilename(AssetPath, FileName))
+	{
+		UObject* Package = CreatePackage(nullptr, *AssetPath);
+		return NewObject<AssetType>(Package, *AssetName, RF_Public | RF_Standalone);	
+	}
+
+	UE_LOG(LogAnimation, Error, TEXT("Couldnt create file for package %s"), *AssetPath);
+
+	return nullptr;
 }
 
 /** Helper function - check whether our component hierarchy has some attachment outside of its owned components */
-AActor* GetAttachment(AActor* InActor, FName& SocketName, FName& ComponentName);
+SEQUENCERECORDER_API AActor* GetAttachment(AActor* InActor, FName& SocketName, FName& ComponentName);
 
 }

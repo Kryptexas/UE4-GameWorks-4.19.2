@@ -209,6 +209,8 @@ void FNameCurve::DeleteKey(FKeyHandle KeyHandle)
 	int32 Index = GetIndex(KeyHandle);
 	Keys.RemoveAt(Index);
 
+	KeyHandlesToIndices.Remove(KeyHandle);
+
 	// update key indices
 	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
 	{

@@ -188,49 +188,62 @@ void FMovieSceneSubTrackInstance::Update(EMovieSceneUpdateData& UpdateData, cons
 	float PreviousTime = CurrentTime;
 
 	TArray<UMovieSceneSection*> TraversedSections = GetTraversedSectionsWithPreroll(AllSections, CurrentTime, PreviousTime);
+	TArray<TWeakObjectPtr<UMovieSceneSubSection>>& LastTraversedSections = UpdatePassToLastTraversedSectionsMap.FindOrAdd(UpdateData.UpdatePass);
 
-	const float InitialUpdatePosition = UpdateData.Position;
+	for ( TWeakObjectPtr<UMovieSceneSubSection> LastSubSection : LastTraversedSections )
+	{
+		if ( TraversedSections.Contains( LastSubSection.Get() ) == false )
+		{
+			UpdateSection( UpdateData, Player, LastSubSection.Get(), true );
+		}
+	}
+	LastTraversedSections.Empty();
 
 	for (const auto Section : TraversedSections)
 	{
-		// skip sections with invalid time scale
-		UMovieSceneSubSection* SubSection = CastChecked<UMovieSceneSubSection>(Section);
+		UMovieSceneSubSection* SubSection = CastChecked<UMovieSceneSubSection>( Section );
+		UpdateSection(UpdateData, Player, SubSection, false);
+		LastTraversedSections.Add( TWeakObjectPtr<UMovieSceneSubSection>( SubSection ) );
+	}
+}
 
-		if (SubSection->TimeScale == 0.0f)
-		{
-			continue;
-		}
+void FMovieSceneSubTrackInstance::UpdateSection( EMovieSceneUpdateData& UpdateData, class IMovieScenePlayer& Player, UMovieSceneSubSection* SubSection, bool bSectionWasDeactivated )
+{
+	if (SubSection->TimeScale == 0.0f)
+	{
+		return;
+	}
 
-		// skip sections without valid instances
-		TSharedPtr<FMovieSceneSequenceInstance> Instance = SequenceInstancesBySection.FindRef(SubSection);
+	// skip sections without valid instances
+	TSharedPtr<FMovieSceneSequenceInstance> Instance = SequenceInstancesBySection.FindRef(SubSection);
 
-		if (!Instance.IsValid())
-		{
-			continue;
-		}
+	if (!Instance.IsValid())
+	{
+		return;
+	}
 
-		// calculate section's local time
-		const float InstanceOffset = SubSection->StartOffset + Instance->GetTimeRange().GetLowerBoundValue() - SubSection->PrerollTime;
-		const float InstanceLastPosition = InstanceOffset + (UpdateData.LastPosition - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
-		const float InstancePosition = InstanceOffset + (UpdateData.Position - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
+	// calculate section's local time
+	const float InstanceOffset = SubSection->StartOffset + Instance->GetTimeRange().GetLowerBoundValue() - SubSection->PrerollTime;
+	const float InstanceLastPosition = InstanceOffset + (UpdateData.LastPosition - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
+	const float InstancePosition = InstanceOffset + (UpdateData.Position - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
 
-		EMovieSceneUpdateData SubUpdateData(InstancePosition, InstanceLastPosition);
-		SubUpdateData.bJumpCut = UpdateData.LastPosition < SubSection->GetStartTime() || UpdateData.LastPosition > SubSection->GetEndTime();
-		SubUpdateData.UpdatePass = UpdateData.UpdatePass;
-		SubUpdateData.bPreroll = InitialUpdatePosition < SubSection->GetStartTime();
+	EMovieSceneUpdateData SubUpdateData(InstancePosition, InstanceLastPosition);
+	SubUpdateData.bJumpCut = UpdateData.LastPosition < SubSection->GetStartTime() || UpdateData.LastPosition > SubSection->GetEndTime();
+	SubUpdateData.UpdatePass = UpdateData.UpdatePass;
+	SubUpdateData.bPreroll = UpdateData.Position < SubSection->GetStartTime();
+	SubUpdateData.bSubSceneDeactivate = bSectionWasDeactivated;
 
-		// update sub sections
+	// update sub sections
 
-		if (SubUpdateData.UpdatePass == MSUP_PreUpdate)
-		{
-			Instance->PreUpdate(Player);
-		}
+	if (SubUpdateData.UpdatePass == MSUP_PreUpdate)
+	{
+		Instance->PreUpdate(Player);
+	}
 		
-		Instance->UpdatePassSingle(SubUpdateData, Player);
+	Instance->UpdatePassSingle(SubUpdateData, Player);
 
-		if (SubUpdateData.UpdatePass == MSUP_PostUpdate)
-		{
-			Instance->PostUpdate(Player);
-		}
+	if (SubUpdateData.UpdatePass == MSUP_PostUpdate)
+	{
+		Instance->PostUpdate(Player);
 	}
 }

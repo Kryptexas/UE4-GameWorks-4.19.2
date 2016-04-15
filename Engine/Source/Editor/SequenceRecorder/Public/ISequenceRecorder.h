@@ -53,4 +53,11 @@ public:
 	 * @param	Actor	The actor that was 'de-spawned'
 	 */
 	virtual void NotifyActorStopRecording(AActor* Actor) = 0;
+
+	/**
+	 * Get the spawnable Guid in the currently recording movie scene for the specified actor.
+	 * @param	Actor	The Actor to check
+	 * @return the spawnable Guid
+	 */
+	virtual FGuid GetRecordingGuid(AActor* Actor) const = 0;
 };

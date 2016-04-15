@@ -1,14 +1,47 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequenceRecorderPrivatePCH.h"
-#include "MovieScene3DTransformPropertyRecorder.h"
+#include "MovieScene3DTransformSectionRecorder.h"
 #include "MovieScene.h"
 #include "MovieScene3DTransformSection.h"
 #include "MovieScene3DTransformTrack.h"
-#include "MovieSceneAnimationPropertyRecorder.h"
+#include "MovieSceneAnimationSectionRecorder.h"
 #include "SequenceRecorderUtils.h"
+#include "ActorRecording.h"
+#include "ActorRecordingSettings.h"
 
-void FMovieScene3DTransformPropertyRecorder::CreateSection(UObject* InObjectToRecord, UMovieScene* InMovieScene, const FGuid& Guid, float Time, bool bRecord) 
+TSharedPtr<IMovieSceneSectionRecorder> FMovieScene3DTransformSectionRecorderFactory::CreateSectionRecorder(const FActorRecordingSettings& InActorRecordingSettings) const
+{
+	return nullptr;
+}
+
+TSharedPtr<FMovieScene3DTransformSectionRecorder> FMovieScene3DTransformSectionRecorderFactory::CreateSectionRecorder(bool bRecordTransforms, TSharedPtr<class FMovieSceneAnimationSectionRecorder> InAnimRecorder) const
+{
+	return MakeShareable(new FMovieScene3DTransformSectionRecorder(bRecordTransforms, InAnimRecorder));
+}
+
+bool FMovieScene3DTransformSectionRecorderFactory::CanRecordObject(UObject* InObjectToRecord) const
+{
+	if(USceneComponent* SceneComponent = Cast<USceneComponent>(InObjectToRecord))
+	{
+		// Dont record the root component transforms as this will be taken into account by the actor transform track
+		// Also dont record transforms of skeletal mesh components as they will be taken into account in the actor transform
+		bool bIsCharacterSkelMesh = false;
+		if (SceneComponent->IsA<USkeletalMeshComponent>() && SceneComponent->GetOwner()->IsA<ACharacter>())
+		{
+			ACharacter* Character = CastChecked<ACharacter>(SceneComponent->GetOwner());
+			bIsCharacterSkelMesh = SceneComponent == Character->GetMesh();
+		}
+
+		return (SceneComponent != SceneComponent->GetOwner()->GetRootComponent() && !bIsCharacterSkelMesh);
+	}
+	else 
+	{
+		return InObjectToRecord->IsA<AActor>();
+	}
+}
+
+void FMovieScene3DTransformSectionRecorder::CreateSection(UObject* InObjectToRecord, UMovieScene* InMovieScene, const FGuid& Guid, float Time) 
 {
 	ObjectToRecord = InObjectToRecord;
 	bWasAttached = false;
@@ -41,13 +74,9 @@ void FMovieScene3DTransformPropertyRecorder::CreateSection(UObject* InObjectToRe
 		MovieSceneSection->SetStartTime(Time);
 		MovieSceneSection->SetIsInfinite(true);
 	}
-
-	bRecording = bRecord;
-
-	Record(Time);
 }
 
-void FMovieScene3DTransformPropertyRecorder::FinalizeSection()
+void FMovieScene3DTransformSectionRecorder::FinalizeSection()
 {
 	FScopedSlowTask SlowTask(4.0f, NSLOCTEXT("SequenceRecorder", "ProcessingTransforms", "Processing Transforms"));
 
@@ -59,7 +88,7 @@ void FMovieScene3DTransformPropertyRecorder::FinalizeSection()
 	{
 		check(BufferedTransforms.Num() == 0);
 
-		UAnimSequence* AnimSequence = AnimRecorder->GetSequence();
+		UAnimSequence* AnimSequence = AnimRecorder->GetAnimSequence();
 		USkeletalMesh* SkeletalMesh = AnimRecorder->GetSkeletalMesh();
 		if(AnimSequence && SkeletalMesh)
 		{
@@ -221,7 +250,7 @@ void FMovieScene3DTransformPropertyRecorder::FinalizeSection()
 	SlowTask.EnterProgressFrame();
 }
 
-void FMovieScene3DTransformPropertyRecorder::Record(float CurrentTime)
+void FMovieScene3DTransformSectionRecorder::Record(float CurrentTime)
 {
 	if(ObjectToRecord.IsValid())
 	{
@@ -247,7 +276,7 @@ void FMovieScene3DTransformPropertyRecorder::Record(float CurrentTime)
 	}
 }
 
-FTransform FMovieScene3DTransformPropertyRecorder::GetTransformToRecord()
+FTransform FMovieScene3DTransformSectionRecorder::GetTransformToRecord()
 {
 	if(USceneComponent* SceneComponent = Cast<USceneComponent>(ObjectToRecord.Get()))
 	{

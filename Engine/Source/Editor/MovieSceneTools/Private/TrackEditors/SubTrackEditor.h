@@ -77,8 +77,8 @@ private:
 	bool CanRecordNewSequence() const;
 
 	/** Handle recording new sequence into a sub track */
-	void HandleRecordNewSequence();
+	void HandleRecordNewSequence(FString NameOfActorToRecord);
 
 	/** Actually handles the adding of the section */
-	bool HandleRecordNewSequenceInternal(float KeyTime);
+	bool HandleRecordNewSequenceInternal(float KeyTime, FString NameOfActorToRecord);
 };

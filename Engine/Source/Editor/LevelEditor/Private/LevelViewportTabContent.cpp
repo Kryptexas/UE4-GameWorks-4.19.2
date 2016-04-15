@@ -93,6 +93,31 @@ void FLevelViewportTabContent::SetViewportConfiguration(const FName& Configurati
 	UpdateViewportTabWidget();
 }
 
+void FLevelViewportTabContent::RefreshViewportConfiguration()
+{
+	check(ActiveLevelViewportLayout.IsValid());
+
+	FName ConfigurationName = ActiveLevelViewportLayout->GetLayoutTypeName();
+	for (auto& Pair : ActiveLevelViewportLayout->GetViewports())
+	{
+		if (Pair.Value->AsWidget()->HasFocusedDescendants())
+		{
+			PreviouslyFocusedViewport = Pair.Key;
+			break;
+		}
+	}
+
+	ActiveLevelViewportLayout->SaveLayoutString(LayoutString);
+	ActiveLevelViewportLayout.Reset();
+
+	bool bSwitchingLayouts = false;
+	ActiveLevelViewportLayout = ConstructViewportLayoutByTypeName(ConfigurationName, bSwitchingLayouts);
+	check(ActiveLevelViewportLayout.IsValid());
+
+	UpdateViewportTabWidget();
+}
+
+
 bool FLevelViewportTabContent::IsViewportConfigurationSet(const FName& ConfigurationName) const
 {
 	if (ActiveLevelViewportLayout.IsValid())
@@ -114,8 +139,17 @@ void FLevelViewportTabContent::UpdateViewportTabWidget()
 	if (ParentTabPinned.IsValid() && ActiveLevelViewportLayout.IsValid())
 	{
 		TSharedRef<SWidget> LayoutWidget = ActiveLevelViewportLayout->BuildViewportLayout(ParentTabPinned, SharedThis(this), LayoutString, ParentLevelEditor);
-
 		ParentTabPinned->SetContent(LayoutWidget);
+
+		if (PreviouslyFocusedViewport.IsSet())
+		{
+			TSharedPtr<IViewportLayoutEntity> ViewportToFocus = ActiveLevelViewportLayout->GetViewports().FindRef(PreviouslyFocusedViewport.GetValue());
+			if (ViewportToFocus.IsValid())
+			{
+				ViewportToFocus->SetKeyboardFocus();
+			}
+			PreviouslyFocusedViewport = TOptional<FName>();
+		}
 	}
 }
 

@@ -144,7 +144,7 @@ protected:
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
 	virtual IMovieSceneSpawnRegister& GetSpawnRegister() override;
 	virtual UObject* GetPlaybackContext() const override;
-	virtual UObject* GetEventContext() const override;
+	virtual TArray<UObject*> GetEventContexts() const override;
 
 public:
 
@@ -152,11 +152,11 @@ public:
 
 private:
 
-	/** Update the movie scene instance from the specified previous position, to the specified time position */
+	/** Update the movie scene instance from the specified previous position, to the specified time position. */
 	void UpdateMovieSceneInstance(float CurrentPosition, float PreviousPosition);
 
-	/** Called when the cursor position has changed to implement looping */
-	void OnCursorPositionChanged();
+	/** Update the time cursor position and handle stopping & looping. */
+	void UpdateTimeCursorPosition(float NewPosition);
 
 private:
 
@@ -171,6 +171,9 @@ private:
 	/** The current time cursor position within the sequence (in seconds) */
 	UPROPERTY()
 	float TimeCursorPosition;
+
+	/** The time cursor position in the previous update. */
+	float LastCursorPosition;
 
 	/** Time time at which to start playing the sequence (defaults to the lower bound of the sequence's play range) */
 	float StartTime;

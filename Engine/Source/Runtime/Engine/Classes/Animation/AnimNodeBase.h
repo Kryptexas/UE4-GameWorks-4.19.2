@@ -566,6 +566,15 @@ struct ENGINE_API FAnimNode_Base
 
 	/** Override this to perform game-thread work prior to non-game thread Update() being called */
 	virtual void PreUpdate(const UAnimInstance* InAnimInstance) {}
+
+	/**
+	 * For nodes that implement some kind of simulation, return true here so ResetDynamics() gets called
+	 * when things like teleports, time skips etc. occur that might require special handling
+	 */
+	virtual bool NeedsDynamicReset() const { return false; }
+
+	/** Override this to perform game-thread work prior to non-game thread Update() being called */
+	virtual void ResetDynamics() {}
 	// End of interface to implement
 
 	virtual ~FAnimNode_Base() {}

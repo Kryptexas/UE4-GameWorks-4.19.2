@@ -209,8 +209,9 @@ TSharedPtr<FExtender> FCurveAssetEditor::GetToolbarExtender()
 
 			ToolbarBuilder.BeginSection("Snap");
 			{
-				ToolbarBuilder.AddToolBarButton(FRichCurveEditorCommands::Get().ToggleSnapping);
+				ToolbarBuilder.AddToolBarButton(FRichCurveEditorCommands::Get().ToggleInputSnapping);
 				ToolbarBuilder.AddWidget(InputSnapWidget);
+				ToolbarBuilder.AddToolBarButton(FRichCurveEditorCommands::Get().ToggleOutputSnapping);
 				ToolbarBuilder.AddWidget(OutputSnapWidget);
 			}
 			ToolbarBuilder.EndSection();

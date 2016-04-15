@@ -260,6 +260,8 @@ public:
 	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
 
 	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
+	/** Reset any dynamics running simulation-style updates (e.g. on teleport, time skip etc.) */
+	void ResetDynamics();
 
 	/** Only restricted classes can access the protected interface */
 	friend class UAnimInstance;
@@ -562,6 +564,9 @@ private:
 	/** Delegate fired on the game thread before update occurs */
 	TArray<FAnimNode_Base*> GameThreadPreUpdateNodes;
 
+	/** All nodes that need to be reset on DynamicReset() */
+	TArray<FAnimNode_Base*> DynamicResetNodes;
+	
 	/** Native transition rules */
 	TArray<FNativeTransitionBinding> NativeTransitionBindings;
 

@@ -33,6 +33,7 @@ void FMovieSceneCameraShakeTrackInstance::Update(EMovieSceneUpdateData& UpdateDa
 			if (CameraComponent)
 			{
 				CameraComponent->ClearAdditiveOffset();
+				CameraComponent->ClearExtraPostProcessBlends();
 			}
 		}
 	}
@@ -70,7 +71,7 @@ void FMovieSceneCameraShakeTrackInstance::Update(EMovieSceneUpdateData& UpdateDa
 					SectionInstanceDataMap.Remove(DeadSection);
 				}
 
-				// #todo sort by start time to match application order of player camera
+				// sort by start time to match application order of player camera
 				ActiveSections.Sort(
 					[](const UMovieSceneCameraShakeSection& One, const UMovieSceneCameraShakeSection& Two)
 				{
@@ -91,11 +92,10 @@ void FMovieSceneCameraShakeTrackInstance::Update(EMovieSceneUpdateData& UpdateDa
 						{
 							// make it root so GC doesn't take it away
 							ShakeInst->AddToRoot();
+							ShakeInst->SetTempCameraAnimActor(GetTempCameraActor());
 							ShakeInst->PlayShake(nullptr, ActiveSection->PlayScale, ActiveSection->PlaySpace, ActiveSection->UserDefinedPlaySpace);
 							if (ShakeInst->AnimInst)
 							{
-								// if there was a cameraanim component of the shake, give it our temp camera actor to use
-								ShakeInst->AnimInst->SetCameraActor(GetTempCameraActor());
 								ShakeInst->AnimInst->SetStopAutomatically(false);
 							}
 						}
@@ -144,6 +144,20 @@ void FMovieSceneCameraShakeTrackInstance::Update(EMovieSceneUpdateData& UpdateDa
 
 						SectionInstanceData.AdditiveFOVOffset = NewFOVToBaseFOV;
 						SectionInstanceData.AdditiveOffset = NewCameraToBaseCamera;
+
+						// harvest PP changes
+						{
+							UCameraComponent* AnimCamComp = GetTempCameraActor()->GetCameraComponent();
+							if (AnimCamComp)
+							{
+								SectionInstanceData.PostProcessingBlendWeight = AnimCamComp->PostProcessBlendWeight;
+								if (SectionInstanceData.PostProcessingBlendWeight > 0.f)
+								{
+									// avoid big struct copy if not necessary
+									SectionInstanceData.PostProcessingSettings = AnimCamComp->PostProcessSettings;
+								}
+							}
+						}
 					}
 				}
 
@@ -155,6 +169,11 @@ void FMovieSceneCameraShakeTrackInstance::Update(EMovieSceneUpdateData& UpdateDa
 					FMovieSceneCameraShakeSectionInstanceData& SectionInstanceData = SectionInstanceDataMap.FindChecked(ActiveSection);
 					TotalTransform = TotalTransform * SectionInstanceData.AdditiveOffset;
 					TotalFOVOffset += SectionInstanceData.AdditiveFOVOffset;
+
+					if (SectionInstanceData.PostProcessingBlendWeight > 0.f)
+					{
+						CameraComponent->AddExtraPostProcessBlend(SectionInstanceData.PostProcessingSettings, SectionInstanceData.PostProcessingBlendWeight);
+					}
 				}
 
 				CameraComponent->AddAdditiveOffset(TotalTransform, TotalFOVOffset);

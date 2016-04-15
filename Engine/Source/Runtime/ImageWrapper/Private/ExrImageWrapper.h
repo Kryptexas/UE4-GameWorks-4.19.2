@@ -49,6 +49,8 @@ private:
 	template <Imf::PixelType OutputFormat, typename sourcetype>
 	void CompressRaw(const sourcetype* SrcData, bool bIgnoreAlpha);
 	const char* GetRawChannelName(int ChannelIndex) const;
+	
+	bool bUseCompression;
 };
 
 #endif // WITH_UNREALEXR

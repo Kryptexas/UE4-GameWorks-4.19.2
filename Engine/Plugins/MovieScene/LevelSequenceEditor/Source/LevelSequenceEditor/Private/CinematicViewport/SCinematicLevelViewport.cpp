@@ -573,8 +573,6 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 		return;
 	}
 
-	ViewportClient->bDisableInput = Sequencer->GetPlaybackStatus() == EMovieScenePlayerStatus::Playing;
-
 	UMovieSceneSequence* Sequence = Sequencer->GetFocusedMovieSceneSequence();
 	if (!Sequence)
 	{

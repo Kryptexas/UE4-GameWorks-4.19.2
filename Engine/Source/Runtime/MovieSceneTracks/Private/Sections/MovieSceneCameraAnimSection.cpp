@@ -36,12 +36,17 @@ void UMovieSceneCameraAnimSection::DilateSection(float DilationFactor, float Ori
 }
 
 
-void UMovieSceneCameraAnimSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+void UMovieSceneCameraAnimSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const
 {
+	if (!TimeRange.Overlaps(GetRange()))
+	{
+		return;
+	}
+
 // 	for (auto It(AnimWeightCurve.GetKeyHandleIterator()); It; ++It)
 // 	{
 // 		float Time = AnimWeightCurve.GetKeyTime(It.Key());
-// 		if (IsTimeWithinSection(Time))
+// 		if (TimeRange.Contains(Time))
 // 		{
 // 			KeyHandles.Add(It.Key());
 // 		}

@@ -10,6 +10,7 @@
 #include "ISequenceRecorder.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "ActorRecordingDetailsCustomization.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 
@@ -97,6 +98,10 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 
 			// register for debug drawing
 			DrawDebugDelegateHandle = UDebugDrawService::Register(TEXT("Game"),  FDebugDrawDelegate::CreateStatic(&FSequenceRecorderModule::DrawDebug));
+
+			// register details customization
+			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+			PropertyModule.RegisterCustomClassLayout(UActorRecording::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FActorRecordingDetailsCustomization::MakeInstance));
 		}
 #endif
 	}
@@ -133,6 +138,12 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 				PersonaModule.OnStopRecording().Unbind();
 				PersonaModule.OnGetCurrentRecording().Unbind();
 				PersonaModule.OnGetCurrentRecordingTime().Unbind();
+			}
+
+			if (FModuleManager::Get().IsModuleLoaded(TEXT("PropertyEditor")))
+			{
+				FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+				PropertyModule.UnregisterCustomClassLayout(UActorRecording::StaticClass()->GetFName());
 			}
 		}
 
@@ -506,6 +517,17 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 	virtual void NotifyActorStopRecording(AActor* Actor)
 	{
 		FSequenceRecorder::Get().HandleActorDespawned(Actor);
+	}
+
+	virtual FGuid GetRecordingGuid(AActor* Actor) const
+	{
+		UActorRecording* Recording = FSequenceRecorder::Get().FindRecording(Actor);
+		if (Recording != nullptr)
+		{
+			return Recording->GetSpawnableGuid();
+		}
+
+		return FGuid();
 	}
 
 	static void TickSequenceRecorder(float DeltaSeconds)

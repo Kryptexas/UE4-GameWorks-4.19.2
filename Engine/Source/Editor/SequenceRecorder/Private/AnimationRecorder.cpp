@@ -470,7 +470,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float D
 			BlendedComponentToWorld.Blend(PreviousComponentToWorld, Component->ComponentToWorld, BlendAlpha);
 
 			FBlendedHeapCurve BlendedCurve;
-			if (PreviousAnimCurves.Elements.Num() == AnimCurves.Elements.Num())
+			if (AnimCurves.Elements.Num() > 0 && PreviousAnimCurves.Elements.Num() == AnimCurves.Elements.Num())
 			{
 				BlendedCurve.Blend(PreviousAnimCurves, AnimCurves, BlendAlpha);
 			}

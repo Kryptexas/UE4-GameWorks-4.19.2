@@ -102,12 +102,13 @@ public:
 	/**
 	 * Calls the setter function for a specific runtime object or if the setter function does not exist, the property is set directly
 	 *
-	 * @param InRuntimeObject	The runtime object whose function to call
-	 * @param FunctionParams	Parameters to pass to the function
+	 * @param InRuntimeObject The runtime object whose function to call
+	 * @param PropertyValue The new value to assign to the property (if bound to property)
+	 * @param FunctionParams Parameters to pass to the function (if bound to function)
 	 */
 	template <typename ValueType>
 	void 
-	CallFunction( UObject* InRuntimeObject, void* FunctionParams )
+	CallFunction( UObject* InRuntimeObject, void* PropertyValue, void* FunctionParams )
 	{
 		FPropertyAndFunction PropAndFunction = RuntimeObjectToFunctionMap.FindRef(InRuntimeObject);
 		if(PropAndFunction.Function)
@@ -116,9 +117,17 @@ public:
 		}
 		else
 		{
-			ValueType* NewValue = (ValueType*)(FunctionParams);
+			ValueType* NewValue = (ValueType*)(PropertyValue);
 			SetCurrentValue<ValueType>(InRuntimeObject, *NewValue);
 		}
+	}
+
+	/** For backwards compatibility. */
+	template <typename ValueType>
+	void 
+	CallFunction( UObject* InRuntimeObject, void* PropertyValue )
+	{
+		CallFunction<ValueType>(InRuntimeObject, PropertyValue, PropertyValue);
 	}
 
 	/**

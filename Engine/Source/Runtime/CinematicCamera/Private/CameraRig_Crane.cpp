@@ -10,16 +10,16 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	// default control values
 	CraneYaw = 0.f;
 	CranePitch = 0.f;
 	CraneArmLength = 500.f;
 
+	// create the root component
 	TransformComponent = CreateDefaultSubobject<USceneComponent>(TEXT("TransformComponent"));
-
-	// Make the scene component the root component
 	RootComponent = TransformComponent;
 	
-	// Setup camera defaults
+	// create the functional component hierarchy
 	CraneYawControl = CreateDefaultSubobject<USceneComponent>(TEXT("CraneYawControl"));
 	CraneYawControl->SetupAttachment(TransformComponent);
 	CraneYawControl->RelativeLocation = FVector(0.f, 0.f, 70.f);			// pivot height off the ground
@@ -33,7 +33,7 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 	CraneCameraMount->SetupAttachment(CranePitchControl);
 	CraneCameraMount->RelativeLocation = FVector(CraneArmLength, 0.f, -15.f);			// negative z == underslung mount
 
-	// preview meshes
+	// create preview meshes
 	if (!IsRunningCommandlet() && !IsRunningDedicatedServer())
 	{
 		static ConstructorHelpers::FObjectFinder<UStaticMesh> CraneBaseMesh(TEXT("/Engine/EditorMeshes/Camera/SM_CraneRig_Base.SM_CraneRig_Base"));
@@ -81,9 +81,9 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 			PreviewMesh_CraneMount->CastShadow = false;
 			PreviewMesh_CraneMount->PostPhysicsComponentTick.bCanEverTick = false;
 
-			PreviewMesh_CraneMount->SetupAttachment(CraneCameraMount);
+			PreviewMesh_CraneMount->SetupAttachment(CranePitchControl);
 			PreviewMesh_CraneMount->RelativeRotation = FRotator(0.f, 90.f, 0.f);
-			PreviewMesh_CraneMount->RelativeLocation = FVector(0.f, 0.f, 57.f);
+			PreviewMesh_CraneMount->RelativeLocation = FVector(CraneArmLength, 0.f, 0.f);
 			PreviewMesh_CraneMount->RelativeScale3D = FVector(0.7f, 0.7f, 0.7f);
 		}
 		
@@ -108,7 +108,6 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 	}
 }
 
-static const float CraneArmMesh_CounterweightOverhang = 0.f;
 static const float CraneArmMesh_DefaultMeshSize = 29.f * 0.7f;		// size of the mesh in the dimension that will stretch (accounting for the 0.7 scale)
 
 void ACameraRig_Crane::UpdatePreviewMeshes()
@@ -117,14 +116,19 @@ void ACameraRig_Crane::UpdatePreviewMeshes()
 	{
 		// note to explain the math here:
 		// this tailored to the dimensions of the asset (29cm in scaling direction, pivot at the edge)
-
-		float const TotalCraneArmMeshLength = CraneArmMesh_CounterweightOverhang + CraneArmLength;
-		float const CraneArmYScale = TotalCraneArmMeshLength / CraneArmMesh_DefaultMeshSize;
+		float const CraneArmYScale = CraneArmLength / CraneArmMesh_DefaultMeshSize;
 
 		FVector NewRelScale3D = PreviewMesh_CraneArm->RelativeScale3D;
 		NewRelScale3D.Y = CraneArmYScale * 0.7f;
 
 		PreviewMesh_CraneArm->SetRelativeScale3D(NewRelScale3D);
+	}
+
+	if (PreviewMesh_CraneMount)
+	{
+		const float ZOffset = 40.f;		// make it appear in the right place
+		FVector const NewLoc(CraneArmLength, 0.f, ZOffset);
+		PreviewMesh_CraneMount->SetRelativeLocation(NewLoc);
 	}
 }
 

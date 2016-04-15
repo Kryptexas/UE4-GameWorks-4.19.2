@@ -364,10 +364,10 @@ void FTrackEditorThumbnailCache::Revalidate()
 		return;
 	}
 
-	if (FMath::IsNearlyZero(CurrentCache.TimeRange.Size<float>()))
+	if (FMath::IsNearlyZero(CurrentCache.TimeRange.Size<float>()) || CurrentCache.TimeRange.IsEmpty())
 	{
 		// Can't generate thumbnails for this
-		ThumbnailPool.Pin()->RemoveThumbnailsNeedingRedraw(ThumbnailsNeedingRedraw);
+		ThumbnailPool.Pin()->RemoveThumbnailsNeedingRedraw(Thumbnails);
 		ThumbnailsNeedingRedraw.Reset();
 		Thumbnails.Reset();
 		return;
@@ -375,7 +375,7 @@ void FTrackEditorThumbnailCache::Revalidate()
 
 	if (ShouldRegenerateEverything())
 	{
-		ThumbnailPool.Pin()->RemoveThumbnailsNeedingRedraw(ThumbnailsNeedingRedraw);
+		ThumbnailPool.Pin()->RemoveThumbnailsNeedingRedraw(Thumbnails);
 		Thumbnails.Reset();
 	}
 	

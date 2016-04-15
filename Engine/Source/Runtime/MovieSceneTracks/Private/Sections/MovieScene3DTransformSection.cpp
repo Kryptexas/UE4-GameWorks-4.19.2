@@ -192,34 +192,39 @@ void UMovieScene3DTransformSection::DilateSection(float DilationFactor, float Or
 }
 
 
-void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const
 {
+	if (!TimeRange.Overlaps(GetRange()))
+	{
+		return;
+	}
+
 	for (int32 Axis = 0; Axis < 3; ++Axis)
 	{
 		for (auto It(Translation[Axis].GetKeyHandleIterator()); It; ++It)
 		{
 			float Time = Translation[Axis].GetKeyTime(It.Key());
-			if (IsTimeWithinSection(Time))
+			if (TimeRange.Contains(Time))
 			{
-				KeyHandles.Add(It.Key());
+				OutKeyHandles.Add(It.Key());
 			}
 		}
 
 		for (auto It(Rotation[Axis].GetKeyHandleIterator()); It; ++It)
 		{
 			float Time = Rotation[Axis].GetKeyTime(It.Key());
-			if (IsTimeWithinSection(Time))
+			if (TimeRange.Contains(Time))
 			{
-				KeyHandles.Add(It.Key());
+				OutKeyHandles.Add(It.Key());
 			}
 		}
 
 		for (auto It(Scale[Axis].GetKeyHandleIterator()); It; ++It)
 		{
 			float Time = Scale[Axis].GetKeyTime(It.Key());
-			if (IsTimeWithinSection(Time))
+			if (TimeRange.Contains(Time))
 			{
-				KeyHandles.Add(It.Key());
+				OutKeyHandles.Add(It.Key());
 			}
 		}
 	}

@@ -5,6 +5,7 @@
 #include "Toolkits/AssetEditorToolkit.h"
 #include "LevelSequence.h"
 
+
 enum class EMapChangeType : uint8;
 class FTabManager;
 class ILevelViewport;
@@ -60,9 +61,30 @@ public:
 	 */
 	void Initialize(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, ULevelSequence* LevelSequence, bool bEditWithinLevelEditor);
 
+	/**
+	 * Get the sequencer object being edited in this tool kit.
+	 *
+	 * @return Sequencer object.
+	 */
+	TSharedPtr<ISequencer> GetSequencer() const
+	{
+		return Sequencer;
+	}
+
 public:
 
-	// IToolkit interface
+	//~ FAssetEditorToolkit interface
+
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		Collector.AddReferencedObject(LevelSequence);
+	}
+
+	virtual bool OnRequestClose() override;
+
+public:
+
+	//~ IToolkit interface
 
 	virtual FText GetBaseToolkitName() const override;
 	virtual FName GetToolkitFName() const override;
@@ -71,14 +93,16 @@ public:
 	virtual void RegisterTabSpawners(const TSharedRef<FTabManager>& TabManager) override;
 	virtual void UnregisterTabSpawners(const TSharedRef<FTabManager>& TabManager) override;
 
-	void UpdateViewports(AActor* ActorToViewThrough) const;
+protected:
 
-	void AddReferencedObjects( FReferenceCollector& Collector ) override
-	{
-		Collector.AddReferencedObject(LevelSequence);
-	}
+	/** Add the specified actors to the sequencer */
+	void AddActorsToSequencer(AActor*const* InActors, int32 NumActors);
 
-	TSharedPtr<ISequencer> GetSequencer() const { return Sequencer; }
+	/** Add default movie scene tracks for the given actor. */
+	void AddDefaultTracksForActor(AActor& Actor, const FGuid Binding);
+
+	/** Menu extension callback for the add menu */
+	void AddPosessActorMenuExtensions(FMenuBuilder& MenuBuilder);
 
 private:
 
@@ -100,27 +124,16 @@ private:
 	/** Callback for the track menu extender. */
 	void HandleTrackMenuExtensionAddTrack(FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects);
 
-	/** Menu extension callback for the add menu */
-	void AddPosessActorMenuExtensions(FMenuBuilder& MenuBuilder);
-
-	/** Add the specified actors to the sequencer */
-	void AddActorsToSequencer(AActor*const* InActors, int32 NumActors);
-
 	/** Callback for actor added to sequencer. */
 	void HandleActorAddedToSequencer(AActor* Actor, const FGuid Binding);
-
-	/** Add default movie scene tracks for the given actor. */
-	void AddDefaultTracksForActor(AActor& Actor, const FGuid Binding);
-
-private:
-
-	/** Called when this toolkit is to be destroyed */
-	virtual bool OnRequestClose() override;
 
 private:
 
 	/** Level sequence for our edit operation. */
 	ULevelSequence* LevelSequence;
+
+	/** Event that is cast when this toolkit is closed */
+	FLevelSequenceEditorToolkitClosed OnClosedEvent;
 
 	/** The sequencer used by this editor. */
 	TSharedPtr<ISequencer> Sequencer;
@@ -132,9 +145,6 @@ private:
 
 	/** Pointer to the style set to use for toolkits. */
 	TSharedRef<ISlateStyle> Style;
-
-	/** Event that is cast when this toolkit is closed */
-	FLevelSequenceEditorToolkitClosed OnClosedEvent;
 
 private:
 

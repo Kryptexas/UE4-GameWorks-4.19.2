@@ -235,7 +235,8 @@ void FLevelEditorModule::StartupModule()
 	// Bind level editor commands shared across an instance
 	BindGlobalLevelEditorCommands();
 
-	RegisterViewportType("Default", FViewportTypeDefinition::FromType<FLevelViewportLayoutEntity>());
+	FViewportTypeDefinition ViewportType = FViewportTypeDefinition::FromType<FLevelViewportLayoutEntity>(FLevelViewportCommands::Get().SetDefaultViewportType);
+	RegisterViewportType("Default", ViewportType);
 
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
@@ -553,7 +554,7 @@ TSharedRef<IViewportLayoutEntity> FLevelEditorModule::FactoryViewport(FName InTy
 		return Definition->FactoryFunction(ConstructionArgs);
 	}
 
-	return FViewportTypeDefinition::FromType<FLevelViewportLayoutEntity>().FactoryFunction(ConstructionArgs);
+	return MakeShareable(new FLevelViewportLayoutEntity(ConstructionArgs));
 }
 
 void FLevelEditorModule::BindGlobalLevelEditorCommands()

@@ -940,6 +940,11 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 	}
 }
 
+void UAnimInstance::ResetDynamics()
+{
+	GetProxyOnGameThread<FAnimInstanceProxy>().ResetDynamics();
+}
+
 void UAnimInstance::RecalcRequiredBones()
 {
 	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
@@ -1710,7 +1715,13 @@ void UAnimInstance::StopSlotAnimation(float InBlendOutTime, FName SlotNodeName)
 	}
 }
 
-bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName )
+bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName)
+{
+	UAnimMontage* Montage = nullptr;
+	return IsPlayingSlotAnimation(Asset, SlotNodeName, Montage);
+}
+
+bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName, UAnimMontage*& OutMontage)
 {
 	for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
 	{
@@ -1725,7 +1736,7 @@ bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotN
 				const FAnimTrack* AnimTrack = CurMontage->GetAnimationData(SlotNodeName);
 				if (AnimTrack && AnimTrack->AnimSegments.Num() == 1)
 				{
-					// find if the 
+					OutMontage = CurMontage;
 					return (AnimTrack->AnimSegments[0].AnimReference == Asset);
 				}
 			}

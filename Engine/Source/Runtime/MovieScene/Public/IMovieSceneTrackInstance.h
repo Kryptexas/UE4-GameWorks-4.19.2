@@ -20,6 +20,10 @@ struct EMovieSceneUpdateData
 	float LastPosition;
 	bool bPreroll;
 	bool bJumpCut;
+	/** Indicates that this update was caused by the owning movie scene stopping playback due
+	    to the active sub-scene being deactivated. */
+	bool bSubSceneDeactivate;
+
 	EMovieSceneUpdatePass UpdatePass;
 
 	EMovieSceneUpdateData()
@@ -28,6 +32,7 @@ struct EMovieSceneUpdateData
 		LastPosition = 0.0f;
 		bPreroll = false;
 		bJumpCut = false;
+		bSubSceneDeactivate = false;
 		UpdatePass = MSUP_PreUpdate;
 	}
 	EMovieSceneUpdateData(float InPosition, float InLastPosition)
@@ -36,6 +41,7 @@ struct EMovieSceneUpdateData
 		LastPosition = InLastPosition;
 		bPreroll = false;
 		bJumpCut = false;
+		bSubSceneDeactivate = false;
 		UpdatePass = MSUP_PreUpdate;
 	}
 };
@@ -75,6 +81,11 @@ public:
 	 * Which update passes does this track instance evaluate in?
 	 */
 	virtual EMovieSceneUpdatePass HasUpdatePasses() { return MSUP_Update; }
+
+	/**
+	 * Whether or not this track instance needs to be updated when it's deactivated because it's in a sub-scene that's ending.
+	 */
+	virtual bool RequiresUpdateForSubSceneDeactivate() { return false; }
 
 	/**
 	 * Refreshes the current instance

@@ -2031,7 +2031,8 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 		}
 		else
 		{
-			bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName) == false;
+			UAnimMontage* PlayingMontage = nullptr;
+			bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName, PlayingMontage) == false;
 			if(bShouldChange)
 			{
 				if(CurrentlyPlayingMontage.IsValid())
@@ -2049,8 +2050,11 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 				AnimInst->PlaySlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
 				CurrentlyPlayingMontage = AnimInst->GetCurrentActiveMontage();
 			}
-
-			ensure(CurrentlyPlayingMontage.IsValid());
+			else
+			{
+				CurrentlyPlayingMontage = PlayingMontage;
+				ensure(CurrentlyPlayingMontage.IsValid());
+			}
 
 			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
 			if(AnimMontageInst)
@@ -2101,7 +2105,8 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 	}
 	else if (AnimInst)
 	{
-		bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName) == false;
+		UAnimMontage* PlayingMontage = nullptr;
+		bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName, PlayingMontage) == false;
 		if(bShouldChange)
 		{
 			if(CurrentlyPlayingMontage.IsValid())
@@ -2119,8 +2124,11 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 			AnimInst->PlaySlotAnimationAsDynamicMontage(InAnimSequence, SlotName, 0.0f, 0.0f, 0.f, 1);
 			CurrentlyPlayingMontage = AnimInst->GetCurrentActiveMontage();
 		}
-
-		ensure(CurrentlyPlayingMontage.IsValid());
+		else
+		{
+			CurrentlyPlayingMontage = PlayingMontage;
+			ensure(CurrentlyPlayingMontage.IsValid());
+		}
 
 		struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
 		if(AnimMontageInst)

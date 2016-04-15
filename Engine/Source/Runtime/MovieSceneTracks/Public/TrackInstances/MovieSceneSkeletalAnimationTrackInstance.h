@@ -40,7 +40,9 @@ private:
 
 	void PreviewFinishAnimControl(USkeletalMeshComponent* SkeletalMeshComponent);
 
-	void PreviewSetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime, bool bPlaying);
+	void PreviewSetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime, bool bPlaying, bool bResetDynamics);
+
+	bool ShouldUsePreviewPlayback(class IMovieScenePlayer& Player, UObject* RuntimeObject) const;
 
 private:
 

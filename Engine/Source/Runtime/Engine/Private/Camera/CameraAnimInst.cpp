@@ -186,15 +186,6 @@ void UCameraAnimInst::SetScale(float NewScale)
 {
 	BasePlayScale = NewScale;
 }
-
-void UCameraAnimInst::SetCameraActor(class AActor* Actor)
-{
-	if (InterpGroupInst)
-	{
-		InterpGroupInst->SetGroupActor(Actor);
-	}
-}
-
 static const FName NAME_CameraComponentFieldOfViewPropertyName(TEXT("CameraComponent.FieldOfView"));
 
 void UCameraAnimInst::Play(UCameraAnim* Anim, class AActor* CamActor, float InRate, float InScale, float InBlendInTime, float InBlendOutTime, bool bInLooping, bool bRandomStartTime, float Duration)

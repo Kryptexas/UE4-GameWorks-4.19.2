@@ -182,7 +182,7 @@ void FResizeSection::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D Loca
 			}
 		}
 
-		Section->GetKeyHandles(DraggedKeyHandles);
+		Section->GetKeyHandles(DraggedKeyHandles, Section->GetRange());
 		SectionInitTimes.Add(Section, bDraggingByEnd ? Section->GetEndTime() : Section->GetStartTime());
 	}
 }
@@ -328,7 +328,7 @@ void FMoveSection::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalM
 	{
 		auto* Section = Sections[Index].GetSectionObject();
 
-		Section->GetKeyHandles(DraggedKeyHandles);
+		Section->GetKeyHandles(DraggedKeyHandles, Section->GetRange());
 		RelativeOffsets.Add(FRelativeOffset{ Section->GetStartTime() - InitialPosition.X, Section->GetEndTime() - InitialPosition.X });
 	}
 }

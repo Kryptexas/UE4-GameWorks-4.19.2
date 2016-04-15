@@ -133,7 +133,7 @@ const AActor* FCameraCutSection::GetCameraForFrame(float Time) const
 			FMovieSceneSpawnable* Spawnable = SequenceInstance->GetSequence()->GetMovieScene()->FindSpawnable(CameraCutSection->GetCameraGuid());
 			if (Spawnable)
 			{
-				return GetDefault<AActor>(Spawnable->GetClass());
+				return Cast<AActor>(Spawnable->GetObjectTemplate());
 			}
 		}
 	}

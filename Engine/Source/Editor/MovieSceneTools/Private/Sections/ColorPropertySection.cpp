@@ -195,7 +195,7 @@ FLinearColor FColorPropertySection::FindSlateColor(const FName& ColorName) const
 				return *Property->ContainerPtrToValuePtr<FLinearColor>(RuntimeObject);
 			}
 
-			return Property->ContainerPtrToValuePtr<FColor>(RuntimeObject)->ReinterpretAsLinear();
+			return *Property->ContainerPtrToValuePtr<FColor>(RuntimeObject);
 		}
 	}
 
@@ -214,7 +214,7 @@ void FColorPropertySection::SetIntermediateValue( FPropertyChangedParams Propert
 
 	if ( bIsFColor )
 	{
-		ColorValue = PropertyChangedParams.GetPropertyValue<FColor>().ReinterpretAsLinear();
+		ColorValue = PropertyChangedParams.GetPropertyValue<FColor>();
 	}
 	else
 	{

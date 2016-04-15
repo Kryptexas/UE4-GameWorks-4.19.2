@@ -326,6 +326,41 @@ void UCameraComponent::NotifyCameraCut()
 	}
 };
 
+void UCameraComponent::AddAdditiveOffset(FTransform const& Transform, float FOV)
+{
+	bUseAdditiveOffset = true;
+	AdditiveOffset = AdditiveOffset * Transform;
+	AdditiveFOVOffset += FOV;
+}
+
+/** Removes any additive offset. */
+void UCameraComponent::ClearAdditiveOffset()
+{
+	bUseAdditiveOffset = false;
+	AdditiveOffset = FTransform::Identity;
+	AdditiveFOVOffset = 0.f;
+}
+
+
+void UCameraComponent::AddExtraPostProcessBlend(FPostProcessSettings const& PPSettings, float PPBlendWeight)
+{
+	checkSlow(ExtraPostProcessBlends.Num() == ExtraPostProcessBlendWeights.Num());
+	ExtraPostProcessBlends.Add(PPSettings);
+	ExtraPostProcessBlendWeights.Add(PPBlendWeight);
+}
+
+void UCameraComponent::ClearExtraPostProcessBlends()
+{
+	ExtraPostProcessBlends.Empty();
+	ExtraPostProcessBlendWeights.Empty();
+}
+
+void UCameraComponent::GetExtraPostProcessBlends(TArray<FPostProcessSettings>& OutSettings, TArray<float>& OutWeights) const
+{
+	OutSettings = ExtraPostProcessBlends;
+	OutWeights = ExtraPostProcessBlendWeights;
+}
+
 
 #undef LOCTEXT_NAMESPACE
 

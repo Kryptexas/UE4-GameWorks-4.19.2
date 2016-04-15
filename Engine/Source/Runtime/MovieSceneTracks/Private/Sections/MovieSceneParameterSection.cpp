@@ -276,8 +276,13 @@ void UMovieSceneParameterSection::DilateSection(float DilationFactor, float Orig
 	}
 }
 
-void UMovieSceneParameterSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+void UMovieSceneParameterSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const
 {
+	if (!TimeRange.Overlaps(GetRange()))
+	{
+		return;
+	}
+
 	TArray<const FRichCurve*> AllCurves;
 	GatherCurves(AllCurves);
 
@@ -286,9 +291,9 @@ void UMovieSceneParameterSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) co
 		for (auto It(Curve->GetKeyHandleIterator()); It; ++It)
 		{
 			float Time = Curve->GetKeyTime(It.Key());
-			if (IsTimeWithinSection(Time))
+			if (TimeRange.Contains(Time))
 			{
-				KeyHandles.Add(It.Key());
+				OutKeyHandles.Add(It.Key());
 			}
 		}
 	}

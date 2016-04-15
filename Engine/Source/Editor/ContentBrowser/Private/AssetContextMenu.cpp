@@ -1816,7 +1816,16 @@ bool FAssetContextMenu::CanExecuteSyncToAssetTree() const
 
 bool FAssetContextMenu::CanExecuteFindInExplorer() const
 {
-	return SelectedAssets.Num() > 0;
+	// selection must contain at least one asset that has already been saved to disk
+	for (const FAssetData& Asset : SelectedAssets)
+	{
+		if ((Asset.PackageFlags & PKG_NewlyCreated) == 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool FAssetContextMenu::CanExecuteCreateBlueprintUsing() const

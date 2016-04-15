@@ -96,27 +96,11 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 
 		if (Spawnable)
 		{
-			UBlueprint* Blueprint = Cast<UBlueprint>(Spawnable->GetClass()->ClassGeneratedBy);
-
-			if (Blueprint)
-			{
-				FFormatNamedArguments Args;
-				MenuBuilder.AddMenuEntry(
-					FText::Format( LOCTEXT("EditDefaults", "Edit Defaults"), Args),
-					FText::Format( LOCTEXT("EditDefaultsTooltip", "Edit the defaults for this spawnable object"), Args ),
-					FSlateIcon(),
-					FUIAction(FExecuteAction::CreateLambda([=]{
-						FAssetEditorManager::Get().OpenEditorForAsset(Blueprint);
-					}))
-				);
-			}
-
 			MenuBuilder.AddSubMenu(
 				LOCTEXT("OwnerLabel", "Spawned Object Owner"),
 				LOCTEXT("OwnerTooltip", "Specifies how the spawned object is to be owned"),
 				FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::AddSpawnOwnershipMenu)
 			);
-
 		}
 		else
 		{
@@ -410,46 +394,10 @@ const UClass* FSequencerObjectBindingNode::GetClassForObjectBinding() const
 	
 	// should exist, but also shouldn't be both a spawnable and a possessable
 	check((Spawnable != nullptr) ^ (Possessable != nullptr));
-	check((nullptr == Spawnable) || (nullptr != Spawnable->GetClass())  );
-	const UClass* ObjectClass = Spawnable ? Spawnable->GetClass()->GetSuperClass() : Possessable->GetPossessedObjectClass();
+	check((nullptr == Spawnable) || (nullptr != Spawnable->GetObjectTemplate())  );
+	const UClass* ObjectClass = Spawnable ? Spawnable->GetObjectTemplate()->GetClass() : Possessable->GetPossessedObjectClass();
 
 	return ObjectClass;
-}
-
-UObject* FSequencerObjectBindingNode::FindRepresentativeObject()
-{
-	FSequencer& Sequencer = GetSequencer();
-	
-	UObject* BoundObject = Sequencer.GetFocusedMovieSceneSequenceInstance()->FindObject(ObjectBinding, Sequencer);
-	if (BoundObject)
-	{
-		return BoundObject;
-	}
-
-	UMovieScene* FocusedMovieScene = Sequencer.GetFocusedMovieSceneSequence()->GetMovieScene();
-
-	FMovieScenePossessable* Possessable = FocusedMovieScene->FindPossessable(ObjectBinding);
-	// If we're a possessable with a parent spawnable and we don't have the object, we look the object up within the default object of the spawnable
-	if (Possessable && Possessable->GetParent().IsValid())
-	{
-		// If we're a spawnable and we don't have the object, use the default object to build up the track menu
-		FMovieSceneSpawnable* ParentSpawnable = FocusedMovieScene->FindSpawnable(Possessable->GetParent());
-		if (ParentSpawnable)
-		{
-			UObject* ParentObject = ParentSpawnable->GetClass()->GetDefaultObject();
-			if (ParentObject)
-			{
-				return Sequencer.GetFocusedMovieSceneSequence()->FindPossessableObject(ObjectBinding, ParentObject);
-			}
-		}
-	}
-	// If we're a spawnable and we don't have the object, use the default object to build up the track menu
-	else if (FMovieSceneSpawnable* Spawnable = FocusedMovieScene->FindSpawnable(ObjectBinding))
-	{
-		return Spawnable->GetClass()->GetDefaultObject();
-	}
-
-	return nullptr;
 }
 
 /* FSequencerObjectBindingNode callbacks
@@ -462,7 +410,7 @@ TSharedRef<SWidget> FSequencerObjectBindingNode::HandleAddTrackComboButtonGetMen
 	//@todo need to resolve this between UMG and the level editor sequencer
 	const bool bUseSubMenus = Sequencer.IsLevelEditorSequencer();
 
-	UObject* BoundObject = FindRepresentativeObject();
+	UObject* BoundObject = GetSequencer().FindSpawnedObjectOrTemplate(ObjectBinding);
 
 	ISequencerModule& SequencerModule = FModuleManager::GetModuleChecked<ISequencerModule>( "Sequencer" );
 	TSharedRef<FUICommandList> CommandList(new FUICommandList);
@@ -630,7 +578,7 @@ void FSequencerObjectBindingNode::HandleLabelsSubMenuCreate(FMenuBuilder& MenuBu
 void FSequencerObjectBindingNode::HandlePropertyMenuItemExecute(TArray<UProperty*> PropertyPath)
 {
 	FSequencer& Sequencer = GetSequencer();
-	UObject* BoundObject = FindRepresentativeObject();
+	UObject* BoundObject = GetSequencer().FindSpawnedObjectOrTemplate(ObjectBinding);
 
 	TArray<UObject*> KeyableBoundObjects;
 	if (BoundObject != nullptr)

@@ -18,12 +18,12 @@
 #include "SceneOutlinerModule.h"
 #include "SceneOutlinerPublicTypes.h"
 #include "SDockTab.h"
+#include "SequencerSpawnRegister.h"
 
 // @todo sequencer: hack: setting defaults for transform tracks
 #include "MovieScene3DTransformSection.h"
 #include "MovieScene3DTransformTrack.h"
 
-#include "SequencerSpawnRegister.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
 
@@ -225,87 +225,24 @@ void FLevelSequenceEditorToolkit::UnregisterTabSpawners(const TSharedRef<class F
 }
 
 
-/* FLevelSequenceEditorToolkit callbacks
+/* FLevelSequenceEditorToolkit implementation
  *****************************************************************************/
-
-void FLevelSequenceEditorToolkit::HandleAddComponentActionExecute(UActorComponent* Component)
-{
-	Sequencer->GetHandleToObject(Component);
-}
-
-
-void FLevelSequenceEditorToolkit::HandleAddComponentMaterialActionExecute(UPrimitiveComponent* Component, int32 MaterialIndex)
-{
-	FGuid ObjectHandle = Sequencer->GetHandleToObject(Component);
-	for (const FMovieSceneBinding& Binding : Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetBindings())
-	{
-		if (Binding.GetObjectGuid() == ObjectHandle)
-		{
-			bool bHasMaterialTrack = false;
-			for (UMovieSceneTrack* Track : Binding.GetTracks())
-			{
-				UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>(Track);
-				if (MaterialTrack != nullptr && MaterialTrack->GetMaterialIndex() == MaterialIndex)
-				{
-					bHasMaterialTrack = true;
-					break;
-				}
-			}
-			if (bHasMaterialTrack == false)
-			{
-				const FScopedTransaction Transaction(LOCTEXT("AddComponentMaterialTrack", "Add component material track"));
-
-				UMovieScene* FocusedMovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-				{
-					FocusedMovieScene->Modify();
-				}
-
-				UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>(FocusedMovieScene->AddTrack<UMovieSceneComponentMaterialTrack>(ObjectHandle));
-				{
-					MaterialTrack->Modify();
-					MaterialTrack->SetMaterialIndex(MaterialIndex);
-				}
-				
-				Sequencer->NotifyMovieSceneDataChanged();
-			}
-		}
-	}
-}
 
 void FLevelSequenceEditorToolkit::AddActorsToSequencer(AActor*const* InActors, int32 NumActors)
 {
-	const FScopedTransaction Transaction(LOCTEXT("UndoPossessingObject", "Possess Object(s) with Sequencer"));
+	TArray<TWeakObjectPtr<AActor>> Actors;
 
-	UMovieSceneSequence* FocussedSequence = Sequencer->GetFocusedMovieSceneSequence();
-	UMovieScene* FocussedMovieScene = FocussedSequence->GetMovieScene();
-
-	FocussedSequence->Modify();
-
-	GEditor->SelectNone(true, true);
 	while (NumActors--)
 	{
 		AActor* ThisActor = *InActors;
+		Actors.Add(ThisActor);
 
-		if (!Sequencer->GetFocusedMovieSceneSequenceInstance()->FindObjectId(*ThisActor).IsValid())
-		{
-			FGuid Binding = Sequencer->CreateBinding(*ThisActor, ThisActor->GetActorLabel());
-
-			Sequencer->UpdateRuntimeInstances();
-
-			AddDefaultTracksForActor(*ThisActor, Binding);
-		}
-
-		GEditor->SelectActor(ThisActor, true, true);
 		InActors++;
 	}
 
-	Sequencer->NotifyMovieSceneDataChanged();
+	Sequencer->AddActors(Actors);
 }
 
-void FLevelSequenceEditorToolkit::HandleActorAddedToSequencer(AActor* Actor, const FGuid Binding)
-{
-	AddDefaultTracksForActor(*Actor, Binding);
-}
 
 void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const FGuid Binding)
 {
@@ -462,6 +399,7 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 	}
 }
 
+
 void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& MenuBuilder)
 {
 	auto IsActorValidForPossession = [=](const AActor* Actor){
@@ -470,6 +408,7 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 		{
 			return !Sequencer->GetHandleToObject((UObject*)Actor, bCreateHandleIfMissing).IsValid();
 		}
+
 		return true;
 	};
 
@@ -480,6 +419,7 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 
 	FText SelectedLabel;
 	FSlateIcon ActorIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(AActor::StaticClass()));
+
 	if (ActorsValidForPossession.Num() == 1)
 	{
 		SelectedLabel = FText::Format(LOCTEXT("AddSpecificActor", "Add '{0}'"), FText::FromString(ActorsValidForPossession[0]->GetActorLabel()));
@@ -537,8 +477,44 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 				})
 			)
 		];
+
 	MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), true);
 	MenuBuilder.EndSection();
+}
+
+
+/* FLevelSequenceEditorToolkit callbacks
+ *****************************************************************************/
+
+void FLevelSequenceEditorToolkit::HandleAddComponentActionExecute(UActorComponent* Component)
+{
+	Sequencer->GetHandleToObject(Component);
+}
+
+
+void FLevelSequenceEditorToolkit::HandleAddComponentMaterialActionExecute(UPrimitiveComponent* Component, int32 MaterialIndex)
+{
+	FGuid ObjectHandle = Sequencer->GetHandleToObject(Component);
+	UMovieScene* FocusedMovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
+	FName IndexName( *FString::FromInt(MaterialIndex) );
+	if ( FocusedMovieScene->FindTrack( UMovieSceneComponentMaterialTrack::StaticClass(), ObjectHandle, IndexName ) == nullptr )
+	{
+		const FScopedTransaction Transaction( LOCTEXT( "AddComponentMaterialTrack", "Add component material track" ) );
+
+		FocusedMovieScene->Modify();
+
+		UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>( FocusedMovieScene->AddTrack<UMovieSceneComponentMaterialTrack>( ObjectHandle ) );
+		MaterialTrack->Modify();
+		MaterialTrack->SetMaterialIndex( MaterialIndex );
+
+		Sequencer->NotifyMovieSceneDataChanged();
+	}
+}
+
+
+void FLevelSequenceEditorToolkit::HandleActorAddedToSequencer(AActor* Actor, const FGuid Binding)
+{
+	AddDefaultTracksForActor(*Actor, Binding);
 }
 
 
@@ -594,10 +570,13 @@ void FLevelSequenceEditorToolkit::HandleTrackMenuExtensionAddTrack(FMenuBuilder&
 		{
 			for (UActorComponent* Component : Actor->GetComponents())
 			{
-				FUIAction AddComponentAction(FExecuteAction::CreateSP(this, &FLevelSequenceEditorToolkit::HandleAddComponentActionExecute, Component));
-				FText AddComponentLabel = FText::FromString(Component->GetName());
-				FText AddComponentToolTip = FText::Format(LOCTEXT("ComponentToolTipFormat", "Add {0} component"), FText::FromString(Component->GetName()));
-				AddTrackMenuBuilder.AddMenuEntry(AddComponentLabel, AddComponentToolTip, FSlateIcon(), AddComponentAction);
+				if (Component)
+				{
+					FUIAction AddComponentAction(FExecuteAction::CreateSP(this, &FLevelSequenceEditorToolkit::HandleAddComponentActionExecute, Component));
+					FText AddComponentLabel = FText::FromString(Component->GetName());
+					FText AddComponentToolTip = FText::Format(LOCTEXT("ComponentToolTipFormat", "Add {0} component"), FText::FromString(Component->GetName()));
+					AddTrackMenuBuilder.AddMenuEntry(AddComponentLabel, AddComponentToolTip, FSlateIcon(), AddComponentAction);
+				}
 			}
 		}
 		AddTrackMenuBuilder.EndSection();
