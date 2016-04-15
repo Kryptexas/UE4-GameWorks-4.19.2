@@ -39,6 +39,11 @@ BOOL CALLBACK CaptureDeviceCallback(
 	LPVOID lpContext
 	)
 {
+	if (!lpGuid)
+	{
+		return false;
+	}
+
 	// @todo identify the proper device
 	FVoiceCaptureDeviceWindows* VCPtr = (FVoiceCaptureDeviceWindows*)(lpContext);
 	UE_LOG(LogVoiceCapture, Display, TEXT("Device: %s Desc: %s GUID: %s Context:0x%08x"), lpcstrDescription, lpcstrModule, *PrintMSGUID(lpGuid), lpContext);
