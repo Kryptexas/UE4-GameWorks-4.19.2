@@ -34,8 +34,13 @@ static bool SupportsVulkan()
 
 	// make sure the SDK env var is set and the directory exists so that compiling for shaders will work
 	TCHAR SDKPath[MAX_PATH] = { 0 };
-	FPlatformMisc::GetEnvironmentVariable(TEXT("VK_SDK_PATH"), SDKPath, MAX_PATH);
+	FPlatformMisc::GetEnvironmentVariable(TEXT("VULKAN_SDK"), SDKPath, MAX_PATH);
 	bool bVulkanSDKExists = SDKPath[0] && IFileManager::Get().DirectoryExists(SDKPath);
+	if (!bVulkanSDKExists)
+	{
+		FPlatformMisc::GetEnvironmentVariable(TEXT("VK_SDK_PATH"), SDKPath, MAX_PATH);
+		bVulkanSDKExists = SDKPath[0] && IFileManager::Get().DirectoryExists(SDKPath);
+	}
 
 	return bSupportsVulkan && bVulkanSDKExists;
 }
@@ -155,11 +160,11 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetAllPossibleShaderFor
 {
 	static FName NAME_OPENGL_ES2(TEXT("GLSL_ES2"));
 	static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
-	static FName NAME_SF_VKES31_ANDROID(TEXT("SF_VKES31_ANDROID"));
+	static FName NAME_VULKAN_ES3_1_ANDROID(TEXT("SF_VULKAN_ES31_ANDROID"));
 
 	if (SupportsVulkan())
 	{
-		OutFormats.AddUnique(NAME_SF_VKES31_ANDROID);
+		OutFormats.AddUnique(NAME_VULKAN_ES3_1_ANDROID);
 	}
 
 	if (SupportsES2())

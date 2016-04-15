@@ -850,7 +850,7 @@ namespace VulkanRHI
 	}
 
 
-	FCriticalSection FBufferAllocation::CS;
+	FCriticalSection FSubresourceAllocator::CS;
 
 	bool FSubresourceAllocator::JoinFreeBlocks()
 	{

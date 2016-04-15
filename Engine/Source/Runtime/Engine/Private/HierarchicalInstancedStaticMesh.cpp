@@ -1991,14 +1991,16 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 		else
 		{
 			// If we can't update an instance in-place, we have to remove it and re-add it
-			if (!bIsOmittedInstance)
-			{
-				RemovedInstances.Add(RenderIndex);
-			}
-
 			// Allocate a new instance render order ID, rendered last (it is now an unbuilt instance)
+			const int32 OldRenderIndex = RenderIndex;
 			RenderIndex = GetNumRenderInstances();
 			InstanceReorderTable[InstanceIndex] = RenderIndex;
+
+			// Treat the old instance render data like a removal.
+			if (!bIsOmittedInstance)
+			{
+				RemovedInstances.Add(OldRenderIndex);
+			}
 
 			UnbuiltInstanceBounds += NewInstanceBounds;
 			UnbuiltInstanceBoundsList.Add(NewInstanceBounds);
@@ -2129,6 +2131,9 @@ void UHierarchicalInstancedStaticMeshComponent::PostBuildStats()
 
 void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 {
+	// If we try to build the tree with the static mesh not fully loaded, we can end up in an inconsistent state which ends in a crash later
+	checkSlow(!StaticMesh || !StaticMesh->HasAnyFlags(RF_NeedPostLoad));
+
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UHierarchicalInstancedStaticMeshComponent_BuildTree);
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
@@ -2175,7 +2180,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 		SortedInstances = MoveTemp(Builder.Result->SortedInstances);
 
 		FlushAccumulatedNavigationUpdates();
-				
+
 		PostBuildStats();
 
 		if (bIsAsyncBuilding)
@@ -2256,103 +2261,6 @@ void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(TArray<FClust
 	MarkRenderStateDirty();
 }
 
-void UHierarchicalInstancedStaticMeshComponent::BuildFlatTree(const TArray<int32>& LeafInstanceCounts)
-{
-	// Verify that the mesh is valid before using it.
-	const bool bMeshIsValid = 
-		// make sure we have instances
-		PerInstanceSMData.Num() > 0 &&
-		// make sure we have an actual staticmesh
-		StaticMesh &&
-		StaticMesh->HasValidRenderData() &&
-		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
-		// @todo: Level error or something to let LDs know this
-		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
-
-	if(bMeshIsValid)
-	{
-		//double StartTime = FPlatformTime::Seconds();
-		// If we don't have a random seed for this instanced static mesh component yet, then go ahead and
-		// generate one now.  This will be saved with the static mesh component and used for future generation
-		// of random numbers for this component's instances. (Used by the PerInstanceRandom material expression)
-		while( InstancingRandomSeed == 0 )
-		{
-			InstancingRandomSeed = FMath::Rand();
-		}
-
-		NumBuiltInstances = PerInstanceSMData.Num();
-		NumBuiltRenderInstances = PerInstanceSMData.Num();
-		UnbuiltInstanceBounds.Init();
-		UnbuiltInstanceBoundsList.Empty();
-		RemovedInstances.Empty();
-
-		const FBox InstBox = StaticMesh->GetBounds().GetBox();
-
-		ClusterTreePtr = MakeShareable(new TArray<FClusterNode>);
-		TArray<FClusterNode>& ClusterTree = *ClusterTreePtr;
-
-		ClusterTree.Empty(LeafInstanceCounts.Num() + 1);
-		FClusterNode Root;
-		Root.FirstChild = 1;
-		Root.LastChild = LeafInstanceCounts.Num();
-		Root.FirstInstance = 0;
-		Root.LastInstance = PerInstanceSMData.Num() - 1;
-		ClusterTree.Add(Root);
-		FBox RootBox(ForceInit);
-
-		int32 InstIndex = 0;
-		for (auto Count : LeafInstanceCounts)
-		{
-			FClusterNode Leaf;
-			Leaf.FirstChild = -1;
-			Leaf.LastChild = -1;
-			Leaf.FirstInstance = InstIndex;
-			Leaf.LastInstance = InstIndex + Count - 1;
-			check(Count);
-
-
-			FBox LeafBox(ForceInit);
-			for (int32 SubIndex = 0; SubIndex < Count; SubIndex++)
-			{
-				const FMatrix& ThisInstTrans = PerInstanceSMData[InstIndex + SubIndex].Transform;
-				const FBox ThisInstBox = InstBox.TransformBy(ThisInstTrans);
-				LeafBox += ThisInstBox;
-			}
-			Leaf.BoundMin = LeafBox.Min;
-			Leaf.BoundMax = LeafBox.Max;
-			ClusterTree.Add(Leaf);
-			RootBox += LeafBox;
-			InstIndex += Count;
-		}
-		check(InstIndex == PerInstanceSMData.Num()); // else you botched your counts
-		ClusterTree[0].BoundMin = RootBox.Min;
-		ClusterTree[0].BoundMax = RootBox.Max;
-
-		if (ClusterTree.Num() == 2)
-		{
-			// no point in having two levels if the second level only has one node
-			ClusterTree.RemoveAt(1);
-			ClusterTree[0].FirstChild = -1;
-			ClusterTree[0].LastChild = -1;
-		}
-
-		InstanceReorderTable.Empty(PerInstanceSMData.Num());
-		SortedInstances.Empty(PerInstanceSMData.Num());
-
-		for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
-		{
-			InstanceReorderTable.Add(Index);
-			SortedInstances.Add(Index);
-		}
-		OcclusionLayerNumNodes = 0;
-
-		FlushAccumulatedNavigationUpdates();
-
-		PostBuildStats();
-	}
-}
-
-
 void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, TSharedRef<FClusterBuilder, ESPMode::ThreadSafe> Builder, double StartTime)
 {
 	bIsAsyncBuilding = false;
@@ -2421,6 +2329,9 @@ void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThread
 
 void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 {
+	// If we try to build the tree with the static mesh not fully loaded, we can end up in an inconsistent state which ends in a crash later
+	checkSlow(!StaticMesh || !StaticMesh->HasAnyFlags(RF_NeedPostLoad));
+
 	check(!bIsAsyncBuilding);
 
 	// Verify that the mesh is valid before using it.

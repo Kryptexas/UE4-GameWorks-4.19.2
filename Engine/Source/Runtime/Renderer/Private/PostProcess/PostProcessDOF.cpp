@@ -273,7 +273,7 @@ FPooledRenderTargetDesc FRCPassPostProcessDOFSetup::ComputeOutputDesc(EPassOutpu
 /** Encapsulates the DOF setup pixel shader. */
 // @param FarBlur 0:off, 1:on
 // @param NearBlur 0:off, 1:on
-template <uint32 FarBlur, uint32 NearBlur>
+template <uint32 FarBlur, uint32 NearBlur, uint32 SeparateTranslucency>
 class FPostProcessDOFRecombinePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessDOFRecombinePS, Global);
@@ -288,6 +288,7 @@ class FPostProcessDOFRecombinePS : public FGlobalShader
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("FAR_BLUR"), FarBlur);
 		OutEnvironment.SetDefine(TEXT("NEAR_BLUR"), NearBlur);
+		OutEnvironment.SetDefine(TEXT("SEPARATE_TRANSLUCENCY"), SeparateTranslucency);
 		OutEnvironment.SetDefine(TEXT("FORWARD_SHADING"), IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) ? 0u : 1u);
 	}
 
@@ -348,20 +349,21 @@ public:
 };
 
 // #define avoids a lot of code duplication
-#define VARIATION1(A, B) typedef FPostProcessDOFRecombinePS<A, B> FPostProcessDOFRecombinePS##A##B; \
-	IMPLEMENT_SHADER_TYPE2(FPostProcessDOFRecombinePS##A##B, SF_Pixel);
+#define VARIATION1(A, B, C) typedef FPostProcessDOFRecombinePS<A, B, C> FPostProcessDOFRecombinePS##A##B##C; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessDOFRecombinePS##A##B##C, SF_Pixel);
 
-	VARIATION1(0, 1) VARIATION1(1, 0) VARIATION1(1, 1)
+	VARIATION1(0, 1, 0) VARIATION1(1, 0, 0) VARIATION1(1, 1, 0)
+	VARIATION1(0, 1, 1) VARIATION1(1, 0, 1) VARIATION1(1, 1, 1)
 	
 #undef VARIATION1
 
 	// @param FarBlur 0:off, 1:on
 // @param NearBlur 0:off, 1:on, 2:on with Vignette
-template <uint32 FarBlur, uint32 NearBlur>
+template <uint32 FarBlur, uint32 NearBlur, uint32 SeparateTranslucency>
 static FShader* SetDOFRecombineShaderTempl(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-	TShaderMapRef<FPostProcessDOFRecombinePS<FarBlur, NearBlur> > PixelShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessDOFRecombinePS<FarBlur, NearBlur, SeparateTranslucency> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
@@ -371,6 +373,17 @@ static FShader* SetDOFRecombineShaderTempl(const FRenderingCompositePassContext&
 	PixelShader->SetParameters(Context);
 
 	return *VertexShader;
+}
+
+template <uint32 FarBlur, uint32 NearBlur>
+static FShader* SetDOFRecombineShaderTempl(const FRenderingCompositePassContext& Context, bool bSeparateTranslucency)
+{
+	if (bSeparateTranslucency)
+	{
+		return SetDOFRecombineShaderTempl<FarBlur, NearBlur, 1u>(Context);
+	}
+
+	return SetDOFRecombineShaderTempl<FarBlur, NearBlur, 0u>(Context);
 }
 
 void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Context)
@@ -395,7 +408,7 @@ void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Con
 	FIntPoint TexSize = InputDesc->Extent;
 
 	// usually 1, 2, 4 or 8
-	uint32 ScaleToFullRes = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X / TexSize.X;
+	uint32 ScaleToFullRes = FMath::DivideAndRoundUp(FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X , TexSize.X);
 
 	FIntRect HalfResViewRect = View.ViewRect / ScaleToFullRes;
 
@@ -425,6 +438,7 @@ void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Con
 
 	bool bFarBlur = GetInputDesc(ePId_Input1) != 0;
 	bool bNearBlur = GetInputDesc(ePId_Input2) != 0;
+	bool bSeparateTranslucency = GetInputDesc(ePId_Input3) != 0;
 
 	FShader* VertexShader = 0;
 
@@ -432,16 +446,16 @@ void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Con
 	{
 		if(bNearBlur)
 		{
-			VertexShader = SetDOFRecombineShaderTempl<1, 1>(Context);
+			VertexShader = SetDOFRecombineShaderTempl<1, 1>(Context, bSeparateTranslucency);
 		}
 		else
-	{
-			VertexShader = SetDOFRecombineShaderTempl<1, 0>(Context);
+		{
+			VertexShader = SetDOFRecombineShaderTempl<1, 0>(Context, bSeparateTranslucency);
 		}
 	}
 	else
 	{
-		VertexShader = SetDOFRecombineShaderTempl<0, 1>(Context);
+		VertexShader = SetDOFRecombineShaderTempl<0, 1>(Context, bSeparateTranslucency);
 	}
 
 	DrawPostProcessPass(

@@ -17,6 +17,7 @@ extern GLint GMaxOpenGLColorSamples;
 extern GLint GMaxOpenGLDepthSamples;
 extern GLint GMaxOpenGLIntegerSamples;
 extern GLint GMaxOpenGLTextureFilterAnisotropic;
+extern GLint GMaxOpenGLDrawBuffers;
 
 /** OpenGL texture format table. */
 FOpenGLTextureFormat GOpenGLTextureFormats[PF_MAX];
@@ -479,6 +480,47 @@ void InitDebugContext()
 #endif
 }
 
+TAutoConsoleVariable<FString> CVarOpenGLStripExtensions(TEXT("r.OpenGL.StripExtensions"), TEXT(""), TEXT("List of comma separated OpenGL extensions to remove from driver reported extensions string"));
+TAutoConsoleVariable<FString> CVarOpenGLAddExtensions(TEXT("r.OpenGL.AddExtensions"), TEXT(""), TEXT("List of comma separated OpenGL extensions to driver reported extensions string"));
+
+void ApplyExtensionsOverrides(FString& ExtensionsString)
+{
+	// Strip extensions
+	{
+		TArray<FString> ExtList;
+		FString ExtString = CVarOpenGLStripExtensions.GetValueOnAnyThread();
+		ExtString.ParseIntoArray(ExtList, TEXT(","), /*InCullEmpty=*/true);
+
+		for (FString& ExtName : ExtList)
+		{
+			ExtName = ExtName.Trim().TrimTrailing();
+			if (ExtensionsString.ReplaceInline(*ExtName, TEXT("")) > 0)
+			{
+				UE_LOG(LogRHI, Log, TEXT("Stripped extension: %s"), *ExtName);
+			}
+		}
+	}
+
+	// Add extensions
+	{
+		TArray<FString> ExtList;
+		FString ExtString = CVarOpenGLAddExtensions.GetValueOnAnyThread();
+		ExtString.ParseIntoArray(ExtList, TEXT(","), /*InCullEmpty=*/true);
+
+		for (FString& ExtName : ExtList)
+		{
+			ExtName = ExtName.Trim().TrimTrailing();
+			if (!ExtensionsString.Contains(ExtName))
+			{
+				ExtensionsString.Append(TEXT(" ")); // extensions delimiter 
+				ExtensionsString.Append(ExtName);
+				UE_LOG(LogRHI, Log, TEXT("Added extension: %s"), *ExtName);
+			}
+		}
+	}
+}
+
+
 /**
  * Initialize RHI capabilities for the current OpenGL context.
  */
@@ -519,9 +561,9 @@ static void InitRHICapabilitiesForGL()
 
 #if PLATFORM_WINDOWS
 		if (ExtensionsString.Contains(TEXT("WGL_EXT_swap_control")))
-				{
-					bWindowsSwapControlExtensionPresent = true;
-				}
+		{
+			bWindowsSwapControlExtensionPresent = true;
+		}
 #endif
 
 		// Log supported GL extensions
@@ -532,6 +574,8 @@ static void InitRHICapabilitiesForGL()
 		{
 			UE_LOG(LogRHI, Log, TEXT("  %s"), *GLExtensionArray[ExtIndex]);
 		}
+
+		ApplyExtensionsOverrides(ExtensionsString);
 
 		FOpenGL::ProcessExtensions(ExtensionsString);
 	}
@@ -580,6 +624,7 @@ static void InitRHICapabilitiesForGL()
 	if (FOpenGL::SupportsDrawBuffers())
 	{
 		LOG_AND_GET_GL_INT_TEMP(GL_MAX_DRAW_BUFFERS, 1);
+		GMaxOpenGLDrawBuffers = FMath::Min(Value_GL_MAX_DRAW_BUFFERS, (GLint)MaxSimultaneousRenderTargets);
 	}
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_COLOR_ATTACHMENTS, 1);
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_SAMPLES, 1);
@@ -696,6 +741,7 @@ static void InitRHICapabilitiesForGL()
 	GSupportsRenderTargetFormat_PF_FloatRGBA = FOpenGL::SupportsColorBufferHalfFloat();
 	
 	GSupportsMultipleRenderTargets = FOpenGL::SupportsMultipleRenderTargets();
+	GSupportsWideMRT = FOpenGL::SupportsWideMRT();
 	GSupportsTexture3D = FOpenGL::SupportsTexture3D();
 	GSupportsResourceView = FOpenGL::SupportsResourceView();
 		
@@ -836,7 +882,7 @@ static void InitRHICapabilitiesForGL()
 		SetupTextureFormat(PF_A8, FOpenGLTextureFormat(GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_UNSIGNED_BYTE, false, false));
 	#endif
 
-		if (GSupportsRenderTargetFormat_PF_FloatRGBA && FOpenGL::SupportsTextureHalfFloat())
+		if (FOpenGL::SupportsColorBufferHalfFloat() && FOpenGL::SupportsTextureHalfFloat())
 		{
 #if PLATFORM_ANDROID
 			SetupTextureFormat(PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA16F_EXT, GL_RGBA16F_EXT, GL_RGBA, GL_HALF_FLOAT_OES, false, false));
@@ -849,7 +895,7 @@ static void InitRHICapabilitiesForGL()
 			SetupTextureFormat( PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false));
 		}
 
-		if (FOpenGL::SupportsColorBufferFloat() && FOpenGL::SupportsTextureFloat())
+		if (FOpenGL::SupportsColorBufferFloat())
 		{
 			SetupTextureFormat( PF_G16,				FOpenGLTextureFormat( GL_R16,					GL_R16,					GL_RED,			GL_UNSIGNED_SHORT,					false,	false));
 			SetupTextureFormat( PF_R32_FLOAT,		FOpenGLTextureFormat( GL_R32F,					GL_R32F,				GL_RED,			GL_FLOAT,							false,	false));

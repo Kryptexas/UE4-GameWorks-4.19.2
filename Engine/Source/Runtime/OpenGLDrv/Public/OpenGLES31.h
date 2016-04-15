@@ -44,6 +44,7 @@ struct FOpenGLES31 : public FOpenGLBase
 	static FORCEINLINE bool SupportsDepthStencilRead()					{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsFloatReadSurface()					{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsMultipleRenderTargets()				{ return !bES2Fallback; }
+	static FORCEINLINE bool SupportsWideMRT()							{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsMultisampledTextures()				{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsFences()							{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsPolygonMode()						{ return false; }
@@ -890,6 +891,9 @@ protected:
 
 	/** GL_OES_texture_half_float */
 	static bool bSupportsTextureHalfFloat;
+
+	/** GL_EXT_color_buffer_float */
+	static bool bSupportsColorBufferFloat;
 
 	/** GL_EXT_color_buffer_half_float */
 	static bool bSupportsColorBufferHalfFloat;

@@ -244,7 +244,7 @@ void MainRecombinePS(
 //	LayerMerger = lerp(LayerMerger, SceneColorAndDepth.rgb, Layer2Mask * (1 - PerPixelNearMask));
 	LayerMerger = lerp(LayerMerger, SceneColorAndDepth.rgb, Layer2Mask);
 
-	// apply SeparateTransluceny (todo: shader permutation to save a bit of performance if the feature is disabled)
+#if SEPARATE_TRANSLUCENCY
 	{
 		//@todo - use UpsampleSeparateTranslucency
 		float4 SeparateTranslucency = Texture2DSample(PostprocessInput3, PostprocessInput3Sampler, FullResUV);
@@ -252,6 +252,7 @@ void MainRecombinePS(
 		// add RGB, darken by A (this allows to represent translucent and additive blending)
 		LayerMerger.rgb = LayerMerger.rgb * SeparateTranslucency.a + SeparateTranslucency.rgb;
 	}
+#endif
 
 	float3 FrontLayer = (UnfocusedSceneColor * Div0Bias + DOFAccumLayer3.rgb) / (DOFAccumLayer3.a + Div0Bias);
 

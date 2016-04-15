@@ -642,6 +642,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mobile, meta = (DisplayName = "High Quality Reflections"))
 	uint32 bUseHQForwardReflections : 1;
 
+	/* Enables planar reflection when using the forward renderer. Enabling this setting reduces the number of samplers available to the material as one more sampler will be used for the planar reflection. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mobile, meta = (DisplayName = "Planar Reflections"))
+	uint32 bUsePlanarForwardReflections : 1;
+
 	/** The type of tessellation to apply to this object.  Note D3D11 required for anything except MTM_NoTessellation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation)
 	TEnumAsByte<enum EMaterialTessellationMode> D3D11TessellationMode;

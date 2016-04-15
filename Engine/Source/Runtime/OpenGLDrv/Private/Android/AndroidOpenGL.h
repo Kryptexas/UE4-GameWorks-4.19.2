@@ -358,6 +358,7 @@ struct FAndroidOpenGL : public FOpenGLES2
 	static FORCEINLINE bool SupportsInstancing()						{ return bSupportsInstancing; }
 	static FORCEINLINE bool SupportsDrawBuffers()						{ return bES30Support; }
 	static FORCEINLINE bool SupportsMultipleRenderTargets()				{ return bES30Support; }
+	static FORCEINLINE bool SupportsWideMRT()							{ return bES31Support; }
 	static FORCEINLINE bool SupportsResourceView()						{ return bSupportsTextureBuffer; }
 	static FORCEINLINE bool SupportsTexture3D()							{ return bES30Support; }
 

@@ -16,7 +16,9 @@
 #include "SceneUtils.h"
 #include "Components/PlanarReflectionComponent.h"
 #include "PlanarReflectionSceneProxy.h"
+#include "PlanarReflectionRendering.h"
 
+template< bool bEnablePlanarReflectionPrefilter >
 class FPrefilterPlanarReflectionPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPrefilterPlanarReflectionPS, Global);
@@ -24,11 +26,12 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return bEnablePlanarReflectionPrefilter ? IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) : true;
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		OutEnvironment.SetDefine(TEXT("ENABLE_PLANAR_REFLECTIONS_PREFILTER"), bEnablePlanarReflectionPrefilter);
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
@@ -86,20 +89,25 @@ private:
 	FDeferredPixelShaderParameters DeferredParameters;
 };
 
-IMPLEMENT_SHADER_TYPE(, FPrefilterPlanarReflectionPS, TEXT("PlanarReflectionShaders"), TEXT("PrefilterPlanarReflectionPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FPrefilterPlanarReflectionPS<false>, TEXT("PlanarReflectionShaders"), TEXT("PrefilterPlanarReflectionPS"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>, FPrefilterPlanarReflectionPS<true>, TEXT("PlanarReflectionShaders"), TEXT("PrefilterPlanarReflectionPS"), SF_Pixel);
 
+template<bool bEnablePlanarReflectionPrefilter>
 void PrefilterPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FPlanarReflectionSceneProxy* ReflectionSceneProxy, const FRenderTarget* Target)
 {
-	// Note: null velocity buffer, so dynamic object temporal AA will not be correct
-	TRefCountPtr<IPooledRenderTarget> VelocityRT;
-	TRefCountPtr<IPooledRenderTarget> FilteredSceneColor;
-	GPostProcessing.ProcessPlanarReflection(RHICmdList, View, VelocityRT, FilteredSceneColor);
-
 	FTextureRHIParamRef SceneColorInput = FSceneRenderTargets::Get(RHICmdList).GetSceneColorTexture();
 
-	if (FilteredSceneColor)
+	if(View.FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
-		SceneColorInput = FilteredSceneColor->GetRenderTargetItem().ShaderResourceTexture;
+		// Note: null velocity buffer, so dynamic object temporal AA will not be correct
+		TRefCountPtr<IPooledRenderTarget> VelocityRT;
+		TRefCountPtr<IPooledRenderTarget> FilteredSceneColor;
+		GPostProcessing.ProcessPlanarReflection(RHICmdList, View, VelocityRT, FilteredSceneColor);
+
+		if (FilteredSceneColor)
+		{
+			SceneColorInput = FilteredSceneColor->GetRenderTargetItem().ShaderResourceTexture;
+		}
 	}
 
 	{
@@ -116,7 +124,7 @@ void PrefilterPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& 
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 		TShaderMapRef<TDeferredLightVS<false> > VertexShader(View.ShaderMap);
-		TShaderMapRef<FPrefilterPlanarReflectionPS> PixelShader(View.ShaderMap);
+		TShaderMapRef<FPrefilterPlanarReflectionPS<bEnablePlanarReflectionPrefilter> > PixelShader(View.ShaderMap);
 
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
@@ -209,10 +217,16 @@ static void UpdatePlanarReflectionContents_RenderThread(
 					SCOPED_DRAW_EVENT(RHICmdList, RenderScene);
 					SceneRenderer->Render(RHICmdList);
 				}
-
-				PrefilterPlanarReflection(RHICmdList, View, SceneProxy, Target);
-
-				RHICmdList.CopyToResolveTarget(RenderTarget->GetRenderTargetTexture(), RenderTargetTexture->TextureRHI, false, ResolveParams);
+				if(MainSceneRenderer->Scene->ShouldUseDeferredRenderer())
+				{
+					PrefilterPlanarReflection<true>(RHICmdList, View, SceneProxy, Target);
+					RHICmdList.CopyToResolveTarget(RenderTarget->GetRenderTargetTexture(), RenderTargetTexture->TextureRHI, false, ResolveParams);
+				}
+				else
+				{
+					PrefilterPlanarReflection<false>(RHICmdList, View, SceneProxy, Target);
+					RHICmdList.CopyToResolveTarget(RenderTarget->GetRenderTargetTexture(), RenderTargetTexture->TextureRHI, false, ResolveParams);
+				}
 			}
 			FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(RHICmdList, SceneRenderer);
 		}
@@ -522,3 +536,28 @@ bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandL
 
 	return false;
 }
+
+void FPlanarReflectionParameters::SetParameters(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef ShaderRHI, const FPlanarReflectionSceneProxy* ReflectionSceneProxy)
+{
+	// Degenerate plane causes shader to branch around the reflection lookup
+	FPlane ReflectionPlaneValue(FVector4(0, 0, 0, 0));
+	FTexture* PlanarReflectionTextureValue = GBlackTexture;
+
+	if (ReflectionSceneProxy && ReflectionSceneProxy->RenderTarget)
+	{
+		ReflectionPlaneValue = ReflectionSceneProxy->ReflectionPlane;
+		PlanarReflectionTextureValue = ReflectionSceneProxy->RenderTarget;
+			
+		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionOrigin, ReflectionSceneProxy->PlanarReflectionOrigin);
+		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionXAxis, ReflectionSceneProxy->PlanarReflectionXAxis);
+		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionYAxis, ReflectionSceneProxy->PlanarReflectionYAxis);
+		SetShaderValue(RHICmdList, ShaderRHI, InverseTransposeMirrorMatrix, ReflectionSceneProxy->InverseTransposeMirrorMatrix);
+		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionParameters, ReflectionSceneProxy->PlanarReflectionParameters);
+		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionParameters2, ReflectionSceneProxy->PlanarReflectionParameters2);
+		SetShaderValue(RHICmdList, ShaderRHI, ProjectionWithExtraFOV, ReflectionSceneProxy->ProjectionWithExtraFOV);
+	}
+
+	SetShaderValue(RHICmdList, ShaderRHI, ReflectionPlane, ReflectionPlaneValue);
+	SetTextureParameter(RHICmdList, ShaderRHI, PlanarReflectionTexture, PlanarReflectionSampler, PlanarReflectionTextureValue);
+}
+

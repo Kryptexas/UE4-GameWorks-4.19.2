@@ -644,13 +644,13 @@ void FInstancedStaticMeshSceneProxy::SetupInstancedMeshBatch(int32 LODIndex, int
 	{
 		const uint32 MaxInstancesPerBatch = FInstancedStaticMeshVertexFactory::NumBitsForVisibilityMask();
 		const uint32 NumBatches = FMath::DivideAndRoundUp(NumInstances, MaxInstancesPerBatch);
-		uint32 NumInstancesThisBatch = BatchIndex == NumBatches - 1 ? NumInstances % MaxInstancesPerBatch : MaxInstancesPerBatch;
-
-		OutMeshBatch.Elements.Reserve(NumInstancesThisBatch);
-
-		int32 InstanceIndex = BatchIndex * MaxInstancesPerBatch;
+		uint32 InstanceIndex = BatchIndex * MaxInstancesPerBatch;
+		uint32 NumInstancesThisBatch = FMath::Min(NumInstances - InstanceIndex, MaxInstancesPerBatch);
+				
 		if (NumInstancesThisBatch > 0)
 		{
+			OutMeshBatch.Elements.Reserve(NumInstancesThisBatch);
+						
 			// BatchElement0 is already inside the array; but Reserve() might have shifted it
 			OutMeshBatch.Elements[0].UserIndex = InstanceIndex;
 			--NumInstancesThisBatch;

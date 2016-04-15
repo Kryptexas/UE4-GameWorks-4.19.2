@@ -434,9 +434,15 @@ FAndroidMisc::FCPUState& FAndroidMisc::GetCPUState(){
 		}
 		
 		while (fgets(Buffer, 100, FileHandle)) {
+#if PLATFORM_64BITS
+			sscanf(Buffer, "%4s %8lu %8lu %8lu %8lu %8lu %8lu %8lu", CurrentCPUState.Name,
+				&UserTime, &NiceTime, &SystemTime, &IdleTime, &IOWaitTime, &IRQTime,
+				&SoftIRQTime);
+#else
 			sscanf(Buffer, "%4s %8llu %8llu %8llu %8llu %8llu %8llu %8llu", CurrentCPUState.Name,
 				&UserTime, &NiceTime, &SystemTime, &IdleTime, &IOWaitTime, &IRQTime,
 				&SoftIRQTime);
+#endif
 
 			if (0 == strncmp(CurrentCPUState.Name, "cpu", 3)) {
 				Index = CurrentCPUState.Name[3] - '0';

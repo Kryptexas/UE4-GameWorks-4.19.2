@@ -1232,9 +1232,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	{
 		// The RT should be released as early as possible to allow sharing of that memory for other purposes.
 		// This becomes even more important with some limited VRam (XBoxOne).
-
-		//@todo Ronin - Keeping this RT around for previous frame depth
-		//SceneContext.SetSceneColor(0);
+		SceneContext.SetSceneColor(0);
 	}
 
 	if (ViewFamily.Scene && !ViewFamily.Scene->ShouldUseDeferredRenderer())
@@ -1581,36 +1579,27 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DstSize = OutputDesc.Extent;
 
-	// Render mobile separate translucency primitives over the final scene color input. 
-	// This allows us to render translucent objects that aren't affected by bloom or DOF
-	if (Context.View.TranslucentPrimSet.NumSeparateTranslucencyPrims() > 0)
-	{
-		const FSceneRenderTargetItem& TranslucencyRenderTarget = GetInput(ePId_Input0)->GetOutput()->RequestSurface(Context);
-		SetRenderTarget(Context.RHICmdList, TranslucencyRenderTarget.TargetableTexture, FTextureRHIParamRef());
-		Context.SetViewportAndCallRHI(SrcRect);
-		Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-		//@todo Ronin: fix & cleanup separate trans.
-		//Context.View.TranslucentPrimSet.DrawPrimitivesForForwardShading(Context.RHICmdList, Context.View, ("supply an FSceneRenderer instance!")) ;
-	}
-
 	// Set the view family's render target/viewport.
-	//@HACK: gets around an uneccessary load in Vulkan. NOT FOR MAIN as it'll probably kill GearVR
-#if 1 // AJB: Just doing this for all platforms to ensure consistent behaviour with PC.
-	//@HACK: needs to set the framebuffer to clear/ignore in vulkan (doesn't support RHIClear)
-	FRHIRenderTargetView ColorView(DestRenderTarget.TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
-	FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
-	Context.RHICmdList.SetRenderTargetsAndClear(Info);
-#else
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
-
-	// Full clear to avoid restore
-	if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
+	//@todo Ronin find a way to use the same codepath for all platforms.
+	const EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[Context.GetFeatureLevel()];
+	if (IsVulkanMobilePlatform(ShaderPlatform))
 	{
-		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		//@HACK: gets around an uneccessary load in Vulkan. NOT FOR MAIN as it'll probably kill GearVR
+		//@HACK: needs to set the framebuffer to clear/ignore in vulkan (doesn't support RHIClear)
+		FRHIRenderTargetView ColorView(DestRenderTarget.TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+		FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
+		Context.RHICmdList.SetRenderTargetsAndClear(Info);
 	}
-#endif
+	else
+	{
+		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
+
+		// Full clear to avoid restore
+		if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
+		{
+			Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		}
+	}
 
 	Context.SetViewportAndCallRHI(DestRect);
 

@@ -666,7 +666,8 @@ bool ULevelStreaming::IsStreamingStatePending() const
 	UWorld* PersistentWorld = GetWorld();
 	if (PersistentWorld)
 	{
-		if (IsLevelLoaded() == ShouldBeLoaded() && IsLevelVisible() == ShouldBeVisible())
+		if (IsLevelLoaded() == ShouldBeLoaded() && 
+			(IsLevelVisible() == ShouldBeVisible() || !ShouldBeLoaded())) // visibility state does not matter if sub-level set to be unloaded
 		{
 			const FName DesiredPackageName = PersistentWorld->IsGameWorld() ? GetLODPackageName() : GetWorldAssetPackageFName();
 			if (!LoadedLevel || CachedLoadedLevelPackageName == DesiredPackageName)

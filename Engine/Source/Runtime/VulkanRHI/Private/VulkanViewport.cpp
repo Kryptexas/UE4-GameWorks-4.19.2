@@ -58,7 +58,7 @@ FVulkanViewport::FVulkanViewport(FVulkanDynamicRHI* InRHI, void* WindowHandle, u
 #else
 #if !PLATFORM_ANDROID
 		// Set to present src as the next calls will transition to color optimal
-		check(BackBuffers[Index]->Surface.ImageLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		checkf(BackBuffers[Index]->Surface.ImageLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, TEXT("BackBuffers[%d]->Surface.ImageLayout is %d"), Index, BackBuffers[Index]->Surface.ImageLayout);
 #endif
 #endif
 	}

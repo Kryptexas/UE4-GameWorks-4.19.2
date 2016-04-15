@@ -214,6 +214,8 @@ public:
 		ReflectionSampler1.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler1"));
 		ReflectionCubemap2.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemap2"));
 		ReflectionSampler2.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler2"));
+
+		PlanarReflectionParams.Bind(Initializer.ParameterMap);
 	}
 	TBasePassForForwardShadingPSPolicyParamType() {}
 
@@ -299,6 +301,9 @@ public:
 			SetShaderValueArray(RHICmdList, PixelShader, LightColorAndFalloffExponentParameter, LightInfo.LightColorAndFalloffExponent, LightInfo.NumDynamicPointLights);
 		}
 
+		const FPlanarReflectionSceneProxy* CachedPlanarReflectionProxy = PrimitiveSceneInfo ? PrimitiveSceneInfo->CachedPlanarReflectionProxy : nullptr;
+		PlanarReflectionParams.SetParameters(RHICmdList, PixelShader, CachedPlanarReflectionProxy );
+
 		FMeshMaterialShader::SetMesh(RHICmdList, PixelShader,VertexFactory,View,Proxy,BatchElement,DrawRenderState);		
 	}
 
@@ -321,6 +326,7 @@ public:
 		Ar << ReflectionPositionsAndRadii;
 		Ar << ReflectionSampler1;
 		Ar << ReflectionSampler2;
+		Ar << PlanarReflectionParams;
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -343,6 +349,8 @@ private:
 	FShaderResourceParameter ReflectionCubemap2;
 	FShaderResourceParameter ReflectionSampler2;
 	FShaderParameter ReflectionPositionsAndRadii;
+	//////////////////////////////////////////////////////////////////////////
+	FPlanarReflectionParameters PlanarReflectionParams;
 };
 
 template<typename LightMapPolicyType, int32 NumDynamicPointLights>

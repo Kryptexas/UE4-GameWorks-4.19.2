@@ -85,6 +85,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsDepthStencilRead()					{ return false; }
 	static FORCEINLINE bool SupportsFloatReadSurface()					{ return SupportsColorBufferHalfFloat(); }
 	static FORCEINLINE bool SupportsMultipleRenderTargets()				{ return false; }
+	static FORCEINLINE bool SupportsWideMRT()							{ return false; }
 	static FORCEINLINE bool SupportsMultisampledTextures()				{ return false; }
 	static FORCEINLINE bool SupportsFences()							{ return false; }
 	static FORCEINLINE bool SupportsPolygonMode()						{ return false; }

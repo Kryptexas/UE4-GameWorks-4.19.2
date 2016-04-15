@@ -2353,10 +2353,10 @@ void AInstancedFoliageActor::PostLoad()
 		Arguments.Add(TEXT("Level"), FText::FromString(*OwningLevel->GetOutermost()->GetName()));
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_DuplicateInstancedFoliageActor", "Level {Level} has an unexpected duplicate Instanced Foliage Actor {Actor}."), Arguments)))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_DuplicateInstancedFoliageActor", "Level {Level} has an unexpected duplicate Instanced Foliage Actor."), Arguments)))
 #if WITH_EDITOR
 			->AddToken(FActionToken::Create(LOCTEXT("MapCheck_FixDuplicateInstancedFoliageActor", "Fix"),
-				LOCTEXT("MapCheck_FixDuplicateInstancedFoliageActor_Desc", "Click consolidate into the main foliage actor."),
+				LOCTEXT("MapCheck_FixDuplicateInstancedFoliageActor_Desc", "Click to consolidate foliage into the main foliage actor."),
 				FOnActionTokenExecuted::CreateUObject(OwningLevel->InstancedFoliageActor.Get(), &AInstancedFoliageActor::RepairDuplicateIFA, this), true))
 #endif// WITH_EDITOR
 			;
@@ -2371,7 +2371,7 @@ void AInstancedFoliageActor::PostLoad()
 			ConvertDeprecatedFoliageMeshes(this, FoliageMeshes_Deprecated, FoliageMeshes);
 			FoliageMeshes_Deprecated.Empty();
 		}
-				
+
 		{
 			bool bContainsNull = FoliageMeshes.Remove(nullptr) > 0;
 			if (bContainsNull)
@@ -2392,7 +2392,7 @@ void AInstancedFoliageActor::PostLoad()
 			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 			UFoliageType* FoliageType = MeshPair.Key;
 
-			// Make sure the mesh has been PostLoaded as if not it can be considered invalid resulting in a bad tree
+			// Make sure the mesh has been PostLoaded as if not it can be considered invalid resulting in a bad HISMC tree
 			UStaticMesh* StaticMesh = FoliageType->GetStaticMesh();
 			if (StaticMesh)
 			{

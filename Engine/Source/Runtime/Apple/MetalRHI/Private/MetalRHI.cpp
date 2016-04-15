@@ -216,6 +216,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GSupportsRenderTargetFormat_PF_G8 = false;
 	GSupportsQuads = false;
 	GRHISupportsTextureStreaming = true;
+	GSupportsWideMRT = bCanUseWideMRTs;
 
 	GRHIRequiresEarlyBackBufferRenderTarget = false;
 	GSupportsSeparateRenderTargetBlendState = (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4);

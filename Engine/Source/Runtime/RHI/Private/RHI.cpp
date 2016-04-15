@@ -258,6 +258,7 @@ bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
 bool GSupportsTexture3D = true;
 bool GSupportsResourceView = true;
 bool GSupportsMultipleRenderTargets = true;
+bool GSupportsWideMRT = true;
 float GMinClipZ = 0.0f;
 float GProjectionSignY = 1.0f;
 bool GRHINeedsExtraDeletionLatency = false;

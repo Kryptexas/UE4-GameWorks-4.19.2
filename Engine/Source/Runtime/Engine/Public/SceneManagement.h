@@ -965,7 +965,6 @@ public:
 	inline bool CastsTranslucentShadows() const { return bCastTranslucentShadows; }
 	inline bool CastsShadowsFromCinematicObjectsOnly() const { return bCastShadowsFromCinematicObjectsOnly; }
 	inline bool CastsModulatedShadows() const { return bCastModulatedShadows; }
-	inline bool StationaryLightUsesCSMForMovableShadows() const { return bStationaryLightUsesCSMForMovableShadows; }
 	inline const FLinearColor& GetModulatedShadowColor() const { return ModulatedShadowColor; }
 	inline bool AffectsTranslucentLighting() const { return bAffectTranslucentLighting; }
 	inline bool UseRayTracedDistanceFieldShadows() const { return bUseRayTracedDistanceFieldShadows; }
@@ -1097,7 +1096,7 @@ protected:
 	uint32 bCastModulatedShadows : 1;
 
 	/** Whether to render csm shadows for movable objects only (mobile). */
-	uint32 bStationaryLightUsesCSMForMovableShadows : 1;
+	uint32 bUseWholeSceneCSMForMovableObjects : 1;
 
 	float RayStartOffsetDepthScale;
 

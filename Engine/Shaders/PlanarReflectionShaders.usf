@@ -68,10 +68,9 @@ void PrefilterPlanarReflectionPS(
 	out float4 OutColor : SV_Target0
 	)
 {
-	bool bPrefilterPlanarReflection = true;
-
+#if ENABLE_PLANAR_REFLECTIONS_PREFILTER
 	BRANCH
-	if (KernelRadiusY > 0 && bPrefilterPlanarReflection)
+	if (KernelRadiusY > 0)
 	{
 		// Compute distance from camera origin to the camera vector intersection with the reflection plane
 		float CenterDistanceToPlane = -(dot(View.WorldCameraOrigin, ReflectionPlane.xyz) - ReflectionPlane.w) / dot(normalize(ScreenVector), ReflectionPlane.xyz);
@@ -103,6 +102,7 @@ void PrefilterPlanarReflectionPS(
 		OutColor = float4(AccumulatedColor.rgb, ValidContentMask);
 	}
 	else
+#endif // ENABLE_PLANAR_REFLECTIONS_PREFILTER
 	{
 		float4 SceneColorValue = SampleSceneColorInput(InUV);
 		// We cleared the planar reflection alpha to 1, and base pass writes 0

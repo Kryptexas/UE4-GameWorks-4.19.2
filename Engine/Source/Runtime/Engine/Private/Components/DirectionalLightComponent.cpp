@@ -134,9 +134,9 @@ public:
 
 		{
 			const FSceneInterface* Scene = Component->GetScene();
-			// ensure bStationaryLightUsesCSMForMovableShadows can only be used with the forward renderer.
+			// ensure bUseWholeSceneCSMForMovableObjects is only be used with the forward renderer.
 			const bool bUsingDeferredRenderer = Scene == nullptr ? true : Scene->ShouldUseDeferredRenderer();
-			bStationaryLightUsesCSMForMovableShadows = Component->bStationaryLightUsesCSMForMovableShadows && !bUsingDeferredRenderer;
+			bUseWholeSceneCSMForMovableObjects = Component->Mobility == EComponentMobility::Stationary && !Component->bUseInsetShadowsForMovableObjects && !bUsingDeferredRenderer;
 		}
 		bCastModulatedShadows = Component->bCastModulatedShadows;
 		ModulatedShadowColor = FLinearColor(Component->ModulatedShadowColor);
@@ -213,9 +213,8 @@ public:
 	virtual bool UseCSMForDynamicObjects() const override
 	{
 		return	FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects()
-				&& StationaryLightUsesCSMForMovableShadows()
-				&& WholeSceneDynamicShadowRadius > 0
-				&& !bUseInsetShadowsForMovableObjects;
+				&& bUseWholeSceneCSMForMovableObjects
+				&& WholeSceneDynamicShadowRadius > 0;
 	}
 
 	/** Returns the number of view dependent shadows this light will create, not counting distance field shadow cascades. */
@@ -793,15 +792,6 @@ bool UDirectionalLightComponent::CanEditChange(const UProperty* InProperty) cons
 			return bUseInsetShadowsForMovableObjects && bCastModulatedShadows;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, bStationaryLightUsesCSMForMovableShadows))
-		{
-			const bool bCanUseCSMForMovableShadows = CastShadows 
-				&& CastDynamicShadows 
-				&& DynamicShadowDistanceStationaryLight > 0 
-				&& Mobility == EComponentMobility::Stationary
-				&& !bUseInsetShadowsForMovableObjects;
-			return bCanUseCSMForMovableShadows;
-		}
 	}
 
 	return Super::CanEditChange(InProperty);

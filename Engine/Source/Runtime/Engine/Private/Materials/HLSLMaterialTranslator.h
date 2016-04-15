@@ -2527,8 +2527,16 @@ protected:
 			return INDEX_NONE;
 		}
 
-		if (ShaderFrequency != SF_Pixel
-			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+		if (FeatureLevel == ERHIFeatureLevel::ES2 && ShaderFrequency == SF_Vertex)
+		{
+			if (MipValueMode != TMVM_MipLevel)
+			{
+				Errorf(TEXT("Sampling from vertex textures requires an absolute mip level on feature level ES2!"));
+				return INDEX_NONE;
+			}
+		}
+		else if (ShaderFrequency != SF_Pixel
+			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -2595,7 +2603,7 @@ protected:
 			// there's a driver as of 7.0.2 that will cause a GPU hang if used with an Aniso > 1 sampler, so show an error for now
 			if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
 			{
-				Errorf(TEXT("Sampling for a specific mip-level is not supported for mobile"));
+				Errorf(TEXT("Sampling for a specific mip-level is not supported for ES2"));
 				return INDEX_NONE;
 			}
 
@@ -3036,10 +3044,18 @@ protected:
 			);
 	}
 
-	virtual int32 Texture(UTexture* InTexture,int32& TextureReferenceIndex,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override
+	virtual int32 Texture(UTexture* InTexture,int32& TextureReferenceIndex,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset, ETextureMipValueMode MipValueMode = TMVM_None) override
 	{
-		if (ShaderFrequency != SF_Pixel
-			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+		if (FeatureLevel == ERHIFeatureLevel::ES2 && ShaderFrequency == SF_Vertex)
+		{
+			if (MipValueMode != TMVM_MipLevel)
+			{
+				Errorf(TEXT("Sampling from vertex textures requires an absolute mip level on feature level ES2"));
+				return INDEX_NONE;
+			}
+		}
+		else if (ShaderFrequency != SF_Pixel
+			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES3_1) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}

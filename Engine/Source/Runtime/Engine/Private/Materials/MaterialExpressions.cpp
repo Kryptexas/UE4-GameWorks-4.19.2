@@ -1338,7 +1338,7 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 	if (Texture || TextureObject.Expression)
 	{
 		int32 TextureReferenceIndex = INDEX_NONE;
-		int32 TextureCodeIndex = TextureObject.Expression ? TextureObject.Compile(Compiler) : Compiler->Texture(Texture, TextureReferenceIndex, SamplerSource);
+		int32 TextureCodeIndex = TextureObject.Expression ? TextureObject.Compile(Compiler) : Compiler->Texture(Texture, TextureReferenceIndex, SamplerSource, MipValueMode);
 
 		UTexture* EffectiveTexture = Texture;
 		EMaterialSamplerType EffectiveSamplerType = (EMaterialSamplerType)SamplerType;

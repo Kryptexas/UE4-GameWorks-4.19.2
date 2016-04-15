@@ -8,6 +8,7 @@
 
 #include "RHIDefinitions.h"
 
+// API version we want to target.
 #if PLATFORM_WINDOWS
 	#define UE_VK_API_VERSION	VK_MAKE_VERSION(1, 0, 1)
 #elif PLATFORM_ANDROID
@@ -86,7 +87,7 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 	#define VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS				1
 #else
 	#define VULKAN_DISABLE_DEBUG_CALLBACK						1	/* Disable the DebugReportFunction() callback in VulkanDebug.cpp */
-	#define VULKAN_CLEAR_SURFACE_ON_CREATE						0
+	#define VULKAN_CLEAR_SURFACE_ON_CREATE						1
 	#define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS					1
 	#define VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS				1
 #endif
