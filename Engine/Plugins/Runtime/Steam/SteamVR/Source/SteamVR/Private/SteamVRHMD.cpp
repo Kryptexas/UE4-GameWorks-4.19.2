@@ -132,7 +132,7 @@ public:
 		VRSystem = (*FSteamVRHMD::VRInitFn)(&VRInitErr, vr::VRApplication_Scene);
         if (!VRSystem || (VRInitErr != vr::VRInitError_None))
         {
-            UE_LOG(LogHMD, Warning, TEXT("Failed to initialize OpenVR with error %d"), (int32)VRInitErr);
+            UE_LOG(LogHMD, Warning, TEXT("Failed to initialize OpenVR with code %d"), (int32)VRInitErr);
 			UnloadOpenVRModule();
             
             return false;
@@ -142,7 +142,7 @@ public:
 		VRSystem = (vr::IVRSystem*)(*FSteamVRHMD::VRGetGenericInterfaceFn)(vr::IVRSystem_Version, &VRInitErr);
         if (!VRSystem || (VRInitErr != vr::VRInitError_None))
         {
-            UE_LOG(LogHMD, Warning, TEXT("Failed to initialize OpenVR (version mismatch) with error %d"), (int32)VRInitErr);
+            UE_LOG(LogHMD, Warning, TEXT("Failed to initialize OpenVR (version mismatch) with code %d"), (int32)VRInitErr);
 			UnloadOpenVRModule();
             
             return false;
