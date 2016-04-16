@@ -15,13 +15,18 @@ class SWebBrowserView;
 /**
 * Wrapper to contain the UIWebView and implement its delegate functions
 */
-
+#if !PLATFORM_TVOS
 @interface IOSWebViewWrapper : NSObject <UIWebViewDelegate>
+#else
+@interface IOSWebViewWrapper : NSObject
+#endif
 {
 	TSharedPtr<SIOSWebBrowserWidget> WebBrowserWidget;
 	bool bNeedsAddToView;
 }
+#if !PLATFORM_TVOS
 @property(strong) UIWebView* WebView;
+#endif
 @property(strong) NSURL* NextURL;
 @property(strong) NSString* NextContent;
 @property CGRect DesiredFrame;
