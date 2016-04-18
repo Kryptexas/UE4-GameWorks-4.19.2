@@ -77,7 +77,7 @@ unshift @::gMatchers, (
     },
     {
         id =>               "ubtFailedToProduceItem",
-        pattern =>          q{ERROR: UBT ERROR: Failed to produce item: },
+        pattern =>          q{(ERROR: )?UBT ERROR: Failed to produce item: },
 		action =>           q{incValue("errors"); diagnostic("UnrealBuildTool", "error")}
     },
     {
