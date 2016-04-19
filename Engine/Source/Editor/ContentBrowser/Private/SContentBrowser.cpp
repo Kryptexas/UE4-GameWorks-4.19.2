@@ -789,10 +789,11 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 	bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 	bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
 	bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
-	if ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins )
+	bool bDisplayLocalized = GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder();
+	if ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins || !bDisplayLocalized )
 	{
 		bool bRepopulate = false;
-		for (int32 AssetIdx = AssetDataList.Num() - 1; AssetIdx >= 0 && ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins ); --AssetIdx)
+		for (int32 AssetIdx = AssetDataList.Num() - 1; AssetIdx >= 0 && ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins || !bDisplayLocalized ); --AssetIdx)
 		{
 			const FAssetData& Item = AssetDataList[AssetIdx];
 
@@ -826,6 +827,13 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 			{
 				bDisplayPlugins = true;
 				GetMutableDefault<UContentBrowserSettings>()->SetDisplayPluginFolders(true, true);
+				bRepopulate = true;
+			}
+
+			if (!bDisplayLocalized && ContentBrowserUtils::IsLocalizationFolder(PackagePath))
+			{
+				bDisplayLocalized = true;
+				GetMutableDefault<UContentBrowserSettings>()->SetDisplayL10NFolder(true);
 				bRepopulate = true;
 			}
 		}
