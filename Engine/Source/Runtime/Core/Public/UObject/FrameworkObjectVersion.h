@@ -25,6 +25,10 @@ struct CORE_API FFrameworkObjectVersion
 		// Moved compressed anim data from uasset to the DDC
 		MoveCompressedAnimDataToTheDDC,
 
+		// Some graph pins created using legacy code seem to have lost the RF_Transactional flag,
+		// which causes issues with undo. Restore the flag at this version
+		FixNonTransactionalPins,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
