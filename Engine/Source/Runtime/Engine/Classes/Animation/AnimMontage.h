@@ -35,7 +35,6 @@ struct FCompositeSection : public FAnimLinkableElement
 	UPROPERTY()
 	FName NextSectionName;
 
-private:
 	/** Meta data that can be saved with the asset 
 	 * 
 	 * You can query by GetMetaData function
