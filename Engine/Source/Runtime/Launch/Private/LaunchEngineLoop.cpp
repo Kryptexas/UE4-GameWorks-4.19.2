@@ -1712,7 +1712,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #if WITH_EDITOR
 				if ( GIsEditor )
 				{
-					UClass* EditorEngineClass = StaticLoadClass( UEditorEngine::StaticClass(), nullptr, TEXT("engine-ini:/Script/Engine.Engine.EditorEngine"), nullptr, LOAD_None, nullptr );
+					FString EditorEngineClassName;
+					GConfig->GetString(TEXT("/Script/Engine.Engine"), TEXT("EditorEngine"), EditorEngineClassName, GEngineIni);
+					UClass* EditorEngineClass = StaticLoadClass( UEditorEngine::StaticClass(), nullptr, *EditorEngineClassName);
+					if (EditorEngineClass == nullptr)
+					{
+						UE_LOG(LogInit, Fatal, TEXT("Failed to load Editor Engine class '%s'."), *EditorEngineClassName);
+					}
 
 					GEngine = GEditor = NewObject<UEditorEngine>(GetTransientPackage(), EditorEngineClass);
 
@@ -1725,7 +1731,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				else
 #endif
 				{
-					UClass* EngineClass = StaticLoadClass( UEngine::StaticClass(), nullptr, TEXT("engine-ini:/Script/Engine.Engine.GameEngine"), nullptr, LOAD_None, nullptr );
+					FString GameEngineClassName;
+					GConfig->GetString(TEXT("/Script/Engine.Engine"), TEXT("GameEngine"), GameEngineClassName, GEngineIni);
+
+					UClass* EngineClass = StaticLoadClass( UEngine::StaticClass(), nullptr, *GameEngineClassName);
+
+					if (EngineClass == nullptr)
+					{
+						UE_LOG(LogInit, Fatal, TEXT("Failed to load Engine class '%s'."), *GameEngineClassName);
+					}
 
 					// must do this here so that the engine object that we create on the next line receives the correct property values
 					GEngine = NewObject<UEngine>(GetTransientPackage(), EngineClass);
@@ -2225,14 +2239,26 @@ int32 FEngineLoop::Init()
 	if( !GIsEditor )
 	{
 		// We're the game.
-		EngineClass = StaticLoadClass( UGameEngine::StaticClass(), nullptr, TEXT("engine-ini:/Script/Engine.Engine.GameEngine"), nullptr, LOAD_None, nullptr );
+		FString GameEngineClassName;
+		GConfig->GetString(TEXT("/Script/Engine.Engine"), TEXT("GameEngine"), GameEngineClassName, GEngineIni);
+		EngineClass = StaticLoadClass( UGameEngine::StaticClass(), nullptr, *GameEngineClassName);
+		if (EngineClass == nullptr)
+		{
+			UE_LOG(LogInit, Fatal, TEXT("Failed to load UnrealEd Engine class '%s'."), *GameEngineClassName);
+		}
 		GEngine = NewObject<UEngine>(GetTransientPackage(), EngineClass);
 	}
 	else
 	{
 #if WITH_EDITOR
 		// We're UnrealEd.
-		EngineClass = StaticLoadClass( UUnrealEdEngine::StaticClass(), nullptr, TEXT("engine-ini:/Script/Engine.Engine.UnrealEdEngine"), nullptr, LOAD_None, nullptr );
+		FString UnrealEdEngineClassName;
+		GConfig->GetString(TEXT("/Script/Engine.Engine"), TEXT("UnrealEdEngine"), UnrealEdEngineClassName, GEngineIni);
+		EngineClass = StaticLoadClass(UUnrealEdEngine::StaticClass(), nullptr, *UnrealEdEngineClassName);
+		if (EngineClass == nullptr)
+		{
+			UE_LOG(LogInit, Fatal, TEXT("Failed to load UnrealEd Engine class '%s'."), *UnrealEdEngineClassName);
+		}
 		GEngine = GEditor = GUnrealEd = NewObject<UUnrealEdEngine>(GetTransientPackage(), EngineClass);
 #else
 		check(0);
