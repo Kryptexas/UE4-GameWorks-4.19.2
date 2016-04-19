@@ -375,16 +375,26 @@ void UK2Node_SpawnActorFromClass::GetPinHoverText(const UEdGraphPin& Pin, FStrin
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	UEdGraphPin* ClassPin = GetClassPin();
-	K2Schema->ConstructBasicPinTooltip(*ClassPin, LOCTEXT("ClassPinDescription", "The Actor class you want to spawn"), ClassPin->PinToolTip);
-	UEdGraphPin* TransformPin = GetSpawnTransformPin();
-	K2Schema->ConstructBasicPinTooltip(*TransformPin, LOCTEXT("TransformPinDescription", "The transform to spawn the Actor with"), TransformPin->PinToolTip);
-	UEdGraphPin* CollisionHandlingOverridePin = GetCollisionHandlingOverridePin();
-	K2Schema->ConstructBasicPinTooltip(*CollisionHandlingOverridePin, LOCTEXT("CollisionHandlingOverridePinDescription", "Specifies how to handle collisions at the spawn point. If undefined, uses actor class settings."), CollisionHandlingOverridePin->PinToolTip);
-	UEdGraphPin* OwnerPin = GetOwnerPin();
-	K2Schema->ConstructBasicPinTooltip(*OwnerPin, LOCTEXT("OwnerPinDescription", "Can be left empty; primarily used for replication (bNetUseOwnerRelevancy and bOnlyRelevantToOwner), or visibility (PrimitiveComponent's bOwnerNoSee/bOnlyOwnerSee)"), OwnerPin->PinToolTip);
-	UEdGraphPin* ResultPin = GetResultPin();
-	K2Schema->ConstructBasicPinTooltip(*ResultPin, LOCTEXT("ResultPinDescription", "The spawned Actor"), ResultPin->PinToolTip);
+	if (UEdGraphPin* ClassPin = GetClassPin())
+	{
+		K2Schema->ConstructBasicPinTooltip(*ClassPin, LOCTEXT("ClassPinDescription", "The Actor class you want to spawn"), ClassPin->PinToolTip);
+	}
+	if (UEdGraphPin* TransformPin = GetSpawnTransformPin())
+	{
+		K2Schema->ConstructBasicPinTooltip(*TransformPin, LOCTEXT("TransformPinDescription", "The transform to spawn the Actor with"), TransformPin->PinToolTip);
+	}
+	if (UEdGraphPin* CollisionHandlingOverridePin = GetCollisionHandlingOverridePin())
+	{
+		K2Schema->ConstructBasicPinTooltip(*CollisionHandlingOverridePin, LOCTEXT("CollisionHandlingOverridePinDescription", "Specifies how to handle collisions at the spawn point. If undefined, uses actor class settings."), CollisionHandlingOverridePin->PinToolTip);
+	}
+	if (UEdGraphPin* OwnerPin = GetOwnerPin())
+	{
+		K2Schema->ConstructBasicPinTooltip(*OwnerPin, LOCTEXT("OwnerPinDescription", "Can be left empty; primarily used for replication (bNetUseOwnerRelevancy and bOnlyRelevantToOwner), or visibility (PrimitiveComponent's bOwnerNoSee/bOnlyOwnerSee)"), OwnerPin->PinToolTip);
+	}
+	if (UEdGraphPin* ResultPin = GetResultPin())
+	{
+		K2Schema->ConstructBasicPinTooltip(*ResultPin, LOCTEXT("ResultPinDescription", "The spawned Actor"), ResultPin->PinToolTip);
+	}
 
 	return Super::GetPinHoverText(Pin, HoverTextOut);
 }
