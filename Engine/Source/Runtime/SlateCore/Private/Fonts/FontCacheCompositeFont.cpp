@@ -235,7 +235,7 @@ const FFontData& FCompositeFontCache::GetFontDataForCharacter(const FSlateFontIn
 			OutScalingFactor = CachedDefaultTypefaceData->GetScalingFactor();
 
 			// Try to find the correct font from the typeface
-			const FFontData* FoundFontData = CachedDefaultTypefaceData->GetFontData(InFontInfo.TypefaceFontName);
+			FoundFontData = CachedDefaultTypefaceData->GetFontData(InFontInfo.TypefaceFontName);
 			if (FoundFontData)
 			{
 				return *FoundFontData;
