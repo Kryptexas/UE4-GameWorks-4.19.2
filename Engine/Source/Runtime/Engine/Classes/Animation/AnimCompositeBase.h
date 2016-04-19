@@ -159,6 +159,11 @@ struct FAnimSegment
 	 * return true if valid, false otherwise, only invalid if we contains recursive reference
 	 **/
 	bool IsValid() const { return bValid;  }
+
+	/** 
+	 * return true if anim notify is available 
+	 */
+	bool IsNotifyAvailable() const { return IsValid() && AnimReference && AnimReference->IsNotifyAvailable(); }
 private:
 
 	/**
@@ -249,6 +254,8 @@ struct FAnimTrack
 	*/
 	void GetAnimNotifiesFromTrackPositions(const float& PreviousTrackPosition, const float& CurrentTrackPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
 
+	/** return true if anim notify is available */
+	bool IsNotifyAvailable() const;
 };
 
 UCLASS(abstract, MinimalAPI)

@@ -113,6 +113,10 @@ void UAnimSequenceBase::SortNotifies()
 	Notifies.Sort();
 }
 
+bool UAnimSequenceBase::IsNotifyAvailable() const
+{
+	return (Notifies.Num() != 0) && (SequenceLength > 0.f);
+}
 /** 
  * Retrieves AnimNotifies given a StartTime and a DeltaTime.
  * Time will be advanced and support looping if bAllowLooping is true.
@@ -121,12 +125,17 @@ void UAnimSequenceBase::SortNotifies()
  */
 void UAnimSequenceBase::GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
 {
-	// Early out if we have no notifies
-	if( (Notifies.Num() == 0) || (DeltaTime == 0.f) || (SequenceLength==0.f))
+	if(DeltaTime == 0.f)
 	{
 		return;
 	}
 
+	// Early out if we have no notifies
+	if (!IsNotifyAvailable())
+	{
+		return;
+	}
+	
 	bool const bPlayingBackwards = (DeltaTime < 0.f);
 	float PreviousPosition = StartTime;
 	float CurrentPosition = StartTime;

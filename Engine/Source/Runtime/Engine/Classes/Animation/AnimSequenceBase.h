@@ -78,7 +78,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	 * Supports playing backwards (CurrentPosition<PreviousPosition).
 	 * Only supports contiguous range, does NOT support looping and wrapping over.
 	 */
-	ENGINE_API void GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const;
+	ENGINE_API virtual void GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const;
 
 	/** Evaluate curve data to Instance at the time of CurrentTime **/
 	ENGINE_API virtual void EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime, bool bForceUseRawData=false) const;
@@ -181,6 +181,8 @@ public:
 	virtual class UAnimSequence* GetAdditiveBasePose() const { return nullptr; }
 
 #endif
+	// return true if anim notify is available 
+	virtual bool IsNotifyAvailable() const;
 
 protected:
 	template <typename DataType>

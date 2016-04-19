@@ -665,6 +665,19 @@ void FAnimTrack::GetAnimNotifiesFromTrackPositions(const float& PreviousTrackPos
 	}
 }
 
+bool FAnimTrack::IsNotifyAvailable() const
+{
+	for (int32 SegmentIndex = 0; SegmentIndex < AnimSegments.Num(); ++SegmentIndex)
+	{
+		if (AnimSegments[SegmentIndex].IsNotifyAvailable())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool FAnimTrack::IsValidToAdd(const UAnimSequenceBase* SequenceBase) const
 {
 	bool bValid = false;

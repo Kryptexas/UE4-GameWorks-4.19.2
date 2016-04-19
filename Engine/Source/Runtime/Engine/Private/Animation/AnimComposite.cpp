@@ -28,46 +28,47 @@ void UAnimComposite::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAni
 }
 #endif
 
+bool UAnimComposite::IsNotifyAvailable() const
+{
+	return (Super::IsNotifyAvailable() || AnimationTrack.IsNotifyAvailable());
+}
+
+void UAnimComposite::GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float & CurrentPosition, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const
+{
+	const bool bMovingForward = (RateScale >= 0.f);
+
+	Super::GetAnimNotifiesFromDeltaPositions(PreviousPosition, CurrentPosition, OutActiveNotifies);
+
+	if (bMovingForward)
+	{
+		if (PreviousPosition <= CurrentPosition)
+		{
+			AnimationTrack.GetAnimNotifiesFromTrackPositions(PreviousPosition, CurrentPosition, OutActiveNotifies);
+		}
+		else
+		{
+			AnimationTrack.GetAnimNotifiesFromTrackPositions(PreviousPosition, SequenceLength, OutActiveNotifies);
+			AnimationTrack.GetAnimNotifiesFromTrackPositions(0.f, CurrentPosition, OutActiveNotifies);
+		}
+	}
+	else
+	{
+		if (PreviousPosition >= CurrentPosition)
+		{
+			AnimationTrack.GetAnimNotifiesFromTrackPositions(PreviousPosition, CurrentPosition, OutActiveNotifies);
+		}
+		else
+		{
+			AnimationTrack.GetAnimNotifiesFromTrackPositions(PreviousPosition, 0.f, OutActiveNotifies);
+			AnimationTrack.GetAnimNotifiesFromTrackPositions(SequenceLength, CurrentPosition, OutActiveNotifies);
+		}
+	}
+}
+
 void UAnimComposite::HandleAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, struct FAnimNotifyQueue& NotifyQueue) const
 {
 	Super::HandleAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, NotifyQueue);
 
-	// if should generate notifies
-	if (Context.ShouldGenerateNotifies())
-	{
-		// make sure to check animation track notifies
-		TArray<const FAnimNotifyEvent*> AnimNotifies;
-		const bool bMovingForward = (RateScale >= 0.f);
-
-		if (bMovingForward)
-		{
-			const float CurrentTime = *Instance.TimeAccumulator;
-			if (PreviousTime <= CurrentTime)
-			{
-				AnimationTrack.GetAnimNotifiesFromTrackPositions(PreviousTime, CurrentTime, AnimNotifies);
-			}
-			else
-			{
-				AnimationTrack.GetAnimNotifiesFromTrackPositions(PreviousTime, SequenceLength, AnimNotifies);
-				AnimationTrack.GetAnimNotifiesFromTrackPositions(0.f, CurrentTime, AnimNotifies);
-			}
-		}
-		else
-		{
-			const float CurrentTime = *Instance.TimeAccumulator;
-			if (PreviousTime >= CurrentTime)
-			{
-				AnimationTrack.GetAnimNotifiesFromTrackPositions(PreviousTime, CurrentTime, AnimNotifies);
-			}
-			else
-			{
-				AnimationTrack.GetAnimNotifiesFromTrackPositions(PreviousTime, 0.f, AnimNotifies);
-				AnimationTrack.GetAnimNotifiesFromTrackPositions(SequenceLength, CurrentTime, AnimNotifies);
-			}
-		}
-
-		NotifyQueue.AddAnimNotifies(AnimNotifies, Instance.EffectiveBlendWeight);
-	}
 	ExtractRootMotionFromTrack(AnimationTrack, PreviousTime, PreviousTime + MoveDelta, Context.RootMotionMovementParams);
 }
 
