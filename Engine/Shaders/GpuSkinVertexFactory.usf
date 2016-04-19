@@ -64,7 +64,7 @@ struct FVertexFactoryInput
 	// TangentZ.w contains sign of tangent basis determinant
 	half4	TangentZ		: ATTRIBUTE2;	
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1
+#if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1 || COMPILER_METAL
 	uint4	BlendIndices	: ATTRIBUTE3;
 	#if GPUSKIN_USE_EXTRA_INFLUENCES
 	uint4	BlendIndicesExtra	: ATTRIBUTE14;

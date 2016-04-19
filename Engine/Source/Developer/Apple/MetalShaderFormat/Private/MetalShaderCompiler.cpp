@@ -540,8 +540,10 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 	static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 	static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
+	static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
 	
 	TCHAR const* Standard = TEXT("-std=ios-metal1.0");
+	bool bIsDesktop = false;
 
 	if (Input.ShaderFormat == NAME_SF_METAL)
 	{
@@ -551,12 +553,21 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_MRT_PROFILE"), 1);
 	}
+	else if (Input.ShaderFormat == NAME_SF_METAL_MACES2)
+	{
+		AdditionalDefines.SetDefine(TEXT("METAL_ES2_PROFILE"), 1);
+		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
+		Standard = TEXT("-std=osx-metal1.1");
+		MetalCompilerTarget = HCT_FeatureLevelES2;
+		bIsDesktop = true;
+	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_MACES3_1)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
 		Standard = TEXT("-std=osx-metal1.1");
 		MetalCompilerTarget = HCT_FeatureLevelES3_1;
+		bIsDesktop = true;
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_SM4)
 	{
@@ -564,6 +575,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		AdditionalDefines.SetDefine(TEXT("USING_VERTEX_SHADER_LAYER"), 1);
 		Standard = TEXT("-std=osx-metal1.1");
 		MetalCompilerTarget = HCT_FeatureLevelSM4;
+		bIsDesktop = true;
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_SM5)
 	{
@@ -571,6 +583,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		AdditionalDefines.SetDefine(TEXT("USING_VERTEX_SHADER_LAYER"), 1);
 		Standard = TEXT("-std=osx-metal1.1");
 		MetalCompilerTarget = HCT_FeatureLevelSM5;
+		bIsDesktop = true;
 	}
 	else
 	{
@@ -661,7 +674,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
 		CCFlags &= ~HLSLCC_NoPreprocess;
 
-		FMetalCodeBackend MetalBackEnd(CCFlags, MetalCompilerTarget);
+		FMetalCodeBackend MetalBackEnd(CCFlags, MetalCompilerTarget, bIsDesktop);
 		FMetalLanguageSpec MetalLanguageSpec;
 
 		int32 Result = 0;

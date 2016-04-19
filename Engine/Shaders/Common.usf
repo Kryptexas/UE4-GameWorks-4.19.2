@@ -145,6 +145,13 @@
 	#define ES3_1_PROFILE 1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
 	#define STENCIL_COMPONENT_SWIZZLE .x
+#elif METAL_ES2_PROFILE
+	#define FEATURE_LEVEL  FEATURE_LEVEL_ES2
+	// @todo metal: remove this and make sure all uses handle METAL_ES2_PROFILE
+	#undef ES2_PROFILE
+	#define ES2_PROFILE 1
+	#define FCOLOR_COMPONENT_SWIZZLE .bgra
+	#define STENCIL_COMPONENT_SWIZZLE .x
 #elif METAL_MRT_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra
@@ -510,7 +517,7 @@ MaterialFloat PhongShadingPow(MaterialFloat X, MaterialFloat Y)
 	return ClampedPow(X, Y);
 }
 
-#if FEATURE_LEVEL < FEATURE_LEVEL_ES3_1
+#if FEATURE_LEVEL < FEATURE_LEVEL_ES3_1 && !COMPILER_METAL
 	// DX11 (feature levels >= 10) feature sets natively supports uints in shaders; we just use floats on other platforms.
 	#define uint4	int4
 #endif
