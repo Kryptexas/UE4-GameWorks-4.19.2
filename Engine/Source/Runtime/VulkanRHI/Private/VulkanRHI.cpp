@@ -13,8 +13,12 @@
 #include "VulkanContext.h"
 #include "VulkanManager.h"
 
+#ifdef VK_API_VERSION
 // Check the SDK is least the API version we want to use
 static_assert(VK_API_VERSION >= UE_VK_API_VERSION, "Vulkan SDK is older than the version we want to support (UE_VK_API_VERSION). Please update your SDK.");
+#elif !defined(VK_HEADER_VERSION)
+	#error No VulkanSDK defines?
+#endif
 
 #if VK_HEADER_VERSION < 8 && (VK_API_VERSION < VK_MAKE_VERSION(1, 0, 3))
 	#include <vulkan/vk_ext_debug_report.h>
