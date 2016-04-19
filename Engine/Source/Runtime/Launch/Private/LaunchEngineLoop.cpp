@@ -1442,8 +1442,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	SlowTask.EnterProgressFrame(10);
 
 #if USE_LOCALIZED_PACKAGE_CACHE
-	// this loads a UObject, so we do this now after objects are brought up (otherwise, it can't load properties from config)
-	FPackageLocalizationManager::Get().InitializeFromDefaultCache();
+	FPackageLocalizationManager::Get().InitializeFromLazyCallback([](FPackageLocalizationManager& InPackageLocalizationManager)
+	{
+		InPackageLocalizationManager.InitializeFromCache(MakeShareable(new FEnginePackageLocalizationCache()));
+	});
 #endif	// USE_LOCALIZED_PACKAGE_CACHE
 
 	// Initialize the RHI.
@@ -1494,6 +1496,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 		// Make sure all UObject classes are registered and default properties have been initialized
 		ProcessNewlyLoadedUObjects();
+
+#if USE_LOCALIZED_PACKAGE_CACHE
+		// CoreUObject is definitely available now, so make sure the package localization cache is available
+		// This may have already been initialized from the CDO creation from ProcessNewlyLoadedUObjects
+		FPackageLocalizationManager::Get().PerformLazyInitialization();
+#endif	// USE_LOCALIZED_PACKAGE_CACHE
 
 		// Default materials may have been loaded due to dependencies when loading
 		// classes and class default objects. If not, do so now.

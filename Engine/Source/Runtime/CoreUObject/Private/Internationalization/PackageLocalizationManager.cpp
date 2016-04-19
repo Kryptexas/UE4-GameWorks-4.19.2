@@ -38,6 +38,25 @@ void FDefaultPackageLocalizationCache::FindLocalizedPackages(const FString& InSo
 	}));
 }
 
+void FPackageLocalizationManager::PerformLazyInitialization()
+{
+	if (!ActiveCache.IsValid() && LazyInitFunc)
+	{
+		LazyInitFunc(*this);
+
+		if (!ActiveCache.IsValid())
+		{
+			UE_LOG(LogPackageLocalizationManager, Warning, TEXT("InitializeFromLazyCallback was bound to a callback that didn't initialize the active cache."));
+		}
+	}
+}
+
+void FPackageLocalizationManager::InitializeFromLazyCallback(FLazyInitFunc InLazyInitFunc)
+{
+	LazyInitFunc = MoveTemp(InLazyInitFunc);
+	ActiveCache.Reset();
+}
+
 void FPackageLocalizationManager::InitializeFromCache(const TSharedRef<IPackageLocalizationCache>& InCache)
 {
 	ActiveCache = InCache;
@@ -50,8 +69,10 @@ void FPackageLocalizationManager::InitializeFromDefaultCache()
 	ActiveCache->ConditionalUpdateCache();
 }
 
-FName FPackageLocalizationManager::FindLocalizedPackageName(const FName InSourcePackageName) const
+FName FPackageLocalizationManager::FindLocalizedPackageName(const FName InSourcePackageName)
 {
+	PerformLazyInitialization();
+
 	if (ActiveCache.IsValid())
 	{
 		return ActiveCache->FindLocalizedPackageName(InSourcePackageName);
@@ -62,8 +83,10 @@ FName FPackageLocalizationManager::FindLocalizedPackageName(const FName InSource
 	return FindLocalizedPackageNameNoCache(InSourcePackageName, CurrentCultureName);
 }
 
-FName FPackageLocalizationManager::FindLocalizedPackageNameForCulture(const FName InSourcePackageName, const FString& InCultureName) const
+FName FPackageLocalizationManager::FindLocalizedPackageNameForCulture(const FName InSourcePackageName, const FString& InCultureName)
 {
+	PerformLazyInitialization();
+
 	if (ActiveCache.IsValid())
 	{
 		return ActiveCache->FindLocalizedPackageNameForCulture(InSourcePackageName, InCultureName);
