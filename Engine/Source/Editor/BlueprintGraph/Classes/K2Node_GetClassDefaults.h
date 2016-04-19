@@ -75,6 +75,12 @@ private:
 	/** Class pin name */
 	static FString ClassPinName;
 
+	/** Blueprint.OnChanged delegate handle */
+	FDelegateHandle OnBlueprintChangedDelegate;
+
+	/** Blueprint.OnCompiled delegate handle */
+	FDelegateHandle OnBlueprintCompiledDelegate;
+
 	/** Output pin visibility control */
 	UPROPERTY(EditAnywhere, Category=PinOptions, EditFixedSize)
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;

@@ -404,6 +404,25 @@ void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 	{
 		AdvancedPinDisplay = ENodeAdvancedPins::NoPins;
 	}
+
+	// Unbind OnChanged() delegate from a previous Blueprint, if valid.
+	if (OnBlueprintChangedDelegate.IsValid())
+	{
+		OnBlueprintChangedDelegate.Reset();
+	}
+
+	// Unbind OnCompiled() delegate from a previous Blueprint, if valid.
+	if (OnBlueprintCompiledDelegate.IsValid())
+	{
+		OnBlueprintCompiledDelegate.Reset();
+	}
+
+	// If the class was generated for a Blueprint, bind delegates to handle any OnChanged() & OnCompiled() events.
+	if (UBlueprint* Blueprint = Cast<UBlueprint>(InClass->ClassGeneratedBy))
+	{
+		OnBlueprintChangedDelegate = Blueprint->OnChanged().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+		OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+	}
 }
 
 void UK2Node_GetClassDefaults::OnClassPinChanged()
