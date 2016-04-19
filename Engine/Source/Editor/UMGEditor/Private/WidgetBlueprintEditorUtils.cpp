@@ -35,7 +35,7 @@ public:
 
 	// FCustomizableTextObjectFactory implementation
 
-	virtual bool CanCreateClass(UClass* ObjectClass) const override
+	virtual bool CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const override
 	{
 		const bool bIsWidget = ObjectClass->IsChildOf(UWidget::StaticClass());
 		const bool bIsSlot = ObjectClass->IsChildOf(UPanelSlot::StaticClass());

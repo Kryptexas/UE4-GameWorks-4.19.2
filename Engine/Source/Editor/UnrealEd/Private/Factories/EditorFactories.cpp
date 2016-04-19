@@ -5273,17 +5273,37 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 
 	FParse::Next( &Buffer );
 
+	int32 NestedDepth     = 0;
+	int32 OmittedOuterObj = 0; // zero signifies "nothing omitted"
+
 	FString StrLine;
 	while( FParse::Line(&Buffer,StrLine) )
 	{
 		const TCHAR* Str = *StrLine;
 		if( GetBEGIN(&Str,TEXT("OBJECT")) )
 		{
+			++NestedDepth;
+			if (OmittedOuterObj > 0)
+			{
+				if (NestedDepth > OmittedOuterObj)
+				{
+					continue;
+				}
+				ensure(OmittedOuterObj == NestedDepth);
+				// clear the omitted outer, we've parsed passed it
+				OmittedOuterObj = 0;
+			}
+
 			UClass* ObjClass;
 			if( ParseObject<UClass>( Str, TEXT("CLASS="), ObjClass, ANY_PACKAGE ) )
 			{
-				if (!CanCreateClass(ObjClass))
+				bool bOmitSubObjects = false;
+				if (!CanCreateClass(ObjClass, bOmitSubObjects))
 				{
+					if (bOmitSubObjects)
+					{
+						OmittedOuterObj = NestedDepth;
+					}
 					continue;
 				}
 
@@ -5343,6 +5363,10 @@ void FCustomizableTextObjectFactory::ProcessBuffer(UObject* InParent, EObjectFla
 				NewObjects.Add(CreatedObject);
 			}
 		}
+		else if (GetEND(&Str, TEXT("OBJECT")))
+		{
+			--NestedDepth;
+		}
 	}
 
 	// Apply the property text to each of the created objects
@@ -5368,28 +5392,52 @@ bool FCustomizableTextObjectFactory::CanCreateObjectsFromText( const FString& Te
 
 	FParse::Next( &Buffer );
 
+	int32 NestedDepth     = 0;
+	int32 OmittedOuterObj = 0; // zero signifies "nothing omitted"
+
 	FString StrLine;
 	while( FParse::Line(&Buffer,StrLine) )
 	{
 		const TCHAR* Str = *StrLine;
 		if( GetBEGIN(&Str,TEXT("OBJECT")) )
 		{
-			UClass* ObjClass;
-			if( ParseObject<UClass>( Str, TEXT("CLASS="), ObjClass, ANY_PACKAGE ) )
+			++NestedDepth;
+			if (OmittedOuterObj > 0)
 			{
-				if(CanCreateClass(ObjClass))
+				if (NestedDepth > OmittedOuterObj)
+				{
+					continue;
+				}
+				ensure(OmittedOuterObj == NestedDepth);
+				// clear the omitted outer, we've parsed passed it
+				OmittedOuterObj = 0;
+			}
+
+			UClass* ObjClass;
+			if (ParseObject<UClass>(Str, TEXT("CLASS="), ObjClass, ANY_PACKAGE))
+			{
+				bool bOmitSubObjects = false;;
+				if (CanCreateClass(ObjClass, bOmitSubObjects))
 				{
 					bCanCreate = true;
 					break;
 				}
+				else if (bOmitSubObjects)
+				{
+					OmittedOuterObj = NestedDepth;
+				}
 			}
+		}
+		else if ( GetEND(&Str, TEXT("OBJECT")) )
+		{
+			--NestedDepth;
 		}
 	}
 	return bCanCreate;
 }
 
 /** Return true if the an object of type ObjectClass is allowed to be created; If false is returned, the object and subobjects will be ignored. */
-bool FCustomizableTextObjectFactory::CanCreateClass(UClass* ObjectClass) const
+bool FCustomizableTextObjectFactory::CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const
 {
 	return false;
 }

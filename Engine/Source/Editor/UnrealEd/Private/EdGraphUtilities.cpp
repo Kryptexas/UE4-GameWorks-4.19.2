@@ -28,10 +28,14 @@ public:
 	}
 
 protected:
-	virtual bool CanCreateClass(UClass* ObjectClass) const override
+	virtual bool CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const override
 	{
 		if (const UEdGraphNode* DefaultNode = Cast<UEdGraphNode>(ObjectClass->GetDefaultObject()))
 		{
+			// if the root node can't be created, don't continue to check sub-
+			// objects (for like collapsed graphs, or anim state-machine nodes)
+			bOmitSubObjs = true;
+
 			if (DefaultNode->CanDuplicateNode())
 			{
 				if (DestinationGraph != NULL)
