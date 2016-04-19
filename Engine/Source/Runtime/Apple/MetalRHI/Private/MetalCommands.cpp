@@ -886,13 +886,13 @@ void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,
 	
 	if (Context->GetCurrentState().GetNumRenderTargets() <= 1)
 	{
-		BlendStateRHI = (bClearColor && Context->GetCurrentState().GetHasValidRenderTarget())
+		BlendStateRHI = (bClearColor && Context->GetCurrentState().GetHasValidColorTarget())
 		? TStaticBlendState<>::GetRHI()
 		: TStaticBlendState<CW_NONE>::GetRHI();
 	}
 	else
 	{
-		BlendStateRHI = (bClearColor && Context->GetCurrentState().GetHasValidRenderTarget())
+		BlendStateRHI = (bClearColor && Context->GetCurrentState().GetHasValidColorTarget())
 			? TStaticBlendState<>::GetRHI()
 			: TStaticBlendStateWriteMask<CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE,CW_NONE>::GetRHI();
 	}

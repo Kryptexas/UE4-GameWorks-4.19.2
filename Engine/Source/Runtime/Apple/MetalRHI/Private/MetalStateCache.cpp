@@ -36,6 +36,7 @@ FMetalStateCache::FMetalStateCache(FMetalCommandEncoder& InCommandEncoder)
 , FrameBufferSize(CGSizeMake(0.0, 0.0))
 , RenderTargetArraySize(1)
 , bHasValidRenderTarget(false)
+, bHasValidColorTarget(false)
 , bScissorRectEnabled(false)
 {
 	Viewport.originX = Viewport.originY = Viewport.width = Viewport.height = Viewport.znear = Viewport.zfar = 0.0;
@@ -79,6 +80,7 @@ void FMetalStateCache::Reset(void)
 	
 	FMemory::Memzero(RenderTargetsInfo);
 	bHasValidRenderTarget = false;
+	bHasValidColorTarget = false;
 	
 	FMemory::Memzero(DirtyUniformBuffers);
 	
@@ -264,6 +266,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		PipelineDesc.SampleCount = 0;
 	
 		bHasValidRenderTarget = false;
+		bHasValidColorTarget = false;
 		
 		uint8 ArrayTargets = 0;
 		uint8 BoundTargets = 0;
@@ -386,6 +389,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				[ColorAttachment release];
 	
 				bHasValidRenderTarget = true;
+				bHasValidColorTarget = true;
 			}
 			else
 			{
@@ -552,6 +556,8 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				{
 					PipelineDesc.SampleCount = DepthAttachment.texture.sampleCount;
 				}
+				
+				bHasValidRenderTarget = true;
 	
 				// and assign it
 				RenderPass.depthAttachment = DepthAttachment;
@@ -592,6 +598,8 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				{
 					PipelineDesc.SampleCount = StencilAttachment.texture.sampleCount;
 				}
+				
+				bHasValidRenderTarget = true;
 	
 				// and assign it
 				RenderPass.stencilAttachment = StencilAttachment;
@@ -600,6 +608,7 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				[StencilAttachment release];
 			}
 		}
+		check(bHasValidRenderTarget);
 	
 		// update hash for the depth/stencil buffer & sample count
 		PipelineDesc.SetHashValue(Offset_DepthFormat, NumBits_DepthFormat, DepthFormatKey);
@@ -629,11 +638,15 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 			BoundShaderState.SafeRelease();
 		}
 	}
+	
+	// Ensure that the RenderPassDesc is valid in the CommandEncoder.
+	check(CommandEncoder.IsRenderPassDescriptorValid());
 }
 
 void FMetalStateCache::SetHasValidRenderTarget(bool InHasValidRenderTarget)
 {
 	bHasValidRenderTarget = InHasValidRenderTarget;
+	bHasValidColorTarget = InHasValidRenderTarget;
 }
 
 void FMetalStateCache::SetViewport(const MTLViewport& InViewport)
@@ -756,7 +769,7 @@ bool FMetalStateCache::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& In
 	// see if our new Info matches our previous Info
 	
 	// basic checks
-	bool bAllChecksPassed = GetHasValidRenderTarget() && CommandEncoder.IsRenderCommandEncoderActive() && InRenderTargetsInfo.NumColorRenderTargets == RenderTargetsInfo.NumColorRenderTargets &&
+	bool bAllChecksPassed = GetHasValidRenderTarget() && CommandEncoder.IsRenderPassDescriptorValid() && CommandEncoder.IsRenderCommandEncoderActive() && InRenderTargetsInfo.NumColorRenderTargets == RenderTargetsInfo.NumColorRenderTargets &&
 		// handle the case where going from backbuffer + depth -> backbuffer + null, no need to reset RT and do a store/load
 		(InRenderTargetsInfo.DepthStencilRenderTarget.Texture == RenderTargetsInfo.DepthStencilRenderTarget.Texture || InRenderTargetsInfo.DepthStencilRenderTarget.Texture == nullptr);
 

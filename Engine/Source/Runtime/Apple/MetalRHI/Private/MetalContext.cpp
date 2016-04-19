@@ -737,6 +737,9 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 
 	TRefCountPtr<FMetalBoundShaderState> CurrentBoundShaderState = StateCache.GetBoundShaderState();
 	
+	// Enforce calls to SetRenderTarget prior to issuing draw calls.
+	check(StateCache.GetHasValidRenderTarget());
+	
 	// Validate the vertex layout in debug mode, or when the validation layer is enabled for development builds.
 	// Other builds will just crash & burn if it is incorrect.
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
@@ -795,6 +798,10 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false);
 		
 		bRestoreState = true;
+		
+		// Enforce calls to SetRenderTarget prior to issuing draw calls.
+		check(StateCache.GetHasValidRenderTarget());
+		check(CommandEncoder.IsRenderPassDescriptorValid());
 	}
 	
 	// make sure the BSS has a valid pipeline state object
@@ -812,6 +819,14 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		
 		if(!CommandEncoder.IsRenderCommandEncoderActive())
 		{
+			if (!CommandEncoder.IsRenderPassDescriptorValid())
+			{
+				UE_LOG(LogMetal, Warning, TEXT("Re-binding the render-target because no RenderPassDescriptor was bound!"));
+				FRHISetRenderTargetsInfo Info = StateCache.GetRenderTargetsInfo();
+				StateCache.SetHasValidRenderTarget(false);
+				StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false);
+			}
+			
 			CommandEncoder.RestoreRenderCommandEncoding();
 		}
 		else if (bRestoreState)

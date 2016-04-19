@@ -54,8 +54,9 @@ public:
 	FMetalComputeShader* GetComputeShader() const { return ComputeShader; }
 	CGSize GetFrameBufferSize() const { return FrameBufferSize; }
 	FRHISetRenderTargetsInfo const& GetRenderTargetsInfo() const { return RenderTargetsInfo; }
-	int32 GetNumRenderTargets() { return bHasValidRenderTarget ? RenderTargetsInfo.NumColorRenderTargets : -1; }
+	int32 GetNumRenderTargets() { return bHasValidColorTarget ? RenderTargetsInfo.NumColorRenderTargets : -1; }
 	bool GetHasValidRenderTarget() const { return bHasValidRenderTarget; }
+	bool GetHasValidColorTarget() const { return bHasValidColorTarget; }
 	const MTLViewport& GetViewport() const { return Viewport; }
 	id<MTLBuffer> GetVertexBuffer(uint32 const Index) { check(Index < MaxMetalStreams); return VertexBuffers[Index]; }
 	uint32 GetVertexStride(uint32 const Index) { check(Index < MaxMetalStreams); return VertexStrides[Index]; }
@@ -102,6 +103,6 @@ private:
 	
 	FRHISetRenderTargetsInfo RenderTargetsInfo;
 	bool bHasValidRenderTarget;
-	
+	bool bHasValidColorTarget;
 	bool bScissorRectEnabled;
 };
