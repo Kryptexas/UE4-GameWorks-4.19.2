@@ -495,6 +495,26 @@ void AActor::Serialize(FArchive& Ar)
 			}
 		}
 	}
+
+	// When duplicating for PIE all components need to be gathered up and duplicated even if there are no other property references to them
+	// otherwise we can end up with Attach Parents that do not get redirected to the correct component. However, if there is a transient component
+	// we'll let that drop
+	if (Ar.GetPortFlags() & PPF_DuplicateForPIE)
+	{
+		TArray<UActorComponent*> DuplicatingComponents;
+		if (Ar.IsSaving())
+		{
+			DuplicatingComponents.Reserve(OwnedComponents.Num());
+			for (UActorComponent* OwnedComponent : OwnedComponents)
+			{
+				if (!OwnedComponent->HasAnyFlags(RF_Transient))
+				{
+					DuplicatingComponents.Add(OwnedComponent);
+				}
+			}
+		}
+		Ar << DuplicatingComponents;
+	}
 #endif
 
 	Super::Serialize(Ar);
@@ -2789,7 +2809,7 @@ void AActor::PostActorConstruction()
 
 void AActor::SetReplicates(bool bInReplicates)
 { 
-	if (Role == ROLE_Authority || bInReplicates == false)
+	if (Role == ROLE_Authority)
 	{
 		if (bReplicates == false && bInReplicates == true)
 		{

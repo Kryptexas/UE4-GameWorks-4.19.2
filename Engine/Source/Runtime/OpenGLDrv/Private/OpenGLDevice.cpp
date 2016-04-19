@@ -690,7 +690,7 @@ static void InitRHICapabilitiesForGL()
 	GSupportsSeparateRenderTargetBlendState = FOpenGL::SupportsSeparateAlphaBlend();
 	GSupportsDepthBoundsTest = FOpenGL::SupportsDepthBoundsTest();
 
-	GSupportsRenderTargetFormat_PF_FloatRGBA = FOpenGL::SupportsColorBufferHalfFloat();
+	GSupportsRenderTargetFormat_PF_FloatRGBA = (FOpenGL::SupportsColorBufferHalfFloat() && FOpenGL::SupportsTextureHalfFloat());
 
 	GSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
 	GSupportsShaderDepthStencilFetch = FOpenGL::SupportsShaderDepthStencilFetch();

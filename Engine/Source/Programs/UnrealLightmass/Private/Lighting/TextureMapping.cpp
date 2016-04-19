@@ -427,7 +427,8 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 						MappingContext, 
 						RandomStream, 
 						GatherInfo, 
-						true, /** bSkyLightingOnly */
+						true, /* bSkyLightingOnly */
+						true, /* bGatheringForCachedDirectLighting */
 						false);
 
 
@@ -489,7 +490,7 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 				// Compute low quality sky lighting and cache in the direct lighting, so we get one bounce, since sky lighting isn't handled by photons
 				const FGatheredLightSample SkyLighting = CalculateApproximateSkyLighting(CurrentVertex, TexelToVertex.TexelRadius, CachedHemisphereSamplesForApproximateSkyLighting, MappingContext);
 #endif
-				TextureMapping->CachedDirectLighting[Y * TextureMapping->IrradiancePhotonCacheSizeX + X] = DirectLighting.IncidentLighting + SkyLighting.IncidentLighting;
+				TextureMapping->CachedDirectLighting[Y * TextureMapping->IrradiancePhotonCacheSizeX + X] = DirectLighting.IncidentLighting + SkyLighting.IncidentLighting + SkyLighting.StationarySkyLighting.IncidentLighting;
 				
 				// Only search the irradiance photon map if the surface cache position is inside the importance volume,
 				// Since irradiance photons are only deposited inside the importance volume.

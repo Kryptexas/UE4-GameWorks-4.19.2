@@ -609,10 +609,15 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 
 		if (CharacterMovement)
 		{
+			const bool bBaseIsSimulating = NewBaseComponent && NewBaseComponent->IsSimulatingPhysics();
 			if (bBaseChanged)
 			{
 				MovementBaseUtility::RemoveTickDependency(CharacterMovement->PrimaryComponentTick, OldBase);
-				MovementBaseUtility::AddTickDependency(CharacterMovement->PrimaryComponentTick, NewBaseComponent);
+				// We use a special post physics function if simulating, otherwise add normal tick prereqs.
+				if (!bBaseIsSimulating)
+				{
+					MovementBaseUtility::AddTickDependency(CharacterMovement->PrimaryComponentTick, NewBaseComponent);
+				}
 			}
 
 			if (NewBaseComponent)
@@ -620,12 +625,13 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InB
 				// Update OldBaseLocation/Rotation as those were referring to a different base
 				// ... but not when handling replication for proxies (since they are going to copy this data from the replicated values anyway)
 				if (!bInBaseReplication)
-				{					
+				{
+					// Force base location and relative position to be computed since we have a new base or bone so the old relative offset is meaningless.
 					CharacterMovement->SaveBaseLocation();
 				}
 
-				// Enable pre-cloth tick if we are standing on a physics object, as we need to to use post-physics transforms
-				CharacterMovement->PostPhysicsTickFunction.SetTickFunctionEnable(NewBaseComponent->IsSimulatingPhysics());
+				// Enable PostPhysics tick if we are standing on a physics object, as we need to to use post-physics transforms
+				CharacterMovement->PostPhysicsTickFunction.SetTickFunctionEnable(bBaseIsSimulating);
 			}
 			else
 			{

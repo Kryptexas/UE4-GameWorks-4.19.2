@@ -237,12 +237,6 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 		LastLocation = ParseParams.Transform.GetTranslation();
 	}
 
-	// if the closest listener is not the primary one, transform CurrentLocation
-	if (ClosestListenerIndex != 0)
-	{
-		const FListener& Listener = AudioDevice->Listeners[0];
-		ParseParams.Transform = ParseParams.Transform * ClosestListenerPtr->Transform.Inverse() * Listener.Transform;
-	}
 
 	TArray<FWaveInstance*> ThisSoundsWaveInstances;
 
@@ -254,7 +248,14 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 		{
 			ApplyAttenuation(ParseParams, *ClosestListenerPtr);
 		}
-
+		
+		// if the closest listener is not the primary one, transform the sound transform so it's panned relative to primary listener position
+		if (ClosestListenerIndex != 0)
+		{
+			const FListener& Listener = AudioDevice->Listeners[0];
+			ParseParams.Transform = ParseParams.Transform * ClosestListenerPtr->Transform.Inverse() * Listener.Transform;
+		}
+		
 		Sound->Parse(AudioDevice, 0, *this, ParseParams, ThisSoundsWaveInstances);
 	}
 
@@ -746,6 +747,8 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 
 	FAttenuationListenerData ListenerData;
 
+	ListenerData.Listener = &Listener;
+	
 	// Get the current focus factor
 	const float FocusFactor = AudioDevice->GetFocusFactor(ListenerData, Sound, SoundTransform, *Settings, &Listener);
 

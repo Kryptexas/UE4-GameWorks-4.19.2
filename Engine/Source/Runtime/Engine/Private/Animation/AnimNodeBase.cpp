@@ -359,13 +359,18 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 	// initialize copy records
 	for(auto& CopyRecord : CopyRecords)
 	{
+		CopyRecord.SourceProperty_DEPRECATED = nullptr;
+
 		UProperty* SourceProperty = AnimInstanceObject->GetClass()->FindPropertyByName(CopyRecord.SourcePropertyName);
 		check(SourceProperty);
 		if(UArrayProperty* SourceArrayProperty = Cast<UArrayProperty>(SourceProperty))
 		{
-			FScriptArrayHelper ArrayHelper(SourceArrayProperty, SourceProperty->ContainerPtrToValuePtr<uint8>(AnimInstanceObject));
-			check(ArrayHelper.IsValidIndex(CopyRecord.SourceArrayIndex));
-			CopyRecord.Source = ArrayHelper.GetRawPtr(CopyRecord.SourceArrayIndex);
+			// the compiler should not be generating any code that calls down this path at the moment - it is untested
+			check(false);
+		//	FScriptArrayHelper ArrayHelper(SourceArrayProperty, SourceProperty->ContainerPtrToValuePtr<uint8>(AnimInstanceObject));
+		//	check(ArrayHelper.IsValidIndex(CopyRecord.SourceArrayIndex));
+		//	CopyRecord.Source = ArrayHelper.GetRawPtr(CopyRecord.SourceArrayIndex);
+		//	CopyRecord.Size = ArrayHelper.Num() * SourceArrayProperty->Inner->GetSize();
 		}
 		else
 		{
@@ -375,10 +380,22 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 				UStructProperty* SourceStructProperty = CastChecked<UStructProperty>(SourceProperty);
 				UProperty* SourceStructSubProperty = SourceStructProperty->Struct->FindPropertyByName(CopyRecord.SourceSubPropertyName);
 				CopyRecord.Source = SourceStructSubProperty->ContainerPtrToValuePtr<uint8>(Source, CopyRecord.SourceArrayIndex);
+				CopyRecord.Size = SourceStructSubProperty->GetSize();
+				CopyRecord.SourceProperty_DEPRECATED = Cast<UBoolProperty>(SourceStructSubProperty);
+				if (CopyRecord.SourceProperty_DEPRECATED)
+				{
+					CopyRecord.Source = Source;
+				}
 			}
 			else
 			{
 				CopyRecord.Source = SourceProperty->ContainerPtrToValuePtr<uint8>(AnimInstanceObject, CopyRecord.SourceArrayIndex);
+				CopyRecord.Size = SourceProperty->GetSize();
+				CopyRecord.SourceProperty_DEPRECATED = Cast<UBoolProperty>(SourceProperty);
+				if (CopyRecord.SourceProperty_DEPRECATED)
+				{
+					CopyRecord.Source = AnimInstanceObject;
+				}
 			}
 		}
 
@@ -387,10 +404,18 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			FScriptArrayHelper ArrayHelper(DestArrayProperty, CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimNode));
 			check(ArrayHelper.IsValidIndex(CopyRecord.DestArrayIndex));
 			CopyRecord.Dest = ArrayHelper.GetRawPtr(CopyRecord.DestArrayIndex);
+			if (CopyRecord.DestProperty->IsA<UBoolProperty>())
+			{
+				CopyRecord.Dest = AnimNode;
+			}
 		}
 		else
 		{
 			CopyRecord.Dest = CopyRecord.DestProperty->ContainerPtrToValuePtr<uint8>(AnimNode, CopyRecord.DestArrayIndex);
+			if (CopyRecord.DestProperty->IsA<UBoolProperty>())
+			{
+				CopyRecord.Dest = AnimNode;
+			}
 		}
 	}
 
@@ -416,12 +441,26 @@ void FExposedValueHandler::Execute(const FAnimationBaseContext& Context) const
 		{
 		case EPostCopyOperation::None:
 			{
-				FMemory::Memcpy(CopyRecord.Dest, CopyRecord.Source, CopyRecord.Size);
+				
+				if (CopyRecord.SourceProperty_DEPRECATED != nullptr)
+				{
+					UBoolProperty* DestBoolProperty = CastChecked<UBoolProperty>(CopyRecord.DestProperty);
+					bool bValue = Cast<UBoolProperty>(CopyRecord.SourceProperty_DEPRECATED)->GetPropertyValue_InContainer(CopyRecord.Source);
+					Cast<UBoolProperty>(DestBoolProperty)->SetPropertyValue_InContainer(CopyRecord.Dest, bValue, CopyRecord.DestArrayIndex);
+				}
+				else
+				{
+					FMemory::Memcpy(CopyRecord.Dest, CopyRecord.Source, CopyRecord.Size);
+				}
 			}
 			break;
 		case EPostCopyOperation::LogicalNegateBool:
 			{
-				*(bool*)CopyRecord.Dest = !(*(bool*)CopyRecord.Source);
+				UBoolProperty* DestBoolProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
+				check(CopyRecord.SourceProperty_DEPRECATED != nullptr && DestBoolProperty != nullptr);
+
+				bool bValue = Cast<UBoolProperty>(CopyRecord.SourceProperty_DEPRECATED)->GetPropertyValue_InContainer(CopyRecord.Source);
+				Cast<UBoolProperty>(DestBoolProperty)->SetPropertyValue_InContainer(CopyRecord.Dest, !bValue, CopyRecord.DestArrayIndex);
 			}
 			break;
 		}

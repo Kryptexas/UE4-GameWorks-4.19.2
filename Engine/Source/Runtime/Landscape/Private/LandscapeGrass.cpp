@@ -21,6 +21,7 @@
 #include "ContentStreaming.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeRender.h"
+#include "LandscapeVersion.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -483,10 +484,13 @@ public:
 							FColor& Sample = SampleData[x + y * TargetSize.X];
 							uint16 Height = (((uint16)Sample.R) << 8) + (uint16)(Sample.G);
 							NewGrassData->HeightData.Add(Height);
-							GrassWeightArrays[0]->Add(Sample.B);
-							if (GrassTypes.Num() > 1)
+							if (GrassTypes.Num() > 0)
 							{
-								GrassWeightArrays[1]->Add(Sample.A);
+								GrassWeightArrays[0]->Add(Sample.B);
+								if (GrassTypes.Num() > 1)
+								{
+									GrassWeightArrays[1]->Add(Sample.A);
+								}
 							}
 						}
 					}
@@ -853,6 +857,13 @@ FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data)
 	if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA_MATERIAL_GUID)
 	{
 		Ar << Data.MaterialStateId;
+	}
+
+	Ar.UsingCustomVersion(FLandscapeCustomVersion::GUID);
+
+	if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::GrassMaterialWPO)
+	{
+		Ar << Data.RotationForWPO;
 	}
 
 	Data.HeightData.BulkSerialize(Ar);
@@ -1746,7 +1757,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 			{
 				int32 NumComponentsRendered = 0;
 				int32 NumComponentsUnableToRender = 0;
-				if (GrassTypes.Num() > 0 && CVarPrerenderGrassmaps.GetValueOnAnyThread() > 0)
+				if ((GrassTypes.Num() > 0 && CVarPrerenderGrassmaps.GetValueOnAnyThread() > 0) || bBakeMaterialPositionOffsetIntoCollision)
 				{
 					// try to render some grassmaps
 					TArray<ULandscapeComponent*> ComponentsToRender;

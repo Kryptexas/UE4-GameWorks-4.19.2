@@ -1881,24 +1881,25 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 		bConcurrentRemoval = true;
 	}
 
-	const int32 OldReorderIndex = InstanceReorderTable[InstanceIndex];
+	int32 RenderIndex = InstanceReorderTable[InstanceIndex];
 	const FMatrix OldTransform = PerInstanceSMData[InstanceIndex].Transform;
 	const FTransform NewLocalTransform = bWorldSpace ? NewInstanceTransform.GetRelativeTransform(ComponentToWorld) : NewInstanceTransform;
 	const FVector NewLocalLocation = NewLocalTransform.GetTranslation();
 
 	// if we are only updating rotation/scale we update the instance directly in the cluster tree
-	const bool bIsBuiltInstance = OldReorderIndex < NumBuiltInstances;
+	const bool bIsBuiltInstance = RenderIndex < NumBuiltInstances;
 	const bool bDoInPlaceUpdate = !bIsBuiltInstance || NewLocalLocation.Equals(OldTransform.GetOrigin());
 
-	// If we're updating an instance in the tree and can't do it in-place, we have to remove it and re-add it
-	if (bIsBuiltInstance && !bDoInPlaceUpdate)
+	// If we're updating an instance in the tree and can't do it in-place because the transform has changed, we have to remove it and re-add it
+	if (!bDoInPlaceUpdate)
 	{
-		// Allocate a new instance render order ID, rendered last
-		const int32 NewReorderIndex = PerInstanceSMData.Num() + RemovedInstances.Num();
-		InstanceReorderTable[InstanceIndex] = NewReorderIndex;
+		// Allocate a new instance render order ID, rendered last (it is now an unbuilt instance)
+		const int32 OldRenderIndex = RenderIndex;
+		RenderIndex = PerInstanceSMData.Num() + RemovedInstances.Num();
+		InstanceReorderTable[InstanceIndex] = RenderIndex;
 
 		// Treat the old instance render data like a removal.
-		RemovedInstances.Add(OldReorderIndex);
+		RemovedInstances.Add(OldRenderIndex);
 	}
 
 	bool Result = Super::UpdateInstanceTransform(InstanceIndex, NewInstanceTransform, bWorldSpace, bMarkRenderStateDirty);
@@ -1916,13 +1917,13 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 				if (!OldInstanceBounds.IsInside(NewInstanceBounds))
 				{
 					BuiltInstanceBounds += NewInstanceBounds;
-					UpdateInstanceTreeBoundsInternal(OldReorderIndex, NewInstanceBounds);
+					UpdateInstanceTreeBoundsInternal(RenderIndex, NewInstanceBounds);
 				}
 			}
 			else
 			{
 				UnbuiltInstanceBounds += NewInstanceBounds;
-				UnbuiltInstanceBoundsList[InstanceIndex - NumBuiltInstances] = NewInstanceBounds;
+				UnbuiltInstanceBoundsList[RenderIndex - NumBuiltInstances] = NewInstanceBounds;
 			}
 		}
 		else
@@ -2055,6 +2056,9 @@ void UHierarchicalInstancedStaticMeshComponent::PostBuildStats()
 
 void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 {
+	// If we try to build the tree with the static mesh not fully loaded, we can end up in an inconsistent state which ends in a crash later
+	checkSlow(!StaticMesh || !StaticMesh->HasAnyFlags(RF_NeedPostLoad));
+
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UHierarchicalInstancedStaticMeshComponent_BuildTree);
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
@@ -2101,7 +2105,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 		Exchange(SortedInstances, Builder->Result->SortedInstances);
 
 		FlushAccumulatedNavigationUpdates();
-				
+
 		PostBuildStats();
 	}
 }
@@ -2330,6 +2334,9 @@ void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThread
 
 void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 {
+	// If we try to build the tree with the static mesh not fully loaded, we can end up in an inconsistent state which ends in a crash later
+	checkSlow(!StaticMesh || !StaticMesh->HasAnyFlags(RF_NeedPostLoad));
+
 	check(!bIsAsyncBuilding);
 
 	// Verify that the mesh is valid before using it.

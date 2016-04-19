@@ -738,7 +738,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 					if (GrassHeights)
 					{
 						uint16& CollisionHeight = CollisionHeightData[CompVertX + CompVertY * CollisionSizeVerts];
-						const uint16& NewHeight = GrassHeights[CompVertX + CompVertY * MipSizeU];
+						const uint16& NewHeight = GrassHeights[CompVertX + CompVertY * CollisionSizeVerts];
 						CollisionHeight = NewHeight;
 					}
 					else

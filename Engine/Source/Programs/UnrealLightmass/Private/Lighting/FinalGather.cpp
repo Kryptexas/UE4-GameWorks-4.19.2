@@ -503,6 +503,7 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 	float SampleRadius,
 	int32 BounceNumber,
 	bool bSkyLightingOnly,
+	bool bGatheringForCachedDirectLighting,
 	bool bDebugThisTexel,
 	FStaticLightingMappingContext& MappingContext,
 	FLMRandomStream& RandomStream,
@@ -636,7 +637,9 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 		}
 	}
 
-	EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, true, Lighting, OutStationarySkyLighting);
+	// When we're gathering lighting to cache it as direct lighting, we should take IndirectLightingScales into account
+	const bool bForDirectLighting = !bGatheringForCachedDirectLighting;
+	EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, bForDirectLighting, Lighting, OutStationarySkyLighting);
 
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 	if (bDebugThisTexel
@@ -759,6 +762,7 @@ public:
 		float SampleRadius,
 		int32 BounceNumber,
 		bool bSkyLightingOnly,
+		bool bGatheringForCachedDirectLighting,
 		int32 NumAdaptiveRefinementLevels,
 		const TArray<FVector4, TInlineAllocator<30> >& TangentImportancePhotonDirections,
 		const TArray<FSphere>& PortalBoundingSpheres,
@@ -1098,6 +1102,7 @@ public:
 								SampleRadius,
 								BounceNumber,
 								bSkyLightingOnly,
+								bGatheringForCachedDirectLighting,
 								bDebugThisTexel,
 								MappingContext,
 								RandomStream,
@@ -1184,6 +1189,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 	FLMRandomStream& RandomStream,
 	FLightingCacheGatherInfo& GatherInfo,
 	bool bSkyLightingOnly,
+	bool bGatheringForCachedDirectLighting,
 	bool bDebugThisTexel) const
 {
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
@@ -1221,6 +1227,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 				SampleRadius,
 				BounceNumber,
 				bSkyLightingOnly,
+				bGatheringForCachedDirectLighting,
 				bDebugThisTexel,
 				MappingContext,
 				RandomStream,
@@ -1260,6 +1267,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 			SampleRadius,
 			BounceNumber,
 			bSkyLightingOnly,
+			bGatheringForCachedDirectLighting,
 			NumAdaptiveRefinementLevels,
 			TangentSpaceImportancePhotonDirections,
 			Scene.Portals,
@@ -1839,6 +1847,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					MappingContext, 
 					RandomStream, 
 					GatherInfo, 
+					false,
 					false,
 					bDebugThisTexel);
 			}

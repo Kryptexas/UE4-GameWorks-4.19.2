@@ -50,6 +50,7 @@ class FSteamVRPlugin : public ISteamVRPlugin, public FHeadMountedDisplayModuleEx
 public:
 	FSteamVRPlugin::FSteamVRPlugin()
 		: VRSystem(nullptr)
+        , OpenVRDLLHandle(nullptr)
 	{
 	}
 
@@ -57,17 +58,107 @@ public:
 	{
 		IHeadMountedDisplayModule::StartupModule();
 		FHeadMountedDisplayModuleExt::RegisterModule((IHeadMountedDisplayModule*)this, (FHeadMountedDisplayModuleExt*)this);
+        
+        LoadOpenVRModule();
 	}
+    
+    virtual void ShutdownModule() override
+    {
+        IHeadMountedDisplayModule::ShutdownModule();
+        
+        UnloadOpenVRModule();
+    }
 
 	virtual vr::IVRSystem* GetVRSystem() const override
 	{
 		return VRSystem;
 	}
-
-	virtual void SetVRSystem(vr::IVRSystem* InVRSystem) override
-	{
-		VRSystem = InVRSystem;
-	}
+    
+    bool LoadOpenVRModule()
+    {
+#if PLATFORM_WINDOWS
+#if PLATFORM_64BITS
+        FString RootOpenVRPath;
+        TCHAR VROverridePath[MAX_PATH];
+        FPlatformMisc::GetEnvironmentVariable(TEXT("VR_OVERRIDE"), VROverridePath, MAX_PATH);
+        
+        if (FCString::Strlen(VROverridePath) > 0)
+        {
+            RootOpenVRPath = FString::Printf(TEXT("%s\\bin\\win64\\"), VROverridePath);
+        }
+        else
+        {
+            RootOpenVRPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/OpenVR/%s/Win64/"), OPENVR_SDK_VER);
+        }
+        
+        FPlatformProcess::PushDllDirectory(*RootOpenVRPath);
+        OpenVRDLLHandle = FPlatformProcess::GetDllHandle(*(RootOpenVRPath + "openvr_api.dll"));
+        FPlatformProcess::PopDllDirectory(*RootOpenVRPath);
+#else
+        FString RootOpenVRPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/OpenVR/%s/Win32/"), OPENVR_SDK_VER);
+        FPlatformProcess::PushDllDirectory(*RootOpenVRPath);
+        OpenVRDLLHandle = FPlatformProcess::GetDllHandle(*(RootOpenVRPath + "openvr_api.dll"));
+        FPlatformProcess::PopDllDirectory(*RootOpenVRPath);
+#endif
+#elif PLATFORM_MAC
+        OpenVRDLLHandle = FPlatformProcess::GetDllHandle(TEXT("libopenvr_api.dylib"));
+#endif	//PLATFORM_WINDOWS
+        
+        if (!OpenVRDLLHandle)
+        {
+            UE_LOG(LogHMD, Log, TEXT("Failed to load OpenVR library."));
+            return false;
+        }
+        
+        //@todo steamvr: Remove GetProcAddress() workaround once we update to Steamworks 1.33 or higher
+        FSteamVRHMD::VRInitFn = (pVRInit)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Init"));
+        FSteamVRHMD::VRShutdownFn = (pVRShutdown)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Shutdown"));
+        FSteamVRHMD::VRIsHmdPresentFn = (pVRIsHmdPresent)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_IsHmdPresent"));
+        FSteamVRHMD::VRGetStringForHmdErrorFn = (pVRGetStringForHmdError)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetStringForHmdError"));
+        FSteamVRHMD::VRGetGenericInterfaceFn = (pVRGetGenericInterface)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetGenericInterface"));
+        FSteamVRHMD::VRExtendedDisplayFn = (pVRExtendedDisplay)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VRExtendedDisplay"));
+        
+        // Verify that we've bound correctly to the DLL functions
+        if (!FSteamVRHMD::VRInitFn || !FSteamVRHMD::VRShutdownFn || !FSteamVRHMD::VRIsHmdPresentFn || !FSteamVRHMD::VRGetStringForHmdErrorFn || !FSteamVRHMD::VRGetGenericInterfaceFn || !FSteamVRHMD::VRExtendedDisplayFn)
+        {
+            UE_LOG(LogHMD, Warning, TEXT("Failed to GetProcAddress() on openvr_api.dll"));
+            UnloadOpenVRModule();
+            
+            return false;
+        }
+        
+        // Attempt to initialize the VRSystem device
+        vr::EVRInitError VRInitErr = vr::VRInitError_None;
+		VRSystem = (*FSteamVRHMD::VRInitFn)(&VRInitErr, vr::VRApplication_Scene);
+        if (!VRSystem || (VRInitErr != vr::VRInitError_None))
+        {
+            UE_LOG(LogHMD, Log, TEXT("Failed to initialize OpenVR with code %d"), (int32)VRInitErr);
+			UnloadOpenVRModule();
+            
+            return false;
+        }
+        
+        // Make sure that the version of the HMD we're compiled against is correct.  This will fill out the proper vtable!
+		VRSystem = (vr::IVRSystem*)(*FSteamVRHMD::VRGetGenericInterfaceFn)(vr::IVRSystem_Version, &VRInitErr);
+        if (!VRSystem || (VRInitErr != vr::VRInitError_None))
+        {
+            UE_LOG(LogHMD, Log, TEXT("Failed to initialize OpenVR (version mismatch) with code %d"), (int32)VRInitErr);
+			UnloadOpenVRModule();
+            
+            return false;
+        }
+        
+        return true;
+    }
+    
+    void UnloadOpenVRModule()
+    {
+        if (OpenVRDLLHandle != nullptr)
+        {
+            FPlatformProcess::FreeDllHandle(OpenVRDLLHandle);
+            OpenVRDLLHandle = nullptr;
+        }
+    }
 
 	virtual void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[MAX_STEAMVR_CONTROLLER_PAIRS][2]) override
 	{
@@ -84,17 +175,6 @@ public:
 
 	virtual bool IsHMDConnected() override
 	{
-		TSharedPtr<FSteamVRHMD, ESPMode::ThreadSafe > Device;
-
-		// Pre-init...need to bootstrap loading things to see if it's connected
-		if (!VRSystem)
-		{
-			// Create a temporary device just for initialization purposes
-			Device = MakeShareable(new FSteamVRHMD(this));
-			
-		}
-
-		// Normal, just check if we're connected
 		if (VRSystem)
 		{
 			return VRSystem->IsTrackedDeviceConnected(vr::k_unTrackedDeviceIndex_Hmd);
@@ -105,6 +185,8 @@ public:
 
 private:
 	vr::IVRSystem* VRSystem;
+    
+    void* OpenVRDLLHandle;
 };
 
 IMPLEMENT_MODULE( FSteamVRPlugin, SteamVR )
@@ -127,6 +209,13 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FSteamVRPlugin::Cre
 //---------------------------------------------------
 
 #if STEAMVR_SUPPORTED_PLATFORMS
+
+pVRInit FSteamVRHMD::VRInitFn = nullptr;
+pVRShutdown FSteamVRHMD::VRShutdownFn = nullptr;
+pVRIsHmdPresent FSteamVRHMD::VRIsHmdPresentFn = nullptr;
+pVRGetStringForHmdError FSteamVRHMD::VRGetStringForHmdErrorFn = nullptr;
+pVRGetGenericInterface FSteamVRHMD::VRGetGenericInterfaceFn = nullptr;
+pVRExtendedDisplay FSteamVRHMD::VRExtendedDisplayFn = nullptr;
 
 bool FSteamVRHMD::IsHMDEnabled() const
 {
@@ -998,7 +1087,6 @@ FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin) :
 	WorldToMetersScale(100.0f),
 	SteamVRPlugin(SteamVRPlugin),
 	RendererModule(nullptr),
-	OpenVRDLLHandle(nullptr),
 	IdealScreenPercentage(100.0f)
 {
 	Startup();
@@ -1016,8 +1104,8 @@ bool FSteamVRHMD::IsInitialized() const
 
 void FSteamVRHMD::Startup()
 {
-	// load the OpenVR library
-	if (!LoadOpenVRModule())
+	// Verify we've loaded and initialized the OpenVR lib successfully
+	if (!SteamVRPlugin->GetVRSystem())
 	{
 		return;
 	}
@@ -1028,14 +1116,7 @@ void FSteamVRHMD::Startup()
 
 	vr::EVRInitError VRInitErr = vr::VRInitError_None;
 	//VRSystem = vr::VR_Init(&HmdErr, vr::VRApplication_Scene);
-	VRSystem = (*VRInitFn)(&VRInitErr, vr::VRApplication_Scene);
-
-	// make sure that the version of the HMD we're compiled against is correct
-	if ((VRSystem != nullptr) && (VRInitErr == vr::VRInitError_None))
-	{
-		//VRSystem = (vr::IVRSystem*)vr::VR_GetGenericInterface(vr::IVRSystem_Version, &HmdErr);	//@todo steamvr: verify init error handling
-		VRSystem = (vr::IVRSystem*)(*VRGetGenericInterfaceFn)(vr::IVRSystem_Version, &VRInitErr);
-	}
+	VRSystem = SteamVRPlugin->GetVRSystem();
 
 	// attach to the compositor
 	if ((VRSystem != nullptr) && (VRInitErr == vr::VRInitError_None))
@@ -1134,9 +1215,6 @@ void FSteamVRHMD::Startup()
 
 		VRSystem = nullptr;
 	}
-
-	// share the IVRSystem interface out to the SteamVRController via the module layer
-	SteamVRPlugin->SetVRSystem(VRSystem);
 }
 
 void FSteamVRHMD::LoadFromIni()
@@ -1175,75 +1253,8 @@ void FSteamVRHMD::Shutdown()
 
 		// shut down our headset
 		VRSystem = nullptr;
-		SteamVRPlugin->SetVRSystem(nullptr);
 		//vr::VR_Shutdown();
 		(*VRShutdownFn)();
-	}
-
-	// unload OpenVR library
-	UnloadOpenVRModule();
-}
-
-bool FSteamVRHMD::LoadOpenVRModule()
-{
-#if PLATFORM_WINDOWS
-	#if PLATFORM_64BITS
-		FString RootOpenVRPath;
-		TCHAR VROverridePath[MAX_PATH];
-		FPlatformMisc::GetEnvironmentVariable(TEXT("VR_OVERRIDE"), VROverridePath, MAX_PATH);
-	
-		if (FCString::Strlen(VROverridePath) > 0)
-		{
-			RootOpenVRPath = FString::Printf(TEXT("%s\\bin\\win64\\"), VROverridePath);
-		}
-		else
-		{
-			RootOpenVRPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/OpenVR/%s/Win64/"), OPENVR_SDK_VER);
-		}
-		
-		FPlatformProcess::PushDllDirectory(*RootOpenVRPath);
-		OpenVRDLLHandle = FPlatformProcess::GetDllHandle(*(RootOpenVRPath + "openvr_api.dll"));
-		FPlatformProcess::PopDllDirectory(*RootOpenVRPath);
-#else
-		FString RootOpenVRPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/OpenVR/%s/Win32/"), OPENVR_SDK_VER); 
-		FPlatformProcess::PushDllDirectory(*RootOpenVRPath);
-		OpenVRDLLHandle = FPlatformProcess::GetDllHandle(*(RootOpenVRPath + "openvr_api.dll"));
-		FPlatformProcess::PopDllDirectory(*RootOpenVRPath);
-	#endif
-#elif PLATFORM_MAC
-	OpenVRDLLHandle = FPlatformProcess::GetDllHandle(TEXT("libopenvr_api.dylib"));
-#endif	//PLATFORM_WINDOWS
-
-	if (!OpenVRDLLHandle)
-	{
-		UE_LOG(LogHMD, Warning, TEXT("Failed to load OpenVR library."));
-		return false;
-	}
-
-	//@todo steamvr: Remove GetProcAddress() workaround once we update to Steamworks 1.33 or higher
-	VRInitFn = (pVRInit)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Init"));
-	VRShutdownFn = (pVRShutdown)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Shutdown"));
-	VRIsHmdPresentFn = (pVRIsHmdPresent)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_IsHmdPresent"));
-	VRGetStringForHmdErrorFn = (pVRGetStringForHmdError)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetStringForHmdError"));
-	VRGetGenericInterfaceFn = (pVRGetGenericInterface)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetGenericInterface"));
-	VRExtendedDisplayFn = (pVRExtendedDisplay)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VRExtendedDisplay"));
-
-	if (!VRInitFn || !VRShutdownFn || !VRIsHmdPresentFn || !VRGetStringForHmdErrorFn || !VRGetGenericInterfaceFn || !VRExtendedDisplayFn)
-	{
-		UE_LOG(LogHMD, Warning, TEXT("Failed to GetProcAddress() on openvr_api.dll"));
-		UnloadOpenVRModule();
-		return false;
-	}
-
-	return true;
-}
-
-void FSteamVRHMD::UnloadOpenVRModule()
-{
-	if (OpenVRDLLHandle != nullptr)
-	{
-		FPlatformProcess::FreeDllHandle(OpenVRDLLHandle);
-		OpenVRDLLHandle = nullptr;
 	}
 }
 

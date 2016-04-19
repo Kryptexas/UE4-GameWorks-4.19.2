@@ -1021,7 +1021,7 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 			// Between net updates from the client we need to update position if based on another object,
 			// otherwise the object will move on intermediate frames and we won't follow it.
 			MaybeUpdateBasedMovement(DeltaTime);
-			SaveBaseLocation();
+			MaybeSaveBaseLocation();
 		}
 	}
 	else if (CharacterOwner->Role == ROLE_SimulatedProxy)
@@ -1271,7 +1271,7 @@ void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const F
 
 		// Apply Root Motion rotation after movement is complete.
 		const FQuat RootMotionRotationQuat = WorldSpaceRootMotionTransform.GetRotation();
-		if( !RootMotionRotationQuat.IsIdentity() )
+		if( !RootMotionRotationQuat.Equals(FQuat::Identity, SMALL_NUMBER))
 		{
 			const FQuat NewActorRotationQuat = RootMotionRotationQuat * UpdatedComponent->GetComponentQuat();
 			MoveUpdatedComponent(FVector::ZeroVector, NewActorRotationQuat, true);
@@ -1434,7 +1434,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 	// Call custom post-movement events. These happen after the scoped movement completes in case the events want to use the current state of overlaps etc.
 	CallMovementUpdateDelegate(DeltaSeconds, OldLocation, OldVelocity);
 
-	SaveBaseLocation();
+	MaybeSaveBaseLocation();
 	UpdateComponentVelocity();
 	bJustTeleported = false;
 
@@ -1483,22 +1483,35 @@ void UCharacterMovementComponent::MaybeUpdateBasedMovement(float DeltaSeconds)
 		
 		if (!bBaseIsSimulatingPhysics || !bAllowDefer)
 		{
+			bDeferUpdateBasedMovement = false;
 			UpdateBasedMovement(DeltaSeconds);
-			PostPhysicsTickFunction.SetTickFunctionEnable(false);
+			// If previously simulated, go back to using normal tick dependencies.
+			if (PostPhysicsTickFunction.IsTickFunctionEnabled())
+			{
+				PostPhysicsTickFunction.SetTickFunctionEnable(false);
+				MovementBaseUtility::AddTickDependency(PrimaryComponentTick, MovementBase);
+			}
 		}
 		else
 		{
 			// defer movement base update until after physics
 			bDeferUpdateBasedMovement = true;
-			PostPhysicsTickFunction.SetTickFunctionEnable(true);
+			// If previously not simulating, remove tick dependencies and use post physics tick function.
+			if (!PostPhysicsTickFunction.IsTickFunctionEnabled())
+			{
+				PostPhysicsTickFunction.SetTickFunctionEnable(true);
+				MovementBaseUtility::RemoveTickDependency(PrimaryComponentTick, MovementBase);
+			}
 		}
 	}
 }
 
-// todo: deprecated, remove.
 void UCharacterMovementComponent::MaybeSaveBaseLocation()
 {
-	SaveBaseLocation();
+	if (!bDeferUpdateBasedMovement)
+	{
+		SaveBaseLocation();
+	}
 }
 
 // @todo UE4 - handle lift moving up and down through encroachment
@@ -1828,7 +1841,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		{
 			const FQuat OldActorRotationQuat = UpdatedComponent->GetComponentQuat();
 			const FQuat RootMotionRotationQuat = RootMotionParams.RootMotionTransform.GetRotation();
-			if( !RootMotionRotationQuat.IsIdentity() )
+			if( !RootMotionRotationQuat.Equals(FQuat::Identity, SMALL_NUMBER) )
 			{
 				const FQuat NewActorRotationQuat = RootMotionRotationQuat * OldActorRotationQuat;
 				MoveUpdatedComponent(FVector::ZeroVector, NewActorRotationQuat, true);
@@ -1870,7 +1883,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 	// Call external post-movement events. These happen after the scoped movement completes in case the events want to use the current state of overlaps etc.
 	CallMovementUpdateDelegate(DeltaSeconds, OldLocation, OldVelocity);
 
-	SaveBaseLocation();
+	MaybeSaveBaseLocation();
 	UpdateComponentVelocity();
 
 	LastUpdateLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
@@ -4619,7 +4632,7 @@ void UCharacterMovementComponent::OnTeleported()
 
 	// Find floor at current location
 	UpdateFloorFromAdjustment();
-	SaveBaseLocation();
+	MaybeSaveBaseLocation();
 
 	// Validate it. We don't want to pop down to walking mode from very high off the ground, but we'd like to keep walking if possible.
 	UPrimitiveComponent* OldBase = CharacterOwner->GetMovementBase();
@@ -7924,6 +7937,7 @@ void UCharacterMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 		if (SetupActorComponentTickFunction(&PostPhysicsTickFunction))
 		{
 			PostPhysicsTickFunction.Target = this;
+			PostPhysicsTickFunction.AddPrerequisite(this, this->PrimaryComponentTick);
 		}
 	}
 	else

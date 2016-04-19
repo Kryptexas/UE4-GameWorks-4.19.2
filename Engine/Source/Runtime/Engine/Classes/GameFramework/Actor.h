@@ -244,7 +244,7 @@ public:
 	 * @param bInReplicates Whether this Actor replicates to network clients.
 	 * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Replication/
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Replication")
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Replication")
 	void SetReplicates(bool bInReplicates);
 
 	/**

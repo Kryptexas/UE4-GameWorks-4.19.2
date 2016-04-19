@@ -209,6 +209,10 @@ void USkeletalMeshComponent::RegisterPostPhysicsTick(bool bRegister)
 				{
 					PostPhysicsTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
 				}
+
+				// 4.11.2 Hack (UE-24725): set up this tick prereq in case this other function is used.
+				// It's usually not, but our tick function is private and if someone else needs to set up a prereq they can use the public one in the base class.
+				PostPhysicsComponentTick.AddPrerequisite(this, PostPhysicsTickFunction);
 			}
 		}
 		else
@@ -314,6 +318,10 @@ void USkeletalMeshComponent::OnRegister()
 
 void USkeletalMeshComponent::OnUnregister()
 {
+	const bool bBlockOnTask = true; // wait on evaluation task so we complete any work before this component goes away
+	const bool bPerformPostAnimEvaluation = false; // Skip post evaluation, it would be wasted work
+	HandleExistingParallelEvaluationTask(bBlockOnTask, bPerformPostAnimEvaluation);
+
 #if WITH_APEX_CLOTHING
 	//clothing actors will be re-created in TickClothing
 	ReleaseAllClothingResources();
@@ -1014,9 +1022,18 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 	if (USkeletalMeshComponent* MasterSMC = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get()))
 	{
 		// propagate BP-driven curves from the master SMC...
-		if (MasterSMC->SkeletalMesh && MasterSMC->MorphTargetCurves.Num() > 0)
+		if (SkeletalMesh)
 		{
-			FAnimationRuntime::AppendActiveVertexAnims(MasterSMC->SkeletalMesh, MasterSMC->MorphTargetCurves, ActiveVertexAnims);
+			if (MasterSMC->MorphTargetCurves.Num() > 0)
+			{
+				FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MasterSMC->MorphTargetCurves, ActiveVertexAnims);
+			}
+
+			// if slave also has it, add it here. 
+			if (MorphTargetCurves.Num() > 0)
+			{
+				FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MorphTargetCurves, ActiveVertexAnims);
+			}
 		}
 
 		// ...then append any animation-driven curves from the master SMC
@@ -2189,9 +2206,17 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 						const TArray<FTransform>& RefPose = SkeletalMesh->RefSkeleton.GetRefBonePose();
 
 						const TArray<FTransform>& SpaceBases = GetSpaceBases();
-						FTransform RelativeTransform = SpaceBases[BoneIndex].GetRelativeTransformReverse(SpaceBases[ParentIndex]);
-						// now get offset 
-						RootBodyData.TransformToRoot = RelativeTransform;
+
+						if (SpaceBases.IsValidIndex(BoneIndex))
+						{
+							FTransform RelativeTransform = SpaceBases[BoneIndex].GetRelativeTransformReverse(SpaceBases[ParentIndex]);
+							// now get offset 
+							RootBodyData.TransformToRoot = RelativeTransform;
+						}
+						else
+						{
+							RootBodyData.TransformToRoot = FTransform::Identity;
+						}
 					}
 				}
 			}

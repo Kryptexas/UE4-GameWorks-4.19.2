@@ -8,6 +8,15 @@
 #include "MetalProfiler.h" // for STAT_MetalTexturePageOffTime
 
 uint8 FMetalSurface::NextKey = 1; // 0 is reserved for MTLPixelFormatInvalid
+static int32 ActiveUploads = 0;
+
+int32 GMetalMaxOutstandingAsyncTexUploads = 0;
+FAutoConsoleVariableRef CVarMetalMaxOutstandingAsyncTexUploads(
+	TEXT("rhi.Metal.MaxOutstandingAsyncTexUploads"),
+	GMetalMaxOutstandingAsyncTexUploads,
+	TEXT("The maximum number of outstanding asynchronous texture uploads allowed to be pending in Metal. After the limit is reached the next upload will wait for all outstanding operations to complete and purge the waiting free-lists in order to reduce peak memory consumption. Defaults to 0 (infinite), set to a value > 0 limit the number."),
+	ECVF_ReadOnly|ECVF_RenderThreadSafe
+	);
 
 /** Texture reference class. */
 class FMetalTextureReference : public FRHITextureReference
@@ -758,6 +767,9 @@ FMetalSurface::~FMetalSurface()
 
 void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode LockMode, uint32& DestStride)
 {
+	// Whether the device supports resource options, so we don't access invalid properties on older versions of iOS
+	bool const bSupportsResourceOptions = GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions);
+	
 	// get size and stride
 	const uint32 MipBytes = GetMipSize(MipIndex, &DestStride, false);
 	
@@ -765,7 +777,7 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 	if(!LockedMemory[MipIndex])
 	{
 #if METAL_API_1_1
-		NSUInteger ResMode = MTLResourceStorageModeShared | (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions) && !(PixelFormat == PF_G8 && (Flags & TexCreate_SRGB)) ? MTLResourceCPUCacheModeWriteCombined : 0);
+		NSUInteger ResMode = MTLResourceStorageModeShared | (bSupportsResourceOptions && !(PixelFormat == PF_G8 && (Flags & TexCreate_SRGB)) ? MTLResourceCPUCacheModeWriteCombined : 0);
 #else
 		NSUInteger ResMode = MTLStorageModeShared;
 #endif
@@ -793,12 +805,29 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 				Region = MTLRegionMake3D(0, 0, 0, FMath::Max<uint32>(SizeX >> MipIndex, 1), FMath::Max<uint32>(SizeY >> MipIndex, 1), FMath::Max<uint32>(SizeZ >> MipIndex, 1));
 			}
 
+#if METAL_API_1_1
 			id<MTLBlitCommandEncoder> Blitter = GetMetalDeviceContext().GetBlitContext();
-			[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:LockedMemory[MipIndex] destinationOffset:0 destinationBytesPerRow:DestStride destinationBytesPerImage:MipBytes];
 			
-			//kick the current command buffer.
-			GetMetalDeviceContext().SubmitCommandBufferAndWait();
+			if (Texture.storageMode == MTLStorageModePrivate)
+			{
+				[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:LockedMemory[MipIndex] destinationOffset:0 destinationBytesPerRow:DestStride destinationBytesPerImage:MipBytes];
+
+				//kick the current command buffer.
+				GetMetalDeviceContext().SubmitCommandBufferAndWait();
+			}
+			else
+#endif
+			{
+#if METAL_API_1_1 && PLATFORM_MAC
+				[Blitter synchronizeTexture:Texture slice:ArrayIndex level:MipIndex];
+
+				//kick the current command buffer.
+				GetMetalDeviceContext().SubmitCommandBufferAndWait();
+#endif
+				[Texture getBytes:LockedMemory[MipIndex] bytesPerRow:DestStride bytesPerImage:MipBytes fromRegion:Region mipmapLevel:MipIndex slice:ArrayIndex];
+			}
 			
+#if PLATFORM_MAC
 			// Pack RGBA8_sRGB into R8_sRGB for Mac.
 			if (PixelFormat == PF_G8 && (Flags & TexCreate_SRGB) && Type == RRT_Texture2D)
 			{
@@ -817,6 +846,7 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 					ExpandedMem = (ExpandedMem + DestStride);
 				}
 			}
+#endif
 			
             break;
         }
@@ -843,7 +873,10 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 {
     if(WriteLock & (1 << MipIndex))
-    {
+	{
+		// Whether the device supports resource options, so we don't access invalid properties on older versions of iOS
+		bool const bSupportsResourceOptions = GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions);
+		
         WriteLock &= ~(1 << MipIndex);
         uint32 Stride;
         uint32 BytesPerImage = GetMipSize(MipIndex, &Stride, true);
@@ -880,10 +913,16 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 				ExpandedMem = (ExpandedMem + Stride);
 			}
 		}
+#endif
 
+#if METAL_API_1_1
 		if(Texture.storageMode == MTLStorageModePrivate)
 		{
 			SCOPED_AUTORELEASE_POOL;
+			
+			int32 Count = FPlatformAtomics::InterlockedIncrement(&ActiveUploads);
+			
+			bool const bWait = ((GetMetalDeviceContext().GetNumActiveContexts() == 1) && (GMetalMaxOutstandingAsyncTexUploads > 0) && (Count >= GMetalMaxOutstandingAsyncTexUploads));
 			
 			// @todo: gather these all up over a frame
 			id<MTLCommandBuffer> CommandBuffer = GetMetalDeviceContext().CreateCommandBuffer(false/*bRetainReferences*/);
@@ -894,21 +933,32 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 			[Blitter copyFromBuffer:LockedMemory[MipIndex] sourceOffset:0 sourceBytesPerRow:Stride sourceBytesPerImage:BytesPerImage sourceSize:Region.size toTexture:Texture destinationSlice:ArrayIndex destinationLevel:MipIndex destinationOrigin:Region.origin];
 			
 			[Blitter endEncoding];
-			GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, false);
+			[CommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> CompletedBuffer)
+			{
+				FPlatformAtomics::InterlockedDecrement(&ActiveUploads);
+			}];
+			GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, bWait);
+			GetMetalDeviceContext().ReleaseObject(LockedMemory[MipIndex]);
+			
+			if (bWait)
+			{
+				GetMetalDeviceContext().ClearFreeList();
+			}
 		}
 		else
-#else
-		if (Texture.pixelFormat >= MTLPixelFormatPVRTC_RGB_2BPP && Texture.pixelFormat <= MTLPixelFormatETC2_RGB8A1_sRGB) // @todo zebra
-		{
-			Stride = 0;
-			BytesPerImage = 0;
-		}
 #endif
 		{
+#if !PLATFORM_MAC
+			if (Texture.pixelFormat >= MTLPixelFormatPVRTC_RGB_2BPP && Texture.pixelFormat <= MTLPixelFormatETC2_RGB8A1_sRGB) // @todo zebra
+			{
+				Stride = 0;
+				BytesPerImage = 0;
+			}
+#endif
+			
 			[Texture replaceRegion:Region mipmapLevel:MipIndex slice:ArrayIndex withBytes:[LockedMemory[MipIndex] contents] bytesPerRow:Stride bytesPerImage:BytesPerImage];
+			[LockedMemory[MipIndex] release];
 		}
-		
-		GetMetalDeviceContext().ReleaseObject(LockedMemory[MipIndex]);
 		LockedMemory[MipIndex] = nullptr;
     }
 }
