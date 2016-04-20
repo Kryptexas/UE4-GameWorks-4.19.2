@@ -27,7 +27,7 @@ UCLASS(config=EditorPerProjectUserSettings, DisplayName="Image Encoding")
 class MOVIESCENECAPTURE_API UImageCaptureSettings : public UFrameGrabberProtocolSettings
 {
 public:
-	UImageCaptureSettings(const FObjectInitializer& Init) : UFrameGrabberProtocolSettings(Init), CompressionQuality(75) {}
+	UImageCaptureSettings(const FObjectInitializer& Init) : UFrameGrabberProtocolSettings(Init), CompressionQuality(100) {}
 
 	GENERATED_BODY()
 
