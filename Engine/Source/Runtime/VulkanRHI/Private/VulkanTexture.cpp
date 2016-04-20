@@ -77,7 +77,7 @@ VkImage FVulkanSurface::CreateImage(
 	}
 
 	ImageCreateInfo.format = (VkFormat)GPixelFormats[InFormat].PlatformFormat;
-	if ((UEFlags & TexCreate_SRGB) == TexCreate_SRGB)
+	if ((UEFlags & TexCreate_SRGB) == TexCreate_SRGB && GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1)
 	{
 		switch (ImageCreateInfo.format)
 		{
