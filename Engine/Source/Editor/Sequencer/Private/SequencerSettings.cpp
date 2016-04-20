@@ -24,7 +24,6 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bFixedTimeStepPlayback = true;
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
-	bDetailsViewVisible = false;
 	bLabelBrowserVisible = false;
 	bAutoScrollEnabled = false;
 	bShowCurveEditor = false;
@@ -302,20 +301,6 @@ void USequencerSettings::SetSnapCurveValueToInterval( bool InbSnapCurveValueToIn
 	if ( bSnapCurveValueToInterval != InbSnapCurveValueToInterval )
 	{
 		bSnapCurveValueToInterval = InbSnapCurveValueToInterval;
-		SaveConfig();
-	}
-}
-
-bool USequencerSettings::GetDetailsViewVisible() const
-{
-	return bDetailsViewVisible;
-}
-
-void USequencerSettings::SetDetailsViewVisible(bool Visible)
-{
-	if (bDetailsViewVisible != Visible)
-	{
-		bDetailsViewVisible = Visible;
 		SaveConfig();
 	}
 }

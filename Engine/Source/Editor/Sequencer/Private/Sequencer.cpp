@@ -38,6 +38,7 @@
 #include "ISequencerSection.h"
 #include "MovieSceneSequenceInstance.h"
 #include "IKeyArea.h"
+#include "ISettingsModule.h"
 #include "IDetailsView.h"
 #include "SnappingUtils.h"
 #include "GenericCommands.h"
@@ -126,6 +127,15 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 	}
 
 	Settings = USequencerSettingsContainer::GetOrCreate<USequencerSettings>(*InitParams.ViewParams.UniqueName);
+
+	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+	{
+		FName SettingsSectionName = *Settings->GetName();
+		FText SettingsDisplayName = FText::FromString(FName::NameToDisplayString(*Settings->GetName(), false));
+		FText SettingsDescription = FText::FromString("Configure the look and feel of the " + FName::NameToDisplayString(*Settings->GetName(), false));
+
+		SettingsModule->RegisterSettings("Editor", "ContentEditors", SettingsSectionName, SettingsDisplayName, SettingsDescription, Settings);
+	}
 
 	ToolkitHost = InitParams.ToolkitHost;
 
@@ -295,6 +305,12 @@ void FSequencer::Close()
 		if (GLevelEditorModeTools().IsModeActive(FSequencerEdMode::EM_SequencerMode))
 		{
 			GLevelEditorModeTools().DeactivateMode(FSequencerEdMode::EM_SequencerMode);
+		}
+
+		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+		{
+			FName SettingsSectionName = *Settings->GetName();
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", SettingsSectionName);
 		}
 	}
 

@@ -154,12 +154,6 @@ public:
 	/** Sets whether or not to snap curve values to the interval. */
 	void SetSnapCurveValueToInterval(bool InbSnapCurveValueToInterval);
 
-	/** Gets whether or not the details view is visible. */
-	bool GetDetailsViewVisible() const;
-
-	/** Sets whether or not the details view is visible. */
-	void SetDetailsViewVisible(bool InbDetailsViewVisible);
-
 	/** Gets whether or not the label browser is visible. */
 	bool GetLabelBrowserVisible() const;
 
@@ -234,100 +228,97 @@ public:
 
 protected:
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Keyframing )
 	TEnumAsByte<EAutoKeyMode> AutoKeyMode;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Keyframing )
 	bool bKeyAllEnabled;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Keyframing )
 	bool bKeyInterpPropertiesOnly;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Keyframing )
 	TEnumAsByte<EMovieSceneKeyInterpolation> KeyInterpolation;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=General )
 	TEnumAsByte<ESequencerSpawnPosition> SpawnPosition;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bShowFrameNumbers;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bShowRangeSlider;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bIsSnapEnabled;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	float TimeSnapInterval;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapKeyTimesToInterval;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapKeyTimesToKeys;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapSectionTimesToInterval;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapSectionTimesToSections;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapPlayTimeToKeys;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapPlayTimeToInterval;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapPlayTimeToDraggedKey;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bFixedTimeStepPlayback;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	float CurveValueSnapInterval;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	bool bSnapCurveValueToInterval;
 
-	UPROPERTY( config )
-	bool bDetailsViewVisible;
-
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=General )
 	bool bLabelBrowserVisible;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bAutoScrollEnabled;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=CurveEditor )
 	bool bShowCurveEditor;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=CurveEditor )
 	bool bShowCurveEditorCurveToolTips;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=CurveEditor )
 	bool bLinkCurveEditorTimeRange;
 
 	UPROPERTY( config )
 	bool bLooping;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bKeepCursorInPlayRange;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bKeepPlayRangeInSectionBounds;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	uint8 ZeroPadFrames;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bShowCombinedKeyframes;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bInfiniteKeyAreas;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bShowChannelColors;
 
 	UPROPERTY( config )
