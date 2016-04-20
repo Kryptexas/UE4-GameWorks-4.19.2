@@ -258,7 +258,7 @@ protected:
 	/** Curve for animating from a "restored" state to a maximized state */
 	FCurveSequence MaximizeAnimation;
 
-	/** List of all of the viewports in this layout */
+	/** List of all of the viewports in this layout, keyed on their config key */
 	TMap< FName, TSharedPtr< IViewportLayoutEntity > > Viewports;
 	
 	/** The parent tab where this layout resides */
