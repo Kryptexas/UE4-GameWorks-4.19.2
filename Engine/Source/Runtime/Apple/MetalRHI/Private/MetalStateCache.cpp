@@ -305,11 +305,8 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 	
 				BoundTargets |= 1 << RenderTargetIndex;
 				
-	            if (Surface.Texture == nil)
-	            {
-	                PipelineDesc.SampleCount = OldCount;
-	                return;
-	            }
+				// The surface cannot be nil - we have to have a valid render-target array after this call.
+				check (Surface.Texture != nil);
 	
 				// user code generally passes -1 as a default, but we need 0
 				uint32 ArraySliceIndex = RenderTargetView.ArraySliceIndex == 0xFFFFFFFF ? 0 : RenderTargetView.ArraySliceIndex;
@@ -761,6 +758,7 @@ void FMetalStateCache::ConditionalUpdateBackBuffer(FMetalSurface& Surface)
 			// set the texture into the backbuffer
 			Surface.GetDrawableTexture();
 		}
+		check (Surface.Texture);
 	}
 }
 

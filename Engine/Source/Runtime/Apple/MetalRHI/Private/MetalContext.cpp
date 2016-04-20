@@ -387,10 +387,23 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	// enqueue a present if desired
 	if (bPresent)
 	{
-		id<MTLDrawable> Drawable = Viewport->GetDrawable();
-		[CurrentCommandBuffer addScheduledHandler:^(id<MTLCommandBuffer>) {
-			[Drawable present];
-		 }];
+		id<CAMetalDrawable> Drawable = (id<CAMetalDrawable>)Viewport->GetDrawable();
+		if (Drawable.texture)
+		{
+#if PLATFORM_MAC
+			id<MTLBlitCommandEncoder> Blitter = GetBlitContext();
+			
+			id<MTLTexture> Src = Viewport->GetBackBuffer()->Surface.Texture;
+			id<MTLTexture> Dst = Drawable.texture;
+			
+			[Blitter copyFromTexture:Src sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(Src.width, Src.height, 1) toTexture:Dst destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+			
+			CommandEncoder.EndEncoding();
+#endif
+			[CurrentCommandBuffer addScheduledHandler:^(id<MTLCommandBuffer>) {
+				[Drawable present];
+			}];
+		}
 	}
 	
 	// We may be limiting our framerate to the display link

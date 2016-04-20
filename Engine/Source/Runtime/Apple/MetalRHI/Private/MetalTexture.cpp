@@ -1080,7 +1080,7 @@ id<MTLTexture> FMetalSurface::GetDrawableTexture()
 	if (!Texture && (Flags & TexCreate_Presentable))
 	{
 		check(Viewport);
-		Texture = [Viewport->GetDrawableTexture() retain];
+		Texture = Viewport->GetDrawableTexture();
 	}
 	return Texture;
 }
