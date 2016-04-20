@@ -36,9 +36,17 @@ struct FLevelSequenceTrackSettings
 	UPROPERTY(config, noclear, EditAnywhere, Category=TrackSettings, meta=(MetaClass="MovieSceneTrack"))
 	TArray<FStringClassReference> DefaultTracks;
 
+	/** List of movie scene track classes not to be added automatically. */
+	UPROPERTY(config, noclear, EditAnywhere, Category=TrackSettings, meta=(MetaClass="MovieSceneTrack"))
+	TArray<FStringClassReference> ExcludeDefaultTracks;
+
 	/** List of property names for which movie scene tracks will be created automatically. */
 	UPROPERTY(config, EditAnywhere, Category=TrackSettings)
 	TArray<FLevelSequencePropertyTrackSettings> DefaultPropertyTracks;
+
+	/** List of property names for which movie scene tracks will not be created automatically. */
+	UPROPERTY(config, EditAnywhere, Category=TrackSettings)
+	TArray<FLevelSequencePropertyTrackSettings> ExcludeDefaultPropertyTracks;
 };
 
 
