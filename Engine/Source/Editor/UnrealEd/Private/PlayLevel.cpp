@@ -2474,6 +2474,9 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 
 	// Restore window settings
 	GetMultipleInstancePositions(0, NextX, NextY);	// restore cached settings
+
+	// Give focus to the first client
+	GiveFocusToFirstClientPIEViewport();
 }
 
 bool UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct)
@@ -2565,6 +2568,9 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
 	const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 	const bool WillAutoConnectToServer = [&PlayInSettings]{ bool AutoConnectToServer(false); return (PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer); }();
+	const int32 PlayNumberOfClients = [&PlayInSettings] { int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
+
+	PIEInstancesToLogInCount = PlayNumberOfClients;
 
 	// Server
 	if (WillAutoConnectToServer || CanPlayNetDedicated)
@@ -2620,7 +2626,6 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 	}
 
 	// Clients
-	const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
 	for (; ClientNum < PlayNumberOfClients; ++ClientNum)
 	{
 		PlayInSettings->SetPlayNetMode(PlayNetMode);
@@ -2710,6 +2715,41 @@ void UEditorEngine::OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuc
 				FMessageLog(NAME_CategoryPIE).Warning(LOCTEXT("LoggedInClientFailure", "Client failed to login"));
 			}
 		}
+	}
+
+	PIEInstancesToLogInCount--;
+	if (PIEInstancesToLogInCount == 0)
+	{
+		OnLoginPIEAllComplete();
+	}
+}
+
+void UEditorEngine::OnLoginPIEAllComplete()
+{
+	GiveFocusToFirstClientPIEViewport();
+}
+
+void UEditorEngine::GiveFocusToFirstClientPIEViewport()
+{
+	// Find the non-dedicated server or first client window to give focus to
+	int32 LowestPIEInstance = TNumericLimits<int32>::Max();
+	UGameViewportClient* ViewportClient = nullptr;
+	for (const FWorldContext& WorldContext : WorldList)
+	{
+		if (WorldContext.WorldType == EWorldType::PIE && !WorldContext.RunAsDedicated)
+		{
+			if (WorldContext.PIEInstance < LowestPIEInstance)
+			{
+				LowestPIEInstance = WorldContext.PIEInstance;
+				ViewportClient = WorldContext.GameViewport;
+			}
+		}
+	}
+
+	// Give focus to the first client
+	if (ViewportClient && ViewportClient->GetGameViewportWidget().IsValid())
+	{
+		FSlateApplication::Get().RegisterGameViewport(ViewportClient->GetGameViewportWidget().ToSharedRef());
 	}
 }
 
