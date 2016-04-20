@@ -1278,7 +1278,7 @@ float FSequencer::GetGlobalTime() const
 }
 
 
-void FSequencer::SetGlobalTime( float NewTime, ESnapTimeMode SnapTimeMode )
+void FSequencer::SetGlobalTime( float NewTime, ESnapTimeMode SnapTimeMode, bool bLooped )
 {
 	if (IsAutoScrollEnabled())
 	{
@@ -1296,11 +1296,11 @@ void FSequencer::SetGlobalTime( float NewTime, ESnapTimeMode SnapTimeMode )
 		}
 	}
 
-	SetGlobalTimeDirectly(NewTime, SnapTimeMode);
+	SetGlobalTimeDirectly(NewTime, SnapTimeMode, bLooped);
 }
 
 
-void FSequencer::SetGlobalTimeDirectly( float NewTime, ESnapTimeMode SnapTimeMode )
+void FSequencer::SetGlobalTimeDirectly( float NewTime, ESnapTimeMode SnapTimeMode, bool bLooped )
 {
 	float LastTime = ScrubPosition;
 
@@ -1318,6 +1318,7 @@ void FSequencer::SetGlobalTimeDirectly( float NewTime, ESnapTimeMode SnapTimeMod
 	ScrubPosition = NewTime;
 
 	EMovieSceneUpdateData UpdateData(NewTime, LastTime);
+	UpdateData.bLooped = bLooped;
 	SequenceInstanceStack.Top()->Update(UpdateData, *this);
 
 	// Ensure any relevant spawned objects are cleaned up if we're playing back the master sequence
@@ -2323,6 +2324,7 @@ bool FSequencer::IsLooping() const
 
 void FSequencer::SetGlobalTimeLooped(float InTime)
 {
+	bool bLooped = false;
 	if (Settings->IsLooping())
 	{
 		const UMovieSceneSequence* FocusedSequence = GetFocusedMovieSceneSequence();
@@ -2330,7 +2332,8 @@ void FSequencer::SetGlobalTimeLooped(float InTime)
 		{
 			if (InTime > FocusedSequence->GetMovieScene()->GetPlaybackRange().GetUpperBoundValue())
 			{
-				InTime -= FocusedSequence->GetMovieScene()->GetPlaybackRange().Size<float>();
+				InTime = FocusedSequence->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue();
+				bLooped = true;
 			}
 		}
 	}
@@ -2367,7 +2370,7 @@ void FSequencer::SetGlobalTimeLooped(float InTime)
 		}
 	}
 
-	SetGlobalTime(InTime);
+	SetGlobalTime(InTime, ESnapTimeMode::STM_None, bLooped);
 }
 
 

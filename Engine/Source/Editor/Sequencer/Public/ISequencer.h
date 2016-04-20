@@ -192,12 +192,13 @@ public:
 	 *
 	 * @param Time The global time to set.
 	 * @param SnapTimeMode The type of time snapping allowed.
+	 * @param bLooped Whether the time has been looped
 	 * @see GetGlobalTime
 	 */
-	virtual void SetGlobalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None) = 0;
+	virtual void SetGlobalTime(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bLooped = false) = 0;
 
 	/** Set the global time directly, without performing any auto-scroll */
-	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None) = 0;
+	virtual void SetGlobalTimeDirectly(float Time, ESnapTimeMode SnapTimeMode = ESnapTimeMode::STM_None, bool bLooped = false) = 0;
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const
