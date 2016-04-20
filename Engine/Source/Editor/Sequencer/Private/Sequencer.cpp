@@ -3113,6 +3113,8 @@ void FSequencer::OnNewActorsDropped(const TArray<UObject*>& DroppedObjects, cons
 			FGuid PossessableGuid = CreateBinding(*NewActor, NewActor->GetActorLabel());
 			FGuid NewGuid = PossessableGuid;
 
+			OnActorAddedToSequencerEvent.Broadcast(NewActor, PossessableGuid);
+
 			if (bAddSpawnable)
 			{
 				FMovieSceneSpawnable* Spawnable = ConvertToSpawnableInternal(PossessableGuid);
@@ -3129,12 +3131,6 @@ void FSequencer::OnNewActorsDropped(const TArray<UObject*>& DroppedObjects, cons
 
 				NewGuid = Spawnable->GetGuid();
 				NewActor = SpawnedActor;
-			}
-			else
-			{
-				UpdateRuntimeInstances();
-
-				OnActorAddedToSequencerEvent.Broadcast(NewActor, PossessableGuid);
 			}
 
 			if (bCreateAndAttachCamera)
@@ -3154,6 +3150,8 @@ void FSequencer::OnNewActorsDropped(const TArray<UObject*>& DroppedObjects, cons
 					NewCamera->SetActorRotation(FRotator(0.f, -90.f, 0.f));
 				}
 
+				OnActorAddedToSequencerEvent.Broadcast(NewCamera, NewCameraGuid);
+
 				if (bAddSpawnable)
 				{
 					FMovieSceneSpawnable* Spawnable = ConvertToSpawnableInternal(NewCameraGuid);
@@ -3171,8 +3169,6 @@ void FSequencer::OnNewActorsDropped(const TArray<UObject*>& DroppedObjects, cons
 				}
 				else
 				{
-					OnActorAddedToSequencerEvent.Broadcast(NewCamera, NewCameraGuid);
-
 					// Parent it
 					NewCamera->AttachToActor(NewActor, FAttachmentTransformRules::KeepRelativeTransform);
 				}
