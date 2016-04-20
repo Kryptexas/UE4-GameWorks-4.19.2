@@ -4,7 +4,6 @@
 
 #include "SequencerSettings.generated.h"
 
-
 UENUM()
 enum ESequencerSpawnPosition
 {
@@ -15,6 +14,15 @@ enum ESequencerSpawnPosition
 	SSP_PlaceInFrontOfCamera UMETA(DisplayName="Place in Front of Camera"),
 };
 
+UENUM()
+enum ESequencerZoomPosition
+{
+	/** Current Time. */
+	SZP_CurrentTime UMETA(DisplayName="Current Time"),
+
+	/** Mouse Position. */
+	SZP_MousePosition UMETA(DisplayName="Mouse Position"),
+};
 
 /** Empty class used to house multiple named USequencerSettings */
 UCLASS()
@@ -156,9 +164,13 @@ public:
 
 	/** Gets whether or not the label browser is visible. */
 	bool GetLabelBrowserVisible() const;
-
 	/** Sets whether or not the label browser is visible. */
 	void SetLabelBrowserVisible(bool Visible);
+
+	/** Get zoom in/out position (mouse position or current time). */
+	ESequencerZoomPosition GetZoomPosition() const;
+	/** Set zoom in/out position (mouse position or current time). */
+	void SetZoomPosition(ESequencerZoomPosition InZoomPosition);
 
 	/** Gets whether or not auto-scroll is enabled. */
 	bool GetAutoScrollEnabled() const;
@@ -287,6 +299,9 @@ protected:
 
 	UPROPERTY( config, EditAnywhere, Category=General )
 	bool bLabelBrowserVisible;
+
+	UPROPERTY( config, EditAnywhere, Category=Timeline )
+	TEnumAsByte<ESequencerZoomPosition> ZoomPosition;
 
 	UPROPERTY( config, EditAnywhere, Category=Timeline )
 	bool bAutoScrollEnabled;

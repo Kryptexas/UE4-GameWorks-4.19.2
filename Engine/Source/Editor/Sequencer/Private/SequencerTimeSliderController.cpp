@@ -824,9 +824,22 @@ FReply FSequencerTimeSliderController::OnMouseWheel( SWidget& WidgetOwner, const
 {
 	TOptional<TRange<float>> NewTargetRange;
 
-	float MouseFractionX = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()).X / MyGeometry.GetLocalSize().X;
 	if ( TimeSliderArgs.AllowZoom && MouseEvent.IsControlDown() )
 	{
+		float MouseFractionX = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()).X / MyGeometry.GetLocalSize().X;
+
+		// If zooming on the current time, adjust mouse fractionX
+		if (TimeSliderArgs.Settings->GetZoomPosition() == ESequencerZoomPosition::SZP_CurrentTime)
+		{
+			const float ScrubPosition = TimeSliderArgs.ScrubPosition.Get();
+			if (TimeSliderArgs.ViewRange.Get().Contains(ScrubPosition))
+			{
+				FScrubRangeToScreen RangeToScreen(TimeSliderArgs.ViewRange.Get(), MyGeometry.Size);
+				float TimePosition = RangeToScreen.InputToLocalX(ScrubPosition);
+				MouseFractionX = TimePosition / MyGeometry.GetLocalSize().X;
+			}
+		}
+
 		const float ZoomDelta = -0.2f * MouseEvent.GetWheelDelta();
 		if (ZoomByDelta(ZoomDelta, MouseFractionX))
 		{

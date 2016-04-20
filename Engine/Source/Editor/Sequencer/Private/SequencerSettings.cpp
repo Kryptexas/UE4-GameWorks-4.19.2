@@ -25,6 +25,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
 	bLabelBrowserVisible = false;
+	ZoomPosition = ESequencerZoomPosition::SZP_CurrentTime;
 	bAutoScrollEnabled = false;
 	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
@@ -315,6 +316,20 @@ void USequencerSettings::SetLabelBrowserVisible(bool Visible)
 	if (bLabelBrowserVisible != Visible)
 	{
 		bLabelBrowserVisible = Visible;
+		SaveConfig();
+	}
+}
+
+ESequencerZoomPosition USequencerSettings::GetZoomPosition() const
+{
+	return ZoomPosition;
+}
+
+void USequencerSettings::SetZoomPosition(ESequencerZoomPosition InZoomPosition)
+{
+	if ( ZoomPosition != InZoomPosition)
+	{
+		ZoomPosition = InZoomPosition;
 		SaveConfig();
 	}
 }
