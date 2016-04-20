@@ -1372,7 +1372,7 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 	// We need to reset some key inputs, since keyup events will sometimes not be processed (such as going into immersive/maximized mode).  
 	// Resetting them will prevent them from "sticking"
 	UWorld* const ViewportWorld = GetWorld();
-	if (ViewportWorld)
+	if (ViewportWorld && !ViewportWorld->bIsTearingDown)
 	{
 		for (FConstPlayerControllerIterator Iterator = ViewportWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
