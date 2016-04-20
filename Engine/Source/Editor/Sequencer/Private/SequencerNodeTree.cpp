@@ -474,27 +474,29 @@ const TSharedPtr<FSequencerDisplayNode>& FSequencerNodeTree::GetHoveredNode() co
  * @param StartNode			The node to start from
  * @param FilterStrings		The filter strings which need to be matched
  * @param OutFilteredNodes	The list of all filtered nodes
+ * @return Whether the text filter was passed
  */
 static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSequencerDisplayNode>& StartNode, const TArray<FString>& FilterStrings, TSet<TSharedRef<const FSequencerDisplayNode>>& OutFilteredNodes )
 {
-	// assume the filter is acceptable
-	bool PassedTextFilter = true;
-
-	// check each string in the filter strings list against 
+	// check labels - only one of the labels needs to match
+	bool bMatchedLabel = false;
+	bool bObjectHasLabels = false;
 	for (const FString& String : FilterStrings)
 	{
 		if (String.StartsWith(TEXT("label:")))
-		{
+		{				
 			if (!StartNode->GetParent().IsValid() && (String.Len() > 6))
 			{
 				if (StartNode->GetType() == ESequencerNode::Object)
 				{
+					bObjectHasLabels = true;
 					auto ObjectBindingNode = StaticCastSharedRef<FSequencerObjectBindingNode>(StartNode);
 					auto Labels = Sequencer.GetLabelManager().GetObjectLabels(ObjectBindingNode->GetObjectBinding());
 
-					if ((Labels == nullptr) || !Labels->Strings.Contains(String.RightChop(6)))
+					if (Labels != nullptr && Labels->Strings.Contains(String.RightChop(6)))
 					{
-						return false;
+						bMatchedLabel = true;
+						break;
 					}
 				}
 				else
@@ -503,12 +505,20 @@ static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSeque
 				}
 			}
 		}
-		else if (!StartNode->GetDisplayName().ToString().Contains(String)) 
-		{
-			PassedTextFilter = false;
-		}
+	}
 
-		if (!PassedTextFilter)
+	if (bObjectHasLabels && !bMatchedLabel)
+	{
+		return false;
+	}
+
+	// assume the filter is acceptable
+	bool bPassedTextFilter = true;
+
+	// check each string in the filter strings list against 
+	for (const FString& String : FilterStrings)
+	{
+		if (!String.StartsWith(TEXT("label:")) && !StartNode->GetDisplayName().ToString().Contains(String)) 
 		{
 			break;
 		}
@@ -517,7 +527,7 @@ static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSeque
 	// whether or the start node is in the filter
 	bool bInFilter = false;
 
-	if (PassedTextFilter)
+	if (bPassedTextFilter)
 	{
 		// This node is now filtered
 		OutFilteredNodes.Add(StartNode);
@@ -530,16 +540,16 @@ static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSeque
 	for (const auto& Node : ChildNodes)
 	{
 		// Mark the parent as filtered if any child node was filtered
-		PassedTextFilter |= FilterNodesRecursive(Sequencer, Node, FilterStrings, OutFilteredNodes);
+		bPassedTextFilter |= FilterNodesRecursive(Sequencer, Node, FilterStrings, OutFilteredNodes);
 
-		if (PassedTextFilter && !bInFilter)
+		if (bPassedTextFilter && !bInFilter)
 		{
 			OutFilteredNodes.Add(StartNode);
 			bInFilter = true;
 		}
 	}
 
-	return PassedTextFilter;
+	return bPassedTextFilter;
 }
 
 

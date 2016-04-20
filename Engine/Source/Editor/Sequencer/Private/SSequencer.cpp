@@ -582,7 +582,7 @@ void SSequencer::HandleLabelBrowserSelectionChanged(FString NewLabel, ESelectInf
 	}
 	else
 	{
-		SearchBox->SetText(FText::FromString(FString(TEXT("label:")) + NewLabel));
+		SearchBox->SetText(FText::FromString(NewLabel));
 	}
 }
 
@@ -1180,7 +1180,7 @@ void SSequencer::OnOutlinerSearchChanged( const FText& Filter )
 
 		if ( FilterString.StartsWith( TEXT( "label:" ) ) )
 		{
-			LabelBrowser->SetSelectedLabel( FilterString.RightChop( 6 ) );
+			LabelBrowser->SetSelectedLabel(FilterString);
 		}
 		else
 		{
