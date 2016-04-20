@@ -291,6 +291,22 @@ void SDetailsView::ForceRefresh()
 	SetObjectArrayPrivate( NewObjectList );
 }
 
+void SDetailsView::MoveScrollOffset(int32 DeltaOffset)
+{
+	DetailTree->AddScrollOffset((float)DeltaOffset);
+}
+
+bool SDetailsView::GetCategoryInfo(FName CategoryName, int32 &SimplePropertiesNum, int32 &AdvancePropertiesNum)
+{
+	SimplePropertiesNum = 0;
+	AdvancePropertiesNum = 0;
+	bool CategoryExist = DetailLayout.IsValid() ? DetailLayout->HasCategory(CategoryName) : false;
+	if (CategoryExist)
+	{
+		DetailLayout->DefaultCategory(CategoryName).GetCategoryInformation(SimplePropertiesNum, AdvancePropertiesNum);
+	}
+	return CategoryExist;
+}
 
 void SDetailsView::SetObjects( const TArray<UObject*>& InObjects, bool bForceRefresh/* = false*/, bool bOverrideLock/* = false*/ )
 {

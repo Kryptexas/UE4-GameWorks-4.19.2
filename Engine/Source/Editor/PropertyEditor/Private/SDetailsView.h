@@ -21,6 +21,12 @@ public:
 	/** Causes the details view to be refreshed (new widgets generated) with the current set of objects */
 	void ForceRefresh() override;
 
+	/** Move the scrolling offset (by item), but do not refresh the tree*/
+	void MoveScrollOffset(int32 DeltaOffset) override;
+
+	/* Return true if the favorite category is currently displayed */
+	bool GetCategoryInfo(FName CategoryName, int32 &SimplePropertiesNum, int32 &AdvancePropertiesNum) override;
+
 	/**
 	 * Constructs the property view widgets                   
 	 */

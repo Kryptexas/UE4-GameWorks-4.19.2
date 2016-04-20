@@ -119,6 +119,11 @@ FDetailCategoryImpl& FDetailLayoutBuilderImpl::DefaultCategory( FName CategoryNa
 	return *CategoryImpl;
 }
 
+bool FDetailLayoutBuilderImpl::HasCategory(FName CategoryName)
+{
+	return DefaultCategoryMap.Contains(CategoryName);
+}
+
 void FDetailLayoutBuilderImpl::BuildCategories( const FCategoryMap& CategoryMap, TArray< TSharedRef<FDetailCategoryImpl> >& OutSimpleCategories, TArray< TSharedRef<FDetailCategoryImpl> >& OutAdvancedCategories )
 {
 	for( FCategoryMap::TConstIterator It(CategoryMap); It; ++It )

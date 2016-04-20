@@ -1023,9 +1023,11 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 {
 	UProperty* ParentProperty = InNode.GetProperty();
 	UStructProperty* ParentStructProp = Cast<UStructProperty>(ParentProperty);
-
 	for (int32 ChildIndex = 0; ChildIndex < InNode.GetNumChildNodes(); ++ChildIndex)
 	{
+		//Use the original value for each child
+		bool LocalUpdateFavoriteSystemOnly = bUpdateFavoriteSystemOnly;
+
 		TSharedPtr<FPropertyNode> ChildNodePtr = InNode.GetChildNode(ChildIndex);
 		FPropertyNode& ChildNode = *ChildNodePtr;
 		UProperty* Property = ChildNode.GetProperty();
@@ -1037,11 +1039,11 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 			{
 				// Currently object property nodes do not provide any useful information other than being a container for its children.  We do not draw anything for them.
 				// When we encounter object property nodes, add their children instead of adding them to the tree.
-				UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CurCategory, ObjNode, bEnableFavoriteSystem, bUpdateFavoriteSystemOnly);
+				UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CurCategory, ObjNode, bEnableFavoriteSystem, LocalUpdateFavoriteSystemOnly);
 			}
 			else if (CategoryNode)
 			{
-				if (!bUpdateFavoriteSystemOnly)
+				if (!LocalUpdateFavoriteSystemOnly)
 				{
 					FName InstanceName = NAME_None;
 					FName CategoryName = CurCategory;
@@ -1056,7 +1058,7 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 				}
 
 				// For category nodes, we just set the current category and recurse through the children
-				UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CategoryNode->GetCategoryName(), CurObjectNode, bEnableFavoriteSystem, bUpdateFavoriteSystemOnly);
+				UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CategoryNode->GetCategoryName(), CurObjectNode, bEnableFavoriteSystem, LocalUpdateFavoriteSystemOnly);
 			}
 			else
 			{
@@ -1108,7 +1110,7 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 				const bool bIsUserVisible = IsPropertyVisible(PropertyAndParent);
 
 				// Inners of customized in structs should not be taken into consideration for customizing.  They are not designed to be individually customized when their parent is already customized
-				if (!bIsChildOfCustomizedStruct && !bUpdateFavoriteSystemOnly)
+				if (!bIsChildOfCustomizedStruct && !LocalUpdateFavoriteSystemOnly)
 				{
 					// Add any object classes with properties so we can ask them for custom property layouts later
 					ClassesWithProperties.Add(Property->GetOwnerStruct());
@@ -1126,7 +1128,7 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 				}
 
 				// Do not add children of customized in struct properties or arrays
-				if (!bIsChildOfCustomizedStruct && !bIsChildOfArray && !bUpdateFavoriteSystemOnly)
+				if (!bIsChildOfCustomizedStruct && !bIsChildOfArray && !LocalUpdateFavoriteSystemOnly)
 				{
 					// Get the class property map
 					FClassInstanceToPropertyMap& ClassInstanceMap = ClassToPropertyMap.FindOrAdd(Property->GetOwnerStruct()->GetFName());
@@ -1158,7 +1160,7 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 						CategoryName = PropertyCatagoryName;
 					}
 
-					if (!bUpdateFavoriteSystemOnly)
+					if (!LocalUpdateFavoriteSystemOnly)
 					{
 						if (IsPropertyReadOnly(PropertyAndParent))
 						{
@@ -1176,11 +1178,10 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 						if (bIsCustomizedStruct)
 						{
 							bCanDisplayFavorite = false;
-							//CustomizedStruct child are not categorize since they are under an object but we have to put them in favorite
-							UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CurCategory, CurObjectNode, bEnableFavoriteSystem, true);
+							//CustomizedStruct child are not categorize since they are under an object but we have to put them in favorite category if the user want to favorite them
+							LocalUpdateFavoriteSystemOnly = true;
 						}
-
-						if (ChildNodePtr->IsFavorite())
+						else if (ChildNodePtr->IsFavorite())
 						{
 							//Find or create the favorite category, we have to duplicate favorite property row under this category
 							FString CategoryFavoritesName = TEXT("Favorites");
@@ -1197,7 +1198,7 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 								RootInstanceName = RootObjectParent->GetObjectBaseClass()->GetFName();
 							}
 
-							if (bUpdateFavoriteSystemOnly)
+							if (LocalUpdateFavoriteSystemOnly)
 							{
 								if (IsPropertyReadOnly(PropertyAndParent))
 								{
@@ -1230,10 +1231,10 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 					&&	bIsUserVisible // Properties must be allowed to be visible by a user if they are not then their children are not visible either
 					&& (!bIsStruct || bPushOutStructProps); //  Only recurse into struct properties if they are going to be displayed as standalone properties in categories instead of inside an expandable area inside a category
 
-				if (bRecurseIntoChildren || bUpdateFavoriteSystemOnly)
+				if (bRecurseIntoChildren || LocalUpdateFavoriteSystemOnly)
 				{
 					// Built in struct properties or children of arras 
-					UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CurCategory, CurObjectNode, bEnableFavoriteSystem, bUpdateFavoriteSystemOnly);
+					UpdatePropertyMapRecursive(ChildNode, InDetailLayout, CurCategory, CurObjectNode, bEnableFavoriteSystem, LocalUpdateFavoriteSystemOnly);
 				}
 			}
 		}

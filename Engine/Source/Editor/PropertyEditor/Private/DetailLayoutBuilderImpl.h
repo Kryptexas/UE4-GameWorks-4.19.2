@@ -30,6 +30,11 @@ public:
 	FDetailCategoryImpl& DefaultCategory( FName CategoryName );
 
 	/**
+	* Return true if the category exist
+	*/
+	bool HasCategory(FName CategoryName);
+
+	/**
 	 * Generates the layout for this detail builder                                                              
 	 */
 	void GenerateDetailLayout();
