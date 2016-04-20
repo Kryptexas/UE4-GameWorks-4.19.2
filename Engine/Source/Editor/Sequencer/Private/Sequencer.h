@@ -870,6 +870,9 @@ private:
 		the MovieScene data can change many times per frame.) */
 	bool bNeedTreeRefresh;
 
+	/** When true, the runtime instances need to be updated next frame. */
+	bool bNeedInstanceRefresh;
+
 	/** Stores the playback status to be restored on refresh. */
 	EMovieScenePlayerStatus::Type StoredPlaybackState;
 

@@ -321,6 +321,6 @@ void FMovieSceneSkeletalAnimationTrackInstance::PreviewSetAnimPosition(USkeletal
 bool FMovieSceneSkeletalAnimationTrackInstance::ShouldUsePreviewPlayback(class IMovieScenePlayer& Player, UObject* RuntimeObject) const
 {
 	// we also use PreviewSetAnimPosition in PIE when not playing, as we can preview in PIE
-	bool bIsNotInPIEOrNotPlaying = (RuntimeObject && !RuntimeObject->GetWorld()->HasBegunPlay()) || Player.GetPlaybackStatus() != EMovieScenePlayerStatus::Playing;
+	bool bIsNotInPIEOrNotPlaying = (RuntimeObject && RuntimeObject->GetWorld() && !RuntimeObject->GetWorld()->HasBegunPlay()) || Player.GetPlaybackStatus() != EMovieScenePlayerStatus::Playing;
 	return GIsEditor && bIsNotInPIEOrNotPlaying;
 }

@@ -227,6 +227,7 @@ FSequencer::FSequencer()
 	, bPerspectiveViewportCameraCutEnabled( false )
 	, bIsEditingWithinLevelEditor( false )
 	, bNeedTreeRefresh( false )
+	, bNeedInstanceRefresh( false )
 	, StoredPlaybackState( EMovieScenePlayerStatus::Stopped )
 	, bWasClosed( false )
 	, NodeTree( MakeShareable( new FSequencerNodeTree( *this ) ) )
@@ -316,12 +317,16 @@ void FSequencer::Tick(float InDeltaTime)
 {
 	Selection.Tick();
 
+	if ( bNeedInstanceRefresh )
+	{
+		// @todo - Sequencer Will be called too often
+		UpdateRuntimeInstances();
+		bNeedInstanceRefresh = false;
+	}
+
 	if (bNeedTreeRefresh)
 	{
 		SelectionPreview.Empty();
-
-		// @todo - Sequencer Will be called too often
-		UpdateRuntimeInstances();
 
 		SequencerWidget->UpdateLayoutTree();
 		bNeedTreeRefresh = false;
@@ -931,6 +936,7 @@ void FSequencer::NotifyMovieSceneDataChanged()
 	StoredPlaybackState = GetPlaybackStatus();
 	SetPlaybackStatus(EMovieScenePlayerStatus::Stopped);
 	bNeedTreeRefresh = true;
+	bNeedInstanceRefresh = true;
 
 	UpdatePlaybackRange();
 }
@@ -3051,12 +3057,12 @@ void FSequencer::OnMapOpened(const FString& Filename, bool bLoadAsTemplate)
 
 void FSequencer::OnLevelAdded(ULevel* InLevel, UWorld* InWorld)
 {
-	NotifyMovieSceneDataChanged();
+	bNeedInstanceRefresh = true;
 }
 
 void FSequencer::OnLevelRemoved(ULevel* InLevel, UWorld* InWorld)
 {
-	NotifyMovieSceneDataChanged();
+	bNeedInstanceRefresh = true;
 }
 
 void FSequencer::OnNewActorsDropped(const TArray<UObject*>& DroppedObjects, const TArray<AActor*>& DroppedActors)
