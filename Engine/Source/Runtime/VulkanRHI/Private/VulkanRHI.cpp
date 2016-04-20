@@ -30,6 +30,12 @@ static TAutoConsoleVariable<int32> GLSLCvar(
 	TEXT("2 to use ES GLSL\n1 to use GLSL\n0 to use SPIRV")
 	);
 
+static TAutoConsoleVariable<int32> GRHIThreadCvar(
+	TEXT("r.Vulkan.RHIThread"),
+	0,
+	TEXT("1 to use RHI Thread")
+	);
+
 #if VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED
 VkAllocationCallbacks GCallbacks;
 #endif
@@ -203,10 +209,7 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingMinVertexIndex(0)
 	, PendingIndexDataStride(0)
 	, TempFrameAllocationBuffer(InDevice, VULKAN_TEMP_FRAME_ALLOCATOR_SIZE)
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
 	, CommandBufferManager(nullptr)
-#endif
 {
 	// Create CommandBufferManager, contain all active buffers
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice);
@@ -264,6 +267,8 @@ void FVulkanDynamicRHI::Shutdown()
 {
 	check(IsInGameThread() && IsInRenderingThread());
 	check(Device);
+
+	Device->PrepareForDestroy();
 
 	EmptyCachedBoundShaderStates();
 
@@ -452,7 +457,7 @@ void FVulkanDynamicRHI::InitInstance()
 		GSupportsRenderTargetFormat_PF_G8 = false;	// #todo-rco
 		GSupportsQuads = false;	// Not supported in Vulkan
 		GRHISupportsTextureStreaming = false;	// #todo-rco
-		GRHISupportsRHIThread = false;	// #todo-rco
+		GRHISupportsRHIThread = GRHIThreadCvar->GetInt() != 0;	// #todo-rco
 
 		//#todo-rco: Leaks/issues still present!
 		// Indicate that the RHI needs to use the engine's deferred deletion queue.
@@ -536,14 +541,12 @@ void FVulkanCommandListContext::RHIBeginScene()
 
 void FVulkanCommandListContext::RHIEndScene()
 {
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	auto& PendingState = Device->GetPendingState();
 	if (PendingState.IsRenderPassActive())
 	{
 		PendingState.RenderPassEnd(CmdBuffer);
 	}
-#endif
 }
 
 void FVulkanCommandListContext::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTargetRHI)
@@ -552,12 +555,7 @@ void FVulkanCommandListContext::RHIBeginDrawingViewport(FViewportRHIParamRef Vie
 	FVulkanViewport* Viewport = ResourceCast(ViewportRHI);
 	if (Viewport->GetBackBufferIndex() < 0)
 	{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		Viewport->AcquireBackBuffer(Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer());
-#else
-		// SMEDIS: This is the normal method of getting a new backbuffer. However, RHIGetViewportBackBuffer() can also do it if necessary.
-		Viewport->CurrentBackBuffer = Device->GetQueue()->AquireImageIndex(Viewport->SwapChain);
-#endif
 	}
 	RHI->DrawingViewport = Viewport;
 
@@ -596,9 +594,7 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 
 void FVulkanCommandListContext::RHIEndFrame()
 {
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	Device->GetDeferredDeletionQueue().Clear();
-#endif
 
 	Device->GetStagingManager().ProcessPendingFree();
 	Device->GetResourceHeapManager().ReleaseFreedPages();
@@ -617,12 +613,7 @@ void FVulkanCommandListContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 #if VULKAN_ENABLE_DRAW_MARKERS
 		if (auto VkCmdDbgMarkerBegin = Device->GetCmdDbgMarkerBegin())
 		{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 			VkCmdDbgMarkerBegin(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle(), TCHAR_TO_ANSI(Name));
-#else
-			FVulkanPendingState& State = Device->GetPendingState();
-			VkCmdDbgMarkerBegin(State.GetCommandBuffer(), TCHAR_TO_ANSI(Name));
-#endif
 		}
 #endif
 
@@ -639,11 +630,7 @@ void FVulkanCommandListContext::RHIPopEvent()
 		if (auto VkCmdDbgMarkerEnd = Device->GetCmdDbgMarkerEnd())
 		{
 			FVulkanPendingState& State = Device->GetPendingState();
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 			VkCmdDbgMarkerEnd(GetCommandBufferManager()->GetActiveCmdBuffer()->GetHandle());
-#else
-			VkCmdDbgMarkerEnd(State.GetCommandBuffer());
-#endif
 		}
 #endif
 
@@ -774,7 +761,7 @@ void FVulkanBuffer::Unlock()
 
 void FVulkanBuffer::CopyTo(FVulkanSurface& Surface, const VkBufferImageCopy& CopyDesc, FVulkanPendingState* State)
 {
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 	check(0);
 #else
 	VkCommandBuffer Cmd = VK_NULL_HANDLE;
@@ -938,7 +925,7 @@ FVulkanDescriptorSets::~FVulkanDescriptorSets()
 	}
 }
 
-void FVulkanBufferView::Create(FVulkanDevice& Device, FVulkanBuffer& Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
+void FVulkanBufferView::Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
 {
 	VkBufferViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
@@ -956,10 +943,10 @@ void FVulkanBufferView::Create(FVulkanDevice& Device, FVulkanBuffer& Buffer, EPi
 	Flags = Buffer.GetFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	check(Flags);
 
-	VERIFYVULKANRESULT(vkCreateBufferView(Device.GetInstanceHandle(), &ViewInfo, nullptr, &View));
+	VERIFYVULKANRESULT(vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
 }
 
-void FVulkanBufferView::Create(FVulkanDevice& Device, FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
+void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size)
 {
 	VkBufferViewCreateInfo ViewInfo;
 	FMemory::Memzero(ViewInfo);
@@ -979,14 +966,14 @@ void FVulkanBufferView::Create(FVulkanDevice& Device, FVulkanResourceMultiBuffer
 
 	ViewInfo.flags = Flags;
 
-	VERIFYVULKANRESULT(vkCreateBufferView(Device.GetInstanceHandle(), &ViewInfo, nullptr, &View));
+	VERIFYVULKANRESULT(vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
 }
 
-void FVulkanBufferView::Destroy(FVulkanDevice& Device)
+void FVulkanBufferView::Destroy()
 {
 	if (View != VK_NULL_HANDLE)
 	{
-		vkDestroyBufferView(Device.GetInstanceHandle(), View, nullptr);
+		vkDestroyBufferView(GetParent()->GetInstanceHandle(), View, nullptr);
 		View = VK_NULL_HANDLE;
 	}
 }
@@ -1194,25 +1181,6 @@ FVulkanRenderPass::~FVulkanRenderPass()
 	RenderPass = VK_NULL_HANDLE;
 }
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-void FVulkanRenderPass::Begin(FVulkanCmdBuffer& CmdBuf, const VkFramebuffer& Framebuffer, const VkClearValue* AttachmentClearValues)
-{
-	VkRenderPassBeginInfo Info;
-	FMemory::Memzero(Info);
-	Info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	Info.renderPass = GetHandle();
-	Info.framebuffer = Framebuffer;
-	Info.renderArea.offset.x = 0;
-	Info.renderArea.offset.y = 0;
-	Info.renderArea.extent = Layout.GetExtent2D();
-	Info.clearValueCount = Layout.GetNumAttachments();
-	Info.pClearValues = AttachmentClearValues;
-
-	vkCmdBeginRenderPass(CmdBuf.GetHandle(false), &Info, VK_SUBPASS_CONTENTS_INLINE);
-}
-#endif
-
 
 void VulkanSetImageLayout(
 	VkCommandBuffer CmdBuffer,
@@ -1236,7 +1204,7 @@ void VulkanSetImageLayout(
 	switch (NewLayout)
 	{
 	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-		ImageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+		ImageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		break;
 	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
 		ImageBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -1245,6 +1213,10 @@ void VulkanSetImageLayout(
 		ImageBarrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		break;
 	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+		if (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+		{
+			ImageBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		}
 		ImageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
 		break;
 	case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
@@ -1314,17 +1286,13 @@ FVulkanRingBuffer::FVulkanRingBuffer(FVulkanDevice* InDevice, uint64 TotalSize, 
 	, MinAlignment(0)
 {
 	FRHIResourceCreateInfo CreateInfo;
-	Buffer = InDevice->GetStagingManager().AcquireBuffer(TotalSize, Usage);
-
-	VkMemoryRequirements MemReqs;
-	vkGetBufferMemoryRequirements(InDevice->GetInstanceHandle(), Buffer->GetHandle(), &MemReqs);
-
-	MinAlignment = (uint32)MemReqs.alignment;
+	BufferSuballocation = InDevice->GetResourceHeapManager().AllocateBuffer(TotalSize, Usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, __FILE__, __LINE__);
+	MinAlignment = BufferSuballocation->GetBufferAllocation()->GetAlignment();
 }
 
 FVulkanRingBuffer::~FVulkanRingBuffer()
 {
-	Device->GetStagingManager().ReleaseBuffer(Buffer);
+	delete BufferSuballocation;
 }
 
 uint64 FVulkanRingBuffer::AllocateMemory(uint64 Size, uint32 Alignment)

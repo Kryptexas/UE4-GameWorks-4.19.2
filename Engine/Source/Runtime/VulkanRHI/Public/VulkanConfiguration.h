@@ -96,9 +96,6 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 
 #define VULKAN_ENABLE_PIPELINE_CACHE							1
 
-//#todo-rco: Test on Android
-#define VULKAN_USE_NEW_COMMAND_BUFFERS							0//PLATFORM_WINDOWS
-
 #define VULKAN_ENABLE_RHI_DEBUGGING								1
 
 #define VULKAN_IGNORE_EXTENSIONS								(PLATFORM_ANDROID && 1)

@@ -251,7 +251,7 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 
 	check(Device);
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 	//#todo-rco: Fix this!
 	LastFrameRendered = GFrameNumberRenderThread;
 #else
@@ -423,7 +423,7 @@ void FVulkanBoundShaderState::ResetState()
 
 	CurrDescriptorSets = nullptr;
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 	//#todo-rco: Fix this!
 	const uint32 CurrentImageIndex = GFrameNumberRenderThread % ARRAY_COUNT(CurrentDS);
 #else
@@ -1067,7 +1067,7 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanGlobalUniformPool* Glo
 
 	// get the next available DS
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 	//#todo-rco: Fix this!
 	const uint32 CurrentImageIndex = GFrameNumberRenderThread % ARRAY_COUNT(CurrentDS);
 #else
@@ -1090,7 +1090,7 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanGlobalUniformPool* Glo
 #if VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS
 	// this is an optimization for the ring buffer to only truly lock once for all uniforms
 	FVulkanRingBuffer* RingBuffer = Device->GetUBRingBuffer();
-	uint8* RingBufferBase = (uint8*)RingBuffer->Buffer->GetMappedPointer();
+	uint8* RingBufferBase = (uint8*)RingBuffer->GetMappedPointer();
 #endif
 
 	//#todo-rco: Compute!
@@ -1156,8 +1156,8 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanGlobalUniformPool* Glo
 					// Here we can specify a more precise buffer update
 					// However, this need to complemented with the buffer map/unmap functionality.
 					//@NOTE: bufferView is for texel buffers
-					BufferInfo->buffer = RingBuffer->Buffer->GetHandle();
-					BufferInfo->offset = RingBufferOffset;
+					BufferInfo->buffer = RingBuffer->GetHandle();
+					BufferInfo->offset = RingBufferOffset + RingBuffer->GetBufferOffset();
 					BufferInfo->range = UBSize;
 
 #else

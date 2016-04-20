@@ -11,6 +11,7 @@
 class FVulkanDynamicRHI;
 class FVulkanSwapChain;
 class FVulkanQueue;
+struct FVulkanSemaphore;
 
 class FVulkanViewport : public FRHIViewport
 {
@@ -33,17 +34,20 @@ public:
 
 	FIntPoint GetSizeXY() const { return FIntPoint(SizeX, SizeY); }
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	FVulkanSwapChain* GetSwapChain()
 	{
 		return SwapChain;
 	}
 
+	FVulkanSemaphore* AcquirePendingSemaphore()
+	{
+		FVulkanSemaphore* Semaphore = PendingImageSemaphore;
+		PendingImageSemaphore = nullptr;
+		return Semaphore;
+	}
+
 	void AcquireBackBuffer(FVulkanCmdBuffer* CmdBuffer);
 	void PrepareBackBufferForPresent(FVulkanCmdBuffer* CmdBuffer);
-#else
-#endif
-
 
 protected:
 	TRefCountPtr<FVulkanTexture2D> BackBuffers[NUM_BUFFERS];
@@ -54,6 +58,8 @@ protected:
 	EPixelFormat PixelFormat;
 	int32 CurrentBackBuffer;
 	FVulkanSwapChain* SwapChain;
+
+	FVulkanSemaphore* PendingImageSemaphore;
 
 	friend class FVulkanDynamicRHI;
 	friend class FVulkanCommandListContext;

@@ -30,6 +30,7 @@ public:
 
 	void CreateDevice();
 
+	void PrepareForDestroy();
 	void Destroy();
 
 	void WaitUntilIdle();
@@ -39,11 +40,6 @@ public:
 		check(PendingState);
 		return *PendingState;
 	}
-
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-	void EndCommandBufferBlock(FVulkanCmdBuffer* CmdBuffer);
-#endif
 
 	inline FVulkanQueue* GetQueue()
 	{
@@ -115,12 +111,10 @@ public:
 		return ResourceHeapManager;
 	}
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	VulkanRHI::FDeferredDeletionQueue& GetDeferredDeletionQueue()
 	{
 		return DeferredDeletionQueue;
 	}
-#endif
 
 	VulkanRHI::FStagingManager& GetStagingManager()
 	{
@@ -170,10 +164,11 @@ private:
 	VkDevice Device;
 
 	VulkanRHI::FDeviceMemoryManager MemoryManager;
+
 	VulkanRHI::FResourceHeapManager ResourceHeapManager;
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+
 	VulkanRHI::FDeferredDeletionQueue DeferredDeletionQueue;
-#endif
+
 	VulkanRHI::FStagingManager StagingManager;
 
 	VulkanRHI::FFenceManager FenceManager;

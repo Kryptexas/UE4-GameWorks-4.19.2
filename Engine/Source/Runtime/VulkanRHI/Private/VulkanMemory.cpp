@@ -958,6 +958,7 @@ namespace VulkanRHI
 		check(ResourceAllocation);
 
 		vkDestroyBuffer(DeviceHandle, Buffer, nullptr);
+		Buffer = VK_NULL_HANDLE;
 		ResourceAllocation = nullptr;
 		//Memory.Free(Allocation);
 	}
@@ -965,9 +966,7 @@ namespace VulkanRHI
 	FStagingManager::~FStagingManager()
 	{
 		check(UsedStagingBuffers.Num() == 0);
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		check(PendingFreeStagingBuffers.Num() == 0);
-#endif
 		check(FreeStagingBuffers.Num() == 0);
 	}
 	
@@ -1034,7 +1033,6 @@ namespace VulkanRHI
 		return StagingBuffer;
 	}
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	void FStagingManager::ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingBuffer*& StagingBuffer)
 	{
 		FScopeLock Lock(&GAllocationLock);
@@ -1045,19 +1043,9 @@ namespace VulkanRHI
 		Entry->Resource = StagingBuffer;
 		StagingBuffer = nullptr;
 	}
-#else
-	void FStagingManager::ReleaseBuffer(FStagingBuffer*& StagingBuffer)
-	{
-		FScopeLock Lock(&GAllocationLock);
-		UsedStagingBuffers.RemoveSingleSwap(StagingBuffer);
-		FreeStagingBuffers.Add(StagingBuffer);
-		StagingBuffer = nullptr;
-	}
-#endif
 
 	void FStagingManager::ProcessPendingFree(bool bImmediately)
 	{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		FScopeLock Lock(&GAllocationLock);
 		for (int32 Index = PendingFreeStagingBuffers.Num() - 1; Index >= 0; --Index)
 		{
@@ -1071,20 +1059,6 @@ namespace VulkanRHI
 				//#todo-rco: Release buffers back to OS...
 			}
 		}
-
-		for (int32 Index = PendingFreeStagingImages.Num() - 1; Index >= 0; --Index)
-		{
-			FPendingItem& Entry = PendingFreeStagingImages[Index];
-			if (bImmediately || !Entry.CmdBuffer || Entry.FenceCounter < Entry.CmdBuffer->GetFenceSignaledCounter())
-			{
-				auto* StagingImage = (FStagingImage*)Entry.Resource;
-				PendingFreeStagingImages.RemoveAtSwap(Index, 1, false);
-				FreeStagingImages.Add(StagingImage);
-
-				//#todo-rco: Release images back to OS...
-			}
-		}
-#endif
 	}
 
 	FFence::FFence(FVulkanDevice* InDevice, FFenceManager* InOwner)
@@ -1228,7 +1202,6 @@ namespace VulkanRHI
 
 	void FDeferredDeletionQueue::EnqueueResource(FVulkanCmdBuffer* CmdBuffer, FRefCount* Resource)
 	{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		Resource->AddRef();
 
 		FEntry Entry;
@@ -1239,15 +1212,13 @@ namespace VulkanRHI
 			FScopeLock ScopeLock(&CS);
 			Entries.Add(Entry);
 		}
-#endif
 	}
 
 	void FDeferredDeletionQueue::ReleaseResources(/*bool bDeleteImmediately*/)
 	{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		FScopeLock ScopeLock(&CS);
 
-		// Traverse list backwards to the swap switches to elements already tested
+		// Traverse list backwards so the swap switches to elements already tested
 		for (int32 Index = Entries.Num() - 1; Index >= 0; --Index)
 		{
 			FEntry* Entry = &Entries[Index];
@@ -1257,7 +1228,6 @@ namespace VulkanRHI
 				Entries.RemoveAtSwap(Index, 1, false);
 			}
 		}
-#endif
 	}
 
 	FTempFrameAllocationBuffer::FTempFrameAllocationBuffer(FVulkanDevice* InDevice, uint32 InSize)
@@ -1268,26 +1238,25 @@ namespace VulkanRHI
 	{
 		for (int32 Index = 0; Index < NUM_RENDER_BUFFERS; ++Index)
 		{
-			Buffer[Index] = InDevice->GetStagingManager().AcquireBuffer(InSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT);
-			MappedData[Index] = (uint8*)Buffer[Index]->GetMappedPointer();
+			BufferSuballocations[Index] = InDevice->GetResourceHeapManager().AllocateBuffer(InSize,
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				__FILE__, __LINE__);
+			MappedData[Index] = (uint8*)BufferSuballocations[Index]->GetMappedPointer();
 			CurrentData[Index] = MappedData[Index];
 		}
 	}
 
 	FTempFrameAllocationBuffer::~FTempFrameAllocationBuffer()
 	{
-		check(!Buffer[0]);
+		Destroy();
 	}
 
 	void FTempFrameAllocationBuffer::Destroy()
 	{
 		for (int32 Index = 0; Index < NUM_RENDER_BUFFERS; ++Index)
 		{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-			GetParent()->GetStagingManager().ReleaseBuffer(nullptr, Buffer[Index]);
-#else
-			GetParent()->GetStagingManager().ReleaseBuffer(Buffer[Index]);
-#endif
+			BufferSuballocations[Index] = nullptr;
 		}
 	}
 
@@ -1297,8 +1266,8 @@ namespace VulkanRHI
 		if (AlignedData + InSize <= MappedData[BufferIndex] + Size)
 		{
 			OutInfo.Data = AlignedData;
-			OutInfo.Buffer = Buffer[BufferIndex]->GetHandle();
-			OutInfo.Offset = (uint32)(AlignedData - MappedData[BufferIndex]);
+			OutInfo.BufferSuballocation = BufferSuballocations[BufferIndex];
+			OutInfo.CurrentOffset = (uint32)(AlignedData - MappedData[BufferIndex]);
 			CurrentData[BufferIndex] = AlignedData + InSize;
 			PeakUsed = FMath::Max(PeakUsed, (uint32)(CurrentData[BufferIndex] - MappedData[BufferIndex]));
 			return true;
