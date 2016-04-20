@@ -79,6 +79,11 @@ void ULandscapeComponent::UpdateCachedBounds()
 			CachedLocalBox += CDI.GetLocalVertex(x, y);
 		}
 	}
+	if (CachedLocalBox.GetExtent().Z == 0)
+	{
+		// expand bounds to avoid flickering issues with zero-size bounds
+		CachedLocalBox.ExpandBy(FVector(0, 0, 1));
+	}
 
 	// Update collision component bounds
 	ULandscapeHeightfieldCollisionComponent* HFCollisionComponent = CollisionComponent.Get();
