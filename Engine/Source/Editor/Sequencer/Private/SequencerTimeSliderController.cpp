@@ -696,13 +696,14 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 				TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
 				float LocalMouseDownPos = RangeToScreen.InputToLocalX(MouseDownRange[0]);
 
-				if (HitTestScrubberEnd(RangeToScreen, SelectionRange, LocalMouseDownPos, ScrubPosition))
+				// Disable selection range test if it's empty so that the playback range scrubbing gets priority
+				if (!SelectionRange.IsEmpty() && HitTestScrubberEnd(RangeToScreen, SelectionRange, LocalMouseDownPos, ScrubPosition))
 				{
 					// selection range end scrubber
 					MouseDragType = DRAG_SELECTION_END;
 					TimeSliderArgs.OnSelectionRangeBeginDrag.ExecuteIfBound();
 				}
-				else if (HitTestScrubberStart(RangeToScreen, SelectionRange, LocalMouseDownPos, ScrubPosition))
+				else if (!SelectionRange.IsEmpty() && HitTestScrubberStart(RangeToScreen, SelectionRange, LocalMouseDownPos, ScrubPosition))
 				{
 					// selection range start scrubber
 					MouseDragType = DRAG_SELECTION_START;
