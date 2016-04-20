@@ -115,8 +115,6 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	{
 		AutoReimportManager = NewObject<UAutoReimportManager>();
 		AutoReimportManager->Initialize();
-		
-		GetMutableDefault<UEditorLoadingSavingSettings>()->CheckSourceControlCompatability();
 	}
 
 	// register details panel customizations
