@@ -1197,6 +1197,9 @@ void FAnimBlueprintCompiler::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 			}
 		}
 
+		// Make sure we expand any split pins here before we process animation nodes.
+		ExpansionStep(ConsolidatedEventGraph, false);
+
 		// Compile the animation graph
 		ProcessAllAnimationNodes();
 	}
