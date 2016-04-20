@@ -435,7 +435,9 @@ bool UMovieScene3DTransformSection::HasKeys(const FTransformKey& TransformKey) c
 void UMovieScene3DTransformSection::AddKey(float Time, const FTransformKey& TransformKey, EMovieSceneKeyInterpolation KeyInterpolation)
 {
 	FRichCurve* KeyCurve = GetCurveForChannelAndAxis(TransformKey.Channel, TransformKey.Axis, Translation, Rotation, Scale);
-	AddKeyToCurve(*KeyCurve, Time, TransformKey.Value, KeyInterpolation);
+	
+	bool bUnwindRotation = TransformKey.Channel == EKey3DTransformChannel::Rotation;
+	AddKeyToCurve(*KeyCurve, Time, TransformKey.Value, KeyInterpolation, bUnwindRotation);
 }
 
 
