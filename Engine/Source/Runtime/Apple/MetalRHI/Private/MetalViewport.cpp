@@ -41,6 +41,7 @@
 
 FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 : Drawable(nil)
+, CurrentBackBufferIndex(0)
 {
 #if PLATFORM_MAC
 	FCocoaWindow* Window = (FCocoaWindow*)WindowHandle;
@@ -80,17 +81,29 @@ FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY
 
 FMetalViewport::~FMetalViewport()
 {
-	BackBuffer.SafeRelease();
-	check(!IsValidRef(BackBuffer));
+	BackBuffer[0].SafeRelease();
+	BackBuffer[1].SafeRelease();
+	check(!IsValidRef(BackBuffer[0]));
+	check(!IsValidRef(BackBuffer[1]));
 }
 
 void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen)
 {
-	BackBuffer.SafeRelease();	// when the rest of the engine releases it, its framebuffers will be released too (those the engine knows about)
-
+	CurrentBackBufferIndex = 0;
+	
 	FRHIResourceCreateInfo CreateInfo;
-	BackBuffer = (FMetalTexture2D*)(FTexture2DRHIParamRef)GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, PF_B8G8R8A8, 1, 1, TexCreate_RenderTargetable | TexCreate_Presentable, CreateInfo);
-	BackBuffer->Surface.Viewport = this;
+	for(uint32 i = 0; i < 2; i++)
+	{
+		if (IsValidRef(BackBuffer[i]))
+		{
+			[BackBuffer[i]->Surface.Texture release];
+			BackBuffer[i]->Surface.Texture = nil;
+			BackBuffer[i].SafeRelease();	// when the rest of the engine releases it, its framebuffers will be released too (those the engine knows about)
+		}
+		
+		BackBuffer[i] = (FMetalTexture2D*)(FTexture2DRHIParamRef)GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, PF_B8G8R8A8, 1, 1, TexCreate_RenderTargetable | TexCreate_Presentable, CreateInfo);
+		BackBuffer[i]->Surface.Viewport = this;
+	}
 #if PLATFORM_MAC // @todo zebra: ios
 	((CAMetalLayer*)View.layer).drawableSize = CGSizeMake(InSizeX, InSizeY);
 #else
@@ -134,6 +147,13 @@ id<MTLTexture> FMetalViewport::GetDrawableTexture()
 	return CurrentDrawable.texture;
 }
 
+void FMetalViewport::SwapBuffers()
+{
+	[BackBuffer[CurrentBackBufferIndex]->Surface.Texture release];
+	BackBuffer[CurrentBackBufferIndex]->Surface.Texture = nil;
+	CurrentBackBufferIndex = (CurrentBackBufferIndex+1) % 2;
+}
+
 void FMetalViewport::ReleaseDrawable()
 {
 	if (Drawable)
@@ -141,7 +161,6 @@ void FMetalViewport::ReleaseDrawable()
 		[Drawable release];
 		Drawable = nil;
 	}
-	BackBuffer->Surface.Texture = nil;
 }
 
 #if PLATFORM_MAC
@@ -186,6 +205,9 @@ void FMetalDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 {
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
 
+	check(Viewport);
+	Viewport->SwapBuffers();
+	
 	((FMetalDeviceContext*)Context)->BeginDrawingViewport(Viewport);
 
 	// Set the render target and viewport.

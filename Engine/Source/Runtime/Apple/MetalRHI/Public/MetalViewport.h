@@ -19,8 +19,10 @@ public:
 	~FMetalViewport();
 
 	void Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen);
-
-	FMetalTexture2D* GetBackBuffer() const { return BackBuffer; }
+	
+	void SwapBuffers();
+	
+	FMetalTexture2D* GetBackBuffer() const { return BackBuffer[CurrentBackBufferIndex % 2]; }
 	id<MTLDrawable> GetDrawable();
 	id<MTLTexture> GetDrawableTexture();
 	void ReleaseDrawable();
@@ -31,7 +33,8 @@ public:
 
 private:
 	id<MTLDrawable> Drawable;
-	TRefCountPtr<FMetalTexture2D> BackBuffer;
+	TRefCountPtr<FMetalTexture2D> BackBuffer[2];
+	uint32 CurrentBackBufferIndex;
 
 #if PLATFORM_MAC
 	FMetalView* View;
