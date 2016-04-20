@@ -60,7 +60,10 @@ namespace
 			if (PropertyHandle->IsValidHandle())
 			{
 				check(RawTextData.IsValidIndex(InIndex));
-				return *RawTextData[InIndex];
+				if (RawTextData[InIndex])
+				{
+					return *RawTextData[InIndex];
+				}
 			}
 			return FText::GetEmpty();
 		}
@@ -72,7 +75,10 @@ namespace
 			if (PropertyHandle->IsValidHandle())
 			{
 				check(RawTextData.IsValidIndex(InIndex));
-				*RawTextData[InIndex] = InText;
+				if (RawTextData[InIndex])
+				{
+					*RawTextData[InIndex] = InText;
+				}
 			}
 		}
 
