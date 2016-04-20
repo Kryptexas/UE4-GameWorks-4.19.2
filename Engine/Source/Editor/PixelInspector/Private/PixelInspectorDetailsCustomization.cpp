@@ -8,6 +8,7 @@
 #include "DetailCategoryBuilder.h"
 #include "DetailWidgetRow.h"
 #include "PropertyHandle.h"
+#include "PixelInspectorModule.h"
 
 #define LOCTEXT_NAMESPACE "PixelInspector"
 
@@ -25,7 +26,7 @@ TSharedRef<IDetailCustomization> FPixelInspectorDetailsCustomization::MakeInstan
 TSharedRef<SHorizontalBox> FPixelInspectorDetailsCustomization::GetGridColorContext()
 {
 	TSharedRef<SHorizontalBox> HorizontalMainGrid = SNew(SHorizontalBox);
-	for (int RowIndex = 0; RowIndex < FinalColorContextGridSize; ++RowIndex)
+	for (int32 ColumnIndex = 0; ColumnIndex < FinalColorContextGridSize; ++ColumnIndex)
 	{
 		SBoxPanel::FSlot &HorizontalSlot = HorizontalMainGrid->AddSlot()
 			.AutoWidth()
@@ -34,7 +35,7 @@ TSharedRef<SHorizontalBox> FPixelInspectorDetailsCustomization::GetGridColorCont
 			.HAlign(HAlign_Center);
 
 		TSharedRef<SVerticalBox> VerticalColumn = SNew(SVerticalBox);
-		for (int ColumnIndex = 0; ColumnIndex < FinalColorContextGridSize; ++ColumnIndex)
+		for (int32 RowIndex = 0; RowIndex < FinalColorContextGridSize; ++RowIndex)
 		{
 			VerticalColumn->AddSlot()
 				.AutoHeight()
@@ -42,7 +43,7 @@ TSharedRef<SHorizontalBox> FPixelInspectorDetailsCustomization::GetGridColorCont
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				[
-					CreateColorCell(PixelInspectorView->FinalColorContext[RowIndex + ColumnIndex*FinalColorContextGridSize])
+					CreateColorCell(RowIndex, ColumnIndex, PixelInspectorView->FinalColorContext[ColumnIndex + RowIndex*FinalColorContextGridSize])
 				];
 		}
 		HorizontalSlot[VerticalColumn];
@@ -50,14 +51,52 @@ TSharedRef<SHorizontalBox> FPixelInspectorDetailsCustomization::GetGridColorCont
 	return HorizontalMainGrid;
 }
 
-
-TSharedRef<SColorBlock> FPixelInspectorDetailsCustomization::CreateColorCell(const FLinearColor &CellColor)
+FReply FPixelInspectorDetailsCustomization::HandleColorCellMouseButtonDown(const FGeometry &, const FPointerEvent &, int32 RowIndex, int32 ColumnIndex)
 {
+	//Send a create a request to the new Coordinate
+	if (RowIndex < 0 || RowIndex > FinalColorContextGridSize ||
+		ColumnIndex < 0 || ColumnIndex > FinalColorContextGridSize)
+		return FReply::Handled();
+
+	int32 DeltaX = ColumnIndex - FMath::FloorToInt((float)FinalColorContextGridSize / 2.0f);
+	int32 DeltaY = RowIndex - FMath::FloorToInt((float)FinalColorContextGridSize / 2.0f);
+	//If user click on the middle do nothing
+	if (DeltaX == 0 && DeltaY == 0)
+		return FReply::Handled();
+	//Get the PixelInspector module
+	FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
+	if (PixelInspectorModule != nullptr)
+	{
+		FIntPoint InspectViewportPos = FIntPoint(-1, -1);
+		uint32 CoordinateViewportId = 0;
+		PixelInspectorModule->GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
+		if (InspectViewportPos == FIntPoint(-1, -1))
+			return FReply::Handled();
+
+		InspectViewportPos.X += DeltaX;
+		InspectViewportPos.Y += DeltaY;
+		if (InspectViewportPos.X < 0 || InspectViewportPos.Y < 0)
+			return FReply::Handled();
+
+		bool IsInspectorActive = PixelInspectorModule->IsPixelInspectorEnable();
+		if (!IsInspectorActive)
+		{
+			PixelInspectorModule->ActivateCoordinateMode();
+		}
+		PixelInspectorModule->SetCoordinatePosition(InspectViewportPos, true);
+	}
+	return FReply::Handled();
+}
+
+TSharedRef<SColorBlock> FPixelInspectorDetailsCustomization::CreateColorCell(int32 RowIndex, int32 ColumnIndex, const FLinearColor &CellColor)
+{
+	int32 SquareSize = FMath::FloorToInt(80.0f / (float)FinalColorContextGridSize);
 	return SNew(SColorBlock)
 		.Color(CellColor)
 		.ShowBackgroundForAlpha(false)
 		.IgnoreAlpha(true)
-		.Size(FVector2D(16.0f, 16.0f));
+		.Size(FVector2D(SquareSize, SquareSize))
+		.OnMouseButtonDown(this, &FPixelInspectorDetailsCustomization::HandleColorCellMouseButtonDown, RowIndex, ColumnIndex);
 }
 
 void FPixelInspectorDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
@@ -70,7 +109,7 @@ void FPixelInspectorDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder&
 	PixelInspectorView = Cast<UPixelInspectorView>(EditingObjects[0].Get());
 
 	IDetailCategoryBuilder& FinalColorCategory = DetailBuilder.EditCategory("FinalColor", FText::GetEmpty());
-	if (PixelInspectorView != nullptr)
+	if (PixelInspectorView.IsValid() )
 	{
 		FDetailWidgetRow& MergeRow = FinalColorCategory.AddCustomRow(LOCTEXT("FinalColorContextArray", "Context Color"))
 		.NameContent()

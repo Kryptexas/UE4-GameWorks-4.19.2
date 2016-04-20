@@ -11,7 +11,7 @@
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: SceneColor
 // ePId_Input1: SeparateTranslucency
-class FRCPassPostProcessBufferInspector : public TRenderingCompositePassBase<2, 1>
+class FRCPassPostProcessBufferInspector : public TRenderingCompositePassBase<3, 1>
 {
 public:
 

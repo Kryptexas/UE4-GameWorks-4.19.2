@@ -7,13 +7,12 @@
 UPixelInspectorView::UPixelInspectorView(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	ViewportId = -1;
-	PixelScreenPosition = FIntPoint(-1, -1);
 	for (int i = 0; i < FinalColorContextGridSize*FinalColorContextGridSize; ++i)
 	{
 		FinalColorContext[i] = FLinearColor::Green;
 	}
 	FinalColor = FLinearColor::Green;
+	SceneColor = FLinearColor::Green;
 	Luminance = 0.0f;
 	HdrColor = FLinearColor::Black;
 	Normal = FVector(0.0f);
@@ -43,8 +42,6 @@ UPixelInspectorView::UPixelInspectorView(const FObjectInitializer& ObjectInitial
 
 void UPixelInspectorView::SetFromResult(PixelInspector::PixelInspectorResult &Result)
 {
-	ViewportId = Result.ViewUniqueId;
-	PixelScreenPosition = Result.ScreenPosition;
 	FinalColor = FLinearColor::Green;
 	//Take the center of the array, TODO display the context
 	for (int i = 0; i < FinalColorContextGridSize*FinalColorContextGridSize; ++i)
@@ -63,6 +60,7 @@ void UPixelInspectorView::SetFromResult(PixelInspector::PixelInspectorResult &Re
 		}
 	}
 	
+	SceneColor = Result.SceneColor;
 	Luminance = Result.HdrLuminance;
 	HdrColor = Result.HdrColor;
 	Normal = Result.Normal;

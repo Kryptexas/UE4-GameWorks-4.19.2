@@ -353,7 +353,7 @@ public:
 	 * Initialize the pixel inspector buffers.
 	 * @return True if implemented false otherwise.
 	 */
-	virtual bool InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
+	virtual bool InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferSceneColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
 	{
 		return false;
 	}

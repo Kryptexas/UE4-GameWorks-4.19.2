@@ -1836,6 +1836,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBufferInspector(RHICmdList));
 			Node->SetInput(ePId_Input0, Context.FinalOutput);
 			Node->SetInput(ePId_Input1, HDRColor);
+			Node->SetInput(ePId_Input2, Context.SceneColor);
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 #endif //WITH_EDITOR

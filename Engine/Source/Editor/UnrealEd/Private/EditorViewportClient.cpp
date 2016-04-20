@@ -3143,15 +3143,34 @@ void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily,
 	FPixelInspectorModule* PixelInspectorModule = &FModuleManager::LoadModuleChecked<FPixelInspectorModule>(TEXT("PixelInspectorModule"));
 	if (PixelInspectorModule != nullptr)
 	{
-		View.bUsePixelInspector = PixelInspectorModule->IsPixelInspectorEnable();
-		bool IsMouseInsideViewport = CurrentMousePos != FIntPoint(-1, -1);
-		if (View.bUsePixelInspector && IsMouseInsideViewport)
+		bool IsInspectorActive = PixelInspectorModule->IsPixelInspectorEnable();
+		View.bUsePixelInspector = IsInspectorActive;
+		FIntPoint InspectViewportPos = FIntPoint(-1, -1);
+		if (IsInspectorActive)
+		{
+			if (CurrentMousePos == FIntPoint(-1, -1))
+			{
+				uint32 CoordinateViewportId = 0;
+				PixelInspectorModule->GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
+				PixelInspectorModule->SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
+				bool IsCoordinateInViewport = InspectViewportPos.X <= Viewport->GetSizeXY().X && InspectViewportPos.Y <= Viewport->GetSizeXY().Y;
+				IsInspectorActive = IsCoordinateInViewport && (CoordinateViewportId == View.State->GetViewKey());
+			}
+			else
+			{
+				InspectViewportPos = CurrentMousePos;
+				PixelInspectorModule->SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
+				PixelInspectorModule->SetCoordinatePosition(CurrentMousePos, false);
+			}
+		}
+
+		if (IsInspectorActive)
 		{
 			// Ready to send a request
 			FSceneInterface *SceneInterface = GetScene();
-			PixelInspectorModule->CreatePixelInspectorRequest(CurrentMousePos, View.State->GetViewKey(), SceneInterface);
+			PixelInspectorModule->CreatePixelInspectorRequest(InspectViewportPos, View.State->GetViewKey(), SceneInterface);
 		}
-		else if (!View.bUsePixelInspector && IsMouseInsideViewport)
+		else if (!View.bUsePixelInspector && CurrentMousePos != FIntPoint(-1, -1))
 		{
 			//Track in case the user hit esc key to stop inspecting pixel
 			PixelInspectorRealtimeManagement(this, true);

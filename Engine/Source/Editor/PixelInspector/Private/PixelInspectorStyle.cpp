@@ -54,6 +54,8 @@ void FPixelInspectorStyle::Initialize()
 	// PixelInspector Icons
 	{
 		StyleSet->Set( "PixelInspector.TabIcon", new IMAGE_BRUSH( "Icons/PixelInspector/icon_PixelInspector_tab_16x", Icon16x16 ) );
+		StyleSet->Set( "PixelInspector.Enabled", new IMAGE_BRUSH( "Icons/PixelInspector/icon_PixelInspector_Stop_16x", Icon16x16 ) );
+		StyleSet->Set( "PixelInspector.Disabled", new IMAGE_BRUSH( "Icons/PixelInspector/icon_PixelInspector_Start_16x", Icon16x16 ) );
 	}
 
 	FSlateStyleRegistry::RegisterSlateStyle( *StyleSet.Get() );

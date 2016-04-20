@@ -28,6 +28,17 @@ namespace PixelInspector
 			FinalColor.Add(LinearColor);
 		}
 	}
+	void PixelInspectorResult::DecodeSceneColor(TArray<FLinearColor> &BufferSceneColorValue)
+	{
+		if (BufferSceneColorValue.Num() <= 0)
+		{
+			SceneColor = FLinearColor::Black;
+			return;
+		}
+		SceneColor = BufferSceneColorValue[0];
+		//Set the alpha to 1.0 as the default value
+		SceneColor.A = 1.0f;
+	}
 	void PixelInspectorResult::DecodeDepth(TArray<FLinearColor> &BufferDepthValue)
 	{
 		if (BufferDepthValue.Num() <= 0)

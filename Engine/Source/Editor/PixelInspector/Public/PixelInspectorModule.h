@@ -1,5 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 #include "ModuleInterface.h"
 #include "UnrealEd.h"
 
@@ -11,6 +13,7 @@ namespace PixelInspector { class SPixelInspector; };
 */
 class FPixelInspectorModule : public IModuleInterface
 {
+
 public:
 	/**
 	* Called right after the module DLL has been loaded and the module object has been created
@@ -25,11 +28,19 @@ public:
 	/** Creates the HLOD Outliner widget */
 	virtual TSharedRef<SWidget> CreatePixelInspectorWidget();
 
+	virtual void ActivateCoordinateMode();
+
 	virtual bool IsPixelInspectorEnable();
+
+	virtual void GetCoordinatePosition(FIntPoint &InspectViewportCoordinate, uint32 &InspectViewportId);
+
+	virtual void SetCoordinatePosition(FIntPoint &InspectViewportCoordinate, bool ReleaseAllRequest);
 
 	virtual bool GetViewportRealtime(int32 ViewportUid, bool IsCurrentlyRealtime, bool IsMouseInsideViewport);
 
-	virtual void CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 viewportUniqueId, FSceneInterface *SceneInterface);
+	virtual void CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 ViewportUniqueId, FSceneInterface *SceneInterface);
+
+	virtual void SetViewportInformation(int32 ViewportUniqueId, FIntPoint ViewportSize);
 
 	virtual void ReadBackSync();
 

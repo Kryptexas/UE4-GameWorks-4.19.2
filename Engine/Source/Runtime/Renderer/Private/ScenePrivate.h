@@ -1632,7 +1632,7 @@ typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;
 	public:
 		FPixelInspectorData();
 
-		void InitializeBuffers(FRenderTarget* BufferFinalColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 bufferIndex);
+		void InitializeBuffers(FRenderTarget* BufferFinalColor, FRenderTarget* BufferSceneColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 bufferIndex);
 
 		bool AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequest);
 
@@ -1642,6 +1642,7 @@ typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;
 		FRenderTarget* RenderTargetBufferDepth[2];
 		FRenderTarget* RenderTargetBufferFinalColor[2];
 		FRenderTarget* RenderTargetBufferHDR[2];
+		FRenderTarget* RenderTargetBufferSceneColor[2];
 		FRenderTarget* RenderTargetBufferA[2];
 		FRenderTarget* RenderTargetBufferBCDE[2];
 	};
@@ -2026,7 +2027,7 @@ public:
 	}
 
 #if WITH_EDITOR
-	virtual bool InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex) override;
+	virtual bool InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferSceneColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex) override;
 
 	virtual bool AddPixelInspectorRequest(FPixelInspectorRequest *PixelInspectorRequest) override;
 #endif //WITH_EDITOR

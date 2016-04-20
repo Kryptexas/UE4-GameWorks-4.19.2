@@ -163,16 +163,18 @@ FPixelInspectorData::FPixelInspectorData()
 	{
 		RenderTargetBufferFinalColor[i] = nullptr;
 		RenderTargetBufferDepth[i] = nullptr;
+		RenderTargetBufferSceneColor[i] = nullptr;
 		RenderTargetBufferHDR[i] = nullptr;
 		RenderTargetBufferA[i] = nullptr;
 		RenderTargetBufferBCDE[i] = nullptr;
 	}
 }
 
-void FPixelInspectorData::InitializeBuffers(FRenderTarget* BufferFinalColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
+void FPixelInspectorData::InitializeBuffers(FRenderTarget* BufferFinalColor, FRenderTarget* BufferSceneColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
 {
 	RenderTargetBufferFinalColor[BufferIndex] = BufferFinalColor;
 	RenderTargetBufferDepth[BufferIndex] = BufferDepth;
+	RenderTargetBufferSceneColor[BufferIndex] = BufferSceneColor;
 	RenderTargetBufferHDR[BufferIndex] = BufferHDR;
 	RenderTargetBufferA[BufferIndex] = BufferA;
 	RenderTargetBufferBCDE[BufferIndex] = BufferBCDE;
@@ -199,6 +201,12 @@ void FPixelInspectorData::InitializeBuffers(FRenderTarget* BufferFinalColor, FRe
 	if (RenderTargetBufferDepth[BufferIndex] != nullptr)
 	{
 		BufferSize = RenderTargetBufferDepth[BufferIndex]->GetSizeXY();
+		check(BufferSize.X == 1 && BufferSize.Y == 1);
+	}
+
+	if (RenderTargetBufferSceneColor[BufferIndex] != nullptr)
+	{
+		BufferSize = RenderTargetBufferSceneColor[BufferIndex]->GetSizeXY();
 		check(BufferSize.X == 1 && BufferSize.Y == 1);
 	}
 
@@ -2506,10 +2514,10 @@ void FScene::OnLevelAddedToWorld_RenderThread(FName InLevelName)
 }
 
 #if WITH_EDITOR
-bool FScene::InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
+bool FScene::InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferSceneColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
 {
 	//Initialize the buffers
-	PixelInspectorData.InitializeBuffers(BufferFinalColor, BufferDepth, BufferHDR, BufferA, BufferBCDE, BufferIndex);
+	PixelInspectorData.InitializeBuffers(BufferFinalColor, BufferSceneColor, BufferDepth, BufferHDR, BufferA, BufferBCDE, BufferIndex);
 	//return true when the interface is implemented
 	return true;
 }
