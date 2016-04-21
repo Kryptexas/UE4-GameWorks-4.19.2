@@ -2,7 +2,7 @@
 
 #pragma once
 
-#if WITH_EDITOR
+#if 0//WITH_EDITOR
 #include "AssetData.h"
 #endif
 
