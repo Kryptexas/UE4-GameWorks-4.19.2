@@ -68,7 +68,7 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 		State.RenderPassEnd(CmdBuffer);
 	}
 
-	check(SourceTextureRHI->GetNumSamples() < 2);
+	check(!SourceTextureRHI || SourceTextureRHI->GetNumSamples() < 2);
 
 	FVulkanFramebuffer* Framebuffer = State.GetFrameBuffer();
 	if (Framebuffer)

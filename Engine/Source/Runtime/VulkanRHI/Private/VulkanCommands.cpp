@@ -525,7 +525,7 @@ void FVulkanCommandListContext::RHIDrawPrimitive(uint32 PrimitiveType, uint32 Ba
 #endif
 	{
 		auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-		State.PrepareDraw(CmdBuffer, UEToVulkanType((EPrimitiveType)PrimitiveType));
+		State.PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PrimitiveType));
 		vkCmdDraw(CmdBuffer->GetHandle(), NumVertices, NumInstances, BaseVertexIndex, 0);
 	}
 
@@ -571,7 +571,7 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef 
 		FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
 		FVulkanCmdBuffer* Cmd = CommandBufferManager->GetActiveCmdBuffer();
 		VkCommandBuffer CmdBuffer = Cmd->GetHandle();
-		State.PrepareDraw(Cmd, UEToVulkanType((EPrimitiveType)PrimitiveType));
+		State.PrepareDraw(this, Cmd, UEToVulkanType((EPrimitiveType)PrimitiveType));
 
 		vkCmdBindIndexBuffer(CmdBuffer, IndexBuffer->GetHandle(), IndexBuffer->GetOffset(), IndexBuffer->GetIndexType());
 
@@ -665,7 +665,7 @@ void FVulkanCommandListContext::RHIEndDrawPrimitiveUP()
 	#endif
 	{
 		auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-		State.PrepareDraw(CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
+		State.PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
 		vkCmdDraw(CmdBuffer->GetHandle(), PendingNumVertices, 1, PendingMinVertexIndex, 0);
 	}
 
@@ -714,7 +714,7 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 	{
 		FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 		VkCommandBuffer Cmd = CmdBuffer->GetHandle();
-		State.PrepareDraw(CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
+		State.PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
 		uint32 NumIndices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
 		vkCmdBindIndexBuffer(Cmd, PendingDrawPrimUPIndexAllocInfo.GetHandle(), PendingDrawPrimUPIndexAllocInfo.GetBindOffset(), PendingPrimitiveIndexType);
 		vkCmdDrawIndexed(Cmd, NumIndices, 1, PendingMinVertexIndex, 0, 0);

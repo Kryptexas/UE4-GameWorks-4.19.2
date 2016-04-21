@@ -831,7 +831,7 @@ public:
 
 	class FVulkanPipeline* PrepareForDraw(const struct FVulkanPipelineGraphicsKey& PipelineKey, uint32 VertexInputKey, const struct FVulkanPipelineState& State);
 
-    void UpdateDescriptorSets(FVulkanGlobalUniformPool* GlobalUniformPool);
+	void UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
 
 	void BindDescriptorSets(FVulkanCmdBuffer* Cmd);
 
@@ -1067,11 +1067,6 @@ private:
 
 	// these are the cache pipeline state objects used in this BSS
 	TMap<FVulkanPipelineGraphicsKey, class FVulkanPipeline*> PipelineCache;
-
-	// descriptor set objects used by this BSS
-	uint64 LastFrameRendered;
-	int32 CurrentDS[VULKAN_NUM_COMMAND_BUFFERS];
-	TArray<FVulkanDescriptorSets*> DescriptorSets[VULKAN_NUM_COMMAND_BUFFERS];
 };
 
 template<class T>

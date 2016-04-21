@@ -307,18 +307,6 @@ FVulkanPendingState::~FVulkanPendingState()
 	RenderPassMap.Empty(0);
 }
 
-FVulkanDescriptorSets* FVulkanPendingState::AllocateDescriptorSet(const FVulkanBoundShaderState* BoundShaderState)
-{
-	FVulkanDescriptorSets* DescriptorSet = new FVulkanDescriptorSets(Device, BoundShaderState, Device->GetDescriptorPool());
-	return DescriptorSet;
-}
-
-void FVulkanPendingState::DeallocateDescriptorSet(FVulkanDescriptorSets*& DescriptorSet, const FVulkanBoundShaderState* BoundShaderState)
-{
-	delete DescriptorSet;
-	DescriptorSet = nullptr;
-}
-
 FVulkanGlobalUniformPool& FVulkanPendingState::GetGlobalUniformPool()
 {
     check(GlobalUniformPool);
@@ -583,7 +571,7 @@ inline void FVulkanBoundShaderState::BindDescriptorSets(FVulkanCmdBuffer* Cmd)
 	CurrDescriptorSets->Bind(Cmd, this);
 }
 
-void FVulkanPendingState::PrepareDraw(FVulkanCmdBuffer* Cmd, VkPrimitiveTopology Topology)
+void FVulkanPendingState::PrepareDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* Cmd, VkPrimitiveTopology Topology)
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallPrepareTime);
 
@@ -594,7 +582,7 @@ void FVulkanPendingState::PrepareDraw(FVulkanCmdBuffer* Cmd, VkPrimitiveTopology
 	UpdateRenderPass(Cmd);
 
 	check(CurrentState.Shader);
-    CurrentState.Shader->UpdateDescriptorSets(GlobalUniformPool);
+    CurrentState.Shader->UpdateDescriptorSets(CmdListContext, Cmd, GlobalUniformPool);
 
 	// let the BoundShaderState return a pipeline object for the full current state of things
 	CurrentState.InputAssembly.topology = Topology;

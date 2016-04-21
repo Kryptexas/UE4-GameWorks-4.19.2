@@ -20,9 +20,6 @@ public:
 
 	~FVulkanPendingState();
 
-	FVulkanDescriptorSets* AllocateDescriptorSet(const FVulkanBoundShaderState* BoundShaderState);
-	void DeallocateDescriptorSet(FVulkanDescriptorSets*& DescriptorSet, const FVulkanBoundShaderState* BoundShaderState);
-
     FVulkanGlobalUniformPool& GetGlobalUniformPool();
 
 	void SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& InRTInfo);
@@ -31,7 +28,7 @@ public:
 
 	bool RenderPassBegin(FVulkanCmdBuffer* CmdBuffer);
 
-	void PrepareDraw(FVulkanCmdBuffer* CmdBuffer, VkPrimitiveTopology Topology);
+	void PrepareDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, VkPrimitiveTopology Topology);
 
 	void RenderPassEnd(FVulkanCmdBuffer* CmdBuffer);
 

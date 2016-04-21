@@ -315,6 +315,9 @@ private:
 	FVulkanDescriptorPool* Pool;
 	const FVulkanDescriptorSetsLayout& Layout;
 	TArray<VkDescriptorSet> Sets;
+
+	friend class FVulkanBoundShaderState;
+	friend class FVulkanCommandListContext;
 };
 
 void VulkanSetImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, const VkImageSubresourceRange& SubresourceRange);
