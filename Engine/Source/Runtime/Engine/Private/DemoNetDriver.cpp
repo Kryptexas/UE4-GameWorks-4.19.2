@@ -1519,9 +1519,20 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 			Actor->CallPreReplication( this );
 
-			const bool bUpdatedExternalData = ( FindOrCreateRepChangedPropertyTracker( Actor ).Get()->ExternalData.Num() > 0 );
+			const bool bDidReplicateActor = DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, false );
 
-			if ( DemoReplicateActor( Actor, ClientConnections[0], SpectatorController, false ) || bUpdatedExternalData )
+			TSharedPtr<FRepChangedPropertyTracker> PropertyTracker = FindOrCreateRepChangedPropertyTracker( Actor );
+
+			if (!bDidReplicateActor)
+			{
+				// Clear external data if the actor didn't replicate for some reason
+				PropertyTracker->ExternalData.Empty();
+				PropertyTracker->ExternalDataNumBits = 0;
+			}
+
+			const bool bUpdatedExternalData = PropertyTracker->ExternalData.Num() > 0;
+
+			if ( bDidReplicateActor || bUpdatedExternalData )
 			{
 				// Choose an optimal time, we choose 70% of the actual rate to allow frequency to go up if needed
 				ActorInfo->OptimalNetUpdateDelta = FMath::Clamp( LastReplicateDelta * 0.7f, MinOptimalDelta, MaxOptimalDelta );
