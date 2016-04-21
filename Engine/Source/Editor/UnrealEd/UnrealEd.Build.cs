@@ -45,7 +45,8 @@ public class UnrealEd : ModuleRules
 				"PlacementMode",
 				"Settings",
 				"SettingsEditor",
-				"SoundClassEditor",
+                "SuperSearch",
+                "SoundClassEditor",
 				"ViewportSnapping",
 				"SourceCodeAccess",
 				"ReferenceViewer",
@@ -122,7 +123,6 @@ public class UnrealEd : ModuleRules
 				"SoundClassEditor",
 				"SoundCueEditor",
 				"SourceControlWindows",
-                "SuperSearch",
 				"StatsViewer",
 				"SwarmInterface",
 				"TargetPlatform",
@@ -182,7 +182,8 @@ public class UnrealEd : ModuleRules
 				"SettingsEditor",
 				"SessionFrontend",
 				"Sequencer",
-				"GeometryMode",
+                "SuperSearch",
+                "GeometryMode",
 				"TextureAlignMode",
 				"FoliageEdit",
 				"PackageDependencyInfo",
@@ -230,7 +231,6 @@ public class UnrealEd : ModuleRules
 			{
                 "GraphEditor",
 				"Kismet",
-                "SuperSearch",
             }
 		); 
 

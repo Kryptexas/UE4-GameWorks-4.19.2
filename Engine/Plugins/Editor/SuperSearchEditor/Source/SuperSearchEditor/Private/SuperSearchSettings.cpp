@@ -1,8 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "SuperSearchEditorPrivatePCH.h"
 
 #include "SuperSearchSettings.h"
+
+class FSuperSearchEditorModule : public FDefaultModuleImpl
+{
+public:
+	virtual void StartupModule() override
+	{
+	}
+
+	virtual void ShutdownModule() override
+	{
+	}
+};
+
+//////////////////////////////////////////////////////////////////////////
+
+IMPLEMENT_MODULE(FSuperSearchEditorModule, SuperSearchEditor);
 
 void USuperSearchSettings::PostInitProperties()
 {
