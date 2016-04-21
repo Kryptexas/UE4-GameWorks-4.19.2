@@ -94,16 +94,14 @@ void UChildActorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
 
-	const UWorld* const MyWorld = GetWorld();
-	DestroyChildActor(MyWorld && !MyWorld->IsGameWorld());
+	DestroyChildActor();
 }
 
 void UChildActorComponent::OnUnregister()
 {
 	Super::OnUnregister();
 
-	const UWorld* const MyWorld = GetWorld();
-	DestroyChildActor(MyWorld && !MyWorld->IsGameWorld());
+	DestroyChildActor();
 }
 
 FChildActorComponentInstanceData::FChildActorComponentInstanceData(const UChildActorComponent* Component)
