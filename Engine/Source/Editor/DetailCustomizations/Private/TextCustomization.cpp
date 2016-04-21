@@ -46,38 +46,37 @@ namespace
 
 		virtual int32 GetNumTexts() const override
 		{
-			const TArray<FText*>& RawTextData = SyncRawTextData();
-
 			return (PropertyHandle->IsValidHandle())
-				? RawTextData.Num() 
+				? PropertyHandle->GetNumPerObjectValues() 
 				: 0;
 		}
 
 		virtual FText GetText(const int32 InIndex) const override
 		{
-			const TArray<FText*>& RawTextData = SyncRawTextData();
-
 			if (PropertyHandle->IsValidHandle())
 			{
-				check(RawTextData.IsValidIndex(InIndex));
-				if (RawTextData[InIndex])
+				FString ObjectValue;
+				if (PropertyHandle->GetPerObjectValue(InIndex, ObjectValue) == FPropertyAccess::Success)
 				{
-					return *RawTextData[InIndex];
+					FText TextValue;
+					if (FTextStringHelper::ReadFromString(*ObjectValue, TextValue))
+					{
+						return TextValue;
+					}
 				}
 			}
+
 			return FText::GetEmpty();
 		}
 
 		virtual void SetText(const int32 InIndex, const FText& InText) override
 		{
-			const TArray<FText*>& RawTextData = SyncRawTextData();
-
 			if (PropertyHandle->IsValidHandle())
 			{
-				check(RawTextData.IsValidIndex(InIndex));
-				if (RawTextData[InIndex])
+				FString ObjectValue;
+				if (FTextStringHelper::WriteToString(ObjectValue, InText))
 				{
-					*RawTextData[InIndex] = InText;
+					PropertyHandle->SetPerObjectValue(InIndex, ObjectValue);
 				}
 			}
 		}
@@ -108,26 +107,8 @@ namespace
 		}
 
 	private:
-		const TArray<FText*>& SyncRawTextData() const
-		{
-			// Sync the scratch data array with the current property data
-			RawTextDataScratchArray.Reset();
-
-			if (PropertyHandle->IsValidHandle())
-			{
-				PropertyHandle->EnumerateRawData([&](void* RawData, const int32 DataIndex, const int32 NumDatas) -> bool
-				{
-					RawTextDataScratchArray.Add(static_cast<FText*>(RawData));
-					return true;
-				});
-			}
-
-			return RawTextDataScratchArray;
-		}
-
 		TSharedRef<IPropertyHandle> PropertyHandle;
 		TSharedPtr<IPropertyUtilities> PropertyUtilities;
-		mutable TArray<FText*> RawTextDataScratchArray;
 	};
 }
 
