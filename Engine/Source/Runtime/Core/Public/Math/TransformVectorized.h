@@ -745,6 +745,18 @@ public:
 	FORCEINLINE static void Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B);
 
 	/**
+	* Create a new transform: OutTransform = A * B using the matrix while keeping the scale that's given by A and B
+	* Please note that this operation is a lot more expensive than normal Multiply
+	*
+	* Order matters when composing transforms : A * B will yield a transform that logically first applies A then B to any subsequent transformation.
+	*
+	* @param  OutTransform pointer to transform that will store the result of A * B.
+	* @param  A Transform A.
+	* @param  B Transform B.
+	*/
+	FORCEINLINE static void MultiplyUsingMatrixWithScale(FTransform* OutTransform, const FTransform* A, const FTransform* B);
+
+	/**
 	 * Sets the components
 	 * @param InRotation The new value for the Rotation component
 	 * @param InTranslation The new value for the Translation component
@@ -1411,14 +1423,48 @@ FORCEINLINE void FTransform::RemoveScaling(float Tolerance/*=SMALL_NUMBER*/)
 	DiagnosticCheckNaN_Scale3D();
 }
 
+FORCEINLINE void FTransform::MultiplyUsingMatrixWithScale(FTransform* OutTransform, const FTransform* A, const FTransform* B)
+{
+	// the goal of using M is to get the correct orientation
+	// but for translation, we still need scale
+	FMatrix M = A->ToMatrixWithScale() * B->ToMatrixWithScale();
+	M.RemoveScaling();
+
+	// get combined scale
+	const VectorRegister Scale3D = VectorMultiply(A->Scale3D, B->Scale3D);
+
+	// apply negative scale back to axes
+	FVector SignedScale;
+	VectorStoreFloat3(VectorSign(Scale3D), &SignedScale);
+
+	M.SetAxis(0, SignedScale.X * M.GetScaledAxis(EAxis::X));
+	M.SetAxis(1, SignedScale.Y * M.GetScaledAxis(EAxis::Y));
+	M.SetAxis(2, SignedScale.Z * M.GetScaledAxis(EAxis::Z));
+
+	// @note: if you have negative with 0 scale, this will return rotation that is identity
+	// since matrix loses that axes
+	FQuat Rotation = FQuat(M);
+	Rotation.Normalize();
+
+	// set values back to output
+	OutTransform->Scale3D = Scale3D;
+	OutTransform->Rotation = VectorLoadAligned(&Rotation);
+	
+	// technically I could calculate this using FTransform but then it does more quat multiplication 
+	// instead of using Scale in matrix multiplication
+	// it's a question of between RemoveScaling vs using FTransform to move translation
+	FVector Translation = M.GetOrigin();
+	OutTransform->Translation = VectorLoadFloat3_W0(&Translation);
+}
+
 /** Returns Multiplied Transform of 2 FTransforms **/
 FORCEINLINE void FTransform::Multiply(FTransform* OutTransform, const FTransform* A, const FTransform* B)
 {
 	A->DiagnosticCheckNaN_All();
 	B->DiagnosticCheckNaN_All();
 
-	checkSlow( A->IsRotationNormalized() );
-	checkSlow( B->IsRotationNormalized() );
+	checkSlow(A->IsRotationNormalized());
+	checkSlow(B->IsRotationNormalized());
 
 	//	When Q = quaternion, S = single scalar scale, and T = translation
 	//	QST(A) = Q(A), S(A), T(A), and QST(B) = Q(B), S(B), T(B)
@@ -1435,26 +1481,34 @@ FORCEINLINE void FTransform::Multiply(FTransform* OutTransform, const FTransform
 	//	S(AxB) = S(A)*S(B)
 	//	T(AxB) = Q(B)*S(B)*T(A)*-Q(B) + T(B)
 
-	const VectorRegister QuatA = A->Rotation;
-	const VectorRegister QuatB = B->Rotation;
-	const VectorRegister TranslateA = A->Translation;
-	const VectorRegister TranslateB = B->Translation;
-	const VectorRegister ScaleA = A->Scale3D;
-	const VectorRegister ScaleB = B->Scale3D;
+	const VectorRegister MinVector = VectorMin(A->Scale3D, B->Scale3D);
+	const bool bHaveNegativeScale = VectorGetComponent(MinVector, 0) < 0.f || VectorGetComponent(MinVector, 1) < 0.f || VectorGetComponent(MinVector, 2) < 0.f;
+	if (bHaveNegativeScale)
+	{
+		// @note, if you have 0 scale with negative, you're going to lose rotation as it can't convert back to quat
+		MultiplyUsingMatrixWithScale(OutTransform, A, B);
+	}
+	else
+	{
+		const VectorRegister QuatA = A->Rotation;
+		const VectorRegister QuatB = B->Rotation;
+		const VectorRegister TranslateA = A->Translation;
+		const VectorRegister TranslateB = B->Translation;
+		const VectorRegister ScaleA = A->Scale3D;
+		const VectorRegister ScaleB = B->Scale3D;
 
-	// RotationResult = B.Rotation * A.Rotation
-	OutTransform->Rotation = VectorQuaternionMultiply2(QuatB, QuatA);
+		// RotationResult = B.Rotation * A.Rotation
+		OutTransform->Rotation = VectorQuaternionMultiply2(QuatB, QuatA);
 
-	// TranslateResult = B.Rotate(B.Scale * A.Translation) + B.Translate
-	const VectorRegister ScaledTransA = VectorMultiply(TranslateA, ScaleB);
-	const VectorRegister RotatedTranslate = VectorQuaternionRotateVector(QuatB, ScaledTransA);
-	OutTransform->Translation = VectorAdd(RotatedTranslate, TranslateB);
+		// TranslateResult = B.Rotate(B.Scale * A.Translation) + B.Translate
+		const VectorRegister ScaledTransA = VectorMultiply(TranslateA, ScaleB);
+		const VectorRegister RotatedTranslate = VectorQuaternionRotateVector(QuatB, ScaledTransA);
+		OutTransform->Translation = VectorAdd(RotatedTranslate, TranslateB);
 
-	// ScaleResult = Scale.B * Scale.A
-	OutTransform->Scale3D = VectorMultiply(ScaleA, ScaleB);;
-
+		// ScaleResult = Scale.B * Scale.A
+		OutTransform->Scale3D = VectorMultiply(ScaleA, ScaleB);;
+	}
 }
-
 /** 
  * Apply Scale to this transform
  */
