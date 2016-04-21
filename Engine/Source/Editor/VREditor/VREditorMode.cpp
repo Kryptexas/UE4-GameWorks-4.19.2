@@ -119,7 +119,8 @@ FVREditorMode::FVREditorMode()
 	  UISystem(),
 	  WorldInteraction(),
 	  CurrentGizmoType( EGizmoHandleTypes::All ),
-	  bFirstTick( true )
+	  bFirstTick( true ),
+	  bWasInWorldSpaceBeforeScaleMode( false )
 {
 	FEditorDelegates::MapChange.AddRaw( this, &FVREditorMode::OnMapChange );
 	FEditorDelegates::BeginPIE.AddRaw( this, &FVREditorMode::OnBeginPIE );
@@ -1352,20 +1353,20 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 	{
 		const FTransform RoomToWorld = GetRoomTransform();
 		const FTransform WorldToRoom = RoomToWorld.Inverse();
-		const FTransform ViewportToWorld = FTransform(SavedEditorState.ViewRotation, SavedEditorState.ViewLocation);
+		const FTransform ViewportToWorld = FTransform( SavedEditorState.ViewRotation, SavedEditorState.ViewLocation );
 		const FTransform ViewportToRoom = ViewportToWorld * WorldToRoom;
 
 		FTransform ViewportToRoomYaw = ViewportToRoom;
-		ViewportToRoomYaw.SetRotation(FQuat(FRotator(0.0f, ViewportToRoomYaw.GetRotation().Rotator().Yaw, 0.0f)));
+		ViewportToRoomYaw.SetRotation( FQuat( FRotator( 0.0f, ViewportToRoomYaw.GetRotation().Rotator().Yaw, 0.0f ) ) );
 
 		FTransform HeadToRoomYaw = GetRoomSpaceHeadTransform();
-		HeadToRoomYaw.SetRotation(FQuat(FRotator(0.0f, HeadToRoomYaw.GetRotation().Rotator().Yaw, 0.0f)));
+		HeadToRoomYaw.SetRotation( FQuat( FRotator( 0.0f, HeadToRoomYaw.GetRotation().Rotator().Yaw, 0.0f ) ) );
 
 		FTransform RoomToWorldYaw = RoomToWorld;
-		RoomToWorldYaw.SetRotation(FQuat(FRotator(0.0f, RoomToWorldYaw.GetRotation().Rotator().Yaw, 0.0f)));
+		RoomToWorldYaw.SetRotation( FQuat( FRotator( 0.0f, RoomToWorldYaw.GetRotation().Rotator().Yaw, 0.0f ) ) );
 
 		FTransform ResultToWorld = ( HeadToRoomYaw.Inverse() * ViewportToRoomYaw ) * RoomToWorldYaw;
-		SetRoomTransform(ResultToWorld);
+		SetRoomTransform( ResultToWorld );
 	}
 
 
@@ -2678,78 +2679,81 @@ void FVREditorMode::ApplyButtonPressColors( FVRAction VRAction, EInputEvent Even
 {
 	SpawnAvatarMeshActor();
 	
-	FVirtualHand Hand = GetVirtualHand( VRAction.HandIndex );
+	FVirtualHand& Hand = GetVirtualHand( VRAction.HandIndex );
 
 	const float PressStrength = 10.0f;
 
-	//Trigger
+	// Trigger
 	if ( VRAction.ActionType == EVRActionType::SelectAndMove || VRAction.ActionType == EVRActionType::SelectAndMove_LightlyPressed )
 	{
 		static FName StaticTriggerParameter( "B1" );
-
-		if( Event == IE_Pressed)
-		{
-			Hand.HandMeshMID->SetScalarParameterValue( StaticTriggerParameter, PressStrength );
-		}
-		else if ( Event == IE_Released )
-		{
-			Hand.HandMeshMID->SetScalarParameterValue( StaticTriggerParameter, 0.0f );
-		}
+		SetMotionControllerButtonPressedVisuals( Hand, Event, StaticTriggerParameter, PressStrength );
 	}
 
-	//Shoulder button
+	// Shoulder button
 	if ( VRAction.ActionType == EVRActionType::WorldMovement )
 	{
 		static FName StaticShoulderParameter( "B2" );
-
-		if (Event == IE_Pressed)
-		{
-			Hand.HandMeshMID->SetScalarParameterValue( StaticShoulderParameter, PressStrength );
-		}
-		else if( Event == IE_Released )
-		{
-			Hand.HandMeshMID->SetScalarParameterValue( StaticShoulderParameter, 0.0f );
-		}
+		SetMotionControllerButtonPressedVisuals( Hand, Event, StaticShoulderParameter, PressStrength );
 	}
 
-	//Trackpad
+	// Trackpad
 	if( VRAction.ActionType == EVRActionType::ConfirmRadialSelection )
 	{
 		static FName StaticTrackpadParameter( "B3" );
-
-		if( Event == IE_Pressed )
-		{
-			Hand.HandMeshMID->SetScalarParameterValue( StaticTrackpadParameter, PressStrength );
-		}
-		else if( Event == IE_Released )
-		{
-			Hand.HandMeshMID->SetScalarParameterValue( StaticTrackpadParameter, 0.0f );
-		}
+		SetMotionControllerButtonPressedVisuals( Hand, Event, StaticTrackpadParameter, PressStrength );
 	}
 
+	// Modifier
 	if( VRAction.ActionType == EVRActionType::Modifier )
 	{
 		static FName StaticModifierParameter( "B4" );
+		SetMotionControllerButtonPressedVisuals( Hand, Event, StaticModifierParameter, PressStrength );
+	}
+}
 
-		if( Event == IE_Pressed )
-		{
-			Hand.HandMeshMID->SetScalarParameterValue( StaticModifierParameter, PressStrength );
-		}
-		else if( Event == IE_Released )
-		{
-			Hand.HandMeshMID->SetScalarParameterValue( StaticModifierParameter, 0.0f );
-		}
+void FVREditorMode::SetMotionControllerButtonPressedVisuals( FVirtualHand& Hand, EInputEvent Event, const FName& ParameterName, const float PressStrength )
+{
+	if ( Event == IE_Pressed )
+	{
+		Hand.HandMeshMID->SetScalarParameterValue( ParameterName, PressStrength);
+	}
+	else if ( Event == IE_Released )
+	{
+		Hand.HandMeshMID->SetScalarParameterValue( ParameterName, 0.0f);
 	}
 }
 
 void FVREditorMode::CycleTransformGizmoHandleType()
 {
 	EGizmoHandleTypes NewGizmoType = (EGizmoHandleTypes)( (uint8)CurrentGizmoType + 1 );
+	
 	if( NewGizmoType > EGizmoHandleTypes::Scale )
 	{
 		NewGizmoType = EGizmoHandleTypes::All;
 	}
 
+	// Set coordinate system to local if the next gizmo will be for non-uniform scaling 
+	if ( NewGizmoType == EGizmoHandleTypes::Scale )
+	{
+		const ECoordSystem CurrentCoordSystem = GetTransformGizmoCoordinateSpace();
+		if ( CurrentCoordSystem == COORD_World )
+		{
+			GLevelEditorModeTools().SetCoordSystem( COORD_Local );
+			// Remember if coordinate system was in world space before scaling
+			bWasInWorldSpaceBeforeScaleMode = true;
+		}
+		else if ( CurrentCoordSystem == COORD_Local )
+		{
+			bWasInWorldSpaceBeforeScaleMode = false;
+		}
+	} 
+	else if ( CurrentGizmoType == EGizmoHandleTypes::Scale && bWasInWorldSpaceBeforeScaleMode )
+	{
+		// Set the coordinate system to world space if the coordinate system was world before scaling
+		SetTransformGizmoCoordinateSpace( COORD_World );
+	}
+	
 	CurrentGizmoType = NewGizmoType;
 }
 
@@ -2759,17 +2763,22 @@ EGizmoHandleTypes FVREditorMode::GetCurrentGizmoType() const
 	return CurrentGizmoType;
 }
 
-
 void FVREditorMode::CycleTransformGizmoCoordinateSpace()
 {
-	const ECoordSystem CurrentCoordSystem = GLevelEditorModeTools().GetCoordSystem();
-	GLevelEditorModeTools().SetCoordSystem( CurrentCoordSystem == COORD_World ? COORD_Local : COORD_World );
+	const bool bGetRawValue = true;
+	const ECoordSystem CurrentCoordSystem = GLevelEditorModeTools().GetCoordSystem( bGetRawValue );
+	SetTransformGizmoCoordinateSpace( CurrentCoordSystem == COORD_World ? COORD_Local : COORD_World );
 }
 
+void FVREditorMode::SetTransformGizmoCoordinateSpace( const ECoordSystem NewCoordSystem )
+{
+	GLevelEditorModeTools().SetCoordSystem( NewCoordSystem );
+}
 
 ECoordSystem FVREditorMode::GetTransformGizmoCoordinateSpace() const
 {
-	const ECoordSystem CurrentCoordSystem = GLevelEditorModeTools().GetCoordSystem();
+	const bool bGetRawValue = true;
+	const ECoordSystem CurrentCoordSystem = GLevelEditorModeTools().GetCoordSystem( bGetRawValue );
 	return CurrentCoordSystem;
 }
 

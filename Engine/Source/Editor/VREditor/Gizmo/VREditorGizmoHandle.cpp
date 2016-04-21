@@ -6,7 +6,8 @@
 #include "VREditorMode.h"
 
 UVREditorGizmoHandleGroup::UVREditorGizmoHandleGroup()
-	: Super()
+	: Super(),
+	bShowOnUniversalGizmo( true )
 {
 
 }
@@ -112,12 +113,13 @@ ETransformGizmoInteractionType UVREditorGizmoHandleGroup::GetInteractionType() c
 	return ETransformGizmoInteractionType::Translate;
 }
 
-void UVREditorGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
+void UVREditorGizmoHandleGroup::UpdateGizmoHandleGroup(const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, 
+	const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
-	UpdateHoverAnimation( DraggingHandle, HoveringOverHandles, GizmoHoverAnimationDuration, bOutIsHoveringOrDraggingThisHandleGroup );
+	UpdateHoverAnimation(DraggingHandle, HoveringOverHandles, GizmoHoverAnimationDuration, bOutIsHoveringOrDraggingThisHandleGroup);
 }
 
-int32 UVREditorGizmoHandleGroup::GetDraggedHandleIndex( class UStaticMeshComponent* DraggedMesh )
+int32 UVREditorGizmoHandleGroup::GetDraggedHandleIndex(class UStaticMeshComponent* DraggedMesh)
 {
 	for( int32 HandleIndex = 0; HandleIndex < Handles.Num(); ++HandleIndex )
 	{
@@ -147,6 +149,16 @@ TArray<FVREditorGizmoHandle>& UVREditorGizmoHandleGroup::GetHandles()
 EGizmoHandleTypes UVREditorGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::All;
+}
+
+void UVREditorGizmoHandleGroup::SetShowOnUniversalGizmo( const bool bInShowOnUniversal )
+{
+	bShowOnUniversalGizmo = bInShowOnUniversal;
+}
+
+bool UVREditorGizmoHandleGroup::GetShowOnUniversalGizmo() const
+{
+	return bShowOnUniversalGizmo;
 }
 
 void UVREditorGizmoHandleGroup::UpdateHandleColor( const int32 AxisIndex, FVREditorGizmoHandle& Handle, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles )
@@ -276,5 +288,100 @@ void UVREditorGizmoHandleGroup::UpdateHoverAnimation( UActorComponent* DraggingH
 			Handle.HoverAlpha -= GetWorld()->GetDeltaSeconds() / GizmoHoverAnimationDuration;
 		}
 		Handle.HoverAlpha = FMath::Clamp( Handle.HoverAlpha, 0.0f, 1.0f );
+	}
+}
+
+void UVREditorAxisGizmoHandleGroup::CreateHandles( UStaticMesh* HandleMesh, const FString& HandleComponentName )
+{
+	for ( int32 X = 0; X < 3; ++X )
+	{
+		for ( int32 Y = 0; Y < 3; ++Y )
+		{
+			for ( int32 Z = 0; Z < 3; ++Z )
+			{
+				FTransformGizmoHandlePlacement HandlePlacement = GetHandlePlacement(X, Y, Z);
+
+				int32 CenterHandleCount, FacingAxisIndex, CenterAxisIndex;
+				HandlePlacement.GetCenterHandleCountAndFacingAxisIndex( /* Out */ CenterHandleCount, /* Out */ FacingAxisIndex, /* Out */ CenterAxisIndex);
+
+				// Don't allow translation/stretching/rotation from the origin
+				if ( CenterHandleCount < 3 )
+				{
+					const FString HandleName = MakeHandleName(HandlePlacement);
+
+					// Only happens on the center of an axis. And we only bother drawing one for the "positive" direction.
+					if ( CenterHandleCount == 2 && HandlePlacement.Axes[FacingAxisIndex] == ETransformGizmoHandleDirection::Positive )
+					{
+						// Plane translation handle
+						FString ComponentName = HandleName + HandleName;
+						CreateAndAddMeshHandle( HandleMesh, ComponentName, HandlePlacement );
+					}
+				}
+			}
+		}
+	}
+}
+
+void UVREditorAxisGizmoHandleGroup::UpdateHandlesRelativeTransformOnAxis( const FTransform& HandleToCenter, const float AnimationAlpha, const float GizmoScale, const float GizmoHoverScale,
+	const FVector& ViewLocation, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles )
+{
+	const float WorldScaleFactor = GetWorld()->GetWorldSettings()->WorldToMeters / 100.0f;
+
+	for (int32 HandleIndex = 0; HandleIndex < Handles.Num(); ++HandleIndex)
+	{
+		FVREditorGizmoHandle& Handle = Handles[HandleIndex];
+		UStaticMeshComponent* GizmoHandleMeshComponent = Handle.HandleMesh;
+		if (GizmoHandleMeshComponent != nullptr)	// Can be null if no handle for this specific placement
+		{
+			const FTransformGizmoHandlePlacement HandlePlacement = MakeHandlePlacementForIndex( HandleIndex );
+
+			int32 CenterHandleCount, FacingAxisIndex, CenterAxisIndex;
+			HandlePlacement.GetCenterHandleCountAndFacingAxisIndex( /* Out */ CenterHandleCount, /* Out */ FacingAxisIndex, /* Out */ CenterAxisIndex);
+			
+			FVector GizmoSpaceFacingAxisVector = GetAxisVector( FacingAxisIndex, HandlePlacement.Axes[FacingAxisIndex] );
+			
+			// Check on which side we are relative to the gizmo
+			const FVector GizmoSpaceViewLocation = GetOwner()->GetTransform().InverseTransformPosition( ViewLocation );
+			if ( GizmoSpaceViewLocation[ FacingAxisIndex ] < 0 )
+			{
+				GizmoSpaceFacingAxisVector[ FacingAxisIndex ] *= -1.0f;
+			}
+
+			const FTransform GizmoOriginToFacingAxisRotation( GizmoSpaceFacingAxisVector.ToOrientationQuat() );
+	
+			FTransform HandleToGizmoOrigin = HandleToCenter * GizmoOriginToFacingAxisRotation;
+				
+			// Check on the axis if the offset is on the other side of the object compared to the view. Switch the offset to the side of the view if it does
+			FVector GizmoSpaceFacingAxisOffset = HandleToGizmoOrigin.GetLocation();
+			for ( int32 AxisIndex = 0; AxisIndex < 3; ++AxisIndex )
+			{		
+				if ( AxisIndex != FacingAxisIndex &&
+					( GizmoSpaceFacingAxisOffset[ AxisIndex ] > 0 && GizmoSpaceViewLocation[ AxisIndex ] < 0 ) ||
+					( GizmoSpaceFacingAxisOffset[ AxisIndex ] < 0 && GizmoSpaceViewLocation[ AxisIndex ] > 0 ) )
+				{
+					GizmoSpaceFacingAxisOffset[ AxisIndex ] *= -1.0f;
+				}	
+			}
+
+			GizmoSpaceFacingAxisOffset *= AnimationAlpha;
+
+			HandleToGizmoOrigin.SetLocation( GizmoSpaceFacingAxisOffset * GizmoScale );
+
+			// Set the final transform
+			GizmoHandleMeshComponent->SetRelativeTransform( HandleToGizmoOrigin );
+			
+			float GizmoHandleScale = GizmoScale;
+			if ( GizmoScale != GizmoHoverScale )
+			{
+				// Make the handle bigger while hovered (but don't affect the offset -- we want it to scale about it's origin)
+				GizmoHandleScale *= FMath::Lerp( 1.0f, GizmoHoverScale, Handle.HoverAlpha );
+			}
+			
+			GizmoHandleScale *= AnimationAlpha;
+			GizmoHandleMeshComponent->SetRelativeScale3D( FVector( GizmoHandleScale ) );
+
+			// Update material
+			UpdateHandleColor( FacingAxisIndex, Handle, DraggingHandle, HoveringOverHandles );
+		}
 	}
 }

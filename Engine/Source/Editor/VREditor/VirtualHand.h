@@ -230,13 +230,13 @@ struct FVirtualHand
 	TOptional<FTransformGizmoHandlePlacement> OptionalHandlePlacement;
 
 	/** The gizmo component we're dragging right now */
-	TWeakObjectPtr<class UActorComponent> DraggingTransformGizmoComponent;
+	TWeakObjectPtr<class USceneComponent> DraggingTransformGizmoComponent;
 
 	/** Gizmo component that we're hovering over, or nullptr if not hovering over any */
-	TWeakObjectPtr<class UActorComponent> HoveringOverTransformGizmoComponent;
+	TWeakObjectPtr<class USceneComponent> HoveringOverTransformGizmoComponent;
 
 	/** Gizmo handle that we hovered over last (used only for avoiding spamming of hover haptics!) */
-	TWeakObjectPtr<class UActorComponent> HoverHapticCheckLastHoveredGizmoComponent;
+	TWeakObjectPtr<class USceneComponent> HoverHapticCheckLastHoveredGizmoComponent;
 
 	/** Last real time that we played hover haptic feedback for a gizmo handle.  This is just to avoid spamming haptic effects every frame due to motion jitter */
 	FTimespan LastGizmoHandleHapticTime;

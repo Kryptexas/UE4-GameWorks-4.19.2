@@ -275,8 +275,11 @@ public:
 	/** Gets the current Gizmo handle type */
 	EGizmoHandleTypes GetCurrentGizmoType() const;
 
-	/** Switch which trasform gizmo coordinate space we're using. */
+	/** Switch which transform gizmo coordinate space we're using. */
 	void CycleTransformGizmoCoordinateSpace();
+
+	/** Sets which transform gizmo coordinate space is used */
+	void SetTransformGizmoCoordinateSpace( const ECoordSystem NewCoordSystem );
 
 	/** Returns which transform gizmo coordinate space we're using, world or local */
 	ECoordSystem GetTransformGizmoCoordinateSpace() const;
@@ -347,6 +350,8 @@ private:
 	/** Changes the color of the buttons on the handmesh */
 	void ApplyButtonPressColors( FVRAction VRAction, EInputEvent Event );
 
+	/** Set the visuals for a button on the motion controller */
+	void SetMotionControllerButtonPressedVisuals( FVirtualHand& Hand, EInputEvent Event, const FName& ParameterName, const float PressStrength );
 
 protected:
 
@@ -557,5 +562,8 @@ private:
 
 	/** If this is the first tick or before */
 	bool bFirstTick;
+
+	/** If the coordinate system was in world space before entering (local) scale mode */
+	bool bWasInWorldSpaceBeforeScaleMode;
 };
 

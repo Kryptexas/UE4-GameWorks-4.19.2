@@ -47,16 +47,22 @@ public:
 	/** Gets the owner */
 	class FVREditorMode* GetOwnerMode() const;
 
-protected:
+	/** Called by the world interaction system after we've been spawned into the world, to allow
+	    us to create components and set everything up nicely for the selected objects that we'll be
+		used to manipulate */
+	virtual void UpdateGizmo( const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, 
+		class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, const float GizmoHoverScale, const float GizmoHoverAnimationDuration ) {}
 
-	/** Makes up a name string for a handle */
-	FString MakeHandleName( const FTransformGizmoHandlePlacement HandlePlacement ) const;
+protected:
 
 	/** Static: Given a bounding box and information about which edge to query, returns the vertex positions of that edge */
 	static void GetBoundingBoxEdge( const FBox& Box, const int32 AxisIndex, const int32 EdgeIndex, FVector& OutVertex0, FVector& OutVertex1 );
 
 	/** Updates the visibility of all the handles */
 	void UpdateHandleVisibility( const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, bool bAllHandlesVisible, UActorComponent* DraggingHandle );
+
+	/** Gets if the gizmo shows measurement texts */
+	bool GetShowMeasurementText() const;
 
 protected:
 	

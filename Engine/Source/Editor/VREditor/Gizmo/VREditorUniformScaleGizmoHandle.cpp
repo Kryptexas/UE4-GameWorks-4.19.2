@@ -7,7 +7,8 @@
 #include "UnitConversion.h"
 
 UVREditorUniformScaleGizmoHandleGroup::UVREditorUniformScaleGizmoHandleGroup()
-	: Super()
+	: Super(),
+	bUsePivotAsLocation( true )
 {
 	// Setup uniform scaling
 	UStaticMesh* UniformScaleMesh = nullptr;
@@ -17,42 +18,29 @@ UVREditorUniformScaleGizmoHandleGroup::UVREditorUniformScaleGizmoHandleGroup()
 		check( UniformScaleMesh != nullptr );
 	}
 
-	UStaticMeshComponent* UniformScaleHandle = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "UniformScaleHandle" ) );
+	UStaticMeshComponent* UniformScaleHandle = CreateMeshHandle( UniformScaleMesh, FString( "UniformScaleHandle" ) );
 	check( UniformScaleHandle != nullptr );
-
-	const bool bAllowGizmoLighting = false;	// @todo vreditor: Not sure if we want this for gizmos or not yet.  Needs feedback.  Also they're translucent right now.
-
-	UniformScaleHandle->SetStaticMesh( UniformScaleMesh );
-	UniformScaleHandle->SetMobility( EComponentMobility::Movable );
-	UniformScaleHandle->AttachTo( this );
-
-	UniformScaleHandle->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-	UniformScaleHandle->SetCollisionResponseToAllChannels( ECR_Ignore );
-	UniformScaleHandle->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
-	UniformScaleHandle->SetCollisionObjectType( ECC_EditorGizmo );
-
-	UniformScaleHandle->bGenerateOverlapEvents = false;
-	UniformScaleHandle->SetCanEverAffectNavigation( false );
-	UniformScaleHandle->bCastDynamicShadow = bAllowGizmoLighting;
-	UniformScaleHandle->bCastStaticShadow = false;
-	UniformScaleHandle->bAffectDistanceFieldLighting = bAllowGizmoLighting;
-	UniformScaleHandle->bAffectDynamicIndirectLighting = bAllowGizmoLighting;
 
 	FVREditorGizmoHandle& NewHandle = *new( Handles ) FVREditorGizmoHandle();
 	NewHandle.HandleMesh = UniformScaleHandle;
 }
 
-void UVREditorUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
+void UVREditorUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
+	float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup )
 {
 	// Call parent implementation (updates hover animation)
-	Super::UpdateGizmoHandleGroup( LocalToWorld, LocalBounds, ViewLocation, bAllHandlesVisible, DraggingHandle, HoveringOverHandles, AnimationAlpha, GizmoScale, GizmoHoverScale, GizmoHoverAnimationDuration, bOutIsHoveringOrDraggingThisHandleGroup );
+	Super::UpdateGizmoHandleGroup( LocalToWorld, LocalBounds, ViewLocation, bAllHandlesVisible, DraggingHandle, HoveringOverHandles, 
+		AnimationAlpha, GizmoScale, GizmoHoverScale, GizmoHoverAnimationDuration, bOutIsHoveringOrDraggingThisHandleGroup );
 
 	FVREditorGizmoHandle& Handle = Handles[ 0 ];
 	UStaticMeshComponent* UniformScaleHandle = Handle.HandleMesh;
 	if (UniformScaleHandle != nullptr)	// Can be null if no handle for this specific placement
 	{
-		FVector HandleRelativeLocation = LocalBounds.GetCenter();
-		UniformScaleHandle->SetRelativeLocation( HandleRelativeLocation );
+		FVector HandleRelativeLocation;
+		if ( !bUsePivotAsLocation )
+		{
+			UniformScaleHandle->SetRelativeLocation( HandleRelativeLocation );
+		}
 
 		float GizmoHandleScale = GizmoScale;
 
@@ -87,14 +75,9 @@ void UVREditorUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTrans
 					{
 						HandleColor = Mode->GetColor( FVREditorMode::EColors::DraggingGizmoColor );
 					}
-					else
+					else if (HoveringOverHandles.Contains( UniformScaleHandle ))
 					{
-						HandleColor = VREd::GizmoColor::WhiteGizmoColor;
-
-						if (HoveringOverHandles.Contains( UniformScaleHandle ))
-						{
-							HandleColor = FLinearColor::LerpUsingHSV( HandleColor, Mode->GetColor( FVREditorMode::EColors::HoverGizmoColor ), Handle.HoverAlpha );
-						}
+						HandleColor = FLinearColor::LerpUsingHSV( HandleColor, Mode->GetColor( FVREditorMode::EColors::HoverGizmoColor ), Handle.HoverAlpha );
 					}
 
 					MID0->SetVectorParameterValue( "Color", HandleColor );
@@ -113,4 +96,9 @@ ETransformGizmoInteractionType UVREditorUniformScaleGizmoHandleGroup::GetInterac
 EGizmoHandleTypes UVREditorUniformScaleGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::Scale;
+}
+
+void UVREditorUniformScaleGizmoHandleGroup::SetUsePivotPointAsLocation( bool bUsePivotAsLocation )
+{
+	this->bUsePivotAsLocation = bUsePivotAsLocation;
 }

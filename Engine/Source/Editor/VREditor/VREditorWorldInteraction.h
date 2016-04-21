@@ -28,7 +28,7 @@ public:
 	void Render( const class FSceneView* SceneView, class FViewport* Viewport, class FPrimitiveDrawInterface* PDI );
 
 	/** Gets the transform gizmo actor, or returns null if we currently don't have one */
-	class ATransformGizmo* GetTransformGizmoActor() const
+	class ABaseTransformGizmo* GetTransformGizmoActor() const
 	{
 		return TransformGizmoActor;
 	}
@@ -72,7 +72,7 @@ protected:
 	/** Called by the world interaction system when one of our components is dragged by the user.  If null is
 	    passed in then we'll treat it as dragging the whole object (rather than a specific axis/handle) */
 	void UpdateDragging( 
-		const float DeltaTime, 
+		const float DeltaTime,
 		bool& bIsFirstDragUpdate, 
 		const EVREditorDraggingMode DraggingMode, 
 		const ETransformGizmoInteractionType InteractionType, 
@@ -90,6 +90,7 @@ protected:
 		const bool bIsLaserPointerValid, 
 		const FTransform& GizmoStartTransform, 
 		const FBox& GizmoStartLocalBounds, 
+		const USceneComponent* const DraggingTransformGizmoComponent,
 		FVector& GizmoSpaceFirstDragUpdateOffsetAlongAxis,
 		FVector& DragDeltaFromStartOffset,
 		bool& bIsDrivingVelocityOfSimulatedTransformables,
@@ -178,7 +179,7 @@ protected:
 	//
 
 	/** Transform gizmo actor, for manipulating selected actor(s) */
-	class ATransformGizmo* TransformGizmoActor;
+	class ABaseTransformGizmo* TransformGizmoActor;
 
 	/** Current gizmo bounds in local space.  Updated every frame.  This is not the same as the gizmo actor's bounds. */
 	FBox GizmoLocalBounds;
@@ -189,7 +190,8 @@ protected:
 	/** Gizmo start transform of the last drag we did with either hand.  Only valid if bDraggedSinceLastSelection is true */
 	FTransform LastDragGizmoStartTransform;
 
-
+	/** Starting angle when rotating an object with  ETransformGizmoInteractionType::RotateOnAngle */
+	TOptional<float> StartDragAngleOnRotation;
 
 	//
 	// Hover state

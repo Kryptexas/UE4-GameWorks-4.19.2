@@ -8,9 +8,9 @@
 
 namespace VREd
 {
-	// @todo vreditor tweak: Tweak out console variables
 	static FAutoConsoleVariable GizmoSelectionAnimationDuration( TEXT( "VREd.GizmoSelectionAnimationDuration" ), 0.15f, TEXT( "How long to animate the gizmo after objects are selected" ) );
 	static FAutoConsoleVariable GizmoSelectionAnimationCurvePower( TEXT( "VREd.GizmoSelectionAnimationCurvePower" ), 2.0f, TEXT( "Controls the animation curve for the gizmo after objects are selected" ) );
+	static FAutoConsoleVariable GizmoShowMeasurementText( TEXT( "VREd.GizmoShowMeasurementText" ), 0, TEXT( "When enabled, gizmo measurements will always be visible.  Otherwise, only when hovering over a scale/stretch gizmo handle" ) );
 }
 
 ABaseTransformGizmo::ABaseTransformGizmo( ) :
@@ -43,6 +43,70 @@ void ABaseTransformGizmo::OnNewObjectsSelected()
 {
 	SelectedAtTime = FTimespan::FromSeconds( FApp::GetCurrentTime() );
 }
+
+ETransformGizmoInteractionType ABaseTransformGizmo::GetInteractionType( UActorComponent* DraggedComponent, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement )
+{
+	OutHandlePlacement.Reset();
+	if ( DraggedComponent != nullptr )
+	{
+		UStaticMeshComponent* DraggedMesh = Cast<UStaticMeshComponent>( DraggedComponent );
+		if ( DraggedMesh != nullptr )
+		{
+			ETransformGizmoInteractionType ResultInteractionType;
+
+			for ( UVREditorGizmoHandleGroup* HandleGroup : AllHandleGroups )
+			{
+				if ( HandleGroup != nullptr )
+				{
+					int32 HandIndex = HandleGroup->GetDraggedHandleIndex( DraggedMesh );
+					if ( HandIndex != INDEX_NONE )
+					{
+						HandleGroup->GetHandleIndexInteractionType( HandIndex, ResultInteractionType, OutHandlePlacement );
+						return ResultInteractionType;
+					}
+				}
+			}
+		}
+	}
+
+	OutHandlePlacement.Reset();
+	return ETransformGizmoInteractionType::Translate;
+}
+
+float ABaseTransformGizmo::GetAnimationAlpha()
+{
+	// Update animation
+	float AnimationAlpha = 0.0f;
+	{
+		const FTimespan CurrentTime = FTimespan::FromSeconds( FApp::GetCurrentTime() );
+		const float TimeSinceSelectionChange = (CurrentTime - SelectedAtTime).GetTotalSeconds();
+		const float AnimLength = VREd::GizmoSelectionAnimationDuration->GetFloat();
+		if ( TimeSinceSelectionChange < AnimLength )
+		{
+			AnimationAlpha = FMath::Max( 0.0f, TimeSinceSelectionChange / AnimLength );
+		}
+		else
+		{
+			AnimationAlpha = 1.0f;
+		}
+
+		// Apply a bit of a curve to the animation
+		AnimationAlpha = FMath::Pow( AnimationAlpha, VREd::GizmoSelectionAnimationCurvePower->GetFloat() );
+	}
+
+	return AnimationAlpha;
+}
+
+void ABaseTransformGizmo::SetOwnerMode( FVREditorMode* InOwner )
+{
+	Owner = InOwner;
+}
+
+FVREditorMode* ABaseTransformGizmo::GetOwnerMode() const
+{
+	return Owner;
+}
+
 
 void ABaseTransformGizmo::GetBoundingBoxEdge( const FBox& Box, const int32 AxisIndex, const int32 EdgeIndex, FVector& OutVertex0, FVector& OutVertex1 )
 {
@@ -145,39 +209,7 @@ void ABaseTransformGizmo::GetBoundingBoxEdge( const FBox& Box, const int32 AxisI
 }
 
 
-float ABaseTransformGizmo::GetAnimationAlpha()
-{
-	// Update animation
-	float AnimationAlpha = 0.0f;
-	{
-		const FTimespan CurrentTime = FTimespan::FromSeconds( FApp::GetCurrentTime() );
-		const float TimeSinceSelectionChange = (CurrentTime - SelectedAtTime).GetTotalSeconds();
-		const float AnimLength = VREd::GizmoSelectionAnimationDuration->GetFloat();
-		if ( TimeSinceSelectionChange < AnimLength )
-		{
-			AnimationAlpha = FMath::Max( 0.0f, TimeSinceSelectionChange / AnimLength );
-		}
-		else
-		{
-			AnimationAlpha = 1.0f;
-		}
 
-		// Apply a bit of a curve to the animation
-		AnimationAlpha = FMath::Pow( AnimationAlpha, VREd::GizmoSelectionAnimationCurvePower->GetFloat() );
-	}
-
-	return AnimationAlpha;
-}
-
-void ABaseTransformGizmo::SetOwnerMode( FVREditorMode* InOwner )
-{
-	Owner = InOwner;
-}
-
-FVREditorMode* ABaseTransformGizmo::GetOwnerMode() const
-{
-	return Owner;
-}
 
 void ABaseTransformGizmo::UpdateHandleVisibility( const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const bool bAllHandlesVisible, UActorComponent* DraggingHandle )
 {
@@ -185,14 +217,14 @@ void ABaseTransformGizmo::UpdateHandleVisibility( const EGizmoHandleTypes GizmoT
 	{
 		if ( HandleGroup != nullptr )
 		{
-			const bool bIsSameType = ( GizmoType == EGizmoHandleTypes::All ) || HandleGroup->GetHandleType() == GizmoType;
+			const bool bIsTypeSupported = ( GizmoType == EGizmoHandleTypes::All && HandleGroup->GetShowOnUniversalGizmo() ) || HandleGroup->GetHandleType() == GizmoType;
 			const bool bSupportsCurrentCoordinateSpace = HandleGroup->SupportsWorldCoordinateSpace() || GizmoCoordinateSpace != COORD_World;
 
 			for ( FVREditorGizmoHandle& Handle : HandleGroup->GetHandles() )
 			{
 				if( Handle.HandleMesh != nullptr )
 				{
-					const bool bShowIt = ( bIsSameType && bSupportsCurrentCoordinateSpace && bAllHandlesVisible ) || ( DraggingHandle != nullptr && DraggingHandle == Handle.HandleMesh );
+					const bool bShowIt = ( bIsTypeSupported && bSupportsCurrentCoordinateSpace && bAllHandlesVisible ) || ( DraggingHandle != nullptr && DraggingHandle == Handle.HandleMesh );
 
 					Handle.HandleMesh->SetVisibility( bShowIt );
 
@@ -204,33 +236,9 @@ void ABaseTransformGizmo::UpdateHandleVisibility( const EGizmoHandleTypes GizmoT
 	}
 }
 
-ETransformGizmoInteractionType ABaseTransformGizmo::GetInteractionType( UActorComponent* DraggedComponent, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement )
+bool ABaseTransformGizmo::GetShowMeasurementText() const
 {
-	OutHandlePlacement.Reset();
-	if (DraggedComponent != nullptr)
-	{
-		UStaticMeshComponent* DraggedMesh = Cast<UStaticMeshComponent>( DraggedComponent );
-		if (DraggedMesh != nullptr)
-		{
-			ETransformGizmoInteractionType ResultInteractionType;
-
-			for ( UVREditorGizmoHandleGroup* HandleGroup : AllHandleGroups)
-			{
-				if (HandleGroup != nullptr)
-				{
-					int32 HandIndex = HandleGroup->GetDraggedHandleIndex( DraggedMesh );
-					if (HandIndex != INDEX_NONE)
-					{
-						HandleGroup->GetHandleIndexInteractionType( HandIndex, ResultInteractionType, OutHandlePlacement );
-						return ResultInteractionType;
-					}
-				}
-			}
-		}
-	}
-
-	OutHandlePlacement.Reset();
-	return ETransformGizmoInteractionType::Translate;
+	return VREd::GizmoShowMeasurementText->GetInt() != 0;
 }
 
 void FTransformGizmoHandlePlacement::GetCenterHandleCountAndFacingAxisIndex( int32& OutCenterHandleCount, int32& OutFacingAxisIndex, int32& OutCenterAxisIndex ) const

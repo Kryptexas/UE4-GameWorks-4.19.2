@@ -6,21 +6,6 @@
 #include "VREditorWorldInteractionTypes.h"
 #include "VREditorGizmoHandle.generated.h"
 
-namespace VREd
-{
-	namespace GizmoColor
-	{
-		const FLinearColor RedGizmoColor( 0.4f, 0.05f, 0.05f, 1.0f );
-		const FLinearColor GreenGizmoColor( 0.05f, 0.4f, 0.05f, 1.0f );
-		const FLinearColor BlueGizmoColor( 0.05f, 0.05f, 0.4f, 1.0f );
-		const FLinearColor WhiteGizmoColor( 0.7f, 0.7f, 0.7f, 1.0f );
-
-		// @todo vreditor: Use configured editor selection color instead
-		const FLinearColor HoverGizmoColor( FLinearColor::Yellow );
-		const FLinearColor DraggingGizmoColor( FLinearColor::White );
-	}
-}
-
 enum class EGizmoHandleTypes : uint8;
 
 USTRUCT()
@@ -62,7 +47,8 @@ public:
 	static FVector GetAxisVector( const int32 AxisIndex, const ETransformGizmoHandleDirection HandleDirection );
 
 	/** Updates the Gizmo handles, needs to be implemented by derived classes */
-	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup );
+	virtual void UpdateGizmoHandleGroup(  const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, 
+		float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup );
 
 	/** Gets the InteractionType and the HandlePlacement for this Gizmo handle */
 	virtual void GetHandleIndexInteractionType( const int32 HandleIndex, ETransformGizmoInteractionType& OutInteractionType, TOptional<FTransformGizmoHandlePlacement>& OutHandlePlacement );
@@ -90,6 +76,12 @@ public:
 	{
 		return true;
 	}
+
+	/** Sets if this handlegroup will be visible with the universal gizmo */
+	void SetShowOnUniversalGizmo( const bool bShowHandleUniversal );
+	
+	/** Gets if this handlegroup will be visible with the universal gizmo */
+	bool GetShowOnUniversalGizmo() const;
 
 protected:
 	/** Updates the colors of the dynamic material instances for the handle passed using its axis index */	
@@ -123,4 +115,29 @@ private:
 
 	/** Updates the hover animation for the HoveringOverHandles */
 	void UpdateHoverAnimation( class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup );
+
+	/** If this handlegroup will be visible with the universal gizmo */
+	bool bShowOnUniversalGizmo;
+};
+
+/**
+ * Base class for gizmo handles on axis
+ */
+UCLASS(ABSTRACT)
+class UVREditorAxisGizmoHandleGroup : public UVREditorGizmoHandleGroup
+{
+	GENERATED_BODY()
+
+protected:
+
+	/** Creates mesh for every axis */
+	void CreateHandles(UStaticMesh* HandleMesh, const FString& HandleComponentName);
+	
+
+	/** Calculates the transforms of meshes of this handlegroup 
+	 * @param FTransform - The offset from the center of the gizmo in roomspace
+	 */
+	void UpdateHandlesRelativeTransformOnAxis( const FTransform& HandleToCenter, const float AnimationAlpha, const float GizmoScale, const float GizmoHoverScale, 
+		const FVector& ViewLocation, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles );
+
 };

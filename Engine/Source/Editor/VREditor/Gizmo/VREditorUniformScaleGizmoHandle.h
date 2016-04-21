@@ -18,12 +18,21 @@ public:
 	/** Default constructor that sets up CDO properties */
 	UVREditorUniformScaleGizmoHandleGroup();
 	
-	/** Updates the gizmo handles */
-	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup ) override;
+	/** Updates the Gizmo handles */
+	virtual void UpdateGizmoHandleGroup( const FTransform& LocalToWorld, const FBox& LocalBounds, const FVector ViewLocation, bool bAllHandlesVisible, class UActorComponent* DraggingHandle,
+		const TArray< UActorComponent* >& HoveringOverHandles, float AnimationAlpha, float GizmoScale, const float GizmoHoverScale, const float GizmoHoverAnimationDuration, bool& bOutIsHoveringOrDraggingThisHandleGroup ) override;
 
 	/** Gets the InteractionType for this Gizmo handle */
 	virtual ETransformGizmoInteractionType GetInteractionType() const override;
 
 	/** Gets the GizmoType for this Gizmo handle */
 	virtual EGizmoHandleTypes GetHandleType() const override;
+
+	/** Sets if the pivot point is used as location for the handle */
+	void SetUsePivotPointAsLocation( bool bUsePivotAsLocation );
+
+private:
+
+	/** If the pivot point is used for the uniform scaling handle */
+	bool bUsePivotAsLocation;
 };
