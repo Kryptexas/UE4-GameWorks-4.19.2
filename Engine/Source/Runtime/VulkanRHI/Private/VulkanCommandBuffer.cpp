@@ -93,6 +93,7 @@ FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice
 	: Device(InDevice)
 	, Handle(VK_NULL_HANDLE)
 	, ActiveCmdBuffer(nullptr)
+	, UploadCmdBuffer(nullptr)
 {
 	check(Device);
 
@@ -119,6 +120,19 @@ FVulkanCommandBufferManager::~FVulkanCommandBufferManager()
 	vkDestroyCommandPool(Device->GetInstanceHandle(), Handle, nullptr);
 }
 
+FVulkanCmdBuffer* FVulkanCommandBufferManager::GetActiveCmdBuffer()
+{
+	if (UploadCmdBuffer)
+	{
+		check(UploadCmdBuffer->IsOutsideRenderPass());
+		UploadCmdBuffer->End();
+		Device->GetQueue()->Submit(UploadCmdBuffer);
+		UploadCmdBuffer = nullptr;
+	}
+
+	return ActiveCmdBuffer;
+}
+
 FVulkanCmdBuffer* FVulkanCommandBufferManager::Create()
 {
 	check(Device);
@@ -139,6 +153,8 @@ void FVulkanCommandBufferManager::RefreshFenceStatus()
 
 void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
 {
+	check(!UploadCmdBuffer);
+
 	for (int32 Index = 0; Index < CmdBuffers.Num(); ++Index)
 	{
 		FVulkanCmdBuffer* CmdBuffer = CmdBuffers[Index];
@@ -158,4 +174,28 @@ void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
 	// All cmd buffers are being executed still
 	ActiveCmdBuffer = Create();
 	ActiveCmdBuffer->Begin();
+}
+
+FVulkanCmdBuffer* FVulkanCommandBufferManager::GetUploadCmdBuffer()
+{
+	if (!UploadCmdBuffer)
+	{
+		for (int32 Index = 0; Index < CmdBuffers.Num(); ++Index)
+		{
+			FVulkanCmdBuffer* CmdBuffer = CmdBuffers[Index];
+			CmdBuffer->RefreshFenceStatus();
+			if (CmdBuffer->State == FVulkanCmdBuffer::EState::ReadyForBegin)
+			{
+				UploadCmdBuffer = CmdBuffer;
+				UploadCmdBuffer->Begin();
+				return UploadCmdBuffer;
+			}
+		}
+
+		// All cmd buffers are being executed still
+		UploadCmdBuffer = Create();
+		UploadCmdBuffer->Begin();
+	}
+
+	return UploadCmdBuffer;
 }

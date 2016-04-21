@@ -153,7 +153,7 @@ void FVulkanResourceMultiBuffer::Unlock()
 			VulkanRHI::FStagingBuffer* StagingBuffer = PendingLock.StagingBuffer;
 			PendingLock.StagingBuffer = nullptr;
 
-			FVulkanCmdBuffer* Cmd = Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer();
+			FVulkanCmdBuffer* Cmd = Device->GetImmediateContext().GetCommandBufferManager()->GetUploadCmdBuffer();
 			ensure(Cmd->IsOutsideRenderPass());
 			VkCommandBuffer CmdBuffer = Cmd->GetHandle();
 

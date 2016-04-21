@@ -107,10 +107,9 @@ public:
 
 	~FVulkanCommandBufferManager();
 
-	FVulkanCmdBuffer* GetActiveCmdBuffer()
-	{
-		return ActiveCmdBuffer;
-	}
+	FVulkanCmdBuffer* GetActiveCmdBuffer();
+
+	FVulkanCmdBuffer* GetUploadCmdBuffer();
 
 	void RefreshFenceStatus();
 	void PrepareForNewActiveCommandBuffer();
@@ -120,10 +119,12 @@ public:
 		check(Handle != VK_NULL_HANDLE);
 		return Handle;
 	}
+
 private:
 	FVulkanDevice* Device;
 	VkCommandPool Handle;
 	FVulkanCmdBuffer* ActiveCmdBuffer;
+	FVulkanCmdBuffer* UploadCmdBuffer;
 
 	FVulkanCmdBuffer* Create();
 
