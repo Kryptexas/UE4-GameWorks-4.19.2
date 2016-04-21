@@ -1373,41 +1373,42 @@ static bool IsValidObjectPath(const FString& Path)
 
 FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
+	if (InKeyEvent.IsControlDown() && InKeyEvent.GetCharacter() == 'V' && IsAssetPathSelected())
 	{
-		const bool bTestOnly = true;
-		if ( InKeyEvent.IsControlDown() && InKeyEvent.GetCharacter() == 'V' && IsAssetPathSelected() )
+		FString AssetPaths;
+		TArray<FString> AssetPathsSplit;
+
+		// Get the copied asset paths
+		FPlatformMisc::ClipboardPaste(AssetPaths);
+		AssetPaths.ParseIntoArrayLines(AssetPathsSplit);
+
+		// Get assets and copy them
+		TArray<UObject*> AssetsToCopy;
+		for (const FString& AssetPath : AssetPathsSplit)
 		{
-			FString DestPaths;
-			TArray<FString> DestPathsSplit;
-
-			// Get the copied asset paths
-			FPlatformMisc::ClipboardPaste( DestPaths );
-			DestPaths.ParseIntoArrayLines( DestPathsSplit );
-
-			// Get assets and copy them
-			TArray<UObject*> ObjectsToCopy;
-			for (FString DestPath : DestPathsSplit)
+			// Validate string
+			if (IsValidObjectPath(AssetPath))
 			{
-				// Validate string
-				if ( IsValidObjectPath(DestPath) )
+				UObject* ObjectToCopy = LoadObject<UObject>(nullptr, *AssetPath);
+				if (ObjectToCopy && !ObjectToCopy->IsA(UClass::StaticClass()))
 				{
-					ObjectsToCopy.Add( LoadObject<UObject>( NULL, *DestPath ));
+					AssetsToCopy.Add(ObjectToCopy);
 				}
 			}
-
-			if (ObjectsToCopy.Num())
-			{
-				ContentBrowserUtils::CopyAssets(ObjectsToCopy, SourcesData.PackagePaths[0].ToString());
-			}
-
-			return FReply::Handled();
 		}
-		// Swallow the key-presses used by the quick-jump in OnKeyChar to avoid other things (such as the viewport commands) getting them instead
-		// eg) Pressing "W" without this would set the viewport to "translate" mode
-		else if( HandleQuickJumpKeyDown(InKeyEvent.GetCharacter(), InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), bTestOnly).IsEventHandled() )
+
+		if (AssetsToCopy.Num())
 		{
-			return FReply::Handled();
+			ContentBrowserUtils::CopyAssets(AssetsToCopy, SourcesData.PackagePaths[0].ToString());
 		}
+
+		return FReply::Handled();
+	}
+	// Swallow the key-presses used by the quick-jump in OnKeyChar to avoid other things (such as the viewport commands) getting them instead
+	// eg) Pressing "W" without this would set the viewport to "translate" mode
+	else if(HandleQuickJumpKeyDown(InKeyEvent.GetCharacter(), InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), /*bTestOnly*/true).IsEventHandled())
+	{
+		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();
