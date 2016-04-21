@@ -6,7 +6,9 @@
 #include "EdGraph/EdGraphNode.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
+#if WITH_EDITOR
 #include "MaterialGraph/MaterialGraphNode.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
