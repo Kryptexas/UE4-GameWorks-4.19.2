@@ -5,7 +5,7 @@
 #include "SSuperSearch.h"
 #include "SScrollBorder.h"
 
-#if 0//WITH_EDITOR
+#if WITH_EDITOR
 #include "AssetRegistryModule.h"
 #include "IIntroTutorials.h"
 #include "EditorTutorial.h"
@@ -13,7 +13,7 @@
 
 #include "SSearchBox.h"
 
-#if 0//WITH_EDITOR	
+#if WITH_EDITOR	
 #include "AssetData.h"
 #endif
 
@@ -116,7 +116,7 @@ int32 GetNumRealSuggestions(const TArray< TSharedPtr<FSearchEntry> > & Suggestio
 
 void SSuperSearchBox::OnMenuOpenChanged( bool bIsOpen )
 {
-#if 0//WITH_EDITOR
+#if WITH_EDITOR
 	if (bIsOpen == false)
 	{
 		if ( FEngineAnalytics::IsAvailable() )
@@ -176,7 +176,7 @@ void SSuperSearchBox::ActOnSuggestion(TSharedPtr<FSearchEntry> SearchEntry, FStr
 	if (SearchEntry->bCategory == false)
 	{
 		EntryClicked = SearchEntry;
-#if 0//WITH_EDITOR
+#if WITH_EDITOR
 		// Broadcast text change to anyone registered for it
 		FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));		
 		SuperSearchModule.GetActOnSearchTextClicked().Broadcast(SearchEntry);
@@ -279,7 +279,7 @@ TSharedRef<ITableRow> SSuperSearchBox::MakeSuggestionListItemWidget(TSharedPtr<F
 	TSharedPtr<SWidget> IconWidget;
 	if (bCategory)
 	{
-#if 0//WITH_EDITOR
+#if WITH_EDITOR
 		FName* IconResult = CategoryToIconMap.Find(Combined);
 		SAssignNew(IconWidget, SImage)
 			.Image(FEditorStyle::GetBrush(IconResult ? *IconResult : FName("MainFrame.VisitEpicGamesDotCom") ));
@@ -296,7 +296,7 @@ TSharedRef<ITableRow> SSuperSearchBox::MakeSuggestionListItemWidget(TSharedPtr<F
 		.Padding(FMargin(bCategory ? 2.5 : 16, 2.5, 2.5, 2.5))
 		[
 			SNew(SHorizontalBox)
-#if 0//WITH_EDITOR
+#if WITH_EDITOR
 			+ SHorizontalBox::Slot()
 			.Padding(FMargin(0,0,2.5,0))
 			[
@@ -308,7 +308,7 @@ TSharedRef<ITableRow> SSuperSearchBox::MakeSuggestionListItemWidget(TSharedPtr<F
 			[
 				SNew(STextBlock)
 				.Text(FText::FromString(Combined))
-#if 0//WITH_EDITOR
+#if WITH_EDITOR
 				.TextStyle(&FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(bCategory ? "SuperSearchCategoryText" : "NormalText"))
 #endif
 				.MinDesiredWidth(600)
@@ -370,7 +370,7 @@ void SSuperSearchBox::OnTextChanged(const FText& InText)
 			HttpRequest->ProcessRequest();
 		}
 
-#if 0//WITH_EDITOR
+#if WITH_EDITOR
 		//search local tutorials
 		{
 			FAssetRegistryModule& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));

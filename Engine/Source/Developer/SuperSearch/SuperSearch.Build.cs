@@ -6,7 +6,7 @@ public class SuperSearch : ModuleRules
 {
     public SuperSearch(TargetInfo Target)
     {
-        /*if (UEBuildConfiguration.bBuildEditor == true)
+        if (UEBuildConfiguration.bBuildEditor == true)
         {
             PrivateDependencyModuleNames.AddRange(
                 new string[] {
@@ -24,7 +24,7 @@ public class SuperSearch : ModuleRules
 				}
             );
         }
-        else */
+        else
         {
             PrivateDependencyModuleNames.AddRange(
                 new string[] {

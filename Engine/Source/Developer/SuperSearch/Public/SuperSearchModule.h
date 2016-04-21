@@ -4,7 +4,7 @@
 
 #include "SlateBasics.h"
 
-#if 0//WITH_EDITOR
+#if WITH_EDITOR
 #include "AssetData.h"
 #endif
 
@@ -13,7 +13,7 @@ struct FSearchEntry
 	FString Title;
 	FString URL;
 	bool bCategory;
-#if 0//WITH_EDITOR
+#if WITH_EDITOR
 	FAssetData AssetData;
 #endif
 	static FSearchEntry* MakeCategoryEntry(const FString & InTitle);

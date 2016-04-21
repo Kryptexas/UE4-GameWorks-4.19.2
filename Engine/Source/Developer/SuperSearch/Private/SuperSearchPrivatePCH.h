@@ -2,7 +2,7 @@
 
 #pragma once
 
-#if 0//WITH_EDITOR
+#if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
 #include "SuperSearchModule.h"

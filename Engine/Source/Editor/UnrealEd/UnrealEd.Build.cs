@@ -229,7 +229,8 @@ public class UnrealEd : ModuleRules
 			new string[] 
 			{
                 "GraphEditor",
-				"Kismet"
+				"Kismet",
+                "SuperSearch",
             }
 		); 
 
