@@ -6,6 +6,7 @@
 #include "EdGraph/EdGraphNode.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
+#include "MaterialGraph/MaterialGraphNode.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -311,9 +312,9 @@ void UMaterialExpressionLandscapeLayerBlend::PostEditChangeProperty(FPropertyCha
 		const FName PropertyName = PropertyChangedEvent.MemberProperty->GetFName();
 		if (PropertyName == GET_MEMBER_NAME_CHECKED(UMaterialExpressionLandscapeLayerBlend, Layers))
 		{
-			if (GraphNode)
+			if (UMaterialGraphNode* MatGraphNode = Cast<UMaterialGraphNode>(GraphNode))
 			{
-				GraphNode->ReconstructNode();
+				MatGraphNode->RecreateAndLinkNode();
 			}
 		}
 	}
