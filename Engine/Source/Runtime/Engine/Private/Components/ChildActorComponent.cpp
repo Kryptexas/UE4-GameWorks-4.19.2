@@ -334,7 +334,7 @@ void UChildActorComponent::CreateChildActor()
 	}
 }
 
-void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
+void UChildActorComponent::DestroyChildActor()
 {
 	// If we own an Actor, kill it now
 	if (ChildActor != nullptr && !GExitPurge)
@@ -368,11 +368,20 @@ void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
 				int32& ClassUnique = ChildActor->GetOutermost()->ClassUniqueNameIndexMap.FindOrAdd(ChildClass->GetFName());
 				ClassUnique = FMath::Max(ClassUnique, ChildActor->GetFName().GetNumber());
 
-				if (bRequiresRename)
+				// If we are getting here due to garbage collection we can't rename, so we'll have to abandon this child actor name and pick up a new one
+				if (!IsGarbageCollecting())
 				{
 					const FString ObjectBaseName = FString::Printf(TEXT("DESTROYED_%s_CHILDACTOR"), *ChildClass->GetName());
 					const ERenameFlags RenameFlags = ((GetWorld()->IsGameWorld() || IsLoading()) ? REN_DoNotDirty | REN_ForceNoResetLoaders : REN_DoNotDirty);
 					ChildActor->Rename(*MakeUniqueObjectName(ChildActor->GetOuter(), ChildClass, *ObjectBaseName).ToString(), nullptr, RenameFlags);
+				}
+				else
+				{
+					ChildActorName = NAME_None;
+					if (CachedInstanceData)
+					{
+						CachedInstanceData->ChildActorName = NAME_None;
+					}
 				}
 				World->DestroyActor(ChildActor);
 			}

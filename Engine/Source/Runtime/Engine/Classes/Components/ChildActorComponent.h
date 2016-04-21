@@ -89,7 +89,7 @@ public:
 	FName GetChildActorName() const { return ChildActorName; }
 
 	/** Kill any currently present child actor */
-	void DestroyChildActor(const bool bRequiresRename = true);
+	void DestroyChildActor();
 };
 
 
