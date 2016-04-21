@@ -136,8 +136,6 @@ public:
 		return *ImmediateContext;
 	}
 
-	void ReleaseDescriptorSets(FVulkanBoundShaderState* BoundShaderState);
-
 #if VULKAN_ENABLE_DRAW_MARKERS
 
 	typedef void(VKAPI_PTR *PFN_vkCmdDbgMarkerBegin)(VkCommandBuffer commandBuffer, const char *pMarker);

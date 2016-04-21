@@ -117,9 +117,6 @@ public:
 		return TempFrameAllocationBuffer;
 	}
 
-	FVulkanDescriptorSets* RequestDescriptorSets(FVulkanCmdBuffer* CmdBuffer, FVulkanBoundShaderState* BSS);
-	void ReleaseDescriptorSets(FVulkanBoundShaderState* BoundShaderState);
-
 protected:
 	FVulkanDynamicRHI* RHI;
 	FVulkanDevice* Device;
@@ -146,22 +143,4 @@ protected:
 	FVulkanCommandBufferManager* CommandBufferManager;
 
 	void SubmitCurrentCommands();
-
-	struct FBoundShaderStateDescriptorSetEntry
-	{
-		uint64 FenceCounter;
-		FVulkanDescriptorSets* DescriptorSets;
-
-		FBoundShaderStateDescriptorSetEntry()
-			: FenceCounter(0)
-			, DescriptorSets(nullptr)
-		{
-		}
-
-		~FBoundShaderStateDescriptorSetEntry()
-		{
-			delete DescriptorSets;
-		}
-	};
-	TMap<FVulkanBoundShaderState*, TMap<FVulkanCmdBuffer*, TArray<FBoundShaderStateDescriptorSetEntry> > > BoundShaderStateDescriptorSets;
 };

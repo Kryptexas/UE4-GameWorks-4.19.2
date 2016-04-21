@@ -324,7 +324,11 @@ FVulkanBoundShaderState::~FVulkanBoundShaderState()
 	GlobalListLink.Unlink();
 #endif
 
-	Device->ReleaseDescriptorSets(this);
+	for (int32 Index = 0; Index < DescriptorSetsEntries.Num(); ++Index)
+	{
+		delete DescriptorSetsEntries[Index];
+	}
+	DescriptorSetsEntries.Empty(0);
 
 	// toss the pipeline states
 	for (auto& Pair : PipelineCache)
@@ -1024,21 +1028,33 @@ void FVulkanBoundShaderState::SetLastError(const FString& Error)
 }
 #endif
 
-
-void FVulkanCommandListContext::ReleaseDescriptorSets(FVulkanBoundShaderState* BSS)
+FVulkanBoundShaderState::FDescriptorSetsPair::~FDescriptorSetsPair()
 {
-	BoundShaderStateDescriptorSets.Remove(BSS);
+	delete DescriptorSets;
 }
 
-inline FVulkanDescriptorSets* FVulkanCommandListContext::RequestDescriptorSets(FVulkanCmdBuffer* CmdBuffer, FVulkanBoundShaderState* BSS)
+inline FVulkanDescriptorSets* FVulkanBoundShaderState::RequestDescriptorSets(FVulkanCmdBuffer* CmdBuffer)
 {
-	TMap<FVulkanCmdBuffer*, TArray<FBoundShaderStateDescriptorSetEntry>>& BoundShaderStateDescriptorSetsEntriesForCmdBuffer = BoundShaderStateDescriptorSets.FindOrAdd(BSS);
-	TArray<FBoundShaderStateDescriptorSetEntry>& BoundShaderStateDescriptorSetsEntries = BoundShaderStateDescriptorSetsEntriesForCmdBuffer.FindOrAdd(CmdBuffer);
-	
-	const uint64 CmdBufferFenceSignaledCounter = CmdBuffer->GetFenceSignaledCounter();
-	for (int32 Index = 0; Index < BoundShaderStateDescriptorSetsEntries.Num(); ++Index)
+	//#todo-rco: Make thread safe!
+	FDescriptorSetsEntry* FoundEntry = nullptr;
+	for (FDescriptorSetsEntry* DescriptorSetsEntry : DescriptorSetsEntries)
 	{
-		FBoundShaderStateDescriptorSetEntry& Entry = BoundShaderStateDescriptorSetsEntries[Index];
+		if (DescriptorSetsEntry->CmdBuffer == CmdBuffer)
+		{
+			FoundEntry = DescriptorSetsEntry;
+		}
+	}
+
+	if (!FoundEntry)
+	{
+		FoundEntry = new FDescriptorSetsEntry(CmdBuffer);
+		DescriptorSetsEntries.Add(FoundEntry);
+	}
+
+	const uint64 CmdBufferFenceSignaledCounter = CmdBuffer->GetFenceSignaledCounter();
+	for (int32 Index = 0; Index < FoundEntry->Pairs.Num(); ++Index)
+	{
+		FDescriptorSetsPair& Entry = FoundEntry->Pairs[Index];
 		if (Entry.FenceCounter < CmdBufferFenceSignaledCounter)
 		{
 			Entry.FenceCounter = CmdBufferFenceSignaledCounter;
@@ -1046,8 +1062,8 @@ inline FVulkanDescriptorSets* FVulkanCommandListContext::RequestDescriptorSets(F
 		}
 	}
 
-	FBoundShaderStateDescriptorSetEntry* NewEntry = new (BoundShaderStateDescriptorSetsEntries) FBoundShaderStateDescriptorSetEntry;
-	NewEntry->DescriptorSets = new FVulkanDescriptorSets(Device, BSS, Device->GetDescriptorPool());
+	FDescriptorSetsPair* NewEntry = new (FoundEntry->Pairs) FDescriptorSetsPair;
+	NewEntry->DescriptorSets = new FVulkanDescriptorSets(Device, this, Device->GetDescriptorPool());
 	NewEntry->FenceCounter = CmdBufferFenceSignaledCounter;
 	return NewEntry->DescriptorSets;
 }
@@ -1065,7 +1081,7 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanCommandListContext* Cm
 
 	int32 WriteIndex = 0;
 
-	CurrDescriptorSets = CmdListContext->RequestDescriptorSets(CmdBuffer, this);
+	CurrDescriptorSets = RequestDescriptorSets(CmdBuffer);
 
 	auto& DescriptorSetHandles = CurrDescriptorSets->GetHandles();
 	int32 DescriptorSetIndex = 0;

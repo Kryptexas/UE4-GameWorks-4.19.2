@@ -514,12 +514,3 @@ void FVulkanDevice::BindSRV(FVulkanShaderResourceView* SRV, uint32 TextureIndex,
 		ShaderState.SetBufferViewState(Stage, TextureIndex, nullptr);
 	}
 }
-
-void FVulkanDevice::ReleaseDescriptorSets(FVulkanBoundShaderState* BoundShaderState)
-{
-	//#todo-rco: Go through all sub cmd context
-	if (ImmediateContext)
-	{
-		ImmediateContext->ReleaseDescriptorSets(BoundShaderState);
-	}
-}
