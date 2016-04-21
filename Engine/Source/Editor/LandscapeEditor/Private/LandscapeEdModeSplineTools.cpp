@@ -378,6 +378,11 @@ public:
 				AddSegment(ControlPoint, NewControlPoint, bAutoRotateOnJoin, true);
 			}
 		}
+		else
+		{
+			// required to make control point visible
+			NewControlPoint->UpdateSplinePoints();
+		}
 
 		ClearSelection();
 		SelectControlPoint(NewControlPoint);
