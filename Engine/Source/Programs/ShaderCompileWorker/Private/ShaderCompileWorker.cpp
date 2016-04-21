@@ -580,8 +580,8 @@ static EShaderPlatform FormatNameToEnum(FName ShaderFormat)
 	if (ShaderFormat == NAME_VULKAN_SM4)			return SP_VULKAN_SM4;
 	if (ShaderFormat == NAME_VULKAN_SM5)			return SP_VULKAN_SM5;
 	if (ShaderFormat == NAME_VULKAN_ES3_1_ANDROID)	return SP_VULKAN_ES3_1_ANDROID;
-	if (ShaderFormat == NAME_VULKAN_ES3_1)			return SP_VULKAN_ES3_1_ANDROID;
-	if (ShaderFormat == NAME_VULKAN_ES3_1_UB)		return SP_VULKAN_ES3_1_ANDROID;
+	if (ShaderFormat == NAME_VULKAN_ES3_1)			return SP_VULKAN_PCES3_1;
+	if (ShaderFormat == NAME_VULKAN_ES3_1_UB)		return SP_VULKAN_PCES3_1;
 	if (ShaderFormat == NAME_SF_METAL_SM4)		return SP_METAL_SM4;
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)	return SP_METAL_MACES3_1;
 	return SP_NumPlatforms;
