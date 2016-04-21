@@ -86,12 +86,12 @@ public class GooglePlayStoreHelper implements StoreHelper
 	/**
 	 * Query product details for the provided skus
 	 */
-	public boolean QueryInAppPurchases(String[] ProductIDs, boolean[] bConsumable)
+	public boolean QueryInAppPurchases(String[] InProductIDs, boolean[] bConsumable)
 	{
 		Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::QueryInAppPurchases");
 		ArrayList<String> skuList = new ArrayList<String> ();
 		
-		for (String productId : ProductIDs)
+		for (String productId : InProductIDs)
 		{
 			Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::QueryInAppPurchases - Querying " + productId);
 			skuList.add(productId);
@@ -107,6 +107,7 @@ public class GooglePlayStoreHelper implements StoreHelper
 			int response = skuDetails.getInt("RESPONSE_CODE");
 			if (response == 0)
 			{
+				ArrayList<String> productIds = new ArrayList<String>();
 				ArrayList<String> titles = new ArrayList<String>();
 				ArrayList<String> descriptions = new ArrayList<String>();
 				ArrayList<String> prices = new ArrayList<String>();
@@ -117,6 +118,7 @@ public class GooglePlayStoreHelper implements StoreHelper
 					JSONObject object = new JSONObject(thisResponse);
 				
 					String productId = object.getString("productId");
+					productIds.add(productId);
 					Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::QueryInAppPurchases - Parsing details for: " + productId);
 				
 					String title = object.getString("title");
@@ -133,7 +135,7 @@ public class GooglePlayStoreHelper implements StoreHelper
 				}
 
 				Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::QueryInAppPurchases - Success!");
-				nativeQueryComplete(true, ProductIDs, titles.toArray(new String[titles.size()]), descriptions.toArray(new String[descriptions.size()]), prices.toArray(new String[prices.size()]));
+				nativeQueryComplete(true, productIds.toArray(new String[productIds.size()]), titles.toArray(new String[titles.size()]), descriptions.toArray(new String[descriptions.size()]), prices.toArray(new String[prices.size()]));
 			}
 			else
 			{
