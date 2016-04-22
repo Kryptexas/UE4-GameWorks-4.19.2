@@ -363,19 +363,20 @@ void UBlueprintGeneratedClass::BuildCustomPropertyListForPostConstruction(FCusto
 	}
 }
 
-void UBlueprintGeneratedClass::BuildCustomArrayPropertyListForPostConstruction(UArrayProperty* ArrayProperty, FCustomPropertyListNode*& InPropertyList, const uint8* DataPtr, const uint8* DefaultDataPtr)
+void UBlueprintGeneratedClass::BuildCustomArrayPropertyListForPostConstruction(UArrayProperty* ArrayProperty, FCustomPropertyListNode*& InPropertyList, const uint8* DataPtr, const uint8* DefaultDataPtr, int32 StartIndex)
 {
 	FCustomPropertyListNode** CurrentArrayNodePtr = &InPropertyList;
 
 	FScriptArrayHelper ArrayValueHelper(ArrayProperty, DataPtr);
 	FScriptArrayHelper DefaultArrayValueHelper(ArrayProperty, DefaultDataPtr);
 
-	for (int32 ArrayValueIndex = 0; ArrayValueIndex < ArrayValueHelper.Num(); ++ArrayValueIndex)
+	for (int32 ArrayValueIndex = StartIndex; ArrayValueIndex < ArrayValueHelper.Num(); ++ArrayValueIndex)
 	{
-		if (ArrayValueIndex < DefaultArrayValueHelper.Num())
+		const int32 DefaultArrayValueIndex = ArrayValueIndex - StartIndex;
+		if (DefaultArrayValueIndex < DefaultArrayValueHelper.Num())
 		{
 			const uint8* ArrayPropertyValue = ArrayValueHelper.GetRawPtr(ArrayValueIndex);
-			const uint8* DefaultArrayPropertyValue = DefaultArrayValueHelper.GetRawPtr(ArrayValueIndex);
+			const uint8* DefaultArrayPropertyValue = DefaultArrayValueHelper.GetRawPtr(DefaultArrayValueIndex);
 
 			if (UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner))
 			{
@@ -434,8 +435,25 @@ void UBlueprintGeneratedClass::BuildCustomArrayPropertyListForPostConstruction(U
 		}
 		else
 		{
-			// Signals the "end" of differences with the default value (signals that remaining values should be copied in full)
-			*CurrentArrayNodePtr = new(CustomPropertyListForPostConstruction) FCustomPropertyListNode(nullptr, ArrayValueIndex);
+			// Create a temp default array as a placeholder to compare against the remaining elements in the value.
+			FScriptArray TempDefaultArray;
+			const int32 Count = ArrayValueHelper.Num() - DefaultArrayValueHelper.Num();
+			TempDefaultArray.Add(Count, ArrayProperty->Inner->ElementSize);
+			uint8 *Dest = (uint8*)TempDefaultArray.GetData();
+			if (ArrayProperty->Inner->PropertyFlags & CPF_ZeroConstructor)
+			{
+				FMemory::Memzero(Dest, Count * ArrayProperty->Inner->ElementSize);
+			}
+			else
+			{
+				for (int32 i = 0; i < Count; i++, Dest += ArrayProperty->Inner->ElementSize)
+				{
+					ArrayProperty->Inner->InitializeValue(Dest);
+				}
+			}
+
+			// Recursively fill out the property list for the remainder of the elements in the value that extend beyond the size of the default value.
+			BuildCustomArrayPropertyListForPostConstruction(ArrayProperty, *CurrentArrayNodePtr, DataPtr, (uint8*)&TempDefaultArray, ArrayValueIndex);
 
 			// Don't need to record anything else.
 			break;
