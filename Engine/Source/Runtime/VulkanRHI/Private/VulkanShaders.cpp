@@ -383,7 +383,9 @@ FVulkanPipeline* FVulkanBoundShaderState::PrepareForDraw(const FVulkanPipelineGr
 #if !UE_BUILD_SHIPPING
 			if (Device->FrameCounter > 3)
 			{
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Created a hitchy pipeline state for hash %llx %x (this = %p) VS %s %p %d PS %s %p %d\n"), PipelineKey, VertexInputKey, this, *VertexShader->DebugName, (void*)VertexShader.GetReference(), VertexShader->GlslSource.Num(), *PixelShader->DebugName, (void*)PixelShader.GetReference(), PixelShader->GlslSource.Num());
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Created a hitchy pipeline state for hash %llx%llx %x (this = %x) VS %s %x %d PS %s %x %d\n"), 
+					PipelineKey.Key[0], PipelineKey.Key[1], VertexInputKey, this, *VertexShader->DebugName, (void*)VertexShader.GetReference(), VertexShader->GlslSource.Num(), 
+					*PixelShader->DebugName, (void*)PixelShader.GetReference(), PixelShader->GlslSource.Num());
 			}
 #endif
 		}
