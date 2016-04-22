@@ -90,6 +90,12 @@ public:
 		return MotionControllerID;
 	}
 
+	/** Returns whether or not the flashlight is visible */
+	bool IsFlashlightOn() const
+	{
+		return bIsFlashlightOn;
+	}
+
 	/** Returns the time since the VR Editor mode was last entered */
 	inline FTimespan GetTimeSinceModeEntered() const
 	{
@@ -263,6 +269,9 @@ public:
 	/** Snaps the selected objects to the ground */
 	void SnapSelectedActorsToGround();
 
+	/** Spawns a flashlight on the specified hand */
+	void ToggleFlashlight( const int32 HandIndex );
+
 	/** Sets the visuals of the LaserPointer */
 	void SetLaserVisuals( const int32 HandIndex, const FLinearColor& NewColor, const float CrawlFade = 0.0f, const float CrawlSpeed = 0.0f );
 
@@ -426,6 +435,12 @@ protected:
 	/** Our avatar's head mesh */
 	class UStaticMeshComponent* HeadMeshComponent;
 
+	/** Spotlight for the flashlight */
+	class USpotLightComponent* FlashlightComponent;
+
+	/** If there is currently a flashlight in the scene */
+	bool bIsFlashlightOn;
+
 
 	//
 	// World movement grid & FX
@@ -526,6 +541,8 @@ protected:
 
 	// Slate Input Processor
 	TSharedPtr<FVREditorInputProcessor> InputProcessor;
+
+
 
 	//
 	// Colors

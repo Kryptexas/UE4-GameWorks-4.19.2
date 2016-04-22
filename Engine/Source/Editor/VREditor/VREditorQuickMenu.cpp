@@ -319,6 +319,17 @@ bool UVREditorQuickMenu::IsTutorialVisible() const
 	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( FVREditorUISystem::EEditorUIPanel::Tutorial ) );
 }
 
+void UVREditorQuickMenu::OnLightButtonClicked(const bool bIsChecked)
+{
+	const int32 HandIndexWithoutQuickMenu = GetOwner()->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? VREditorConstants::RightHandIndex : VREditorConstants::LeftHandIndex;
+	GetOwner()->GetOwner().GetOwner().ToggleFlashlight(HandIndexWithoutQuickMenu);
+}
+
+bool UVREditorQuickMenu::IsLightVisible() const
+{
+	return (GetOwner()->GetOwner().GetOwner().IsFlashlightOn());
+}
+
 
 void UVREditorQuickMenu::OnAssetEditorButtonClicked( const bool bIsChecked )
 {

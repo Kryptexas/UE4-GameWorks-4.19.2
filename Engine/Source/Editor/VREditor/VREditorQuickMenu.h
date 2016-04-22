@@ -132,6 +132,12 @@ public:
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsTutorialVisible() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Default")
+	void OnLightButtonClicked(const bool bIsChecked);
+
+	UFUNCTION(BlueprintPure, Category = "Default")
+	bool IsLightVisible() const;
+
 	UFUNCTION( BlueprintCallable, Category = "Default" )
 	void OnAssetEditorButtonClicked( const bool bIsChecked );
 

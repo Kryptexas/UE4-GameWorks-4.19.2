@@ -102,6 +102,8 @@ FVREditorMode::FVREditorMode()
 	  AppTimeModeEntered( FTimespan::Zero() ),
 	  AvatarMeshActor( nullptr ),
 	  HeadMeshComponent( nullptr ),
+      FlashlightComponent( nullptr ),
+	  bIsFlashlightOn( false ),
 	  WorldMovementGridMeshComponent( nullptr ),
 	  WorldMovementGridMID( nullptr ),
 	  WorldMovementGridOpacity( 0.0f ),	// NOTE: Intentionally not quite zero so that we update the MIDs on the first frame
@@ -476,6 +478,7 @@ void FVREditorMode::Exit()
 		DestroyTransientActor( AvatarMeshActor );
 		AvatarMeshActor = nullptr;
 		HeadMeshComponent = nullptr;
+		FlashlightComponent = nullptr;
 		WorldMovementGridMeshComponent = nullptr;
 		WorldMovementGridMID = nullptr;
 		DestroyTransientActor( SnapGridActor );
@@ -486,6 +489,7 @@ void FVREditorMode::Exit()
 		ScaleProgressMeshComponent = nullptr;
 		CurrentScaleProgressMeshComponent = nullptr;
 		UserScaleIndicatorText = nullptr;
+		
 
 		for( int32 HandIndex = 0; HandIndex < VREditorConstants::NumVirtualHands; ++HandIndex )
 		{
@@ -1240,6 +1244,17 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 		}
 	}
 
+	// Updating the scale and intensity of the flashlight according to the world scale
+	if (FlashlightComponent)
+	{
+		float CurrentFalloffExponent = FlashlightComponent->LightFalloffExponent;
+		//@todo vreditor tweak
+		float UpdatedFalloffExponent = FMath::Clamp(CurrentFalloffExponent / GetWorldScaleFactor(), 2.0f, 16.0f);
+		FlashlightComponent->SetLightFalloffExponent(UpdatedFalloffExponent);
+	}
+	
+
+
 	// Updating the opacity and visibility of the grid according to the controllers
 	{
 		if( VREd::ShowMovementGrid->GetInt() == 1)
@@ -1400,6 +1415,7 @@ bool FVREditorMode::HandleInputKey(FEditorViewportClient* ViewportClient, FViewp
 		FVRAction VRAction( KnownAction->ActionType, GetHandIndexFromKey( Key ) );
 		if( VRAction.HandIndex != INDEX_NONE )
 		{
+
 			FVirtualHand& Hand = VirtualHands[ VRAction.HandIndex ];
 
 			bool bShouldAbsorbEvent = false;
@@ -1658,6 +1674,7 @@ void FVREditorMode::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	Collector.AddReferencedObject( AvatarMeshActor );
 	Collector.AddReferencedObject( HeadMeshComponent );
+	Collector.AddReferencedObject( FlashlightComponent );
 	Collector.AddReferencedObject( WorldMovementGridMeshComponent );
 	Collector.AddReferencedObject( SnapGridActor );
 	Collector.AddReferencedObject( SnapGridMeshComponent );
@@ -2517,6 +2534,8 @@ void FVREditorMode::CleanUpActorsBeforeMapChangeOrSimulate()
 	DestroyTransientActor( AvatarMeshActor );
 	AvatarMeshActor = nullptr;
 	HeadMeshComponent = nullptr;
+	FlashlightComponent = nullptr;
+
 	WorldMovementGridMeshComponent = nullptr;
 
 	if( WorldMovementGridMID != nullptr )
@@ -2623,6 +2642,33 @@ void FVREditorMode::SnapSelectedActorsToGround()
 	
 	// @todo vreditor: This should not be needed after to allow transformables to stop animating the transforms of actors after they come to rest
 	WorldInteraction->SetupTransformablesForSelectedActors();
+}
+
+void FVREditorMode::ToggleFlashlight( const int32 HandIndex )
+{
+
+	if (FlashlightComponent == nullptr)
+	{
+		FlashlightComponent = NewObject<USpotLightComponent>(AvatarMeshActor);
+		AvatarMeshActor->AddOwnedComponent(FlashlightComponent);
+		FlashlightComponent->RegisterComponent();
+		FlashlightComponent->SetMobility(EComponentMobility::Movable);
+		FlashlightComponent->SetCastShadows(false);
+		FlashlightComponent->bUseInverseSquaredFalloff = false;
+		//@todo vreditor tweak
+		FlashlightComponent->SetLightFalloffExponent(8.0f);
+		FlashlightComponent->SetIntensity(20.0f);
+		FlashlightComponent->SetOuterConeAngle(25.0f);
+		FlashlightComponent->SetInnerConeAngle(25.0f);
+		
+	}
+
+	FVirtualHand Hand = GetVirtualHand(HandIndex);
+	FlashlightComponent->AttachTo(Hand.MotionControllerComponent);
+	bIsFlashlightOn = !bIsFlashlightOn;
+	FlashlightComponent->SetVisibility(bIsFlashlightOn);
+	
+
 }
 
 void FVREditorMode::SetLaserVisuals( const int32 HandIndex, const FLinearColor& NewColor, const float CrawlFade, const float CrawlSpeed )
