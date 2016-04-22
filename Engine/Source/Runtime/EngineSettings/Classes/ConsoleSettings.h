@@ -79,6 +79,10 @@ class ENGINESETTINGS_API UConsoleSettings
 	UPROPERTY(config, EditAnywhere, Category=Colors, meta=(UIMin="0", UIMax="100", ClampMin="0", ClampMax="100"))
 	float BackgroundOpacityPercentage;
 
+	/** Whether we legacy bottom-to-top ordering or regular top-to-bottom ordering */
+	UPROPERTY(config, EditAnywhere, Category = AutoComplete)
+	bool bOrderTopToBottom;
+
 	/** The color used for text input. */
 	UPROPERTY(config, EditAnywhere, Category=Colors)
 	FColor InputColor;
