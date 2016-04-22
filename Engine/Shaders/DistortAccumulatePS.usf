@@ -65,7 +65,7 @@ void Main(
 	float2 DistortScreenUV = ScreenUV + Distortion;
 
 #if (ES2_PROFILE || ES3_1_PROFILE) 
-	float DistortSceneDepth = ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
+	float DistortSceneDepth = ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, DistortScreenUV, 0).r);
 #else
 	float DistortSceneDepth = CalcSceneDepth(DistortScreenUV);
 #endif // (ES2_PROFILE || ES3_1_PROFILE) 
