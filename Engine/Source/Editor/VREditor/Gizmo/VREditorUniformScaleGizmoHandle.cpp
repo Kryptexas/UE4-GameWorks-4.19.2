@@ -98,7 +98,7 @@ EGizmoHandleTypes UVREditorUniformScaleGizmoHandleGroup::GetHandleType() const
 	return EGizmoHandleTypes::Scale;
 }
 
-void UVREditorUniformScaleGizmoHandleGroup::SetUsePivotPointAsLocation( bool bUsePivotAsLocation )
+void UVREditorUniformScaleGizmoHandleGroup::SetUsePivotPointAsLocation( const bool bInUsePivotAsLocation )
 {
-	this->bUsePivotAsLocation = bUsePivotAsLocation;
+	bUsePivotAsLocation = bInUsePivotAsLocation;
 }

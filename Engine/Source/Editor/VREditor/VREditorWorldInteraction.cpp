@@ -280,10 +280,10 @@ FVREditorWorldInteraction::FVREditorWorldInteraction( FVREditorMode& InitOwner )
 	  TeleportStartLocation( FVector::ZeroVector ),
 	  TeleportGoalLocation( FVector::ZeroVector ),
 	  bJustTeleported( false ),
-	  FloatingUIAssetDraggedFrom( nullptr ),
 	  TeleportSound( nullptr ),
 	  DropMaterialOrMaterialSound( nullptr ),
-	  DockSelectDistance( 100 )
+	  DockSelectDistance( 100 ),
+	  FloatingUIAssetDraggedFrom( nullptr )
 {
 	// Register to find out about VR input events
 	Owner.OnVRAction().AddRaw( this, &FVREditorWorldInteraction::OnVRAction );

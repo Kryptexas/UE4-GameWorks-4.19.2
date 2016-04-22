@@ -29,7 +29,7 @@ public:
 	virtual EGizmoHandleTypes GetHandleType() const override;
 
 	/** Sets if the pivot point is used as location for the handle */
-	void SetUsePivotPointAsLocation( bool bUsePivotAsLocation );
+	void SetUsePivotPointAsLocation( const bool bInUsePivotAsLocation );
 
 private:
 
