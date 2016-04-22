@@ -2377,6 +2377,11 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder, bool bIsRepl
 	{
 		for(UClass* Class : NativeNotifyClasses)
 		{
+			if (Class->HasAllClassFlags(CLASS_Abstract))
+			{
+				continue; // skip abstract classes
+			}
+
 			const FText LabelText = Class->GetDisplayNameText();
 			const FString Label = LabelText.ToString();
 
@@ -4785,7 +4790,7 @@ void SAnimNotifyPanel::OnGetNativeNotifyData(TArray<UClass*>& OutClasses, UClass
 	{
 		UClass* Class = *It;
 
-		if(Class->IsChildOf(NotifyOutermost) && Class->HasAllClassFlags(CLASS_Native) && !Class->HasAllClassFlags(CLASS_Abstract) && !Class->IsInBlueprint())
+		if(Class->IsChildOf(NotifyOutermost) && Class->HasAllClassFlags(CLASS_Native) && !Class->IsInBlueprint())
 		{
 			OutClasses.Add(Class);
 			// Form class name to search later
