@@ -461,7 +461,7 @@ void FVulkanDynamicRHI::InitInstance()
 
 		//#todo-rco: Leaks/issues still present!
 		// Indicate that the RHI needs to use the engine's deferred deletion queue.
-		GRHINeedsExtraDeletionLatency = false;
+		GRHINeedsExtraDeletionLatency = true;
 
 		GMaxShadowDepthBufferSizeX =  FPlatformMath::Min<int32>(Props.limits.maxImageDimension2D, GMaxShadowDepthBufferSizeX);
 		GMaxShadowDepthBufferSizeY =  FPlatformMath::Min<int32>(Props.limits.maxImageDimension2D, GMaxShadowDepthBufferSizeY);
@@ -1335,5 +1335,6 @@ void FVulkanDynamicRHI::DumpMemory()
 	auto* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
 	RHI->Device->GetMemoryManager().DumpMemory();
 	RHI->Device->GetResourceHeapManager().DumpMemory();
+	RHI->Device->GetStagingManager().DumpMemory();
 }
 #endif

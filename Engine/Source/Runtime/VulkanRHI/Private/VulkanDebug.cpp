@@ -48,6 +48,11 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 			FString Message = FString::Printf(TEXT("VulkanRHI: VK ERROR: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
 			FPlatformMisc::LowLevelOutputDebugStringf(*Message);
     
+			if (!FCStringAnsi::Strcmp(LayerPrefix, "MEM"))
+			{
+				((FVulkanDynamicRHI*)GDynamicRHI)->DumpMemory();
+			}
+
 			// Break debugger on first instance of each message. 
 			// Continuing will ignore the error and suppress this message in future.
 			bool bIgnoreInFuture = true;

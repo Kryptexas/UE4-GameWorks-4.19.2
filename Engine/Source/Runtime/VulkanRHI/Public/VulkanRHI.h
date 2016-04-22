@@ -192,10 +192,12 @@ protected:
 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	IConsoleObject* DumpMemoryCmd;
+public:
 	static void DumpMemory();
 #endif
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
+protected:
 	VkDebugReportCallbackEXT MsgCallback;
 	void SetupDebugLayerCallback();
 	void RemoveDebugLayerCallback();

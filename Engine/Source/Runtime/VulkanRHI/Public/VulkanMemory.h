@@ -693,6 +693,10 @@ namespace VulkanRHI
 			uint32 TypeIndex = 0;
 			VERIFYVULKANRESULT(DeviceMemoryManager->GetMemoryTypeFromProperties(MemoryReqs.memoryTypeBits, MemoryPropertyFlags, &TypeIndex));
 			bool bMapped = (MemoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+			if (!ResourceHeaps[TypeIndex])
+			{
+				UE_LOG(LogVulkanRHI, Fatal, TEXT("Missing memory type index %d, MemSize %d, MemPropTypeBits %u, MemPropertyFlags %u, %s(%d)"), TypeIndex, (uint32)MemoryReqs.size, (uint32)MemoryReqs.memoryTypeBits, (uint32)MemoryPropertyFlags, ANSI_TO_TCHAR(File), Line);
+			}
 			return ResourceHeaps[TypeIndex]->AllocateResource(MemoryReqs.size, MemoryReqs.alignment, false, bMapped, File, Line);
 		}
 
@@ -792,6 +796,10 @@ namespace VulkanRHI
 		void ReleaseBuffer(FVulkanCmdBuffer* CmdBuffer, FStagingBuffer*& StagingBuffer);
 
 		void ProcessPendingFree(bool bImmediately = false);
+
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		void DumpMemory();
+#endif
 
 	protected:
 		struct FPendingItem
