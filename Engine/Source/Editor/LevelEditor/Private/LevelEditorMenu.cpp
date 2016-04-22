@@ -279,7 +279,7 @@ TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FU
 
 							const FString CurRecent = MRUFavorites.GetMRUItem( CurRecentIndex );
 
-							const FText ToolTip = FText::Format( LOCTEXT( "RecentFileToolTip", "Opens recent file: {0}" ), FText::FromString( CurRecent ) );
+							const FText ToolTip = FText::Format( LOCTEXT( "RecentLevelToolTip", "Opens recent level: {0}" ), FText::FromString( CurRecent ) );
 							const FText Label = FText::FromString( FPaths::GetBaseFilename( CurRecent ) );
 
 							InMenuBuilder.AddMenuEntry( OpenRecentFile, NAME_None, Label, ToolTip );

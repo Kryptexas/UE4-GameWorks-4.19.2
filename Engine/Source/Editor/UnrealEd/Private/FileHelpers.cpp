@@ -2175,7 +2175,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		FMainMRUFavoritesList* MRUFavoritesList = MainFrameModule.GetMRUFavoritesList();
 		if(MRUFavoritesList)
 		{
-			MRUFavoritesList->AddMRUItem( *Filename );
+			MRUFavoritesList->AddMRUItem(LongMapPackageName);
 		}
 	}
 
