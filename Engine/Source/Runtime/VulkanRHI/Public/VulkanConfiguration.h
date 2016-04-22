@@ -25,7 +25,7 @@
 
 // constants we probably will change a few times
 #define VULKAN_UB_RING_BUFFER_SIZE								(8 * 1024 * 1024)
-#define VULKAN_TEMP_FRAME_ALLOCATOR_SIZE						(1 * 1024 * 1024)
+#define VULKAN_TEMP_FRAME_ALLOCATOR_SIZE						(8 * 1024 * 1024)
 
 //@NOTE: VULKAN_NUM_IMAGE_BUFFERS should be smaller than VULKAN_NUM_COMMAND_BUFFERS, to make sure that we wait for the fence before we reset the cmd buffer
 //@TODO: Clean up VULKAN_NUM_IMAGE_BUFFERS and VULKAN_NUM_COMMAND_BUFFERS once the Vulkan API and SDK stabilizes.
