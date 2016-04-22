@@ -178,6 +178,8 @@ VkImage FVulkanSurface::CreateImage(
 		break;
 	}
 
+//#todo-rco: Verify flags work on newer Android drivers
+#if !PLATFORM_ANDROID
 	if (ImageCreateInfo.tiling == VK_IMAGE_TILING_LINEAR)
 	{
 		VkFormatFeatureFlags FormatFlags = InDevice.GetFormatProperties()[ImageCreateInfo.format].linearTilingFeatures;
@@ -232,6 +234,7 @@ VkImage FVulkanSurface::CreateImage(
 			ImageCreateInfo.usage &= ~VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		}
 	}
+#endif
 
 	VkImage Image;
 	VERIFYVULKANRESULT(vkCreateImage(InDevice.GetInstanceHandle(), &ImageCreateInfo, nullptr, &Image));
