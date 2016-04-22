@@ -107,8 +107,6 @@ public:
 
 	void SetReverse(bool bInReverse);
 
-	float GetLength();
-
 	void SetBlendSpaceInput(const FVector& InBlendInput);
 
 #if WITH_EDITOR

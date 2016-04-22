@@ -377,23 +377,6 @@ void FAnimSingleNodeInstanceProxy::SetReverse(bool bInReverse)
 	}*/
 }
 
-float FAnimSingleNodeInstanceProxy::GetLength()
-{
-	if ((CurrentAsset != NULL))
-	{
-		if (UBlendSpace* BlendSpace = Cast<UBlendSpace>(CurrentAsset))
-		{
-			return BlendSpace->AnimLength;
-		}
-		else if (UAnimSequenceBase* SequenceBase = Cast<UAnimSequenceBase>(CurrentAsset))
-		{
-			return SequenceBase->SequenceLength;
-		}
-	}	
-
-	return 0.f;
-}
-
 void FAnimSingleNodeInstanceProxy::SetBlendSpaceInput(const FVector& InBlendInput)
 {
 	BlendSpaceInput = InBlendInput;

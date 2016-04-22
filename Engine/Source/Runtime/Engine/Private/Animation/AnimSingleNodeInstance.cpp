@@ -388,7 +388,19 @@ void UAnimSingleNodeInstance::SetBlendSpaceInput(const FVector& InBlendInput)
 
 float UAnimSingleNodeInstance::GetLength()
 {
-	return GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().GetLength();
+	if ((CurrentAsset != NULL))
+	{
+		if (UBlendSpace* BlendSpace = Cast<UBlendSpace>(CurrentAsset))
+		{
+			return BlendSpace->AnimLength;
+		}
+		else if (UAnimSequenceBase* SequenceBase = Cast<UAnimSequenceBase>(CurrentAsset))
+		{
+			return SequenceBase->SequenceLength;
+		}
+	}
+
+	return 0.f;
 }
 
 void UAnimSingleNodeInstance::StepForward()
