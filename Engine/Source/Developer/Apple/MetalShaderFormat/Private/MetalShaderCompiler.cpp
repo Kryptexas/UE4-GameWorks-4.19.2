@@ -458,7 +458,9 @@ static void BuildMetalShaderOutput(
 			Ar.Serialize((void*)USFSource, SourceLen + 1 - (USFSource - InShaderSource));
 			
 			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
-			ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
+			// Daniel L: This GenerateShaderName does not generate a deterministic output among shaders as the shader code can be shared. 
+			//			uncommenting this will cause the project to have non deterministic materials and will hurt patch sizes
+			//ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
 			
 			ShaderOutput.NumInstructions = 0;
 			ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;

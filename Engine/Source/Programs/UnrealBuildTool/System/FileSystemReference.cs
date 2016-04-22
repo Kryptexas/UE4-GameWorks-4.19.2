@@ -247,7 +247,7 @@ namespace UnrealBuildTool
 	/// Representation of an absolute directory path. Allows fast hashing and comparisons.
 	/// </summary>
 	[Serializable]
-	public class DirectoryReference : FileSystemReference
+	public class DirectoryReference : FileSystemReference, IEquatable<DirectoryReference>
 	{
 		/// <summary>
 		/// Default constructor.
@@ -462,12 +462,21 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Compares against another object for equality.
 		/// </summary>
-		/// <param name="A">First name to compare.</param>
-		/// <param name="B">Second name to compare.</param>
+		/// <param name="Obj">other instance to compare.</param>
 		/// <returns>True if the names represent the same object, false otherwise</returns>
 		public override bool Equals(object Obj)
 		{
 			return (Obj is DirectoryReference) && ((DirectoryReference)Obj) == this;
+		}
+
+		/// <summary>
+		/// Compares against another object for equality.
+		/// </summary>
+		/// <param name="Obj">other instance to compare.</param>
+		/// <returns>True if the names represent the same object, false otherwise</returns>
+		public bool Equals(DirectoryReference Obj)
+		{
+			return Obj == this;
 		}
 
 		/// <summary>
@@ -514,7 +523,7 @@ namespace UnrealBuildTool
 	/// Representation of an absolute file path. Allows fast hashing and comparisons.
 	/// </summary>
 	[Serializable]
-	public class FileReference : FileSystemReference
+	public class FileReference : FileSystemReference, IEquatable<FileReference>
 	{
 		/// <summary>
 		/// Default constructor.
@@ -681,12 +690,21 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Compares against another object for equality.
 		/// </summary>
-		/// <param name="A">First name to compare.</param>
-		/// <param name="B">Second name to compare.</param>
+		/// <param name="Obj">other instance to compare.</param>
 		/// <returns>True if the names represent the same object, false otherwise</returns>
 		public override bool Equals(object Obj)
 		{
 			return (Obj is FileReference) && ((FileReference)Obj) == this;
+		}
+
+		/// <summary>
+		/// Compares against another object for equality.
+		/// </summary>
+		/// <param name="Obj">other instance to compare.</param>
+		/// <returns>True if the names represent the same object, false otherwise</returns>
+		public bool Equals(FileReference Obj)
+		{
+			return Obj == this;
 		}
 
 		/// <summary>

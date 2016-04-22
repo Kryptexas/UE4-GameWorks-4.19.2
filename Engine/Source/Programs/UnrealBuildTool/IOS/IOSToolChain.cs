@@ -120,7 +120,10 @@ namespace UnrealBuildTool
 		{
 			base.SetUpGlobalEnvironment();
 
-			SetupXcodePaths(true);
+			if (!UEBuildConfiguration.bListBuildFolders)
+			{
+				SetupXcodePaths(true);
+			}
 		}
 
 		public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)

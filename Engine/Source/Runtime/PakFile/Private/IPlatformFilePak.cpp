@@ -18,10 +18,11 @@ DEFINE_LOG_CATEGORY(LogPakFile);
 DEFINE_STAT(STAT_PakFile_Read);
 DEFINE_STAT(STAT_PakFile_NumOpenHandles);
 
-// Enable to stop the loading of any loose files outside of the pak file
-#ifndef ENABLE_LOOSE_FILE_SECURITY
-#define ENABLE_LOOSE_FILE_SECURITY 0
-#endif
+FFilenameSecurityDelegate& FPakPlatformFile::GetFilenameSecurityDelegate()
+{
+	static FFilenameSecurityDelegate Delegate;
+	return Delegate;
+}
 
 /**
  * Class to handle correctly reading from a compressed file within a compressed package
@@ -240,51 +241,23 @@ bool FPakEntry::VerifyPakEntriesMatch(const FPakEntry& FileEntryA, const FPakEnt
 	return bResult;
 }
 
-bool FPakPlatformFile::IsFilenameAllowed(const FString& InFilename)
+bool FPakPlatformFile::IsNonPakFilenameAllowed(const FString& InFilename)
 {
-	if (bForceSecurityBypass || !bSecurityEnabled)
+	FFilenameSecurityDelegate& FilenameSecurityDelegate = GetFilenameSecurityDelegate();
+
+	if (!FilenameSecurityDelegate.IsBound())
 	{
 		return true;
 	}
 
-	FName FilenameHash(*InFilename);
-
-#if PAKFILE_TRACK_SECURITY_EXCLUDED_FILES
-	if (SecurityExcludedFiles.Contains(FilenameHash))
+	if (GetLowerLevel()->FileExists(*InFilename))
+	{
+		return FilenameSecurityDelegate.Execute(*InFilename);
+	}
+	else
 	{
 		return false;
 	}
-#endif
-
-	if (AllowedExtensions.Num() == 0)
-	{
-		static const FName PakExtension(TEXT("pak"));
-		static const FName LogExtension(TEXT("log"));
-		AllowedExtensions.Add(PakExtension);
-		AllowedExtensions.Add(LogExtension);
-	}
-
-	static const FName IniExtension(TEXT("ini"));
-
-	FName ExtensionName = FName(*FPaths::GetExtension(InFilename));
-	bool bAllowed = false;
-
-	if (AllowedExtensions.Contains(ExtensionName))
-	{
-		bAllowed = true;
-	}
-	else if (ExtensionName == IniExtension)
-	{
-		// TODO: Filter out ini files that we don't trust
-		bAllowed = InFilename.Contains(TEXT("GameUserSettings"), ESearchCase::IgnoreCase);
-	}
-
-#if PAKFILE_TRACK_SECURITY_EXCLUDED_FILES
-	UE_CLOG(!bAllowed, LogPakFile, Log, TEXT("Ignoring request for loose file '%s'"), *InFilename);
-	SecurityExcludedFiles.Add(FilenameHash);
-#endif
-
-	return bAllowed;
 }
 
 FPakFile::FPakFile(const TCHAR* Filename, bool bIsSigned)
@@ -562,9 +535,7 @@ void FPakPlatformFile::HandlePakListCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 FPakPlatformFile::FPakPlatformFile()
 	: LowerLevel(NULL)
 	, bSigned(false)
-	, bForceSecurityBypass(false)
 {
-	bSecurityEnabled = (!!ENABLE_LOOSE_FILE_SECURITY) || FParse::Param(FCommandLine::Get(), TEXT("PlatformFileSecurity"));
 }
 
 FPakPlatformFile::~FPakPlatformFile()
@@ -911,7 +882,7 @@ IFileHandle* FPakPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrite)
 #if !USING_SIGNED_CONTENT
 	else
 	{
-		if (IsFilenameAllowed(Filename))
+		if (IsNonPakFilenameAllowed(Filename))
 		{
 			// Default to wrapped file
 			Result = LowerLevel->OpenRead(Filename, bAllowWrite);

@@ -757,7 +757,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if (ILauncherCheckModule::Get().WasRanFromLauncher() == false)
 	{
 		// Tell Launcher to run us instead
-		ILauncherCheckModule::Get().RunLauncher();
+		ILauncherCheckModule::Get().RunLauncher(ELauncherAction::AppLaunch);
 		// We wish to exit
 		GIsRequestingExit = true;
 		return 0;

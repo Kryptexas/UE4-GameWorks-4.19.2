@@ -786,7 +786,9 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			}
 
 			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
-			Output.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*Input.GenerateShaderName()));
+			// Daniel L: This GenerateShaderName does not generate a deterministic output among shaders as the shader code can be shared. 
+			//			uncommenting this will cause the project to have non deterministic materials and will hurt patch sizes
+			//Output.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*Input.GenerateShaderName()));
 
 			// Set the number of instructions.
 			Output.NumInstructions = ShaderDesc.InstructionCount;

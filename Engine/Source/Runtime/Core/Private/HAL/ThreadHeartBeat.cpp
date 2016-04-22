@@ -14,11 +14,6 @@ FThreadHeartBeat::FThreadHeartBeat()
 		Thread = FRunnableThread::Create(this, TEXT("FHeartBeatThread"), 0, TPri_BelowNormal);
 	}
 #endif
-
-	if (GConfig)
-	{
-		GConfig->GetDouble(TEXT("Core.System"), TEXT("HangDuration"), HangDuration, GEngineIni);
-	}
 }
 
 FThreadHeartBeat::~FThreadHeartBeat()
@@ -43,6 +38,12 @@ uint32 FThreadHeartBeat::Run()
 {
 	while (StopTaskCounter.GetValue() == 0)
 	{
+		// Grab this everytime to handle hotfixes
+		if (GConfig)
+		{
+			GConfig->GetDouble(TEXT("Core.System"), TEXT("HangDuration"), HangDuration, GEngineIni);
+		}
+
 		uint32 ThreadThatHung = CheckHeartBeat();
 		if (ThreadThatHung != FThreadHeartBeat::InvalidThreadId)
 		{

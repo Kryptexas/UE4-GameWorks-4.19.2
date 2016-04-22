@@ -7,7 +7,7 @@
 #include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 #include "HAL/ExceptionHandling.h"
-
+#include "HAL/ThreadHeartBeat.h"
 #include "AllowWindowsPlatformTypes.h"
 
 	#include <strsafe.h>
@@ -432,6 +432,12 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 		EnsureLock.Unlock();
 		return;
 	}
+
+	// Stop checking heartbeat for this thread. Ensure can take a lot of time
+	// Thread heartbeat will be resumed the next time this thread calls FThreadHeartBeat::Get().HeartBeat();
+	// The reason why we don't call HeartBeat() at the end of this function is that maybe this thread
+	// Never had a heartbeat checked and may not be sending heartbeats at all which would later lead to a false positives when detecting hangs.
+	FThreadHeartBeat::Get().KillHeartBeat();
 
 	bReentranceGuard = true;
 

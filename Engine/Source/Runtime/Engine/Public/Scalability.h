@@ -85,6 +85,9 @@ namespace Scalability
 	/** Process a console command line **/
 	ENGINE_API void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 
+	/** Returns the number of steps for each quality level */
+	ENGINE_API FQualityLevels GetQualityLevelCounts();
+
 	/** Minimum single axis scale for render resolution */
 	static const float MinResolutionScale = 10.0f;
 

@@ -2015,8 +2015,16 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 			}
 			else if (FParse::Command(&TempCmd, TEXT("STARTFILE")))
 			{
+				FString Filename;
 				AddArgs += TEXT(" ");
-				AddArgs += CreateProfileFilename(FStatConstants::StatsFileExtension, true);
+				if (FParse::Line(&TempCmd, Filename, true))
+				{
+					AddArgs += Filename;
+				}
+				else
+				{
+					AddArgs += CreateProfileFilename(FStatConstants::StatsFileExtension, true);
+				}
 			}
 			else if (FParse::Command(&TempCmd, TEXT("StartFileRaw")))
 			{

@@ -123,6 +123,14 @@ FHittestGrid::FHittestGrid()
 }
 
 
+FHittestGrid::~FHittestGrid()
+{
+	// Logging to track down window shutdown issues with movie loading threads. Too spammy in editor builds with all the windows
+#if !WITH_EDITOR
+	UE_LOG(LogSlate, Log, TEXT("HittestGrid destroyed"));
+#endif
+}
+
 TArray<FWidgetAndPointer> FHittestGrid::GetBubblePath(FVector2D DesktopSpaceCoordinate, float CursorRadius, bool bIgnoreEnabledStatus)
 {
 	//grab the radius, and if we are non-zero

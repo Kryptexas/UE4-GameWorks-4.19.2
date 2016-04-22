@@ -4869,7 +4869,7 @@ void UParticleSystemComponent::InitParticles()
 
 		bool bClearDynamicData = false;
 		int32 PreferredLODLevel = LODLevel;
-		bool bSetLodLevels = false;
+		bool bSetLodLevels = LODLevel > 0; //We should set the lod level even when creating all emitters if the requested LOD is not 0. 
 
 		for (int32 Idx = 0; Idx < NumEmitters; Idx++)
 		{

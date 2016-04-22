@@ -279,6 +279,44 @@ struct FLocalizedAssetUtil
 };
 
 
+/** Performs fuzzy path matching against a set of include and exclude paths */
+class FFuzzyPathMatcher
+{
+public:
+	enum EPathMatch
+	{
+		Included,
+		Excluded,
+		NoMatch,
+	};
+
+public:
+	FFuzzyPathMatcher(const TArray<FString>& InIncludePathFilters, const TArray<FString>& InExcludePathFilters);
+
+	EPathMatch TestPath(const FString& InPathToTest) const;
+
+private:
+	enum EPathType : uint8
+	{
+		Include,
+		Exclude,
+	};
+
+	struct FFuzzyPath
+	{
+		FFuzzyPath(FString InPathFilter, const EPathType InPathType)
+			: PathFilter(MoveTemp(InPathFilter))
+			, PathType(InPathType)
+		{
+		}
+
+		FString PathFilter;
+		EPathType PathType;
+	};
+
+	TArray<FFuzzyPath> FuzzyPaths;
+};
+
 /**
  *	UGatherTextCommandletBase: Base class for localization commandlets. Just to force certain behaviors and provide helper functionality. 
  */

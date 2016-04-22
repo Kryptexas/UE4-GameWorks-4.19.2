@@ -6314,6 +6314,9 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 			UpdatedComponent->SetWorldLocationAndRotation(NewLocation, NewRotation);
 		}
 	
+		//////////////////////////////////////////////////////////////////////////
+		// Update smoothing timestamps
+
 		// If running ahead, pull back slightly. This will cause the next delta to seem slightly longer, and cause us to lerp to it slightly slower.
 		if (ClientData->SmoothingClientTimeStamp > ClientData->SmoothingServerTimeStamp)
 		{
@@ -6325,16 +6328,20 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 		}
 
 		// Using server timestamp lets us know how much time actually elapsed, regardless of packet lag variance.
+		double OldServerTimeStamp = ClientData->SmoothingServerTimeStamp;
 		ClientData->SmoothingServerTimeStamp = CharacterOwner->GetServerLastTransformUpdateTimeStamp();
 
 		// Initial update has no delta.
 		if (ClientData->LastCorrectionTime == 0)
 		{
 			ClientData->SmoothingClientTimeStamp = ClientData->SmoothingServerTimeStamp;
+			OldServerTimeStamp = ClientData->SmoothingServerTimeStamp;
 		}
 
-		// Don't let the client fall too far behind or run ahead.
-		ClientData->SmoothingClientTimeStamp = FMath::Clamp<double>(ClientData->SmoothingClientTimeStamp, ClientData->SmoothingServerTimeStamp - ClientData->MaxMoveDeltaTime, ClientData->SmoothingServerTimeStamp);
+		// Don't let the client fall too far behind or run ahead of new server time.
+		const double ServerDeltaTime = ClientData->SmoothingServerTimeStamp - OldServerTimeStamp;
+		const double MaxDelta = FMath::Max<double>(ClientData->MaxMoveDeltaTime * 2.0, ServerDeltaTime * 1.25);
+		ClientData->SmoothingClientTimeStamp = FMath::Clamp(ClientData->SmoothingClientTimeStamp, ClientData->SmoothingServerTimeStamp - MaxDelta, ClientData->SmoothingServerTimeStamp);
 
 		// Compute actual delta between new server timestamp and client simulation.
 		ClientData->LastCorrectionDelta = ClientData->SmoothingServerTimeStamp - ClientData->SmoothingClientTimeStamp;

@@ -257,6 +257,20 @@ float UGameUserSettings::FindResolutionQualityForScreenSize(float Width, float H
 	return ResolutionQuality;
 }
 
+void UGameUserSettings::SetFrameRateLimitCVar(float InLimit)
+{
+	static IConsoleVariable* MaxFPSCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS"));
+	if (ensure(MaxFPSCVar))
+	{
+		MaxFPSCVar->Set(FMath::Max(InLimit, 0.0f), ECVF_SetByGameSetting);
+	}
+}
+
+float UGameUserSettings::GetEffectiveFrameRateLimit()
+{
+	return FrameRateLimit;
+}
+
 void UGameUserSettings::SetPreferredFullscreenMode(int32 Mode)
 {
 	PreferredFullscreenMode = Mode;
@@ -330,16 +344,11 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 
 	if (!IsRunningDedicatedServer())
 	{
-		// Update MaxFPS cvar
-		static IConsoleVariable* MaxFPSCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS"));
-		if (ensure(MaxFPSCVar) && (FrameRateLimit >= 0.0f))
-		{
-			MaxFPSCVar->Set(FrameRateLimit, ECVF_SetByGameSetting);
-		}
+		SetFrameRateLimitCVar(GetEffectiveFrameRateLimit());
 	}
 
 	// in init those are loaded earlier, after that we apply consolevariables.ini
-	if(GEngine->IsInitialized())
+	if (GEngine->IsInitialized())
 	{
 		Scalability::SetQualityLevels(ScalabilityQuality);
 	}
@@ -543,8 +552,6 @@ float UGameUserSettings::GetFrameRateLimit() const
 
 void UGameUserSettings::SetOverallScalabilityLevel(int32 Value)
 {
-	Value = FMath::Clamp(Value, 0, 3);
-
 	ScalabilityQuality.SetFromSingleQualityLevel(Value);	
 }
 
@@ -591,7 +598,7 @@ void UGameUserSettings::SetResolutionScaleNormalized(float NewScaleNormalized)
 
 void UGameUserSettings::SetViewDistanceQuality(int32 Value)
 {
-	ScalabilityQuality.ViewDistanceQuality = FMath::Clamp(Value, 0, 3);
+	ScalabilityQuality.ViewDistanceQuality = Value;
 }
 
 int32 UGameUserSettings::GetViewDistanceQuality() const
@@ -601,7 +608,7 @@ int32 UGameUserSettings::GetViewDistanceQuality() const
 
 void UGameUserSettings::SetShadowQuality(int32 Value)
 {
-	ScalabilityQuality.ShadowQuality = FMath::Clamp(Value, 0, 3);
+	ScalabilityQuality.ShadowQuality = Value;
 }
 
 int32 UGameUserSettings::GetShadowQuality() const
@@ -611,7 +618,7 @@ int32 UGameUserSettings::GetShadowQuality() const
 
 void UGameUserSettings::SetAntiAliasingQuality(int32 Value)
 {
-	ScalabilityQuality.AntiAliasingQuality = FMath::Clamp(Value, 0, 3);
+	ScalabilityQuality.AntiAliasingQuality = Value;
 }
 
 int32 UGameUserSettings::GetAntiAliasingQuality() const
@@ -621,7 +628,7 @@ int32 UGameUserSettings::GetAntiAliasingQuality() const
 
 void UGameUserSettings::SetTextureQuality(int32 Value)
 {
-	ScalabilityQuality.TextureQuality = FMath::Clamp(Value, 0, 3);
+	ScalabilityQuality.TextureQuality = Value;
 }
 
 int32 UGameUserSettings::GetTextureQuality() const
@@ -631,7 +638,7 @@ int32 UGameUserSettings::GetTextureQuality() const
 
 void UGameUserSettings::SetVisualEffectQuality(int32 Value)
 {
-	ScalabilityQuality.EffectsQuality = FMath::Clamp(Value, 0, 3);
+	ScalabilityQuality.EffectsQuality = Value;
 }
 
 int32 UGameUserSettings::GetVisualEffectQuality() const
@@ -641,7 +648,7 @@ int32 UGameUserSettings::GetVisualEffectQuality() const
 
 void UGameUserSettings::SetPostProcessingQuality(int32 Value)
 {
-	ScalabilityQuality.PostProcessQuality = FMath::Clamp(Value, 0, 3);
+	ScalabilityQuality.PostProcessQuality = Value;
 }
 
 int32 UGameUserSettings::GetPostProcessingQuality() const

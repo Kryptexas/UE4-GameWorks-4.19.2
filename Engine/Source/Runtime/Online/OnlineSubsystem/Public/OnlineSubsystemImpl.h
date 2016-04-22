@@ -12,7 +12,6 @@ DECLARE_DELEGATE(FNextTickDelegate);
  */
 class ONLINESUBSYSTEM_API FOnlineSubsystemImpl 
 	: public IOnlineSubsystem
-	, public FTickerObjectBase
 {
 private:
 
@@ -49,6 +48,15 @@ protected:
 	/** Buffer to hold callbacks for the current tick (so it's safe to call ExecuteNextTick within a tick callback) */
 	TArray<FNextTickDelegate> CurrentTickBuffer;
 
+	/** Start Ticker */
+	void StartTicker();
+
+	/** Stop Ticker */
+	void StopTicker();
+	
+	/** Delegate for callbacks to Tick */
+	FDelegateHandle TickHandle;
+
 public:
 	
 	virtual ~FOnlineSubsystemImpl();
@@ -66,11 +74,13 @@ public:
 	virtual IMessageSanitizerPtr GetMessageSanitizer(int32 LocalUserNum, FString& OutAuthTypeToExclude) const override;
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 
-	// FTickerObjectBase
-
-	virtual bool Tick(float DeltaTime) override;
-
-	// FOnlineSubsystemImpl
+	/**
+	 * Tick function
+	 *
+	 * @param DeltaTime	time passed since the last call.
+	 * @return true if should continue ticking
+	 */
+	virtual bool Tick(float DeltaTime);
 
 	/**
 	 * @return the name of the online subsystem instance

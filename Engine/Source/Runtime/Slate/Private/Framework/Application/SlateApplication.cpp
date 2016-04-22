@@ -2057,6 +2057,10 @@ int32 FSlateApplication::GetLocationInMenuStack( TSharedRef<SWindow> WindowToFin
 
 void FSlateApplication::RequestDestroyWindow( TSharedRef<SWindow> InWindowToDestroy )
 {
+	// Logging to track down window shutdown issues with movie loading threads. Too spammy in editor builds with all the windows
+#if !WITH_EDITOR
+	UE_LOG(LogSlate, Log, TEXT("Request Window '%s' being destroyed"), *InWindowToDestroy->GetTitle().ToString() );
+#endif
 	struct local
 	{
 		static void Helper( const TSharedRef<SWindow> WindowToDestroy, TArray< TSharedRef<SWindow> >& OutWindowDestroyQueue)

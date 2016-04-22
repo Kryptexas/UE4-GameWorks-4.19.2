@@ -40,10 +40,14 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InOwnerActor, AActor *InAv
 	if (AvatarActor.Get())
 	{
 		// Grab Components that we care about
-		USkeletalMeshComponent * SkelMeshComponent = AvatarActor->FindComponentByClass<USkeletalMeshComponent>();
+		USkeletalMeshComponent* SkelMeshComponent = AvatarActor->FindComponentByClass<USkeletalMeshComponent>();
 		if (SkelMeshComponent)
 		{
 			this->AnimInstance = SkelMeshComponent->GetAnimInstance();
+			if (this->AnimInstance == nullptr)
+			{
+				ABILITY_LOG(Warning, TEXT("FGameplayAbilityActorInfo::InitFromActor. Failed to find AnimInstance from SkelMeshComponent %s. From AvatarActor %s"), *GetNameSafe(SkelMeshComponent), *GetNameSafe(InAvatarActor));
+			}
 		}
 
 		MovementComponent = AvatarActor->FindComponentByClass<UMovementComponent>();

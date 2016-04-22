@@ -1029,10 +1029,12 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 								for (int32 BatchIndex = 0; BatchIndex < GetNumMeshBatches(); BatchIndex++)
 								{
 									FMeshBatch& CollisionElement = Collector.AllocateMesh();
-									GetMeshElement(DrawLOD, BatchIndex, SectionIndex, SDPG_World, bSectionIsSelected, false, true, CollisionElement);
-									CollisionElement.MaterialRenderProxy = CollisionMaterialInstance;
-									Collector.AddMesh(ViewIndex, CollisionElement);
-									INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, CollisionElement.GetNumPrimitives());
+									if (GetMeshElement(DrawLOD, BatchIndex, SectionIndex, SDPG_World, bSectionIsSelected, false, true, CollisionElement))
+									{
+										CollisionElement.MaterialRenderProxy = CollisionMaterialInstance;
+										Collector.AddMesh(ViewIndex, CollisionElement);
+										INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, CollisionElement.GetNumPrimitives());
+									}
 								}
 							}
 						}

@@ -7,7 +7,7 @@
 #include "TessellationRendering.h"
 #include "NvTriStrip.h"
 #include "forsythtriangleorderoptimizer.h"
-#include "ThirdParty/nvtesslib/inc/nvtess.h"
+#include "nvtess.h"
 #include "SkeletalMeshTools.h"
 #include "ImageUtils.h"
 #include "Textures/TextureAtlas.h"

@@ -1185,7 +1185,7 @@ namespace UnrealBuildTool
 		{
 			return string.Format("{0}{1}{2}{3}",
 					Timer != null ? String.Format("[{0:hh\\:mm\\:ss\\.fff}] ", Timer.Elapsed) : "",
-					bLogSources ? string.Format("{0}: ", string.IsNullOrEmpty(CustomSource) ? GetSource(StackFramesToSkip) : CustomSource) : "",
+					bLogSources ? string.Format("{0}", CustomSource == null ? GetSource(StackFramesToSkip) + ": ": CustomSource == string.Empty ? "" : CustomSource + ": ") : "",
 					bLogSeverity ? GetSeverityPrefix(Verbosity) : "",
 				// If there are no extra args, don't try to format the string, in case it has any format control characters in it (our LOCTEXT strings tend to).
 					Args.Length > 0 ? string.Format(Format, Args) : Format);

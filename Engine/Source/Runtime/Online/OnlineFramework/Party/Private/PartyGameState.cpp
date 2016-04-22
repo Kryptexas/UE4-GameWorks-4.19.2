@@ -167,13 +167,13 @@ void UPartyGameState::InitFromCreate(const FUniqueNetId& LocalUserId, TSharedPtr
 		FUniqueNetIdRepl MemberId(LocalUserId.AsShared());
 		UpdatePartyData(MemberId);
 
+		// Make sure we create the local player's entry before broadcasting the join
+		SendLocalPlayerPartyData();
+
 		// Broadcast join
 		UParty* Party = GetPartyOuter();
 		check(Party);
 		Party->OnPartyJoined().Broadcast(this);
-
-		// Update local player data and broadcast member data updates
-		SendLocalPlayerPartyData();
 	}
 	else
 	{
@@ -187,13 +187,13 @@ void UPartyGameState::InitFromJoin(const FUniqueNetId& LocalUserId, TSharedPtr<c
 	{
 		Init(LocalUserId, InParty);
 
+		// Make sure we create the local player's entry before broadcasting the join
+		SendLocalPlayerPartyData();
+
 		// Broadcast join
 		UParty* Party = GetPartyOuter();
 		check(Party);
 		Party->OnPartyJoined().Broadcast(this);
-
-		// Update local player data and broadcast member data updates
-		SendLocalPlayerPartyData();
 	}
 	else
 	{

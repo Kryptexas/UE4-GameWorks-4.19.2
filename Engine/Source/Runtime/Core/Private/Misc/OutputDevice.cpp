@@ -3,7 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "ExceptionHandling.h"
 #include "VarargsHelper.h"
-
+#include "HAL/ThreadHeartBeat.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogOutputDevice, Log, All);
 
@@ -312,6 +312,11 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 	ANSICHAR* StackTrace = (ANSICHAR*) FMemory::SystemMalloc( StackTraceSize );
 	if( StackTrace != NULL )
 	{
+		// Stop checking heartbeat for this thread. Ensure can take a lot of time (when stackwalking)
+		// Thread heartbeat will be resumed the next time this thread calls FThreadHeartBeat::Get().HeartBeat();
+		// The reason why we don't call HeartBeat() at the end of this function is that maybe this thread
+		// Never had a heartbeat checked and may not be sending heartbeats at all which would later lead to a false positives when detecting hangs.
+		FThreadHeartBeat::Get().KillHeartBeat();
 
 		{
 #if STATS

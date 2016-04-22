@@ -448,6 +448,11 @@ void FAnimBlueprintCompiler::ProcessUseCachedPose(UAnimGraphNode_UseCachedPose* 
 				ValidPoseLinkList.Add(LinkRecord);
 			}
 			bSuccessful = true;
+
+			// Save CachePoseName for debug
+			FName CachePoseName = FName(*UseCachedPose->SaveCachedPoseNode->CacheName);
+			UseCachedPose->SaveCachedPoseNode->Node.CachePoseName = CachePoseName;
+			UseCachedPose->Node.CachePoseName = CachePoseName;
 		}
 	}
 	

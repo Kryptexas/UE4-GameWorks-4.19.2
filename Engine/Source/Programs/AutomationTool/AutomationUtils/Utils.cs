@@ -820,21 +820,45 @@ namespace AutomationTool
 	        }
 	        return bFound;
 	    }
+
+		/// <summary>
+		/// Efficient iterator for walking over a string line by line.
+		/// </summary>
+		/// <param name="Str">string to walk over</param>
+		/// <returns>enumerable of each line in the string.</returns>
+		public static IEnumerable<string> EnumerateLines(this string Str)
+		{
+			if (Str == null)
+			{
+				yield break;
+			}
+
+			using (var Reader = new StringReader(Str))
+			{
+				string line = Reader.ReadLine();
+				while (line != null)
+				{
+					yield return line;
+					line = Reader.ReadLine();
+				}
+			}
+		}
+
 	}
 
 	#endregion
 
 
-    #region VersionFileReader
+	#region VersionFileReader
 
 
-    /// <summary>
-    /// This is to ensure that UAT can produce version strings precisely compatible
-    /// with FEngineVersion.
-    /// 
-    /// WARNING: If FEngineVersion compatibility changes, this code needs to be updated.
-    /// </summary>
-    public class FEngineVersionSupport
+	/// <summary>
+	/// This is to ensure that UAT can produce version strings precisely compatible
+	/// with FEngineVersion.
+	/// 
+	/// WARNING: If FEngineVersion compatibility changes, this code needs to be updated.
+	/// </summary>
+	public class FEngineVersionSupport
     {
         /// <summary>
         /// The version info read from the Version header. The populated fields will be Major, Minor, and Build from the MAJOR, MINOR, and PATCH lines, respectively.

@@ -404,10 +404,22 @@ public partial class Project : CommandUtils
 			{
 				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Config"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Config"), true, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
 			}
-            foreach (string Culture in CulturesToStage)
-            {
-                StageLocalizationDataForCulture(SC, Culture, CombinePaths(SC.ProjectRoot, "Content/Localization/Game"), CombinePaths(SC.RelativeProjectRootForStage, "Content/Localization/Game"), !Params.UsePak(SC.StageTargetPlatform));
-            }
+
+			// Stage all project localization targets
+			{
+				var ProjectLocRootDirectory = CombinePaths(SC.ProjectRoot, "Content/Localization");
+				if (DirectoryExists(ProjectLocRootDirectory))
+				{
+					string[] ProjectLocTargetDirectories = CommandUtils.FindDirectories(true, "*", false, new string[] { ProjectLocRootDirectory });
+					foreach (string ProjectLocTargetDirectory in ProjectLocTargetDirectories)
+					{
+						foreach (string Culture in CulturesToStage)
+						{
+							StageLocalizationDataForCulture(SC, Culture, ProjectLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
+						}
+					}
+				}
+			}
 
             // Stage any additional UFS and NonUFS paths specified in the project ini files; these dirs are relative to the game content directory
             if (PlatformGameConfig != null)

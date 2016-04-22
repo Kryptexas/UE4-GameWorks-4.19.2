@@ -1257,7 +1257,7 @@ class USkeletalMeshSocket const* USkinnedMeshComponent::GetSocketByName(FName In
 	}
 	else
 	{
-		UE_LOG(LogSkinnedMeshComp, Warning,TEXT("GetSocketByName(%s): No SkeletalMesh for %s"), *InSocketName.ToString(), *GetName());
+		UE_LOG(LogSkinnedMeshComp, Warning, TEXT("GetSocketByName(%s: %s): No SkeletalMesh for %s"), *GetNameSafe(SkeletalMesh), *InSocketName.ToString(), *GetName());
 	}
 
 	return Socket;

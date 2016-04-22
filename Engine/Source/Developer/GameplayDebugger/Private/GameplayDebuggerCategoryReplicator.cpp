@@ -13,7 +13,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogGameplayDebugReplication, Display, All);
 
 static TAutoConsoleVariable<int32> CVarGameplayDebuggerRepDetails(
-	TEXT("ai.vd.DetailedReplicationLogs"),
+	TEXT("ai.debug.DetailedReplicationLogs"),
 	0,
 	TEXT("Enable or disable very verbose replication logs for gameplay debugger"),
 	ECVF_Cheat);
@@ -69,13 +69,13 @@ public:
 		for (int32 CategoryIdx = 0; CategoryIdx < CategoryStates.Num(); CategoryIdx++)
 		{
 			const FCategoryState& CategoryData = CategoryStates[CategoryIdx];
-			UE_LOG(LogGameplayDebugReplication, VeryVerbose, TEXT("category[%d] TextLinesRepCounter:%d ShapesRepCounter:%d"),
+			UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("category[%d] TextLinesRepCounter:%d ShapesRepCounter:%d"),
 				CategoryIdx, CategoryData.TextLinesRepCounter, CategoryData.ShapesRepCounter);
 
 			for (int32 DataPackIdx = 0; DataPackIdx < CategoryData.DataPackStates.Num(); DataPackIdx++)
 			{
 				const FDataPackState& DataPack = CategoryData.DataPackStates[DataPackIdx];
-				UE_LOG(LogGameplayDebugReplication, VeryVerbose, TEXT(">>    data[%d] DataVersion:%d SyncCounter:%d DataOffset:%d"),
+				UE_LOG(LogGameplayDebugReplication, Verbose, TEXT(">>    data[%d] DataVersion:%d SyncCounter:%d DataOffset:%d"),
 					DataPackIdx, DataPack.DataVersion, DataPack.SyncCounter, DataPack.DataOffset);
 			}
 		}
@@ -146,7 +146,9 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 				for (int32 DataIdx = 0; DataIdx < CategoryOb.ReplicatedDataPacks.Num(); DataIdx++)
 				{
 					FGameplayDebuggerDataPack& DataPack = CategoryOb.ReplicatedDataPacks[DataIdx];
-					if (DataPack.bNeedsConfirmation && !DataPack.bReceived && !bMissingOldState && OldState->CategoryStates[Idx].DataPackStates.IsValidIndex(DataIdx))
+					const bool bHasOldStatePack = !bMissingOldState && OldState->CategoryStates[Idx].DataPackStates.IsValidIndex(DataIdx);
+
+					if (DataPack.bNeedsConfirmation && !DataPack.bReceived && bHasOldStatePack)
 					{
 						FNetFastCategoryBaseState::FDataPackState& OldDataPackState = OldState->CategoryStates[Idx].DataPackStates[DataIdx];
 						UE_LOG(LogGameplayDebugReplication, Verbose, TEXT("Checking packet confirmation for Category[%d].DataPack[%d] OldState(DataVersion:%d DataOffset:%d complete:%s) current(DataVersion:%d DataOffset:%d)"),
@@ -164,6 +166,15 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 					{
 						SavedCategory.DataPacks[DataIdx] = DataPack.Header;
 						ChangedCategories[Idx]++;
+					}
+					else if (bHasOldStatePack)
+					{
+						FNetFastCategoryBaseState::FDataPackState& OldDataPackState = OldState->CategoryStates[Idx].DataPackStates[DataIdx];
+						const bool bDataPackNotUpdatedOnClient = (OldDataPackState != DataPack.Header);
+						if (bDataPackNotUpdatedOnClient)
+						{
+							ChangedCategories[Idx]++;
+						}
 					}
 				}
 
@@ -654,6 +665,7 @@ void AGameplayDebuggerCategoryReplicator::SetCategoryEnabled(int32 CategoryId, b
 	{
 		if (Categories.IsValidIndex(CategoryId))
 		{
+			UE_LOG(LogGameplayDebugReplication, Log, TEXT("SetCategoryEnabled[%d]:%d (%s)"), CategoryId, bEnable ? 1 : 0, *Categories[CategoryId]->GetCategoryName().ToString());
 			Categories[CategoryId]->bIsEnabled = bEnable;
 		}
 	}

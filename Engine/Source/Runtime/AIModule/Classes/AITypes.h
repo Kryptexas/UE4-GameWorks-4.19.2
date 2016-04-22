@@ -472,7 +472,7 @@ struct AIMODULE_API FAIMoveRequest
 	FAIMoveRequest& SetCanStrafe(bool bStrafe) { bCanStrafe = bStrafe; return *this; }
 	FAIMoveRequest& SetStopOnOverlap(bool bStop) { bStopOnOverlap = bStop; return *this; }
 	FAIMoveRequest& SetAcceptanceRadius(float Radius) { AcceptanceRadius = Radius; return *this; }
-	FAIMoveRequest& SetUserData(FCustomMoveSharedPtr Data) { UserData = Data; return *this; }
+	FAIMoveRequest& SetUserData(const FCustomMoveSharedPtr& Data) { UserData = Data; return *this; }
 
 	/** the request should be either set up to move to a location, of go to a valid actor */
 	bool IsValid() const { return bInitialized && (!bMoveToActor || GoalActor); }
@@ -489,7 +489,7 @@ struct AIMODULE_API FAIMoveRequest
 	bool CanStrafe() const { return bCanStrafe; }
 	bool CanStopOnOverlap() const { return bStopOnOverlap; }
 	float GetAcceptanceRadius() const { return AcceptanceRadius; }
-	FCustomMoveSharedPtr GetUserData() const { return UserData; }
+	const FCustomMoveSharedPtr& GetUserData() const { return UserData; }
 
 	void SetGoalActor(const AActor* InGoalActor);
 	void SetGoalLocation(const FVector& InGoalLocation);

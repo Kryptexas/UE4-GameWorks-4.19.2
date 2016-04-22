@@ -365,14 +365,6 @@ void UNavigationSystem::UpdateAbstractNavData()
 		DummyConfig.NavigationDataClass = AAbstractNavData::StaticClass();
 		AbstractNavData = CreateNavigationDataInstance(DummyConfig);
 	}
-
-	if (AbstractNavData->IsRegistered() == false)
-	{
-		// fake registration since it's a special navigation data type 
-		// and it would get discarded for not implementing any particular
-		// navigation agent
-		AbstractNavData->OnRegistered();
-	}
 }
 
 void UNavigationSystem::SetSupportedAgentsNavigationClass(int32 AgentIndex, TSubclassOf<ANavigationData> NavigationDataClass)
@@ -1801,37 +1793,50 @@ UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavig
 	{
 		// check if this kind of agent has already its navigation implemented
 		ANavigationData** NavDataForAgent = AgentToNavDataMap.Find(NavConfig);
-		if (NavDataForAgent == NULL || *NavDataForAgent == NULL || (*NavDataForAgent)->IsPendingKill() == true)
+		if (NavDataForAgent == nullptr || *NavDataForAgent == nullptr || ensure((*NavDataForAgent)->IsPendingKill() == true))
 		{
-			// ok, so this navigation agent doesn't have its navmesh registered yet, but do we want to support it?
-			bool bAgentSupported = false;
-			
-			for (int32 AgentIndex = 0; AgentIndex < SupportedAgents.Num(); ++AgentIndex)
+			if (NavData->IsA(AAbstractNavData::StaticClass()) == false)
 			{
-				if (NavData->GetClass() == SupportedAgents[AgentIndex].NavigationDataClass && SupportedAgents[AgentIndex].IsEquivalent(NavConfig) == true)
+				// ok, so this navigation agent doesn't have its navmesh registered yet, but do we want to support it?
+				bool bAgentSupported = false;
+
+				for (int32 AgentIndex = 0; AgentIndex < SupportedAgents.Num(); ++AgentIndex)
 				{
-					// it's supported, then just in case it's not a precise match (IsEquivalent succeeds with some precision) 
-					// update NavData with supported Agent
-					bAgentSupported = true;
-
-					NavData->SetConfig(SupportedAgents[AgentIndex]);
-					if (!NavData->IsA(AAbstractNavData::StaticClass()))
+					if (NavData->GetClass() == SupportedAgents[AgentIndex].NavigationDataClass && SupportedAgents[AgentIndex].IsEquivalent(NavConfig) == true)
 					{
+						// it's supported, then just in case it's not a precise match (IsEquivalent succeeds with some precision) 
+						// update NavData with supported Agent
+						bAgentSupported = true;
+
+						NavData->SetConfig(SupportedAgents[AgentIndex]);
 						AgentToNavDataMap.Add(SupportedAgents[AgentIndex], NavData);
+						NavData->SetSupportsDefaultAgent(AgentIndex == 0);
+						NavData->ProcessNavAreas(NavAreaClasses, AgentIndex);
+
+						OnNavDataRegisteredEvent.Broadcast(NavData);
+
+						NavDataSet.AddUnique(NavData);
+						NavData->OnRegistered();
+
+						break;
 					}
-
-					NavData->SetSupportsDefaultAgent(AgentIndex == 0);
-					NavData->ProcessNavAreas(NavAreaClasses, AgentIndex);
-
-					OnNavDataRegisteredEvent.Broadcast(NavData);
-					break;
 				}
+				Result = bAgentSupported == true ? RegistrationSuccessful : RegistrationFailed_AgentNotValid;
 			}
+			else
+			{
+				// fake registration since it's a special navigation data type 
+				// and it would get discarded for not implementing any particular
+				// navigation agent
+				// Node that we don't add abstract navigation data to NavDataSet
+				NavData->OnRegistered();
 
-			Result = bAgentSupported == true ? RegistrationSuccessful : RegistrationFailed_AgentNotValid;
+				Result = RegistrationSuccessful;
+			}
 		}
 		else if (*NavDataForAgent == NavData)
 		{
+			ensure(NavDataSet.Find(NavData) != INDEX_NONE);
 			// let's treat double registration of the same nav data with the same agent as a success
 			Result = RegistrationSuccessful;
 		}
@@ -1846,11 +1851,6 @@ UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavig
 		Result = RegistrationFailed_AgentNotValid;
 	}
 
-	if (Result == RegistrationSuccessful)
-	{
-		NavDataSet.AddUnique(NavData);
-		NavData->OnRegistered();
-	}
 	// @todo else might consider modifying this NavData to implement navigation for one of the supported agents
 	// care needs to be taken to not make it implement navigation for agent who's real implementation has 
 	// not been loaded yet.
@@ -3159,13 +3159,12 @@ void UNavigationSystem::SpawnMissingNavigationData()
 
 ANavigationData* UNavigationSystem::CreateNavigationDataInstance(const FNavDataConfig& NavConfig)
 {
-	TSubclassOf<ANavigationData> NavDataClass = NavConfig.NavigationDataClass;
 	UWorld* World = GetWorld();
 	check(World);
 
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.OverrideLevel = World->PersistentLevel;
-	ANavigationData* Instance = World->SpawnActor<ANavigationData>(*NavDataClass, SpawnInfo);
+	ANavigationData* Instance = World->SpawnActor<ANavigationData>(*NavConfig.NavigationDataClass, SpawnInfo);
 
 	if (Instance != NULL)
 	{

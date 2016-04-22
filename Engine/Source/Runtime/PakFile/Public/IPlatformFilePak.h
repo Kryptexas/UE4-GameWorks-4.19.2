@@ -7,7 +7,8 @@ DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Total pak file read time"), STAT_Pak
 
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num open pak file handles"), STAT_PakFile_NumOpenHandles, STATGROUP_PakFile, PAKFILE_API);
 
-#define PAKFILE_TRACK_SECURITY_EXCLUDED_FILES 0
+/** Delegate for allowing a game to restrict the accessing of non-pak files */
+DECLARE_DELEGATE_RetVal_OneParam(bool, FFilenameSecurityDelegate, const TCHAR* /*InFilename*/);
 
 /**
  * Struct which holds pak file info (version, index offset, hash value).
@@ -816,16 +817,6 @@ class PAKFILE_API FPakPlatformFile : public IPlatformFile
 	bool bSigned;
 	/** Synchronization object for accessing the list of currently mounted pak files. */
 	FCriticalSection PakListCritical;
-	/** true if we aren't allowing loose files. */
-	bool bSecurityEnabled;
-	/** External override of pak file security */
-	bool bForceSecurityBypass;
-#if PAKFILE_TRACK_SECURITY_EXCLUDED_FILES
-	/** List of files already excluded by the pak security system */
-	TSet<FName> SecurityExcludedFiles;
-#endif
-	/** List of allowed extension when security is enabled */
-	TSet<FName> AllowedExtensions;
 
 	/**
 	 * Gets mounted pak files
@@ -910,8 +901,10 @@ class PAKFILE_API FPakPlatformFile : public IPlatformFile
 
 	/**
 	 * When security is enabled, determine if this filename can be looked for in the lower level file system
+	 * 
+	 * @param InFilename Filename to check
 	 */
-	bool IsFilenameAllowed(const FString& InFilename);
+	bool IsNonPakFilenameAllowed(const FString& InFilename);
 
 public:
 
@@ -929,15 +922,6 @@ public:
 	 * Gets all pak file locations.
 	 */
 	static void GetPakFolders(const TCHAR* CmdLine, TArray<FString>& OutPakFolders);
-
-	/**
-	 * Allows bypassing of loose file security
-	 */
-	virtual void BypassSecurity(bool bInBypassed) override
-	{
-		bForceSecurityBypass = bInBypassed;
-		IPlatformFile::BypassSecurity(bInBypassed);
-	}
 
 	/**
 	 * Constructor.
@@ -1028,7 +1012,7 @@ public:
 		}
 		// File has not been found in any of the pak files, continue looking in inner platform file.
 		bool Result = false;
-		if (IsFilenameAllowed(Filename))
+		if (IsNonPakFilenameAllowed(Filename))
 		{
 			Result = LowerLevel->FileExists(Filename);
 		}
@@ -1045,7 +1029,7 @@ public:
 		}
 		// First look for the file in the user dir.
 		int64 Result = 0;
-		if (IsFilenameAllowed(Filename))
+		if (IsNonPakFilenameAllowed(Filename))
 		{
 			Result = LowerLevel->FileSize(Filename);
 		}
@@ -1061,7 +1045,7 @@ public:
 		}
 		// The file does not exist in pak files, try LowerLevel->
 		bool Result = false;
-		if (IsFilenameAllowed(Filename))
+		if (IsNonPakFilenameAllowed(Filename))
 		{
 			Result = LowerLevel->DeleteFile(Filename);
 		}
@@ -1077,7 +1061,7 @@ public:
 		}
 		// The file does not exist in pak files, try LowerLevel->
 		bool Result = false;
-		if (IsFilenameAllowed(Filename))
+		if (IsNonPakFilenameAllowed(Filename))
 		{
 			Result = LowerLevel->IsReadOnly(Filename);
 		}
@@ -1093,7 +1077,7 @@ public:
 		}
 		// Files not in pak are allowed to be moved.
 		bool Result = false;
-		if (IsFilenameAllowed(From))
+		if (IsNonPakFilenameAllowed(From))
 		{
 			Result = LowerLevel->MoveFile(To, From);
 		}
@@ -1110,7 +1094,7 @@ public:
 		}
 		// Try lower level
 		bool Result = bNewReadOnlyValue;
-		if (IsFilenameAllowed(Filename))
+		if (IsNonPakFilenameAllowed(Filename))
 		{
 			Result = LowerLevel->SetReadOnly(Filename, bNewReadOnlyValue);
 		}
@@ -1127,7 +1111,7 @@ public:
 		}
 		// Fall back to lower level.
 		FDateTime Result = FDateTime::MinValue();
-		if (IsFilenameAllowed(Filename))
+		if (IsNonPakFilenameAllowed(Filename))
 		{
 			Result = LowerLevel->GetTimeStamp(Filename);
 		}
@@ -1151,7 +1135,7 @@ public:
 		else
 		{
 			// Fall back to lower level.
-			if (IsFilenameAllowed(FilenameA) && IsFilenameAllowed(FilenameB))
+			if (IsNonPakFilenameAllowed(FilenameA) && IsNonPakFilenameAllowed(FilenameB))
 			{
 				LowerLevel->GetTimeStampPair(FilenameA, FilenameB, OutTimeStampA, OutTimeStampB);
 			}
@@ -1168,7 +1152,7 @@ public:
 		// No modifications allowed on files from pak (although we could theoretically allow this one).
 		if (FindFileInPakFiles(Filename) == NULL)
 		{
-			if (IsFilenameAllowed(Filename))
+			if (IsNonPakFilenameAllowed(Filename))
 			{
 				LowerLevel->SetTimeStamp(Filename, DateTime);
 			}
@@ -1185,7 +1169,7 @@ public:
 		}
 		// Fall back to lower level.
 		FDateTime Result = false;
-		if (IsFilenameAllowed(Filename))
+		if (IsNonPakFilenameAllowed(Filename))
 		{
 			Result = LowerLevel->GetAccessTimeStamp(Filename);
 		}
@@ -1211,7 +1195,7 @@ public:
 		}
 
 		// Fall back to lower level.
-		if (IsFilenameAllowed(Filename))
+		if (IsNonPakFilenameAllowed(Filename))
 		{
 			return LowerLevel->GetFilenameOnDisk(Filename);
 		}
@@ -1296,7 +1280,14 @@ public:
 		}
 
 		// Fall back to lower level.
-		return LowerLevel->GetStatData(FilenameOrDirectory);
+		FFileStatData FileStatData;
+
+		if (FileStatData.bIsDirectory || IsNonPakFilenameAllowed(FilenameOrDirectory))
+		{
+			FileStatData = LowerLevel->GetStatData(FilenameOrDirectory);
+		}
+
+		return FileStatData;
 	}
 
 	/**
@@ -1587,6 +1578,9 @@ public:
 		}
 	}
 	//~ End IPlatformFile Interface
+
+	// Access static delegate for loose file security
+	static FFilenameSecurityDelegate& GetFilenameSecurityDelegate();
 
 	// BEGIN Console commands
 #if !UE_BUILD_SHIPPING

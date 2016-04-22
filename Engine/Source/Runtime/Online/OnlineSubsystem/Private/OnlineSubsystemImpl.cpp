@@ -14,6 +14,7 @@ FOnlineSubsystemImpl::FOnlineSubsystemImpl() :
 	bForceDedicated(false),
 	NamedInterfaces(nullptr)
 {
+	StartTicker();
 }
 
 FOnlineSubsystemImpl::FOnlineSubsystemImpl(FName InInstanceName) :
@@ -21,21 +22,41 @@ FOnlineSubsystemImpl::FOnlineSubsystemImpl(FName InInstanceName) :
 	bForceDedicated(false),
 	NamedInterfaces(nullptr)
 {
+	StartTicker();
 }
 
 FOnlineSubsystemImpl::~FOnlineSubsystemImpl()
 {	
+	ensure(!TickHandle.IsValid());
 }
 
 bool FOnlineSubsystemImpl::Shutdown()
 {
 	OnNamedInterfaceCleanup();
+	StopTicker();
 	return true;
 }
 
 void FOnlineSubsystemImpl::ExecuteDelegateNextTick(const FNextTickDelegate& Callback)
 {
 	NextTickQueue.Enqueue(Callback);
+}
+
+void FOnlineSubsystemImpl::StartTicker()
+{
+	// Register delegate for ticker callback
+	FTickerDelegate TickDelegate = FTickerDelegate::CreateRaw(this, &FOnlineSubsystemImpl::Tick);
+	TickHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate, 0.0f);
+}
+
+void FOnlineSubsystemImpl::StopTicker()
+{
+	// Unregister ticker delegate
+	if (TickHandle.IsValid())
+	{
+		FTicker::GetCoreTicker().RemoveTicker(TickHandle);
+		TickHandle.Reset();
+	}
 }
 
 bool FOnlineSubsystemImpl::Tick(float DeltaTime)

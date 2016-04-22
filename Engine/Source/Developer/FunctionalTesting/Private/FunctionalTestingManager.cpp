@@ -110,7 +110,8 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 		for (TActorIterator<APhasedAutomationActorBase> It(WorldContext->GetWorld()); It; ++It)
 		{
 			APhasedAutomationActorBase* PAA = (*It);
-			Manager->OnTestsComplete.AddDynamic(PAA, &APhasedAutomationActorBase::OnFunctionalTestingComplete);
+			Manager->OnTestsComplete.AddDynamic(PAA, &APhasedAutomationActorBase::OnFunctionalTestingComplete); 
+			Manager->OnTestsBegin.AddDynamic(PAA, &APhasedAutomationActorBase::OnFunctionalTestingBegin); 
 		}
 
 		for (TActorIterator<AFunctionalTest> It(WorldContext->GetWorld()); It; ++It)
@@ -127,6 +128,9 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 		if (Manager->AllTests.Num() > 0)
 		{
 			Manager->TestsLeft = Manager->AllTests;
+			
+			Manager->OnTestsBegin.Broadcast();
+
 			Manager->TriggerFirstValidTest();
 		}
 	}

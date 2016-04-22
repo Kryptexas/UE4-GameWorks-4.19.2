@@ -819,6 +819,10 @@ struct FRHICommandCopyToResolveTarget : public FRHICommand<FRHICommandCopyToReso
 		, DestTexture(InDestTexture)
 		, bKeepOriginalSurface(InbKeepOriginalSurface)
 	{
+		ensure(SourceTexture);
+		ensure(DestTexture);
+		ensure(SourceTexture->GetTexture2D() || SourceTexture->GetTexture3D() || SourceTexture->GetTextureCube());
+		ensure(DestTexture->GetTexture2D() || DestTexture->GetTexture3D() || DestTexture->GetTextureCube());
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };

@@ -81,6 +81,10 @@ public abstract class BaseWinPlatform : Platform
 		}
 	}
 
+    public override void ExtractPackage(ProjectParams Params, string SourcePath, string DestinationPath)
+    {
+    }
+
 	void StageBootstrapExecutable(DeploymentContext SC, string ExeName, string TargetFile, string StagedRelativeTargetPath, string StagedArguments)
 	{
 		string InputFile = CombinePaths(SC.LocalRoot, "Engine", "Binaries", SC.PlatformDir, String.Format("BootstrapPackagedGame-{0}-Shipping.exe", SC.PlatformDir));
@@ -152,6 +156,11 @@ public abstract class BaseWinPlatform : Platform
 	{
 		return "Windows";
 	}
+
+    public override string GetPlatformPakCommandLine()
+    {
+        return " -patchpaddingalign=2048";
+    }
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
@@ -244,7 +253,7 @@ public abstract class BaseWinPlatform : Platform
 		return ExecutableNames;
 	}
 
-	public override bool ShouldStageCommandLine(ProjectParams Params, DeploymentContext SC)
+    public override bool ShouldStageCommandLine(ProjectParams Params, DeploymentContext SC)
 	{
 		return false; // !String.IsNullOrEmpty(Params.StageCommandline) || !String.IsNullOrEmpty(Params.RunCommandline) || (!Params.IsCodeBasedProject && Params.NoBootstrapExe);
 	}

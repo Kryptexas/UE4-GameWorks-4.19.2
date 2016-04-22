@@ -227,13 +227,21 @@ public:
 	ENGINE_API bool IsNormalized() const;
 };
 
+/**
+ * We pass array items by reference, which is scary as TArray can move items around in memory.
+ * So we make sure to allocate enough here so it doesn't happen and crash on us.
+ */
+#define ANIM_NODE_DEBUG_MAX_CHAIN 50
+#define ANIM_NODE_DEBUG_MAX_CHILDREN 12
+#define ANIM_NODE_DEBUG_MAX_CACHEPOSE 20
+
 struct ENGINE_API FNodeDebugData
 {
 private:
 	struct DebugItem
 	{
 		DebugItem(FString Data, bool bInPoseSource) : DebugData(Data), bPoseSource(bInPoseSource) {}
-		
+
 		/** This node item's debug text to display. */
 		FString DebugData;
 
@@ -253,6 +261,15 @@ private:
 	/** Additional info provided, used in GetNodeName. States machines can provide the state names for the Root Nodes to use for example. */
 	FString NodeDescription;
 
+	/** Pointer to RootNode */
+	FNodeDebugData* RootNodePtr;
+
+	/** SaveCachePose Nodes */
+	TArray<FNodeDebugData> SaveCachePoseNodes;
+
+	/** Name of CachedPose if this is a CachePose node */
+	FName CachePoseName;
+
 public:
 	struct FFlattenedDebugData
 	{
@@ -263,19 +280,25 @@ public:
 		int32 ChainID;
 		bool bPoseSource;
 
-		bool IsOnActiveBranch() { return AbsoluteWeight > ZERO_ANIMWEIGHT_THRESH; }
+		bool IsOnActiveBranch() { return FAnimWeight::IsRelevant(AbsoluteWeight); }
 	};
 
-	FNodeDebugData(const class UAnimInstance* InAnimInstance) : AbsoluteWeight(1.f), AnimInstance(InAnimInstance) {}
-	FNodeDebugData(const class UAnimInstance* InAnimInstance, const float AbsWeight) : AbsoluteWeight(AbsWeight), AnimInstance(InAnimInstance) {}
-	FNodeDebugData(const class UAnimInstance* InAnimInstance, const float AbsWeight, FString InNodeDescription) 
+	FNodeDebugData(const class UAnimInstance* InAnimInstance) 
+		: AbsoluteWeight(1.f), RootNodePtr(this), AnimInstance(InAnimInstance)
+	{
+		SaveCachePoseNodes.Reserve(ANIM_NODE_DEBUG_MAX_CACHEPOSE);
+	}
+	
+	FNodeDebugData(const class UAnimInstance* InAnimInstance, const float AbsWeight, FString InNodeDescription, FNodeDebugData* InRootNodePtr)
 		: AbsoluteWeight(AbsWeight)
 		, NodeDescription(InNodeDescription)
+		, RootNodePtr(InRootNodePtr)
 		, AnimInstance(InAnimInstance) 
 	{}
 
 	void AddDebugItem(FString DebugData, bool bPoseSource = false);
 	FNodeDebugData& BranchFlow(float BranchWeight, FString InNodeDescription = FString());
+	FNodeDebugData* GetCachePoseDebugData(FName InCachePoseName);
 
 	template<class Type>
 	FString GetNodeName(Type* Node)

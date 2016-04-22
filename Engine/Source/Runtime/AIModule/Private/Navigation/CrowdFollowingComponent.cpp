@@ -5,6 +5,7 @@
 #include "Navigation/CrowdManager.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/AbstractNavData.h"
+#include "Navigation/MetaNavMeshPath.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 
@@ -851,10 +852,10 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 	}
 
 	// if agent has control over its movement, check finish conditions
+	const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 	const bool bCanReachTarget = MovementComp->CanStopPathFollowing();
 	if (bCanReachTarget && Status == EPathFollowingStatus::Moving)
 	{
-		const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 		const FVector GoalLocation = GetCurrentTargetLocation();
 
 		if (bCollidedWithGoal)
@@ -891,9 +892,16 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 		}
 	}
 
-	// gather location samples to detect if moving agent is blocked
 	if (bCanReachTarget && Status == EPathFollowingStatus::Moving)
 	{
+		// check waypoint switch condition in meta paths
+		FMetaNavMeshPath* MetaNavPath = bIsUsingMetaPath ? Path->CastPath<FMetaNavMeshPath>() : nullptr;
+		if (MetaNavPath && Status == EPathFollowingStatus::Moving)
+		{
+			MetaNavPath->ConditionalMoveToNextSection(CurrentLocation, EMetaPathUpdateReason::MoveTick);
+		}
+
+		// gather location samples to detect if moving agent is blocked
 		const bool bHasNewSample = UpdateBlockDetection();
 		if (bHasNewSample && IsBlocked())
 		{

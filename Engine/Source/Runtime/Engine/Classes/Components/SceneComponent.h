@@ -611,7 +611,7 @@ public:
 	 * @param  bWeldSimulatedBodies Whether to weld together simulated physics bodies.
 	 * @return True if attachment is successful (or already attached to requested parent/socket), false if attachment is rejected and there is no change in AttachParent.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation", meta = (DisplayName = "AttachTo", AttachType = "KeepRelativeOffset", DeprecatedFunction, DeprecationMessage = "Use AttachToComponent instead."))
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation", meta = (DisplayName = "AttachTo (Deprecated)", AttachType = "KeepRelativeOffset"))
 	bool K2_AttachTo(USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
 
 	/**
@@ -646,7 +646,7 @@ public:
 	 * @param bCallModify				If true, call Modify() on the component and the current attach parent component
 	 */
 	DEPRECATED(4.12, "This function is deprecated, please use DetachFromComponent instead.")
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta = (DeprecatedFunction, DeprecationMessage = "Use DetachFromComponent instead"))
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta = (DisplayName = "DetachFromParent (Deprecated)"))
 	virtual void DetachFromParent(bool bMaintainWorldPosition = false, bool bCallModify = true);
 
 	/** 

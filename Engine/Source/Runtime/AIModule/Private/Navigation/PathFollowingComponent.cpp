@@ -9,6 +9,7 @@
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "GameFramework/NavMovementComponent.h"
 #include "GameFramework/Character.h"
+#include "Navigation/MetaNavMeshPath.h"
 #include "Engine/Canvas.h"
 #include "TimerManager.h"
 #include "DisplayDebugHelpers.h"
@@ -49,6 +50,7 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 	bLastMoveReachedGoal = false;
 	bUseVisibilityTestsSimplification = false;
 	bStopMovementOnFinish = true;
+	bIsUsingMetaPath = false;
 
 	MoveSegmentStartIndex = 0;
 	MoveSegmentEndIndex = 1;
@@ -257,6 +259,16 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 			Path->SetSourceActor(*(MovementComp->GetOwner()));
 		}
 
+		// update meta path data
+		FMetaNavMeshPath* MetaNavPath = Path->CastPath<FMetaNavMeshPath>();
+		if (MetaNavPath)
+		{
+			bIsUsingMetaPath = true;
+
+			const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
+			MetaNavPath->Initialize(CurrentLocation);
+		}
+
 		PathTimeWhenPaused = 0.0f;
 		OnPathUpdated();
 
@@ -276,7 +288,7 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 	#endif // ENABLE_VISUAL_LOG
 
 		// with async pathfinding paths can be incomplete, movement will start after receiving path event 
-		if (Path->IsValid())
+		if (!bIsUsingMetaPath && Path->IsValid())
 		{
 			Status = EPathFollowingStatus::Moving;
 
@@ -437,6 +449,18 @@ void UPathFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
 {
 	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("OnPathFinished: %s"), *GetResultDesc(Result));
 	
+	// update meta path if needed
+	if (bIsUsingMetaPath && Result == EPathFollowingResult::Success && MovementComp)
+	{
+		FMetaNavMeshPath* MetaNavPath = Path->CastPath<FMetaNavMeshPath>();
+		const bool bNeedPathUpdate = MetaNavPath && MetaNavPath->ConditionalMoveToNextSection(MovementComp->GetActorFeetLocation(), EMetaPathUpdateReason::PathFinished);
+		if (bNeedPathUpdate)
+		{
+			// keep move request active
+			return;
+		}
+	}
+
 	// save move status
 	bLastMoveReachedGoal = (Result == EPathFollowingResult::Success) && !HasPartialPath();
 
@@ -555,6 +579,7 @@ void UPathFollowingComponent::Reset()
 	AcceptanceRadius = MyDefaultAcceptanceRadius;
 	bStopOnOverlap = true;
 	bCollidedWithGoal = false;
+	bIsUsingMetaPath = false;
 
 	CurrentRequestId = FAIRequestID::InvalidRequest;
 
@@ -816,10 +841,10 @@ void UPathFollowingComponent::UpdatePathSegment()
 	}
 
 	// if agent has control over its movement, check finish conditions
+	const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 	const bool bCanReachTarget = MovementComp->CanStopPathFollowing();
 	if (bCanReachTarget && Status == EPathFollowingStatus::Moving)
 	{
-		const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 		const int32 LastSegmentEndIndex = Path->GetPathPoints().Num() - 1;
 		const bool bFollowingLastSegment = (MoveSegmentEndIndex >= LastSegmentEndIndex);
 
@@ -867,9 +892,16 @@ void UPathFollowingComponent::UpdatePathSegment()
 		}
 	}
 
-	// gather location samples to detect if moving agent is blocked
 	if (bCanReachTarget && Status == EPathFollowingStatus::Moving)
 	{
+		// check waypoint switch condition in meta paths
+		FMetaNavMeshPath* MetaNavPath = bIsUsingMetaPath ? Path->CastPath<FMetaNavMeshPath>() : nullptr;
+		if (MetaNavPath && Status == EPathFollowingStatus::Moving)
+		{
+			MetaNavPath->ConditionalMoveToNextSection(CurrentLocation, EMetaPathUpdateReason::MoveTick);
+		}
+
+		// gather location samples to detect if moving agent is blocked
 		const bool bHasNewSample = UpdateBlockDetection();
 		if (bHasNewSample && IsBlocked())
 		{

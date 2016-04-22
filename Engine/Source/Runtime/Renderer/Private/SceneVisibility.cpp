@@ -2955,47 +2955,47 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 				continue;
 			}
 
-				const int32 NodeIndex = Node.SceneInfo->GetIndex();
+			const int32 NodeIndex = Node.SceneInfo->GetIndex();
 			bool bIsVisible = VisibilityFlags[NodeIndex];
 
 			// Update fading state
 			if (NodeMeshes[0].bDitheredLODTransition)
-				{
-				// Update with syncs
-					if (bSyncFrame)
-					{
-					// Determine desired HLOD state
-					const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[NodeIndex];
-					const float DistanceSquared = (Bounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
-					const bool bIsInDrawRange = DistanceSquared >= Bounds.MinDrawDistanceSq;
+			{	
+				// Determine desired HLOD state
+				const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[NodeIndex];
+				const float DistanceSquared = (Bounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
+				const bool bIsInDrawRange = DistanceSquared >= Bounds.MinDrawDistanceSq;
 
-					// Fade when HLODs change threshold on-screen, else snap
-					// TODO: This logic can still be improved to clear state and
-					//       transitions when off-screen, but needs better detection
-					const bool bChangedRange = bIsInDrawRange != Node.bWasVisible;
-					const bool bIsOnScreen = bIsVisible || Node.bWasVisible;
+				// Fade when HLODs change threshold on-screen, else snap
+				// TODO: This logic can still be improved to clear state and
+				//       transitions when off-screen, but needs better detection
+				const bool bChangedRange = bIsInDrawRange != Node.bWasVisible;
+				const bool bIsOnScreen = bIsVisible || Node.bWasVisible;
 				
+				// Update with syncs
+				if (bSyncFrame)
+				{
 					if (Node.bIsFading)
 					{
 						Node.bIsFading = false;
 					}
 					else if (bChangedRange && bIsOnScreen)
-						{
+					{
 						Node.bIsFading = true;	
 					}
 
-							Node.bWasVisible = Node.bIsVisible;
+					Node.bWasVisible = Node.bIsVisible;
 					Node.bIsVisible = bIsInDrawRange;
-					}
+				}
 
 				// Flag as fading or freeze visibility if waiting for a fade
 				if (Node.bIsFading)
-					{
-						PrimitiveFadingLODMap[NodeIndex] = true;
-						PrimitiveFadingOutLODMap[NodeIndex] = !Node.bIsVisible;
-					}
-					else
-					{
+				{
+					PrimitiveFadingLODMap[NodeIndex] = true;
+					PrimitiveFadingOutLODMap[NodeIndex] = !Node.bIsVisible;
+				}
+				else if (bChangedRange && bIsOnScreen)
+				{
 					VisibilityFlags[NodeIndex] = Node.bWasVisible;
 					bIsVisible = Node.bWasVisible;
 				}
@@ -3005,14 +3005,14 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 			{
 				// Force the default state in-case material edits cause an object to get stuck
 				Node.bIsFading = false;
-					}
+			}
 #endif
 
 			if (Node.bIsFading)
 			{
 				// Fade until state back in sync
 				ApplyNodeFadingToChildren(Node, VisibilityFlags, true, Node.bIsVisible);
-				}
+			}
 			else if (bIsVisible)
 			{
 				// If stable and visible, override hierarchy visibility
@@ -3055,13 +3055,13 @@ void FLODSceneTree::HideNodeChildren(FLODSceneNode& Node, FSceneBitArray& Visibi
 	{
 		Node.LatestUpdateCount = UpdateCount;
 
-						for (const auto& Child : Node.ChildrenSceneInfos)
-						{
-							const int32 ChildIndex = Child->GetIndex();
+		for (const auto& Child : Node.ChildrenSceneInfos)
+		{
+			const int32 ChildIndex = Child->GetIndex();
 			VisibilityFlags[ChildIndex] = false;
 
 			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
-							{
+			{
 				HideNodeChildren(*ChildNode, VisibilityFlags);
 			}
 		}

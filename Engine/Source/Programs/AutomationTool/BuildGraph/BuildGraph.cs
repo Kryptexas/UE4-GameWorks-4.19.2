@@ -124,8 +124,16 @@ namespace AutomationTool
 				DefaultProperties[Entry.Key.ToString()] = Entry.Value.ToString();
 			}
 
+			// Set up the standard properties which build scripts might need
+			DefaultProperties["Branch"] = P4Enabled ? P4Env.BuildRootP4 : "Unknown";
+			DefaultProperties["EscapedBranch"] = P4Enabled ? P4Env.BuildRootEscaped : "Unknown";
+			DefaultProperties["Change"] = P4Enabled ? P4Env.Changelist.ToString() : "0";
+			DefaultProperties["RootDir"] = CommandUtils.RootDirectory.FullName;
+			DefaultProperties["IsBuildMachine"] = IsBuildMachine ? "true" : "false";
+			DefaultProperties["HostPlatform"] = HostPlatform.Current.HostEditorPlatform.ToString();
+
 			// Add any additional custom parameters from the command line (of the form -Set:X=Y)
-			foreach(string Param in Params)
+			foreach (string Param in Params)
 			{
 				const string Prefix = "set:";
 				if(Param.StartsWith(Prefix, StringComparison.InvariantCultureIgnoreCase))
@@ -141,14 +149,6 @@ namespace AutomationTool
 					}
 				}
 			}
-
-			// Set up the standard properties which build scripts might need
-			DefaultProperties["Branch"] = P4Enabled? P4Env.BuildRootP4 : "Unknown";
-			DefaultProperties["EscapedBranch"] = P4Enabled? P4Env.BuildRootEscaped : "Unknown";
-			DefaultProperties["Change"] = P4Enabled? P4Env.Changelist.ToString() : "0";
-			DefaultProperties["RootDir"] = CommandUtils.RootDirectory.FullName;
-			DefaultProperties["IsBuildMachine"] = IsBuildMachine? "true" : "false";
-			DefaultProperties["HostPlatform"] = HostPlatform.Current.HostEditorPlatform.ToString();
 
 			// Find all the tasks from the loaded assemblies
 			Dictionary<string, ScriptTask> NameToTask = new Dictionary<string,ScriptTask>();

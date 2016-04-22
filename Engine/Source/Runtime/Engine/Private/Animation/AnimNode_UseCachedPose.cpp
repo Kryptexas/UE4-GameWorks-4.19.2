@@ -35,6 +35,8 @@ void FAnimNode_UseCachedPose::Evaluate(FPoseContext& Output)
 void FAnimNode_UseCachedPose::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
+	DebugLine += FString::Printf(TEXT("%s:"), *CachePoseName.ToString());
+
 	DebugData.AddDebugItem(DebugLine, true);
 
 	LinkToCachingNode.GatherDebugData(DebugData);

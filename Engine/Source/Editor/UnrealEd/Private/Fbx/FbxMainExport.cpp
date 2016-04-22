@@ -1261,16 +1261,15 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 	
 		if( bExportComponents )
 		{
-			TInlineComponentArray<UActorComponent*> ActorComponents;
-			Actor->GetComponents(ActorComponents);
+			TInlineComponentArray<USceneComponent*> SceneComponents;
+			Actor->GetComponents(SceneComponents);
 
-			TInlineComponentArray<UActorComponent*> ComponentsToExport;
-			for( int32 ComponentIndex = 0; ComponentIndex < ActorComponents.Num(); ++ComponentIndex )
+			TInlineComponentArray<USceneComponent*> ComponentsToExport;
+			for( int32 ComponentIndex = 0; ComponentIndex < SceneComponents.Num(); ++ComponentIndex )
 			{
-				UActorComponent* Component = ActorComponents[ComponentIndex];
-				USceneComponent* SceneComp = Cast<USceneComponent>(Component);
-
-				if (SceneComp && SceneComp->bHiddenInGame)
+				USceneComponent* Component = SceneComponents[ComponentIndex];
+	
+				if (Component && Component->bHiddenInGame)
 				{
 					//Skip hidden component like camera mesh or other editor helper
 					continue;
@@ -1304,18 +1303,16 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 
 			for( int32 CompIndex = 0; CompIndex < ComponentsToExport.Num(); ++CompIndex )
 			{
-				UActorComponent* Component = ComponentsToExport[CompIndex];
+				USceneComponent* Component = ComponentsToExport[CompIndex];
 
 				FbxNode* ExportNode = ActorNode;
 				if( ComponentsToExport.Num() > 1 )
 				{
-					USceneComponent* SceneComp = CastChecked<USceneComponent>( Component );
-
 					// This actor has multiple components
 					// create a child node under the actor for each component
 					FbxNode* CompNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(*Component->GetName()));
 					
-					if( SceneComp != Actor->GetRootComponent() )
+					if( Component != Actor->GetRootComponent() )
 					{
 						// Transform is relative to the root component
 						
@@ -1334,7 +1331,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 								RotationDirectionConvert = FTransform(Rotator);
 							}
 						}
-						const FTransform RelativeTransform = RotationDirectionConvert * SceneComp->GetComponentToWorld().GetRelativeTransform(Actor->GetTransform());
+						const FTransform RelativeTransform = RotationDirectionConvert * Component->GetComponentToWorld().GetRelativeTransform(Actor->GetTransform());
 						CompNode->LclTranslation.Set(Converter.ConvertToFbxPos(RelativeTransform.GetTranslation()));
 						CompNode->LclRotation.Set(Converter.ConvertToFbxRot(RelativeTransform.GetRotation().Euler()));
 						CompNode->LclScaling.Set(Converter.ConvertToFbxScale(RelativeTransform.GetScale3D()));

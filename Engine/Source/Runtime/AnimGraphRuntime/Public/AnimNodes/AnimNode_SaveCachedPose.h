@@ -12,6 +12,10 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SaveCachedPose : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)
 	FPoseLink Pose;
 
+	/** Intentionally not exposed, set by AnimBlueprintCompiler */
+	UPROPERTY()
+	FName CachePoseName;
+
 protected:
 	FCompactHeapPose CachedPose;
 	FBlendedHeapCurve CachedCurve;
@@ -20,8 +24,6 @@ protected:
 	FGraphTraversalCounter CachedBonesCounter;
 	FGraphTraversalCounter UpdateCounter;
 	FGraphTraversalCounter EvaluationCounter;
-	FGraphTraversalCounter DebugDataCounter;
-
 
 public:	
 	FAnimNode_SaveCachedPose();

@@ -343,14 +343,14 @@ void USignificanceManager::Update(const TArray<FTransform>& InViewpoints)
 
 static int32 GSignificanceManagerObjectsToShow = 15;
 static FAutoConsoleVariableRef CVarSignificanceManagerObjectsToShow(
-	TEXT("SignificanceManager.ObjectsToShow"),
+	TEXT("SigMan.ObjectsToShow"),
 	GSignificanceManagerObjectsToShow,
 	TEXT("How many objects to display when ShowDebug SignificanceManager is enabled.\n"),
 	ECVF_Cheat
 	);
 
 static FAutoConsoleVariable CVarSignificanceManagerFilterTag(
-	TEXT("SignificanceManager.FilterTag"),
+	TEXT("SigMan.FilterTag"),
 	TEXT(""),
 	TEXT("Only display objects with the specified filter tag.  If None objects with any will be displayed.\n"),
 	ECVF_Cheat

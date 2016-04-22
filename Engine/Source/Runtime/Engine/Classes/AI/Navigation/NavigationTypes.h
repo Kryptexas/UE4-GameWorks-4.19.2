@@ -25,10 +25,10 @@ class INavRelevantInterface;
 namespace FNavigationSystem
 {
 	/** used as a fallback value for navigation agent radius, when none specified via UNavigationSystem::SupportedAgents */
-	extern const float FallbackAgentRadius;
+	extern ENGINE_API const float FallbackAgentRadius;
 
 	/** used as a fallback value for navigation agent height, when none specified via UNavigationSystem::SupportedAgents */
-	extern const float FallbackAgentHeight;
+	extern ENGINE_API const float FallbackAgentHeight;
 
 	static const FBox InvalidBoundingBox(0);
 

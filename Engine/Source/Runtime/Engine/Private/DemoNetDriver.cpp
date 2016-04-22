@@ -304,7 +304,7 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 {
 	if ( Super::InitBase( bInitAsClient, InNotify, URL, bReuseAddressAndPort, Error ) )
 	{
-		DemoFilename					= URL.Map;
+		DemoURL							= URL;
 		Time							= 0;
 		bDemoPlaybackDone				= false;
 		bChannelsArePaused				= false;
@@ -497,7 +497,7 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	bWasStartStreamingSuccessful = true;
 
 	ReplayStreamer->StartStreaming( 
-		DemoFilename, 
+		DemoURL.Map, 
 		FString(),		// Friendly name isn't important for loading an existing replay.
 		UserNames, 
 		false, 
@@ -517,7 +517,7 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 
 	if ( !FileAr )
 	{
-		Error = FString::Printf( TEXT( "Couldn't open demo file %s for reading" ), *DemoFilename );
+		Error = FString::Printf( TEXT( "Couldn't open demo file %s for reading" ), *DemoURL.Map );
 		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
 		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::DemoNotFound, FString( EDemoPlayFailure::ToString( EDemoPlayFailure::DemoNotFound ) ) );
 		return false;
@@ -568,14 +568,24 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 		DemoTotalFrames = MetadataHeader.NumFrames;
 		DemoTotalTime	= MetadataHeader.TotalTime;
 
-		UE_LOG( LogDemo, Log, TEXT( "Starting demo playback with full demo and metadata. Filename: %s, Frames: %i, Version %i" ), *DemoFilename, DemoTotalFrames, DemoHeader.Version );
+		UE_LOG( LogDemo, Log, TEXT( "Starting demo playback with full demo and metadata. Filename: %s, Frames: %i, Version %i" ), *DemoURL.Map, DemoTotalFrames, DemoHeader.Version );
 	}
 	else
 	{
-		UE_LOG( LogDemo, Log, TEXT( "Starting demo playback with streaming demo, metadata file not found. Filename: %s, Version %i" ), *DemoFilename, DemoHeader.Version );
+		UE_LOG( LogDemo, Log, TEXT( "Starting demo playback with streaming demo, metadata file not found. Filename: %s, Version %i" ), *DemoURL.Map, DemoHeader.Version );
 	}
 	
-	if ( CVarDemoAsyncLoadWorld.GetValueOnGameThread() > 0 )
+	// Default async world loading to the cvar value...
+	bool bAsyncLoadWorld = CVarDemoAsyncLoadWorld.GetValueOnGameThread() > 0;
+
+	// ...but allow it to be overridden via a command-line option.
+	const TCHAR* const AsyncLoadWorldOverrideOption = DemoURL.GetOption(TEXT("AsyncLoadWorldOverride="), nullptr);
+	if (AsyncLoadWorldOverrideOption)
+	{
+		bAsyncLoadWorld = FCString::ToBool(AsyncLoadWorldOverrideOption);
+	}
+
+	if ( bAsyncLoadWorld )
 	{
 		TArray<AController*> Controllers;
 		for ( FConstControllerIterator Iterator = World->GetControllerIterator(); Iterator; ++Iterator )
@@ -599,14 +609,14 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 		// Bypass UDemoPendingNetLevel
 		FString LoadMapError;
 
-		FURL DemoURL;
-		DemoURL.Map = DemoHeader.LevelName;
+		FURL LocalDemoURL;
+		LocalDemoURL.Map = DemoHeader.LevelName;
 
 		FWorldContext * WorldContext = GEngine->GetWorldContextFromWorld( GetWorld() );
 
 		if ( WorldContext == NULL )
 		{
-			Error = FString::Printf( TEXT( "No world context" ), *DemoFilename );
+			Error = FString::Printf( TEXT( "No world context" ) );
 			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
 			GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "No world context" ) ) );
 			return false;
@@ -621,7 +631,7 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 
 		WorldContext->PendingNetGame = NewPendingNetGame;
 
-		bool bSuccess = GEngine->LoadMap( *WorldContext, DemoURL, NewPendingNetGame, LoadMapError );
+		bool bSuccess = GEngine->LoadMap( *WorldContext, LocalDemoURL, NewPendingNetGame, LoadMapError );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if ( CVarDemoForceFailure.GetValueOnGameThread() == 2 )
@@ -730,7 +740,7 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 	}
 
 	ReplayStreamer->StartStreaming(
-		DemoFilename,
+		DemoURL.Map,
 		FriendlyNameOption != nullptr ? FString(FriendlyNameOption) : World->GetMapName(),
 		UserNames,
 		true,
@@ -741,7 +751,7 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 
 	if( !FileAr )
 	{
-		Error = FString::Printf( TEXT("Couldn't open demo file %s for writing"), *DemoFilename );//@todo demorec: localize
+		Error = FString::Printf( TEXT("Couldn't open demo file %s for writing"), *DemoURL.Map );//@todo demorec: localize
 		return false;
 	}
 
@@ -977,7 +987,7 @@ void UDemoNetDriver::StopDemo()
 		return;
 	}
 
-	UE_LOG( LogDemo, Log, TEXT( "StopDemo: Demo %s stopped at frame %d" ), *DemoFilename, DemoFrameNum );
+	UE_LOG( LogDemo, Log, TEXT( "StopDemo: Demo %s stopped at frame %d" ), *DemoURL.Map, DemoFrameNum );
 
 	if ( !ServerConnection )
 	{
@@ -1094,14 +1104,15 @@ static bool DemoReplicateActor( AActor* Actor, UNetConnection* Connection, APlay
 	if ( Actor != NULL )
 	{
 		// We need to swap roles if:
-		//  1. We're recording a replay on a client that's connected to a live server, and
+		//  1. the actor's remote role is authority - which is the case when recording a replay on a client that's connected to a live server, and
 		//  2. the actor isn't bTearOff, and
 		//  3. the actor isn't the replay spectator controller.
 		//  3. the actor isn't the replay spectator controller or its PlayerState.
 		// This is to ensure the roles appear correct when playing back this demo.
 		UWorld* ActorWorld = Actor->GetWorld();
+
 		bool bShouldSwapRoles =
-			ActorWorld != nullptr && ActorWorld->IsRecordingClientReplay() &&
+			Actor->GetRemoteRole() == ROLE_Authority &&
 			!Actor->bTearOff &&
 			Actor != SpectatorController &&
 			Actor != SpectatorController->PlayerState;
@@ -2296,7 +2307,7 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	ServerConnection->CleanUp();
 
 	FURL ConnectURL;
-	ConnectURL.Map = DemoFilename;
+	ConnectURL.Map = DemoURL.Map;
 
 	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
 	ServerConnection->InitConnection( this, USOCK_Pending, ConnectURL, 1000000 );
@@ -2358,6 +2369,9 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 		*GotoCheckpointArchive << CacheObject.OuterGUID;
 		*GotoCheckpointArchive << PathName;
 		*GotoCheckpointArchive << CacheObject.NetworkChecksum;
+
+		// Remap the pathname to handle client-recorded replays
+		GEngine->NetworkRemapPath(GetWorld(), PathName, true);
 
 		CacheObject.PathName = FName( *PathName );
 

@@ -42,15 +42,22 @@ void FAnimNode_LookAt::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
 
-	DebugLine += "(";
-	AddDebugNodeData(DebugLine);
-	if (LookAtBone.BoneIndex != INDEX_NONE)
+	if (bEnableDebug)
 	{
-		DebugLine += FString::Printf(TEXT(" Target: %s, Look At Bone: %s, Location : %s)"), *BoneToModify.BoneName.ToString(), *LookAtBone.BoneName.ToString(), *CurrentLookAtLocation.ToString());
+		DebugLine += "(";
+		AddDebugNodeData(DebugLine);
+		if (LookAtBone.BoneIndex != INDEX_NONE)
+		{
+			DebugLine += FString::Printf(TEXT(" Target: %s, Look At Bone: %s, Location : %s)"), *BoneToModify.BoneName.ToString(), *LookAtBone.BoneName.ToString(), *CurrentLookAtLocation.ToString());
+		}
+		else
+		{
+			DebugLine += FString::Printf(TEXT(" Target: %s, Look At Location : %s, Location : %s)"), *BoneToModify.BoneName.ToString(), *LookAtLocation.ToString(), *CurrentLookAtLocation.ToString());
+		}
 	}
 	else
 	{
-		DebugLine += FString::Printf(TEXT(" Target: %s, Look At Location : %s, Location : %s)"), *BoneToModify.BoneName.ToString(), *LookAtLocation.ToString(), *CurrentLookAtLocation.ToString());
+		DebugLine += FString::Printf(TEXT("Target: %s"), *BoneToModify.BoneName.ToString());
 	}
 
 	DebugData.AddDebugItem(DebugLine);

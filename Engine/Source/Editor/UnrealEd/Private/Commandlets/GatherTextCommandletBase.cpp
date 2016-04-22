@@ -1131,3 +1131,59 @@ bool FLocalizedAssetUtil::GetAssetsByPathAndClass(IAssetRegistry& InAssetRegistr
 
 	return true;
 }
+
+
+FFuzzyPathMatcher::FFuzzyPathMatcher(const TArray<FString>& InIncludePathFilters, const TArray<FString>& InExcludePathFilters)
+{
+	FuzzyPaths.Reserve(InIncludePathFilters.Num() + InExcludePathFilters.Num());
+
+	for (const FString& IncludePath : InIncludePathFilters)
+	{
+		FuzzyPaths.Add(FFuzzyPath(IncludePath, EPathType::Include));
+	}
+
+	for (const FString& ExcludePath : InExcludePathFilters)
+	{
+		FuzzyPaths.Add(FFuzzyPath(ExcludePath, EPathType::Exclude));
+	}
+
+	// Sort the paths so that deeper paths with fewer wildcards appear first in the list
+	FuzzyPaths.Sort([](const FFuzzyPath& PathOne, const FFuzzyPath& PathTwo) -> bool
+	{
+		auto GetFuzzRating = [](const FFuzzyPath& InFuzzyPath) -> int32
+		{
+			int32 PathDepth = 0;
+			int32 PathFuzz = 0;
+			for (const TCHAR Char : InFuzzyPath.PathFilter)
+			{
+				if (Char == TEXT('/') || Char == TEXT('\\'))
+				{
+					++PathDepth;
+				}
+				else if (Char == TEXT('*') || Char == TEXT('?'))
+				{
+					++PathFuzz;
+				}
+			}
+
+			return (100 - PathDepth) + (PathFuzz * 1000);
+		};
+
+		const int32 PathOneFuzzRating = GetFuzzRating(PathOne);
+		const int32 PathTwoFuzzRating = GetFuzzRating(PathTwo);
+		return PathOneFuzzRating < PathTwoFuzzRating;
+	});
+}
+
+FFuzzyPathMatcher::EPathMatch FFuzzyPathMatcher::TestPath(const FString& InPathToTest) const
+{
+	for (const FFuzzyPath& FuzzyPath : FuzzyPaths)
+	{
+		if (InPathToTest.MatchesWildcard(FuzzyPath.PathFilter))
+		{
+			return (FuzzyPath.PathType == EPathType::Include) ? EPathMatch::Included : EPathMatch::Excluded;
+		}
+	}
+
+	return EPathMatch::NoMatch;
+}

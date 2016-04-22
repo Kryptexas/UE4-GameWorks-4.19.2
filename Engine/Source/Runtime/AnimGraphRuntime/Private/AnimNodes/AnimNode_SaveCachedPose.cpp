@@ -66,18 +66,14 @@ void FAnimNode_SaveCachedPose::Evaluate(FPoseContext& Output)
 	Output.Curve.CopyFrom(CachedCurve);
 }
 
-
 void FAnimNode_SaveCachedPose::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
-	DebugData.AddDebugItem(DebugLine);
+	DebugLine += FString::Printf(TEXT("%s:"), *CachePoseName.ToString());
 
-	// we need to fix SaveCachePose to collect the highest weight branch, not the first one,
-	// for it to be useful in debug.
-	if(true)
-// 	if (!DebugDataCounter.IsSynchronizedWith(DebugData.AnimInstance->DebugDataCounter))
+	if (FNodeDebugData* SaveCachePoseDebugDataPtr = DebugData.GetCachePoseDebugData(CachePoseName))
 	{
-		DebugDataCounter.SynchronizeWith(DebugData.AnimInstance->DebugDataCounter);
-		Pose.GatherDebugData(DebugData);
+		SaveCachePoseDebugDataPtr->AddDebugItem(DebugLine);
+		Pose.GatherDebugData(*SaveCachePoseDebugDataPtr);
 	}
 }

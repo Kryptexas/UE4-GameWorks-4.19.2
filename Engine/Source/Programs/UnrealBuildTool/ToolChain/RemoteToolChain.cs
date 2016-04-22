@@ -290,7 +290,7 @@ namespace UnrealBuildTool
 		public static void SetUserDevRootFromServer()
 		{
 
-			if (!bUseRPCUtil && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+			if (!bUseRPCUtil && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac && !UEBuildConfiguration.bListBuildFolders)
 			{
 				// Only set relative to the users root when using rsync, for now
 				Hashtable Results = RPCUtilHelper.Command("/", "echo $HOME", null);
@@ -321,7 +321,8 @@ namespace UnrealBuildTool
 				return InitializationErrorCode;
 			}
 
-			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+			// don't need to set up the remote environment if we're simply listing build folders.
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac && !UEBuildConfiguration.bListBuildFolders)
 			{
 				// If we don't care which machine we're going to build on, query and
 				// pick the one with the most free command slots available
