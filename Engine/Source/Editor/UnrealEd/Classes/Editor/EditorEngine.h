@@ -2813,9 +2813,6 @@ public:
 	static bool IsUsingWorldAssets();
 
 private:
-	/** Handler for when any asset is loaded in the editor */
-	void OnAssetLoaded( UObject* Asset );
-
 	/** Gets the init values for worlds opened via Map_Load in the editor */
 	UWorld::InitializationValues GetEditorWorldInitializationValues() const;
 
