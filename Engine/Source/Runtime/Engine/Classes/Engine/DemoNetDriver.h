@@ -245,4 +245,7 @@ public:
 
 	/** Called when a "go to time" operation is completed. */
 	void NotifyGotoTimeFinished(bool bWasSuccessful);
+
+	/** Read the streaming level information from the metadata after the level is loaded */
+	void PendingNetGameLoadMapCompleted();
 };

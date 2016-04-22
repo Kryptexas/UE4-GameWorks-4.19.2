@@ -537,43 +537,6 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 
 	// Create fake control channel
 	ServerConnection->CreateChannel( CHTYPE_Control, 1 );
-
-	// Attempt to read metadata if it exists
-	FArchive* MetadataAr = ReplayStreamer->GetMetadataArchive();
-
-	FNetworkDemoMetadataHeader MetadataHeader;
-
-	if ( MetadataAr != nullptr )
-	{
-		(*MetadataAr) << MetadataHeader;
-
-		// Check metadata magic value
-		if ( MetadataHeader.Magic != NETWORK_DEMO_METADATA_MAGIC )
-		{
-			Error = FString( TEXT( "Demo metadata file is corrupt" ) );
-			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
-			GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Corrupt, Error );
-			return false;
-		}
-
-		// Check version
-		if ( MetadataHeader.Version != NETWORK_DEMO_METADATA_VERSION )
-		{
-			Error = FString( TEXT( "Demo metadata file version is incorrect" ) );
-			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
-			GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::InvalidVersion, Error );
-			return false;
-		}
-
-		DemoTotalFrames = MetadataHeader.NumFrames;
-		DemoTotalTime	= MetadataHeader.TotalTime;
-
-		UE_LOG( LogDemo, Log, TEXT( "Starting demo playback with full demo and metadata. Filename: %s, Frames: %i, Version %i" ), *DemoFilename, DemoTotalFrames, DemoHeader.Version );
-	}
-	else
-	{
-		UE_LOG( LogDemo, Log, TEXT( "Starting demo playback with streaming demo, metadata file not found. Filename: %s, Version %i" ), *DemoFilename, DemoHeader.Version );
-	}
 	
 	if ( CVarDemoAsyncLoadWorld.GetValueOnGameThread() > 0 )
 	{
@@ -617,70 +580,12 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 
 		auto NewPendingNetGame = NewObject<UDemoPendingNetGame>();
 
+		// Set up the pending net game so that the engine can call LoadMap on the next tick.
 		NewPendingNetGame->DemoNetDriver = this;
+		NewPendingNetGame->URL = DemoURL;
+		NewPendingNetGame->bSuccessfullyConnected = true;
 
 		WorldContext->PendingNetGame = NewPendingNetGame;
-
-		bool bSuccess = GEngine->LoadMap( *WorldContext, DemoURL, NewPendingNetGame, LoadMapError );
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if ( CVarDemoForceFailure.GetValueOnGameThread() == 2 )
-		{
-			bSuccess = false;
-		}
-#endif
-
-		if ( !bSuccess )
-		{
-			StopDemo();
-
-			// If we don't have a world that means we failed loading the new world.
-			// Since there is no world, we must free the net driver ourselves
-			// Technically the pending net game should handle it, but things aren't quite setup properly to handle that either
-			if ( WorldContext->World() == NULL )
-			{
-				GEngine->DestroyNamedNetDriver( WorldContext->PendingNetGame, NetDriverName );
-			}
-
-			WorldContext->PendingNetGame = NULL;
-
-			GEngine->BrowseToDefaultMap( *WorldContext );
-
-			Error = LoadMapError;
-			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: LoadMap failed: failed: %s" ), *Error );
-			GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "LoadMap failed" ) ) );
-			return false;
-		}
-
-		SetWorld( WorldContext->World() );
-		WorldContext->World()->DemoNetDriver = this;
-		WorldContext->PendingNetGame = NULL;
-
-		// Read meta data, if it exists
-		for ( int32 i = 0; i < MetadataHeader.NumStreamingLevels; ++i )
-		{
-			ULevelStreamingKismet* StreamingLevel = NewObject<ULevelStreamingKismet>( GetWorld(), NAME_None, RF_NoFlags, NULL );
-
-			StreamingLevel->bShouldBeLoaded		= true;
-			StreamingLevel->bShouldBeVisible	= true;
-			StreamingLevel->bShouldBlockOnLoad	= false;
-			StreamingLevel->bInitiallyLoaded	= true;
-			StreamingLevel->bInitiallyVisible	= true;
-
-			FString PackageName;
-			FString PackageNameToLoad;
-
-			( *MetadataAr ) << PackageName;
-			( *MetadataAr ) << PackageNameToLoad;
-			( *MetadataAr ) << StreamingLevel->LevelTransform;
-
-			StreamingLevel->PackageNameToLoad = FName( *PackageNameToLoad );
-			StreamingLevel->SetWorldAssetByPackageName( FName( *PackageName ) );
-
-			GetWorld()->StreamingLevels.Add( StreamingLevel );
-
-			UE_LOG( LogDemo, Log, TEXT( "  Loading streamingLevel: %s, %s" ), *PackageName, *PackageNameToLoad );
-		}
 	}
 
 	return true;
@@ -2677,10 +2582,134 @@ void UDemoNetDriver::NotifyGotoTimeFinished(bool bWasSuccessful)
 	}
 }
 
+void UDemoNetDriver::PendingNetGameLoadMapCompleted()
+{
+	// Attempt to read metadata if it exists
+	FArchive* const MetadataAr = ReplayStreamer.IsValid() ? ReplayStreamer->GetMetadataArchive() : nullptr;
+	UGameInstance* const GameInstance = GetWorld()->GetGameInstance();
+
+	if ( !GameInstance )
+	{
+		UE_LOG( LogDemo, Log, TEXT( "UDemoNetDriver::ReadStreamingLevelMetadata: GameInstance is null." ) );
+		return;
+	}
+
+	if ( MetadataAr != nullptr )
+	{
+		FNetworkDemoMetadataHeader MetadataHeader;
+
+		(*MetadataAr) << MetadataHeader;
+
+		FString Error;
+
+		// Check metadata magic value
+		if ( MetadataHeader.Magic != NETWORK_DEMO_METADATA_MAGIC )
+		{
+			Error = FString( TEXT( "Demo metadata file is corrupt" ) );
+			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
+			GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Corrupt, Error );
+			return;
+		}
+
+		// Check version
+		if ( MetadataHeader.Version != NETWORK_DEMO_METADATA_VERSION )
+		{
+			Error = FString( TEXT( "Demo metadata file version is incorrect" ) );
+			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
+			GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::InvalidVersion, Error );
+			return;
+		}
+
+		DemoTotalFrames = MetadataHeader.NumFrames;
+		DemoTotalTime	= MetadataHeader.TotalTime;
+
+		// Read meta data, if it exists, after the world was loaded.
+		for ( int32 i = 0; i < MetadataHeader.NumStreamingLevels; ++i )
+		{
+			ULevelStreamingKismet* StreamingLevel = NewObject<ULevelStreamingKismet>( GetWorld(), NAME_None, RF_NoFlags, NULL );
+
+			StreamingLevel->bShouldBeLoaded = true;
+			StreamingLevel->bShouldBeVisible = true;
+			StreamingLevel->bShouldBlockOnLoad = false;
+			StreamingLevel->bInitiallyLoaded = true;
+			StreamingLevel->bInitiallyVisible = true;
+
+			FString PackageName;
+			FString PackageNameToLoad;
+
+			( *MetadataAr ) << PackageName;
+			( *MetadataAr ) << PackageNameToLoad;
+			( *MetadataAr ) << StreamingLevel->LevelTransform;
+
+			StreamingLevel->PackageNameToLoad = FName( *PackageNameToLoad );
+			StreamingLevel->SetWorldAssetByPackageName( FName( *PackageName ) );
+
+			GetWorld()->StreamingLevels.Add( StreamingLevel );
+
+			UE_LOG( LogDemo, Log, TEXT( "  Loading streamingLevel: %s, %s" ), *PackageName, *PackageNameToLoad );
+		}
+
+		UE_LOG( LogDemo, Log, TEXT( "Starting demo playback with full demo and metadata. Filename: %s, Frames: %i." ), *DemoFilename, DemoTotalFrames );
+	}
+	else
+	{
+		UE_LOG( LogDemo, Log, TEXT( "Starting demo playback with streaming demo, metadata file not found. Filename: %s." ), *DemoFilename );
+	}
+}
+
 /*-----------------------------------------------------------------------------
 	UDemoPendingNetGame.
 -----------------------------------------------------------------------------*/
 
 UDemoPendingNetGame::UDemoPendingNetGame( const FObjectInitializer& ObjectInitializer ) : Super( ObjectInitializer )
 {
+}
+
+void UDemoPendingNetGame::Tick( float DeltaTime )
+{
+	// Replays don't need to do anything here
+}
+
+void UDemoPendingNetGame::SendJoin()
+{
+	// Don't send a join request to a replay
+}
+
+void UDemoPendingNetGame::LoadMapCompleted(UEngine* Engine, FWorldContext& Context, bool bLoadedMapSuccessfully, const FString& LoadMapError)
+{
+#if !( UE_BUILD_SHIPPING || UE_BUILD_TEST )
+	if ( CVarDemoForceFailure.GetValueOnGameThread() == 2 )
+	{
+		bLoadedMapSuccessfully = false;
+	}
+#endif
+
+	// If we have a demo pending net game we should have a demo net driver
+	check(DemoNetDriver);
+
+	if ( !bLoadedMapSuccessfully )
+	{
+		DemoNetDriver->StopDemo();
+
+		// If we don't have a world that means we failed loading the new world.
+		// Since there is no world, we must free the net driver ourselves
+		// Technically the pending net game should handle it, but things aren't quite setup properly to handle that either
+		if ( Context.World() == NULL )
+		{
+			GEngine->DestroyNamedNetDriver( Context.PendingNetGame, DemoNetDriver->NetDriverName );
+		}
+
+		Context.PendingNetGame = NULL;
+
+		GEngine->BrowseToDefaultMap( Context );
+
+		UE_LOG( LogDemo, Error, TEXT( "UDemoPendingNetGame::HandlePostLoadMap: LoadMap failed: %s" ), *LoadMapError );
+		if ( Context.OwningGameInstance )
+		{
+			Context.OwningGameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "LoadMap failed" ) ) );
+		}
+		return;
+	}
+	
+	DemoNetDriver->PendingNetGameLoadMapCompleted();
 }
