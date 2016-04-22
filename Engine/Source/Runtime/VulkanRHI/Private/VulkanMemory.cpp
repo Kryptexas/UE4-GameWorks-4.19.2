@@ -498,10 +498,13 @@ namespace VulkanRHI
 			for (int32 Index = 0; Index < UsedPages.Num(); ++Index)
 			{
 				FOldResourceHeapPage* Page = UsedPages[Index];
-				FOldResourceAllocation* ResourceAllocation = Page->TryAllocate(Size, Alignment, File, Line);
-				if (ResourceAllocation)
+				if (Page->DeviceMemoryAllocation->IsMapped() == bMapAllocation)
 				{
-					return ResourceAllocation;
+					FOldResourceAllocation* ResourceAllocation = Page->TryAllocate(Size, Alignment, File, Line);
+					if (ResourceAllocation)
+					{
+						return ResourceAllocation;
+					}
 				}
 			}
 		}
@@ -509,12 +512,15 @@ namespace VulkanRHI
 		for (int32 Index = 0; Index < FreePages.Num(); ++Index)
 		{
 			FOldResourceHeapPage* Page = FreePages[Index];
-			FOldResourceAllocation* ResourceAllocation = Page->TryAllocate(Size, Alignment, File, Line);
-			if (ResourceAllocation)
+			if (Page->DeviceMemoryAllocation->IsMapped() == bMapAllocation)
 			{
-				FreePages.RemoveSingleSwap(Page, false);
-				UsedPages.Add(Page);
-				return ResourceAllocation;
+				FOldResourceAllocation* ResourceAllocation = Page->TryAllocate(Size, Alignment, File, Line);
+				if (ResourceAllocation)
+				{
+					FreePages.RemoveSingleSwap(Page, false);
+					UsedPages.Add(Page);
+					return ResourceAllocation;
+				}
 			}
 		}
 		uint32 AllocationSize = FMath::Max(Size, DefaultPageSize);
