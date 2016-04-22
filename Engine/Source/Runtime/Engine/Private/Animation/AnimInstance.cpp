@@ -495,6 +495,11 @@ bool UAnimInstance::NeedsUpdate() const
 	return bNeedsUpdate;
 }
 
+void UAnimInstance::PreEvaluateAnimation()
+{
+	GetProxyOnGameThread<FAnimInstanceProxy>().PreEvaluateAnimation(this);
+}
+
 void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
 {
 	GetProxyOnGameThread<FAnimInstanceProxy>().EvaluateAnimation(Output);
@@ -552,6 +557,8 @@ void UAnimInstance::PostEvaluateAnimation()
 		SCOPE_CYCLE_COUNTER(STAT_BlueprintPostEvaluateAnimation);
 		BlueprintPostEvaluateAnimation();
 	}
+
+	GetProxyOnGameThread<FAnimInstanceProxy>().ClearObjects();
 }
 
 void UAnimInstance::NativeInitializeAnimation()

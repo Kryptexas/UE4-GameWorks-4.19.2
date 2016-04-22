@@ -23,10 +23,10 @@ class ENGINE_API UAnimSingleNodeInstance : public UAnimInstance
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	/** Current Asset being played **/
-	DEPRECATED(4.11, "Please use FAnimSingleNodeInstanceProxy::CurrentAsset")
+	UPROPERTY(Transient)
 	class UAnimationAsset* CurrentAsset;
 
-	DEPRECATED(4.11, "Please use FAnimSingleNodeInstanceProxy::CurrentVertexAnim")
+	UPROPERTY(Transient)
 	class UVertexAnimation* CurrentVertexAnim;
 
 	/** Random cached values to play each asset **/

@@ -41,15 +41,7 @@ void FAnimInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 
 	AnimClassInterface = IAnimClassInterface::GetFromClass(InAnimInstance->GetClass());
 
-	USkeletalMeshComponent* OwnerComponent = InAnimInstance->GetSkelMeshComponent();
-	if (OwnerComponent->SkeletalMesh != NULL)
-	{
-		Skeleton = OwnerComponent->SkeletalMesh->Skeleton;
-	}
-	else
-	{
-		Skeleton = nullptr;
-	}
+	InitializeObjects(InAnimInstance);
 
 	if (AnimClassInterface)
 	{
@@ -97,8 +89,6 @@ void FAnimInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 		}
 #endif
 	}
-
-	SkeletalMeshComponent = InAnimInstance->GetSkelMeshComponent();
 
 #if !NO_LOGGING
 	ActorName = GetNameSafe(InAnimInstance->GetOwningActor());
@@ -169,6 +159,8 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 	RootMotionMode = InAnimInstance->RootMotionMode;
 	bShouldExtractRootMotion = InAnimInstance->ShouldExtractRootMotion();
 
+	InitializeObjects(InAnimInstance);
+
 	// Save off LOD level that we're currently using.
 	LODLevel = InAnimInstance->GetSkelMeshComponent()->PredictedLODLevel;
 
@@ -212,6 +204,25 @@ void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
 #endif
 	InAnimInstance->NotifyQueue.Append(NotifyQueue);
 	InAnimInstance->NotifyQueue.ApplyMontageNotifies(*this);
+}
+
+void FAnimInstanceProxy::InitializeObjects(UAnimInstance* InAnimInstance)
+{
+	SkeletalMeshComponent = InAnimInstance->GetSkelMeshComponent();
+	if (SkeletalMeshComponent->SkeletalMesh != nullptr)
+	{
+		Skeleton = SkeletalMeshComponent->SkeletalMesh->Skeleton;
+	}
+	else
+	{
+		Skeleton = nullptr;
+	}
+}
+
+void FAnimInstanceProxy::ClearObjects()
+{
+	SkeletalMeshComponent = nullptr;
+	Skeleton = nullptr;
 }
 
 FAnimTickRecord& FAnimInstanceProxy::CreateUninitializedTickRecord(int32 GroupIndex, FAnimGroupInstance*& OutSyncGroupPtr)
@@ -659,6 +670,11 @@ void FAnimInstanceProxy::UpdateAnimation()
 
 	// tick all our active asset players
 	TickAssetPlayerInstances(CurrentDeltaSeconds);
+}
+
+void FAnimInstanceProxy::PreEvaluateAnimation(UAnimInstance* InAnimInstance)
+{
+	InitializeObjects(InAnimInstance);
 }
 
 void FAnimInstanceProxy::EvaluateAnimation(FPoseContext& Output)

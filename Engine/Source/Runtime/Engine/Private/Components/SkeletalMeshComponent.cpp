@@ -332,6 +332,10 @@ void USkeletalMeshComponent::OnRegister()
 
 void USkeletalMeshComponent::OnUnregister()
 {
+	const bool bBlockOnTask = true; // wait on evaluation task so we complete any work before this component goes away
+	const bool bPerformPostAnimEvaluation = false; // Skip post evaluation, it would be wasted work
+	HandleExistingParallelEvaluationTask(bBlockOnTask, bPerformPostAnimEvaluation);
+
 #if WITH_APEX_CLOTHING
 	//clothing actors will be re-created in TickClothing
 	ReleaseAllClothingResources();
@@ -1237,6 +1241,11 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		CachedLocalAtoms.Reset();
 		CachedSpaceBases.Reset();
 		CachedCurve.Empty();
+	}
+
+	if(AnimScriptInstance)
+	{
+		AnimScriptInstance->PreEvaluateAnimation();
 	}
 
 	if (bDoParallelEvaluation)
