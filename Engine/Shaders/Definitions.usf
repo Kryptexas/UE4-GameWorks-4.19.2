@@ -192,6 +192,10 @@
 #define INSTANCED_STEREO								0
 #endif	
 
+#ifndef CLEAR_COAT_BOTTOM_NORMAL
+#define CLEAR_COAT_BOTTOM_NORMAL						0
+#endif
+
 #ifndef TEX_COORD_SCALE_ANALYSIS
 #define TEX_COORD_SCALE_ANALYSIS						0		
 #endif

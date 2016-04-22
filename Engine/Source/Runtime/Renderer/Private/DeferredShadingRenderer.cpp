@@ -66,6 +66,14 @@ static TAutoConsoleVariable<int32> CVarVisualizeTexturePool(
 	ECVF_Cheat | ECVF_RenderThreadSafe);
 #endif
 
+static TAutoConsoleVariable<int32> CVarClearCoatNormal(
+	TEXT("r.ClearCoatNormal"),
+	0,
+	TEXT("0 to disable clear coat normal.\n")
+	TEXT(" 0: off\n")
+	TEXT(" 1: on"),
+	ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> CVarRHICmdFlushRenderThreadTasksBasePass(
 	TEXT("r.RHICmdFlushRenderThreadTasksBasePass"),
 	0,

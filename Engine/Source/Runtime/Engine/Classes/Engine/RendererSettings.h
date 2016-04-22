@@ -164,6 +164,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired=true))
 	uint32 bUseDXT5NormalMaps:1;
 
+	UPROPERTY(config, EditAnywhere, Category = Materials, meta =(
+		ConfigRestartRequired = true,
+		ConsoleVariable = "r.ClearCoatNormal",
+		ToolTip = "Use a separate normal map for the bottom layer of a clear coat material. This is a higher quality feature that is expensive."))
+		uint32 bClearCoatEnableSecondNormal : 1;
+
 	UPROPERTY(config, EditAnywhere, Category = Textures, meta = (
 		ConsoleVariable = "r.ReflectionCaptureResolution", DisplayName = "Reflection Capture Resolution",
 		ToolTip = "The cubemap resolution for all reflection capture probes. Must be power of 2."))

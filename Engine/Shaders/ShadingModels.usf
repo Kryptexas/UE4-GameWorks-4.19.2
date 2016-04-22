@@ -105,6 +105,32 @@ float3 ClearCoatShading( FGBufferData GBuffer, float3 LobeRoughness, float3 Lobe
 
 	float LayerAttenuation = (1 - F);
 
+
+	#if CLEAR_COAT_BOTTOM_NORMAL
+		{
+			//const float3 ClearCoatUnderNormal = OctahedronToUnitVector((float2(GBuffer.CustomData.a, GBuffer.CustomData.z) * 2) - (256.0/255.0));
+			const float2 oct1 = ((float2(GBuffer.CustomData.a, GBuffer.CustomData.z) * 2) - (256.0/255.0)) + UnitVectorToOctahedron(GBuffer.WorldNormal);
+ 			const float3 ClearCoatUnderNormal = OctahedronToUnitVector(oct1);
+			//float CNoL = saturate( dot(ClearCoatUnderNormal, L) );
+			//float CNoV = saturate( dot(ClearCoatUnderNormal, V) );
+			float CNoH = saturate( dot(ClearCoatUnderNormal, H) );
+
+			float D2 = D_GGX(LobeRoughness[1], CNoH ) * LobeEnergy[1];
+			float Vis2 = Vis_Schlick( LobeRoughness[1], NoV, NoL );
+			//float3 F2 = F_Schlick( GBuffer.SpecularColor, VoH );
+			float3 F2 = saturate( 50.0 * GBuffer.SpecularColor.g ) * Fc + (1 - Fc) * GBuffer.SpecularColor;
+
+			//Optional term taking into account Basic NdotL response of bottom normal. Not important for metallic which is the most common clearcoat case. Not energy conserving.
+			//float3 Fr2 = Diffuse_Lambert( GBuffer.DiffuseColor ) * CNoL + (D2 * Vis2) * F2;
+
+			float3 Fr2 = Diffuse_Lambert( GBuffer.DiffuseColor )  + (D2 * Vis2) * F2;
+
+			return Fr1 + Fr2 * LayerAttenuation;
+			//return float3(2,0,0);
+			//return ClearCoatUnderNormal;
+		}
+	#endif
+
 	// Generalized microfacet specular
 	float D2 = D_GGX( LobeRoughness[1], NoH ) * LobeEnergy[1];
 	float Vis2 = Vis_Schlick( LobeRoughness[1], NoV, NoL );
