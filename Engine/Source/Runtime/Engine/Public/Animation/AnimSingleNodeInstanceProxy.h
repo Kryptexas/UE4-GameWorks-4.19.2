@@ -111,10 +111,12 @@ public:
 
 	void SetBlendSpaceInput(const FVector& InBlendInput);
 
+#if WITH_EDITOR
 	bool CanProcessAdditiveAnimations() const
 	{
 		return bCanProcessAdditiveAnimations;
 	}
+#endif
 
 private:
 	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext);
