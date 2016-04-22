@@ -1022,11 +1022,11 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 #if !VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
 		    CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 #endif
-		    CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		    CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		    CurrDesc.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+		    CurrDesc.finalLayout = VK_IMAGE_LAYOUT_GENERAL;
     
 		    ColorReferences[NumColorAttachments].attachment = NumAttachments;
-		    ColorReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		    ColorReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_GENERAL;
 		    NumAttachments++;
     
 #if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS

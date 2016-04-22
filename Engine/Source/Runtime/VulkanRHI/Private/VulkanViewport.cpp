@@ -117,9 +117,9 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		//Barrier.pNext = NULL;
 		Barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		Barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-		Barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		Barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		Barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		Barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+		Barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
 		Barrier.image = Texture->Surface.Image;
 		Barrier.subresourceRange.aspectMask = Texture->Surface.GetAspectMask();
 		//Barrier.subresourceRange.baseMipLevel = 0;
@@ -153,9 +153,9 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		//Barrier.pNext = NULL;
 		Barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		Barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-		Barrier.oldLayout = bHasStencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-		Barrier.newLayout = bHasStencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+		Barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		Barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+		Barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
 		Barrier.image = Texture->Surface.Image;
 
 		Barrier.subresourceRange.aspectMask = Texture->Surface.GetAspectMask();
@@ -234,13 +234,13 @@ void FVulkanViewport::AcquireBackBuffer(FVulkanCmdBuffer* CmdBuffer)
 {
 	CurrentBackBuffer = SwapChain->AcquireImageIndex(&PendingImageSemaphore);
 	check(CurrentBackBuffer != -1);
-	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_GENERAL);
 }
 
 void FVulkanViewport::PrepareBackBufferForPresent(FVulkanCmdBuffer* CmdBuffer)
 {
 	check(CurrentBackBuffer != -1);
-	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 }
 
 void FVulkanFramebuffer::InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer)
