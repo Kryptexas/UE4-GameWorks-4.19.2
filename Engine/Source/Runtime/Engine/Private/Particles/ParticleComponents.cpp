@@ -5720,10 +5720,15 @@ void UParticleSystemComponent::InitializeSystem()
 		// Don't warn in a commandlet, we're expected not to have a scene / FX system.
 		if (!IsRunningCommandlet() && !IsRunningDedicatedServer())
 		{
-			UE_LOG(LogParticles,Warning,TEXT("InitializeSystem called on an unregistered component. Template=%s Component=%s"),
-				Template ? *Template->GetPathName() : TEXT("NULL"),
-				*GetPathName()
-				);
+			// We're also not expected to have a scene / FX system when we belong to an inactive world.
+			UWorld* OwnerWorld = GetWorld();
+			if (!OwnerWorld || OwnerWorld->WorldType != EWorldType::Inactive)
+			{
+				UE_LOG(LogParticles,Warning,TEXT("InitializeSystem called on an unregistered component. Template=%s Component=%s"),
+					Template ? *Template->GetPathName() : TEXT("NULL"),
+					*GetPathName()
+					);
+			}
 		}
 		return;
 	}
