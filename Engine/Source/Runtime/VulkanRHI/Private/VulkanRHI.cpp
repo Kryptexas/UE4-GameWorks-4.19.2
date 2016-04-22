@@ -412,7 +412,12 @@ void FVulkanDynamicRHI::InitInstance()
 	if (!Device)
 	{
 		check(!GIsRHIInitialized);
-		
+
+#ifdef PLATFORM_ANDROID
+		// Want to see the actual crash report on Android so unregister signal handlers
+		FPlatformMisc::SetCrashHandler((void(*)(const FGenericCrashContext& Context)) -1);
+#endif
+
 		GRHISupportsAsyncTextureCreation = false;
 
 		bool bDeviceSupportsGeometryShaders = true;
