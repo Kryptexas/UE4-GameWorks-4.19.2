@@ -370,8 +370,7 @@ UEdGraphPin* UK2Node_CreateDelegate::GetDelegateOutPin() const
 
 UEdGraphPin* UK2Node_CreateDelegate::GetObjectInPin() const
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	return FindPinChecked(K2Schema->PN_Self);
+	return FindPin(UEdGraphSchema_K2::PN_Self);
 }
 
 FText UK2Node_CreateDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
