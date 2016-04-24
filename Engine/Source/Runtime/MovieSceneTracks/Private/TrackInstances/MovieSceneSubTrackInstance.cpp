@@ -192,9 +192,12 @@ void FMovieSceneSubTrackInstance::Update(EMovieSceneUpdateData& UpdateData, cons
 
 	for ( TWeakObjectPtr<UMovieSceneSubSection> LastSubSection : LastTraversedSections )
 	{
-		if ( TraversedSections.Contains( LastSubSection.Get() ) == false )
+		if (LastSubSection.IsValid())
 		{
-			UpdateSection( UpdateData, Player, LastSubSection.Get(), true );
+			if ( TraversedSections.Contains( LastSubSection.Get() ) == false )
+			{
+				UpdateSection( UpdateData, Player, LastSubSection.Get(), true );
+			}
 		}
 	}
 	LastTraversedSections.Empty();
