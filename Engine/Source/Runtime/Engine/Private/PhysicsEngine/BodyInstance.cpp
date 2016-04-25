@@ -4486,8 +4486,8 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 		{
 			PxVec3 POutDirection;
 			float OutDistance;
-			//TODO: this 0 check is a temp fix because physx is reporting contacts with distance 0 which gives us nan
-			if (PxGeometryQuery::computePenetration(POutDirection, OutDistance, PGeom, ShapePose, PShape->getGeometry().any(), PxShapeExt::getGlobalPose(*PShape, *RigidBody)) && !FMath::IsNearlyZero(OutDistance))
+
+			if (PxGeometryQuery::computePenetration(POutDirection, OutDistance, PGeom, ShapePose, PShape->getGeometry().any(), PxShapeExt::getGlobalPose(*PShape, *RigidBody)))
 			{				
 				//TODO: there are some edge cases that give us nan results. In these cases we skip
 				if (!POutDirection.isFinite())
