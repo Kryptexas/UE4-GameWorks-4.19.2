@@ -55,6 +55,7 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 	{
 		SpawnInfo.Name = ActorName;
 		SpawnInfo.ObjectFlags = ObjectFlags;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		// @todo: Spawning with a non-CDO template is fraught with issues
 		//SpawnInfo.Template = ObjectTemplate;
 	}
