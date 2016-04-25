@@ -1067,7 +1067,7 @@ USceneComponent *CreateLightComponent(AActor *ParentActor, TSharedPtr<FFbxLightI
 		UPointLightComponent *PointLightComponent = NewObject<UPointLightComponent>(ParentActor, *(LightInfo->Name));
 		PointLightComponent->SetAttenuationRadius(LightInfo->EnableFarAttenuation ? LightInfo->FarAttenuationEnd : 16384.0f);
 		LightComponent = static_cast<ULightComponent*>(PointLightComponent);
-		LightComponent->SetIntensity(LightInfo->Intensity);
+		LightComponent->SetIntensity(LightComponent->Intensity * LightInfo->Intensity / 100.0f);
 	}
 		break;
 	case 1:
@@ -1075,7 +1075,8 @@ USceneComponent *CreateLightComponent(AActor *ParentActor, TSharedPtr<FFbxLightI
 		//Directional light
 		UDirectionalLightComponent *DirectionalLightComponent = NewObject<UDirectionalLightComponent>(ParentActor, *(LightInfo->Name));
 		LightComponent = static_cast<ULightComponent*>(DirectionalLightComponent);
-		LightComponent->SetIntensity(LightInfo->Intensity/100); //In unreal this is a ratio not a lumen value
+		//We cannot convert fbx value to unreal value so we kept the default object value
+		LightComponent->SetIntensity(LightComponent->Intensity * LightInfo->Intensity / 100.0f);
 	}
 		break;
 	case 2:
@@ -1086,7 +1087,8 @@ USceneComponent *CreateLightComponent(AActor *ParentActor, TSharedPtr<FFbxLightI
 		SpotLightComponent->SetOuterConeAngle(LightInfo->OuterAngle/2.0f);
 		SpotLightComponent->SetAttenuationRadius(LightInfo->EnableFarAttenuation ? LightInfo->FarAttenuationEnd : 16384.0f);
 		LightComponent = static_cast<ULightComponent*>(SpotLightComponent);
-		LightComponent->SetIntensity(LightInfo->Intensity);
+		
+		LightComponent->SetIntensity(LightComponent->Intensity * LightInfo->Intensity / 100.0f);
 	}
 		break;
 	case 3:
