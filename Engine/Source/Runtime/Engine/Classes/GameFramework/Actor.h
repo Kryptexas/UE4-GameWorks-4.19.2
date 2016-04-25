@@ -2715,6 +2715,12 @@ public:
 	 */
 	void UpdateAllReplicatedComponents();
 
+	/** Returns whether replication is enabled or not. */
+	FORCEINLINE bool GetIsReplicated() const
+	{
+		return bReplicates;
+	}
+
 	/** Returns a constant reference to the replicated components set
 	 */
 	const TSet<UActorComponent*>& GetReplicatedComponents() const 
