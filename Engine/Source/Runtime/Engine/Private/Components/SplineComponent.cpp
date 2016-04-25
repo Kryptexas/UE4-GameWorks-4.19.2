@@ -17,7 +17,7 @@ USplineComponent::USplineComponent(const FObjectInitializer& ObjectInitializer)
 	, bStationaryEndpoints(false)
 	, bSplineHasBeenEdited(false)
 	, bInputSplinePointsToConstructionScript(false)
-	, bAlwaysRenderInEditor(true)
+	, bDrawDebug(true)
 	, bClosedLoop(false)
 	, DefaultUpVector(FVector::UpVector)
 #if WITH_EDITORONLY_DATA
@@ -450,6 +450,13 @@ void USplineComponent::SetSelectedSplineSegmentColor(const FLinearColor& Color)
 #if WITH_EDITOR
 	EditorSelectedSplineSegmentColor = Color;
 #endif
+}
+
+
+void USplineComponent::SetDrawDebug(bool bShow)
+{
+	bDrawDebug = bShow;
+	MarkRenderStateDirty();
 }
 
 
@@ -1115,10 +1122,10 @@ FTransform USplineComponent::FindTransformClosestToWorldLocation(const FVector& 
 	return GetTransformAtSplineInputKey(Param, CoordinateSpace, bUseScale);
 }
 
-#if WITH_EDITOR
+#if !UE_BUILD_SHIPPING
 FPrimitiveSceneProxy* USplineComponent::CreateSceneProxy()
 {
-	if (!bAlwaysRenderInEditor)
+	if (!bDrawDebug)
 	{
 		return Super::CreateSceneProxy();
 	}
@@ -1129,7 +1136,7 @@ FPrimitiveSceneProxy* USplineComponent::CreateSceneProxy()
 
 		FSplineSceneProxy(const USplineComponent* InComponent)
 			: FPrimitiveSceneProxy(InComponent)
-			, bAlwaysRenderInEditor(InComponent->bAlwaysRenderInEditor)
+			, bDrawDebug(InComponent->bDrawDebug)
 			, SplineInfo(InComponent->SplineInfo)
 			, LineColor(InComponent->EditorUnselectedSplineSegmentColor)
 		{}
@@ -1218,7 +1225,7 @@ FPrimitiveSceneProxy* USplineComponent::CreateSceneProxy()
 		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 		{
 			FPrimitiveViewRelevance Result;
-			Result.bDrawRelevance = bAlwaysRenderInEditor && !IsSelected() && IsShown(View) && View->Family->EngineShowFlags.Splines;
+			Result.bDrawRelevance = bDrawDebug && !IsSelected() && IsShown(View) && View->Family->EngineShowFlags.Splines;
 			Result.bDynamicRelevance = true;
 			Result.bShadowRelevance = IsShadowCast(View);
 			Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);
@@ -1229,7 +1236,7 @@ FPrimitiveSceneProxy* USplineComponent::CreateSceneProxy()
 		uint32 GetAllocatedSize(void) const { return FPrimitiveSceneProxy::GetAllocatedSize(); }
 
 	private:
-		bool bAlwaysRenderInEditor;
+		bool bDrawDebug;
 		FInterpCurveVector SplineInfo;
 		FLinearColor LineColor;
 	};
@@ -1240,7 +1247,7 @@ FPrimitiveSceneProxy* USplineComponent::CreateSceneProxy()
 
 FBoxSphereBounds USplineComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	if (!bAlwaysRenderInEditor)
+	if (!bDrawDebug)
 	{
 		// Do as little as possible if not rendering anything
 		return Super::CalcBounds(LocalToWorld);
