@@ -2490,11 +2490,6 @@ void USkeletalMeshComponent::UnregisterOnPhysicsCreatedDelegate(const FDelegateH
 
 bool USkeletalMeshComponent::MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit /*= NULL*/, EMoveComponentFlags MoveFlags /*= MOVECOMP_NoFlags*/, ETeleportType Teleport /*= ETeleportType::None*/)
 {
-	if(Bodies.Num() == 0)
-	{
-		return false;
-	}
-
 	// If we're simulating physics ignore teleport type, we just want to teleport.
 	ETeleportType NewTeleportType = BodyInstance.bSimulatePhysics ? ETeleportType::TeleportPhysics : Teleport;
 	return Super::MoveComponentImpl(Delta, NewRotation, bSweep, OutHit, MoveFlags, NewTeleportType);
