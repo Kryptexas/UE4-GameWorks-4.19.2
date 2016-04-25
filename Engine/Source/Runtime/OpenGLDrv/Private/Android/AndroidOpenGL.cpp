@@ -346,6 +346,7 @@ bool FAndroidOpenGL::bUseES30ShadingLanguage = false;
 bool FAndroidOpenGL::bES30Support = false;
 bool FAndroidOpenGL::bES31Support = false;
 bool FAndroidOpenGL::bSupportsInstancing = false;
+bool FAndroidOpenGL::bHasHardwareHiddenSurfaceRemoval = false;
 
 void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
@@ -405,6 +406,13 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		bRequiresTexture2DPrecisionHack = true;
 	}
 
+	const bool bIsPoverVRBased = RendererString.Contains(TEXT("PowerVR"));
+	if (bIsPoverVRBased)
+	{
+		bHasHardwareHiddenSurfaceRemoval = true;
+		UE_LOG(LogRHI, Log, TEXT("Enabling support for Hidden Surface Removal on PowerVR"));
+	}
+	
 	const bool bIsAdrenoBased = RendererString.Contains(TEXT("Adreno"));
 	if (bIsAdrenoBased)
 	{
