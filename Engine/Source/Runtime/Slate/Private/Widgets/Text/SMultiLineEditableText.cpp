@@ -198,6 +198,11 @@ bool SMultiLineEditableText::IsMultiLineTextEdit() const
 	return true;
 }
 
+bool SMultiLineEditableText::ShouldJumpCursorToEndWhenFocused() const
+{
+	return false;
+}
+
 bool SMultiLineEditableText::ShouldSelectAllTextWhenFocused() const
 {
 	return bSelectAllTextWhenFocused.Get(false);
