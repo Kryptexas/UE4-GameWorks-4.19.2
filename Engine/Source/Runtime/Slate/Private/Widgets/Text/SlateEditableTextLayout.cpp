@@ -623,6 +623,10 @@ bool FSlateEditableTextLayout::HandleFocusLost(const FFocusEvent& InFocusEvent)
 
 	OwnerWidget->OnTextCommitted(EditedText, TextAction);
 
+	// Reload underlying value now it is committed  (commit may alter the value) 
+	// so it can be re-displayed in the edit box
+	LoadText();
+
 	UpdateCursorHighlight();
 
 	// UpdateCursorHighlight always tries to scroll to the cursor, but we don't want that to happen when we 
