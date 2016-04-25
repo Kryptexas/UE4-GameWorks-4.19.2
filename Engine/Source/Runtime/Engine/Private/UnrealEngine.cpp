@@ -1447,7 +1447,7 @@ void LoadEngineClass(const FStringClassReference& ClassName, TSubclassOf<ClassTy
 		if (EngineClassRef == nullptr)
 		{
 			EngineClassRef = ClassType::StaticClass();
-			UE_LOG(LogEngine, Error, TEXT("Failed to load %s class '%s', falling back to UConsole"), *EngineClassRef->GetName(), *ClassName.ToString());
+			UE_LOG(LogEngine, Error, TEXT("Failed to load '%s', falling back to '%s'"), *ClassName.ToString(), *EngineClassRef->GetName());
 		}
 	}
 }
