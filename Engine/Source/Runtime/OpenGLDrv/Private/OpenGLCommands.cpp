@@ -2806,7 +2806,7 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 	VerifyProgramPipeline();
 #endif
 	
-	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia” Alternative fix that avoids exposing the messy details to the Renderer, keeping it here in the RHI.
+	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia" Alternative fix that avoids exposing the messy details to the Renderer, keeping it here in the RHI.
 	// This workaround has performance and correctness implications - it is only needed on Mac + OpenGL + Nvidia and will
 	// break AMD drivers entirely as it is technically an abuse of the OpenGL specification. Consequently it is deliberately
 	// compiled out for other platforms. Apple have closed the bug claiming the NV behaviour is permitted by the GL spec.
@@ -2855,7 +2855,7 @@ void FOpenGLDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuf
 		REPORT_GL_DRAW_RANGE_ELEMENTS_EVENT_FOR_FRAME_DUMP(DrawMode, MinIndex, MinIndex + NumVertices, NumElements, IndexType, (void *)StartIndex);
 	}
 	
-	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia”
+	// @todo Workaround for radr://15076670 "Incorrect gl_VertexID in GLSL for glDrawElementsInstanced without vertex streams on Nvidia"
 #if PLATFORM_MAC
 	if(bAttributeLessDraw)
 	{
