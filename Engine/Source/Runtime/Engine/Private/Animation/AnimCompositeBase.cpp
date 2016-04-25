@@ -630,6 +630,10 @@ void FAnimTrack::InvalidateRecursiveAsset(class UAnimCompositeBase* CheckAsset)
 				AnimSegment.bValid = IsValidToAdd(CompositeBase);
 			}
 		}
+		else
+		{
+			AnimSegment.bValid = IsValidToAdd(AnimSegment.AnimReference);
+		}
 	}
 }
 
