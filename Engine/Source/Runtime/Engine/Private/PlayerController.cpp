@@ -4488,7 +4488,7 @@ void FInputModeDataBase::SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<
 	}
 
 	if (bLockMouseToViewport)
-	{
+	{	
 		SlateOperations.LockMouseToWidget(InViewportWidget);
 	}
 	else
@@ -4506,6 +4506,7 @@ void FInputModeUIOnly::ApplyInputMode(FReply& SlateOperations, class UGameViewpo
 
 		SlateOperations.ReleaseMouseCapture();
 
+		GameViewportClient.SetLockDuringCapture(bLockMouseToViewport);
 		GameViewportClient.SetIgnoreInput(true);
 		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::NoCapture);
 	}
@@ -4520,6 +4521,7 @@ void FInputModeGameAndUI::ApplyInputMode(FReply& SlateOperations, class UGameVie
 
 		SlateOperations.ReleaseMouseCapture();
 
+		GameViewportClient.SetLockDuringCapture(bLockMouseToViewport);
 		GameViewportClient.SetIgnoreInput(false);
 		GameViewportClient.SetHideCursorDuringCapture(bHideCursorDuringCapture);
 		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::CaptureDuringMouseDown);
@@ -4535,6 +4537,7 @@ void FInputModeGameOnly::ApplyInputMode(FReply& SlateOperations, class UGameView
 		SlateOperations.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 		SlateOperations.SetUserFocus(ViewportWidgetRef);
 		SlateOperations.LockMouseToWidget(ViewportWidgetRef);
+		GameViewportClient.SetLockDuringCapture(true);
 		GameViewportClient.SetIgnoreInput(false);
 		GameViewportClient.SetCaptureMouseOnClick(bConsumeCaptureMouseDown ? EMouseCaptureMode::CapturePermanently : EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
 	}

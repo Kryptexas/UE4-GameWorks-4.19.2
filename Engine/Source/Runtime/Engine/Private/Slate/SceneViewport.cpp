@@ -40,6 +40,11 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 {
 	bIsSlateViewport = true;
 	RenderThreadSlateTexture = new FSlateRenderTargetRHI(nullptr, 0, 0);
+
+	if (InViewportClient)
+	{
+		bShouldCaptureMouseOnActivate = InViewportClient->CaptureMouseOnLaunch();
+	}
 }
 
 FSceneViewport::~FSceneViewport()
@@ -451,6 +456,13 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 	UWorld* World = ViewportClient->GetWorld();
 	if (World && World->IsGameWorld() && World->GetGameInstance() && World->GetGameInstance()->GetFirstLocalPlayerController())
 	{
+		ReplyState.CaptureMouse(ViewportWidgetRef);
+
+		if (ViewportClient->LockDuringCapture())
+		{
+			ReplyState.LockMouseToWidget(ViewportWidgetRef);
+		}
+
 		bool bShouldShowMouseCursor = World->GetGameInstance()->GetFirstLocalPlayerController()->ShouldShowMouseCursor();
 		if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
 		{
@@ -459,8 +471,6 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 		}
 		if (bCursorHiddenDueToCapture || !bShouldShowMouseCursor)
 		{
-			ReplyState.CaptureMouse(ViewportWidgetRef);
-			ReplyState.LockMouseToWidget(ViewportWidgetRef);
 			ReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 		}
 	}
