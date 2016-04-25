@@ -320,5 +320,45 @@ namespace UnrealBuildTool
 			}
 			return bEnabled;
 		}
+
+		/// <summary>
+		/// Determine if a plugin is enabled for a given project
+		/// </summary>
+		/// <param name="Project">The project to check</param>
+		/// <param name="Plugin">Information about the plugin</param>
+		/// <param name="Platform">The target platform</param>
+		/// <returns>True if the plugin should be enabled for this project</returns>
+		public static bool IsPluginDescriptorRequiredForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetRules.TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor)
+		{
+			// Check if it's referenced by name from the project descriptor. If it is, we'll need the plugin to be included with the project regardless of whether it has
+			// any platform-specific modules or content, just so the runtime can make the call.
+			if (Project != null && Project.Plugins != null)
+			{
+				foreach (PluginReferenceDescriptor PluginReference in Project.Plugins)
+				{
+					if (String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
+					{
+						return PluginReference.IsEnabledForPlatform(Platform) && PluginReference.IsEnabledForTarget(TargetType);
+					}
+				}
+			}
+
+			// If the plugin contains content, it should be included for all platforms
+			if(Plugin.Descriptor.bCanContainContent)
+			{
+				return true;
+			}
+
+			// Check if the plugin has any modules for the given target
+			foreach (ModuleDescriptor Module in Plugin.Descriptor.Modules)
+			{
+				if(Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
 	}
 }
