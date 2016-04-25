@@ -1830,9 +1830,23 @@ void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const
 			PlatformApplication->Cursor->Show( true );
 		}
 
+		//Throttle loop data
+		float LastLoopTime = (float)FPlatformTime::Seconds();
+		const float MinThrottlePeriod = (1.0f / 60.0f); //Throttle the loop to a maximum of 60Hz
+
 		// Tick slate from here in the event that we should not return until the modal window is closed.
 		while( InSlateWindow == GetActiveModalWindow() )
 		{
+			//Throttle the loop
+			const float CurrentLoopTime = FPlatformTime::Seconds();
+			const float SleepTime = MinThrottlePeriod - (CurrentLoopTime-LastLoopTime);
+			LastLoopTime = CurrentLoopTime;
+			if (SleepTime > 0.0f)
+			{
+				// Sleep a bit to not eat up all CPU time
+				FPlatformProcess::Sleep(SleepTime);
+			}
+
 			FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Tick");
 
 			{
