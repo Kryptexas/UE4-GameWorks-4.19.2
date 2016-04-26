@@ -40,11 +40,7 @@ public:
 	/** Enable being able to subclass components in blueprints */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(ConfigRestartRequired=true))
 	bool bBlueprintableComponents;
-
-	/** Allows to use actor merging utilities (Simplygon Proxy LOD, Grouping by Materials)*/
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Actor Merging"))
-	bool bActorMerging;
-
+	
 	/** Device output log window (currently implemented for Android only)*/
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Device Output Log"))
 	bool bDeviceOutputLog;

@@ -55,7 +55,7 @@ public:
 	* @param Outer - Outer object to store the mesh in
 	* @return UStaticMesh*
 	*/
-	static bool BuildStaticMeshForLODActor(ALODActor* LODActor, UPackage* AssetsOuter, const FHierarchicalSimplification& LODSetup, const uint32 LODIndex);
+	static bool BuildStaticMeshForLODActor(ALODActor* LODActor, UPackage* AssetsOuter, const FHierarchicalSimplification& LODSetup);
 	
 	/**
 	* Returns whether or not the given actor is eligible for creating a HLOD cluster creation
@@ -138,7 +138,7 @@ public:
 	* @return AHierarchicalLODVolume*
 	*/
 	static AHierarchicalLODVolume* CreateVolumeForLODActor(ALODActor* InLODActor, UWorld* InWorld);
-		
+
 	/** Returns the Proxy processor instance from within this module */
 	FHierarchicalLODProxyProcessor* GetProxyProcessor();	
 private:

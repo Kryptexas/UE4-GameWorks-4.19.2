@@ -6,6 +6,9 @@
 #include "MaterialMerging.h"
 #include "MeshMerging.generated.h"
 
+
+
+
 /** The importance of a mesh feature when automatically generating mesh LODs. */
 UENUM()
 namespace EMeshFeatureImportance
@@ -151,63 +154,61 @@ struct FMeshReductionSettings
 	}
 };
 
-
 USTRUCT()
 struct FMeshProxySettings
 {
 	GENERATED_USTRUCT_BODY()
-		/** Screen size of the resulting proxy mesh in pixel size*/
-		UPROPERTY(EditAnywhere, Category = ProxySettings)
-		int32 ScreenSize;
+	/** Screen size of the resulting proxy mesh in pixel size*/
+	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	int32 ScreenSize;
 
 	/** Material simplification */
 	UPROPERTY(EditAnywhere, Category = ProxySettings)
-		FMaterialProxySettings MaterialSettings;
+	FMaterialProxySettings MaterialSettings;
 
 	UPROPERTY()
-		int32 TextureWidth_DEPRECATED;
+	int32 TextureWidth_DEPRECATED;
 	UPROPERTY()
-		int32 TextureHeight_DEPRECATED;
+	int32 TextureHeight_DEPRECATED;
 
 	UPROPERTY()
-		bool bExportNormalMap_DEPRECATED;
+	bool bExportNormalMap_DEPRECATED;
 
 	UPROPERTY()
-		bool bExportMetallicMap_DEPRECATED;
+	bool bExportMetallicMap_DEPRECATED;
 
 	UPROPERTY()
-		bool bExportRoughnessMap_DEPRECATED;
+	bool bExportRoughnessMap_DEPRECATED;
 
 	UPROPERTY()
-		bool bExportSpecularMap_DEPRECATED;
+	bool bExportSpecularMap_DEPRECATED;
 
 	/** Material simplification */
 	UPROPERTY()
-		FMaterialSimplificationSettings Material_DEPRECATED;
-
+	FMaterialSimplificationSettings Material_DEPRECATED;
 
 	/** Determines whether or not the correct LOD models should be calculated given the source meshes and transition size */
 	UPROPERTY(EditAnywhere, Category = ProxySettings)
-		bool bCalculateLODSourceModels;
+	bool bCalculateCorrectLODModel;
 
 	/** Distance at which meshes should be merged together */
 	UPROPERTY(EditAnywhere, Category = ProxySettings)
-		float MergeDistance;
+	float MergeDistance;
 
 	/** Angle at which a hard edge is introduced between faces */
 	UPROPERTY(EditAnywhere, Category = ProxySettings, meta = (DisplayName = "Hard Edge Angle"))
-		float HardAngleThreshold;
+	float HardAngleThreshold;
 
 	/** Lightmap resolution */
 	UPROPERTY(EditAnywhere, Category = ProxySettings)
-		int32 LightMapResolution;
+	int32 LightMapResolution;
 
 	/** Whether Simplygon should recalculate normals, otherwise the normals channel will be sampled from the original mesh */
 	UPROPERTY(EditAnywhere, Category = ProxySettings)
-		bool bRecalculateNormals;
+	bool bRecalculateNormals;
 
 	UPROPERTY()
-		bool bBakeVertexData_DEPRECATED;
+	bool bBakeVertexData_DEPRECATED;
 
 	/** Default settings. */
 	FMeshProxySettings()
@@ -222,7 +223,9 @@ struct FMeshProxySettings
 		, HardAngleThreshold(80.0f)
 		, LightMapResolution(256)
 		, bRecalculateNormals(true)
-	{ }
+	{ 
+		MaterialSettings.MaterialMergeType = EMaterialMergeType::MaterialMergeType_Simplygon;
+	}
 
 	/** Equality operator. */
 	bool operator==(const FMeshProxySettings& Other) const
@@ -252,66 +255,75 @@ struct FMeshMergingSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-		/** Whether to generate lightmap UVs for a merged mesh*/
-		UPROPERTY(EditAnywhere, Category = FMeshMergingSettings)
-		bool bGenerateLightMapUV;
+	/** Whether to generate lightmap UVs for a merged mesh*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = MeshSettings)
+	bool bGenerateLightMapUV;
 
 	/** Target UV channel in a merged mesh for a lightmap */
-	UPROPERTY(EditAnywhere, Category = FMeshMergingSettings)
-		int32 TargetLightMapUVChannel;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = MeshSettings)
+	int32 TargetLightMapUVChannel;
 
 	/** Target lightmap resolution */
-	UPROPERTY(EditAnywhere, Category = FMeshMergingSettings)
-		int32 TargetLightMapResolution;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = MeshSettings)
+	int32 TargetLightMapResolution;
 
 	/** Whether we should import vertex colors into merged mesh */
 	UPROPERTY()
-		bool bImportVertexColors_DEPRECATED;
+	bool bImportVertexColors_DEPRECATED;
 
 	/** Whether merged mesh should have pivot at world origin, or at first merged component otherwise */
-	UPROPERTY(EditAnywhere, Category = FMeshMergingSettings)
-		bool bPivotPointAtZero;
+	UPROPERTY(EditAnywhere, Category = MeshSettings)
+	bool bPivotPointAtZero;
 
 	/** Whether to merge physics data (collision primitives)*/
-	UPROPERTY(EditAnywhere, Category = FMeshMergingSettings)
-		bool bMergePhysicsData;
+	UPROPERTY(EditAnywhere, Category = MeshSettings)
+	bool bMergePhysicsData;
 
 	/** Whether to merge source materials into one flat material */
-	UPROPERTY(EditAnywhere, Category = MeshMerge)
-		bool bMergeMaterials;
+	UPROPERTY(EditAnywhere, Category = MaterialSettings)
+	bool bMergeMaterials;
 
 	/** Material simplification */
-	UPROPERTY(EditAnywhere, Category = MeshMerge, meta = (editcondition = "bMergeMaterials"))
-		FMaterialProxySettings MaterialSettings;
+	UPROPERTY(EditAnywhere, Category = MaterialSettings, meta = (editcondition = "bMergeMaterials"))
+	FMaterialProxySettings MaterialSettings;
 
-	UPROPERTY(EditAnywhere, Category = MeshMerge)
-		bool bBakeVertexData;
+	UPROPERTY(EditAnywhere, Category = MaterialSettings)
+	bool bBakeVertexData;
+
+	UPROPERTY(EditAnywhere, Category = MeshSettings)
+	bool bCalculateCorrectLODModel;
+
+	UPROPERTY(EditAnywhere, Category = MeshSettings, meta = (editcondition = "!bCalculateCorrectLODModel", ClampMin = "0", ClampMax = "8"))
+	int32 ExportSpecificLOD;
 
 	/** Whether to export normal maps for material merging */
 	UPROPERTY()
-		bool bExportNormalMap_DEPRECATED;
+	bool bExportNormalMap_DEPRECATED;
 	/** Whether to export metallic maps for material merging */
 	UPROPERTY()
-		bool bExportMetallicMap_DEPRECATED;
+	bool bExportMetallicMap_DEPRECATED;
 	/** Whether to export roughness maps for material merging */
 	UPROPERTY()
-		bool bExportRoughnessMap_DEPRECATED;
+	bool bExportRoughnessMap_DEPRECATED;
 	/** Whether to export specular maps for material merging */
 	UPROPERTY()
-		bool bExportSpecularMap_DEPRECATED;
+	bool bExportSpecularMap_DEPRECATED;
 	/** Merged material texture atlas resolution */
 	UPROPERTY()
-		int32 MergedMaterialAtlasResolution_DEPRECATED;
+	int32 MergedMaterialAtlasResolution_DEPRECATED;
 
 	/** Default settings. */
 	FMeshMergingSettings()
-		: bGenerateLightMapUV(false)
+		: bGenerateLightMapUV(true)
 		, TargetLightMapUVChannel(1)
 		, TargetLightMapResolution(256)
 		, bImportVertexColors_DEPRECATED(false)
 		, bPivotPointAtZero(false)
 		, bMergePhysicsData(false)
 		, bMergeMaterials(false)
+		, bBakeVertexData(false)
+		, bCalculateCorrectLODModel(false)
+		, ExportSpecificLOD(0)
 		, bExportNormalMap_DEPRECATED(true)
 		, bExportMetallicMap_DEPRECATED(false)
 		, bExportRoughnessMap_DEPRECATED(false)

@@ -195,11 +195,10 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 		bool bBlutility = GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints;
 		bool bLocalizationDashboard = GetDefault<UEditorExperimentalSettings>()->bEnableLocalizationDashboard;
 		bool bTranslationPicker = GetDefault<UEditorExperimentalSettings>()->bEnableTranslationPicker;
-		bool bMergeActors = GetDefault<UEditorExperimentalSettings>()->bActorMerging;
 		bool bDeviceOutputLog = GetDefault<UEditorExperimentalSettings>()->bDeviceOutputLog;
 
 		// Make sure at least one is enabled before creating the section
-		if (bBlutility || bLocalizationDashboard || bTranslationPicker || bMergeActors || bDeviceOutputLog)
+		if (bBlutility || bLocalizationDashboard || bTranslationPicker || bDeviceOutputLog)
 		{
 			MenuBuilder.BeginSection("ExperimentalTabSpawners", LOCTEXT("ExperimentalTabSpawnersHeading", "Experimental"));
 			{
@@ -235,18 +234,7 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 						FUIAction(FExecuteAction::CreateStatic(&FMainFrameTranslationEditorMenu::HandleOpenTranslationPicker))
 						);
 				}
-
-				// Actor merging
-				if (bMergeActors)
-				{
-					MenuBuilder.AddMenuEntry(
-						LOCTEXT("MergeActorsMenuLabel", "Merge Actors"),
-						LOCTEXT("MergeActorsToolTip", "The Merge Actors tab provides tools for merging multiple actor meshes into a single mesh."),
-						FSlateIcon(),
-						FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenMergeActors))
-						);
-				}
-
+				
 				// Device output log
 				if (bDeviceOutputLog)
 				{
