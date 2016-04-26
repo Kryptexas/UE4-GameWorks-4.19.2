@@ -6,6 +6,8 @@
 
 #include "MeshMergingTool.generated.h"
 
+class SMeshMergingDialog;
+
 /** Singleton wrapper to allow for using the setting structure in SSettingsView */
 UCLASS(config = Engine)
 class UMeshMergingSettingsObject : public UObject
@@ -30,7 +32,6 @@ public:
 	UPROPERTY(editanywhere, meta = (ShowOnlyInnerProperties), Category = MergeSettings)
 	FMeshMergingSettings Settings;
 };
-
 
 /**
  * Mesh Merging Tool
