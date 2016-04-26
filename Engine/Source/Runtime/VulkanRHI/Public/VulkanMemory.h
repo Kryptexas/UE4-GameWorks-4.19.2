@@ -480,12 +480,12 @@ namespace VulkanRHI
 		virtual FResourceSuballocation* CreateSubAllocation(uint32 Size, uint32 AlignedOffset, uint32 AllocatedSize, uint32 AllocatedOffset) = 0;
 		virtual void Destroy(FVulkanDevice* Device) = 0;
 
-		FResourceSuballocation* TryAllocateNoLocking(uint32 Size, const char* File, uint32 Line);
+		FResourceSuballocation* TryAllocateNoLocking(uint32 InSize, uint32 InAlignment, const char* File, uint32 Line);
 
-		inline FResourceSuballocation* TryAllocateLocking(uint32 Size, const char* File, uint32 Line)
+		inline FResourceSuballocation* TryAllocateLocking(uint32 InSize, uint32 InAlignment, const char* File, uint32 Line)
 		{
 			FScopeLock ScopeLock(&CS);
-			return TryAllocateNoLocking(Size, File, Line);
+			return TryAllocateNoLocking(InSize, InAlignment, File, Line);
 		}
 
 		uint32 GetAlignment() const
