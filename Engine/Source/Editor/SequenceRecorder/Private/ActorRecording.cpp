@@ -271,8 +271,8 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 		FString TemplateName = GetUniqueSpawnableName(MovieScene, Actor->GetName());
 
 		UClass* ActorClass = Actor->GetClass();
-		AActor* ObjectTemplate = CastChecked<AActor>(StaticDuplicateObject(Actor, MovieScene, *TemplateName, RF_AllFlags & ~(RF_Transient)));
-
+		AActor* ObjectTemplate = NewObject<AActor>(MovieScene, ActorClass, *TemplateName);
+		
 		if (ObjectTemplate)
 		{
 			TInlineComponentArray<USkeletalMeshComponent*> SkeletalMeshComponents;
@@ -567,8 +567,8 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 				{
 					FName AttachName = SceneComponent->GetAttachParent()->GetFName();
 
-					TArray<USceneComponent*> AllChildren;
-					TemplateRoot->GetChildrenComponents(true, AllChildren);
+					TInlineComponentArray<USceneComponent*> AllChildren;
+					ObjectTemplate->GetComponents(AllChildren);
 
 					for (USceneComponent* Child : AllChildren)
 					{
