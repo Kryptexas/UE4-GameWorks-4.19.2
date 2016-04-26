@@ -480,8 +480,17 @@ void InitDebugContext()
 #endif
 }
 
-TAutoConsoleVariable<FString> CVarOpenGLStripExtensions(TEXT("r.OpenGL.StripExtensions"), TEXT(""), TEXT("List of comma separated OpenGL extensions to remove from driver reported extensions string"));
-TAutoConsoleVariable<FString> CVarOpenGLAddExtensions(TEXT("r.OpenGL.AddExtensions"), TEXT(""), TEXT("List of comma separated OpenGL extensions to driver reported extensions string"));
+TAutoConsoleVariable<FString> CVarOpenGLStripExtensions(
+	TEXT("r.OpenGL.StripExtensions"), 
+	TEXT(""), 
+	TEXT("List of comma separated OpenGL extensions to strip from a driver reported extensions string"),
+	ECVF_ReadOnly);
+
+TAutoConsoleVariable<FString> CVarOpenGLAddExtensions(
+	TEXT("r.OpenGL.AddExtensions"), 
+	TEXT(""), 
+	TEXT("List of comma separated OpenGL extensions to add to a driver reported extensions string"),
+	ECVF_ReadOnly);
 
 void ApplyExtensionsOverrides(FString& ExtensionsString)
 {

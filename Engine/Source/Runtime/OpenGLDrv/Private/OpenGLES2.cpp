@@ -40,6 +40,9 @@ bool FOpenGLES2::bSupportsRGBA8 = false;
 /** GL_APPLE_texture_format_BGRA8888 */
 bool FOpenGLES2::bSupportsBGRA8888 = false;
 
+/** Whether BGRA supported as color attachment */
+bool FOpenGLES2::bSupportsBGRA8888RenderTarget = false;
+
 /** GL_EXT_discard_framebuffer */
 bool FOpenGLES2::bSupportsDiscardFrameBuffer = false;
 
@@ -205,6 +208,7 @@ void FOpenGLES2::ProcessExtensions( const FString& ExtensionsString )
 	bTimerQueryCanBeDisjoint = !ExtensionsString.Contains(TEXT("GL_NV_timer_query"));
 	bSupportsRGBA8 = ExtensionsString.Contains(TEXT("GL_OES_rgb8_rgba8"));
 	bSupportsBGRA8888 = ExtensionsString.Contains(TEXT("GL_APPLE_texture_format_BGRA8888")) || ExtensionsString.Contains(TEXT("GL_IMG_texture_format_BGRA8888")) || ExtensionsString.Contains(TEXT("GL_EXT_texture_format_BGRA8888"));
+	bSupportsBGRA8888RenderTarget = bSupportsBGRA8888;
 	bSupportsVertexHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_vertex_half_float"));
 	bSupportsTextureFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_float"));
 	bSupportsTextureHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_half_float"));

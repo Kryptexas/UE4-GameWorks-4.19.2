@@ -116,6 +116,7 @@ public:
 	static FORCEINLINE bool SupportsShaderDepthStencilFetch()			{ return false; }
 	static FORCEINLINE bool SupportsVertexArrayBGRA()					{ return true; }
 	static FORCEINLINE bool SupportsBGRA8888()							{ return true; }
+	static FORCEINLINE bool SupportsBGRA8888RenderTarget()				{ return true; }
 	static FORCEINLINE bool SupportsSRGB()								{ return true; }
 	static FORCEINLINE bool SupportsRGBA8()								{ return true; }
 	static FORCEINLINE bool SupportsDXT()								{ return true; }

@@ -257,7 +257,13 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 #endif
 
 	bool bNoSRGBSupport = (GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES3_1);
-	
+
+	if ((Flags & TexCreate_RenderTargetable) && Format == PF_B8G8R8A8 && !FOpenGL::SupportsBGRA8888RenderTarget())
+	{
+		// Some android devices does not support BGRA as a color attachment
+		Format = PF_R8G8B8A8;
+	}
+		
 	if (bNoSRGBSupport)
 	{
 		// Remove sRGB read flag when not supported

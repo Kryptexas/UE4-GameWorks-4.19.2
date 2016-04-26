@@ -50,6 +50,7 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsRGBA8 = false;
 	// This is not color-renderable in WebGL/ANGLE (ANGLE exposes this)
 	bSupportsBGRA8888 = false;
+	bSupportsBGRA8888RenderTarget = false;
 	// ANGLE/WEBGL_depth_texture is sort of like OES_depth_texture, you just can't upload bulk data to it (via Tex*Image2D); that should be OK?
 	bSupportsDepthTexture = 
         ExtensionsString.Contains(TEXT("WEBGL_depth_texture")) ||    // Catch "WEBGL_depth_texture", "MOZ_WEBGL_depth_texture" and "WEBKIT_WEBGL_depth_texture".
