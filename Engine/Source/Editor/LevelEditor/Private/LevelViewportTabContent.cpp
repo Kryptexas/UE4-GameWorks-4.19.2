@@ -45,7 +45,7 @@ void FLevelViewportTabContent::Initialize(TSharedPtr<ILevelEditor> InParentLevel
 	ParentLevelEditor = InParentLevelEditor;
 	LayoutString = InLayoutString;
 
-	InParentTab->SetOnPersistVisualState( SDockTab::FOnPersistVisualState::CreateSP(this, &FLevelViewportTabContent::SaveLayoutString, LayoutString) );
+	InParentTab->SetOnPersistVisualState( SDockTab::FOnPersistVisualState::CreateSP(this, &FLevelViewportTabContent::SaveConfig) );
 
 	const FString& IniSection = FLayoutSaveRestore::GetAdditionalLayoutConfigIni();
 
@@ -83,7 +83,7 @@ void FLevelViewportTabContent::SetViewportConfiguration(const FName& Configurati
 
 	if (bSwitchingLayouts)
 	{
-		ActiveLevelViewportLayout->SaveLayoutString(LayoutString);
+		SaveConfig();
 		ActiveLevelViewportLayout.Reset();
 	}
 
@@ -91,6 +91,22 @@ void FLevelViewportTabContent::SetViewportConfiguration(const FName& Configurati
 	check (ActiveLevelViewportLayout.IsValid());
 
 	UpdateViewportTabWidget();
+}
+
+void FLevelViewportTabContent::SaveConfig() const
+{
+	if (ActiveLevelViewportLayout.IsValid())
+	{
+		if (!LayoutString.IsEmpty())
+		{
+			FString LayoutTypeString = ActiveLevelViewportLayout->GetLayoutTypeName().ToString();
+
+			const FString& IniSection = FLayoutSaveRestore::GetAdditionalLayoutConfigIni();
+			GConfig->SetString(*IniSection, *(LayoutString + TEXT(".LayoutType")), *LayoutTypeString, GEditorPerProjectIni);
+		}
+
+		ActiveLevelViewportLayout->SaveLayoutString(LayoutString);
+	}
 }
 
 void FLevelViewportTabContent::RefreshViewportConfiguration()
@@ -107,7 +123,6 @@ void FLevelViewportTabContent::RefreshViewportConfiguration()
 		}
 	}
 
-	ActiveLevelViewportLayout->SaveLayoutString(LayoutString);
 	ActiveLevelViewportLayout.Reset();
 
 	bool bSwitchingLayouts = false;
@@ -150,18 +165,5 @@ void FLevelViewportTabContent::UpdateViewportTabWidget()
 			}
 			PreviouslyFocusedViewport = TOptional<FName>();
 		}
-	}
-}
-
-void FLevelViewportTabContent::SaveLayoutString(const FString InLayoutString) const
-{
-	if (ActiveLevelViewportLayout.IsValid() && !InLayoutString.IsEmpty())
-	{
-		FString LayoutTypeString = ActiveLevelViewportLayout->GetLayoutTypeName().ToString();
-
-		const FString& IniSection = FLayoutSaveRestore::GetAdditionalLayoutConfigIni();
-		GConfig->SetString(*IniSection, *(InLayoutString + TEXT(".LayoutType")), *LayoutTypeString, GEditorPerProjectIni);
-
-		ActiveLevelViewportLayout->SaveLayoutString(InLayoutString);
 	}
 }
