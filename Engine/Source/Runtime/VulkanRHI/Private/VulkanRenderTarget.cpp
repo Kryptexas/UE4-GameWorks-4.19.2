@@ -9,6 +9,16 @@
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
 
+static int32 GSubmitOnCopyToResolve = 0;
+static FAutoConsoleVariableRef CVarVulkanSubmitOnCopyToResolve(
+	TEXT("r.Vulkan.SubmitOnCopyToResolve"),
+	GSubmitOnCopyToResolve,
+	TEXT("Submits the Queue to the GPU on every RHICopyToResolveTarget call.\n")
+	TEXT(" 0: Do not submit (default)\n")
+	TEXT(" 1: Submit"),
+	ECVF_Default
+	);
+
 void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, const FRHIRenderTargetView* NewRenderTargets, const FRHIDepthRenderTargetView* NewDepthStencilTarget, uint32 NumUAVs, const FUnorderedAccessViewRHIParamRef* UAVs)
 {
 	//@TODO: call SetRenderTargetsAndClear?
@@ -76,6 +86,12 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 		Framebuffer->InsertWriteBarriers(GetCommandBufferManager()->GetActiveCmdBuffer());
 	}
 
+	if (GSubmitOnCopyToResolve)
+	{
+		CmdBuffer->End();
+		Device->GetQueue()->Submit(CmdBuffer);
+		CommandBufferManager->PrepareForNewActiveCommandBuffer();
+	}
 #else
 	// If we're using the pResolveAttachments property of the subpass, so we don't need manual command buffer resolves and this function is a NoOp.
 #if !VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS

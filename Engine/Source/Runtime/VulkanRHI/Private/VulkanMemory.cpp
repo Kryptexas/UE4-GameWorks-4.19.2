@@ -228,7 +228,7 @@ namespace VulkanRHI
 	void FOldResourceAllocation::BindBuffer(FVulkanDevice* Device, VkBuffer Buffer)
 	{
 #if DO_LOG_BINDINGS
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindBufferMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buffer, GetHandle(), GetOffset(), GetSize());
+		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindBufferMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buffer, GetHandle(), GetOffset(), GetSize());
 #endif
 		VkResult Result = vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, GetHandle(), GetOffset());
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
@@ -244,7 +244,7 @@ namespace VulkanRHI
 	void FOldResourceAllocation::BindImage(FVulkanDevice* Device, VkImage Image)
 	{
 #if DO_LOG_BINDINGS
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindImageMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, GetHandle(), GetOffset(), GetSize());
+		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindImageMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, GetHandle(), GetOffset(), GetSize());
 #endif
 		VkResult Result = vkBindImageMemory(Device->GetInstanceHandle(), Image, GetHandle(), GetOffset());
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
@@ -761,7 +761,7 @@ namespace VulkanRHI
 
 		auto* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(BufferSize, MemoryTypeIndex, File, Line);
 #if DO_LOG_BINDINGS
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindBufferMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buffer, DeviceMemoryAllocation->GetHandle(), 0, DeviceMemoryAllocation->GetSize());
+		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindBufferMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buffer, DeviceMemoryAllocation->GetHandle(), 0, DeviceMemoryAllocation->GetSize());
 #endif
 		VERIFYVULKANRESULT(vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, DeviceMemoryAllocation->GetHandle(), 0));
 		if (MemoryPropertyFlags == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
@@ -837,7 +837,7 @@ namespace VulkanRHI
 
 		auto* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(ImageSize, MemoryTypeIndex, File, Line);
 #if DO_LOG_BINDINGS
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindImageMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, DeviceMemoryAllocation->GetHandle(), DeviceMemoryAllocation->GetOffset(), DeviceMemoryAllocation->GetSize());
+		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindImageMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, DeviceMemoryAllocation->GetHandle(), DeviceMemoryAllocation->GetOffset(), DeviceMemoryAllocation->GetSize());
 #endif
 		VERIFYVULKANRESULT(vkBindImageMemory(Device->GetInstanceHandle(), Image, DeviceMemoryAllocation->GetHandle(), 0));
 		if (MemoryPropertyFlags == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
