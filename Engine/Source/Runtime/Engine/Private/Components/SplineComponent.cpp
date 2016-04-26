@@ -20,9 +20,11 @@ USplineComponent::USplineComponent(const FObjectInitializer& ObjectInitializer)
 	, bDrawDebug(true)
 	, bClosedLoop(false)
 	, DefaultUpVector(FVector::UpVector)
-#if WITH_EDITORONLY_DATA
+#if !UE_BUILD_SHIPPING
 	, EditorUnselectedSplineSegmentColor(FLinearColor(1.0f, 1.0f, 1.0f))
 	, EditorSelectedSplineSegmentColor(FLinearColor(1.0f, 0.0f, 0.0f))
+#endif
+#if WITH_EDITORONLY_DATA
 	, bShouldVisualizeScale(false)
 	, ScaleVisualizationWidth(30.0f)
 #endif
@@ -439,7 +441,7 @@ bool USplineComponent::IsClosedLoop() const
 
 void USplineComponent::SetUnselectedSplineSegmentColor(const FLinearColor& Color)
 {
-#if WITH_EDITOR
+#if !UE_BUILD_SHIPPING
 	EditorUnselectedSplineSegmentColor = Color;
 #endif
 }
@@ -447,7 +449,7 @@ void USplineComponent::SetUnselectedSplineSegmentColor(const FLinearColor& Color
 
 void USplineComponent::SetSelectedSplineSegmentColor(const FLinearColor& Color)
 {
-#if WITH_EDITOR
+#if !UE_BUILD_SHIPPING
 	EditorSelectedSplineSegmentColor = Color;
 #endif
 }
