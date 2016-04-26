@@ -196,8 +196,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 
 	bTickInEditor = true;
 
-	RootBodyData.BodyIndex = INDEX_NONE;
-	RootBodyData.TransformToRoot = FTransform::Identity;
+	ResetRootBodyIndex();
 }
 
 
@@ -219,10 +218,15 @@ void USkeletalMeshComponent::RegisterPostPhysicsTick(bool bRegister)
 			{
 				PostPhysicsTickFunction.Target = this;
 				// Set a prereq for the pre cloth tick to happen after physics is finished
-				if (World != NULL)
+				UWorld* World = GetWorld();
+				if (World != nullptr)
 				{
 					PostPhysicsTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
 				}
+
+				// 4.11.2 Hack (UE-24725): set up this tick prereq in case this other function is used.
+				// It's usually not, but our tick function is private and if someone else needs to set up a prereq they can use the public one in the base class.
+				PostPhysicsComponentTick.AddPrerequisite(this, PostPhysicsTickFunction);
 			}
 		}
 		else
@@ -1062,9 +1066,18 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 	if (USkeletalMeshComponent* MasterSMC = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get()))
 	{
 		// propagate BP-driven curves from the master SMC...
-		if (MasterSMC->SkeletalMesh && MasterSMC->MorphTargetCurves.Num() > 0)
+		if (SkeletalMesh)
 		{
-			FAnimationRuntime::AppendActiveVertexAnims(MasterSMC->SkeletalMesh, MasterSMC->MorphTargetCurves, ActiveVertexAnims);
+			if (MasterSMC->MorphTargetCurves.Num() > 0)
+			{
+				FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MasterSMC->MorphTargetCurves, ActiveVertexAnims);
+			}
+
+			// if slave also has it, add it here. 
+			if (MorphTargetCurves.Num() > 0)
+			{
+				FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MorphTargetCurves, ActiveVertexAnims);
+			}
 		}
 
 		// ...then append any animation-driven curves from the master SMC
@@ -1541,7 +1554,7 @@ void USkeletalMeshComponent::NotifySkelControlBeyondLimit( USkelControlLookAt* L
 
 void USkeletalMeshComponent::SkelMeshCompOnParticleSystemFinished( UParticleSystemComponent* PSC )
 {
-	PSC->DetachFromParent();
+	PSC->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 	PSC->UnregisterComponent();
 }
 
@@ -1737,10 +1750,10 @@ FVector USkeletalMeshComponent::GetClosestCollidingRigidBodyLocation(const FVect
 	{
 		for (int32 i=0; i<Bodies.Num(); i++)
 		{
-			FBodyInstance* BodyInstance = Bodies[i];
-			if( BodyInstance && BodyInstance->IsValidBodyInstance() && (BodyInstance->GetCollisionEnabled() != ECollisionEnabled::NoCollision) )
+			FBodyInstance* BodyInst = Bodies[i];
+			if( BodyInst && BodyInst->IsValidBodyInstance() && (BodyInst->GetCollisionEnabled() != ECollisionEnabled::NoCollision) )
 			{
-				const FVector BodyLocation = BodyInstance->GetUnrealWorldTransform().GetTranslation();
+				const FVector BodyLocation = BodyInst->GetUnrealWorldTransform().GetTranslation();
 				const float DistSq = (BodyLocation - TestLocation).SizeSquared();
 				if( DistSq < BestDistSq )
 				{
@@ -2214,6 +2227,12 @@ bool USkeletalMeshComponent::IsPlayingRootMotionFromEverything()
 	return AnimScriptInstance ? (AnimScriptInstance->RootMotionMode == ERootMotionMode::RootMotionFromEverything) : false;
 }
 
+void USkeletalMeshComponent::ResetRootBodyIndex()
+{
+	RootBodyData.BodyIndex = INDEX_NONE;
+	RootBodyData.TransformToRoot = FTransform::Identity;
+}
+
 void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 {
 	// this is getting called prior to initialization. 
@@ -2247,8 +2266,7 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 			}
 			else
 			{
-				//@todo : this needs a bit of investigation. We used to call this function only in Init, but nowi t's called 
-				ensure(false);
+				ResetRootBodyIndex();
 			}
 		}
 	}

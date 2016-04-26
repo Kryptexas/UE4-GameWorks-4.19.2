@@ -25,10 +25,10 @@ class INavRelevantInterface;
 namespace FNavigationSystem
 {
 	/** used as a fallback value for navigation agent radius, when none specified via UNavigationSystem::SupportedAgents */
-	extern const float FallbackAgentRadius;
+	extern ENGINE_API const float FallbackAgentRadius;
 
 	/** used as a fallback value for navigation agent height, when none specified via UNavigationSystem::SupportedAgents */
-	extern const float FallbackAgentHeight;
+	extern ENGINE_API const float FallbackAgentHeight;
 
 	static const FBox InvalidBoundingBox(0);
 
@@ -221,17 +221,17 @@ struct FNavigationDirtyElement
 	uint8 bInvalidRequest : 1;
 
 	FNavigationDirtyElement()
-		: NavInterface(0), FlagsOverride(0), bHasPrevData(false), bInvalidRequest(false)
+		: NavInterface(0), FlagsOverride(0), PrevFlags(0), PrevBounds(0), bHasPrevData(false), bInvalidRequest(false)
 	{
 	}
 
 	FNavigationDirtyElement(UObject* InOwner)
-		: Owner(InOwner), NavInterface(0), FlagsOverride(0), bHasPrevData(false), bInvalidRequest(false)
+		: Owner(InOwner), NavInterface(0), FlagsOverride(0), PrevFlags(0), PrevBounds(0), bHasPrevData(false), bInvalidRequest(false)
 	{
 	}
 
 	FNavigationDirtyElement(UObject* InOwner, INavRelevantInterface* InNavInterface, int32 InFlagsOverride = 0)
-		: Owner(InOwner), NavInterface(InNavInterface),	FlagsOverride(InFlagsOverride), bHasPrevData(false), bInvalidRequest(false)
+		: Owner(InOwner), NavInterface(InNavInterface),	FlagsOverride(InFlagsOverride), PrevFlags(0), PrevBounds(0), bHasPrevData(false), bInvalidRequest(false)
 	{
 	}
 

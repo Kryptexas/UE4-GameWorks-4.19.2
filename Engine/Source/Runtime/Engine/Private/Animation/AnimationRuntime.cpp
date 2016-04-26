@@ -611,6 +611,11 @@ ETypeAdvanceAnim FAnimationRuntime::AdvanceTime(const bool& bAllowLooping, const
 					InOutTime += EndTime;
 				}
 			}
+			else
+			{
+				// end time is 0.f
+				InOutTime = 0.f;
+			}
 
 			// it has been looped
 			return ETAA_Looped;
@@ -683,6 +688,19 @@ void FAnimationRuntime::GetKeyIndicesFromTime(int32& OutKeyIndex1, int32& OutKey
 	OutKeyIndex1 = KeyIndex1;
 	OutKeyIndex2 = KeyIndex2;
 	OutAlpha = Alpha;
+}
+
+FTransform FAnimationRuntime::GetComponentSpaceRefPose(const FCompactPoseBoneIndex& CompactPoseBoneIndex, const FBoneContainer& BoneContainer)
+{
+	FCompactPoseBoneIndex CurrentIndex = CompactPoseBoneIndex;
+	FTransform CSTransform = FTransform::Identity;
+	while (CurrentIndex.GetInt() != INDEX_NONE)
+	{
+		CSTransform *= BoneContainer.GetRefPoseTransform(CurrentIndex);
+		CurrentIndex = BoneContainer.GetParentBoneIndex(CurrentIndex);
+	}
+	
+	return CSTransform;
 }
 
 void FAnimationRuntime::FillWithRefPose(TArray<FTransform>& OutAtoms, const FBoneContainer& RequiredBones)

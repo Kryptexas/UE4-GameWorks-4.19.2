@@ -1304,23 +1304,23 @@ void UBlendSpaceBase::GetAnimationPose(TArray<FBlendSampleData>& BlendSampleData
 }
 
 #if WITH_EDITOR
-bool UBlendSpaceBase::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences)
+bool UBlendSpaceBase::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets)
 {
 	for (auto Iter = SampleData.CreateConstIterator(); Iter; ++Iter)
 	{
 		// saves all samples in the AnimSequences
-		AnimationSequences.AddUnique((*Iter).Animation);
+		AnimationAssets.AddUnique((*Iter).Animation);
 	}
 
 	if (PreviewBasePose)
 	{
-		AnimationSequences.AddUnique(PreviewBasePose);
+		AnimationAssets.AddUnique(PreviewBasePose);
 	}
  
-	return (AnimationSequences.Num() > 0);
+	return (AnimationAssets.Num() > 0);
 }
 
-void UBlendSpaceBase::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap)
+void UBlendSpaceBase::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
 	TArray<FBlendSample> NewSamples;
 	for (auto Iter = SampleData.CreateIterator(); Iter; ++Iter)

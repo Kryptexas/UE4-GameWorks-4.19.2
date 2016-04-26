@@ -4055,7 +4055,7 @@ void FForwardShadingSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediat
 
 		if (LightSceneInfo.ShouldRenderViewIndependentWholeSceneShadows()
 			// Only render movable shadowcasting lights
-			&& (!LightSceneInfo.Proxy->HasStaticShadowing() || LightSceneInfo.Proxy->StationaryLightUsesCSMForMovableShadows())
+			&& (!LightSceneInfo.Proxy->HasStaticShadowing() || LightSceneInfo.Proxy->UseCSMForDynamicObjects())
 			&& CheckForProjectedShadows(&LightSceneInfo))
 		{
 			bool bRender = false;

@@ -158,7 +158,16 @@ public:
 	 */
 	virtual ECompressionFlags GetBaseCompressionMethod() const = 0;
 
-	/** 
+	/**
+	 * Compresses memory using platform specific custom method.
+	 *
+	 * @return true if data was successfully compressed
+	 */
+	virtual bool CompressMemory( ECompressionFlags Flags, void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize ) const = 0;
+
+	virtual int32 CompressMemoryBounds( ECompressionFlags Flags, int32 UncompressedSize ) const = 0;
+
+	/**
 	 * Generates a platform specific asset manifest given an array of FAssetData.
 	 *
 	 * @param ChunkMap A map of asset path to ChunkIDs for all of the assets.

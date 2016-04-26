@@ -1513,7 +1513,8 @@ void UAbilitySystemComponent::OnClientActivateAbilityCaughtUp(FGameplayAbilitySp
 		// The ability should be either confirmed or rejected by the time we get here
 		if (Spec->ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting && Spec->ActivationInfo.GetActivationPredictionKey().Current == PredictionKey)
 		{
-			ABILITY_LOG(Warning, TEXT("UAbilitySystemComponent::OnClientActivateAbilityCaughtUp. Ability %s caught up to PredictionKey but instance is still active and in predicting state."), *GetNameSafe(Spec->Ability));
+			// It is possible to have this happen under bad network conditions. (Reliable Confirm/Reject RPC is lost, but separate property bunch makes it through before the reliable resend happens)
+			ABILITY_LOG(Display, TEXT("UAbilitySystemComponent::OnClientActivateAbilityCaughtUp. Ability %s caught up to PredictionKey %d but instance is still active and in predicting state."), *GetNameSafe(Spec->Ability), PredictionKey);
 		}
 	}
 }

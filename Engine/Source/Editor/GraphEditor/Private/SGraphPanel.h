@@ -138,7 +138,7 @@ public:
 	void RemovePinFromHoverSet(UEdGraphPin* UnhoveredPin);
 
 	SGraphEditor::EPinVisibility GetPinVisibility() const { return PinVisibility; }
-	void SetPinVisibility(SGraphEditor::EPinVisibility Visibility) { PinVisibility = Visibility; }
+	void SetPinVisibility(SGraphEditor::EPinVisibility InVisibility) { PinVisibility = InVisibility; }
 
 	UEdGraph* GetGraphObj() const { return GraphObj; }
 

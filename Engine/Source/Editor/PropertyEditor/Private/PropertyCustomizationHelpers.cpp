@@ -15,6 +15,7 @@
 #include "SPropertyEditorAsset.h"
 #include "SPropertyEditorClass.h"
 #include "SPropertyEditorInteractiveActorPicker.h"
+#include "SPropertyEditorSceneDepthPicker.h"
 #include "SHyperlink.h"
 #include "SWidgetSwitcher.h"
 
@@ -246,6 +247,14 @@ namespace PropertyCustomizationHelpers
 			.OnGetAllowedClasses( OnGetAllowedClasses )
 			.OnShouldFilterActor( OnShouldFilterActor )
 			.OnActorSelected( OnActorSelectedFromPicker );
+	}
+
+	TSharedRef<SWidget> MakeSceneDepthPicker(FOnSceneDepthLocationSelected OnSceneDepthLocationSelected)
+	{
+		return
+			SNew(SPropertyEditorSceneDepthPicker)
+			.ToolTipText(LOCTEXT("PickSceneDepthLabel", "Sample Scene Depth from scene"))
+			.OnSceneDepthLocationSelected(OnSceneDepthLocationSelected);
 	}
 
 	TSharedRef<SWidget> MakeEditConfigHierarchyButton(FSimpleDelegate OnEditConfigClicked, TAttribute<FText> OptionalToolTipText, TAttribute<bool> IsEnabled)

@@ -263,8 +263,11 @@ public:
 #endif
 
 protected:
+
+	friend class FConstraintComponentVisualizer;
+
 	/** Get the body instance that we want to constrain to */
-	FBodyInstance* GetBodyInstance(EConstraintFrame::Type Frame) const;
+	ENGINE_API FBodyInstance* GetBodyInstance(EConstraintFrame::Type Frame) const;
 
 	/** Internal util to get body transform from actor/component name/bone name information */
 	FTransform GetBodyTransformInternal(EConstraintFrame::Type Frame, FName InBoneName) const;

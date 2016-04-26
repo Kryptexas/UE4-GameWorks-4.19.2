@@ -895,6 +895,19 @@ public:
 	virtual EMouseCaptureMode CaptureMouseOnClick() { return EMouseCaptureMode::CapturePermanently; }
 
 	/**
+	 * Gets whether or not the viewport captures the Mouse on launch of the application
+	 * Technically this controls capture on the first window activate, so in situations
+	 * where the application is launched but isn't activated the effect is delayed until
+	 * activation.
+	 */
+	virtual bool CaptureMouseOnLaunch() { return true; }
+
+	/**
+	 * Gets whether or not the cursor is locked to the viewport when the viewport captures the mouse
+	 */
+	virtual bool LockDuringCapture() { return true; }
+
+	/**
 	 * Gets whether or not the cursor is hidden when the viewport captures the mouse
 	 */
 	virtual bool HideCursorDuringCapture() { return false; }

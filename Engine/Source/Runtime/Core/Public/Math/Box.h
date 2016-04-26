@@ -157,7 +157,7 @@ public:
 	 * @param W The size to increase the volume by.
 	 * @return A new bounding box.
 	 */
-	FBox ExpandBy( float W ) const
+	FBox ExpandBy(float W) const
 	{
 		return FBox(Min - FVector(W, W, W), Max + FVector(W, W, W));
 	}
@@ -171,6 +171,18 @@ public:
 	FBox ExpandBy(const FVector& V) const
 	{
 		return FBox(Min - V, Max + V);
+	}
+
+	/**
+	* Increases the box size.
+	*
+	* @param Neg The size to increase the volume by in the negative direction (positive values move the bounds outwards)
+	* @param Pos The size to increase the volume by in the positive direction (positive values move the bounds outwards)
+	* @return A new bounding box.
+	*/
+	FBox ExpandBy(const FVector& Neg, const FVector& Pos) const
+	{
+		return FBox(Min - Neg, Max + Pos);
 	}
 
 	/** 

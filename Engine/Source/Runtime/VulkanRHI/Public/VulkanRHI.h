@@ -23,11 +23,6 @@ class FVulkanDevice;
 class FVulkanQueue;
 
 
-#if VULKAN_ENABLE_DRAW_MARKERS
-	#include <vulkan/vk_debug_marker_layer.h>
-#endif
-
-
 /** The interface which is implemented by the dynamically bound RHI. */
 class FVulkanDynamicRHI : public FDynamicRHI
 {
@@ -141,13 +136,19 @@ public:
 	virtual class IRHICommandContext* RHIGetDefaultContext() final override;
 	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer() final override;
 
-	virtual void RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority);
-	virtual void RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex);
-	virtual void RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex);
-
 	inline uint32 GetPresentCount() const
 	{
 		return PresentCount;
+	}
+
+	const TArray<const ANSICHAR*>& GetInstanceExtensions() const
+	{
+		return InstanceExtensions;
+	}
+
+	const TArray<const ANSICHAR*>& GetInstanceLayers() const
+	{
+		return InstanceLayers;
 	}
 
 private:
@@ -156,6 +157,9 @@ private:
 
 protected:
 	VkInstance Instance;
+	TArray<const ANSICHAR*> InstanceExtensions;
+	TArray<const ANSICHAR*> InstanceLayers;
+
 	TArray<FVulkanDevice*> Devices;
 
 	FVulkanDevice* Device;
@@ -177,7 +181,7 @@ protected:
 
 	static void WriteEndFrameTimestamp(void*);
 
-	static void GetInstanceLayersList(TArray<const ANSICHAR*>& OutInstanceExtensions, TArray<const ANSICHAR*>& OutInstanceLayers);
+	static void GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& OutInstanceExtensions, TArray<const ANSICHAR*>& OutInstanceLayers);
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	IConsoleObject* SavePipelineCacheCmd;

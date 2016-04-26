@@ -989,6 +989,7 @@ public:
 	virtual bool IsAdaptiveTessellationEnabled() const { return false; }
 	virtual bool IsFullyRough() const { return false; }
 	virtual bool IsUsingHQForwardReflections() const { return false; }
+	virtual bool IsUsingPlanarForwardReflections() const { return false; }
 	virtual bool OutputsVelocityOnBasePass() const { return true; }
 	virtual bool IsNonmetal() const { return false; }
 	virtual bool UseLmDirectionality() const { return true; }
@@ -1146,6 +1147,9 @@ public:
 
 	/** Returns true if this material is allowed to make development shaders via the global CVar CompileShadersForDevelopment. */
 	virtual bool GetAllowDevelopmentShaderCompile()const{ return true; }
+
+	/** Returns which shadermap this material is bound to. */
+	virtual EMaterialShaderMapUsage::Type GetMaterialShaderMapUsage() const { return EMaterialShaderMapUsage::Default; }
 
 	/**
 	* Get user source code for the material, with a list of code snippets to highlight representing the code for each MaterialExpression
@@ -1601,6 +1605,7 @@ public:
 	ENGINE_API virtual bool IsAdaptiveTessellationEnabled() const override;
 	ENGINE_API virtual bool IsFullyRough() const override;
 	ENGINE_API virtual bool IsUsingHQForwardReflections() const override;
+	ENGINE_API virtual bool IsUsingPlanarForwardReflections() const override;
 	ENGINE_API virtual bool OutputsVelocityOnBasePass() const override;
 	ENGINE_API virtual bool IsNonmetal() const override;
 	ENGINE_API virtual bool UseLmDirectionality() const override;

@@ -177,6 +177,8 @@ void ANavigationData::PostInitializeComponents()
 		(MyWorld->GetNetMode() != NM_Client && MyWorld->GetNavigationSystem() == nullptr) ||
 		(MyWorld->GetNetMode() == NM_Client && !bNetLoadOnClient))
 	{
+		UE_LOG(LogNavigation, Log, TEXT("Marking %s as PendingKill due to %s"), *GetName()
+			, MyWorld ? TEXT("No World") : (MyWorld->GetNetMode() == NM_Client ? TEXT("not creating navigation on clients") : TEXT("missing navigation system")));
 		CleanUpAndMarkPendingKill();
 	}
 }

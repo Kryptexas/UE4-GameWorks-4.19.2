@@ -158,7 +158,7 @@ void FFolderDropTarget::OnDrop(FDragDropPayload& DraggedObjects, UWorld& World, 
 				{
 					OldParentActor->Modify();
 				}
-				RootComp->DetachFromParent(true);
+				RootComp->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 			}
 		}
 	}

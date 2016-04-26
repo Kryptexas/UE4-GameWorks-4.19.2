@@ -24,6 +24,7 @@ FNavigationPath::FNavigationPath()
 	: PathType(FNavigationPath::Type)
 	, bUpdateStartPointOnRepath(true)
 	, bUpdateEndPointOnRepath(true)
+	, bUseOnPathUpdatedNotify(false)
 	, LastUpdateTimeStamp(-1.f)	// indicates that it has not been set
 	, GoalActorLocationTetherDistanceSq(-1.f)
 {
@@ -34,6 +35,7 @@ FNavigationPath::FNavigationPath(const TArray<FVector>& Points, AActor* InBase)
 	: PathType(FNavigationPath::Type)
 	, bUpdateStartPointOnRepath(true)
 	, bUpdateEndPointOnRepath(true)
+	, bUseOnPathUpdatedNotify(false)
 	, LastUpdateTimeStamp(-1.f)	// indicates that it has not been set
 	, GoalActorLocationTetherDistanceSq(-1.f)
 {

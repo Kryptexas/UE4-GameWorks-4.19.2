@@ -40,6 +40,7 @@ UCurveEdOptions::UCurveEdOptions(const FObjectInitializer& ObjectInitializer)
 UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, DefaultLocalAxesSelection(2)
+	, DefaultBoneDrawSelection(1)
 {
 	ViewModeIndex = VMI_Lit;
 
@@ -116,6 +117,11 @@ void UPersonaOptions::SetDefaultLocalAxesSelection( uint32 InDefaultLocalAxesSel
 	SaveConfig();
 }
 
+void UPersonaOptions::SetDefaultBoneDrawSelection(uint32 InDefaultBoneDrawSelection)
+{
+	DefaultBoneDrawSelection = InDefaultBoneDrawSelection;
+	SaveConfig();
+}
 
 void UPersonaOptions::SetShowMeshStats( int32 InShowMeshStats )
 {

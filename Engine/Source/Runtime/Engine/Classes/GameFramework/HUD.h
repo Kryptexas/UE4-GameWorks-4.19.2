@@ -174,7 +174,10 @@ public:
 	UFUNCTION(reliable, client, SealedEvent)
 	void RemoveDebugText(AActor* SrcActor, bool bLeaveDurationText = false);
 
-	/** Hook to allow blueprints to do custom HUD drawing. @see bSuppressNativeHUD to control HUD drawing in base class. */
+	/** 
+	 *	Hook to allow blueprints to do custom HUD drawing. @see bSuppressNativeHUD to control HUD drawing in base class. 
+	 *	Note:  the canvas resource used for drawing is only valid during this event, it will not be valid if drawing functions are called later (e.g. after a Delay node).
+	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic)
 	void ReceiveDrawHUD(int32 SizeX, int32 SizeY);
 

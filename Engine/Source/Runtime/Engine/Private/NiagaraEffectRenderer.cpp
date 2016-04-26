@@ -658,16 +658,16 @@ void NiagaraEffectRendererMeshes::SetupVertexFactory(FMeshParticleVertexFactory 
 
 	Data.TangentBasisComponents[0] = FVertexStreamComponent(
 		&LODResources.VertexBuffer,
-		STRUCT_OFFSET(FStaticMeshFullVertex, TangentX),
+		STRUCT_OFFSET(FStaticMeshFullVertex, RawTangentX),
 		LODResources.VertexBuffer.GetStride(),
-		VET_PackedNormal
+		LODResources.VertexBuffer.GetUseHighPrecisionTangentBasis() ? VET_URGB10A2N : VET_PackedNormal
 		);
 
 	Data.TangentBasisComponents[1] = FVertexStreamComponent(
 		&LODResources.VertexBuffer,
 		STRUCT_OFFSET(FStaticMeshFullVertex, TangentZ),
 		LODResources.VertexBuffer.GetStride(),
-		VET_PackedNormal
+		VET_UShort2N
 		);
 
 	Data.TextureCoordinates.Empty();
@@ -916,6 +916,7 @@ void NiagaraEffectRendererMeshes::GetDynamicMeshElements(const TArray<const FSce
 						BatchParameters.InstanceBuffer = InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData();
 						BatchParameters.DynamicParameterBuffer = InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData();
 						BatchElement.UserData = &BatchParameters;
+						BatchElement.bUserDataIsColorVertexBuffer = false;
 						BatchElement.UserIndex = 0;
 
 						Mesh.Elements.Reserve(ParticleCount);

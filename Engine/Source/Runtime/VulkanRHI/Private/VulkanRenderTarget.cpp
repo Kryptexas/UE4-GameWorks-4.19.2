@@ -46,7 +46,7 @@ void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderT
 		Framebuffer->InsertWriteBarrier(CmdBuffer);
 	}
 
-#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+#if 0//VULKAN_USE_NEW_RESOURCE_MANAGEMENT
 	if (CmdBuffer->IsInsideRenderPass())
 	{
 		if (

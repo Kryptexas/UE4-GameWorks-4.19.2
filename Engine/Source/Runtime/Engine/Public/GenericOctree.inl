@@ -376,6 +376,8 @@ void TOctree<ElementType,OctreeSemantics>::ApplyOffset(const FVector& InOffset)
 	// Call destroy to clean up octree
 	Destroy();
 
+	RootNodeContext.Bounds.Center += FVector4(InOffset, 0.0f);
+
 	// Add all elements from a saved nodes to a new empty octree
 	for (TConstIterator<> NodeIt(OldRootNode, RootNodeContext); NodeIt.HasPendingNodes(); NodeIt.Advance())
 	{

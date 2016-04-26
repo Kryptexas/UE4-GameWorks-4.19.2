@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using UnrealBuildTool;
 
 namespace AutomationTool.Tasks
@@ -92,6 +93,14 @@ namespace AutomationTool.Tasks
 			// Run the chunking
 			BuildPatchToolBase.Get().Execute(Options);
 			return true;
+		}
+
+		/// <summary>
+		/// Output this task out to an XML writer.
+		/// </summary>
+		public override void Write(XmlWriter Writer)
+		{
+			Write(Writer, Parameters);
 		}
 	}
 }

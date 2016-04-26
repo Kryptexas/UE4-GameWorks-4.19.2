@@ -37,7 +37,7 @@ bool UMovieSceneEventTrack::AddKeyToSection(float Time, FName EventName, FKeyPar
 }
 
 
-void UMovieSceneEventTrack::TriggerEvents(float Position, float LastPosition, UObject* EventContextObject)
+void UMovieSceneEventTrack::TriggerEvents(float Position, float LastPosition, TArray<UObject*> EventContextObjects)
 {
 	if ((Sections.Num() == 0) || (Position == LastPosition))
 	{
@@ -52,7 +52,7 @@ void UMovieSceneEventTrack::TriggerEvents(float Position, float LastPosition, UO
 		return;
 	}
 
-	if (EventContextObject == nullptr)
+	if (EventContextObjects.Num() == 0)
 	{
 		return;
 	}
@@ -60,7 +60,7 @@ void UMovieSceneEventTrack::TriggerEvents(float Position, float LastPosition, UO
 	TArray<UMovieSceneSection*> TraversedSections = MovieSceneHelpers::GetTraversedSections(Sections, Position, LastPosition);
 	for (auto EventSection : TraversedSections)
 	{
-		CastChecked<UMovieSceneEventSection>(EventSection)->TriggerEvents(EventContextObject, Position, LastPosition);
+		CastChecked<UMovieSceneEventSection>(EventSection)->TriggerEvents(EventContextObjects, Position, LastPosition);
 	}
 }
 

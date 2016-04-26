@@ -939,8 +939,20 @@ void UActorFactoryAnimationAsset::PostSpawnActor( UObject* Asset, AActor* NewAct
 		{
 			NewSASComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
 			NewSASComponent->AnimationData.AnimToPlay = AnimationAsset;
+			
 			// set runtime data
 			NewSASComponent->SetAnimation(AnimationAsset);
+
+			if (UAnimSequenceBase* AnimSeq = Cast<UAnimSequenceBase>(AnimationAsset))
+			{
+				//If we have a negative play rate, default initial position to sequence end
+				if (AnimSeq->RateScale < 0.f)
+				{
+					NewSASComponent->AnimationData.SavedPosition = AnimSeq->SequenceLength;
+					NewSASComponent->SetPosition(AnimSeq->SequenceLength, false);
+				}
+			}
+			
 		}
 		else if( VertexAnimation )
 		{
@@ -1173,7 +1185,7 @@ static UBillboardComponent* CreateEditorOnlyBillboardComponent(AActor* ActorOwne
 	BillboardComponent->AlwaysLoadOnClient = false;
 	BillboardComponent->AlwaysLoadOnServer = false;
 
-	BillboardComponent->AttachTo(AttachParent);
+	BillboardComponent->SetupAttachment(AttachParent);
 
 	return BillboardComponent;
 }

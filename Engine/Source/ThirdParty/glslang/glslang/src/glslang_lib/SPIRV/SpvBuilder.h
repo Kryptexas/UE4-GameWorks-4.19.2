@@ -1,5 +1,6 @@
 //
-//Copyright (C) 2014 LunarG, Inc.
+//Copyright (C) 2014-2015 LunarG, Inc.
+//Copyright (C) 2015-2016 Google, Inc.
 //
 //All rights reserved.
 //
@@ -55,6 +56,7 @@
 #include <memory>
 #include <stack>
 #include <map>
+#include <set>
 
 namespace spv {
 
@@ -78,7 +80,7 @@ public:
         memoryModel = mem;
     }
 
-    void addCapability(spv::Capability cap) { capabilities.push_back(cap); }
+    void addCapability(spv::Capability cap) { capabilities.insert(cap); }
 
     // To get a new <id> for anything needing a new one.
     Id getUniqueId() { return ++uniqueId; }
@@ -99,13 +101,13 @@ public:
     Id makeIntType(int width) { return makeIntegerType(width, true); }
     Id makeUintType(int width) { return makeIntegerType(width, false); }
     Id makeFloatType(int width);
-    Id makeStructType(std::vector<Id>& members, const char*);
+    Id makeStructType(const std::vector<Id>& members, const char*);
     Id makeStructResultType(Id type0, Id type1);
     Id makeVectorType(Id component, int size);
     Id makeMatrixType(Id component, int cols, int rows);
-    Id makeArrayType(Id element, unsigned size, int stride);  // 0 means no stride decoration
+    Id makeArrayType(Id element, Id sizeId, int stride);  // 0 stride means no stride decoration
     Id makeRuntimeArray(Id element);
-    Id makeFunctionType(Id returnType, std::vector<Id>& paramTypes);
+    Id makeFunctionType(Id returnType, const std::vector<Id>& paramTypes);
     Id makeImageType(Id sampledType, Dim, bool depth, bool arrayed, bool ms, unsigned sampled, ImageFormat format);
     Id makeSamplerType();
     Id makeSampledImageType(Id imageType);
@@ -123,6 +125,7 @@ public:
     Id getContainedTypeId(Id typeId) const;
     Id getContainedTypeId(Id typeId, int) const;
     StorageClass getTypeStorageClass(Id typeId) const { return module.getStorageClass(typeId); }
+    ImageFormat getImageTypeFormat(Id typeId) const { return (ImageFormat)module.getInstruction(typeId)->getImmediateOperand(6); }
 
     bool isPointer(Id resultId)      const { return isPointerType(getTypeId(resultId)); }
     bool isScalar(Id resultId)       const { return isScalarType(getTypeId(resultId)); }
@@ -187,7 +190,7 @@ public:
     Id makeDoubleConstant(double d, bool specConstant = false);
 
     // Turn the array of constants into a proper spv constant of the requested type.
-    Id makeCompositeConstant(Id type, std::vector<Id>& comps);
+    Id makeCompositeConstant(Id type, std::vector<Id>& comps, bool specConst = false);
 
     // Methods for adding information outside the CFG.
     Instruction* addEntryPoint(ExecutionModel, Function*, const char* name);
@@ -209,7 +212,8 @@ public:
     // Make a shader-style function, and create its entry block if entry is non-zero.
     // Return the function, pass back the entry.
     // The returned pointer is only valid for the lifetime of this builder.
-    Function* makeFunctionEntry(Id returnType, const char* name, std::vector<Id>& paramTypes, Block **entry = 0);
+    Function* makeFunctionEntry(Decoration precision, Id returnType, const char* name, const std::vector<Id>& paramTypes,
+                                const std::vector<Decoration>& precisions, Block **entry = 0);
 
     // Create a return. An 'implicit' return is one not appearing in the source
     // code.  In the case of an implicit return, no post-return block is inserted.
@@ -224,7 +228,7 @@ public:
     // Create a global or function local or IO variable.
     Id createVariable(StorageClass, Id type, const char* name = 0);
 
-    // Create an imtermediate with an undefined value.
+    // Create an intermediate with an undefined value.
     Id createUndefined(Id type);
 
     // Store into an Id and return the l-value
@@ -261,7 +265,7 @@ public:
 
     // Take an rvalue (source) and a set of channels to extract from it to
     // make a new rvalue, which is returned.
-    Id createRvalueSwizzle(Id typeId, Id source, std::vector<unsigned>& channels);
+    Id createRvalueSwizzle(Decoration precision, Id typeId, Id source, std::vector<unsigned>& channels);
 
     // Take a copy of an lvalue (target) and a source of components, and set the
     // source components into the lvalue where the 'channels' say to put them.
@@ -269,13 +273,15 @@ public:
     // (No true lvalue or stores are used.)
     Id createLvalueSwizzle(Id typeId, Id target, Id source, std::vector<unsigned>& channels);
 
-    // If the value passed in is an instruction and the precision is not NoPrecision,
-    // it gets tagged with the requested precision.
-    void setPrecision(Id /* value */, Decoration precision)
+    // If both the id and precision are valid, the id
+    // gets tagged with the requested precision.
+    // The passed in id is always the returned id, to simplify use patterns.
+    Id setPrecision(Id id, Decoration precision)
     {
-        if (precision != NoPrecision) {
-            ;// TODO
-        }
+        if (precision != NoPrecision && id != NoResult)
+            addDecoration(id, precision);
+
+        return id;
     }
 
     // Can smear a scalar to a vector for the following forms:
@@ -298,7 +304,7 @@ public:
     Id smearScalar(Decoration precision, Id scalarVal, Id vectorType);
 
     // Create a call to a built-in function.
-    Id createBuiltinCall(Decoration precision, Id resultType, Id builtins, int entryPoint, std::vector<Id>& args);
+    Id createBuiltinCall(Id resultType, Id builtins, int entryPoint, std::vector<Id>& args);
 
     // List of parameters used to create a texture operation
     struct TextureParameters {
@@ -318,7 +324,7 @@ public:
     };
 
     // Select the correct texture operation based on all inputs, and emit the correct instruction
-    Id createTextureCall(Decoration precision, Id resultType, bool sparse, bool fetch, bool proj, bool gather, const TextureParameters&);
+    Id createTextureCall(Decoration precision, Id resultType, bool sparse, bool fetch, bool proj, bool gather, bool noImplicit, const TextureParameters&);
 
     // Emit the OpTextureQuery* instruction that was passed in.
     // Figure out the right return value and type, and return it.
@@ -329,7 +335,7 @@ public:
     Id createBitFieldExtractCall(Decoration precision, Id, Id, Id, bool isSigned);
     Id createBitFieldInsertCall(Decoration precision, Id, Id, Id, Id);
 
-    // Reduction comparision for composites:  For equal and not-equal resulting in a scalar.
+    // Reduction comparison for composites:  For equal and not-equal resulting in a scalar.
     Id createCompositeCompare(Decoration precision, Id, Id, bool /* true if for equal, false if for not-equal */);
 
     // OpCompositeConstruct
@@ -497,11 +503,18 @@ public:
     void accessChainStore(Id rvalue);
 
     // use accessChain and swizzle to load an r-value
-    Id accessChainLoad(Id ResultType);
+    Id accessChainLoad(Decoration precision, Id ResultType);
 
     // get the direct pointer for an l-value
     Id accessChainGetLValue();
 
+    // Get the inferred SPIR-V type of the result of the current access chain,
+    // based on the type of the base and the chain of dereferences.
+    Id accessChainGetInferredType();
+
+    // Remove OpDecorate instructions whose operands are defined in unreachable
+    // blocks.
+    void eliminateDeadDecorations();
     void dump(std::vector<unsigned int>&) const;
 
     void createBranch(Block* block);
@@ -525,7 +538,7 @@ public:
     std::vector<const char*> extensions;
     AddressingModel addressModel;
     MemoryModel memoryModel;
-    std::vector<spv::Capability> capabilities;
+    std::set<spv::Capability> capabilities;
     int builderNumber;
     Module module;
     Block* buildPoint;

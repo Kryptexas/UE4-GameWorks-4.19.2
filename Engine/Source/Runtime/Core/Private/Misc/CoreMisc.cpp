@@ -906,11 +906,11 @@ class FDerivedDataCacheInterface* GetDerivedDataCache()
 	static class FDerivedDataCacheInterface* SingletonInterface = NULL;
 	if (!FPlatformProperties::RequiresCookedData())
 	{
-		static bool bIntialized = false;
-		if (!bIntialized)
+		static bool bInitialized = false;
+		if (!bInitialized)
 		{
 			check(IsInGameThread());
-			bIntialized = true;
+			bInitialized = true;
 			class IDerivedDataCacheModule* Module = FModuleManager::LoadModulePtr<IDerivedDataCacheModule>("DerivedDataCache");
 			if (Module)
 			{
@@ -937,11 +937,11 @@ class ITargetPlatformManagerModule* GetTargetPlatformManager()
 	static class ITargetPlatformManagerModule* SingletonInterface = NULL;
 	if (!FPlatformProperties::RequiresCookedData())
 	{
-		static bool bIntialized = false;
-		if (!bIntialized)
+		static bool bInitialized = false;
+		if (!bInitialized)
 		{
 			check(IsInGameThread());
-			bIntialized = true;
+			bInitialized = true;
 			SingletonInterface = FModuleManager::LoadModulePtr<ITargetPlatformManagerModule>("TargetPlatform");
 		}
 	}

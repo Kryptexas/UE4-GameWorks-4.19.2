@@ -210,21 +210,26 @@ UObject* UMaterialFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,F
 	if ( InitialTexture != nullptr )
 	{
 		// An initial texture was specified, add it and assign it to the BaseColor
-		UMaterialExpressionTextureSample* Expression = NewObject<UMaterialExpressionTextureSample>(NewMaterial);
-		NewMaterial->Expressions.Add( Expression );
+		UMaterialExpressionTextureSample* TextureSampler = NewObject<UMaterialExpressionTextureSample>(NewMaterial);
+		{
+			TextureSampler->MaterialExpressionEditorX = -250;
+			TextureSampler->Texture = InitialTexture;
+			TextureSampler->AutoSetSampleType();
+		}
 
-		NewMaterial->BaseColor.Expression = Expression;
-		Expression->MaterialExpressionEditorX = -250;
-		Expression->Texture = InitialTexture;
+		NewMaterial->Expressions.Add(TextureSampler);
 
-		TArray<FExpressionOutput> Outputs;
-		Outputs = Expression->GetOutputs();
-		FExpressionOutput* Output = Outputs.GetData();
-		NewMaterial->BaseColor.Mask = Output->Mask;
-		NewMaterial->BaseColor.MaskR = Output->MaskR;
-		NewMaterial->BaseColor.MaskG = Output->MaskG;
-		NewMaterial->BaseColor.MaskB = Output->MaskB;
-		NewMaterial->BaseColor.MaskA = Output->MaskA;
+		FExpressionOutput& Output = TextureSampler->GetOutputs()[0];
+		FExpressionInput& Input = (TextureSampler->SamplerType == SAMPLERTYPE_Normal)
+			? (FExpressionInput&)NewMaterial->Normal
+			: (FExpressionInput&)NewMaterial->BaseColor;
+
+		Input.Expression = TextureSampler;
+		Input.Mask = Output.Mask;
+		Input.MaskR = Output.MaskR;
+		Input.MaskG = Output.MaskG;
+		Input.MaskB = Output.MaskB;
+		Input.MaskA = Output.MaskA;
 
 		NewMaterial->PostEditChange();
 	}
@@ -1914,18 +1919,21 @@ EReimportResult::Type UReimportSoundFactory::Reimport( UObject* Obj )
 	// Suppress the import overwrite dialog, we want to keep existing settings when re-importing
 	USoundFactory::SuppressImportOverwriteDialog();
 
-	if( UFactory::StaticImportObject( SoundWave->GetClass(), SoundWave->GetOuter(), *SoundWave->GetName(), RF_Public|RF_Standalone, *Filename, nullptr, this ) )
+	bool OutCanceled = false;
+	if (ImportObject(SoundWave->GetClass(), SoundWave->GetOuter(), *SoundWave->GetName(), RF_Public | RF_Standalone, Filename, nullptr, OutCanceled) != nullptr)
 	{
 		UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
 
 		SoundWave->AssetImportData->Update(Filename);
-
-		// Mark the package dirty after the successful import
 		SoundWave->MarkPackageDirty();
+	}
+	else if (OutCanceled)
+	{
+		UE_LOG(LogEditorFactories, Warning, TEXT("-- import canceled"));
 	}
 	else
 	{
-		UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed") );
+		UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed"));
 	}
 
 	return EReimportResult::Succeeded;
@@ -2295,8 +2303,9 @@ EReimportResult::Type UReimportSoundSurroundFactory::Reimport( UObject* Obj )
 
 		FString SpeakerLocation = FPaths::GetBaseFilename(Filename).Right(3);
 		FName ImportName = *(SoundWave->GetName() + SpeakerLocation);
+		bool OutCanceled = false;
 
-		if (UFactory::StaticImportObject(SoundWave->GetClass(), SoundWave->GetOuter(), ImportName, RF_Public|RF_Standalone, *Filename, nullptr, this ))
+		if (ImportObject(SoundWave->GetClass(), SoundWave->GetOuter(), ImportName, RF_Public | RF_Standalone, Filename, nullptr, OutCanceled) != nullptr)
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("NameText"), NameText);
@@ -2308,7 +2317,7 @@ EReimportResult::Type UReimportSoundSurroundFactory::Reimport( UObject* Obj )
 
 			bSourceReimported = true;
 		}
-		else
+		else if (!OutCanceled)
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("NameText"), NameText);
@@ -5509,7 +5518,9 @@ EReimportResult::Type UReimportTextureFactory::Reimport( UObject* Obj )
 	// Suppress the import overwrite dialog because we know that for explicitly re-importing we want to preserve existing settings
 	UTextureFactory::SuppressImportOverwriteDialog();
 
-	if (UFactory::StaticImportObject(pTex->GetClass(), pTex->GetOuter(), *pTex->GetName(), RF_Public|RF_Standalone, *ResolvedSourceFilePath, nullptr, this))
+	bool OutCanceled = false;
+
+	if (ImportObject(pTex->GetClass(), pTex->GetOuter(), *pTex->GetName(), RF_Public | RF_Standalone, ResolvedSourceFilePath, nullptr, OutCanceled) != nullptr)
 	{
 		UE_LOG(LogEditorFactories, Log, TEXT("-- imported successfully") );
 
@@ -5525,9 +5536,13 @@ EReimportResult::Type UReimportTextureFactory::Reimport( UObject* Obj )
 			pTex->MarkPackageDirty();
 		}
 	}
+	else if (OutCanceled)
+	{
+		UE_LOG(LogEditorFactories, Warning, TEXT("-- import canceled"));
+	}
 	else
 	{
-		UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed") );
+		UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed"));
 	}
 	
 	return EReimportResult::Succeeded;

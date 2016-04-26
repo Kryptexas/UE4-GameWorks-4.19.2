@@ -514,7 +514,10 @@ void FSectionContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 	{
 		for (auto Section : Sequencer->GetSelection().GetSelectedSections())
 		{
-			Sections.Add(Section);
+			if (Section.IsValid())
+			{
+				Sections.Add(Section);
+			}
 		}
 	}
 
@@ -774,9 +777,12 @@ void FSectionContextMenu::ToggleSectionActive()
 
 	for (auto Section : Sequencer->GetSelection().GetSelectedSections())
 	{
-		bAnythingChanged = true;
-		Section->Modify();
-		Section->SetIsActive(bIsActive);
+		if (Section.IsValid())
+		{
+			bAnythingChanged = true;
+			Section->Modify();
+			Section->SetIsActive(bIsActive);
+		}
 	}
 
 	if (bAnythingChanged)
@@ -795,7 +801,7 @@ bool FSectionContextMenu::IsSectionActive() const
 	// Active only if all are active
 	for (auto Section : Sequencer->GetSelection().GetSelectedSections())
 	{
-		if (!Section->IsActive())
+		if (Section.IsValid() && !Section->IsActive())
 		{
 			return false;
 		}
@@ -813,9 +819,12 @@ void FSectionContextMenu::ToggleSectionLocked()
 
 	for (auto Section : Sequencer->GetSelection().GetSelectedSections())
 	{
-		bAnythingChanged = true;
-		Section->Modify();
-		Section->SetIsLocked(bIsLocked);
+		if (Section.IsValid())
+		{
+			bAnythingChanged = true;
+			Section->Modify();
+			Section->SetIsLocked(bIsLocked);
+		}
 	}
 
 	if (bAnythingChanged)
@@ -834,7 +843,7 @@ bool FSectionContextMenu::IsSectionLocked() const
 	// Locked only if all are locked
 	for (auto Section : Sequencer->GetSelection().GetSelectedSections())
 	{
-		if (!Section->IsLocked())
+		if (Section.IsValid() && !Section->IsLocked())
 		{
 			return false;
 		}

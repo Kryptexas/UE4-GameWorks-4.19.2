@@ -2731,7 +2731,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if (FParse::Command(&Cmd, TEXT("KE")) || FParse::Command(&Cmd, TEXT("KISMETEVENT")))
 	{
-		return HandleKismetEventCommand( Cmd, Ar );
+		return HandleKismetEventCommand( InWorld, Cmd, Ar );
 	}
 	else if(FParse::Command(&Cmd,TEXT("LISTTEXTURES")))
 	{
@@ -3548,16 +3548,20 @@ bool UEngine::HandleDumpLevelScriptActorsCommand( UWorld* InWorld, const TCHAR* 
 	return true;
 }
 
-bool UEngine::HandleKismetEventCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+bool UEngine::HandleKismetEventCommand(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	FString ObjectName = FParse::Token(Cmd, 0);
+	FString const ObjectName = FParse::Token(Cmd, 0);
 	if (ObjectName == TEXT("*"))
 	{
-		// Send the command to everything in the universe...
+		// Send the command to everything in the world we're dealing with...
 		for (TObjectIterator<UObject> It; It; ++It)
 		{
-			UObject* Obj = *It;
-			Obj->CallFunctionByNameWithArguments(Cmd, Ar, NULL, true);
+			UObject* const Obj = *It;
+			UWorld const* const ObjWorld = Obj->GetWorld();
+			if (ObjWorld == InWorld)
+			{
+				Obj->CallFunctionByNameWithArguments(Cmd, Ar, NULL, true);
+			}
 		}
 	}
 	else
@@ -9440,10 +9444,14 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		
 		// send a message that all levels are going away (NULL means every sublevel is being removed
 		// without a call to RemoveFromWorld for each)
-		FWorldDelegates::LevelRemovedFromWorld.Broadcast(NULL, WorldContext.World());
+		//if (WorldContext.World()->GetNumLevels() > 1)
+		{
+			// TODO: Consider actually broadcasting for each level?
+			FWorldDelegates::LevelRemovedFromWorld.Broadcast(nullptr, WorldContext.World());
+		}
 
 		// Disassociate the players from their PlayerControllers in this world.
-		if (WorldContext.OwningGameInstance != NULL)
+		if (WorldContext.OwningGameInstance != nullptr)
 		{
 			for(auto It = WorldContext.OwningGameInstance->GetLocalPlayerIterator(); It; ++It)
 			{
@@ -9455,7 +9463,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 						WorldContext.World()->DestroyActor(Player->PlayerController->GetPawn(), true);
 					}
 					WorldContext.World()->DestroyActor(Player->PlayerController, true);
-					Player->PlayerController = NULL;
+					Player->PlayerController = nullptr;
 				}
 				// reset split join info so we'll send one after loading the new map if necessary
 				Player->bSentSplitJoin = false;
@@ -9473,7 +9481,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		if( GEngine )
 		{
 			// clear any "DISPLAY" properties referencing level objects
-			if (GEngine->GameViewport != NULL)
+			if (GEngine->GameViewport != nullptr)
 			{
 				ClearDebugDisplayProperties();
 			}

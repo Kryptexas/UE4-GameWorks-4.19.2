@@ -30,8 +30,8 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 		return nullptr;
 	}
 
-	UClass* SpawnableClass = Spawnable->GetClass();
-	if (!SpawnableClass || !SpawnableClass->IsChildOf(AActor::StaticClass()))
+	AActor* ObjectTemplate = Cast<AActor>(Spawnable->GetObjectTemplate());
+	if (!ObjectTemplate)
 	{
 		return nullptr;
 	}
@@ -55,38 +55,20 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 	{
 		SpawnInfo.Name = ActorName;
 		SpawnInfo.ObjectFlags = ObjectFlags;
+		SpawnInfo.Template = ObjectTemplate;
 	}
 
 	FTransform SpawnTransform;
 
-	AActor* ActorCDO = CastChecked<AActor>(SpawnableClass->ClassDefaultObject);
-	if (USceneComponent* RootComponent = ActorCDO->GetRootComponent())
+	if (USceneComponent* RootComponent = ObjectTemplate->GetRootComponent())
 	{
 		SpawnTransform.SetTranslation(RootComponent->RelativeLocation);
 		SpawnTransform.SetRotation(RootComponent->RelativeRotation.Quaternion());
 	}
 
-	//@todo: This is in place of SpawnActorAbsolute which doesn't exist yet in the Orion branch
-	FTransform NewTransform = SpawnTransform;
 	{
-		AActor* Template = SpawnInfo.Template;
-
-		if(!Template)
-		{
-			// Use class's default actor as a template.
-			Template = SpawnableClass->GetDefaultObject<AActor>();
-		}
-
-		USceneComponent* TemplateRootComponent = (Template)? Template->GetRootComponent() : NULL;
-		if(TemplateRootComponent)
-		{
-			TemplateRootComponent->UpdateComponentToWorld();
-			NewTransform = TemplateRootComponent->GetComponentToWorld().Inverse() * NewTransform;
-			//TemplateRootComponent->bAutoActivate = false;
-		}
-
 		// Disable all particle components so that they don't auto fire as soon as the actor is spawned. The particles should be triggered through the particle track.
-		TArray<UActorComponent*> ParticleComponents = Template->GetComponentsByClass(UParticleSystem::StaticClass());
+		TArray<UActorComponent*> ParticleComponents = ObjectTemplate->GetComponentsByClass(UParticleSystemComponent::StaticClass());
 		for (int32 ComponentIdx = 0; ComponentIdx < ParticleComponents.Num(); ++ComponentIdx)
 		{
 			ParticleComponents[ComponentIdx]->bAutoActivate = false;
@@ -99,11 +81,51 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 		WorldContext = GWorld;
 	}
 
-	AActor* SpawnedActor = WorldContext->SpawnActor(SpawnableClass, &NewTransform, SpawnInfo);
+	// @todo: Remove when instanced components work correctly on spawned templates
+	TArray<UActorComponent*> TemplateInstanceComponents = ObjectTemplate->GetInstanceComponents();
+	ObjectTemplate->ClearInstanceComponents(false);
+
+	AActor* SpawnedActor = WorldContext->SpawnActorAbsolute(ObjectTemplate->GetClass(), SpawnTransform, SpawnInfo);
 	if (!SpawnedActor)
 	{
 		return nullptr;
 	}
+
+	// First, duplicate instance components
+	for (UActorComponent* TemplateComponent : TemplateInstanceComponents)
+	{
+		ObjectTemplate->AddInstanceComponent(TemplateComponent);
+
+		UActorComponent* NewComponent = DuplicateObject<UActorComponent>(TemplateComponent, SpawnedActor, TemplateComponent->GetFName());
+		SpawnedActor->AddInstanceComponent(NewComponent);
+	}
+
+	// Second, attach the components. We do this as a different pass, since instance components may be attached to each other
+	for (UActorComponent* ActorComp : SpawnedActor->GetInstanceComponents())
+	{
+		USceneComponent* SceneComp = Cast<USceneComponent>(ActorComp);
+		if (!SceneComp)
+		{
+			continue;
+		}
+		
+		USceneComponent* NewParent = SpawnedActor->GetRootComponent();
+
+		USceneComponent* OldParent = SceneComp->GetAttachParent();
+		if (OldParent)
+		{
+			FString PathName = OldParent->GetPathName(OldParent->GetOwner());
+
+			NewParent = FindObject<USceneComponent>(SpawnedActor, *PathName);
+		}
+
+		if (ensure(NewParent))
+		{
+			SceneComp->AttachToComponent(NewParent, FAttachmentTransformRules::KeepRelativeTransform, SceneComp->GetAttachSocketName());
+		}
+	}
+
+	SpawnedActor->RegisterAllComponents();
 
 	// tag this actor so we know it was spawned by sequencer
 	SpawnedActor->Tags.Add(SequencerActorTag);

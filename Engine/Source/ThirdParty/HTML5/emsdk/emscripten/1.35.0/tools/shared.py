@@ -407,10 +407,10 @@ def check_closure_compiler():
   try:
     subprocess.call([JAVA, '-version'], stdout=PIPE, stderr=PIPE)
   except:
-    logging.warning('java does not seem to exist, required for closure compiler, which is optional (define JAVA in ' + hint_config_file_location() + ' if you want it)')
+    logging.info('java does not seem to exist, required for closure compiler, which is optional (define JAVA in ' + hint_config_file_location() + ' if you want it)')
     return False
   if not os.path.exists(CLOSURE_COMPILER):
-    logging.warning('Closure compiler (%s) does not exist, check the paths in %s' % (CLOSURE_COMPILER, EM_CONFIG))
+    logging.info('Closure compiler (%s) does not exist, check the paths in %s' % (CLOSURE_COMPILER, EM_CONFIG))
     return False
   return True
 
@@ -519,7 +519,7 @@ def check_sanity(force=False):
 
     # Sanity check passed!
     if not check_closure_compiler():
-      logging.warning('closure compiler will not be available')
+      logging.info('closure compiler will not be available')
 
     if not force:
       # Only create/update this file if the sanity check succeeded, i.e., we got here

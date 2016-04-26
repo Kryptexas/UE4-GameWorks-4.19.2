@@ -273,9 +273,10 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 
 	// Update transform for end bone.
 	{
-		if( bTakeRotationFromEffectorSpace )
+		// only allow bTakeRotationFromEffectorSpace during bone space
+		if( bInBoneSpace && bTakeRotationFromEffectorSpace )
 		{
-			EndBoneCSTransform.SetRotation( EffectorTransform.GetRotation() );
+			EndBoneCSTransform.SetRotation(EffectorTransform.GetRotation());
 		}
 		else if( bMaintainEffectorRelRot )
 		{

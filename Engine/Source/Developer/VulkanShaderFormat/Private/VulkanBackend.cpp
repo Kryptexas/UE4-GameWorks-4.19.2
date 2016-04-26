@@ -4219,7 +4219,7 @@ static void GenShaderInputForVariable(
 					)
 					);
 
-				#if VULKAN_INVERT_VERTEX_SHADER_Y_AXIS
+				{
 					// TempVariable.y = -TempVariable.y;
 					PreCallInstructions->push_tail(
 						new(ParseState)ir_assignment(
@@ -4230,24 +4230,7 @@ static void GenShaderInputForVariable(
 						NULL)
 						)
 						);
-				#endif
-				
-				#if VULKAN_GLSL_TO_VULKAN_DEPTH
-					// TempVariable.z = ( TempVariable.z + TempVariable.w ) / 2.0;
-					PreCallInstructions->push_tail(
-						new(ParseState)ir_assignment(
-						new(ParseState)ir_swizzle(TempVariableDeref->clone(ParseState, NULL), 2, 0, 0, 0, 1),
-						new(ParseState)ir_expression(ir_binop_div,
-						new(ParseState)ir_expression(ir_binop_add,
-						new(ParseState)ir_swizzle(TempVariableDeref->clone(ParseState, NULL), 2, 0, 0, 0, 1),
-						new(ParseState)ir_swizzle(TempVariableDeref->clone(ParseState, NULL), 3, 0, 0, 0, 1)
-						),
-						new(ParseState)ir_constant(2.0f)
-						)
-						)
-						);
-					SrcValue = TempVariableDeref->clone(ParseState, NULL);
-				#endif
+				}
 			}
 
 			apply_type_conversion(InputType, SrcValue, PreCallInstructions, ParseState, true, &loc);
@@ -4523,7 +4506,6 @@ static void GenShaderOutputForVariable(
 
 			if (ParseState->adjust_clip_space_dx11_to_opengl && ApplyClipSpaceAdjustment)
 			{
-				#if VULKAN_INVERT_VERTEX_SHADER_Y_AXIS
 				// Src.y = -Src.y;
 				PostCallInstructions->push_tail(
 					new(ParseState)ir_assignment(
@@ -4534,40 +4516,6 @@ static void GenShaderOutputForVariable(
 					NULL)
 					)
 					);
-				#endif
-				
-				#if VULKAN_DX11_TO_GLSL_DEPTH
-					// Src.z = ( 2.0 * Src.z ) - Src.w;
-					PostCallInstructions->push_tail(
-						new(ParseState)ir_assignment(
-						new(ParseState)ir_swizzle(Src->clone(ParseState, NULL), 2, 0, 0, 0, 1),
-						new(ParseState)ir_expression(ir_binop_sub,
-						new(ParseState)ir_expression(ir_binop_mul,
-						new(ParseState)ir_constant(2.0f),
-						new(ParseState)ir_swizzle(Src->clone(ParseState, NULL), 2, 0, 0, 0, 1)
-						),
-						new(ParseState)ir_swizzle(Src->clone(ParseState, NULL), 3, 0, 0, 0, 1)
-						)
-						)
-						);
-				#endif
-
-				#if VULKAN_GLSL_TO_VULKAN_DEPTH
-					// GLSL -> Vulkan
-					// Src.z = ( Src.z + Src.w ) / 2.0;
-					PostCallInstructions->push_tail(
-						new(ParseState)ir_assignment(
-						new(ParseState)ir_swizzle(Src->clone(ParseState, NULL), 2, 0, 0, 0, 1),
-						new(ParseState)ir_expression(ir_binop_div,
-						new(ParseState)ir_expression(ir_binop_add,
-						new(ParseState)ir_swizzle(Src->clone(ParseState, NULL), 2, 0, 0, 0, 1),
-						new(ParseState)ir_swizzle(Src->clone(ParseState, NULL), 3, 0, 0, 0, 1)
-						),
-						new(ParseState)ir_constant(2.0f)
-						)
-						)
-						);
-				#endif
 			}
 
 			// GLSL doesn't support pow2 partitioning, so we treate pow2 as integer partitioning and

@@ -879,7 +879,7 @@ public:
 		*GetPropertyValuePtr(A) = Value;
 	}
 	/** Initialize the value of a property at an address, this assumes over uninitialized memory */
-	static FORCEINLINE TCppType* IntializePropertyValue(void* A)
+	static FORCEINLINE TCppType* InitializePropertyValue(void* A)
 	{
 		return new (A) TCppType();
 	}
@@ -968,7 +968,7 @@ public:
 	}
 	virtual void InitializeValueInternal( void* Dest ) const override
 	{
-		TTypeFundamentals::IntializePropertyValue(Dest);
+		TTypeFundamentals::InitializePropertyValue(Dest);
 	}
 	virtual void DestroyValueInternal( void* Dest ) const override
 	{
@@ -2633,7 +2633,7 @@ public:
 		return AddValues(1);
 	}
 	/**
-	*	Add unintialized values to the end of the array.
+	*	Add uninitialized values to the end of the array.
 	*	@param	Count: the number of items to insert.
 	*	@return	the index of the first newly added item.
 	**/

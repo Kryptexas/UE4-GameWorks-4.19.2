@@ -64,6 +64,9 @@
 	#define RECAST_ASYNC_REBUILDING	1
 #endif
 
+// Whether lightmass generates FSHVector2 or FSHVector3. Linked with VER_UE4_INDIRECT_LIGHTING_SH3
+#define NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS 9
+
 /*-----------------------------------------------------------------------------
 	Size of the world.
 -----------------------------------------------------------------------------*/

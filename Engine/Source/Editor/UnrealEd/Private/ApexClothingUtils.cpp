@@ -844,6 +844,23 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 		RestoreSectionIndex = SectionIndex;
 	}
 
+	FSkelMeshSection& OriginMeshSection = LODModel.Sections[OriginSectionIndex];
+	FSkelMeshChunk& OriginChunk = LODModel.Chunks[OriginMeshSection.ChunkIndex];
+
+	// Check the influences on the original chunk to make sure the influences match
+	if(OriginChunk.MaxBoneInfluences > MAX_INFLUENCES_PER_STREAM)
+	{
+		const FText Text = FText::Format(LOCTEXT("Error_TooManyInfluences", "Chunk {0} in Skeletal Mesh {1} has up to {2} influences on it's vertices. The maximum when using cloth is 4, reduce the number of influences and reimport the mesh to allow cloth on this mesh."),
+			FText::AsNumber(OriginMeshSection.ChunkIndex),
+			FText::FromString(SkelMesh->GetName()),
+			FText::AsNumber(OriginChunk.MaxBoneInfluences));
+
+		FMessageDialog::Open(EAppMsgType::Ok, Text);
+
+		// Can't associate, influences don't match
+		return false;
+	}
+
 	//add new one after restoring to original section
 	if(RestoreSectionIndex >= 0)
 	{
@@ -857,14 +874,12 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	int16 NewChunkIndex = LODModel.Chunks.Add(TempChunk);
 
 	FSkelMeshSection& ClothSection = LODModel.Sections[NewSectionIndex];
-	FSkelMeshSection& OriginMeshSection = LODModel.Sections[OriginSectionIndex];
 
 	// copy default info from original section
 	ClothSection = OriginMeshSection;
 
 	FSkelMeshChunk& ClothChunk = LODModel.Chunks[NewChunkIndex];
-	FSkelMeshChunk& OriginChunk = LODModel.Chunks[OriginMeshSection.ChunkIndex];
-
+	
 	// copy data from original chunk
 	ClothChunk.BaseVertexIndex = OriginChunk.BaseVertexIndex;
 	ClothChunk.MaxBoneInfluences = OriginChunk.MaxBoneInfluences;

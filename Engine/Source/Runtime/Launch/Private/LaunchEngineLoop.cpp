@@ -757,7 +757,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if (ILauncherCheckModule::Get().WasRanFromLauncher() == false)
 	{
 		// Tell Launcher to run us instead
-		ILauncherCheckModule::Get().RunLauncher();
+		ILauncherCheckModule::Get().RunLauncher(ELauncherAction::AppLaunch);
 		// We wish to exit
 		GIsRequestingExit = true;
 		return 0;
@@ -2067,6 +2067,11 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// Ability tasks are based on GameplayTasks, so we need to make sure that module is loaded as well
 	FModuleManager::Get().LoadModule(TEXT("GameplayTasksEditor"));
 
+	if( !IsRunningDedicatedServer() )
+	{
+		// VREditor needs to be loaded in non-server editor builds early, so engine content Blueprints can be loaded during DDC generation
+		FModuleManager::Get().LoadModule(TEXT("VREditor"));
+	}
 	// -----------------------------------------------------
 
 	// HACK: load AbilitySystem editor as early as possible for statically initialized assets (non cooked BT assets needs it)
@@ -2279,6 +2284,7 @@ int32 FEngineLoop::Init()
 	}
 
 	FModuleManager::Get().LoadModule(TEXT("SequenceRecorder"));
+	FModuleManager::Get().LoadModule(TEXT("SequenceRecorderSections"));
 #endif
 
 	GIsRunning = true;

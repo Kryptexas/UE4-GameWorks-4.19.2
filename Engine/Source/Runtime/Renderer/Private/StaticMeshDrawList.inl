@@ -336,7 +336,8 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 			// Single view
 			if (InstancedStereo == InstancedStereoPolicy::Disabled)
 			{
-				if (StaticMeshVisibilityMap->AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId))) {
+				if (StaticMeshVisibilityMap->AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
+				{
 					const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 					STAT(StatInc += Element.Mesh->GetNumPrimitives();)
 					int32 SubCount = Element.Mesh->Elements.Num();

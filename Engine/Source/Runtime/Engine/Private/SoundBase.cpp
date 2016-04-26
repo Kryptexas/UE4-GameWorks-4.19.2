@@ -124,7 +124,7 @@ void USoundBase::PostLoad()
 	{
 		bOverrideConcurrency = true;
 		ConcurrencyOverrides.bLimitToOwner = false;
-		ConcurrencyOverrides.MaxCount = MaxConcurrentPlayCount_DEPRECATED;
+		ConcurrencyOverrides.MaxCount = FMath::Max(MaxConcurrentPlayCount_DEPRECATED, 1);
 		ConcurrencyOverrides.ResolutionRule = MaxConcurrentResolutionRule_DEPRECATED;
 		ConcurrencyOverrides.VolumeScale = 1.0f;
 	}

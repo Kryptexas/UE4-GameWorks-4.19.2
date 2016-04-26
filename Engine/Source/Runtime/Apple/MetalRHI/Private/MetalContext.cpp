@@ -223,27 +223,45 @@ void FMetalDeviceContext::BeginFrame()
 	FPlatformTLS::SetTlsValue(CurrentContextTLSSlot, this);
 }
 
-void FMetalDeviceContext::EndFrame()
+void FMetalDeviceContext::ClearFreeList()
 {
-	while(DelayedFreeLists.Num())
+ 	while(DelayedFreeLists.Num())
 	{
 		FMetalDelayedFreeList* Pair = DelayedFreeLists[0];
 		if(dispatch_semaphore_wait(Pair->Signal, DISPATCH_TIME_NOW))
 		{
-			dispatch_release(Pair->Signal);
-			for( id Entry : Pair->FreeList )
-			{
-				CommandEncoder.UnbindObject(Entry);
-				[Entry release];
-			}
-			delete Pair;
-			DelayedFreeLists.RemoveAt(0, 1, false);
+#if PLATFORM_IOS
+            Pair->FrameCount--;
+            if (Pair->FrameCount == 0)
+            {
+#endif
+                dispatch_release(Pair->Signal);
+                for( id Entry : Pair->FreeList )
+                {
+                    CommandEncoder.UnbindObject(Entry);
+                    [Entry release];
+                }
+                delete Pair;
+                DelayedFreeLists.RemoveAt(0, 1, false);
+#if PLATFORM_IOS
+            }
+            else
+            {
+                break;
+            }
+#endif
 		}
 		else
 		{
 			break;
 		}
 	}
+}
+
+void FMetalDeviceContext::EndFrame()
+{
+	ClearFreeList();
+	
 	if(FrameCounter != GFrameNumberRenderThread)
 	{
 		FrameCounter = GFrameNumberRenderThread;
@@ -286,6 +304,9 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	
 	// kick the whole buffer
 	FMetalDelayedFreeList* NewList = new FMetalDelayedFreeList;
+#if PLATFORM_IOS
+    NewList->FrameCount = 3;
+#endif
 	NewList->Signal = dispatch_semaphore_create(0);
 	if(GUseRHIThread)
 	{
@@ -352,7 +373,6 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	{
 		FreeListMutex.Unlock();
 	}
-	DelayedFreeLists.Add(NewList);
 	
 	dispatch_semaphore_t Signal = NewList->Signal;
 	dispatch_retain(Signal);
@@ -362,6 +382,7 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 		dispatch_semaphore_signal(Signal);
 		dispatch_release(Signal);
 	}];
+    DelayedFreeLists.Add(NewList);
 	
 	// enqueue a present if desired
 	if (bPresent)
@@ -698,16 +719,7 @@ void FMetalContext::ResetRenderCommandEncoder()
 {
 	SubmitCommandsHint();
 	
-	ConditionalSwitchToGraphics();
-	
-	if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
-    {
-        StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), QueryBuffer->GetCurrentQueryBuffer()->Buffer, false);
-    }
-    else
-    {
-        StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), NULL, false);
-    }
+	SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo());
 	
 	if (CommandEncoder.IsRenderCommandEncoderActive())
 	{
@@ -816,6 +828,42 @@ void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 	// Force submit if there's enough outstanding commands to prevent the GPU going idle.
 	ConditionalSwitchToGraphics();
 	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	if (!CommandList.IsImmediate())
+	{
+		bool bClearInParallelBuffer = false;
+		
+		for (uint32 RenderTargetIndex = 0; RenderTargetIndex < MaxMetalRenderTargets; RenderTargetIndex++)
+		{
+			if (RenderTargetIndex < RenderTargetsInfo.NumColorRenderTargets && RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex].Texture != nullptr)
+			{
+				const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex];
+				if(RenderTargetView.LoadAction == ERenderTargetLoadAction::EClear)
+				{
+					bClearInParallelBuffer = true;
+				}
+			}
+		}
+		
+		if (bClearInParallelBuffer)
+		{
+			UE_LOG(LogMetal, Warning, TEXT("One or more render targets bound for clear during parallel encoding: this will not behave as expected because each command-buffer will clear the target of the previous contents."));
+		}
+		
+		if (RenderTargetsInfo.DepthStencilRenderTarget.Texture != nullptr)
+		{
+			if(RenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear)
+			{
+				UE_LOG(LogMetal, Warning, TEXT("Depth-target bound for clear during parallel encoding: this will not behave as expected because each command-buffer will clear the target of the previous contents."));
+			}
+			if(RenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear)
+			{
+				UE_LOG(LogMetal, Warning, TEXT("Stencil-target bound for clear during parallel encoding: this will not behave as expected because each command-buffer will clear the target of the previous contents."));
+			}
+		}
+	}
+#endif
+	
     if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
     {
         StateCache.SetRenderTargetsInfo(RenderTargetsInfo, QueryBuffer->GetCurrentQueryBuffer()->Buffer, true);
@@ -900,7 +948,7 @@ void FMetalContext::SetShaderResourceView(EShaderFrequency ShaderStage, uint32 B
 			FMetalSurface* Surface = SRV->TextureView;
 			if (Surface != nullptr)
 			{
-				Surface->UpdateSRV();
+				Surface->UpdateSRV(SRV->SourceTexture);
 				GetCommandEncoder().SetShaderTexture(ShaderStage, Surface->Texture, BindIndex);
 			}
 			else

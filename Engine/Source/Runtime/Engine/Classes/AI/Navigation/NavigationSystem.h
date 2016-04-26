@@ -493,6 +493,10 @@ public:
 
 	ANavigationData* GetAbstractNavData() const { return AbstractNavData; }
 
+	/** constructs a navigation data instance of specified NavDataClass, in passed World
+	*	for supplied NavConfig */
+	virtual ANavigationData* CreateNavigationDataInstance(const FNavDataConfig& NavConfig);
+
 	FSharedNavQueryFilter CreateDefaultQueryFilterCopy() const;
 
 	/** Super-hacky safety feature for threaded navmesh building. Will be gone once figure out why keeping TSharedPointer to Navigation Generator doesn't 
@@ -921,10 +925,6 @@ protected:
 	void EnableAllGenerators(bool bEnable, bool bForce = false) {}
 
 	virtual void SpawnMissingNavigationData();
-
-	/** constructs a navigation data instance of specified NavDataClass, in passed World
-	*	for supplied NavConfig */
-	virtual ANavigationData* CreateNavigationDataInstance(const FNavDataConfig& NavConfig);
 
 private:
 	DEPRECATED(4.8, "NavigationBuildingLock is deprecated. Use AddNavigationBuildLock instead.")

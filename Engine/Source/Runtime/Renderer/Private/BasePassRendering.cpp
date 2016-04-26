@@ -121,27 +121,6 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(
 	}
 }
 
-void FPlanarReflectionParameters::SetParameters(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef ShaderRHI, const FPlanarReflectionSceneProxy* ReflectionSceneProxy)
-{
-	// Degenerate plane causes shader to branch around the reflection lookup
-	FPlane ReflectionPlaneValue(FVector4(0, 0, 0, 0));
-	FTexture* PlanarReflectionTextureValue = GBlackTexture;
-
-	if (ReflectionSceneProxy)
-	{
-		ReflectionPlaneValue = ReflectionSceneProxy->ReflectionPlane;
-		PlanarReflectionTextureValue = ReflectionSceneProxy->RenderTarget;
-			
-		SetShaderValue(RHICmdList, ShaderRHI, InverseTransposeMirrorMatrix, ReflectionSceneProxy->InverseTransposeMirrorMatrix);
-		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionParameters, ReflectionSceneProxy->PlanarReflectionParameters);
-		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionParameters2, ReflectionSceneProxy->PlanarReflectionParameters2);
-		SetShaderValue(RHICmdList, ShaderRHI, ProjectionWithExtraFOV, ReflectionSceneProxy->ProjectionWithExtraFOV);
-	}
-
-	SetShaderValue(RHICmdList, ShaderRHI, ReflectionPlane, ReflectionPlaneValue);
-	SetTextureParameter(RHICmdList, ShaderRHI, PlanarReflectionTexture, PlanarReflectionSampler, PlanarReflectionTextureValue);
-}
-
 void FBasePassReflectionParameters::Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
@@ -276,7 +255,7 @@ public:
 		return true;
 	}
 
-	/** Draws the translucent mesh with a specific light-map type, and fog volume type */
+	/** Draws the mesh with a specific light-map type */
 	template<typename LightMapPolicyType>
 	void Process(
 		FRHICommandList& RHICmdList,
@@ -285,16 +264,15 @@ public:
 		const typename LightMapPolicyType::ElementDataType& LightMapElementData
 		) const
 	{
-		FScene::EBasePassDrawListType DrawType = FScene::EBasePass_Default;
+		EBasePassDrawListType DrawType = EBasePass_Default;
 
 		if (StaticMesh->IsMasked(Parameters.FeatureLevel))
 		{
-			DrawType = FScene::EBasePass_Masked;
+			DrawType = EBasePass_Masked;
 		}
 
 		if (Scene)
 		{
-
 			// Find the appropriate draw list for the static mesh based on the light-map policy type.
 			TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& DrawList =
 				Scene->GetBasePassDrawList<LightMapPolicyType>(DrawType);

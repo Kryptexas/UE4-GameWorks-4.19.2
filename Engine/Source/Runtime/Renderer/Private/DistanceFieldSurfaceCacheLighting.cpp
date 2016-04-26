@@ -50,7 +50,7 @@ FAutoConsoleVariableRef CVarAOUseSurfaceCache(
 	TEXT("r.AOUseSurfaceCache"),
 	GAOUseSurfaceCache,
 	TEXT("Whether to use the surface cache or screen grid for cone tracing.  The screen grid has more constant performance characteristics."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOPowerOfTwoBetweenLevels = 2;
@@ -58,7 +58,7 @@ FAutoConsoleVariableRef CVarAOPowerOfTwoBetweenLevels(
 	TEXT("r.AOPowerOfTwoBetweenLevels"),
 	GAOPowerOfTwoBetweenLevels,
 	TEXT("Power of two in resolution between refinement levels of the surface cache"),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOMinLevel = 1;
@@ -68,7 +68,7 @@ FAutoConsoleVariableRef CVarAOMinLevel(
 	TEXT("Smallest downsample power of 4 to use for surface cache population.\n")
 	TEXT("The default is 1, which means every 8 full resolution pixels (BaseDownsampleFactor(2) * 4^1) will be checked for a valid interpolation from the cache or shaded.\n")
 	TEXT("Going down to 0 gives less aliasing, and removes the need for gap filling, but costs a lot."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOMaxLevel = FMath::Min(2, GAOMaxSupportedLevel);
@@ -76,7 +76,7 @@ FAutoConsoleVariableRef CVarAOMaxLevel(
 	TEXT("r.AOMaxLevel"),
 	GAOMaxLevel,
 	TEXT("Largest downsample power of 4 to use for surface cache population."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOReuseAcrossFrames = 1;
@@ -84,7 +84,7 @@ FAutoConsoleVariableRef CVarAOReuseAcrossFrames(
 	TEXT("r.AOReuseAcrossFrames"),
 	GAOReuseAcrossFrames,
 	TEXT("Whether to allow reusing surface cache results across frames."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOTrimOldRecordsFraction = .2f;
@@ -93,7 +93,7 @@ FAutoConsoleVariableRef CVarAOTrimOldRecordsFraction(
 	GAOTrimOldRecordsFraction,
 	TEXT("When r.AOReuseAcrossFrames is enabled, this is the fraction of the last frame's surface cache records that will not be reused.\n")
 	TEXT("Low settings provide better performance, while values closer to 1 give faster lighting updates when dynamic scene changes are happening."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAORecordRadiusScale = .3f;
@@ -101,7 +101,7 @@ FAutoConsoleVariableRef CVarAORecordRadiusScale(
 	TEXT("r.AORecordRadiusScale"),
 	GAORecordRadiusScale,
 	TEXT("Scale applied to the minimum occluder distance to produce the record radius.  This effectively controls how dense shading samples are."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOInterpolationRadiusScale = 1.3f;
@@ -109,7 +109,7 @@ FAutoConsoleVariableRef CVarAOInterpolationRadiusScale(
 	TEXT("r.AOInterpolationRadiusScale"),
 	GAOInterpolationRadiusScale,
 	TEXT("Scale applied to record radii during the final interpolation pass.  Values larger than 1 result in world space smoothing."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOMinPointBehindPlaneAngle = 4;
@@ -118,7 +118,7 @@ FAutoConsoleVariableRef CVarAOMinPointBehindPlaneAngle(
 	GAOMinPointBehindPlaneAngle,
 	TEXT("Minimum angle that a point can lie behind a record and still be considered valid.\n")
 	TEXT("This threshold helps reduce leaking that happens when interpolating records in front of the shading point, ignoring occluders in between."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOInterpolationMaxAngle = 15;
@@ -126,7 +126,7 @@ FAutoConsoleVariableRef CVarAOInterpolationMaxAngle(
 	TEXT("r.AOInterpolationMaxAngle"),
 	GAOInterpolationMaxAngle,
 	TEXT("Largest angle allowed between the shading point's normal and a nearby record's normal."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOInterpolationAngleScale = 1.5f;
@@ -134,7 +134,7 @@ FAutoConsoleVariableRef CVarAOInterpolationAngleScale(
 	TEXT("r.AOInterpolationAngleScale"),
 	GAOInterpolationAngleScale,
 	TEXT("Scale applied to angle error during the final interpolation pass.  Values larger than 1 result in smoothing."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOStepExponentScale = .5f;
@@ -142,7 +142,7 @@ FAutoConsoleVariableRef CVarAOStepExponentScale(
 	TEXT("r.AOStepExponentScale"),
 	GAOStepExponentScale,
 	TEXT("Exponent used to distribute AO samples along a cone direction."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOMaxViewDistance = 20000;
@@ -150,7 +150,7 @@ FAutoConsoleVariableRef CVarAOMaxViewDistance(
 	TEXT("r.AOMaxViewDistance"),
 	GAOMaxViewDistance,
 	TEXT("The maximum distance that AO will be computed at."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOScatterTileCulling = 1;
@@ -166,7 +166,7 @@ FAutoConsoleVariableRef CVarAOComputeShaderNormalCalculation(
 	TEXT("r.AOComputeShaderNormalCalculation"),
 	GAOComputeShaderNormalCalculation,
 	TEXT("Whether to use the compute shader version of the distance field normal computation."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOSampleSet = 1;
@@ -174,7 +174,7 @@ FAutoConsoleVariableRef CVarAOSampleSet(
 	TEXT("r.AOSampleSet"),
 	GAOSampleSet,
 	TEXT("0 = Original set, 1 = Relaxed set"),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOInterpolationStencilTesting = 1;
@@ -182,7 +182,7 @@ FAutoConsoleVariableRef CVarAOInterpolationStencilTesting(
 	TEXT("r.AOInterpolationStencilTesting"),
 	GAOInterpolationStencilTesting,
 	TEXT("Whether to stencil out distant pixels from the interpolation splat pass, useful for debugging"),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOInterpolationDepthTesting = 1;
@@ -190,7 +190,7 @@ FAutoConsoleVariableRef CVarAOInterpolationDepthTesting(
 	TEXT("r.AOInterpolationDepthTesting"),
 	GAOInterpolationDepthTesting,
 	TEXT("Whether to use depth testing during the interpolation splat pass, useful for debugging"),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOOverwriteSceneColor = 0;
@@ -198,7 +198,7 @@ FAutoConsoleVariableRef CVarAOOverwriteSceneColor(
 	TEXT("r.AOOverwriteSceneColor"),
 	GAOOverwriteSceneColor,
 	TEXT(""),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 DEFINE_LOG_CATEGORY(LogDistanceField);

@@ -24,7 +24,20 @@
 #define LOCTEXT_NAMESPACE "GameplayStatics"
 
 static const int UE4_SAVEGAME_FILE_TYPE_TAG = 0x53415647;		// "sAvG"
-static const int UE4_SAVEGAME_FILE_VERSION = 1;
+
+struct FSaveGameFileVersion
+{
+	enum Type
+	{
+		InitialVersion = 1,
+		// serializing custom versions into the savegame data to handle that type of versioning
+		AddedCustomVersions = 2,
+
+		// -----<new versions can be added above this line>-------------------------------------------------
+		VersionPlusOne,
+		LatestVersion = VersionPlusOne - 1
+	};
+};
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics
@@ -135,14 +148,17 @@ float UGameplayStatics::GetGlobalTimeDilation(UObject* WorldContextObject)
 void UGameplayStatics::SetGlobalTimeDilation(UObject* WorldContextObject, float TimeDilation)
 {
 	UWorld* const World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	if(World != nullptr)
+	if (World != nullptr)
 	{
-		if (TimeDilation < 0.0001f || TimeDilation > 20.f)
+		AWorldSettings* const WorldSettings = World->GetWorldSettings();
+		if (WorldSettings != nullptr)
 		{
-			UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Time Dilation must be between 0.0001 and 20.  Clamping value to that range."));
-			TimeDilation = FMath::Clamp(TimeDilation, 0.0001f, 20.0f);
+			float const ActualTimeDilation = WorldSettings->SetTimeDilation(TimeDilation);
+			if (TimeDilation != ActualTimeDilation)
+			{
+				UE_LOG(LogBlueprintUserMessages, Warning, TEXT("Time Dilation must be between %f and %f.  Clamped value to that range."), WorldSettings->MinGlobalTimeDilation, WorldSettings->MaxGlobalTimeDilation);
+			}
 		}
-		World->GetWorldSettings()->TimeDilation = TimeDilation;
 	}
 }
 
@@ -725,8 +741,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 			{
 				PSC = CreateParticleSystem(EmitterTemplate, World, AttachToComponent->GetOwner(), bAutoDestroy);
 				
-				PSC->AttachParent = AttachToComponent;
-				PSC->AttachSocketName = AttachPointName;
+				PSC->SetupAttachment(AttachToComponent, AttachPointName);
 
 				if (LocationType == EAttachLocation::KeepWorldPosition)
 				{
@@ -1024,7 +1039,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 	{
 		const bool bIsInGameWorld = AudioComponent->GetWorld()->IsGameWorld();
 
-		AudioComponent->AttachTo(AttachToComponent, AttachPointName);
+		AudioComponent->AttachToComponent(AttachToComponent, FAttachmentTransformRules::KeepRelativeTransform, AttachPointName);
 		if (LocationType == EAttachLocation::KeepWorldPosition)
 		{
 			AudioComponent->SetWorldLocationAndRotation(Location, Rotation);
@@ -1086,6 +1101,23 @@ class UAudioComponent* UGameplayStatics::SpawnDialogueAttached(class UDialogueWa
 		return SpawnSoundAttached(Dialogue->GetWaveFromContext(Context), AttachToComponent, AttachPointName, Location, Rotation, LocationType, bStopWhenAttachedToDestroyed, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
 	}
 	return nullptr;
+}
+
+void UGameplayStatics::SetSubtitlesEnabled(bool bEnabled)
+{
+	if (GEngine)
+	{
+		GEngine->bSubtitlesEnabled = bEnabled;
+	}
+}
+
+bool UGameplayStatics::AreSubtitlesEnabled()
+{
+	if (GEngine)
+	{
+		return GEngine->bSubtitlesEnabled;
+	}
+	return 0;
 }
 
 void UGameplayStatics::SetBaseSoundMix(UObject* WorldContextObject, USoundMix* InSoundMix)
@@ -1312,7 +1344,7 @@ UDecalComponent* UGameplayStatics::SpawnDecalAttached(class UMaterialInterface* 
 				else
 				{
 					UDecalComponent* DecalComp = CreateDecalComponent(DecalMaterial, DecalSize, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), LifeSpan);
-					DecalComp->AttachTo(AttachToComponent, AttachPointName);
+					DecalComp->AttachToComponent(AttachToComponent, FAttachmentTransformRules::KeepRelativeTransform, AttachPointName);
 					if (LocationType == EAttachLocation::KeepWorldPosition)
 					{
 						DecalComp->SetWorldLocationAndRotation(Location, Rotation);
@@ -1350,7 +1382,6 @@ USaveGame* UGameplayStatics::CreateSaveGameObjectFromBlueprint(UBlueprint* SaveG
 	return nullptr;
 }
 
-
 bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex)
 {
 	ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
@@ -1366,7 +1397,7 @@ bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& 
 		MemoryWriter << FileTypeTag;
 
 		// Write version for this file format
-		int32 SavegameFileVersion = UE4_SAVEGAME_FILE_VERSION;
+		int32 SavegameFileVersion = FSaveGameFileVersion::LatestVersion;
 		MemoryWriter << SavegameFileVersion;
 
 		// Write out engine and UE4 version information
@@ -1374,6 +1405,13 @@ bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& 
 		MemoryWriter << PackageFileUE4Version;
 		FEngineVersion SavedEngineVersion = FEngineVersion::Current();
 		MemoryWriter << SavedEngineVersion;
+
+		// Write out custom version data
+		ECustomVersionSerializationFormat::Type const CustomVersionFormat = ECustomVersionSerializationFormat::Latest;
+		int32 CustomVersionFormatInt = static_cast<int32>(CustomVersionFormat);
+		MemoryWriter << CustomVersionFormatInt;
+		FCustomVersionContainer CustomVersions = FCustomVersionContainer::GetRegistered();
+		CustomVersions.Serialize(MemoryWriter, CustomVersionFormat);
 
 		// Write the class name so we know what class to load to
 		FString SaveGameClassName = SaveGameObject->GetClass()->GetName();
@@ -1430,7 +1468,7 @@ USaveGame* UGameplayStatics::LoadGameFromSlot(const FString& SlotName, const int
 			{
 				// this is an old saved game, back up the file pointer to the beginning and assume version 1
 				MemoryReader.Seek(0);
-				SavegameFileVersion = 1;
+				SavegameFileVersion = FSaveGameFileVersion::InitialVersion;
 
 				// Note for 4.8 and beyond: if you get a crash loading a pre-4.8 version of your savegame file and 
 				// you don't want to delete it, try uncommenting these lines and changing them to use the version 
@@ -1452,6 +1490,16 @@ USaveGame* UGameplayStatics::LoadGameFromSlot(const FString& SlotName, const int
 
 				MemoryReader.SetUE4Ver(SavedUE4Version);
 				MemoryReader.SetEngineVer(SavedEngineVersion);
+
+				if (SavegameFileVersion >= FSaveGameFileVersion::AddedCustomVersions)
+				{
+					int32 CustomVersionFormat;
+					MemoryReader << CustomVersionFormat;
+
+					FCustomVersionContainer CustomVersions;
+					CustomVersions.Serialize(MemoryReader, static_cast<ECustomVersionSerializationFormat::Type>(CustomVersionFormat));
+					MemoryReader.SetCustomVersions(CustomVersions);
+				}
 			}
 			
 			// Get the class name

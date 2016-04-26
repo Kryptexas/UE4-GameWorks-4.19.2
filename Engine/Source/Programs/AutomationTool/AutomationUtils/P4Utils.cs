@@ -461,7 +461,7 @@ namespace AutomationTool
 		private static bool? bAllowSubmit;
 
 		/// <summary>
-		/// Sets up P4Enabled, AllowSubmit properties. Note that this does not intialize P4 environment.
+		/// Sets up P4Enabled, AllowSubmit properties. Note that this does not initialize P4 environment.
 		/// </summary>
 		/// <param name="CommandsToExecute">Commands to execute</param>
 		/// <param name="Commands">Commands</param>
@@ -519,7 +519,10 @@ namespace AutomationTool
 					var RequireP4Attributes = Command.GetCustomAttributes(typeof(RequireP4Attribute), true);	
 					if (!CommandUtils.IsNullOrEmpty(RequireP4Attributes))
 					{
-						LogWarning("Command {0} requires P4 functionality.", Command.Name);
+						if(!GlobalCommandLine.P4)
+						{
+							LogWarning("Command {0} requires P4 functionality.", Command.Name);
+						}
 						bRequireP4 = true;
 
 						var DoesNotNeedP4CLAttributes = Command.GetCustomAttributes(typeof(DoesNotNeedP4CLAttribute), true);

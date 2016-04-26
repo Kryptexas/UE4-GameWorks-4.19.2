@@ -536,7 +536,7 @@ FGBufferData DecodeGBufferData(
 	{
 		// we apply the BaseColor and Specular later, this is why we need StoredBaseColor
 		GBuffer.BaseColor = bChecker;
-		GBuffer.Specular = !bChecker;
+		GBuffer.Specular *= !bChecker;
 	}
 
 	// derived from BaseColor, Metalness, Specular

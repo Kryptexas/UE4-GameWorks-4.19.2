@@ -729,14 +729,14 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 					{
 						if ( ThisWorld->IsGameWorld() )
 						{
-							if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+							if ( UGameViewportClient* ViewportClient = ThisWorld->GetGameViewport() )
 							{
 								TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
 								if ( LayerManager.IsValid() )
 								{
 									TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer;
 
-									FLocalPlayerContext PlayerContext(TargetPlayer, GetWorld());
+									FLocalPlayerContext PlayerContext(TargetPlayer, ThisWorld);
 
 									TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
 									if ( !Layer.IsValid() )
@@ -821,7 +821,7 @@ void UWidgetComponent::RemoveWidgetFromScreen()
 	{
 		bAddedToScreen = false;
 
-		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+		if ( UGameViewportClient* ViewportClient = GetWorld()->GetGameViewport() )
 		{
 			TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
 			if ( LayerManager.IsValid() )

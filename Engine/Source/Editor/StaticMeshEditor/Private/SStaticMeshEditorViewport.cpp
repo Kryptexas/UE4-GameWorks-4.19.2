@@ -235,7 +235,7 @@ void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
 					SocketPreviewMeshComponent = SocketPreviewMeshComponents[i];
 
 					// In case of a socket rename, ensure our preview component is still snapping to the proper socket
-					if (!SocketPreviewMeshComponent->AttachSocketName.IsEqual(Socket->SocketName))
+					if (!SocketPreviewMeshComponent->GetAttachSocketName().IsEqual(Socket->SocketName))
 					{
 						SocketPreviewMeshComponent->SnapTo(PreviewMeshComponent, Socket->SocketName);
 					}

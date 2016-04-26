@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsModulePrivatePCH.h"
+#include "PropertyTag.h"
 
 const FGameplayTagContainer FGameplayTagContainer::EmptyContainer;
 const FGameplayTagQuery FGameplayTagQuery::EmptyQuery;
@@ -940,6 +941,16 @@ FGameplayTag::FGameplayTag(FName Name)
 	: TagName(Name)
 {
 	check(IGameplayTagsModule::Get().GetGameplayTagsManager().ValidateTagCreation(Name));
+}
+
+bool FGameplayTag::SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar)
+{
+	if (Tag.Type == NAME_NameProperty)
+	{
+		Ar << TagName;
+		return true;
+	}
+	return false;
 }
 
 FGameplayTag FGameplayTag::RequestDirectParent() const

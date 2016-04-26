@@ -62,7 +62,7 @@ void FMovieSceneSkeletalAnimationTrackInstance::SaveState(const TArray<TWeakObje
 
 			if (SkeletalMeshComponent)
 			{
-				if (GIsEditor && !RuntimeObject->GetWorld()->HasBegunPlay())
+				if (ShouldUsePreviewPlayback(Player, RuntimeObject))
 				{
 					PreviewBeginAnimControl(SkeletalMeshComponent);
 				}
@@ -99,7 +99,7 @@ void FMovieSceneSkeletalAnimationTrackInstance::RestoreState(const TArray<TWeakO
 
 			if (SkeletalMeshComponent)
 			{
-				if (GIsEditor && !RuntimeObject->GetWorld()->HasBegunPlay())
+				if (ShouldUsePreviewPlayback(Player, RuntimeObject))
 				{
 					PreviewFinishAnimControl(SkeletalMeshComponent);
 				}
@@ -162,9 +162,7 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update(EMovieSceneUpdateData& Up
 
 						const bool bLooping = false;
 
-						// we also use PreviewSetAnimPosition in PIE when not playing, as we can preview in PIE
-						const bool bIsNotInPIEOrNotPlaying = !RuntimeObject->GetWorld()->HasBegunPlay() || Player.GetPlaybackStatus() != EMovieScenePlayerStatus::Playing;
-						if (GIsEditor && bIsNotInPIEOrNotPlaying)
+						if (ShouldUsePreviewPlayback(Player, RuntimeObject))
 						{
 							// If the playback status is jumping, ie. one such occurrence is setting the time for thumbnail generation, disable anim notifies updates because it could fire audio
 							const bool bFireNotifies = Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping || Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stopped ? false : true;
@@ -176,8 +174,13 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update(EMovieSceneUpdateData& Up
 							{
 								DeltaTime = 0.f;
 							}
+
+							const bool bResetDynamics = Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stepping || 
+														Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping || 
+														Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Scrubbing || 
+														(DeltaTime == 0.0f && Player.GetPlaybackStatus() != EMovieScenePlayerStatus::Stopped); 
 						
-							PreviewSetAnimPosition(SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies, DeltaTime, Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing);
+							PreviewSetAnimPosition(SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies, DeltaTime, Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing, bResetDynamics);
 						}
 						else
 						{
@@ -202,6 +205,8 @@ void FMovieSceneSkeletalAnimationTrackInstance::BeginAnimControl(USkeletalMeshCo
 			SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
 		}
 	}
+
+	CurrentlyPlayingMontage = nullptr;
 }
 
 bool FMovieSceneSkeletalAnimationTrackInstance::CanPlayAnimation(USkeletalMeshComponent* SkeletalMeshComponent, class UAnimSequenceBase* AnimAssetBase/*=nullptr*/) const
@@ -234,6 +239,8 @@ void FMovieSceneSkeletalAnimationTrackInstance::FinishAnimControl(USkeletalMeshC
 		SkeletalMeshComponent->RefreshSlaveComponents();
 		SkeletalMeshComponent->UpdateComponentToWorld();
 	}
+
+	CurrentlyPlayingMontage = nullptr;
 }
 
 
@@ -247,6 +254,8 @@ void FMovieSceneSkeletalAnimationTrackInstance::PreviewBeginAnimControl(USkeleta
 			SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
 		}
 	}
+
+	CurrentlyPlayingMontage = nullptr;
 }
 
 void FMovieSceneSkeletalAnimationTrackInstance::PreviewFinishAnimControl(USkeletalMeshComponent* SkeletalMeshComponent)
@@ -269,9 +278,11 @@ void FMovieSceneSkeletalAnimationTrackInstance::PreviewFinishAnimControl(USkelet
 		SkeletalMeshComponent->RefreshSlaveComponents();
 		SkeletalMeshComponent->UpdateComponentToWorld();
 	}
+
+	CurrentlyPlayingMontage = nullptr;
 }
 
-void FMovieSceneSkeletalAnimationTrackInstance::PreviewSetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime, bool bPlaying)
+void FMovieSceneSkeletalAnimationTrackInstance::PreviewSetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime, bool bPlaying, bool bResetDynamics)
 {
 	if(CanPlayAnimation(SkeletalMeshComponent, InAnimSequence))
 	{
@@ -297,6 +308,19 @@ void FMovieSceneSkeletalAnimationTrackInstance::PreviewSetAnimPosition(USkeletal
 					AnimInst->Montage_Pause(CurrentlyPlayingMontage.Get());
 				}
 			}
+
+			if(bResetDynamics)
+			{
+				// make sure we reset any simulations
+				AnimInst->ResetDynamics();	
+			}
 		}
 	}
+}
+
+bool FMovieSceneSkeletalAnimationTrackInstance::ShouldUsePreviewPlayback(class IMovieScenePlayer& Player, UObject* RuntimeObject) const
+{
+	// we also use PreviewSetAnimPosition in PIE when not playing, as we can preview in PIE
+	bool bIsNotInPIEOrNotPlaying = (RuntimeObject && !RuntimeObject->GetWorld()->HasBegunPlay()) || Player.GetPlaybackStatus() != EMovieScenePlayerStatus::Playing;
+	return GIsEditor && bIsNotInPIEOrNotPlaying;
 }

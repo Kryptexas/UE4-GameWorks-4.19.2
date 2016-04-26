@@ -30,17 +30,17 @@ void UAnimGraphNode_SequenceEvaluator::BakeDataDuringCompilation(class FCompiler
 	Node.GroupRole = SyncGroup.GroupRole;
 }
 
-void UAnimGraphNode_SequenceEvaluator::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimationSequences) const
+void UAnimGraphNode_SequenceEvaluator::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) const
 {
 	if(Node.Sequence)
 	{
-		HandleAnimReferenceCollection(Node.Sequence, ComplexAnims, AnimationSequences);
+		HandleAnimReferenceCollection(Node.Sequence, AnimationAssets);
 	}
 }
 
-void UAnimGraphNode_SequenceEvaluator::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ComplexAnimsMap, const TMap<UAnimSequence*, UAnimSequence*>& AnimSequenceMap)
+void UAnimGraphNode_SequenceEvaluator::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap)
 {
-	HandleAnimReferenceReplacement(Node.Sequence, ComplexAnimsMap, AnimSequenceMap);
+	HandleAnimReferenceReplacement(Node.Sequence, AnimAssetReplacementMap);
 }
 
 FText UAnimGraphNode_SequenceEvaluator::GetTooltipText() const

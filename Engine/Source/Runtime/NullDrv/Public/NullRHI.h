@@ -781,6 +781,14 @@ public:
 	{
 
 	}
+	virtual void RHIEnqueueDecompress(uint8_t*, uint8_t*, int, void*) final override
+	{
+
+	}
+	virtual void RHIEnqueueCompress(uint8_t*, uint8_t*, int, void*) final override
+	{
+
+	}
 	virtual bool RHIGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate) final override
 	{ 
 		return false; 

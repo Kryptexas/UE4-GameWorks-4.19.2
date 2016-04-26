@@ -96,11 +96,16 @@ namespace AutomationEditorCommonUtils
 				UTextureFactory::SuppressImportOverwriteDialog();
 			}
 
-			ImportedAsset = UFactory::StaticImportObject(ImportAssetType, Pkg, FName(*ObjectName), RF_Public | RF_Standalone, bDummy, *ImportPath, NULL, ImportFactory, NULL, GWarn, 0);
+			bool OutCanceled = false;
+			ImportedAsset = ImportFactory->ImportObject(ImportAssetType, Pkg, FName(*ObjectName), RF_Public | RF_Standalone, ImportPath, nullptr, OutCanceled);
 
-			if (ImportedAsset)
+			if (ImportedAsset != nullptr)
 			{
 				UE_LOG(LogAutomationEditorCommon, Display, TEXT("Imported %s"), *ImportPath);
+			}
+			else if (OutCanceled)
+			{
+				UE_LOG(LogAutomationEditorCommon, Display, TEXT("Canceled import of %s"), *ImportPath);
 			}
 			else
 			{

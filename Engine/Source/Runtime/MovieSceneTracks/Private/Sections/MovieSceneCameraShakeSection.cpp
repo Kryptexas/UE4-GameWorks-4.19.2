@@ -30,12 +30,17 @@ void UMovieSceneCameraShakeSection::DilateSection(float DilationFactor, float Or
 }
 
 
-void UMovieSceneCameraShakeSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+void UMovieSceneCameraShakeSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const
 {
+	if (!TimeRange.Overlaps(GetRange()))
+	{
+		return;
+	}
+
 // 	for (auto It(ShakeWeightCurve.GetKeyHandleIterator()); It; ++It)
 // 	{
 // 		float Time = ShakeWeightCurve.GetKeyTime(It.Key());
-// 		if (IsTimeWithinSection(Time))
+// 		if (TimeRange.Contains(Time))
 // 		{
 // 			KeyHandles.Add(It.Key());
 // 		}

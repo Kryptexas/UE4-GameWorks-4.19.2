@@ -234,7 +234,10 @@ void UK2Node_ConstructObjectFromClass::GetPinHoverText(const UEdGraphPin& Pin, F
 {
 	SetPinToolTip(*GetClassPin(), LOCTEXT("ClassPinDescription", "The object class you want to construct"));
 	SetPinToolTip(*GetResultPin(), LOCTEXT("ResultPinDescription", "The constructed object"));
-	SetPinToolTip(*GetOuterPin(), LOCTEXT("OuterPinDescription", "Owner of the constructed object"));
+	if (UseOuter())
+	{
+		SetPinToolTip(*GetOuterPin(), LOCTEXT("OuterPinDescription", "Owner of the constructed object"));
+	}
 
 	return Super::GetPinHoverText(Pin, HoverTextOut);
 }

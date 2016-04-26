@@ -2208,7 +2208,7 @@ void FVREditorWorldInteraction::UpdateDragging(
 						}
 
 						// Delta rotation in gizmo space between the starting and the intersection rotation
-						const float AngleDeltaRotationFromStart = FMath::FindDeltaAngle( AngleToIntersectedLocation, StartDragAngleOnRotation.GetValue() );
+						const float AngleDeltaRotationFromStart = FMath::FindDeltaAngleRadians( AngleToIntersectedLocation, StartDragAngleOnRotation.GetValue() );
 						const FQuat GizmoSpaceDeltaRotation = FQuat( GizmoSpaceFacingAxisVector, AngleDeltaRotationFromStart );
 
 						// Add the delta rotation to the starting transformation

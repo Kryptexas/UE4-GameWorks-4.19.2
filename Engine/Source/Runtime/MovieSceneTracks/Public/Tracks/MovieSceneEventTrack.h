@@ -46,7 +46,7 @@ public:
 	 * @param Position The current position in time.
 	 * @param LastPosition The time at the last update.
 	 */
-	void TriggerEvents(float Position, float LastPosition, UObject* EventContextObject);
+	void TriggerEvents(float Position, float LastPosition, TArray<UObject*> EventContextObjects);
 
 public:
 

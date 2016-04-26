@@ -237,8 +237,9 @@ public:
 	*/
 	virtual uint64 GetStaticBatchElementVisibility(const class FSceneView& View, const struct FMeshBatch* Batch) const override
 	{
-		uint32 NumElements = FMath::Min((uint32)Batch->Elements.Num(), NumBitsForVisibilityMask());
-		return (1ULL << (uint64)NumElements) - 1ULL;
+		const uint32 NumBits = NumBitsForVisibilityMask();
+		const uint32 NumElements = FMath::Min((uint32)Batch->Elements.Num(), NumBits);
+		return NumElements == NumBits ? ~0ULL : (1ULL << (uint64)NumElements) - 1ULL;
 	}
 #if ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES
 	virtual bool SupportsNullPixelShader() const override { return false; }

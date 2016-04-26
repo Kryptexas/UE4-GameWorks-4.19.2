@@ -12,7 +12,7 @@ ATP_TwinStickProjectile::ATP_TwinStickProjectile()
 	// Create mesh component for the projectile sphere
 	ProjectileMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ProjectileMesh0"));
 	ProjectileMesh->SetStaticMesh(ProjectileMeshAsset.Object);
-	ProjectileMesh->AttachTo(RootComponent);
+	ProjectileMesh->SetupAttachment(RootComponent);
 	ProjectileMesh->BodyInstance.SetCollisionProfileName("Projectile");
 	ProjectileMesh->OnComponentHit.AddDynamic(this, &ATP_TwinStickProjectile::OnHit);		// set up a notification for when this component hits something
 	RootComponent = ProjectileMesh;

@@ -1106,7 +1106,7 @@ void FLightmassExporter::WriteStaticMeshes()
 							Vertex.Position = FVector4(RenderData.PositionVertexBuffer.VertexPosition(VertexIndex), 1.0f);
 							Vertex.TangentX = FVector(RenderData.VertexBuffer.VertexTangentX(VertexIndex));
 							Vertex.TangentY = RenderData.VertexBuffer.VertexTangentY(VertexIndex);
-							Vertex.TangentZ = FVector(RenderData.VertexBuffer.VertexTangentZ(VertexIndex));
+							Vertex.TangentZ = RenderData.VertexBuffer.VertexTangentZ(VertexIndex);
 							int32 UVCount = FMath::Clamp<int32>(RenderData.VertexBuffer.GetNumTexCoords(), 0, MAX_TEXCOORDS);
 							int32 UVIndex;
 							for (UVIndex = 0; UVIndex < UVCount; UVIndex++)
@@ -2979,6 +2979,8 @@ void FLightmassProcessor::ImportMappings(bool bProcessImmediately)
 	}
 }
 
+static_assert(LM_NUM_SH_COEFFICIENTS == NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS, "Lightmass SH generation must match engine SH expectations.");
+
 /** Imports volume lighting samples from Lightmass and adds them to the appropriate levels. */
 void FLightmassProcessor::ImportVolumeSamples()
 {
@@ -3037,12 +3039,12 @@ void FLightmassProcessor::ImportVolumeSamples()
 							NewHighQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
 							NewHighQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
 
-							for (int32 CoefficientIndex = 0; CoefficientIndex < 4; CoefficientIndex++)
+							for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
 							{
 								NewHighQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][0];
 								NewHighQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][1];
 								NewHighQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][2];
-							}
+							}							
 
 							FVolumeLightingSample NewLowQualitySample;
 							NewLowQualitySample.Position = CurrentSample.PositionAndRadius;
@@ -3050,12 +3052,12 @@ void FLightmassProcessor::ImportVolumeSamples()
 							NewLowQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
 							NewLowQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
 
-							for (int32 CoefficientIndex = 0; CoefficientIndex < 4; CoefficientIndex++)
+							for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
 							{
 								NewLowQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][0];
 								NewLowQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][1];
 								NewLowQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][2];
-							}
+							}							
 
 							CurrentLevel->PrecomputedLightVolume->AddHighQualityLightingSample(NewHighQualitySample);
 							CurrentLevel->PrecomputedLightVolume->AddLowQualityLightingSample(NewLowQualitySample);

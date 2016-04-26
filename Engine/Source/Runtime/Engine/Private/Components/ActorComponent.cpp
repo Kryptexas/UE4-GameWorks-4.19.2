@@ -105,7 +105,7 @@ FGlobalComponentRecreateRenderStateContext::~FGlobalComponentRecreateRenderState
 UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
 {
-	Owner = GetTypedOuter<AActor>();
+	OwnerPrivate = GetTypedOuter<AActor>();
 
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
@@ -129,9 +129,9 @@ void UActorComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	if (Owner)
+	if (OwnerPrivate)
 	{
-		Owner->AddOwnedComponent(this);
+		OwnerPrivate->AddOwnedComponent(this);
 	}
 }
 
@@ -214,18 +214,18 @@ void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
 
 	if (OldOuter != GetOuter())
 	{
-		Owner = GetTypedOuter<AActor>();
+		OwnerPrivate = GetTypedOuter<AActor>();
 		AActor* OldOwner = (OldOuter->IsA<AActor>() ? CastChecked<AActor>(OldOuter) : OldOuter->GetTypedOuter<AActor>());
 
-		if (Owner != OldOwner)
+		if (OwnerPrivate != OldOwner)
 		{
 			if (OldOwner)
 			{
 				OldOwner->RemoveOwnedComponent(this);
 			}
-			if (Owner)
+			if (OwnerPrivate)
 			{
-				Owner->AddOwnedComponent(this);
+				OwnerPrivate->AddOwnedComponent(this);
 			}
 
 			TArray<UObject*> Children;
@@ -235,14 +235,14 @@ void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
 			{
 				if (UActorComponent* ChildComponent = Cast<UActorComponent>(Child))
 				{
-					ChildComponent->Owner = Owner;
+					ChildComponent->OwnerPrivate = OwnerPrivate;
 					if (OldOwner)
 					{
 						OldOwner->RemoveOwnedComponent(ChildComponent);
 					}
-					if (Owner)
+					if (OwnerPrivate)
 					{
-						Owner->AddOwnedComponent(ChildComponent);
+						OwnerPrivate->AddOwnedComponent(ChildComponent);
 					}
 				}
 			}
@@ -295,7 +295,7 @@ bool UActorComponent::IsOwnerSelected() const
 
 UWorld* UActorComponent::GetWorld() const
 {
-	UWorld* ComponentWorld = World;
+	UWorld* ComponentWorld = WorldPrivate;
 	if (ComponentWorld == nullptr)
 	{
 		AActor* MyOwner = GetOwner();
@@ -328,7 +328,7 @@ ENetMode UActorComponent::GetNetMode() const
 
 FSceneInterface* UActorComponent::GetScene() const
 {
-	return (World ? World->Scene : NULL);
+	return (WorldPrivate ? WorldPrivate->Scene : NULL);
 }
 
 ULevel* UActorComponent::GetComponentLevel() const
@@ -391,7 +391,7 @@ void UActorComponent::BeginDestroy()
 		OnComponentDestroyed(GExitPurge);
 	}
 
-	World = NULL;
+	WorldPrivate = nullptr;
 
 	// Remove from the parent's OwnedComponents list
 	if (AActor* MyOwner = GetOwner())
@@ -471,7 +471,7 @@ void UActorComponent::PreEditChange(UProperty* PropertyThatWillChange)
 		else
 		{
 			ExecuteUnregisterEvents();
-			World = nullptr;
+			WorldPrivate = nullptr;
 		}
 	}
 
@@ -483,7 +483,7 @@ void UActorComponent::PreEditUndo()
 {
 	Super::PreEditUndo();
 
-	Owner = nullptr;
+	OwnerPrivate = nullptr;
 	bCanUseCachedOwner = false;
 }
 
@@ -521,13 +521,13 @@ void UActorComponent::PostEditUndo()
 	{
 		bIsBeingDestroyed = false;
 
-		Owner = GetTypedOuter<AActor>();
+		OwnerPrivate = GetTypedOuter<AActor>();
 		bCanUseCachedOwner = true;
 
 		// Let the component be properly registered, after it was restored.
-		if (Owner)
+		if (OwnerPrivate)
 		{
-			Owner->AddOwnedComponent(this);
+			OwnerPrivate->AddOwnedComponent(this);
 		}
 
 		TArray<UObject*> Children;
@@ -537,14 +537,14 @@ void UActorComponent::PostEditUndo()
 		{
 			if (UActorComponent* ChildComponent = Cast<UActorComponent>(Child))
 			{
-				if (ChildComponent->Owner)
+				if (ChildComponent->OwnerPrivate)
 				{
-					ChildComponent->Owner->RemoveOwnedComponent(ChildComponent);
+					ChildComponent->OwnerPrivate->RemoveOwnedComponent(ChildComponent);
 				}
-				ChildComponent->Owner = Owner;
-				if (Owner)
+				ChildComponent->OwnerPrivate = OwnerPrivate;
+				if (OwnerPrivate)
 				{
-					Owner->AddOwnedComponent(ChildComponent);
+					OwnerPrivate->AddOwnedComponent(ChildComponent);
 				}
 			}
 		}
@@ -595,7 +595,7 @@ void UActorComponent::ConsolidatedPostEditChange(const FPropertyChangedEvent& Pr
 	{
 		// @todo UE4 james should this call UnregisterComponent instead to remove itself from the RegisteredComponents array on the owner?
 		ExecuteUnregisterEvents();
-		World = NULL;
+		WorldPrivate = nullptr;
 	}
 }
 
@@ -621,7 +621,7 @@ void UActorComponent::OnRegister()
 	checkf(!IsUnreachable(), TEXT("%s"), *GetDetailedInfo());
 	checkf(!GetOuter()->IsTemplate(), TEXT("'%s' (%s)"), *GetOuter()->GetFullName(), *GetDetailedInfo());
 	checkf(!IsTemplate(), TEXT("'%s' (%s)"), *GetOuter()->GetFullName(), *GetDetailedInfo() );
-	checkf(World, TEXT("OnRegister: %s to %s"), *GetDetailedInfo(), GetOwner() ? *GetOwner()->GetFullName() : TEXT("*** No Owner ***") );
+	checkf(WorldPrivate, TEXT("OnRegister: %s to %s"), *GetDetailedInfo(), GetOwner() ? *GetOwner()->GetFullName() : TEXT("*** No Owner ***") );
 	checkf(!bRegistered, TEXT("OnRegister: %s to %s"), *GetDetailedInfo(), GetOwner() ? *GetOwner()->GetFullName() : TEXT("*** No Owner ***") );
 	checkf(!IsPendingKill(), TEXT("OnRegister: %s to %s"), *GetDetailedInfo(), GetOwner() ? *GetOwner()->GetFullName() : TEXT("*** No Owner ***") );
 
@@ -816,14 +816,14 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 		return;
 	}
 
-	if(InWorld == NULL)
+	if(InWorld == nullptr)
 	{
 		//UE_LOG(LogActorComponent, Log, TEXT("RegisterComponentWithWorld: (%s) NULL InWorld specified. Aborting."), *GetPathName());
 		return;
 	}
 
 	// If not registered, should not have a scene
-	checkf(World == NULL, TEXT("%s"), *GetFullName());
+	checkf(WorldPrivate == nullptr, TEXT("%s"), *GetFullName());
 
 	AActor* MyOwner = GetOwner();
 	checkSlow(MyOwner == nullptr || MyOwner->OwnsComponent(this));
@@ -855,7 +855,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 		OnComponentCreated();
 	}
 
-	World = InWorld;
+	WorldPrivate = InWorld;
 
 	ExecuteRegisterEvents();
 
@@ -930,7 +930,7 @@ void UActorComponent::UnregisterComponent()
 	}
 
 	// If registered, should have a world
-	checkf(World != NULL, TEXT("%s"), *GetFullName());
+	checkf(WorldPrivate != nullptr, TEXT("%s"), *GetFullName());
 
 	// Notify the texture streaming system
 	const UPrimitiveComponent* Primitive = Cast<const UPrimitiveComponent>(this);
@@ -942,7 +942,7 @@ void UActorComponent::UnregisterComponent()
 	RegisterAllComponentTickFunctions(false);
 	ExecuteUnregisterEvents();
 
-	World = NULL;
+	WorldPrivate = nullptr;
 }
 
 void UActorComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
@@ -1026,7 +1026,7 @@ void UActorComponent::K2_DestroyComponent(UObject* Object)
 void UActorComponent::CreateRenderState_Concurrent()
 {
 	check(IsRegistered());
-	check(World->Scene);
+	check(WorldPrivate->Scene);
 	check(!bRenderStateCreated);
 	bRenderStateCreated = true;
 
@@ -1073,7 +1073,7 @@ void UActorComponent::CreatePhysicsState()
 {
 	check(IsRegistered());
 	check(ShouldCreatePhysicsState());
-	check(World->GetPhysicsScene());
+	check(WorldPrivate->GetPhysicsScene());
 	check(!bPhysicsStateCreated);
 	bPhysicsStateCreated = true;
 }
@@ -1094,14 +1094,14 @@ void UActorComponent::ExecuteRegisterEvents()
 		checkf(bRegistered, TEXT("Failed to route OnRegister (%s)"), *GetFullName());
 	}
 
-	if(FApp::CanEverRender() && !bRenderStateCreated && World->Scene && ShouldCreateRenderState())
+	if(FApp::CanEverRender() && !bRenderStateCreated && WorldPrivate->Scene && ShouldCreateRenderState())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ComponentCreateRenderState);
 		CreateRenderState_Concurrent();
 		checkf(bRenderStateCreated, TEXT("Failed to route CreateRenderState_Concurrent (%s)"), *GetFullName());
 	}
 
-	if(!bPhysicsStateCreated && World->GetPhysicsScene() && ShouldCreatePhysicsState())
+	if(!bPhysicsStateCreated && WorldPrivate->GetPhysicsScene() && ShouldCreatePhysicsState())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ComponentCreatePhysicsState);
 		CreatePhysicsState();
@@ -1157,7 +1157,7 @@ void UActorComponent::RecreateRenderState_Concurrent()
 		checkf(!bRenderStateCreated, TEXT("Failed to route DestroyRenderState_Concurrent (%s)"), *GetFullName());
 	}
 
-	if(IsRegistered() && World->Scene)
+	if(IsRegistered() && WorldPrivate->Scene)
 	{
 		CreateRenderState_Concurrent();
 		checkf(bRenderStateCreated, TEXT("Failed to route CreateRenderState_Concurrent (%s)"), *GetFullName());
@@ -1174,7 +1174,7 @@ void UActorComponent::RecreatePhysicsState()
 		checkf(!HasValidPhysicsState(), TEXT("Failed to destroy physics state (%s)"), *GetFullName());
 	}
 
-	if (IsRegistered() && World->GetPhysicsScene() && ShouldCreatePhysicsState())
+	if (IsRegistered() && WorldPrivate->GetPhysicsScene() && ShouldCreatePhysicsState())
 	{
 		CreatePhysicsState();
 		checkf(bPhysicsStateCreated, TEXT("Failed to route CreatePhysicsState (%s)"), *GetFullName());

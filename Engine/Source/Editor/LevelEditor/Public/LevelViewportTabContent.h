@@ -35,6 +35,11 @@ public:
 	void SetViewportConfiguration(const FName& ConfigurationName);
 
 	/**
+	 * Refresh the current layout
+	 */
+	void RefreshViewportConfiguration();
+
+	/**
 	 * Returns whether the named layout is currently selected
 	 *
 	 * @param ConfigurationName		The name of the layout (for the names in namespace LevelViewportConfigurationNames)
@@ -73,6 +78,8 @@ private:
 	TWeakPtr<class SDockTab> ParentTab;
 	TWeakPtr<ILevelEditor> ParentLevelEditor;
 	FString LayoutString;
+
+	TOptional<FName> PreviouslyFocusedViewport;
 
 	/** Current layout */
 	TSharedPtr< class FLevelViewportLayout > ActiveLevelViewportLayout;

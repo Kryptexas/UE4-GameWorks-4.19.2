@@ -45,9 +45,9 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 	RepresentativeVertex.GenerateVertexTangents();
 	RepresentativeVertex.GenerateTriangleTangents();
 
-	FGatheredLightSample UpperStaticDirectLighting;
+	FGatheredLightSample3 UpperStaticDirectLighting;
 	// Stationary point and spot light direct contribution
-	FGatheredLightSample UpperToggleableDirectLighting;
+	FGatheredLightSample3 UpperToggleableDirectLighting;
 	float UpperToggleableDirectionalLightShadowing = 1;
 
 	CalculateApproximateDirectLighting(RepresentativeVertex, 0, .1f, false, false, bDebugThisSample, MappingContext, UpperStaticDirectLighting, UpperToggleableDirectLighting, UpperToggleableDirectionalLightShadowing);
@@ -57,7 +57,7 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 
 	// Calculate incident radiance with a uniform final gather (also known as hemisphere gathering).  
 	// We can't do importance sampled final gathering using photons because they are only stored on surfaces, and Position is an arbitrary point in world space.
-	const FFinalGatherSample UpperHemisphereSample = IncomingRadianceUniform<FFinalGatherSample>(
+	const FFinalGatherSample3 UpperHemisphereSample = IncomingRadianceUniform<FFinalGatherSample3>(
 		NULL,
 		RepresentativeVertex,
 		0.0f,
@@ -77,14 +77,14 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 	RepresentativeVertex.GenerateVertexTangents();
 	RepresentativeVertex.GenerateTriangleTangents();
 
-	FGatheredLightSample LowerStaticDirectLighting;
+	FGatheredLightSample3 LowerStaticDirectLighting;
 	// Stationary point and spot light direct contribution
-	FGatheredLightSample LowerToggleableDirectLighting;
+	FGatheredLightSample3 LowerToggleableDirectLighting;
 	float LowerToggleableDirectionalLightShadowing = 1;
 
 	CalculateApproximateDirectLighting(RepresentativeVertex, 0, .1f, false, false, bDebugThisSample, MappingContext, LowerStaticDirectLighting, LowerToggleableDirectLighting, LowerToggleableDirectionalLightShadowing);
 
-	const FFinalGatherSample LowerHemisphereSample = IncomingRadianceUniform<FFinalGatherSample>(
+	const FFinalGatherSample3 LowerHemisphereSample = IncomingRadianceUniform<FFinalGatherSample3>(
 		NULL,
 		RepresentativeVertex,
 		0.0f,
@@ -99,15 +99,15 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		bDebugThisSample
 		);
 
-	const FGatheredLightSample CombinedIndirectLighting = UpperHemisphereSample + LowerHemisphereSample;
-	const FGatheredLightSample CombinedHighQualitySample = UpperStaticDirectLighting + LowerStaticDirectLighting + CombinedIndirectLighting;
+	const FGatheredLightSample3 CombinedIndirectLighting = UpperHemisphereSample + LowerHemisphereSample;
+	const FGatheredLightSample3 CombinedHighQualitySample = UpperStaticDirectLighting + LowerStaticDirectLighting + CombinedIndirectLighting;
 	 
 	// Composite point and spot stationary direct lighting into the low quality volume samples, since we won't be applying them dynamically
-	FGatheredLightSample CombinedLowQualitySample = UpperStaticDirectLighting + UpperToggleableDirectLighting + LowerStaticDirectLighting + LowerToggleableDirectLighting + CombinedIndirectLighting;
+	FGatheredLightSample3 CombinedLowQualitySample = UpperStaticDirectLighting + UpperToggleableDirectLighting + LowerStaticDirectLighting + LowerToggleableDirectLighting + CombinedIndirectLighting;
 	// Composite stationary sky light contribution to the low quality volume samples, since we won't be applying it dynamically
 	CombinedLowQualitySample = CombinedLowQualitySample + UpperHemisphereSample.StationarySkyLighting + LowerHemisphereSample.StationarySkyLighting;
 
-	for (int32 CoefficientIndex = 0; CoefficientIndex < 4; CoefficientIndex++)
+	for (int32 CoefficientIndex = 0; CoefficientIndex < LM_NUM_SH_COEFFICIENTS; CoefficientIndex++)
 	{
 		LightingSample.HighQualityCoefficients[CoefficientIndex][0] = CombinedHighQualitySample.SHVector.R.V[CoefficientIndex];
 		LightingSample.HighQualityCoefficients[CoefficientIndex][1] = CombinedHighQualitySample.SHVector.G.V[CoefficientIndex];
@@ -173,12 +173,12 @@ FGatheredLightSample FStaticLightingSystem::CalculateApproximateSkyLighting(
 
 			if (StaticSkyLighting != FLinearColor::Black)
 			{
-				IncomingRadiance.AddWeighted(FGatheredLightSample::PointLightWorldSpace(StaticSkyLighting, TangentPathDirection, WorldPathDirection), SampleWeight);
+				IncomingRadiance.AddWeighted(FGatheredLightSampleUtil::PointLightWorldSpace<2>(StaticSkyLighting, TangentPathDirection, WorldPathDirection), SampleWeight);
 			}
 
 			if (StationarySkyLighting != FLinearColor::Black)
 			{
-				IncomingRadiance.AddWeighted(FGatheredLightSample::PointLightWorldSpace(StationarySkyLighting, TangentPathDirection, WorldPathDirection), SampleWeight);
+				IncomingRadiance.AddWeighted(FGatheredLightSampleUtil::PointLightWorldSpace<2>(StationarySkyLighting, TangentPathDirection, WorldPathDirection), SampleWeight);
 			}
 		}
 	}
@@ -467,7 +467,7 @@ FGatheredLightSample FStaticLightingSystem::IncomingRadianceImportancePhotons(
 						bPositiveSample = true;
 					}
 #endif
-					IncomingRadiance.AddWeighted(FGatheredLightSample::PointLightWorldSpace(PathVertexOutgoingRadiance, TangentSampleDirection, SampleDirection), SampleWeight);
+					IncomingRadiance.AddWeighted(FGatheredLightSampleUtil::PointLightWorldSpace<2>(PathVertexOutgoingRadiance, TangentSampleDirection, SampleDirection), SampleWeight);
 					checkSlow(IncomingRadiance.AreFloatsValid());
 				}
 			}
@@ -475,7 +475,7 @@ FGatheredLightSample FStaticLightingSystem::IncomingRadianceImportancePhotons(
 			{
 				// The ray missed any geometry in the scene, calculate the environment contribution in the sample direction
 				const FLinearColor EnvironmentLighting = EvaluateEnvironmentLighting(-SampleDirection);
-				IncomingRadiance.AddWeighted(FGatheredLightSample::PointLightWorldSpace(EnvironmentLighting, TangentSampleDirection, SampleDirection), SampleWeight);
+				IncomingRadiance.AddWeighted(FGatheredLightSampleUtil::PointLightWorldSpace<2>(EnvironmentLighting, TangentSampleDirection, SampleDirection), SampleWeight);
 			}
 
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
@@ -503,6 +503,7 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 	float SampleRadius,
 	int32 BounceNumber,
 	bool bSkyLightingOnly,
+	bool bGatheringForCachedDirectLighting,
 	bool bDebugThisTexel,
 	FStaticLightingMappingContext& MappingContext,
 	FLMRandomStream& RandomStream,
@@ -636,7 +637,9 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 		}
 	}
 
-	EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, true, Lighting, OutStationarySkyLighting);
+	// When we're gathering lighting to cache it as direct lighting, we should take IndirectLightingScales into account
+	const bool bForDirectLighting = !bGatheringForCachedDirectLighting;
+	EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, bForDirectLighting, Lighting, OutStationarySkyLighting);
 
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 	if (bDebugThisTexel
@@ -759,6 +762,7 @@ public:
 		float SampleRadius,
 		int32 BounceNumber,
 		bool bSkyLightingOnly,
+		bool bGatheringForCachedDirectLighting,
 		int32 NumAdaptiveRefinementLevels,
 		const TArray<FVector4, TInlineAllocator<30> >& TangentImportancePhotonDirections,
 		const TArray<FSphere>& PortalBoundingSpheres,
@@ -1098,6 +1102,7 @@ public:
 								SampleRadius,
 								BounceNumber,
 								bSkyLightingOnly,
+								bGatheringForCachedDirectLighting,
 								bDebugThisTexel,
 								MappingContext,
 								RandomStream,
@@ -1184,6 +1189,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 	FLMRandomStream& RandomStream,
 	FLightingCacheGatherInfo& GatherInfo,
 	bool bSkyLightingOnly,
+	bool bGatheringForCachedDirectLighting,
 	bool bDebugThisTexel) const
 {
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
@@ -1221,6 +1227,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 				SampleRadius,
 				BounceNumber,
 				bSkyLightingOnly,
+				bGatheringForCachedDirectLighting,
 				bDebugThisTexel,
 				MappingContext,
 				RandomStream,
@@ -1260,6 +1267,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 			SampleRadius,
 			BounceNumber,
 			bSkyLightingOnly,
+			bGatheringForCachedDirectLighting,
 			NumAdaptiveRefinementLevels,
 			TangentSpaceImportancePhotonDirections,
 			Scene.Portals,
@@ -1744,7 +1752,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 				const FLinearColor& PhotonIrradiance = NearestPhoton ? NearestPhoton->GetIrradiance() : FLinearColor::Black;
 				// Convert irradiance (which is incident radiance over all directions for a point) to incident radiance with the approximation 
 				// That the irradiance is actually incident radiance along the surface normal.  This will only be correct for simple lightmaps.
-				IndirectLighting.AddWeighted(FGatheredLightSample::AmbientLight(PhotonIrradiance), 1.0f);
+				IndirectLighting.AddWeighted(FGatheredLightSampleUtil::AmbientLight<2>(PhotonIrradiance), 1.0f);
 			}
 			else
 			{
@@ -1839,6 +1847,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					MappingContext, 
 					RandomStream, 
 					GatherInfo, 
+					false,
 					false,
 					bDebugThisTexel);
 			}

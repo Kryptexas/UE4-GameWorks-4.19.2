@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "OnlineSessionSettings.h"
 
 class IAnalyticsProvider;
 class FQosEvaluator;
@@ -89,14 +90,6 @@ public:
 	 * @return the default datacenter identifier
 	 */
 	static FString GetDatacenterId();
-
-	/**
-	 * Legacy static accessor for GetRegionId()
-	 */
-	inline static FString GetDefaultRegionString()
-	{
-		return FQosInterface::Get()->GetRegionId();
-	}
 
 protected:
 	friend class FQosModule;

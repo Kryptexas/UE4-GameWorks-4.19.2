@@ -75,11 +75,17 @@ public:
 	/** Expand/collapse nodes and descendants */
 	TSharedPtr< FUICommandInfo > ToggleExpandCollapseNodesAndDescendants;
 
-	/** Sets the upper bound of the in/out section */
-	TSharedPtr< FUICommandInfo > SetInOutEnd;
+	/** Sets the upper bound of the selection range */
+	TSharedPtr< FUICommandInfo > SetSelectionRangeEnd;
 
-	/** Sets the lower bound of the in/out section */
-	TSharedPtr< FUICommandInfo > SetInOutStart;
+	/** Sets the lower bound of the selection range */
+	TSharedPtr< FUICommandInfo > SetSelectionRangeStart;
+
+	/** Select all keys that fall into the selection range*/
+	TSharedPtr< FUICommandInfo > SelectKeysInSelectionRange;
+
+	/** Delete the time in the selection range */
+	TSharedPtr< FUICommandInfo > DeleteSelectionRange;
 
 	/** Sets a key at the current time for the selected actor */
 	TSharedPtr< FUICommandInfo > SetKey;
@@ -128,9 +134,6 @@ public:
 
 	/** Turns the range slider on and off. */
 	TSharedPtr< FUICommandInfo > ToggleShowRangeSlider;
-
-	/** Toggles whether to lock the in/out to the start/end range on scrolling. */
-	TSharedPtr< FUICommandInfo > ToggleLockInOutToStartEndRange;
 
 	/** Turns snapping on and off. */
 	TSharedPtr< FUICommandInfo > ToggleIsSnapEnabled;
@@ -191,6 +194,9 @@ public:
 
 	/** Open a panel that enables exporting the sequence to a movie */
 	TSharedPtr< FUICommandInfo > RenderMovie;
+
+	/** Create camera and set it as the current camera cut */
+	TSharedPtr< FUICommandInfo > CreateCamera;
 
 	/** Paste from the sequencer clipboard history */
 	TSharedPtr< FUICommandInfo > PasteFromHistory;

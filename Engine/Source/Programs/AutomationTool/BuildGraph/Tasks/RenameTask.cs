@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Xml;
 using UnrealBuildTool;
 
 namespace BuildGraph.Tasks
@@ -143,6 +144,14 @@ namespace BuildGraph.Tasks
 				FindOrAddTagSet(TagNameToFileSet, Parameters.Tag).UnionWith(RenameFiles.Values);
 			}
 			return true;
+		}
+
+		/// <summary>
+		/// Output this task out to an XML writer.
+		/// </summary>
+		public override void Write(XmlWriter Writer)
+		{
+			Write(Writer, Parameters);
 		}
 	}
 }

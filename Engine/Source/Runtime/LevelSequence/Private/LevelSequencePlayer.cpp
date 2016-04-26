@@ -6,6 +6,7 @@
 #include "MovieSceneSequence.h"
 #include "MovieSceneSequenceInstance.h"
 #include "LevelSequenceSpawnRegister.h"
+#include "Engine/LevelStreaming.h"
 
 
 struct FTickAnimationPlayers : public FTickableGameObject
@@ -68,6 +69,7 @@ ULevelSequencePlayer::ULevelSequencePlayer(const FObjectInitializer& ObjectIniti
 	, LevelSequence(nullptr)
 	, bIsPlaying(false)
 	, TimeCursorPosition(0.0f)
+	, LastCursorPosition(0.0f)
 	, StartTime(0.f)
 	, EndTime(0.f)
 	, CurrentNumLoops(0)
@@ -156,12 +158,8 @@ float ULevelSequencePlayer::GetPlaybackPosition() const
 
 void ULevelSequencePlayer::SetPlaybackPosition(float NewPlaybackPosition)
 {
-	float LastTimePosition = TimeCursorPosition;
-	
-	TimeCursorPosition = NewPlaybackPosition;
-	OnCursorPositionChanged();
-
-	UpdateMovieSceneInstance(TimeCursorPosition, LastTimePosition);
+	UpdateTimeCursorPosition(NewPlaybackPosition);
+	UpdateMovieSceneInstance(TimeCursorPosition, LastCursorPosition);
 }
 
 float ULevelSequencePlayer::GetLength() const
@@ -187,29 +185,32 @@ void ULevelSequencePlayer::SetPlaybackRange( const float NewStartTime, const flo
 	TimeCursorPosition = FMath::Clamp(TimeCursorPosition, 0.f, GetLength());
 }
 
-void ULevelSequencePlayer::OnCursorPositionChanged()
+void ULevelSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 {
 	float Length = GetLength();
 
-	// Handle looping or stopping
-	if (TimeCursorPosition >= Length || TimeCursorPosition < 0)
+	if ((NewPosition >= Length) || (NewPosition < 0))
 	{
+		// loop playback
 		if (PlaybackSettings.LoopCount < 0 || CurrentNumLoops < PlaybackSettings.LoopCount)
 		{
 			++CurrentNumLoops;
-			const float Overplay = FMath::Fmod(TimeCursorPosition, Length);
+			const float Overplay = FMath::Fmod(NewPosition, Length);
 			TimeCursorPosition = Overplay < 0 ? Length + Overplay : Overplay;
+			LastCursorPosition = TimeCursorPosition;
 
 			SpawnRegister->ForgetExternallyOwnedSpawnedObjects(*this);
+
+			return;
 		}
-		else
-		{
-			// Stop playing without modifying the playback position
-			// @todo: trigger an event?
-			bIsPlaying = false;
-			CurrentNumLoops = 0;
-		}
+
+		// stop playback
+		bIsPlaying = false;
+		CurrentNumLoops = 0;
 	}
+
+	LastCursorPosition = TimeCursorPosition;
+	TimeCursorPosition = NewPosition;
 }
 
 /* ULevelSequencePlayer implementation
@@ -320,28 +321,37 @@ UObject* ULevelSequencePlayer::GetPlaybackContext() const
 	return World.Get();
 }
 
-UObject* ULevelSequencePlayer::GetEventContext() const
+TArray<UObject*> ULevelSequencePlayer::GetEventContexts() const
 {
+	TArray<UObject*> EventContexts;
 	if (World.IsValid())
 	{
-		return World->GetLevelScriptActor();
+		if (World->GetLevelScriptActor())
+		{
+			EventContexts.Add(World->GetLevelScriptActor());
+		}
+
+		for (ULevelStreaming* StreamingLevel : World->StreamingLevels)
+		{
+			if (StreamingLevel->GetLevelScriptActor())
+			{
+				EventContexts.Add(StreamingLevel->GetLevelScriptActor());
+			}
+		}
 	}
-	return nullptr;
+	return EventContexts;
 }
 
 void ULevelSequencePlayer::Update(const float DeltaSeconds)
 {
-	float LastTimePosition = TimeCursorPosition;
-
 	if (bIsPlaying)
 	{
-		TimeCursorPosition += DeltaSeconds * PlaybackSettings.PlayRate;
-		OnCursorPositionChanged();
-		UpdateMovieSceneInstance(TimeCursorPosition, LastTimePosition);
+		UpdateTimeCursorPosition(TimeCursorPosition + DeltaSeconds * PlaybackSettings.PlayRate);
+		UpdateMovieSceneInstance(TimeCursorPosition, LastCursorPosition);
 	}
 	else if (!bHasCleanedUpSequence && TimeCursorPosition >= GetLength())
 	{
-		UpdateMovieSceneInstance(TimeCursorPosition, LastTimePosition);
+		UpdateMovieSceneInstance(TimeCursorPosition, LastCursorPosition);
 
 		bHasCleanedUpSequence = true;
 		

@@ -129,17 +129,17 @@ bool IsImpactDamageEnabled(const UDestructibleMesh* TheDestructibleMesh, int32 L
 	}
 }
 
-void UDestructibleComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
+void UDestructibleComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
 {
 	// We are handling the physics move below, so don't handle it at higher levels
-	Super::OnUpdateTransform(true, Teleport);
+	Super::OnUpdateTransform(UpdateTransformFlags | EUpdateTransformFlags::SkipPhysicsUpdate, Teleport);
 
 	if (SkeletalMesh == NULL)
 	{
 		return;
 	}
 
-	if (!bPhysicsStateCreated || bSkipPhysicsMove)
+	if (!bPhysicsStateCreated || !!(UpdateTransformFlags & EUpdateTransformFlags::SkipPhysicsUpdate))
 	{
 		return;
 	}
@@ -195,6 +195,7 @@ void UDestructibleComponent::CreatePhysicsState()
 		return;
 	}
 
+	UWorld* World = GetWorld();
 	FPhysScene* PhysScene = World->GetPhysicsScene();
 	check(PhysScene);
 
@@ -699,8 +700,8 @@ void UDestructibleComponent::OnVisibilityEvent(const NxApexChunkStateEventData &
 		const NxDestructibleChunkEvent &  Event = InVisibilityEvent.stateEventList[EventIndex];
 		// Right now the only events are visibility changes.  So as an optimization we won't check for the event type.
 		//				if (Event.event & physx::NxDestructibleChunkEvent::VisibilityChanged)
-		const bool bVisible = (Event.event & physx::NxDestructibleChunkEvent::ChunkVisible) != 0;
-		SetChunkVisible(Event.chunkIndex, bVisible);
+		const bool bIsVisible = (Event.event & physx::NxDestructibleChunkEvent::ChunkVisible) != 0;
+		SetChunkVisible(Event.chunkIndex, bIsVisible);
 	}
 }
 #endif // WITH_APEX
@@ -878,13 +879,13 @@ void UDestructibleComponent::Pair( int32 ChunkIndex, PxShape* PShape)
 }
 #endif
 
-void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
+void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bInVisible )
 {
 #if WITH_APEX
 	// Bone 0 is a dummy root bone
 	const int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIndex);
 
-	if( bVisible )
+	if( bInVisible )
 	{
 		UnHideBone(BoneIndex);
 
@@ -1408,11 +1409,16 @@ bool UDestructibleComponent::IsChunkLarge(PxRigidActor* ChunkActor) const
 {
 #if WITH_APEX
 	check(ChunkActor);
-	physx::PxBounds3 Bounds = ChunkActor->getWorldBounds();
-	return Bounds.getExtents().maxElement() > LargeChunkThreshold;
+	return ChunkActor->getWorldBounds().getExtents().maxElement() > LargeChunkThreshold;
 #else
 	return true;
 #endif // WITH_APEX
+}
+
+void UDestructibleComponent::OnActorEnableCollisionChanged()
+{
+	ECollisionEnabled::Type NewCollisionType = GetBodyInstance()->GetCollisionEnabled();
+	SetCollisionEnabled(NewCollisionType);
 }
 
 void UDestructibleComponent::SetCollisionEnabled(ECollisionEnabled::Type NewType)

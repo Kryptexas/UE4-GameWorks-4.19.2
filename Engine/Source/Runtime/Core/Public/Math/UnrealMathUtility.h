@@ -418,19 +418,42 @@ struct FMath : public FPlatformMath
 	 */
 	static float CORE_API ClampAngle(float AngleDegrees, float MinAngleDegrees, float MaxAngleDegrees);
 
+	/** Find the smallest angle between two headings (in degrees) */
+	static float FindDeltaAngleDegrees(float A1, float A2)
+	{
+		// Find the difference
+		float Delta = A2 - A1;
+
+		// If change is larger than 180
+		if (Delta > 180.0f)
+		{
+			// Flip to negative equivalent
+			Delta = Delta - 360.0f;
+		}
+		else if (Delta < -180.0f)
+		{
+			// Otherwise, if change is smaller than -180
+			// Flip to positive equivalent
+			Delta = Delta + 360.0f;
+		}
+
+		// Return delta in [-180,180] range
+		return Delta;
+	}
+
 	/** Find the smallest angle between two headings (in radians) */
-	static float FindDeltaAngle(float A1, float A2)
+	static float FindDeltaAngleRadians(float A1, float A2)
 	{
 		// Find the difference
 		float Delta = A2 - A1;
 
 		// If change is larger than PI
-		if(Delta > PI)
+		if (Delta > PI)
 		{
 			// Flip to negative equivalent
 			Delta = Delta - (PI * 2.0f);
 		}
-		else if(Delta < -PI)
+		else if (Delta < -PI)
 		{
 			// Otherwise, if change is smaller than -PI
 			// Flip to positive equivalent
@@ -439,6 +462,12 @@ struct FMath : public FPlatformMath
 
 		// Return delta in [-PI,PI] range
 		return Delta;
+	}
+
+	DEPRECATED(4.12, "Please use FindDeltaAngleRadians(float A1, float A2) instead of FindDeltaAngle(float A1, float A2).")
+	static float FindDeltaAngle(float A1, float A2)
+	{
+		return FindDeltaAngleRadians(A1, A2);
 	}
 
 	/** Given a heading which may be outside the +/- PI range, 'unwind' it back into that range. */

@@ -83,8 +83,8 @@ The steps below will take you through cloning your own private fork, then compil
 
 1. In the same folder, double-click **GenerateProjectFiles.command**.  It should take less than a minute to complete.  
 
-1. Load the project into Xcode by double-clicking on the **UE4.xcworkspace** file. Select the **UE4** for **My Mac** target in the title bar,
-   then select the 'Product > Build' menu item. Compiling may take anywhere between 15 and 40 minutes, depending on your system specs.
+1. Load the project into Xcode by double-clicking on the **UE4.xcworkspace** file. Select the **ShaderCompileWorker** for **My Mac** target in the title bar,
+   then select the 'Product > Build' menu item. When Xcode finishes building, do the same for the **UE4** for **My Mac** target. Compiling may take anywhere between 15 and 40 minutes, depending on your system specs.
    
 1. After compiling finishes, select the 'Product > Run' menu item to load the editor.
 
@@ -134,3 +134,4 @@ The engine is optimizing content for your platform to the _derived data cache_, 
 
 Your private forks of the Unreal Engine code are associated with your GitHub account permissions.
 If you unsubscribe or switch GitHub user names, you'll need to re-fork and upload your changes from a local copy. 
+

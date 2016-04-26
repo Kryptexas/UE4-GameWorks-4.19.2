@@ -855,11 +855,11 @@ void ARecastNavMesh::RemoveTileCacheLayers(int32 TileX, int32 TileY)
 	}
 }
 	
-void ARecastNavMesh::AddTileCacheLayers(int32 TileX, int32 TileY, const TArray<FNavMeshTileData>& Layers)
+void ARecastNavMesh::AddTileCacheLayers(int32 TileX, int32 TileY, const TArray<FNavMeshTileData>& InLayers)
 {
 	if (RecastNavMeshImpl)
 	{
-		RecastNavMeshImpl->AddTileCacheLayers(TileX, TileY, Layers);
+		RecastNavMeshImpl->AddTileCacheLayers(TileX, TileY, InLayers);
 	}
 }
 	

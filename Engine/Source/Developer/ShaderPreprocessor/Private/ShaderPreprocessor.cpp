@@ -124,6 +124,12 @@ bool PreprocessShader(
 	const FShaderCompilerDefinitions& AdditionalDefines
 	)
 {
+	// Skip the cache system and directly load the file path (used for debugging)
+	if (ShaderInput.bSkipPreprocessedCache)
+	{
+		return FFileHelper::LoadFileToString(OutPreprocessedShader, *ShaderInput.SourceFilename);
+	}
+
 	FString McppOptions;
 	FString McppOutput, McppErrors;
 	ANSICHAR* McppOutAnsi = NULL;

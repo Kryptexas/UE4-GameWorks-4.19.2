@@ -534,8 +534,11 @@ namespace AutomationTool
 						}
 						catch (Exception Ex)
 						{
-							CommandUtils.LogWarning("Failed to kill descendant:");
-							CommandUtils.LogWarning(LogUtils.FormatException(Ex));
+							if(!KillCandidate.HasExited)
+							{
+								CommandUtils.LogWarning("Failed to kill descendant:");
+								CommandUtils.LogWarning(LogUtils.FormatException(Ex));
+							}
 						}
 						break;  // exit the loop as who knows what else died, so let's get processes anew
 					}

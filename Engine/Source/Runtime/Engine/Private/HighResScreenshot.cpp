@@ -204,10 +204,19 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 
 	if (ImageWriter && ImageWriter->ImageWrapper->SetRaw((void*)&Bitmap[0], sizeof(TPixelType)* x * y, x, y, Traits::SourceChannelLayout, BitsPerPixel))
 	{
+		// Optionally disable EXR Compression
+		static const auto CVarSaveUncompressedEXRFrames = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SaveUncompressedEXRFrames"));
+		const bool bSaveUncompressedEXR = (CVarSaveUncompressedEXRFrames->GetValueOnRenderThread() > 0);
+
+		const int32 CompressionQuality = (bIsWritingHDRImage && bSaveUncompressedEXR)
+			? ImageCompression::CompressionQuality::Uncompressed
+			: ImageCompression::CompressionQuality::Default;
+
+		// Compress and write image
 		FArchive* Ar = FileManager->CreateFileWriter(Filename.GetCharArray().GetData());
 		if (Ar != nullptr)
 		{
-			const TArray<uint8>& CompressedData = ImageWriter->ImageWrapper->GetCompressed();
+			const TArray<uint8>& CompressedData = ImageWriter->ImageWrapper->GetCompressed(CompressionQuality);
 			int32 CompressedSize = CompressedData.Num();
 			Ar->Serialize((void*)CompressedData.GetData(), CompressedSize);
 			delete Ar;

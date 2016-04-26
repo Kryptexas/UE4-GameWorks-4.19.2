@@ -210,6 +210,31 @@ TArray<FVanillaPlatformEntry> BuildPlatformHierarchy(const EPlatformFilter InFil
 	return VanillaPlatforms;
 }
 
+EPlatformType EPlatformTypeFromString(const FString& PlatformTypeName)
+{
+	if (FCString::Strcmp(*PlatformTypeName, TEXT("Game")) == 0)
+	{
+		return PlatformInfo::EPlatformType::Game;
+	}
+	else if (FCString::Strcmp(*PlatformTypeName, TEXT("Editor")) == 0)
+	{
+		return PlatformInfo::EPlatformType::Editor;
+	}
+	else if (FCString::Strcmp(*PlatformTypeName, TEXT("Client")) == 0)
+	{
+		return PlatformInfo::EPlatformType::Client;
+	}
+	else if (FCString::Strcmp(*PlatformTypeName, TEXT("Server")) == 0)
+	{
+		return PlatformInfo::EPlatformType::Server;
+	}
+	else
+	{
+		UE_LOG(LogDesktopPlatform, Warning, TEXT("Unable to read Platform Type from %s, defaulting to Game"), *PlatformTypeName);
+		return PlatformInfo::EPlatformType::Game;
+	}
+}
+
 } // namespace PlatformFamily
 
 #undef LOCTEXT_NAMESPACE

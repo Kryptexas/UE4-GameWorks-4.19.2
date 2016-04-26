@@ -6,7 +6,7 @@
 // FAnimationRecorder
 
 // records the mesh pose to animation input
-struct FAnimationRecorder
+struct FAnimationRecorder : public FGCObject
 {
 private:
 	/** Frame count used to signal an unbounded animation */
@@ -37,6 +37,10 @@ public:
 	FAnimationRecorder();
 	~FAnimationRecorder();
 
+	// FGCObject interface start
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+	// FGCObject interface end
+
 	/** Starts recording an animation. Prompts for asset path and name via dialog if none provided */
 	bool TriggerRecordAnimation(USkeletalMeshComponent* Component);
 	bool TriggerRecordAnimation(USkeletalMeshComponent* Component, const FString& AssetPath, const FString& AssetName);
@@ -64,6 +68,10 @@ private:
 	void RecordNotifies(USkeletalMeshComponent* Component, const TArray<const struct FAnimNotifyEvent*>& AnimNotifies, float DeltaTime, float RecordTime);
 
 	void FixupNotifies();
+
+	// recording curve data 
+	TArray< TArray<FCurveElement> >  RecordedCurves;
+	TArray<FSmartNameMapping::UID> const * UIDList;
 };
 
 //////////////////////////////////////////////////////////////////////////

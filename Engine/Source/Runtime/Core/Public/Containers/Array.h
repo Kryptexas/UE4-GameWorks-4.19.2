@@ -20,6 +20,7 @@
 
 #define AGRESSIVE_ARRAY_FORCEINLINE
 
+
 /**
  * Generic iterator which can operate on types that expose the following:
  * - A type called ElementType representing the contained type.
@@ -127,9 +128,11 @@ public:
 	FORCEINLINE friend bool operator!=(const TIndexedContainerIterator& Lhs, const TIndexedContainerIterator& Rhs) { return &Lhs.Container != &Rhs.Container || Lhs.Index != Rhs.Index; }
 
 private:
+
 	ContainerType& Container;
 	IndexType      Index;
 };
+
 
 /** operator + */
 template <typename ContainerType, typename ElementType, typename IndexType>
@@ -138,8 +141,8 @@ FORCEINLINE TIndexedContainerIterator<ContainerType, ElementType, IndexType> ope
 	return RHS + Offset;
 }
 
-#if TARRAY_RANGED_FOR_CHECKS
 
+#if TARRAY_RANGED_FOR_CHECKS
 	/**
 	 * Pointer-like iterator type for ranged-for loops which checks that the
 	 * container hasn't been resized during iteration.
@@ -192,8 +195,8 @@ FORCEINLINE TIndexedContainerIterator<ContainerType, ElementType, IndexType> ope
 			return Lhs.Ptr != Rhs.Ptr;
 		}
 	};
-
 #endif
+
 
 template <typename ElementType, typename IteratorType>
 struct TDereferencingIterator
@@ -223,13 +226,16 @@ private:
 	}
 };
 
+
 /**
  * Base dynamic array.
  * An untyped data array; mirrors a TArray's members, but doesn't need an exact C++ type for its elements.
  **/
-class FScriptArray : protected FHeapAllocator::ForAnyElementType
+class FScriptArray
+	: protected FHeapAllocator::ForAnyElementType
 {
 public:
+
 	FORCEINLINE void* GetData()
 	{
 		return this->GetAllocation();
@@ -418,6 +424,7 @@ public:
 	void operator=(const FScriptArray&) { check(false); }
 };
 
+
 template<> struct TIsZeroConstructType<FScriptArray> { enum { Value = true }; };
 
 
@@ -437,6 +444,7 @@ public:
 	FORCEINLINE bool operator()( ElementType& A, ElementType& B ) const { return Predicate( B, A ); }
 	FORCEINLINE bool operator()( const ElementType& A, const ElementType& B ) const { return Predicate( B, A ); }
 };
+
 
 /**
  * Partially specialized version of the above.
@@ -464,6 +472,7 @@ public:
 	}
 };
 
+
 namespace UE4Array_Private
 {
 	template <typename FromArrayType, typename ToArrayType>
@@ -487,6 +496,7 @@ namespace UE4Array_Private
 	};
 }
 
+
 /**
  * Templated dynamic array
  *
@@ -505,6 +515,7 @@ class TArray
 	friend class TArray;
 
 public:
+
 	typedef InElementType ElementType;
 	typedef InAllocator   Allocator;
 
@@ -582,6 +593,7 @@ public:
 	}
 
 private:
+
 	/**
 	 * Moves or copies array. Depends on the array type traits.
 	 *
@@ -705,9 +717,7 @@ public:
 		return *this;
 	}
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	AGRESSIVE_ARRAY_FORCEINLINE ~TArray()
 	{
 		DestructItems(GetData(), ArrayNum);
@@ -762,6 +772,8 @@ public:
 
 	/**
 	 * Returns the amount of slack in this array in elements.
+	 *
+	 * @see Num, Shrink
 	 */
 	FORCEINLINE int32 GetSlack() const
 	{
@@ -797,7 +809,6 @@ public:
 	 * Tests if index is valid, i.e. than or equal to zero, and less than the number of elements in the array.
 	 *
 	 * @param Index Index to test.
-	 *
 	 * @returns True if index is valid. False otherwise.
 	 */
 	FORCEINLINE bool IsValidIndex(int32 Index) const
@@ -809,6 +820,7 @@ public:
 	 * Returns number of elements in array.
 	 *
 	 * @returns Number of elements in array.
+	 * @see GetSlack
 	 */
 	FORCEINLINE int32 Num() const
 	{
@@ -819,6 +831,7 @@ public:
 	 * Returns maximum number of elements in array.
 	 *
 	 * @returns Maximum number of elements in array.
+	 * @see GetSlack
 	 */
 	FORCEINLINE int32 Max() const
 	{
@@ -852,9 +865,7 @@ public:
 	/**
 	 * Pops element from the array.
 	 *
-	 * @param bAllowShrinking If this call allows shrinking of the array during
-	 *                        element remove.
-	 *
+	 * @param bAllowShrinking If this call allows shrinking of the array during element remove.
 	 * @returns Popped element.
 	 */
 	FORCEINLINE ElementType Pop(bool bAllowShrinking = true)
@@ -881,6 +892,7 @@ public:
 	 * Const ref version of the above.
 	 *
 	 * @param Item Item to push.
+	 * @see Pop, Top
 	 */
 	FORCEINLINE void Push(const ElementType& Item)
 	{
@@ -891,6 +903,7 @@ public:
 	 * Returns the top element, i.e. the last one.
 	 *
 	 * @returns Reference to the top element.
+	 * @see Pop, Push
 	 */
 	FORCEINLINE ElementType& Top()
 	{
@@ -903,6 +916,7 @@ public:
 	 * Const version of the above.
 	 *
 	 * @returns Reference to the top element.
+	 * @see Pop, Push
 	 */
 	FORCEINLINE const ElementType& Top() const
 	{
@@ -912,9 +926,7 @@ public:
 	/**
 	 * Returns n-th last element from the array.
 	 *
-	 * @param IndexFromTheEnd (Optional) Index from the end of array.
-	 *                        Default is 0.
-	 *
+	 * @param IndexFromTheEnd (Optional) Index from the end of array (default = 0).
 	 * @returns Reference to n-th last element from the array.
 	 */
 	FORCEINLINE ElementType& Last(int32 IndexFromTheEnd = 0)
@@ -928,9 +940,7 @@ public:
 	 *
 	 * Const version of the above.
 	 *
-	 * @param IndexFromTheEnd (Optional) Index from the end of array.
-	 *                        Default is 0.
-	 *
+	 * @param IndexFromTheEnd (Optional) Index from the end of array (default = 0).
 	 * @returns Reference to n-th last element from the array.
 	 */
 	FORCEINLINE const ElementType& Last(int32 IndexFromTheEnd = 0) const
@@ -940,8 +950,9 @@ public:
 	}
 
 	/**
-	 * Shrinks the array's used memory to smallest possible to store elements
-	 * currently in it.
+	 * Shrinks the array's used memory to smallest possible to store elements currently in it.
+	 *
+	 * @see Slack
 	 */
 	FORCEINLINE void Shrink()
 	{
@@ -956,9 +967,9 @@ public:
 	 * Finds element within the array.
 	 *
 	 * @param Item Item to look for.
-	 * @param Index Output parameter. Found index.
-	 *
+	 * @param Index Will contain the found index.
 	 * @returns True if found. False otherwise.
+	 * @see FindLast, FindLastByPredicate
 	 */
 	FORCEINLINE bool Find(const ElementType& Item, int32& Index) const
 	{
@@ -970,8 +981,8 @@ public:
 	 * Finds element within the array.
 	 *
 	 * @param Item Item to look for.
-	 *
 	 * @returns Index of the found element. INDEX_NONE otherwise.
+	 * @see FindLast, FindLastByPredicate
 	 */
 	AGRESSIVE_ARRAY_FORCEINLINE int32 Find(const ElementType& Item) const
 	{
@@ -991,8 +1002,8 @@ public:
 	 *
 	 * @param Item Item to look for.
 	 * @param Index Output parameter. Found index.
-	 *
 	 * @returns True if found. False otherwise.
+	 * @see Find, FindLastByPredicate
 	 */
 	FORCEINLINE bool FindLast(const ElementType& Item, int32& Index) const
 	{
@@ -1004,7 +1015,6 @@ public:
 	 * Finds element within the array starting from the end.
 	 *
 	 * @param Item Item to look for.
-	 *
 	 * @returns Index of the found element. INDEX_NONE otherwise.
 	 */
 	int32 FindLast(const ElementType& Item) const
@@ -1025,7 +1035,6 @@ public:
 	 *
 	 * @param Pred Predicate taking array element and returns true if element matches search criteria, false otherwise.
 	 * @param StartIndex Index of element from which to start searching.
-	 *
 	 * @returns Index of the found element. INDEX_NONE otherwise.
 	 */
 	template <typename Predicate>
@@ -1044,12 +1053,11 @@ public:
 	}
 
 	/**
-	* Finds element within the array starting from the end. Uses predicate to match element.
-	*
-	* @param Pred Predicate taking array element and returns true if element matches search criteria, false otherwise.
-	*
-	* @returns Index of the found element. INDEX_NONE otherwise.
-	*/
+	 * Finds element within the array starting from the end. Uses predicate to match element.
+	 *
+	 * @param Pred Predicate taking array element and returns true if element matches search criteria, false otherwise.
+	 * @returns Index of the found element. INDEX_NONE otherwise.
+	 */
 	template <typename Predicate>
 	FORCEINLINE int32 FindLastByPredicate(Predicate Pred) const
 	{
@@ -1061,9 +1069,7 @@ public:
 	 * the comparison).
 	 *
 	 * @param Key The key to search by.
-	 *
-	 * @returns Index to the first matching element, or INDEX_NONE if none is
-	 *          found.
+	 * @returns Index to the first matching element, or INDEX_NONE if none is found.
 	 */
 	template <typename KeyType>
 	AGRESSIVE_ARRAY_FORCEINLINE int32 IndexOfByKey(const KeyType& Key) const
@@ -1083,9 +1089,7 @@ public:
 	 * Finds an item by predicate.
 	 *
 	 * @param Pred The predicate to match.
-	 *
-	 * @returns Index to the first matching element, or INDEX_NONE if none is
-	 *          found.
+	 * @returns Index to the first matching element, or INDEX_NONE if none is found.
 	 */
 	template <typename Predicate>
 	AGRESSIVE_ARRAY_FORCEINLINE int32 IndexOfByPredicate(Predicate Pred) const
@@ -1106,8 +1110,8 @@ public:
 	 * the comparison).
 	 *
 	 * @param Key The key to search by.
-	 *
 	 * @returns Pointer to the first matching element, or nullptr if none is found.
+	 * @see Find
 	 */
 	template <typename KeyType>
 	FORCEINLINE const ElementType* FindByKey(const KeyType& Key) const
@@ -1120,8 +1124,8 @@ public:
 	 * the comparison). Time Complexity: O(n), starts iteration from the beginning so better performance if Key is in the front
 	 *
 	 * @param Key The key to search by.
-	 *
 	 * @returns Pointer to the first matching element, or nullptr if none is found.
+	 * @see Find
 	 */
 	template <typename KeyType>
 	AGRESSIVE_ARRAY_FORCEINLINE ElementType* FindByKey(const KeyType& Key)
@@ -1141,9 +1145,8 @@ public:
 	 * Finds an element which matches a predicate functor.
 	 *
 	 * @param Pred The functor to apply to each element.
-	 *
-	 * @returns Pointer to the first element for which the predicate returns
-	 *          true, or nullptr if none is found.
+	 * @returns Pointer to the first element for which the predicate returns true, or nullptr if none is found.
+	 * @see FilterByPredicate, ContainsByPredicate
 	 */
 	template <typename Predicate>
 	FORCEINLINE const ElementType* FindByPredicate(Predicate Pred) const
@@ -1154,10 +1157,8 @@ public:
 	/**
 	 * Finds an element which matches a predicate functor.
 	 *
-	 * @param Pred The functor to apply to each element.
-	 *
-	 * @return Pointer to the first element for which the predicate returns
-	 *         true, or nullptr if none is found.
+	 * @param Pred The functor to apply to each element. true, or nullptr if none is found.
+	 * @see FilterByPredicate, ContainsByPredicate
 	 */
 	template <typename Predicate>
 	AGRESSIVE_ARRAY_FORCEINLINE ElementType* FindByPredicate(Predicate Pred)
@@ -1177,9 +1178,9 @@ public:
 	 * Filters the elements in the array based on a predicate functor.
 	 *
 	 * @param Pred The functor to apply to each element.
-	 *
 	 * @returns TArray with the same type as this object which contains
 	 *          the subset of elements for which the functor returns true.
+	 * @see FindByPredicate, ContainsByPredicate
 	 */
 	template <typename Predicate>
 	TArray<ElementType> FilterByPredicate(Predicate Pred) const
@@ -1199,6 +1200,7 @@ public:
 	 * Checks if this array contains the element.
 	 *
 	 * @returns	True if found. False otherwise.
+	 * @see ContainsByPredicate, FilterByPredicate, FindByPredicate
 	 */
 	template <typename ComparisonType>
 	AGRESSIVE_ARRAY_FORCEINLINE bool Contains(const ComparisonType& Item) const
@@ -1217,8 +1219,8 @@ public:
 	 * Checks if this array contains element for which the predicate is true.
 	 *
 	 * @param Predicate to use
-	 *
 	 * @returns	True if found. False otherwise.
+	 * @see Contains, Find
 	 */
 	template <typename Predicate>
 	FORCEINLINE bool ContainsByPredicate(Predicate Pred) const
@@ -1230,7 +1232,6 @@ public:
 	 * Equality operator.
 	 *
 	 * @param OtherArray Array to compare.
-	 *
 	 * @returns True if this array is the same as OtherArray. False otherwise.
 	 */
 	AGRESSIVE_ARRAY_FORCEINLINE bool operator==(const TArray& OtherArray) const
@@ -1244,7 +1245,6 @@ public:
 	 * Inequality operator.
 	 *
 	 * @param OtherArray Array to compare.
-	 *
 	 * @returns True if this array is NOT the same as OtherArray. False otherwise.
 	 */
 	FORCEINLINE bool operator!=(const TArray& OtherArray) const
@@ -1257,7 +1257,6 @@ public:
 	 *
 	 * @param Ar Archive to serialize the array with.
 	 * @param A Array to serialize.
-	 *
 	 * @returns Passing the given archive.
 	 */
 	friend FArchive& operator<<(FArchive& Ar, TArray& A)
@@ -1380,7 +1379,6 @@ public:
 	 * require a constructor to function properly.
 	 *
 	 * @param Count Number of elements to add.
-	 *
 	 * @returns Number of elements in array before addition.
 	 */
 	FORCEINLINE int32 AddUninitialized(int32 Count = 1)
@@ -1431,6 +1429,7 @@ public:
 	 *
 	 * @param Index Tells where to insert the new elements.
 	 * @param Count Number of elements to add.
+	 * @see Insert, InsertUninitialized
 	 */
 	void InsertZeroed(int32 Index, int32 Count = 1)
 	{
@@ -1443,8 +1442,7 @@ public:
 	 *
 	 * @param Items Array of elements to insert.
 	 * @param InIndex Tells where to insert the new elements.
-	 *
-	 * @returns Location at which the insert was done.
+	 * @returns Location at which the item was inserted.
 	 */
 	int32 Insert(const TArray<ElementType>& Items, const int32 InIndex)
 	{
@@ -1462,11 +1460,11 @@ public:
 	/**
 	 * Inserts a raw array of elements at a particular index in the TArray.
 	 *
-	 * @param Ptr   A pointer to an array of elements to add.
+	 * @param Ptr A pointer to an array of elements to add.
 	 * @param Count The number of elements to insert from Ptr.
 	 * @param Index The index to insert the elements at.
-	 *
 	 * @return The index of the first element inserted.
+	 * @see Add, Remove
 	 */
 	int32 Insert(const ElementType* Ptr, int32 Count, int32 Index)
 	{
@@ -1484,6 +1482,7 @@ public:
 	 * aren't going to be invalidated by possible reallocation.
 	 *
 	 * @param Addr The address to check.
+	 * @see Add, Remove
 	 */
 	FORCEINLINE void CheckAddress(const ElementType* Addr) const
 	{
@@ -1496,8 +1495,8 @@ public:
 	 *
 	 * @param Item The element to insert.
 	 * @param Index Tells where to insert the new elements.
-	 *
 	 * @returns Location at which the insert was done.
+	 * @see Add, Remove
 	 */
 	int32 Insert(ElementType&& Item, int32 Index)
 	{
@@ -1515,8 +1514,8 @@ public:
 	 *
 	 * @param Item The element to insert.
 	 * @param Index Tells where to insert the new elements.
-	 *
 	 * @returns Location at which the insert was done.
+	 * @see Add, Remove
 	 */
 	int32 Insert(const ElementType& Item, int32 Index)
 	{
@@ -1535,8 +1534,7 @@ public:
 	 *
 	 * @param Index Location in array of the element to remove.
 	 * @param Count (Optional) Number of elements to remove. Default is 1.
-	 * @param bAllowShrinking (Optional) Tells if this call can shrink array if
-	 *                        suitable after remove. Default is true.
+	 * @param bAllowShrinking (Optional) Tells if this call can shrink array if suitable after remove. Default is true.
 	 */
 	void RemoveAt(int32 Index, int32 Count = 1, bool bAllowShrinking = true)
 	{
@@ -1640,6 +1638,7 @@ public:
 
 		checkSlow(Slack >= 0);
 		ArrayNum = 0;
+
 		if (ArrayMax != Slack)
 		{
 			ResizeTo(Slack);
@@ -1716,6 +1715,7 @@ public:
 	 * Allocator changing version.
 	 *
 	 * @param Source The array to append.
+	 * @see Add, Insert
 	 */
 	template <typename OtherElementType, typename OtherAllocator>
 	AGRESSIVE_ARRAY_FORCEINLINE void Append(const TArray<OtherElementType, OtherAllocator>& Source)
@@ -1732,7 +1732,6 @@ public:
 
 		// Allocate memory for the new elements.
 		Reserve(ArrayNum + SourceCount);
-
 		ConstructItems<ElementType>(GetData() + ArrayNum, Source.GetData(), SourceCount);
 
 		ArrayNum += SourceCount;
@@ -1742,6 +1741,7 @@ public:
 	 * Appends the specified array to this array.
 	 *
 	 * @param Source The array to append.
+	 * @see Add, Insert
 	 */
 	template <typename OtherElementType, typename OtherAllocator>
 	AGRESSIVE_ARRAY_FORCEINLINE void Append(TArray<OtherElementType, OtherAllocator>&& Source)
@@ -1758,7 +1758,6 @@ public:
 
 		// Allocate memory for the new elements.
 		Reserve(ArrayNum + SourceCount);
-
 		RelocateConstructItems<ElementType>(GetData() + ArrayNum, Source.GetData(), SourceCount);
 		Source.ArrayNum = 0;
 
@@ -1770,6 +1769,7 @@ public:
 	 *
 	 * @param Ptr   A pointer to an array of elements to add.
 	 * @param Count The number of elements to insert from Ptr.
+	 * @see Add, Insert
 	 */
 	AGRESSIVE_ARRAY_FORCEINLINE void Append(const ElementType* Ptr, int32 Count)
 	{
@@ -1885,16 +1885,18 @@ public:
 	 *
 	 * Move semantics version.
 	 *
-	 * @param Item	The item to add
-	 * @return		Index to the new item
+	 * @param Item The item to add
+	 * @return Index to the new item
+	 * @see AddDefaulted, AddUnique, AddZeroed, Append, Insert
 	 */
 	FORCEINLINE int32 Add(ElementType&& Item) { CheckAddress(&Item); return Emplace(MoveTemp(Item)); }
 
 	/**
 	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
 	 *
-	 * @param Item	The item to add
-	 * @return		Index to the new item
+	 * @param Item The item to add
+	 * @return Index to the new item
+	 * @see AddDefaulted, AddUnique, AddZeroed, Append, Insert
 	 */
 	FORCEINLINE int32 Add(const ElementType& Item) { CheckAddress(&Item); return Emplace(Item); }
 
@@ -1907,8 +1909,8 @@ public:
 	 * a constructor to function properly.
 	 *
 	 * @param  Count  The number of new items to add.
-	 *
 	 * @return Index to the first of the new items.
+	 * @see Add, AddDefaulted, AddUnique, Append, Insert
 	 */
 	AGRESSIVE_ARRAY_FORCEINLINE int32 AddZeroed(int32 Count = 1)
 	{
@@ -1922,8 +1924,8 @@ public:
 	 * array to fit. The new items will be default-constructed.
 	 *
 	 * @param  Count  The number of new items to add.
-	 *
 	 * @return Index to the first of the new items.
+	 * @see Add, AddZeroed, AddUnique, Append, Insert
 	 */
 	AGRESSIVE_ARRAY_FORCEINLINE int32 AddDefaulted(int32 Count = 1)
 	{
@@ -1933,11 +1935,11 @@ public:
 	}
 
 private:
+
 	/**
 	 * Adds unique element to array if it doesn't exist.
 	 *
 	 * @param Args Item to add.
-	 *
 	 * @returns Index of the element in the array.
 	 */
 	template <typename ArgsType>
@@ -1953,14 +1955,15 @@ private:
 	}
 
 public:
+
 	/**
 	 * Adds unique element to array if it doesn't exist.
 	 *
 	 * Move semantics version.
 	 *
 	 * @param Args Item to add.
-	 *
 	 * @returns Index of the element in the array.
+	 * @see Add, AddDefaulted, AddZeroed, Append, Insert
 	 */
 	FORCEINLINE int32 AddUnique(ElementType&& Item) { return AddUniqueImpl(MoveTemp(Item)); }
 
@@ -1968,16 +1971,16 @@ public:
 	 * Adds unique element to array if it doesn't exist.
 	 *
 	 * @param Args Item to add.
-	 *
 	 * @returns Index of the element in the array.
+	 * @see Add, AddDefaulted, AddZeroed, Append, Insert
 	 */
 	FORCEINLINE int32 AddUnique(const ElementType& Item) { return AddUniqueImpl(Item); }
 
 	/**
 	 * Reserves memory such that the array can contain at least Number elements.
 	 *
-	 * @param Number The number of elements that the array should be able to
-	 *               contain after allocation.
+	 * @param Number The number of elements that the array should be able to contain after allocation.
+	 * @see Shrink
 	 */
 	FORCEINLINE void Reserve(int32 Number)
 	{
@@ -1991,8 +1994,7 @@ public:
 	 * Sets the size of the array, filling it with the given element.
 	 *
 	 * @param Element The element to fill array with.
-	 * @param Number The number of elements that the array should be able to
-	 *               contain after allocation.
+	 * @param Number The number of elements that the array should be able to contain after allocation.
 	 */
 	AGRESSIVE_ARRAY_FORCEINLINE void Init(const ElementType& Element, int32 Number)
 	{
@@ -2008,9 +2010,8 @@ public:
 	 * maintaining order but not indices.
 	 *
 	 * @param Item The item to remove.
-	 *
-	 * @returns The number of items removed. For RemoveSingleItem, this is
-	 *          always either 0 or 1.
+	 * @returns The number of items removed. For RemoveSingleItem, this is always either 0 or 1.
+	 * @see Add, Insert, Remove, RemoveAll, RemoveAllSwap
 	 */
 	int32 RemoveSingle(const ElementType& Item)
 	{
@@ -2039,8 +2040,8 @@ public:
 	 * order but not indices.
 	 *
 	 * @param Item Item to remove from array.
-	 *
 	 * @returns Number of removed elements.
+	 * @see Add, Insert, RemoveAll, RemoveAllSwap, RemoveSingle, RemoveSwap
 	 */
 	int32 Remove(const ElementType& Item)
 	{
@@ -2050,14 +2051,13 @@ public:
 		return RemoveAll([&Item](ElementType& Element) { return Element == Item; });
 	}
 
-
 	/**
 	 * Remove all instances that match the predicate, maintaining order but not indices
 	 * Optimized to work with runs of matches/non-matches
 	 *
 	 * @param Predicate Predicate class instance
-	 *
 	 * @returns Number of removed elements.
+	 * @see Add, Insert, RemoveAllSwap, RemoveSingle, RemoveSwap
 	 */
 	template <class PREDICATE_CLASS>
 	int32 RemoveAll(const PREDICATE_CLASS& Predicate)
@@ -2105,6 +2105,7 @@ public:
 	 * Remove all instances that match the predicate
 	 *
 	 * @param Predicate Predicate class instance
+	 * @see Remove, RemoveSingle, RemoveSingleSwap, RemoveSwap
 	 */
 	template <class PREDICATE_CLASS>
 	void RemoveAllSwap(const PREDICATE_CLASS& Predicate, bool bAllowShrinking = true)
@@ -2129,6 +2130,7 @@ public:
 	 * @param Item The item to remove
 	 *
 	 * @returns The number of items removed. For RemoveSingleItem, this is always either 0 or 1.
+	 * @see Add, Insert, Remove, RemoveAll, RemoveAllSwap, RemoveSwap
 	 */
 	int32 RemoveSingleSwap(const ElementType& Item, bool bAllowShrinking = true)
 	{
@@ -2152,6 +2154,7 @@ public:
 	 * but does not preserve the order.
 	 *
 	 * @returns Number of elements removed.
+	 * @see Add, Insert, Remove, RemoveAll, RemoveAllSwap
 	 */
 	int32 RemoveSwap(const ElementType& Item)
 	{
@@ -2213,7 +2216,6 @@ public:
 	 *             element hasn't been found.
 	 * @param StartIndex (Optional) Index in array at which the function should
 	 *             start to look for element.
-	 *
 	 * @returns True if element was found. False otherwise.
 	 */
 	template<typename SearchType>
@@ -2271,6 +2273,7 @@ public:
 	#endif
 
 private:
+
 	/**
 	 * DO NOT USE DIRECTLY
 	 * STL-like iterators to enable range-based for loop support.
@@ -2288,6 +2291,7 @@ private:
 	#endif
 
 public:
+
 	/**
 	 * Sorts the array assuming < operator is defined for the item type.
 	 */
@@ -2464,7 +2468,6 @@ public:
 	 *
 	 * @param InItem Item to be added.
 	 * @param Predicate Predicate class instance.
-	 *
 	 * @return The index of the new element.
 	 */
 	template <class PREDICATE_CLASS>
@@ -2487,7 +2490,6 @@ public:
 	 * template type.
 	 *
 	 * @param InItem Item to be added.
-	 *
 	 * @return The index of the new element.
 	 */
 	int32 HeapPush(const ElementType& InItem)
@@ -2566,9 +2568,10 @@ public:
 	}
 
 	/** 
-	 * Removes the top element from the heap. Assumes < operator is defined for
-	 * the template type.
-	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation if suitable after the discard. Default is true.
+	 * Removes the top element from the heap. Assumes < operator is defined for the template type.
+	 *
+	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array
+	 *		allocation if suitable after the discard. Default is true.
 	 */
 	void HeapPopDiscard(bool bAllowShrinking = true)
 	{
@@ -2602,7 +2605,8 @@ public:
 	 *
 	 * @param Index Position at which to remove item.
 	 * @param Predicate Predicate class instance.
-	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation if suitable after the remove. Default is true.
+	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation
+	 *		if suitable after the remove (default = true).
 	 */
 	template <class PREDICATE_CLASS>
 	void HeapRemoveAt(int32 Index, const PREDICATE_CLASS& Predicate, bool bAllowShrinking = true)
@@ -2619,11 +2623,11 @@ public:
 	}
 
 	/**
-	 * Removes an element from the heap. Assumes < operator is defined for the
-	 * template type.
+	 * Removes an element from the heap. Assumes < operator is defined for the template type.
 	 *
 	 * @param Index Position at which to remove item.
-	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation if suitable after the remove. Default is true.
+	 * @param bAllowShrinking (Optional) Tells if this call can shrink the array allocation
+	 *		if suitable after the remove (default = true).
 	 */
 	void HeapRemoveAt(int32 Index, bool bAllowShrinking = true)
 	{
@@ -2680,7 +2684,6 @@ private:
 	 * Gets the index of the left child of node at Index.
 	 *
 	 * @param Index Node for which the left child index is to be returned.
-	 *
 	 * @returns Index of the left child.
 	 */
 	FORCEINLINE int32 HeapGetLeftChildIndex(int32 Index) const
@@ -2692,8 +2695,7 @@ private:
 	 * Checks if node located at Index is a leaf or not.
 	 *
 	 * @param Index Node index.
-	 *
-	 * @returns True if node is a leaf. False otherwise.
+	 * @returns true if node is a leaf, false otherwise.
 	 */
 	FORCEINLINE bool HeapIsLeaf(int32 Index, int32 Count) const
 	{
@@ -2704,7 +2706,6 @@ private:
 	 * Gets the parent index for node at Index.
 	 *
 	 * @param Index node index.
-	 *
 	 * @returns Parent index.
 	 */
 	FORCEINLINE int32 HeapGetParentIndex(int32 Index) const
@@ -2713,6 +2714,7 @@ private:
 	}
 
 private:
+
 	/**
 	 * Fixes a possible violation of order property between node at Index and a child.
 	 *
@@ -2774,17 +2776,20 @@ private:
 	}
 };
 
+
 template <typename InElementType, typename Allocator>
 struct TIsZeroConstructType<TArray<InElementType, Allocator>>
 {
 	enum { Value = TAllocatorTraits<Allocator>::IsZeroConstruct };
 };
 
+
 template <typename InElementType, typename Allocator>
 struct TContainerTraits<TArray<InElementType, Allocator> > : public TContainerTraitsBase<TArray<InElementType, Allocator> >
 {
 	enum { MoveWillEmptyContainer = TAllocatorTraits<Allocator>::SupportsMove };
 };
+
 
 /**
  * Traits class which determines whether or not a type is a TArray.
@@ -2795,6 +2800,7 @@ template <typename InElementType, typename Allocator> struct TIsTArray<         
 template <typename InElementType, typename Allocator> struct TIsTArray<const          TArray<InElementType, Allocator>> { enum { Value = true }; };
 template <typename InElementType, typename Allocator> struct TIsTArray<      volatile TArray<InElementType, Allocator>> { enum { Value = true }; };
 template <typename InElementType, typename Allocator> struct TIsTArray<const volatile TArray<InElementType, Allocator>> { enum { Value = true }; };
+
 
 //
 // Array operator news.
@@ -2822,7 +2828,8 @@ template <typename T,typename Allocator> void* operator new( size_t Size, TArray
  * - Any item that is added to the array is moved to the top.
  */
 template<typename T, typename Allocator = FDefaultAllocator>
-class TMRUArray : public TArray<T, Allocator>
+class TMRUArray
+	: public TArray<T, Allocator>
 {
 public:
 	typedef TArray<T, Allocator> Super;
@@ -2862,7 +2869,6 @@ public:
 	 * Assign operator.
 	 *
 	 * @param Other Other array to assign with.
-	 *
 	 * @returns Reference to this object.
 	 */
 	FORCEINLINE TMRUArray& operator=(const TMRUArray& Other)
@@ -2885,7 +2891,6 @@ public:
 	 * Move assign operator.
 	 *
 	 * @param Other Other array to assign with.
-	 *
 	 * @returns Reference to this object.
 	 */
 	FORCEINLINE TMRUArray& operator=(TMRUArray&& Other)
@@ -2900,7 +2905,6 @@ public:
 	 * limit.
 	 *
 	 * @param Item Item to add.
-	 *
 	 * @returns Always 0.
 	 */
 	int32 Add(const T& Item)
@@ -2916,7 +2920,6 @@ public:
 	 * add more than the limit.
 	 *
 	 * @param Count (Optional) A number of elements to add. Default is 0.
-	 *
 	 * @returns Always 0.
 	 */
 	int32 AddZeroed(int32 Count = 1)
@@ -2932,7 +2935,6 @@ public:
 	 * the limit. If the item existed it will be removed before addition.
 	 *
 	 * @param Item Element to add.
-	 *
 	 * @returns Always 0.
 	 */
 	int32 AddUnique(const T& Item)
@@ -2966,11 +2968,13 @@ public:
 	}
 };
 
+
 template<typename T, typename Allocator>
 struct TContainerTraits<TMRUArray<T, Allocator> > : public TContainerTraitsBase<TMRUArray<T, Allocator> >
 {
 	enum { MoveWillEmptyContainer = TContainerTraitsBase<typename TMRUArray<T, Allocator>::Super>::MoveWillEmptyContainer };
 };
+
 
 /*-----------------------------------------------------------------------------
 	Indirect array.
@@ -2984,9 +2988,7 @@ public:
 	typedef T                        ElementType;
 	typedef TArray<void*, Allocator> InternalArrayType;
 
-	/**
-	 * Default constructors.
-	 */
+	/** Default constructors. */
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
 	TIndirectArray() = default;
@@ -3033,9 +3035,7 @@ public:
 		return *this;
 	}
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~TIndirectArray()
 	{
 		Empty();
@@ -3085,7 +3085,6 @@ public:
 	 * Bracket array access operator.
 	 *
 	 * @param Index Position of element to return.
-	 *
 	 * @returns Reference to element in array at given position.
 	 */
 	FORCEINLINE T& operator[](int32 Index)
@@ -3099,7 +3098,6 @@ public:
 	 * Const version.
 	 *
 	 * @param Index Position of element to return.
-	 *
 	 * @returns Reference to element in array at given position.
 	 */
 	FORCEINLINE const T& operator[](int32 Index) const
@@ -3110,9 +3108,7 @@ public:
 	/**
 	 * Returns n-th last element from the array.
 	 *
-	 * @param IndexFromTheEnd (Optional) Index from the end of array.
-	 *                        Default is 0.
-	 *
+	 * @param IndexFromTheEnd (Optional) Index from the end of array (default = 0).
 	 * @returns Reference to n-th last element from the array.
 	 */
 	FORCEINLINE ElementType& Last(int32 IndexFromTheEnd = 0)
@@ -3125,9 +3121,7 @@ public:
 	 *
 	 * Const version.
 	 *
-	 * @param IndexFromTheEnd (Optional) Index from the end of array.
-	 *                        Default is 0.
-	 *
+	 * @param IndexFromTheEnd (Optional) Index from the end of array (default = 0).
 	 * @returns Reference to n-th last element from the array.
 	 */
 	FORCEINLINE const ElementType& Last(int32 IndexFromTheEnd = 0) const
@@ -3149,7 +3143,7 @@ public:
 	 * items.
 	 *
 	 * @param NewSize (Optional) The expected usage size after calling this
-	 *                function. Default is 0.
+	 *		function. Default is 0.
 	 */
 	void Reset(int32 NewSize = 0)
 	{
@@ -3161,8 +3155,8 @@ public:
 	 * Special serialize function passing the owning UObject along as required
 	 * by FUnytpedBulkData serialization.
 	 *
-	 * @param	Ar		Archive to serialize with.
-	 * @param	Owner	UObject this structure is serialized within.
+	 * @param Ar Archive to serialize with.
+	 * @param Owner UObject this structure is serialized within.
 	 */
 	void Serialize(FArchive& Ar, UObject* Owner)
 	{
@@ -3197,9 +3191,8 @@ public:
 	/**
 	 * Serialization operator for TIndirectArray.
 	 *
-	 * @param	Ar		Archive to serialize with.
-	 * @param	A		Array to serialize.
-	 *
+	 * @param Ar Archive to serialize with.
+	 * @param A Array to serialize.
 	 * @returns Passing down serializing archive.
 	 */
 	friend FArchive& operator<<(FArchive& Ar, TIndirectArray& A)
@@ -3326,7 +3319,6 @@ public:
 	 * whole array to fit.
 	 *
 	 * @param Item The item to add.
-	 *
 	 * @returns Index to the new item.
 	 */
 	FORCEINLINE int32 Add(T* Item)
@@ -3361,7 +3353,6 @@ public:
 	 * elements in array.
 	 *
 	 * @param Index Index to test.
-	 *
 	 * @returns True if index is valid. False otherwise.
 	 */
 	FORCEINLINE bool IsValidIndex(int32 Index) const
@@ -3404,6 +3395,7 @@ public:
 	}
 
 private:
+
 	/**
 	 * Calls destructor and frees memory on every element in the array.
 	 */
@@ -3433,11 +3425,14 @@ private:
 	InternalArrayType Array;
 };
 
+
 template<typename T, typename Allocator>
-struct TContainerTraits<TIndirectArray<T, Allocator> > : public TContainerTraitsBase<TIndirectArray<T, Allocator> >
+struct TContainerTraits<TIndirectArray<T, Allocator> >
+	: public TContainerTraitsBase<TIndirectArray<T, Allocator> >
 {
 	enum { MoveWillEmptyContainer = TContainerTraitsBase<typename TIndirectArray<T, Allocator>::InternalArrayType>::MoveWillEmptyContainer };
 };
+
 
 template <typename T,typename Allocator> void* operator new( size_t Size, TIndirectArray<T,Allocator>& Array )
 {
@@ -3446,12 +3441,14 @@ template <typename T,typename Allocator> void* operator new( size_t Size, TIndir
 	return &Array[Index];
 }
 
+
 template <typename T,typename Allocator> void* operator new( size_t Size, TIndirectArray<T,Allocator>& Array, int32 Index )
 {
 	check(Size == sizeof(T));
 	Array.Insert((T*)FMemory::Malloc(Size), Index);
 	return &Array[Index];
 }
+
 
 /*-----------------------------------------------------------------------------
 	Transactional array.
@@ -3460,9 +3457,11 @@ template <typename T,typename Allocator> void* operator new( size_t Size, TIndir
 // NOTE: Right now, you can't use a custom allocation policy with transactional arrays. If
 // you need to do it, you will have to fix up FTransaction::FObjectRecord to use the correct TArray<Allocator>.
 template< typename T >
-class TTransArray : public TArray<T>
+class TTransArray
+	: public TArray<T>
 {
 public:
+
 	typedef TArray<T> Super;
 
 	// Constructors.
@@ -3471,6 +3470,7 @@ public:
 	{
 		checkSlow(Owner);
 	}
+
 	TTransArray( UObject* InOwner, const Super& Other )
 	:	Super( Other )
 	,	Owner( InOwner )
@@ -3525,6 +3525,7 @@ public:
 		}
 		return Index;
 	}
+
 	void InsertUninitialized( int32 Index, int32 Count=1 )
 	{
 		Super::InsertUninitialized( Index, Count );
@@ -3533,6 +3534,7 @@ public:
 			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, Count, 1, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 	}
+
 	void RemoveAt( int32 Index, int32 Count=1 )
 	{
 		if( GUndo )
@@ -3541,6 +3543,7 @@ public:
 		}
 		Super::RemoveAt( Index, Count );
 	}
+
 	void Empty( int32 Slack=0 )
 	{
 		if( GUndo )
@@ -3567,12 +3570,14 @@ public:
 		new(*this) T(Item);
 		return this->Num() - 1;
 	}
+
 	int32 AddZeroed( int32 n=1 )
 	{
 		const int32 Index = AddUninitialized(n);
 		FMemory::Memzero(this->GetData() + Index, n*sizeof(T));
 		return Index;
 	}
+
 	int32 AddUnique( const T& Item )
 	{
 		for( int32 Index=0; Index<this->ArrayNum; Index++ )
@@ -3584,6 +3589,7 @@ public:
 		}
 		return Add( Item );
 	}
+
 	int32 Remove( const T& Item )
 	{
 		this->CheckAddress(&Item);
@@ -3604,10 +3610,12 @@ public:
 	{
 		return Owner;
 	}
+
 	void SetOwner( UObject* NewOwner )
 	{
 		Owner = NewOwner;
 	}
+
 	void ModifyItem( int32 Index )
 	{
 		if( GUndo )
@@ -3615,6 +3623,7 @@ public:
 			GUndo->SaveArray( Owner, (FScriptArray*)this, Index, 1, 0, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 	}
+
 	void ModifyAllItems()
 	{
 		if( GUndo )
@@ -3622,13 +3631,16 @@ public:
 			GUndo->SaveArray( Owner, (FScriptArray*)this, 0, this->Num(), 0, sizeof(T), DefaultConstructItem, SerializeItem, DestructItem );
 		}
 	}
+
 	friend FArchive& operator<<( FArchive& Ar, TTransArray& A )
 	{
 		Ar << A.Owner;
 		Ar << (Super&)A;
 		return Ar;
 	}
+
 protected:
+
 	static void DefaultConstructItem( void* TPtr )
 	{
 		new (TPtr) T;
@@ -3644,11 +3656,13 @@ protected:
 	UObject* Owner;
 };
 
+
 template<typename T>
 struct TContainerTraits<TTransArray<T> > : public TContainerTraitsBase<TTransArray<T> >
 {
 	enum { MoveWillEmptyContainer = TContainerTraitsBase<typename TTransArray<T>::Super>::MoveWillEmptyContainer };
 };
+
 
 //
 // Transactional array operator news.
@@ -3659,6 +3673,8 @@ template <typename T> void* operator new( size_t Size, TTransArray<T>& Array )
 	const int32 Index = Array.AddUninitialized();
 	return &Array[Index];
 }
+
+
 template <typename T> void* operator new( size_t Size, TTransArray<T>& Array, int32 Index )
 {
 	check(Size == sizeof(T));

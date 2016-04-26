@@ -351,6 +351,12 @@ public:
 	UPROPERTY(EditAnywhere, Category=LOD)
 	int32 MaxLODLevel;
 
+	UPROPERTY(EditAnywhere, Category=LOD)
+	float LODDistanceFactor;
+
+	UPROPERTY(EditAnywhere, Category=LOD)
+	TEnumAsByte<ELandscapeLODFalloff::Type> LODFalloff;
+
 #if WITH_EDITORONLY_DATA
 	/** LOD level to use when exporting the landscape to obj or FBX */
 	UPROPERTY(EditAnywhere, Category=LOD, AdvancedDisplay)
@@ -381,8 +387,17 @@ public:
 	UPROPERTY(EditAnywhere, Category=Landscape, AdvancedDisplay)
 	UMaterialInterface* LandscapeHoleMaterial;
 
-	UPROPERTY(EditAnywhere, Category=LOD)
-	float LODDistanceFactor;
+	/** Allows overriding the landscape bounds. This is useful if you distort the landscape with world-position-offset, for example
+	 *  Extension value in the negative Z axis, positive value increases bound size
+	 *  Note that this can also be overridden per-component when the component is selected with the component select tool */
+	UPROPERTY(EditAnywhere, Category=Landscape)
+	float NegativeZBoundsExtension;
+
+	/** Allows overriding the landscape bounds. This is useful if you distort the landscape with world-position-offset, for example
+	 *  Extension value in the positive Z axis, positive value increases bound size
+	 *  Note that this can also be overridden per-component when the component is selected with the component select tool */
+	UPROPERTY(EditAnywhere, Category=Landscape)
+	float PositiveZBoundsExtension;
 
 	/** The array of LandscapeComponent that are used by the landscape */
 	UPROPERTY()
@@ -495,9 +510,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = Landscape, AdvancedDisplay)
 	ENavDataGatheringMode NavigationGeometryGatheringMode;
-
-	UPROPERTY(EditAnywhere, Category=LOD)
-	TEnumAsByte<ELandscapeLODFalloff::Type> LODFalloff;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category=Landscape)

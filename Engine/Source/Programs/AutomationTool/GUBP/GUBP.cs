@@ -97,7 +97,7 @@ public partial class GUBP : BuildCommand
         bool bSaveSharedTempStorage = P4Enabled && (IsBuildMachine || GlobalCommandLine.UseLocalBuildStorage);
 
         // Get the branch hacker options.
-        string BranchName = P4Enabled ? P4Env.BuildRootP4 : ParseParamValue("BranchName", "");
+        string BranchName = ParseParamValue("BranchName", P4Enabled ? P4Env.BuildRootP4 : "");
         GUBPBranchHacker.BranchOptions BranchOptions = GetBranchOptions(BranchName);
 
 		foreach (var Kind in BranchOptions.MonolithicsToRemove)

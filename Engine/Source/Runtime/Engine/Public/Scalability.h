@@ -85,9 +85,43 @@ namespace Scalability
 	/** Process a console command line **/
 	ENGINE_API void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 
+	/** Returns the number of steps for each quality level */
+	ENGINE_API FQualityLevels GetQualityLevelCounts();
+
 	/** Minimum single axis scale for render resolution */
 	static const float MinResolutionScale = 10.0f;
 
 	/** Maximum single axis scale for render resolution */
 	static const float MaxResolutionScale = 100.0f;
+
+
+	// A set of accessor helper objects that allow fast and thread safe access to the scalability CVars values without giving direct access.
+	struct ENGINE_API FResolutionQualityCVarAccessor : public FCVarAccessorFloat
+	{
+		FResolutionQualityCVarAccessor();
+	};
+	struct ENGINE_API FViewDistanceQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FViewDistanceQualityCVarAccessor();
+	};
+	struct ENGINE_API FAntiAliasingQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FAntiAliasingQualityCVarAccessor();
+	};
+	struct ENGINE_API FShadowQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FShadowQualityCVarAccessor();
+	};
+	struct ENGINE_API FPostProcessQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FPostProcessQualityCVarAccessor();
+	};
+	struct ENGINE_API FTextureQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FTextureQualityCVarAccessor();
+	};
+	struct ENGINE_API FEffectsQualityCVarAccessor : public FCVarAccessorInt
+	{
+		FEffectsQualityCVarAccessor();
+	};
 }

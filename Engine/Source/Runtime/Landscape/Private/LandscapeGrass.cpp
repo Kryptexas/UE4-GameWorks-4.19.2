@@ -67,7 +67,8 @@ static TAutoConsoleVariable<int32> CVarUseHaltonDistribution(
 static TAutoConsoleVariable<float> CVarGrassDensityScale(
 	TEXT("grass.densityScale"),
 	1,
-	TEXT("Multiplier on all grass densities."));
+	TEXT("Multiplier on all grass densities."),
+	ECVF_Scalability);
 
 static TAutoConsoleVariable<int32> CVarGrassEnable(
 	TEXT("grass.Enable"),
@@ -711,14 +712,14 @@ bool ULandscapeComponent::IsGrassMapOutdated() const
 bool ULandscapeComponent::CanRenderGrassMap() const
 {
 	// Check we can render
-	UWorld* World = GetWorld();
-	if (!GIsEditor || GUsingNullRHI || !World || World->IsGameWorld() || World->FeatureLevel < ERHIFeatureLevel::SM4 || !SceneProxy)
+	UWorld* ComponentWorld = GetWorld();
+	if (!GIsEditor || GUsingNullRHI || !ComponentWorld || ComponentWorld->IsGameWorld() || ComponentWorld->FeatureLevel < ERHIFeatureLevel::SM4 || !SceneProxy)
 	{
 		return false;
 	}
 
 	// Check we can render the material
-	if (!MaterialInstance->GetMaterialResource(GetWorld()->FeatureLevel)->HasValidGameThreadShaderMap())
+	if (!MaterialInstance->GetMaterialResource(ComponentWorld->FeatureLevel)->HasValidGameThreadShaderMap())
 	{
 		return false;
 	}
@@ -1289,6 +1290,10 @@ static FORCEINLINE float Halton(uint32 Index)
 struct FAsyncGrassBuilder : public FGrassBuilderBase
 {
 	FLandscapeComponentGrassAccess GrassData;
+	EGrassScaling Scaling;
+	FFloatInterval ScaleX;
+	FFloatInterval ScaleY;
+	FFloatInterval ScaleZ;
 	bool RandomRotation;
 	bool AlignToSurface;
 	float PlacementJitter;
@@ -1319,6 +1324,10 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 	FAsyncGrassBuilder(ALandscapeProxy* Landscape, ULandscapeComponent* Component, const ULandscapeGrassType* GrassType, const FGrassVariety& GrassVariety, UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent, int32 SqrtSubsections, int32 SubX, int32 SubY, uint32 InHaltonBaseIndex)
 		: FGrassBuilderBase(Landscape, Component, GrassVariety, SqrtSubsections, SubX, SubY)
 		, GrassData(Component, GrassType)
+		, Scaling(GrassVariety.Scaling)
+		, ScaleX(GrassVariety.ScaleX)
+		, ScaleY(GrassVariety.ScaleY)
+		, ScaleZ(GrassVariety.ScaleZ)
 		, RandomRotation(GrassVariety.RandomRotation)
 		, AlignToSurface(GrassVariety.AlignToSurface)
 		, PlacementJitter(GrassVariety.PlacementJitter)
@@ -1418,6 +1427,34 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		}
 	}
 
+	FVector GetRandomScale() const
+	{
+		FVector Result(1.0f);
+
+		switch (Scaling)
+		{
+		case EGrassScaling::Uniform:
+			Result.X = ScaleX.Interpolate(RandomStream.GetFraction());
+			Result.Y = Result.X;
+			Result.Z = Result.X;
+			break;
+		case EGrassScaling::Free:
+			Result.X = ScaleX.Interpolate(RandomStream.GetFraction());
+			Result.Y = ScaleY.Interpolate(RandomStream.GetFraction());
+			Result.Z = ScaleZ.Interpolate(RandomStream.GetFraction());
+			break;
+		case EGrassScaling::LockXY:
+			Result.X = ScaleX.Interpolate(RandomStream.GetFraction());
+			Result.Y = Result.X;
+			Result.Z = ScaleZ.Interpolate(RandomStream.GetFraction());
+			break;
+		default:
+			check(0);
+		}
+
+		return Result;
+	}
+
 	void Build()
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FoliageGrassAsyncBuildTime);
@@ -1451,7 +1488,9 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 				bool bKeep = Weight > 0.0f && Weight >= RandomStream.GetFraction();
 				if (bKeep)
 				{
-					float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
+					const FVector Scale = GetRandomScale();
+					const float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
+					const FMatrix BaseXForm = FScaleRotationTranslationMatrix(Scale, FRotator(0.0f, Rot, 0.0f), FVector::ZeroVector);
 					FMatrix OutXForm;
 					if (AlignToSurface)
 					{
@@ -1474,16 +1513,16 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 							const FVector NewY = NewZ ^ NewX;
 
 							FMatrix Align = FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
-							OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * Align * FTranslationMatrix(LocationWithHeight) * XForm;
+							OutXForm = (BaseXForm * Align).ConcatTranslation(LocationWithHeight) * XForm;
 						}
 						else
 						{
-							OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(LocationWithHeight) * XForm;
+							OutXForm = BaseXForm.ConcatTranslation(LocationWithHeight) * XForm;
 						}
 					}
 					else
 					{
-						OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(LocationWithHeight) * XForm;
+						OutXForm = BaseXForm.ConcatTranslation(LocationWithHeight) * XForm;
 					}
 					InstanceTransforms.Add(OutXForm);
 				}
@@ -1548,7 +1587,9 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 							const FInstanceLocal& Instance = Instances[InstanceIndex];
 							if (Instance.bKeep)
 							{
-								float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
+								const FVector Scale = GetRandomScale();
+								const float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
+								const FMatrix BaseXForm = FScaleRotationTranslationMatrix(Scale, FRotator(0.0f, Rot, 0.0f), FVector::ZeroVector);
 								FMatrix OutXForm;
 								if (AlignToSurface)
 								{
@@ -1566,16 +1607,16 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 										const FVector NewY = NewZ ^ NewX;
 
 										FMatrix Align = FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
-										OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * Align * FTranslationMatrix(Instance.Pos) * XForm;
+										OutXForm = (BaseXForm * Align).ConcatTranslation(Instance.Pos) * XForm;
 									}
 									else
 									{
-										OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
+										OutXForm = BaseXForm.ConcatTranslation(Instance.Pos) * XForm;
 									}
 								}
 								else
 								{
-									OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
+									OutXForm = BaseXForm.ConcatTranslation(Instance.Pos) * XForm;
 								}
 								InstanceTransforms[OutInstanceIndex] = OutXForm;
 								SetInstance(OutInstanceIndex++, OutXForm, RandomStream.GetFraction());
@@ -1692,7 +1733,7 @@ void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* Onl
 				{
 					SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
 					Used->ClearInstances();
-					Used->DetachFromParent(false, false);
+					Used->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, false));
 					Used->DestroyComponent();
 				}
 				Iter.RemoveCurrent();
@@ -1722,7 +1763,7 @@ void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* Onl
 		{
 			SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
 			Component->ClearInstances();
-			Component->DetachFromParent(false, false);
+			Component->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, false));
 			Component->DestroyComponent();
 		}
 
@@ -1737,7 +1778,7 @@ void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* Onl
 		{
 			SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
 			CastChecked<UHierarchicalInstancedStaticMeshComponent>(Component)->ClearInstances();
-			Component->DetachFromParent(false, false);
+			Component->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, false));
 			Component->DestroyComponent();
 		}
 
@@ -1876,8 +1917,6 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 							GrassVarietyIndex++;
 							if (GrassVariety.GrassMesh && GrassVariety.GrassDensity > 0.0f && GrassVariety.EndCullDistance > 0)
 							{
-								bool bRandomRotation = GrassVariety.RandomRotation;
-								bool bAlign = GrassVariety.AlignToSurface;
 								float MustHaveDistance = GuardBand * (float)GrassVariety.EndCullDistance;
 								float DiscardDistance = DiscardGuardBand * (float)GrassVariety.EndCullDistance;
 
@@ -2065,7 +2104,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										{
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassAttachComp);
 
-											HierarchicalInstancedStaticMeshComponent->AttachTo(GetRootComponent());
+											HierarchicalInstancedStaticMeshComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 											FTransform DesiredTransform = GetRootComponent()->ComponentToWorld;
 											DesiredTransform.RemoveScaling();
 											HierarchicalInstancedStaticMeshComponent->SetWorldTransform(DesiredTransform);
@@ -2218,7 +2257,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 				{
 					SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
 					HComponent->ClearInstances();
-					HComponent->DetachFromParent(false, false);
+					HComponent->DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, false));
 					HComponent->DestroyComponent();
 					FoliageComponents.Remove(HComponent);
 				}

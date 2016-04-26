@@ -32,40 +32,25 @@ public:
 		return !IsEnabled() || FParse::Param(FCommandLine::Get(), TEXT("EpicPortal"));
 	}
 
-	virtual bool RunLauncher() const override
+	virtual bool RunLauncher(ELauncherAction Action) const override
 	{
 #if WITH_LAUNCHERCHECK
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-
 		if (DesktopPlatform != nullptr)
 		{
-			static const TCHAR* Delims[] = { TEXT("/") };
-			static const int32 NumDelims = ARRAY_COUNT(Delims);
-
-			// Get the path to the executable, and encode it ('cos spaces, colons, etc break things)
-			FString ExePath = FPlatformProcess::BaseDir();
-
-			// Make sure it's not relative and the slashes are the right way
-			ExePath = FPaths::ConvertRelativePathToFull(ExePath);
-			ExePath.ReplaceInline(TEXT("\\"), TEXT("/"));
-
-			// Encode the path 'cos symbols like ':',' ' etc are bad
-			FString EncodedExePath;
-			TArray<FString> ExeFolders;
-			ExePath.ParseIntoArray(ExeFolders, Delims, NumDelims);
-			for (const FString& ExeFolder : ExeFolders)
-			{
-				EncodedExePath /= FGenericPlatformHttp::UrlEncode(ExeFolder);
-			}
-
-			// Make sure it ends in a slash
-			EncodedExePath /= TEXT("");
-
 			// Construct a url to tell the launcher of this app and what we want to do with it
 			FOpenLauncherOptions LauncherOptions;
 			LauncherOptions.LauncherRelativeUrl = TEXT("apps");
-			LauncherOptions.LauncherRelativeUrl /= EncodedExePath;
-			LauncherOptions.LauncherRelativeUrl += TEXT("?action=launch");
+			LauncherOptions.LauncherRelativeUrl /= GetEncodedExePath();
+			switch (Action)
+			{
+			case ELauncherAction::AppLaunch:
+				LauncherOptions.LauncherRelativeUrl += TEXT("?action=launch");
+				break;
+			case ELauncherAction::AppUpdateCheck:
+				LauncherOptions.LauncherRelativeUrl += TEXT("?action=updatecheck");
+				break;
+			};
 			return DesktopPlatform->OpenLauncher(LauncherOptions);
 		}
 #endif // WITH_LAUNCHERCHECK
@@ -97,6 +82,38 @@ public:
 #else
 		return false;
 #endif
+	}
+
+private:
+
+	/**
+	 * Return url encoded full path of currently running exe
+	 */
+	FString GetEncodedExePath() const
+	{
+		FString EncodedExePath;
+
+		static const TCHAR* Delims[] = { TEXT("/") };
+		static const int32 NumDelims = ARRAY_COUNT(Delims);
+
+		// Get the path to the executable, and encode it ('cos spaces, colons, etc break things)
+		FString ExePath = FPlatformProcess::BaseDir();
+
+		// Make sure it's not relative and the slashes are the right way
+		ExePath = FPaths::ConvertRelativePathToFull(ExePath);
+		ExePath.ReplaceInline(TEXT("\\"), TEXT("/"));
+
+		// Encode the path 'cos symbols like ':',' ' etc are bad
+		TArray<FString> ExeFolders;
+		ExePath.ParseIntoArray(ExeFolders, Delims, NumDelims);
+		for (const FString& ExeFolder : ExeFolders)
+		{
+			EncodedExePath /= FGenericPlatformHttp::UrlEncode(ExeFolder);
+		}
+		// Make sure it ends in a slash
+		EncodedExePath /= TEXT("");
+
+		return EncodedExePath;
 	}
 };
 

@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	VulkanVertexBuffer.cpp: Vulkan texture RHI implementation.
+	VulkanTexture.cpp: Vulkan texture RHI implementation.
 =============================================================================*/
 
 #include "VulkanRHIPrivate.h"
@@ -12,7 +12,6 @@
 
 static FCriticalSection GTextureMapLock;
 static TMap<FRHIResource*, VulkanRHI::FStagingBuffer*> GPendingLockedBuffers;
-static TMap<FRHIResource*, VulkanRHI::FStagingImage*> GPendingLockedImages;
 
 static const VkImageTiling GVulkanViewTypeTilingMode[VK_IMAGE_VIEW_TYPE_RANGE_SIZE] =
 {
@@ -179,7 +178,6 @@ VkImage FVulkanSurface::CreateImage(
 		break;
 	}
 
-#if VULKAN_STRICT_TEXTURE_FLAGS
 	if (ImageCreateInfo.tiling == VK_IMAGE_TILING_LINEAR)
 	{
 		VkFormatFeatureFlags FormatFlags = InDevice.GetFormatProperties()[ImageCreateInfo.format].linearTilingFeatures;
@@ -226,7 +224,6 @@ VkImage FVulkanSurface::CreateImage(
 			ImageCreateInfo.usage &= ~VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		}
 	}
-#endif
 
 	VkImage Image;
 	VERIFYVULKANRESULT(vkCreateImage(InDevice.GetInstanceHandle(), &ImageCreateInfo, nullptr, &Image));
@@ -281,8 +278,22 @@ FVulkanSurface::FVulkanSurface(FVulkanDevice& InDevice, VkImageViewType Resource
 		MemProps |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 	}
 
-	Allocation = InDevice.GetMemoryManager().Alloc(MemoryRequirements.size, MemoryRequirements.memoryTypeBits, MemProps, __FILE__, __LINE__);
-	VERIFYVULKANRESULT(vkBindImageMemory(Device->GetInstanceHandle(), Image, Allocation->GetHandle(), 0));
+	const bool bRenderTarget = (UEFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_ResolveTargetable)) != 0;
+	const bool bCPUReadback = (UEFlags & TexCreate_CPUReadback) != 0;
+	const bool bDynamic = (UEFlags & TexCreate_Dynamic) != 0;
+
+	if (!bDynamic && !bCPUReadback)
+	{
+		ResourceAllocation = InDevice.GetResourceHeapManager().AllocateImageMemory(MemoryRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, __FILE__, __LINE__);
+		ResourceAllocation->BindImage(Device, Image);
+	}
+	else
+	{
+		Allocation = InDevice.GetMemoryManager().Alloc(MemoryRequirements.size, MemoryRequirements.memoryTypeBits, MemProps, __FILE__, __LINE__);
+		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindImageMemory Buf %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, (void*)Allocation->GetHandle(), (uint32)0, (uint32)MemoryRequirements.size);
+		VERIFYVULKANRESULT(vkBindImageMemory(Device->GetInstanceHandle(), Image, Allocation->GetHandle(), 0));
+	}
+
 
 	Tiling = ImageCreateInfo.tiling;
 	check(Tiling == VK_IMAGE_TILING_LINEAR || Tiling == VK_IMAGE_TILING_OPTIMAL);
@@ -392,8 +403,11 @@ void FVulkanSurface::Destroy()
 			ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		}
 
-		Device->GetMemoryManager().Free(Allocation);
-		Allocation = nullptr;
+		if (Allocation)
+		{
+			Device->GetMemoryManager().Free(Allocation);
+			Allocation = nullptr;
+		}
 	}
 }
 
@@ -511,10 +525,11 @@ void FVulkanSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 
 uint32 FVulkanSurface::GetMemorySize()
 {
-	VkMemoryRequirements mem_req;
-	vkGetImageMemoryRequirements(Device->GetInstanceHandle(), Image, &mem_req);
+	//#todo-rco: Slow!
+	VkMemoryRequirements MemReqs;
+	vkGetImageMemoryRequirements(Device->GetInstanceHandle(), Image, &MemReqs);
 
-	return mem_req.size;
+	return MemReqs.size;
 }
 
 void FVulkanSurface::GetMipStride(uint32 MipIndex, uint32& Stride)
@@ -754,7 +769,18 @@ FTexture3DRHIRef FVulkanDynamicRHI::RHICreateTexture3D(uint32 SizeX, uint32 Size
 
 void FVulkanDynamicRHI::RHIGetResourceInfo(FTextureRHIParamRef Ref, FRHIResourceInfo& OutInfo)
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
+	if (FRHITexture2D* Tex2D = Ref->GetTexture2D())
+	{
+		OutInfo.VRamAllocation.AllocationSize = ((FVulkanTexture2D*)Tex2D)->Surface.GetMemorySize();
+	}
+	else if (FRHITextureCube* TexCube = Ref->GetTextureCube())
+	{
+		OutInfo.VRamAllocation.AllocationSize = ((FVulkanTextureCube*)TexCube)->Surface.GetMemorySize();
+	}
+	else if (FRHITexture3D* Tex3D = Ref->GetTexture3D())
+	{
+		OutInfo.VRamAllocation.AllocationSize = ((FVulkanTexture3D*)Tex3D)->Surface.GetMemorySize();
+	}
 }
 
 void FVulkanDynamicRHI::RHIGenerateMips(FTextureRHIParamRef SourceSurfaceRHI)
@@ -803,7 +829,7 @@ void* FVulkanDynamicRHI::RHILockTexture2D(FTexture2DRHIParamRef TextureRHI,uint3
 	Texture->Surface.GetMipStride(MipIndex, DestStride);
 	*StagingBuffer = Device->GetStagingManager().AcquireBuffer(BufferSize);
 
-	void* Data = (*StagingBuffer)->Map();
+	void* Data = (*StagingBuffer)->GetMappedPointer();
 	return Data;
 }
 
@@ -820,8 +846,6 @@ void FVulkanDynamicRHI::RHIUnlockTexture2D(FTexture2DRHIParamRef TextureRHI,uint
 		bool bFound = GPendingLockedBuffers.RemoveAndCopyValue(TextureRHI, StagingBuffer);
 		checkf(bFound, TEXT("Texture was not locked!"));
 	}
-
-	StagingBuffer->Unmap();
 
 #if VULKAN_USE_NEW_COMMAND_BUFFERS
 	FVulkanCmdBuffer* CmdBuffer = Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer();
@@ -949,25 +973,6 @@ void FVulkanTextureView::Destroy(FVulkanDevice& Device)
 	}
 }
 
-#if VULKAN_HAS_DEBUGGING_ENABLED
-	static int32 GVulkanTextureBaseAllocationCount = 0;
-	static int32 GVulkanAllocationBalance = 0;
-#endif
-
-#if VULKAN_HAS_DEBUGGING_ENABLED
-int32 FVulkanTextureBase::GetAllocatedCount()
-{
-	return GVulkanTextureBaseAllocationCount;
-}
-#endif
-
-#if VULKAN_HAS_DEBUGGING_ENABLED
-int32 FVulkanTextureBase::GetAllocationBalance()
-{
-	return GVulkanAllocationBalance;
-}
-#endif
-
 FVulkanTextureBase* FVulkanTextureBase::Cast(FRHITexture* Texture)
 {
 	check(Texture);
@@ -1006,10 +1011,6 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	 Surface(Device, ResourceType, InFormat, SizeX, SizeY, SizeZ, bArray, ArraySize, NumMips, (UEFlags & TexCreate_DepthStencilTargetable) ? NumSamples : 1, UEFlags, CreateInfo)
 	 , MSAASurface(nullptr)
 	#endif
-	, StagingImage(VK_NULL_HANDLE)
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-	, AllocationNumber(0)
-	#endif
 {
 	if (ResourceType != VK_IMAGE_VIEW_TYPE_MAX_ENUM)
 	{
@@ -1027,11 +1028,6 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 		}
 	}
 #endif
-
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		GVulkanAllocationBalance++;
-		AllocationNumber = GVulkanTextureBaseAllocationCount++;
-	#endif
 
 	// For now only 3D textures can have bulk-data parsed on creation time.
 	if(!CreateInfo.BulkData || Surface.GetTiling() != VK_IMAGE_TILING_OPTIMAL)
@@ -1080,6 +1076,7 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	VulkanRHI::FDeviceMemoryAllocation* Allocation = Device.GetMemoryManager().Alloc(MemReqs.size, MemReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, __FILE__, __LINE__);
 	Mem = Allocation->GetHandle();
 
+	//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindBufferMemory Buf %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buffer, (void*)Mem, (uint32)0, (uint32)MemReqs.size);
 	VERIFYVULKANRESULT(vkBindBufferMemory(Device.GetInstanceHandle(), Buffer, Mem, 0));
 
 	void* Data = nullptr;
@@ -1102,10 +1099,10 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	VkImageSubresourceRange SubresourceRange;
 	FMemory::Memzero(SubresourceRange);
 	SubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	SubresourceRange.baseMipLevel = 0;
+	//SubresourceRange.baseMipLevel = 0;
 	SubresourceRange.levelCount = Surface.GetNumMips();
-	SubresourceRange.baseArrayLayer = 0;
-	SubresourceRange.layerCount = Surface.Depth;
+	//SubresourceRange.baseArrayLayer = 0;
+	SubresourceRange.layerCount = ArraySize;
 	VulkanSetImageLayout(CmdBuffer->GetHandle(), Surface.Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, SubresourceRange);
 
 	// Copy buffer to image
@@ -1131,21 +1128,12 @@ FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType Re
 	#if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
 	, MSAASurface(nullptr)
 	#endif
-	, StagingImage(VK_NULL_HANDLE)
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-	, AllocationNumber(0)
-	#endif
 {
 	check(InMem == VK_NULL_HANDLE);
 	if (ResourceType != VK_IMAGE_VIEW_TYPE_MAX_ENUM)
 	{
 		View.Create(Device, Surface, ResourceType, Surface.InternalFormat, 1);
 	}
-
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		GVulkanAllocationBalance++;
-		AllocationNumber = GVulkanTextureBaseAllocationCount++;
-	#endif
 }
 
 FVulkanTextureBase::~FVulkanTextureBase()
@@ -1158,11 +1146,6 @@ FVulkanTextureBase::~FVulkanTextureBase()
 		delete MSAASurface;
 		MSAASurface = nullptr;
 	}
-	#endif
-
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		GVulkanAllocationBalance--;
-		check(GVulkanAllocationBalance >= 0);
 	#endif
 }
 
@@ -1243,7 +1226,7 @@ void* FVulkanDynamicRHI::RHILockTextureCubeFace(FTextureCubeRHIParamRef TextureC
 	Texture->Surface.GetMipStride(MipIndex, DestStride);
 	*StagingBuffer = Device->GetStagingManager().AcquireBuffer(BufferSize);
 
-	void* Data = (*StagingBuffer)->Map();
+	void* Data = (*StagingBuffer)->GetMappedPointer();
 	return Data;
 }
 
@@ -1260,8 +1243,6 @@ void FVulkanDynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef Texture
 		bool bFound = GPendingLockedBuffers.RemoveAndCopyValue(TextureCubeRHI, StagingBuffer);
 		checkf(bFound, TEXT("Texture was not locked!"));
 	}
-
-	StagingBuffer->Unmap();
 
 #if VULKAN_USE_NEW_COMMAND_BUFFERS
 	FVulkanCmdBuffer* CmdBuffer = Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer();

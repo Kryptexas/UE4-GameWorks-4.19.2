@@ -355,7 +355,7 @@ AMatineeActor::AMatineeActor(const FObjectInitializer& ObjectInitializer)
 		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Matinee;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Matinee;
-		SpriteComponent->AttachParent = RootComponent;
+		SpriteComponent->SetupAttachment(RootComponent);
 		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
@@ -600,6 +600,20 @@ void AMatineeActor::OnObjectsReplaced(const TMap<UObject*,UObject*>& Replacement
 	ReplaceMapKeys(ReplacementMap, SavedActorVisibilities);
 }
 #endif //WITH_EDITOR
+
+void AMatineeActor::EnableGroupByName(FString GroupName, bool bEnable)
+{
+	UInterpGroupInst* FirstGroupInst = FindFirstGroupInstByName(GroupName);
+
+	if (FirstGroupInst)
+	{
+		UInterpGroup* Group = FirstGroupInst->Group;
+		for ( UInterpTrack* Track : Group->InterpTracks)
+		{
+			Track->EnableTrack(bEnable, true);
+		}
+	}
+}
 
 void AMatineeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
@@ -2621,7 +2635,7 @@ void UInterpGroupInst::InitGroupInst(UInterpGroup* InGroup, AActor* InGroupActor
 	bool bHasAnimTrack = Group->HasAnimControlTrack();
 	if (bHasAnimTrack && GroupActor != NULL && !GroupActor->IsPendingKill())
 	{
-		IMatineeAnimInterface * IMAI = Cast<IMatineeAnimInterface>(GroupActor);
+		IMatineeAnimInterface* IMAI = Cast<IMatineeAnimInterface>(GroupActor);
 		if (IMAI)
 		{
 			// If in the editor and we haven't started playing, this should be Matinee! Bit yuck...
@@ -2639,7 +2653,7 @@ void UInterpGroupInst::InitGroupInst(UInterpGroup* InGroup, AActor* InGroupActor
 		else
 		{
 			// this is when initialized. Print error if the interface is not found
-			UE_LOG(LogMatinee, Warning, TEXT("IntepGroup : MatineeAnimInterface is missing for (%s)"), *GroupActor->GetName());		
+			UE_LOG(LogMatinee, Warning, TEXT("InterpGroup : MatineeAnimInterface is missing for (%s)"), *GroupActor->GetName());		
 		}
 	}
 }
@@ -4793,9 +4807,9 @@ FTransform UInterpTrackMove::GetMoveRefFrame(UInterpTrackInstMove* MoveTrackInst
 	AActor* Actor = MoveTrackInst->GetGroupActor();
 	FTransform BaseTM = FTransform::Identity;
 
-	if(Actor && Actor->GetRootComponent() && Actor->GetRootComponent()->AttachParent)
+	if(Actor && Actor->GetRootComponent() && Actor->GetRootComponent()->GetAttachParent())
 	{
-		BaseTM = Actor->GetRootComponent()->AttachParent->GetSocketTransform(Actor->GetRootComponent()->AttachSocketName);
+		BaseTM = Actor->GetRootComponent()->GetAttachParent()->GetSocketTransform(Actor->GetRootComponent()->GetAttachSocketName());
 	}
 
 	return BaseTM;
@@ -7985,11 +7999,11 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 					{
 						if (bAttach && Actor->GetRootComponent())
 						{
-							SoundInst->PlayAudioComp->AttachTo(Actor->GetRootComponent());
+							SoundInst->PlayAudioComp->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 						}
 						else
 						{
-							SoundInst->PlayAudioComp->DetachFromParent();
+							SoundInst->PlayAudioComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 							SoundInst->PlayAudioComp->SetWorldLocation(Actor->GetActorLocation());
 						}
 					}
@@ -8016,7 +8030,7 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 						{
 							if (bAttach && Actor->GetRootComponent())
 							{
-								SoundInst->PlayAudioComp->AttachTo(Actor->GetRootComponent());
+								SoundInst->PlayAudioComp->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 							}
 							else
 							{
@@ -8887,7 +8901,7 @@ AMaterialInstanceActor::AMaterialInstanceActor(const FObjectInitializer& ObjectI
 		SpriteComponent->Sprite = ConstructorStatics.MaterialInstanceSpriteObject.Get();
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Materials;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Materials;
-		SpriteComponent->AttachParent = SceneComponent;
+		SpriteComponent->SetupAttachment(SceneComponent);
 		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA

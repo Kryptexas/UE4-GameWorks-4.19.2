@@ -699,9 +699,9 @@ void SLevelViewportToolBar::GenerateViewportTypeMenu( FMenuBuilder& Builder ) co
 {
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 	LevelEditorModule.IterateViewportTypes([&](FName, const FViewportTypeDefinition& InDefinition) {
-		if (InDefinition.ToggleCommand.IsValid())
+		if (InDefinition.ActivationCommand.IsValid())
 		{
-			Builder.AddMenuEntry(InDefinition.ToggleCommand);
+			Builder.AddMenuEntry(InDefinition.ActivationCommand);
 		}
 	});
 }

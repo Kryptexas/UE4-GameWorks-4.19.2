@@ -466,13 +466,13 @@ void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 	{
 		for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
 		{
-			if (FBodyInstance* BodyInstance = Bodies[BodyIdx])
+			if (FBodyInstance* BodyInst = Bodies[BodyIdx])
 			{
 				if (UBodySetup * PhysAssetBodySetup = PhysAsset->BodySetup[BodyIdx])
 				{
 					if (PhysAssetBodySetup->PhysicsType == EPhysicsType::PhysType_Default)
 					{
-						BodyInstance->SetInstanceSimulatePhysics(bSimulate);
+						BodyInst->SetInstanceSimulatePhysics(bSimulate);
 					}
 				}
 			}
@@ -580,9 +580,9 @@ void USkeletalMeshComponent::SetAllPhysicsLinearVelocity(FVector NewVel, bool bA
 {
 	for (int32 i=0; i < Bodies.Num(); i++)
 	{
-		FBodyInstance* BodyInstance = Bodies[i];
-		check(BodyInstance);
-		BodyInstance->SetLinearVelocity(NewVel, bAddToCurrent);
+		FBodyInstance* BodyInst = Bodies[i];
+		check(BodyInst);
+		BodyInst->SetLinearVelocity(NewVel, bAddToCurrent);
 	}
 }
 
@@ -752,7 +752,7 @@ void USkeletalMeshComponent::SetEnableGravity(bool bGravityEnabled)
 	{
 		for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
 		{
-			if (FBodyInstance* BodyInstance = Bodies[BodyIdx])
+			if (FBodyInstance* BodyInst = Bodies[BodyIdx])
 			{
 				if (UBodySetup * PhysAssetBodySetup = PhysAsset->BodySetup[BodyIdx])
 				{
@@ -764,7 +764,7 @@ void USkeletalMeshComponent::SetEnableGravity(bool bGravityEnabled)
 						bUseGravityEnabled = false;
 					}
 				
-					BodyInstance->SetEnableGravity(bUseGravityEnabled);
+					BodyInst->SetEnableGravity(bUseGravityEnabled);
 				}
 			}
 		}
@@ -960,6 +960,8 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 void USkeletalMeshComponent::TermArticulated()
 {
+	ResetRootBodyIndex();
+
 #if WITH_PHYSX
 	uint32 SkelMeshCompID = GetUniqueID();
 	FPhysScene * PhysScene = GetWorld()->GetPhysicsScene();
@@ -1411,13 +1413,13 @@ FConstraintInstance* USkeletalMeshComponent::FindConstraintInstance(FName ConNam
 #define OLD_FORCE_UPDATE_BEHAVIOR 0
 #endif
 
-void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
+void USkeletalMeshComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
 {
 	// We are handling the physics move below, so don't handle it at higher levels
-	Super::OnUpdateTransform(true, Teleport);
+	Super::OnUpdateTransform(UpdateTransformFlags | EUpdateTransformFlags::SkipPhysicsUpdate, Teleport);
 
 	// Always send new transform to physics
-	if(bPhysicsStateCreated && !bSkipPhysicsMove)
+	if(bPhysicsStateCreated && !(UpdateTransformFlags&EUpdateTransformFlags::SkipPhysicsUpdate))
 	{
 #if !OLD_FORCE_UPDATE_BEHAVIOR
 		UpdateKinematicBonesToAnim(GetSpaceBases(), Teleport, false);
@@ -1457,7 +1459,7 @@ void USkeletalMeshComponent::CreatePhysicsState()
 	// Init physics
 	if (bEnablePerPolyCollision == false)
 	{
-		InitArticulated(World->GetPhysicsScene());
+		InitArticulated(GetWorld()->GetPhysicsScene());
 		USceneComponent::CreatePhysicsState(); // Need to route CreatePhysicsState, skip PrimitiveComponent
 	}
 	else
@@ -1642,7 +1644,7 @@ void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedB
 				OutLabels.Add(NAME_None);
 			}
 
-			for (USceneComponent * Child : AttachChildren)
+			for (USceneComponent * Child : GetAttachChildren())
 			{
 				if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
 				{
@@ -1767,7 +1769,8 @@ void USkeletalMeshComponent::SetPhysicsAsset(UPhysicsAsset* InPhysicsAsset, bool
 			RefreshBoneTransforms();
 
 			// Initialize new Physics Asset
-			if(World->GetPhysicsScene() != NULL && ShouldCreatePhysicsState())
+			UWorld* World = GetWorld();
+			if(World->GetPhysicsScene() != nullptr && ShouldCreatePhysicsState())
 			{
 			//	UE_LOG(LogSkeletalMesh, Warning, TEXT("Creating Physics State (%s : %s)"), *GetNameSafe(GetOuter()),  *GetName());			
 				InitArticulated(World->GetPhysicsScene());
@@ -1926,8 +1929,8 @@ float USkeletalMeshComponent::GetDistanceToCollision(const FVector& Point, FVect
 
 	for (int32 BodyIdx = 0; BodyIdx < Bodies.Num(); ++BodyIdx)
 	{
-		FBodyInstance* BodyInstance = Bodies[BodyIdx];
-		if (BodyInstance && BodyInstance->IsValidBodyInstance() && (BodyInstance->GetCollisionEnabled() != ECollisionEnabled::NoCollision))
+		FBodyInstance* BodyInst = Bodies[BodyIdx];
+		if (BodyInst && BodyInst->IsValidBodyInstance() && (BodyInst->GetCollisionEnabled() != ECollisionEnabled::NoCollision))
 		{
 			FVector ClosestPoint;
 			const float Distance = Bodies[BodyIdx]->GetDistanceToBody(Point, ClosestPoint);
@@ -2442,6 +2445,7 @@ void USkeletalMeshComponent::GetWindForCloth_GameThread(FVector& WindDirection, 
 	//to convert from normalized value( usually 0.0 to 1.0 ) to Apex clothing wind value
 	const float WindUnitAmout = 2500.0f;
 	
+	UWorld* World = GetWorld();
 	if(World && World->Scene)
 	{
 		// set wind
@@ -2917,15 +2921,14 @@ void USkeletalMeshComponent::CopyClothCollisionsToChildren()
 	// 2. find new collisions from parent(this class)
 	// 3. add new collisions to children
 
-	int32 NumChildren = AttachChildren.Num();
 	TArray<USkeletalMeshComponent*> ClothChildren;
 
-	for(int32 i=0; i < NumChildren; i++)
+	for (USceneComponent* AttachedChild : GetAttachChildren())
 	{
-		USkeletalMeshComponent* pChild = Cast<USkeletalMeshComponent>(AttachChildren[i]);
+		USkeletalMeshComponent* pChild = Cast<USkeletalMeshComponent>(AttachedChild);
 		if(pChild)
 		{
-			int32 NumActors = pChild->ClothingActors.Num();
+			const int32 NumActors = pChild->ClothingActors.Num();
 			if(NumActors > 0)
 			{
 				ClothChildren.Add(pChild);
@@ -2935,7 +2938,7 @@ void USkeletalMeshComponent::CopyClothCollisionsToChildren()
 		}
 	}
 
-	int32 NumClothChildren = ClothChildren.Num();
+	const int32 NumClothChildren = ClothChildren.Num();
 
 	if(NumClothChildren == 0)
 	{
@@ -2972,14 +2975,13 @@ void USkeletalMeshComponent::CopyChildrenClothCollisionsToParent()
 
 	ReleaseAllChildrenCollisions();
 
-	int32 NumChildren = AttachChildren.Num();
 	TArray<USkeletalMeshComponent*> ClothCollisionChildren;
 
 	TArray<FApexClothCollisionVolumeData> NewCollisions;
 
-	for(int32 i=0; i < NumChildren; i++)
+	for (USceneComponent* AttachedChild : GetAttachChildren())
 	{
-		USkeletalMeshComponent* pChild = Cast<USkeletalMeshComponent>(AttachChildren[i]);
+		USkeletalMeshComponent* pChild = Cast<USkeletalMeshComponent>(AttachedChild);
 		if(pChild)
 		{
 			pChild->FindClothCollisions(NewCollisions);

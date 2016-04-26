@@ -50,3 +50,11 @@ void UAnimCompress_RemoveTrivialKeys::DoReduction(UAnimSequence* AnimSeq, const 
 	AnimSeq->CompressionScheme = static_cast<UAnimCompress*>( StaticDuplicateObject( this, AnimSeq ) );
 #endif // WITH_EDITORONLY_DATA
 }
+
+void UAnimCompress_RemoveTrivialKeys::PopulateDDCKey(FArchive& Ar)
+{
+	Super::PopulateDDCKey(Ar);
+	Ar << MaxPosDiff;
+	Ar << MaxAngleDiff;
+	Ar << MaxScaleDiff;
+}

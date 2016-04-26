@@ -1507,9 +1507,9 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	 *
 	 *	@return	FMaterialRenderProxy*	The material proxt to render with.
 	 */
-	const FMaterialRenderProxy* GetMaterialRenderProxy(bool bSelected) 
+	const FMaterialRenderProxy* GetMaterialRenderProxy(bool bInSelected) 
 	{ 
-		return MaterialResource[bSelected]; 
+		return MaterialResource[bInSelected]; 
 	}
 
 	/**

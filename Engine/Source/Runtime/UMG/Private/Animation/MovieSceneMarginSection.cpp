@@ -30,38 +30,43 @@ void UMovieSceneMarginSection::DilateSection( float DilationFactor, float Origin
 	BottomCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
 }
 
-void UMovieSceneMarginSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+void UMovieSceneMarginSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const
 {
+	if (!TimeRange.Overlaps(GetRange()))
+	{
+		return;
+	}
+
 	for (auto It(LeftCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = LeftCurve.GetKeyTime(It.Key());
-		if (IsTimeWithinSection(Time))
+		if (TimeRange.Contains(Time))
 		{
-			KeyHandles.Add(It.Key());
+			OutKeyHandles.Add(It.Key());
 		}
 	}
 	for (auto It(TopCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = TopCurve.GetKeyTime(It.Key());
-		if (IsTimeWithinSection(Time))
+		if (TimeRange.Contains(Time))
 		{
-			KeyHandles.Add(It.Key());
+			OutKeyHandles.Add(It.Key());
 		}
 	}
 	for (auto It(RightCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = RightCurve.GetKeyTime(It.Key());
-		if (IsTimeWithinSection(Time))
+		if (TimeRange.Contains(Time))
 		{
-			KeyHandles.Add(It.Key());
+			OutKeyHandles.Add(It.Key());
 		}
 	}
 	for (auto It(BottomCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = BottomCurve.GetKeyTime(It.Key());
-		if (IsTimeWithinSection(Time))
+		if (TimeRange.Contains(Time))
 		{
-			KeyHandles.Add(It.Key());
+			OutKeyHandles.Add(It.Key());
 		}
 	}
 }

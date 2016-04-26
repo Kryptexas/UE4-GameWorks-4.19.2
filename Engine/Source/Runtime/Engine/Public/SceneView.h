@@ -90,6 +90,9 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 
 	TSet<FPrimitiveComponentId> HiddenPrimitives;
 
+	/** The primitives which are visible for this view. If the array is not empty, all other primitives will be hidden. */
+	TSet<FPrimitiveComponentId> ShowOnlyPrimitives;
+
 	// -1,-1 if not setup
 	FIntPoint CursorPos;
 
@@ -517,6 +520,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FFrameUniformShaderParameters, ENGI
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, SkyIrradianceEnvironmentMap, [7])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, MobilePreviewMode)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, HMDEyePaddingOffset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, ReflectionCubemapMaxMip, EShaderPrecisionModifier::Half)
 
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, GlobalVolumeCenterAndExtent_UB, [GMaxGlobalDistanceFieldClipmaps])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, GlobalVolumeWorldToUVAddAndMul_UB, [GMaxGlobalDistanceFieldClipmaps])
@@ -531,7 +535,6 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FFrameUniformShaderParameters, ENGI
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, GlobalDistanceFieldSampler2_UB)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture3D, GlobalDistanceFieldTexture3_UB)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, GlobalDistanceFieldSampler3_UB)
-
 
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, DirectionalLightShadowTexture)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, DirectionalLightShadowSampler)
@@ -666,6 +669,9 @@ public:
 	/** The primitives which are hidden for this view. */
 	TSet<FPrimitiveComponentId> HiddenPrimitives;
 
+	/** The primitives which are visible for this view. If the array is not empty, all other primitives will be hidden. */
+	TSet<FPrimitiveComponentId> ShowOnlyPrimitives;
+
 	// Derived members.
 
 	/** redundant, ViewMatrices.GetViewProjMatrix() */
@@ -675,6 +681,8 @@ public:
 	FMatrix InvViewMatrix;				
 	/** redundant, ViewMatrices.GetInvViewProjMatrix() */
 	FMatrix InvViewProjectionMatrix;	
+
+	bool bAllowTemporalJitter;
 
 	float TemporalJitterPixelsX;
 	float TemporalJitterPixelsY;
@@ -1095,10 +1103,15 @@ public:
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	EDebugViewShaderMode DebugViewShaderMode;
+	bool bUsedDebugViewPSVSHS;
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DebugViewShaderMode; }
 	EDebugViewShaderMode ChooseDebugViewShaderMode() const;
+	FORCEINLINE bool UseDebugViewVSDSHS() const { return bUsedDebugViewPSVSHS; }
+	FORCEINLINE bool UseDebugViewPS() const { return DebugViewShaderMode != DVSM_None; }
 #else
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DVSM_None; }
+	FORCEINLINE bool UseDebugViewVSDSHS() const { return false; }
+	FORCEINLINE bool UseDebugViewPS() const { return false; }
 #endif
 
 	/** Returns the appropriate view for a given eye in a stereo pair. */

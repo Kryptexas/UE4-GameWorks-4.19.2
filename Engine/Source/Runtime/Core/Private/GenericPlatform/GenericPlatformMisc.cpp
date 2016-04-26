@@ -4,6 +4,7 @@
 #include "MallocAnsi.h"
 #include "GenericApplication.h"
 #include "GenericPlatformChunkInstall.h"
+#include "GenericPlatformCompression.h"
 #include "HAL/FileManagerGeneric.h"
 #include "ModuleManager.h"
 #include "VarargsHelper.h"
@@ -605,6 +606,12 @@ const TCHAR* FGenericPlatformMisc::GetNullRHIShaderFormat()
 IPlatformChunkInstall* FGenericPlatformMisc::GetPlatformChunkInstall()
 {
 	static FGenericPlatformChunkInstall Singleton;
+	return &Singleton;
+}
+
+IPlatformCompression* FGenericPlatformMisc::GetPlatformCompression()
+{
+	static FGenericPlatformCompression Singleton;
 	return &Singleton;
 }
 

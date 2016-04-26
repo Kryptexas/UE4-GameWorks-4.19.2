@@ -17,7 +17,7 @@ protected:
 	//Unregisters the Component and returns the world it was registered to.
 	UWorld* UnRegister(UActorComponent* InComponent)
 	{
-		UWorld* World = NULL;
+		UWorld* World = nullptr;
 
 		check(InComponent);
 		checkf(!InComponent->IsUnreachable(), TEXT("%s"), *InComponent->GetFullName());
@@ -31,7 +31,7 @@ protected:
 			// Will set bRegistered to false
 			InComponent->ExecuteUnregisterEvents();
 
-			InComponent->World = NULL;
+			InComponent->WorldPrivate = nullptr;
 		}
 		return World;
 	}
@@ -53,10 +53,9 @@ protected:
 				// re-register.
 				UE_LOG(LogActorComponent, Log, TEXT("~FComponentReregisterContext: (%s) Component already registered."), *InComponent->GetPathName());
 				InComponent->ExecuteUnregisterEvents();
-				InComponent->World = NULL;
 			}
 
-			InComponent->World = InWorld;
+			InComponent->WorldPrivate = InWorld;
 			FNavigationLockContext NavUpdateLock(InWorld);
 
 			// Will set bRegistered to true

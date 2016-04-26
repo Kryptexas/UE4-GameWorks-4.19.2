@@ -125,7 +125,7 @@ UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* P
 			// Otherwise, attach to parent component passed in
 			else
 			{
-				NewSceneComp->AttachTo(ParentComponent, AttachToName);
+				NewSceneComp->SetupAttachment(ParentComponent, AttachToName);
 			}
 		}
 

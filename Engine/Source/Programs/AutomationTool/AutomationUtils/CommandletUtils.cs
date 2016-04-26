@@ -291,10 +291,17 @@ namespace AutomationTool
 				List<FileInfo> CrashFileInfos = new List<FileInfo>();
 				foreach(string CrashDir in CrashDirs)
 				{
-					DirectoryInfo CrashDirInfo = new DirectoryInfo(CrashDir);
-					if(CrashDirInfo.Exists)
+					try
 					{
-						CrashFileInfos.AddRange(CrashDirInfo.EnumerateFiles("*.crash", SearchOption.TopDirectoryOnly).Where(x => x.LastWriteTimeUtc >= StartTime));
+						DirectoryInfo CrashDirInfo = new DirectoryInfo(CrashDir);
+						if (CrashDirInfo.Exists)
+						{
+							CrashFileInfos.AddRange(CrashDirInfo.EnumerateFiles("*.crash", SearchOption.TopDirectoryOnly).Where(x => x.LastWriteTimeUtc >= StartTime));
+						}
+					}
+					catch (UnauthorizedAccessException)
+					{
+						// Not all account types can access /Library/Logs/DiagnosticReports
 					}
 				}
 				

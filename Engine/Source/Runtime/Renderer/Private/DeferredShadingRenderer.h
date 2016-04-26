@@ -67,13 +67,11 @@ public:
 
 	/** Renders the basepass for the static data of a given View. */
 	bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
-	bool RenderBasePassStaticDataMasked(FRHICommandList& RHICmdList, FViewInfo& View);
-	bool RenderBasePassStaticDataDefault(FRHICommandList& RHICmdList, FViewInfo& View);
+	bool RenderBasePassStaticDataType(FRHICommandList& RHICmdList, FViewInfo& View, const EBasePassDrawListType DrawType);
 
 	/** Renders the basepass for the static data of a given View. Parallel versions.*/
 	void RenderBasePassStaticDataParallel(FParallelCommandListSet& ParallelCommandListSet);
-	void RenderBasePassStaticDataMaskedParallel(FParallelCommandListSet& ParallelCommandListSet);
-	void RenderBasePassStaticDataDefaultParallel(FParallelCommandListSet& ParallelCommandListSet);
+	void RenderBasePassStaticDataTypeParallel(FParallelCommandListSet& ParallelCommandListSet, const EBasePassDrawListType DrawType);
 
 	/** Asynchronously sorts base pass draw lists front to back for improved GPU culling. */
 	void AsyncSortBasePassStaticData(const FVector ViewPosition, FGraphEventArray &SortEvents);

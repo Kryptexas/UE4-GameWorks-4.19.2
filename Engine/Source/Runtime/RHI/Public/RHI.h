@@ -132,6 +132,9 @@ extern RHI_API bool GSupportsResourceView;
 /** true if the RHI supports MRT */
 extern RHI_API bool GSupportsMultipleRenderTargets;
 
+/** true if the RHI supports 256bit MRT */
+extern RHI_API bool GSupportsWideMRT;
+
 /** True if the RHI and current hardware supports supports depth bounds testing */
 extern RHI_API bool GSupportsDepthBoundsTest;
 

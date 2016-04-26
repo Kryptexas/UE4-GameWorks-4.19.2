@@ -130,6 +130,43 @@ void AController::SetControlRotation(const FRotator& NewRotation)
 }
 
 
+void AController::SetIgnoreMoveInput(bool bNewMoveInput)
+{
+	IgnoreMoveInput = FMath::Max(IgnoreMoveInput + (bNewMoveInput ? +1 : -1), 0);
+}
+
+void AController::ResetIgnoreMoveInput()
+{
+	IgnoreMoveInput = 0;
+}
+
+bool AController::IsMoveInputIgnored() const
+{
+	return (IgnoreMoveInput > 0);
+}
+
+void AController::SetIgnoreLookInput(bool bNewLookInput)
+{
+	IgnoreLookInput = FMath::Max(IgnoreLookInput + (bNewLookInput ? +1 : -1), 0);
+}
+
+void AController::ResetIgnoreLookInput()
+{
+	IgnoreLookInput = 0;
+}
+
+bool AController::IsLookInputIgnored() const
+{
+	return (IgnoreLookInput > 0);
+}
+
+void AController::ResetIgnoreInputFlags()
+{
+	ResetIgnoreMoveInput();
+	ResetIgnoreLookInput();
+}
+
+
 void AController::AttachToPawn(APawn* InPawn)
 {
 	if (bAttachToPawn && RootComponent)
@@ -139,9 +176,9 @@ void AController::AttachToPawn(APawn* InPawn)
 			// Only attach if not already attached.
 			if (InPawn->GetRootComponent() && RootComponent->GetAttachParent() != InPawn->GetRootComponent())
 			{
-				RootComponent->DetachFromParent(false);
+				RootComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 				RootComponent->SetRelativeLocationAndRotation(FVector::ZeroVector, FRotator::ZeroRotator);
-				RootComponent->AttachTo(InPawn->GetRootComponent());
+				RootComponent->AttachToComponent(InPawn->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 			}
 		}
 		else
@@ -155,7 +192,7 @@ void AController::DetachFromPawn()
 {
 	if (bAttachToPawn && RootComponent && RootComponent->GetAttachParent() && Cast<APawn>(RootComponent->GetAttachmentRootActor()))
 	{
-		RootComponent->DetachFromParent(true);
+		RootComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 	}
 }
 

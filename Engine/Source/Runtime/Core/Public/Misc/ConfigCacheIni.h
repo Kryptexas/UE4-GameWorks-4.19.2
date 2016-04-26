@@ -727,4 +727,4 @@ CORE_API void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, int3
  * @param InIniFilename - The ini filename
  * @param SetBy anything in ECVF_LastSetMask e.g. ECVF_SetByScalability
  */
-CORE_API void ApplyCVarSettingsFromIni(const TCHAR* InSectionBaseName, const TCHAR* InIniFilename, uint32 SetBy);
+CORE_API void ApplyCVarSettingsFromIni(const TCHAR* InSectionBaseName, const TCHAR* InIniFilename, uint32 SetBy, bool bAllowCheating = false);

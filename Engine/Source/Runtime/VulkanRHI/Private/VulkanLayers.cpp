@@ -16,17 +16,25 @@ TAutoConsoleVariable<int32> GValidationCvar(
 // List of validation layers which we want to activate for the (device)-instance (used in VulkanRHI.cpp)
 static const ANSICHAR* GValidationLayersInstance[] =
 {
-#if VK_API_VERSION >= VK_MAKE_VERSION(1, 0, 5)
+#if VK_HEADER_VERSION >= 8 || VK_API_VERSION >= VK_MAKE_VERSION(1, 0, 5)
 	"VK_LAYER_GOOGLE_threading",
 #else
 	"VK_LAYER_LUNARG_threading",
 #endif
+#if VK_HEADER_VERSION >= 8
+	"VK_LAYER_LUNARG_parameter_validation",
+#else
 	"VK_LAYER_LUNARG_param_checker",
+#endif
 	"VK_LAYER_LUNARG_device_limits",
 	"VK_LAYER_LUNARG_object_tracker",	// The framebuffer is not registered for some reason by the object tracker... the steps are exactly the same as in the demo. For now ObjectTracker is disabled...
 	"VK_LAYER_LUNARG_image",
+#if VK_HEADER_VERSION >= 8
+	"VK_LAYER_LUNARG_core_validation",
+#else
 	"VK_LAYER_LUNARG_mem_tracker",
 	"VK_LAYER_LUNARG_draw_state",
+#endif
 	"VK_LAYER_LUNARG_swapchain",
 	"VK_LAYER_GOOGLE_unique_objects",
 #if VULKAN_ENABLE_API_DUMP
@@ -38,17 +46,25 @@ static const ANSICHAR* GValidationLayersInstance[] =
 // List of validation layers which we want to activate for the device
 static const ANSICHAR* GValidationLayersDevice[] =
 {
-#if VK_API_VERSION >= VK_MAKE_VERSION(1, 0, 5)
+#if VK_HEADER_VERSION >= 8 || VK_API_VERSION >= VK_MAKE_VERSION(1, 0, 5)
 	"VK_LAYER_GOOGLE_threading",
 #else
 	"VK_LAYER_LUNARG_threading",
 #endif
+#if VK_HEADER_VERSION >= 8
+	"VK_LAYER_LUNARG_parameter_validation",
+#else
 	"VK_LAYER_LUNARG_param_checker",
+#endif
 	"VK_LAYER_LUNARG_device_limits",
 	"VK_LAYER_LUNARG_object_tracker",	// The framebuffer is not registered for some reason by the object tracker... the steps are exactly the same as in the demo. For now ObjectTracker is disabled...
 	"VK_LAYER_LUNARG_image",
+#if VK_HEADER_VERSION >= 8
+	"VK_LAYER_LUNARG_core_validation",
+#else
 	"VK_LAYER_LUNARG_mem_tracker",
 	"VK_LAYER_LUNARG_draw_state",
+#endif
 	"VK_LAYER_LUNARG_swapchain",
 	"VK_LAYER_GOOGLE_unique_objects",
 #if VULKAN_ENABLE_API_DUMP
@@ -82,7 +98,8 @@ static const ANSICHAR* GDeviceExtensions[] =
 	//	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,	// Not supported, even if it's reported as a valid extension... (SDK/driver bug?)
 #endif
 #if VULKAN_ENABLE_DRAW_MARKERS
-	DEBUG_MARKER_EXTENSION_NAME,
+	// This is removed from the SDK as of 1.0.5.0 but RenderDoc does expose it
+	"VK_LUNARG_DEBUG_MARKER",
 #endif
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
@@ -144,7 +161,7 @@ static inline void GetDeviceLayerExtensions(VkPhysicalDevice Device, const ANSIC
 }
 
 
-void FVulkanDynamicRHI::GetInstanceLayersList(TArray<const ANSICHAR*>& OutInstanceExtensions, TArray<const ANSICHAR*>& OutInstanceLayers)
+void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& OutInstanceExtensions, TArray<const ANSICHAR*>& OutInstanceLayers)
 {
 	TArray<FLayerExtension> GlobalLayers;
 	FLayerExtension GlobalExtensions;
@@ -307,8 +324,6 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 		}
 	}
 
-#if VULKAN_ENABLE_DRAW_MARKERS
-#endif	// VULKAN_ENABLE_DRAW_MARKERS
 #endif	// !PLATFORM_ANDROID
 
 	if (OutDeviceExtensions.Num() > 0)

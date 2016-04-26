@@ -1305,9 +1305,9 @@ void SLevelViewport::BindViewCommands( FUICommandList& CommandList )
 		FIsActionChecked::CreateSP( this, &SLevelViewport::IsViewportConfigurationSet, LevelViewportConfigurationNames::FourPanes2x2 ));
 
 	auto ProcessViewportTypeActions = [&](FName InViewportTypeName, const FViewportTypeDefinition& InDefinition){
-		if (InDefinition.ToggleCommand.IsValid())
+		if (InDefinition.ActivationCommand.IsValid())
 		{
-			CommandList.MapAction(InDefinition.ToggleCommand, FUIAction(
+			CommandList.MapAction(InDefinition.ActivationCommand, FUIAction(
 				FExecuteAction::CreateSP(this, &SLevelViewport::ToggleViewportTypeActivationWithinLayout, InViewportTypeName),
 				FCanExecuteAction(),
 				FIsActionChecked::CreateSP(this, &SLevelViewport::IsViewportTypeWithinLayoutEqual, InViewportTypeName)
@@ -3173,6 +3173,16 @@ bool SLevelViewport::IsActorPreviewPinned( TWeakObjectPtr<AActor> PreviewActor )
 
 void SLevelViewport::UpdateActorPreviewViewports()
 {
+	// Remove any previews that are locked to the same actor as the level viewport client's actor lock
+	for( int32 PreviewIndex = 0; PreviewIndex < ActorPreviews.Num(); ++PreviewIndex )
+	{
+		AActor* ExistingActor = ActorPreviews[PreviewIndex].Actor.Get();
+		if (ExistingActor && LevelViewportClient->IsActorLocked(ExistingActor))
+		{
+			RemoveActorPreview( PreviewIndex-- );
+		}
+	}
+
 	// Look for actors that we no longer want to preview
 	for( auto ActorPreviewIt = ActorPreviews.CreateConstIterator(); ActorPreviewIt; ++ActorPreviewIt )
 	{
@@ -3334,6 +3344,22 @@ void SLevelViewport::OnSetViewportConfiguration(FName ConfigurationName)
 	}
 }
 
+void SLevelViewport::RefreshViewportConfiguration()
+{
+	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
+	if (LayoutPinned.IsValid())
+	{
+		TSharedPtr<FLevelViewportTabContent> ViewportTabPinned = LayoutPinned->GetParentTabContent().Pin();
+		if (ViewportTabPinned.IsValid())
+		{
+			// Viewport clients are going away.  Any current one is invalid.
+			GCurrentLevelEditingViewportClient = nullptr;
+			ViewportTabPinned->RefreshViewportConfiguration();
+			FSlateApplication::Get().DismissAllMenus();
+		}
+	}
+}
+
 bool SLevelViewport::IsViewportConfigurationSet(FName ConfigurationName) const
 {
 	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
@@ -3371,17 +3397,13 @@ void SLevelViewport::SetViewportTypeWithinLayout(FName InLayoutType)
 		GConfig->SetString( *IniSection, *( ConfigKey + TEXT(".TypeWithinLayout") ), *InLayoutType.ToString(), GEditorPerProjectIni );
 
 		// Force a refresh of the tab content
-		OnSetViewportConfiguration(LayoutPinned->GetLayoutTypeName());
+		RefreshViewportConfiguration();
 	}
 }
 
 void SLevelViewport::ToggleViewportTypeActivationWithinLayout(FName InLayoutType)
 {
-	if (GetViewportTypeWithinLayout() == InLayoutType)
-	{
-		SetViewportTypeWithinLayout("Default");
-	}
-	else
+	if (GetViewportTypeWithinLayout() != InLayoutType)
 	{
 		SetViewportTypeWithinLayout(InLayoutType);
 	}

@@ -40,9 +40,8 @@ float4x4 PreviousLocalToWorld;
 struct FVertexFactoryInput
 {
 	float4	Position	: ATTRIBUTE0;
-	half3	TangentX	: ATTRIBUTE1;
-	// TangentZ.w contains sign of tangent basis determinant
-	half4	TangentZ	: ATTRIBUTE2;
+	half4	TangentX	: ATTRIBUTE1;
+	half2	TangentZ	: ATTRIBUTE2;
 	half4	VertexColor : ATTRIBUTE3;
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
@@ -399,20 +398,21 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 float3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates )
 {
 	float3x3 Result=0;	
-	float4 TangentZ = TangentBias(Input.TangentZ);
+	float4 TangentX = TangentBias(Input.TangentX);
+	float3 TangentZ = OctToUnit(TangentBias(Input.TangentZ));
 
 	// pass-thru the tangent
-	Result[0] = TangentBias(Input.TangentX);
+	Result[0] = TangentX.xyz;
 	// pass-thru the normal
-	Result[2] = TangentZ.xyz;	
+	Result[2] = TangentZ;	
 
 	
 	// derive the binormal by getting the cross product of the normal and tangent
-	Result[1] = cross(Result[2], Result[0]) * TangentZ.w;	
+	Result[1] = cross(Result[2], Result[0]) * TangentX.w;	
 	// Recalculate TangentX off of the other two vectors
 	// This corrects quantization error since TangentX was passed in as a quantized vertex input
 	// The error shows up most in specular off of a mesh with a smoothed UV seam (normal is smooth, but tangents vary across the seam)
-	Result[0] = cross(Result[1], Result[2]) * TangentZ.w;
+	Result[0] = cross(Result[1], Result[2]) * TangentX.w;
 
 	return Result;
 }
@@ -442,7 +442,7 @@ void CalcTangentToWorld(FVertexFactoryInput Input, FVertexFactoryIntermediates I
 
 	// Normalize to remove scaling. Incorrect but faster than computing the inverse-transpose.
 	TangentToWorld0 = normalize(TangentToWorld[0]);
-	TangentToWorld2 = float4(normalize(TangentToWorld[2]), TangentBias(Input.TangentZ.w) * Primitive.LocalToWorldDeterminantSign);
+	TangentToWorld2 = float4(normalize(TangentToWorld[2]), TangentBias(Input.TangentX.w) * Primitive.LocalToWorldDeterminantSign);
 }
 
 FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, FMaterialVertexParameters VertexParameters)

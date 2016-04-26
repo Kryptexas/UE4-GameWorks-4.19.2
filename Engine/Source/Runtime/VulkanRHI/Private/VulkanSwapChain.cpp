@@ -208,7 +208,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 #endif
 }
 
-void FVulkanSwapChain::Destroy(FVulkanDevice& Device)
+void FVulkanSwapChain::Destroy()
 {
 #if VULKAN_USE_NEW_COMMAND_BUFFERS
 	for (int BufferIndex = 0; BufferIndex < ImageAcquiredSemaphore.Num(); ++BufferIndex)

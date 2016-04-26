@@ -14,6 +14,7 @@
 #include "NotificationManager.h"
 #include "DrawDebugHelpers.h"
 #include "LevelSequenceActor.h"
+#include "Runtime/Core/Public/Features/IModularFeatures.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 
@@ -31,10 +32,18 @@ void FSequenceRecorder::Initialize()
 	CountdownTexture->AddToRoot();
 	RecordingIndicatorTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/SequenceRecorder/RecordingIndicator.RecordingIndicator"), nullptr, LOAD_None, nullptr);
 	RecordingIndicatorTexture->AddToRoot();
+
+	// register built-in recorders
+	IModularFeatures::Get().RegisterModularFeature("MovieSceneSectionRecorderFactory", &AnimationSectionRecorderFactory);
+	IModularFeatures::Get().RegisterModularFeature("MovieSceneSectionRecorderFactory", &TransformSectionRecorderFactory);
 }
 
 void FSequenceRecorder::Shutdown()
 {
+	// unregister built-in recorders
+	IModularFeatures::Get().UnregisterModularFeature("MovieSceneSectionRecorderFactory", &AnimationSectionRecorderFactory);
+	IModularFeatures::Get().UnregisterModularFeature("MovieSceneSectionRecorderFactory", &TransformSectionRecorderFactory);
+
 	if(CountdownTexture.IsValid())
 	{
 		CountdownTexture->RemoveFromRoot();
@@ -108,7 +117,10 @@ UActorRecording* FSequenceRecorder::AddNewQueuedRecording(AActor* Actor, UAnimSe
 
 	// We always record in world space as we need animations to record root motion
 	ActorRecording->AnimationSettings.bRecordInWorldSpace = true;
-	ActorRecording->ActorSettings.bRecordTransforms = true;
+
+	UMovieScene3DTransformSectionRecorderSettings* TransformSettings = ActorRecording->ActorSettings.GetSettingsObject<UMovieScene3DTransformSectionRecorderSettings>();
+	check(TransformSettings);
+	TransformSettings->bRecordTransforms = true;
 
 	// auto-save assets in non-editor runtime
 	if(GEditor == nullptr)

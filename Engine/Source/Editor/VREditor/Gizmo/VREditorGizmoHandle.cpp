@@ -228,12 +228,12 @@ class UStaticMeshComponent* UVREditorGizmoHandleGroup::CreateMeshHandle( class U
 
 	HandleComponent->SetStaticMesh( HandleMesh );
 	HandleComponent->SetMobility( EComponentMobility::Movable );
-	HandleComponent->AttachTo( this );
+	HandleComponent->SetupAttachment( this );
 
 	HandleComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 	HandleComponent->SetCollisionResponseToAllChannels( ECR_Ignore );
-	HandleComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
-	HandleComponent->SetCollisionObjectType( ECC_EditorGizmo );
+	HandleComponent->SetCollisionResponseToChannel( COLLISION_GIZMO, ECollisionResponse::ECR_Block );
+	HandleComponent->SetCollisionObjectType( COLLISION_GIZMO );
 
 	HandleComponent->bGenerateOverlapEvents = false;
 	HandleComponent->SetCanEverAffectNavigation( false );

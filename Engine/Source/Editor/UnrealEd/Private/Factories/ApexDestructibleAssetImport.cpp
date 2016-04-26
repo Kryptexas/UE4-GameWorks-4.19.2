@@ -1023,7 +1023,7 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 		// Store the current file path and timestamp for re-import purposes
 		// @todo AssetImportData make a data class for Apex destructible assets
 		DestructibleMesh->AssetImportData = NewObject<UAssetImportData>(DestructibleMesh);
-		DestructibleMesh->AssetImportData->Update(UFactory::CurrentFilename);
+		DestructibleMesh->AssetImportData->Update(UFactory::GetCurrentFilename());
 	}
 
 	DestructibleMesh->PreEditChange(NULL);

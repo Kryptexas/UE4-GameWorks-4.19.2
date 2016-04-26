@@ -438,7 +438,10 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		glClearBufferuiv = (PFNGLCLEARBUFFERUIVPROC)((void*)eglGetProcAddress("glClearBufferuiv"));
 		glDrawBuffers = (PFNGLDRAWBUFFERSPROC)((void*)eglGetProcAddress("glDrawBuffers"));
 
+		// Required by the ES3 spec
 		bSupportsInstancing = true;
+		bSupportsTextureFloat = true;
+		bSupportsTextureHalfFloat = true;
 	}
 
 	if (bES31Support)

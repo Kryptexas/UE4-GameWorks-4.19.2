@@ -603,7 +603,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 		{
 			HeadMeshComponent = NewObject<UStaticMeshComponent>( AvatarMeshActor );
 			AvatarMeshActor->AddOwnedComponent( HeadMeshComponent );
-			HeadMeshComponent->AttachTo( AvatarMeshActor->GetRootComponent() );
+			HeadMeshComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
 			HeadMeshComponent->RegisterComponent();
 
 			// @todo vreditor: This needs to adapt based on the device you're using
@@ -624,7 +624,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 			{
 				Hand.MotionControllerComponent = NewObject<UMotionControllerComponent>( AvatarMeshActor );
 				AvatarMeshActor->AddOwnedComponent( Hand.MotionControllerComponent );
-				Hand.MotionControllerComponent->AttachTo( AvatarMeshActor->GetRootComponent() );
+				Hand.MotionControllerComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
 				Hand.MotionControllerComponent->RegisterComponent();
 
 				Hand.MotionControllerComponent->SetMobility( EComponentMobility::Movable );
@@ -639,7 +639,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 			{
 				Hand.HandMeshComponent = NewObject<UStaticMeshComponent>( AvatarMeshActor );
 				AvatarMeshActor->AddOwnedComponent( Hand.HandMeshComponent );
-				Hand.HandMeshComponent->AttachTo( Hand.MotionControllerComponent );
+				Hand.HandMeshComponent->SetupAttachment( Hand.MotionControllerComponent );
 				Hand.HandMeshComponent->RegisterComponent();
 
 				// @todo vreditor extensibility: We need this to be able to be overridden externally, or simply based on the HMD name (but allowing external folders)
@@ -674,7 +674,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 			{
 				Hand.LaserPointerMeshComponent = NewObject<UStaticMeshComponent>( AvatarMeshActor );
 				AvatarMeshActor->AddOwnedComponent( Hand.LaserPointerMeshComponent );
-				Hand.LaserPointerMeshComponent->AttachTo( Hand.MotionControllerComponent );
+				Hand.LaserPointerMeshComponent->SetupAttachment( Hand.MotionControllerComponent );
 				Hand.LaserPointerMeshComponent->RegisterComponent();
 
 				UStaticMesh* LaserPointerMesh = LoadObject<UStaticMesh>( nullptr, TEXT( "/Engine/VREditor/LaserPointer/LaserPointerMesh" ) );
@@ -701,7 +701,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 			{
 				Hand.HoverMeshComponent = NewObject<UStaticMeshComponent>( AvatarMeshActor );
 				AvatarMeshActor->AddOwnedComponent( Hand.HoverMeshComponent );
-				Hand.HoverMeshComponent->AttachTo( AvatarMeshActor->GetRootComponent() );
+				Hand.HoverMeshComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
 				Hand.HoverMeshComponent->RegisterComponent();
 
 				UStaticMesh* HoverMesh = LoadObject<UStaticMesh>( nullptr, TEXT( "/Engine/VREditor/LaserPointer/HoverMesh" ) );
@@ -714,7 +714,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 				{
 					Hand.HoverPointLightComponent = NewObject<UPointLightComponent>( AvatarMeshActor );
 					AvatarMeshActor->AddOwnedComponent( Hand.HoverPointLightComponent );
-					Hand.HoverPointLightComponent->AttachTo( Hand.HoverMeshComponent );
+					Hand.HoverPointLightComponent->SetupAttachment( Hand.HoverMeshComponent );
 					Hand.HoverPointLightComponent->RegisterComponent();
 
 					Hand.HoverPointLightComponent->SetLightColor( FLinearColor::Red );
@@ -732,7 +732,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 		{
 			WorldMovementGridMeshComponent = NewObject<UStaticMeshComponent>( AvatarMeshActor );
 			AvatarMeshActor->AddOwnedComponent( WorldMovementGridMeshComponent );
-			WorldMovementGridMeshComponent->AttachTo( AvatarMeshActor->GetRootComponent() );
+			WorldMovementGridMeshComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
 			WorldMovementGridMeshComponent->RegisterComponent();
 
 			UStaticMesh* GridMesh = LoadObject<UStaticMesh>(nullptr, TEXT( "/Engine/VREditor/WorldMovementGrid/PlaneMesh" ) );
@@ -794,7 +794,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 				{
 					ScaleProgressMeshComponent = NewObject<UStaticMeshComponent>( AvatarMeshActor );
 					AvatarMeshActor->AddOwnedComponent( ScaleProgressMeshComponent );
-					ScaleProgressMeshComponent->AttachTo( AvatarMeshActor->GetRootComponent() );
+					ScaleProgressMeshComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
 					ScaleProgressMeshComponent->RegisterComponent();
 				
 					ScaleProgressMeshComponent->SetStaticMesh( ScaleLineMesh );
@@ -823,7 +823,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 				{
 					CurrentScaleProgressMeshComponent = NewObject<UStaticMeshComponent>( AvatarMeshActor );
 					AvatarMeshActor->AddOwnedComponent( CurrentScaleProgressMeshComponent );
-					CurrentScaleProgressMeshComponent->AttachTo( AvatarMeshActor->GetRootComponent() );
+					CurrentScaleProgressMeshComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
 					CurrentScaleProgressMeshComponent->RegisterComponent();
 
 					CurrentScaleProgressMeshComponent->SetStaticMesh( ScaleLineMesh );
@@ -858,7 +858,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 
 				UserScaleIndicatorText = NewObject<UTextRenderComponent>( AvatarMeshActor );
 				AvatarMeshActor->AddOwnedComponent( UserScaleIndicatorText );
-				UserScaleIndicatorText->AttachTo( AvatarMeshActor->GetRootComponent() );
+				UserScaleIndicatorText->SetupAttachment( AvatarMeshActor->GetRootComponent() );
 				UserScaleIndicatorText->RegisterComponent();
 
 				UserScaleIndicatorText->SetMobility( EComponentMobility::Movable );
@@ -888,7 +888,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 		{
 			PostProcessComponent = NewObject<UPostProcessComponent>( AvatarMeshActor );
 			AvatarMeshActor->AddOwnedComponent( PostProcessComponent );
-			PostProcessComponent->AttachTo( AvatarMeshActor->GetRootComponent() );
+			PostProcessComponent->SetupAttachment( AvatarMeshActor->GetRootComponent() );
 			PostProcessComponent->RegisterComponent();
 
 			// Unlimited size
@@ -1855,7 +1855,7 @@ FHitResult FVREditorMode::GetHitResultFromLaserPointer( int32 HandIndex, TArray<
 			
 			const FCollisionResponseParams& ResponseParam = FCollisionResponseParams::DefaultResponseParam;
 
-			const ECollisionChannel CollisionChannel = bOnlyEditorGizmos ? ECC_EditorGizmo : ECC_Visibility;
+			const ECollisionChannel CollisionChannel = bOnlyEditorGizmos ? COLLISION_GIZMO : ECC_Visibility;
 
 			// Don't trace against our own head/hand meshes
 			TraceParams.AddIgnoredActor( AvatarMeshActor );
@@ -1877,13 +1877,13 @@ FHitResult FVREditorMode::GetHitResultFromLaserPointer( int32 HandIndex, TArray<
 			else
 			{
 				FCollisionObjectQueryParams EverythingButGizmos( FCollisionObjectQueryParams::AllObjects );
-				EverythingButGizmos.RemoveObjectTypesToQuery( ECC_EditorGizmo );
+				EverythingButGizmos.RemoveObjectTypesToQuery( COLLISION_GIZMO );
 				bHit = GetWorld()->LineTraceSingleByObjectType( HitResult, LaserPointerStart, LaserPointerEnd, EverythingButGizmos, TraceParams );
 			}
 			if( bHit )
 			{
 				// Is this better than what we have already?  Always prefer transform gizmos even if they were not using
-				// ECC_EditorGizmo (some gizmo handles are opaque and use ECC_Visibility as their collision channel)
+				// COLLISION_GIZMO (some gizmo handles are opaque and use ECC_Visibility as their collision channel)
 				// NOTE: We're treating components of floating UI actors as "gizmos" for the purpose of hit testing as long as the component is not the actual UI widget component
 				const bool bHitResultIsUI = UISystem->IsWidgetAnEditorUIWidget( HitResult.GetComponent() );
 				const bool bHitResultIsGizmo = HitResult.GetActor() != nullptr && ( ( HitResult.GetActor() == WorldInteraction->GetTransformGizmoActor() ) || ( !bHitResultIsUI && HitResult.GetActor()->IsA( AVREditorFloatingUI::StaticClass() ) ) );
@@ -2663,10 +2663,11 @@ void FVREditorMode::ToggleFlashlight( const int32 HandIndex )
 		
 	}
 
-	FVirtualHand Hand = GetVirtualHand(HandIndex);
-	FlashlightComponent->AttachTo(Hand.MotionControllerComponent);
+	FVirtualHand Hand = GetVirtualHand( HandIndex );
+	const FAttachmentTransformRules Rules = FAttachmentTransformRules( EAttachmentRule::KeepRelative, true );
+	FlashlightComponent->AttachToComponent( Hand.MotionControllerComponent, Rules );
 	bIsFlashlightOn = !bIsFlashlightOn;
-	FlashlightComponent->SetVisibility(bIsFlashlightOn);
+	FlashlightComponent->SetVisibility( bIsFlashlightOn );
 	
 
 }

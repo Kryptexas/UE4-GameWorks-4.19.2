@@ -81,6 +81,8 @@ FString FAIResourceLock::GetLockPriorityName() const
 //----------------------------------------------------------------------//
 // FAIResources
 //----------------------------------------------------------------------//
+template<>
+FAIResCounter FAINamedID<FAIResCounter>::Counter = FAIResCounter();
 
 namespace FAIResources
 {

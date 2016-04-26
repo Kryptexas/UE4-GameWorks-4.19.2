@@ -658,7 +658,7 @@ namespace AutomationTool
 			/// Used for special jobs to test things. At the moment, debugging some megaXGE thing
 			public bool SpecialTestFlag = false;
 
-			public bool DoRetries = IsBuildMachine;
+			public bool DoRetries = false;
 
 			/// <summary>
 			/// Adds a target with the specified configuration.
@@ -814,67 +814,73 @@ namespace AutomationTool
 				}
 
 				CombineXGEStopwatch.Finish();
-               
-				using(TelemetryStopwatch ProcessXGEStopwatch = new TelemetryStopwatch("ProcessXGE.{0}", Path.GetFileNameWithoutExtension(XGETool)))
+
+				if(XGETool == null)
 				{
-					int Retries = DoRetries ? 2 : 1;
-					int ConnectionRetries = 4;
-					for (int i = 0; i < Retries; i++)
+					PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
+					try
 					{
-						try
+						int ExitCode = ParallelExecutor.Execute(TaskFilePath);
+						if(ExitCode != 0)
 						{
-							while (true)
+							return false;
+						}
+					}
+					finally
+					{
+						PopDir();
+					}
+				}
+				else
+				{
+					using (TelemetryStopwatch ProcessXGEStopwatch = new TelemetryStopwatch("ProcessXGE.{0}", Path.GetFileNameWithoutExtension(XGETool)))
+					{
+						int Retries = DoRetries ? 2 : 1;
+						int ConnectionRetries = 4;
+						for (int i = 0; i < Retries; i++)
+						{
+							try
 							{
-								LogVerbose("Running {0} *******", XGETool);
-								PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
-								int SuccesCode;
-								string LogFile;
-								bool bOutputContainsProject;
-								if(XGETool == null)
+								while (true)
 								{
-									LogFile = GetRunAndLogOnlyName(CmdEnv, "ParallelExecutor");
-									SuccesCode = ParallelExecutor.Execute(TaskFilePath);
-									bOutputContainsProject = false;
-								}
-								else
-								{
-									LogFile = GetRunAndLogOnlyName(CmdEnv, XGETool);
+									LogVerbose("Running {0} *******", XGETool);
+									PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
+									int SuccesCode;
+									string LogFile = GetRunAndLogOnlyName(CmdEnv, XGETool);
 									string Output = RunAndLog(XGETool, Args, out SuccesCode, LogFile);
-									bOutputContainsProject = Output.Contains("------Project:");
-								}
-								PopDir();
-								if (ConnectionRetries > 0 && (SuccesCode == 4 || SuccesCode == 2) && !bOutputContainsProject && XGETool != null)
-								{
-									LogWarning(String.Format("{0} failure on the local connection timeout", XGETool));
-									if (ConnectionRetries < 2)
+									bool bOutputContainsProject = Output.Contains("------Project:");
+									PopDir();
+									if (ConnectionRetries > 0 && (SuccesCode == 4 || SuccesCode == 2) && !bOutputContainsProject && XGETool != null)
 									{
-										System.Threading.Thread.Sleep(60000);
+										LogWarning(String.Format("{0} failure on the local connection timeout", XGETool));
+										if (ConnectionRetries < 2)
+										{
+											System.Threading.Thread.Sleep(60000);
+										}
+										ConnectionRetries--;
+										continue;
 									}
-									ConnectionRetries--;
-									continue;
+									else if (SuccesCode != 0)
+									{
+										throw new AutomationException("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
+																		XGETool, Args, Path.GetFileName(LogFile), SuccesCode);
+									}
+									LogVerbose("{0} {1} Done *******", XGETool, Args);
+									break;
 								}
-								else if (SuccesCode != 0)
-								{
-									LogWarning("{0} did not succeed *******", XGETool);
-									throw new AutomationException("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
-																	XGETool, Args, Path.GetFileName(LogFile), SuccesCode);
-								}
-								LogVerbose("{0} {1} Done *******", XGETool, Args);
 								break;
 							}
-							break;
-						}
-						catch (Exception Ex)
-						{
-							LogWarning("{0} failed on try {1}: {2}", XGETool, i + 1, Ex.ToString());
-							if (i + 1 >= Retries)
+							catch (Exception Ex)
 							{
-								return false;
-							}
-							LogWarning("Deleting build products to force a rebuild.");
-							foreach (var Item in Actions)
-							{
-								XGEDeleteBuildProducts(Item.Manifest);
+								if (i + 1 >= Retries)
+								{
+									throw;
+								}
+								LogWarning("{0} failed on try {1}, deleting products to force a rebuild: {2}", XGETool, i + 1, Ex.ToString());
+								foreach (var Item in Actions)
+								{
+									XGEDeleteBuildProducts(Item.Manifest);
+								}
 							}
 						}
 					}

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnrealBuildTool;
 using AutomationTool;
+using System.Xml;
 
 namespace AutomationTool
 {
@@ -227,6 +228,46 @@ namespace AutomationTool
 		public bool IsControlledBy(ManualTrigger Trigger)
 		{
 			return Trigger == null || ControllingTrigger == Trigger || (ControllingTrigger != null && ControllingTrigger.IsDownstreamFrom(Trigger));
+		}
+
+		/// <summary>
+		/// Write this node to an XML writer
+		/// </summary>
+		/// <param name="Writer">The writer to output the node to</param>
+		public void Write(XmlWriter Writer)
+		{
+			Writer.WriteStartElement("Node");
+			Writer.WriteAttributeString("Name", Name);
+
+			Node[] RequireNodes = Inputs.Where(x => x.Name == x.ProducingNode.Name).Select(x => x.ProducingNode).ToArray();
+			string[] RequireNames = RequireNodes.Select(x => x.Name).Union(Inputs.Where(x => !RequireNodes.Contains(x.ProducingNode)).Select(x => "#" + x.Name)).ToArray();
+			if (RequireNames.Length > 0)
+			{
+				Writer.WriteAttributeString("Requires", String.Join(";", RequireNames));
+			}
+
+			string[] ProducesNames = Outputs.Where(x => x.Name != Name).Select(x => "#" + x.Name).ToArray();
+			if (ProducesNames.Length > 0)
+			{
+				Writer.WriteAttributeString("Produces", String.Join(";", ProducesNames));
+			}
+
+			string[] AfterNames = GetDirectOrderDependencies().Except(InputDependencies).Select(x => x.Name).ToArray();
+			if (AfterNames.Length > 0)
+			{
+				Writer.WriteAttributeString("After", String.Join(";", AfterNames));
+			}
+
+			if (!bNotifyOnWarnings)
+			{
+				Writer.WriteAttributeString("NotifyOnWarnings", bNotifyOnWarnings.ToString());
+			}
+
+			foreach (CustomTask Task in Tasks)
+			{
+				Task.Write(Writer);
+			}
+			Writer.WriteEndElement();
 		}
 
 		/// <summary>

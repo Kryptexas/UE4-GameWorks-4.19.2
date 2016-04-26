@@ -268,7 +268,7 @@ public class PhysX : ModuleRules
 			PublicSystemIncludePaths.Add(PhysXDir + "include/foundation/unix");
 			PublicLibraryPaths.Add(PhysXLibDir + "Android/ARMv7");
 			PublicLibraryPaths.Add(PhysXLibDir + "Android/x86");
-			PublicLibraryPaths.Add(PhysXLibDir + "Android/arm64");
+			PublicLibraryPaths.Add(PhysXLibDir + "Android/ARM64");
 			PublicLibraryPaths.Add(PhysXLibDir + "Android/x64");
 
 			string[] StaticLibrariesAndroid = new string[] {

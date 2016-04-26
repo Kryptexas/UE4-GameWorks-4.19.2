@@ -356,7 +356,7 @@ bool ShouldRenderFog(const FSceneViewFamily& Family)
 
 	return EngineShowFlags.Fog
 		&& EngineShowFlags.Materials 
-		&& Family.GetDebugViewShaderMode() == DVSM_None
+		&& !Family.UseDebugViewPS()
 		&& !EngineShowFlags.StationaryLightOverlap 
 		&& !EngineShowFlags.VertexDensities
 		&& !EngineShowFlags.LightMapDensity;

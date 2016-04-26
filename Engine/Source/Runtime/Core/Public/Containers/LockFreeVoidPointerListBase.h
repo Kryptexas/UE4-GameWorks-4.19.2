@@ -227,7 +227,7 @@ private:
 		/** Part of the solution to the ABA problem. Links that are free still need locking, but we need to make sure that links are only added to the free list when they are transitioning to the free list. */
 		FThreadSafeCounter	MarkedForDeath;
 
-		/** Construcor, everything is intialized to zero. */
+		/** Constructor, everything is initialized to zero. */
 		FLink()
 			: Next(nullptr)
 			, Item(nullptr)

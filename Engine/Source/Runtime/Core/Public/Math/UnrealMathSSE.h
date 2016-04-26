@@ -62,6 +62,20 @@ FORCEINLINE VectorRegister MakeVectorRegister( float X, float Y, float Z, float 
 	return _mm_setr_ps( X, Y, Z, W );
 }
 
+/**
+* Returns a vector based on 4 int32.
+*
+* @param X		1st int32 component
+* @param Y		2nd int32 component
+* @param Z		3rd int32 component
+* @param W		4th int32 component
+* @return		Vector of the 4 int32
+*/
+FORCEINLINE VectorRegisterInt MakeVectorRegisterInt(int32 X, int32 Y, int32 Z, int32 W)
+{
+	return _mm_setr_epi32(X, Y, Z, W);
+}
+
 /*=============================================================================
  *	Constants:
  *============================================================================*/
@@ -888,6 +902,55 @@ FORCEINLINE void VectorStoreByte4( const VectorRegister& Vec, void* Ptr )
 	// Looks complex but is really quite straightforward:
 	// Convert 4x floats to 4x 32-bit ints, then pack into 4x 16-bit ints, then into 4x 8-bit unsigned ints, then store as a 32-bit value
 	*(int32*)Ptr = _mm_cvtsi128_si32(_mm_packus_epi16(_mm_packs_epi32(_mm_cvttps_epi32(Vec), _mm_setzero_si128()), _mm_setzero_si128()));
+}
+
+/**
+* Loads packed RGB10A2(4 bytes) from unaligned memory and converts them into 4 FLOATs.
+* IMPORTANT: You need to call VectorResetFloatRegisters() before using scalar FLOATs after you've used this intrinsic!
+*
+* @param Ptr			Unaligned memory pointer to the RGB10A2(4 bytes).
+* @return				VectorRegister with 4 FLOATs loaded from Ptr.
+*/
+FORCEINLINE VectorRegister VectorLoadRGB10A2(void* Ptr)
+{
+	VectorRegister Tmp;
+
+	Tmp = _mm_and_ps(_mm_load_ps1((const float *)Ptr), MakeVectorRegister(0x3FFu, 0x3FFu << 10, 0x3FFu << 20, 0x3u << 30));
+	Tmp = _mm_xor_ps(Tmp, VectorSet(0, 0, 0, 0x80000000));
+	Tmp = _mm_cvtepi32_ps(*(const VectorRegisterInt*)&Tmp);
+	Tmp = _mm_add_ps(Tmp, VectorSet(0, 0, 0, 32768.0f*65536.0f));
+	Tmp = _mm_mul_ps(Tmp, VectorSet(1.0f / 1023.0f, 1.0f / (1023.0f*1024.0f), 1.0f / (1023.0f*1024.0f*1024.0f), 1.0f / (3.0f*1024.0f*1024.0f*1024.0f)));
+
+	return Tmp;
+}
+
+/**
+* Converts the 4 FLOATs in the vector RGB10A2, clamped to [0, 1023] and [0, 3], and stores to unaligned memory.
+* IMPORTANT: You need to call VectorResetFloatRegisters() before using scalar FLOATs after you've used this intrinsic!
+*
+* @param Vec			Vector containing 4 FLOATs
+* @param Ptr			Unaligned memory pointer to store the packed RGB10A2(4 bytes).
+*/
+FORCEINLINE void VectorStoreRGB10A2(const VectorRegister& Vec, void* Ptr)
+{
+	VectorRegister Tmp;
+	Tmp = _mm_max_ps(Vec, MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f));
+	Tmp = _mm_min_ps(Tmp, MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f));
+	Tmp = _mm_mul_ps(Tmp, MakeVectorRegister(1023.0f, 1023.0f*1024.0f*0.5f, 1023.0f*1024.0f*1024.0f, 3.0f*1024.0f*1024.0f*1024.0f*0.5f));
+
+	VectorRegisterInt TmpI;
+	TmpI = _mm_cvttps_epi32(Tmp);
+	TmpI = _mm_and_si128(TmpI, MakeVectorRegisterInt(0x3FFu, 0x3FFu << (10 - 1), 0x3FFu << 20, 0x3u << (30 - 1)));
+
+	VectorRegisterInt TmpI2;
+	TmpI2 = _mm_shuffle_epi32(TmpI, _MM_SHUFFLE(3, 2, 3, 2));
+	TmpI = _mm_or_si128(TmpI, TmpI2);
+
+	TmpI2 = _mm_shuffle_epi32(TmpI, _MM_SHUFFLE(1, 1, 1, 1));
+	TmpI2 = _mm_add_epi32(TmpI2, TmpI2);
+	TmpI = _mm_or_si128(TmpI, TmpI2);
+
+	_mm_store_ss((float *)Ptr, *(const VectorRegister*)&TmpI);
 }
 
 /**

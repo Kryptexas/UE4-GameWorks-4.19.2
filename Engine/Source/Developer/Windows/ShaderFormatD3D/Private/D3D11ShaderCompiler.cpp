@@ -534,18 +534,18 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 				if (GD3DAllowRemoveUnused && Input.bCompilingForShaderPipeline && bFoundUnused && !bProcessingSecondTime)
 				{
 					// Rewrite the source removing the unused inputs so the bindings will match
-					TArray<FString> Errors;
-					if (RemoveUnusedInputs(PreprocessedShaderSource, ShaderInputs, EntryPointName, Errors))
+					TArray<FString> RemoveErrors;
+					if (RemoveUnusedInputs(PreprocessedShaderSource, ShaderInputs, EntryPointName, RemoveErrors))
 					{
 						return CompileAndProcessD3DShader(PreprocessedShaderSource, CompilerPath, CompileFlags, Input, EntryPointName, ShaderProfile, true, FilteredErrors, Output);
 					}
 					else
 					{
 						UE_LOG(LogD3D11ShaderCompiler, Warning, TEXT("Failed to Remove unused inputs [%s]!"), *Input.DumpDebugInfoPath);
-						for (int32 Index = 0; Index < Errors.Num(); ++Index)
+						for (int32 Index = 0; Index < RemoveErrors.Num(); ++Index)
 						{
 							FShaderCompilerError NewError;
-							NewError.StrippedErrorMessage = Errors[Index];
+							NewError.StrippedErrorMessage = RemoveErrors[Index];
 							Output.Errors.Add(NewError);
 						}
 						Output.bFailedRemovingUnused = true;
@@ -786,7 +786,9 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			}
 
 			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
-			Output.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*Input.GenerateShaderName()));
+			// Daniel L: This GenerateShaderName does not generate a deterministic output among shaders as the shader code can be shared. 
+			//			uncommenting this will cause the project to have non deterministic materials and will hurt patch sizes
+			//Output.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*Input.GenerateShaderName()));
 
 			// Set the number of instructions.
 			Output.NumInstructions = ShaderDesc.InstructionCount;

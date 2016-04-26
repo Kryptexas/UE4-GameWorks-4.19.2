@@ -95,13 +95,16 @@ namespace UnrealBuildTool
 					}
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
 
-					string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+					string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
+					if (String.IsNullOrEmpty(VulkanSDKPath))
 					{
-                        if ((!String.IsNullOrEmpty(VulkanSDKPath)))
-						{
-            				Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
-							Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
-                        }
+						VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+					}
+
+                    if ((!String.IsNullOrEmpty(VulkanSDKPath)))
+					{
+            			Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
+						Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
 					}
 				}
 			}

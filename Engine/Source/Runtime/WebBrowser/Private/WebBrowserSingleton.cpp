@@ -30,6 +30,8 @@
 
 #if PLATFORM_ANDROID
 #	include <Android/AndroidPlatformWebBrowser.h>
+#elif PLATFORM_IOS
+#	include <IOS/IOSPlatformWebBrowser.h>
 #endif
 
 // Define some platform-dependent file locations
@@ -323,7 +325,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 			return NewBrowserWindow;
 		}
 	}
-#elif PLATFORM_ANDROID
+#elif PLATFORM_ANDROID || PLATFORM_IOS
 	// Create new window
 	TSharedPtr<FWebBrowserWindow> NewBrowserWindow = MakeShareable(new FWebBrowserWindow(InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
 

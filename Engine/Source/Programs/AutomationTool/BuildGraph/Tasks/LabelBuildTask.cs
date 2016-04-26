@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using UnrealBuildTool;
 
 namespace AutomationTool.Tasks
@@ -78,6 +79,14 @@ namespace AutomationTool.Tasks
 			string LabelWithPlatform = BuildInfoPublisherBase.Get().GetLabelWithPlatform(Parameters.Label, Parameters.Platform);
 			BuildInfoPublisherBase.Get().LabelBuild(StagingInfo, LabelWithPlatform, Parameters.McpConfig);
 			return true;
+		}
+
+		/// <summary>
+		/// Output this task out to an XML writer.
+		/// </summary>
+		public override void Write(XmlWriter Writer)
+		{
+			Write(Writer, Parameters);
 		}
 	}
 }

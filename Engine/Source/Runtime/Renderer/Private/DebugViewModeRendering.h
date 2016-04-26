@@ -10,7 +10,6 @@ DebugViewModeRendering.h: Contains definitions for rendering debug viewmodes.
 #include "ShaderParameterUtils.h"
 
 static const int32 NumStreamingAccuracyColors = 5;
-static const int32 MaxStreamingAccuracyMips = 11;
 
 /**
  * Vertex shader for quad overdraw. Required because overdraw shaders need to have SV_Position as first PS interpolant.
@@ -55,6 +54,26 @@ public:
 		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement,DrawRenderState);
 	}
 
+	static void SetCommonDefinitions(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		if (Material->IsDefaultMaterial())
+		{	// Force the default material to pass enough texcoords to the pixel shaders (even though not using them).
+			// This is required to allow material shaders to have access to the sampled coords.
+			OutEnvironment.SetDefine(TEXT("MIN_MATERIAL_TEXCOORDS"), (uint32)4);
+		}
+		else // Otherwise still pass at minimum amount to have debug shader using a texcoord to work (material might not use any).
+		{
+			OutEnvironment.SetDefine(TEXT("MIN_MATERIAL_TEXCOORDS"), (uint32)1);
+		}
+
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		SetCommonDefinitions(Platform, Material, OutEnvironment);
+		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+	}
+
 	virtual bool Serialize(FArchive& Ar)
 	{
 		const bool Result = FMeshMaterialShader::Serialize(Ar);
@@ -82,6 +101,13 @@ public:
 		return FBaseHS::ShouldCache(Platform, Material, VertexFactoryType) && FDebugViewModeVS::ShouldCache(Platform,Material,VertexFactoryType);
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FDebugViewModeVS::SetCommonDefinitions(Platform, Material, OutEnvironment);
+		FBaseHS::ModifyCompilationEnvironment(Platform, OutEnvironment);
+	}
+
+
 	FDebugViewModeHS(const ShaderMetaType::CompiledShaderInitializerType& Initializer): FBaseHS(Initializer) {}
 	FDebugViewModeHS() {}
 };
@@ -97,6 +123,12 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		return FBaseDS::ShouldCache(Platform, Material, VertexFactoryType) && FDebugViewModeVS::ShouldCache(Platform,Material,VertexFactoryType);		
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FDebugViewModeVS::SetCommonDefinitions(Platform, Material, OutEnvironment);
+		FBaseDS::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
 	FDebugViewModeDS(const ShaderMetaType::CompiledShaderInitializerType& Initializer): FBaseDS(Initializer) {}

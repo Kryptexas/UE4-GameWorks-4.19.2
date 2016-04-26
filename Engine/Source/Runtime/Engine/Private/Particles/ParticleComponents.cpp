@@ -57,6 +57,7 @@
 #include "Particles/SubUVAnimation.h"
 #include "Engine/InterpCurveEdSetup.h"
 #include "GameFramework/GameState.h"
+#include "FrameworkObjectVersion.h"
 
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent InitParticles"), STAT_ParticleSystemComponent_InitParticles, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent SendRenderDynamicData"), STAT_ParticleSystemComponent_SendRenderDynamicData_Concurrent, STATGROUP_Particles);
@@ -1700,15 +1701,13 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 
 float UParticleEmitter::GetQualityLevelSpawnRateMult()
 {
-	static IConsoleVariable* EffectsQuality = IConsoleManager::Get().FindConsoleVariable(TEXT("sg.EffectsQuality"));
+	static Scalability::FEffectsQualityCVarAccessor EffectsQuality;
+
 	float Q = 1;
-	if (EffectsQuality)
+	float Level = (1 - EffectsQuality.GetGameThreadValue());
+	for (int i = 0; i < Level + 1; i++)
 	{
-		float Level = (1 - EffectsQuality->GetInt());
-		for (int i = 0; i < Level + 1; i++)
-		{
-			Q = Q*QualityLevelSpawnRateScale;
-		}
+		Q = Q*QualityLevelSpawnRateScale;
 	}
 	return Q;
 }
@@ -3290,6 +3289,7 @@ bool UParticleSystemComponent::CanBeOccluded()const
 
 bool UParticleSystemComponent::CanConsiderInvisible()const
 {
+	UWorld* World = GetWorld();
 	if (World && Template)
 	{
 		const float MaxSecondsBeforeInactive = FMath::Max(SecondsBeforeInactive, Template->SecondsBeforeInactive);
@@ -3372,6 +3372,13 @@ void UParticleSystemComponent::Serialize( FArchive& Ar )
 			Ar.CountBytes(Num, Max);
 		}
 	}
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::ExplicitAttachmentRules)
+	{
+		USceneComponent::ConvertAttachLocation(AutoAttachLocationType_DEPRECATED, AutoAttachLocationRule, AutoAttachRotationRule, AutoAttachScaleRule);
+	}
 }
 
 void UParticleSystemComponent::BeginDestroy()
@@ -3438,8 +3445,10 @@ bool UParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* Source
 void UParticleSystemComponent::OnRegister()
 {
 	ForceAsyncWorkCompletion(STALL);
-	check(FXSystem == NULL);
-	check(World != NULL);
+	check(FXSystem == nullptr);
+
+	UWorld* World = GetWorld();
+	check(World != nullptr);
 
 	if (World->Scene)
 	{
@@ -3466,15 +3475,14 @@ void UParticleSystemComponent::OnRegister()
 			if (GetAttachParent()->GetAttachChildren().Contains(this))
 			{
 				// Only detach if we are not about to auto attach to the same target, that would be wasteful.
-				if (!bAutoActivate || (AutoAttachLocationType != EAttachLocation::KeepRelativeOffset) || (AutoAttachSocketName != GetAttachSocketName()) || (AutoAttachParent != GetAttachParent()))
+				if (!bAutoActivate || (AutoAttachLocationRule != EAttachmentRule::KeepRelative && AutoAttachRotationRule != EAttachmentRule::KeepRelative && AutoAttachScaleRule != EAttachmentRule::KeepRelative) || (AutoAttachSocketName != GetAttachSocketName()) || (AutoAttachParent != GetAttachParent()))
 				{
-					DetachFromParent(/*bMaintainWorldPosition=*/ false, /*bCallModify=*/ false);
+					DetachFromComponent(FDetachmentTransformRules(EDetachmentRule::KeepRelative, /*bCallModify=*/ false));
 				}
 			}
 			else
 			{
-				AttachParent = nullptr;
-				AttachSocketName = NAME_None;
+				SetupAttachment(nullptr, NAME_None);
 			}
 		}
 
@@ -3507,7 +3515,7 @@ void UParticleSystemComponent::OnUnregister()
 	ForceAsyncWorkCompletion(STALL);
 	UE_LOG(LogParticles,Verbose,
 		TEXT("OnUnregister %s Component=0x%p Scene=0x%p FXSystem=0x%p"),
-		Template != NULL ? *Template->GetName() : TEXT("NULL"), this, World->Scene, FXSystem);
+		Template != NULL ? *Template->GetName() : TEXT("NULL"), this, GetWorld()->Scene, FXSystem);
 
 	bWasActive = bIsActive;
 
@@ -4704,6 +4712,7 @@ void UParticleSystemComponent::FinalizeTickComponent()
 			}
 		}
 
+		UWorld* World = GetWorld();
 		AParticleEventManager* EventManager = (World ? World->MyParticleEventManager : NULL);
 		if (EventManager)
 		{
@@ -4860,7 +4869,7 @@ void UParticleSystemComponent::InitParticles()
 
 		bool bClearDynamicData = false;
 		int32 PreferredLODLevel = LODLevel;
-		bool bSetLodLevels = false;
+		bool bSetLodLevels = LODLevel > 0; //We should set the lod level even when creating all emitters if the requested LOD is not 0. 
 
 		for (int32 Idx = 0; Idx < NumEmitters; Idx++)
 		{
@@ -5163,10 +5172,10 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 				{
 					bDidAutoAttach = bWasAutoAttached;
 					CancelAutoAttachment(true);
-				SavedAutoAttachRelativeLocation = RelativeLocation;
-				SavedAutoAttachRelativeRotation = RelativeRotation;
-				SavedAutoAttachRelativeScale3D = RelativeScale3D;
-					AttachTo(NewParent, AutoAttachSocketName, AutoAttachLocationType);
+					SavedAutoAttachRelativeLocation = RelativeLocation;
+					SavedAutoAttachRelativeRotation = RelativeRotation;
+					SavedAutoAttachRelativeScale3D = RelativeScale3D;
+					AttachToComponent(NewParent, FAttachmentTransformRules(AutoAttachLocationRule, AutoAttachRotationRule, AutoAttachScaleRule, false), AutoAttachSocketName);
 				}
 
 				bDidAutoAttach = true;
@@ -5314,7 +5323,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 void UParticleSystemComponent::Complete()
 {
 	UE_LOG(LogParticles, Verbose,
-		TEXT("HasCompleted()==true @ %fs %s"), World->TimeSeconds,
+		TEXT("HasCompleted()==true @ %fs %s"), GetWorld()->TimeSeconds,
 		Template != NULL ? *Template->GetName() : TEXT("NULL"));
 
 	OnSystemFinished.Broadcast(this);
@@ -5416,7 +5425,7 @@ void UParticleSystemComponent::CancelAutoAttachment(bool bDetachFromParent)
 
 		if (bDetachFromParent)
 		{
-			DetachFromParent(/*bMaintainWorldPosition=*/ false);
+			DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 		}
 	}
 }

@@ -168,8 +168,8 @@ bool APartyBeaconClient::RequestReservationUpdate(const FUniqueNetIdRepl& Reques
 {
 	bool bWasStarted = false;
 
-	EBeaconConnectionState ConnectionState = GetConnectionState();
-	if (ensure(ConnectionState == EBeaconConnectionState::Open))
+	EBeaconConnectionState MyConnectionState = GetConnectionState();
+	if (ensure(MyConnectionState == EBeaconConnectionState::Open))
 	{
 		RequestType = EClientRequestType::ReservationUpdate;
 		PendingReservation.PartyLeader = RequestingPartyLeader;
@@ -186,8 +186,8 @@ bool APartyBeaconClient::RequestReservationUpdate(const FString& ConnectInfoStr,
 {
 	bool bWasStarted = false;
 
-	EBeaconConnectionState ConnectionState = GetConnectionState();
-	if (ConnectionState != EBeaconConnectionState::Open)
+	EBeaconConnectionState MyConnectionState = GetConnectionState();
+	if (MyConnectionState != EBeaconConnectionState::Open)
 	{
 		// create a new pending reservation for these players in the same way as a new reservation request
 		bWasStarted = RequestReservation(ConnectInfoStr, InSessionId, RequestingPartyLeader, PlayersToAdd);
@@ -197,7 +197,7 @@ bool APartyBeaconClient::RequestReservationUpdate(const FString& ConnectInfoStr,
 			RequestType = EClientRequestType::ReservationUpdate;
 		}
 	}
-	else if (ConnectionState == EBeaconConnectionState::Open)
+	else if (MyConnectionState == EBeaconConnectionState::Open)
 	{
 		RequestReservationUpdate(RequestingPartyLeader, PlayersToAdd);
 	}
@@ -209,8 +209,8 @@ bool APartyBeaconClient::RequestReservationUpdate(const FOnlineSessionSearchResu
 {
 	bool bWasStarted = false;
 
-	EBeaconConnectionState ConnectionState = GetConnectionState();
-	if (ConnectionState != EBeaconConnectionState::Open)
+	EBeaconConnectionState MyConnectionState = GetConnectionState();
+	if (MyConnectionState != EBeaconConnectionState::Open)
 	{
 		// create a new pending reservation for these players in the same way as a new reservation request
 		bWasStarted = RequestReservation(DesiredHost, RequestingPartyLeader, PlayersToAdd);
@@ -220,7 +220,7 @@ bool APartyBeaconClient::RequestReservationUpdate(const FOnlineSessionSearchResu
 			RequestType = EClientRequestType::ReservationUpdate;
 		}
 	}
-	else if (ConnectionState == EBeaconConnectionState::Open)
+	else if (MyConnectionState == EBeaconConnectionState::Open)
 	{
 		RequestReservationUpdate(RequestingPartyLeader, PlayersToAdd);
 	}

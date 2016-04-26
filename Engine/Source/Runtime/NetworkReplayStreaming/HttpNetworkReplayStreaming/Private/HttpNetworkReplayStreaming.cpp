@@ -1464,6 +1464,9 @@ void FHttpNetworkReplayStreamer::HttpStartUploadingFinished( FHttpRequestPtr Htt
 		SessionName = StartUploadingResponse.SessionId;
 
 		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpStartUploadingFinished. SessionName: %s" ), *SessionName );
+
+		// Add the session id as search tag to replay
+		AddUserToReplay( SessionName );
 	}
 	else
 	{

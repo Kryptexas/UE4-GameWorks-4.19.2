@@ -154,7 +154,8 @@ FBox UPhysicsAsset::CalcAABB(const USkinnedMeshComponent* MeshComp, const FTrans
 			const int32 BodyIndex = (*BodyIndexRefs)[i];
 			UBodySetup* bs = BodySetup[BodyIndex];
 
-			if (bs->bConsiderForBounds)
+			// Check if setup should be considered for bounds, or if all bodies should be considered anyhow
+			if (bs->bConsiderForBounds || MeshComp->bConsiderAllBodiesForBounds)
 			{
 				if (i+1<BodySetupNum)
 				{

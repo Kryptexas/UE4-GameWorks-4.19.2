@@ -309,6 +309,8 @@ public:
 	int32 CompressedSize;
 	/** Uncompressed size in bytes as passed to compressor.						*/
 	int32 UncompressedSize;
+	/** Target platform for compressed data										*/
+	const ITargetPlatform* CookingTargetPlatform;
 	/** Flags to control compression											*/
 	ECompressionFlags Flags;
 
@@ -320,6 +322,7 @@ public:
 		, CompressedBuffer(0)
 		, CompressedSize(0)
 		, UncompressedSize(0)
+		, CookingTargetPlatform(nullptr)
 		, Flags(ECompressionFlags(0))
 	{
 	}
@@ -329,7 +332,7 @@ public:
 	void DoWork()
 	{
 		// Compress from memory to memory.
-		verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize ) );
+		verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize, CookingTargetPlatform) );
 	}
 
 	FORCEINLINE TStatId GetStatId() const
@@ -555,6 +558,8 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 						NewChunk.UncompressedBuffer = SrcBuffer;
 						SrcBuffer += NewChunk.UncompressedSize;
 					}
+
+					NewChunk.CookingTargetPlatform = CookingTargetPlatform;
 
 					// Update status variables for tracking how much work is left, what to do next.
 					BytesRemainingToKickOff -= NewChunk.UncompressedSize;

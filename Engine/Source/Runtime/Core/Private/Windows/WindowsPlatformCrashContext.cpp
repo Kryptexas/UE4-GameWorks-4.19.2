@@ -7,7 +7,7 @@
 #include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 #include "HAL/ExceptionHandling.h"
-
+#include "HAL/ThreadHeartBeat.h"
 #include "AllowWindowsPlatformTypes.h"
 
 	#include <strsafe.h>
@@ -321,6 +321,7 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 				const FString LogFileName = FPlatformOutputDevices::GetAbsoluteLogFilename();
 				// If we have a memory only log, make sure it's dumped to file before we attach it to the report
 				bool bHasLogFile = !FPlatformOutputDevices::GetLog()->IsMemoryOnly();
+#if !NO_LOGGING
 				if (!bHasLogFile)
 				{
 					FArchive* LogFile = IFileManager::Get().CreateFileWriter(*LogFileName, FILEWRITE_AllowRead);
@@ -332,6 +333,7 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 						bHasLogFile = true;
 					}
 				}
+#endif
 				if (bHasLogFile)
 				{
 					WerReportAddFile(ReportHandle, *LogFileName, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA);
@@ -430,6 +432,12 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 		EnsureLock.Unlock();
 		return;
 	}
+
+	// Stop checking heartbeat for this thread. Ensure can take a lot of time
+	// Thread heartbeat will be resumed the next time this thread calls FThreadHeartBeat::Get().HeartBeat();
+	// The reason why we don't call HeartBeat() at the end of this function is that maybe this thread
+	// Never had a heartbeat checked and may not be sending heartbeats at all which would later lead to a false positives when detecting hangs.
+	FThreadHeartBeat::Get().KillHeartBeat();
 
 	bReentranceGuard = true;
 

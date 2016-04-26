@@ -52,7 +52,8 @@ public class Core : ModuleRules
 				"TargetPlatform",
 				"DerivedDataCache",
                 "InputDevice",
-                "Analytics"
+                "Analytics",
+				"RHI"
 			}
 			);
 
@@ -111,6 +112,7 @@ public class Core : ModuleRules
 		{
 			PublicIncludePaths.Add("Runtime/Core/Public/Android");
 			AddEngineThirdPartyPrivateStaticDependencies(Target, 
+				"cxademangle",
 				"zlib"
 				);
 		}

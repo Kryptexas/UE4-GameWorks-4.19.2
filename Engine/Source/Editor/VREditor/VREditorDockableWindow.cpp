@@ -33,12 +33,12 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 		WindowMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "WindowMesh" ) );
 		WindowMeshComponent->SetStaticMesh( WindowMesh );
 		WindowMeshComponent->SetMobility( EComponentMobility::Movable );
-		WindowMeshComponent->AttachTo( RootComponent );
+		WindowMeshComponent->SetupAttachment( RootComponent );
 
 		WindowMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 		WindowMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Ignore );
-		WindowMeshComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
-		WindowMeshComponent->SetCollisionObjectType( ECC_EditorGizmo );
+		WindowMeshComponent->SetCollisionResponseToChannel( COLLISION_GIZMO, ECollisionResponse::ECR_Block );
+		WindowMeshComponent->SetCollisionObjectType( COLLISION_GIZMO );
 
 		WindowMeshComponent->bGenerateOverlapEvents = false;
 		WindowMeshComponent->SetCanEverAffectNavigation( false );
@@ -58,12 +58,12 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 		SelectionBarMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionBarMesh" ) );
 		SelectionBarMeshComponent->SetStaticMesh( SelectionMesh );
 		SelectionBarMeshComponent->SetMobility( EComponentMobility::Movable );
-		SelectionBarMeshComponent->AttachTo( RootComponent );
+		SelectionBarMeshComponent->SetupAttachment( RootComponent );
 
 		SelectionBarMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 		SelectionBarMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Ignore );
-		SelectionBarMeshComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
-		SelectionBarMeshComponent->SetCollisionObjectType( ECC_EditorGizmo );
+		SelectionBarMeshComponent->SetCollisionResponseToChannel( COLLISION_GIZMO, ECollisionResponse::ECR_Block );
+		SelectionBarMeshComponent->SetCollisionObjectType( COLLISION_GIZMO );
 
 		SelectionBarMeshComponent->bGenerateOverlapEvents = false;
 		SelectionBarMeshComponent->SetCanEverAffectNavigation( false );
@@ -103,12 +103,12 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 		CloseButtonMeshComponent= CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "CloseButtonMesh" ) );
 		CloseButtonMeshComponent->SetStaticMesh( CloseButtonMesh );
 		CloseButtonMeshComponent->SetMobility( EComponentMobility::Movable );
-		CloseButtonMeshComponent->AttachTo( RootComponent );
+		CloseButtonMeshComponent->SetupAttachment( RootComponent );
 
 		CloseButtonMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
 		CloseButtonMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Ignore );
-		CloseButtonMeshComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
-		CloseButtonMeshComponent->SetCollisionObjectType( ECC_EditorGizmo );
+		CloseButtonMeshComponent->SetCollisionResponseToChannel( COLLISION_GIZMO, ECollisionResponse::ECR_Block );
+		CloseButtonMeshComponent->SetCollisionObjectType( COLLISION_GIZMO );
 
 		CloseButtonMeshComponent->bGenerateOverlapEvents = false;
 		CloseButtonMeshComponent->SetCanEverAffectNavigation( false );

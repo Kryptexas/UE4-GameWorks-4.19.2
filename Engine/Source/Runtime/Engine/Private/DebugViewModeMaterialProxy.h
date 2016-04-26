@@ -18,6 +18,7 @@ public:
 		: FMaterial()
 		, MaterialInterface(nullptr)
 		, Material(nullptr)
+		, Usage(EMaterialShaderMapUsage::Default)
 	{
 		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 	}
@@ -39,7 +40,7 @@ public:
 
 	virtual bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const override
 	{
-		return FString(ShaderType->GetName()).Contains(TEXT("FTexCoordScaleAnalysisPS"));
+		return FString(ShaderType->GetName()).Contains(TEXT("FMaterialTexCoordScalePS"));
 	}
 
 	virtual const TArray<UTexture*>& GetReferencedTextures() const override
@@ -89,6 +90,8 @@ public:
 	virtual enum EBlendMode GetBlendMode() const override;
 	virtual enum EMaterialShadingModel GetShadingModel() const override;
 	virtual float GetOpacityMaskClipValue() const override;
+
+	virtual EMaterialShaderMapUsage::Type GetMaterialShaderMapUsage() const { return Usage; }
 
 	////////////////
 

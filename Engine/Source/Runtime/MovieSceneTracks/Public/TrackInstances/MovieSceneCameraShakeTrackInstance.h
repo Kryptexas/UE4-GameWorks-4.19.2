@@ -7,12 +7,13 @@
 class UMovieSceneCameraShakeTrack;
 class UMovieSceneCameraShakeSection;
 
-
 struct FMovieSceneCameraShakeSectionInstanceData
 {
 	TWeakObjectPtr<UCameraShake> CameraShakeInst;
 	FTransform AdditiveOffset;		// AdditiveCamToBaseCam
 	float AdditiveFOVOffset;
+	float PostProcessingBlendWeight;
+	FPostProcessSettings PostProcessingSettings;
 };
 
 /**

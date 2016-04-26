@@ -340,6 +340,8 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	TArray<FString> PackageFilesInExcludePath;
 	TArray<FString> PackageFilesExcludedByClass;
 
+	const FFuzzyPathMatcher FuzzyPathMatcher = FFuzzyPathMatcher(IncludePathFilters, ExcludePathFilters);
+
 	//Fill the list of packages to work from.
 	uint8 PackageFilter = NORMALIZE_DefaultFlags;
 	TArray<FString> Unused;	
@@ -364,31 +366,26 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			PackageFile = FPaths::ConvertRelativePathToFull(PackageFile);
 
 			bool bExclude = false;
-			//Ensure it matches the include paths if there are some.
-			for (FString& IncludePath : IncludePathFilters)
+
+			//Check to see that this package is part of a valid gather path
+			const FFuzzyPathMatcher::EPathMatch PathMatch = FuzzyPathMatcher.TestPath(PackageFile);
+			switch (PathMatch)
 			{
+			case FFuzzyPathMatcher::Included:
+				break;
+
+			case FFuzzyPathMatcher::Excluded:
 				bExclude = true;
-				if( PackageFile.MatchesWildcard(IncludePath) )
-				{
-					bExclude = false;
-					break;
-				}
-			}
+				PackageFilesInExcludePath.Add(PackageFile);
+				break;
 
-			if ( bExclude )
-			{
+			case FFuzzyPathMatcher::NoMatch:
+				bExclude = true;
 				PackageFilesNotInIncludePath.Add(PackageFile);
-			}
+				break;
 
-			//Ensure it does not match the exclude paths if there are some.
-			for (const FString& ExcludePath : ExcludePathFilters)
-			{
-				if (PackageFile.MatchesWildcard(ExcludePath))
-				{
-					bExclude = true;
-					PackageFilesInExcludePath.Add(PackageFile);
-					break;
-				}
+			default:
+				break;
 			}
 
 			//Check that this is not on the list of packages that we don't care about e.g. textures.

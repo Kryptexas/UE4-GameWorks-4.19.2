@@ -183,6 +183,13 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	{
 		bUpToDate = true;
 		bWaitingForRepath = false;
+
+		if (bUseOnPathUpdatedNotify)
+		{
+			// notify path before observers
+			OnPathUpdated(UpdateType);
+		}
+
 		ObserverDelegate.Broadcast(this, UpdateType == ENavPathUpdateType::GoalMoved ? ENavPathEvent::UpdatedDueToGoalMoved : ENavPathEvent::UpdatedDueToNavigationChanged);
 	}
 
@@ -298,10 +305,13 @@ public:
 	/** set's up the path to use SourceActor's location in case of recalculation */
 	void SetSourceActor(const AActor& InSourceActor);
 
+	const AActor* GetSourceActor() const { return SourceActor.Get(); }
+
 	FVector GetLastRepathGoalLocation() const { return GoalActorLastLocation; }
 	void UpdateLastRepathGoalLocation();
 	
 	float GetLastUpdateTime() const { return LastUpdateTimeStamp; }
+	float GetGoalActorTetherDistance() const { return FMath::Sqrt(GoalActorLocationTetherDistanceSq); }
 
 	/** if enabled path will request recalculation if it gets invalidated due to a change to underlying navigation */
 	void EnableRecalculationOnInvalidation(bool bShouldAutoUpdate)
@@ -335,6 +345,10 @@ public:
 	TArray<NavNodeRef> ShortcutNodeRefs;
 
 protected:
+	
+	/** optional notify called when path finishes update, before broadcasting to observes - requires bUseOnPathUpdatedNotify flag set */
+	virtual void OnPathUpdated(ENavPathUpdateType::Type UpdateType) {};
+	
 	/**
 	* IMPORTANT: path is assumed to be valid if it contains _MORE_ than _ONE_ point
 	*	point 0 is path's starting point - if it's the only point on the path then there's no path per se
@@ -396,6 +410,9 @@ protected:
 
 	/** set when path is waiting for recalc from navigation data */
 	uint32 bWaitingForRepath : 1;
+
+	/** if true path will call OnPathUpdated notify */
+	uint32 bUseOnPathUpdatedNotify : 1;
 
 	/** navigation data used to generate this path */
 	TWeakObjectPtr<ANavigationData> NavigationDataUsed;

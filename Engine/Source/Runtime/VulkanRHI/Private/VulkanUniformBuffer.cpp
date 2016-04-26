@@ -32,8 +32,27 @@ void CleanupUniformBufferPool()
 	Uniform buffer RHI object
 -----------------------------------------------------------------------------*/
 
-FVulkanUniformBuffer::FVulkanUniformBuffer(FVulkanDevice& Device, const FRHIUniformBufferLayout& InLayout, const void* Contents, EUniformBufferUsage Usage) :
-	FRHIUniformBuffer(InLayout)
+static FRHIResourceCreateInfo GEmptyCreateInfo;
+
+static inline EBufferUsageFlags UniformBufferToBufferUsage(EUniformBufferUsage Usage)
+{
+	switch (Usage)
+	{
+	default:
+		ensure(0);
+		// fall through...
+	case UniformBuffer_SingleDraw:
+		return BUF_Volatile;
+	case UniformBuffer_SingleFrame:
+		return BUF_Dynamic;
+	case UniformBuffer_MultiFrame:
+		return BUF_Static;
+	}
+}
+
+FVulkanUniformBuffer::FVulkanUniformBuffer(FVulkanDevice& Device, const FRHIUniformBufferLayout& InLayout, const void* Contents, EUniformBufferUsage Usage)
+	: FRHIUniformBuffer(InLayout)
+	, FVulkanResourceMultiBuffer(&Device, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, InLayout.ConstantBufferSize, UniformBufferToBufferUsage(Usage), GEmptyCreateInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanUniformBufferCreateTime);
 
@@ -49,11 +68,15 @@ FVulkanUniformBuffer::FVulkanUniformBuffer(FVulkanDevice& Device, const FRHIUnif
 		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
 		if (CVar && CVar->GetValueOnAnyThread() != 0)
 		{
+			check(0);
+			//#todo-rco:...
+#if 0
 			Buffer = AllocateBufferFromPool(Device, InLayout.ConstantBufferSize, Usage);
 
 			void* Data = Buffer->Lock(InLayout.ConstantBufferSize);
 			FMemory::Memcpy(Data, Contents, InLayout.ConstantBufferSize);
 			Buffer->Unlock();
+#endif
 		}
 		else
 		{
@@ -67,9 +90,9 @@ FVulkanUniformBuffer::FVulkanUniformBuffer(FVulkanDevice& Device, const FRHIUnif
 		}
 	}
 
-	// Parse Sampler and Texture resrouces, if necessary
+	// Parse Sampler and Texture resources, if necessary
 	const uint32 NumResources = InLayout.Resources.Num();
-	if(NumResources == 0)
+	if (NumResources == 0)
 	{
 		return;
 	}

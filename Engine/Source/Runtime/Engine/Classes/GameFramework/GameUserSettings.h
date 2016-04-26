@@ -366,6 +366,11 @@ protected:
 	/** Picks the best resolution quality for a given screen size */
 	float FindResolutionQualityForScreenSize(float Width, float Height);
 
+	/** Sets the frame rate limit CVar to the passed in value, 0.0 indicates no limit */
+	static void SetFrameRateLimitCVar(float InLimit);
+
+	/** Returns the effective frame rate limit (by default it returns the FrameRateLimit member) */
+	virtual float GetEffectiveFrameRateLimit();
 private:
 
 	UPROPERTY(BlueprintAssignable, meta = (AllowPrivateAccess = "true"))

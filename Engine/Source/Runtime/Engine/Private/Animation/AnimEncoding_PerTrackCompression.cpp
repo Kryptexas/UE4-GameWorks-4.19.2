@@ -590,6 +590,8 @@ void AEFPerTrackCompressionCodec::GetBoneAtomTranslation(
 		int32 FixedBytes;
 		FAnimationCompression_PerTrackUtils::DecomposeHeader(Header, /*OUT*/ KeyFormat, /*OUT*/ NumKeys, /*OUT*/ FormatFlags, /*OUT*/BytesPerKey, /*OUT*/ FixedBytes);
 
+		checkf(KeyFormat != ACF_None, TEXT("[%s] contians invalid keyformat. NumKeys (%d), FormatFlags (%d), BytesPerKeys (%d), FixedBytes (%d)"), *Seq.GetName(), NumKeys, FormatFlags, BytesPerKey, FixedBytes);
+
 		// Figure out the key indexes
 		int32 Index0 = 0;
 		int32 Index1 = 0;

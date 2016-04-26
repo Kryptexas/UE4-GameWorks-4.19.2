@@ -830,10 +830,11 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Container">The name of the folder or container in which to store the file.</param>
 		/// <param name="Identifier">The identifier or filename of the file to write.</param>
 		/// <param name="Contents">A byte array containing the data to write.</param>
-		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
-		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
-		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
-        	/// <param name="bQuiet">If set to true, all log output for the operation is suppressed.</param>
+		/// <param name="ContentType">The MIME type of the file being uploaded. If left NULL, will be determined server-side by cloud provider.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file. If false, will throw an exception if the file exists.</param>
+		/// <param name="bMakePublic">Specifies whether the file should be made publicly readable.</param>
+        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+		/// <returns>A PostFileResult indicating whether the call was successful, and the URL to the uploaded file.</returns>
 		public PostFileResult PostFile(string Container, string Identifier, byte[] Contents, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false)
 		{
 			return PostFileAsync(Container, Identifier, Contents, ContentType, bOverwrite, bMakePublic, bQuiet).Result;
@@ -845,10 +846,11 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Container">The name of the folder or container in which to store the file.</param>
 		/// <param name="Identifier">The identifier or filename of the file to write.</param>
 		/// <param name="Contents">A byte array containing the data to write.</param>
-		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
-		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
-		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
-        	/// <param name="bQuiet">If set to true, all log output for the operation is suppressed.</param>
+		/// <param name="ContentType">The MIME type of the file being uploaded. If left NULL, will be determined server-side by cloud provider.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file. If false, will throw an exception if the file exists.</param>
+		/// <param name="bMakePublic">Specifies whether the file should be made publicly readable.</param>
+        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+		/// <returns>A PostFileResult indicating whether the call was successful, and the URL to the uploaded file.</returns>
 		abstract public Task<PostFileResult> PostFileAsync(string Container, string Identifier, byte[] Contents, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false);
 
 		/// <summary>
@@ -857,10 +859,11 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Container">The name of the folder or container in which to store the file.</param>
 		/// <param name="Identifier">The identifier or filename of the file to write.</param>
 		/// <param name="SourceFilePath">The full path of the file to upload.</param>
-		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
-		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
-		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
-	        /// <param name="bQuiet">If set to true, all log output for the operation is suppressed.</param>
+		/// <param name="ContentType">The MIME type of the file being uploaded. If left NULL, will be determined server-side by cloud provider.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file. If false, will throw an exception if the file exists.</param>
+		/// <param name="bMakePublic">Specifies whether the file should be made publicly readable.</param>
+        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+		/// <returns>A PostFileResult indicating whether the call was successful, and the URL to the uploaded file.</returns>
 		public PostFileResult PostFile(string Container, string Identifier, string SourceFilePath, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false)
 		{
 			return PostFileAsync(Container, Identifier, SourceFilePath, ContentType, bOverwrite, bMakePublic, bQuiet).Result;
@@ -872,11 +875,45 @@ namespace EpicGames.MCP.Automation
 		/// <param name="Container">The name of the folder or container in which to store the file.</param>
 		/// <param name="Identifier">The identifier or filename of the file to write.</param>
 		/// <param name="SourceFilePath">The full path of the file to upload.</param>
-		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
-		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
-		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
-	        /// <param name="bQuiet">If set to true, all log output for the operation is suppressed.</param>
+		/// <param name="ContentType">The MIME type of the file being uploaded. If left NULL, will be determined server-side by cloud provider.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file. If false, will throw an exception if the file exists.</param>
+		/// <param name="bMakePublic">Specifies whether the file should be made publicly readable.</param>
+        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+		/// <returns>A PostFileResult indicating whether the call was successful, and the URL to the uploaded file.</returns>
 		abstract public Task<PostFileResult> PostFileAsync(string Container, string Identifier, string SourceFilePath, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false);
+
+		/// <summary>
+		/// Posts a file to the cloud storage provider using multiple connections.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which to store the file.</param>
+		/// <param name="Identifier">The identifier or filename of the file to write.</param>
+		/// <param name="SourceFilePath">The full path of the file to upload.</param>
+		/// <param name="NumConcurrentConnections">The number of concurrent connections to use during uploading.</param>
+		/// <param name="PartSizeMegabytes">The size of each part that is uploaded. Minimum (and default) is 5 MB.</param>
+		/// <param name="ContentType">The MIME type of the file being uploaded. If left NULL, will be determined server-side by cloud provider.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file. If false, will throw an exception if the file exists.</param>
+		/// <param name="bMakePublic">Specifies whether the file should be made publicly readable.</param>
+		/// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+		/// <returns>A PostFileResult indicating whether the call was successful, and the URL to the uploaded file.</returns>
+		public PostFileResult PostMultipartFile(string Container, string Identifier, string SourceFilePath, int NumConcurrentConnections, decimal PartSizeMegabytes = 5.0m, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false)
+		{
+			return PostMultipartFileAsync(Container, Identifier, SourceFilePath, NumConcurrentConnections, PartSizeMegabytes, ContentType, bOverwrite, bMakePublic, bQuiet).Result;
+		}
+
+		/// <summary>
+		/// Posts a file to the cloud storage provider using multiple connections asynchronously.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which to store the file.</param>
+		/// <param name="Identifier">The identifier or filename of the file to write.</param>
+		/// <param name="SourceFilePath">The full path of the file to upload.</param>
+		/// <param name="NumConcurrentConnections">The number of concurrent connections to use during uploading.</param>
+		/// <param name="PartSizeMegabytes">The size of each part that is uploaded. Minimum (and default) is 5 MB.</param>
+		/// <param name="ContentType">The MIME type of the file being uploaded. If left NULL, will be determined server-side by cloud provider.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file. If false, will throw an exception if the file exists.</param>
+		/// <param name="bMakePublic">Specifies whether the file should be made publicly readable.</param>
+		/// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+		/// <returns>A PostFileResult indicating whether the call was successful, and the URL to the uploaded file.</returns>
+		abstract public Task<PostFileResult> PostMultipartFileAsync(string Container, string Identifier, string SourceFilePath, int NumConcurrentConnections, decimal PartSizeMegabytes = 5.0m, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false);
 
 		/// <summary>
 		/// Deletes a file from cloud storage

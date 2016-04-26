@@ -93,10 +93,10 @@ public:
 	 * These objects are stored as "inners" of the MovieScene.
 	 *
 	 * @param Name Name of the spawnable.
-	 * @param Blueprint	The blueprint to add.
+	 * @param ObjectTemplate The object template to use for the spawnable
 	 * @return Guid of the newly-added spawnable.
 	 */
-	FGuid AddSpawnable(const FString& Name, UBlueprint* Blueprint);
+	FGuid AddSpawnable(const FString& Name, UObject& ObjectTemplate);
 
 	/**
 	 * Removes a spawnable from this movie scene.
@@ -382,10 +382,10 @@ public:
 		return ObjectBindings;
 	}
 
-	/** Get the current in/out range. */
-	TRange<float> GetInOutRange() const
+	/** Get the current selection range. */
+	TRange<float> GetSelectionRange() const
 	{
-		return InOutRange;
+		return SelectionRange;
 	}
 
 	/**
@@ -415,10 +415,10 @@ public:
 		return ObjectsToLabels;
 	}
 
-	/** Set the in/out selection range. */
-	void SetInOutRange(TRange<float> Range)
+	/** Set the selection range. */
+	void SetSelectionRange(TRange<float> Range)
 	{
-		InOutRange = Range;
+		SelectionRange = Range;
 	}
 
 	/**
@@ -503,9 +503,9 @@ private:
 	UPROPERTY()
 	UMovieSceneTrack* CameraCutTrack;
 
-	/** User-defined in/out selection range. */
+	/** User-defined selection range. */
 	UPROPERTY()
-	FFloatRange InOutRange;
+	FFloatRange SelectionRange;
 
 	/** User-defined playback range for this movie scene. Must be a finite range. Relative to this movie-scene's 0-time origin. */
 	UPROPERTY()

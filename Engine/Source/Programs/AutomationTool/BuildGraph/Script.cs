@@ -60,12 +60,12 @@ namespace AutomationTool
 		{
 			ScriptDocument Document = new ScriptDocument(File);
 
-            XmlReaderSettings Settings = new XmlReaderSettings();
-            Settings.Schemas.Add(Schema.CompiledSchema);
-            Settings.ValidationType = ValidationType.Schema;
+			XmlReaderSettings Settings = new XmlReaderSettings();
+			Settings.Schemas.Add(Schema.CompiledSchema);
+			Settings.ValidationType = ValidationType.Schema;
 			Settings.ValidationEventHandler += Document.ValidationEvent;
-	
-			using(XmlReader Reader = XmlReader.Create(File.FullName, Settings))
+
+			using (XmlReader Reader = XmlReader.Create(File.FullName, Settings))
 			{
 				// Read the document
 				Document.LineInfo = (IXmlLineInfo)Reader;
@@ -73,9 +73,9 @@ namespace AutomationTool
 				{
 					Document.Load(Reader);
 				}
-				catch(XmlException Ex)
+				catch (XmlException Ex)
 				{
-					if(!Document.bHasErrors)
+					if (!Document.bHasErrors)
 					{
 						CommandUtils.LogError("{0}", Ex.Message);
 						Document.bHasErrors = true;
@@ -83,20 +83,20 @@ namespace AutomationTool
 				}
 
 				// If we hit any errors while parsing
-				if(Document.bHasErrors)
+				if (Document.bHasErrors)
 				{
 					OutDocument = null;
 					return false;
 				}
 
 				// Check that the root element is valid. If not, we didn't actually validate against the schema.
-				if(Document.DocumentElement.Name != ScriptSchema.RootElementName)
+				if (Document.DocumentElement.Name != ScriptSchema.RootElementName)
 				{
 					CommandUtils.LogError("Script does not have a root element called '{0}'", ScriptSchema.RootElementName);
 					OutDocument = null;
 					return false;
 				}
-				if(Document.DocumentElement.NamespaceURI != ScriptSchema.NamespaceURI)
+				if (Document.DocumentElement.NamespaceURI != ScriptSchema.NamespaceURI)
 				{
 					CommandUtils.LogError("Script root element is not in the '{0}' namespace (add the xmlns=\"{0}\" attribute)", ScriptSchema.NamespaceURI);
 					OutDocument = null;
@@ -115,7 +115,7 @@ namespace AutomationTool
 		/// <param name="Args">Standard argument for ValidationEventHandler</param>
 		void ValidationEvent(object Sender, ValidationEventArgs Args)
 		{
-			if(Args.Severity == XmlSeverityType.Warning)
+			if (Args.Severity == XmlSeverityType.Warning)
 			{
 				CommandUtils.LogWarning("{0}({1}): {2}", File.FullName, Args.Exception.LineNumber, Args.Message);
 			}
@@ -145,7 +145,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		public ScriptElement(FileReference InFile, int InLineNumber, string Prefix, string LocalName, string NamespaceUri, ScriptDocument Document) 
+		public ScriptElement(FileReference InFile, int InLineNumber, string Prefix, string LocalName, string NamespaceUri, ScriptDocument Document)
 			: base(Prefix, LocalName, NamespaceUri, Document)
 		{
 			File = InFile;
@@ -164,20 +164,15 @@ namespace AutomationTool
 		Graph Graph = new Graph();
 
 		/// <summary>
-		/// Mapping from name to group
-		/// </summary>
-		Dictionary<string, AgentGroup> NameToGroup = new Dictionary<string,AgentGroup>(StringComparer.InvariantCultureIgnoreCase);
-
-		/// <summary>
 		/// Mapping of global property name to values.
 		/// </summary>
-		Dictionary<string, string> GlobalProperties = new Dictionary<string,string>();
+		Dictionary<string, string> GlobalProperties = new Dictionary<string, string>();
 
 		/// <summary>
-		/// List of property name to value lookups. Modifications to properties are scoped to nodes and groups. EnterScope() pushes an empty dictionary onto the end of this list, and LeaveScope() removes one. 
+		/// List of property name to value lookups. Modifications to properties are scoped to nodes and agents. EnterScope() pushes an empty dictionary onto the end of this list, and LeaveScope() removes one. 
 		/// ExpandProperties() searches from last to first lookup when trying to resolve a property name, and takes the first it finds.
 		/// </summary>
-		List<Dictionary<string, string>> ScopedProperties = new List<Dictionary<string,string>>();
+		List<Dictionary<string, string>> ScopedProperties = new List<Dictionary<string, string>>();
 
 		/// <summary>
 		/// Schema for the script
@@ -196,7 +191,7 @@ namespace AutomationTool
 		/// <param name="InSchema">Schema for the script</param>
 		private ScriptReader(IDictionary<string, string> Properties, ScriptSchema InSchema)
 		{
-			GlobalProperties = new Dictionary<string,string>(Properties, StringComparer.InvariantCultureIgnoreCase);
+			GlobalProperties = new Dictionary<string, string>(Properties, StringComparer.InvariantCultureIgnoreCase);
 			ScopedProperties.Add(GlobalProperties);
 			Schema = InSchema;
 		}
@@ -212,7 +207,7 @@ namespace AutomationTool
 		public static bool TryRead(FileReference File, IDictionary<string, string> DefaultProperties, ScriptSchema Schema, out Graph Graph)
 		{
 			// Check the file exists before doing anything.
-			if(!File.Exists())
+			if (!File.Exists())
 			{
 				CommandUtils.LogError("Cannot open '{0}'", File.FullName);
 				Graph = null;
@@ -221,7 +216,7 @@ namespace AutomationTool
 
 			// Read the file and build the graph
 			ScriptReader Reader = new ScriptReader(DefaultProperties, Schema);
-			if(Reader.TryRead(File) && Reader.NumErrors == 0)
+			if (Reader.TryRead(File) && Reader.NumErrors == 0)
 			{
 				Graph = Reader.Graph;
 				return true;
@@ -241,7 +236,7 @@ namespace AutomationTool
 		{
 			// Read the document and validate it against the schema
 			ScriptDocument Document;
-			if(!ScriptDocument.TryRead(File, Schema, out Document))
+			if (!ScriptDocument.TryRead(File, Schema, out Document))
 			{
 				NumErrors++;
 				return false;
@@ -249,9 +244,9 @@ namespace AutomationTool
 
 			// Read the root BuildGraph element
 			EnterScope();
-			foreach(ScriptElement Element in Document.DocumentElement.ChildNodes.OfType<ScriptElement>())
+			foreach (ScriptElement Element in Document.DocumentElement.ChildNodes.OfType<ScriptElement>())
 			{
-				switch(Element.Name)
+				switch (Element.Name)
 				{
 					case "Include":
 						ReadInclude(Element, File.Directory);
@@ -296,7 +291,7 @@ namespace AutomationTool
 		/// <param name="Args">Event arguments</param>
 		void ValidationHandler(object Sender, ValidationEventArgs Args)
 		{
-			if(Args.Severity == XmlSeverityType.Warning)
+			if (Args.Severity == XmlSeverityType.Warning)
 			{
 				CommandUtils.LogWarning("Script: {0}", Args.Message);
 			}
@@ -312,7 +307,7 @@ namespace AutomationTool
 		/// </summary>
 		void EnterScope()
 		{
-			ScopedProperties.Add(new Dictionary<string,string>(StringComparer.InvariantCultureIgnoreCase));
+			ScopedProperties.Add(new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase));
 		}
 
 		/// <summary>
@@ -324,25 +319,25 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Reads the definition for an agent group.
+		/// Reads the definition for a trigger.
 		/// </summary>
 		/// <param name="Element">Xml element to read the definition from</param>
 		void ReadTrigger(ScriptElement Element)
 		{
 			string[] QualifiedName;
-			if(EvaluateCondition(Element) && TryReadQualifiedObjectName(Element, out QualifiedName))
+			if (EvaluateCondition(Element) && TryReadQualifiedObjectName(Element, out QualifiedName))
 			{
 				// Validate all the parent triggers
 				ManualTrigger ParentTrigger = null;
-				for(int Idx = 0; Idx < QualifiedName.Length - 1; Idx++)
+				for (int Idx = 0; Idx < QualifiedName.Length - 1; Idx++)
 				{
 					ManualTrigger NextTrigger;
-					if(!Graph.NameToTrigger.TryGetValue(QualifiedName[Idx], out NextTrigger))
+					if (!Graph.NameToTrigger.TryGetValue(QualifiedName[Idx], out NextTrigger))
 					{
 						LogError(Element, "Unknown trigger '{0}'", QualifiedName[Idx]);
 						return;
 					}
-					if(NextTrigger.Parent != ParentTrigger)
+					if (NextTrigger.Parent != ParentTrigger)
 					{
 						LogError(Element, "Qualified name of trigger '{0}' is '{1}'", NextTrigger.Name, NextTrigger.QualifiedName);
 						return;
@@ -355,12 +350,12 @@ namespace AutomationTool
 
 				// Create the new trigger
 				ManualTrigger Trigger;
-				if(!Graph.NameToTrigger.TryGetValue(Name, out Trigger))
+				if (!Graph.NameToTrigger.TryGetValue(Name, out Trigger))
 				{
 					Trigger = new ManualTrigger(ParentTrigger, Name);
 					Graph.NameToTrigger.Add(Name, Trigger);
 				}
-				else if(Trigger.Parent != ParentTrigger)
+				else if (Trigger.Parent != ParentTrigger)
 				{
 					LogError(Element, "Conflicting parent for '{0}' - previously declared as '{1}', now '{2}'", Name, Trigger.QualifiedName, new ManualTrigger(ParentTrigger, Name).QualifiedName);
 					return;
@@ -368,9 +363,9 @@ namespace AutomationTool
 
 				// Read the root BuildGraph element
 				EnterScope();
-				foreach(ScriptElement ChildElement in Element.ChildNodes.OfType<ScriptElement>())
+				foreach (ScriptElement ChildElement in Element.ChildNodes.OfType<ScriptElement>())
 				{
-					switch(ChildElement.Name)
+					switch (ChildElement.Name)
 					{
 						case "Property":
 							ReadProperty(ChildElement);
@@ -409,10 +404,10 @@ namespace AutomationTool
 		/// <param name="BaseDir">Base directory to resolve relative include paths from </param>
 		void ReadInclude(ScriptElement Element, DirectoryReference BaseDir)
 		{
-			if(EvaluateCondition(Element))
+			if (EvaluateCondition(Element))
 			{
 				FileReference Script = FileReference.Combine(BaseDir, Element.GetAttribute("Script"));
-				if(Script.Exists())
+				if (Script.Exists())
 				{
 					TryRead(Script);
 				}
@@ -429,10 +424,10 @@ namespace AutomationTool
 		/// <param name="Element">Xml element to read the definition from</param>
 		void ReadProperty(ScriptElement Element)
 		{
-			if(EvaluateCondition(Element))
+			if (EvaluateCondition(Element))
 			{
 				string Name = ReadAttribute(Element, "Name");
-				if(ValidateName(Element, Name))
+				if (ValidateName(Element, Name))
 				{
 					GlobalProperties[Name] = ReadAttribute(Element, "Value");
 				}
@@ -445,10 +440,10 @@ namespace AutomationTool
 		/// <param name="Element">Xml element to read the definition from</param>
 		void ReadLocalProperty(ScriptElement Element)
 		{
-			if(EvaluateCondition(Element))
+			if (EvaluateCondition(Element))
 			{
 				string Name = ReadAttribute(Element, "Name");
-				if(ValidateName(Element, Name))
+				if (ValidateName(Element, Name))
 				{
 					ScopedProperties[ScopedProperties.Count - 1][Name] = ReadAttribute(Element, "Value");
 				}
@@ -456,48 +451,48 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Reads the definition for an agent group.
+		/// Reads the definition for an agent.
 		/// </summary>
 		/// <param name="Element">Xml element to read the definition from</param>
-		/// <param name="Trigger">The controlling trigger for nodes in this group</param>
+		/// <param name="Trigger">The controlling trigger for nodes in this agent</param>
 		void ReadAgent(ScriptElement Element, ManualTrigger Trigger)
 		{
 			string Name;
-			if(EvaluateCondition(Element) && TryReadObjectName(Element, out Name))
+			if (EvaluateCondition(Element) && TryReadObjectName(Element, out Name))
 			{
-				// Read the valid agent types. This may be omitted if we're continuing an existing group.
+				// Read the valid agent types. This may be omitted if we're continuing an existing agent.
 				string[] Types = ReadListAttribute(Element, "Type");
 
-				// Create the group object, or continue an existing one
-				AgentGroup Group;
-				if(NameToGroup.TryGetValue(Name, out Group))
+				// Create the agent object, or continue an existing one
+				Agent Agent;
+				if (Graph.NameToAgent.TryGetValue(Name, out Agent))
 				{
-					if(Types.Length > 0 && Group.PossibleTypes.Length > 0)
+					if (Types.Length > 0 && Agent.PossibleTypes.Length > 0)
 					{
-						string[] NewTypes = Group.PossibleTypes.Intersect(Types, StringComparer.InvariantCultureIgnoreCase).ToArray();
-						if(NewTypes.Length == 0)
+						string[] NewTypes = Agent.PossibleTypes.Intersect(Types, StringComparer.InvariantCultureIgnoreCase).ToArray();
+						if (NewTypes.Length == 0)
 						{
 							LogError(Element, "No common agent types with previous agent definition");
 						}
-						Group.PossibleTypes = NewTypes;
+						Agent.PossibleTypes = NewTypes;
 					}
 				}
 				else
 				{
-					if(Types.Length == 0)
+					if (Types.Length == 0)
 					{
-						LogError(Element, "Missing agent type for group '{0}'", Name);
+						LogError(Element, "Missing type for agent '{0}'", Name);
 					}
-					Group = new AgentGroup(Name, Types);
-					NameToGroup.Add(Name, Group);
-					Graph.Groups.Add(Group);
+					Agent = new Agent(Name, Types);
+					Graph.NameToAgent.Add(Name, Agent);
+					Graph.Agents.Add(Agent);
 				}
 
 				// Process all the child elements.
 				EnterScope();
-				foreach(ScriptElement ChildElement in Element.ChildNodes.OfType<ScriptElement>())
+				foreach (ScriptElement ChildElement in Element.ChildNodes.OfType<ScriptElement>())
 				{
-					switch(ChildElement.Name)
+					switch (ChildElement.Name)
 					{
 						case "Property":
 							ReadProperty(ChildElement);
@@ -506,16 +501,16 @@ namespace AutomationTool
 							ReadLocalProperty(ChildElement);
 							break;
 						case "Node":
-							ReadNode(ChildElement, Group, Trigger);
+							ReadNode(ChildElement, Agent, Trigger);
 							break;
 						case "Aggregate":
 							ReadAggregate(ChildElement);
 							break;
 						case "Warning":
-							ReadDiagnostic(ChildElement, LogEventType.Warning, null, Group, Trigger);
+							ReadDiagnostic(ChildElement, LogEventType.Warning, null, Agent, Trigger);
 							break;
 						case "Error":
-							ReadDiagnostic(ChildElement, LogEventType.Error, null, Group, Trigger);
+							ReadDiagnostic(ChildElement, LogEventType.Error, null, Agent, Trigger);
 							break;
 						default:
 							LogError(ChildElement, "Unexpected element type '{0}'", ChildElement.Name);
@@ -527,13 +522,13 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Reads the definition for an aggregate, and adds it to the given agent group
+		/// Reads the definition for an aggregate
 		/// </summary>
 		/// <param name="Element">Xml element to read the definition from</param>
 		void ReadAggregate(ScriptElement Element)
 		{
 			string Name;
-			if(EvaluateCondition(Element) && TryReadObjectName(Element, out Name) && CheckNameIsUnique(Element, Name))
+			if (EvaluateCondition(Element) && TryReadObjectName(Element, out Name) && CheckNameIsUnique(Element, Name))
 			{
 				string[] RequiredNames = ReadListAttribute(Element, "Requires");
 				Graph.AggregateNameToNodes.Add(Name, ResolveReferences(Element, RequiredNames).ToArray());
@@ -541,15 +536,15 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Reads the definition for a node, and adds it to the given agent group
+		/// Reads the definition for a node, and adds it to the given agent
 		/// </summary>
 		/// <param name="Element">Xml element to read the definition from</param>
-		/// <param name="Group">Group for the node to be added to</param>
+		/// <param name="ParentAgent">Agent for the node to be added to</param>
 		/// <param name="ControllingTrigger">The controlling trigger for this node</param>
-		void ReadNode(ScriptElement Element, AgentGroup Group, ManualTrigger ControllingTrigger)
+		void ReadNode(ScriptElement Element, Agent ParentAgent, ManualTrigger ControllingTrigger)
 		{
 			string Name;
-			if(EvaluateCondition(Element) && TryReadObjectName(Element, out Name))
+			if (EvaluateCondition(Element) && TryReadObjectName(Element, out Name))
 			{
 				string[] RequiresNames = ReadListAttribute(Element, "Requires");
 				string[] ProducesNames = ReadListAttribute(Element, "Produces");
@@ -561,9 +556,9 @@ namespace AutomationTool
 
 				// Gather up all the input dependencies, and check they're all upstream of the current node
 				HashSet<Node> InputDependencies = new HashSet<Node>();
-				foreach(Node InputDependency in Inputs.Select(x => x.ProducingNode).Distinct())
+				foreach (Node InputDependency in Inputs.Select(x => x.ProducingNode).Distinct())
 				{
-					if(InputDependency.ControllingTrigger != null && InputDependency.ControllingTrigger != ControllingTrigger && !InputDependency.ControllingTrigger.IsUpstreamFrom(ControllingTrigger))
+					if (InputDependency.ControllingTrigger != null && InputDependency.ControllingTrigger != ControllingTrigger && !InputDependency.ControllingTrigger.IsUpstreamFrom(ControllingTrigger))
 					{
 						LogError(Element, "'{0}' is dependent on '{1}', which is behind a different controlling trigger ({2})", Name, InputDependency.Name, InputDependency.ControllingTrigger.QualifiedName);
 					}
@@ -574,16 +569,16 @@ namespace AutomationTool
 				}
 
 				// Recursively include all their dependencies too
-				foreach(Node InputDependency in InputDependencies.ToArray())
+				foreach (Node InputDependency in InputDependencies.ToArray())
 				{
 					InputDependencies.UnionWith(InputDependency.InputDependencies);
 				}
 
 				// Add the name of the node itself to the list of outputs.
 				List<string> OutputNames = new List<string>();
-				foreach(string ProducesName in ProducesNames)
+				foreach (string ProducesName in ProducesNames)
 				{
-					if(ProducesName.StartsWith("#"))
+					if (ProducesName.StartsWith("#"))
 					{
 						OutputNames.Add(ProducesName.Substring(1));
 					}
@@ -599,23 +594,23 @@ namespace AutomationTool
 				OrderDependencies.UnionWith(ResolveReferences(Element, AfterNames));
 
 				// Recursively include all their order dependencies too
-				foreach(Node OrderDependency in OrderDependencies.ToArray())
+				foreach (Node OrderDependency in OrderDependencies.ToArray())
 				{
 					OrderDependencies.UnionWith(OrderDependency.OrderDependencies);
 				}
 
-				// Check that we're not dependent on anything completing that is declared after the initial declaration of this group.
-				int GroupIdx = Graph.Groups.IndexOf(Group);
-				for(int Idx = GroupIdx + 1; Idx < Graph.Groups.Count; Idx++)
+				// Check that we're not dependent on anything completing that is declared after the initial declaration of this agent.
+				int AgentIdx = Graph.Agents.IndexOf(ParentAgent);
+				for (int Idx = AgentIdx + 1; Idx < Graph.Agents.Count; Idx++)
 				{
-					foreach(Node Node in Graph.Groups[Idx].Nodes.Where(x => OrderDependencies.Contains(x)))
+					foreach (Node Node in Graph.Agents[Idx].Nodes.Where(x => OrderDependencies.Contains(x)))
 					{
-						LogError(Element, "Node '{0}' has a dependency on '{1}', which was declared after the initial definition of '{2}'.", Name, Node.Name, Group.Name);
+						LogError(Element, "Node '{0}' has a dependency on '{1}', which was declared after the initial definition of '{2}'.", Name, Node.Name, ParentAgent.Name);
 					}
 				}
 
 				// Construct and register the node
-				if(CheckNameIsUnique(Element, Name))
+				if (CheckNameIsUnique(Element, Name))
 				{
 					// Add it to the node lookup
 					Node NewNode = new Node(Name, Inputs.ToArray(), OutputNames.ToArray(), InputDependencies.ToArray(), OrderDependencies.ToArray(), ControllingTrigger);
@@ -623,9 +618,9 @@ namespace AutomationTool
 					Graph.NameToNode.Add(Name, NewNode);
 
 					// Register each of the outputs as a reference to this node
-					foreach(NodeOutput Output in NewNode.Outputs)
+					foreach (NodeOutput Output in NewNode.Outputs)
 					{
-						if(Output.Name == Name || CheckNameIsUnique(Element, Output.Name))
+						if (Output.Name == Name || CheckNameIsUnique(Element, Output.Name))
 						{
 							Graph.NameToNodeOutput.Add(Output.Name, Output);
 						}
@@ -633,9 +628,9 @@ namespace AutomationTool
 
 					// Add all the tasks
 					EnterScope();
-					foreach(ScriptElement ChildElement in Element.ChildNodes.OfType<ScriptElement>())
+					foreach (ScriptElement ChildElement in Element.ChildNodes.OfType<ScriptElement>())
 					{
-						switch(ChildElement.Name)
+						switch (ChildElement.Name)
 						{
 							case "Property":
 								ReadProperty(ChildElement);
@@ -644,10 +639,10 @@ namespace AutomationTool
 								ReadLocalProperty(ChildElement);
 								break;
 							case "Warning":
-								ReadDiagnostic(ChildElement, LogEventType.Warning, NewNode, Group, ControllingTrigger);
+								ReadDiagnostic(ChildElement, LogEventType.Warning, NewNode, ParentAgent, ControllingTrigger);
 								break;
 							case "Error":
-								ReadDiagnostic(ChildElement, LogEventType.Error, NewNode, Group, ControllingTrigger);
+								ReadDiagnostic(ChildElement, LogEventType.Error, NewNode, ParentAgent, ControllingTrigger);
 								break;
 							default:
 								ReadTask(ChildElement, NewNode.Tasks);
@@ -656,8 +651,8 @@ namespace AutomationTool
 					}
 					LeaveScope();
 
-					// Add it to the current agent group
-					Group.Nodes.Add(NewNode);
+					// Add it to the current agent
+					ParentAgent.Nodes.Add(NewNode);
 				}
 			}
 		}
@@ -669,11 +664,11 @@ namespace AutomationTool
 		/// <param name="Tasks">List of tasks to add to</param>
 		void ReadTask(ScriptElement Element, List<CustomTask> Tasks)
 		{
-			if(EvaluateCondition(Element))
+			if (EvaluateCondition(Element))
 			{
 				// Get the reflection info for this element
 				ScriptTask Task;
-				if(!Schema.TryGetTask(Element.Name, out Task))
+				if (!Schema.TryGetTask(Element.Name, out Task))
 				{
 					LogError(Element, "Unknown task '{0}'", Element.Name);
 					return;
@@ -681,9 +676,9 @@ namespace AutomationTool
 
 				// Check all the required parameters are present
 				bool bHasRequiredAttributes = true;
-				foreach(ScriptTaskParameter Parameter in Task.NameToParameter.Values)
+				foreach (ScriptTaskParameter Parameter in Task.NameToParameter.Values)
 				{
-					if(!Parameter.bOptional && !Element.HasAttribute(Parameter.Name))
+					if (!Parameter.bOptional && !Element.HasAttribute(Parameter.Name))
 					{
 						LogError(Element, "Missing required attribute - {0}", Parameter.Name);
 						bHasRequiredAttributes = false;
@@ -692,13 +687,13 @@ namespace AutomationTool
 
 				// Read all the attributes into a parameters object for this task
 				object ParametersObject = Activator.CreateInstance(Task.ParametersClass);
-				foreach(XmlAttribute Attribute in Element.Attributes)
+				foreach (XmlAttribute Attribute in Element.Attributes)
 				{
-					if(String.Compare(Attribute.Name, "If", StringComparison.InvariantCultureIgnoreCase) != 0)
+					if (String.Compare(Attribute.Name, "If", StringComparison.InvariantCultureIgnoreCase) != 0)
 					{
 						// Get the field that this attribute should be written to in the parameters object
 						ScriptTaskParameter Parameter;
-						if(!Task.NameToParameter.TryGetValue(Attribute.Name, out Parameter))
+						if (!Task.NameToParameter.TryGetValue(Attribute.Name, out Parameter))
 						{
 							LogError(Element, "Unknown attribute '{0}'", Attribute.Name);
 							continue;
@@ -709,11 +704,11 @@ namespace AutomationTool
 
 						// Parse it and assign it to the parameters object
 						object Value;
-						if(Parameter.FieldInfo.FieldType.IsEnum)
+						if (Parameter.FieldInfo.FieldType.IsEnum)
 						{
 							Value = Enum.Parse(Parameter.FieldInfo.FieldType, ExpandedValue);
 						}
-						else if(Parameter.FieldInfo.FieldType == typeof(Boolean))
+						else if (Parameter.FieldInfo.FieldType == typeof(Boolean))
 						{
 							Value = Condition.Evaluate(ExpandedValue);
 						}
@@ -726,7 +721,7 @@ namespace AutomationTool
 				}
 
 				// Construct the task
-				if(bHasRequiredAttributes)
+				if (bHasRequiredAttributes)
 				{
 					Tasks.Add((CustomTask)Activator.CreateInstance(Task.TaskClass, ParametersObject));
 				}
@@ -739,7 +734,7 @@ namespace AutomationTool
 		/// <param name="Element">Xml element to read the definition from</param>
 		void ReadNotifier(ScriptElement Element)
 		{
-			if(EvaluateCondition(Element))
+			if (EvaluateCondition(Element))
 			{
 				string[] TargetNames = ReadListAttribute(Element, "Targets");
 				string[] ExceptNames = ReadListAttribute(Element, "Except");
@@ -747,14 +742,14 @@ namespace AutomationTool
 				string[] TriggerNames = ReadListAttribute(Element, "Triggers");
 				string[] Users = ReadListAttribute(Element, "Users");
 				string[] Submitters = ReadListAttribute(Element, "Submitters");
-				bool? bWarnings = Element.HasAttribute("Warnings")? (bool?)ReadBooleanAttribute(Element, "Warnings", true) : null;
+				bool? bWarnings = Element.HasAttribute("Warnings") ? (bool?)ReadBooleanAttribute(Element, "Warnings", true) : null;
 
 				// Find the list of targets which are included, and recurse through all their dependencies
 				HashSet<Node> Nodes = new HashSet<Node>();
-				if(TargetNames != null)
+				if (TargetNames != null)
 				{
 					HashSet<Node> TargetNodes = ResolveReferences(Element, TargetNames);
-					foreach(Node Node in TargetNodes)
+					foreach (Node Node in TargetNodes)
 					{
 						Nodes.Add(Node);
 						Nodes.UnionWith(Node.InputDependencies);
@@ -762,43 +757,43 @@ namespace AutomationTool
 				}
 
 				// Add all the individually referenced nodes
-				if(IndividualNodeNames != null)
+				if (IndividualNodeNames != null)
 				{
 					HashSet<Node> IndividualNodes = ResolveReferences(Element, IndividualNodeNames);
 					Nodes.UnionWith(IndividualNodes);
 				}
 
 				// Exclude all the exceptions
-				if(ExceptNames != null)
+				if (ExceptNames != null)
 				{
 					HashSet<Node> ExceptNodes = ResolveReferences(Element, ExceptNames);
 					Nodes.ExceptWith(ExceptNodes);
 				}
 
 				// Update all the referenced nodes with the settings
-				foreach(Node Node in Nodes)
+				foreach (Node Node in Nodes)
 				{
-					if(Users != null)
+					if (Users != null)
 					{
 						Node.NotifyUsers.UnionWith(Users);
 					}
-					if(Submitters != null)
+					if (Submitters != null)
 					{
 						Node.NotifySubmitters.UnionWith(Submitters);
 					}
-					if(bWarnings.HasValue)
+					if (bWarnings.HasValue)
 					{
 						Node.bNotifyOnWarnings = bWarnings.Value;
 					}
 				}
 
 				// Add the users to the list of triggers
-				if(TriggerNames != null)
+				if (TriggerNames != null)
 				{
-					foreach(string TriggerName in TriggerNames)
+					foreach (string TriggerName in TriggerNames)
 					{
 						ManualTrigger Trigger;
-						if(Graph.NameToTrigger.TryGetValue(TriggerName, out Trigger))
+						if (Graph.NameToTrigger.TryGetValue(TriggerName, out Trigger))
 						{
 							Trigger.NotifyUsers.UnionWith(Users);
 						}
@@ -816,10 +811,12 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Element">Xml element to read the definition from</param>
 		/// <param name="EventType">The diagnostic event type</param>
-		/// <param name="EnclosingObject">The enclosing object instance</param>
-		void ReadDiagnostic(ScriptElement Element, LogEventType EventType, Node EnclosingNode, AgentGroup EnclosingGroup, ManualTrigger EnclosingTrigger)
+		/// <param name="EnclosingNode">The node that this diagnostic is declared in, or null</param>
+		/// <param name="EnclosingAgent">The agent that this diagnostic is declared in, or null</param>
+		/// <param name="EnclosingTrigger">The trigger that this diagnostic is declared in, or null</param>
+		void ReadDiagnostic(ScriptElement Element, LogEventType EventType, Node EnclosingNode, Agent EnclosingAgent, ManualTrigger EnclosingTrigger)
 		{
-			if(EvaluateCondition(Element))
+			if (EvaluateCondition(Element))
 			{
 				string Message = ReadAttribute(Element, "Message");
 
@@ -827,7 +824,7 @@ namespace AutomationTool
 				Diagnostic.EventType = EventType;
 				Diagnostic.Message = String.Format("{0}({1}): {2}", Element.File.FullName, Element.LineNumber, Message);
 				Diagnostic.EnclosingNode = EnclosingNode;
-				Diagnostic.EnclosingGroup = EnclosingGroup;
+				Diagnostic.EnclosingAgent = EnclosingAgent;
 				Diagnostic.EnclosingTrigger = EnclosingTrigger;
 				Graph.Diagnostics.Add(Diagnostic);
 			}
@@ -843,7 +840,7 @@ namespace AutomationTool
 		bool CheckNameIsUnique(ScriptElement Element, string Name)
 		{
 			// Get the nodes that it maps to
-			if(Graph.ContainsName(Name))
+			if (Graph.ContainsName(Name))
 			{
 				LogError(Element, "'{0}' is already defined; cannot add a second time", Name);
 				return false;
@@ -860,14 +857,14 @@ namespace AutomationTool
 		HashSet<Node> ResolveReferences(ScriptElement Element, IEnumerable<string> ReferenceNames)
 		{
 			HashSet<Node> Nodes = new HashSet<Node>();
-			foreach(string ReferenceName in ReferenceNames)
+			foreach (string ReferenceName in ReferenceNames)
 			{
 				Node[] OtherNodes;
-				if(Graph.TryResolveReference(ReferenceName, out OtherNodes))
+				if (Graph.TryResolveReference(ReferenceName, out OtherNodes))
 				{
 					Nodes.UnionWith(OtherNodes);
 				}
-				else if(!ReferenceName.StartsWith("#") && Graph.NameToNodeOutput.ContainsKey(ReferenceName))
+				else if (!ReferenceName.StartsWith("#") && Graph.NameToNodeOutput.ContainsKey(ReferenceName))
 				{
 					LogError(Element, "Reference to '{0}' cannot be resolved; did you mean '#{0}'?", ReferenceName);
 				}
@@ -888,14 +885,14 @@ namespace AutomationTool
 		HashSet<NodeOutput> ResolveInputReferences(ScriptElement Element, IEnumerable<string> ReferenceNames)
 		{
 			HashSet<NodeOutput> Inputs = new HashSet<NodeOutput>();
-			foreach(string ReferenceName in ReferenceNames)
+			foreach (string ReferenceName in ReferenceNames)
 			{
 				NodeOutput[] ReferenceInputs;
-				if(Graph.TryResolveInputReference(ReferenceName, out ReferenceInputs))
+				if (Graph.TryResolveInputReference(ReferenceName, out ReferenceInputs))
 				{
 					Inputs.UnionWith(ReferenceInputs);
 				}
-				else if(!ReferenceName.StartsWith("#") && Graph.NameToNodeOutput.ContainsKey(ReferenceName))
+				else if (!ReferenceName.StartsWith("#") && Graph.NameToNodeOutput.ContainsKey(ReferenceName))
 				{
 					LogError(Element, "Reference to '{0}' cannot be resolved; did you mean '#{0}'?", ReferenceName);
 				}
@@ -916,7 +913,7 @@ namespace AutomationTool
 		bool TryReadObjectName(ScriptElement Element, out string Name)
 		{
 			// Check the name attribute is present
-			if(!Element.HasAttribute("Name"))
+			if (!Element.HasAttribute("Name"))
 			{
 				LogError(Element, "Missing 'Name' attribute");
 				Name = null;
@@ -925,7 +922,7 @@ namespace AutomationTool
 
 			// Get the value of it, strip any leading or trailing whitespace, and make sure it's not empty
 			string Value = ReadAttribute(Element, "Name");
-			if(!ValidateName(Element, Value))
+			if (!ValidateName(Element, Value))
 			{
 				Name = null;
 				return false;
@@ -945,7 +942,7 @@ namespace AutomationTool
 		bool TryReadQualifiedObjectName(ScriptElement Element, out string[] QualifiedName)
 		{
 			// Check the name attribute is present
-			if(!Element.HasAttribute("Name"))
+			if (!Element.HasAttribute("Name"))
 			{
 				LogError(Element, "Missing 'Name' attribute");
 				QualifiedName = null;
@@ -954,9 +951,9 @@ namespace AutomationTool
 
 			// Get the value of it, strip any leading or trailing whitespace, and make sure it's not empty
 			string[] Values = ReadAttribute(Element, "Name").Split('.');
-			foreach(string Value in Values)
+			foreach (string Value in Values)
 			{
-				if(!ValidateName(Element, Value))
+				if (!ValidateName(Element, Value))
 				{
 					QualifiedName = null;
 					return false;
@@ -977,21 +974,21 @@ namespace AutomationTool
 		bool ValidateName(ScriptElement Element, string Name)
 		{
 			// Check it's not empty
-			if(Name.Length == 0)
+			if (Name.Length == 0)
 			{
 				LogError(Element, "Name is empty");
 				return false;
 			}
 
 			// Check there are no invalid characters
-			for(int Idx = 0; Idx < Name.Length; Idx++)
+			for (int Idx = 0; Idx < Name.Length; Idx++)
 			{
-				if(Idx > 0 && Name[Idx] == ' ' && Name[Idx - 1] == ' ')
+				if (Idx > 0 && Name[Idx] == ' ' && Name[Idx - 1] == ' ')
 				{
 					LogError(Element, "Consecutive spaces in object name");
 					return false;
 				}
-				if(!Char.IsLetterOrDigit(Name[Idx]) && Name[Idx] != '_' && Name[Idx] != ' ')
+				if (!Char.IsLetterOrDigit(Name[Idx]) && Name[Idx] != '_' && Name[Idx] != ' ')
 				{
 					LogError(Element, "Invalid character in object name - '{0}'", Name[Idx]);
 					return false;
@@ -1020,7 +1017,7 @@ namespace AutomationTool
 		string[] ReadListAttribute(ScriptElement Element, string Name)
 		{
 			string Value = ReadAttribute(Element, Name);
-			return Value.Split(new char[]{ ';' }).Select(x => x.Trim()).Where(x => x.Length > 0).ToArray();
+			return Value.Split(new char[] { ';' }).Select(x => x.Trim()).Where(x => x.Length > 0).ToArray();
 		}
 
 		/// <summary>
@@ -1033,14 +1030,14 @@ namespace AutomationTool
 		bool ReadBooleanAttribute(ScriptElement Element, string Name, bool bDefaultValue)
 		{
 			bool bResult = bDefaultValue;
-			if(Element.HasAttribute(Name))
+			if (Element.HasAttribute(Name))
 			{
 				string Value = ReadAttribute(Element, Name).Trim();
-				if(Value.Equals("true", StringComparison.InvariantCultureIgnoreCase))
+				if (Value.Equals("true", StringComparison.InvariantCultureIgnoreCase))
 				{
 					bResult = true;
 				}
-				else if(Value.Equals("false", StringComparison.InvariantCultureIgnoreCase))
+				else if (Value.Equals("false", StringComparison.InvariantCultureIgnoreCase))
 				{
 					bResult = false;
 				}
@@ -1063,12 +1060,12 @@ namespace AutomationTool
 		T ReadEnumAttribute<T>(ScriptElement Element, string Name, T DefaultValue) where T : struct
 		{
 			T Result = DefaultValue;
-			if(Element.HasAttribute(Name))
+			if (Element.HasAttribute(Name))
 			{
 				string Value = ReadAttribute(Element, Name).Trim();
 
 				T EnumValue;
-				if(Enum.TryParse(Value, true, out EnumValue))
+				if (Enum.TryParse(Value, true, out EnumValue))
 				{
 					Result = EnumValue;
 				}
@@ -1101,7 +1098,7 @@ namespace AutomationTool
 		{
 			// Check if the element has a conditional attribute
 			const string AttributeName = "If";
-			if(!Element.HasAttribute(AttributeName))
+			if (!Element.HasAttribute(AttributeName))
 			{
 				return true;
 			}
@@ -1112,7 +1109,7 @@ namespace AutomationTool
 				string Text = ExpandProperties(Element.GetAttribute("If"));
 				return Condition.Evaluate(Text);
 			}
-			catch(ConditionException Ex)
+			catch (ConditionException Ex)
 			{
 				LogError(Element, "Error in condition: {0}", Ex.Message);
 				return false;
@@ -1141,9 +1138,9 @@ namespace AutomationTool
 
 				// Find the value for it, either from the dictionary or the environment block
 				string Value = null;
-				for(int ScopeIdx = ScopedProperties.Count - 1; ScopeIdx >= 0; ScopeIdx--)
+				for (int ScopeIdx = ScopedProperties.Count - 1; ScopeIdx >= 0; ScopeIdx--)
 				{
-					if(ScopedProperties[ScopeIdx].TryGetValue(Name, out Value))
+					if (ScopedProperties[ScopeIdx].TryGetValue(Name, out Value))
 					{
 						break;
 					}

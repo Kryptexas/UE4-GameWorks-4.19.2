@@ -51,6 +51,8 @@ float4 ComputeControlPoint(float4 PositionA, float4 PositionB, float4 NormalA)
 	// Note that we input all control point from AEN, but only their PassSpecificData is valid (see MainHull shader)
 	FHullShaderConstantOutput PNSharedConstantHull( const OutputPatch<FPNTessellationHSToDS, OUT_CONTROL_POINTS> I )
 	{
+		ResolvedView = ResolveView();
+
 		FHullShaderConstantOutput O = (FHullShaderConstantOutput)0;
 
 		#if INSTANCED_STEREO

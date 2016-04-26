@@ -4,6 +4,8 @@
 
 #include "HAL/Platform.h"
 
+class ITargetPlatform;
+
 /**
  * Flags controlling [de]compression
  */
@@ -71,9 +73,10 @@ struct FCompression
 	 * @param	CompressedSize	[in/out]	Size of CompressedBuffer, at exit will be size of compressed data
 	 * @param	UncompressedBuffer			Buffer containing uncompressed data
 	 * @param	UncompressedSize			Size of uncompressed data in bytes
+	 * @param	TargetPlatform				For cooking, target platform of compressed data
 	 * @return true if compression succeeds, false if it fails because CompressedBuffer was too small or other reasons
 	 */
-	CORE_API static bool CompressMemory( ECompressionFlags Flags, void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize );
+	CORE_API static bool CompressMemory( ECompressionFlags Flags, void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize, const ITargetPlatform* TargetPlatform = nullptr );
 
 	/**
 	 * Thread-safe abstract decompression routine. Uncompresses memory from compressed buffer and writes it to uncompressed

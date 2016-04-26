@@ -70,7 +70,7 @@ uint MortonCode( uint x )
 
 half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness, half3 SpecularColor, half IndirectIrradiance)
 {
-	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
+	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, Frame.ReflectionCubemapMaxMip);
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	float4 SpecularIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.ReflectionVector, CubemapArrayIndex, AbsoluteSpecularMip);
@@ -153,7 +153,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 		// Reuse ReflectionCubemapSampler to avoid reducing the sampler count available to artists
 		float4 PlanarReflection = ComputePlanarReflections(MaterialParameters.AbsoluteWorldPosition, MaterialParameters.WorldNormal, ReflectionCubemapSampler);
 		// Planar reflections win over SSR and reflection environment
-		SpecularLighting = lerp(SpecularLighting, PlanarReflection.rgb, PlanarReflection.a);
+		SpecularLighting = PlanarReflection.rgb + (1 - PlanarReflection.a) * SpecularLighting;
 	}
 
 	return SpecularLighting * SpecularColor;
@@ -208,11 +208,10 @@ float3 GetTranslucencyLighting(
 	FMaterialPixelParameters MaterialParameters, 
 	FPixelMaterialInputs PixelMaterialInputs,
 	FBasePassInterpolantsVSToPS BasePassInterpolants, 
-	float3 DiffuseColor, 
-	half Roughness, 
-	half3 SpecularColor, 
-	float IndirectIrradiance, 
-	float MaterialAO)
+	FGBufferData GBuffer, 
+	float3 DiffuseColor,
+	float3 SpecularColor,
+	float IndirectIrradiance)
 {
 	float4 VolumeLighting;
 	float3 InterpolatedLighting = 0;
@@ -243,7 +242,7 @@ float3 GetTranslucencyLighting(
 
 	#elif TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
 
-		InterpolatedLighting = AccumulateForwardLights(MaterialParameters, PixelMaterialInputs, DiffuseColor, Roughness, SpecularColor);
+		InterpolatedLighting = AccumulateForwardLights(MaterialParameters, PixelMaterialInputs, GBuffer);
 
 	#endif
 
@@ -307,7 +306,7 @@ float3 GetTranslucencyLighting(
 	#endif
 
 	#if TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
-		InterpolatedLighting += GetImageBasedReflectionLighting(MaterialParameters, Roughness, SpecularColor, IndirectIrradiance);
+		InterpolatedLighting += GetImageBasedReflectionLighting(MaterialParameters, GBuffer.Roughness, SpecularColor, IndirectIrradiance);
 	#endif
 
 	return InterpolatedLighting;
@@ -438,9 +437,9 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 		#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
 
 			FOneBandSHVectorRGB PointIndirectLighting;
-			PointIndirectLighting.R.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[0].x;
-			PointIndirectLighting.G.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[1].x;
-			PointIndirectLighting.B.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[2].x;
+			PointIndirectLighting.R.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[0].x;
+			PointIndirectLighting.G.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[1].x;
+			PointIndirectLighting.B.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[2].x;
 
 			FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(1);
 			OutDiffuseLighting = DotSH1(PointIndirectLighting, DiffuseTransferSH);
@@ -452,20 +451,28 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 
 		#else
 
-			FTwoBandSHVectorRGB PointIndirectLighting;
-			PointIndirectLighting.R.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[0];
-			PointIndirectLighting.G.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[1];
-			PointIndirectLighting.B.V = PrecomputedLightingBuffer.IndirectLightingSHCoefficients[2];
+			FThreeBandSHVectorRGB PointIndirectLighting;
+			PointIndirectLighting.R.V0 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[0];
+			PointIndirectLighting.R.V1 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients1[0];
+			PointIndirectLighting.R.V2 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients2[0];
 
-			FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(DiffuseDir, 1);
+			PointIndirectLighting.G.V0 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[1];
+			PointIndirectLighting.G.V1 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients1[1];
+			PointIndirectLighting.G.V2 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients2[1];
+
+			PointIndirectLighting.B.V0 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients0[2];
+			PointIndirectLighting.B.V1 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients1[2];
+			PointIndirectLighting.B.V2 = PrecomputedLightingBuffer.IndirectLightingSHCoefficients2[2];
+
+			FThreeBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH3(DiffuseDir, 1);
 			// Compute diffuse lighting which takes the normal into account
-			OutDiffuseLighting = max(half3(0,0,0), DotSH(PointIndirectLighting, DiffuseTransferSH));
+			OutDiffuseLighting = max(half3(0,0,0), DotSH3(PointIndirectLighting, DiffuseTransferSH));
 
 			#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
-				FTwoBandSHVector SubsurfaceTransferSH = CalcDiffuseTransferSH(-DiffuseDir, 1);
-				OutSubsurfaceLighting += max(half3(0,0,0), DotSH(PointIndirectLighting, SubsurfaceTransferSH));
+				FThreeBandSHVector SubsurfaceTransferSH = CalcDiffuseTransferSH3(-DiffuseDir, 1);
+				OutSubsurfaceLighting += max(half3(0,0,0), DotSH3(PointIndirectLighting, SubsurfaceTransferSH));
 			#endif
-
+		
 		#endif
 
 	// High quality texture lightmaps
@@ -503,7 +510,7 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 	else
 	{
 	#if (TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL) && FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-		float DiffuseMip = ComputeReflectionCaptureMipFromRoughness(1);
+		float DiffuseMip = ComputeReflectionCaptureMipFromRoughness(1, Frame.ReflectionCubemapMaxMip);
 		float4 DiffuseIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, DiffuseDir, CubemapArrayIndex, DiffuseMip);
 		
 		OutDiffuseLighting += DiffuseIBL.rgb + (1 - DiffuseIBL.a) * SkyDiffuseLighting;
@@ -682,6 +689,13 @@ void Main(
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
 	FPixelMaterialInputs PixelMaterialInputs;
 	
+#if HQ_TEXTURE_LIGHTMAP && USES_AO_MATERIAL_MASK && !MATERIAL_SHADINGMODEL_UNLIT
+	float2 LightmapUV0, LightmapUV1;
+	GetLightMapCoordinates(Interpolants, LightmapUV0, LightmapUV1);
+	// Must be computed before BaseColor, Normal, etc are evaluated
+	MaterialParameters.AOMaterialMask = GetAOMaterialMask(LightmapUV0 * float2(1, 2));
+#endif
+
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		{
 			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
@@ -706,13 +720,6 @@ void Main(
 	{
 		GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
 	}
-
-#if HQ_TEXTURE_LIGHTMAP && USES_AO_MATERIAL_MASK && !MATERIAL_SHADINGMODEL_UNLIT
-	float2 LightmapUV0, LightmapUV1;
-	GetLightMapCoordinates(Interpolants, LightmapUV0, LightmapUV1);
-	// Must be computed before GetMaterialBaseColor
-	MaterialParameters.AOMaterialMask = GetAOMaterialMask(LightmapUV0 * float2(1, 2));
-#endif
 
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	half3 BaseColor = GetMaterialBaseColor(PixelMaterialInputs);
@@ -965,7 +972,7 @@ void Main(
 		
 	// Volume lighting for lit translucency
 	#if (MATERIAL_SHADINGMODEL_DEFAULT_LIT || MATERIAL_SHADINGMODEL_SUBSURFACE) && (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE)
-		Color += GetTranslucencyLighting(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, DiffuseColor, Roughness, SpecularColor, IndirectIrradiance, MaterialAO);
+		Color += GetTranslucencyLighting(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, GBuffer, DiffuseColor, SpecularColor, IndirectIrradiance);
 	#endif
 
 	#if !MATERIAL_SHADINGMODEL_UNLIT && USE_DEVELOPMENT_SHADERS
@@ -992,7 +999,6 @@ void Main(
 
 	Color += Emissive;
 
-
 	#if MATERIALBLENDING_TRANSLUCENT
 		OutColor = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
 		OutColor = RETURN_COLOR(OutColor);
@@ -1004,11 +1010,12 @@ void Main(
 		half3 FoggedColor = lerp(float3(1, 1, 1), Color, VertexFog.aaa * VertexFog.aaa);
 		OutColor = half4(FoggedColor, Opacity);
 	#else
-		// Scene color alpha is used for ScreenSpaceSubsurfaceScattering (if that is not needed it can be disabled with SUBSURFACE_CHANNEL_MODE)
 		{
 			FLightAccumulator LightAccumulator = (FLightAccumulator)0;
 
 			LightAccumulator_Add(LightAccumulator, Color, 0, 1.0f);
+			// Note: Scene color alpha used in scene captures and planar reflections to track which parts have been rendered
+			// A value of 0 means that pixel has been rendered, 1 is the clear default
 			OutColor = RETURN_COLOR(LightAccumulator_GetResult(LightAccumulator));
 		}
 	#endif

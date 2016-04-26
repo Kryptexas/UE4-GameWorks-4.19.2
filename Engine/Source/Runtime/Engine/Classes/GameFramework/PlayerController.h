@@ -205,6 +205,10 @@ class ENGINE_API APlayerController : public AController
 	/**  Smoothed version of TargetViewRotation to remove jerkiness from intermittent replication updates. */
 	FRotator BlendedTargetViewRotation;
 
+	/** Interp speed for blending remote view rotation for smoother client updates */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerController)
+	float SmoothTargetViewRotationSpeed;
+
 	/** The actors which the camera shouldn't see - e.g. used to hide actors which the camera penetrates */
 	UPROPERTY()
 	TArray<class AActor*> HiddenActors;
@@ -427,39 +431,8 @@ public:
 	  */
 	virtual void SetCinematicMode( bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning);
 
-	/**
-	  * Locks or unlocks movement input, consecutive calls stack up and require the same amount of calls to undo, or can all be undone using ResetIgnoreMoveInput.
-	  * @param bNewMoveInput	If true, move input is ignored. If false, input is not ignored.
-	  */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void SetIgnoreMoveInput( bool bNewMoveInput );
-
-	/** Stops ignoring move input by resetting the ignore move input state. */
-	UFUNCTION(BlueprintCallable, Category = "Input", meta = (Keywords = "ClearIgnoreMoveInput"))
-	virtual void ResetIgnoreMoveInput();
-
-	/** Returns true if movement input is ignored. */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual bool IsMoveInputIgnored() const;
-
-	/**
-	  * Locks or unlocks look input, consecutive calls stack up and require the same amount of calls to undo, or can all be undone using ResetIgnoreLookInput.
-	  * @param bNewLookInput	If true, look input is ignored. If false, input is not ignored.
-	  */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void SetIgnoreLookInput( bool bNewLookInput );
-	
-	/** Stops ignoring look input by resetting the ignore look input state. */
-	UFUNCTION(BlueprintCallable, Category = "Input", meta = (Keywords = "ClearIgnoreLookInput"))
-	virtual void ResetIgnoreLookInput();
-
-	/** Returns true if look input is ignored. */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual bool IsLookInputIgnored() const;
-
-	/** reset move and look input ignore flags to defaults */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void ResetIgnoreInputFlags();
+	/** Reset move and look input ignore flags to defaults */
+	virtual void ResetIgnoreInputFlags() override;
 
 	bool GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, const FCollisionQueryParams& CollisionQueryParams, FHitResult& HitResult) const;
 	bool GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const;
@@ -1195,12 +1168,6 @@ protected:
 
 	/** Whether we fully tick when the game is paused, if our tick function is allowed to do so. If false, we do a minimal update during the tick. */
 	uint32 bShouldPerformFullTickWhenPaused:1;
-
-	/** Ignores movement input. Stacked state storage, Use accessor function IgnoreMoveInput() */
-	uint8 IgnoreMoveInput;
-
-	/** Ignores look input. Stacked state storage, use accessor function IgnoreLookInput(). */
-	uint8 IgnoreLookInput;
 
 	/** The virtual touch interface */
 	TSharedPtr<class SVirtualJoystick> VirtualJoystick;

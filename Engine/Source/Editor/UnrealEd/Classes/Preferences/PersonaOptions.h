@@ -53,6 +53,9 @@ class UNREALED_API UPersonaOptions : public UObject
 	uint32 DefaultLocalAxesSelection;
 
 	UPROPERTY(EditAnywhere, config, Category = Options)
+	uint32 DefaultBoneDrawSelection;
+
+	UPROPERTY(EditAnywhere, config, Category = Options)
 	FLinearColor SectionTimingNodeColor;
 
 	UPROPERTY(EditAnywhere, config, Category = Options)
@@ -73,6 +76,7 @@ public:
 	void SetViewModeIndex( EViewModeIndex InViewModeIndex );
 	void SetViewFOV( float InViewFOV );
 	void SetDefaultLocalAxesSelection( uint32 InDefaultLocalAxesSelection );
+	void SetDefaultBoneDrawSelection(uint32 InDefaultBoneAxesSelection);
 	void SetShowMeshStats( int32 InShowMeshStats );
 	void SetSectionTimingNodeColor(const FLinearColor& InColor);
 	void SetNotifyTimingNodeColor(const FLinearColor& InColor);

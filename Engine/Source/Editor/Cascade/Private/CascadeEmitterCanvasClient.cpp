@@ -472,6 +472,7 @@ bool FCascadeEmitterCanvasClient::InputKey(FViewport* Viewport, int32 Controller
 						{
 							Module->bEnabled = !Module->bEnabled;
 							Module->PostEditChange();
+							CascadePtr.Pin()->OnRestartInLevel();
 						}
 					}
 				}

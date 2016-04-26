@@ -3452,7 +3452,7 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 				for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 				{
 					AActor* Actor = static_cast<AActor*>(*It);
-					Actor->AttachRootComponentToActor(AttachData[Index].ParentActor, AttachData[Index].SocketName, EAttachLocation::KeepWorldPosition);
+					Actor->AttachToActor(AttachData[Index].ParentActor, FAttachmentTransformRules::KeepWorldTransform, AttachData[Index].SocketName);
 					Actor->PostEditMove(true);
 					Index++;
 				}

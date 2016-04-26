@@ -7,6 +7,10 @@
 // World space reflection plane, normalized
 float4 ReflectionPlane;
 
+float3 PlanarReflectionOrigin;
+float4 PlanarReflectionXAxis;
+float4 PlanarReflectionYAxis;
+
 // Used to transform normals into the mirrored space
 float3x4 InverseTransposeMirrorMatrix;
 
@@ -28,6 +32,13 @@ float4 ComputePlanarReflections(float3 WorldPosition, float3 WorldNormal, Sample
 
 	float PlaneDistance = dot(ReflectionPlane, float4(WorldPosition, -1));
 	float DistanceFade = 1 - saturate(abs(PlaneDistance) * PlanarReflectionParameters.x + PlanarReflectionParameters.y);
+
+	float3 PlaneOriginToWorldPosition = WorldPosition - PlanarReflectionOrigin;
+	float XAxisDistance = dot(PlaneOriginToWorldPosition, PlanarReflectionXAxis.xyz);
+	float XAxisFade = saturate((PlanarReflectionXAxis.w - abs(XAxisDistance)) * PlanarReflectionParameters.x);
+	float YAxisDistance = dot(PlaneOriginToWorldPosition, PlanarReflectionYAxis.xyz);
+	float YAxisFade = saturate((PlanarReflectionYAxis.w - abs(YAxisDistance)) * PlanarReflectionParameters.x);
+	DistanceFade *= XAxisFade * YAxisFade;
 
 	BRANCH
 	if (DistanceFade > 0)
@@ -55,11 +66,19 @@ float4 ComputePlanarReflections(float3 WorldPosition, float3 WorldNormal, Sample
 		float AngleFade = saturate(dot(ReflectionPlane.xyz, WorldNormal) * PlanarReflectionParameters2.x + PlanarReflectionParameters2.y);
 		float FinalFade = DistanceFade * AngleFade;
 
+		float4 PlanarReflectionTextureValue = Texture2DSampleLevel(
+			PlanarReflectionTexture, 
 #if SUPPORTS_INDEPENDENT_SAMPLERS
-		OutPlanarReflection.rgb = Texture2DSampleLevel(PlanarReflectionTexture, SharedClampSampler, ViewportUV, 0).rgb * FinalFade;
+			SharedClampSampler, 
 #else
-		OutPlanarReflection.rgb = Texture2DSampleLevel(PlanarReflectionTexture, PlanarReflectionSampler, ViewportUV, 0).rgb * FinalFade;
+			PlanarReflectionSampler,
 #endif
+			ViewportUV, 
+			0);
+
+		// Fade out in regions of the planar reflection that weren't written to, so we can composite with other reflection methods
+		FinalFade *= PlanarReflectionTextureValue.a;
+		OutPlanarReflection.rgb = PlanarReflectionTextureValue.rgb * FinalFade;
 		OutPlanarReflection.a = FinalFade;
 	}
 

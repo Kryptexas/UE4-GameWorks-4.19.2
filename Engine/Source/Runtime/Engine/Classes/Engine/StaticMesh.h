@@ -582,6 +582,9 @@ public:
 	ENGINE_API virtual void GetMeshId(FString& OutMeshId) override;
 	//~ End Interface_CollisionDataProvider Interface
 
+	/** Return the number of sections of the StaticMesh with collision enabled */
+	int32 GetNumSectionsWithCollision() const;
+
 	//~ Begin IInterface_AssetUserData Interface
 	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
 	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;

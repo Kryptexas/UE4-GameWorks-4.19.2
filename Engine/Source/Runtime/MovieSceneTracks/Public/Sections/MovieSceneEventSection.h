@@ -42,18 +42,18 @@ public:
 	/**
 	 * Trigger the events that fall into the given time range.
 	 *
-	 * @param EventContextObject The object to trigger the events on.
+	 * @param EventContextObjects The objects to trigger the events on.
 	 * @param Position The current position in time.
 	 * @param LastPosition The time at the last update.
 	 */
-	void TriggerEvents(UObject* EventContextObject, float Position, float LastPosition);
+	void TriggerEvents(TArray<UObject*> EventContextObjects, float Position, float LastPosition);
 
 public:
 
 	// UMovieSceneSection interface
 
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
-	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
+	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles, TRange<float> TimeRange) const override;
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
 
 protected:
@@ -62,9 +62,9 @@ protected:
 	 * Trigger event for the specified name.
 	 *
 	 * @param Event The Name to trigger.
-	 * @param Object The object to trigger the events on.
+	 * @param EventContextObjects The objects to trigger the events on.
 	 */
-	void TriggerEvent(const FName& Event, UObject* EventContextObject);
+	void TriggerEvent(const FName& Event, TArray<UObject*> EventContextObjects);
 
 private:
 

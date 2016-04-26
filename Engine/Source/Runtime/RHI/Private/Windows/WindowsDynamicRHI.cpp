@@ -5,7 +5,22 @@
 
 FDynamicRHI* PlatformCreateDynamicRHI()
 {
-	FDynamicRHI* DynamicRHI = NULL;
+	FDynamicRHI* DynamicRHI = nullptr;
+
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	if (!FPlatformMisc::IsDebuggerPresent())
+	{
+		if (FParse::Param(FCommandLine::Get(), TEXT("AttachDebugger")))
+		{
+			// Wait to attach debugger
+			do
+			{
+				FPlatformProcess::Sleep(0);
+			}
+			while (!FPlatformMisc::IsDebuggerPresent());
+		}
+	}
+#endif
 
 	// command line overrides
 	const bool bForceSM5  = FParse::Param(FCommandLine::Get(),TEXT("sm5"));

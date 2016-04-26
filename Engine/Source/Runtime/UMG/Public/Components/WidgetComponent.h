@@ -121,7 +121,7 @@ public:
 	 *	with either a newer widget or a nullptr
 	 */ 
 	UFUNCTION(BlueprintCallable, Category=UserInterface)
-	void SetWidget(UUserWidget* InWidget);
+	void SetWidget(UUserWidget* Widget);
 
 	/**  
 	 *  Sets a Slate widget to be rendered.  You can use this to draw native Slate widgets using a WidgetComponent, instead

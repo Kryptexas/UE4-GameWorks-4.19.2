@@ -467,6 +467,8 @@ private:
 		 */
 		void OnEndGenerationPass()
 		{
+			ensureMsgf( OwnerList, TEXT( "OwnerList is null, something is wrong." ) );
+
 			for( int32 ItemIndex = 0; ItemIndex < ItemsToBeCleanedUp.Num(); ++ItemIndex )
 			{
 				ItemType ItemToBeCleanedUp = ItemsToBeCleanedUp[ItemIndex];
@@ -478,12 +480,21 @@ private:
 					WidgetMapToItem.Remove( &WidgetToCleanUp.Get() );
 
 					// broadcast here
-					OwnerList->OnRowReleased.ExecuteIfBound( WidgetToCleanUp );
+					if ( OwnerList )
+					{
+						OwnerList->OnRowReleased.ExecuteIfBound( WidgetToCleanUp );
+					}
 				}				
 			}
 
-			checkf(ItemToWidgetMap.Num() == WidgetMapToItem.Num(), TEXT("ItemToWidgetMap length (%d) does not match WidgetMapToItem length (%d).  %s"), ItemToWidgetMap.Num(), WidgetMapToItem.Num(), *OwnerList->ToString());
-			checkf(WidgetMapToItem.Num() == ItemsWithGeneratedWidgets.Num(), TEXT("WidgetMapToItem length (%d) does not match ItemsWithGeneratedWidgets length (%d). This is often because the same item is in the list more than once.  %s"), WidgetMapToItem.Num(), ItemsWithGeneratedWidgets.Num(), *OwnerList->ToString());
+			checkf( ItemToWidgetMap.Num() == WidgetMapToItem.Num(),
+			        TEXT( "ItemToWidgetMap length (%d) does not match WidgetMapToItem length (%d).  %s" ), ItemToWidgetMap.Num(),
+			        WidgetMapToItem.Num(), OwnerList ? *OwnerList->ToString() : TEXT( "null" ) );
+
+			checkf( WidgetMapToItem.Num() == ItemsWithGeneratedWidgets.Num(),
+			        TEXT( "WidgetMapToItem length (%d) does not match ItemsWithGeneratedWidgets length (%d). This is often because the same item is in the list more than once.  %s" ),
+			        WidgetMapToItem.Num(), ItemsWithGeneratedWidgets.Num(), OwnerList ? *OwnerList->ToString() : TEXT( "null" ) );
+
 			ItemsToBeCleanedUp.Reset();
 		}
 

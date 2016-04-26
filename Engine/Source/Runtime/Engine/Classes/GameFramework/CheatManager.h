@@ -138,9 +138,9 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	virtual void God();
 
-	/** Modify time dilation to change apparent speed of passage of time.  Slomo 0.1 makes everything move very slowly, Slomo 10 makes everything move very fast. */
+	/** Modify time dilation to change apparent speed of passage of time. e.g. "Slomo 0.1" makes everything move very slowly, while "Slomo 10" makes everything move very fast. */
 	UFUNCTION(exec)
-	virtual void Slomo(float T);
+	virtual void Slomo(float NewTimeDilation);
 
 	/** Damage the actor you're looking at (sourced from the player). */
 	UFUNCTION(exec)

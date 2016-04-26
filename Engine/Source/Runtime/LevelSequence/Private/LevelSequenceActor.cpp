@@ -23,7 +23,7 @@ ALevelSequenceActor::ALevelSequenceActor(const FObjectInitializer& Init)
 		if (SpriteComponent)
 		{
 			SpriteComponent->Sprite = ConstructorStatics.DecalTexture.Get();
-			SpriteComponent->AttachParent = RootComponent;
+			SpriteComponent->SetupAttachment(RootComponent);
 			SpriteComponent->bIsScreenSizeScaled = true;
 			SpriteComponent->bAbsoluteScale = true;
 			SpriteComponent->bReceivesDecals = false;

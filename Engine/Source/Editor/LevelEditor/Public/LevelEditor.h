@@ -12,6 +12,8 @@
 
 extern const FName LevelEditorApp;
 
+DECLARE_DELEGATE_RetVal_OneParam(bool, FAreObjectsEditable, const TArray<TWeakObjectPtr<UObject>>&);
+
 /**
  * Level editor module
  */
@@ -235,6 +237,34 @@ public:
 	virtual FCaptureSingleFrameAnimSequence& OnCaptureSingleFrameAnimSequence() { return CaptureSingleFrameAnimSequenceDelegate; }
 
 public:
+
+	/** Add a delegate that will get called to check whether the specified objects should be editable on the details panel or not */
+	void AddEditableObjectPredicate(const FAreObjectsEditable& InPredicate)
+	{
+		check(InPredicate.IsBound());
+		AreObjectsEditableDelegates.Add(InPredicate);
+	}
+
+	/** Remove a delegate that was added via AddEditableObjectPredicate */
+	void RemoveEditableObjectPredicate(FDelegateHandle InPredicateHandle)
+	{
+		AreObjectsEditableDelegates.RemoveAll([=](const FAreObjectsEditable& P){ return P.GetHandle() == InPredicateHandle; });
+	}
+
+	/** Check whether the specified objects are editable */
+	bool AreObjectsEditable(const TArray<TWeakObjectPtr<UObject>>& InObjects) const
+	{
+		for (const FAreObjectsEditable& Predicate : AreObjectsEditableDelegates)
+		{
+			if (!Predicate.Execute(InObjects))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+public:
 	
 	/** Register a viewport type for the level editor */
 	void RegisterViewportType(FName InLayoutName, const FViewportTypeDefinition& InDefinition)
@@ -335,6 +365,9 @@ private:
 
 	/** Map of named viewport types to factory functions */
 	TMap<FName, FViewportTypeDefinition> CustomViewports;
+
+	/** Array of delegates that are used to check if the specified objects should be editable on the details panel */
+	TArray<FAreObjectsEditable> AreObjectsEditableDelegates;
 };
 
 #endif // __LevelEditor_h__

@@ -79,7 +79,23 @@ public:
 
 	void UpdateTransform(const FMatrix& NewTransform)
 	{
-		ReflectionPlane = FPlane(NewTransform.TransformPosition(FVector::ZeroVector), NewTransform.TransformVector(FVector(0, 0, 1)));
+
+		PlanarReflectionOrigin = NewTransform.TransformPosition(FVector::ZeroVector);
+		ReflectionPlane = FPlane(PlanarReflectionOrigin, NewTransform.TransformVector(FVector(0, 0, 1)));
+
+		// Extents of the mesh used to visualize the reflection plane
+		const float MeshExtent = 2000.0f;
+		FVector LocalExtent(MeshExtent, MeshExtent, DistanceFromPlaneFadeEnd);
+		FBox LocalBounds(-LocalExtent, LocalExtent);
+		WorldBounds = LocalBounds.TransformBy(NewTransform);
+
+		const FVector XAxis = NewTransform.TransformVector(FVector(1, 0, 0));
+		const float XAxisLength = XAxis.Size();
+		PlanarReflectionXAxis = FVector4(XAxis / FMath::Max(XAxisLength, DELTA), XAxisLength * MeshExtent);
+
+		const FVector YAxis = NewTransform.TransformVector(FVector(0, 1, 0));
+		const float YAxisLength = YAxis.Size();
+		PlanarReflectionYAxis = FVector4(YAxis / FMath::Max(YAxisLength, DELTA), YAxisLength * MeshExtent);
 
 		const FMirrorMatrix MirrorMatrix(ReflectionPlane);
 		// Using TransposeAdjoint instead of full inverse because we only care about transforming normals
@@ -87,11 +103,21 @@ public:
 		InverseTransposeMirrorMatrix4x4.GetScaledAxes((FVector&)InverseTransposeMirrorMatrix[0], (FVector&)InverseTransposeMirrorMatrix[1], (FVector&)InverseTransposeMirrorMatrix[2]);
 	}
 
+	FBox WorldBounds;
 	FPlane ReflectionPlane;
+	FVector PlanarReflectionOrigin;
+	float DistanceFromPlaneFadeEnd;
+	FVector4 PlanarReflectionXAxis;
+	FVector4 PlanarReflectionYAxis;
 	FVector PlanarReflectionParameters;
 	FVector2D PlanarReflectionParameters2;
 	FMatrix ProjectionWithExtraFOV;
 	FVector4 InverseTransposeMirrorMatrix[3];
-	FPlanarReflectionRenderTarget* RenderTarget;
 	FName OwnerName;
+	int32 PlanarReflectionId;
+	float PrefilterRoughness;
+	float PrefilterRoughnessDistance;
+
+	/** This is specific to a certain view and should actually be stored in FSceneViewState. */
+	FPlanarReflectionRenderTarget* RenderTarget;
 };

@@ -97,19 +97,19 @@ static void ConformNativeComponents(UBlueprint* Blueprint)
 						// (we're looking to fixup scene-component parents)
 						continue;
 					}
-					UActorComponent* OldNativeParent = FindNativeComponentLambda(BlueprintSceneComponent->AttachParent);
+					UActorComponent* OldNativeParent = FindNativeComponentLambda(BlueprintSceneComponent->GetAttachParent());
 
 					USceneComponent* NativeSceneComponent = CastChecked<USceneComponent>(NativeComponent);
 					// if this native component has since been reparented, we need
 					// to make sure that this blueprint reflects that change
-					if (OldNativeParent != NativeSceneComponent->AttachParent)
+					if (OldNativeParent != NativeSceneComponent->GetAttachParent())
 					{
 						USceneComponent* NewParent = nullptr;
-						if (NativeSceneComponent->AttachParent != nullptr)
+						if (NativeSceneComponent->GetAttachParent() != nullptr)
 						{
-							NewParent = CastChecked<USceneComponent>(FindNamedComponentLambda(NativeSceneComponent->AttachParent->GetFName(), OldNativeComponents));
+							NewParent = CastChecked<USceneComponent>(FindNamedComponentLambda(NativeSceneComponent->GetAttachParent()->GetFName(), OldNativeComponents));
 						}
-						BlueprintSceneComponent->AttachParent = NewParent;
+						BlueprintSceneComponent->SetupAttachment(NewParent, BlueprintSceneComponent->GetAttachSocketName());
 					}
 				}
 				else // the component has been removed from the native class

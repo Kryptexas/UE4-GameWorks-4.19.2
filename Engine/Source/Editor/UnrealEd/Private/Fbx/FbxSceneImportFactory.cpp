@@ -1479,12 +1479,12 @@ AActor *UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxSc
 			ParentRootComponent = *NewSceneComponentNameMap.Find(ParentUniqueId);
 			if (ParentRootComponent != nullptr)
 			{
-				SceneComponent->AttachTo(ParentRootComponent, NAME_None, EAttachLocation::KeepWorldPosition);
+				SceneComponent->AttachToComponent(ParentRootComponent, FAttachmentTransformRules::KeepWorldTransform);
 			}
 		}
 		else
 		{
-			SceneComponent->AttachTo(ActorRootComponent, NAME_None, EAttachLocation::KeepWorldPosition);
+			SceneComponent->AttachToComponent(ActorRootComponent, FAttachmentTransformRules::KeepWorldTransform);
 		}
 
 		//Find the pivot location

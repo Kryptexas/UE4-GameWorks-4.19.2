@@ -867,7 +867,16 @@ void ULandscapeComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 
 FBoxSphereBounds ULandscapeComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	return FBoxSphereBounds(CachedLocalBox.TransformBy(LocalToWorld));
+	FBox Bounds = CachedLocalBox.TransformBy(LocalToWorld);
+	Bounds = Bounds.ExpandBy({0, 0, NegativeZBoundsExtension}, {0, 0, PositiveZBoundsExtension});
+
+	ALandscapeProxy* Proxy = GetLandscapeProxy();
+	if (Proxy)
+	{
+		Bounds = Bounds.ExpandBy({0, 0, Proxy->NegativeZBoundsExtension}, {0, 0, Proxy->PositiveZBoundsExtension});
+	}
+
+	return FBoxSphereBounds(Bounds);
 }
 
 void ULandscapeComponent::OnRegister()
@@ -1452,6 +1461,8 @@ void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 		MaxLODLevel = Landscape->MaxLODLevel;
 		LODDistanceFactor = Landscape->LODDistanceFactor;
 		LODFalloff = Landscape->LODFalloff;
+		NegativeZBoundsExtension = Landscape->NegativeZBoundsExtension;
+		PositiveZBoundsExtension = Landscape->PositiveZBoundsExtension;
 		CollisionMipLevel = Landscape->CollisionMipLevel;
 		bBakeMaterialPositionOffsetIntoCollision = Landscape->bBakeMaterialPositionOffsetIntoCollision;
 		if (!LandscapeMaterial)

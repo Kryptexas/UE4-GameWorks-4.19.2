@@ -148,7 +148,7 @@ float3 ColorGrade( float3 LinearColor )
 	return mul( AP1_2_sRGB, WorkingColor );
 }
 
-uint OutputDevice;
+int OutputDevice;
 
 // todo: Weight[0] should be used for neutral, Texture* name should start with 1, color correction should apply on top of that
 #if USE_VOLUME_LUT == 1

@@ -321,7 +321,7 @@ static void ConvertSurfaceDataToFColor(EPixelFormat Format, uint32 Width, uint32
 		
 		for(uint32 Y = 0; Y < Height; Y++)
 		{
-			float* SrcPtr = (float*)In;
+			float* SrcPtr = (float*)(In + Y * SrcPitch);
 			FColor* DestPtr = Out + Y * Width;
 			
 			for(uint32 X = 0; X < Width; X++)
@@ -385,7 +385,7 @@ static void ConvertSurfaceDataToFColor(EPixelFormat Format, uint32 Width, uint32
 			
 			for (uint32 Y = 0; Y < Height; Y++)
 			{
-				uint32* SrcPtr = (uint32*)In;
+				uint32* SrcPtr = (uint32*)(In + Y * SrcPitch);
 				FColor* DestPtr = Out + Y * Width;
 				
 				for (uint32 X = 0; X < Width; X++)
@@ -405,7 +405,7 @@ static void ConvertSurfaceDataToFColor(EPixelFormat Format, uint32 Width, uint32
 			// Depth stencil
 			for (uint32 Y = 0; Y < Height; Y++)
 			{
-				uint8* SrcPtr = (uint8*)In;
+				uint8* SrcPtr = (uint8*)(In + Y * SrcPitch);
 				FColor* DestPtr = Out + Y * Width;
 				
 				for (uint32 X = 0; X < Width; X++)
@@ -518,7 +518,9 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 	{
 		uint32 BytesPerPixel = (Surface->PixelFormat != PF_DepthStencil || !InFlags.GetOutputStencil()) ? GPixelFormats[Surface->PixelFormat].BlockBytes : 1;
 		const uint32 Stride = BytesPerPixel * SizeX;
-		const uint32 BytesPerImage = Stride * SizeY;
+		const uint32 Alignment = PLATFORM_MAC ? 1u : 64u; // Mac permits natural row alignment (tightly-packed) but iOS does not.
+		const uint32 AlignedStride = ((Stride - 1) & ~(Alignment - 1)) + Alignment;
+		const uint32 BytesPerImage = AlignedStride * SizeY;
 		FMetalPooledBuffer Buffer = ((FMetalDeviceContext*)Context)->CreatePooledBuffer(FMetalPooledBufferArgs(Context->GetDevice(), BytesPerImage, MTLStorageModeShared));
 		{
 			// Synchronise the texture with the CPU
@@ -527,18 +529,18 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 			id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
 			if (Surface->PixelFormat != PF_DepthStencil)
 			{
-				[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:Stride destinationBytesPerImage:BytesPerImage];
+				[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:AlignedStride destinationBytesPerImage:BytesPerImage];
 			}
 #if METAL_API_1_1
 			else if (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthStencilBlitOptions))
 			{
 				if (!InFlags.GetOutputStencil())
 				{
-					[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:Stride destinationBytesPerImage:BytesPerImage options:MTLBlitOptionDepthFromDepthStencil];
+					[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:AlignedStride destinationBytesPerImage:BytesPerImage options:MTLBlitOptionDepthFromDepthStencil];
 				}
 				else
 				{
-					[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:Stride destinationBytesPerImage:BytesPerImage options:MTLBlitOptionStencilFromDepthStencil];
+					[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:AlignedStride destinationBytesPerImage:BytesPerImage options:MTLBlitOptionStencilFromDepthStencil];
 				}
 			}
 #endif
@@ -551,7 +553,7 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 			//kick the current command buffer.
 			Context->SubmitCommandBufferAndWait();
 			
-			ConvertSurfaceDataToFColor(Surface->PixelFormat, SizeX, SizeY, (uint8*)[Buffer.Buffer contents], Stride, OutDataPtr, InFlags);
+			ConvertSurfaceDataToFColor(Surface->PixelFormat, SizeX, SizeY, (uint8*)[Buffer.Buffer contents], AlignedStride, OutDataPtr, InFlags);
 		}
 		((FMetalDeviceContext*)Context)->ReleasePooledBuffer(Buffer);
 	}
@@ -613,23 +615,39 @@ void FMetalDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, F
 	
 	// function wants details about the destination, not the source
 	const uint32 Stride = GPixelFormats[Surface->PixelFormat].BlockBytes * SizeX;
-	const uint32 BytesPerImage = Stride  * SizeY;
-	int32 FloatBGRADataSize = Stride * SizeY;
+	const uint32 Alignment = PLATFORM_MAC ? 1u : 64u; // Mac permits natural row alignment (tightly-packed) but iOS does not.
+	const uint32 AlignedStride = ((Stride - 1) & ~(Alignment - 1)) + Alignment;
+	const uint32 BytesPerImage = AlignedStride  * SizeY;
+	int32 FloatBGRADataSize = BytesPerImage;
 	FMetalPooledBuffer Buffer = ((FMetalDeviceContext*)Context)->CreatePooledBuffer(FMetalPooledBufferArgs(Context->GetDevice(), FloatBGRADataSize, MTLStorageModeShared));
 	{
 		// Synchronise the texture with the CPU
 		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
 		
 		id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
-		[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:Stride destinationBytesPerImage:BytesPerImage];
+		[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:AlignedStride destinationBytesPerImage:BytesPerImage];
 		
 		//kick the current command buffer.
 		Context->SubmitCommandBufferAndWait();
 	}
 	
-	FFloat16Color* FloatBGRAData = (FFloat16Color*)[Buffer.Buffer contents];
+	uint8* DataPtr = (uint8*)[Buffer.Buffer contents];
 	FFloat16Color* OutDataPtr = OutData.GetData();
-	FMemory::Memcpy(OutDataPtr, FloatBGRAData, FloatBGRADataSize);
+	if (Alignment > 1u)
+	{
+		for (uint32 Row = 0; Row < SizeY; Row++)
+		{
+			FFloat16Color* FloatBGRAData = (FFloat16Color*)DataPtr;
+			FMemory::Memcpy(OutDataPtr, FloatBGRAData, Stride);
+			DataPtr += AlignedStride;
+			OutDataPtr += SizeX;
+		}
+	}
+	else
+	{
+		FFloat16Color* FloatBGRAData = (FFloat16Color*)DataPtr;
+		FMemory::Memcpy(OutDataPtr, FloatBGRAData, FloatBGRADataSize);
+	}
 	
 	((FMetalDeviceContext*)Context)->ReleasePooledBuffer(Buffer);
 }
@@ -662,23 +680,42 @@ void FMetalDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,
 	
 	// function wants details about the destination, not the source
 	const uint32 Stride = GPixelFormats[Surface->PixelFormat].BlockBytes * SizeX;
-	const uint32 BytesPerImage = Stride  * SizeY;
-	int32 FloatBGRADataSize = Stride * SizeY * SizeZ;
+	const uint32 Alignment = PLATFORM_MAC ? 1u : 64u; // Mac permits natural row alignment (tightly-packed) but iOS does not.
+	const uint32 AlignedStride = ((Stride - 1) & ~(Alignment - 1)) + Alignment;
+	const uint32 BytesPerImage = AlignedStride  * SizeY;
+	int32 FloatBGRADataSize = BytesPerImage * SizeZ;
 	FMetalPooledBuffer Buffer = ((FMetalDeviceContext*)Context)->CreatePooledBuffer(FMetalPooledBufferArgs(Context->GetDevice(), FloatBGRADataSize, MTLStorageModeShared));
 	{
 		// Synchronise the texture with the CPU
 		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
 		
 		id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
-		[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:Stride destinationBytesPerImage:BytesPerImage];
+		[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:AlignedStride destinationBytesPerImage:BytesPerImage];
 		
 		//kick the current command buffer.
 		Context->SubmitCommandBufferAndWait();
 	}
 	
-	FFloat16Color* FloatBGRAData = (FFloat16Color*)[Buffer.Buffer contents];
+	uint8* DataPtr = (uint8*)[Buffer.Buffer contents];
 	FFloat16Color* OutDataPtr = OutData.GetData();
-	FMemory::Memcpy(OutDataPtr, FloatBGRAData, FloatBGRADataSize);
+	if (Alignment > 1u)
+	{
+		for (uint32 Image = 0; Image < SizeZ; Image++)
+		{
+			for (uint32 Row = 0; Row < SizeY; Row++)
+			{
+				FFloat16Color* FloatBGRAData = (FFloat16Color*)DataPtr;
+				FMemory::Memcpy(OutDataPtr, FloatBGRAData, Stride);
+				DataPtr += AlignedStride;
+				OutDataPtr += SizeX;
+			}
+		}
+	}
+	else
+	{
+		FFloat16Color* FloatBGRAData = (FFloat16Color*)DataPtr;
+		FMemory::Memcpy(OutDataPtr, FloatBGRAData, FloatBGRADataSize);
+	}
 	
 	((FMetalDeviceContext*)Context)->ReleasePooledBuffer(Buffer);
 }

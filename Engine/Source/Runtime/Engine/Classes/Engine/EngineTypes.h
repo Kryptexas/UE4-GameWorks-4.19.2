@@ -51,6 +51,107 @@ namespace EBrowseReturnVal
 	};
 }
 
+/** Rules for attaching components - needs to be kept synced to EDetachmentRule */
+UENUM()
+enum class EAttachmentRule : uint8
+{
+	/** Keeps current relative transform as the relative transform to the new parent. */
+	KeepRelative,
+
+	/** Automatically calculates the relative transform such that the attached component maintains the same world transform. */
+	KeepWorld,
+
+	/** Snaps transform to the attach point */
+	SnapToTarget,
+};
+
+/** Rules for attaching components */
+struct ENGINE_API FAttachmentTransformRules
+{
+	/** Various preset attachment rules. Note that these default rules do NOT by default weld simulated bodies */
+	static FAttachmentTransformRules KeepRelativeTransform;
+	static FAttachmentTransformRules KeepWorldTransform;
+	static FAttachmentTransformRules SnapToTargetNotIncludingScale;
+	static FAttachmentTransformRules SnapToTargetIncludingScale;
+
+	FAttachmentTransformRules(EAttachmentRule InRule, bool bInWeldSimulatedBodies)
+		: LocationRule(InRule)
+		, RotationRule(InRule)
+		, ScaleRule(InRule)
+		, bWeldSimulatedBodies(bInWeldSimulatedBodies)
+	{}
+
+	FAttachmentTransformRules(EAttachmentRule InLocationRule, EAttachmentRule InRotationRule, EAttachmentRule InScaleRule, bool bInWeldSimulatedBodies)
+		: LocationRule(InLocationRule)
+		, RotationRule(InRotationRule)
+		, ScaleRule(InScaleRule)
+		, bWeldSimulatedBodies(bInWeldSimulatedBodies)
+	{}
+
+	/** The rule to apply to location when attaching */
+	EAttachmentRule LocationRule;
+
+	/** The rule to apply to rotation when attaching */
+	EAttachmentRule RotationRule;
+
+	/** The rule to apply to scale when attaching */
+	EAttachmentRule ScaleRule;
+
+	/** Whether to weld simulated bodies together when attaching */
+	bool bWeldSimulatedBodies;
+};
+
+/** Rules for detaching components - needs to be kept synced to EAttachmentRule */
+UENUM()
+enum class EDetachmentRule : uint8
+{
+	/** Keeps current relative transform. */
+	KeepRelative,
+
+	/** Automatically calculates the relative transform such that the detached component maintains the same world transform. */
+	KeepWorld,
+};
+
+/** Rules for detaching components */
+struct ENGINE_API FDetachmentTransformRules
+{
+	/** Various preset detachment rules */
+	static FDetachmentTransformRules KeepRelativeTransform;
+	static FDetachmentTransformRules KeepWorldTransform;
+
+	FDetachmentTransformRules(EDetachmentRule InRule, bool bInCallModify)
+		: LocationRule(InRule)
+		, RotationRule(InRule)
+		, ScaleRule(InRule)
+		, bCallModify(bInCallModify)
+	{}
+
+	FDetachmentTransformRules(EDetachmentRule InLocationRule, EDetachmentRule InRotationRule, EDetachmentRule InScaleRule, bool bInCallModify)
+		: LocationRule(InLocationRule)
+		, RotationRule(InRotationRule)
+		, ScaleRule(InScaleRule)
+		, bCallModify(bInCallModify)
+	{}
+
+	FDetachmentTransformRules(const FAttachmentTransformRules& AttachmentRules, bool bInCallModify)
+		: LocationRule(AttachmentRules.LocationRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+		, RotationRule(AttachmentRules.RotationRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+		, ScaleRule(AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative ? EDetachmentRule::KeepRelative : EDetachmentRule::KeepWorld)
+		, bCallModify(bInCallModify)
+	{}
+
+	/** The rule to apply to location when detaching */
+	EDetachmentRule LocationRule;
+
+	/** The rule to apply to rotation when detaching */
+	EDetachmentRule RotationRule;
+
+	/** The rule to apply to scale when detaching */
+	EDetachmentRule ScaleRule;
+
+	/** Whether to call Modify() on the components concerned when detaching */
+	bool bCallModify;
+};
 
 UENUM()
 namespace EAttachLocation
@@ -219,6 +320,22 @@ inline uint8 GetLightingChannelMaskForStruct(FLightingChannels Value)
 inline uint8 GetDefaultLightingChannelMask()
 {
 	return 1;
+}
+
+/*
+* Enumerates available GBufferFormats.
+*/
+UENUM()
+namespace EGBufferFormat
+{
+	// When this enum is updated please update CVarGBufferFormat comments 
+	enum Type
+	{
+		Force8BitsPerChannel = 0 UMETA(DisplayName = "Force 8 Bits Per Channel", ToolTip = "Forces all GBuffers to 8 bits per channel. Intended as profiling for best performance."),
+		Default = 1 UMETA(ToolTip = "See GBuffer allocation function for layout details."),
+		HighPrecisionNormals = 3 UMETA(ToolTip = "Same as Default except normals are encoded at 16 bits per channel."),
+		Force16BitsPerChannel = 5 UMETA(DisplayName = "Force 16 Bits Per Channel", ToolTip = "Forces all GBuffers to 16 bits per channel. Intended as profiling for best quality."),
+	};
 }
 
 /** Controls the way that the width scale property affects animation trails. */
@@ -403,17 +520,17 @@ enum ECollisionChannel
 	ECC_PhysicsBody UMETA(DisplayName="PhysicsBody"),
 	ECC_Vehicle UMETA(DisplayName="Vehicle"),
 	ECC_Destructible UMETA(DisplayName="Destructible"),
-	ECC_EditorGizmo UMETA(Hidden, DisplayName="EditorGizmo", TraceQuery="1"),
 	// @NOTE : when you add more here for predefined engine channel
 	// please change the max in the CollisionProfile
-	// search ECC_EditorGizmo
+	// search ECC_Destructible
 
 	// Unspecified Engine Trace Channels
-	ECC_EngineTraceChannel1 UMETA(Hidden),
+	ECC_EngineTraceChannel1 UMETA(Hidden),		// IMPORTANT: This engine trace channel is reserved by the COLLISION_GIZMO definition
 	ECC_EngineTraceChannel2 UMETA(Hidden),
 	ECC_EngineTraceChannel3 UMETA(Hidden),
 	ECC_EngineTraceChannel4 UMETA(Hidden), 
 	ECC_EngineTraceChannel5 UMETA(Hidden),
+	ECC_EngineTraceChannel6 UMETA(Hidden),
 
 	// in order to use this custom channels
 	// we recommend to define in your local file
@@ -461,6 +578,9 @@ enum ECollisionChannel
 	ECC_OverlapAll_Deprecated UMETA(Hidden),
 	ECC_MAX,
 };
+
+
+#define COLLISION_GIZMO ECC_EngineTraceChannel1
 
 
 /** @note, if you change this, change GetCollisionChannelFromOverlapFilter() to match */
@@ -646,6 +766,11 @@ struct FResponseChannel
 	FResponseChannel( FName InChannel, ECollisionResponse InResponse )
 		: Channel(InChannel)
 		, Response(InResponse) {}
+
+	bool operator==(const FResponseChannel& Other) const
+	{
+		return Channel == Other.Channel && Response == Other.Response;
+	}
 };
 
 
@@ -690,8 +815,6 @@ struct ENGINE_API FCollisionResponseContainer
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=CollisionResponseContainer, meta=(DisplayName="Destructible"))
 	TEnumAsByte<enum ECollisionResponse> Destructible;    // 7
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=CollisionResponseContainer, meta=(DisplayName="EditorGizmo"))
-	TEnumAsByte<enum ECollisionResponse> EditorGizmo;    // 7
 
 	///////////////////////////////////////
 	// Unspecified Engine Trace Channels
@@ -710,6 +833,9 @@ struct ENGINE_API FCollisionResponseContainer
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=CollisionResponseContainer)
 	TEnumAsByte<enum ECollisionResponse> EngineTraceChannel5;    // 12
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=CollisionResponseContainer)
+	TEnumAsByte<enum ECollisionResponse> EngineTraceChannel6;    // 13
 
 	///////////////////////////////////////
 	// in order to use this custom channels
@@ -795,14 +921,14 @@ struct ENGINE_API FCollisionResponseContainer
 			uint8 PhysicsBody;			// 5
 			uint8 Vehicle;				// 6
 			uint8 Destructible;			// 7
-			uint8 EditorGizmo;			// 8
 
 			// Unspecified Engine Trace Channels
-			uint8 EngineTraceChannel1;   // 9
-			uint8 EngineTraceChannel2;   // 10
-			uint8 EngineTraceChannel3;   // 11
-			uint8 EngineTraceChannel4;   // 12
-			uint8 EngineTraceChannel5;   // 13
+			uint8 EngineTraceChannel1;   // 8
+			uint8 EngineTraceChannel2;   // 9
+			uint8 EngineTraceChannel3;   // 10
+			uint8 EngineTraceChannel4;   // 11
+			uint8 EngineTraceChannel5;   // 12
+			uint8 EngineTraceChannel6;   // 13
 
 			// Unspecified Game Trace Channels
 			uint8 GameTraceChannel1;     // 14

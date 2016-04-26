@@ -12,6 +12,12 @@ class FPrimitiveComponentId;
 class FPrimitiveSceneInfo;
 class FRenderTarget;
 
+enum EBasePassDrawListType
+{
+	EBasePass_Default=0,
+	EBasePass_Masked,
+	EBasePass_MAX
+};
 /**
  * An interface to the private scene manager implementation of a scene.  Use GetRendererModule().AllocateScene to create.
  * The scene
@@ -92,7 +98,7 @@ public:
 	virtual void RemoveReflectionCapture(class UReflectionCaptureComponent* Component) {}
 
 	/** Reads back reflection capture data from the GPU.  Very slow operation that blocks the GPU and rendering thread many times. */
-	virtual void GetReflectionCaptureData(UReflectionCaptureComponent* Component, class FReflectionCaptureFullHDRDerivedData& OutDerivedData) {}
+	virtual void GetReflectionCaptureData(UReflectionCaptureComponent* Component, class FReflectionCaptureFullHDR& OutDerivedData) {}
 
 	/** Updates a reflection capture's transform, and then re-captures the scene. */
 	virtual void UpdateReflectionCaptureTransform(class UReflectionCaptureComponent* Component) {}

@@ -30,12 +30,102 @@ enum EAnimCurveFlags
 	ACF_MorphTargetCurve	= ACF_DrivesMorphTarget
 };
 
+/** UI representation of EAnimCurveFlags. This is used in Animation Nodes to set custom curves 
+ * Feel free to extend as we extend AnimCurveFlags - 
+ * DriveTrack is only used for Transform Curve, and as this is currently only used for float curves, that hasn't been included */
+USTRUCT()
+struct ENGINE_API FAnimCurveType
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FAnimCurveType)
+	bool bMorphtarget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FAnimCurveType)
+	bool bEvent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FAnimCurveType)
+	bool bMaterial;
+
+	FAnimCurveType(bool bInMorphtarget = false, bool bInEvent = false, bool bInMaterial = false)
+		: bMorphtarget(bInMorphtarget)
+		, bEvent(bInEvent)
+		, bMaterial(bInMaterial)
+	{
+	}
+
+	// return matching curve type flags
+	int32 GetAnimCurveFlags()
+	{
+		int32 OutFlags = 0;
+
+		if (bMorphtarget)
+		{
+			OutFlags |= ACF_DrivesMorphTarget;
+		}
+
+		if (bEvent)
+		{
+			OutFlags |= ACF_TriggerEvent;
+		}
+
+		if (bMaterial)
+		{
+			OutFlags |= ACF_DrivesMaterial;
+		}
+
+		return OutFlags;
+	}
+
+	// return true if it has any valid flag set up
+	bool IsValid() const
+	{
+		return bMorphtarget || bEvent || bMaterial;
+	}
+};
+
+/** UI Curve Parameter type
+ * This gets name, and cached UID and use it when needed
+ * Also it contains curve types 
+ */
+USTRUCT()
+struct ENGINE_API FAnimCurveParam
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FAnimCurveType)
+	FName Name;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FAnimCurveType)
+	FAnimCurveType Type;
+
+	// name UID for fast access
+	FSmartNameMapping::UID UID;
+
+	FAnimCurveParam()
+		: UID(FSmartNameMapping::MaxUID)
+	{}
+
+	// initialize
+	void Initialize(USkeleton* Skeleton);
+
+	// this doesn't check CurveType flag
+	// because it's possible you don't care about your curve types
+	bool IsValid() const
+	{
+		return UID != FSmartNameMapping::MaxUID;
+	}
+
+	bool IsValidToEvaluate() const
+	{
+		return IsValid() && Type.IsValid();
+	}
+};
 /**
  * Float curve data for one track
  */
-
 USTRUCT()
-struct FAnimCurveBase
+struct ENGINE_API FAnimCurveBase
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -79,17 +169,17 @@ public:
 	/**
 	 * Set InFlag to bValue
 	 */
-	ENGINE_API void SetCurveTypeFlag(EAnimCurveFlags InFlag, bool bValue);
+	void SetCurveTypeFlag(EAnimCurveFlags InFlag, bool bValue);
 
 	/**
 	 * Toggle the value of the specified flag
 	 */
-	ENGINE_API void ToggleCurveTypeFlag(EAnimCurveFlags InFlag);
+	void ToggleCurveTypeFlag(EAnimCurveFlags InFlag);
 
 	/**
 	 * Return true if InFlag is set, false otherwise 
 	 */
-	ENGINE_API bool GetCurveTypeFlag(EAnimCurveFlags InFlag) const;
+	bool GetCurveTypeFlag(EAnimCurveFlags InFlag) const;
 
 	/**
 	 * Set CurveTypeFlags to NewCurveTypeFlags
@@ -315,6 +405,21 @@ struct FBaseBlendedCurve
 			Elements[ArrayIndex].Value = InValue;
 			Elements[ArrayIndex].Flags = InFlags;
 		}
+	}
+
+	/** Get Value of InUID */
+	float Get(USkeleton::AnimCurveUID InUid)
+	{
+		int32 ArrayIndex;
+
+		check(bInitialized);
+
+		if (UIDList->Find(InUid, ArrayIndex))
+		{
+			return Elements[ArrayIndex].Value;
+		}
+
+		return 0.f;
 	}
 
 	/**
@@ -679,3 +784,5 @@ private:
 	template <typename DataType>
 	void UpdateLastObservedNamesImpl(TArray<DataType>& Curves, const FSmartNameMapping* NameMapping);
 };
+
+FArchive& operator<<(FArchive& Ar, FRawCurveTracks& D);

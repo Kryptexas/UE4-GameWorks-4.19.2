@@ -21,13 +21,13 @@ void SChordEditor::Construct( const FArguments& InArgs, TSharedPtr<FChordTreeIte
 	OnEditingStopped = InArgs._OnEditingStopped;
 	OnEditingStarted = InArgs._OnEditingStarted;
 
-	static const FSlateFontInfo Font( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9 );
+	static const FSlateFontInfo RobotoFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 9 );
 
 	SEditableText::Construct( 
 		SEditableText::FArguments() 
 		.Text( this, &SChordEditor::OnGetChordInputText )
 		.HintText(  this, &SChordEditor::OnGetChordInputHintText )
-		.Font( Font )
+		.Font( RobotoFont )
 	);
 
 	EditableTextLayout->LoadText();

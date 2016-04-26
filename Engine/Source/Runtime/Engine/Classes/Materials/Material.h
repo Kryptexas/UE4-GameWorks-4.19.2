@@ -582,13 +582,6 @@ public:
 	uint32 bUsedWithStaticLighting:1;
 
 	/** 
-	 * Indicates that the material and its instances can be use with fluid surfaces
-	 * This will result in the shaders required to support fluid surfaces being compiled which will increase shader compile time and memory usage.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Usage)
-	uint32 bUsedWithFluidSurfaces:1;
-
-	/** 
 	 * Indicates that the material and its instances can be use with morph targets
 	 * This will result in the shaders required to support morph targets being compiled which will increase shader compile time and memory usage.
 	 */
@@ -648,6 +641,10 @@ public:
 	/* Enables high quality reflections in the forward renderer. Enabling this setting reduces the number of samplers available to the material as two more samplers will be used for reflection cubemaps. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mobile, meta = (DisplayName = "High Quality Reflections"))
 	uint32 bUseHQForwardReflections : 1;
+
+	/* Enables planar reflection when using the forward renderer. Enabling this setting reduces the number of samplers available to the material as one more sampler will be used for the planar reflection. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mobile, meta = (DisplayName = "Planar Reflections"))
+	uint32 bUsePlanarForwardReflections : 1;
 
 	/** The type of tessellation to apply to this object.  Note D3D11 required for anything except MTM_NoTessellation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation)

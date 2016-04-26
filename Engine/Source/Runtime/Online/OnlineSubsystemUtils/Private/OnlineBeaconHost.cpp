@@ -57,14 +57,14 @@ bool AOnlineBeaconHost::InitHost()
 	return false;
 }
 
-void AOnlineBeaconHost::HandleNetworkFailure(UWorld* World, class UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
+void AOnlineBeaconHost::HandleNetworkFailure(UWorld* World, class UNetDriver* InNetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
 {
-	if (NetDriver && NetDriver->NetDriverName == NetDriverName)
+	if (InNetDriver && InNetDriver->NetDriverName == NetDriverName)
 	{
 		// Timeouts from clients are ignored
 		if (FailureType != ENetworkFailure::ConnectionTimeout)
 		{
-			Super::HandleNetworkFailure(World, NetDriver, FailureType, ErrorString);
+			Super::HandleNetworkFailure(World, InNetDriver, FailureType, ErrorString);
 		}
 	}
 }
@@ -142,7 +142,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 							FNetworkGUID NetGUID = Connection->Driver->GuidCache->AssignNewNetGUID_Server( NewClientActor );
 							NewClientActor->SetNetConnection(Connection);
 							Connection->OwningActor = NewClientActor;
-							NewClientActor->Role = ROLE_None;
+							NewClientActor->Role = ROLE_Authority;
 							NewClientActor->SetReplicates(false);
 							check(NetDriverName == NetDriver->NetDriverName);
 							NewClientActor->SetNetDriverName(NetDriverName);
@@ -185,7 +185,6 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 					FOnBeaconConnected* OnBeaconConnectedDelegate = OnBeaconConnectedMapping.Find(BeaconType);
 					if (OnBeaconConnectedDelegate)
 					{
-						ClientActor->Role = ROLE_Authority;
 						ClientActor->SetReplicates(true);
 						ClientActor->SetAutonomousProxy(true);
 						ClientActor->SetConnectionState(EBeaconConnectionState::Open);

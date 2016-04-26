@@ -449,7 +449,7 @@ protected:
 	 */
 	static TMultiMap<UClass*, FParamRemapInfo> ParamRedirectMap;
 
-	/** Has the field map been intialized this run */
+	/** Has the field map been initialized this run */
 	static bool bFieldRedirectMapInitialized;
 
 	/** Init the field redirect map (if not already done) from .ini file entries */

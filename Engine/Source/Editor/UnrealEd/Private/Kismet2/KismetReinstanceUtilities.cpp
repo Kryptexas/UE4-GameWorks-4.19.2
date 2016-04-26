@@ -1000,7 +1000,7 @@ void FActorReplacementHelper::CacheAttachInfo(const AActor* OldActor)
 			TargetParentComponent = OldRootComponent->GetAttachParent();
 			
 			// detach it to remove any scaling
-			OldRootComponent->DetachFromParent(/*bMaintainWorldPosition =*/true);
+			OldRootComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 		}
 
 		// Save off transform
@@ -1027,7 +1027,7 @@ void FActorReplacementHelper::CacheChildAttachments(const AActor* OldActor)
 			PendingChildAttachments.Add(Info);
 
 			// Now detach it
-			AttachedActorRoot->DetachFromParent(/*bMaintainWorldPosition =*/true);
+			AttachedActorRoot->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 		}
 	}
 }
@@ -1048,7 +1048,7 @@ void FActorReplacementHelper::ApplyAttachments(const TMap<UObject*, UObject*>& O
 		}
 		else
 		{
-			NewRootComponent->AttachTo(TargetParentComponent, TargetAttachSocket, EAttachLocation::KeepWorldPosition);
+			NewRootComponent->AttachToComponent(TargetParentComponent, FAttachmentTransformRules::KeepWorldTransform, TargetAttachSocket);
 		}
 	}
 
@@ -1073,7 +1073,7 @@ void FActorReplacementHelper::AttachChildActors(USceneComponent* RootComponent, 
 			USceneComponent* ChildRoot = Info.AttachedActor->GetRootComponent();
 			if (ChildRoot && ChildRoot->GetAttachParent() != RootComponent)
 			{
-				ChildRoot->AttachTo(RootComponent, Info.AttachedToSocket, EAttachLocation::KeepWorldPosition);
+				ChildRoot->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform, Info.AttachedToSocket);
 				ChildRoot->UpdateComponentToWorld();
 			}
 		}
@@ -1503,8 +1503,8 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 									{
 										if (USceneComponent* SceneComponent = Cast<USceneComponent>(OldObject))
 										{
-											SceneComponent->AttachChildren.Empty();
-											SceneComponent->AttachParent = nullptr;
+											FDirectAttachChildrenAccessor::Get(SceneComponent).Empty();
+											SceneComponent->SetupAttachment(nullptr);
 										}
 									}
 

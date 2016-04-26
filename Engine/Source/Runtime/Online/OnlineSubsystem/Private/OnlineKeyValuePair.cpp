@@ -1123,12 +1123,10 @@ bool FVariantDataConverter::ConvertScalarUPropertyToVariant(UProperty* Property,
 		
 		FString Contents;
 		TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&Contents);
-		if (!FJsonSerializer::Serialize(JsonObject, Writer))
+		if (FJsonSerializer::Serialize(JsonObject, Writer))
 		{
-			return false;
+			OutVariantData.SetValue(Contents);
 		}
-
-		OutVariantData.SetValue(Contents);
 	}
 	else if (UStructProperty *StructProperty = Cast<UStructProperty>(Property))
 	{

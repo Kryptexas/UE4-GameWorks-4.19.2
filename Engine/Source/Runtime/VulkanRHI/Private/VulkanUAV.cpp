@@ -2,6 +2,7 @@
 
 
 #include "VulkanRHIPrivate.h"
+#include "VulkanContext.h"
 
 FVulkanShaderResourceView::~FVulkanShaderResourceView()
 {
@@ -20,13 +21,10 @@ void FVulkanShaderResourceView::UpdateView(FVulkanDevice* Device)
 			SCOPE_CYCLE_COUNTER(STAT_VulkanSRVUpdateTime);
 			// thanks to ref counting, overwriting the buffer will toss the old view
 			BufferView = new FVulkanBufferView();
-			check(Device);
-			BufferView->Create(*Device, *SourceVertexBuffer->GetBuffer(), BufferViewFormat, SourceVertexBuffer->GetOffset(), SourceVertexBuffer->GetSize());
+			BufferView->Create(*Device, SourceVertexBuffer.GetReference(), BufferViewFormat, SourceVertexBuffer->GetOffset(), SourceVertexBuffer->GetSize());
 		}
 	}
 }
-
-
 
 
 FUnorderedAccessViewRHIRef FVulkanDynamicRHI::RHICreateUnorderedAccessView(FStructuredBufferRHIParamRef StructuredBufferRHI, bool bUseUAVCounter, bool bAppendBuffer)

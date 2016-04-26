@@ -95,13 +95,12 @@ struct FVertexFactoryInput
 	float4	Position	: ATTRIBUTE0;
 #if METAL_PROFILE
 	//@todo-rco: FIXME!
-	float3	TangentX	: ATTRIBUTE1;
-	float4	TangentZ	: ATTRIBUTE2;
+	float4	TangentX	: ATTRIBUTE1;
+	float2	TangentZ	: ATTRIBUTE2;
 	float4	Color		: ATTRIBUTE3;
 #else
-	half3	TangentX	: ATTRIBUTE1;
-	// TangentZ.w contains sign of tangent basis determinant
-	half4	TangentZ	: ATTRIBUTE2;
+	half4	TangentX	: ATTRIBUTE1;
+	half2	TangentZ	: ATTRIBUTE2;
 	half4	Color		: ATTRIBUTE3;
 #endif	// METAL_PROFILE
 
@@ -474,28 +473,27 @@ float4 CalcWorldPosition(float4 Position)
 half3x3 CalcTangentToLocal(FVertexFactoryInput Input)
 {
 	half3x3 Result;
-	half4 TangentZ = TangentBias(Input.TangentZ);
+	
+	half4 TangentX = TangentBias(Input.TangentX);
+	half3 TangentZ = OctToUnit(TangentBias(Input.TangentZ));
 
 #if USE_SPLINEDEFORM
 	// Make slice rotation matrix, and use that to transform tangents
 	half3x3 SliceRot = CalcSliceRot(dot(Input.Position.xyz, SplineMeshDir));
 
-	half3 TangentX = mul(TangentBias(Input.TangentX), SliceRot);
-	TangentZ.xyz = mul(TangentZ.xyz, SliceRot);
-#else
-	// pass-thru the tangent
-	half3 TangentX = TangentBias(Input.TangentX);
-	// pass-thru the normal
+	TangentX.xyz = mul(TangentX.xyz, SliceRot);
+	TangentZ = mul(TangentZ, SliceRot);
 #endif	// USE_SPLINEDEFORM
 
 	// derive the binormal by getting the cross product of the normal and tangent
-	half3 TangentY = cross(TangentZ.xyz, TangentX) * TangentZ.w;
+	half3 TangentY = cross(TangentZ, TangentX.xyz) * TangentX.w;
+	
 	// Recalculate TangentX off of the other two vectors
 	// This corrects quantization error since TangentX was passed in as a quantized vertex input
 	// The error shows up most in specular off of a mesh with a smoothed UV seam (normal is smooth, but tangents vary across the seam)
-	Result[0] = cross(TangentY, TangentZ.xyz) * TangentZ.w;
+	Result[0] = cross(TangentY, TangentZ) * TangentX.w;
 	Result[1] = TangentY;
-	Result[2] = TangentZ.xyz;
+	Result[2] = TangentZ;
 
 	return Result;
 }
@@ -518,7 +516,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 
 	Intermediates.TangentToLocal = CalcTangentToLocal(Input);
 	Intermediates.TangentToWorld = CalcTangentToWorld(Input,Intermediates.TangentToLocal);
-	Intermediates.TangentToWorldSign = TangentBias(Input.TangentZ.w) * Primitive.LocalToWorldDeterminantSign;
+	Intermediates.TangentToWorldSign = TangentBias(Input.TangentX.w) * Primitive.LocalToWorldDeterminantSign;
 
 	// Swizzle vertex color.
 	Intermediates.Color = Input.Color FCOLOR_COMPONENT_SWIZZLE;

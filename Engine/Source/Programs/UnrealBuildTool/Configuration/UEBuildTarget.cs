@@ -9,6 +9,7 @@ using System.IO;
 using System.Xml;
 using System.Runtime.Serialization;
 using Tools.DotNETCommon.CaselessDictionary;
+using System.Text.RegularExpressions;
 
 namespace UnrealBuildTool
 {
@@ -1682,17 +1683,13 @@ namespace UnrealBuildTool
 		{
 			string FileListPath = "../Intermediate/Build/ExternalFiles.xml";
 
-			// Find all the external modules
-			HashSet<string> ModuleNames = new HashSet<string>();
+			// Find all the modules we depend on
+			HashSet<UEBuildModule> Modules = new HashSet<UEBuildModule>();
 			foreach (UEBuildBinary Binary in AppBinaries)
 			{
 				foreach (UEBuildModule Module in Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false))
 				{
-					UEBuildExternalModule ExternalModule = Module as UEBuildExternalModule;
-					if (ExternalModule != null)
-					{
-						ModuleNames.Add(ExternalModule.Name);
-					}
+					Modules.Add(Module);
 				}
 			}
 
@@ -1702,74 +1699,84 @@ namespace UnrealBuildTool
 			// Get the platform we're building for
 			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 
-			// Add all their include paths
-			foreach (string ModuleName in ModuleNames)
+			foreach (UEBuildModule Module in Modules)
 			{
 				// Create the module rules
 				FileReference ModuleRulesFileName;
-				ModuleRules Rules = CreateModuleRulesAndSetDefaults(ModuleName, out ModuleRulesFileName);
+				ModuleRules Rules = CreateModuleRulesAndSetDefaults(Module.Name, out ModuleRulesFileName);
 
-				// Add the rules file itself
-				FileNames.Add(ModuleRulesFileName.FullName);
-
-				// Get a list of all the library paths
-				List<string> LibraryPaths = new List<string>();
-				LibraryPaths.Add(Directory.GetCurrentDirectory());
-				LibraryPaths.AddRange(Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")).Select(x => Path.GetFullPath(x.Replace('/', '\\'))));
-
-				// Get all the extensions to look for
-				List<string> LibraryExtensions = new List<string>();
-				LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.StaticLibrary));
-				LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.DynamicLinkLibrary));
-
-				// Add all the libraries
-				foreach (string LibraryExtension in LibraryExtensions)
+				// Add Additional Bundle Resources for all modules
+				foreach (UEBuildBundleResource Resource in Rules.AdditionalBundleResources)
 				{
-					foreach (string LibraryName in Rules.PublicAdditionalLibraries)
-					{
-						foreach (string LibraryPath in LibraryPaths)
-						{
-							string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
-							if (File.Exists(LibraryFileName))
-							{
-								FileNames.Add(LibraryFileName);
-							}
+					FileNames.Add(Resource.ResourcePath);
+				}
 
-							string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
-							if (File.Exists(UnixLibraryFileName))
+				// Add all the include paths etc. for external modules
+				UEBuildExternalModule ExternalModule = Module as UEBuildExternalModule;
+				if (ExternalModule != null)
+				{
+					// Add the rules file itself
+					FileNames.Add(ModuleRulesFileName.FullName);
+
+					// Get a list of all the library paths
+					List<string> LibraryPaths = new List<string>();
+					LibraryPaths.Add(Directory.GetCurrentDirectory());
+					LibraryPaths.AddRange(Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")).Select(x => Path.GetFullPath(x.Replace('/', '\\'))));
+
+					// Get all the extensions to look for
+					List<string> LibraryExtensions = new List<string>();
+					LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.StaticLibrary));
+					LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.DynamicLinkLibrary));
+
+					// Add all the libraries
+					foreach (string LibraryExtension in LibraryExtensions)
+					{
+						foreach (string LibraryName in Rules.PublicAdditionalLibraries)
+						{
+							foreach (string LibraryPath in LibraryPaths)
 							{
-								FileNames.Add(UnixLibraryFileName);
+								string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
+								if (File.Exists(LibraryFileName))
+								{
+									FileNames.Add(LibraryFileName);
+								}
+
+								string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
+								if (File.Exists(UnixLibraryFileName))
+								{
+									FileNames.Add(UnixLibraryFileName);
+								}
 							}
 						}
 					}
-				}
 
-				// Add all the additional shadow files
-				foreach (string AdditionalShadowFile in Rules.PublicAdditionalShadowFiles)
-				{
-					string ShadowFileName = Path.GetFullPath(AdditionalShadowFile);
-					if (File.Exists(ShadowFileName))
+					// Add all the additional shadow files
+					foreach (string AdditionalShadowFile in Rules.PublicAdditionalShadowFiles)
 					{
-						FileNames.Add(ShadowFileName);
-					}
-				}
-
-				// Find all the include paths
-				List<string> AllIncludePaths = new List<string>();
-				AllIncludePaths.AddRange(Rules.PublicIncludePaths);
-				AllIncludePaths.AddRange(Rules.PublicSystemIncludePaths);
-
-				// Add all the include paths
-				foreach (string IncludePath in AllIncludePaths.Where(x => !x.StartsWith("$(")))
-				{
-					if (Directory.Exists(IncludePath))
-					{
-						foreach (string IncludeFileName in Directory.EnumerateFiles(IncludePath, "*", SearchOption.AllDirectories))
+						string ShadowFileName = Path.GetFullPath(AdditionalShadowFile);
+						if (File.Exists(ShadowFileName))
 						{
-							string Extension = Path.GetExtension(IncludeFileName).ToLower();
-							if (Extension == ".h" || Extension == ".inl")
+							FileNames.Add(ShadowFileName);
+						}
+					}
+
+					// Find all the include paths
+					List<string> AllIncludePaths = new List<string>();
+					AllIncludePaths.AddRange(Rules.PublicIncludePaths);
+					AllIncludePaths.AddRange(Rules.PublicSystemIncludePaths);
+
+					// Add all the include paths
+					foreach (string IncludePath in AllIncludePaths.Where(x => !x.StartsWith("$(")))
+					{
+						if (Directory.Exists(IncludePath))
+						{
+							foreach (string IncludeFileName in Directory.EnumerateFiles(IncludePath, "*", SearchOption.AllDirectories))
 							{
-								FileNames.Add(IncludeFileName);
+								string Extension = Path.GetExtension(IncludeFileName).ToLower();
+								if (Extension == ".h" || Extension == ".inl")
+								{
+									FileNames.Add(IncludeFileName);
+								}
 							}
 						}
 					}
@@ -1801,46 +1808,57 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Generates a list of all the third party software which is linked into this target
+		/// Lists the folders involved in the build of this target. Outputs a Json file
+		/// that lists pertitent info about each folder involved in the build.
 		/// </summary>
-		public void ListThirdPartySoftware()
+		public void ListBuildFolders()
 		{
-			var Start = DateTime.UtcNow;
-			// Make a list of all the directories to exclude
-			List<string> UnsupportedPlatforms = Utils.MakeListOfUnsupportedPlatforms(new List<UnrealTargetPlatform> { Platform });
-
-			// Convert it to a list of substrings
-			List<string> UnsupportedSubstrings = UnsupportedPlatforms.Select(x => Path.DirectorySeparatorChar + x + Path.DirectorySeparatorChar).ToList();
-
-			// Find all the external modules
-			HashSet<FileReference> TpsFiles = new HashSet<FileReference>();
-			foreach (UEBuildBinary Binary in AppBinaries)
+			// local function that takes a RuntimeDependency path and resolves it (replacing Env vars that we support)
+			Func<string, DirectoryReference> ResolveRuntimeDependencyFolder = (string DependencyPath) =>
 			{
-				foreach (UEBuildModule Module in Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: true, bForceCircular: false))
-				{
-					if (Module.RulesFile != null)
-					{
-						DirectoryReference ModuleDirectory = Module.RulesFile.Directory;
-						foreach (FileReference TpsFile in ModuleDirectory.EnumerateFileReferences("*.tps", SearchOption.AllDirectories))
-						{
-							// Check it's not under an unsupported platform directory
-							int Index = UnsupportedSubstrings.Max(x => TpsFile.FullName.IndexOf(x, StringComparison.InvariantCultureIgnoreCase));
-							if (Index < ModuleDirectory.FullName.Length)
-							{
-								TpsFiles.Add(TpsFile);
-							}
-						}
-					}
-				}
-			}
+				return new DirectoryReference(Path.GetDirectoryName(
+					// Regex to replace the env vars we support $(EngineDir|ProjectDir), ignoring case
+					Regex.Replace(DependencyPath, @"\$\((?<Type>Engine|Project)Dir\)", M => 
+						M.Groups["Type"].Value.Equals("Engine", StringComparison.InvariantCultureIgnoreCase)
+							? UnrealBuildTool.EngineDirectory.FullName 
+							: ProjectDirectory.FullName,
+					RegexOptions.IgnoreCase)));
+			};
 
-			// Write out the list of files
-			string FileListPath = "../Intermediate/Build/ThirdPartySoftware.txt";
-			File.WriteAllLines(FileListPath, TpsFiles.Select(x => x.MakeRelativeTo(UnrealBuildTool.EngineDirectory)).OrderBy(x => x).ToArray());
-			Console.WriteLine("Written {0}", FileListPath);
+			var Start = DateTime.UtcNow;
+			// Create a set of directories used for each binary
+			var DirectoriesToScan = AppBinaries
+				// get a flattened list of modules in all the binaries
+				.SelectMany(Binary => Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: true, bForceCircular: false))
+				// remove duplicate modules
+				.Distinct()
+				// get all directories that the module uses (source folder and any runtime dependencies)
+				.SelectMany(Module => Module
+					// resolve any runtime dependency folders and add them.
+					.RuntimeDependencies.Select(Dependency => ResolveRuntimeDependencyFolder(Dependency.Path))
+					// Add on the module source directory
+					.Concat(new[] { Module.ModuleDirectory }))
+				// remove any duplicate folders since some modules may be from the same plugin
+				.Distinct()
+				// Project to a list as we need to do an O(n^2) operation below.
+				.ToList();
+
+			DirectoriesToScan.Where(RemovalCandidate =>
+				// O(n^2) search to remove subfolders of any we are already searching.
+				// look for directories that aren't subdirectories of any other directory in the list.
+				!DirectoriesToScan.Any(DirectoryToScan =>
+					// != check because this inner loop will eventually check against itself
+					RemovalCandidate != DirectoryToScan &&
+					RemovalCandidate.IsUnderDirectory(DirectoryToScan)))
+				// grab the full name
+				.Select(Dir=>Dir.FullName)
+				// sort the final output
+				.OrderBy(Dir=> Dir)
+				// log the folders
+				.ToList().ForEach(Dir => Log.TraceInformation("BuildFolder:{0}", Dir));
 
 			var Finish = DateTime.UtcNow;
-			Console.WriteLine("Took {0} sec to list TPS.", (Finish - Start).TotalSeconds);
+			Log.TraceInformation("Took {0} sec to list build folders.", (Finish - Start).TotalSeconds);
 		}
 
 		/// <summary>
@@ -2206,9 +2224,9 @@ namespace UnrealBuildTool
 			}
 
 			// Generate the TPS list
-			if(UEBuildConfiguration.bListThirdPartySoftware)
+			if(UEBuildConfiguration.bListBuildFolders)
 			{
-				ListThirdPartySoftware();
+				ListBuildFolders();
 				return ECompilationResult.Succeeded;
 			}
 
@@ -3683,7 +3701,7 @@ namespace UnrealBuildTool
 			{
 				string FullFilename = Path.Combine(ProjectDirectory.FullName, Rules.PakSigningKeysFile);
 
-				Log.TraceInformation("Adding signing keys to executable from '{0}'", FullFilename);
+				Log.TraceVerbose("Adding signing keys to executable from '{0}'", FullFilename);
 
 				if (File.Exists(FullFilename))
 				{
@@ -3702,8 +3720,8 @@ namespace UnrealBuildTool
 
 					if (Keys.Count == 3)
 					{
-						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_MODULUS=\"" + Lines[1] + "\"");
-						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_EXPONENT=\"" + Lines[2] + "\"");
+						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_MODULUS=\"" + Keys[1] + "\"");
+						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_EXPONENT=\"" + Keys[2] + "\"");
 					}
 					else
 					{

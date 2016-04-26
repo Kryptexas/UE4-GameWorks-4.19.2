@@ -61,4 +61,8 @@ public:
 	/** Default settings applied to animation recording */
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
 	FAnimationRecordingSettings DefaultAnimationSettings;
+
+	/** Component classes we record by default. If an actor does not contain one of these classes it will be ignored. */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	TArray<TSubclassOf<USceneComponent>> ComponentClassesToRecord;
 };

@@ -97,7 +97,10 @@ namespace UnrealBuildTool
 		{
 			base.SetUpGlobalEnvironment();
 
-			SetupXcodePaths(true);
+			if (!UEBuildConfiguration.bListBuildFolders)
+			{
+				SetupXcodePaths(true);
+			}
 		}
 
 		static string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)

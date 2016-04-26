@@ -890,18 +890,18 @@ enum EViewModeIndex
 	VMI_LODColoration = 18,
 	/** Colored according to the quad coverage. */
 	VMI_QuadOverdraw = 19,
-	/** Colored according to the accuracy of the texture streamer wanted mips computation. */
-	VMI_WantedMipsAccuracy = 20,
-	/** Colored according to the texel factor accuracy. */
-	VMI_TexelFactorAccuracy = 21,
+	/** Visualize the accuracy of the CPU primitive distance when compared with the GPU value. */
+	VMI_PrimitiveDistanceAccuracy = 20,
+	/** Visualize the accuracy of the CPU mesh texture coordinate size when compared to the GPU value. */
+	VMI_MeshTexCoordSizeAccuracy = 21,
 	/** Colored according to shader complexity, including quad overdraw. */
 	VMI_ShaderComplexityWithQuadOverdraw = 22,
 	/** Colored according to the current HLOD index. */
 	VMI_HLODColoration = 23,
 	/** Group item for LOD and HLOD coloration*/
 	VMI_GroupLODColoration = 24,
-	/** Colored according to how accuracte the texcoord scales computed by the texture streamer are. */
-	VMI_TexCoordScaleAccuracy = 25,
+	/** Visualize the accuracy of CPU material texture coordinate scales when compared to the GPU values. */
+	VMI_MaterialTexCoordScalesAccuracy = 25,
 
 	VMI_Max UMETA(Hidden),
 

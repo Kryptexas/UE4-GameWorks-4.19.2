@@ -940,6 +940,11 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 	}
 }
 
+void UAnimInstance::ResetDynamics()
+{
+	GetProxyOnGameThread<FAnimInstanceProxy>().ResetDynamics();
+}
+
 void UAnimInstance::RecalcRequiredBones()
 {
 	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
@@ -1572,6 +1577,12 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 		return 0.f;
 	}
 
+	if (!Asset->CanBeUsedInMontage())
+	{
+		UE_LOG(LogAnimMontage, Warning, TEXT("This animation isn't supported to play as montage"));
+		return 0.f;
+	}
+
 	// now play
 	UAnimMontage* NewMontage = NewObject<UAnimMontage>();
 	NewMontage->SetSkeleton(AssetSkeleton);
@@ -1610,21 +1621,27 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	{
 		// user warning
 		UE_LOG(LogAnimMontage, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
-		return NULL;
+		return nullptr;
 	}
 
 	if (SlotNodeName == NAME_None)
 	{
 		// user warning
 		UE_LOG(LogAnimMontage, Warning, TEXT("SlotNode Name is required. Make sure to add Slot Node in your anim graph and name it."));
-		return NULL;
+		return nullptr;
 	}
 
 	USkeleton* AssetSkeleton = Asset->GetSkeleton();
 	if (!CurrentSkeleton->IsCompatible(AssetSkeleton))
 	{
 		UE_LOG(LogAnimMontage, Warning, TEXT("The Skeleton isn't compatible"));
-		return NULL;
+		return nullptr;
+	}
+
+	if (!Asset->CanBeUsedInMontage())
+	{
+		UE_LOG(LogAnimMontage, Warning, TEXT("This animation isn't supported to play as montage"));
+		return nullptr;
 	}
 
 	// now play
@@ -1698,7 +1715,13 @@ void UAnimInstance::StopSlotAnimation(float InBlendOutTime, FName SlotNodeName)
 	}
 }
 
-bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName )
+bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName)
+{
+	UAnimMontage* Montage = nullptr;
+	return IsPlayingSlotAnimation(Asset, SlotNodeName, Montage);
+}
+
+bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName, UAnimMontage*& OutMontage)
 {
 	for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
 	{
@@ -1713,7 +1736,7 @@ bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotN
 				const FAnimTrack* AnimTrack = CurMontage->GetAnimationData(SlotNodeName);
 				if (AnimTrack && AnimTrack->AnimSegments.Num() == 1)
 				{
-					// find if the 
+					OutMontage = CurMontage;
 					return (AnimTrack->AnimSegments[0].AnimReference == Asset);
 				}
 			}

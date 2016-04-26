@@ -82,6 +82,15 @@ public:
 		TargetPathToRecordTo.Path = Path;
 	}
 
+	/** Set the target actor name to record */
+	void SetNameOfActorToRecord(const FString& ActorName)
+	{
+		NameOfActorToRecord = ActorName;
+	}
+
+	virtual UMovieSceneSection* SplitSection( float SplitTime ) override;
+	virtual void TrimSection( float TrimTime, bool bTrimLeft ) override;
+
 public:
 
 	/** Number of seconds to skip at the beginning of the sub-sequence. */

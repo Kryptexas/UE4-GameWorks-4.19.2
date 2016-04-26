@@ -1004,7 +1004,7 @@ bool ListFilesInPak(const TCHAR * InPakFilename, int64 SizeFilter = 0)
 			const FPakEntry& Entry = It.Info();
 			if (Entry.Size >= SizeFilter)
 			{
-				UE_LOG(LogPakFile, Display, TEXT("\"%s\" offset: %lld, size: %d bytes."), *It.Filename(), Entry.Offset, Entry.Size);
+				UE_LOG(LogPakFile, Display, TEXT("\"%s\" offset: %lld, size: %d bytes, sha1: %s."), *It.Filename(), Entry.Offset, Entry.Size, *BytesToHex(Entry.Hash, sizeof(Entry.Hash)));
 				FilteredSize += Entry.Size;
 			}
 			FileSize += Entry.Size;

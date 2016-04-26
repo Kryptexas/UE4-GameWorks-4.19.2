@@ -168,17 +168,17 @@ FBlueprintNodeSignature UAnimGraphNode_BlendSpacePlayer::GetSignature() const
 	return NodeSignature;
 }
 
-void UAnimGraphNode_BlendSpacePlayer::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimationSequences) const
+void UAnimGraphNode_BlendSpacePlayer::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) const
 {
 	if(Node.BlendSpace)
 	{
-		HandleAnimReferenceCollection(Node.BlendSpace, ComplexAnims, AnimationSequences);
+		HandleAnimReferenceCollection(Node.BlendSpace, AnimationAssets);
 	}
 }
 
-void UAnimGraphNode_BlendSpacePlayer::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ComplexAnimsMap, const TMap<UAnimSequence*, UAnimSequence*>& AnimSequenceMap)
+void UAnimGraphNode_BlendSpacePlayer::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap)
 {
-	HandleAnimReferenceReplacement(Node.BlendSpace, ComplexAnimsMap, AnimSequenceMap);
+	HandleAnimReferenceReplacement(Node.BlendSpace, AnimAssetReplacementMap);
 }
 
 bool UAnimGraphNode_BlendSpacePlayer::DoesSupportTimeForTransitionGetter() const

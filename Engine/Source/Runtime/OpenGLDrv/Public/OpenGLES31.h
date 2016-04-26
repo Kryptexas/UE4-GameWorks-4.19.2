@@ -44,6 +44,7 @@ struct FOpenGLES31 : public FOpenGLBase
 	static FORCEINLINE bool SupportsDepthStencilRead()					{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsFloatReadSurface()					{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsMultipleRenderTargets()				{ return !bES2Fallback; }
+	static FORCEINLINE bool SupportsWideMRT()							{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsMultisampledTextures()				{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsFences()							{ return !bES2Fallback; }
 	static FORCEINLINE bool SupportsPolygonMode()						{ return false; }
@@ -100,6 +101,7 @@ struct FOpenGLES31 : public FOpenGLBase
 	static FORCEINLINE bool RequiresShaderFramebufferFetchUndef()		{ return bRequiresShaderFramebufferFetchUndef; }
 	static FORCEINLINE bool RequiresARMShaderFramebufferFetchDepthStencilUndef() { return bRequiresARMShaderFramebufferFetchDepthStencilUndef; }
 	static FORCEINLINE bool IsCheckingShaderCompilerHacks()				{ return bIsCheckingShaderCompilerHacks; }
+	static FORCEINLINE bool SupportsRGB10A2()							{ return bSupportsRGB10A2 || !bES2Fallback; }
 
 	// On iOS both glMapBufferOES() and glBufferSubData() for immediate vertex and index data
 	// is the slow path (they both hit GPU sync and data cache flush in driver according to profiling in driver symbols).
@@ -890,6 +892,9 @@ protected:
 	/** GL_OES_texture_half_float */
 	static bool bSupportsTextureHalfFloat;
 
+	/** GL_EXT_color_buffer_float */
+	static bool bSupportsColorBufferFloat;
+
 	/** GL_EXT_color_buffer_half_float */
 	static bool bSupportsColorBufferHalfFloat;
 
@@ -943,6 +948,9 @@ protected:
 
 	/** GL_NV_timer_query for timestamp queries */
 	static bool bSupportsNvTimerQuery;
+
+	/** GL_OES_vertex_type_10_10_10_2 */
+	static bool bSupportsRGB10A2;
 
 public:
 	/* This is a hack to remove the calls to "precision sampler" defaults which are produced by the cross compiler however don't compile on some android platforms */

@@ -19,6 +19,12 @@ struct CORE_API FFrameworkObjectVersion
 		// Static and skeletal mesh sockets now use the specified scale
 		MeshSocketScaleUtilization,
 
+		// Attachment rules are now explicit in how they affect location, rotation and scale
+		ExplicitAttachmentRules,
+
+		// Moved compressed anim data from uasset to the DDC
+		MoveCompressedAnimDataToTheDDC,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

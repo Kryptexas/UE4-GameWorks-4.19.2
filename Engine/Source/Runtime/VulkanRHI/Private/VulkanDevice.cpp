@@ -13,17 +13,14 @@
 FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	: Gpu(InGpu)
 	, Device(VK_NULL_HANDLE)
-#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
 	, ResourceHeapManager(this)
-#endif
-#if VULKAN_USE_NEW_COMMAND_BUFFERS && VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	, DeferredDeletionQueue(this)
 #endif
 	, DescriptorPool(nullptr)
 	, DefaultSampler(VK_NULL_HANDLE)
 	, Queue(nullptr)
 	, PendingState(nullptr)
-	, VBIBRingBuffer(nullptr)
 	, ImmediateContext(nullptr)
 	, UBRingBuffer(nullptr)
 #if VULKAN_ENABLE_DRAW_MARKERS
@@ -380,10 +377,7 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 
 	MemoryManager.Init(this);
 
-#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
 	ResourceHeapManager.Init();
-#endif
-
 
 	DescriptorPool = new FVulkanDescriptorPool(this);
 
@@ -392,7 +386,6 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 	StagingManager.Init(this, Queue);
 
 	// allocate ring buffer memory
-	VBIBRingBuffer = new FVulkanRingBuffer(this, VULKAN_VBIB_RING_BUFFER_SIZE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT);
 	UBRingBuffer = new FVulkanRingBuffer(this, VULKAN_UB_RING_BUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
@@ -455,7 +448,6 @@ void FVulkanDevice::Destroy()
 
 	delete PendingState;
 
-	delete VBIBRingBuffer;
 	delete UBRingBuffer;
 
 	delete ImmediateContext;
@@ -472,9 +464,7 @@ void FVulkanDevice::Destroy()
 
 	StagingManager.Deinit();
 
-#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
 	ResourceHeapManager.Deinit();
-#endif
 
 	delete Queue;
 

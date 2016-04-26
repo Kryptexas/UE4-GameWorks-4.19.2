@@ -100,7 +100,7 @@ namespace AutomationTool
 		public TaskElementAttribute(string InName, Type InParametersType)
 		{
 			Name = InName;
-			ParametersType =  InParametersType;
+			ParametersType = InParametersType;
 		}
 	}
 
@@ -125,6 +125,44 @@ namespace AutomationTool
 		/// <param name="TagNameToFileSet">Mapping from tag names to the set of files they include</param>
 		/// <returns>Whether the task succeeded or not. Exiting with an exception will be caught and treated as a failure.</returns>
 		public abstract bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet);
+
+		/// <summary>
+		/// Output this task out to an XML writer.
+		/// </summary>
+		public abstract void Write(XmlWriter Writer);
+
+		/// <summary>
+		/// Writes this task to an XML writer, using the given parameters object.
+		/// </summary>
+		/// <param name="Writer"></param>
+		/// <param name="Task"></param>
+		protected void Write(XmlWriter Writer, object Parameters)
+		{
+			TaskElementAttribute Element = GetType().GetCustomAttribute<TaskElementAttribute>();
+			Writer.WriteStartElement(Element.Name);
+
+			foreach (FieldInfo Field in Parameters.GetType().GetFields())
+			{
+				if (Field.MemberType == MemberTypes.Field)
+				{
+					TaskParameterAttribute ParameterAttribute = Field.GetCustomAttribute<TaskParameterAttribute>();
+					if (ParameterAttribute != null)
+					{
+						object Value = Field.GetValue(Parameters);
+						if (Value != null && Field.FieldType == typeof(bool) && (bool)Value == false)
+						{
+							Value = null;
+						}
+						if (Value != null)
+						{
+							Writer.WriteAttributeString(Field.Name, Value.ToString());
+						}
+					}
+				}
+			}
+
+			Writer.WriteEndElement();
+		}
 
 		/// <summary>
 		/// Resolves a single name to a file reference, resolving relative paths to the root of the current path.

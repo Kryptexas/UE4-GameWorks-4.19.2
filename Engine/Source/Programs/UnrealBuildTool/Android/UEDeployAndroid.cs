@@ -553,14 +553,13 @@ namespace UnrealBuildTool
 		private static void CopySTL(AndroidToolChain ToolChain, string UE4BuildPath, string UE4Arch, string NDKArch, bool bForDistribution)
 		{
 			string GccVersion = "4.6";
-			if (Directory.Exists(Environment.ExpandEnvironmentVariables("%NDKROOT%/sources/cxx-stl/gnu-libstdc++/4.8")))
-			{
-				GccVersion = "4.8";
-			}
-			// only use 4.9 if NDK version > 19
-			if (ToolChain.GetNdkApiLevelInt() > 19 && Directory.Exists(Environment.ExpandEnvironmentVariables("%NDKROOT%/sources/cxx-stl/gnu-libstdc++/4.9")))
+			if (Directory.Exists(Environment.ExpandEnvironmentVariables("%NDKROOT%/sources/cxx-stl/gnu-libstdc++/4.9")))
 			{
 				GccVersion = "4.9";
+			}
+			else if (Directory.Exists(Environment.ExpandEnvironmentVariables("%NDKROOT%/sources/cxx-stl/gnu-libstdc++/4.8")))
+			{
+				GccVersion = "4.8";
 			}
 
 			// copy it in!
@@ -597,6 +596,33 @@ namespace UnrealBuildTool
 			File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvPmApi.Core.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvPmApi.Core.so", true);
 			File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvidia_gfx_debugger.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvidia_gfx_debugger.so", true);
 			*/
+		}
+
+		private static int RunCommandLineProgramAndReturnError(string WorkingDirectory, string Command, string Params, string OverrideDesc = null, bool bUseShellExecute = false)
+		{
+			if (OverrideDesc == null)
+			{
+				Log.TraceInformation("\nRunning: " + Command + " " + Params);
+			}
+			else if (OverrideDesc != "")
+			{
+				Log.TraceInformation(OverrideDesc);
+				Log.TraceVerbose("\nRunning: " + Command + " " + Params);
+			}
+
+			ProcessStartInfo StartInfo = new ProcessStartInfo();
+			StartInfo.WorkingDirectory = WorkingDirectory;
+			StartInfo.FileName = Command;
+			StartInfo.Arguments = Params;
+			StartInfo.UseShellExecute = bUseShellExecute;
+			StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
+
+			Process Proc = new Process();
+			Proc.StartInfo = StartInfo;
+			Proc.Start();
+			Proc.WaitForExit();
+
+			return Proc.ExitCode;
 		}
 
 		private static void RunCommandLineProgramAndThrowOnError(string WorkingDirectory, string Command, string Params, string OverrideDesc = null, bool bUseShellExecute = false)
@@ -1087,9 +1113,19 @@ namespace UnrealBuildTool
 
 
 
-		private string GenerateManifest(string ProjectName, bool bIsForDistribution, bool bPackageDataInsideApk, string GameBuildFilesPath, bool bHasOBBFiles, bool bDisableVerifyOBBOnStartUp, string UE4Arch, string GPUArch)
+		private string GenerateManifest(AndroidToolChain ToolChain, string ProjectName, bool bIsForDistribution, bool bPackageDataInsideApk, string GameBuildFilesPath, bool bHasOBBFiles, bool bDisableVerifyOBBOnStartUp, string UE4Arch, string GPUArch)
 		{
 			string Arch = GetNDKArch(UE4Arch);
+			int NDKLevelInt = ToolChain.GetNdkApiLevelInt();
+
+			// 64-bit targets must be android-21 or higher
+			if (NDKLevelInt < 21)
+			{
+				if (UE4Arch == "-arm64" || UE4Arch == "-x64")
+				{
+					NDKLevelInt = 21;
+				}
+			}
 
 			// ini file to get settings from
 			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
@@ -1128,7 +1164,11 @@ namespace UnrealBuildTool
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportsVulkan", out bSupportsVulkan);
 			if (bSupportsVulkan)
 			{
-				string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+				string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
+				if (String.IsNullOrEmpty(VulkanSDKPath))
+				{
+					VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+				}
 				string VulkanSoPath = Path.Combine(VulkanSDKPath, "Source/lib/libvulkan.so");
 				bSupportsVulkan = File.Exists(VulkanSoPath);
 			}
@@ -1136,6 +1176,16 @@ namespace UnrealBuildTool
 			Ini.GetBool("OnlineSubsystemGooglePlay.Store", "bSupportsInAppPurchasing", out bEnableIAP);
 			bool bShowLaunchImage = false;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
+
+			// fix up the MinSdkVersion
+			if (NDKLevelInt > 19)
+			{
+				if (MinSDKVersion < 21)
+				{
+					MinSDKVersion = 21;
+					Log.TraceInformation("Fixing minSdkVersion; NDK level above 19 requires minSdkVersion of 21 (arch={0})", UE4Arch.Substring(1));
+				}
+			}
 
 			// disable GearVR if not supported platform (in this case only armv7 for now)
 			if (UE4Arch != "-armv7")
@@ -1650,7 +1700,7 @@ namespace UnrealBuildTool
 			{
 				BuildList = from Arch in Arches
 							from GPUArch in GPUArchitectures
-							let manifest = GenerateManifest(ProjectName, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, bDisallowPackagingDataInApk ? false : File.Exists(ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch)
+							let manifest = GenerateManifest(ToolChain, ProjectName, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, bDisallowPackagingDataInApk ? false : File.Exists(ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch)
 							select Tuple.Create(Arch, GPUArch, manifest);
 			}
 			else
@@ -1658,7 +1708,7 @@ namespace UnrealBuildTool
 				BuildList = from Arch in Arches
 							from GPUArch in GPUArchitectures
 							let manifestFile = Path.Combine(IntermediateAndroidPath, Arch + "_" + GPUArch + "_AndroidManifest.xml")
-							let manifest = GenerateManifest(ProjectName, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, bDisallowPackagingDataInApk ? false : File.Exists(ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch)
+							let manifest = GenerateManifest(ToolChain, ProjectName, bForDistribution, bPackageDataInsideApk, GameBuildFilesPath, bDisallowPackagingDataInApk ? false : File.Exists(ObbFileLocation), bDisableVerifyOBBOnStartUp, Arch, GPUArch)
 							let OldManifest = File.Exists(manifestFile) ? File.ReadAllText(manifestFile) : ""
 							where manifest != OldManifest
 							select Tuple.Create(Arch, GPUArch, manifest);
@@ -1878,14 +1928,13 @@ namespace UnrealBuildTool
 				}
 
 				// Use ant to build the .apk file
-				if (Utils.IsRunningOnMono)
+				string ShellExecutable = Utils.IsRunningOnMono ? "/bin/sh" : "cmd.exe";
+				string ShellParametersBegin = Utils.IsRunningOnMono ? "-c '" : "/c ";
+				string ShellParametersEnd = Utils.IsRunningOnMono ? "'" : "";
+				if (RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -quiet " + AntBuildType + ShellParametersEnd, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)") != 0)
 				{
-					RunCommandLineProgramAndThrowOnError(UE4BuildPath, "/bin/sh", "-c '\"" + GetAntPath() + "\" -quiet " + AntBuildType + "'", "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)");
-				}
-				else
-				{
-					RunCommandLineProgramAndThrowOnError(UE4BuildPath, "cmd.exe", "/c \"" + GetAntPath() + "\" " + AntBuildType, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)");
-				}
+					RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
+                }
 
 				// make sure destination exists
 				Directory.CreateDirectory(Path.GetDirectoryName(DestApkName));

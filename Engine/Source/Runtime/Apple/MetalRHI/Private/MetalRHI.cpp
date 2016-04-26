@@ -92,15 +92,15 @@ FMetalDynamicRHI::FMetalDynamicRHI()
     bool bCanUseASTC = false;
 	bool bSupportsD24S8 = false;
 
-	if(FParse::Param(FCommandLine::Get(),TEXT("metal")))
-	{
-		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
-		GMaxRHIShaderPlatform = SP_METAL_SM4;
-	}
-	else
+	if(FParse::Param(FCommandLine::Get(),TEXT("metalsm5")))
 	{
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
 		GMaxRHIShaderPlatform = SP_METAL_SM5;
+	}
+	else
+	{
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
+		GMaxRHIShaderPlatform = SP_METAL_SM4;
 	}
 	
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL_MACES3_1;
@@ -176,13 +176,26 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 		}
 	}
 	
-	// @todo Need to get this working properly for performance parity with OpenGL on many Macs.
-	GRHISupportsRHIThread = FParse::Param(FCommandLine::Get(),TEXT("rhithread"));
-	GSupportsParallelOcclusionQueries = GRHISupportsRHIThread;
+	GRHISupportsRHIThread = false;
+	if (GMaxRHIShaderPlatform == SP_METAL_SM5)
+	{
 #if METAL_SUPPORTS_PARALLEL_RHI_EXECUTE
-	GRHISupportsParallelRHIExecute = GRHISupportsRHIThread;
+#if WITH_EDITORONLY_DATA
+		GRHISupportsRHIThread = !GIsEditor;
+#else
+		GRHISupportsRHIThread = true;
 #endif
-	GSupportsEfficientAsyncCompute = FParse::Param(FCommandLine::Get(),TEXT("metalasynccompute"));
+		GRHISupportsParallelRHIExecute = GRHISupportsRHIThread;
+#endif
+		GSupportsEfficientAsyncCompute = GRHISupportsParallelRHIExecute && IsRHIDeviceAMD(); // Only AMD currently support async. compute and it requires parallel execution to be useful.
+		GSupportsParallelOcclusionQueries = GRHISupportsRHIThread;
+	}
+	else
+	{
+		GRHISupportsParallelRHIExecute = false;
+		GSupportsEfficientAsyncCompute = false;
+		GSupportsParallelOcclusionQueries = false;
+	}
 	
 #endif
 
@@ -203,6 +216,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GSupportsRenderTargetFormat_PF_G8 = false;
 	GSupportsQuads = false;
 	GRHISupportsTextureStreaming = true;
+	GSupportsWideMRT = bCanUseWideMRTs;
 
 	GRHIRequiresEarlyBackBufferRenderTarget = false;
 	GSupportsSeparateRenderTargetBlendState = (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4);

@@ -1528,15 +1528,19 @@ void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEff
 		StartWorldTime = InArray.GetWorldTime() - static_cast<float>(InArray.GetServerWorldTime() - StartServerWorldTime);
 		CachedStartServerWorldTime = StartServerWorldTime;
 	}
-
-	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
-	const_cast<FActiveGameplayEffectsContainer&>(InArray).UpdateAllAggregatorModMagnitudes(*this);
-
-	// Broadcast if stack count has changed
+	
 	if (ClientCachedStackCount != Spec.StackCount)
 	{
-		OnStackChangeDelegate.Broadcast(Handle, ClientCachedStackCount, Spec.StackCount);
+		// If its a stack count change, we just call OnStackCountChange and it will broadcast delegates and update attribute aggregators
+		// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
+		const_cast<FActiveGameplayEffectsContainer&>(InArray).OnStackCountChange(*this, ClientCachedStackCount, Spec.StackCount);
 		ClientCachedStackCount = Spec.StackCount;
+	}
+	else
+	{
+		// Stack count didn't change, but something did (like a modifier magnitude). We need to update our attribute aggregators
+		// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
+		const_cast<FActiveGameplayEffectsContainer&>(InArray).UpdateAllAggregatorModMagnitudes(*this);
 	}
 }
 
@@ -2610,6 +2614,13 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 	{
 		for (int32 ModIdx = 0; ModIdx < Effect.Spec.Modifiers.Num(); ++ModIdx)
 		{
+			if (Effect.Spec.Def->Modifiers.IsValidIndex(ModIdx) == false)
+			{
+				// This should not be possible but is happening for us in some replay scenerios. Possibly a backward compat issue: GE def has changed and removed modifiers, but replicated data sends the old number of mods
+				ensureMsgf(false, TEXT("Spec Modifiers[%d] (max %d) is invalid with Def (%s) modifiers (max %d)"), ModIdx, Effect.Spec.Modifiers.Num(), *GetNameSafe(Effect.Spec.Def), Effect.Spec.Def ? Effect.Spec.Def->Modifiers.Num() : -1);
+				continue;
+			}
+
 			const FGameplayModifierInfo &ModInfo = Effect.Spec.Def->Modifiers[ModIdx];
 
 			// skip over any modifiers for attributes that we don't have

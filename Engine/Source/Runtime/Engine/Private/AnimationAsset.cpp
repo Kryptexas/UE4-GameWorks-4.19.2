@@ -213,19 +213,25 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 	if (NewSkeleton != Skeleton)
 	{
 		// get all sequences that need to change
-		TArray<UAnimSequence*> AnimSeqsToReplace;
+		TArray<UAnimationAsset*> AnimAssetsToReplace;
+
 		if (UAnimSequence* AnimSequence = Cast<UAnimSequence>(this))
 		{
-			AnimSeqsToReplace.AddUnique(AnimSequence);
+			AnimAssetsToReplace.AddUnique(AnimSequence);
 		}
-		if (GetAllAnimationSequencesReferred(AnimSeqsToReplace))
+		if (GetAllAnimationSequencesReferred(AnimAssetsToReplace))
 		{
-			for (auto Iter = AnimSeqsToReplace.CreateIterator(); Iter; ++Iter)
+			for (auto Iter = AnimAssetsToReplace.CreateIterator(); Iter; ++Iter)
 			{
-				UAnimSequence* AnimSeq = *Iter;
+				UAnimSequence* AnimSeq = Cast<UAnimSequence>(*Iter);
 				if (AnimSeq && AnimSeq->Skeleton != NewSkeleton)
 				{
 					AnimSeq->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
+				}
+				else
+				{
+					// if not anim sequence, at least replace skeleton
+					(*Iter)->SetSkeleton(NewSkeleton);
 				}
 			}
 		}
@@ -240,12 +246,12 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 	return false;
 }
 
-bool UAnimationAsset::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences)
+bool UAnimationAsset::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationSequences)
 {
 	return false;
 }
 
-void UAnimationAsset::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap)
+void UAnimationAsset::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
 }
 

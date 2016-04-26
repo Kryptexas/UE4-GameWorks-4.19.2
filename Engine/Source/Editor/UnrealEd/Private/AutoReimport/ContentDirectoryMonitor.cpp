@@ -230,7 +230,7 @@ UObject* AttemptImport(UClass* InFactoryType, UPackage* Package, FName InName, b
 		{
 			if (auto* SupportedClass = Factory->ResolveSupportedClass())
 			{
-				Asset = UFactory::StaticImportObject(SupportedClass, Package, InName, RF_Public | RF_Standalone, bCancelled, *FullFilename, nullptr, Factory);
+				Asset = Factory->ImportObject(SupportedClass, Package, InName, RF_Public | RF_Standalone, FullFilename, nullptr, bCancelled);
 			}
 		}
 		Factory->RemoveFromRoot();
@@ -308,6 +308,7 @@ void FContentDirectoryMonitor::ProcessAdditions(const DirectoryWatcher::FTimeLim
 				UObject* NewAsset = nullptr;
 
 				// Find a relevant factory for this file
+				// @todo import: gmp: show dialog in case of multiple matching factories
 				const FString Ext = FPaths::GetExtension(Addition.Filename.Get(), false);
 				auto* Factories = InFactoriesByExtension.Find(Ext);
 				if (Factories && Factories->Num() != 0)
@@ -536,5 +537,6 @@ void FContentDirectoryMonitor::Abort()
 		Cache.CompleteTransaction(MoveTemp(Change));
 	}
 }
+
 
 #undef LOCTEXT_NAMESPACE

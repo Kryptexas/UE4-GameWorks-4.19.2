@@ -334,6 +334,9 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 
 			TArray<FAdvancedAssetCategory> AdvancedAssetCategories;
 			AssetToolsModule.Get().GetAllAdvancedAssetCategories(/*out*/ AdvancedAssetCategories);
+			AdvancedAssetCategories.Sort([](const FAdvancedAssetCategory& A, const FAdvancedAssetCategory& B) {
+				return (A.CategoryName.CompareToCaseIgnored(B.CategoryName) < 0);
+			});
 
 			for (const FAdvancedAssetCategory& AdvancedAssetCategory : AdvancedAssetCategories)
 			{
@@ -349,11 +352,11 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 							FirstSelectedPath, 
 							InOnNewAssetRequested, 
 							FCanExecuteAction() // We handle this at this level, rather than at the sub-menu item level
-							),
+						),
 						FUIAction(
 							FExecuteAction(),
 							CanExecuteAssetActionsDelegate
-							),
+						),
 						NAME_None,
 						EUserInterfaceActionType::Button
 						);

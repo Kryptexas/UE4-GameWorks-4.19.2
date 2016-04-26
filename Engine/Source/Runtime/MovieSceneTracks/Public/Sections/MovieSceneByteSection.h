@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "MovieSceneSection.h"
 #include "IKeyframeSection.h"
 #include "MovieSceneByteSection.generated.h"
 
@@ -33,7 +34,7 @@ public:
 	 */
 	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
 	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
-	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
+	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const override;
 
 	/** Gets all the keys of this byte section */
 	FIntegralCurve& GetCurve() { return ByteCurve; }

@@ -434,8 +434,17 @@ namespace AnimationEditorUtils
 			{
 				GWarn->BeginSlowTask(LOCTEXT("AnimCompressing", "Compressing"), true);
 
-				Algorithm->Reduce(AnimSequencePtrs, true);
+				{
+					TSharedPtr<FAnimCompressContext> CompressContext = MakeShareable(new FAnimCompressContext(false, true, AnimSequencePtrs.Num()));
 
+					for (UAnimSequence* AnimSeq : AnimSequencePtrs)
+					{
+						AnimSeq->CompressionScheme = Algorithm;
+						AnimSeq->RequestAnimCompression(false, CompressContext);
+						++CompressContext->AnimIndex;
+					}
+				}
+				
 				GWarn->EndSlowTask();
 
 				return true;

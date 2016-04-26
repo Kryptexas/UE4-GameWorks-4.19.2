@@ -197,6 +197,9 @@ public:
 		const FBoneContainer& RequiredBones,
 		/*inout*/ FTransformArrayA2& Atoms);
 
+	/** Get Reference Component Space Transform */
+	static FTransform GetComponentSpaceRefPose(const FCompactPoseBoneIndex& CompactPoseBoneIndex, const FBoneContainer& BoneContainer);
+
 	/** Fill ref pose **/
 	static void FillWithRefPose(TArray<FTransform>& OutAtoms, const FBoneContainer& RequiredBones);
 

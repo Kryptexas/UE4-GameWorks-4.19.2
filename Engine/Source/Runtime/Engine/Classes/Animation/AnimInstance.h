@@ -594,7 +594,10 @@ public:
 
 	/** Return true if it's playing the slot animation */
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	bool IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName ); 
+	bool IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName); 
+
+	/** Return true if this instance playing the slot animation, also returning the montage it is playing on */
+	bool IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeName, UAnimMontage*& OutMontage);
 
 	/*********************************************************************************************
 	 * AnimMontage
@@ -1072,6 +1075,10 @@ public:
 
 	// Debug output for this anim instance 
 	void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
+
+	/** Reset any dynamics running simulation-style updates (e.g. on teleport, time skip etc.) */
+	void ResetDynamics();
+
 public:
 
 	/** Access the required bones array */

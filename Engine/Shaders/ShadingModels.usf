@@ -8,8 +8,7 @@
 #if 0
 void StandardShadingShared( float3 DiffuseColor, float3 SpecularColor, float Roughness, float3 V, half3 N )
 {
-	//float NoV = saturate( dot(N, V) );
-	float NoV = abs( dot(N, V) ) + 1e-5;
+	float NoV = saturate( abs( dot(N, V) ) + 1e-5 );
 
 	// Diffuse_Lambert
 	Shared.DiffuseMul = DiffuseColor * (1.0 / PI);
@@ -49,8 +48,7 @@ float3 StandardShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeE
 {
 	float3 H = normalize(V + L);
 	float NoL = saturate( dot(N, L) );
-	//float NoV = saturate( dot(N, V) );
-	float NoV = max( dot(N, V), 1e-5 );	// constant to prevent NaN
+	float NoV = saturate( abs( dot(N, V) ) + 1e-5 );
 	float NoH = saturate( dot(N, H) );
 	float VoH = saturate( dot(V, H) );
 	
@@ -89,7 +87,7 @@ float3 ClearCoatShading( FGBufferData GBuffer, float3 LobeRoughness, float3 Lobe
 #if 1
 	float3 H = normalize(V + L);
 	float NoL = saturate( dot(N, L) );
-	float NoV = max( dot(N, V), 1e-5 );	// constant to prevent NaN
+	float NoV = saturate( abs( dot(N, V) ) + 1e-5 );
 	float NoH = saturate( dot(N, H) );
 	float VoH = saturate( dot(V, H) );
 	
@@ -120,7 +118,7 @@ float3 ClearCoatShading( FGBufferData GBuffer, float3 LobeRoughness, float3 Lobe
 #else
 	float3 H = normalize(V + L);
 	float NoL = saturate( dot(N, L) );
-	float NoV = saturate( dot(N, V) );
+	float NoV = saturate( abs( dot(N, V) ) + 1e-5 );
 	float NoH = saturate( dot(N, H) );
 	float VoH = saturate( dot(V, H) );
 	
@@ -197,7 +195,7 @@ float3 ClothShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEner
 
 	float3 H = normalize(V + L);
 	float NoL = saturate( dot(N, L) );
-	float NoV = max( dot(N, V), 1e-5 );
+	float NoV = saturate( abs( dot(N, V) ) + 1e-5 );
 	float NoH = saturate( dot(N, H) );
 	float VoH = saturate( dot(V, H) );
 
@@ -677,7 +675,7 @@ float3 EyeShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEnergy
 {
 	float3 H = normalize(V + L);
 	float NoL = saturate( dot(N, L) );
-	float NoV = max( dot(N, V), 1e-5 );	// constant to prevent NaN
+	float NoV = saturate( abs( dot(N, V) ) + 1e-5 );
 	float NoH = saturate( dot(N, H) );
 	float VoH = saturate( dot(V, H) );
 	
@@ -693,7 +691,7 @@ float3 EyeSubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 {
 	float3 H = normalize(V + L);
 	float VoH = saturate( dot(V, H) );
-	float NoV = max( dot(N, V), 1e-5 );
+	float NoV = saturate( abs( dot(N, V) ) + 1e-5 );
 
 	// F_Schlick
 	float F0 = GBuffer.Specular;

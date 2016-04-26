@@ -725,7 +725,7 @@ void FOpenGLDynamicRHI::SetupTexturesForDraw( FOpenGLContextState& ContextState,
 			{
 				InternalUpdateTextureBuffer(ContextState, TextureStage.SRV, TextureStageIndex);
 			}
-			if (bNeedsSetupSamplerStage)
+			if (bNeedsSetupSamplerStage && TextureStage.Target != GL_TEXTURE_BUFFER)
 			{
 				ApplyTextureStage( ContextState, TextureStageIndex, TextureStage, PendingState.SamplerStates[TextureStageIndex] );
 			}

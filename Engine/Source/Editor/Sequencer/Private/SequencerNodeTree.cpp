@@ -23,6 +23,7 @@ void FSequencerNodeTree::Empty()
 	Sequencer.GetSelection().EmptySelectedOutlinerNodes();
 	EditorMap.Empty();
 	FilteredNodes.Empty();
+	HoveredNode = nullptr;
 }
 
 

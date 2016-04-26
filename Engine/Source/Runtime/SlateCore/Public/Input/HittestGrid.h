@@ -21,6 +21,7 @@ class SLATECORE_API FHittestGrid
 public:
 
 	FHittestGrid();
+	~FHittestGrid();
 
 	/**
 	 * Given a Slate Units coordinate in virtual desktop space, perform a hittest

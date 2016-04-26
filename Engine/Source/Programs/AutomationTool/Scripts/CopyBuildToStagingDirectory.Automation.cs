@@ -404,10 +404,22 @@ public partial class Project : CommandUtils
 			{
 				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Config"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Config"), true, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
 			}
-            foreach (string Culture in CulturesToStage)
-            {
-                StageLocalizationDataForCulture(SC, Culture, CombinePaths(SC.ProjectRoot, "Content/Localization/Game"), CombinePaths(SC.RelativeProjectRootForStage, "Content/Localization/Game"), !Params.UsePak(SC.StageTargetPlatform));
-            }
+
+			// Stage all project localization targets
+			{
+				var ProjectLocRootDirectory = CombinePaths(SC.ProjectRoot, "Content/Localization");
+				if (DirectoryExists(ProjectLocRootDirectory))
+				{
+					string[] ProjectLocTargetDirectories = CommandUtils.FindDirectories(true, "*", false, new string[] { ProjectLocRootDirectory });
+					foreach (string ProjectLocTargetDirectory in ProjectLocTargetDirectories)
+					{
+						foreach (string Culture in CulturesToStage)
+						{
+							StageLocalizationDataForCulture(SC, Culture, ProjectLocTargetDirectory, null, !Params.UsePak(SC.StageTargetPlatform));
+						}
+					}
+				}
+			}
 
             // Stage any additional UFS and NonUFS paths specified in the project ini files; these dirs are relative to the game content directory
             if (PlatformGameConfig != null)
@@ -790,11 +802,17 @@ public partial class Project : CommandUtils
 				Src = NewIniFilename;
 			}
 
-			// there can be files that only differ in case only, we don't support that in paks as paks are case-insensitive
-			if (UnrealPakResponseFile.ContainsKey(Src))
-			{
-				throw new AutomationException("Staging manifest already contains {0} (or a file that differs in case only)", Src);
-			}
+            // there can be files that only differ in case only, we don't support that in paks as paks are case-insensitive
+            if (UnrealPakResponseFile.ContainsKey(Src))
+            {
+                if (UnrealPakResponseFile[Src] != Dest)
+                {
+                    throw new AutomationException("Staging manifest already contains {0} (or a file that differs in case only)", Src);
+                }
+                LogWarning("Tried to add duplicate file to stage " + Src + " ignoring second attempt pls fix");
+                continue;
+            }
+
 			UnrealPakResponseFile.Add(Src, Dest);
 		}
 

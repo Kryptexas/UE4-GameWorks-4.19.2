@@ -277,7 +277,7 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 
 		DrawTicks( OutDrawElements, RangeToScreen, Args );
 
-		// draw playback & in/out range
+		// draw playback & selection range
 		FPaintPlaybackRangeArgs PlaybackRangeArgs(
 			bMirrorLabels ? FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_Bottom_L") : FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_Top_L"),
 			bMirrorLabels ? FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_Bottom_R") : FEditorStyle::GetBrush("Sequencer.Timeline.PlayRange_Top_R"),
@@ -285,7 +285,7 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 		);
 
 		LayerId = DrawPlaybackRange(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, RangeToScreen, PlaybackRangeArgs);
-		LayerId = DrawInOutRange(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, RangeToScreen, PlaybackRangeArgs);
+		LayerId = DrawSelectionRange(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, RangeToScreen, PlaybackRangeArgs);
 
 		float HalfSize = FMath::CeilToFloat(ScrubHandleSize / 2.0f);
 
@@ -390,30 +390,30 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 }
 
 
-int32 FSequencerTimeSliderController::DrawInOutRange(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FScrubRangeToScreen& RangeToScreen, const FPaintPlaybackRangeArgs& Args) const
+int32 FSequencerTimeSliderController::DrawSelectionRange(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FScrubRangeToScreen& RangeToScreen, const FPaintPlaybackRangeArgs& Args) const
 {
-	const TRange<float> InOutRange = TimeSliderArgs.InOutRange.Get();
+	const TRange<float> SelectionRange = TimeSliderArgs.SelectionRange.Get();
 
-	if (!InOutRange.IsEmpty())
+	if (!SelectionRange.IsEmpty())
 	{
-		const float InOutRangeL = RangeToScreen.InputToLocalX(InOutRange.GetLowerBoundValue()) - 1;
-		const float InOutRangeR = RangeToScreen.InputToLocalX(InOutRange.GetUpperBoundValue()) + 1;
-		const auto DrawColor = FLinearColor(FColor(32, 32, 128));
+		const float SelectionRangeL = RangeToScreen.InputToLocalX(SelectionRange.GetLowerBoundValue()) - 1;
+		const float SelectionRangeR = RangeToScreen.InputToLocalX(SelectionRange.GetUpperBoundValue()) + 1;
+		const auto DrawColor = FLinearColor(FColor(72, 72, 255));
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId + 1,
-			AllottedGeometry.ToPaintGeometry(FVector2D(InOutRangeL, 0.f), FVector2D(InOutRangeR - InOutRangeL, AllottedGeometry.Size.Y)),
+			AllottedGeometry.ToPaintGeometry(FVector2D(SelectionRangeL, 0.f), FVector2D(SelectionRangeR - SelectionRangeL, AllottedGeometry.Size.Y)),
 			FEditorStyle::GetBrush("WhiteBrush"),
 			MyClippingRect,
 			ESlateDrawEffect::None,
-			DrawColor.CopyWithNewOpacity(0.2f)
+			DrawColor.CopyWithNewOpacity(0.1f)
 		);
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId + 1,
-			AllottedGeometry.ToPaintGeometry(FVector2D(InOutRangeL, 0.f), FVector2D(Args.BrushWidth, AllottedGeometry.Size.Y)),
+			AllottedGeometry.ToPaintGeometry(FVector2D(SelectionRangeL, 0.f), FVector2D(Args.BrushWidth, AllottedGeometry.Size.Y)),
 			Args.StartBrush,
 			MyClippingRect,
 			ESlateDrawEffect::None,
@@ -423,7 +423,7 @@ int32 FSequencerTimeSliderController::DrawInOutRange(const FGeometry& AllottedGe
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId + 1,
-			AllottedGeometry.ToPaintGeometry(FVector2D(InOutRangeR - Args.BrushWidth, 0.f), FVector2D(Args.BrushWidth, AllottedGeometry.Size.Y)),
+			AllottedGeometry.ToPaintGeometry(FVector2D(SelectionRangeR - Args.BrushWidth, 0.f), FVector2D(Args.BrushWidth, AllottedGeometry.Size.Y)),
 			Args.EndBrush,
 			MyClippingRect,
 			ESlateDrawEffect::None,
@@ -557,21 +557,21 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, co
 	}
 	else if ( bHandleLeftMouseButton )
 	{
-		if (MouseDragType == DRAG_START_RANGE)
+		if (MouseDragType == DRAG_PLAYBACK_START)
 		{
-			TimeSliderArgs.OnEndPlaybackRangeDrag.ExecuteIfBound();
+			TimeSliderArgs.OnPlaybackRangeEndDrag.ExecuteIfBound();
 		}
-		else if (MouseDragType == DRAG_END_RANGE)
+		else if (MouseDragType == DRAG_PLAYBACK_END)
 		{
-			TimeSliderArgs.OnEndPlaybackRangeDrag.ExecuteIfBound();
+			TimeSliderArgs.OnPlaybackRangeEndDrag.ExecuteIfBound();
 		}
-		else if (MouseDragType == DRAG_IN_RANGE)
+		else if (MouseDragType == DRAG_SELECTION_START)
 		{
-			TimeSliderArgs.OnEndInOutRangeDrag.ExecuteIfBound();
+			TimeSliderArgs.OnSelectionRangeEndDrag.ExecuteIfBound();
 		}
-		else if (MouseDragType == DRAG_OUT_RANGE)
+		else if (MouseDragType == DRAG_SELECTION_END)
 		{
-			TimeSliderArgs.OnEndInOutRangeDrag.ExecuteIfBound();
+			TimeSliderArgs.OnSelectionRangeEndDrag.ExecuteIfBound();
 		}
 		else if (MouseDragType == DRAG_SETTING_RANGE)
 		{
@@ -692,33 +692,33 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 				FScrubRangeToScreen RangeToScreen(LocalViewRange, MyGeometry.Size);
 				const float ScrubPosition = TimeSliderArgs.ScrubPosition.Get();
 
-				TRange<float> InOutRange = TimeSliderArgs.InOutRange.Get();
+				TRange<float> SelectionRange = TimeSliderArgs.SelectionRange.Get();
 				TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
 				float LocalMouseDownPos = RangeToScreen.InputToLocalX(MouseDownRange[0]);
 
-				if (HitTestScrubberEnd(RangeToScreen, InOutRange, LocalMouseDownPos, ScrubPosition))
+				if (HitTestScrubberEnd(RangeToScreen, SelectionRange, LocalMouseDownPos, ScrubPosition))
 				{
-					// in/out range end scrubber
-					MouseDragType = DRAG_OUT_RANGE;
-					TimeSliderArgs.OnBeginInOutRangeDrag.ExecuteIfBound();
+					// selection range end scrubber
+					MouseDragType = DRAG_SELECTION_END;
+					TimeSliderArgs.OnSelectionRangeBeginDrag.ExecuteIfBound();
 				}
-				else if (HitTestScrubberStart(RangeToScreen, InOutRange, LocalMouseDownPos, ScrubPosition))
+				else if (HitTestScrubberStart(RangeToScreen, SelectionRange, LocalMouseDownPos, ScrubPosition))
 				{
-					// in/out range start scrubber
-					MouseDragType = DRAG_IN_RANGE;
-					TimeSliderArgs.OnBeginInOutRangeDrag.ExecuteIfBound();
+					// selection range start scrubber
+					MouseDragType = DRAG_SELECTION_START;
+					TimeSliderArgs.OnSelectionRangeBeginDrag.ExecuteIfBound();
 				}
 				else if (HitTestScrubberEnd(RangeToScreen, PlaybackRange, LocalMouseDownPos, ScrubPosition))
 				{
 					// playback range end scrubber
-					MouseDragType = DRAG_END_RANGE;
-					TimeSliderArgs.OnBeginPlaybackRangeDrag.ExecuteIfBound();
+					MouseDragType = DRAG_PLAYBACK_END;
+					TimeSliderArgs.OnPlaybackRangeBeginDrag.ExecuteIfBound();
 				}
 				else if (HitTestScrubberStart(RangeToScreen, PlaybackRange, LocalMouseDownPos, ScrubPosition))
 				{
 					// playback range start scrubber
-					MouseDragType = DRAG_START_RANGE;
-					TimeSliderArgs.OnBeginPlaybackRangeDrag.ExecuteIfBound();
+					MouseDragType = DRAG_PLAYBACK_START;
+					TimeSliderArgs.OnPlaybackRangeBeginDrag.ExecuteIfBound();
 				}
 				else if (FSlateApplication::Get().GetModifierKeys().AreModifersDown(EModifierKey::Control))
 				{
@@ -739,7 +739,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 
 
 			// Set the start range time?
-			if (MouseDragType == DRAG_START_RANGE)
+			if (MouseDragType == DRAG_PLAYBACK_START)
 			{
 				if (TimeSliderArgs.Settings->GetIsSnapEnabled())
 				{
@@ -749,7 +749,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 				SetPlaybackRangeStart(NewValue);
 			}
 			// Set the end range time?
-			else if(MouseDragType == DRAG_END_RANGE)
+			else if(MouseDragType == DRAG_PLAYBACK_END)
 			{
 				if (TimeSliderArgs.Settings->GetIsSnapEnabled())
 				{
@@ -758,33 +758,33 @@ FReply FSequencerTimeSliderController::OnMouseMove( SWidget& WidgetOwner, const 
 					
 				SetPlaybackRangeEnd(NewValue);
 			}
-			else if (MouseDragType == DRAG_IN_RANGE)
+			else if (MouseDragType == DRAG_SELECTION_START)
 			{
 				if (TimeSliderArgs.Settings->GetIsSnapEnabled())
 				{
 					NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
 				}
 
-				TRange<float> InOutRange = TimeSliderArgs.InOutRange.Get();
+				TRange<float> SelectionRange = TimeSliderArgs.SelectionRange.Get();
 
-				if (NewValue <= InOutRange.GetUpperBoundValue())
+				if (NewValue <= SelectionRange.GetUpperBoundValue())
 				{
-					TimeSliderArgs.OnInOutRangeChanged.ExecuteIfBound(TRange<float>(NewValue, InOutRange.GetUpperBoundValue()));
+					TimeSliderArgs.OnSelectionRangeChanged.ExecuteIfBound(TRange<float>(NewValue, SelectionRange.GetUpperBoundValue()));
 				}
 			}
 			// Set the end range time?
-			else if(MouseDragType == DRAG_OUT_RANGE)
+			else if(MouseDragType == DRAG_SELECTION_END)
 			{
 				if (TimeSliderArgs.Settings->GetIsSnapEnabled())
 				{
 					NewValue = TimeSliderArgs.Settings->SnapTimeToInterval(NewValue);
 				}
 					
-				TRange<float> InOutRange = TimeSliderArgs.InOutRange.Get();
+				TRange<float> SelectionRange = TimeSliderArgs.SelectionRange.Get();
 
-				if (NewValue >= InOutRange.GetLowerBoundValue())
+				if (NewValue >= SelectionRange.GetLowerBoundValue())
 				{
-					TimeSliderArgs.OnInOutRangeChanged.ExecuteIfBound(TRange<float>(InOutRange.GetLowerBoundValue(), NewValue));
+					TimeSliderArgs.OnSelectionRangeChanged.ExecuteIfBound(TRange<float>(SelectionRange.GetLowerBoundValue(), NewValue));
 				}
 			}
 			else if (MouseDragType == DRAG_SCRUBBING_TIME)
@@ -845,19 +845,19 @@ FCursorReply FSequencerTimeSliderController::OnCursorQuery( TSharedRef<const SWi
 {
 	FScrubRangeToScreen RangeToScreen(TimeSliderArgs.ViewRange.Get(), MyGeometry.Size);
 	TRange<float> PlaybackRange = TimeSliderArgs.PlaybackRange.Get();
-	TRange<float> InOutRange = TimeSliderArgs.InOutRange.Get();
+	TRange<float> SelectionRange = TimeSliderArgs.SelectionRange.Get();
 	const float ScrubPosition = TimeSliderArgs.ScrubPosition.Get();
 
 	// Use L/R resize cursor if we're dragging or hovering a playback range bound
 	float HitTestPosition = MyGeometry.AbsoluteToLocal(CursorEvent.GetScreenSpacePosition()).X;
-	if ((MouseDragType == DRAG_END_RANGE) ||
-		(MouseDragType == DRAG_START_RANGE) ||
-		(MouseDragType == DRAG_IN_RANGE) ||
-		(MouseDragType == DRAG_OUT_RANGE) ||
+	if ((MouseDragType == DRAG_PLAYBACK_END) ||
+		(MouseDragType == DRAG_PLAYBACK_START) ||
+		(MouseDragType == DRAG_SELECTION_START) ||
+		(MouseDragType == DRAG_SELECTION_END) ||
 		HitTestScrubberStart(RangeToScreen, PlaybackRange, HitTestPosition, ScrubPosition) ||
 		HitTestScrubberEnd(RangeToScreen, PlaybackRange, HitTestPosition, ScrubPosition) ||
-		HitTestScrubberStart(RangeToScreen, InOutRange, HitTestPosition, ScrubPosition) ||
-		HitTestScrubberEnd(RangeToScreen, InOutRange, HitTestPosition, ScrubPosition))
+		HitTestScrubberStart(RangeToScreen, SelectionRange, HitTestPosition, ScrubPosition) ||
+		HitTestScrubberEnd(RangeToScreen, SelectionRange, HitTestPosition, ScrubPosition))
 	{
 		return FCursorReply::Cursor(EMouseCursor::ResizeLeftRight);
 	}
@@ -881,7 +881,7 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 	if (Args.PlaybackRangeArgs.IsSet())
 	{
 		LayerId = DrawPlaybackRange(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, RangeToScreen, Args.PlaybackRangeArgs.GetValue());
-		LayerId = DrawInOutRange(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, RangeToScreen, Args.PlaybackRangeArgs.GetValue());
+		LayerId = DrawSelectionRange(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, RangeToScreen, Args.PlaybackRangeArgs.GetValue());
 	}
 
 	if( Args.bDisplayTickLines )

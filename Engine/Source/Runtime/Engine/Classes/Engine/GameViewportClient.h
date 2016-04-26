@@ -652,16 +652,40 @@ public:
 	}
 
 	/**
-	 * Sets whether or not the cursor is hidden when the viewport captures the mouse
+	 * Gets whether or not the viewport captures the Mouse on launch of the application
+	 * Technically this controls capture on the first window activate, so in situations 
+	 * where the application is launched but isn't activated the effect is delayed until
+	 * activation.
 	 */
+	virtual bool CaptureMouseOnLaunch() override;
+
+	/**
+	 * Sets whether or not the cursor is locked to the viewport when the viewport captures the mouse
+	 */
+	void SetLockDuringCapture(bool InLockDuringCapture)
+	{
+		bLockDuringCapture = InLockDuringCapture;
+	}
+
+	/**
+	 * Gets whether or not the cursor is locked to the viewport when the viewport captures the mouse
+	 */
+	virtual bool LockDuringCapture() override
+	{
+		return bHideCursorDuringCapture;
+	}
+
+	/**
+	* Sets whether or not the cursor is hidden when the viewport captures the mouse
+	*/
 	void SetHideCursorDuringCapture(bool InHideCursorDuringCapture)
 	{
 		bHideCursorDuringCapture = InHideCursorDuringCapture;
 	}
 
 	/**
-	 * Gets whether or not the cursor is hidden when the viewport captures the mouse
-	 */
+	* Gets whether or not the cursor is hidden when the viewport captures the mouse
+	*/
 	virtual bool HideCursorDuringCapture() override
 	{
 		return bHideCursorDuringCapture;
@@ -797,6 +821,9 @@ private:
 
 	/** Mouse capture behavior when the viewport is clicked */
 	EMouseCaptureMode MouseCaptureMode;
+
+	/** Whether or not the cursor is locked when the viewport captures the mouse */
+	bool bLockDuringCapture;
 
 	/** Whether or not the cursor is hidden when the viewport captures the mouse */
 	bool bHideCursorDuringCapture;

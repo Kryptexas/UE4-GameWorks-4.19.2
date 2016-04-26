@@ -57,7 +57,7 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 #if WITH_EDITORONLY_DATA
 	RenderComp = CreateDefaultSubobject<UFuncTestRenderingComponent>(TEXT("RenderComp"));
 	RenderComp->PostPhysicsComponentTick.bCanEverTick = false;
-	RenderComp->AttachParent = RootComponent;
+	RenderComp->SetupAttachment(RootComponent);
 #endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITOR

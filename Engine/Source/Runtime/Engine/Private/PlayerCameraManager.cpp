@@ -817,7 +817,7 @@ void APlayerCameraManager::UpdateCamera(float DeltaTime)
 	{
 		DoUpdateCamera(DeltaTime);
 
-		if (GetNetMode() == NM_Client && bShouldSendClientSideCameraUpdate)
+		if (bShouldSendClientSideCameraUpdate && GetNetMode() == NM_Client)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ServerUpdateCamera);
 

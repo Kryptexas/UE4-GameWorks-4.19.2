@@ -1075,10 +1075,10 @@ public:
 		/** Force state and score of item
 		 *  Any following SetScore calls for current item will be ignored
 		 */
-		void ForceItemState(EEnvItemStatus::Type Status, float Score = UEnvQueryTypes::SkippedItemValue)
+		void ForceItemState(EEnvItemStatus::Type InStatus, float Score = UEnvQueryTypes::SkippedItemValue)
 		{
 			bForced = true;
-			bPassed = (Status == EEnvItemStatus::Passed);
+			bPassed = (InStatus == EEnvItemStatus::Passed);
 			ItemScore = Score;
 		}
 

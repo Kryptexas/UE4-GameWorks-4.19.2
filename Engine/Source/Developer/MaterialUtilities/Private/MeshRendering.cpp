@@ -958,8 +958,8 @@ bool FMeshRenderer::RenderMaterialTexCoordScales(struct FMaterialMergeData& InMa
 
 	// Set show flag view mode to output tex coord scale
 	FEngineShowFlags ShowFlags(ESFIM_Game);
-	ApplyViewMode(VMI_TexCoordScaleAccuracy, false, ShowFlags);
-	ShowFlags.TexCoordAnalysis = true; // This will bind the DVSM_TexCoordScaleAnalysis
+	ApplyViewMode(VMI_MaterialTexCoordScalesAccuracy, false, ShowFlags);
+	ShowFlags.MaterialTexCoordScalesAnalysis = true; // This will bind the DVSM_MaterialTexCoordScalesAnalysis
 
 	FSceneViewFamily ViewFamily(FSceneViewFamily::ConstructionValues(CanvasRenderTarget, nullptr, ShowFlags)
 		.SetWorldTimes(CurrentWorldTime, DeltaWorldTime, CurrentRealTime)

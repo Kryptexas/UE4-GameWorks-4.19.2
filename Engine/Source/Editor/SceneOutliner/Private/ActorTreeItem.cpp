@@ -185,7 +185,7 @@ void FActorDropTarget::DetachActorFromParent(AActor* ChildActor)
 	{
 		AActor* OldParent = RootComp->GetAttachParent()->GetOwner();
 		OldParent->Modify();
-		RootComp->DetachFromParent(true);
+		RootComp->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 		
 		ChildActor->SetFolderPath_Recursively(OldParent->GetFolderPath());
 	}

@@ -672,8 +672,8 @@ private:
 	void OnSetKey();
 	bool CanSetKey() const;
 	void OnSetKeyCompleted();
-	void OnBakeAnimation();
-	bool CanBakeAnimation() const;
+	void OnApplyRawAnimChanges();
+	bool CanApplyRawAnimChanges() const;
 	
 	/** Change skeleton preview mesh functions */
 	void ChangeSkeletonPreviewMesh();

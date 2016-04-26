@@ -452,7 +452,7 @@ void SCurveNameManager::OnDeleteNameClicked()
 		if(FMessageDialog::Open(EAppMsgType::YesNo, Message, &Title) == EAppReturnType::Yes)
 		{
 			// Proceed to delete the curves
-			GWarn->BeginSlowTask(FText::Format(LOCTEXT("DeleteCurvesTaskDesc", "Deleting curve from skeleton {1}"), FText::FromString(CurrentSkeleton->GetName())), true);
+			GWarn->BeginSlowTask(FText::Format(LOCTEXT("DeleteCurvesTaskDesc", "Deleting curve from skeleton {0}"), FText::FromString(CurrentSkeleton->GetName())), true);
 			FScopedTransaction Transaction(LOCTEXT("DeleteCurvesTransactionName", "Delete skeleton curve"));
 
 			// Remove curves from animation assets
@@ -463,7 +463,20 @@ void SCurveNameManager::OnDeleteNameClicked()
 				for(FSmartNameMapping::UID Uid : SelectedUids)
 				{
 					Sequence->RawCurveData.DeleteCurveData(Uid);
+					Sequence->MarkRawDataAsModified();
 				}
+			}
+			GWarn->EndSlowTask();
+
+			GWarn->BeginSlowTask(LOCTEXT("RebuildingAnimations", "Rebaking/compressing modified animations"), true);
+
+			// Rebake/compress the animations
+			for (TObjectIterator<UAnimSequence> It; It; ++It)
+			{
+				UAnimSequence* Seq = *It;
+
+				GWarn->StatusUpdate(1, 2, FText::Format(LOCTEXT("RebuildingAnimationsStatus", "Rebuilding {0}"), FText::FromString(Seq->GetName())));
+				Seq->RequestSyncAnimRecompression();
 			}
 			GWarn->EndSlowTask();
 		}

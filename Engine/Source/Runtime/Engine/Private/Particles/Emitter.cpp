@@ -50,7 +50,7 @@ AEmitter::AEmitter(const FObjectInitializer& ObjectInitializer)
 			SpriteComponent->bIsScreenSizeScaled = true;
 			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
 			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
-			SpriteComponent->AttachParent = ParticleSystemComponent;
+			SpriteComponent->SetupAttachment(ParticleSystemComponent);
 			SpriteComponent->bReceivesDecals = false;
 		}
 
@@ -65,7 +65,7 @@ AEmitter::AEmitter(const FObjectInitializer& ObjectInitializer)
 			ArrowComponent->bIsScreenSizeScaled = true;
 			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
 			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
-			ArrowComponent->AttachParent = ParticleSystemComponent;
+			ArrowComponent->SetupAttachment(ParticleSystemComponent);
 			ArrowComponent->bAbsoluteScale = true;
 		}
 	}

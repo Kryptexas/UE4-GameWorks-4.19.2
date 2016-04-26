@@ -573,10 +573,10 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 								// From MoveToLevelTool
 								FromProxy->CollisionComponents.Remove(Collision);
 								Collision->UnregisterComponent();
-								Collision->DetachFromParent(true);
+								Collision->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 								Collision->Rename(NULL, DestProxy);
 								DestProxy->CollisionComponents.Add(Collision);
-								Collision->AttachTo( DestProxy->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition );
+								Collision->AttachToComponent(DestProxy->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
 								SelectProxies.Add(FromProxy);
 								SelectProxies.Add(DestProxy);
 							}

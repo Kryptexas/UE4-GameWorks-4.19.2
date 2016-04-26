@@ -34,13 +34,13 @@ static inline VkPrimitiveTopology UEToVulkanType(EPrimitiveType PrimitiveType)
 	return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
 }
 
-void FVulkanCommandListContext::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
+void FVulkanCommandListContext::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI, uint32 Stride, uint32 Offset)
 {
 	FVulkanPendingState& State = Device->GetPendingState();
 	FVulkanVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
 	if (VertexBuffer != NULL)
 	{
-		State.SetStreamSource(StreamIndex, VertexBuffer->GetBuffer(), Stride, Offset + VertexBuffer->GetOffset());
+		State.SetStreamSource(StreamIndex, VertexBuffer, Stride, Offset + VertexBuffer->GetOffset());
 	}
 }
 
@@ -364,7 +364,7 @@ inline void FVulkanCommandListContext::SetShaderUniformBuffer(EShaderFrequency S
 	{
 		ShaderState.SetUniformBuffer(PendingState, Stage,
 			BindingIndex,
-			UniformBuffer->GetRealUB());
+			UniformBuffer);
 	}
 	else
 	{
@@ -582,11 +582,8 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef 
 		VkCommandBuffer CmdBuffer = State.GetCommandBuffer();
 		State.PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
 #endif
-#if VULKAN_USE_NEW_RESOURCE_MANAGEMENT
-		vkCmdBindIndexBuffer(CmdBuffer, IndexBuffer->GetBuffer()->GetBuffer(), 0, IndexBuffer->IndexType);
-#else
-		vkCmdBindIndexBuffer(CmdBuffer, IndexBuffer->GetBuffer()->GetBufferHandle(), IndexBuffer->GetOffset(), IndexBuffer->IndexType);
-#endif
+
+		vkCmdBindIndexBuffer(CmdBuffer, IndexBuffer->GetHandle(), IndexBuffer->GetOffset(), IndexBuffer->GetIndexType());
 
 		uint32 NumIndices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
 		vkCmdDrawIndexed(CmdBuffer, NumIndices, NumInstances, StartIndex, 0, FirstInstance);
@@ -651,8 +648,9 @@ void FVulkanCommandListContext::RHIBeginDrawPrimitiveUP(uint32 PrimitiveType, ui
 
 //	checkSlow(GPendingDrawPrimitiveUPVertexData == nullptr);
 
-	PendingDrawPrimitiveUPVertexData = DynamicVB->Lock(VertexDataStride * NumVertices);
-	OutVertexData = PendingDrawPrimitiveUPVertexData.Data;
+	bool bAllocatedVB = TempFrameAllocationBuffer.Alloc(VertexDataStride * NumVertices, VertexDataStride, PendingDrawPrimUPVertexAllocInfo);
+	check(bAllocatedVB);
+	OutVertexData = PendingDrawPrimUPVertexAllocInfo.Data;
 
 	PendingPrimitiveType = PrimitiveType;
 	PendingNumPrimitives = NumPrimitives;
@@ -664,19 +662,13 @@ void FVulkanCommandListContext::RHIBeginDrawPrimitiveUP(uint32 PrimitiveType, ui
 void FVulkanCommandListContext::RHIEndDrawPrimitiveUP()
 {
 	int32 UPBufferIndex = GFrameNumberRenderThread % 3;
-	DynamicVB->Unlock(PendingDrawPrimitiveUPVertexData);
-
-	//if (!DrawingViewport)
-	//{
-	//	return;
-	//}
 
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallTime);
 
 	FVulkanPendingState& State = Device->GetPendingState();
 	FVulkanBoundShaderState& Shader = State.GetBoundShaderState();
 
-	State.SetStreamSource(0, PendingDrawPrimitiveUPVertexData.Buffer, PendingVertexDataStride, PendingDrawPrimitiveUPVertexData.Offset);
+	State.SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.Buffer, PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.Offset);
 	
 	#if VULKAN_HAS_DEBUGGING_ENABLED
 		if(!Shader.HasError())
@@ -703,13 +695,15 @@ void FVulkanCommandListContext::RHIBeginDrawIndexedPrimitiveUP( uint32 Primitive
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanUPPrepTime);
 
-	PendingDrawPrimitiveUPVertexData = DynamicVB->Lock(VertexDataStride * NumVertices);
-	OutVertexData = PendingDrawPrimitiveUPVertexData.Data;
+	bool bAllocatedVB = TempFrameAllocationBuffer.Alloc(VertexDataStride * NumVertices, IndexDataStride, PendingDrawPrimUPVertexAllocInfo);
+	check(bAllocatedVB);
+	OutVertexData = PendingDrawPrimUPVertexAllocInfo.Data;
 
 	check(IndexDataStride == 2 || IndexDataStride == 4);
 	PendingPrimitiveIndexType = IndexDataStride == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
-	PendingDrawPrimitiveUPIndexData = DynamicIB->Lock(IndexDataStride * NumIndices);
-	OutIndexData = PendingDrawPrimitiveUPIndexData.Data;
+	bool bAllocatedIB = TempFrameAllocationBuffer.Alloc(IndexDataStride * NumIndices, IndexDataStride, PendingDrawPrimUPIndexAllocInfo);
+	check(bAllocatedIB);
+	OutIndexData = PendingDrawPrimUPIndexAllocInfo.Data;
 
 	PendingPrimitiveType = PrimitiveType;
 	PendingNumPrimitives = NumPrimitives;
@@ -724,13 +718,10 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallTime);
 
-	DynamicIB->Unlock(PendingDrawPrimitiveUPIndexData);
-	DynamicVB->Unlock(PendingDrawPrimitiveUPVertexData);
-
 	FVulkanPendingState& State = Device->GetPendingState();
 	FVulkanBoundShaderState& Shader = State.GetBoundShaderState();
 
-	State.SetStreamSource(0, PendingDrawPrimitiveUPVertexData.Buffer, PendingVertexDataStride, PendingDrawPrimitiveUPVertexData.Offset);
+	State.SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.Buffer, PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.Offset);
 
 	#if VULKAN_HAS_DEBUGGING_ENABLED
 		if(!Shader.HasError())
@@ -745,8 +736,7 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 		State.PrepareDraw(UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
 #endif
 		uint32 NumIndices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
-		vkCmdBindIndexBuffer(Cmd, PendingDrawPrimitiveUPIndexData.Buffer->GetBufferHandle(), PendingDrawPrimitiveUPIndexData.Offset, PendingPrimitiveIndexType);
-
+		vkCmdBindIndexBuffer(Cmd, PendingDrawPrimUPIndexAllocInfo.Buffer, PendingDrawPrimUPIndexAllocInfo.Offset, PendingPrimitiveIndexType);
 		vkCmdDrawIndexed(Cmd, NumIndices, 1, PendingMinVertexIndex, 0, 0);
 	}
 
@@ -853,21 +843,6 @@ void FVulkanCommandListContext::RHIFlushComputeShaderCache()
 }
 
 void FVulkanDynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
-{
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-}
-
-void FVulkanDynamicRHI::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority)
-{
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-}
-
-void FVulkanDynamicRHI::RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex)
-{
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-}
-
-void FVulkanDynamicRHI::RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex)
 {
 	VULKAN_SIGNAL_UNIMPLEMENTED();
 }

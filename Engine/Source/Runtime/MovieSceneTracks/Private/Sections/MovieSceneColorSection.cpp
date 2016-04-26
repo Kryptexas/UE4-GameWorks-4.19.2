@@ -64,40 +64,47 @@ void UMovieSceneColorSection::DilateSection(float DilationFactor, float Origin, 
 }
 
 
-void UMovieSceneColorSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+void UMovieSceneColorSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const
 {
+	if (!TimeRange.Overlaps(GetRange()))
+	{
+		return;
+	}
+
 	for (auto It(RedCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = RedCurve.GetKeyTime(It.Key());
-		if (IsTimeWithinSection(Time))
+		if (TimeRange.Contains(Time))
 		{
-			KeyHandles.Add(It.Key());
+			OutKeyHandles.Add(It.Key());
 		}
 	}
 
 	for (auto It(GreenCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = GreenCurve.GetKeyTime(It.Key());
-		if (IsTimeWithinSection(Time))
+		if (TimeRange.Contains(Time))
 		{
-			KeyHandles.Add(It.Key());
+			OutKeyHandles.Add(It.Key());
 		}
 	}
 
 	for (auto It(BlueCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = BlueCurve.GetKeyTime(It.Key());
-		if (IsTimeWithinSection(Time))
+		if (TimeRange.Contains(Time))
 		{
-			KeyHandles.Add(It.Key());
+			OutKeyHandles.Add(It.Key());
 		}
 	}
 
 	for (auto It(AlphaCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = AlphaCurve.GetKeyTime(It.Key());
-		if (IsTimeWithinSection(Time))
-			KeyHandles.Add(It.Key());
+		if (TimeRange.Contains(Time))
+		{
+			OutKeyHandles.Add(It.Key());
+		}
 	}
 }
 

@@ -743,6 +743,8 @@ public:
 
 	/** Set Root Body Index */
 	void SetRootBodyIndex(int32 InBodyIndex);
+	/** Reset Root Body Index */
+	void ResetRootBodyIndex();
 
 	/** Array of FBodyInstance objects, storing per-instance state about about each body. */
 	TArray<struct FBodyInstance*> Bodies;
@@ -918,7 +920,7 @@ public:
 	//~ Begin USceneComponent Interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool IsAnySimulatingPhysics() const override;
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
+	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport = ETeleportType::None) override;
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
 	//~ End USceneComponent Interface.
 
@@ -1050,7 +1052,7 @@ public:
 	void BlendInPhysics(FTickFunction& ThisTickFunction);	
 
 	/** 
-	 * Intialize PhysicsAssetInstance for the physicsAsset 
+	 * Initialize PhysicsAssetInstance for the physicsAsset 
 	 * 
 	 * @param	PhysScene	Physics Scene
 	 */
@@ -1475,6 +1477,10 @@ public:
 	FBlendedHeapCurve& GetEditableAnimationCurves() { return CurvesArray[CurrentEditableSpaceBases]; }
 	const FBlendedHeapCurve& GetEditableAnimationCurves() const { return CurvesArray[CurrentEditableSpaceBases]; }
 #endif 
+
+public:
+	/** Skeletal mesh component should not be able to have its mobility set to static */
+	virtual const bool CanHaveStaticMobility() const override { return false; }
 
 public:
 	/** Register/Unregister for physics state creation callback */

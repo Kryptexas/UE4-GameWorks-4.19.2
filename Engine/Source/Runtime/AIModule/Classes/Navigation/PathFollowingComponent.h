@@ -379,6 +379,9 @@ protected:
 	/** if set, movement will be stopped on finishing path */
 	uint32 bStopMovementOnFinish : 1;
 
+	/** if set, path following is using FMetaNavMeshPath */
+	uint32 bIsUsingMetaPath : 1;
+
 	/** timeout for Waiting state, negative value = infinite */
 	float WaitingTimeout;
 

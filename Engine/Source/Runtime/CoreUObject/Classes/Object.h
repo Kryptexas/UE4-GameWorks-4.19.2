@@ -439,6 +439,17 @@ struct FPackedNormal
 
 };
 
+/**
+* A packed basis vector.
+* The full C++ class is located here: Engine\Source\Runtime\RenderCore\Public\PackedNormal.h
+*/
+USTRUCT(immutable, noexport)
+struct FPackedRGB10A2
+{
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PackedBasis, SaveGame)
+	int32 Packed;
+};
+
 
 /**
  * Screen coordinates.

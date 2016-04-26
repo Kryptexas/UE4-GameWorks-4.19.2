@@ -563,14 +563,7 @@ void APawn::DestroyPlayerInputComponent()
 
 bool APawn::IsMoveInputIgnored() const
 {
-	const APlayerController* PCOwner = Cast<const APlayerController>(Controller);
-	if (PCOwner && PCOwner->IsMoveInputIgnored())
-	{
-		return true;
-	}
-
-	// No player controller or not ignoring input. We allow non-PCs to receive input, so AI can use the movement input system.
-	return false;
+	return Controller != nullptr && Controller->IsMoveInputIgnored();
 }
 
 

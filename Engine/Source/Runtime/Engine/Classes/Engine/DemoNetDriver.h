@@ -63,9 +63,6 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Name of the file to read/write from */
-	FString DemoFilename;
-
 	/** Current record/playback frame number */
 	int32 DemoFrameNum;
 
@@ -142,6 +139,9 @@ private:
 
 	/** Saved fast-forward time, used for correcting world time after the fast-forward is complete */
 	float SavedSecondsToSkip;
+
+	/** Cached replay URL, so that the driver can access the map name and any options later */
+	FURL DemoURL;
 
 public:
 

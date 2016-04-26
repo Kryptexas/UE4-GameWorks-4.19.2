@@ -15,6 +15,7 @@ class FString;
 class FText;
 class GenericApplication;
 class IPlatformChunkInstall;
+class IPlatformCompression;
 class UWorld;
 
 
@@ -685,6 +686,13 @@ public:
 	 * @return	Returns the platform specific chunk based install implementation
 	 */
 	static IPlatformChunkInstall* GetPlatformChunkInstall();
+
+	/**
+	 * Returns the platform specific compression interface
+	 *
+	 * @return Returns the platform specific compression interface
+	 */
+	static IPlatformCompression* GetPlatformCompression();
 
 	/**
 	 * Has the OS execute a command and path pair (such as launch a browser)

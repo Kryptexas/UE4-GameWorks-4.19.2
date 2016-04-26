@@ -963,10 +963,14 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 			{
 				if (AActor* Actor = Actors[ActorIndex])
 				{
+					// Child actors have already been built and initialized up by their parent and they should not be reconstructed again
+					if (!Actor->IsChildActor())
+					{
 #if PERF_TRACK_DETAILED_ASYNC_STATS
-					FScopeCycleCounterUObject ContextScope(Actor);
+						FScopeCycleCounterUObject ContextScope(Actor);
 #endif
-					Actor->RerunConstructionScripts();
+						Actor->RerunConstructionScripts();
+					}
 				}
 			}
 		}

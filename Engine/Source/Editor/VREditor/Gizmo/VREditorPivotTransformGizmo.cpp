@@ -26,38 +26,38 @@ APivotTransformGizmo::APivotTransformGizmo() :
 	UniformScaleGizmoHandleGroup = CreateDefaultSubobject<UVREditorUniformScaleGizmoHandleGroup>( TEXT( "UniformScaleHandles" ), true );
 	UniformScaleGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	UniformScaleGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
-	UniformScaleGizmoHandleGroup->AttachParent = SceneComponent;
+	UniformScaleGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( UniformScaleGizmoHandleGroup );
 
 	TranslationGizmoHandleGroup = CreateDefaultSubobject<UVREditorPivotTranslationGizmoHandleGroup>(TEXT("TranslationHandles"), true);
 	TranslationGizmoHandleGroup->SetTranslucentGizmoMaterial(TranslucentGizmoMaterial);
 	TranslationGizmoHandleGroup->SetGizmoMaterial(GizmoMaterial);
-	TranslationGizmoHandleGroup->AttachParent = SceneComponent;
+	TranslationGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add(TranslationGizmoHandleGroup);
 
 	ScaleGizmoHandleGroup = CreateDefaultSubobject<UVREditorPivotScaleGizmoHandleGroup>( TEXT( "ScaleHandles" ), true );
 	ScaleGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	ScaleGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
-	ScaleGizmoHandleGroup->AttachParent = SceneComponent;
+	ScaleGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( ScaleGizmoHandleGroup );
 
 	PlaneTranslationGizmoHandleGroup = CreateDefaultSubobject<UVREditorPivotPlaneTranslationGizmoHandleGroup>( TEXT( "PlaneTranslationHandles" ), true );
 	PlaneTranslationGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	PlaneTranslationGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
-	PlaneTranslationGizmoHandleGroup->AttachParent = SceneComponent;
+	PlaneTranslationGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( PlaneTranslationGizmoHandleGroup );
 
 	RotationGizmoHandleGroup = CreateDefaultSubobject<UVREditorPivotRotationGizmoHandleGroup>( TEXT( "RotationHandles" ), true );
 	RotationGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	RotationGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
-	RotationGizmoHandleGroup->AttachParent = SceneComponent;
+	RotationGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( RotationGizmoHandleGroup );
 
 	StretchGizmoHandleGroup = CreateDefaultSubobject<UVREditorStretchGizmoHandleGroup>( TEXT( "StretchHandles" ), true );
 	StretchGizmoHandleGroup->SetTranslucentGizmoMaterial( TranslucentGizmoMaterial );
 	StretchGizmoHandleGroup->SetGizmoMaterial( GizmoMaterial );
 	StretchGizmoHandleGroup->SetShowOnUniversalGizmo( false );
-	StretchGizmoHandleGroup->AttachParent = SceneComponent;
+	StretchGizmoHandleGroup->SetupAttachment( SceneComponent );
 	AllHandleGroups.Add( StretchGizmoHandleGroup );
 
 	// There may already be some objects selected as we switch into VR mode, so we'll pretend that just happened so

@@ -339,16 +339,36 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, const FMetalR
 	// generate a key for the current statez
 	FMetalRenderPipelineHash Hash = RenderPipelineDesc.GetHash();
 	
+	if(GUseRHIThread)
+	{
+		PipelineMutex.Lock();
+	}
 	
 	// have we made a matching state object yet?
 	id<MTLRenderPipelineState> PipelineState = PipelineStates.FindRef(Hash);
+	
+	if(GUseRHIThread)
+	{
+		PipelineMutex.Unlock();
+	}
 	
 	// make one if not
 	if (PipelineState == nil)
 	{
 		PipelineState = RenderPipelineDesc.CreatePipelineStateForBoundShaderState(this);
 		check(PipelineState);
+		
+		if(GUseRHIThread)
+		{
+			PipelineMutex.Lock();
+		}
+		
 		PipelineStates.Add(Hash, PipelineState);
+		
+		if(GUseRHIThread)
+		{
+			PipelineMutex.Unlock();
+		}
 		
 #if !UE_BUILD_SHIPPING
 		if (GFrameCounter > 3)

@@ -259,6 +259,10 @@ public:
 	float GetRecordedStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex);
 	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
 
+	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
+	/** Reset any dynamics running simulation-style updates (e.g. on teleport, time skip etc.) */
+	void ResetDynamics();
+
 	/** Only restricted classes can access the protected interface */
 	friend class UAnimInstance;
 	friend class UAnimSingleNodeInstance;
@@ -333,7 +337,6 @@ protected:
 
 	// if it doesn't tick, it will keep old weight, so we'll have to clear it in the beginning of tick
 	void ClearSlotNodeWeights();
-	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
 
 	// Get the root motion weight for the montage slot
 	float GetSlotRootMotionWeight(FName SlotNodeName) const;
@@ -561,6 +564,9 @@ private:
 	/** Delegate fired on the game thread before update occurs */
 	TArray<FAnimNode_Base*> GameThreadPreUpdateNodes;
 
+	/** All nodes that need to be reset on DynamicReset() */
+	TArray<FAnimNode_Base*> DynamicResetNodes;
+	
 	/** Native transition rules */
 	TArray<FNativeTransitionBinding> NativeTransitionBindings;
 

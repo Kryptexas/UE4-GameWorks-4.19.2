@@ -253,8 +253,10 @@ public:
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return (EDebugViewShaderMode)DebugViewShaderMode; }
+	FORCEINLINE bool UseDebugViewPS() const { return DebugViewShaderMode != DVSM_None; }
 #else
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DVSM_None; }
+	FORCEINLINE bool UseDebugViewPS() const { return false; }
 #endif
 
 protected:

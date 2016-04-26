@@ -181,6 +181,7 @@ void ComputeBrightnessMain(
 
 Texture2D AverageBrightnessTexture;
 SamplerState AverageBrightnessSampler;
+float CubemapMaxMip;
 
 void FilterPS(
 	FScreenVertexOutput Input,
@@ -200,7 +201,7 @@ void FilterPS(
 #if FILTER_CUBEMAP
 
 	float3 N = normalize(CubeCoordinates);
-	float Roughness = ComputeReflectionCaptureRoughnessFromMip( SourceMipIndex );
+	float Roughness = ComputeReflectionCaptureRoughnessFromMip(SourceMipIndex, CubemapMaxMip);
 
 	float4 FilteredColor = 0;
 	float Weight = 0;
@@ -327,6 +328,7 @@ float4 CapturePositionAndRadius;
 float4 CaptureProperties;
 float4x4 CaptureBoxTransform;
 float4 CaptureBoxScales;
+float3 CaptureOffset;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 TextureCubeArray ReflectionEnvironmentColorTextureArray;
@@ -385,8 +387,9 @@ void StandardDeferredReflectionPS(
 			{ 
 				float FarIntersection = (sqrt(Determinant) - QuadraticCoef.y) * 0.5;
 
-				float3 IntersectPosition = WorldPosition + FarIntersection * RayDirection;
-				ProjectedCaptureVector = IntersectPosition - CapturePositionAndRadius.xyz;
+				float3 LocalIntersectionPosition = ReceiverToSphereCenter + FarIntersection * RayDirection;
+				ProjectedCaptureVector = LocalIntersectionPosition - CaptureOffset;
+
 				// Fade out based on distance to capture
 				DistanceAlpha = 1.0 - smoothstep(.6, 1, NormalizedDistanceToCapture);
 			}
@@ -403,7 +406,7 @@ void StandardDeferredReflectionPS(
 			{
 				// Compute the reprojected vector
 				float3 IntersectPosition = WorldPosition + Intersections.y * RayDirection;
-				ProjectedCaptureVector = IntersectPosition - CapturePositionAndRadius.xyz;
+				ProjectedCaptureVector = IntersectPosition - (CapturePositionAndRadius.xyz + CaptureOffset);
 
 				// Compute the distance from the receiving pixel to the box for masking
 				// Apply local to world scale to take scale into account without transforming back to world space
@@ -422,7 +425,7 @@ void StandardDeferredReflectionPS(
 		BRANCH
 		if (DistanceAlpha > 0)
 		{
-			float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(InGBufferData.Roughness);
+			float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(InGBufferData.Roughness, Frame.ReflectionCubemapMaxMip);
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 			float4 Reflection = ReflectionEnvironmentColorTextureArray.SampleLevel(ReflectionEnvironmentColorSampler, float4(ProjectedCaptureVector, CaptureArrayIndex), AbsoluteSpecularMip);
@@ -516,6 +519,7 @@ void ReflectionApplyPS(
 #if APPLY_SSR
 		float4 SSR = Texture2DSample( ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, UV );
 		SpecularLighting.rgb = SSR.rgb + SpecularLighting.rgb * (1 - SSR.a);
+		SpecularLighting.a *= 1 - SSR.a;
 #endif
 		
 		SpecularLighting.rgb *= SpecularColor;

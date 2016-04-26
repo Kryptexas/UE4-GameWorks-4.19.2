@@ -114,7 +114,7 @@ uint32 ComputeAmbientOcclusionPassCount(const FViewInfo& View)
 	{
 		bEnabled = View.FinalPostProcessSettings.AmbientOcclusionIntensity > 0
 			&& View.FinalPostProcessSettings.AmbientOcclusionRadius >= 0.1f
-			&& View.Family->GetDebugViewShaderMode() == DVSM_None
+			&& !View.Family->UseDebugViewPS()
 			&& (FSSAOHelper::IsBasePassAmbientOcclusionRequired(View) || IsAmbientCubemapPassRequired(View) || IsReflectionEnvironmentActive(View) || IsSkylightActive(View) || View.Family->EngineShowFlags.VisualizeBuffer)
 			&& !IsSimpleDynamicLightingEnabled();
 	}

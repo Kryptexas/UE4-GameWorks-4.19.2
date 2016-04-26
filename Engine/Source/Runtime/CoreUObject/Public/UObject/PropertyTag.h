@@ -23,7 +23,7 @@ struct FPropertyTag
 	FName InnerType; // Inner type if UArrayProperty
 	int32		Size;       // Property size.
 	int32		ArrayIndex;	// Index if an array; else 0.
-	int32		SizeOffset;	// location in stream of tag size member
+	int64		SizeOffset;	// location in stream of tag size member
 	FGuid	StructGuid;
 	uint8	HasPropertyGuid;
 	FGuid	PropertyGuid;

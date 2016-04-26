@@ -134,9 +134,9 @@ public:
 
 		{
 			const FSceneInterface* Scene = Component->GetScene();
-			// ensure bStationaryLightUsesCSMForMovableShadows can only be used with the forward renderer.
+			// ensure bUseWholeSceneCSMForMovableObjects is only be used with the forward renderer.
 			const bool bUsingDeferredRenderer = Scene == nullptr ? true : Scene->ShouldUseDeferredRenderer();
-			bStationaryLightUsesCSMForMovableShadows = Component->bStationaryLightUsesCSMForMovableShadows && !bUsingDeferredRenderer;
+			bUseWholeSceneCSMForMovableObjects = Component->Mobility == EComponentMobility::Stationary && !Component->bUseInsetShadowsForMovableObjects && !bUsingDeferredRenderer;
 		}
 		bCastModulatedShadows = Component->bCastModulatedShadows;
 		ModulatedShadowColor = FLinearColor(Component->ModulatedShadowColor);
@@ -213,9 +213,8 @@ public:
 	virtual bool UseCSMForDynamicObjects() const override
 	{
 		return	FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects()
-				&& StationaryLightUsesCSMForMovableShadows()
-				&& WholeSceneDynamicShadowRadius > 0
-				&& !bUseInsetShadowsForMovableObjects;
+				&& bUseWholeSceneCSMForMovableObjects
+				&& WholeSceneDynamicShadowRadius > 0;
 	}
 
 	/** Returns the number of view dependent shadows this light will create, not counting distance field shadow cascades. */
@@ -233,8 +232,6 @@ public:
 	 */
 	virtual bool GetViewDependentWholeSceneProjectedShadowInitializer(const FSceneView& View, int32 InCascadeIndex, bool bPrecomputedLightingIsValid, FWholeSceneProjectedShadowInitializer& OutInitializer) const override
 	{
-		const FMatrix& WorldToLight = GetWorldToLight();
-
 		const bool bRayTracedCascade = (InCascadeIndex == INDEX_NONE);
 
 		FSphere Bounds = FDirectionalLightSceneProxy::GetShadowSplitBounds(View, InCascadeIndex, bPrecomputedLightingIsValid, &OutInitializer.CascadeSettings);
@@ -247,7 +244,7 @@ public:
 		const float ShadowExtent = Bounds.W / FMath::Sqrt(3.0f);
 		const FBoxSphereBounds SubjectBounds(Bounds.Center, FVector(ShadowExtent, ShadowExtent, ShadowExtent), Bounds.W);
 		OutInitializer.PreShadowTranslation = -Bounds.Center;
-		OutInitializer.WorldToLight = FInverseRotationMatrix(FVector(WorldToLight.M[0][0],WorldToLight.M[1][0],WorldToLight.M[2][0]).GetSafeNormal().Rotation());
+		OutInitializer.WorldToLight = FInverseRotationMatrix(GetDirection().GetSafeNormal().Rotation());
 		OutInitializer.Scales = FVector(1.0f,1.0f / Bounds.W,1.0f / Bounds.W);
 		OutInitializer.FaceDirection = FVector(1,0,0);
 		OutInitializer.SubjectBounds = FBoxSphereBounds(FVector::ZeroVector,SubjectBounds.BoxExtent,SubjectBounds.SphereRadius);
@@ -267,12 +264,10 @@ public:
 		const FBox& LightPropagationVolumeBounds,
 	    class FWholeSceneProjectedShadowInitializer& OutInitializer ) const override
 	{
-		const FMatrix& WorldToLight = GetWorldToLight();
-
 		float LpvExtent = LightPropagationVolumeBounds.GetExtent().X; // LPV is a cube, so this should be valid
 
 		OutInitializer.PreShadowTranslation = -LightPropagationVolumeBounds.GetCenter();
-		OutInitializer.WorldToLight = FInverseRotationMatrix(FVector(WorldToLight.M[0][0],WorldToLight.M[1][0],WorldToLight.M[2][0]).GetSafeNormal().Rotation());
+		OutInitializer.WorldToLight = FInverseRotationMatrix(GetDirection().GetSafeNormal().Rotation());
 		OutInitializer.Scales = FVector(1.0f,1.0f / LpvExtent,1.0f / LpvExtent);
 		OutInitializer.FaceDirection = FVector(1,0,0);
 		OutInitializer.SubjectBounds = FBoxSphereBounds( FVector::ZeroVector, LightPropagationVolumeBounds.GetExtent(), FMath::Sqrt( LpvExtent * LpvExtent * 3.0f ) );
@@ -797,15 +792,6 @@ bool UDirectionalLightComponent::CanEditChange(const UProperty* InProperty) cons
 			return bUseInsetShadowsForMovableObjects && bCastModulatedShadows;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, bStationaryLightUsesCSMForMovableShadows))
-		{
-			const bool bCanUseCSMForMovableShadows = CastShadows 
-				&& CastDynamicShadows 
-				&& DynamicShadowDistanceStationaryLight > 0 
-				&& Mobility == EComponentMobility::Stationary
-				&& !bUseInsetShadowsForMovableObjects;
-			return bCanUseCSMForMovableShadows;
-		}
 	}
 
 	return Super::CanEditChange(InProperty);

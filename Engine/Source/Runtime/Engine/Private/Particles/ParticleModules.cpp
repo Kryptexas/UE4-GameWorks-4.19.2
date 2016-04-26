@@ -2949,7 +2949,7 @@ uint64 UParticleModuleLight::SpawnHQLight(const FLightParticlePayload& Payload, 
 		USceneComponent* RootComponent = HQLightContainer->GetRootComponent();
 		if (RootComponent)
 		{
-			PointLightComponent->AttachTo(RootComponent, NAME_None, EAttachLocation::KeepRelativeOffset);
+			PointLightComponent->SetupAttachment(RootComponent);
 		}			
 		PointLightComponent->CreationMethod = EComponentCreationMethod::UserConstructionScript;
 		PointLightComponent->RegisterComponent();

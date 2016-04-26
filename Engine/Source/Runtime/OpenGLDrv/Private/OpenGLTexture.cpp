@@ -257,9 +257,6 @@ FRHITexture* FOpenGLDynamicRHI::CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, 
 #endif
 
 	bool bNoSRGBSupport = (GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES2);
-#if PLATFORM_MAC // Handle versions prior to 10.11.0 that still suffer from radr://16754329 AMD Cards don't always perform FRAMEBUFFER_SRGB if the draw FBO has mixed sRGB & non-SRGB colour attachments
-	bNoSRGBSupport |= (Flags & TexCreate_RenderTargetable) && !FOpenGL::SupportsSRGBFramebuffer();
-#endif
 	
 	if (bNoSRGBSupport)
 	{

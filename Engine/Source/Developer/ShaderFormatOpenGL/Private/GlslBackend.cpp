@@ -913,12 +913,20 @@ class ir_gen_glsl_visitor : public ir_visitor
 				if(bGenerateLayoutLocations && var->explicit_location && var->is_patch_constant == 0)
 				{
 					check(layout_bits == 0);
-					
+
+					// Some devices (S6 G920L 6.0.1) may complain about second empty parameter in an INTERFACE_BLOCK macro
+					// Make sure we put something there 
+					const char* interp_qualifier = interp_str[var->interpolation];
+					if (bIsES31 && strlen(interp_qualifier) == 0)
+					{
+						interp_qualifier = "smooth ";
+					}
+										
 					ralloc_asprintf_append(
 						buffer,
 						"INTERFACE_BLOCK(%d, %s, %s%s%s%s, ",
 						var->location,
-						interp_str[var->interpolation],
+						interp_qualifier,
 						centroid_str[var->centroid],
 						invariant_str[var->invariant],
 						patch_constant_str[var->is_patch_constant],

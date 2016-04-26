@@ -131,6 +131,8 @@ static TAutoConsoleVariable<float> CVarTessellationAdaptivePixelsPerTriangle(
 	TEXT("Global tessellation factor multiplier"),
 	ECVF_RenderThreadSafe);
 
+extern ENGINE_API TAutoConsoleVariable<int32> CVarReflectionCaptureSize;
+
 /*-----------------------------------------------------------------------------
 BitCounting
 -----------------------------------------------------------------------------*/
@@ -1052,6 +1054,8 @@ void FViewInfo::CreateUniformBuffer(
 		FrameUniformShaderParameters.HMDEyePaddingOffset = 1.0f;
 	}
 
+	FrameUniformShaderParameters.ReflectionCubemapMaxMip = FMath::FloorLog2(CVarReflectionCaptureSize.GetValueOnRenderThread()) - 1;
+
 	OutViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
 	OutFrameUniformBuffer = TUniformBufferRef<FFrameUniformShaderParameters>::CreateUniformBufferImmediate(FrameUniformShaderParameters, UniformBuffer_SingleFrame);
 }
@@ -1790,8 +1794,7 @@ bool FSceneRenderer::ShouldCompositeEditorPrimitives(const FViewInfo& View)
 		return false;
 	}
 
-	if (View.Family->EngineShowFlags.VisualizeHDR ||
-		View.Family->GetDebugViewShaderMode() != DVSM_None)
+	if (View.Family->EngineShowFlags.VisualizeHDR || View.Family->UseDebugViewPS())
 	{
 		// certain visualize modes get obstructed too much
 		return false;
@@ -2022,10 +2025,13 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,FSceneViewFamily*
 		// Construct the scene renderer.  This copies the view family attributes into its own structures.
 		FSceneRenderer* SceneRenderer = FSceneRenderer::CreateSceneRenderer(ViewFamily, Canvas->GetHitProxyConsumer());
 
-		for (int32 ReflectionIndex = 0; ReflectionIndex < SceneRenderer->Scene->PlanarReflections_GameThread.Num(); ReflectionIndex++)
+		if (!SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
-			UPlanarReflectionComponent* ReflectionComponent = SceneRenderer->Scene->PlanarReflections_GameThread[ReflectionIndex];
-			SceneRenderer->Scene->UpdatePlanarReflectionContents(ReflectionComponent, *SceneRenderer);
+			for (int32 ReflectionIndex = 0; ReflectionIndex < SceneRenderer->Scene->PlanarReflections_GameThread.Num(); ReflectionIndex++)
+			{
+				UPlanarReflectionComponent* ReflectionComponent = SceneRenderer->Scene->PlanarReflections_GameThread[ReflectionIndex];
+				SceneRenderer->Scene->UpdatePlanarReflectionContents(ReflectionComponent, *SceneRenderer);
+			}
 		}
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(

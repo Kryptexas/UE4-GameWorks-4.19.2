@@ -208,6 +208,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 			// Calculate absolute rotation and set it
 			FTransform& CurrentBoneTransform = OutBoneTransforms[CurrentLink.TransformIndex].Transform;
 			CurrentBoneTransform.SetRotation(DeltaRotation * CurrentBoneTransform.GetRotation());
+			CurrentBoneTransform.NormalizeRotation();
 
 			// Update zero length children if any
 			int32 const NumChildren = CurrentLink.ChildZeroLengthTransformIndices.Num();
@@ -215,6 +216,7 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 			{
 				FTransform& ChildBoneTransform = OutBoneTransforms[CurrentLink.ChildZeroLengthTransformIndices[ChildIndex]].Transform;
 				ChildBoneTransform.SetRotation(DeltaRotation * ChildBoneTransform.GetRotation());
+				ChildBoneTransform.NormalizeRotation();
 			}
 		}
 	}

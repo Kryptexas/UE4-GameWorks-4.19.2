@@ -124,6 +124,9 @@ private:
 
 	/** Custom content slot, where a category has a custom generator */
 	TSharedPtr<SBox> CustomContent;
+	
+	/** Content container for any data driven content */
+	TSharedPtr<SBox> DataDrivenContent;
 
 	/* The search box used to update the filter text */
 	TSharedPtr<SSearchBox> SearchBoxPtr;

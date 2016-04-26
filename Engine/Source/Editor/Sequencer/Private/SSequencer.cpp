@@ -113,23 +113,23 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 
 	ISequencerWidgetsModule& SequencerWidgets = FModuleManager::Get().LoadModuleChecked<ISequencerWidgetsModule>( "SequencerWidgets" );
 
-	OnBeginInOutRangeDrag = InArgs._OnBeginInOutRangeDrag;
-	OnEndInOutRangeDrag = InArgs._OnEndInOutRangeDrag;
-	OnBeginPlaybackRangeDrag = InArgs._OnBeginPlaybackRangeDrag;
-	OnEndPlaybackRangeDrag = InArgs._OnEndPlaybackRangeDrag;
+	OnPlaybackRangeBeginDrag = InArgs._OnPlaybackRangeBeginDrag;
+	OnPlaybackRangeEndDrag = InArgs._OnPlaybackRangeEndDrag;
+	OnSelectionRangeBeginDrag = InArgs._OnSelectionRangeBeginDrag;
+	OnSelectionRangeEndDrag = InArgs._OnSelectionRangeEndDrag;
 
 	FTimeSliderArgs TimeSliderArgs;
 	{
 		TimeSliderArgs.ViewRange = InArgs._ViewRange;
 		TimeSliderArgs.ClampRange = InArgs._ClampRange;
-		TimeSliderArgs.InOutRange = InArgs._InOutRange;
 		TimeSliderArgs.PlaybackRange = InArgs._PlaybackRange;
-		TimeSliderArgs.OnInOutRangeChanged = InArgs._OnInOutRangeChanged;
-		TimeSliderArgs.OnBeginInOutRangeDrag = OnBeginInOutRangeDrag;
-		TimeSliderArgs.OnEndInOutRangeDrag = OnEndInOutRangeDrag;
+		TimeSliderArgs.SelectionRange = InArgs._SelectionRange;
 		TimeSliderArgs.OnPlaybackRangeChanged = InArgs._OnPlaybackRangeChanged;
-		TimeSliderArgs.OnBeginPlaybackRangeDrag = OnBeginPlaybackRangeDrag;
-		TimeSliderArgs.OnEndPlaybackRangeDrag = OnEndPlaybackRangeDrag;
+		TimeSliderArgs.OnPlaybackRangeBeginDrag = OnPlaybackRangeBeginDrag;
+		TimeSliderArgs.OnPlaybackRangeEndDrag = OnPlaybackRangeEndDrag;
+		TimeSliderArgs.OnSelectionRangeChanged = InArgs._OnSelectionRangeChanged;
+		TimeSliderArgs.OnSelectionRangeBeginDrag = OnSelectionRangeBeginDrag;
+		TimeSliderArgs.OnSelectionRangeEndDrag = OnSelectionRangeEndDrag;
 		TimeSliderArgs.OnViewRangeChanged = InArgs._OnViewRangeChanged;
 		TimeSliderArgs.OnClampRangeChanged = InArgs._OnClampRangeChanged;
 		TimeSliderArgs.ScrubPosition = InArgs._ScrubPosition;
@@ -686,7 +686,9 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.SaveAs")
 			);
 
-			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().DiscardChanges );
+			//ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().DiscardChanges );
+			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().FindInContentBrowser );
+			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().CreateCamera );
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().RenderMovie );
 			ToolBarBuilder.AddSeparator();
 		}
@@ -765,7 +767,7 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 		ToolBarBuilder.AddSeparator();
 		ToolBarBuilder.AddWidget(
 			SNew( SImage )
-				.Image(FEditorStyle::GetBrush("Sequencer.Time")) );
+				.Image(FEditorStyle::GetBrush("Sequencer.Time.Small")) );
 
 		ToolBarBuilder.AddWidget(
 			SNew( SBox )
@@ -820,10 +822,12 @@ TSharedRef<SWidget> SSequencer::MakeAddMenu()
 TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 {
 	FMenuBuilder MenuBuilder( true, SequencerPtr.Pin()->GetCommandBindings() );
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
 
+	// view options
 	MenuBuilder.BeginSection( "ViewOptions", LOCTEXT( "ViewMenuHeader", "View" ) );
 	{
-		if (SequencerPtr.Pin()->IsLevelEditorSequencer())
+		if (Sequencer->IsLevelEditorSequencer())
 		{
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLabelBrowser );
 		}
@@ -831,7 +835,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleCombinedKeyframes );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleChannelColors );
 
-		if (SequencerPtr.Pin()->IsLevelEditorSequencer())
+		if (Sequencer->IsLevelEditorSequencer())
 		{
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().FindInContentBrowser );
 		}
@@ -843,41 +847,41 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection( "Ranges", LOCTEXT( "RangesHeader", "Playback Range" ) );
+	// playback range options
+	MenuBuilder.BeginSection("PlaybackRange", LOCTEXT("PlaybackRangeHeader", "Playback Range"));
 	{
-		TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
-		
 		// Menu entry for the start position
 		auto OnStartChanged = [=](float NewValue){
 			float Upper = Sequencer->GetPlaybackRange().GetUpperBoundValue();
 			Sequencer->SetPlaybackRange(TRange<float>(FMath::Min(NewValue, Upper), Upper));
 		};
+
 		MenuBuilder.AddWidget(
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
-			[
-				SNew(SSpacer)
-			]
+				[
+					SNew(SSpacer)
+				]
 			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SSpinBox<float>)
-				.TypeInterface(NumericTypeInterface)
-				.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
-				.OnValueCommitted_Lambda([=](float Value, ETextCommit::Type){ OnStartChanged(Value); })
-				.OnValueChanged_Lambda(OnStartChanged)
-				.OnBeginSliderMovement(OnBeginPlaybackRangeDrag)
-				.OnEndSliderMovement_Lambda([=](float Value){ OnStartChanged(Value); OnEndPlaybackRangeDrag.ExecuteIfBound(); })
-				.MinValue_Lambda([=]() -> float {
-					return Sequencer->GetClampRange().GetLowerBoundValue(); 
-				})
-				.MaxValue_Lambda([=]() -> float {
-					return Sequencer->GetPlaybackRange().GetUpperBoundValue(); 
-				})
-				.Value_Lambda([=]() -> float {
-					return Sequencer->GetPlaybackRange().GetLowerBoundValue();
-				})
-			],
+				.AutoWidth()
+				[
+					SNew(SSpinBox<float>)
+						.TypeInterface(NumericTypeInterface)
+						.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
+						.OnValueCommitted_Lambda([=](float Value, ETextCommit::Type){ OnStartChanged(Value); })
+						.OnValueChanged_Lambda(OnStartChanged)
+						.OnBeginSliderMovement(OnPlaybackRangeBeginDrag)
+						.OnEndSliderMovement_Lambda([=](float Value){ OnStartChanged(Value); OnPlaybackRangeEndDrag.ExecuteIfBound(); })
+						.MinValue_Lambda([=]() -> float {
+							return Sequencer->GetClampRange().GetLowerBoundValue(); 
+						})
+						.MaxValue_Lambda([=]() -> float {
+							return Sequencer->GetPlaybackRange().GetUpperBoundValue(); 
+						})
+						.Value_Lambda([=]() -> float {
+							return Sequencer->GetPlaybackRange().GetLowerBoundValue();
+						})
+				],
 			LOCTEXT("PlaybackStartLabel", "Start"));
 
 		// Menu entry for the end position
@@ -885,32 +889,33 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 			float Lower = Sequencer->GetPlaybackRange().GetLowerBoundValue();
 			Sequencer->SetPlaybackRange(TRange<float>(Lower, FMath::Max(NewValue, Lower)));
 		};
+
 		MenuBuilder.AddWidget(
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
-			[
-				SNew(SSpacer)
-			]
+				[
+					SNew(SSpacer)
+				]
 			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SSpinBox<float>)
-				.TypeInterface(NumericTypeInterface)
-				.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
-				.OnValueCommitted_Lambda([=](float Value, ETextCommit::Type){ OnEndChanged(Value); })
-				.OnValueChanged_Lambda(OnEndChanged)
-				.OnBeginSliderMovement(OnBeginPlaybackRangeDrag)
-				.OnEndSliderMovement_Lambda([=](float Value){ OnEndChanged(Value); OnEndPlaybackRangeDrag.ExecuteIfBound(); })
-				.MinValue_Lambda([=]() -> float {
-					return Sequencer->GetPlaybackRange().GetLowerBoundValue(); 
-				})
-				.MaxValue_Lambda([=]() -> float {
-					return Sequencer->GetClampRange().GetUpperBoundValue(); 
-				})
-				.Value_Lambda([=]() -> float {
-					return Sequencer->GetPlaybackRange().GetUpperBoundValue();
-				})
-			],
+				.AutoWidth()
+				[
+					SNew(SSpinBox<float>)
+						.TypeInterface(NumericTypeInterface)
+						.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
+						.OnValueCommitted_Lambda([=](float Value, ETextCommit::Type){ OnEndChanged(Value); })
+						.OnValueChanged_Lambda(OnEndChanged)
+						.OnBeginSliderMovement(OnPlaybackRangeBeginDrag)
+						.OnEndSliderMovement_Lambda([=](float Value){ OnEndChanged(Value); OnPlaybackRangeEndDrag.ExecuteIfBound(); })
+						.MinValue_Lambda([=]() -> float {
+							return Sequencer->GetPlaybackRange().GetLowerBoundValue(); 
+						})
+						.MaxValue_Lambda([=]() -> float {
+							return Sequencer->GetClampRange().GetUpperBoundValue(); 
+						})
+						.Value_Lambda([=]() -> float {
+							return Sequencer->GetPlaybackRange().GetUpperBoundValue();
+						})
+				],
 			LOCTEXT("PlaybackStartEnd", "End"));
 
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleKeepCursorInPlaybackRange );
@@ -921,38 +926,50 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 		auto OnZeroPadChanged = [=](uint8 NewValue){
 			Settings->SetZeroPadFrames(NewValue);
 		};
+
 		MenuBuilder.AddWidget(
-			SNew(SHorizontalBox)
+			SNew(SHorizontalBox)	
 			+ SHorizontalBox::Slot()
-			[
-				SNew(SSpacer)
-			]
+				[
+					SNew(SSpacer)
+				]
 			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SSpinBox<uint8>)
-				.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
-				.OnValueCommitted_Lambda([=](uint8 Value, ETextCommit::Type){ OnZeroPadChanged(Value); })
-				.OnValueChanged_Lambda(OnZeroPadChanged)
-				.MinValue(0)
-				.MaxValue(8)
-				.Value_Lambda([=]() -> uint8 {
-					return Settings->GetZeroPadFrames();
-				})
-			],
+				.AutoWidth()
+				[
+					SNew(SSpinBox<uint8>)
+					.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
+					.OnValueCommitted_Lambda([=](uint8 Value, ETextCommit::Type){ OnZeroPadChanged(Value); })
+					.OnValueChanged_Lambda(OnZeroPadChanged)
+					.MinValue(0)
+					.MaxValue(8)
+					.Value_Lambda([=]() -> uint8 {
+						return Settings->GetZeroPadFrames();
+					})
+				],
 			LOCTEXT("ZeroPaddingText", "Zero Pad Frame Numbers"));
+	}
+	MenuBuilder.AddMenuEntry(FSequencerCommands::Get().ToggleShowGotoBox);
+	MenuBuilder.EndSection();
 
-		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowGotoBox );
+	// selection range options
+	MenuBuilder.BeginSection("SelectionRange", LOCTEXT("SelectionRangeHeader", "Selection Range"));
+	{
+		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SetSelectionRangeStart);
+		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SetSelectionRangeEnd);
+		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().SelectKeysInSelectionRange);
+	}
+	MenuBuilder.EndSection();
 
-		if (SequencerPtr.Pin()->IsLevelEditorSequencer())
-		{
-			MenuBuilder.AddMenuSeparator();
-			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().FixActorReferences );
-		}
+	// other options
+	if (SequencerPtr.Pin()->IsLevelEditorSequencer())
+	{
+		MenuBuilder.AddMenuSeparator();
+		MenuBuilder.AddMenuEntry(FSequencerCommands::Get().FixActorReferences);
 	}
 
 	return MenuBuilder.MakeWidget();
 }
+
 
 TSharedRef<SWidget> SSequencer::MakeSnapMenu()
 {
@@ -1090,6 +1107,8 @@ void RestoreSelectionState(const TArray<TSharedRef<FSequencerDisplayNode>>& Disp
 
 void SSequencer::UpdateLayoutTree()
 {
+	TrackArea->Empty();
+
 	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
 	if ( Sequencer.IsValid() )
 	{
@@ -1106,6 +1125,7 @@ void SSequencer::UpdateLayoutTree()
 
 		// Suspend broadcasting selection changes because we don't want unnecessary rebuilds.
 		Sequencer->GetSelection().SuspendBroadcast();
+		Sequencer->GetSelection().Empty();
 
 		// Update the node tree
 		Sequencer->GetNodeTree()->Update();

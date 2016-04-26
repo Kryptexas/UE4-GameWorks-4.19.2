@@ -33,11 +33,10 @@ static bool HasBadTangents(UStaticMesh* Mesh)
 			int32 NumVerts = LOD.VertexBuffer.GetNumVertices();
 			for (int32 VertIndex = 0; !bHasBadTangents && VertIndex < NumVerts; ++VertIndex)
 			{
-				FPackedNormal& TangentX = LOD.VertexBuffer.VertexTangentX(VertIndex);
-				FPackedNormal& TangentZ = LOD.VertexBuffer.VertexTangentZ(VertIndex);
-				if (FMath::Abs((int32)TangentX.Vector.X - (int32)TangentZ.Vector.X) <= 1
-					&& FMath::Abs((int32)TangentX.Vector.Y - (int32)TangentZ.Vector.Y) <= 1
-					&& FMath::Abs((int32)TangentX.Vector.Z - (int32)TangentZ.Vector.Z) <= 1)
+				const FVector TangentX = LOD.VertexBuffer.VertexTangentX(VertIndex);
+				const FVector TangentZ = LOD.VertexBuffer.VertexTangentZ(VertIndex);
+				
+				if ((TangentX - TangentZ).GetAbs().IsNearlyZero(1.0f / 255.0f))
 				{
 					bHasBadTangents = true;
 				}

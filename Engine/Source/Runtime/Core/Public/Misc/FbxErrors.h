@@ -126,6 +126,8 @@ struct CORE_API FFbxErrors
 
 	static FName SkeletalMesh_FillImportDataFailed;
 
+	static FName SkeletalMesh_InvalidPosition;
+
 	/** Animation **/
 	static FName Animation_CouldNotFindRootTrack;
 

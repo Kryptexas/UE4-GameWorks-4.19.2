@@ -250,13 +250,6 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 		LastLocation = ParseParams.Transform.GetTranslation();
 	}
 
-	// if the closest listener is not the primary one, transform CurrentLocation
-	if (ClosestListenerIndex != 0)
-	{
-		const FListener& Listener = AudioDevice->Listeners[0];
-		ParseParams.Transform = ParseParams.Transform * ClosestListenerPtr->Transform.Inverse() * Listener.Transform;
-	}
-
 	TArray<FWaveInstance*> ThisSoundsWaveInstances;
 
 	// Recurse nodes, have SoundWave's create new wave instances and update bFinished unless we finished fading out.
@@ -266,6 +259,13 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 		if (bHasAttenuationSettings)
 		{
 			ApplyAttenuation(ParseParams, *ClosestListenerPtr);
+		}
+
+		// if the closest listener is not the primary one, transform the sound transform so it's panned relative to primary listener position
+		if (ClosestListenerIndex != 0)
+		{
+			const FListener& Listener = AudioDevice->Listeners[0];
+			ParseParams.Transform = ParseParams.Transform * ClosestListenerPtr->Transform.Inverse() * Listener.Transform;
 		}
 
 		Sound->Parse(AudioDevice, 0, *this, ParseParams, ThisSoundsWaveInstances);
@@ -419,6 +419,8 @@ void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector 
 
 		if (bOcclusionAsyncTrace)
 		{
+			ECollisionChannel OcclusionTraceChannel = AttenuationSettingsPtr->OcclusionTraceChannel;
+
 			// Check if we've not already bound our trace delegate
 			if (!bIsTraceDelegateBound)
 			{
@@ -428,13 +430,13 @@ void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector 
 				OcclusionTraceDelegate.BindRaw(this, &FActiveSound::OcclusionTraceDone);
 
 				// Only do async occlusion trace if we've already made one. The first trace must be synchronous to avoid issues with sounds starting playing as occluded
-				bIsOccluded = WorldPtr->LineTraceTestByChannel(SoundLocation, ListenerLocation, ECC_Visibility, Params);
+				bIsOccluded = WorldPtr->LineTraceTestByChannel(SoundLocation, ListenerLocation, OcclusionTraceChannel, Params);
 			}
 			// don't need to do anyother async trace if we've already got one pending
 			else if (!bAsyncOcclusionPending)
 			{
 				bAsyncOcclusionPending = true;
-				WorldPtr->AsyncLineTraceByChannel(EAsyncTraceType::Test, SoundLocation, ListenerLocation, ECC_Visibility, Params, FCollisionResponseParams::DefaultResponseParam, &OcclusionTraceDelegate);
+				WorldPtr->AsyncLineTraceByChannel(EAsyncTraceType::Test, SoundLocation, ListenerLocation, OcclusionTraceChannel, Params, FCollisionResponseParams::DefaultResponseParam, &OcclusionTraceDelegate);
 			}
 		}
 	}
@@ -779,6 +781,8 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 	const FAttenuationSettings* Settings = SettingsAttenuationNode ? SettingsAttenuationNode : &AttenuationSettings;
 
 	FAttenuationListenerData ListenerData;
+
+	ListenerData.Listener = &Listener;
 
 	// Get the current focus factor
 	const float FocusFactor = AudioDevice->GetFocusFactor(ListenerData, Sound, SoundTransform, *Settings, &Listener);

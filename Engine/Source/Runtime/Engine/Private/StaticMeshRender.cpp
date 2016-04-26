@@ -98,6 +98,8 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 #if WITH_EDITORONLY_DATA
 	, StreamingSectionData(InComponent->StreamingSectionData)
+	, StreamingDistanceMultiplier(InComponent->StreamingDistanceMultiplier)
+	, StreamingTexelFactor(0)
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -192,6 +194,14 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	{
 		CollisionTraceFlag = BodySetup->GetCollisionTraceFlag();
 	}
+
+#if WITH_EDITORONLY_DATA
+	// Get the fallback data for streaming accuracy viewmodes
+	{
+		float LightmapFactor;
+		InComponent->GetStreamingTextureFactors(StreamingTexelFactor, LightmapFactor);
+	}
+#endif
 }
 
 void UStaticMeshComponent::SetLODDataCount( const uint32 MinSize, const uint32 MaxSize )
@@ -403,18 +413,39 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchI
 }
 
 #if WITH_EDITORONLY_DATA
-const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData(int32 LODIndex, int32 ElementIndex) const
+const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData(float& OutDistanceMultiplier, int32 LODIndex, int32 ElementIndex) const
 {
-	if (StreamingSectionData.IsValid())
+	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnRenderThread() != 0;
+
+	OutDistanceMultiplier = StreamingDistanceMultiplier;
+
+	if (!bUseNewMetrics)
 	{
-		for (const FStreamingSectionBuildInfo& SectionData : *StreamingSectionData)
+		// In this case the element is not in the build data.
+		static FStreamingSectionBuildInfo FallbackData;
+
+		FallbackData.BoxOrigin = GetBounds().Origin;
+		FallbackData.BoxExtent = GetBounds().BoxExtent;
+		for (int32 I = 0; I < FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD; ++I)
 		{
-			if (SectionData.LODIndex == LODIndex && SectionData.ElementIndex == ElementIndex)
+			FallbackData.TexelFactors[I] = StreamingTexelFactor;
+		}
+		return &FallbackData;
+	}
+	else
+	{
+		if (StreamingSectionData.IsValid())
+		{
+			for (const FStreamingSectionBuildInfo& SectionData : *StreamingSectionData)
 			{
-				return &SectionData;
+				if (SectionData.LODIndex == LODIndex && SectionData.ElementIndex == ElementIndex)
+				{
+					return &SectionData;
+				}
 			}
 		}
 	}
+	
 	return nullptr;
 }
 #endif
@@ -788,11 +819,12 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
-			if (VisibilityMap & (1 << ViewIndex))
+			const FSceneView* View = Views[ViewIndex];
+
+			if (IsShown(View) && (VisibilityMap & (1 << ViewIndex)))
 			{
 				FFrozenSceneViewMatricesGuard FrozenMatricesGuard(*const_cast<FSceneView*>(Views[ViewIndex]));
 
-				const FSceneView* View = Views[ViewIndex];
 				FLODMask LODMask = GetLODMask(View);
 
 				for (int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); LODIndex++)
@@ -997,10 +1029,12 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 								for (int32 BatchIndex = 0; BatchIndex < GetNumMeshBatches(); BatchIndex++)
 								{
 									FMeshBatch& CollisionElement = Collector.AllocateMesh();
-									GetMeshElement(DrawLOD, BatchIndex, SectionIndex, SDPG_World, bSectionIsSelected, false, true, CollisionElement);
-									CollisionElement.MaterialRenderProxy = CollisionMaterialInstance;
-									Collector.AddMesh(ViewIndex, CollisionElement);
-									INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, CollisionElement.GetNumPrimitives());
+									if (GetMeshElement(DrawLOD, BatchIndex, SectionIndex, SDPG_World, bSectionIsSelected, false, true, CollisionElement))
+									{
+										CollisionElement.MaterialRenderProxy = CollisionMaterialInstance;
+										Collector.AddMesh(ViewIndex, CollisionElement);
+										INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, CollisionElement.GetNumPrimitives());
+									}
 								}
 							}
 						}
@@ -1077,10 +1111,10 @@ void FStaticMeshSceneProxy::GetLCIs(FLCIArray& LCIs)
 void FStaticMeshSceneProxy::OnTransformChanged()
 {
 	// Update the cached scaling.
-	const FMatrix& LocalToWorld = GetLocalToWorld();
-	TotalScale3D.X = FVector(LocalToWorld.TransformVector(FVector(1,0,0))).Size();
-	TotalScale3D.Y = FVector(LocalToWorld.TransformVector(FVector(0,1,0))).Size();
-	TotalScale3D.Z = FVector(LocalToWorld.TransformVector(FVector(0,0,1))).Size();
+	const FMatrix& ProxyLocalToWorld = GetLocalToWorld();
+	TotalScale3D.X = FVector(ProxyLocalToWorld.TransformVector(FVector(1.f,0.f,0.f))).Size();
+	TotalScale3D.Y = FVector(ProxyLocalToWorld.TransformVector(FVector(0.f,1.f,0.f))).Size();
+	TotalScale3D.Z = FVector(ProxyLocalToWorld.TransformVector(FVector(0.f,0.f,1.f))).Size();
 }
 
 bool FStaticMeshSceneProxy::CanBeOccluded() const
@@ -1121,6 +1155,14 @@ FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView
 		)
 	{
 		Result.bDynamicRelevance = true;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || WITH_EDITOR
+		// If we want to draw collision, needs to make sure we are considered relevant even if hidden
+		if(View->Family->EngineShowFlags.Collision || bInCollisionView)
+		{
+			Result.bDrawRelevance = true;
+		}
+#endif
 	}
 	else
 	{
@@ -1401,8 +1443,8 @@ int32 FStaticMeshSceneProxy::GetLOD(const FSceneView* View) const
 	}
 #endif
 
-	const FBoxSphereBounds& Bounds = GetBounds();
-	return ComputeStaticMeshLOD(RenderData, Bounds.Origin, Bounds.SphereRadius, *View, ClampedMinLOD);
+	const FBoxSphereBounds& ProxyBounds = GetBounds();
+	return ComputeStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD);
 }
 
 FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
@@ -1431,7 +1473,7 @@ FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
 #endif
 	else
 	{
-		const FBoxSphereBounds& Bounds = GetBounds();
+		const FBoxSphereBounds& ProxyBounds = GetBounds();
 		bool bUseDithered = false;
 		if (LODs.Num())
 		{
@@ -1454,12 +1496,12 @@ FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
 		{
 			for (int32 Sample = 0; Sample < 2; Sample++)
 			{
-				Result.SetLODSample(ComputeTemporalStaticMeshLOD(RenderData, Bounds.Origin, Bounds.SphereRadius, *View, ClampedMinLOD, 1.0f, Sample), Sample);
+				Result.SetLODSample(ComputeTemporalStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD, 1.0f, Sample), Sample);
 			}
 		}
 		else
 		{
-			Result.SetLOD(ComputeStaticMeshLOD(RenderData, Bounds.Origin, Bounds.SphereRadius, *View, ClampedMinLOD));
+			Result.SetLOD(ComputeStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD));
 		}
 	}
 	

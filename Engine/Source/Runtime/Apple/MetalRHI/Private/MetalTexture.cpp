@@ -8,6 +8,15 @@
 #include "MetalProfiler.h" // for STAT_MetalTexturePageOffTime
 
 uint8 FMetalSurface::NextKey = 1; // 0 is reserved for MTLPixelFormatInvalid
+int32 FMetalSurface::ActiveUploads = 0;
+
+int32 GMetalMaxOutstandingAsyncTexUploads = 0;
+FAutoConsoleVariableRef CVarMetalMaxOutstandingAsyncTexUploads(
+	TEXT("rhi.Metal.MaxOutstandingAsyncTexUploads"),
+	GMetalMaxOutstandingAsyncTexUploads,
+	TEXT("The maximum number of outstanding asynchronous texture uploads allowed to be pending in Metal. After the limit is reached the next upload will wait for all outstanding operations to complete and purge the waiting free-lists in order to reduce peak memory consumption. Defaults to 0 (infinite), set to a value > 0 limit the number."),
+	ECVF_ReadOnly|ECVF_RenderThreadSafe
+	);
 
 /** Texture reference class. */
 class FMetalTextureReference : public FRHITextureReference
@@ -120,6 +129,36 @@ static bool IsPixelFormatCompressed(EPixelFormat Format)
 	}
 }
 
+void FMetalSurface::PrepareTextureView()
+{
+#if PLATFORM_MAC // Recreate the texture to enable MTLTextureUsagePixelFormatView which must be off unless we definitely use this feature or we are throwing ~4% performance vs. Windows on the floor.
+	MTLTextureUsage Usage = Texture.usage;
+	if(!(Usage & MTLTextureUsagePixelFormatView))
+	{
+		Usage |= MTLTextureUsagePixelFormatView;
+		MTLTextureDescriptor* Desc = [[MTLTextureDescriptor new] autorelease];
+		Desc.textureType = Texture.textureType;
+		Desc.pixelFormat = Texture.pixelFormat;
+		Desc.width = Texture.width;
+		Desc.height = Texture.height;
+		Desc.depth = Texture.depth;
+		Desc.mipmapLevelCount = Texture.mipmapLevelCount;
+		Desc.sampleCount = Texture.sampleCount;
+		Desc.arrayLength = Texture.arrayLength;
+		Desc.resourceOptions = (Texture.cpuCacheMode << MTLResourceCPUCacheModeShift) | (Texture.storageMode << MTLResourceStorageModeShift);
+		Desc.cpuCacheMode = Texture.cpuCacheMode;
+		Desc.storageMode = Texture.storageMode;
+		Desc.usage = Usage;
+		
+		id<MTLTexture> NewTex = [GetMetalDeviceContext().GetDevice() newTextureWithDescriptor:Desc];
+		TRACK_OBJECT(STAT_MetalTextureCount, NewTex);
+		
+		SafeReleaseMetalResource(Texture);
+		Texture = NewTex;
+	}
+#endif
+}
+
 FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange MipRange)
 : Type(Source.Type)
 , PixelFormat(Source.PixelFormat)
@@ -138,37 +177,20 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange MipRange)
 {
 	MTLPixelFormat MetalFormat = (MTLPixelFormat)GPixelFormats[PixelFormat].PlatformFormat;
 	
+	bool const bUseSourceTex = (Source.PixelFormat != PF_DepthStencil) && MipRange.location == 0 && MipRange.length == Source.Texture.mipmapLevelCount;
+	
 #if PLATFORM_MAC // Recreate the texture to enable MTLTextureUsagePixelFormatView which must be off unless we definitely use this feature or we are throwing ~4% performance vs. Windows on the floor.
 	MTLTextureUsage Usage = Source.Texture.usage;
-	if(!(Usage & MTLTextureUsagePixelFormatView) && (Source.PixelFormat != PF_DepthStencil))
+	if(!(Usage & MTLTextureUsagePixelFormatView) && (Source.PixelFormat != PF_DepthStencil) && !bUseSourceTex)
 	{
-		Usage |= MTLTextureUsagePixelFormatView;
-		MTLTextureDescriptor* Desc = [[MTLTextureDescriptor new] autorelease];
-		Desc.textureType = Source.Texture.textureType;
-		Desc.pixelFormat = Source.Texture.pixelFormat;
-		Desc.width = Source.Texture.width;
-		Desc.height = Source.Texture.height;
-		Desc.depth = Source.Texture.depth;
-		Desc.mipmapLevelCount = Source.Texture.mipmapLevelCount;
-		Desc.sampleCount = Source.Texture.sampleCount;
-		Desc.arrayLength = Source.Texture.arrayLength;
-		Desc.resourceOptions = (Source.Texture.cpuCacheMode << MTLResourceCPUCacheModeShift) | (Source.Texture.storageMode << MTLResourceStorageModeShift);
-		Desc.cpuCacheMode = Source.Texture.cpuCacheMode;
-		Desc.storageMode = Source.Texture.storageMode;
-		Desc.usage = Usage;
-		
-		id<MTLTexture> NewTex = [GetMetalDeviceContext().GetDevice() newTextureWithDescriptor:Desc];
-		TRACK_OBJECT(STAT_MetalTextureCount, NewTex);
-		
-		SafeReleaseMetalResource(Source.Texture);
-		Source.Texture = NewTex;
+		Source.PrepareTextureView();
 	}
 #endif
 	
 	NSRange Slices = NSMakeRange(0, Source.Texture.arrayLength * (bIsCubemap ? 6 : 1));
 	// Stencil requires a format conversion, so this will access depth only, consequently there are no mip levels other than 0, so this path requires no real special casing.
 #if METAL_API_1_1
-    if(Source.PixelFormat != PF_DepthStencil)
+    if(Source.PixelFormat != PF_DepthStencil && !bUseSourceTex)
     {
         Texture = [Source.Texture newTextureViewWithPixelFormat:MetalFormat textureType:Source.Texture.textureType levels:MipRange slices:Slices];
 		TRACK_OBJECT(STAT_MetalTextureCount, Texture);
@@ -222,30 +244,13 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 
 	MTLPixelFormat MetalFormat = (MTLPixelFormat)GPixelFormats[PixelFormat].PlatformFormat;
 	
+	bool const bUseSourceTex = (Source.PixelFormat != PF_DepthStencil) && Source.PixelFormat == Format && MipRange.location == 0 && MipRange.length == Source.Texture.mipmapLevelCount;
+	
 #if PLATFORM_MAC // Recreate the texture to enable MTLTextureUsagePixelFormatView which must be off unless we definitely use this feature or we are throwing ~4% performance vs. Windows on the floor.
 	MTLTextureUsage Usage = Source.Texture.usage;
-	if(!(Usage & MTLTextureUsagePixelFormatView) && (Source.PixelFormat != PF_DepthStencil))
+	if(!(Usage & MTLTextureUsagePixelFormatView) && (Source.PixelFormat != PF_DepthStencil) && !bUseSourceTex)
 	{
-		Usage |= MTLTextureUsagePixelFormatView;
-		MTLTextureDescriptor* Desc = [[MTLTextureDescriptor new] autorelease];
-		Desc.textureType = Source.Texture.textureType;
-		Desc.pixelFormat = Source.Texture.pixelFormat;
-		Desc.width = Source.Texture.width;
-		Desc.height = Source.Texture.height;
-		Desc.depth = Source.Texture.depth;
-		Desc.mipmapLevelCount = Source.Texture.mipmapLevelCount;
-		Desc.sampleCount = Source.Texture.sampleCount;
-		Desc.arrayLength = Source.Texture.arrayLength;
-		Desc.resourceOptions = (Source.Texture.cpuCacheMode << MTLResourceCPUCacheModeShift) | (Source.Texture.storageMode << MTLResourceStorageModeShift);
-		Desc.cpuCacheMode = Source.Texture.cpuCacheMode;
-		Desc.storageMode = Source.Texture.storageMode;
-		Desc.usage = Usage;
-		
-		id<MTLTexture> NewTex = [GetMetalDeviceContext().GetDevice() newTextureWithDescriptor:Desc];
-		TRACK_OBJECT(STAT_MetalTextureCount, Texture);
-		
-		SafeReleaseMetalResource(Source.Texture);
-		Source.Texture = NewTex;
+		Source.PrepareTextureView();
 	}
 #endif
 	
@@ -262,7 +267,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
     // @todo Zebra Temporary workaround for absence of X24_G8 or equivalent to GL_STENCIL_INDEX so that the stencil part of a texture may be sampled
 	// For now, if we find ourselves *requiring* this we lazily blit the stencil data out to a separate texture. radr://21813831
 #if METAL_API_1_1
-    if(Source.PixelFormat != PF_DepthStencil)
+    if(Source.PixelFormat != PF_DepthStencil && !bUseSourceTex)
     {
         Texture = [Source.Texture newTextureViewWithPixelFormat:MetalFormat textureType:Source.Texture.textureType levels:MipRange slices:Slices];
 		TRACK_OBJECT(STAT_MetalTextureCount, Texture);
@@ -786,14 +791,22 @@ FMetalSurface::~FMetalSurface()
 
 void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode LockMode, uint32& DestStride)
 {
+	// Whether the device supports resource options, so we don't access invalid properties on older versions of iOS
+	bool const bSupportsResourceOptions = GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions);
+	
 	// get size and stride
-	const uint32 MipBytes = GetMipSize(MipIndex, &DestStride, false);
+#if METAL_API_1_1
+	bool const bAlignedStride = (bSupportsResourceOptions && Texture.storageMode == MTLStorageModePrivate);
+#else
+	bool const bAlignedStride = false; // Always Shared memory, so won't use the blit command encoder operations.
+#endif
+	const uint32 MipBytes = GetMipSize(MipIndex, &DestStride, false, bAlignedStride);
 	
 	// allocate some temporary memory
 	if(!LockedMemory[MipIndex])
 	{
 #if METAL_API_1_1
-		NSUInteger ResMode = MTLResourceStorageModeShared | (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions) && !(PixelFormat == PF_G8 && (Flags & TexCreate_SRGB)) ? MTLResourceCPUCacheModeWriteCombined : 0);
+		NSUInteger ResMode = MTLResourceStorageModeShared | (bSupportsResourceOptions && !(PixelFormat == PF_G8 && (Flags & TexCreate_SRGB)) ? MTLResourceCPUCacheModeWriteCombined : 0);
 #else
 		NSUInteger ResMode = MTLStorageModeShared;
 #endif
@@ -822,12 +835,29 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 				Region = MTLRegionMake3D(0, 0, 0, FMath::Max<uint32>(SizeX >> MipIndex, 1), FMath::Max<uint32>(SizeY >> MipIndex, 1), FMath::Max<uint32>(SizeZ >> MipIndex, 1));
 			}
 
+#if METAL_API_1_1
 			id<MTLBlitCommandEncoder> Blitter = GetMetalDeviceContext().GetBlitContext();
-			[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:LockedMemory[MipIndex] destinationOffset:0 destinationBytesPerRow:DestStride destinationBytesPerImage:MipBytes];
 			
-			//kick the current command buffer.
-			GetMetalDeviceContext().SubmitCommandBufferAndWait();
+			if (Texture.storageMode == MTLStorageModePrivate)
+			{
+				[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:LockedMemory[MipIndex] destinationOffset:0 destinationBytesPerRow:DestStride destinationBytesPerImage:MipBytes];
+				
+				//kick the current command buffer.
+				GetMetalDeviceContext().SubmitCommandBufferAndWait();
+			}
+			else
+#endif
+			{
+#if METAL_API_1_1 && PLATFORM_MAC
+				[Blitter synchronizeTexture:Texture slice:ArrayIndex level:MipIndex];
+				
+				//kick the current command buffer.
+				GetMetalDeviceContext().SubmitCommandBufferAndWait();
+#endif
+				[Texture getBytes:LockedMemory[MipIndex] bytesPerRow:DestStride bytesPerImage:MipBytes fromRegion:Region mipmapLevel:MipIndex slice:ArrayIndex];
+			}
 			
+#if PLATFORM_MAC
 			// Pack RGBA8_sRGB into R8_sRGB for Mac.
 			if (PixelFormat == PF_G8 && (Flags & TexCreate_SRGB) && Type == RRT_Texture2D)
 			{
@@ -846,6 +876,7 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 					ExpandedMem = (ExpandedMem + DestStride);
 				}
 			}
+#endif
 			
 			break;
         }
@@ -872,10 +903,18 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 {
     if(WriteLock & (1 << MipIndex))
-    {
+	{
+		// Whether the device supports resource options, so we don't access invalid properties on older versions of iOS
+		bool const bSupportsResourceOptions = GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions);
+		
         WriteLock &= ~(1 << MipIndex);
         uint32 Stride;
-        uint32 BytesPerImage = GetMipSize(MipIndex, &Stride, true);
+#if METAL_API_1_1
+		bool const bAlignedStride = (bSupportsResourceOptions && Texture.storageMode == MTLStorageModePrivate);
+#else
+		bool const bAlignedStride = false; // Always Shared memory, so won't use the blit command encoder operations.
+#endif
+        uint32 BytesPerImage = GetMipSize(MipIndex, &Stride, true, bAlignedStride);
 
 		MTLRegion Region;
         if (SizeZ <= 1 || bIsCubemap)
@@ -909,10 +948,16 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 				ExpandedMem = (ExpandedMem + Stride);
 			}
 		}
+#endif
 
+#if METAL_API_1_1
 		if(Texture.storageMode == MTLStorageModePrivate)
 		{
 			SCOPED_AUTORELEASE_POOL;
+			
+			int32 Count = FPlatformAtomics::InterlockedIncrement(&ActiveUploads);
+			
+			bool const bWait = ((GetMetalDeviceContext().GetNumActiveContexts() == 1) && (GMetalMaxOutstandingAsyncTexUploads > 0) && (Count >= GMetalMaxOutstandingAsyncTexUploads));
 			
 			// @todo: gather these all up over a frame
 			id<MTLCommandBuffer> CommandBuffer = GetMetalDeviceContext().CreateCommandBuffer(false/*bRetainReferences*/);
@@ -923,31 +968,43 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 			[Blitter copyFromBuffer:LockedMemory[MipIndex] sourceOffset:0 sourceBytesPerRow:Stride sourceBytesPerImage:BytesPerImage sourceSize:Region.size toTexture:Texture destinationSlice:ArrayIndex destinationLevel:MipIndex destinationOrigin:Region.origin];
 			
 			[Blitter endEncoding];
-			GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, false);
+			[CommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> CompletedBuffer)
+			{
+				FPlatformAtomics::InterlockedDecrement(&ActiveUploads);
+			}];
+			GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, bWait);
+			GetMetalDeviceContext().ReleaseObject(LockedMemory[MipIndex]);
+			
+			if (bWait)
+			{
+				GetMetalDeviceContext().ClearFreeList();
+			}
 		}
 		else
-#else
-		if (Texture.pixelFormat >= MTLPixelFormatPVRTC_RGB_2BPP && Texture.pixelFormat <= MTLPixelFormatETC2_RGB8A1_sRGB) // @todo zebra
-		{
-			Stride = 0;
-			BytesPerImage = 0;
-		}
 #endif
 		{
+#if !PLATFORM_MAC
+			if (Texture.pixelFormat >= MTLPixelFormatPVRTC_RGB_2BPP && Texture.pixelFormat <= MTLPixelFormatETC2_RGB8A1_sRGB) // @todo zebra
+			{
+				Stride = 0;
+				BytesPerImage = 0;
+			}
+#endif
+			
 			[Texture replaceRegion:Region mipmapLevel:MipIndex slice:ArrayIndex withBytes:[LockedMemory[MipIndex] contents] bytesPerRow:Stride bytesPerImage:BytesPerImage];
+			[LockedMemory[MipIndex] release];
 		}
-		
-		GetMetalDeviceContext().ReleaseObject(LockedMemory[MipIndex]);
 		LockedMemory[MipIndex] = nullptr;
     }
 }
 
-uint32 FMetalSurface::GetMipSize(uint32 MipIndex, uint32* Stride, bool bSingleLayer)
+uint32 FMetalSurface::GetMipSize(uint32 MipIndex, uint32* Stride, bool bSingleLayer, bool bBlitAligned)
 {
 	// Calculate the dimensions of the mip-map.
 	const uint32 BlockSizeX = GPixelFormats[PixelFormat].BlockSizeX;
 	const uint32 BlockSizeY = GPixelFormats[PixelFormat].BlockSizeY;
 	const uint32 BlockBytes = GPixelFormats[PixelFormat].BlockBytes;
+	const uint32 Alignment = (bBlitAligned && !PLATFORM_MAC) ? 64u : 1u; // Mac permits natural row alignment (tightly-packed) but iOS does not.
 	const uint32 MipSizeX = FMath::Max(SizeX >> MipIndex, BlockSizeX);
 	const uint32 MipSizeY = FMath::Max(SizeY >> MipIndex, BlockSizeY);
 	const uint32 MipSizeZ = bSingleLayer ? 1 : FMath::Max(SizeZ >> MipIndex, 1u);
@@ -967,11 +1024,14 @@ uint32 FMetalSurface::GetMipSize(uint32 MipIndex, uint32* Stride, bool bSingleLa
 	}
 #endif
 
-	const uint32 MipBytes = NumBlocksX * NumBlocksY * BlockBytes * MipSizeZ;
+	const uint32 MipStride = NumBlocksX * BlockBytes;
+	const uint32 AlignedStride = ((MipStride - 1) & ~(Alignment - 1)) + Alignment;
+	
+	const uint32 MipBytes = AlignedStride * NumBlocksY * MipSizeZ;
 
 	if (Stride)
 	{
-		*Stride = NumBlocksX * BlockBytes;
+		*Stride = AlignedStride;
 	}
 
 	return MipBytes;
@@ -993,7 +1053,7 @@ uint32 FMetalSurface::GetMemorySize()
 	uint32 TotalSize = 0;
 	for (uint32 MipIndex = 0; MipIndex < [Texture mipmapLevelCount]; MipIndex++)
 	{
-		TotalSize += GetMipSize(MipIndex, NULL, false);
+		TotalSize += GetMipSize(MipIndex, NULL, false, false);
 	}
 
 	return TotalSize;
@@ -1025,7 +1085,7 @@ id<MTLTexture> FMetalSurface::GetDrawableTexture()
 	return Texture;
 }
 
-void FMetalSurface::UpdateSRV()
+void FMetalSurface::UpdateSRV(FTextureRHIRef SourceTex)
 {
 #if METAL_API_1_1
 	if (PixelFormat == PF_X24_G8 && Texture != StencilTexture && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthStencilBlitOptions))
@@ -1043,6 +1103,26 @@ void FMetalSurface::UpdateSRV()
 		[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toTexture:Texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];
 		
 		SafeReleasePooledBuffer(Buf.Buffer);
+	}
+	// Handle the case where a texture or render-target is created without PixelFormatView & then recreated with it enabled in order to create appropriate SRVs.
+	// If an existing SRV simply exposed the source format & mip-levels it won't have a pixel-format-view so we need to update the texture ref we return.
+	else if (PixelFormat == SourceTex->GetFormat() && Texture.mipmapLevelCount == SourceTex->GetNumMips())
+	{
+		FMetalSurface* Surf = GetMetalSurfaceFromRHITexture(SourceTex);
+		check(Surf);
+		if (Texture != Surf->Texture)
+		{
+			if (MSAATexture == Texture)
+			{
+				Texture = Surf->Texture;
+			}
+			if (StencilTexture == Texture)
+			{
+				Texture = Surf->Texture;
+			}
+			SafeReleaseMetalResource(Texture);
+			Texture = [Surf->Texture retain];
+		}
 	}
 #endif
 }

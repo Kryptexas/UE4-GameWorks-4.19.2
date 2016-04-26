@@ -132,6 +132,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=VR, meta = (DisplayName="Enable VR Editing"))
 	bool bEnableVREditing;
 
+	/** Allows editing of potentially unsafe properties during PIE. Advanced use only - use with caution. */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Allow editing of potentially unsafe properties."))
+	bool bAllowPotentiallyUnsafePropertyEditing;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

@@ -76,16 +76,16 @@ FText SEditorViewportViewMenu::GetViewMenuLabel() const
 				Label = LOCTEXT("ViewMenuTitle_ShaderComplexityWithQuadOverdraw", "Shader Complexity & Quads");
 				break;
 
-			case VMI_WantedMipsAccuracy:
-				Label = LOCTEXT("ViewMenuTitle_WantedMipAccuracy", "Wanted Mips Accuracy");
+			case VMI_PrimitiveDistanceAccuracy:
+				Label = LOCTEXT("ViewMenuTitle_PrimitiveDistanceAccuracy", "Primitive Distance Accuracy");
 				break;
 
-			case VMI_TexelFactorAccuracy:
-				Label = LOCTEXT("ViewMenuTitle_TexelFactorAccuracy", "Texel Factor Accuracy");
+			case VMI_MeshTexCoordSizeAccuracy:
+				Label = LOCTEXT("ViewMenuTitle_MeshTexCoordSizeAccuracy", "Mesh Texture Coordinate Size Accuracy");
 				break;
 
-			case VMI_TexCoordScaleAccuracy:
-				Label = LOCTEXT("ViewMenuTitle_TexCoordScaleAccuracy", "Texture Coordinate Scale Accuracy");
+			case VMI_MaterialTexCoordScalesAccuracy:
+				Label = LOCTEXT("ViewMenuTitle_MaterialTexCoordScalesAccuracy", "Material Texture Coordinate Scales Accuracy");
 				break;
 
 			case VMI_StationaryLightOverlap:
@@ -142,8 +142,9 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 		static FName ShaderComplexityIcon("EditorViewport.ShaderComplexityMode");
 		static FName QuadOverdrawIcon("EditorViewport.QuadOverdrawMode");
 		static FName ShaderComplexityWithQuadOverdrawIcon("EditorViewport.ShaderCOmplexityWithQuadOverdrawMode");
-		static FName WantedMipsAccuracyIcon("EditorViewport.WantedMipsAccuracyMode");
-		static FName TexelFactorAccuracyIcon("EditorViewport.TexelFactorAccuracyMode");
+		static FName PrimitiveDistanceAccuracyIcon("EditorViewport.TexStreamAccPrimitiveDistanceMode");
+		static FName MeshTexCoordSizeAccuracyIcon("EditorViewport.TexStreamAccMeshTexCoordSizeMode");
+		static FName MaterialTexCoordScalesIcon("EditorViewport.TexStreamAccMaterialTexCoordScalesMode");
 		static FName LightOverlapIcon("EditorViewport.StationaryLightOverlapMode");
 		static FName LightmapDensityIcon("EditorViewport.LightmapDensityMode");
 		static FName ReflectionModeIcon("EditorViewport.ReflectionOverrideMode");
@@ -194,16 +195,16 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 				Icon = ShaderComplexityWithQuadOverdrawIcon;
 				break;
 
-			case VMI_WantedMipsAccuracy:
-				Icon = WantedMipsAccuracyIcon;
+			case VMI_PrimitiveDistanceAccuracy:
+				Icon = PrimitiveDistanceAccuracyIcon;
 				break;
 
-			case VMI_TexelFactorAccuracy:
-				Icon = TexelFactorAccuracyIcon;
+			case VMI_MeshTexCoordSizeAccuracy:
+				Icon = MeshTexCoordSizeAccuracyIcon;
 				break;
 
-			case VMI_TexCoordScaleAccuracy:
-				Icon = TexelFactorAccuracyIcon;
+			case VMI_MaterialTexCoordScalesAccuracy:
+				Icon = MaterialTexCoordScalesIcon;
 				break;
 
 			case VMI_StationaryLightOverlap:
@@ -283,29 +284,30 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 						Menu.AddMenuEntry( BaseViewportCommands.StationaryLightOverlapMode, NAME_None, LOCTEXT("StationaryLightOverlapViewModeDisplayName", "Stationary Light Overlap") );
 						Menu.AddMenuEntry( BaseViewportCommands.ShaderComplexityMode, NAME_None, LOCTEXT("ShaderComplexityViewModeDisplayName", "Shader Complexity") );
 
-						if ( AllowDebugViewShaderMode(DVSM_ShaderComplexityBleedingQuadOverhead, GMaxRHIFeatureLevel) || AllowDebugViewShaderMode(DVSM_ShaderComplexityContainedQuadOverhead, GMaxRHIFeatureLevel) )
+						if ( AllowDebugViewShaderMode(DVSM_ShaderComplexityContainedQuadOverhead) )
 						{
 							Menu.AddMenuEntry( BaseViewportCommands.ShaderComplexityWithQuadOverdrawMode, NAME_None, LOCTEXT("ShaderComplexityWithQuadOverdrawViewModeDisplayName", "Shader Complexity & Quads") );
 						}
-						if ( AllowDebugViewShaderMode(DVSM_QuadComplexity, GMaxRHIFeatureLevel) )
+						if ( AllowDebugViewShaderMode(DVSM_QuadComplexity) )
 						{
 							Menu.AddMenuEntry( BaseViewportCommands.QuadOverdrawMode, NAME_None, LOCTEXT("QuadOverdrawViewModeDisplayName", "Quad Overdraw") );
 						}
 
 						Menu.AddMenuEntry( BaseViewportCommands.LODColorationMode, NAME_None, LOCTEXT("LODColorationViewModeDisplayName", "LOD Coloration") );
 
-						Menu.BeginSection("TextureStreaming", LOCTEXT("TextureStreamingHeader", "Texture Streaming") );
-						if ( AllowDebugViewShaderMode(DVSM_WantedMipsAccuracy, GMaxRHIFeatureLevel) )
+						Menu.BeginSection("TextureStreaming", LOCTEXT("TextureStreamingHeader", "Texture Streaming Accuracy") );
+						if ( AllowDebugViewShaderMode(DVSM_PrimitiveDistanceAccuracy) )
 						{
-							Menu.AddMenuEntry( BaseViewportCommands.WantedMipsAccuracyMode, NAME_None, LOCTEXT("WantedMipsAccuracyDisplayName", "Wanted Mips Accuracy") );
+							Menu.AddMenuEntry( BaseViewportCommands.TexStreamAccPrimitiveDistanceMode, NAME_None, LOCTEXT("PrimitiveDistanceAccuracyDisplayName", "Primitive Distance") );
 						}
-						if ( AllowDebugViewShaderMode(DVSM_WantedMipsAccuracy, GMaxRHIFeatureLevel) )
+						if ( AllowDebugViewShaderMode(DVSM_MeshTexCoordSizeAccuracy) )
 						{
-							Menu.AddMenuEntry( BaseViewportCommands.TexelFactorAccuracyMode, NAME_None, LOCTEXT("TexelFactorAccuracyDisplayName", "Texel Factor Accuracy") );
+							Menu.AddMenuEntry( BaseViewportCommands.TexStreamAccMeshTexCoordSizeMode, NAME_None, LOCTEXT("MeshTexCoordSizeAccuracyDisplayName", "Mesh TexCoord Size") );
 						}
-						if ( AllowDebugViewShaderMode(DVSM_TexCoordScaleAccuracy, GMaxRHIFeatureLevel) )
+						// TexCoordScale accuracy viewmode requires shaders that are only built in the TextureStreamingBuild, which requires the new metrics to be enabled.
+						if ( AllowDebugViewShaderMode(DVSM_MaterialTexCoordScalesAccuracy) && CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0)
 						{
-							Menu.AddMenuEntry( BaseViewportCommands.TexCoordScaleAccuracyMode, NAME_None, LOCTEXT("TexCoordScaleAccuracyDisplayName", "TexCoord Scale Accuracy") );
+							Menu.AddMenuEntry( BaseViewportCommands.TexStreamAccMaterialTexCoordScalesMode, NAME_None, LOCTEXT("MaterialTexCoordScalesAccuracyDisplayName", "Material TexCoord Scales") );
 						}
 						Menu.EndSection();
 					}

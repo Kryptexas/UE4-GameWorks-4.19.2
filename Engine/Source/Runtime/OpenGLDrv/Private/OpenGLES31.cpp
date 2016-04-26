@@ -157,6 +157,9 @@ bool FOpenGLES31::bTimerQueryCanBeDisjoint = true;
 /** GL_NV_timer_query for timestamp queries */
 bool FOpenGLES31::bSupportsNvTimerQuery = false;
 
+/** GL_OES_vertex_type_10_10_10_2 */
+bool FOpenGLES31::bSupportsRGB10A2 = false;
+
 GLint FOpenGLES31::MajorVersion = 0;
 GLint FOpenGLES31::MinorVersion = 0;
 
@@ -274,6 +277,7 @@ void FOpenGLES31::ProcessExtensions( const FString& ExtensionsString )
 	}
 	else
 	{
+		bSupportsRGB10A2 = ExtensionsString.Contains(TEXT("GL_OES_vertex_type_10_10_10_2"));
 		CVarAllowHighQualityLightMaps->Set(0);
 	}
 
@@ -286,8 +290,8 @@ void FOpenGLES31::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsRGBA8 = ExtensionsString.Contains(TEXT("GL_OES_rgb8_rgba8"));
 	bSupportsBGRA8888 = ExtensionsString.Contains(TEXT("GL_APPLE_texture_format_BGRA8888")) || ExtensionsString.Contains(TEXT("GL_IMG_texture_format_BGRA8888")) || ExtensionsString.Contains(TEXT("GL_EXT_texture_format_BGRA8888"));
 	bSupportsVertexHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_vertex_half_float"));
-	bSupportsTextureFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_float"));
-	bSupportsTextureHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_half_float"));
+	bSupportsTextureFloat = !bES2Fallback || ExtensionsString.Contains(TEXT("GL_OES_texture_float"));
+	bSupportsTextureHalfFloat = !bES2Fallback || ExtensionsString.Contains(TEXT("GL_OES_texture_half_float"));
 	bSupportsSGRB = ExtensionsString.Contains(TEXT("GL_EXT_sRGB"));
 	bSupportsColorBufferFloat = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_float"));
 	bSupportsColorBufferHalfFloat = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));

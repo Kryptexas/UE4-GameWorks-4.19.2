@@ -1329,6 +1329,9 @@ public:
 	*	Adds the bodies that are currently welded to the OutWeldedBodies array 
 	*/
 	virtual void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels);
+	
+	/** Whether the component has been welded to another simulating component */
+	bool IsWelded() const;
 
 #if WITH_EDITOR
 	/**
@@ -1364,16 +1367,10 @@ protected:
 	friend class FStaticMeshComponentRecreateRenderStateContext;
 
 	//~ Begin USceneComponent Interface
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
+	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport = ETeleportType::None) override;
 
 	/** Event called when AttachParent changes, to allow the scene to update its attachment state. */
 	virtual void OnAttachmentChanged() override;
-
-	/**
-	* Called after a child is attached to this component.
-	* Note: Do not change the attachment state of the child during this call.
-	*/
-	virtual void OnChildAttached(USceneComponent* ChildComponent) override;
 
 	/** Whether the component type supports static lighting. */
 	virtual bool SupportsStaticLighting() const 

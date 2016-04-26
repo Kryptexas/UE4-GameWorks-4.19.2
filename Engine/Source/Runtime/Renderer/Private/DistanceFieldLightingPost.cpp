@@ -26,7 +26,7 @@ FAutoConsoleVariableRef CVarAOFillGaps(
 	GAOFillGaps,
 	TEXT("Whether to fill in pixels using a screen space filter that had no valid world space interpolation weight from surface cache samples.\n")
 	TEXT("This is needed whenever r.AOMinLevel is not 0."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOFillGapsHighQuality = 1;
@@ -34,7 +34,7 @@ FAutoConsoleVariableRef CVarAOFillGapsHighQuality(
 	TEXT("r.AOFillGapsHighQuality"),
 	GAOFillGapsHighQuality,
 	TEXT("Whether to use the higher quality gap filling method that does a 5x5 gather, or the cheaper method that just looks up the 4 grid samples."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOUseHistory = 1;
@@ -42,7 +42,7 @@ FAutoConsoleVariableRef CVarAOUseHistory(
 	TEXT("r.AOUseHistory"),
 	GAOUseHistory,
 	TEXT("Whether to apply a temporal filter to the distance field AO, which reduces flickering but also adds trails when occluders are moving."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 int32 GAOHistoryStabilityPass = 1;
@@ -50,7 +50,7 @@ FAutoConsoleVariableRef CVarAOHistoryStabilityPass(
 	TEXT("r.AOHistoryStabilityPass"),
 	GAOHistoryStabilityPass,
 	TEXT("Whether to gather stable results to fill in holes in the temporal reprojection.  Adds some GPU cost but improves temporal stability with foliage."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOHistoryWeight = .85f;
@@ -58,7 +58,7 @@ FAutoConsoleVariableRef CVarAOHistoryWeight(
 	TEXT("r.AOHistoryWeight"),
 	GAOHistoryWeight,
 	TEXT("Amount of last frame's AO to lerp into the final result.  Higher values increase stability, lower values have less streaking under occluder movement."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOHistoryDistanceThreshold = 30;
@@ -66,7 +66,7 @@ FAutoConsoleVariableRef CVarAOHistoryDistanceThreshold(
 	TEXT("r.AOHistoryDistanceThreshold"),
 	GAOHistoryDistanceThreshold,
 	TEXT("World space distance threshold needed to discard last frame's DFAO results.  Lower values reduce ghosting from characters when near a wall but increase flickering artifacts."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 float GAOViewFadeDistanceScale = .7f;
@@ -74,7 +74,7 @@ FAutoConsoleVariableRef CVarAOViewFadeDistanceScale(
 	TEXT("r.AOViewFadeDistanceScale"),
 	GAOViewFadeDistanceScale,
 	TEXT("Distance over which AO will fade out as it approaches r.AOMaxViewDistance, as a fraction of r.AOMaxViewDistance."),
-	ECVF_Cheat | ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe
 	);
 
 template<bool bSupportIrradiance>

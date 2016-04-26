@@ -342,10 +342,10 @@ void FVorbisAudioInfo::EnableHalfRate( bool HalfRate )
 
 void LoadVorbisLibraries()
 {
-	static bool bIsIntialized = false;
-	if (!bIsIntialized)
+	static bool bIsInitialized = false;
+	if (!bIsInitialized)
 	{
-		bIsIntialized = true;
+		bIsInitialized = true;
 #if PLATFORM_WINDOWS  && WITH_OGGVORBIS
 		//@todo if ogg is every ported to another platform, then use the platform abstraction to load these DLLs
 		// Load the Ogg dlls

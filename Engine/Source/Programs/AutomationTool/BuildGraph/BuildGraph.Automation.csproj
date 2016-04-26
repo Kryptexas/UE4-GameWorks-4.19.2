@@ -61,14 +61,14 @@
     <Compile Include="..\..\DotNETCommon\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
     </Compile>
-    <Compile Include="AgentGroup.cs" />
+    <Compile Include="Agent.cs" />
+    <Compile Include="BuildGraph.cs" />
     <Compile Include="Graph.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="Task.cs" />
     <Compile Include="JobContext.cs" />
     <Compile Include="ManualTrigger.cs" />
     <Compile Include="Condition.cs" />
-    <Compile Include="Build.cs" />
     <Compile Include="Schema.cs" />
     <Compile Include="Script.cs" />
     <Compile Include="Tasks\ChunkTask.cs" />

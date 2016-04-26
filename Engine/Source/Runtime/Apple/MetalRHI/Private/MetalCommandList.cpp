@@ -56,10 +56,15 @@ void FMetalCommandList::Commit(id<MTLCommandBuffer> Buffer, bool const bWait)
 	
 	if (bImmediate)
 	{
+		if (bWait)
+		{
+			[Buffer retain];
+		}
 		CommandQueue.CommitCommandBuffer(Buffer);
 		if (bWait)
 		{
 			[Buffer waitUntilCompleted];
+			[Buffer release];
 		}
 	}
 	else

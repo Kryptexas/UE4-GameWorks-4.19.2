@@ -5,12 +5,13 @@
 =============================================================================*/
 
 #include "VulkanRHIPrivate.h"
-#if UE_VK_API_VERSION >= VK_MAKE_VERSION(1, 0, 3)
-	#define VK_DEBUG_REPORT_WARN_BIT_EXT VK_DEBUG_REPORT_WARNING_BIT_EXT
-	#define VK_DEBUG_REPORT_INFO_BIT_EXT VK_DEBUG_REPORT_INFORMATION_BIT_EXT
-#else
-	#include <vulkan/vk_ext_debug_report.h>
+
+#if VK_HEADER_VERSION < 8 && (VK_API_VERSION < VK_MAKE_VERSION(1, 0, 3))
+#include <vulkan/vk_ext_debug_report.h>
 #endif
+
+#define VULKAN_ENABLE_API_DUMP_DETAILED				0
+
 #define CREATE_MSG_CALLBACK							"vkCreateDebugReportCallbackEXT"
 #define DESTROY_MSG_CALLBACK						"vkDestroyDebugReportCallbackEXT"
 
@@ -26,12 +27,16 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
     int32							msgCode,
 	const ANSICHAR*					pLayerPrefix,
 	const ANSICHAR*					pMsg,
-#if (UE_VK_API_VERSION < VK_MAKE_VERSION(1, 0, 2))
- 	const void*						pUserData)
-#else
     void*							pUserData)
-#endif
 {
+	if (msgFlags != VK_DEBUG_REPORT_ERROR_BIT_EXT && 
+		msgFlags != VK_DEBUG_REPORT_WARNING_BIT_EXT &&
+		msgFlags != VK_DEBUG_REPORT_INFORMATION_BIT_EXT &&
+		msgFlags != VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+	{
+		ensure(0);
+	}
+
 	if (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
 	{
 		// Reaching this line should trigger a break/assert. 
@@ -54,18 +59,36 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 		}
 		return VK_FALSE;
 	}
-	else if (msgFlags & VK_DEBUG_REPORT_WARN_BIT_EXT)
+	else if (msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
 	{
 		FString Message = FString::Printf(TEXT("VulkanRHI: VK WARNING: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(pLayerPrefix), msgCode, ANSI_TO_TCHAR(pMsg));
 		FPlatformMisc::LowLevelOutputDebugString(*Message);
 	}
 #if VULKAN_ENABLE_API_DUMP
-	else if (msgFlags & VK_DEBUG_REPORT_INFO_BIT_EXT)
+	else if (msgFlags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
 	{
-		FString Message = FString::Printf(TEXT("VulkanRHI: VK INFO: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(pLayerPrefix), msgCode, ANSI_TO_TCHAR(pMsg));
+#if !VULKAN_ENABLE_API_DUMP_DETAILED
+		if (!FCStringAnsi::Strcmp(pLayerPrefix, "MEM") || !FCStringAnsi::Strcmp(pLayerPrefix, "DS"))
+		{
+			// Skip Mem messages
+		}
+		else
+#endif
+		{
+			FString Message = FString::Printf(TEXT("VulkanRHI: VK INFO: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(pLayerPrefix), msgCode, ANSI_TO_TCHAR(pMsg));
+			FPlatformMisc::LowLevelOutputDebugString(*Message);
+		}
+
+		return VK_FALSE;
+	}
+#if VULKAN_ENABLE_API_DUMP_DETAILED
+	else if (msgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+	{
+		FString Message = FString::Printf(TEXT("VulkanRHI: VK DEBUG: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(pLayerPrefix), msgCode, ANSI_TO_TCHAR(pMsg));
 		FPlatformMisc::LowLevelOutputDebugString(*Message);
 		return VK_FALSE;
 	}
+#endif
 #endif
 
 	return VK_TRUE;
@@ -81,9 +104,12 @@ void FVulkanDynamicRHI::SetupDebugLayerCallback()
 		FMemory::Memzero(CreateInfo);
 		CreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
 		CreateInfo.pfnCallback = DebugReportFunction;
-		CreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARN_BIT_EXT;
+		CreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
 #if VULKAN_ENABLE_API_DUMP
-		CreateInfo.flags |= VK_DEBUG_REPORT_INFO_BIT_EXT;
+		CreateInfo.flags |= VK_DEBUG_REPORT_INFORMATION_BIT_EXT;
+#if VULKAN_ENABLE_API_DUMP_DETAILED
+		CreateInfo.flags |= VK_DEBUG_REPORT_DEBUG_BIT_EXT;
+#endif
 #endif
 		auto Result = CreateMsgCallback(Instance, &CreateInfo, nullptr, &MsgCallback);
 		switch (Result)

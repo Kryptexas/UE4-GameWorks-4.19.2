@@ -16,6 +16,14 @@ struct VectorRegister
 	float	V[4];
 };
 
+/**
+*	int32[4] vector register type, where the first in32 (X) is stored in the lowest 32 bits, and so on.
+*/
+struct VectorRegisterInt
+{
+	int32	V[4];
+};
+
 // For a struct of 4 floats, we need the double braces
 #define DECLARE_VECTOR_REGISTER(X, Y, Z, W) { { X, Y, Z, W } }
 
@@ -50,6 +58,25 @@ FORCEINLINE VectorRegister MakeVectorRegister( uint32 X, uint32 Y, uint32 Z, uin
 FORCEINLINE VectorRegister MakeVectorRegister( float X, float Y, float Z, float W )
 {
 	VectorRegister Vec = { { X, Y, Z, W } };
+	return Vec;
+}
+
+/**
+* Returns a vector based on 4 int32.
+*
+* @param X		1st int32 component
+* @param Y		2nd int32 component
+* @param Z		3rd int32 component
+* @param W		4th int32 component
+* @return		Vector of the 4 int32
+*/
+FORCEINLINE VectorRegisterInt MakeVectorRegisterInt(int32 X, int32 Y, int32 Z, int32 W)
+{
+	VectorRegisterInt Vec;
+	((int32&)Vec.V[0]) = X;
+	((int32&)Vec.V[1]) = Y;
+	((int32&)Vec.V[2]) = Z;
+	((int32&)Vec.V[3]) = W;
 	return Vec;
 }
 
@@ -915,6 +942,48 @@ FORCEINLINE void VectorStoreByte4( const VectorRegister& Vec, void* Ptr )
 	BytePtr[1] = uint8( Vec.V[1] );
 	BytePtr[2] = uint8( Vec.V[2] );
 	BytePtr[3] = uint8( Vec.V[3] );
+}
+
+/**
+* Loads packed RGB10A2(4 bytes) from unaligned memory and converts them into 4 FLOATs.
+* IMPORTANT: You need to call VectorResetFloatRegisters() before using scalar FLOATs after you've used this intrinsic!
+*
+* @param Ptr			Unaligned memory pointer to the RGB10A2(4 bytes).
+* @return				VectorRegister with 4 FLOATs loaded from Ptr.
+*/
+FORCEINLINE VectorRegister VectorLoadRGB10A2(void* Ptr)
+{
+	float V[4];
+	uint32 E = *(uint32*)Ptr;
+
+	V[0] = float((E >> 00) & 0x3FF) / 1023.0f;
+	V[1] = float((E >> 10) & 0x3FF) / 1023.0f;
+	V[2] = float((E >> 20) & 0x3FF) / 1023.0f;
+	V[3] = float((E >> 30) & 0x3)   / 3.0f;
+
+	return MakeVectorRegister(V[0], V[1], V[2], V[3]);
+}
+
+/**
+* Converts the 4 FLOATs in the vector RGB10A2, clamped to [0, 1023] and [0, 3], and stores to unaligned memory.
+* IMPORTANT: You need to call VectorResetFloatRegisters() before using scalar FLOATs after you've used this intrinsic!
+*
+* @param Vec			Vector containing 4 FLOATs
+* @param Ptr			Unaligned memory pointer to store the packed RGB10A2(4 bytes).
+*/
+FORCEINLINE void VectorStoreRGB10A2(const VectorRegister& Vec, void* Ptr)
+{
+	VectorRegister Tmp;
+	Tmp = VectorMax(Vec, MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f));
+	Tmp = VectorMin(Tmp, MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f));
+	Tmp = VectorMultiply(Tmp, MakeVectorRegister(1023.0f, 1023.0f, 1023.0f, 3.0f));
+	
+	uint32* Out = (uint32*)Ptr;
+	*Out = 
+		(uint32(Tmp.V[0]) & 0x3FF) << 00 |
+		(uint32(Tmp.V[1]) & 0x3FF) << 10 |
+		(uint32(Tmp.V[2]) & 0x3FF) << 20 |
+		(uint32(Tmp.V[3]) & 0x003) << 30;
 }
 
 /**

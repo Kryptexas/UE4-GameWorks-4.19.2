@@ -498,7 +498,7 @@ FReimportManager::~FReimportManager()
 
 int32 FReimportHandler::GetPriority() const
 {
-	return UFactory::DefaultImportPriority;
+	return UFactory::GetDefaultImportPriority();
 }
 
 /*-----------------------------------------------------------------------------

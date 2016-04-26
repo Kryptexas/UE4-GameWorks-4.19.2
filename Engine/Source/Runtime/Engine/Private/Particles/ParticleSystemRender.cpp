@@ -1532,9 +1532,9 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 
 			FMeshParticleInstanceVertices* InstanceVerticesCPU = NULL;
 
-			// For OpenGL's we can't assume that it is OK to leave the PrevTransformBuffer buffer unbound.
+			// For OpenGL & Metal we can't assume that it is OK to leave the PrevTransformBuffer buffer unbound.
 			// Doing so can lead to undefined behaviour if the buffer is referenced in the shader even if protected by a branch that is not meant to be taken.
-			bool const bGeneratePrevTransformBuffer = (Source.MeshMotionBlurOffset || IsOpenGLPlatform(ShaderPlatform));
+			bool const bGeneratePrevTransformBuffer = (FeatureLevel >= ERHIFeatureLevel::SM4) && (Source.MeshMotionBlurOffset || IsOpenGLPlatform(ShaderPlatform) || IsMetalPlatform(ShaderPlatform));
 
 			if(bInstanced)
 			{
@@ -1738,6 +1738,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 						BatchParameters.DynamicParameterBuffer = InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData();
 						BatchParameters.PrevTransformBuffer = InstanceVerticesCPU->PrevTransformDataAllocationsCPU.GetData();
 						BatchElement.UserData = &BatchParameters;
+						BatchElement.bUserDataIsColorVertexBuffer = false;
 						BatchElement.UserIndex = 0;
 
 						Mesh.Elements.Reserve(ParticleCount);
@@ -2362,16 +2363,16 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 
 		Data.TangentBasisComponents[0] = FVertexStreamComponent(
 			&LODResources.VertexBuffer,
-			STRUCT_OFFSET(FStaticMeshFullVertex,TangentX),
+			STRUCT_OFFSET(FStaticMeshFullVertex, RawTangentX),
 			LODResources.VertexBuffer.GetStride(),
-			VET_PackedNormal
+			LODResources.VertexBuffer.GetUseHighPrecisionTangentBasis() ? VET_URGB10A2N : VET_PackedNormal
 			);
 
 		Data.TangentBasisComponents[1] = FVertexStreamComponent(
 			&LODResources.VertexBuffer,
-			STRUCT_OFFSET(FStaticMeshFullVertex,TangentZ),
+			STRUCT_OFFSET(FStaticMeshFullVertex, TangentZ),
 			LODResources.VertexBuffer.GetStride(),
-			VET_PackedNormal
+			VET_UShort2N
 			);
 
 		Data.TextureCoordinates.Empty();

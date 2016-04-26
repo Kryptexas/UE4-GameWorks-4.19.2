@@ -1039,6 +1039,10 @@ public:
 	// FlushType: Flush Immediate
 	virtual bool RHIIsRenderingSuspended() { return false; };
 
+	// FlushType: Flush Immediate
+	virtual void RHIEnqueueDecompress(uint8_t* SrcBuffer, uint8_t* DestBuffer, int CompressedSize, void* ErrorCodeBuffer) {}
+	virtual void RHIEnqueueCompress(uint8_t* SrcBuffer, uint8_t* DestBuffer, int UnCompressedSize, void* ErrorCodeBuffer) {}
+
 	/**
 	 *	Retrieve available screen resolutions.
 	 *

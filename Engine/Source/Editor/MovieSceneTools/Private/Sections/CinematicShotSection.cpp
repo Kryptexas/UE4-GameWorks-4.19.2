@@ -240,7 +240,10 @@ FReply FCinematicShotSection::OnSectionDoubleClicked(const FGeometry& SectionGeo
 	{
 		if (SequenceInstance.IsValid())
 		{
-			Sequencer.Pin()->FocusSequenceInstance(SectionObject);
+			if (SectionObject.GetSequence())
+			{
+				Sequencer.Pin()->FocusSequenceInstance(SectionObject);
+			}
 		}
 	}
 
