@@ -468,6 +468,22 @@ const TSharedPtr<FSequencerDisplayNode>& FSequencerNodeTree::GetHoveredNode() co
 	return HoveredNode;
 }
 
+/*
+ * Add node as filtered and include any parent folders
+ */
+static void AddFilteredNode(const TSharedRef<FSequencerDisplayNode>& StartNode, TSet<TSharedRef<const FSequencerDisplayNode>>& OutFilteredNodes)
+{
+	OutFilteredNodes.Add(StartNode);
+
+	// Gather parent folders up the chain
+	TSharedPtr<FSequencerDisplayNode> ParentNode = StartNode->GetParent();
+	while (ParentNode.IsValid() && ParentNode.Get()->GetType() == ESequencerNode::Folder)
+	{
+		OutFilteredNodes.Add(ParentNode.ToSharedRef());
+		ParentNode = ParentNode->GetParent();
+	}
+}
+
 /**
  * Recursively filters nodes
  *
@@ -530,7 +546,8 @@ static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSeque
 	if (bPassedTextFilter)
 	{
 		// This node is now filtered
-		OutFilteredNodes.Add(StartNode);
+		AddFilteredNode(StartNode, OutFilteredNodes);
+
 		bInFilter = true;
 	}
 
@@ -544,7 +561,8 @@ static bool FilterNodesRecursive( FSequencer& Sequencer, const TSharedRef<FSeque
 
 		if (bPassedTextFilter && !bInFilter)
 		{
-			OutFilteredNodes.Add(StartNode);
+			AddFilteredNode(StartNode, OutFilteredNodes);
+
 			bInFilter = true;
 		}
 	}
