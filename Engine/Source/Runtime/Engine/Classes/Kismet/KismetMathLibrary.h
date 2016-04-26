@@ -1737,7 +1737,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector2D Vector2DInterpTo_Constant(FVector2D Current, FVector2D Target, float DeltaTime, float InterpSpeed);
 	
 	/**
-	 * Tries to reach Target based on distance from Current position, giving a nice smooth feeling when tracking a position.
+	 * Tries to reach Target rotation based on Current rotation, giving a nice smooth feeling when rotating to Target rotation.
 	 *
 	 * @param		Current			Actual rotation
 	 * @param		Target			Target rotation
@@ -1749,7 +1749,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FRotator RInterpTo(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed);
 
 	/**
-	 * Tries to reach Target at a constant rate.
+	 * Tries to reach Target rotation at a constant rate.
 	 *
 	 * @param		Current			Actual rotation
 	 * @param		Target			Target rotation
