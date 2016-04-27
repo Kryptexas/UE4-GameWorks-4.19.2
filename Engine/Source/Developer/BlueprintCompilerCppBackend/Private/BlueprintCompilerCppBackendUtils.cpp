@@ -35,7 +35,7 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 	auto ClassString = [&]() -> FString
 	{
 		const UClass* ObjectClassToUse = ExpectedClass ? ExpectedClass : GetFirstNativeOrConvertedClass(Object->GetClass());
-		return FEmitHelper::GetCppName(ObjectClassToUse);
+		return FEmitHelper::GetCppName((UUserDefinedEnum::StaticClass() == ObjectClassToUse) ? UEnum::StaticClass() : ObjectClassToUse);
 	};
 	
 	if (ActualClass && Object 
@@ -137,14 +137,6 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		// Check if  
 		// TODO: check if supported 
 		return FString::Printf(TEXT("%s::StaticStruct()"), *FEmitHelper::GetCppName(UDS));
-	}
-
-	if (auto UDE = Cast<UEnum>(Object))
-	{
-		// TODO:
-		// TODO: check if supported 
-		//return FString::Printf(TEXT("%s_StaticEnum()"), *UDE->GetName());
-		return FString::Printf(TEXT("FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT(\"%s\"))"), *FEmitHelper::GetCppName(UDE));
 	}
 
 	// TODO: handle subobjects
