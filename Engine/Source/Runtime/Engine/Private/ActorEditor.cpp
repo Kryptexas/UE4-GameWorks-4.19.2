@@ -271,11 +271,11 @@ void AActor::DebugShowOneComponentHierarchy( USceneComponent* SceneComp, int32& 
 	}
 }
 
-AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* Actor)
+AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* Actor, const bool bCacheRootComponentData)
 	: ComponentInstanceData(Actor)
 {
 	USceneComponent* ActorRootComponent = Actor->GetRootComponent();
-	if (ActorRootComponent && ActorRootComponent->IsCreatedByConstructionScript())
+	if (bCacheRootComponentData && ActorRootComponent && ActorRootComponent->IsCreatedByConstructionScript())
 	{
 		bRootComponentDataCached = true;
 		RootComponentData.Transform = ActorRootComponent->ComponentToWorld;
@@ -322,12 +322,17 @@ bool AActor::FActorTransactionAnnotation::HasInstanceData() const
 
 TSharedPtr<ITransactionObjectAnnotation> AActor::GetTransactionAnnotation() const
 {
+	if (CurrentTransactionAnnotation.IsValid())
+	{
+		return CurrentTransactionAnnotation;
+	}
+
 	TSharedPtr<FActorTransactionAnnotation> TransactionAnnotation = MakeShareable(new FActorTransactionAnnotation(this));
 
 	if (!TransactionAnnotation->HasInstanceData())
 	{
 		// If there is nothing in the annotation don't bother storing it.
-		TransactionAnnotation = NULL;
+		TransactionAnnotation = nullptr;
 	}
 
 	return TransactionAnnotation;

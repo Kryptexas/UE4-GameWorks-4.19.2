@@ -906,7 +906,12 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 	else if (CachedActorData.IsValid())
 	{
 		CachedActorData->ComponentInstanceData.FindAndReplaceInstances(OldToNewInstanceMap);
-		NewActor->ExecuteConstruction(TargetWorldTransform, &CachedActorData->ComponentInstanceData);
+		const bool bErrorFree = NewActor->ExecuteConstruction(TargetWorldTransform, &CachedActorData->ComponentInstanceData);
+		if (!bErrorFree)
+		{
+			// Save off the cached actor data for once the blueprint has been fixed so we can reapply it
+			NewActor->CurrentTransactionAnnotation = CachedActorData;
+		}
 	}
 	else
 	{
