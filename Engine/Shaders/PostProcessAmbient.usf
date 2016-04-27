@@ -359,7 +359,7 @@ void MainPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPositio
 
 	// Point lobe in off-specular peak direction
 	float a = Square( GBuffer.Roughness );
-	float R = lerp( N, R0, (1 - a) * ( sqrt(1 - a) + a ) );
+	float3 R = lerp( N, R0, (1 - a) * ( sqrt(1 - a) + a ) );
 	
 	uint2 Random = ScrambleTEA( PixelPos );
 	Random.x ^= Frame.Random;
