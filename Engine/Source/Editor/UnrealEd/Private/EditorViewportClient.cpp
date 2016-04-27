@@ -3152,9 +3152,12 @@ void FEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFamily,
 			{
 				uint32 CoordinateViewportId = 0;
 				PixelInspectorModule->GetCoordinatePosition(InspectViewportPos, CoordinateViewportId);
-				PixelInspectorModule->SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
 				bool IsCoordinateInViewport = InspectViewportPos.X <= Viewport->GetSizeXY().X && InspectViewportPos.Y <= Viewport->GetSizeXY().Y;
 				IsInspectorActive = IsCoordinateInViewport && (CoordinateViewportId == View.State->GetViewKey());
+				if (IsInspectorActive)
+				{
+					PixelInspectorModule->SetViewportInformation(View.State->GetViewKey(), Viewport->GetSizeXY());
+				}
 			}
 			else
 			{

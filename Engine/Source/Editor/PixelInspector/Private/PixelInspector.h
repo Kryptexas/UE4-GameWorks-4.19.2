@@ -71,7 +71,7 @@ namespace PixelInspector
 
 		void SetCurrentCoordinate(FIntPoint NewCoordinate, bool ReleaseAllRequest);
 
-		void SetViewportInformation(int32 ViewportUniqueId, FIntPoint ViewportSize) { LastViewportInspectionSize = ViewportSize; }
+		void SetViewportInformation(int32 ViewportUniqueId, FIntPoint ViewportSize) { LastViewportId = ViewportUniqueId; LastViewportInspectionSize = ViewportSize; }
 
 		/*
 		 * Create a request and the associate buffers

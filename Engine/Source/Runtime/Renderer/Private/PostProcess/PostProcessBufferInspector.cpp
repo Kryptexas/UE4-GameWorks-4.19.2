@@ -185,7 +185,7 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 					if (Input && Input->PooledRenderTarget.IsValid() && Input->PooledRenderTarget->GetRenderTargetItem().ShaderResourceTexture.IsValid())
 					{
 						FTexture2DRHIRef SourceBufferHDR = (FRHITexture2D*)(Input->PooledRenderTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference());
-						if (DestinationBufferHDR->GetFormat() == SourceBufferHDR->GetFormat())
+						if (SourceBufferHDR.IsValid() && DestinationBufferHDR->GetFormat() == SourceBufferHDR->GetFormat())
 						{
 							FBox2D DestinationBox(FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f));
 							RHICmdList.CopySubTextureRegion(SourceBufferHDR, DestinationBufferHDR, SourceBox, DestinationBox);
@@ -199,10 +199,10 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 			if (Scene->PixelInspectorData.RenderTargetBufferA[PixelInspectorRequest->BufferIndex] != nullptr)
 			{
 				const FTexture2DRHIRef &DestinationBufferA = Scene->PixelInspectorData.RenderTargetBufferA[PixelInspectorRequest->BufferIndex]->GetRenderTargetTexture();
-				if (DestinationBufferA.IsValid())
+				if (DestinationBufferA.IsValid() && SceneContext.GBufferA.IsValid() && SceneContext.GBufferA->GetRenderTargetItem().ShaderResourceTexture.IsValid())
 				{
 					FTexture2DRHIRef SourceBufferA = (FRHITexture2D*)(SceneContext.GBufferA->GetRenderTargetItem().ShaderResourceTexture.GetReference());
-					if (DestinationBufferA->GetFormat() == SourceBufferA->GetFormat())
+					if (SourceBufferA.IsValid() && DestinationBufferA->GetFormat() == SourceBufferA->GetFormat())
 					{
 						FBox2D DestinationBox(FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f));
 						RHICmdList.CopySubTextureRegion(SourceBufferA, DestinationBufferA, SourceBox, DestinationBox);
@@ -215,32 +215,44 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 			const FTexture2DRHIRef &DestinationBufferBCDE = Scene->PixelInspectorData.RenderTargetBufferBCDE[PixelInspectorRequest->BufferIndex]->GetRenderTargetTexture();
 			if (DestinationBufferBCDE.IsValid())
 			{
-				FTexture2DRHIRef SourceBufferB = (FRHITexture2D*)(SceneContext.GBufferB->GetRenderTargetItem().ShaderResourceTexture.GetReference());
-				if (DestinationBufferBCDE->GetFormat() == SourceBufferB->GetFormat())
+				if (SceneContext.GBufferB.IsValid() && SceneContext.GBufferB->GetRenderTargetItem().ShaderResourceTexture.IsValid())
 				{
-					FBox2D DestinationBox(FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f));
-					RHICmdList.CopySubTextureRegion(SourceBufferB, DestinationBufferBCDE, SourceBox, DestinationBox);
+					FTexture2DRHIRef SourceBufferB = (FRHITexture2D*)(SceneContext.GBufferB->GetRenderTargetItem().ShaderResourceTexture.GetReference());
+					if (SourceBufferB.IsValid() && DestinationBufferBCDE->GetFormat() == SourceBufferB->GetFormat())
+					{
+						FBox2D DestinationBox(FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f));
+						RHICmdList.CopySubTextureRegion(SourceBufferB, DestinationBufferBCDE, SourceBox, DestinationBox);
+					}
 				}
 
-				FTexture2DRHIRef SourceBufferC = (FRHITexture2D*)(SceneContext.GBufferC->GetRenderTargetItem().ShaderResourceTexture.GetReference());
-				if (DestinationBufferBCDE->GetFormat() == SourceBufferC->GetFormat())
+				if (SceneContext.GBufferC.IsValid() && SceneContext.GBufferC->GetRenderTargetItem().ShaderResourceTexture.IsValid())
 				{
-					FBox2D DestinationBox(FVector2D(1.0f, 0.0f), FVector2D(2.0f, 1.0f));
-					RHICmdList.CopySubTextureRegion(SourceBufferC, DestinationBufferBCDE, SourceBox, DestinationBox);
+					FTexture2DRHIRef SourceBufferC = (FRHITexture2D*)(SceneContext.GBufferC->GetRenderTargetItem().ShaderResourceTexture.GetReference());
+					if (SourceBufferC.IsValid() && DestinationBufferBCDE->GetFormat() == SourceBufferC->GetFormat())
+					{
+						FBox2D DestinationBox(FVector2D(1.0f, 0.0f), FVector2D(2.0f, 1.0f));
+						RHICmdList.CopySubTextureRegion(SourceBufferC, DestinationBufferBCDE, SourceBox, DestinationBox);
+					}
 				}
 
-				FTexture2DRHIRef SourceBufferD = (FRHITexture2D*)(SceneContext.GBufferD->GetRenderTargetItem().ShaderResourceTexture.GetReference());
-				if (DestinationBufferBCDE->GetFormat() == SourceBufferD->GetFormat())
+				if (SceneContext.GBufferD.IsValid() && SceneContext.GBufferD->GetRenderTargetItem().ShaderResourceTexture.IsValid())
 				{
-					FBox2D DestinationBox(FVector2D(2.0f, 0.0f), FVector2D(3.0f, 1.0f));
-					RHICmdList.CopySubTextureRegion(SourceBufferD, DestinationBufferBCDE, SourceBox, DestinationBox);
+					FTexture2DRHIRef SourceBufferD = (FRHITexture2D*)(SceneContext.GBufferD->GetRenderTargetItem().ShaderResourceTexture.GetReference());
+					if (SourceBufferD.IsValid() && DestinationBufferBCDE->GetFormat() == SourceBufferD->GetFormat())
+					{
+						FBox2D DestinationBox(FVector2D(2.0f, 0.0f), FVector2D(3.0f, 1.0f));
+						RHICmdList.CopySubTextureRegion(SourceBufferD, DestinationBufferBCDE, SourceBox, DestinationBox);
+					}
 				}
 
-				FTexture2DRHIRef SourceBufferE = (FRHITexture2D*)(SceneContext.GBufferE->GetRenderTargetItem().ShaderResourceTexture.GetReference());
-				if (DestinationBufferBCDE->GetFormat() == SourceBufferE->GetFormat())
+				if (SceneContext.GBufferE.IsValid() && SceneContext.GBufferE->GetRenderTargetItem().ShaderResourceTexture.IsValid())
 				{
-					FBox2D DestinationBox(FVector2D(3.0f, 0.0f), FVector2D(4.0f, 1.0f));
-					RHICmdList.CopySubTextureRegion(SourceBufferE, DestinationBufferBCDE, SourceBox, DestinationBox);
+					FTexture2DRHIRef SourceBufferE = (FRHITexture2D*)(SceneContext.GBufferE->GetRenderTargetItem().ShaderResourceTexture.GetReference());
+					if (SourceBufferE.IsValid() && DestinationBufferBCDE->GetFormat() == SourceBufferE->GetFormat())
+					{
+						FBox2D DestinationBox(FVector2D(3.0f, 0.0f), FVector2D(4.0f, 1.0f));
+						RHICmdList.CopySubTextureRegion(SourceBufferE, DestinationBufferBCDE, SourceBox, DestinationBox);
+					}
 				}
 			}
 
