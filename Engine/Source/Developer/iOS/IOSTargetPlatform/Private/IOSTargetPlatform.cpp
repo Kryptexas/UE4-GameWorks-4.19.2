@@ -31,7 +31,7 @@ FIOSTargetPlatform::FIOSTargetPlatform(bool bInIsTVOS)
 	// initialize the connected device detector
 	DeviceHelper.OnDeviceConnected().AddRaw(this, &FIOSTargetPlatform::HandleDeviceConnected);
 	DeviceHelper.OnDeviceDisconnected().AddRaw(this, &FIOSTargetPlatform::HandleDeviceDisconnected);
-	DeviceHelper.Initialize();
+	DeviceHelper.Initialize(bIsTVOS);
 }
 
 
