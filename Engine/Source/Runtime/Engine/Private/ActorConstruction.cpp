@@ -211,8 +211,11 @@ void AActor::RerunConstructionScripts()
 		// that out. So instead we redirect up the hierarchy
 		if (IsChildActor())
 		{
-			GetParentComponent()->GetOwner()->RerunConstructionScripts();
-			return;
+			if (AActor* ParentActor = GetParentComponent()->GetOwner())
+			{
+				ParentActor->RerunConstructionScripts();
+				return;
+			}
 		}
 
 		// Set global flag to let system know we are reconstructing blueprint instances
