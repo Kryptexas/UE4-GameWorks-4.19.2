@@ -31,7 +31,7 @@ UMaterialInterface* FWidgetMaterialTrackEditor::GetMaterialInterfaceForTrack( FG
 	UMovieSceneWidgetMaterialTrack* WidgetMaterialTrack = Cast<UMovieSceneWidgetMaterialTrack>( MaterialTrack );
 	if ( Widget != nullptr && WidgetMaterialTrack != nullptr )
 	{
-		FSlateBrush* Brush = WidgetMaterialTrackUtilities::GetBrush( Widget, WidgetMaterialTrack->GetBrushPropertyName() );
+		FSlateBrush* Brush = WidgetMaterialTrackUtilities::GetBrush( Widget, WidgetMaterialTrack->GetBrushPropertyNamePath() );
 		return Cast<UMaterialInterface>(Brush->GetResourceObject());
 	}
 	return nullptr;
