@@ -119,8 +119,16 @@ struct FWeightmapLayerAllocationInfo
 
 struct FLandscapeComponentGrassData
 {
-	FGuid MaterialStateId;
+#if WITH_EDITORONLY_DATA
+	// Variables used to detect when grass data needs to be regenerated:
+
+	// Guid per material instance in the hierarchy between the assigned landscape material (instance) and the root UMaterial
+	// used to detect changes to material instance parameters or the root material that could affect the grass maps
+	TArray<FGuid, TInlineAllocator<2>> MaterialStateIds;
+	// cached component rotation when material world-position-offset is used,
+	// as this will affect the direction of world-position-offset deformation (included in the HeightData below)
 	FQuat RotationForWPO;
+#endif
 
 	TArray<uint16> HeightData;
 #if WITH_EDITORONLY_DATA
@@ -131,7 +139,9 @@ struct FLandscapeComponentGrassData
 
 	FLandscapeComponentGrassData() {}
 
+#if WITH_EDITOR
 	FLandscapeComponentGrassData(ULandscapeComponent* Component);
+#endif
 
 	bool HasData()
 	{
