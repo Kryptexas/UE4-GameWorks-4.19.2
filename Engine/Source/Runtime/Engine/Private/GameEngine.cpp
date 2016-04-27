@@ -344,6 +344,8 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	.Title(WindowTitle)
 	.AutoCenter(AutoCenterType)
 	.ScreenPosition(FVector2D(WinX, WinY))
+	.MaxWidth(ResX)
+	.MaxHeight(ResY)
 	.FocusWhenFirstShown(true)
 	.SaneWindowPlacement(AutoCenterType == EAutoCenter::None)
 	.UseOSWindowBorder(true);
