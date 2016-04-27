@@ -12,6 +12,10 @@
 #include "Sound/SoundWave.h"
 #include "IAudioExtensionPlugin.h"
 
+#if WITH_EDITOR
+#include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
+#endif
+
 /*-----------------------------------------------------------------------------
 FDynamicParameter implementation.
 -----------------------------------------------------------------------------*/
@@ -3464,3 +3468,15 @@ void FAudioDevice::OnEndPIE(const bool bIsSimulating)
 	}
 }
 #endif
+
+bool FAudioDevice::CanUseVRAudioDevice()
+{
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
+		return EdEngine->bUseVRPreviewForPlayWorld;
+	}
+#endif
+	return true;
+}
