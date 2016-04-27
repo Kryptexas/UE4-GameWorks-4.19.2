@@ -1755,7 +1755,21 @@ void FAudioDevice::ApplyClassAdjusters(USoundMix* SoundMix, float InterpValue, f
 		{
 			if (Entry.bApplyToChildren)
 			{
-				RecursiveApplyAdjuster(Entry, Entry.SoundClassObject);
+				// If we're using the override, Entry will already have interpolated values
+				if (bUsingOverride)
+				{
+					RecursiveApplyAdjuster(Entry, Entry.SoundClassObject);
+				}
+				else
+				{
+					// Copy the entry with the interpolated values before applying it recursively
+					FSoundClassAdjuster EntryCopy = Entry;
+					EntryCopy.VolumeAdjuster = InterpolateAdjuster(Entry.VolumeAdjuster, InterpValue);
+					EntryCopy.PitchAdjuster = InterpolateAdjuster(Entry.PitchAdjuster, InterpValue);
+					EntryCopy.VoiceCenterChannelVolumeAdjuster = InterpolateAdjuster(Entry.VoiceCenterChannelVolumeAdjuster, InterpValue);
+
+					RecursiveApplyAdjuster(EntryCopy, Entry.SoundClassObject);
+				}
 			}
 			else
 			{
