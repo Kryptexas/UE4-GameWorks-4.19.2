@@ -471,6 +471,11 @@ bool FSlateEditableTextLayout::RefreshImpl(const FText* InTextToSet, const bool 
 
 	bWasPasswordLastTick = bIsPassword;
 
+	if (bHasSetText)
+	{
+		TextLayout->UpdateIfNeeded();
+	}
+
 	return bHasSetText;
 }
 
