@@ -47,8 +47,9 @@ inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(
 }
 
 template<typename VertexParametersType>
-void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) {
-	if (InstancedEyeIndexParameter.IsBound())
+void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex)
+{
+	if (EyeIndex > 0 && InstancedEyeIndexParameter.IsBound())
 	{
 		SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, EyeIndex);
 	}
