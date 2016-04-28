@@ -42,11 +42,11 @@ public:
 	 * @param	InTexture: new Texture2D
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Stereo Layer")
-	void SetTexture(UTexture2D* InTexture);
+	void SetTexture(UTexture* InTexture);
 
 	// @return the texture mapped to the stereo layer quad
 	UFUNCTION(BlueprintCallable, Category="Components|Stereo Layer")
-	UTexture2D* GetTexture() const { return Texture; }
+	UTexture* GetTexture() const { return Texture; }
 	
 	/** 
 	 * Change the quad size. This is the unscaled height and width, before component scale is applied.
@@ -81,10 +81,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Stereo Layer")
 	int32 GetPriority() const { return Priority; }
 
+	// Manually mark the stereo layer texture for updating
+	UFUNCTION(BlueprintCallable, Category="Components|Stereo Layer")
+	void MarkTextureForUpdate();
+
+	/** True if the stereo layer texture needs to update itself every frame(scene capture, video, etc.) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=StereoLayer)
+	uint32 bLiveTexture:1;
+
+	/** True if the texture should not use it's own alpha channel (1.0 will be substituted) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=StereoLayer)
+	uint32 bNoAlphaChannel:1;
+
 protected:
 	/** Texture displayed on the stereo layer **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StereoLayer)
-	class UTexture2D* Texture;
+	class UTexture* Texture;
 
 	/** Size of the rendered stereo layer quad **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, export, Category=StereoLayer)
@@ -106,10 +118,16 @@ private:
 	/** Dirty state determines whether the stereo layer needs updating **/
 	bool bIsDirty;
 
+	/** Texture needs to be marked for update **/
+	bool bTextureNeedsUpdate;
+
 	/** IStereoLayer id, 0 is unassigned **/
 	uint32 LayerId;
 
 	/** Last transform is cached to determine if the new frames transform has changed **/
 	FTransform LastTransform;
+
+	/** Last frames visiblity state **/
+	bool bLastVisible;
 };
 

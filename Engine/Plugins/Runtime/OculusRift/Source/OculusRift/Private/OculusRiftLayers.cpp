@@ -244,13 +244,11 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 
 				RenderLayer->Layer.Quad.Viewport = OVR::Recti();
 
-				UTexture* TextureObj = LayerDesc.GetTexture();
-				FTextureRHIRef Texture;
+				FTextureRHIRef Texture = LayerDesc.GetTexture();
 				int32 SizeX = 16, SizeY = 16; // 16x16 default texture size for black rect (if the actual texture is not set)
 				EPixelFormat Format = EPixelFormat::PF_B8G8R8A8;
-				if (TextureObj && TextureObj->IsValidLowLevel() && TextureObj->Resource && TextureObj->Resource->TextureRHI)
+				if (Texture.IsValid())
 				{
-					Texture = TextureObj->Resource->TextureRHI;
 					SizeX = Texture->GetTexture2D()->GetSizeX();
 					SizeY = Texture->GetTexture2D()->GetSizeY();
 					Format = Texture->GetFormat();
@@ -299,12 +297,23 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 				}
 #endif
 
+				bTextureChanged |= (Texture && LayerDesc.HasPendingTextureCopy()) ? true : false;
+				bTextureChanged |= (LayerDesc.GetFlags() & IStereoLayers::LAYER_FLAG_TEX_CONTINUOUS_UPDATE) ? true : false;
+
 				// Copy texture if it was changed
 				if (RenderLayer->TextureSet.IsValid() && bTextureChanged)
 				{
 					if (Texture)
 					{
-						pPresentBridge->CopyTexture_RenderThread(RHICmdList, RenderLayer->TextureSet->GetRHITexture2D(), Texture->GetTexture2D(), FIntRect(), FIntRect(), true);
+						pPresentBridge->CopyTexture_RenderThread(
+							RHICmdList,
+							RenderLayer->TextureSet->GetRHITexture2D(),
+							Texture->GetTexture2D(),
+							FIntRect(),
+							FIntRect(),
+							true,
+							!!(LayerDesc.GetFlags() & IStereoLayers::LAYER_FLAG_TEX_NO_ALPHA_CHANNEL));
+						LayerDesc.ClearPendingTextureCopy();
 					}
 					RenderLayer->CommitTextureSet(RHICmdList);
 				}

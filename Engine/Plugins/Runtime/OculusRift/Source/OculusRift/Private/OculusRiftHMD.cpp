@@ -1135,7 +1135,7 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			if (LID1 == 0)
 			{
 				IStereoLayers::FLayerDesc LayerDesc;
-				LayerDesc.Texture = LoadingTexture;
+				LayerDesc.Texture = LoadingTexture->Resource->TextureRHI;
 				LayerDesc.Priority = 10;
 				LayerDesc.Transform = FTransform(FVector(400, 30, 130));
 				LayerDesc.QuadSize = FVector2D(200, 200);
@@ -1146,7 +1146,7 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			if (LID2 == 0)
 			{
 				IStereoLayers::FLayerDesc LayerDesc;
-				LayerDesc.Texture = LoadingTexture;
+				LayerDesc.Texture = LoadingTexture->Resource->TextureRHI;
 				LayerDesc.Priority = 11;
 				LayerDesc.Transform = FTransform(FRotator(0, 30, 0), FVector(300, 0, 0));
 				LayerDesc.QuadSize = FVector2D(100, 100);

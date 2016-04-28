@@ -189,7 +189,7 @@ void FOculusRiftSplash::Show(EShowType InShowType)
 					const uint32 Prio = FHMDLayerDesc::MaxPriority - uint32(SplashScreenDescs[i].TransformInMeters.GetTranslation().X * 1000.f);
 					TSharedPtr<FHMDLayerDesc> layer = LayerMgr->AddLayer(FHMDLayerDesc::Quad, Prio, FHMDLayerManager::Layer_TorsoLocked, RenSplash.SplashLID);
 					check(layer.IsValid());
-					layer->SetTexture(SplashScreenDescs[i].LoadingTexture);
+					layer->SetTexture(SplashScreenDescs[i].LoadingTexture->Resource->TextureRHI);
 					layer->SetTransform(SplashScreenDescs[i].TransformInMeters);
 					layer->SetQuadSize(SplashScreenDescs[i].QuadSizeInMeters);
 

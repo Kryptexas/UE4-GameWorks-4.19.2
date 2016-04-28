@@ -1375,11 +1375,13 @@ void FHeadMountedDisplay::SetLayerDesc(uint32 LayerId, const IStereoLayers::FLay
 	if (pLayer && pLayer->GetType() == FHMDLayerDesc::Quad)
 	{
 		FHMDLayerDesc Layer = *pLayer;
+		Layer.SetFlags(InLayerDesc.Flags);
 		Layer.SetLockedToHead(InLayerDesc.Type == IStereoLayers::ELayerType::FaceLocked);
 		Layer.SetLockedToTorso(InLayerDesc.Type == IStereoLayers::ELayerType::TorsoLocked);
 		Layer.SetTexture(InLayerDesc.Texture);
 		Layer.SetQuadSize(InLayerDesc.QuadSize);
 		Layer.SetTransform(InLayerDesc.Transform);
+		Layer.ResetChangedFlags();
 		Layer.SetTextureViewport(InLayerDesc.UVRect);
 		pLayerMgr->UpdateLayer(Layer);
 	}
@@ -1407,24 +1409,46 @@ bool FHeadMountedDisplay::GetLayerDesc(uint32 LayerId, IStereoLayers::FLayerDesc
 	FHMDLayerDesc Layer = *pLayer;
 	OutLayerDesc.Priority = Layer.GetPriority();
 	OutLayerDesc.QuadSize = Layer.GetQuadSize();
-	OutLayerDesc.Texture = dynamic_cast<UTexture2D*>(Layer.GetTexture());
+	OutLayerDesc.Texture = Layer.GetTexture();
 	OutLayerDesc.Transform = Layer.GetTransform();
 	OutLayerDesc.UVRect = Layer.GetTextureViewport();
 
 	if (Layer.IsHeadLocked())
 	{
-		OutLayerDesc.Type = IStereoLayers::ELayerType::FaceLocked;
+		OutLayerDesc.Type = IStereoLayers::FaceLocked;
 	}
 	else if (Layer.IsTorsoLocked())
 	{
-		OutLayerDesc.Type = IStereoLayers::ELayerType::TorsoLocked;
+		OutLayerDesc.Type = IStereoLayers::TorsoLocked;
 	}
 	else
 	{
-		OutLayerDesc.Type = IStereoLayers::ELayerType::WorldLocked;
+		OutLayerDesc.Type = IStereoLayers::WorldLocked;
 	}
 
 	return true;
+}
+
+void FHeadMountedDisplay::MarkTextureForUpdate(uint32 LayerId)
+{
+	if (LayerId == 0)
+	{
+		return;
+	}
+
+	const FHMDLayerManager* pLayerMgr = GetLayerManager();
+	if (!pLayerMgr)
+	{
+		return;
+	}
+
+	const FHMDLayerDesc* pLayer = pLayerMgr->GetLayerDesc(LayerId);
+	if (!pLayer)
+	{
+		return;
+	}
+
+	pLayer->MarkTextureChanged();
 }
 
 void FHeadMountedDisplay::QuantizeBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY, uint32 DividableBy)
@@ -1441,6 +1465,7 @@ FHMDLayerDesc::FHMDLayerDesc(class FHMDLayerManager& InLayerMgr, ELayerTypeMask 
 	LayerManager(InLayerMgr)
 	, Id(InID | InType)
 	, Texture(nullptr)
+	, Flags(0)
 	, TextureUV(ForceInit)
 	, QuadSize(FVector2D::ZeroVector)
 	, Priority(InPriority & IdMask)
@@ -1475,7 +1500,7 @@ void FHMDLayerDesc::SetQuadSize(const FVector2D& InSize)
 	LayerManager.SetDirty();
 }
 
-void FHMDLayerDesc::SetTexture(UTexture* InTexture)
+void FHMDLayerDesc::SetTexture(FTextureRHIRef InTexture)
 {
 	if (Texture == InTexture)
 	{
@@ -1552,8 +1577,15 @@ FHMDLayerDesc& FHMDLayerDesc::operator=(const FHMDLayerDesc& InSrc)
 		QuadSize = InSrc.QuadSize;
 		Transform = InSrc.Transform;
 	}
+	Flags = InSrc.Flags;
 	LayerManager.SetDirty();
 	return *this;
+}
+
+void FHMDLayerDesc::ResetChangedFlags()
+{
+	bTextureCopyPending |= !!bTextureHasChanged;
+	bTextureHasChanged = bTransformHasChanged = bNewLayer = bAlreadyAdded = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1590,32 +1622,6 @@ FHMDLayerManager::FHMDLayerManager() :
 
 FHMDLayerManager::~FHMDLayerManager()
 {
-}
-
-void FHMDLayerManager::AddReferencedObjects(FReferenceCollector& Collector)
-{
-	//Collector.AddReferencedObject(WidgetVertexColorMaterial);
-	for (uint32 i = 0, n = EyeLayers.Num(); i < n; ++i)
-	{
-		if (EyeLayers[i].IsValid() && EyeLayers[i]->HasTexture())
-		{
-			Collector.AddReferencedObject(EyeLayers[i]->GetUTextureRef());
-		}
-	}
-	for (uint32 i = 0, n = QuadLayers.Num(); i < n; ++i)
-	{
-		if (QuadLayers[i].IsValid() && QuadLayers[i]->HasTexture())
-		{
-			Collector.AddReferencedObject(QuadLayers[i]->GetUTextureRef());
-		}
-	}
-	for (uint32 i = 0, n = DebugLayers.Num(); i < n; ++i)
-	{
-		if (DebugLayers[i].IsValid() && DebugLayers[i]->HasTexture())
-		{
-			Collector.AddReferencedObject(DebugLayers[i]->GetUTextureRef());
-		}
-	}
 }
 
 void FHMDLayerManager::Startup()

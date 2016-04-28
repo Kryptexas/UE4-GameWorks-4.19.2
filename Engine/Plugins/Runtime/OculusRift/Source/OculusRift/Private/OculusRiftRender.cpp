@@ -203,7 +203,7 @@ bool FOculusRiftHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uin
 }
 
 void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, 
-	FIntRect DstRect, FIntRect SrcRect, bool bAlphaPremultiply, const bool bClearRenderTargetToBlackFirst ) const
+	FIntRect DstRect, FIntRect SrcRect, bool bAlphaPremultiply, bool bNoAlphaWrite) const
 {
 	check(IsInRenderingThread());
 
@@ -230,27 +230,36 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, &SrcTextureRHI, 1);
 
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
-
-	if( bClearRenderTargetToBlackFirst )
-	{
-		const bool bClearColor = true;
-		const bool bClearDepth = false;
-		const bool bClearStencil = false;
-		RHICmdList.Clear( bClearColor, FLinearColor::Black, bClearDepth, 0.0f, bClearStencil, 0, FIntRect() );
-	}
-
 	RHICmdList.SetViewport(DstRect.Min.X, DstRect.Min.Y, 0, DstRect.Max.X, DstRect.Max.Y, 1.0f);
 
 	if (bAlphaPremultiply)
 	{
-		// for quads, write RGBA, RGB = src.rgb * src.a + dst.rgb * 0, A = src.a + dst.a * 0
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
+		if (bNoAlphaWrite)
+		{
+			// for quads, write RGB, RGB = src.rgb * 1 + dst.rgb * 0
+			RHICmdList.Clear(true, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f), false, 0.0f, false, 0, FIntRect(0, 0, 0, 0));
+			RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
+		}
+		else
+		{
+			// for quads, write RGBA, RGB = src.rgb * src.a + dst.rgb * 0, A = src.a + dst.a * 0
+			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
+		}
 	}
 	else
 	{
-		// for mirror window
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		if (bNoAlphaWrite)
+		{
+			RHICmdList.Clear(true, FLinearColor(1.0f, 1.0f, 1.0f, 1.0f), false, 0.0f, false, 0, FIntRect(0, 0, 0, 0));
+			RHICmdList.SetBlendState(TStaticBlendState<CW_RGB>::GetRHI());
+		}
+		else
+		{
+			// for mirror window
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		}
 	}
+
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
