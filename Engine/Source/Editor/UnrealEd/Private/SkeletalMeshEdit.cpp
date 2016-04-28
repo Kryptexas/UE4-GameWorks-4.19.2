@@ -955,6 +955,7 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 			if (TargetSequence->RawCurveData.AddCurveData(Uid, ACF_DefaultCurve | CurveFlags))
 			{
 				CurveToImport = static_cast<FFloatCurve *> (TargetSequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
+				CurveToImport->LastObservedName = Name;
 			}
 			else
 			{
