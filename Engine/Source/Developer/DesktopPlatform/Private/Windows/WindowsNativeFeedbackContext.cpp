@@ -38,7 +38,7 @@ void FWindowsNativeFeedbackContext::Serialize( const TCHAR* V, ELogVerbosity::Ty
 		{
 			Prefix = Context->GetContext() + TEXT(" : ");
 		}
-		FString Format = Prefix + FOutputDevice::FormatLogLine(Verbosity, Category, V);
+		FString Format = Prefix + FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V);
 
 		if(Verbosity == ELogVerbosity::Error)
 		{

@@ -341,8 +341,25 @@
 #ifndef RESTRICT
 	#define RESTRICT __restrict						/* no alias hint */
 #endif
+
+/* Wrap a function signature in these to warn that callers should not ignore the return value */
+#ifndef FUNCTION_CHECK_RETURN_START
+	#define FUNCTION_CHECK_RETURN_START
+#endif
+#ifndef FUNCTION_CHECK_RETURN_END
+	#define FUNCTION_CHECK_RETURN_END
+#endif
+
+/* Wrap a function signature in these to indicate that the function never returns */
+#ifndef FUNCTION_NO_RETURN_START
+	#define FUNCTION_NO_RETURN_START
+#endif
+#ifndef FUNCTION_NO_RETURN_END
+	#define FUNCTION_NO_RETURN_END
+#endif
+
 #ifndef FUNCTION_CHECK_RETURN
-	#define FUNCTION_CHECK_RETURN(...) __VA_ARGS__	/* Wrap a function signature in this to warn that callers should not ignore the return value */
+	#define FUNCTION_CHECK_RETURN(...) DEPRECATED_MACRO(4.12, "FUNCTION_CHECK_RETURN has been deprecated and should be replaced with FUNCTION_CHECK_RETURN_START and FUNCTION_CHECK_RETURN_END.") FUNCTION_CHECK_RETURN_START __VA_ARGS__ FUNCTION_CHECK_RETURN_END
 #endif
 
 #ifndef ASSUME										/* Hints compiler that expression is true; generally restricted to comparisons against constants */

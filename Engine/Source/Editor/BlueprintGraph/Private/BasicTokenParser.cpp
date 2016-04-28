@@ -200,7 +200,10 @@ void FBasicTokenParser::FErrorState::Throw(bool bLogFatal) const
 		{
 			UE_LOG(LogTokenParser, Fatal, TEXT("%s"), *ErrorString);
 		}
-		FError::Throwf(*ErrorString);
+		else
+		{
+			UE_LOG(LogTokenParser, Error, TEXT("FErrorState::Throw: %s"), *ErrorString);
+		}
 	}
 }
 

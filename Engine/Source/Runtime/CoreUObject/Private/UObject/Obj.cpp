@@ -546,7 +546,7 @@ void UObject::GetArchetypeInstances( TArray<UObject*>& Instances )
 				UObject* Obj = It;
 				
 				// if this object is the correct type and its archetype is this object, add it to the list
-				if ( Obj != this && Obj && Obj->IsBasedOnArchetype(this) )
+				if ( Obj && Obj != this && Obj->IsBasedOnArchetype(this) )
 				{
 					Instances.Add(Obj);
 				}
@@ -2016,8 +2016,7 @@ void UObject::ReinitializeProperties( UObject* SourceObject/*=NULL*/, FObjectIns
 		SourceObject = GetArchetype();
 	}
 
-	check( SourceObject||GetClass()==UObject::StaticClass() );
-	checkSlow(GetClass()==UObject::StaticClass()||IsA(SourceObject->GetClass()));
+	check(GetClass() == UObject::StaticClass() || (SourceObject && IsA(SourceObject->GetClass())));
 
 	// Recreate this object based on the new archetype - using StaticConstructObject rather than manually tearing down and re-initializing
 	// the properties for this object ensures that any cleanup required when an object is reinitialized from defaults occurs properly

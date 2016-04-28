@@ -111,7 +111,6 @@ FD3D12DeferredDeletionQueue::FD3D12AsyncDeletionWorker::FD3D12AsyncDeletionWorke
 
 	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
 
-	FencedObjectType FenceObject;
 	FDequeueFenceObject DequeueFenceObject(&CommandListManager);
 
 	DeletionQueue->BatchDequeue(&Queue, DequeueFenceObject, 4096);

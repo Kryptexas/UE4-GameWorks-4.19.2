@@ -348,7 +348,7 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 	int32 Index = 0;
 
 	ArrayHelper.ExpandForIndex(0);
-	while ((Buffer != NULL) && (*Buffer != TCHAR(')')))
+	while (*Buffer != TCHAR(')'))
 	{
 		SkipWhitespace(Buffer);
 
@@ -379,7 +379,6 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 	}
 
 	// Make sure we ended on a )
-	CA_SUPPRESS(6011)
 	if (*Buffer++ != TCHAR(')'))
 	{
 		return NULL;

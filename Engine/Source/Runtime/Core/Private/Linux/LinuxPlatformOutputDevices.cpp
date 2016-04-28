@@ -215,7 +215,7 @@ void FOutputDeviceConsoleLinux::Serialize(const TCHAR* Data, ELogVerbosity::Type
 				}
 			}
 
-			printf("%ls\n", *FOutputDevice::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes));
+			printf("%ls\n", *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes));
 
 			if (bNeedToResetColor)
 			{

@@ -2026,7 +2026,7 @@ void FWindowsApplication::RemoveMessageHandler(IWindowsMessageHandler& InMessage
 void FWindowsApplication::QueryConnectedMice()
 {
 	TArray<RAWINPUTDEVICELIST> DeviceList;
-	UINT DeviceCount;
+	UINT DeviceCount = 0;
 
 	GetRawInputDeviceList(nullptr, &DeviceCount, sizeof(RAWINPUTDEVICELIST));
 	if (DeviceCount == 0)
@@ -2041,7 +2041,7 @@ void FWindowsApplication::QueryConnectedMice()
 	int32 MouseCount = 0;
 	for (const auto& Device : DeviceList)
 	{
-		UINT NameLen;
+		UINT NameLen = 0;
 		TAutoPtr<char> Name;
 		if (Device.dwType != RIM_TYPEMOUSE)
 			continue;
@@ -2076,7 +2076,10 @@ void FTaskbarList::Initialize()
 {
 	if (FWindowsPlatformMisc::CoInitialize())
 	{
-		CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList3, (void **)&TaskBarList3);
+		if (CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList3, (void **)&TaskBarList3) != S_OK)
+		{
+			TaskBarList3 = nullptr;
+		}
 	}
 }
 

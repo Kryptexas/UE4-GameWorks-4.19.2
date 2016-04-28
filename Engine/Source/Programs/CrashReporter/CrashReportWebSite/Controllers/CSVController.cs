@@ -159,9 +159,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					// Only anonymous user
 					.Where( c => c.UserNameId == AnonymousID );
 
-				int TotalCrashes = CrashRepo
-					.ListAll()
-					.Count();
+                //Server timeout
+			    int TotalCrashes = CrashRepo.ListAll().Count();
 
 				int TotalCrashesYearToDate = CrashRepo
 					.ListAll()
@@ -181,16 +180,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					.Where( c => c.TimeOfCrash > new DateTime( DateTime.UtcNow.Year, 1, 1 ) )
 					.Count();
 
-				int AffectedUsersFiltered = FilteringQueryCrashes
-					.Select( c => c.EpicAccountId )
-					.Distinct()
-					.Count();
+                //DB server timeout
+			    int AffectedUsersFiltered = FilteringQueryCrashes.Select( c => c.EpicAccountId ).Distinct().Count();
 
-				int UniqueCrashesFiltered = FilteringQueryCrashes
-					.Select( c => c.Pattern )
-					.Distinct()
-					.Count();
-
+                //DB server time out
+			    int UniqueCrashesFiltered = FilteringQueryCrashes.Select( c => c.Pattern ).Count();
 
 				int NumCrashes = FilteringQueryJoin.Count();
 
@@ -202,9 +196,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				string CSVPathname = Path.Combine( Settings.Default.CrashReporterCSV, DateTime.UtcNow.ToString( "yyyy-MM-dd.HH-mm-ss" ) );
 				CSVPathname += string
 					.Format( "__[{0}---{1}]__{2}", 
-					FormData.DateFrom.ToString( "yyyy-MM-dd" ), 
+					FormData.DateFrom.ToString( "yyyy-MM-dd" ),
 					FormData.DateTo.ToString( "yyyy-MM-dd" ), 
-					NumCrashes ) 
+					NumCrashes )
 					+ ".csv";
 
 				string ServerPath = Server.MapPath( CSVPathname );

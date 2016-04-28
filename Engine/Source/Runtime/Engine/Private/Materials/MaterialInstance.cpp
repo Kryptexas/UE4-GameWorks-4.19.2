@@ -1903,9 +1903,9 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 		{
 			StaticParameters.Serialize(Ar);
 #if WITH_EDITOR
-			SerializeInlineShaderMaps( &CachedMaterialResourcesForCooking, Ar, StaticPermutationMaterialResources );
+			SerializeInlineShaderMaps(&CachedMaterialResourcesForCooking, Ar, LoadedMaterialResources);
 #else
-			SerializeInlineShaderMaps( NULL, Ar, StaticPermutationMaterialResources );
+			SerializeInlineShaderMaps(NULL, Ar, LoadedMaterialResources);
 #endif
 
 		}
@@ -1977,6 +1977,11 @@ void UMaterialInstance::PostLoad()
 {
 	SCOPED_LOADTIMER(MaterialInstancePostLoad);
 	Super::PostLoad();
+
+	// Resources can be processed / registered now that we're back on the main thread
+	ProcessSerializedInlineShaderMaps(LoadedMaterialResources, StaticPermutationMaterialResources);
+	// Empty the lsit of loaded resources, we don't need it anymore
+	LoadedMaterialResources.Empty();
 
 	AssertDefaultMaterialsPostLoaded();
 

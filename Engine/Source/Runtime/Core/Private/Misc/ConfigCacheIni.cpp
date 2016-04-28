@@ -307,12 +307,12 @@ void FConfigFile::CombineFromBuffer(const FString& Buffer)
 						}
 						else if( *Value == TEXT('u') && Value[1] && Value[2] && Value[3] && Value[4] )	// \uXXXX - UNICODE code point
 						{
-							ProcessedValue += FParse::HexDigit(Value[1])*(1<<12) + FParse::HexDigit(Value[2])*(1<<8) + FParse::HexDigit(Value[3])*(1<<4) + FParse::HexDigit(Value[4]);
+							ProcessedValue += (TCHAR)(FParse::HexDigit(Value[1])*(1<<12) + FParse::HexDigit(Value[2])*(1<<8) + FParse::HexDigit(Value[3])*(1<<4) + FParse::HexDigit(Value[4]));
 							Value += 5;
 						}
 						else if( Value[1] ) // some other escape sequence, assume it's a hex character value
 						{
-							ProcessedValue += FParse::HexDigit(Value[0])*16 + FParse::HexDigit(Value[1]);
+							ProcessedValue += (TCHAR)(FParse::HexDigit(Value[0])*16 + FParse::HexDigit(Value[1]));
 							Value += 2;
 						}
 					}
@@ -485,12 +485,12 @@ void FConfigFile::ProcessInputFileContents(const FString& Contents)
 						}
 						else if( *NewValue == TEXT('u') && NewValue[1] && NewValue[2] && NewValue[3] && NewValue[4] )	// \uXXXX - UNICODE code point
 						{
-							ProcessedValue += FParse::HexDigit(NewValue[1])*(1<<12) + FParse::HexDigit(NewValue[2])*(1<<8) + FParse::HexDigit(NewValue[3])*(1<<4) + FParse::HexDigit(NewValue[4]);
+							ProcessedValue += (TCHAR)(FParse::HexDigit(NewValue[1])*(1<<12) + FParse::HexDigit(NewValue[2])*(1<<8) + FParse::HexDigit(NewValue[3])*(1<<4) + FParse::HexDigit(NewValue[4]));
 							NewValue += 5;
 						}
 						else if( NewValue[1] ) // some other escape sequence, assume it's a hex character value
 						{
-							ProcessedValue += FParse::HexDigit(NewValue[0])*16 + FParse::HexDigit(NewValue[1]);
+							ProcessedValue += (TCHAR)(FParse::HexDigit(NewValue[0])*16 + FParse::HexDigit(NewValue[1]));
 							NewValue += 2;
 						}
 					}

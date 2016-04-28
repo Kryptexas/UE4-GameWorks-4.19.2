@@ -25,6 +25,15 @@ public:
 	int32 Cpp11Init = 123;
 
 	UPROPERTY()
+	int RawInt;
+
+	UPROPERTY()
+	unsigned int RawUint;
+
+	UFUNCTION()
+	void FuncTakingRawInts(int Signed, unsigned int Unsigned);
+
+	UPROPERTY()
 	ECppEnum EnumProperty;
 
 	UPROPERTY()

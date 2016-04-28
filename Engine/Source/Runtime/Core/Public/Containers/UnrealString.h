@@ -403,7 +403,8 @@ public:
 	 * @param inChar other Char to be concatenated onto the end of this string
 	 * @return reference to this
 	 */
-	FORCEINLINE FString& operator+=(const TCHAR InChar)
+	template <typename CharType>
+	FORCEINLINE typename TEnableIf<TIsCharType<CharType>::Value, FString&>::Type operator+=(CharType InChar)
 	{
 		CheckInvariants();
 
@@ -550,7 +551,8 @@ public:
 	 *
 	 * @return The concatenated string.
 	 */
-	FORCEINLINE friend FString operator+(const FString& Lhs, TCHAR Rhs)
+	template <typename CharType>
+	FORCEINLINE friend typename TEnableIf<TIsCharType<CharType>::Value, FString>::Type operator+(const FString& Lhs, CharType Rhs)
 	{
 		Lhs.CheckInvariants();
 
@@ -568,7 +570,8 @@ public:
 	 *
 	 * @return The concatenated string.
 	 */
-	FORCEINLINE friend FString operator+(FString&& Lhs, TCHAR Rhs)
+	template <typename CharType>
+	FORCEINLINE friend typename TEnableIf<TIsCharType<CharType>::Value, FString>::Type operator+(FString&& Lhs, CharType Rhs)
 	{
 		Lhs.CheckInvariants();
 

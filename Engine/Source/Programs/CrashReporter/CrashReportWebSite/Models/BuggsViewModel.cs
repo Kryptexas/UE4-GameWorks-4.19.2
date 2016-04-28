@@ -43,8 +43,22 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>The date of the most recent crash in a Bugg.</summary>
 		public long DateTo { get; set; }
 
-		/// <summary>The version to filter by.</summary>
-		public string VersionName { get; set; }
+        /// <summary>The name of the branch to filter by.</summary>
+        public string BranchName { get; set; }
+
+        /// <summary>The version to filter by.</summary>
+        public string VersionName { get; set; }
+
+        /// <summary>The platform to filter by.</summary>
+        public string PlatformName { get; set; }
+
+        /// <summary>The Id to filter by</summary>
+        public string Jira { get; set; }
+
+        /// <summary>
+        /// Bugg Id for search
+        /// </summary>
+        public int BuggId { get; set; }
 
 		/// <summary>A dictionary of the number of Buggs per user group.</summary>
 		public SortedDictionary<string, int> GroupCounts { get; set; }
@@ -74,6 +88,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>A collection of Version names used in the drop down on the main search form</summary>
 		public List<SelectListItem> VersionNames { get; set; }
 
+        /// <summary>A collection of Branch names used in the drop down on the main search form</summary>
+        public List<SelectListItem> BranchNames { get; set; }
+
+        /// <summary>A collection of Platform names used in the drop down on the main search form</summary>
+        public List<SelectListItem> PlatformNames { get; set; }
+
 		/// <summary>Time spent in generating this site, formatted as a string.</summary>
 		public string GenerationTime { get; set; }
 
@@ -82,7 +102,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// </summary>
 		public BuggsViewModel()
 		{
-			VersionNames = CrashRepository.GetVersionsAsListItems();
+            BranchNames = CrashRepository.GetBranchesAsListItems();
+            VersionNames = CrashRepository.GetVersionsAsListItems();
+            PlatformNames = CrashRepository.GetPlatformsAsListItems();
 		}
 	}
 }

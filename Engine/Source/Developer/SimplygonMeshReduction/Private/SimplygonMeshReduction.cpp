@@ -569,24 +569,68 @@ public:
 			return NULL;
 		}
 
-		const char* LicenseData = NULL;
-		TArray<uint8> LicenseFileContents;
-		if (FFileHelper::LoadFileToArray(LicenseFileContents, *FPaths::Combine(*DllPath, TEXT("Simplygon_5_license.dat")), FILEREAD_Silent) && LicenseFileContents.Num() > 0)
+		// Workaround for the fact Simplygon stomps memory
+		class FSimplygonLicenseData
 		{
-			LicenseData = (const char*)LicenseFileContents.GetData();
+			uint8* LicenseDataMem;
+			int32 RealDataOffset;
+		public:
+			FSimplygonLicenseData(const TCHAR* InDllPath)
+				: LicenseDataMem(nullptr)
+				, RealDataOffset(0)
+			{
+				TArray<uint8> LicenseFileContents;
+				if (FFileHelper::LoadFileToArray(LicenseFileContents, *FPaths::Combine(InDllPath, TEXT("Simplygon_5_license.dat")), FILEREAD_Silent))
+				{
+					if (LicenseFileContents.Num() > 0)
+					{
+						// Allocate with a big slack at the beginning and end to workaround the fact Simplygon stomps memory					
+						const int32 LicenseDataSizeWithSlack = LicenseFileContents.Num() * 3 * sizeof(uint8);
+						LicenseDataMem = (uint8*)FMemory::Malloc(LicenseDataSizeWithSlack);
+						FMemory::Memzero(LicenseDataMem, LicenseDataSizeWithSlack);
+						// Copy data to somewhere in the middle of allocated memory
+						RealDataOffset = LicenseFileContents.Num();
+						FMemory::Memcpy(LicenseDataMem + RealDataOffset, LicenseFileContents.GetData(), LicenseFileContents.Num() * sizeof(uint8));
+					}
+				}
+			}
+			~FSimplygonLicenseData()
+			{
+				FMemory::Free(LicenseDataMem);
+			}
+			const char* GetLicenseData() const
+			{
+				return (const char*)(LicenseDataMem + RealDataOffset);
+			}
+			bool IsValid() const
+			{
+				return !!LicenseDataMem;
+			}
+		} LicenseDataContainer(*DllPath);
+
+		FSimplygonMeshReduction* Result = nullptr;
+		if (LicenseDataContainer.IsValid())
+		{
+			SimplygonSDK::ISimplygonSDK* SDK = NULL;
+			int32 InitResult = InitializeSimplygonSDK(LicenseDataContainer.GetLicenseData(), &SDK);
+
+			if (InitResult != SimplygonSDK::SG_ERROR_NOERROR && InitResult != SimplygonSDK::SG_ERROR_ALREADYINITIALIZED)
+			{
+				UE_LOG(LogSimplygon, Warning, TEXT("Failed to initialize Simplygon. Error: %d."), Result);
+				FPlatformProcess::FreeDllHandle(GSimplygonSDKDLLHandle);
+				GSimplygonSDKDLLHandle = nullptr;
+			}
+			else
+			{
+				Result = new FSimplygonMeshReduction(SDK);
+			}
+		}
+		else
+		{
+			UE_LOG(LogSimplygon, Warning, TEXT("Failed to load Simplygon license file."));
 		}
 
-		SimplygonSDK::ISimplygonSDK* SDK = NULL;
-		int32 Result = InitializeSimplygonSDK(LicenseData, &SDK);
-		if (Result != SimplygonSDK::SG_ERROR_NOERROR && Result != SimplygonSDK::SG_ERROR_ALREADYINITIALIZED)
-		{
-			UE_LOG(LogSimplygon,Warning,TEXT("Failed to initialize Simplygon. Error: %d."),Result);
-			FPlatformProcess::FreeDllHandle(GSimplygonSDKDLLHandle);
-			GSimplygonSDKDLLHandle = NULL;
-			return NULL;
-		}
-
-		return new FSimplygonMeshReduction(SDK);
+		return Result;
 	}
 
 	struct FMaterialCastingProperties

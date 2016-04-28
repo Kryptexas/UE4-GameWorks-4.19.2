@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IntegerSequence.h"
+#include "Templates/AndOr.h"
 
 template <int32 N, typename... Types>
 struct TNthTypeFromParameterPack;

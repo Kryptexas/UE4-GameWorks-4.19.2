@@ -12,6 +12,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogD3D11ShaderCompiler, Log, All);
 // D3D headers.
 #define D3D_OVERLOADS 1
 
+// D3D doesn't define a mask for this, so we do so here
+#define SHADER_OPTIMIZATION_LEVEL_MASK (D3D10_SHADER_OPTIMIZATION_LEVEL0 | D3D10_SHADER_OPTIMIZATION_LEVEL1 | D3D10_SHADER_OPTIMIZATION_LEVEL2 | D3D10_SHADER_OPTIMIZATION_LEVEL3)
+
 // Disable macro redefinition warning for compatibility with Windows SDK 8+
 #pragma warning(push)
 #pragma warning(disable : 4005)	// macro redefinition
@@ -153,7 +156,8 @@ static FString D3D11CreateShaderCompileCommandLine(
 	const FString& ShaderPath, 
 	const TCHAR* EntryFunction, 
 	const TCHAR* ShaderProfile, 
-	uint32 CompileFlags
+	uint32 CompileFlags,
+	FShaderCompilerOutput& Output
 	)
 {
 	// fxc is our command line compiler
@@ -206,20 +210,30 @@ static FString D3D11CreateShaderCompileCommandLine(
 		FXCCommandline += FString(TEXT(" /Gec"));
 	}
 
-	if ((CompileFlags & D3D10_SHADER_OPTIMIZATION_LEVEL2) == D3D10_SHADER_OPTIMIZATION_LEVEL2)
+	switch (CompileFlags & SHADER_OPTIMIZATION_LEVEL_MASK)
 	{
+		case D3D10_SHADER_OPTIMIZATION_LEVEL2:
 		CompileFlags &= ~D3D10_SHADER_OPTIMIZATION_LEVEL2;
 		FXCCommandline += FString(TEXT(" /O2"));
-	}
-	else if (CompileFlags & D3D10_SHADER_OPTIMIZATION_LEVEL3)
-	{
+			break;
+
+		case D3D10_SHADER_OPTIMIZATION_LEVEL3:
 		CompileFlags &= ~D3D10_SHADER_OPTIMIZATION_LEVEL3;
 		FXCCommandline += FString(TEXT(" /O3"));
-	}
-	else if (CompileFlags & D3D10_SHADER_OPTIMIZATION_LEVEL1)
-	{
+			break;
+
+		case D3D10_SHADER_OPTIMIZATION_LEVEL1:
 		CompileFlags &= ~D3D10_SHADER_OPTIMIZATION_LEVEL1;
 		FXCCommandline += FString(TEXT(" /O1"));
+			break;
+
+		case D3D10_SHADER_OPTIMIZATION_LEVEL0:
+			CompileFlags &= ~D3D10_SHADER_OPTIMIZATION_LEVEL0;
+			break;
+
+		default:
+			Output.Errors.Emplace(TEXT("Unknown D3D10 optimization level"));
+			break;
 	}
 
 	checkf(CompileFlags == 0, TEXT("Unhandled d3d11 shader compiler flag!"));
@@ -366,7 +380,7 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 			delete FileWriter;
 		}
 
-		const FString BatchFileContents = D3D11CreateShaderCompileCommandLine((Input.SourceFilename + TEXT(".usf")), *EntryPointName, ShaderProfile, CompileFlags);
+		const FString BatchFileContents = D3D11CreateShaderCompileCommandLine((Input.SourceFilename + TEXT(".usf")), *EntryPointName, ShaderProfile, CompileFlags, Output);
 		FFileHelper::SaveStringToFile(BatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CompileD3D.bat")));
 
 		if (GD3DDumpAMDCodeXLFile)

@@ -592,7 +592,11 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 					if (StructProp != NULL && StructProp->Struct == this)
 					{
 						//we won't support this, too complicated
+					#if HACK_HEADER_GENERATOR
 						FError::Throwf(TEXT("'Struct recursion via arrays is unsupported for properties."));
+					#else
+						UE_LOG(LogClass, Fatal, TEXT("'Struct recursion via arrays is unsupported for properties."));
+					#endif
 					}
 				}
 			}
@@ -2873,7 +2877,7 @@ public:
 			{
 				Prefix = Context->GetContext() + TEXT(" : ");
 			}
-			FString Format = Prefix + FOutputDevice::FormatLogLine(Verbosity, Category, V);
+			FString Format = Prefix + FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V);
 
 			if(Verbosity == ELogVerbosity::Error)
 			{
@@ -4652,8 +4656,9 @@ void UFunction::Bind()
 	{
 		// Find the function in the class's native function lookup table.
 		FName Name = GetFName();
-		if (auto* Found = OwnerClass->NativeFunctionLookupTable.FindByPredicate([=](const FNativeFunctionLookup& NativeFunctionLookup){ return Name == NativeFunctionLookup.Name; }))
-			{
+		FNativeFunctionLookup* Found = OwnerClass->NativeFunctionLookupTable.FindByPredicate([=](const FNativeFunctionLookup& NativeFunctionLookup){ return Name == NativeFunctionLookup.Name; });
+		if (Found)
+		{
 			Func = Found->Pointer;
 		}
 #if USE_COMPILED_IN_NATIVES
@@ -4686,7 +4691,7 @@ bool FStructUtils::ArePropertiesTheSame(const UProperty* A, const UProperty* B, 
 		return true;
 	}
 
-	if (!A != !B) //one of properties is null
+	if (!A || !B) //one of properties is null
 	{
 		return false;
 	}

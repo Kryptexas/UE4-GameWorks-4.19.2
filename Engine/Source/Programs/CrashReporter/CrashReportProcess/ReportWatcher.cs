@@ -40,6 +40,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 			CancelSource.Cancel();
 			WatcherTask.Wait();
 
+			foreach (var Queue in ReportQueues)
+			{
+				Queue.Dispose();
+			}
+			ReportIndex.WriteToFile();
+
 			CancelSource.Dispose();
 		}
 
@@ -52,16 +58,29 @@ namespace Tools.CrashReporter.CrashReportProcess
 			CrashReporterProcessServicer.WriteEvent("CrashReportProcessor watching directories:");
 			var Settings = Config.Default;
 
+			if (!string.IsNullOrEmpty(Settings.DataRouterLandingZone))
+			{
+				if (System.IO.Directory.Exists(Settings.DataRouterLandingZone))
+				{
+					ReportQueues.Add(new DataRouterReportQueue("DataRouter Crashes", Settings.DataRouterLandingZone));
+					CrashReporterProcessServicer.WriteEvent(string.Format("\t{0} (all crashes from data router)", Settings.DataRouterLandingZone));
+				}
+				else
+				{
+					CrashReporterProcessServicer.WriteFailure(string.Format("\t{0} (all crashes from data router) is not accessible", Settings.DataRouterLandingZone));
+				}
+			}
+
 			if (!string.IsNullOrEmpty(Settings.InternalLandingZone))
 			{
 				if( System.IO.Directory.Exists( Settings.InternalLandingZone ) )
 				{
 					ReportQueues.Add(new ReceiverReportQueue("Epic Crashes", Settings.InternalLandingZone));
-					CrashReporterProcessServicer.WriteEvent(string.Format("\t{0} (internal, high priority)", Settings.InternalLandingZone));
+					CrashReporterProcessServicer.WriteEvent(string.Format("\t{0} (internal, high priority (legacy))", Settings.InternalLandingZone));
 				}
 				else
 				{
-					CrashReporterProcessServicer.WriteFailure( string.Format( "\t{0} (internal, high priority) is not accessible", Settings.InternalLandingZone ) );
+					CrashReporterProcessServicer.WriteFailure(string.Format("\t{0} (internal, high priority (legacy)) is not accessible", Settings.InternalLandingZone));
 				}
 			}
 
@@ -71,11 +90,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 				if( System.IO.Directory.Exists( Settings.ExternalLandingZone ) )
 				{
 					ReportQueues.Add(new ReceiverReportQueue("External Crashes", Settings.ExternalLandingZone));
-					CrashReporterProcessServicer.WriteEvent( string.Format( "\t{0}", Settings.ExternalLandingZone ) );
+					CrashReporterProcessServicer.WriteEvent( string.Format( "\t{0} (legacy)", Settings.ExternalLandingZone ) );
 				}
 				else
 				{
-					CrashReporterProcessServicer.WriteFailure( string.Format( "\t{0} is not accessible", Settings.ExternalLandingZone ) );
+					CrashReporterProcessServicer.WriteFailure( string.Format( "\t{0} (legacy) is not accessible", Settings.ExternalLandingZone ) );
 				}
 			}
 #endif //!DEBUG
@@ -85,6 +104,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 			{
 				CrashReporterProcessServicer.StatusReporter.InitQueue(Queue.QueueId, Queue.LandingZonePath);
 			}
+
+			ReportIndex.Filepath = Config.Default.ProcessedReportsIndexPath;
+			ReportIndex.Retention = TimeSpan.FromDays(Config.Default.ReportsIndexRetentionDays);
+			ReportIndex.ReadFromFile();
 
 			var Cancel = CancelSource.Token;
 			WatcherTask = Task.Factory.StartNew(async () =>
@@ -103,7 +126,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 					TimeSpan TimeTaken = DateTime.Now - StartTime;
 					CrashReporterProcessServicer.WriteEvent(string.Format("Checking Landing Zones took {0:F2} seconds", TimeTaken.TotalSeconds));
-					await Task.Delay(60000, Cancel);
+					await Task.Delay(30000, Cancel);
 				}
 			});
 		}

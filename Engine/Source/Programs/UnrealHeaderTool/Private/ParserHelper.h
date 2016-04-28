@@ -59,6 +59,13 @@ struct ERefQualifier
 	};
 };
 
+enum class EIntType
+{
+	None,
+	Sized,  // e.g. int32, int16
+	Unsized // e.g. int, unsigned int
+};
+
 #ifndef CASE_TEXT
 #define CASE_TEXT(txt) case txt: return TEXT(#txt)
 #endif
@@ -106,6 +113,7 @@ public:
 	TMap<FName, FString> MetaData;
 
 	EPointerType::Type PointerType;
+	EIntType IntType;
 
 public:
 	/** @name Constructors */
@@ -122,6 +130,23 @@ public:
 	, DelegateName        (NAME_None)
 	, RepNotifyName       (NAME_None)
 	, PointerType         (EPointerType::None)
+	, IntType             (GetSizedIntTypeFromPropertyType(InType))
+	{
+	}
+
+	explicit FPropertyBase(EPropertyType InType, EIntType InIntType)
+	: Type                (InType)
+	, ArrayType           (EArrayType::None)
+	, PropertyFlags       (0)
+	, ImpliedPropertyFlags(0)
+	, RefQualifier        (ERefQualifier::None)
+	, PropertyExportFlags (PROPEXPORT_Public)
+	, StringSize          (0)
+	, MetaClass           (NULL)
+	, DelegateName        (NAME_None)
+	, RepNotifyName       (NAME_None)
+	, PointerType         (EPointerType::None)
+	, IntType             (InIntType)
 	{
 	}
 
@@ -137,6 +162,7 @@ public:
 	, DelegateName        (NAME_None)
 	, RepNotifyName       (NAME_None)
 	, PointerType         (EPointerType::None)
+	, IntType             (GetSizedIntTypeFromPropertyType(InType))
 	{
 	}
 
@@ -152,6 +178,7 @@ public:
 	, DelegateName        (NAME_None)
 	, RepNotifyName       (NAME_None)
 	, PointerType         (EPointerType::None)
+	, IntType             (EIntType::None)
 	{
 		// if this is an interface class, we use the UInterfaceProperty class instead of UObjectProperty
 		if ( InClass->HasAnyClassFlags(CLASS_Interface) )
@@ -210,6 +237,7 @@ public:
 	, DelegateName        (NAME_None)
 	, RepNotifyName       (NAME_None)
 	, PointerType         (EPointerType::None)
+	, IntType             (EIntType::None)
 	{
 	}
 
@@ -217,6 +245,7 @@ public:
 	: PropertyExportFlags(PROPEXPORT_Public)
 	, DelegateName       (NAME_None)
 	, RepNotifyName      (NAME_None)
+	, IntType            (EIntType::None)
 	{
 		checkSlow(Property);
 
@@ -239,34 +268,42 @@ public:
 		{
 			*this = FPropertyBase(CPT_Byte);
 			Enum = Cast<UByteProperty>(Property)->Enum;
+			IntType = EIntType::Sized;
 		}
 		else if( ClassOfProperty==UInt8Property::StaticClass() )
 		{
 			*this = FPropertyBase(CPT_Int8);
+			IntType = EIntType::Sized;
 		}
 		else if( ClassOfProperty==UInt16Property::StaticClass() )
 		{
 			*this = FPropertyBase(CPT_Int16);
+			IntType = EIntType::Sized;
 		}
 		else if( ClassOfProperty==UIntProperty::StaticClass() )
 		{
 			*this = FPropertyBase(CPT_Int);
+			IntType = EIntType::Sized;
 		}
 		else if( ClassOfProperty==UInt64Property::StaticClass() )
 		{
 			*this = FPropertyBase(CPT_Int64);
+			IntType = EIntType::Sized;
 		}
 		else if( ClassOfProperty==UUInt16Property::StaticClass() )
 		{
 			*this = FPropertyBase(CPT_UInt16);
+			IntType = EIntType::Sized;
 		}
 		else if( ClassOfProperty==UUInt32Property::StaticClass() )
 		{
 			*this = FPropertyBase(CPT_UInt32);
+			IntType = EIntType::Sized;
 		}
 		else if( ClassOfProperty==UUInt64Property::StaticClass() )
 		{
 			*this = FPropertyBase(CPT_UInt64);
+			IntType = EIntType::Sized;
 		}
 		else if( ClassOfProperty==UBoolProperty::StaticClass() )
 		{
@@ -291,7 +328,7 @@ public:
 				case sizeof(uint64):
 					*this = FPropertyBase(CPT_Bool64);
 					break;
-				}			
+				}
 			}
 		}
 		else if( ClassOfProperty==UFloatProperty::StaticClass() )
@@ -591,6 +628,25 @@ public:
 			);
 	}
 	//@}
+
+	EIntType GetSizedIntTypeFromPropertyType(EPropertyType PropType)
+	{
+		switch (PropType)
+		{
+			case CPT_Byte:
+			case CPT_UInt16:
+			case CPT_UInt32:
+			case CPT_UInt64:
+			case CPT_Int8:
+			case CPT_Int16:
+			case CPT_Int:
+			case CPT_Int64:
+				return EIntType::Sized;
+
+			default:
+				return EIntType::None;
+		}
+	}
 
 	static const TCHAR* GetPropertyTypeText( EPropertyType Type );
 

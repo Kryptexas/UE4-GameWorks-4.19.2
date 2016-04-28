@@ -230,6 +230,9 @@ private:
 	/** Static parameter values that are overridden in this instance. */
 	FStaticParameterSet StaticParameters;
 
+	/** Inline material resources serialized from disk. To be processed on game thread in PostLoad. */
+	TArray<FMaterialResource> LoadedMaterialResources;
+
 	/** 
 	 * Material resources used for rendering this material instance, in the case of static parameters being present.
 	 * These will always be valid and non-null when bHasStaticPermutationResource is true,

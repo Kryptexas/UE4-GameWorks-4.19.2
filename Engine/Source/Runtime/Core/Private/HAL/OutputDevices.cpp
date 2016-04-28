@@ -8,6 +8,7 @@
 #include "Misc/App.h"
 #include "Templates/UniquePtr.h"
 #include <stdio.h>
+#include "OutputDeviceHelper.h"
 
 /** Used by tools which include only core to disable log file creation. */
 #ifndef ALLOW_LOG_FILE
@@ -90,7 +91,7 @@ class FLogSuppressionImplementation: public FLogSuppressionInterface, private FS
 			{
 				ProcessCmdString(Name.ToString() + OnString);
 				FLogCategoryBase* Verb = It.Key;
-				Ar.Logf(TEXT("%s is now %s"), *CommandParts[0], FOutputDevice::VerbosityToString(Verb ? ELogVerbosity::Type(Verb->Verbosity) : ELogVerbosity::Verbose));
+				Ar.Logf(TEXT("%s is now %s"), *CommandParts[0], FOutputDeviceHelper::VerbosityToString(Verb ? ELogVerbosity::Type(Verb->Verbosity) : ELogVerbosity::Verbose));
 			}
 			else
 			{
@@ -543,7 +544,7 @@ public:
 
 				for (TArray<FLogCategoryPtrs>::TConstIterator It = Found.CreateConstIterator(); It; ++It)
 				{
-					Ar.Logf(TEXT("%-40s  %-12s  %s"), *It->Name, FOutputDevice::VerbosityToString(It->Verbosity), It->Postfix ? TEXT(" - DebugBreak") : TEXT(""));
+					Ar.Logf(TEXT("%-40s  %-12s  %s"), *It->Name, FOutputDeviceHelper::VerbosityToString(It->Verbosity), It->Postfix ? TEXT(" - DebugBreak") : TEXT(""));
 				}
 			}
 			else
@@ -572,7 +573,7 @@ public:
 						uint8 OldValue = OldValues.FindRef(Name);
 						if (Verb->Verbosity != OldValue)
 						{
-							Ar.Logf(TEXT("%-40s  %-12s  %s"), *Name.ToString(), FOutputDevice::VerbosityToString(ELogVerbosity::Type(Verb->Verbosity)), Verb->DebugBreakOnLog ? TEXT(" - DebugBreak") : TEXT(""));
+							Ar.Logf(TEXT("%-40s  %-12s  %s"), *Name.ToString(), FOutputDeviceHelper::VerbosityToString(ELogVerbosity::Type(Verb->Verbosity)), Verb->DebugBreakOnLog ? TEXT(" - DebugBreak") : TEXT(""));
 						}
 					}
 				}
@@ -969,7 +970,7 @@ void FOutputDeviceRedirector::TearDown()
 * Thread heartbeat check class.
 * Used by crash handling code to check for hangs.
 */
-class CORE_API FAsyncWriter : public FRunnable
+class CORE_API FAsyncWriter : public FRunnable, public FArchive
 {
 	enum EConstants
 	{
@@ -1062,12 +1063,14 @@ public:
 	}
 
 	/** Serialize data to buffer that will later be saved to disk by the async thread */
-	void Serialize(uint8* Data, int32 Length)
+	virtual void Serialize(void* InData, int64 Length) override
 	{
-		if (!Data || Length <= 0)
+		if (!InData || Length <= 0)
 		{
 			return;
 		}
+
+		uint8* Data = (uint8*)InData;
 
 		BufferEmptyEvent->Reset();
 		FScopeLock WriteLock(&BufferPosCritical);
@@ -1276,34 +1279,6 @@ FAsyncWriter* FOutputDeviceFile::CreateWriter(uint32 MaxAttempts)
 	return Result;
 }
 
-void FOutputDeviceFile::CastAndSerializeData(const TCHAR* Data)
-{
-	FTCHARToUTF8 ConvertedData(Data);
-	AsyncWriter->Serialize((uint8*)(ConvertedData.Get()), ConvertedData.Length() * sizeof(ANSICHAR));
-}
-
-void FOutputDeviceFile::WriteDataToArchive(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time)
-{
-	if (!bSuppressEventTag)
-	{
-		FString Prefix = FOutputDevice::FormatLogLine(Verbosity, Category, NULL, GPrintLogTimes, Time);
-		CastAndSerializeData(*Prefix);
-	}
-
-	CastAndSerializeData(Data);
-
-	if (bAutoEmitLineTerminator)
-	{
-#if PLATFORM_LINUX
-		// on Linux, we still want to have logs with Windows line endings so they can be opened with Windows tools like infamous notepad.exe
-		ANSICHAR WindowsTerminator[] = { '\r', '\n' };
-		AsyncWriter->Serialize((uint8*)WindowsTerminator, sizeof(WindowsTerminator) * sizeof(ANSICHAR));
-#else
-		CastAndSerializeData(LINE_TERMINATOR);
-#endif // PLATFORM_LINUX
-	}
-}
-
 /**
  * Serializes the passed in data unless the current event is suppressed.
  *
@@ -1352,7 +1327,7 @@ void FOutputDeviceFile::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbos
 
 		if (AsyncWriter && Verbosity != ELogVerbosity::SetColor)
 		{
-			WriteDataToArchive(Data, Verbosity, Category, Time);
+			FOutputDeviceHelper::FormatCastAndSerializeLine(*AsyncWriter, Data, Verbosity, Category, Time, bSuppressEventTag, bAutoEmitLineTerminator);
 
 			static bool GForceLogFlush = false;
 			static bool GTestedCmdLine = false;
@@ -1401,7 +1376,7 @@ void FOutputDeviceDebug::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbo
 	{
 		if (Verbosity != ELogVerbosity::SetColor)
 		{
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s%s"),*FOutputDevice::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes, Time),LINE_TERMINATOR);
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s%s"),*FOutputDeviceHelper::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes, Time),LINE_TERMINATOR);
 		}
 	}
 	else
@@ -1522,17 +1497,7 @@ void FOutputDeviceArchiveWrapper::Serialize(const TCHAR* Data, ELogVerbosity::Ty
 {
 	if (Verbosity != ELogVerbosity::SetColor)
 	{
-		CastAndSerializeData(Data);
-
-		if (bAutoEmitLineTerminator)
-		{
-			CastAndSerializeData(LINE_TERMINATOR);
-		}
+		FOutputDeviceHelper::FormatCastAndSerializeLine(*LogAr, Data, Verbosity, Category, -1.0, true, bAutoEmitLineTerminator);
 	}
 }
 
-void FOutputDeviceArchiveWrapper::CastAndSerializeData(const TCHAR* Data)
-{
-	FTCHARToUTF8 ConvertedData(Data);
-	LogAr->Serialize((ANSICHAR*)(ConvertedData.Get()), ConvertedData.Length());
-}

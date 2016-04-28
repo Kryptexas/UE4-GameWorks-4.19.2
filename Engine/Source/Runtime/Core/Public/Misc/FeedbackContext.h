@@ -3,7 +3,7 @@
 #pragma once
 
 #include "UniquePtr.h"
-
+#include "OutputDeviceHelper.h"
 
 struct FSlowTask;
 

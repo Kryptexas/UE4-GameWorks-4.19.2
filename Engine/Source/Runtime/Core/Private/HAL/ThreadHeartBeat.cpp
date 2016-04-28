@@ -131,21 +131,27 @@ void FThreadHeartBeat::KillHeartBeat()
 	ThreadHeartBeat.Remove(ThreadId);
 }
 
-uint32 FThreadHeartBeat::SuspendHeartBeat()
+void FThreadHeartBeat::SuspendHeartBeat()
 {
 	uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
 	FScopeLock HeartBeatLock(&HeartBeatCritical);
-	FHeartBeatInfo& HeartBeatInfo = ThreadHeartBeat.FindOrAdd(ThreadId);
-	HeartBeatInfo.SuspendedCount++;
-	return ThreadId;
-}
-void FThreadHeartBeat::ResumeHeartBeat(uint32 ThreadId)
-{
-	FScopeLock HeartBeatLock(&HeartBeatCritical);
-	FHeartBeatInfo& HeartBeatInfo = ThreadHeartBeat.FindOrAdd(ThreadId);	
-	if (--HeartBeatInfo.SuspendedCount == 0)
+	FHeartBeatInfo* HeartBeatInfo = ThreadHeartBeat.Find(ThreadId);
+	if (HeartBeatInfo)
 	{
-		HeartBeatInfo.LastHeartBeatTime = FPlatformTime::Seconds();
+		HeartBeatInfo->SuspendedCount++;
 	}
-	check(HeartBeatInfo.SuspendedCount >= 0);
+}
+void FThreadHeartBeat::ResumeHeartBeat()
+{
+	uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
+	FScopeLock HeartBeatLock(&HeartBeatCritical);
+	FHeartBeatInfo* HeartBeatInfo = ThreadHeartBeat.Find(ThreadId);
+	if (HeartBeatInfo)
+	{
+		check(HeartBeatInfo->SuspendedCount > 0);
+		if (--HeartBeatInfo->SuspendedCount == 0)
+		{
+			HeartBeatInfo->LastHeartBeatTime = FPlatformTime::Seconds();
+		}
+	}
 }

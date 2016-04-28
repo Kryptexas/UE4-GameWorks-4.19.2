@@ -807,6 +807,8 @@ private:
 	 */
 	static FString GenerateSingletonName(UField* Item, bool bRequiresValidObject)
 	{
+		check(Item);
+
 		FString Suffix;
 		if (UClass* ItemClass = Cast<UClass>(Item))
 		{
@@ -993,12 +995,28 @@ FString FNativeClassHeaderGenerator::PropertyNew(FString& Meta, UProperty* Prop,
 		ExtraArgs = FString::Printf(TEXT(", %s"), *GetSingletonName(TargetFunction));
 	}
 
+	auto GetPropName = [](UProperty* InProp) -> FString
+	{
+		if (!GUnsizedProperties.Contains(InProp))
+		{
+			return InProp->GetClass()->GetName();
+		}
+
+		if (InProp->IsA<UIntProperty>())
+		{
+			return TEXT("UnsizedIntProperty");
+		}
+
+		check(InProp->IsA<UUInt32Property>());
+		return TEXT("UnsizedUIntProperty");
+	};
+
 	const TCHAR* UPropertyObjectFlags = FClass::IsOwnedByDynamicType(Prop) ? TEXT("RF_Public|RF_Transient") : TEXT("RF_Public|RF_Transient|RF_MarkAsNative");
 	FString Constructor = FString::Printf(TEXT("new(EC_InternalUseOnlyConstructor, %s, TEXT(\"%s\"), %s) U%s(%s, 0x%016llx%s);"),
 		*OuterString,
 		*FNativeClassHeaderGenerator::GetOverriddenName(Prop),
 		UPropertyObjectFlags,
-		*Prop->GetClass()->GetName(), 
+		*GetPropName(Prop),
 		*PropMacro,
 		Prop->PropertyFlags & ~CPF_ComputedFlags, 
 		*ExtraArgs);
@@ -5512,7 +5530,7 @@ void ResolveSuperClasses(UPackage* Package)
 }
 
 ECompilationResult::Type PreparseModules(FUHTMakefile& UHTMakefile, const FString& ModuleInfoPath, int32& NumFailures)
-	{
+{
 	// Three passes.  1) Public 'Classes' headers (legacy)  2) Public headers   3) Private headers
 	enum EHeaderFolderTypes
 	{

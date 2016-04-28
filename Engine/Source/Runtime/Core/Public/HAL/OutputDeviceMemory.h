@@ -7,6 +7,19 @@
  */
 class CORE_API FOutputDeviceMemory : public FOutputDevice
 {
+	class FOutputDeviceMemoryProxyArchive : public FArchive
+	{
+		FOutputDeviceMemory& OutputDevice;
+	public:
+		FOutputDeviceMemoryProxyArchive(FOutputDeviceMemory& InOutputDevice)
+			: OutputDevice(InOutputDevice)
+		{}
+		virtual void Serialize(void* V, int64 Length) override
+		{
+			OutputDevice.SerializeToBuffer((ANSICHAR*)V, Length / sizeof(ANSICHAR));
+		}
+	} ArchiveProxy;
+
 public:
 	/** 
 	 * Constructor, initializing member variables.
@@ -45,10 +58,9 @@ public:
 	//~ End FOutputDevice Interface.
 
 private:
-
+	
+	/** Serialize cast data to the actual memory buffer */
 	void SerializeToBuffer(ANSICHAR* Data, int32 Length);
-	void FormatAndSerialize(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time);
-	void CastAndSerializeToBuffer(const TCHAR* Data);
 
 	/** Ring buffer */
 	TArray<ANSICHAR> Buffer;

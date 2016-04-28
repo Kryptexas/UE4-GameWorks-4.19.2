@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Templates/AndOr.h"
+
 COREUOBJECT_API void CastLogError(const TCHAR* FromType, const TCHAR* ToType);
 
 /**

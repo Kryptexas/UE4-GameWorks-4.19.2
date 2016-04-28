@@ -595,7 +595,7 @@ FShadowMapInteraction FShadowMap2D::GetInteraction() const
 }
 
 
-TRefCountPtr<FShadowMap2D> FShadowMap2D::AllocateInstancedShadowMap(UInstancedStaticMeshComponent* Component, TArray<TMap<ULightComponent*, TUniquePtr<FShadowMapData2D>>> InstancedShadowMapData,
+TRefCountPtr<FShadowMap2D> FShadowMap2D::AllocateInstancedShadowMap(UInstancedStaticMeshComponent* Component, TArray<TMap<ULightComponent*, TUniquePtr<FShadowMapData2D>>>&& InstancedShadowMapData,
 	const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, EShadowMapFlags InShadowmapFlags)
 {
 #if WITH_EDITOR

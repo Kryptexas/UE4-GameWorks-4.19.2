@@ -65,6 +65,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public string ExternalLandingZone { get; set; }
 
 		/// <summary>
+		/// Folder where new crash reports are queued from the data router S3 bucket.
+		/// </summary>
+		[XmlElement]
+		public string DataRouterLandingZone { get; set; }
+
+		/// <summary>
 		/// Folder where failed reports are moved.
 		/// </summary>
 		[XmlElement]
@@ -155,6 +161,61 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public int ConsecutiveFailedWebAddLimit { get; set; }
 
 		/// <summary>
+		/// Size limit below which queues will attempt to enqueue more crashes into memory
+		/// Above this size, a queue will skip enqueueing until the next update.
+		/// </summary>
+		[XmlElement]
+		public int MinDesiredMemoryQueueSize { get; set; }
+
+		/// <summary>
+		/// Size limit beyond which crashes won't be enqueued into memory on each queue.
+		/// </summary>
+		[XmlElement]
+		public int MaxMemoryQueueSize { get; set; }
+
+		/// <summary>
+		/// AWSSDK service Url for S3 client
+		/// </summary>
+		[XmlElement]
+		public string AWSS3ServiceURL { get; set; }
+
+		/// <summary>
+		/// AWSSDK service Url for SQS client
+		/// </summary>
+		[XmlElement]
+		public string AWSSQSServiceURL { get; set; }
+
+		/// <summary>
+		/// AWSSDK queue Url for SQS client
+		/// </summary>
+		[XmlElement]
+		public string AWSSQSQueueUrl { get; set; }
+
+		/// <summary>
+		/// AWSSDK Profile name used in the AWS credentials file
+		/// </summary>
+		[XmlElement]
+		public string AWSProfileName { get; set; }
+
+		/// <summary>
+		/// AWSSDK AWS credentials filepath containing the keys used to access SQS and S3
+		/// </summary>
+		[XmlElement]
+		public string AWSCredentialsFilepath { get; set; }
+
+		/// <summary>
+		/// Index file used to store all processed crash names and times. Stops duplicates.
+		/// </summary>
+		[XmlElement]
+		public string ProcessedReportsIndexPath { get; set; }
+
+		/// <summary>
+		/// Time that the ProcessedReportsIndex retains items for duplicate checking.
+		/// </summary>
+		[XmlElement]
+		public int ReportsIndexRetentionDays { get; set; }
+
+		/// <summary>
 		/// Get the default config object (lazy loads it on first access)
 		/// </summary>
 		public static Config Default
@@ -205,9 +266,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 			LoadedConfig.DepotRoot = Path.Combine(LoadedConfig.DebugTestingFolder, "DepotRoot");
 			LoadedConfig.InternalLandingZone = Path.Combine(LoadedConfig.DebugTestingFolder, "InternalLandingZone");
 			LoadedConfig.ExternalLandingZone = Path.Combine(LoadedConfig.DebugTestingFolder, "ExternalLandingZone");
+			LoadedConfig.DataRouterLandingZone = Path.Combine(LoadedConfig.DebugTestingFolder, "DataRouterLandingZone");
 			LoadedConfig.InvalidReportsDirectory = Path.Combine(LoadedConfig.DebugTestingFolder, "InvalidReportsDirectory");
 			LoadedConfig.VersionString += " debugbuild";
-			
+			LoadedConfig.AWSCredentialsFilepath = Path.Combine(LoadedConfig.DebugTestingFolder, "AWS", "credentials.ini");
+			LoadedConfig.ProcessedReportsIndexPath = Path.Combine(LoadedConfig.DebugTestingFolder, "ProcessedReports.ini");
+
 #if SLACKTESTING
 			LoadedConfig.SlackUsername = "CrashReportProcess_TESTING_IgnoreMe";
 #else

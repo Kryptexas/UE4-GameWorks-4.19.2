@@ -2263,8 +2263,6 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 
 		// force that package to be recooked
 		const FString Name = Package->GetPathName();
-		/*FString PackageFilename(GetPackageFilename(Package));
-		FPaths::MakeStandardFilename(PackageFilename);*/
 
 		FName PackageFFileName = GetCachedStandardPackageFileFName(Package);
 
@@ -2274,7 +2272,7 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 		}
 
 #if DEBUG_COOKONTHEFLY
-		UE_LOG(LogCook, Display, TEXT("Modification detected to package %s"), *PackageFilename);
+		UE_LOG(LogCook, Display, TEXT("Modification detected to package %s"), *PackageFFileName.ToString());
 #endif
 
 		if ( CurrentCookMode == ECookMode::CookByTheBookFromTheEditor )

@@ -206,7 +206,7 @@ void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInf
 	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "!%s!AssertLog=\"%s\"" ), FCommandLine::GetOriginal(), LocalBuffer );
 	Result = WerReportSetParameter( ReportHandle, WER_P8, TEXT( "Commandline" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist() );
+	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%s!%s!%s!%u" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), FEngineVersion::Current().GetChangelist() );
 	Result = WerReportSetParameter( ReportHandle, WER_P9, TEXT( "BranchBaseDir" ), StringBuffer );
 }
 
@@ -576,10 +576,13 @@ public:
 	{
 		// Create a background thread that will process the crash and generate crash reports
 		Thread = CreateThread(NULL, 0, CrashReportingThreadProc, this, 0, &ThreadId);
-		SetThreadPriority(Thread, THREAD_PRIORITY_BELOW_NORMAL);
-		// Synchronization objects
-		CrashEvent = CreateEvent(nullptr, true, 0, nullptr);
-		CrashHandledEvent = CreateEvent(nullptr, false, 0, nullptr);
+		if (Thread)
+		{
+			SetThreadPriority(Thread, THREAD_PRIORITY_BELOW_NORMAL);
+			// Synchronization objects
+			CrashEvent = CreateEvent(nullptr, true, 0, nullptr);
+			CrashHandledEvent = CreateEvent(nullptr, false, 0, nullptr);
+		}
 	}
 
 	FORCENOINLINE ~FCrashReportingThread()

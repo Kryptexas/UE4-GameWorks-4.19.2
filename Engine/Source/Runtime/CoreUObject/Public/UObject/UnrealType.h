@@ -1475,6 +1475,29 @@ class COREUOBJECT_API UUInt64Property : public TProperty_Numeric<uint64>
 	}
 };
 
+
+/*-----------------------------------------------------------------------------
+	Aliases for implicitly-sized integer properties.
+-----------------------------------------------------------------------------*/
+
+namespace UE4Types_Private
+{
+	template <typename IntType> struct TIntegerPropertyMapping;
+
+	template <> struct TIntegerPropertyMapping<int8>   { typedef UInt8Property   Type; };
+	template <> struct TIntegerPropertyMapping<int16>  { typedef UInt16Property  Type; };
+	template <> struct TIntegerPropertyMapping<int32>  { typedef UIntProperty    Type; };
+	template <> struct TIntegerPropertyMapping<int64>  { typedef UInt64Property  Type; };
+	template <> struct TIntegerPropertyMapping<uint8>  { typedef UByteProperty   Type; };
+	template <> struct TIntegerPropertyMapping<uint16> { typedef UUInt16Property Type; };
+	template <> struct TIntegerPropertyMapping<uint32> { typedef UUInt32Property Type; };
+	template <> struct TIntegerPropertyMapping<uint64> { typedef UUInt64Property Type; };
+}
+
+typedef UE4Types_Private::TIntegerPropertyMapping<signed int>::Type UUnsizedIntProperty;
+typedef UE4Types_Private::TIntegerPropertyMapping<unsigned int>::Type UUnsizedUIntProperty;
+
+
 /*-----------------------------------------------------------------------------
 	UFloatProperty.
 -----------------------------------------------------------------------------*/

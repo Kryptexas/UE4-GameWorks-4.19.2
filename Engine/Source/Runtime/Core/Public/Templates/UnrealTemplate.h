@@ -499,46 +499,6 @@ struct TIntegralConstant
 };
 
 /**
- * Does LHS::Value && RHS::Value, but short-circuits if LHS::Value == false.
- */
-template <bool LHSValue, typename RHS>
-struct TAndValue
-{
-	enum { Value = RHS::Value };
-};
-
-template <typename RHS>
-struct TAndValue<false, RHS>
-{
-	enum { Value = false };
-};
-
-template <typename LHS, typename RHS>
-struct TAnd : TAndValue<LHS::Value, RHS>
-{
-};
-
-/**
- * Does LHS::Value || RHS::Value, but short-circuits if LHS::Value == true.
- */
-template <bool LHSValue, typename RHS>
-struct TOrValue
-{
-	enum { Value = RHS::Value };
-};
-
-template <typename RHS>
-struct TOrValue<true, RHS>
-{
-	enum { Value = true };
-};
-
-template <typename LHS, typename RHS>
-struct TOr : TOrValue<LHS::Value, RHS>
-{
-};
-
-/**
  * Metafunction which returns the specified boolean value.
  */
 template <bool bValue>

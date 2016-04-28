@@ -181,11 +181,14 @@ void FWindowsPlatformStackWalk::ThreadStackWalkAndDump(ANSICHAR* HumanReadableSt
 {
 	InitStackWalking();
 	HANDLE ThreadHandle = OpenThread(THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_TERMINATE | THREAD_SUSPEND_RESUME, false, ThreadId);
-	CONTEXT ThreadContext;
-	ThreadContext.ContextFlags = CONTEXT_CONTROL;
-	if (GetThreadContext(ThreadHandle, &ThreadContext))
+	if (ThreadHandle)
 	{
-		FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, &ThreadContext);
+		CONTEXT ThreadContext;
+		ThreadContext.ContextFlags = CONTEXT_CONTROL;
+		if (GetThreadContext(ThreadHandle, &ThreadContext))
+		{
+			FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, &ThreadContext);
+		}
 	}
 }
 

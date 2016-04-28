@@ -130,7 +130,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 				CurrentCallStack = new CallStackContainer( CurrentCrash );
 
-				// Set callstack properties
+				//Set call stack properties
 				CurrentCallStack.bDisplayModuleNames = true;
 				CurrentCallStack.bDisplayFunctionNames = true;
 				CurrentCallStack.bDisplayFileNames = true;

@@ -56,15 +56,13 @@ public:
 	/** Called by a thread when it's no longer expecting to be ticked */
 	void KillHeartBeat();
 	/** 
-	 * Suspend heartbeat measuring for the current thread 
-	 * @returns ID of the current thread heartbeat that was suspended
+	 * Suspend heartbeat measuring for the current thread if the thread has already had a heartbeat 
 	 */
-	uint32 SuspendHeartBeat();
+	void SuspendHeartBeat();
 	/** 
 	 * Resume heartbeat measuring for the current thread 
-	 * @param ThreadId ID of the thread heartbeat to be resumed
 	 */
-	void ResumeHeartBeat(uint32 ThreadId);
+	void ResumeHeartBeat();
 
 	//~ Begin FRunnable Interface.
 	virtual bool Init();
@@ -74,28 +72,14 @@ public:
 };
 
 /** Suspends heartbeat measuring for the current thread in the current scope */
-class FSlowHeartBeatScope
+struct FSlowHeartBeatScope
 {
-	uint32 ThreadId;
-public:
-	FORCEINLINE explicit FSlowHeartBeatScope()
+	FORCEINLINE FSlowHeartBeatScope()
 	{
-		ThreadId = FThreadHeartBeat::Get().SuspendHeartBeat();
-	}
-	/** Suspends the current thread only if the current thread ID matches the passed in thread ID */
-	FORCEINLINE explicit FSlowHeartBeatScope(uint32 OnlyIfCurrentThreadId)
-		: ThreadId(FThreadHeartBeat::InvalidThreadId)
-	{
-		if (OnlyIfCurrentThreadId == FPlatformTLS::GetCurrentThreadId())
-		{
-			ThreadId = FThreadHeartBeat::Get().SuspendHeartBeat();
-		}
+		FThreadHeartBeat::Get().SuspendHeartBeat();
 	}
 	FORCEINLINE ~FSlowHeartBeatScope()
 	{
-		if (ThreadId != FThreadHeartBeat::InvalidThreadId)
-		{
-			FThreadHeartBeat::Get().ResumeHeartBeat(ThreadId);
-		}
+		FThreadHeartBeat::Get().ResumeHeartBeat();
 	}
 };

@@ -79,7 +79,7 @@
         <p>
             <span class="SearchTextTitle">Select the report branch</span>
         </p>
-        <p id="BranchFilter"><%=Html.DropDownListFor( m=>m.BranchName, Model.BranchNames )%></p>
+        <p id="BranchFilter"><%=Html.DropDownListFor( m => m.BranchName, Model.BranchNames )%></p>
         <p>
             <span class="SearchTextTitle">Enter email : </span>
             <input id="subscribeEmail" type="text" class="date" autocomplete="OFF" style="width:200px" />

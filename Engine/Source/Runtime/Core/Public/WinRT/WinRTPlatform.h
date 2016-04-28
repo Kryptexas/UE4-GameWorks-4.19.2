@@ -59,12 +59,13 @@ typedef FWinRTTypes FPlatformTypes;
 #define PLATFORM_SUPPORTS_MESSAGEBUS						0
 
 // Function type macros.
-#define VARARGS						__cdecl										/* Functions with variable arguments */
-#define CDECL						__cdecl										/* Standard C function */
-#define STDCALL						__stdcall									/* Standard calling convention */
-#define FORCEINLINE					__forceinline								/* Force code to be inline */
-#define FORCENOINLINE				__declspec(noinline)						/* Force code to NOT be inline */
-#define FUNCTION_CHECK_RETURN(...)	__declspec("SAL_checkReturn") __VA_ARGS__	/* Wrap a function signature in this to warn that callers should not ignore the return value. */
+#define VARARGS						__cdecl							/* Functions with variable arguments */
+#define CDECL						__cdecl							/* Standard C function */
+#define STDCALL						__stdcall						/* Standard calling convention */
+#define FORCEINLINE					__forceinline					/* Force code to be inline */
+#define FORCENOINLINE				__declspec(noinline)			/* Force code to NOT be inline */
+#define FUNCTION_CHECK_RETURN_START	__declspec("SAL_checkReturn")	/* Warn that callers should not ignore the return value. */
+#define FUNCTION_NO_RETURN_START	__declspec(noreturn)			/* Indicate that the function never returns. */
 
 // Hints compiler that expression is true; generally restricted to comparisons against constants
 #define ASSUME(expr)	__assume(expr)

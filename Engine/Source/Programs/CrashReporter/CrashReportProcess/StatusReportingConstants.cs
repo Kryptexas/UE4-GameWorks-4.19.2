@@ -11,7 +11,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public const string ProcessingFailedEvent = "Processing failed";
 		public const string ProcessingSucceededEvent = "Processing succeeded";
 		public const string ExceptionEvent = "Handled exceptions";
-		public const string ProcessingStartedEvent = "Started processing";
+		public const string ProcessingStartedReceiverEvent = "Started processing (from CRR)";
+		public const string ProcessingStartedDataRouterEvent = "Started processing (from Data Router)";
 		public const string QueuedEvent = "Queued for processing";
 	}
 }

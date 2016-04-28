@@ -241,6 +241,8 @@ void FGenericPlatformMemory::MemswapGreaterThan8( void* RESTRICT Ptr1, void* RES
 	PtrUnion Union1 = { Ptr1 };
 	PtrUnion Union2 = { Ptr2 };
 
+	checkf(Union1.PtrVoid && Union2.PtrVoid, TEXT("Pointers must be non-null: %p, %p"), Union1.PtrVoid, Union2.PtrVoid);
+
 	// We may skip up to 7 bytes below, so better make sure that we're swapping more than that
 	// (8 is a common case that we also want to inline before we this call, so skip that too)
 	check(Size > 8);

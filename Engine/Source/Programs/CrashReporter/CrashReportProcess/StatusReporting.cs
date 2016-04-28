@@ -62,6 +62,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 			{
 				var Cancel = CancelSource.Token;
 
+				// Small pause to allow the app to get up and running before we run the first report
+				Thread.Sleep(TimeSpan.FromSeconds(30));
+				DateTime PeriodStartTime = CreationTimeUtc;
+
 				lock (TaskMonitor)
 				{
 					while (!Cancel.IsCancellationRequested)
@@ -70,33 +74,44 @@ namespace Tools.CrashReporter.CrashReportProcess
 						lock (DataLock)
 						{
 							Dictionary<string, int> CountsInPeriod = GetCountsInPeriod(Counters, CountersAtLastReport);
+							DateTime PeriodEndTime = DateTime.UtcNow;
+							TimeSpan Period = PeriodEndTime - PeriodStartTime;
+							PeriodStartTime = PeriodEndTime;
 
 							if (bQueueSizesAvail)
 							{
-								int ProcessingStartedInPeriod = 0;
-								CountsInPeriod.TryGetValue(StatusReportingConstants.ProcessingStartedEvent, out ProcessingStartedInPeriod);
+								int ProcessingStartedInPeriodReceiver = 0;
+								CountsInPeriod.TryGetValue(StatusReportingConstants.ProcessingStartedReceiverEvent, out ProcessingStartedInPeriodReceiver);
+								int ProcessingStartedInPeriodDataRouter = 0;
+								CountsInPeriod.TryGetValue(StatusReportingConstants.ProcessingStartedDataRouterEvent, out ProcessingStartedInPeriodDataRouter);
+								int ProcessingStartedInPeriod = ProcessingStartedInPeriodReceiver + ProcessingStartedInPeriodDataRouter;
+
 								if (ProcessingStartedInPeriod > 0)
 								{
 									int QueueSizeSum = QueueSizes.Values.Sum();
 									TimeSpan MeanWaitTime =
-										TimeSpan.FromMinutes(0.5*Config.Default.MinutesBetweenQueueSizeReports*
-										                     (QueueSizeSum + QueueSizeSumAtLastReport)/ProcessingStartedInPeriod);
+										TimeSpan.FromTicks((long)(0.5*Period.Ticks*(QueueSizeSum + QueueSizeSumAtLastReport)/ProcessingStartedInPeriod));
 									QueueSizeSumAtLastReport = QueueSizeSum;
 
+									int WaitMinutes = Convert.ToInt32(MeanWaitTime.TotalMinutes);
 									string WaitTimeString;
 									if (MeanWaitTime == TimeSpan.Zero)
 									{
 										WaitTimeString = "nil";
 									}
-									else if (MeanWaitTime < TimeSpan.FromMinutes(2))
+									else if (MeanWaitTime < TimeSpan.FromMinutes(1))
 									{
-										WaitTimeString = MeanWaitTime.TotalSeconds + " seconds";
+										WaitTimeString = "< 1 minute";
+									}
+									else if (WaitMinutes == 1)
+									{
+										WaitTimeString = "1 minute";
 									}
 									else
 									{
-										WaitTimeString = Convert.ToInt32(MeanWaitTime.TotalMinutes) + " minutes";
+										WaitTimeString = string.Format("{0} minutes", WaitMinutes);
 									}
-									StartupMessage.AppendLine("Queue waiting time " + WaitTimeString);
+									StatusReportMessage.AppendLine("Queue waiting time " + WaitTimeString);
 								}
 
 								StatusReportMessage.AppendLine("Queue sizes...");
@@ -107,8 +122,17 @@ namespace Tools.CrashReporter.CrashReportProcess
 							}
 							if (CountsInPeriod.Count > 0)
 							{
-								StatusReportMessage.AppendLine(string.Format("Events in the last {0} minutes...",
-									Config.Default.MinutesBetweenQueueSizeReports));
+								string PeriodTimeString;
+								if (Period.TotalMinutes < 1.0)
+								{
+									PeriodTimeString = string.Format("{0:N0} seconds", Period.TotalSeconds);
+								}
+								else
+								{
+									PeriodTimeString = string.Format("{0:N0} minutes", Period.TotalMinutes);
+								}
+
+								StatusReportMessage.AppendLine(string.Format("Events in the last {0}...", PeriodTimeString));
 								foreach (var CountInPeriod in CountsInPeriod)
 								{
 									StatusReportMessage.AppendLine("> " + CountInPeriod.Key + " " + CountInPeriod.Value);
@@ -167,5 +191,6 @@ namespace Tools.CrashReporter.CrashReportProcess
 		private readonly Object TaskMonitor = new Object();
 		private readonly Object DataLock = new Object();
 		private bool bQueueSizesAvail = false;
+		private readonly DateTime CreationTimeUtc = DateTime.UtcNow;
 	}
 }

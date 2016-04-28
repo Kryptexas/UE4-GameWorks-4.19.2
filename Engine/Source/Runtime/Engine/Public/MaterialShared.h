@@ -671,6 +671,9 @@ public:
 	/** Saves this shader map to the derived data cache. */
 	void SaveToDerivedDataCache();
 
+	/** Registers all shaders that have been loaded in Serialize */
+	virtual void RegisterSerializedShaders() override;
+
 	/** Backs up any FShaders in this shader map to memory through serialization and clears FShader references. */
 	TArray<uint8>* BackupShadersToMemory();
 	/** Recreates FShaders from the passed in memory, handling shader key changes. */
@@ -950,6 +953,9 @@ public:
 
 	/** Serializes the shader map inline in this material, including any shader dependencies. */
 	void SerializeInlineShaderMap(FArchive& Ar);
+
+	/** Serializes the shader map inline in this material, including any shader dependencies. */
+	void RegisterInlineShaderMap();
 
 	/** Releases this material's shader map.  Must only be called on materials not exposed to the rendering thread! */
 	void ReleaseShaderMap();

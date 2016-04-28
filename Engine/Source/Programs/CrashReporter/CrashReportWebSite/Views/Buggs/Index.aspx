@@ -71,30 +71,45 @@
 								<ul>
 									<li>
 										<input type="radio" name="CrashType" value="CrashesAsserts" <%=( Model.CrashType == "CrashesAsserts" ) ? "checked='checked'" : "" %> />
-										<span title='All Crashes Except Ensures'>Crashes+Asserts</span></li>
+										<span title='All Crashes Except Ensures'>Crashes+Asserts</span>
+                                    </li>
 									<li>
 										<input type="radio" name="CrashType" value="Ensure" <%=( Model.CrashType == "Ensure" ) ? "checked='checked'" : "" %> />
-										<span title='Only Ensures'>Ensures</span></li>
+										<span title='Only Ensures'>Ensures</span>
+                                    </li>
 									<li>
 										<input type="radio" name="CrashType" value="Assert" <%=( Model.CrashType == "Assert" ) ? "checked='checked'" : "" %> />
-										<span title='Only Asserts'>Asserts</span></li>
+										<span title='Only Asserts'>Asserts</span>
+									</li>
 									<li>
 										<input type="radio" name="CrashType" value="Crashes" <%=( Model.CrashType == "Crashes" ) ? "checked='checked'" : "" %> />
-										<span title='Crashes Except Ensures and Asserts'>Crashes</span></li>
+										<span title='Crashes Except Ensures and Asserts'>Crashes</span>
+                                    </li>
 									<li>
 										<input type="radio" name="CrashType" value="All" <%=( Model.CrashType == "All" ) ? "checked='checked'" : "" %> />
-										<span title='All Crashes'>All</span></li>
+										<span title='All Crashes'>All</span>
+                                    </li>
 								</ul>
 							</div>
 						</td>
-						
 						<td>
 							<p class="SearchTextTitle">Call Stack</p>
 						</td>
 						<td>
-							<input name="SearchQuery" type="text" value="<%=Model.SearchQuery%>" title="" />
+							<input name="SearchQuery" type="text" value="<%=Model.SearchQuery%>" title=""/>
 						</td>
-
+                        <td>
+                            <p class="SearchTextTitle">Jira</p>
+                        </td>
+                        <td>
+                            <input name="JiraId" type="text" value="<%=Model.Jira %>" title=""/>
+                        </td>
+                         <td>
+                            <p class="SearchTextTitle">Bugg Id</p>
+                        </td>
+                        <td>
+                            <input name="Bugg Id" type="text" value="<%=Model.BuggId %>" title=""/>
+                        </td>
 						<td>
 							<p class="SearchTextTitle">Filter by Date</p>
 						</td>
@@ -105,18 +120,27 @@
 							<input id="dateFrom" name="dateFrom" type="hidden" value="<%=Model.DateFrom %>" autocomplete="OFF" />
 							<span class="SearchTextTitle">To:</span>
 							<input id="dateToVisible" type="text" class="date" autocomplete="OFF" style="width:80px" />
-							<input id="dateTo" name="dateTo" type="hidden" value="<%=Model.DateTo %>"autocomplete="OFF"  />
+							<input id="dateTo" name="dateTo" type="hidden" value="<%=Model.DateTo %>"autocomplete="OFF" />
 						</td>
 					</tr>
-
-
-					<tr>
-						
+                    <tr>
 						<td>
 							<p class="SearchTextTitle">Filter by Version</p>
 						</td>
 						<td>
 							<%=Html.DropDownListFor( m=>m.VersionName, Model.VersionNames )%>
+						</td>
+                        <td>
+							<p class="SearchTextTitle">Filter by Platform</p>
+						</td>
+						<td>
+							<%=Html.DropDownListFor( m=>m.PlatformName, Model.PlatformNames )%>
+						</td>
+                        <td>
+							<p class="SearchTextTitle">Filter by Branch</p>
+						</td>
+						<td>
+							<%=Html.DropDownListFor( m=>m.BranchName, Model.BranchNames )%>
 						</td>
 					</tr>
 					<tr>
@@ -130,7 +154,6 @@
 		</div>
 	</div>
 </asp:Content>
-
 <asp:Content ID="MainContent" ContentPlaceHolderID="MainContent" runat="server">
 	<div id='CrashesTableContainer'>
 		<div id='UserGroupBar'>

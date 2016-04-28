@@ -1093,8 +1093,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		}
 
 		Result = Linker->LinkerRoot;
-
-
+		checkf(Result, TEXT("LinkerRoot is null"));
 
 		auto EndLoadAndCopyLocalizationGatherFlag = [&]
 		{
@@ -1113,7 +1112,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		}
 #endif
 
-		if (Result && Result->HasAnyFlags(RF_WasLoaded))
+		if (Result->HasAnyFlags(RF_WasLoaded))
 		{
 			// The linker is associated with a package that has already been loaded.
 			// Loading packages that have already been loaded is unsupported.
@@ -1131,12 +1130,10 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		}
 
 		// Save the filename we load from
-		CA_SUPPRESS(28182)
 		Result->FileName = FName(*FileToLoad);
 
 		// is there a script SHA hash for this package?
 		uint8 SavedScriptSHA[20];
-		CA_SUPPRESS(6011)
 		bool bHasScriptSHAHash = FSHA1::GetFileSHAHash(*Linker->LinkerRoot->GetName(), SavedScriptSHA, false);
 		if (bHasScriptSHAHash)
 		{

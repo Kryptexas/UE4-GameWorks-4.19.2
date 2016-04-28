@@ -38,7 +38,7 @@ public:
 	{}
 	void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
-		if( Verbosity==ELogVerbosity::Error || Verbosity==ELogVerbosity::Warning || Verbosity==ELogVerbosity::Display )
+		if( Verbosity==ELogVerbosity::Error || Verbosity==ELogVerbosity::Warning )
 		{
 			if( TreatWarningsAsErrors && Verbosity==ELogVerbosity::Warning )
 			{
@@ -50,7 +50,7 @@ public:
 			{
 				Prefix = Context->GetContext() + TEXT(" : ");
 			}
-			FString Format = Prefix + FOutputDevice::FormatLogLine(Verbosity, Category, V);
+			FString Format = Prefix + FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V);
 
 			// Only store off the message if running a commandlet.
 			if ( IsRunningCommandlet() )

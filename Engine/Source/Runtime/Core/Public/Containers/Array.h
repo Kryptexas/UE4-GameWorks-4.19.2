@@ -2471,6 +2471,28 @@ public:
 	 * @return The index of the new element.
 	 */
 	template <class PREDICATE_CLASS>
+	int32 HeapPush(ElementType&& InItem, const PREDICATE_CLASS& Predicate)
+	{
+		// Add at the end, then sift up
+		Add(MoveTemp(InItem));
+		TDereferenceWrapper<ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
+		int32 Result = SiftUp(0, Num() - 1, PredicateWrapper);
+
+#if DEBUG_HEAP
+		VerifyHeap(PredicateWrapper);
+#endif
+
+		return Result;
+	}
+
+	/** 
+	 * Adds a new element to the heap.
+	 *
+	 * @param InItem Item to be added.
+	 * @param Predicate Predicate class instance.
+	 * @return The index of the new element.
+	 */
+	template <class PREDICATE_CLASS>
 	int32 HeapPush(const ElementType& InItem, const PREDICATE_CLASS& Predicate)
 	{
 		// Add at the end, then sift up
@@ -2483,6 +2505,18 @@ public:
 #endif
 
 		return Result;
+	}
+
+	/** 
+	 * Adds a new element to the heap. Assumes < operator is defined for the
+	 * template type.
+	 *
+	 * @param InItem Item to be added.
+	 * @return The index of the new element.
+	 */
+	int32 HeapPush(ElementType&& InItem)
+	{
+		return HeapPush(MoveTemp(InItem), TLess<ElementType>());
 	}
 
 	/** 

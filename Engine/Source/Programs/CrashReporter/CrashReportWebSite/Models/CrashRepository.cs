@@ -9,8 +9,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Web;
 using System.Web.UI.MobileControls;
-using Naspinski.IQueryableSearch;
-
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.CrashReporter.CrashReportWebSite.Controllers;
 using System.Web.Mvc;
@@ -99,8 +97,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
                     BranchesAsSelectList = BranchList
                         .Select( listitem => new SelectListItem { Selected = false, Text = listitem, Value = listitem } )
                         .ToList();
-					BranchesAsSelectList.Insert( 0, new SelectListItem { Selected = true, Text = "", Value = "" } );
 
+				    var branchesString = BranchList.Aggregate("", (current, branch) => current + branch);
+
+                    BranchesAsSelectList.Insert( 0, new SelectListItem { Selected = true, Text = "", Value = "" } );
 					LastBranchesDate = Now;
 				}
 
@@ -243,7 +243,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A container of all known crashes.</returns>
 		public IQueryable<Crash> ListAll()
 		{
-			return Context.Crashes.AsQueryable().Where( c => c.Branch != null );
+		    return Context.Crashes;
 		}
 
 		/// <summary>

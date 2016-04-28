@@ -64,7 +64,9 @@ public:
 			if (Data || NumElements)
 			{
 				//checkSlow(((uint64)NumElements*(uint64)ElementTypeInfo.GetSize() < (uint64)INT_MAX));
-				Data = (FScriptContainerElement*)::realloc(Data, NumElements*NumBytesPerElement);
+				FScriptContainerElement* NewData = (FScriptContainerElement*)::realloc(Data, NumElements*NumBytesPerElement);
+				check(NewData);
+				Data = NewData;
 			}
 		}
 		int32 CalculateSlackReserve(int32 NumElements, int32 NumBytesPerElement) const

@@ -6,11 +6,13 @@
 
 #include "CorePrivatePCH.h"
 #include "HAL/OutputDeviceMemory.h"
+#include "OutputDeviceHelper.h"
 
 #define DUMP_LOG_ON_EXIT (!NO_LOGGING && PLATFORM_DESKTOP && (!UE_BUILD_SHIPPING || USE_LOGGING_IN_SHIPPING))
 
 FOutputDeviceMemory::FOutputDeviceMemory(int32 InBufferSize /*= 1024 * 1024*/)
-: BufferStartPos(0)
+: ArchiveProxy(*this)
+, BufferStartPos(0)
 , BufferLength(0)
 {
 #if DUMP_LOG_ON_EXIT
@@ -48,7 +50,7 @@ void FOutputDeviceMemory::Flush()
 void FOutputDeviceMemory::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time)
 {
 #if !NO_LOGGING
-	FormatAndSerialize(Data, Verbosity, Category, Time);
+	FOutputDeviceHelper::FormatCastAndSerializeLine(ArchiveProxy, Data, Verbosity, Category, Time, bSuppressEventTag, bAutoEmitLineTerminator);
 #endif
 }
 
@@ -82,37 +84,6 @@ void FOutputDeviceMemory::SerializeToBuffer(ANSICHAR* Data, int32 Length)
 		FMemory::Memcpy(Buffer.GetData() + WritePos, Data, ChunkALength * sizeof(ANSICHAR));
 		const int32 ChunkBLength = Length - ChunkALength;
 		FMemory::Memcpy(Buffer.GetData(), Data + ChunkALength, ChunkBLength * sizeof(ANSICHAR));
-	}
-}
-
-void FOutputDeviceMemory::FormatAndSerialize(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time)
-{
-	if (!bSuppressEventTag)
-	{
-		FString Prefix = FOutputDevice::FormatLogLine(Verbosity, Category, NULL, GPrintLogTimes, Time);
-		CastAndSerializeToBuffer(*Prefix);
-	}
-
-	CastAndSerializeToBuffer(Data);
-
-	if (bAutoEmitLineTerminator)
-	{
-#if PLATFORM_LINUX
-		// on Linux, we still want to have logs with Windows line endings so they can be opened with Windows tools like infamous notepad.exe
-		static ANSICHAR WindowsTerminator[] = { '\r', '\n' };
-		SerializeToBuffer((ANSICHAR*)WindowsTerminator, sizeof(WindowsTerminator));
-#else
-		CastAndSerializeToBuffer(LINE_TERMINATOR);
-#endif // PLATFORM_LINUX
-	}
-}
-
-void FOutputDeviceMemory::CastAndSerializeToBuffer(const TCHAR* Data)
-{
-	FTCHARToUTF8 ConvertedData(Data);
-	if (ConvertedData.Length())
-	{
-		SerializeToBuffer((ANSICHAR*)ConvertedData.Get(), ConvertedData.Length());
 	}
 }
 

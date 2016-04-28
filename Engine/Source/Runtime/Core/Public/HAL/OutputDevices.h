@@ -449,10 +449,6 @@ private:
 	FAsyncWriter* CreateWriter(uint32 MaxAttempts = 32);
 
 	void WriteByteOrderMarkToArchive(EByteOrderMark ByteOrderMark);
-
-	void CastAndSerializeData(const TCHAR* Data);
-
-	void WriteDataToArchive(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time);
 };
 
 // Null output device.
@@ -568,9 +564,6 @@ public:
 
 private:
 	FArchive* LogAr;
-
-private:
-	void CastAndSerializeData(const TCHAR* Data);
 };
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogHAL, Log, All);

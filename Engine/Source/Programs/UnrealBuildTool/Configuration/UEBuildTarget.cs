@@ -3730,7 +3730,7 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					Log.TraceWarning("Signing key file is missing! Executable will not include signing keys");
+					Log.TraceVerbose("Signing key file is missing! Executable will not include signing keys");
 				}
 			}
 

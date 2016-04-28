@@ -172,7 +172,7 @@ FString FKismetBytecodeDisassembler::ReadString8(int32& ScriptIndex)
 
 	do
 	{
-		Result += ReadBYTE(ScriptIndex);
+		Result += (ANSICHAR)ReadBYTE(ScriptIndex);
 	}
 	while (Script[ScriptIndex-1] != 0);
 
@@ -185,7 +185,7 @@ FString FKismetBytecodeDisassembler::ReadString16(int32& ScriptIndex)
 
 	do
 	{
-		Result += ReadWORD(ScriptIndex);
+		Result += (TCHAR)ReadWORD(ScriptIndex);
 	}
 	while ((Script[ScriptIndex-1] != 0) || (Script[ScriptIndex-2] != 0));
 

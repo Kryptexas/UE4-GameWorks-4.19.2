@@ -1096,7 +1096,12 @@ typedef void (*EditorPostReachabilityAnalysisCallbackType)();
 COREUOBJECT_API EditorPostReachabilityAnalysisCallbackType EditorPostReachabilityAnalysisCallback = NULL;
 
 // Allow parallel GC to be overridden to single threaded via console command.
-static int32 GAllowParallelGC = (!PLATFORM_MAC || !WITH_EDITORONLY_DATA) ? 1 : 0;
+#if !PLATFORM_MAC || !WITH_EDITORONLY_DATA
+	static int32 GAllowParallelGC = 1;
+#else
+	static int32 GAllowParallelGC = 0;
+#endif
+
 static FAutoConsoleVariableRef CVarAllowParallelGC(
 	TEXT("gc.AllowParallelGC"),
 	GAllowParallelGC,

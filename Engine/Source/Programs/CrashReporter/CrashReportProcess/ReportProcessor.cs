@@ -413,6 +413,14 @@ namespace Tools.CrashReporter.CrashReportProcess
 						CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash: " + ErrorMessage);
 					}
 				}
+#if DEBUG
+				else
+				{
+					// No website set - simulate successful upload
+					var Rnd = new Random();
+					NewID = Rnd.Next(1, 99999999);
+				}
+#endif
 			}
 			catch( Exception Ex )
 			{

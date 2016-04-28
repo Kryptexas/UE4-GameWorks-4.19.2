@@ -546,14 +546,14 @@ public:
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent ) override;
 	virtual FReply OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent ) override;
 
-	void TypeChar(const int32 InChar);
+	void TypeChar(const TCHAR InChar);
 
 	/**
 	* Changes visibility of widgets in the multibox
 	*
 	* @param	InSearchText	The search text to check against
 	*/
-	void UpdateSearch(const int32);
+	void UpdateSearch(const TCHAR);
 
 	/**
 	* Resets the search to be empty

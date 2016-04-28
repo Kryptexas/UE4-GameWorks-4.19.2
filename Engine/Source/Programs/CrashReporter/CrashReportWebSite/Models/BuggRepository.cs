@@ -7,9 +7,7 @@ using System.Data.Linq.SqlClient;
 using System.Diagnostics;
 using System.Linq;
 using System.Web;
-using Naspinski.IQueryableSearch;
 using System.Data.Linq;
-using System.Linq.Dynamic;
 using System.Reflection;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
@@ -78,7 +76,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				FLogger.Global.WriteException( "SetBuggStatus: " + Ex.ToString() );
 			}
 		}
-
 
 		/// <summary>
 		/// Sets the fixed in changelist for all crashes in a Bugg.
@@ -333,12 +330,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// Filter the list of Buggs by a callstack entry.
 		/// </summary>
-		public IEnumerable<Bugg> FilterByCallstack( IEnumerable<Bugg> Results, string CallstackEntry )
+        public IQueryable<Bugg> FilterByCallstack(IQueryable<Bugg> Results, string CallstackEntry)
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Query=" + CallstackEntry + ")" ) )
 			{
 				// Also may want to revisit how we search since this could get inefficient for a big search set.
-				IEnumerable<Bugg> Buggs;
+                //IQueryable<Bugg> Buggs;
 				try
 				{
 					string QueryString = HttpUtility.HtmlDecode( CallstackEntry.ToString() );
@@ -363,22 +360,21 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					// Search for all function ids. OR operation, not very efficient, but for searching for one function should be ok.
 					foreach (int Id in AllFuncionCallIds)
 					{
-						var BuggsForFunc = Results.Where( X => X.Pattern.Contains( Id + "+" ) || X.Pattern.Contains( "+" + Id ) ).ToList();
+						Results = Results.Where( X => X.Pattern.Contains( Id + "+" ) || X.Pattern.Contains( "+" + Id ) );
 						
-						foreach(Bugg Bugg in BuggsForFunc)
-						{
-							TemporaryResults.Add( Bugg );
-						}
+                        //foreach(Bugg Bugg in BuggsForFunc)
+                        //{
+                        //    TemporaryResults.Add( Bugg );
+                        //}
 					}
 
-					Buggs = TemporaryResults.ToList();
 				}
 				catch( Exception Ex )
 				{
 					Debug.WriteLine( "Exception in Search: " + Ex.ToString() );
-					Buggs = Results;
+					
 				}
-				return Buggs;
+                return Results;
 			}
 		}
 
@@ -391,13 +387,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-				// Right now we take a Result IQueryable starting with ListAll() Buggs then we widdle away the result set by tacking on 
+				// Right now we take a Result IQueryable starting with ListAll() Buggs then we widdle away the result set by tacking on
 				// Linq queries. Essentially it's Results.ListAll().Where().Where().Where().Where().Where().Where()
 				// Could possibly create more optimized queries when we know exactly what we're querying
 				// The downside is that if we add more parameters each query may need to be updated.... Or we just add new case statements
 				// The other downside is that there's less code reuse, but that may be worth it.
 
-				IEnumerable<Bugg> Results = null;
+				IQueryable<Bugg> Results = null;
 				int Skip = ( FormData.Page - 1 ) * FormData.PageSize;
 				int Take = FormData.PageSize;
 
@@ -409,6 +405,22 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 				// Filter results by build version.
 				Results = FilterByBuildVersion( Results, FormData.VersionName );
+
+                // Filter by BranchName
+                if (!string.IsNullOrEmpty(FormData.BranchName))
+                {
+                    Results =
+                        Results.Where(
+                            data => data.Buggs_Crashes.Any(da => da.Crash.Branch.Equals(FormData.BranchName)));
+                }
+
+                // Filter by PlatformName
+                if (!string.IsNullOrEmpty(FormData.PlatformName))
+                {
+                    Results =
+                        Results.Where(
+                            data => data.Buggs_Crashes.Any(da => da.Crash.PlatformName.Equals(FormData.PlatformName)));
+                }
 
 				// Run at the end
 				if( !string.IsNullOrEmpty( FormData.SearchQuery ) )
@@ -441,7 +453,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 				// Filter by user group if present
 				Results = FilterByUserGroup( Results, FormData.UserGroup );
-
+            
+                if (!string.IsNullOrEmpty(FormData.JiraId))
+			    {
+			        Results = FilterByJira(Results, FormData.JiraId);
+			    }
+			    
 				// Pass in the results and return them sorted properly
 				IEnumerable<Bugg> SortedResults = GetSortedResults( Results, FormData.SortTerm, ( FormData.SortOrder == "Descending" ), FormData.DateFrom, FormData.DateTo, FormData.UserGroup );
 
@@ -464,7 +481,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					DateFrom = (long)( FormData.DateFrom - CrashesViewModel.Epoch ).TotalMilliseconds,
 					DateTo = (long)( FormData.DateTo - CrashesViewModel.Epoch ).TotalMilliseconds,
 					VersionName = FormData.VersionName,
+                    PlatformName = FormData.PlatformName,
+                    BranchName = FormData.BranchName,
 					GroupCounts = GroupCounts,
+                    Jira = FormData.JiraQuery
 				};
 			}
 		}
@@ -549,6 +569,20 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 		}
 
+        /// <summary>
+        /// Filter a set of Buggs by a jira ticket.
+        /// </summary>
+        /// <param name="Results">The unfiltered set of Buggs</param>
+        /// <param name="Jira">The ticket by which to filter the list of buggs</param>
+        /// <returns></returns>
+        public IQueryable<Bugg> FilterByJira(IQueryable<Bugg> Results, string Jira)
+	    {
+            using (FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer(this.GetType().ToString() + " SQL"))
+            {
+                return Results.Where(Bugg => Bugg.Jira == Jira);
+            }
+	    } 
+
 		/// <summary>
 		/// Filter a set of Buggs to a date range.
 		/// </summary>
@@ -556,7 +590,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <param name="DateFrom">The earliest date to filter by.</param>
 		/// <param name="DateTo">The latest date to filter by.</param>
 		/// <returns>The set of Buggs between the earliest and latest date.</returns>
-		public IEnumerable<Bugg> FilterByDate( IQueryable<Bugg> Results, DateTime DateFrom, DateTime DateTo )
+        public IQueryable<Bugg> FilterByDate(IQueryable<Bugg> Results, DateTime DateFrom, DateTime DateTo)
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + " SQL" ) )
 			{
@@ -570,32 +604,23 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					( Bugg.TimeOfFirstCrash <= DateFrom && Bugg.TimeOfLastCrash <= DateTo1 && Bugg.TimeOfLastCrash >= DateFrom )
 					);
 
-				IEnumerable<Bugg> BuggsInTimeFrameEnumerable = BuggsInTimeFrame.ToList();
-				return BuggsInTimeFrameEnumerable;
+			    return BuggsInTimeFrame;
 			}
 		}
 
 		/// <summary>
 		/// Filter a set of Buggs by build version.
 		/// </summary>
-		/// <param name="Results">The unfiltered set of Buggs.</param>
-		/// <param name="BuildVersion">The build version to filter by.</param>
+		/// <param name="results">The unfiltered set of Buggs.</param>
+		/// <param name="buildVersion">The build version to filter by.</param>
 		/// <returns>The set of Buggs that matches specified build version</returns>
-		public IEnumerable<Bugg> FilterByBuildVersion( IEnumerable<Bugg> Results, string BuildVersion )
+        public IQueryable<Bugg> FilterByBuildVersion(IQueryable<Bugg> results, string buildVersion)
 		{
-			IEnumerable<Bugg> BuggsForBuildVersion = Results;
-
-			// Filter by BuildVersion
-			if( !string.IsNullOrEmpty( BuildVersion ) )
-			{
-				BuggsForBuildVersion =
-				(
-					from MyBugg in Results
-					where MyBugg.BuildVersion.Contains( BuildVersion )
-					select MyBugg
-				);
-			}
-			return BuggsForBuildVersion;
+		    if (!string.IsNullOrEmpty(buildVersion))
+		    {
+		        results = results.Where(data => data.BuildVersion.Contains(buildVersion));
+		    }
+            return results;
 		}
 
 		/// <summary>
@@ -604,7 +629,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <param name="SetOfBuggs">The unfiltered set of Buggs.</param>
 		/// <param name="GroupName">The user group name to filter by.</param>
 		/// <returns>The set of Buggs by users in the requested user group.</returns>
-		public IEnumerable<Bugg> FilterByUserGroup( IEnumerable<Bugg> SetOfBuggs, string GroupName )
+        public IQueryable<Bugg> FilterByUserGroup(IQueryable<Bugg> SetOfBuggs, string GroupName)
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(GroupName=" + GroupName + ") SQL" ) )
 			{
@@ -629,11 +654,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				}
 
 
-				return NewSetOfBuggs.AsEnumerable();
+				return NewSetOfBuggs;
 			}
 		}
-
-		
 
 		/// <summary>
 		/// 
@@ -676,8 +699,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					List<Buggs_Crash> BuggsFromDate = null;
 					Dictionary<int, string> CrashToUser = null;
 					Dictionary<int, string> CrashToMachine = null;
-
-
+                    
 					// Get all buggs from the date range.
 					using( FScopedLogTimer LogTimer1 = new FScopedLogTimer( "BuggRepository.GetSortedResults.BuggsFromDate SQL" ) )
 					{

@@ -1096,7 +1096,7 @@ FReply SMultiBoxWidget::OnKeyChar( const FGeometry& MyGeometry, const FCharacter
 	return Reply;
 }
 
-void SMultiBoxWidget::TypeChar(const int32 InChar)
+void SMultiBoxWidget::TypeChar(const TCHAR InChar)
 {
 	// Certain characters are not allowed
 	bool bIsCharAllowed = true;
@@ -1117,7 +1117,7 @@ void SMultiBoxWidget::TypeChar(const int32 InChar)
 	}
 }
 
-void SMultiBoxWidget::UpdateSearch( const int32 CharToAdd )
+void SMultiBoxWidget::UpdateSearch( const TCHAR CharToAdd )
 {
 	const FString& OldSearchText = SearchText.ToString();
 	SearchText = FText::FromString( OldSearchText + CharToAdd );

@@ -132,9 +132,9 @@ public:
 		if ( (bAllowLogVerbosity && Verbosity <= ELogVerbosity::Log) || (Verbosity <= ELogVerbosity::Display) )
 		{
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
-			wprintf(TEXT("\n%ls"), *FOutputDevice::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
+			wprintf(TEXT("\n%ls"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #else
-			wprintf(TEXT("\n%s"), *FOutputDevice::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
+			wprintf(TEXT("\n%s"), *FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V, GPrintLogTimes));
 #endif
 			fflush(stdout);
 		}
@@ -1213,7 +1213,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// when we are in the editor we like to do things like build lighting and such
 		// this thread pool can be used for those purposes
 		GLargeThreadPool = FQueuedThreadPool::Allocate();
-		int32 NumThreadsInLargeThreadPool = FPlatformMisc::NumberOfCoresIncludingHyperthreads() - 2;
+		int32 NumThreadsInLargeThreadPool = FMath::Max(FPlatformMisc::NumberOfCoresIncludingHyperthreads() - 2, 1);
 
 		verify(GLargeThreadPool->Create(NumThreadsInLargeThreadPool));
 #endif

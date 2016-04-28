@@ -1105,7 +1105,7 @@ void UUnitTestManager::OpenStatusWindow()
 					StatusLogOutput.OnSerialize.AddStatic(
 						[](const TCHAR* V, ELogVerbosity::Type Verbosity, const FName& Category)
 						{
-							FString LogLine = FOutputDevice::FormatLogLine(Verbosity, Category, V);
+							FString LogLine = FOutputDeviceHelper::FormatLogLine(Verbosity, Category, V);
 
 							STATUS_LOG_BASE(ELogType::OriginConsole, TEXT("%s"), *LogLine);
 						});

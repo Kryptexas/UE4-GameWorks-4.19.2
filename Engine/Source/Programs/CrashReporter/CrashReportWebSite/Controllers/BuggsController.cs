@@ -138,7 +138,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 							NewBugg.CopyToJira();
 						}
 					}
-
 				}
 
 				using( FAutoScopedLogTimer JiraResultsTimer = new FAutoScopedLogTimer( "Bugg.GrabJira" ) )
