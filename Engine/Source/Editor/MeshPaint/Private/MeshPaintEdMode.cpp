@@ -1065,7 +1065,10 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 			{
 				UMeshComponent* ComponentToPaint = CastChecked<UMeshComponent>(BestTraceResult.GetComponent());
 
-				PaintableComponents.AddUnique(ComponentToPaint);
+				if (ComponentToAdapterMap.Contains(ComponentToPaint))
+				{
+					PaintableComponents.AddUnique(ComponentToPaint);
+				}
 			}
 			else
 			{
@@ -1076,7 +1079,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 				{
 					const FBox ComponentBounds = TestComponent->Bounds.GetBox();
 					
-					if (ComponentBounds.Intersect(BrushBounds))
+					if (ComponentToAdapterMap.Contains(TestComponent) && ComponentBounds.Intersect(BrushBounds))
 					{
 						// OK, this mesh potentially overlaps the brush!
 						PaintableComponents.AddUnique(TestComponent);
@@ -1125,6 +1128,11 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 	for (UMeshComponent* MeshComponent : PaintableComponents)
 	{
 		IMeshPaintGeometryAdapter* MeshAdapter = ComponentToAdapterMap.FindRef(MeshComponent).Get();
+		if (!ensure(MeshAdapter))
+		{
+			continue;
+		}
+
 		MeshAdapter->SetCurrentUVChannelIndex(FMeshPaintSettings::Get().UVChannel);
 
 		// Brush properties
