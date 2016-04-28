@@ -372,9 +372,18 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 			if(SelectedNodes.Num() > 0)
 			{
 				FVector ModifiedScale = Scale;
-				if( GEditor->UsePercentageBasedScaling() )
+
+				// (mirrored from Level Editor VPC) - we don't scale components when we only have a very small scale change
+				if (!Scale.IsNearlyZero())
 				{
-					ModifiedScale = Scale * ((GEditor->GetScaleGridSize() / 100.0f) / GEditor->GetGridSize());
+					if (GEditor->UsePercentageBasedScaling())
+					{
+						ModifiedScale = Scale * ((GEditor->GetScaleGridSize() / 100.0f) / GEditor->GetGridSize());
+					}
+				}
+				else
+				{
+					ModifiedScale = FVector::ZeroVector;
 				}
 
 				TSet<USceneComponent*> UpdatedComponents;
