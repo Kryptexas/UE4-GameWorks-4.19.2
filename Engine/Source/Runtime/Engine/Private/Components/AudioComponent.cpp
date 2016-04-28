@@ -158,10 +158,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 		// If this is an auto destroy component we need to prevent it from being auto-destroyed since we're really just restarting it
 		bool bCurrentAutoDestroy = bAutoDestroy;
 		bAutoDestroy = false;
-		if (!bShouldRemainActiveIfDropped)
-		{
-			Stop();
-		}
+		Stop();
 		bAutoDestroy = bCurrentAutoDestroy;
 	}
 
