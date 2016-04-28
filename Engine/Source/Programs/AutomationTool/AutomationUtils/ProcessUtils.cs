@@ -684,6 +684,10 @@ namespace AutomationTool
 		public static ProcessResult Run(string App, string CommandLine = null, string Input = null, ERunOptions Options = ERunOptions.Default, Dictionary<string, string> Env = null)
 		{
 			App = ConvertSeparators(PathSeparator.Default, App);
+
+			// Get the log name before allowing the platform to modify the app/command-line. We want mono apps to be written to a log named after the application and appear with the application prefix rather than "mono:".
+			string LogName = Path.GetFileNameWithoutExtension(App);
+
 			HostPlatform.Current.SetupOptionsForRun(ref App, ref Options, ref CommandLine);
 			if (App == "ectool" || App == "zip" || App == "xcodebuild")
 			{
@@ -701,7 +705,7 @@ namespace AutomationTool
             {
                 LogWithVerbosity(SpewVerbosity,"Run: " + App + " " + (String.IsNullOrEmpty(CommandLine) ? "" : CommandLine));
             }
-			ProcessResult Result = ProcessManager.CreateProcess(App, Options.HasFlag(ERunOptions.AllowSpew), Path.GetFileNameWithoutExtension(App), Env, SpewVerbosity:SpewVerbosity);
+			ProcessResult Result = ProcessManager.CreateProcess(App, Options.HasFlag(ERunOptions.AllowSpew), LogName, Env, SpewVerbosity:SpewVerbosity);
 			Process Proc = Result.ProcessObject;
 
 			bool bRedirectStdOut = (Options & ERunOptions.NoStdOutRedirect) != ERunOptions.NoStdOutRedirect;			

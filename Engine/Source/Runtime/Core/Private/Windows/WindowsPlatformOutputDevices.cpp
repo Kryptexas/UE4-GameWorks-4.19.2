@@ -129,10 +129,9 @@ void FOutputDeviceWindowsError::HandleError()
 	FCoreDelegates::OnHandleSystemError.Broadcast();
 
 	// Dump the error and flush the log.
-	FDebug::ConditionallyEmitBeginCrashUATMarker();
-	UE_LOG( LogWindows, Error, TEXT( "=== Critical error: ===" ) LINE_TERMINATOR TEXT( "%s" ) LINE_TERMINATOR, GErrorHist );
-	FDebug::ConditionallyEmitEndCrashUATMarker();
-
+#if !NO_LOGGING
+	FDebug::OutputMultiLineCallstack(__FILE__, __LINE__, LogWindows.GetCategoryName(), TEXT("=== Critical error: ==="), GErrorHist, ELogVerbosity::Error);
+#endif
 	GLog->PanicFlushThreadedLogs();
 
 	// Unhide the mouse.

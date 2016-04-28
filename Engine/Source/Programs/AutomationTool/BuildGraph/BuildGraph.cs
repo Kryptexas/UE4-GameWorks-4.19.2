@@ -92,10 +92,11 @@ namespace AutomationTool
 			string SingleNodeName = ParseParamValue("SingleNode", null);
 			string[] TriggerNames = ParseParamValue("Trigger", "").Split(new char[]{ '+' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
 			bool bSkipTriggers = ParseParam("SkipTriggers");
-			bool bClean = ParseParam("Clean");
+			bool bClearHistory = ParseParam("Clean") || ParseParam("ClearHistory");
 			bool bListOnly = ParseParam("ListOnly");
 			bool bWriteToSharedStorage = ParseParam("WriteToSharedStorage") || CommandUtils.IsBuildMachine;
 			bool bPublicTasksOnly = ParseParam("PublicTasksOnly");
+			string ReportName = ParseParamValue("ReportName", null); 
 
 			GraphPrintOptions PrintOptions = 0;
 			if(ParseParam("ShowDeps"))
@@ -174,7 +175,7 @@ namespace AutomationTool
 			// Create the temp storage handler
 			DirectoryReference RootDir = new DirectoryReference(CommandUtils.CmdEnv.LocalRoot);
 			TempStorage Storage = new TempStorage(RootDir, DirectoryReference.Combine(RootDir, "Engine", "Saved", "BuildGraph"), (SharedStorageDir == null)? null : new DirectoryReference(SharedStorageDir), bWriteToSharedStorage);
-			if(bClean)
+			if(bClearHistory)
 			{
 				Storage.CleanLocal();
 			}
@@ -198,6 +199,14 @@ namespace AutomationTool
 
 			// Cull the graph to include only those nodes
 			Graph.Select(TargetNodes);
+
+			// If a report for the whole build was requested, insert it into the graph
+			if (ReportName != null)
+			{
+				Report NewReport = new Report(ReportName);
+				NewReport.Nodes.UnionWith(Graph.Agents.SelectMany(x => x.Nodes));
+				Graph.NameToReport.Add(ReportName, NewReport);
+			}
 
 			// Write out the preprocessed script
 			if (PreprocessedFileName != null)

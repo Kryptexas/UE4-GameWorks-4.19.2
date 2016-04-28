@@ -409,11 +409,8 @@ struct CORE_API FMsg
  **/
 struct CORE_API FDebug
 {
-	/** Conditionally emits a special UAT marker. */
-	static void ConditionallyEmitBeginCrashUATMarker();
-
-	/** Conditionally emits a special UAT marker. */
-	static void ConditionallyEmitEndCrashUATMarker();
+	/** Outputs a callstack message, separating out each line into a separate log call by modifying the buffer in-place */
+	static void OutputMultiLineCallstack(const ANSICHAR* File, int32 Line, const FName& LogName, const TCHAR* Heading, TCHAR* Message, ELogVerbosity::Type Verbosity);
 
 	/** Logs final assert message and exits the program. */
 	static void VARARGS AssertFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format = TEXT(""), ...);

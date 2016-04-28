@@ -87,6 +87,11 @@ namespace AutomationTool
 		public Dictionary<string, Node> NameToNode = new Dictionary<string,Node>(StringComparer.InvariantCultureIgnoreCase);
 
 		/// <summary>
+		/// Mapping of names to the corresponding report.
+		/// </summary>
+		public Dictionary<string, Report> NameToReport = new Dictionary<string, Report>(StringComparer.InvariantCultureIgnoreCase);
+
+		/// <summary>
 		/// Mapping of names to their corresponding node output.
 		/// </summary>
 		public Dictionary<string, NodeOutput> NameToNodeOutput = new Dictionary<string,NodeOutput>(StringComparer.InvariantCultureIgnoreCase);
@@ -119,7 +124,7 @@ namespace AutomationTool
 			string TrimName = Name.StartsWith("#")? Name.Substring(1) : Name;
 
 			// Check it doesn't match anything in the graph
-			return NameToNode.ContainsKey(TrimName) || NameToNodeOutput.ContainsKey(TrimName) || AggregateNameToNodes.ContainsKey(TrimName);
+			return NameToNode.ContainsKey(TrimName) || NameToNodeOutput.ContainsKey(TrimName) || NameToReport.ContainsKey(TrimName) || AggregateNameToNodes.ContainsKey(TrimName);
 		}
 
 		/// <summary>
@@ -230,6 +235,15 @@ namespace AutomationTool
 			// Remove all the empty agents
 			Agents.RemoveAll(x => x.Nodes.Count == 0);
 
+			// Trim down the list of nodes for each report to the ones that are being built
+			foreach (Report Report in NameToReport.Values)
+			{
+				Report.Nodes.RemoveWhere(x => !RetainNodes.Contains(x));
+			}
+
+			// Remove all the empty reports
+			NameToReport = NameToReport.Where(x => x.Value.Nodes.Count > 0).ToDictionary(Pair => Pair.Key, Pair => Pair.Value);
+
 			// Remove all the order dependencies which are no longer part of the graph. Since we don't need to build them, we don't need to wait for them
 			foreach(Node Node in RetainNodes)
 			{
@@ -288,6 +302,15 @@ namespace AutomationTool
 					Writer.WriteAttributeString("Requires", String.Join(";", Aggregate.Value.Select(x => x.Name)));
 					Writer.WriteEndElement();
 				}
+
+				foreach (Report Report in NameToReport.Values)
+				{
+					Writer.WriteStartElement("Report");
+					Writer.WriteAttributeString("Name", Report.Name);
+					Writer.WriteAttributeString("Requires", String.Join(";", Report.Nodes.Select(x => x.Name)));
+					Writer.WriteEndElement();
+				}
+
 				Writer.WriteEndElement();
 			}
 		}
@@ -352,8 +375,29 @@ namespace AutomationTool
 				}
 				JsonWriter.WriteArrayEnd();
 
-				// Write all the triggers
-				JsonWriter.WriteArrayStart("Triggers");
+				// Write all the triggers and reports. 
+				JsonWriter.WriteArrayStart("Reports");
+				foreach (Report Report in NameToReport.Values)
+				{
+					Node[] Dependencies = Report.Nodes.Where(x => NodesToExecute.Contains(x)).ToArray();
+					if (Dependencies.Length > 0)
+					{
+						// Reduce that list to the smallest subset of direct dependencies
+						HashSet<Node> DirectDependencies = new HashSet<Node>(Dependencies);
+						foreach (Node Dependency in Dependencies)
+						{
+							DirectDependencies.ExceptWith(Dependency.OrderDependencies);
+						}
+
+						JsonWriter.WriteObjectStart();
+						JsonWriter.WriteValue("Name", Report.Name);
+						JsonWriter.WriteValue("AllDependencies", String.Join(";", Agents.SelectMany(x => x.Nodes).Where(x => Dependencies.Contains(x)).Select(x => x.Name)));
+						JsonWriter.WriteValue("DirectDependencies", String.Join(";", DirectDependencies.Select(x => x.Name)));
+						JsonWriter.WriteValue("Notify", String.Join(";", Report.NotifyUsers));
+						JsonWriter.WriteValue("IsTrigger", false);
+						JsonWriter.WriteObjectEnd();
+					}
+				}
 				foreach (ManualTrigger Trigger in NameToTrigger.Values)
 				{
 					if(!ActivatedTriggers.Contains(Trigger) && NodesToExecute.Any(x => x.ControllingTrigger == Trigger.Parent))
@@ -385,10 +429,12 @@ namespace AutomationTool
 						JsonWriter.WriteValue("AllDependencies", String.Join(";", Agents.SelectMany(x => x.Nodes).Where(x => Dependencies.Contains(x)).Select(x => x.Name)));
 						JsonWriter.WriteValue("DirectDependencies", String.Join(";", Dependencies.Where(x => DirectDependencies.Contains(x)).Select(x => x.Name)));
 						JsonWriter.WriteValue("Notify", String.Join(";", Trigger.NotifyUsers));
+						JsonWriter.WriteValue("IsTrigger", true);
 						JsonWriter.WriteObjectEnd();
 					}
 				}
 				JsonWriter.WriteArrayEnd();
+
 				JsonWriter.WriteObjectEnd();
 			}
 		}

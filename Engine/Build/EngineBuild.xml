@@ -1,0 +1,58 @@
+<?xml version='1.0' ?>
+<BuildGraph xmlns="http://www.epicgames.com/BuildGraph" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.epicgames.com/BuildGraph ../../Engine/Build/Graph/Schema.xsd" >
+
+	<!-- Base editor and tools for compile -->
+	<Agent Name="Editor Win64" Type="CompileWin64">
+		<Node Name="Update Version Files">
+			<SetVersion Change="$(Change)" Branch="$(EscapedBranch)" If="$(IsBuildMachine)"/>
+		</Node>
+		<Node Name="Compile UnrealHeaderTool Win64" Requires="Update Version Files">
+			<Compile Target="UnrealHeaderTool" Platform="Win64" Configuration="Development"/>
+		</Node>
+		<Node Name="Compile UE4Editor Win64" Requires="Compile UnrealHeaderTool Win64">
+			<Compile Target="UE4Editor" Platform="Win64" Configuration="Development"/>
+		</Node>
+	</Agent>
+
+	<!-- Base editor and tools for compile on Mac -->
+	<Agent Name="Editor Mac" Type="CompileMac">
+		<Node Name="Compile UnrealHeaderTool Mac" Requires="Update Version Files">
+			<Compile Target="UnrealHeaderTool" Platform="Mac" Configuration="Development"/>
+		</Node>
+		<Node Name="Compile UE4Editor Mac" Requires="Compile UnrealHeaderTool Mac">
+			<Compile Target="UE4Editor" Platform="Mac" Configuration="Development"/>
+		</Node>
+	</Agent>
+	
+	<!-- Downstream monolithics and tools -->
+	<Agent Name="Monolithics Win64" Type="CompileWin64">
+		<Node Name="Compile Tools Win64" Requires="Compile UnrealHeaderTool Win64;Update Version Files">
+			<Compile Target="CrashReportClient" Platform="Win64" Configuration="Shipping"/>
+			<Compile Target="ShaderCompileWorker" Platform="Win64" Configuration="Development"/>
+			<Compile Target="UnrealLightmass" Platform="Win64" Configuration="Development"/>
+			<Compile Target="UnrealPak" Platform="Win64" Configuration="Development"/>
+		</Node>
+		<Node Name="Compile UE4Game Win64" Requires="Compile UnrealHeaderTool Win64">
+			<Compile Target="UE4Game" Platform="Win64" Configuration="Development"/>
+			<Compile Target="UE4Game" Platform="Win64" Configuration="Shipping"/>
+		</Node>
+	</Agent>
+
+	<!-- Downstream monolithics and tools -->
+	<Agent Name="Monolithics Mac" Type="CompileMac">
+		<Node Name="Compile Tools Mac" Requires="Compile UnrealHeaderTool Mac;Update Version Files">
+			<Compile Target="CrashReportClient" Platform="Mac" Configuration="Shipping"/>
+			<Compile Target="ShaderCompileWorker" Platform="Mac" Configuration="Development"/>
+			<Compile Target="UnrealLightmass" Platform="Mac" Configuration="Development"/>
+			<Compile Target="UnrealPak" Platform="Mac" Configuration="Development"/>
+		</Node>
+		<Node Name="Compile UE4Game Mac" Requires="Compile UnrealHeaderTool Mac">
+			<Compile Target="UE4Game" Platform="Mac" Configuration="Development"/>
+			<Compile Target="UE4Game" Platform="Mac" Configuration="Shipping"/>
+		</Node>
+	</Agent>
+	
+	<!-- Email settings -->
+	<Local Name="AllNodes" Value="Compile UE4Editor Win64;Compile UE4Editor Mac;Compile UE4Game Win64;Compile UE4Game Mac"/>
+	<Notify Targets="$(AllNodes)" Submitters=".../Build/...;.../Source/..." />
+</BuildGraph>

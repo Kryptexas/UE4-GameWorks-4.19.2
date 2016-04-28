@@ -93,16 +93,16 @@ namespace AutomationTool
 			}
 
 			// Check the timestamp of the file matches. On FAT filesystems writetime has a two seconds resolution (see http://msdn.microsoft.com/en-us/library/windows/desktop/ms724290%28v=vs.85%29.aspx)
-			long TimeDifference = Info.LastWriteTimeUtc.Ticks - LastWriteTimeUtcTicks;
-			if(TimeDifference < -2 || TimeDifference > +2)
+			TimeSpan TimeDifference = new TimeSpan(Info.LastWriteTimeUtc.Ticks - LastWriteTimeUtcTicks);
+			if(TimeDifference.TotalSeconds < -2 || TimeDifference.TotalSeconds > +2)
 			{
 				DateTime ExpectedLocal = new DateTime(LastWriteTimeUtcTicks, DateTimeKind.Utc).ToLocalTime();
 				if(RequireMatchingTimestamps())
 				{
-					CommandUtils.LogError("File date/time mismatch for {0} - was {1}, expected {2}", RelativePath, Info.LastWriteTime, ExpectedLocal);
+					CommandUtils.LogError("File date/time mismatch for {0} - was {1}, expected {2}, TimeDifference {3}", RelativePath, Info.LastWriteTime, ExpectedLocal, TimeDifference);
 					return false;
 				}
-				CommandUtils.Log("File date/time mismatch for {0} - was {1}, expected {2}", RelativePath, Info.LastWriteTime, ExpectedLocal);
+				CommandUtils.Log("File date/time mismatch for {0} - was {1}, expected {2}, TimeDifference {3}", RelativePath, Info.LastWriteTime, ExpectedLocal, TimeDifference);
 			}
 
 			return true;
@@ -888,6 +888,94 @@ namespace AutomationTool
 				if(Math.Abs(DiffSeconds) > 2)
 				{
 					throw new AutomationException("Incorrect timestamp for {0}", ManifestFile.RelativePath);
+				}
+			}
+		}
+	}
+
+	/// <summary>
+	/// Commandlet to clean up all folders under a temp storage root that are older than a given number of days
+	/// </summary>
+	[Help("Removes folders in a given temp storage directory that are older than a certain time.")]
+	[Help("TempStorageDir=<Directory>", "Path to the root temp storage directory")]
+	[Help("Days=<N>", "Number of days to keep in temp storage")]
+	class CleanTempStorage : BuildCommand
+	{
+		/// <summary>
+		/// Entry point for the commandlet
+		/// </summary>
+		public override void ExecuteBuild()
+		{
+			string TempStorageDir = ParseParamValue("TempStorageDir", null);
+			if (TempStorageDir == null)
+			{
+				throw new AutomationException("Missing -TempStorageDir parameter");
+			}
+
+			string Days = ParseParamValue("Days", null);
+			if (Days == null)
+			{
+				throw new AutomationException("Missing -Days parameter");
+			}
+
+			double DaysValue;
+			if (!Double.TryParse(Days, out DaysValue))
+			{
+				throw new AutomationException("'{0}' is not a valid value for the -Days parameter", Days);
+			}
+
+			DateTime RetainTime = DateTime.UtcNow - TimeSpan.FromDays(DaysValue);
+
+			// Enumerate all the build directories
+			CommandUtils.Log("Scanning {0}...", TempStorageDir);
+			int NumBuilds = 0;
+			List<DirectoryInfo> BuildsToDelete = new List<DirectoryInfo>();
+			foreach (DirectoryInfo StreamDirectory in new DirectoryInfo(TempStorageDir).EnumerateDirectories().OrderBy(x => x.Name))
+			{
+				CommandUtils.Log("Scanning {0}...", StreamDirectory.FullName);
+				foreach (DirectoryInfo BuildDirectory in StreamDirectory.EnumerateDirectories())
+				{
+					if(!BuildDirectory.EnumerateFiles("*", SearchOption.AllDirectories).Any(x => x.LastWriteTimeUtc > RetainTime))
+					{
+						BuildsToDelete.Add(BuildDirectory);
+					}
+					NumBuilds++;
+				}
+			}
+			CommandUtils.Log("Found {0} builds; {1} to delete.", NumBuilds, BuildsToDelete.Count);
+
+			// Loop through them all, checking for files older than the delete time
+			for (int Idx = 0; Idx < BuildsToDelete.Count; Idx++)
+			{
+				try
+				{
+					CommandUtils.Log("[{0}/{1}] Deleting {2}...", Idx + 1, BuildsToDelete.Count, BuildsToDelete[Idx].FullName);
+					BuildsToDelete[Idx].Delete(true);
+				}
+				catch (Exception Ex)
+				{
+					CommandUtils.LogWarning("Failed to delete old manifest folder; will try one file at a time: {0}", Ex);
+					CommandUtils.DeleteDirectory_NoExceptions(true, BuildsToDelete[Idx].FullName);
+				}
+			}
+
+			// Try to delete any empty branch folders
+			foreach (DirectoryInfo StreamDirectory in new DirectoryInfo(TempStorageDir).EnumerateDirectories())
+			{
+				if(StreamDirectory.EnumerateDirectories().Count() == 0 && StreamDirectory.EnumerateFiles().Count() == 0)
+				{
+					try
+					{
+						StreamDirectory.Delete();
+					}
+					catch (IOException)
+					{
+						// only catch "directory is not empty type exceptions, if possible. Best we can do is check for IOException.
+					}
+					catch (Exception Ex)
+					{
+						CommandUtils.LogWarning("Unexpected failure trying to delete (potentially empty) stream directory {0}: {1}", StreamDirectory.FullName, Ex);
+					}
 				}
 			}
 		}

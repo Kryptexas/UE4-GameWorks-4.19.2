@@ -142,21 +142,46 @@ void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, cons
 	FCString::Strncat( GErrorHist, TEXT( "\r\n\r\n" ), ARRAY_COUNT( GErrorHist ) );
 }
 
-void FDebug::ConditionallyEmitBeginCrashUATMarker()
+void FDebug::OutputMultiLineCallstack(const ANSICHAR* File, int32 Line, const FName& LogName, const TCHAR* Heading, TCHAR* Message, ELogVerbosity::Type Verbosity)
 {
-	const bool bWriteUATMarkers = FParse::Param( FCommandLine::Get(), TEXT( "CrashForUAT" ) ) && FParse::Param( FCommandLine::Get(), TEXT( "stdout" ) );
-	if (bWriteUATMarkers)
-	{
-		UE_LOG( LogOutputDevice, Error, TEXT( "\nbegin: stack for UAT" ) );
-	}
-}
+	const bool bWriteUATMarkers = FParse::Param(FCommandLine::Get(), TEXT("CrashForUAT")) && FParse::Param(FCommandLine::Get(), TEXT("stdout"));
 
-void FDebug::ConditionallyEmitEndCrashUATMarker()
-{
-	const bool bWriteUATMarkers = FParse::Param( FCommandLine::Get(), TEXT( "CrashForUAT" ) ) && FParse::Param( FCommandLine::Get(), TEXT( "stdout" ) );
 	if (bWriteUATMarkers)
 	{
-		UE_LOG( LogOutputDevice, Error, TEXT( "\nend: stack for UAT" ) );
+		FMsg::Logf(File, Line, LogName, Verbosity, TEXT("begin: stack for UAT"));
+	}
+
+	FMsg::Logf(File, Line, LogName, Verbosity, TEXT("%s"), Heading);
+	FMsg::Logf(File, Line, LogName, Verbosity, TEXT(""));
+
+	for (TCHAR* LineStart = Message;; )
+	{
+		// Find the end of the current line
+		TCHAR* LineEnd = LineStart;
+		while (*LineEnd != 0 && *LineEnd != '\r' && *LineEnd != '\n')
+		{
+			LineEnd++;
+		}
+
+		// Output it
+		TCHAR LineEndCharacter = *LineEnd;
+		*LineEnd = 0;
+		FMsg::Logf(File, Line, LogName, Verbosity, TEXT("%s"), LineStart);
+		*LineEnd = LineEndCharacter;
+
+		// Quit if this was the last line
+		if (*LineEnd == 0)
+		{
+			break;
+		}
+
+		// Move to the next line
+		LineStart = (LineEnd[0] == '\r' && LineEnd[1] == '\n') ? (LineEnd + 2) : (LineEnd + 1);
+	}
+
+	if (bWriteUATMarkers)
+	{
+		FMsg::Logf(File, Line, LogName, Verbosity, TEXT("end: stack for UAT"));
 	}
 }
 
@@ -268,9 +293,9 @@ void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line
 		FMemory::SystemFree( StackTrace );
 
 		// Dump the error and flush the log.
-		FDebug::ConditionallyEmitBeginCrashUATMarker();
-		UE_LOG(LogOutputDevice, Warning, TEXT("=== Handled error: ===") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), ErrorMsg);
-		FDebug::ConditionallyEmitEndCrashUATMarker();
+#if !NO_LOGGING
+		FDebug::OutputMultiLineCallstack(__FILE__, __LINE__, LogOutputDevice.GetCategoryName(), TEXT("=== Handled ensure: ==="), ErrorMsg, ELogVerbosity::Warning);
+#endif
 		GLog->Flush();
 
 		// Submit the error report to the server! (and display a balloon in the system tray)

@@ -65,6 +65,7 @@
     <Compile Include="BuildGraph.cs" />
     <Compile Include="Graph.cs" />
     <Compile Include="Node.cs" />
+    <Compile Include="Report.cs" />
     <Compile Include="Task.cs" />
     <Compile Include="JobContext.cs" />
     <Compile Include="ManualTrigger.cs" />

@@ -112,7 +112,7 @@ namespace AutomationTool
 			// Build everything
 			Dictionary<UE4Build.BuildTarget, BuildManifest> TargetToManifest = new Dictionary<UE4Build.BuildTarget,BuildManifest>();
             UE4Build Builder = new UE4Build(Job.OwnerCommand);
-			Builder.Build(Agenda, InDeleteBuildProducts: false, InUpdateVersionFiles: false, InForceNoXGE: false, InUseParallelExecutor: true, InTargetToManifest: TargetToManifest);
+			Builder.Build(Agenda, InDeleteBuildProducts: null, InUpdateVersionFiles: false, InForceNoXGE: false, InUseParallelExecutor: true, InTargetToManifest: TargetToManifest);
             UE4Build.CheckBuildProducts(Builder.BuildProductFiles);
 
 			// Tag all the outputs
