@@ -2014,5 +2014,11 @@ namespace UnrealBuildTool
 			}
 			return null;
 		}
-	}
+
+        [Obsolete("GetModuleFilename is deprecated, use the ModuleDirectory property on any ModuleRules instead to get a path to your module.", true)]
+        public static string GetModuleFilename(string TypeName)
+        {
+            throw new NotImplementedException("GetModuleFilename is deprecated, use the ModuleDirectory property on any ModuleRules instead to get a path to your module.");
+        }
+    }
 }
