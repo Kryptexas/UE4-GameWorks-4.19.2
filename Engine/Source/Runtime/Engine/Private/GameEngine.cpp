@@ -79,17 +79,7 @@ static FAutoConsoleCommand GDumpDrawListStatsCmd(
 
 EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
-	if (FPlatformProperties::SupportsWindowedMode())
-	{
-		if ((WindowMode != EWindowMode::Windowed && WindowMode != EWindowMode::WindowedMirror) && GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsFullscreenAllowed())
-		{
-			return EWindowMode::Fullscreen;
-		}
-
-		return WindowMode;
-	}
-
-	return EWindowMode::Fullscreen;
+	return FPlatformProperties::SupportsWindowedMode() ? WindowMode : EWindowMode::Fullscreen;
 }
 
 UGameEngine::UGameEngine(const FObjectInitializer& ObjectInitializer)
@@ -205,7 +195,7 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	}
 
 	//fullscreen is always supported, but don't allow windowed mode on platforms that dont' support it.
-	WindowMode = (!FPlatformProperties::SupportsWindowedMode() && (WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedMirror || WindowMode == EWindowMode::WindowedFullscreen)) ? EWindowMode::Fullscreen : WindowMode;
+	WindowMode = (!FPlatformProperties::SupportsWindowedMode() && (WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedFullscreen)) ? EWindowMode::Fullscreen : WindowMode;
 
 	FParse::Value(FCommandLine::Get(), TEXT("ResX="), ResolutionX);
 	FParse::Value(FCommandLine::Get(), TEXT("ResY="), ResolutionY);

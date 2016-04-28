@@ -202,7 +202,7 @@ bool FOculusRiftHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uin
 	return true;
 }
 
-void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, 
+void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, int SrcSizeX, int SrcSizeY,
 	FIntRect DstRect, FIntRect SrcRect, bool bAlphaPremultiply, bool bNoAlphaWrite) const
 {
 	check(IsInRenderingThread());
@@ -215,8 +215,8 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	const uint32 ViewportHeight = DstRect.Height();
 	const FIntPoint TargetSize(ViewportWidth, ViewportHeight);
 
-	const float SrcTextureWidth = SrcTexture->GetSizeX();
-	const float SrcTextureHeight = SrcTexture->GetSizeY();
+	const float SrcTextureWidth = SrcSizeX;
+	const float SrcTextureHeight = SrcSizeY;
 	float U = 0.f, V = 0.f, USize = 1.f, VSize = 1.f;
 	if (!SrcRect.IsEmpty())
 	{
@@ -302,7 +302,7 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 			FTexture2DRHIRef MirrorTexture = pCustomPresent->GetMirrorTexture();
 			if (MirrorTexture)
 			{
-				pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, MirrorTexture);
+				pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, MirrorTexture, MirrorTexture->GetTexture2D()->GetSizeX(), MirrorTexture->GetTexture2D()->GetSizeY());
 			}
 		}
 		else if (RenderContext->GetFrameSettings()->MirrorWindowMode == FSettings::eMirrorWindow_Undistorted)
@@ -311,7 +311,7 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 			FIntRect destRect(0, 0, BackBuffer->GetSizeX() / 2, BackBuffer->GetSizeY());
 			for (int i = 0; i < 2; ++i)
 			{
-				pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, destRect, FrameSettings->EyeRenderViewport[i]);
+				pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, SrcTexture->GetTexture2D()->GetSizeX(), SrcTexture->GetTexture2D()->GetSizeY(), destRect, FrameSettings->EyeRenderViewport[i]);
 				destRect.Min.X += BackBuffer->GetSizeX() / 2;
 				destRect.Max.X += BackBuffer->GetSizeX() / 2;
 			}
@@ -380,7 +380,7 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 			// leftover pixels from a previous frame
 			const bool bClearRenderTargetToBlackFirst = ( DstViewRect != BackBufferRect );
 
-			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, DstViewRect, SrcViewRect, false, bClearRenderTargetToBlackFirst);
+			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, SrcTexture->GetTexture2D()->GetSizeX(), SrcTexture->GetTexture2D()->GetSizeY(), FIntRect(), SrcViewRect, false, bClearRenderTargetToBlackFirst);
 		}
 	}
 }
@@ -760,10 +760,11 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 			ViewportRHI->SetCustomPresent(nullptr);
 		}
 		// Restore AutoResizeViewport mode for the window
-		if (ViewportWidget && !IsFullscreenAllowed() && Settings->MirrorWindowSize.X != 0 && Settings->MirrorWindowSize.Y != 0)
+		if (ViewportWidget)
 		{
 			if (Window.IsValid())
 			{
+				Window->SetMirrorWindow(false);
 				Window->SetViewportSizeDrivenByWindow(true);
 			}
 		}

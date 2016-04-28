@@ -38,9 +38,6 @@ public:
 			/** Whether stereo is currently on or off. */
 			uint64 bStereoEnabled : 1;
 
-			/** Whether game wants to be in stereo mode. (WindowMode != Windowed) */
-			uint64 bStereoDesired : 1;
-
 			/** Whether stereo was enforced by the console command. Doesn't make sense w/o bStereoEnabled == true. */
 			uint64 bStereoEnforced : 1;
 
@@ -107,9 +104,6 @@ public:
 
 			/** Is mirroring enabled or not (see 'HMD MIRROR' console cmd) */
 			uint64 bMirrorToWindow : 1;
-
-			/** Is mirror fullscreen or windowed (see 'HMD FULLSCREEN' console cmd) */
-			uint64 bFullscreenAllowed : 1;
 
 			/** Whether timewarp is enabled or not */
 			uint64 bTimeWarp : 1;
@@ -191,9 +185,6 @@ public:
 
 	/** Scale the positional movement */
 	FVector		PositionScale3D;
-
-	/** Size of mirror window; {0,0} if size is the default one */
-	FIntPoint	MirrorWindowSize;
 
 	/** HMD base values, specify forward orientation and zero pos offset */
 	FVector2D				NeckToEyeInMeters;  // neck-to-eye vector, in meters (X - horizontal, Y - vertical)
@@ -615,7 +606,6 @@ public:
 	virtual void GetFieldOfView(float& InOutHFOVInDegrees, float& InOutVFOVInDegrees) const override;
 
 	virtual bool IsChromaAbCorrectionEnabled() const override;
-	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) override;
 
 	virtual bool IsPositionalTrackingEnabled() const override;
 	virtual bool EnablePositionalTracking(bool enable) override;
@@ -735,8 +725,9 @@ public:
 protected:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CreateNewGameFrame() const = 0;
 	virtual TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> CreateNewSettings() const = 0;
+	void CreateAndInitNewGameFrame(const class AWorldSettings* WorldSettings);
 
-	virtual bool DoEnableStereo(bool bStereo, bool bApplyToHmd) = 0;
+	virtual bool DoEnableStereo(bool bStereo) = 0;
 	virtual void GetCurrentPose(FQuat& CurrentHmdOrientation, FVector& CurrentHmdPosition, bool bUseOrienationForPlayerCamera = false, bool bUsePositionForPlayerCamera = false) = 0;
 
 	virtual void ResetStereoRenderingParams();
@@ -780,7 +771,6 @@ protected:
 
 			/** Indicates if it is necessary to update stereo rendering params */
 			uint64	bNeedUpdateStereoRenderingParams : 1;
-			uint64  bEnableStereoToHmd : 1;
 			uint64	bApplySystemOverridesOnStereo : 1;
 
 			uint64	bNeedEnableStereo : 1;

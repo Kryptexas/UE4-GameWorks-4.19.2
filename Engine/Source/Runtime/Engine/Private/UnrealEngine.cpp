@@ -2075,6 +2075,10 @@ bool UEngine::InitializeHMDDevice()
 			if (HMDDevice.IsValid())
 			{
 				StereoRenderingDevice = HMDDevice;
+				if (FParse::Param(FCommandLine::Get(), TEXT("vr")))
+				{
+					HMDDevice->EnableStereo(true);
+				}
 			}
 		}
 	}
@@ -9788,6 +9792,10 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// Prime texture streaming.
 	IStreamingManager::Get().NotifyLevelChange();
 
+	if (GEngine && GEngine->HMDDevice.IsValid())
+	{
+		GEngine->HMDDevice->OnBeginPlay(WorldContext);
+	}
 	WorldContext.World()->BeginPlay();
 
 	// send a callback message
@@ -11208,10 +11216,6 @@ void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWin
 		case EWindowMode::Windowed:
 		{
 			WindowModeSuffix = TEXT("w");
-		} break;
-		case EWindowMode::WindowedMirror:
-		{
-			WindowModeSuffix = TEXT("wm");
 		} break;
 		case EWindowMode::WindowedFullscreen:
 		{

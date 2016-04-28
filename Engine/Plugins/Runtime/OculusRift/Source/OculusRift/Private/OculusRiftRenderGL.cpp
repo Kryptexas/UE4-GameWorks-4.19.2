@@ -331,7 +331,7 @@ FTexture2DSetProxyRef FOculusRiftHMD::OGLBridge::CreateTextureSet(const uint32 I
 	desc.Height = InSizeY;
 	// Override the format to be sRGB so that the compositor always treats eye buffers
 	// as if they're sRGB even if we are sending in linear formatted textures
-	desc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
+	desc.Format = (InCreateTexFlags & LinearSpace) ? OVR_FORMAT_B8G8R8A8_UNORM : OVR_FORMAT_B8G8R8A8_UNORM_SRGB;
 	desc.MiscFlags = 0;
 	desc.BindFlags = 0;
 	if (desc.MipLevels != 1)

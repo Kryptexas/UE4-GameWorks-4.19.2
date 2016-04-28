@@ -22,6 +22,8 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
 #include <GLES2/gl2.h>
+#include "OpenGLDrvPrivate.h"
+#include "OpenGLResources.h"
 
 using namespace OVR;
 
@@ -45,6 +47,12 @@ template <typename OVRQuat>
 FORCEINLINE FQuat ToFQuat(const OVRQuat& InQuat)
 {
 	return FQuat(float(-InQuat.z), float(InQuat.x), float(InQuat.y), float(-InQuat.w));
+}
+
+template <typename OVRQuat>
+FORCEINLINE OVRQuat ToOVRQuat(const FQuat& InQuat)
+{
+	return OVRQuat(float(InQuat.Y), float(InQuat.Z), float(-InQuat.X), float(-InQuat.W));
 }
 /**
  * Converts vector from Oculus to Unreal
@@ -197,6 +205,169 @@ protected:
 	FCriticalSection*	pLock;		// used to access OvrMobile on a game thread
 };
 
+class FOpenGLTexture2DSet : public FOpenGLTexture2D
+{
+public:
+	FOpenGLTexture2DSet(
+	class FOpenGLDynamicRHI* InGLRHI,
+		GLuint InResource,
+		GLenum InTarget,
+		GLenum InAttachment,
+		uint32 InSizeX,
+		uint32 InSizeY,
+		uint32 InSizeZ,
+		uint32 InNumMips,
+		uint32 InNumSamples,
+		uint32 InArraySize,
+		EPixelFormat InFormat,
+		bool bInCubemap,
+		bool bInAllocatedStorage,
+		uint32 InFlags,
+		uint8* InTextureRange
+		)
+		: FOpenGLTexture2D(
+			InGLRHI,
+			InResource,
+			InTarget,
+			InAttachment,
+			InSizeX,
+			InSizeY,
+			InSizeZ,
+			InNumMips,
+			InNumSamples,
+			InArraySize,
+			InFormat,
+			bInCubemap,
+			bInAllocatedStorage,
+			InFlags,
+			InTextureRange,
+			FClearValueBinding::Black
+			)
+	{
+		ColorTextureSet = nullptr;
+		CurrentIndex = TextureCount = 0;
+	}
+
+	~FOpenGLTexture2DSet() { }
+
+	void ReleaseResources() 
+	{ 	
+		vrapi_DestroyTextureSwapChain(ColorTextureSet);
+		Resource = 0;
+	}
+
+	void SwitchToNextElement();
+
+	static FOpenGLTexture2DSet* CreateTexture2DSet(
+		FOpenGLDynamicRHI* InGLRHI,
+		uint32 SizeX, uint32 SizeY,
+		uint32 InNumAllocated,
+		uint32 InNumSamples,
+		EPixelFormat InFormat,
+		uint32 InFlags);
+
+	ovrTextureSwapChain	*	GetColorTextureSet() const { return ColorTextureSet; }
+	uint32					GetCurrentIndex() const { return CurrentIndex; }
+	uint32					GetTextureCount() const { return TextureCount; }
+protected:
+	void InitWithCurrentElement();
+
+	uint32					CurrentIndex;
+	uint32					TextureCount;
+	ovrTextureSwapChain*	ColorTextureSet;
+};
+
+typedef TRefCountPtr<FOpenGLTexture2DSet>	FOpenGLTexture2DSetRef;
+
+class FTexture2DSetProxy : public FTextureSetProxy
+{
+public:
+	FTexture2DSetProxy(FOpenGLTexture2DSetRef InTextureSet, uint32 InSrcSizeX, uint32 InSrcSizeY, EPixelFormat InSrcFormat, uint32 InSrcNumMips)
+		: FTextureSetProxy(InSrcSizeX, InSrcSizeY, InSrcFormat, InSrcNumMips) , TextureSet(InTextureSet) { }
+
+	~FTexture2DSetProxy() { }
+
+	FOpenGLTexture2DSetRef getTextureSet() { return TextureSet; }
+	
+	virtual FTextureRHIRef GetRHITexture() const override 
+	{ 
+		FTextureRHIParamRef inTexture = TextureSet->GetTexture2D();
+		return inTexture; 
+	}
+
+	virtual FTexture2DRHIRef GetRHITexture2D() const override 
+	{ 
+		return TextureSet.GetReference();
+	}
+
+	virtual void ReleaseResources() override 
+	{
+		if(TextureSet.IsValid()) 
+		{
+			TextureSet->ReleaseResources(); 
+		}
+		TextureSet = nullptr;
+	}
+
+	virtual void SwitchToNextElement() override { TextureSet->SwitchToNextElement(); }
+	virtual bool Commit(FRHICommandListImmediate& RHICmdList) override { return true; }
+
+protected:
+	FOpenGLTexture2DSetRef  TextureSet;
+};
+
+typedef TSharedPtr<FTexture2DSetProxy, ESPMode::ThreadSafe>	FTexture2DSetProxyPtr;
+
+class FRenderLayer : public FHMDRenderLayer
+{
+	friend class FLayerManager;
+public:
+	FRenderLayer(FHMDLayerDesc&);
+	~FRenderLayer();
+
+	ovrFrameLayer&	GetLayer() { return Layer; }
+	const ovrFrameLayer&	GetLayer() const { return Layer; }
+	ovrTextureSwapChain* GetSwapTextureSet() const
+	{
+		if (TextureSet.IsValid())
+		{
+			return static_cast<FTexture2DSetProxy*>(TextureSet.Get())->getTextureSet()->GetColorTextureSet();
+		}
+		return nullptr; 
+	}
+
+	uint32 GetSwapTextureIndex() const
+	{
+		if (TextureSet.IsValid())
+		{
+			return static_cast<FTexture2DSetProxy*>(TextureSet.Get())->getTextureSet()->GetCurrentIndex();
+		}
+		return 1;
+	}
+
+	virtual TSharedPtr<FHMDRenderLayer> Clone() const override;
+
+protected:
+	ovrFrameLayer Layer;
+};
+
+class FLayerManager : public FHMDLayerManager 
+{
+public:
+	FLayerManager(class FGearVRCustomPresent*);
+	~FLayerManager();
+
+	virtual void PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICmdList, const FHMDGameFrame* CurrentFrame, bool ShowFlagsRendering) override;
+
+	void SubmitFrame_RenderThread(ovrMobile* mobilePtr, ovrFrameParms* currentParams);
+
+protected:
+	virtual TSharedPtr<FHMDRenderLayer> CreateRenderLayer_RenderThread(FHMDLayerDesc& InDesc) override;
+
+private:
+	FGearVRCustomPresent *pPresentBridge;
+};
+
 class FGearVRCustomPresent : public FRHICustomPresent
 {
 	friend class FViewExtension;
@@ -216,6 +387,8 @@ public:
 	void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT);
 	void FinishRendering();
 	void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI);
+
+	void UpdateLayers(FRHICommandListImmediate& RHICmdList);
 
 	void Reset();
 	void Shutdown();
@@ -237,9 +410,15 @@ public:
 	// If returns false then a default RT texture will be used.
 	bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
 
+	FTexture2DSetProxyPtr CreateTextureSet(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips);
+
+	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTextureRHIParamRef SrcTexture, int SrcSizeX, int SrcSizeY, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect(), bool bAlphaPremultiply = false) const;
+		
 	FOvrMobileSynced GetMobileSynced() { return FOvrMobileSynced(OvrMobile, &OvrMobileLock); }
 	void EnterVRMode_RenderThread();
 	void LeaveVRMode_RenderThread();
+
+	FLayerManager* GetLayerMgr() { return static_cast<FLayerManager*>(LayerMgr.Get()); }
 
 	pid_t GetRenderThreadId() const { return RenderThreadId; }
 
@@ -264,6 +443,8 @@ protected: // data
 	TSharedPtr<FViewExtension, ESPMode::ThreadSafe> RenderContext;
 	bool											bInitialized;
 
+	IRendererModule*	RendererModule;
+
 	// should be accessed only on a RenderThread!
 	ovrFrameParms							FrameParms;
 	ovrFrameParms							LoadingIconParms;
@@ -275,6 +456,8 @@ protected: // data
 	bool									bExtraLatencyMode;
 	bool									bHMTWasMounted;
 	int32									MinimumVsyncs;
+
+	TSharedPtr<FLayerManager>				LayerMgr;
 
 	ovrMobile*								OvrMobile;		// to be accessed only on RenderThread (or, when RT is suspended)
 	pid_t									RenderThreadId; // the rendering thread id where EnterVrMode was called.
@@ -302,9 +485,10 @@ public:
 
 	virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension() override;
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) override;
 
 	/** IStereoRendering interface */
+	virtual void RenderTexture_RenderThread(class FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture) const override;
+
 	virtual bool EnableStereo(bool bStereo) override;
 	virtual void CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, const FRotator& ViewRotation,
 										   const float MetersToWorld, FVector& ViewLocation) override;
@@ -360,7 +544,7 @@ public:
 
 	virtual bool HandleInputKey(class UPlayerInput*, const FKey& Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 
-	virtual FHMDLayerManager* GetLayerManager() override { return nullptr; }
+	virtual FHMDLayerManager* GetLayerManager() override { return pGearVRBridge->GetLayerMgr(); }
 
 	/** Constructor */
 	FGearVR();
@@ -424,7 +608,7 @@ protected:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CreateNewGameFrame() const override;
 	virtual TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> CreateNewSettings() const override;
 
-	virtual bool DoEnableStereo(bool bStereo, bool bApplyToHmd) override;
+	virtual bool DoEnableStereo(bool bStereo) override;
 	virtual void ResetStereoRenderingParams() override;
 
 	virtual void GetCurrentPose(FQuat& CurrentHmdOrientation, FVector& CurrentHmdPosition, bool bUseOrienationForPlayerCamera = false, bool bUsePositionForPlayerCamera = false) override;

@@ -14,7 +14,6 @@ FHMDSettings::FHMDSettings() :
 	, VFOVInRadians(FMath::DegreesToRadians(90.f))
 	, NearClippingPlane(0)
 	, FarClippingPlane(0)
-	, MirrorWindowSize(0, 0)
 	, BaseOffset(0, 0, 0)
 	, BaseOrientation(FQuat::Identity)
 	, PositionOffset(FVector::ZeroVector)
@@ -30,7 +29,6 @@ FHMDSettings::FHMDSettings() :
 	Flags.bLowPersistenceMode = true;
 	Flags.bUpdateOnRT = true;
 	Flags.bMirrorToWindow = true;
-	Flags.bFullscreenAllowed = false;
 	Flags.bTimeWarp = true;
 	Flags.bHmdPosTracking = true;
 	Flags.bPlayerControllerFollowsHmd = true;
@@ -240,24 +238,31 @@ bool FHeadMountedDisplay::OnStartGameFrame(FWorldContext& WorldContext)
 	Flags.bFrameStarted = true;
 
 	bool bStereoEnabled = Settings->Flags.bStereoEnabled;
-	bool bStereoDesired = Settings->Flags.bStereoEnforced ? bStereoEnabled : Settings->Flags.bStereoDesired;
+	bool bStereoDesired = bStereoEnabled;
 
 	if(Flags.bNeedEnableStereo)
 	{
-		Settings->Flags.bStereoDesired = bStereoDesired = true;
+		bStereoDesired = true;
 	}
 
-	if(bStereoDesired && (Flags.bNeedDisableStereo || !Settings->Flags.bHMDEnabled || !(bStereoEnabled ? IsHMDActive() : IsHMDConnected())))
+	if(bStereoDesired && (Flags.bNeedDisableStereo || !Settings->Flags.bHMDEnabled))
 	{
 		bStereoDesired = false;
+	}
+
+	bool bStereoDesiredAndIsConnected = bStereoDesired;
+
+	if(bStereoDesired && !(bStereoEnabled ? IsHMDActive() : IsHMDConnected()))
+	{
+		bStereoDesiredAndIsConnected = false;
 	}
 
 	Flags.bNeedEnableStereo = false;
 	Flags.bNeedDisableStereo = false;
 
-	if(bStereoEnabled != bStereoDesired)
+	if(bStereoEnabled != bStereoDesiredAndIsConnected)
 	{
-		bStereoEnabled = DoEnableStereo(bStereoDesired, Flags.bEnableStereoToHmd);
+		bStereoEnabled = DoEnableStereo(bStereoDesiredAndIsConnected);
 	}
 
 	// Keep trying to enable stereo until we succeed
@@ -353,6 +358,38 @@ bool FHeadMountedDisplay::OnEndGameFrame(FWorldContext& WorldContext)
 	return true;
 }
 
+void FHeadMountedDisplay::CreateAndInitNewGameFrame(const AWorldSettings* WorldSettings)
+{
+	TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CurrentFrame = CreateNewGameFrame();
+	Frame = CurrentFrame;
+
+	CurrentFrame->FrameNumber = GFrameCounter;
+	CurrentFrame->Flags.bOutOfFrame = false;
+
+	if (Settings->Flags.bWorldToMetersOverride)
+	{
+		CurrentFrame->SetWorldToMetersScale(Settings->WorldToMetersScale);
+	}
+	else if (WorldSettings)
+	{
+		check(WorldSettings);
+		CurrentFrame->SetWorldToMetersScale(WorldSettings->WorldToMeters);
+	}
+	else
+	{
+		CurrentFrame->SetWorldToMetersScale(100.f);
+	}
+
+	if (Settings->Flags.bCameraScale3DOverride)
+	{
+		CurrentFrame->CameraScale3D = Settings->CameraScale3D;
+	}
+	else
+	{
+		CurrentFrame->CameraScale3D = FVector(1.0f, 1.0f, 1.0f);
+	}
+}
+
 bool FHeadMountedDisplay::IsHMDEnabled() const
 {
 	return (Settings->Flags.bHMDEnabled);
@@ -428,12 +465,6 @@ bool FHeadMountedDisplay::IsChromaAbCorrectionEnabled() const
 	return (frame && frame->Settings->Flags.bChromaAbCorrectionEnabled);
 }
 
-void FHeadMountedDisplay::OnScreenModeChange(EWindowMode::Type WindowMode)
-{
-	EnableStereo(WindowMode != EWindowMode::Windowed);
-	UpdateStereoRenderingParams();
-}
-
 bool FHeadMountedDisplay::IsPositionalTrackingEnabled() const
 {
 	const auto frame = GetCurrentFrame();
@@ -448,9 +479,8 @@ bool FHeadMountedDisplay::EnablePositionalTracking(bool enable)
 
 bool FHeadMountedDisplay::EnableStereo(bool bStereo)
 {
-	Settings->Flags.bStereoDesired = bStereo;
 	Settings->Flags.bStereoEnforced = false;
-	return DoEnableStereo(bStereo, true);
+	return DoEnableStereo(bStereo);
 }
 
 bool FHeadMountedDisplay::IsStereoEnabled() const
@@ -592,7 +622,6 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 				{
 					Ar.Logf(TEXT("HMD is disabled. Use 'hmd enable' to re-enable it."));
 				}
-				Flags.bEnableStereoToHmd = hmd;
 				EnableStereo(true);
 				Settings->Flags.bStereoEnforced = true;
 				return true;
