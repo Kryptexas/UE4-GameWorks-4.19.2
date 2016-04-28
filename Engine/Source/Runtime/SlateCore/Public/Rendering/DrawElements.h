@@ -428,7 +428,7 @@ public:
 	FORCEINLINE uint32 GetLayer() const { return Layer; }
 	FORCEINLINE const FSlateRenderTransform& GetRenderTransform() const { return RenderTransform; }
 	FORCEINLINE const FVector2D& GetPosition() const { return Position; }
-	FORCEINLINE void SetPosition(const FVector2D& InPosition) { Position = Position; }
+	FORCEINLINE void SetPosition(const FVector2D& InPosition) { Position = InPosition; }
 	FORCEINLINE const FVector2D& GetLocalSize() const { return LocalSize; }
 	FORCEINLINE float GetScale() const { return Scale; }
 	FORCEINLINE const FSlateRect& GetClippingRect() const { return ClippingRect; }
