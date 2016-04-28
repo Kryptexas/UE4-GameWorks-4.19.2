@@ -1458,7 +1458,7 @@ bool TextBiDi::IsControlCharacter(const TCHAR InChar)
 		|| InChar == TEXT('\u2066')  // LEFT-TO-RIGHT ISOLATE
 		|| InChar == TEXT('\u2067')  // RIGHT-TO-LEFT ISOLATE
 		|| InChar == TEXT('\u2068')  // FIRST STRONG ISOLATE
-		|| InChar == TEXT('\u2068'); // POP DIRECTIONAL ISOLATE
+		|| InChar == TEXT('\u2069'); // POP DIRECTIONAL ISOLATE
 }
 
 bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace, int32* OutNumCharsRead)
