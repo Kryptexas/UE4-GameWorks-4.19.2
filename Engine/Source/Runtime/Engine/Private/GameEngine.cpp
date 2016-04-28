@@ -1199,3 +1199,9 @@ void UGameEngine::HandleTravelFailure_NotifyGameInstance(UWorld* World, ETravelF
 		GameInstance->HandleTravelError(FailureType);
 	}
 }
+
+void UGameEngine::HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error)
+{
+	Super::HandleBrowseToDefaultMapFailure(Context, TextURL, Error);
+	FPlatformMisc::RequestExit(false);
+}

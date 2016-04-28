@@ -762,6 +762,7 @@ protected:
 	virtual void InitializeObjectReferences() override;
 	virtual void ProcessToggleFreezeCommand(UWorld* InWorld) override;
 	virtual void ProcessToggleFreezeStreamingCommand(UWorld* InWorld) override;
+	virtual void HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error) override;
 private:
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) override;
 	virtual TSharedPtr<SViewport> GetGameViewportWidget() const override;

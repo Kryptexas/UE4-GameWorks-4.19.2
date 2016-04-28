@@ -145,6 +145,8 @@ protected:
 	/** Handle to a movie capture implementation to create on startup */
 	FMovieSceneCaptureHandle StartupMovieCaptureHandle;
 
+	virtual void HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error) override;
+
 private:
 
 	virtual void HandleNetworkFailure_NotifyGameInstance(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType) override;

@@ -2661,6 +2661,13 @@ protected:
 
 	bool WorldHasValidContext(UWorld *InWorld);
 
+	/**
+	 * Attempts to gracefully handle a failure to travel to the default map.
+	 *
+	 * @param Error the error string result from the LoadMap call that attempted to load the default map.
+	 */
+	virtual void HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error);
+
 protected:
 
 	// Async map change/ persistent level transition code.
