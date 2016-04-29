@@ -8,6 +8,10 @@
 #include "AI/Navigation/NavCollision.h"
 #include "Engine/StaticMeshSocket.h"
 
+#if WITH_EDITOR
+#include "HierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
+#endif // WITH_EDITOR
 
 //////////////////////////////////////////////////////////////////////////
 // FSplineMeshVertexFactoryShaderParameters
@@ -1193,5 +1197,21 @@ bool USplineMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor
 	else
 	{
 		return false;
+	}
+}
+
+void USplineMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	UStaticMeshComponent::PostEditChangeProperty(PropertyChangedEvent);
+	UProperty* MemberPropertyThatChanged = PropertyChangedEvent.MemberProperty;
+	if (MemberPropertyThatChanged)
+	{
+		// If the spline params were changed the actual geometry is, so flag the owning HLOD cluster as dirty
+		if (MemberPropertyThatChanged->GetNameCPP() == TEXT("SplineParams"))
+		{
+			IHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<IHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+			Utilities->HandleActorModified(GetOwner());
+		}
 	}
 }

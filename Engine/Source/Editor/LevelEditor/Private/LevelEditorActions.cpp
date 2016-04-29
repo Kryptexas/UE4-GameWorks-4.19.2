@@ -64,6 +64,7 @@
 #include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
 #include "EditorProjectSettings.h"
 #include "HierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
 #include "Engine/LODActor.h"
 #include "AsyncResult.h"
 #include "IPortalApplicationWindow.h"
@@ -1634,7 +1635,11 @@ void FLevelEditorActionCallbacks::OnSelectOwningHLODCluster()
 	if (GEditor->GetSelectedActorCount() > 0)
 	{
 		AActor* Actor = Cast<AActor>(GEditor->GetSelectedActors()->GetSelectedObject(0));
-		ALODActor* ParentActor = FHierarchicalLODUtilities::GetParentLODActor(Actor);
+
+		FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+		IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+
+		ALODActor* ParentActor = Utilities->GetParentLODActor(Actor);
 		if (Actor && ParentActor)
 		{
 			GEditor->SelectNone(false, true);

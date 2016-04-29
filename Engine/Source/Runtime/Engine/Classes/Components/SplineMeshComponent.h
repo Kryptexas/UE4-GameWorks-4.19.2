@@ -141,6 +141,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	//Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	//End UObject Interface
 
 	//~ Begin UActorComponent Interface.

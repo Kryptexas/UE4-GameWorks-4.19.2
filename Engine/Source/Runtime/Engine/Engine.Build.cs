@@ -306,7 +306,10 @@ public class Engine : ModuleRules
 
 			PrivateIncludePathModuleNames.Add("TextureCompressor");
 			PrivateIncludePaths.Add("Developer/TextureCompressor/Public");
-		}
+
+            PrivateIncludePathModuleNames.Add("HierarchicalLODUtilities");
+            DynamicallyLoadedModuleNames.Add("HierarchicalLODUtilities");
+        }
 
 		SetupModulePhysXAPEXSupport(Target);
         if(UEBuildConfiguration.bCompilePhysX && UEBuildConfiguration.bRuntimePhysicsCooking)

@@ -19,6 +19,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "MaterialUtilities.h"
 #include "HierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
 #include "MeshBoneReduction.h"
 #include "MeshMergeData.h"
 #include "Editor/EditorPerProjectUserSettings.h"
@@ -5300,7 +5301,9 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 
 	static const float FOVRad = 90.0f * (float)PI / 360.0f;
 	static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);
-	float EstimatedDistance = FHierarchicalLODUtilities::CalculateDrawDistanceFromScreenSize(EstimatedBounds.SphereRadius, ScreenAreaSize, ProjectionMatrix);
+	FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+	IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+	float EstimatedDistance = Utilities->CalculateDrawDistanceFromScreenSize(EstimatedBounds.SphereRadius, ScreenAreaSize, ProjectionMatrix);
 	
 	// Retrieve mesh / material data
 	for (const UStaticMeshComponent* StaticMeshComponent : ComponentsToMerge)
@@ -5308,7 +5311,7 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 		TArray<int32> StaticMeshGlobalMaterialMap;
 		FRawMesh RawMesh;		
 		
-		const int32 ProxyMeshSourceLODLevel = InMeshProxySettings.bCalculateCorrectLODModel ? FHierarchicalLODUtilities::GetLODLevelForScreenAreaSize(StaticMeshComponent, FHierarchicalLODUtilities::CalculateScreenSizeFromDrawDistance(StaticMeshComponent->Bounds.SphereRadius, ProjectionMatrix, EstimatedDistance)) : 0;
+		const int32 ProxyMeshSourceLODLevel = InMeshProxySettings.bCalculateCorrectLODModel ? Utilities->GetLODLevelForScreenAreaSize(StaticMeshComponent, Utilities->CalculateScreenSizeFromDrawDistance(StaticMeshComponent->Bounds.SphereRadius, ProjectionMatrix, EstimatedDistance)) : 0;
 		// Proxy meshes should always propagate vertex colours for material baking
 		static const bool bPropagateVertexColours = true;
 
@@ -6972,7 +6975,9 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		// LOD index will be overridden if the user has chosen to pick it according to the viewing distance
 		if (InSettings.bCalculateCorrectLODModel && ScreenAreaSize > 0.0f && ScreenAreaSize < 1.0f)
 		{
-			LODIndex = FHierarchicalLODUtilities::GetLODLevelForScreenAreaSize(StaticMeshComponent, ScreenAreaSize);
+			FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+			LODIndex = Utilities->GetLODLevelForScreenAreaSize(StaticMeshComponent, ScreenAreaSize);
 		}
 		
 		// Store source static mesh and export LOD index

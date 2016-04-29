@@ -29,6 +29,7 @@
 #include "UObjectToken.h"
 
 #include "HierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
 
 #define LOCTEXT_NAMESPACE "HLODOutliner"
 
@@ -38,9 +39,13 @@ namespace HLODOutliner
 	{
 		bNeedsRefresh = true;
 		CurrentWorld = nullptr;
+		CurrentWorldSettings = nullptr;
 		ForcedLODLevel = -1;
 		ForcedLODSliderValue = 0.0f;
 		bForcedSliderValueUpdating = false;
+
+		FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+		HierarchicalLODUtilities = Module.GetUtilities();
 	}
 
 	SHLODOutliner::~SHLODOutliner()
@@ -75,7 +80,7 @@ namespace HLODOutliner
 					+ SOverlay::Slot()
 					[
 						MainContentPanel.ToSharedRef()
-					]
+					]		
 				]
 			];
 
@@ -88,7 +93,6 @@ namespace HLODOutliner
 			[
 				CreateButtonWidgets()
 			];
-
 
 		MainContentPanel->AddSlot()
 			.AutoHeight()
@@ -114,7 +118,7 @@ namespace HLODOutliner
 					SettingsView.ToSharedRef()										
 				]		
 			];
-
+		
 		RegisterDelegates();
 	}
 
@@ -439,7 +443,7 @@ namespace HLODOutliner
 
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-		void SHLODOutliner::RegisterDelegates()
+	void SHLODOutliner::RegisterDelegates()
 	{
 		FEditorDelegates::MapChange.AddSP(this, &SHLODOutliner::OnMapChange);
 		FEditorDelegates::NewCurrentLevel.AddSP(this, &SHLODOutliner::OnNewCurrentLevel);
@@ -641,7 +645,7 @@ namespace HLODOutliner
 			FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
 			ALODActor* LODActor = ActorItem->LODActor.Get();
 
-			AHierarchicalLODVolume* Volume = FHierarchicalLODUtilities::CreateVolumeForLODActor(LODActor, CurrentWorld);
+			AHierarchicalLODVolume* Volume = HierarchicalLODUtilities->CreateVolumeForLODActor(LODActor, CurrentWorld);
 			check(Volume);
 		}		
 	}
@@ -745,13 +749,13 @@ namespace HLODOutliner
 	{
 		// This call came from a context menu
 		auto SelectedItems = TreeView->GetSelectedItems();
-		
+
 		// Loop over all selected items (context menu can't be called with multiple items selected that aren't of the same types)
 		for (auto SelectedItem : SelectedItems)
 		{
 			FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
 			ALODActor* LODActor = ActorItem->LODActor.Get();			
-			FHierarchicalLODUtilities::DestroyLODActor(LODActor);
+			HierarchicalLODUtilities->DestroyLODActor(LODActor);
 		}
 
 		ResetLODLevelForcing();
@@ -778,7 +782,7 @@ namespace HLODOutliner
 				{
 					AActor* Actor = Cast<AActor>(ActorItem->StaticMeshActor.Get());
 					
-					if (FHierarchicalLODUtilities::RemoveActorFromCluster(Actor))
+					if (HierarchicalLODUtilities->RemoveActorFromCluster(Actor))
 					{
 						PendingActions.Emplace(FOutlinerAction::RemoveItem, SelectedItem);
 					}
@@ -796,7 +800,7 @@ namespace HLODOutliner
 		for (auto SelectedItem : SelectedItems)
 		{
 			FStaticMeshActorItem* ActorItem = (FStaticMeshActorItem*)(SelectedItem.Get());
-			FHierarchicalLODUtilities::ExcludeActorFromClusterGeneration(ActorItem->StaticMeshActor.Get());
+			HierarchicalLODUtilities->ExcludeActorFromClusterGeneration(ActorItem->StaticMeshActor.Get());
 		}		
 	}
 
@@ -819,7 +823,7 @@ namespace HLODOutliner
 					AActor* Actor = Cast<AActor>(ActorItem->LODActor.Get());
 					checkf(Actor != nullptr, TEXT("Invalid actor in tree view"));
 					
-					if (FHierarchicalLODUtilities::RemoveActorFromCluster(Actor))
+					if (HierarchicalLODUtilities->RemoveActorFromCluster(Actor))
 					{
 						PendingActions.Emplace(FOutlinerAction::RemoveItem, SelectedItem);
 					}					
@@ -832,7 +836,6 @@ namespace HLODOutliner
 	{
 		// This call came from a context menu
 		auto SelectedItems = TreeView->GetSelectedItems();
-
 
 		// Empty selection and setup for multi-selection
 		EmptySelection();
@@ -882,7 +885,7 @@ namespace HLODOutliner
 	{
 		if (CurrentWorld)
 		{
-			FHierarchicalLODUtilities::DeleteLODActorsInHLODLevel(CurrentWorld, HLODLevelIndex);
+			HierarchicalLODUtilities->DeleteLODActorsInHLODLevel(CurrentWorld, HLODLevelIndex);
 		}
 	}
 
@@ -1091,7 +1094,7 @@ namespace HLODOutliner
 	void SHLODOutliner::SelectLODActorAndContainedActorsInViewport(ALODActor* LODActor, const uint32 SelectionDepth)
 	{
 		TArray<AActor*> SubActors;
-		FHierarchicalLODUtilities::ExtractStaticMeshActorsFromLODActor(LODActor, SubActors);
+		HierarchicalLODUtilities->ExtractStaticMeshActorsFromLODActor(LODActor, SubActors);
 		for (AActor* SubActor : SubActors)
 		{
 			SelectActorInViewport(SubActor, SelectionDepth + 1);
@@ -1103,7 +1106,7 @@ namespace HLODOutliner
 	void SHLODOutliner::SelectContainedActorsInViewport(ALODActor* LODActor, const uint32 SelectionDepth /*= 0*/)
 	{
 		TArray<AActor*> SubActors;
-		FHierarchicalLODUtilities::ExtractStaticMeshActorsFromLODActor(LODActor, SubActors);
+		HierarchicalLODUtilities->ExtractStaticMeshActorsFromLODActor(LODActor, SubActors);
 		for (AActor* SubActor : SubActors)
 		{
 			SelectActorInViewport(SubActor, SelectionDepth + 1);
@@ -1240,7 +1243,7 @@ namespace HLODOutliner
 
 						if (bRemovedSubActor && Actor->SubActors.Num() == 0)
 						{
-							FHierarchicalLODUtilities::DestroyCluster(Actor);
+							HierarchicalLODUtilities->DestroyCluster(Actor);
 							Actor->GetWorld()->DestroyActor(Actor);						
 						}
 					}
@@ -1293,7 +1296,7 @@ namespace HLODOutliner
 					FLODActorItem* ParentLODActorItem = (FLODActorItem*)CurrentParent.Get();
 					if (!ParentLODActorItem->LODActor->HasValidSubActors())
 					{
-						FHierarchicalLODUtilities::DestroyLODActor(ParentLODActorItem->LODActor.Get());
+						HierarchicalLODUtilities->DestroyLODActor(ParentLODActorItem->LODActor.Get());
 						PendingActions.Emplace(FOutlinerAction::RemoveItem, CurrentParent);
 					}
 				}
@@ -1308,7 +1311,7 @@ namespace HLODOutliner
 			return;
 		}
 
-		ALODActor* ParentActor = FHierarchicalLODUtilities::GetParentLODActor(InActor);
+		ALODActor* ParentActor = HierarchicalLODUtilities->GetParentLODActor(InActor);
 		if (ParentActor)
 		{
 			ParentActor->Modify();
@@ -1664,8 +1667,6 @@ namespace HLODOutliner
 
 		return bHLODEnabled;
 	}
-
-
 };
 
 #undef LOCTEXT_NAMESPACE

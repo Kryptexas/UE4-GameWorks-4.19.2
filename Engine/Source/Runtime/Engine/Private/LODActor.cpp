@@ -255,6 +255,12 @@ bool ALODActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 {
 	Super::GetReferencedContentObjects(Objects);
 	Objects.Append(SubObjects);
+	
+	// Retrieve referenced objects for sub actors as well
+	for (AActor* SubActor : SubActors)
+	{
+		SubActor->GetReferencedContentObjects(Objects);
+	}
 	return true;
 }
 

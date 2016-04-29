@@ -4,7 +4,6 @@
 
 #include "Core.h"
 
-class FHierarchicalLODProxyProcessor;
 class AActor;
 class ALODActor;
 class UStaticMeshComponent;
@@ -18,19 +17,16 @@ class AHierarchicalLODVolume;
 /**
  * IHierarchicalLODUtilities module interface
  */
-class HIERARCHICALLODUTILITIES_API FHierarchicalLODUtilities : public IModuleInterface
+class HIERARCHICALLODUTILITIES_API IHierarchicalLODUtilities
 {
-public:
-	virtual void ShutdownModule() override;
-	virtual void StartupModule() override;
-	
+public:	
 	/**
 	* Recursively retrieves StaticMeshComponents from a LODActor and its child LODActors
 	*
 	* @param Actor - LODActor instance
 	* @param InOutComponents - Will hold the StaticMeshComponents
 	*/
-	static void ExtractStaticMeshComponentsFromLODActor(AActor* Actor, TArray<UStaticMeshComponent*>& InOutComponents);
+	virtual void ExtractStaticMeshComponentsFromLODActor(AActor* Actor, TArray<UStaticMeshComponent*>& InOutComponents) = 0;
 
 	/**
 	* Recursively retrieves Actors from a LODActor and its child LODActors
@@ -38,24 +34,24 @@ public:
 	* @param Actor - LODActor instance
 	* @param InOutComponents - Will hold the StaticMeshComponents
 	*/
-	static void ExtractSubActorsFromLODActor(AActor* Actor, TArray<AActor*>& InOutActors);
+	virtual void ExtractSubActorsFromLODActor(AActor* Actor, TArray<AActor*>& InOutActors) = 0;
 
 	/** Computes the Screensize of the given Sphere taking into account the ProjectionMatrix and distance */
-	static float CalculateScreenSizeFromDrawDistance(const float SphereRadius, const FMatrix& ProjectionMatrix, const float Distance);
+	virtual float CalculateScreenSizeFromDrawDistance(const float SphereRadius, const FMatrix& ProjectionMatrix, const float Distance) = 0;
 
-	static float CalculateDrawDistanceFromScreenSize(const float SphereRadius, const float ScreenSize, const FMatrix& ProjectionMatrix);
+	virtual float CalculateDrawDistanceFromScreenSize(const float SphereRadius, const float ScreenSize, const FMatrix& ProjectionMatrix) = 0;
 
 	/** Creates or retrieves the HLOD package that is created for the given level */
-	static UPackage* CreateOrRetrieveLevelHLODPackage(ULevel* InLevel);
+	virtual UPackage* CreateOrRetrieveLevelHLODPackage(ULevel* InLevel) = 0;
 
 	/**
-	* Builds a static mesh object for the given LODACtor
+	* Builds a virtual mesh object for the given LODACtor
 	*
 	* @param LODActor - Actor to build the mesh for
 	* @param Outer - Outer object to store the mesh in
 	* @return UStaticMesh*
 	*/
-	static bool BuildStaticMeshForLODActor(ALODActor* LODActor, UPackage* AssetsOuter, const FHierarchicalSimplification& LODSetup);
+	virtual bool BuildStaticMeshForLODActor(ALODActor* LODActor, UPackage* AssetsOuter, const FHierarchicalSimplification& LODSetup) = 0;
 	
 	/**
 	* Returns whether or not the given actor is eligible for creating a HLOD cluster creation
@@ -63,73 +59,73 @@ public:
 	* @param Actor - Actor to check for if it is eligible for cluster generation
 	* @return bool
 	*/
-	static bool ShouldGenerateCluster(AActor* Actor);
+	virtual bool ShouldGenerateCluster(AActor* Actor) = 0;
 
 	/** Returns the ALODActor parent for the given InActor, nullptr if none available */
-	static ALODActor* GetParentLODActor(const AActor* InActor);
+	virtual ALODActor* GetParentLODActor(const AActor* InActor) = 0;
 
 	/** Deletes the given cluster's data and instance in the world */
-	static void DestroyCluster(ALODActor* InActor);
+	virtual void DestroyCluster(ALODActor* InActor) = 0;
 
 	/** Deletes the given cluster's assets */
-	static void DestroyClusterData(ALODActor* InActor);
+	virtual void DestroyClusterData(ALODActor* InActor) = 0;
 
 	/** Creates a new cluster actor in the given InWorld with InLODLevel as HLODLevel */
-	static ALODActor* CreateNewClusterActor(UWorld* InWorld, const int32 InLODLevel, AWorldSettings* WorldSettings);
+	virtual ALODActor* CreateNewClusterActor(UWorld* InWorld, const int32 InLODLevel, AWorldSettings* WorldSettings) = 0;
 
 	/** Creates a new cluster in InWorld with InActors as sub actors*/
-	static ALODActor* CreateNewClusterFromActors(UWorld* InWorld, AWorldSettings* WorldSettings, const TArray<AActor*>& InActors, const int32 InLODLevel = 0);
+	virtual ALODActor* CreateNewClusterFromActors(UWorld* InWorld, AWorldSettings* WorldSettings, const TArray<AActor*>& InActors, const int32 InLODLevel = 0) = 0;
 
 	/** Removes the given actor from it's parent cluster */
-	static const bool RemoveActorFromCluster(AActor* InActor);
+	virtual const bool RemoveActorFromCluster(AActor* InActor) = 0;
 
 	/** Adds an actor to the given cluster*/
-	static const bool AddActorToCluster(AActor* InActor, ALODActor* InParentActor);
+	virtual const bool AddActorToCluster(AActor* InActor, ALODActor* InParentActor) = 0;
 
 	/** Merges two clusters together */
-	static const bool MergeClusters(ALODActor* TargetCluster, ALODActor* SourceCluster);
+	virtual const bool MergeClusters(ALODActor* TargetCluster, ALODActor* SourceCluster) = 0;
 
 	/** Checks if all actors have the same outer world */
-	static const bool AreActorsInSamePersistingLevel(const TArray<AActor*>& InActors);
+	virtual const bool AreActorsInSamePersistingLevel(const TArray<AActor*>& InActors) = 0;
 
 	/** Checks if all clusters are in the same HLOD level */
-	static const bool AreClustersInSameHLODLevel(const TArray<ALODActor*>& InLODActors);
+	virtual const bool AreClustersInSameHLODLevel(const TArray<ALODActor*>& InLODActors) = 0;
 
 	/** Checks if all actors are in the same HLOD level */
-	static const bool AreActorsInSameHLODLevel(const TArray<AActor*>& InActors);
+	virtual const bool AreActorsInSameHLODLevel(const TArray<AActor*>& InActors) = 0;
 
 	/** Checks if all actors are part of a cluster */
-	static const bool AreActorsClustered(const TArray<AActor*>& InActors);
+	virtual const bool AreActorsClustered(const TArray<AActor*>& InActors) = 0;
 
 	/** Checks if an actor is clustered*/
-	static const bool IsActorClustered(const AActor* InActor);
+	virtual const bool IsActorClustered(const AActor* InActor) = 0;
 
 	/** Excludes an actor from the cluster generation process */
-	static void ExcludeActorFromClusterGeneration(AActor* InActor);
+	virtual void ExcludeActorFromClusterGeneration(AActor* InActor) = 0;
 
 	/**
 	* Destroys an LODActor instance
 	*
 	* @param InActor - ALODActor to destroy
 	*/
-	static void DestroyLODActor(ALODActor* InActor);
+	virtual void DestroyLODActor(ALODActor* InActor) = 0;
 
 	/**
-	* Extracts all the Static Mesh Actors from the given LODActor's SubActors array
+	* Extracts all the virtual Mesh Actors from the given LODActor's SubActors array
 	*
 	* @param LODActor - LODActors to check the SubActors array for
-	* @param InOutActors - Array to fill with Static Mesh Actors
+	* @param InOutActors - Array to fill with virtual Mesh Actors
 	*/
-	static void ExtractStaticMeshActorsFromLODActor(ALODActor* LODActor, TArray<AActor*> &InOutActors);
+	virtual void ExtractStaticMeshActorsFromLODActor(ALODActor* LODActor, TArray<AActor*> &InOutActors) = 0;
 
 	/** Deletes all the ALODActors with the given HLODLevelIndex inside off InWorld */
-	static void DeleteLODActorsInHLODLevel(UWorld* InWorld, const int32 HLODLevelIndex);
+	virtual void DeleteLODActorsInHLODLevel(UWorld* InWorld, const int32 HLODLevelIndex) = 0;
 
 	/** Computes which LOD level of a Mesh corresponds to the given Distance (calculates closest screensize with distance) */
-	static int32 ComputeStaticMeshLODLevel(const TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshRenderData* RenderData, const float ScreenAreaSize);
+	virtual int32 ComputeStaticMeshLODLevel(const TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshRenderData* RenderData, const float ScreenAreaSize) = 0;
 
 	/** Computes the LODLevel for a StaticMeshComponent taking into account the ScreenArea */
-	static int32 GetLODLevelForScreenAreaSize(const UStaticMeshComponent* StaticMeshComponent, const float ScreenAreaSize);
+	virtual int32 GetLODLevelForScreenAreaSize(const UStaticMeshComponent* StaticMeshComponent, const float ScreenAreaSize) = 0;
 	
 	/**
 	* Creates a HierarchicalLODVolume using the bounds of a given LODActor
@@ -137,10 +133,11 @@ public:
 	* @param InWorld - World to spawn the volume in
 	* @return AHierarchicalLODVolume*
 	*/
-	static AHierarchicalLODVolume* CreateVolumeForLODActor(ALODActor* InLODActor, UWorld* InWorld);
+	virtual AHierarchicalLODVolume* CreateVolumeForLODActor(ALODActor* InLODActor, UWorld* InWorld) = 0;
 
-	/** Returns the Proxy processor instance from within this module */
-	FHierarchicalLODProxyProcessor* GetProxyProcessor();	
-private:
-	FHierarchicalLODProxyProcessor* ProxyProcessor;
+	/**
+	* Handles changes in actors for the current world, checks if InActor is part of a HLOD cluster and if so set its dirty-flag
+	* @param InActor - Actor to check and find cluster for
+	*/
+	virtual void HandleActorModified(AActor* InActor) = 0;
 };
