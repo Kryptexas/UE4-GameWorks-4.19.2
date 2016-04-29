@@ -4824,6 +4824,12 @@ UWorld* FSeamlessTravelHandler::Tick()
 				CurrentWorld->GameState->SeamlessTravelTransitionCheckpoint(!bSwitchedToDefaultMap);
 			}
 			
+			// If it's not still playing, destroy the demo net driver before we start renaming actors.
+			if ( CurrentWorld->DemoNetDriver && !CurrentWorld->DemoNetDriver->IsPlaying() )
+			{
+				CurrentWorld->DestroyDemoNetDriver();
+			}
+
 			// mark actors we want to keep
 			FUObjectAnnotationSparseBool KeepAnnotation;
 			TArray<AActor*> KeepActors;
