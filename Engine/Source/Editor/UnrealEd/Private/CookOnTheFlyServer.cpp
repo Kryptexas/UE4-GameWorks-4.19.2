@@ -3299,16 +3299,12 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 					
 					FDateTime DependentTimestamp;
 					FName StandardUnCookedFileFName = FName(*UncookedFilename);
-#if 1
+#if 1 // asset registry dependency checking instead of using DependencyInfo module
 					//////////////////////////////////////////////////////////////////////////
 
 					// asset registry actually has better dependency list then the dpinfomodule
-
-					//GetCachedPackageFilename()
-					FName StandardPackageName = StandardUnCookedFileFName;
 					TArray<FName> UnfilteredDependencies;
-					// const FName* PackageName = GetCachedPackageFilenameToPackageFName(StandardPackageName);					
-					FString LongPackageName = FPackageName::FilenameToLongPackageName(StandardPackageName.ToString());
+					FString LongPackageName = FPackageName::FilenameToLongPackageName(StandardUnCookedFileFName.ToString());
 
 				
 					FName LongPackageFName = FName(*LongPackageName);
@@ -3326,9 +3322,9 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 
 						for (const auto& Dependency : Dependencys)
 						{
-							FName StandardPackageName = GetCachedStandardPackageFileFName(Dependency);
+							FName StandardDependencyName = GetCachedStandardPackageFileFName(Dependency);
 
-							FDateTime DependencyDateTime = IFileManager::Get().GetTimeStamp(*StandardPackageName.ToString());
+							FDateTime DependencyDateTime = IFileManager::Get().GetTimeStamp(*StandardDependencyName.ToString());
 							if (DependencyDateTime > DependentTimestamp)
 							{
 								DependentTimestamp = DependencyDateTime;
