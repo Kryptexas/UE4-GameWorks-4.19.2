@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "HierarchicalLODUtilitiesModulePrivatePCH.h"
-
+#include "HierarchicalLODUtilities.h"
 #include "HierarchicalLODProxyProcessor.h"
 
 IMPLEMENT_MODULE(FHierarchicalLODUtilitiesModule, HierarchicalLODUtilities);

@@ -1200,6 +1200,7 @@ bool USplineMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor
 	}
 }
 
+#if WITH_EDITOR
 void USplineMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	UStaticMeshComponent::PostEditChangeProperty(PropertyChangedEvent);
@@ -1215,3 +1216,4 @@ void USplineMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 		}
 	}
 }
+#endif

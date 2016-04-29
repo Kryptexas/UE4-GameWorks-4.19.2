@@ -7,7 +7,6 @@
 class FHierarchicalLODProxyProcessor;
 class IHierarchicalLODUtilities;
 
-
 class IHierarchicalLODUtilitiesModule : public IModuleInterface
 {
 public:
