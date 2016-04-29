@@ -13,10 +13,14 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 	if (FPlatformMisc::HasPlatformFeature(TEXT("Vulkan")))
 	{
 		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("VulkanRHI"));
+		if (!DynamicRHIModule->IsSupported())
+		{
+			DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("OpenGLDrv"));
+		}
 	}
 	else
 	{
-		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("OpenGLDrv")); //duplicate? memory redudancy ?
+		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("OpenGLDrv"));
 	}
 
 	if (!DynamicRHIModule->IsSupported()) 

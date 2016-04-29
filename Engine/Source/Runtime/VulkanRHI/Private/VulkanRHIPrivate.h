@@ -26,8 +26,11 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 	#define VK_USE_PLATFORM_ANDROID_KHR 1
 #endif
 
-
+#if PLATFORM_ANDROID
+#include "VulkanLoader.h"
+#else
 #include <vulkan/vulkan.h>
+#endif
 
 #include "VulkanRHI.h"
 #include "VulkanGlobalUniformBuffer.h"
