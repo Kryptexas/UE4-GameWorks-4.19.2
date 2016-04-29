@@ -1921,7 +1921,9 @@ void FSceneComponentInstanceData::ApplyToComponent(UActorComponent* Component, c
 	for (const TPair<USceneComponent*, FTransform>& ChildComponentPair : AttachedInstanceComponents)
 	{
 		USceneComponent* ChildComponent = ChildComponentPair.Key;
-		if (ChildComponent)
+		// If the ChildComponent now has a "good" attach parent it was set by the transaction and it means we are undoing/redoing attachment
+		// and so the rebuilt component should not take back attachment ownership
+		if (ChildComponent && (ChildComponent->AttachParent == nullptr || ChildComponent->AttachParent->IsPendingKill()))
 		{
 			ChildComponent->RelativeLocation = ChildComponentPair.Value.GetLocation();
 			ChildComponent->RelativeRotation = ChildComponentPair.Value.GetRotation().Rotator();
