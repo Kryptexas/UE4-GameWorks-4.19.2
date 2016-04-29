@@ -178,7 +178,7 @@ void UGameUserSettings::SetToDefaults()
 
 	ScalabilityQuality.SetDefaults();
 
-	if (!IsRunningDedicatedServer())
+	if (!FApp::ShouldUseNullRHI())
 	{
 		UpdateResolutionQuality();
 	}

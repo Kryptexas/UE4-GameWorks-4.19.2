@@ -101,7 +101,7 @@ namespace AutomationTool.Tasks
 			if(Parameters.Files != null)
 			{
 				// Find the files which are to be included
-				// HashSet<FileReference> IncludeFiles = ResolveFilespec(InputDir, Parameters.Files, TagNameToFileSet);
+				HashSet<FileReference> IncludeFiles = ResolveFilespec(InputDir, Parameters.Files, TagNameToFileSet);
 
 				// Create a file to store the ignored file list
 				IgnoreList = new FileReference(LogUtils.GetUniqueLogName(Path.Combine(CommandUtils.CmdEnv.LogFolder, Parameters.AppName + "-Ignore")));
@@ -110,9 +110,13 @@ namespace AutomationTool.Tasks
 					DirectoryInfo InputDirInfo = new DirectoryInfo(InputDir.FullName);
 					foreach(FileInfo File in InputDirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
 					{
-						string RelativePath = new FileReference(File).MakeRelativeTo(InputDir);
-						const string Iso8601DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffZ";
-						Writer.WriteLine("\"{0}\"\t{1}", RelativePath, File.LastWriteTimeUtc.ToString(Iso8601DateTimeFormat));
+						FileReference FileRef = new FileReference(File);
+						if (!IncludeFiles.Contains(FileRef))
+						{
+							string RelativePath = FileRef.MakeRelativeTo(InputDir);
+							const string Iso8601DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffZ";
+							Writer.WriteLine("{0}\t{1}", (RelativePath.IndexOf(' ') == -1)? RelativePath : "\"" + RelativePath + "\"", File.LastWriteTimeUtc.ToString(Iso8601DateTimeFormat));
+						}
 					}
 				}
 			}

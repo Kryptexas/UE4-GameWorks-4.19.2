@@ -780,6 +780,11 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	UE_LOG(LogEngine, Log, TEXT("Initializing Engine..."));
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Engine Initialized"), STAT_EngineStartup, STATGROUP_LoadTime);
 
+	// Start capturing errors and warnings
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	ErrorsAndWarningsCollector.Initialize();
+#endif
+
 	// Set the memory warning handler
 	FPlatformMisc::SetMemoryWarningHandler(EngineMemoryWarningHandler);
 
@@ -800,7 +805,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		UGameMapsSettings::SetGameDefaultMap(MapString);
 	}
 #endif // !UE_BUILD_SHIPPING
-
+	
 	InitializeRunningAverageDeltaTime();
 
 	// Add to root.
@@ -6834,6 +6839,83 @@ void UEngine::AddOnScreenDebugMessage(uint64 Key, float TimeToDisplay, FColor Di
 		}
 	}
 #endif
+}
+
+UEngine::FErrorsAndWarningsCollector::FErrorsAndWarningsCollector()
+{
+}
+
+void UEngine::FErrorsAndWarningsCollector::Initialize()
+{
+	DisplayTime = 0;
+	GConfig->GetFloat(TEXT("/Script/Engine.Engine"), TEXT("DurationOfErrorsAndWarningsOnHUD"), DisplayTime, GEngineIni);
+
+	if (DisplayTime > 0)
+	{
+		SetVerbosity(ELogVerbosity::Warning);
+		TickerHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &UEngine::FErrorsAndWarningsCollector::Tick), DisplayTime);
+		FOutputDeviceRedirector::Get()->AddOutputDevice(this);
+	}
+}
+
+UEngine::FErrorsAndWarningsCollector::~FErrorsAndWarningsCollector()
+{
+	if (TickerHandle.IsValid())
+	{
+		FOutputDeviceRedirector::Get()->RemoveOutputDevice(this);
+		FTicker::GetCoreTicker().RemoveTicker(TickerHandle);
+	}
+}
+
+bool UEngine::FErrorsAndWarningsCollector::Tick(float Seconds)
+{
+	if (BufferedLines.Num())
+	{
+		int DupeCount = 0;
+		int CurrentHash = 0;
+
+		// Remove any dupes and count them
+		do 
+		{
+			uint32 ThisHash = FCrc::StrCrc32(*BufferedLines[DupeCount].Data);
+
+			if (CurrentHash && ThisHash != CurrentHash)
+			{
+				break;
+			}
+
+			CurrentHash = ThisHash;
+			DupeCount++;
+
+		} while (DupeCount < BufferedLines.Num());
+		
+		// Save off properties
+		FString Msg = BufferedLines[0].Data;
+		ELogVerbosity::Type Verbosity = BufferedLines[0].Verbosity;
+
+		// Remove any lines we condensed
+		BufferedLines.RemoveAt(0, DupeCount);
+
+		uint32* pCount = MessagesToCountMap.Find(CurrentHash);
+		
+		if (pCount)
+		{
+			DupeCount += (*pCount);
+		}
+
+		MessagesToCountMap.Add(CurrentHash, DupeCount);
+
+		if (DupeCount > 1)
+		{
+			Msg = FString::Printf(TEXT("%s (x%d)"), *Msg, DupeCount);
+		}
+	
+		FColor LineColor = Verbosity <= ELogVerbosity::Error ? FColor::Red : FColor::Yellow;
+
+		GEngine->AddOnScreenDebugMessage(-1, DisplayTime, LineColor, Msg);
+	}
+
+	return true;
 }
 
 /** Wrapper from int32 to uint64 */

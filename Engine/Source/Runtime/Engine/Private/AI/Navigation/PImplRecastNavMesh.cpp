@@ -1393,18 +1393,18 @@ bool FPImplRecastNavMesh::ProjectPointToNavMesh(const FVector& Point, FNavLocati
 		const FVector ModifiedExtent = NavMeshOwner->GetModifiedQueryExtent(Extent);
 		FVector RcExtent = Unreal2RecastPoint(ModifiedExtent).GetAbs();
 	
-		FVector RcPoint = Unreal2RecastPoint( Point );
+		FVector RcPoint = Unreal2RecastPoint(Point);
 		dtPolyRef PolyRef;
-		NavQuery.findNearestPoly( &RcPoint.X, &RcExtent.X, QueryFilter, &PolyRef, ClosestPoint );
+		NavQuery.findNearestPoly2D(&RcPoint.X, &RcExtent.X, QueryFilter, &PolyRef, ClosestPoint);
 
 		if( PolyRef > 0 )
 		{
 			// one last step required due to recast's BVTree imprecision
 			const FVector& UnrealClosestPoint = Recast2UnrVector(ClosestPoint);			
 			const FVector ClosestPointDelta = UnrealClosestPoint - Point;
-			if (FMath::Abs(ClosestPointDelta.X) <= ModifiedExtent.X &&
-				FMath::Abs(ClosestPointDelta.Y) <= ModifiedExtent.Y &&
-				FMath::Abs(ClosestPointDelta.Z) <= ModifiedExtent.Z)
+			if (-ModifiedExtent.X <= ClosestPointDelta.X && ClosestPointDelta.X <= ModifiedExtent.X
+				&& -ModifiedExtent.Y <= ClosestPointDelta.Y && ClosestPointDelta.Y <= ModifiedExtent.Y
+				&& -ModifiedExtent.Z <= ClosestPointDelta.Z && ClosestPointDelta.Z <= ModifiedExtent.Z)
 			{
 				bSuccess = true;
 				Result = FNavLocation(UnrealClosestPoint, PolyRef);

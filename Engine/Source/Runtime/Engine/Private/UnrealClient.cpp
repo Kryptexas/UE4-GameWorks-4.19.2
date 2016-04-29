@@ -266,7 +266,13 @@ const FTexture2DRHIRef& FRenderTarget::GetRenderTargetTexture() const
 }
 
 
-void FScreenshotRequest::RequestScreenshot( const FString& InFilename, bool bInShowUI, bool bAddUniqueSuffix )
+void FScreenshotRequest::RequestScreenshot(bool bInShowUI)
+{
+	bShowUI = bInShowUI;
+	bIsScreenshotRequested = true;
+}
+
+void FScreenshotRequest::RequestScreenshot(const FString& InFilename, bool bInShowUI, bool bAddUniqueSuffix)
 {
 	FString GeneratedFilename = InFilename;
 	CreateViewportScreenShotFilename(GeneratedFilename);
@@ -282,17 +288,23 @@ void FScreenshotRequest::RequestScreenshot( const FString& InFilename, bool bInS
 		Filename = GeneratedFilename;
 	}
 
-	bShowUI = bInShowUI;
+	// Register the screenshot
+	if (!Filename.IsEmpty())
+	{
+		bShowUI = bInShowUI;
+		bIsScreenshotRequested = true;
+	}
 }
 
 
 void FScreenshotRequest::Reset()
 {
+	bIsScreenshotRequested = false;
 	Filename.Empty();
 	bShowUI = false;
 }
 
-void FScreenshotRequest::CreateViewportScreenShotFilename( FString& InOutFilename )
+void FScreenshotRequest::CreateViewportScreenShotFilename(FString& InOutFilename)
 {
 	FString TypeName;
 
@@ -330,6 +342,7 @@ TArray<FColor>* FScreenshotRequest::GetHighresScreenshotMaskColorArray()
 }
 
 
+bool FScreenshotRequest::bIsScreenshotRequested = false;
 FString FScreenshotRequest::Filename;
 FString FScreenshotRequest::NextScreenshotName;
 bool FScreenshotRequest::bShowUI = false;

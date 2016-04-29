@@ -41,6 +41,8 @@ public:
 		, _ScrollbarVisibility(EVisibility::Visible)
 		, _AllowOverscroll(EAllowOverscroll::Yes)
 		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
+		, _WheelScrollMultiplier( WheelScrollAmount )
+		, _HandleGamepadEvents( true )
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateTile )
@@ -79,6 +81,10 @@ public:
 
 		SLATE_ARGUMENT( EConsumeMouseWheel, ConsumeMouseWheel );
 
+		SLATE_ARGUMENT( float, WheelScrollMultiplier );
+
+		SLATE_ARGUMENT( bool, HandleGamepadEvents );
+
 	SLATE_END_ARGS()
 
 	/**
@@ -103,6 +109,10 @@ public:
 
 		this->AllowOverscroll = InArgs._AllowOverscroll;
 		this->ConsumeMouseWheel = InArgs._ConsumeMouseWheel;
+
+		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
+
+		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;

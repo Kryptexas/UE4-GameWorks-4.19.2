@@ -1769,28 +1769,9 @@ uint32 UParticleModuleLocationBoneSocket::RequiredBytesPerInstance()
 
 	SetSourceIndexMode();
 
-	int32 ArraySize = 0;
-	int32 ElemSize = 0;
-	switch (SourceIndexMode)
-	{
-		case EBoneSocketSourceIndexMode::SourceLocations:
-		{
-			ArraySize = SourceLocations.Num();
-			ElemSize = InheritingBoneVelocity() ? sizeof(FVector) * 2 : 0;
-		}
-		break;
-		case EBoneSocketSourceIndexMode::PreSelectedIndices:
-		{
-			ArraySize = NumPreSelectedIndices;
-			ElemSize = (sizeof(FVector) * 2) + sizeof(int32);
-		}
-		break;
-		case EBoneSocketSourceIndexMode::Direct:
-		{
-			ArraySize = 0;
-		}
-		break;
-	}
+	//Have to take the max of all variants as lots of code assumes all LODs use the same memory and prep it the same way :(
+	int32 ArraySize = FMath::Max(SourceLocations.Num(), NumPreSelectedIndices);
+	int32 ElemSize = (sizeof(FVector)* 2) + sizeof(int32);
 	
 	int32 BoneArraySize = ArraySize * ElemSize;
 	
@@ -1803,27 +1784,12 @@ uint32 UParticleModuleLocationBoneSocket::PrepPerInstanceBlock(FParticleEmitterI
 	if (Payload)
 	{
 		FMemory::Memzero(Payload, sizeof(FModuleLocationBoneSocketInstancePayload));
-		
-		int32 ArraySize = 0;
-		bool bNeedPreSelectedIndices = false;
-		switch (SourceIndexMode)
-		{
-			case EBoneSocketSourceIndexMode::SourceLocations:
-			{
-				ArraySize = InheritingBoneVelocity() ? SourceLocations.Num() : 0;
-			}
-			break;
-			case EBoneSocketSourceIndexMode::PreSelectedIndices:
-			{
-				ArraySize = NumPreSelectedIndices;
-				bNeedPreSelectedIndices = true;
-			}
-			break;
-		}
 
+		int32 ArraySize = FMath::Max(SourceLocations.Num(), NumPreSelectedIndices);
+	
 		if (ArraySize > 0)
 		{
-			Payload->InitArrayProxies(ArraySize, bNeedPreSelectedIndices);
+			Payload->InitArrayProxies(ArraySize);
 		}
 	}
 	return 0xffffffff;

@@ -52,6 +52,17 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityEnded, UGameplayAbility*);
 /** Notify interested parties that ability spec has been modified */
 DECLARE_MULTICAST_DELEGATE_OneParam(FAbilitySpecDirtied, const FGameplayAbilitySpec&);
 
+UENUM()
+enum class EReplicationMode : uint8
+{
+	/** Only replicate minimal gameplay effect info*/
+	Minimal,
+	/** Only replicate minimal gameplay effect info to simulated proxies but full info to owners and autonomous proxies */
+	Mixed,
+	/** Replicate full gameplay info to all */
+	Full,
+};
+
 /**
  *	The core ActorComponent for interfacing with the GameplayAbilities System
  */
@@ -106,7 +117,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	template <class T>
 	const T*	AddDefaultSubobjectSet(T* Subobject)
 	{
-		SpawnedAttributes.Add(Subobject);
+		SpawnedAttributes.AddUnique(Subobject);
 		return Subobject;
 	}
 
@@ -170,8 +181,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	/** Forces avatar actor to update it's replication. Useful for things like needing to replication for movement / locations reasons. */
 	virtual void ForceAvatarReplication();
 
-	void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
-
 	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& Objs) override;
 
 	virtual void PreNetReceive() override;
@@ -179,9 +188,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	virtual void PostNetReceive() override;
 
 	/** When true, we will not replicate active gameplay effects for this abiltiy system component, so attributes and tags */
-	void SetMinimalReplication(bool bNewMinimalReplication);
+	void SetReplicationMode(EReplicationMode NewReplicationMode);
 
-	bool bMinimalReplication;
+	EReplicationMode ReplicationMode;
 
 	/** PredictionKeys, see more info in GameplayPrediction.h */
 	UPROPERTY(ReplicatedUsing=OnRep_PredictionKey)
@@ -343,6 +352,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	float GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
 
+	void GetGameplayEffectStartTimeAndDuration(FActiveGameplayEffectHandle Handle, float& StartEffectTime, float& Duration) const;
+
 	/** Updates the level of an already applied gameplay effect. The intention is that this is 'seemless' and doesnt behave like removing/reapplying */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
 	void SetActiveGameplayEffectLevel(FActiveGameplayEffectHandle ActiveHandle, int32 NewLevel);
@@ -420,6 +431,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	void OnPeriodicGameplayEffectExecuteOnTarget(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecExecuted, FActiveGameplayEffectHandle ActiveHandle);
 
 	void OnPeriodicGameplayEffectExecuteOnSelf(UAbilitySystemComponent* Source, const FGameplayEffectSpec& SpecExecuted, FActiveGameplayEffectHandle ActiveHandle);
+
+	virtual void OnGameplayEffectDurationChange(struct FActiveGameplayEffect& ActiveEffect);
 
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGameplayEffectAppliedDelegate, UAbilitySystemComponent*, const FGameplayEffectSpec&, FActiveGameplayEffectHandle);
 
@@ -552,6 +565,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	FOnGivenActiveGameplayEffectRemoved& OnAnyGameplayEffectRemovedDelegate();
 
 	FOnActiveGameplayEffectStackChange* OnGameplayEffectStackChangeDelegate(FActiveGameplayEffectHandle Handle);
+
+	FOnActiveGameplayEffectTimeChange* OnGameplayEffectTimeChangeDelegate(FActiveGameplayEffectHandle Handle);
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(DisplayName = "ApplyGameplayEffectToTarget"))
 	FActiveGameplayEffectHandle BP_ApplyGameplayEffectToTarget(TSubclassOf<UGameplayEffect> GameplayEffectClass, UAbilitySystemComponent *Target, float Level, FGameplayEffectContextHandle Context);

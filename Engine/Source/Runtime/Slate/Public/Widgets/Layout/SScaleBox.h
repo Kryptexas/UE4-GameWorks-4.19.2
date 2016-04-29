@@ -4,7 +4,7 @@
 
 #include "SScaleBox.generated.h"
 
-UENUM()
+UENUM(BlueprintType)
 namespace EStretchDirection
 {
 	enum Type
@@ -18,7 +18,7 @@ namespace EStretchDirection
 	};
 }
 
-UENUM()
+UENUM(BlueprintType)
 namespace EStretch
 {
 	enum Type

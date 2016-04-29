@@ -9,7 +9,7 @@
 
 #include <sys/utsname.h>	// for uname()
 #include <signal.h>
-
+#include "HAL/ThreadHeartBeat.h"
 
 FString DescribeSignal(int32 Signal, siginfo_t* Info)
 {
@@ -479,6 +479,9 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 void DefaultCrashHandler(const FLinuxCrashContext & Context)
 {
 	printf("DefaultCrashHandler: Signal=%d\n", Context.Signal);
+
+	// Stop the heartbeat thread so that it doesn't interfere with crashreporting
+	FThreadHeartBeat::Get().Stop();
 
 	// at this point we should already be using malloc crash handler (see PlatformCrashHandler)
 

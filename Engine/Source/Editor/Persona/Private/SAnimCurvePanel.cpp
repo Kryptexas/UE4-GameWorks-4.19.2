@@ -26,8 +26,11 @@ private:
 	void UpdateNameInternal(FRawCurveTracks& RawCurveData, const FSmartNameMapping::UID& RequestedNameUID, FName RequestedName)
 	{
 		FAnimCurveBase* CurrentCurveData = RawCurveData.GetCurveData(CurveUID);
-		CurrentCurveData->CurveUid = RequestedNameUID;
-		CurrentCurveData->LastObservedName = RequestedName;
+		if (CurrentCurveData)
+		{
+			CurrentCurveData->CurveUid = RequestedNameUID;
+			CurrentCurveData->LastObservedName = RequestedName;
+		}
 	}
 
 public:
@@ -147,7 +150,10 @@ public:
 		AnimSequenceBase.Get()->RawCurveData.GetCurveData(CurveUID)->SetCurveTypeFlag(InFlag, bValue);
 		if (UAnimSequence* Seq = AnimSequence.Get())
 		{
-			Seq->CompressedCurveData.GetCurveData(CurveUID)->SetCurveTypeFlag(InFlag, bValue);
+			if (FAnimCurveBase* CompressedCurve = Seq->CompressedCurveData.GetCurveData(CurveUID))
+			{
+				CompressedCurve->SetCurveTypeFlag(InFlag, bValue);
+			}
 		}
 	}
 
@@ -159,7 +165,10 @@ public:
 		AnimSequenceBase.Get()->RawCurveData.GetCurveData(CurveUID)->ToggleCurveTypeFlag(InFlag);
 		if (UAnimSequence* Seq = AnimSequence.Get())
 		{
-			Seq->CompressedCurveData.GetCurveData(CurveUID)->ToggleCurveTypeFlag(InFlag);
+			if (FAnimCurveBase* CompressedCurve = Seq->CompressedCurveData.GetCurveData(CurveUID))
+			{
+				CompressedCurve->ToggleCurveTypeFlag(InFlag);
+			}
 		}
 	}
 

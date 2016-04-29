@@ -214,7 +214,11 @@ void UKismetArrayLibrary::GenericArray_Get(void* TargetArray, const UArrayProper
 		}
 		else
 		{
-			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to get an item from array %s out of bounds [%d/%d]!"), *ArrayProp->GetName(), Index, GetLastIndex(ArrayHelper)), ELogVerbosity::Error);
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to access index %d from array %s of length %d!"),
+				Index,
+				*ArrayProp->GetName(),
+				ArrayHelper.Num()),
+				ELogVerbosity::Error);
 			InnerProp->InitializeValue(Item);
 		}
 	}

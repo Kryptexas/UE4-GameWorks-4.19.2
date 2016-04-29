@@ -1226,3 +1226,9 @@ void SMultiBoxWidget::AddSearchElement( TSharedPtr<SWidget> BlockWidget, FText B
 {
 	SearchElements.Add( BlockWidget, BlockDisplayText );
 }
+
+bool SMultiBoxWidget::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent)
+{
+	// tooltips on multibox widgets are not supported outside of the editor
+	return !GIsEditor;
+}

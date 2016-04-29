@@ -244,7 +244,7 @@ bool FActiveGameplayCueContainer::HasCue(const FGameplayTag& Tag) const
 
 bool FActiveGameplayCueContainer::NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 {
-	if (bMinimalReplication && (Owner && !Owner->bMinimalReplication))
+	if (bMinimalReplication && (Owner && Owner->ReplicationMode == EReplicationMode::Full))
 	{
 		return true;
 	}

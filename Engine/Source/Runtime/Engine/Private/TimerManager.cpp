@@ -309,20 +309,19 @@ void FTimerManager::InternalClearAllTimers(void const* Object)
 	}
 }
 
-
-
 float FTimerManager::InternalGetTimerRemaining(FTimerData const* const TimerData) const
 {
 	if (TimerData)
 	{
-		if( TimerData->Status != ETimerStatus::Active )
+		switch (TimerData->Status)
 		{
-			// ExpireTime is time remaining for paused timers
-			return TimerData->ExpireTime;
-		}
-		else
-		{
-			return TimerData->ExpireTime - InternalTime;
+			case ETimerStatus::Active:
+				return TimerData->ExpireTime - InternalTime;
+			case ETimerStatus::Executing:
+				return 0.0f;
+			default:
+				// ExpireTime is time remaining for paused timers
+				return TimerData->ExpireTime;
 		}
 	}
 
@@ -333,14 +332,15 @@ float FTimerManager::InternalGetTimerElapsed(FTimerData const* const TimerData) 
 {
 	if (TimerData)
 	{
-		if( TimerData->Status != ETimerStatus::Active)
+		switch (TimerData->Status)
 		{
-			// ExpireTime is time remaining for paused timers
-			return (TimerData->Rate - TimerData->ExpireTime);
-		}
-		else
-		{
-			return (TimerData->Rate - (TimerData->ExpireTime - InternalTime));
+			case ETimerStatus::Active:
+				// intentional fall through
+			case ETimerStatus::Executing:
+				return (TimerData->Rate - (TimerData->ExpireTime - InternalTime));
+			default:
+				// ExpireTime is time remaining for paused timers
+				return (TimerData->Rate - TimerData->ExpireTime);
 		}
 	}
 

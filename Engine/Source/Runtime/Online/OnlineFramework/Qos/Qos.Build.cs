@@ -19,6 +19,7 @@ public class Qos : ModuleRules
 				"Core", 
 				"CoreUObject",
 				"Engine", 
+                "Icmp",
 				"OnlineSubsystem",
 				"OnlineSubsystemUtils"
 			}

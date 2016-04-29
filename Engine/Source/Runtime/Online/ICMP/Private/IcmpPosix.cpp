@@ -36,6 +36,26 @@ namespace IcmpPosix
 	}
 }
 
+uint16 NtoHS(uint16 val)
+{
+	return ntohs(val);
+}
+
+uint16 HtoNS(uint16 val)
+{
+	return htons(val);
+}
+
+uint32 NtoHL(uint32 val)
+{
+	return ntohl(val);
+}
+
+uint32 HtoNL(uint32 val)
+{
+	return htonl(val);
+}
+
 FIcmpEchoResult IcmpEchoImpl(const FString& TargetAddress, float Timeout)
 {
 	static const SIZE_T IpHeaderSize = sizeof(struct ip);

@@ -969,6 +969,10 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 			CurveToImport->SetCurveTypeFlags(CurveFlags | CurveToImport->GetCurveTypeFlags());
 		}
 
+		// update last observed name. If not, sometimes it adds new UID while fixing up that will confuse Compressed Raw Data
+		const FSmartNameMapping* Mapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+		TargetSequence->RawCurveData.UpdateLastObservedNames(Mapping);
+
 		TargetSequence->MarkRawDataAsModified();
 		return ImportCurve(FbxCurve, CurveToImport, AnimTimeSpan, ValueScale);
 	}

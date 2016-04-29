@@ -485,15 +485,22 @@ public:
 };
 
 /** Buffered output device. */
-class FBufferedOutputDevice : public FOutputDevice
+class CORE_API FBufferedOutputDevice : public FOutputDevice
 {
-	TArray<FBufferedLine> BufferedLines;
+protected:
+	TArray<FBufferedLine>		BufferedLines;
+	ELogVerbosity::Type			FilterLevel;
+	FCriticalSection			SynchronizationObject;
 
 public:
-	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) override
+
+	FBufferedOutputDevice() : FilterLevel(ELogVerbosity::All)
 	{
-		new(BufferedLines)FBufferedLine( InData, Category, Verbosity );
 	}
+
+	void	SetVerbosity(ELogVerbosity::Type Verbosity) { FilterLevel = Verbosity; }
+	void	Serialize(const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category) override;
+	void	GetContents(TArray<FBufferedLine>& DestBuffer, bool ClearDevice = true);
 
 	/** Pushes buffered lines into the specified output device. */
 	void RedirectTo( class FOutputDevice& Ar )

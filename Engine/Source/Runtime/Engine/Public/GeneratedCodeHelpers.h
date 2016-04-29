@@ -205,7 +205,8 @@ public:
 		}
 		else
 		{
-			ExecutionMessage(*FString::Printf(TEXT("Attempted to get an item from array out of bounds [%d/%d]!"), Index, LastIndexForLog(TargetArray)), ELogVerbosity::Warning);
+			ExecutionMessage(*FString::Printf(TEXT("Attempted to access index %d from array of length %d!"), 
+				Index, TargetArray.Num()), ELogVerbosity::Error);
 			Item = U{};
 		}
 	}

@@ -1052,8 +1052,8 @@ dtStatus dtNavMeshQuery::findNearestPoly(const float* center, const float* exten
 		dtPolyRef ref = polys[i];
 		float closestPtPoly[3];
 		closestPointOnPoly(ref, referenceLocation, closestPtPoly);
-		float d = dtVdistSqr(referenceLocation, closestPtPoly);
-		float h = dtAbs(center[1] - closestPtPoly[1]);
+		const float d = dtVdistSqr(referenceLocation, closestPtPoly);
+		const float h = dtAbs(center[1] - closestPtPoly[1]);
 //@UE4 END
 		if (d < nearestDistanceSqr && h < extents[1])
 		{
@@ -1069,6 +1069,55 @@ dtStatus dtNavMeshQuery::findNearestPoly(const float* center, const float* exten
 	
 	return DT_SUCCESS;
 }
+
+//@UE4 BEGIN
+dtStatus dtNavMeshQuery::findNearestPoly2D(const float* center, const float* extents,
+											const dtQueryFilter* filter,
+											dtPolyRef* nearestRef, float* nearestPt,
+											const float* referencePt) const
+{
+	dtAssert(m_nav);
+
+	*nearestRef = 0;
+
+	// Get nearby polygons from proximity grid.
+	dtPolyRef polys[128];
+	int polyCount = 0;
+	if (dtStatusFailed(queryPolygons(center, extents, filter, polys, &polyCount, 128)))
+		return DT_FAILURE | DT_INVALID_PARAM;
+
+	float referenceLocation[3];
+	dtVcopy(referenceLocation, referencePt ? referencePt : center);
+
+	// Find nearest polygon amongst the nearby polygons.
+	dtPolyRef nearest = 0;
+	float nearestDistanceSqr = FLT_MAX;
+	float nearestVertDist = FLT_MAX;
+	for (int i = 0; i < polyCount; ++i)
+	{
+		dtPolyRef ref = polys[i];
+		float closestPtPoly[3];
+		closestPointOnPoly(ref, referenceLocation, closestPtPoly);
+		const float d = dtVdist2DSqr(referenceLocation, closestPtPoly);
+		const float h = dtAbs(center[1] - closestPtPoly[1]);
+		
+		if ((d < nearestDistanceSqr && h < extents[1])
+			|| (d < nearestDistanceSqr + KINDA_SMALL_NUMBER && h < nearestVertDist))
+		{
+			if (nearestPt)
+				dtVcopy(nearestPt, closestPtPoly);
+			nearestDistanceSqr = d;
+			nearestVertDist = h;
+			nearest = ref;
+		}
+	}
+
+	if (nearestRef)
+		*nearestRef = nearest;
+
+	return DT_SUCCESS;
+}
+//@UE4 END
 
 /// @par 
 ///

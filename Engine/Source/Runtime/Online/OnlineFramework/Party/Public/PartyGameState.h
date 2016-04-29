@@ -243,6 +243,9 @@ public:
 	/** @return the max size of the party, INDEX_NONE if invalid */
 	int32 GetPartyMaxSize() const;
 
+	/** @return True if the party is currently full */
+	bool IsPartyFull() const;
+
 	/**
 	 * Look at current data and update whether or not this party should be accepting members (party leader only)
 	 */
@@ -513,7 +516,7 @@ protected:
 	 *
 	 * @param InMemberId id of the newly joined member
 	 */
-	void HandlePartyMemberJoined(const FUniqueNetId& InMemberId);
+	virtual void HandlePartyMemberJoined(const FUniqueNetId& InMemberId);
 
 	/**
 	 * Called for all existing party members when an existing party member leaves

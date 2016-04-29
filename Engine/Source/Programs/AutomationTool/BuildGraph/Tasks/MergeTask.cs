@@ -88,7 +88,7 @@ namespace AutomationTool.Tasks
 			Options.ManifestA = FileReference.Combine(CloudDir, String.Format("{0}{1}-{2}.manifest", Parameters.AppName, Parameters.BaseVersion, Parameters.Platform)).FullName;
 			Options.ManifestB = FileReference.Combine(CloudDir, String.Format("{0}{1}-{2}.manifest", Parameters.AppName, Parameters.PatchVersion, Parameters.Platform)).FullName;
 			Options.ManifestC = FileReference.Combine(CloudDir, String.Format("{0}{1}-{2}.manifest", Parameters.AppName, Parameters.FinalVersion, Parameters.Platform)).FullName;
-			Options.BuildVersion = Parameters.FinalVersion;
+			Options.BuildVersion = String.Format("{0}-{1}", Parameters.FinalVersion, Parameters.Platform);
 
 			// Run the chunking
 			BuildPatchToolBase.Get().Execute(Options);

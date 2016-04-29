@@ -40,6 +40,28 @@ UPartyGameState* UPartyMemberState::GetParty() const
 	return GetTypedOuter<UPartyGameState>();
 }
 
+bool UPartyMemberState::IsPartyLeader() const
+{
+	UPartyGameState* Party = GetParty();
+	check(Party);
+
+	TSharedPtr<const FUniqueNetId> PartyLeader = Party->GetPartyLeader();
+	if (PartyLeader.IsValid())
+	{
+		return *PartyLeader == *UniqueId;
+	}
+
+	return false;
+}
+
+bool UPartyMemberState::IsLocalPlayer() const
+{
+	UPartyGameState* Party = GetParty();
+	check(Party);
+
+	return UniqueId == Party->GetOwningUserId();
+}
+
 void UPartyMemberState::UpdatePartyMemberState()
 {
 	UPartyGameState* Party = GetParty();

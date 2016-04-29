@@ -8642,6 +8642,8 @@ uint16 UCharacterMovementComponent::ApplyRootMotionSource(FRootMotionSource* Sou
 			}
 		}
 
+		OnRootMotionSourceBeingApplied(SourcePtr);
+
 		return CurrentRootMotion.ApplyRootMotionSource(SourcePtr);
 	}
 	else
@@ -8650,6 +8652,10 @@ uint16 UCharacterMovementComponent::ApplyRootMotionSource(FRootMotionSource* Sou
 	}
 
 	return (uint16)ERootMotionSourceID::Invalid;
+}
+
+void UCharacterMovementComponent::OnRootMotionSourceBeingApplied(const FRootMotionSource* Source)
+{
 }
 
 TSharedPtr<FRootMotionSource> UCharacterMovementComponent::GetRootMotionSource(FName InstanceName)

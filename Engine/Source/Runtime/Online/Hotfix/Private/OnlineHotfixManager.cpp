@@ -420,6 +420,7 @@ void UOnlineHotfixManager::ReadHotfixFiles()
 		// Do this in two passes so already cached files don't trigger completion
 		for (auto& FileHeader : ChangedHotfixFileList)
 		{
+			UE_LOG(LogOnline, Verbose, TEXT("HF: %s %s %d "), *FileHeader.DLName, *FileHeader.FileName, FileHeader.FileSize); 
 			PendingHotfixFiles.Add(FileHeader.DLName, FPendingFileDLProgress());
 		}
 		for (auto& FileHeader : ChangedHotfixFileList)

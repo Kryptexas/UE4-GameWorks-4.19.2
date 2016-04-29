@@ -203,16 +203,20 @@ public:
 	friend inline FNboSerializeToBuffer& operator<<(FNboSerializeToBuffer& Ar,const FString& String)
 	{
 		// We send strings length prefixed
-		int32 Len = String.Len();
+		FTCHARToUTF8 Converted(*String);
+		int32 Len = Converted.Length();
+
 		Ar << Len;
 
 		if (!Ar.HasOverflow() && Ar.NumBytes + Len <= Ar.GetBufferSize())
 		{
 			// Handle empty strings
-			if (String.Len() > 0)
+			if (Len > 0)
 			{
+				ANSICHAR* Ptr = (ANSICHAR*)Converted.Get();
+
 				// memcpy it into the buffer
-				FMemory::Memcpy(&Ar.Data[Ar.NumBytes],TCHAR_TO_ANSI(*String),Len);
+				FMemory::Memcpy(&Ar.Data[Ar.NumBytes], Ptr,Len);
 				Ar.NumBytes += Len;
 			}
 		}
@@ -631,12 +635,14 @@ public:
 			if (Len > 0)
 			{
 				char* Temp = (char*)FMemory_Alloca(Len + 1);
-				// memcpy it infrom the buffer
-				FMemory::Memcpy(Temp,&Ar.Data[Ar.CurrentOffset],Len);
-				Ar.CurrentOffset += Len;
-				// Terminate and copy
+				// memcpy it in from the buffer
+				FMemory::Memcpy(Temp, &Ar.Data[Ar.CurrentOffset], Len);
 				Temp[Len] = '\0';
-				String = Temp;
+
+				FUTF8ToTCHAR Converted(Temp);
+				TCHAR* Ptr = (TCHAR*)Converted.Get();
+				String = Ptr;
+				Ar.CurrentOffset += Len;
 			}
 			else
 			{

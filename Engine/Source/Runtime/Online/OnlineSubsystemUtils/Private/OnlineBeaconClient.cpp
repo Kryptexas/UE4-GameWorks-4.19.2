@@ -60,7 +60,7 @@ EBeaconConnectionState AOnlineBeaconClient::GetConnectionState() const
 	return ConnectionState;
 }
 
-void  AOnlineBeaconClient::SetConnectionState(EBeaconConnectionState NewConnectionState)
+void AOnlineBeaconClient::SetConnectionState(EBeaconConnectionState NewConnectionState)
 {
 	ConnectionState = NewConnectionState;
 }

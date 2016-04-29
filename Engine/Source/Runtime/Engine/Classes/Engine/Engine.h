@@ -2881,6 +2881,23 @@ private:
 	/** A list of all the simple stats functions that have been registered */
 	TArray<FEngineStatFuncs> EngineStats;
 
+	// Helper struct that registers itself with the output redirector and copies off warnings
+	// and errors that we'll overlay on the client viewport
+	struct FErrorsAndWarningsCollector : public FBufferedOutputDevice
+	{
+		FErrorsAndWarningsCollector();
+		~FErrorsAndWarningsCollector();
+
+		void Initialize();
+		bool Tick(float Seconds);
+
+		TMap<uint32, uint32>	MessagesToCountMap;
+		FDelegateHandle			TickerHandle;
+		float					DisplayTime;
+	};
+
+	FErrorsAndWarningsCollector	ErrorsAndWarningsCollector;
+
 private:
 
 	/**

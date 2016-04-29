@@ -117,6 +117,7 @@ void FLinuxPlatformMisc::PlatformInit()
 
 	// do not remove the below check for IsFirstInstance() - it is not just for logging, it actually lays the claim to be first
 	bool bFirstInstance = FPlatformProcess::IsFirstInstance();
+	bool bIsNullRHI = FApp::ShouldUseNullRHI();
 
 	UE_LOG(LogInit, Log, TEXT("Linux hardware info:"));
 	UE_LOG(LogInit, Log, TEXT(" - we are %sthe first instance of this executable"), bFirstInstance ? TEXT("") : TEXT("not "));
@@ -125,6 +126,7 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" - machine network name is '%s'"), FPlatformProcess::ComputerName());
 	UE_LOG(LogInit, Log, TEXT(" - user name is '%s' (%s)"), FPlatformProcess::UserName(), FPlatformProcess::UserName(false));
 	UE_LOG(LogInit, Log, TEXT(" - we're logged in %s"), FPlatformMisc::HasBeenStartedRemotely() ? TEXT("remotely") : TEXT("locally"));
+	UE_LOG(LogInit, Log, TEXT(" - we're running %s rendering"), bIsNullRHI ? TEXT("without") : TEXT("with"));
 	UE_LOG(LogInit, Log, TEXT(" - CPU: %s '%s' (signature: 0x%X)"), *FPlatformMisc::GetCPUVendor(), *FPlatformMisc::GetCPUBrand(), FPlatformMisc::GetCPUInfo());
 	UE_LOG(LogInit, Log, TEXT(" - Number of physical cores available for the process: %d"), FPlatformMisc::NumberOfCores());
 	UE_LOG(LogInit, Log, TEXT(" - Number of logical cores available for the process: %d"), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
@@ -151,7 +153,7 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" -virtmemkb=NUMBER - sets process virtual memory (address space) limit (overrides VirtualMemoryLimitInKB value from .ini)"));
 
 	// skip for servers and programs, unless they request later
-	if (!UE_SERVER && !IS_PROGRAM)
+	if (!IS_PROGRAM && !bIsNullRHI)
 	{
 		PlatformInitMultimedia();
 	}
@@ -277,6 +279,7 @@ void FLinuxPlatformMisc::PumpMessages( bool bFromMainLoop )
 			SDL_Event event;
 			while (SDL_PollEvent(&event))
 			{
+				// noop
 			}
 		}
 	}
@@ -336,13 +339,13 @@ uint32 FLinuxPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint3
 		ADDKEYMAP(SDLK_F11, TEXT("F11"));
 		ADDKEYMAP(SDLK_F12, TEXT("F12"));
 
-        ADDKEYMAP(SDLK_LCTRL, TEXT("LeftControl"));
-        ADDKEYMAP(SDLK_LSHIFT, TEXT("LeftShift"));
-        ADDKEYMAP(SDLK_LALT, TEXT("LeftAlt"));
+		ADDKEYMAP(SDLK_LCTRL, TEXT("LeftControl"));
+		ADDKEYMAP(SDLK_LSHIFT, TEXT("LeftShift"));
+		ADDKEYMAP(SDLK_LALT, TEXT("LeftAlt"));
 		ADDKEYMAP(SDLK_LGUI, TEXT("LeftCommand"));
-        ADDKEYMAP(SDLK_RCTRL, TEXT("RightControl"));
-        ADDKEYMAP(SDLK_RSHIFT, TEXT("RightShift"));
-        ADDKEYMAP(SDLK_RALT, TEXT("RightAlt"));
+		ADDKEYMAP(SDLK_RCTRL, TEXT("RightControl"));
+		ADDKEYMAP(SDLK_RSHIFT, TEXT("RightShift"));
+		ADDKEYMAP(SDLK_RALT, TEXT("RightAlt"));
 		ADDKEYMAP(SDLK_RGUI, TEXT("RightCommand"));
 
 		ADDKEYMAP(SDLK_KP_0, TEXT("NumPadZero"));
@@ -361,7 +364,7 @@ uint32 FLinuxPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint3
 		ADDKEYMAP(SDLK_KP_DECIMAL, TEXT("Decimal"));
 		ADDKEYMAP(SDLK_KP_DIVIDE, TEXT("Divide"));
 
-        ADDKEYMAP(SDLK_CAPSLOCK, TEXT("CapsLock"));
+		ADDKEYMAP(SDLK_CAPSLOCK, TEXT("CapsLock"));
 		ADDKEYMAP(SDLK_NUMLOCKCLEAR, TEXT("NumLock"));
 		ADDKEYMAP(SDLK_SCROLLLOCK, TEXT("ScrollLock"));
 	}

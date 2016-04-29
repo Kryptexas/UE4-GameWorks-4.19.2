@@ -1,6 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "CorePrivatePCH.h"
 #include "ThreadHeartBeat.h"
+#include "ExceptionHandling.h"
+
+#ifndef UE_ASSERT_ON_HANG
+#define UE_ASSERT_ON_HANG 0
+#endif
 
 FThreadHeartBeat::FThreadHeartBeat()
 : Thread(nullptr)
@@ -62,20 +67,35 @@ uint32 FThreadHeartBeat::Run()
 			{
 				ThreadName = FString::Printf(TEXT("unknown thread (%u)"), ThreadThatHung);
 			}
-			UE_LOG(LogCore, Error, TEXT("Infinite stall detected on %s:"), *ThreadName);
+			UE_LOG(LogCore, Error, TEXT("Hang detected on %s (thread hasn't sent a heartbeat for %.2llf seconds):"), *ThreadName, HangDuration);
 			for (FString& StackLine : StackLines)
 			{
-				UE_LOG(LogCore, Error, TEXT("%s"), *StackLine);
+				UE_LOG(LogCore, Error, TEXT("  %s"), *StackLine);
 			}
 			
 			// Assert (on the current thread unfortunately) with a trimmed stack.
 			FString StackTrimmed;
 			for (int32 LineIndex = 0; LineIndex < StackLines.Num() && StackTrimmed.Len() < 512; ++LineIndex)
 			{
+				StackTrimmed += TEXT("  ");
 				StackTrimmed += StackLines[LineIndex];
-				StackTrimmed += TEXT("\n");
+				StackTrimmed += LINE_TERMINATOR;
 			}
-			UE_LOG(LogCore, Fatal, TEXT("Hang detected on %s:\n%s"), *ThreadName, *StackTrimmed);
+
+			const FString ErrorMessage = FString::Printf(TEXT("Hang detected on %s:%s%s%sCheck log for full callstack."), *ThreadName, LINE_TERMINATOR, *StackTrimmed, LINE_TERMINATOR);
+#if UE_ASSERT_ON_HANG
+			UE_LOG(LogCore, Fatal, TEXT("%s"), *ErrorMessage);
+#else
+			UE_LOG(LogCore, Error, TEXT("%s"), *ErrorMessage);
+#if PLATFORM_DESKTOP
+			GLog->PanicFlushThreadedLogs();
+			// GErrorMessage here is very unfortunate but it's used internally by the crash context code.
+			FCString::Strcpy(GErrorMessage, ARRAY_COUNT(GErrorMessage), *ErrorMessage);
+			// Skip macros and FDebug, we always want this to fire
+			NewReportEnsure(*ErrorMessage);
+			GErrorMessage[0] = '\0';
+#endif
+#endif
 		}
 		FPlatformProcess::SleepNoStats(0.5f);
 	}
@@ -85,6 +105,7 @@ uint32 FThreadHeartBeat::Run()
 
 void FThreadHeartBeat::Stop()
 {
+	bReadyToCheckHeartbeat = false;
 	StopTaskCounter.Increment();
 }
 

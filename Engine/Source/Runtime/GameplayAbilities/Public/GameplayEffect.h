@@ -1362,6 +1362,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 
 	FOnActiveGameplayEffectStackChange OnStackChangeDelegate;
 
+	FOnActiveGameplayEffectTimeChange OnTimeChangeDelegate;
+
 	FTimerHandle PeriodHandle;
 
 	FTimerHandle DurationHandle;
@@ -1594,8 +1596,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	void ExecutePeriodicGameplayEffect(FActiveGameplayEffectHandle Handle);	// This should not be outward facing to the skill system API, should only be called by the owning AbilitySystemComponent
 
 	bool RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle, int32 StacksToRemove);
-	
-	float GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
+
+	void GetGameplayEffectStartTimeAndDuration(FActiveGameplayEffectHandle Handle, float& EffectStartTime, float& EffectDuration) const;
 
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
 
@@ -1829,6 +1831,8 @@ private:
 
 	void OnStackCountChange(FActiveGameplayEffect& ActiveEffect, int32 OldStackCount, int32 NewStackCount);
 
+	void OnDurationChange(FActiveGameplayEffect& ActiveEffect);
+
 	void UpdateAllAggregatorModMagnitudes(FActiveGameplayEffect& ActiveEffect);
 
 	void UpdateAggregatorModMagnitudes(const TSet<FGameplayAttribute>& AttributesToUpdate, FActiveGameplayEffect& ActiveEffect);
@@ -1841,6 +1845,8 @@ private:
 
 	/** After application has gone through, give stacking rules a chance to do something as the source of the gameplay effect (E.g., remove an old version) */
 	virtual void ApplyStackingLogicPostApplyAsSource(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle) { }
+
+	bool ShouldUseMinimalReplication();
 
 	mutable int32 ScopedLockCount;
 	int32 PendingRemoves;

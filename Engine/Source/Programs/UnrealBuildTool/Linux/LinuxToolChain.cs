@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using Microsoft.Win32;
 
 namespace UnrealBuildTool
@@ -442,6 +443,35 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
+		/// <summary>
+		/// Sanitizes a definition argument if needed.
+		/// </summary>
+		/// <param name="definition">A string in the format "foo=bar".</param>
+		/// <returns></returns>
+		internal static string EscapeArgument(string definition)
+		{
+			string[] splitData = definition.Split('=');
+			string myKey = splitData.ElementAtOrDefault(0);
+			string myValue = splitData.ElementAtOrDefault(1);
+
+			if (string.IsNullOrEmpty(myKey)) { return ""; }
+			if (!string.IsNullOrEmpty(myValue))
+			{
+				if (!myValue.StartsWith("\"") && (myValue.Contains(" ") || myValue.Contains("$")))
+				{
+					myValue = myValue.Trim('\"');		// trim any leading or trailing quotes
+					myValue = "\"" + myValue + "\"";	// ensure wrap string with double quotes
+				}
+
+				// replace double quotes to escaped double quotes if exists
+				myValue = myValue.Replace("\"", "\\\"");
+			}
+
+			return myValue == null
+				? string.Format("{0}", myKey)
+				: string.Format("{0}={1}", myKey, myValue);
+		}
+
 		static string GetCompileArguments_CPP()
 		{
 			string Result = "";
@@ -634,7 +664,7 @@ namespace UnrealBuildTool
 			// Add preprocessor definitions to the argument list.
 			foreach (string Definition in CompileEnvironment.Config.Definitions)
 			{
-				Arguments += string.Format(" -D \"{0}\"", Definition);
+				Arguments += string.Format(" -D \"{0}\"", EscapeArgument(Definition));
 			}
 
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);

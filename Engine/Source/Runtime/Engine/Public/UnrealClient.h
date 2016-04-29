@@ -122,13 +122,21 @@ public:
 struct ENGINE_API FScreenshotRequest
 {
 	/**
+	 * Requests a new screenshot.  Screenshot can be read from memory by subscribing
+	 * to the ViewPort's OnScreenshotCaptured delegate.
+	 *
+	 * @param bInShowUI				Whether or not to show Slate UI
+	 */
+	static void RequestScreenshot(bool bInShowUI);
+
+	/**
 	 * Requests a new screenshot with a specific filename
 	 *
 	 * @param InFilename			The filename to use
 	 * @param bInShowUI				Whether or not to show Slate UI
 	 * @param bAddFilenameSuffix	Whether an auto-generated unique suffix should be added to the supplied filename
 	 */
-	static void RequestScreenshot( const FString& InFilename, bool bInShowUI, bool bAddFilenameSuffix );
+	static void RequestScreenshot(const FString& InFilename, bool bInShowUI, bool bAddFilenameSuffix);
 
 	/**
 	 * Resets a screenshot request
@@ -143,7 +151,7 @@ struct ENGINE_API FScreenshotRequest
 	/**
 	 * @return True if a screenshot is requested
 	 */
-	static bool IsScreenshotRequested() { return !Filename.IsEmpty(); } 
+	static bool IsScreenshotRequested() { return bIsScreenshotRequested; } 
 
 	/**
 	 * @return True if UI should be shown in the screenshot
@@ -161,6 +169,7 @@ struct ENGINE_API FScreenshotRequest
 	static TArray<FColor>* GetHighresScreenshotMaskColorArray();
 
 private:
+	static bool bIsScreenshotRequested;
 	static FString NextScreenshotName;
 	static FString Filename;
 	static bool bShowUI;

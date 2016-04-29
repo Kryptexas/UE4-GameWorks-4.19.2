@@ -230,8 +230,7 @@ public:
 
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() override;
 
-	/** Utility function to create an FReply that properly gets Focus and capture based on the settings*/
-	FReply AcquireFocusAndCapture(FIntPoint MousePosition);
+	bool RestoreCaptureState(uint32 UserIndex);
 
 private:
 	/**
@@ -295,6 +294,9 @@ private:
 	 * @param InKeysState	The key state containing the states of the modifier keys
 	 */
 	void ApplyModifierKeys( const FModifierKeysState& InKeysState );
+
+	/** Utility function to create an FReply that properly gets Focus and capture based on the settings*/
+	FReply AcquireFocusAndCapture(FIntPoint MousePosition);
 
 	/** Utility function to figure out if we are currently a game viewport */
 	bool IsCurrentlyGameViewport();

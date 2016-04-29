@@ -286,7 +286,7 @@ void FAnimPreviewInstanceProxy::ApplyBoneControllers(USkeletalMeshComponent* Com
 	for(auto& SingleBoneController : InBoneControllers)
 	{
 		SingleBoneController.BoneToModify.BoneIndex = GetRequiredBones().GetPoseBoneIndexForBoneName(SingleBoneController.BoneToModify.BoneName);
-		if(SingleBoneController.BoneToModify.BoneIndex != INDEX_NONE)
+		if(SingleBoneController.IsValidToEvaluate(GetSkeleton(), GetRequiredBones()))
 		{
 			TArray<FBoneTransform> BoneTransforms;
 			SingleBoneController.EvaluateBoneTransforms(Component, OutMeshPose, BoneTransforms);

@@ -38,6 +38,42 @@ TSharedRef<SWidget> UScaleBox::RebuildWidget()
 	return BuildDesignTimeWidget( MyScaleBox.ToSharedRef() );
 }
 
+void UScaleBox::SetStretch(EStretch::Type InStretch)
+{
+	Stretch = InStretch;
+	if(MyScaleBox.IsValid())
+	{
+		MyScaleBox->SetStretch(InStretch);
+	}
+}
+
+void UScaleBox::SetStretchDirection(EStretchDirection::Type InStretchDirection)
+{
+	StretchDirection = InStretchDirection;
+	if (MyScaleBox.IsValid())
+	{
+		MyScaleBox->SetStretchDirection(InStretchDirection);
+	}
+}
+
+void UScaleBox::SetUserSpecifiedScale(float InUserSpecifiedScale)
+{
+	UserSpecifiedScale = InUserSpecifiedScale;
+	if (MyScaleBox.IsValid())
+	{
+		MyScaleBox->SetUserSpecifiedScale(InUserSpecifiedScale);
+	}
+}
+
+void UScaleBox::SetIgnoreInheritedScale(bool bInIgnoreInheritedScale)
+{
+	IgnoreInheritedScale = bInIgnoreInheritedScale;
+	if (MyScaleBox.IsValid())
+	{
+		MyScaleBox->SetIgnoreInheritedScale(bInIgnoreInheritedScale);
+	}
+}
+
 void UScaleBox::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();

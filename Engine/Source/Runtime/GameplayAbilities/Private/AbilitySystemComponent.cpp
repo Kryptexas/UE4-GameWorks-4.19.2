@@ -45,6 +45,8 @@ UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& Objec
 	bPendingMontagerep = false;
 
 	AbilityLastActivatedTime = 0.f;
+
+	ReplicationMode = EReplicationMode::Full;
 }
 
 UAbilitySystemComponent::~UAbilitySystemComponent()
@@ -435,6 +437,17 @@ FOnActiveGameplayEffectStackChange* UAbilitySystemComponent::OnGameplayEffectSta
 	if (ActiveEffect)
 	{
 		return &ActiveEffect->OnStackChangeDelegate;
+	}
+
+	return nullptr;
+}
+
+FOnActiveGameplayEffectTimeChange* UAbilitySystemComponent::OnGameplayEffectTimeChangeDelegate(FActiveGameplayEffectHandle Handle)
+{
+	FActiveGameplayEffect* ActiveEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
+	if (ActiveEffect)
+	{
+		return &ActiveEffect->OnTimeChangeDelegate;
 	}
 
 	return nullptr;
@@ -855,7 +868,16 @@ void UAbilitySystemComponent::RemoveActiveGameplayEffectBySourceEffect(TSubclass
 
 float UAbilitySystemComponent::GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const
 {
-	return ActiveGameplayEffects.GetGameplayEffectDuration(Handle);
+	float StartEffectTime = 0.0f;
+	float Duration = 0.0f;
+	ActiveGameplayEffects.GetGameplayEffectStartTimeAndDuration(Handle, StartEffectTime, Duration);
+
+	return Duration;
+}
+
+void UAbilitySystemComponent::GetGameplayEffectStartTimeAndDuration(FActiveGameplayEffectHandle Handle, float& StartEffectTime, float& Duration) const
+{
+	return ActiveGameplayEffects.GetGameplayEffectStartTimeAndDuration(Handle, StartEffectTime, Duration);
 }
 
 float UAbilitySystemComponent::GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const
@@ -1236,11 +1258,11 @@ void UAbilitySystemComponent::RemoveActiveEffects(const FGameplayEffectQuery& Qu
 void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {	
 	DOREPLIFETIME(UAbilitySystemComponent, SpawnedAttributes);
-	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayEffects );
+	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayEffects);
 	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayCues);
 	
 	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, ActivatableAbilities, COND_ReplayOrOwner);
-	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, BlockedAbilityBindings, COND_OwnerOnly)
+	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, BlockedAbilityBindings, COND_OwnerOnly);
 
 	DOREPLIFETIME(UAbilitySystemComponent, OwnerActor);
 	DOREPLIFETIME(UAbilitySystemComponent, AvatarActor);
@@ -1248,16 +1270,10 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedPredictionKey);
 	DOREPLIFETIME(UAbilitySystemComponent, RepAnimMontageInfo);
 	
-	DOREPLIFETIME(UAbilitySystemComponent, MinimalReplicationGameplayCues );
-	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, MinimalReplicationTags, COND_Custom);
+	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, MinimalReplicationGameplayCues, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, MinimalReplicationTags, COND_SkipOwner);
 	
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-}
-
-void UAbilitySystemComponent::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
-{	
-	// These only replicate when in minimal replication mode	
-	DOREPLIFETIME_ACTIVE_OVERRIDE(UAbilitySystemComponent, MinimalReplicationTags, bMinimalReplication);
 }
 
 void UAbilitySystemComponent::ForceReplication()
@@ -1332,9 +1348,9 @@ bool UAbilitySystemComponent::HasAuthorityOrPredictionKey(const FGameplayAbility
 	return ((ActivationInfo->ActivationMode == EGameplayAbilityActivationMode::Authority) || CanPredict());
 }
 
-void UAbilitySystemComponent::SetMinimalReplication(bool bNewMinimalReplication)
+void UAbilitySystemComponent::SetReplicationMode(EReplicationMode NewReplicationMode)
 {
-	bMinimalReplication = true;
+	ReplicationMode = NewReplicationMode;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -1355,6 +1371,11 @@ void UAbilitySystemComponent::OnAttributeAggregatorDirty(FAggregator* Aggregator
 void UAbilitySystemComponent::OnMagnitudeDependencyChange(FActiveGameplayEffectHandle Handle, const FAggregator* ChangedAggregator)
 {
 	ActiveGameplayEffects.OnMagnitudeDependencyChange(Handle, ChangedAggregator);
+}
+
+void UAbilitySystemComponent::OnGameplayEffectDurationChange(struct FActiveGameplayEffect& ActiveEffect)
+{
+
 }
 
 void UAbilitySystemComponent::OnGameplayEffectAppliedToTarget(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle)

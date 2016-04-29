@@ -60,6 +60,8 @@ public:
 		, _ExternalScrollbar()
 		, _AllowOverscroll(EAllowOverscroll::Yes)
 		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
+		, _WheelScrollMultiplier( WheelScrollAmount )
+		, _HandleGamepadEvents( true )
 		{ }
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
@@ -96,6 +98,10 @@ public:
 
 		SLATE_ARGUMENT( EConsumeMouseWheel, ConsumeMouseWheel );
 
+		SLATE_ARGUMENT( float, WheelScrollMultiplier );
+
+		SLATE_ARGUMENT( bool, HandleGamepadEvents );
+
 	SLATE_END_ARGS()
 
 	/**
@@ -120,6 +126,9 @@ public:
 
 		this->AllowOverscroll = InArgs._AllowOverscroll;
 		this->ConsumeMouseWheel = InArgs._ConsumeMouseWheel;
+
+		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
+		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;
@@ -243,7 +252,7 @@ public:
 
 				bWasHandled = true;
 			}
-			else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Up || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Up)
+			else if (InKeyEvent.GetKey() == EKeys::Up || ( bHandleGamepadEvents && ( InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Up || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Up ) ) )
 			{
 				int32 SelectionIndex = 0;
 				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) )
@@ -261,7 +270,7 @@ public:
 
 				bWasHandled = true;
 			}
-			else if (InKeyEvent.GetKey() == EKeys::Down || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Down || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Down)
+			else if (InKeyEvent.GetKey() == EKeys::Down || ( bHandleGamepadEvents && ( InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Down || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Down ) ) )
 			{
 				// Begin at INDEX_NONE so the first item will get selected
 				int32 SelectionIndex = INDEX_NONE;
@@ -1430,6 +1439,9 @@ protected:
 
 	/** If true, the selection will be cleared if the user clicks in empty space (not on an item) */
 	bool bClearSelectionOnClick;
+
+	/** Should gamepad nav be supported */
+	bool bHandleGamepadEvents;
 
 private:
 

@@ -1980,6 +1980,9 @@ public:
 	 *  @return LocalID for this Root Motion Source */
 	uint16 ApplyRootMotionSource(FRootMotionSource* SourcePtr);
 
+	/** Called during ApplyRootMotionSource call, useful for project-specific alerts for "something is about to be altering our movement" */
+	virtual void OnRootMotionSourceBeingApplied(const FRootMotionSource* Source);
+
 	/** Get a RootMotionSource from current root motion by name */
 	TSharedPtr<FRootMotionSource> GetRootMotionSource(FName InstanceName);
 

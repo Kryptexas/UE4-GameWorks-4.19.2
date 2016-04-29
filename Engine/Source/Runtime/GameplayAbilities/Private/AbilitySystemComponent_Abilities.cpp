@@ -34,7 +34,7 @@ void UAbilitySystemComponent::InitializeComponent()
 		if (Set)  
 		{
 			UObject* AT = Set->GetArchetype();	
-			SpawnedAttributes.Add(Set);
+			SpawnedAttributes.AddUnique(Set);
 		}
 	}
 }

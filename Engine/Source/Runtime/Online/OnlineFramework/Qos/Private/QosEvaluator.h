@@ -3,29 +3,15 @@
 #pragma once
 
 #include "OnlineSessionInterface.h"
+#include "QosRegionManager.h"
+#include "QosEvaluator.generated.h"
 
 class AQosBeaconClient;
 class FQosDatacenterStats;
+struct FIcmpEchoResult;
 enum class EQosResponseType : uint8;
-struct FQosRegionInfo;
 
 #define GAMEMODE_QOS	TEXT("QOSSERVER")
-
-/** Time before refreshing the datacenter id value during the next search */
-#define DATACENTERQUERY_INTERVAL (5.0 * 60.0)
-
-/** Enum for possible QoS return codes */
-enum class EQosCompletionResult : uint8
-{
-	/** Incomplete, invalid result */
-	Invalid,
-	/** QoS operation was successful */
-	Success,
-	/** QoS operation ended in failure */
-	Failure,
-	/** QoS operation was canceled */
-	Canceled
-};
 
 /**
  * Search settings for QoS advertised sessions
@@ -45,16 +31,39 @@ public:
 /**
  * Internal state for a given QoS pass
  */
+USTRUCT()
 struct FQosSearchPass
 {
+	GENERATED_USTRUCT_BODY()
+
+	/** Current Region index in the datacenter array */
+	UPROPERTY()
+	int32 RegionIdx;
 	/** Current search result choice to test */
+	UPROPERTY()
 	int32 CurrentSessionIdx;
 	/** Current array of QoS search results to evaluate */
-	TArray<FOnlineSessionSearchResult> SearchResults;
+	//TArray<FOnlineSessionSearchResult> SearchResults;
 
-	FQosSearchPass() :
-		CurrentSessionIdx(INDEX_NONE)
+	FQosSearchPass()
+		: RegionIdx(INDEX_NONE)
+		, CurrentSessionIdx(INDEX_NONE)
 	{}
+};
+
+/**
+ * Input parameters to start a qos ping check
+ */
+struct FQosParams
+{
+	/** User that initiated the request */
+	int32 ControllerId;
+	/** Use the old qos beacon method for ping determination */
+	bool bUseOldQosServers;
+	/** Number of ping requests per region */
+	int32 NumTestsPerRegion;
+	/** Amount of time to wait for each request */
+	float Timeout;
 };
 
 /*
@@ -76,10 +85,12 @@ DECLARE_DELEGATE_TwoParams(FOnQosSearchComplete, EQosCompletionResult /** Result
  * Evaluates QoS metrics to determine the best datacenter under current conditions
  * Additionally capable of generically pinging an array of servers that have a QosBeaconHost active
  */
-class QOS_API FQosEvaluator : public TSharedFromThis<FQosEvaluator>
+UCLASS(config = Engine)
+class QOS_API UQosEvaluator : public UObject
 {
+	GENERATED_UCLASS_BODY()
+
 public:
-	FQosEvaluator(UWorld* World);
 
 	/**
 	 * QoS services
@@ -89,10 +100,11 @@ public:
 	 * Find all the advertised datacenters and begin the process of evaluating ping results
 	 * Will return the default datacenter in the event of failure or no advertised datacenters
 	 *
-	 * @param ControllerId id of player initiating request
+	 * @param InParams parameters defining the request
+	 * @param InDatacenters array of datacenters to query
 	 * @param InCompletionDelegate delegate to fire when a datacenter choice has been made
 	 */
-	void FindDatacenters(int32 ControllerId, const FOnQosSearchComplete& InCompletionDelegate);
+	void FindDatacenters(const FQosParams& InParams, TArray<FQosDatacenterInfo>& InDatacenters, const FOnQosSearchComplete& InCompletionDelegate);
 
 	/**
 	 * Is a QoS operation active
@@ -106,22 +118,48 @@ public:
 	 */
 	void Cancel();
 
+	void SetWorld(UWorld* InWorld);
+
 protected:
+
+	/**
+	 * Use the udp ping code to ping known servers
+	 *
+	 * @param InParams parameters defining the request
+	 * @param InCompletionDelegate delegate to fire when all regions have completed their tests
+	 */
+	void PingRegionServers(const FQosParams& InParams, const FOnQosSearchComplete& InCompletionDelegate);
+
+	/**
+	 * Given a single region id, find available qos servers
+	 * 
+	 * @param RegionIdx region index in the array
+	 * @param InCompletionDelegate delegate to fire when complete
+	 */
+	bool FindQosServersByRegion(int32 RegionIdx, FOnQosSearchComplete InCompletionDelegate);
+
+	/**
+	 * Start pinging all servers found across all regions, starting with the first datacenter
+	 *
+	 * @param InCompletionDelegate delegate to fire when complete
+	 */
+	void StartServerPing(const FOnQosPingEvalComplete& InCompletionDelegate);
 
 	/**
 	 * Evaluate ping reachability for a given list of servers.  Assumes there is a AQosBeaconHost on the machine
 	 * to receive the request and send a response
 	 *
-	 * @param SearchResults array of search results to test
-	 * @param InCompletionDelegate delegate to fire when test is complete
+	 * @param RegionIdx region to evaluate qos servers 
 	 */
-	void EvaluateServerPing(TSharedPtr<FOnlineSessionSearch>& SearchResults, const FOnQosPingEvalComplete& InCompletionDelegate);
+	void EvaluateRegionPing(int32 RegionIdx);
 
 private:
 
 	/** Current QoS search/eval state */
+	UPROPERTY()
 	FQosSearchPass CurrentSearchPass;
 
+	/** Reference to external UWorld */
 	TWeakObjectPtr<UWorld> ParentWorld;
 
 	/** QoS search results */
@@ -134,10 +172,19 @@ private:
 	/** Beacon for sending QoS requests */
 	TWeakObjectPtr<AQosBeaconClient> QosBeaconClient;
 
+	/** User initiating the request */
+	UPROPERTY()
+	int32 ControllerId;
 	/** A QoS operation is in progress */
+	UPROPERTY()
 	bool bInProgress;
 	/** Should cancel occur at the next available opportunity */
+	UPROPERTY()
 	bool bCancelOperation;
+
+	/** Array of datacenters currently being evaluated */
+	UPROPERTY(Transient)
+	TArray<FQosRegionInfo> Datacenters;
 
 	/**
 	 * Signal QoS operation has completed next frame
@@ -150,7 +197,7 @@ private:
 	/**
 	 * Continue with the next datacenter endpoint and gather its ping result
 	 */
-	void ContinuePingServers();
+	void ContinuePingRegion();
 
 	/**
 	 * Finalize the search results from pinging various datacenter endpoints to find the best datacenter
@@ -171,9 +218,10 @@ private:
 	 * Delegate fired when a datacenter search query has completed
 	 *
 	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param RegionId region search performed
 	 * @param InCompletionDelegate the datacenter complete delegate to fire
 	 */
-	void OnFindDatacentersComplete(bool bWasSuccessful, FOnQosSearchComplete InCompletionDelegate);
+	void OnFindQosServersByRegionComplete(bool bWasSuccessful, int32 RegionIdx, FOnQosSearchComplete InCompletionDelegate);
 
 	/**
 	 * Delegate from the QoS beacon fired with each beacon response
@@ -187,6 +235,20 @@ private:
 	 * Delegate from the QoS beacon fired when there is a failure to connect to an endpoint
 	 */
 	void OnQosConnectionFailure();
+
+	/**
+	 * @return true if all ping requests have completed (new method)
+	 */
+	bool AreAllRegionsComplete();
+
+	void OnPingResultComplete(const FString& RegionId, int32 NumTests, const FIcmpEchoResult& Result);
+
+	/**
+	 * Take all found ping results and process them before consumption at higher levels
+	 *
+	 * @param TimeToDiscount amount of time to subtract from calculation to compensate for external factors (frame rate, etc)
+	 */
+	void CalculatePingAverages(int32 TimeToDiscount = 0);
 
 private:
 
@@ -215,6 +277,8 @@ private:
 	/**
 	 * Helpers
 	 */
+
+	int32 GetNextRegionId(int32 LastRegionId = INDEX_NONE);
 
 	/** Reset all variables related to the QoS evaluator */
 	void ResetSearchVars();

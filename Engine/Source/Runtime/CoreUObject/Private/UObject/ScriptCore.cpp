@@ -1811,10 +1811,10 @@ void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
 		FBlueprintExceptionInfo ExceptionInfo(
 			EBlueprintExceptionType::AccessViolation,
 			FText::Format(
-				LOCTEXT("ArrayGetOutofBounds", "Attempted to get an item from array {0} out of bounds [{1}/{2}]!"),
-				FText::FromString(*ArrayProperty->GetName()), 
-				FText::AsNumber(ArrayIndex), 
-				FText::AsNumber(ArrayHelper.Num() ? ArrayHelper.Num() - 1 : 0)
+			LOCTEXT("ArrayGetOutofBounds", "Attempted to access index {0} from array {1} of length {2}!"),
+			FText::AsNumber(ArrayIndex),
+			FText::FromString(*ArrayProperty->GetName()),
+			FText::AsNumber(ArrayHelper.Num())
 			)
 		);
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);

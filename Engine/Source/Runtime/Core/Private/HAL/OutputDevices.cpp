@@ -1485,6 +1485,31 @@ void FOutputDeviceAnsiError::HandleError()
 }
 
 /*-----------------------------------------------------------------------------
+FBufferedOutputDevice subclasses.
+-----------------------------------------------------------------------------*/
+
+void FBufferedOutputDevice::Serialize(const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category)
+{
+	if (Verbosity > FilterLevel)
+		return;
+
+	FScopeLock ScopeLock(&SynchronizationObject);
+	new(BufferedLines)FBufferedLine(InData, Category, Verbosity);
+}
+
+void FBufferedOutputDevice::GetContents(TArray<FBufferedLine>& DestBuffer, bool ClearDevice/*=true*/)
+{
+	FScopeLock ScopeLock(&SynchronizationObject);
+	DestBuffer = BufferedLines;
+
+	if (ClearDevice)
+	{
+		BufferedLines.Empty();
+	}
+}
+
+
+/*-----------------------------------------------------------------------------
 	FOutputDeviceArchiveWrapper subclasses.
 -----------------------------------------------------------------------------*/
 

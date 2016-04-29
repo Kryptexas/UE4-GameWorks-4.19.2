@@ -835,6 +835,11 @@ int32 UPartyGameState::GetPartyMaxSize() const
 	return INDEX_NONE;
 }
 
+bool UPartyGameState::IsPartyFull() const
+{
+	return GetPartySize() >= GetPartyMaxSize();
+}
+
 void UPartyGameState::UpdateAcceptingMembers()
 {
 	if (IsLocalPartyLeader())
