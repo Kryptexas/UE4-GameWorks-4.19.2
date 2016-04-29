@@ -2780,8 +2780,17 @@ static FString GetDestIniFilename(const TCHAR* BaseIniName, const TCHAR* Platfor
 	if (FParse::Value(FCommandLine::Get(), *CommandLineSwitch, IniFilename) == false)
 	{
 		FString Name(PlatformName ? PlatformName : ANSI_TO_TCHAR(FPlatformProperties::PlatformName()));
-		// put it all together
-		IniFilename = FString::Printf(TEXT("%s%s/%s.ini"), GeneratedConfigDir, *Name, BaseIniName);
+
+		FString BaseIniNameString = BaseIniName;
+		if (BaseIniNameString.Contains(GeneratedConfigDir))
+		{
+			IniFilename = BaseIniNameString;
+		}
+		else
+		{
+			// put it all together
+			IniFilename = FString::Printf(TEXT("%s%s/%s.ini"), GeneratedConfigDir, *Name, BaseIniName);
+		}
 	}
 
 	// standardize it!
