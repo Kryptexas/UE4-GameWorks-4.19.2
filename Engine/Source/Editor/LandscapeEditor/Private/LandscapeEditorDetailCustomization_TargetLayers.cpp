@@ -25,6 +25,7 @@
 
 #include "LandscapeRender.h"
 #include "LandscapeLayerInfoObject.h"
+#include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.TargetLayers"
 
@@ -48,7 +49,16 @@ void FLandscapeEditorDetailCustomization_TargetLayers::CustomizeDetails(IDetailL
 	IDetailCategoryBuilder& TargetsCategory = DetailBuilder.EditCategory("Target Layers");
 
 	TargetsCategory.AddProperty(PropertyHandle_PaintingRestriction)
-		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FLandscapeEditorDetailCustomization_TargetLayers::GetVisibility_PaintingRestriction)));
+	.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FLandscapeEditorDetailCustomization_TargetLayers::GetVisibility_PaintingRestriction)));
+
+	TargetsCategory.AddCustomRow(FText())
+	.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FLandscapeEditorDetailCustomization_TargetLayers::GetVisibility_VisibilityTip)))
+	[
+		SNew(SErrorText)
+		.Font(DetailBuilder.GetDetailFontBold())
+		.AutoWrapText(true)
+		.ErrorText(LOCTEXT("Visibility_Tip","Note: You must add a \"Landscape Visibility Mask\" node to your material before you can paint visibility."))
+	];
 
 	TargetsCategory.AddCustomBuilder(MakeShareable(new FLandscapeEditorCustomNodeBuilder_TargetLayers(DetailBuilder.GetThumbnailPool().ToSharedRef())));
 }
@@ -92,6 +102,34 @@ bool FLandscapeEditorDetailCustomization_TargetLayers::ShouldShowPaintingRestric
 EVisibility FLandscapeEditorDetailCustomization_TargetLayers::GetVisibility_PaintingRestriction()
 {
 	return ShouldShowPaintingRestriction() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+bool FLandscapeEditorDetailCustomization_TargetLayers::ShouldShowVisibilityTip()
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	if (LandscapeEdMode && LandscapeEdMode->CurrentToolTarget.LandscapeInfo.IsValid())
+	{
+		if (LandscapeEdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Visibility)
+		{
+			ALandscapeProxy* Proxy = LandscapeEdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
+			UMaterialInterface* HoleMaterial = Proxy->GetLandscapeHoleMaterial();
+			if (!HoleMaterial)
+			{
+				HoleMaterial = Proxy->GetLandscapeMaterial();
+			}
+			if (!HoleMaterial->GetMaterial()->HasAnyExpressionsInMaterialAndFunctionsOfType<UMaterialExpressionLandscapeVisibilityMask>())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+EVisibility FLandscapeEditorDetailCustomization_TargetLayers::GetVisibility_VisibilityTip()
+{
+	return ShouldShowVisibilityTip() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 //////////////////////////////////////////////////////////////////////////
