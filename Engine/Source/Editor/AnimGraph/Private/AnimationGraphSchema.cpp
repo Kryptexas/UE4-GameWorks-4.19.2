@@ -12,6 +12,7 @@
 #include "AnimationGraphSchema.h"
 #include "K2Node_TransitionRuleGetter.h"
 #include "AnimStateNode.h"
+#include "AnimGraphNode_AssetPlayerBase.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
 #include "AnimGraphNode_ComponentToLocalSpace.h"
 #include "AnimGraphNode_LocalToComponentSpace.h"
@@ -247,42 +248,18 @@ void UAnimationGraphSchema::SpawnNodeFromAsset(UAnimationAsset* Asset, const FVe
 	{
 		FEdGraphSchemaAction_K2NewNode Action;
 
-		if (UAnimSequence* Sequence = Cast<UAnimSequence>(Asset))
+		UClass* NewNodeClass = GetNodeClassForAsset(Asset->GetClass());
+		
+		if (NewNodeClass)
 		{
-			UAnimGraphNode_SequencePlayer* PlayerNode = NewObject<UAnimGraphNode_SequencePlayer>();
-			PlayerNode->Node.Sequence = Sequence;
-			Action.NodeTemplate = PlayerNode;
-		}
-		else if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(Asset))
-		{
-			if (IsAimOffsetBlendSpace(BlendSpace))
-			{
-				UAnimGraphNode_RotationOffsetBlendSpace* PlayerNode = NewObject<UAnimGraphNode_RotationOffsetBlendSpace>();
-				PlayerNode->Node.BlendSpace = BlendSpace;
+			check(NewNodeClass->IsChildOf(UAnimGraphNode_AssetPlayerBase::StaticClass()));
 
-				Action.NodeTemplate = PlayerNode;
-			}
-			else
-			{
-				UAnimGraphNode_BlendSpacePlayer* PlayerNode = NewObject<UAnimGraphNode_BlendSpacePlayer>();
-				PlayerNode->Node.BlendSpace = BlendSpace;
+			UAnimGraphNode_AssetPlayerBase* NewNode = NewObject<UAnimGraphNode_AssetPlayerBase>(GetTransientPackage(), NewNodeClass);
+			NewNode->SetAnimationAsset(Asset);
+			Action.NodeTemplate = NewNode;
 
-				Action.NodeTemplate = PlayerNode;
-			}
+			Action.PerformAction(Graph, PinIfAvailable, GraphPosition);
 		}
-		else if (UAnimComposite* Composite = Cast<UAnimComposite>(Asset))
-		{
-			UAnimGraphNode_SequencePlayer* PlayerNode = NewObject<UAnimGraphNode_SequencePlayer>();
-			PlayerNode->Node.Sequence = Composite;
-			Action.NodeTemplate = PlayerNode;
-		}
-		else
-		{
-			//unknown type
-			return;
-		}
-
-		Action.PerformAction(Graph, PinIfAvailable, GraphPosition);
 	}
 }
 

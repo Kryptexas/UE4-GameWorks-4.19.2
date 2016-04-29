@@ -120,6 +120,14 @@ FBlueprintNodeSignature UAnimGraphNode_RotationOffsetBlendSpace::GetSignature() 
 	return NodeSignature;
 }
 
+void UAnimGraphNode_RotationOffsetBlendSpace::SetAnimationAsset(UAnimationAsset* Asset)
+{
+	if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(Asset))
+	{
+		Node.BlendSpace = BlendSpace;
+	}
+}
+
 void UAnimGraphNode_RotationOffsetBlendSpace::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
 	if (Node.BlendSpace == NULL)

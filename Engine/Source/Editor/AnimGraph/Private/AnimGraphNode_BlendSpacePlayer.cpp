@@ -168,6 +168,14 @@ FBlueprintNodeSignature UAnimGraphNode_BlendSpacePlayer::GetSignature() const
 	return NodeSignature;
 }
 
+void UAnimGraphNode_BlendSpacePlayer::SetAnimationAsset(UAnimationAsset* Asset)
+{
+	if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(Asset))
+	{
+		Node.BlendSpace = BlendSpace;
+	}
+}
+
 void UAnimGraphNode_BlendSpacePlayer::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) const
 {
 	if(Node.BlendSpace)

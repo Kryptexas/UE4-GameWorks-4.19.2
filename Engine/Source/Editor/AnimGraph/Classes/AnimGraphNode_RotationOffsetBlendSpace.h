@@ -32,6 +32,8 @@ class UAnimGraphNode_RotationOffsetBlendSpace: public UAnimGraphNode_BlendSpaceB
 	virtual FBlueprintNodeSignature GetSignature() const override;
 	// End of UK2Node interface
 
+	virtual void SetAnimationAsset(UAnimationAsset* Asset) override;
+
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTitleTextTable CachedNodeTitles;

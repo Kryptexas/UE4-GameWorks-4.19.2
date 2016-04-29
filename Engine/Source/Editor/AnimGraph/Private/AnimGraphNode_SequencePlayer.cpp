@@ -292,6 +292,14 @@ void UAnimGraphNode_SequencePlayer::GetContextMenuActions(const FGraphNodeContex
 	}
 }
 
+void UAnimGraphNode_SequencePlayer::SetAnimationAsset(UAnimationAsset* Asset)
+{
+	if (UAnimSequenceBase* Seq = Cast<UAnimSequenceBase>(Asset))
+	{
+		Node.Sequence = Seq;
+	}
+}
+
 void UAnimGraphNode_SequencePlayer::BakeDataDuringCompilation(class FCompilerResultsLog& MessageLog)
 {
 	UAnimBlueprint* AnimBlueprint = GetAnimBlueprint();
