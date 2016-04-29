@@ -7,6 +7,8 @@
 
 class UAnimSequenceBase;
 
+ANIMGRAPH_API UClass* GetNodeClassForAsset(const UClass* AssetClass);
+
 /** Helper / intermediate for asset player graphical nodes */
 UCLASS(Abstract, MinimalAPI)
 class UAnimGraphNode_AssetPlayerBase : public UAnimGraphNode_Base
@@ -16,4 +18,6 @@ public:
 	// Sync group settings for this player.  Sync groups keep related animations with different lengths synchronized.
 	UPROPERTY(EditAnywhere, Category = Settings)
 	FAnimationGroupReference SyncGroup;
+
+	virtual void SetAnimationAsset(UAnimationAsset* Asset) { check(false); /*Base function called*/ }
 };
