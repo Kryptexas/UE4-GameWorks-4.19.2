@@ -37,7 +37,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				ProcessResult Result = P4.P4(String.Format("changes -l {0}", Stream), AllowSpew: false);
+				ProcessResult Result = P4.P4(String.Format("changes -l {0}", Changes), AllowSpew: false);
 				Descriptions = Result.Output.Replace("\r\n", "\n");
 			}
 
