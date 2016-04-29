@@ -886,7 +886,7 @@ void SDesignerView::PushDesignerMessage(const FText& Message)
 
 void SDesignerView::PopDesignerMessage()
 {
-	if ( !DesignerMessageStack.Empty() )
+	if ( DesignerMessageStack.Num() > 0)
 	{
 		DesignerMessageStack.Pop();
 	}
