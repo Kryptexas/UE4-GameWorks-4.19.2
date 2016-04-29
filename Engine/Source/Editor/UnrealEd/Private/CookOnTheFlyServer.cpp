@@ -1763,65 +1763,11 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		if ( !IsCookByTheBookMode() || (CookByTheBookOptions->bDisableUnsolicitedPackages == false))
 		{
 			SCOPE_TIMER(UnsolicitedMarkup);
-
-			TArray<UObject *> ObjectsInOuter;
+			bool ContainsFullAssetGCClasses = false;
+			GetUnsolicitedPackages(PackagesToSave, ContainsFullAssetGCClasses, AllTargetPlatformNames);
+			if (ContainsFullAssetGCClasses)
 			{
-				SCOPE_TIMER(GetObjectsWithOuter);
-				GetObjectsWithOuter(NULL, ObjectsInOuter, false);
-			}
-
-			TArray<FName> PackageNames;
-			PackageNames.Empty(ObjectsInOuter.Num());
-			{
-				SCOPE_TIMER(GeneratePackageNames);
-				ACCUMULATE_TIMER(UnsolicitedPackageAlreadyCooked);
-				ACCUMULATE_TIMER(PackageCast);
-				ACCUMULATE_TIMER(AddUnassignedPackageToManifest);
-				ACCUMULATE_TIMER(GetCachedName);
-				for( int32 Index = 0; Index < ObjectsInOuter.Num(); Index++ )
-				{
-					ACCUMULATE_TIMER_START(PackageCast);
-					UPackage* Package = Cast<UPackage>(ObjectsInOuter[Index]);
-					ACCUMULATE_TIMER_STOP(PackageCast);
-
-					UObject* Object = ObjectsInOuter[Index];
-					if ( FullGCAssetClasses.Contains(Object->GetClass()) )
-					{
-						Result |= COSR_RequiresGC;
-					}
-					
-					if (Package)
-					{
-						ACCUMULATE_TIMER_START(GetCachedName);
-						FName StandardPackageFName = GetCachedStandardPackageFileFName(Package);
-						ACCUMULATE_TIMER_STOP(GetCachedName);
-						if ( StandardPackageFName == NAME_None )
-							continue;
-
-						ACCUMULATE_TIMER_START(UnsolicitedPackageAlreadyCooked);
-						// package is already cooked don't care about processing it again here
-						if ( CookRequests.Exists( StandardPackageFName, AllTargetPlatformNames) )
-							continue;
-						if ( CookedPackages.Exists(StandardPackageFName,AllTargetPlatformNames) )
-							continue;
-						ACCUMULATE_TIMER_STOP(UnsolicitedPackageAlreadyCooked);
-
-						if ( StandardPackageFName != NAME_None ) // if we have name none that means we are in core packages or something...
-						{
-							if (IsChildCooker())
-							{
-								// notify the main cooker that it should make sure this package gets cooked
-								CookByTheBookOptions->ChildUnsolicitedPackages.Add(StandardPackageFName);
-							}
-							else
-							{
-								// check if the package has already been saved
-								PackagesToSave.AddUnique(Package);
-								continue;
-							}
-						}
-					}
-				}
+				Result |= COSR_RequiresGC;
 			}
 		}
 
@@ -2220,6 +2166,69 @@ void UCookOnTheFlyServer::EditorTick( const float TimeSlice, const TArray<const 
 		return;
 
 	TickPrecacheObjectsForPlatforms(TimeSlice, TargetPlatforms);
+}
+
+void UCookOnTheFlyServer::GetUnsolicitedPackages(TArray<UPackage*>& PackagesToSave, bool &ContainsFullGCAssetClasses, const TArray<FName>& TargetPlatformNames) const
+{
+	TArray<UObject *> ObjectsInOuter;
+	{
+		SCOPE_TIMER(GetObjectsWithOuter);
+		GetObjectsWithOuter(NULL, ObjectsInOuter, false);
+	}
+
+	TArray<FName> PackageNames;
+	PackageNames.Empty(ObjectsInOuter.Num());
+	{
+		SCOPE_TIMER(GeneratePackageNames);
+		ACCUMULATE_TIMER(UnsolicitedPackageAlreadyCooked);
+		ACCUMULATE_TIMER(PackageCast);
+		ACCUMULATE_TIMER(AddUnassignedPackageToManifest);
+		ACCUMULATE_TIMER(GetCachedName);
+		for (int32 Index = 0; Index < ObjectsInOuter.Num(); Index++)
+		{
+			ACCUMULATE_TIMER_START(PackageCast);
+			UPackage* Package = Cast<UPackage>(ObjectsInOuter[Index]);
+			ACCUMULATE_TIMER_STOP(PackageCast);
+
+			UObject* Object = ObjectsInOuter[Index];
+			if (FullGCAssetClasses.Contains(Object->GetClass()))
+			{
+				ContainsFullGCAssetClasses = true;
+			}
+
+			if (Package)
+			{
+				ACCUMULATE_TIMER_START(GetCachedName);
+				FName StandardPackageFName = GetCachedStandardPackageFileFName(Package);
+				ACCUMULATE_TIMER_STOP(GetCachedName);
+				if (StandardPackageFName == NAME_None)
+					continue;
+
+				ACCUMULATE_TIMER_START(UnsolicitedPackageAlreadyCooked);
+				// package is already cooked don't care about processing it again here
+				if (CookRequests.Exists(StandardPackageFName, TargetPlatformNames))
+					continue;
+				if (CookedPackages.Exists(StandardPackageFName, TargetPlatformNames))
+					continue;
+				ACCUMULATE_TIMER_STOP(UnsolicitedPackageAlreadyCooked);
+
+				if (StandardPackageFName != NAME_None) // if we have name none that means we are in core packages or something...
+				{
+					if (IsChildCooker())
+					{
+						// notify the main cooker that it should make sure this package gets cooked
+						CookByTheBookOptions->ChildUnsolicitedPackages.Add(StandardPackageFName);
+					}
+					else
+					{
+						// check if the package has already been saved
+						PackagesToSave.AddUnique(Package);
+						continue;
+					}
+				}
+			}
+		}
+	}
 }
 
 void UCookOnTheFlyServer::OnObjectModified( UObject *ObjectMoving )
@@ -3238,6 +3247,11 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 			// Daniel: optimization
 			// should I loop through the cooked packages which we think we have instead of going through what's on disk?
 
+
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+			IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+
 			// See what files are out of date in the sandbox folder
 			for (int32 Index = 0; Index < Platforms.Num(); Index++)
 			{
@@ -3285,7 +3299,57 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 					
 					FDateTime DependentTimestamp;
 					FName StandardUnCookedFileFName = FName(*UncookedFilename);
+#if 1
+					//////////////////////////////////////////////////////////////////////////
 
+					// asset registry actually has better dependency list then the dpinfomodule
+
+					//GetCachedPackageFilename()
+					FName StandardPackageName = StandardUnCookedFileFName;
+					TArray<FName> UnfilteredDependencies;
+					// const FName* PackageName = GetCachedPackageFilenameToPackageFName(StandardPackageName);					
+					FString LongPackageName = FPackageName::FilenameToLongPackageName(StandardPackageName.ToString());
+
+				
+					FName LongPackageFName = FName(*LongPackageName);
+					// if the cooked package exists make sure it's dependencies are cooked
+					if (AssetRegistry.GetDependencies(LongPackageFName, UnfilteredDependencies) == true)
+					{
+						TArray<FName> Dependencys;
+						for (const auto& Dependency : UnfilteredDependencies)
+						{
+							if (FPackageName::IsScriptPackage(Dependency.ToString()) == false)
+							{
+								Dependencys.AddUnique(Dependency);
+							}
+						}
+
+						for (const auto& Dependency : Dependencys)
+						{
+							FName StandardPackageName = GetCachedStandardPackageFileFName(Dependency);
+
+							FDateTime DependencyDateTime = IFileManager::Get().GetTimeStamp(*StandardPackageName.ToString());
+							if (DependencyDateTime > DependentTimestamp)
+							{
+								DependentTimestamp = DependencyDateTime;
+							}
+						}
+					}
+
+					double Diff = (CookedTimestamp - DependentTimestamp).GetTotalSeconds();
+
+					if (Diff < 0.0)
+					{
+#if DEBUG_COOKONTHEFLY
+						UE_LOG(LogCook, Display, TEXT("Deleting out of date cooked file: %s"), *CookedFilename);
+#endif
+						IFileManager::Get().Delete(*CookedFilename); // do I need to delete this? the cooked packages list is what the cooker uses to recook this file should be deleted later
+
+						CookedPackages.RemoveFileForPlatform(StandardUnCookedFileFName, PlatformFName);
+					}
+
+					//////////////////////////////////////////////////////////////////////////
+#else
 					if (PDInfoModule.DeterminePackageDependentTimeStamp(*UncookedFilename, DependentTimestamp) == true)
 					{
 						double Diff = (CookedTimestamp - DependentTimestamp).GetTotalSeconds();
@@ -3300,6 +3364,7 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 							CookedPackages.RemoveFileForPlatform(StandardUnCookedFileFName, PlatformFName);
 						}
 					}
+#endif
 				}
 			}
 
