@@ -526,7 +526,13 @@ void FFileCache::WriteCache()
 			bSavedCacheDirty = false;
 
 			const bool bMoved = IFileManager::Get().Move(*Config.CacheFile, *TempFile, true, true);
-			ensureMsgf(bMoved, TEXT("Unable to move file-cache for '%s' from '%s' to '%s'."), *Config.Directory, *TempFile, *Config.CacheFile);
+			if (!bMoved)
+			{
+				uint64 TotalDiskSpace = 0;
+				uint64 FreeDiskSpace = 0;
+				FPlatformMisc::GetDiskTotalAndFreeSpace(Config.CacheFile, TotalDiskSpace, FreeDiskSpace);
+				ensureMsgf(bMoved, TEXT("Unable to move file-cache for '%s' from '%s' to '%s' (free disk space: %llu)"), *Config.Directory, *TempFile, *Config.CacheFile, FreeDiskSpace);
+			}			
 		}
 	}
 }
