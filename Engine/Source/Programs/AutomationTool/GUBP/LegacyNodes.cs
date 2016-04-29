@@ -1087,6 +1087,14 @@ partial class GUBP
 		bool Precompiled; // If true, just builds targets which generate static libraries for the -UsePrecompiled option to UBT. If false, just build those that don't.
 		bool EnhanceAgentRequirements;
 		public List<UnrealTargetConfiguration> ExcludeConfigurations = new List<UnrealTargetConfiguration>();
+		public static readonly Dictionary<UnrealTargetPlatform, string[]> PrecompiledArchitectures = new Dictionary<UnrealTargetPlatform, string[]>
+		{
+			{UnrealTargetPlatform.Android, new string[] {"armv7", "arm64"/*, "x86", "x64"*/ } }
+		};
+		public static readonly Dictionary<UnrealTargetPlatform, string[]> PrecompiledGPUArchitectures = new Dictionary<UnrealTargetPlatform, string[]>
+		{
+			{UnrealTargetPlatform.Android, new string[] {"es2"/*, "es31"*/ } }
+		};
 
         public GamePlatformMonolithicsNode(GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool InWithXp = false, bool InPrecompiled = false)
             : base(InBranchConfig, InHostPlatform)
@@ -1319,6 +1327,18 @@ partial class GUBP
 				if(TargetPlatform == UnrealTargetPlatform.Win32 || TargetPlatform == UnrealTargetPlatform.Win64)
 				{
 	                Args += " -nodebuginfo";
+				}
+
+				string[] PlatformArchitectures;
+				if (PrecompiledArchitectures.TryGetValue(TargetPlatform, out PlatformArchitectures)
+					&& PlatformArchitectures.Length > 0)
+				{
+					Args += " -architectures=" + String.Join("+", PlatformArchitectures);
+				}
+				if (PrecompiledGPUArchitectures.TryGetValue(TargetPlatform, out PlatformArchitectures)
+					&& PlatformArchitectures.Length > 0)
+				{
+					Args += " -gpuarchitectures=" + String.Join("+", PlatformArchitectures);
 				}
 			}
 

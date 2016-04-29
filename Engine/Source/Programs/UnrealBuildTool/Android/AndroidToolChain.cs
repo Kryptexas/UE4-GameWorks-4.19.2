@@ -171,19 +171,23 @@ namespace UnrealBuildTool
 			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
 			Arches = new List<string>();
 			bool bBuild = true;
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArmV7", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArmV7", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("armv7", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-armv7");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArm64", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArm64", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("arm64", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-arm64");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx86", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx86", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("x86", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-x86");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx8664", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx8664", out bBuild) && bBuild
+				|| UEBuildConfiguration.Architectures.Contains("x64", StringComparer.OrdinalIgnoreCase))
 			{
 				Arches.Add("-x64");
 			}
@@ -196,15 +200,18 @@ namespace UnrealBuildTool
 
 			// Parse selected GPU architectures
 			GPUArchitectures = new List<string>();
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES2", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES2", out bBuild) && bBuild
+				|| UEBuildConfiguration.GPUArchitectures.Contains("es2", StringComparer.OrdinalIgnoreCase))
 			{
 				GPUArchitectures.Add("-es2");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES31", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES31", out bBuild) && bBuild
+				|| UEBuildConfiguration.GPUArchitectures.Contains("es31", StringComparer.OrdinalIgnoreCase))
 			{
 				GPUArchitectures.Add("-es31");
 			}
-			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForGL4", out bBuild) && bBuild)
+			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForGL4", out bBuild) && bBuild
+				|| UEBuildConfiguration.GPUArchitectures.Contains("gl4", StringComparer.OrdinalIgnoreCase))
 			{
 				GPUArchitectures.Add("-gl4");
 			}
