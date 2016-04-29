@@ -433,7 +433,7 @@ namespace UnrealBuildTool
 
 		protected override string GetRequiredSDKString()
 		{
-			return "-19";
+			return "-21";
 		}
 
 		protected override String GetRequiredScriptVersionString()
