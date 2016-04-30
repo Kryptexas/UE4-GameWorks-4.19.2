@@ -24,7 +24,7 @@ public class RHI : ModuleRules
 
 			// Build machines don't have the Vulkan SDK installed so we don't generate libs for it. Turning it on if the user
 			// has the SDK installed results in link errors.
-			if (Target.Platform == UnrealTargetPlatform.Win64 && !UnrealBuildTool.IsEngineInstalled())
+			if (Target.Platform == UnrealTargetPlatform.Win64 && !UnrealBuildTool.UnrealBuildTool.IsEngineInstalled())
 			{
 				string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
 				if (String.IsNullOrEmpty(VulkanSDKPath))
