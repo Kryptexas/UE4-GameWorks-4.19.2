@@ -271,7 +271,7 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 		FString TemplateName = GetUniqueSpawnableName(MovieScene, Actor->GetName());
 
 		UClass* ActorClass = Actor->GetClass();
-		AActor* ObjectTemplate = DuplicateObject<AActor>(Actor, MovieScene, *TemplateName);
+		AActor* ObjectTemplate = CastChecked<AActor>(StaticDuplicateObject(Actor, MovieScene, *TemplateName, RF_AllFlags & ~(RF_Transient)));
 
 		if (ObjectTemplate)
 		{

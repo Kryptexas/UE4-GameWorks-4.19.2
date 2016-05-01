@@ -1323,18 +1323,29 @@ FString FEmitHelper::AccessInaccessibleProperty(FEmitterLocalContext& EmitterCon
 {
 	check(Property);
 	const FString PropertyLocalName = GenerateGetPropertyByName(EmitterContext, Property);
+	const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(Property);
+	if (bGetter && BoolProperty)
+	{
+		return  FString::Printf(TEXT("(((UBoolProperty*)%s)->GetPropertyValue_InContainer(%s(%s), %d))")
+			, *PropertyLocalName
+			, *ContextAdressOp
+			, *ContextStr
+			, StaticArrayIdx);
+	}
+	if (BoolProperty && !BoolProperty->IsNativeBool())
+	{
+		UE_LOG(LogK2Compiler, Error, TEXT("AccessInaccessiblePropertyUsingOffset - bitfield %s"), *GetPathNameSafe(Property));
+	}
 	const uint32 CppTemplateTypeFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
 		| EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef | EPropertyExportCPPFlags::CPPF_NoStaticArray
 		| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
-	const FString TypeDeclaration = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, CppTemplateTypeFlags, true);
-	const FString Result = FString::Printf(TEXT("(*(%s->ContainerPtrToValuePtr<%s>(%s(%s), %d)))")
+	const FString TypeDeclaration = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Member, CppTemplateTypeFlags, true);
+	return FString::Printf(TEXT("(*(%s->ContainerPtrToValuePtr<%s>(%s(%s), %d)))")
 		, *PropertyLocalName
 		, *TypeDeclaration
 		, *ContextAdressOp
 		, *ContextStr
 		, StaticArrayIdx);
-	const UBoolProperty* BoolProperty = Cast<UBoolProperty>(Property);
-	return (bGetter && BoolProperty && !BoolProperty->IsNativeBool()) ? FString::Printf(TEXT("(0 != (%s))"), *Result) : Result;
 }
 
 namespace HelperWithoutEditorOnlyMembers

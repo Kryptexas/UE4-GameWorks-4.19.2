@@ -332,6 +332,10 @@ void USkeletalMeshComponent::OnRegister()
 
 void USkeletalMeshComponent::OnUnregister()
 {
+	const bool bBlockOnTask = true; // wait on evaluation task so we complete any work before this component goes away
+	const bool bPerformPostAnimEvaluation = false; // Skip post evaluation, it would be wasted work
+	HandleExistingParallelEvaluationTask(bBlockOnTask, bPerformPostAnimEvaluation);
+
 #if WITH_APEX_CLOTHING
 	//clothing actors will be re-created in TickClothing
 	ReleaseAllClothingResources();
@@ -1237,6 +1241,11 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		CachedLocalAtoms.Reset();
 		CachedSpaceBases.Reset();
 		CachedCurve.Empty();
+	}
+
+	if(AnimScriptInstance)
+	{
+		AnimScriptInstance->PreEvaluateAnimation();
 	}
 
 	if (bDoParallelEvaluation)
@@ -2477,4 +2486,11 @@ FDelegateHandle USkeletalMeshComponent::RegisterOnPhysicsCreatedDelegate(const F
 void USkeletalMeshComponent::UnregisterOnPhysicsCreatedDelegate(const FDelegateHandle& DelegateHandle)
 {
 	OnSkelMeshPhysicsCreated.Remove(DelegateHandle);
+}
+
+bool USkeletalMeshComponent::MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit /*= NULL*/, EMoveComponentFlags MoveFlags /*= MOVECOMP_NoFlags*/, ETeleportType Teleport /*= ETeleportType::None*/)
+{
+	// If we're simulating physics ignore teleport type, we just want to teleport.
+	ETeleportType NewTeleportType = BodyInstance.bSimulatePhysics ? ETeleportType::TeleportPhysics : Teleport;
+	return Super::MoveComponentImpl(Delta, NewRotation, bSweep, OutHit, MoveFlags, NewTeleportType);
 }

@@ -8,6 +8,20 @@ class IPackageLocalizationCache;
 class COREUOBJECT_API FPackageLocalizationManager
 {
 public:
+	typedef TFunction<void(FPackageLocalizationManager&)> FLazyInitFunc;
+
+	/**
+	 * Initialize the manager from the callback set by InitializeFromLazyCallback. It is expected that this callback calls one of the InitializeFromX functions.
+	 */
+	void PerformLazyInitialization();
+	
+	/**
+	 * Initialize the manager lazily using the given callback. It is expected that this callback calls one of the InitializeFromX functions.
+	 *
+	 * @param InLazyInitFunc	The function to call to initialize the manager.
+	 */
+	void InitializeFromLazyCallback(FLazyInitFunc InLazyInitFunc);
+
 	/**
 	 * Initialize the manager using the given cache. This will perform an initial scan for localized packages.
 	 *
@@ -27,7 +41,7 @@ public:
 	 *
 	 * @return The localized package name, or NAME_None if there is no localized package.
 	 */
-	FName FindLocalizedPackageName(const FName InSourcePackageName) const;
+	FName FindLocalizedPackageName(const FName InSourcePackageName);
 
 	/**
 	 * Try and find the localized package name for the given source package for the given culture.
@@ -37,7 +51,7 @@ public:
 	 *
 	 * @return The localized package name, or NAME_None if there is no localized package.
 	 */
-	FName FindLocalizedPackageNameForCulture(const FName InSourcePackageName, const FString& InCultureName) const;
+	FName FindLocalizedPackageNameForCulture(const FName InSourcePackageName, const FString& InCultureName);
 
 	/**
 	 * Singleton accessor.
@@ -56,6 +70,9 @@ private:
 	 * @return The localized package name, or NAME_None if there is no localized package.
 	 */
 	FName FindLocalizedPackageNameNoCache(const FName InSourcePackageName, const FString& InCultureName) const;
+
+	/** Function to call to lazily initialize the manager. */
+	FLazyInitFunc LazyInitFunc;
 
 	/** Pointer to our currently active cache. Only valid after Initialize has been called. */
 	TSharedPtr<IPackageLocalizationCache> ActiveCache;

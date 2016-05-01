@@ -262,23 +262,9 @@ FVulkanPendingState::FVulkanPendingState(FVulkanDevice* InDevice)
 	, bBeginRenderPass(false)
 	, bChangeRenderTarget(false)
 	, GlobalUniformPool(nullptr)
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-	, CurrentCmdBufferIndex(0)
-#endif
 	, bScissorEnable(false)
 {
 	check(Device);
-
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	// State doesn't own or manage cmd buffers
-#else
-	for (uint32 CmdBufferIndex = 0; CmdBufferIndex < VULKAN_NUM_COMMAND_BUFFERS; ++CmdBufferIndex)
-	{
-		//#todo-rco: FIX ME!
-		CmdBuffers[CmdBufferIndex] = Device->GetImmediateContext().GetCommandBufferManager()->Create();
-	}
-#endif
 
 	Reset();
 
@@ -290,16 +276,6 @@ FVulkanPendingState::~FVulkanPendingState()
 {
 	check(Device);
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	// State doesn't own or manage cmd buffers
-#else
-	for (uint32 CmdBufferIndex = 0; CmdBufferIndex < VULKAN_NUM_COMMAND_BUFFERS; ++CmdBufferIndex)
-	{
-		//#todo-rco: FIX ME!
-		Device->GetImmediateContext().GetCommandBufferManager()->Destroy(CmdBuffers[CmdBufferIndex]);
-		CmdBuffers[CmdBufferIndex] = nullptr;
-	}
-#endif
 	//Reset();
 
 	/*
@@ -331,31 +307,20 @@ FVulkanPendingState::~FVulkanPendingState()
 	RenderPassMap.Empty(0);
 }
 
-FVulkanDescriptorSets* FVulkanPendingState::AllocateDescriptorSet(const FVulkanBoundShaderState* BoundShaderState)
-{
-	FVulkanDescriptorSets* DescriptorSet = new FVulkanDescriptorSets(Device, BoundShaderState, Device->GetDescriptorPool());
-	return DescriptorSet;
-}
-
-void FVulkanPendingState::DeallocateDescriptorSet(FVulkanDescriptorSets*& DescriptorSet, const FVulkanBoundShaderState* BoundShaderState)
-{
-	delete DescriptorSet;
-	DescriptorSet = nullptr;
-}
-
 FVulkanGlobalUniformPool& FVulkanPendingState::GetGlobalUniformPool()
 {
     check(GlobalUniformPool);
     return *GlobalUniformPool;
 }
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-void FVulkanPendingState::RenderPassBegin(FVulkanCmdBuffer* CmdBuffer)
-#else
-void FVulkanPendingState::RenderPassBegin()
-#endif
+bool FVulkanPendingState::RenderPassBegin(FVulkanCmdBuffer* CmdBuffer)
 {
 	check(!bBeginRenderPass);
+
+	if (RTInfo.NumColorRenderTargets == 0 && !RTInfo.DepthStencilRenderTarget.Texture)
+	{
+		return false;
+	}
 
 	FVulkanRenderTargetLayout DesiredLayout(RTInfo);
 	FVulkanRenderPass* NewRenderPass = GetOrCreateRenderPass(DesiredLayout);
@@ -423,29 +388,19 @@ void FVulkanPendingState::RenderPassBegin()
 		// if either bit is set that we have a depth buffer attached
 	}
 		
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	CmdBuffer->BeginRenderPass(CurrentState.RenderPass->GetLayout(), CurrentState.RenderPass->GetHandle(), CurrentState.FrameBuffer->GetHandle(), ClearValues);
-#else
-	CurrentState.RenderPass->Begin(GetCurrentCommandBuffer(), CurrentState.FrameBuffer->GetHandle(), ClearValues);
-#endif
+
 	bBeginRenderPass = true;
+
+	return true;
 }
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 void FVulkanPendingState::RenderPassEnd(FVulkanCmdBuffer* CmdBuffer)
 {
 	check(bBeginRenderPass);
 	CmdBuffer->EndRenderPass();
 	bBeginRenderPass = false;
 }
-#else
-void FVulkanPendingState::RenderPassEnd()
-{
-	check(bBeginRenderPass);
-	CurrentState.RenderPass->End(GetCurrentCommandBuffer());
-	bBeginRenderPass = false;
-}
-#endif
 
 // Expected to be called after render pass has been ended
 // and only from "FVulkanDynamicRHI::RHIEndDrawingViewport()"
@@ -455,14 +410,6 @@ void FVulkanPendingState::Reset()
 
 	CurrentState.Reset();
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	// State doesn't own or manage cmd buffers
-#else
-	CurrentCmdBufferIndex = (CurrentCmdBufferIndex + 1) % VULKAN_NUM_COMMAND_BUFFERS;
-
-	GetCurrentCommandBuffer().Reset();
-	GetCurrentCommandBuffer().Begin();
-#endif
 	FMemory::Memzero(PendingStreams);
 }
 
@@ -624,11 +571,7 @@ inline void FVulkanBoundShaderState::BindDescriptorSets(FVulkanCmdBuffer* Cmd)
 	CurrDescriptorSets->Bind(Cmd, this);
 }
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-void FVulkanPendingState::PrepareDraw(FVulkanCmdBuffer* Cmd, VkPrimitiveTopology Topology)
-#else
-void FVulkanPendingState::PrepareDraw(VkPrimitiveTopology Topology)
-#endif
+void FVulkanPendingState::PrepareDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* Cmd, VkPrimitiveTopology Topology)
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDrawCallPrepareTime);
 
@@ -636,14 +579,10 @@ void FVulkanPendingState::PrepareDraw(VkPrimitiveTopology Topology)
 	SetKeyBits(CurrentKey, OFFSET_POLYTYPE, NUMBITS_POLYTYPE, Topology);
 
 	//@TODO: let's try not to do this per draw call?
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	UpdateRenderPass(Cmd);
-#else
-	UpdateRenderPass();
-#endif
 
 	check(CurrentState.Shader);
-    CurrentState.Shader->UpdateDescriptorSets(GlobalUniformPool);
+    CurrentState.Shader->UpdateDescriptorSets(CmdListContext, Cmd, GlobalUniformPool);
 
 	// let the BoundShaderState return a pipeline object for the full current state of things
 	CurrentState.InputAssembly.topology = Topology;
@@ -653,10 +592,6 @@ void FVulkanPendingState::PrepareDraw(VkPrimitiveTopology Topology)
 
 	{
 		SCOPE_CYCLE_COUNTER(STAT_VulkanPipelineBind);
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-		auto* Cmd = &GetCurrentCommandBuffer();
-#endif
 		Pipeline->UpdateDynamicStates(Cmd, CurrentState);
 
 		VkPipeline NewPipeline = Pipeline->GetHandle();
@@ -685,7 +620,7 @@ void FVulkanPendingState::PrepareDraw(VkPrimitiveTopology Topology)
 
 void FVulkanPendingState::SubmitPendingCommandBuffers(FVulkanPendingState::TCallback* Callback, void* CallbackUserData)
 {
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 	check(0);
 #else
 	if (IsRenderPassActive())
@@ -706,7 +641,7 @@ void FVulkanPendingState::SubmitPendingCommandBuffers(FVulkanPendingState::TCall
 
 void FVulkanPendingState::SubmitPendingCommandBuffersBlockingNoRenderPass()
 {
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 	check(0);
 #else
 	check(Device);
@@ -717,13 +652,25 @@ void FVulkanPendingState::SubmitPendingCommandBuffersBlockingNoRenderPass()
 void FVulkanPendingState::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& InRTInfo)
 {
 	//#todo-rco: Check perf
-#if !VULKAN_USE_NEW_COMMAND_BUFFERS
+#if 0//!VULKAN_USE_NEW_COMMAND_BUFFERS
 	if (NeedsToSetRenderTarget(InRTInfo) == false)
 	{
 		return;
 	}
 #endif
 
+#if 1
+	// Back this up for the next SetRenderTarget
+	RTInfo = InRTInfo;
+	if (RTInfo.NumColorRenderTargets == 1 && !RTInfo.ColorRenderTarget[0].Texture)
+	{
+		RTInfo.ColorRenderTarget[0].LoadAction = ERenderTargetLoadAction::ENoAction;
+		RTInfo.ColorRenderTarget[0].StoreAction = ERenderTargetStoreAction::ENoAction;
+		check(!RTInfo.bClearColor);
+		--RTInfo.NumColorRenderTargets;
+	}
+	bChangeRenderTarget = true;
+#else
 	//@NOTE: this is only needed for the work-around below
 	FRHISetRenderTargetsInfo PrevRTInfo = RTInfo;
 
@@ -743,6 +690,7 @@ void FVulkanPendingState::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& I
 			check(rtv.Texture);
 		}
 	}
+#endif
 }
 
 bool FVulkanPendingState::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& InRTInfo)
@@ -845,19 +793,6 @@ FVulkanRenderPass& FVulkanPendingState::GetRenderPass()
 	check(CurrentState.RenderPass);
 	return *CurrentState.RenderPass;
 }
-
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-VkCommandBuffer& FVulkanPendingState::GetCommandBuffer()
-{
-	return GetCurrentCommandBuffer().GetHandle();
-}
-
-const VkBool32 FVulkanPendingState::GetIsCommandBufferEmpty() const
-{
-	return GetCurrentCommandBuffer().GetIsEmpty();
-}
-#endif
 
 void FVulkanPendingState::SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
 {

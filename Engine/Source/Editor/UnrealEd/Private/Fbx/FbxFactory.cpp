@@ -167,8 +167,11 @@ UObject* UFbxFactory::FactoryCreateBinary
 	// this one prints all messages that are stored in FFbxImporter
 	UnFbx::FFbxImporter* FbxImporter = UnFbx::FFbxImporter::GetInstance();
 	UnFbx::FBXImportOptions* ImportOptions = FbxImporter->GetImportOptions();
-	//Clean up the options
-	UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
+	if (bShowOption)
+	{
+		//Clean up the options
+		UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
+	}
 	
 	UnFbx::FFbxLoggerSetter Logger(FbxImporter);
 

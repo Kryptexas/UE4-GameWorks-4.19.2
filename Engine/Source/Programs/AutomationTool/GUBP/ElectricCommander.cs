@@ -464,7 +464,7 @@ namespace AutomationTool
 						JsonWriter.WriteValue("DescriptionText", NodeToDo.DescriptionText);
 						if (NodeToDo.RecipientsForFailureEmails.Length > 0)
 						{
-							JsonWriter.WriteValue("Notify", String.Join(" ", NodeToDo.RecipientsForFailureEmails));
+							JsonWriter.WriteValue("Notify", String.Join(";", NodeToDo.RecipientsForFailureEmails));
 						}
 						JsonWriter.WriteValue("IsTrigger", true);
 						JsonWriter.WriteObjectEnd();

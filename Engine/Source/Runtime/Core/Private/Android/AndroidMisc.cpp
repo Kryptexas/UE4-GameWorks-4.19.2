@@ -601,12 +601,17 @@ const int32 TargetSignals[] =
 const int32 NumTargetSignals = ARRAY_COUNT(TargetSignals);
 
 struct sigaction PrevActions[NumTargetSignals];
+static bool PreviousSignalHandlersValid = false;
 
 static void RestorePreviousSignalHandlers()
 {
-	for (int32 i = 0; i < NumTargetSignals; ++i)
+	if (PreviousSignalHandlersValid)
 	{
-		sigaction(TargetSignals[i],	&PrevActions[i], NULL);
+		for (int32 i = 0; i < NumTargetSignals; ++i)
+		{
+			sigaction(TargetSignals[i], &PrevActions[i], NULL);
+		}
+		PreviousSignalHandlersValid = false;
 	}
 }
 
@@ -616,7 +621,6 @@ void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
 	// Switch to malloc crash.
 	//FGenericPlatformMallocCrash::Get().SetAsGMalloc(); @todo uncomment after verification
 
-	//fprintf(stderr, "Signal %d caught.\n", Signal);
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Signal %d caught!"), Signal);
 
 	// Restore system handlers so Android could catch this signal after we are done with crashreport
@@ -640,7 +644,14 @@ void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashCont
 {
 	GCrashHandlerPointer = CrashHandler;
 
+	RestorePreviousSignalHandlers();
 	FMemory::Memzero(&PrevActions, sizeof(PrevActions));
+
+	// Passing -1 will leave these restored and won't trap them
+	if ((int)CrashHandler == -1)
+	{
+		return;
+	}
 
 	struct sigaction Action;
 	FMemory::Memzero(&Action, sizeof(struct sigaction));
@@ -652,6 +663,7 @@ void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashCont
 	{
 		sigaction(TargetSignals[i],	&Action, &PrevActions[i]);
 	}
+	PreviousSignalHandlersValid = true;
 }
 
 bool FAndroidMisc::GetUseVirtualJoysticks()

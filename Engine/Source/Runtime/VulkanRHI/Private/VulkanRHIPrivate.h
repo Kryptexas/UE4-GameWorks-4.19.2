@@ -185,11 +185,7 @@ public:
 	TArray<VkImageView> Attachments;
 	TArray<VkImageSubresourceRange> SubresourceRanges;
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	void InsertWriteBarrier(FVulkanCmdBuffer* CmdBuffer);
-#else
-	void InsertWriteBarrier(VkCommandBuffer cmd);
-#endif
+	void InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer);
 
 private:
 	VkFramebuffer Framebuffer;
@@ -218,15 +214,6 @@ private:
 
 	FVulkanRenderPass(FVulkanDevice& Device, const FVulkanRenderTargetLayout& RTLayout);
 	~FVulkanRenderPass();
-
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-	void Begin(FVulkanCmdBuffer& CmdBuf, const VkFramebuffer& Framebuffer, const VkClearValue* AttachmentClearValues);
-	void End(FVulkanCmdBuffer& CmdBuf)
-	{
-		vkCmdEndRenderPass(CmdBuf.GetHandle());
-	}
-#endif
 
 private:
 	FVulkanRenderTargetLayout Layout;
@@ -328,6 +315,9 @@ private:
 	FVulkanDescriptorPool* Pool;
 	const FVulkanDescriptorSetsLayout& Layout;
 	TArray<VkDescriptorSet> Sets;
+
+	friend class FVulkanBoundShaderState;
+	friend class FVulkanCommandListContext;
 };
 
 void VulkanSetImageLayout(VkCommandBuffer CmdBuffer, VkImage Image, VkImageLayout OldLayout, VkImageLayout NewLayout, const VkImageSubresourceRange& SubresourceRange);

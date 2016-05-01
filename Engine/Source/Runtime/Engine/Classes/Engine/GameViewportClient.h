@@ -810,9 +810,6 @@ private:
 	/** Those sound stat flags which are enabled on this viewport */
 	static ESoundShowFlags::Type SoundShowFlags;
 
-	/** Number of viewports which have enabled 'show collision' */
-	static int32 NumViewportsShowingCollision;
-
 	/** Disables splitscreen, useful when game code is in menus, and doesn't want splitscreen on */
 	bool bDisableSplitScreenOverride;
 
@@ -827,9 +824,6 @@ private:
 
 	/** Whether or not the cursor is hidden when the viewport captures the mouse */
 	bool bHideCursorDuringCapture;
-
-	/** Handle to the registered ShowCollisionOnSpawnedActors delegate */
-	FDelegateHandle ShowCollisionOnSpawnedActorsDelegateHandle;
 
 	/** Handle to the audio device created for this viewport. Each viewport (for multiple PIE) will have its own audio device. */
 	uint32 AudioDeviceHandle;

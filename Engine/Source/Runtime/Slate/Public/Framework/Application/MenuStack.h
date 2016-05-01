@@ -58,6 +58,11 @@ struct FPopupTransitionEffect
 class FMenuStack
 {
 public:
+	/** Constructor */
+	FMenuStack()
+		: bHostWindowGuard(false)
+	{}
+
 	/**
 	 * [Deprecated] Pushes a new menu onto the stack.  Automatically removes windows from the stack that are no longer valid
 	 * Invalid windows are those that are not parents of the window menu being pushed and any windows on the same stack level
@@ -408,4 +413,7 @@ private:
 
 	/** Temporary ptr to a new menu created during the menu creation process. Nulled before the Push() call returns. Stops it collapsing the stack when it gets focus. */
 	TSharedPtr<class FMenuBase> PendingNewMenu;
+
+	/** Guard to prevent the HostWindow and HostWindowPopupPanel being set reentrantly */
+	bool bHostWindowGuard;
 };

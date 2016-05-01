@@ -815,7 +815,7 @@ public:
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ScheduleCooldowns);
 
-				TickFunctionsToReschedule.Sort([](const FTickScheduleDetails& A, const FTickScheduleDetails& B)
+			TickFunctionsToReschedule.Sort([](const FTickScheduleDetails& A, const FTickScheduleDetails& B)
 			{
 				return A.Cooldown < B.Cooldown;
 			});
@@ -830,13 +830,53 @@ public:
 				if ((CumulativeCooldown + ComparisonTickFunction->RelativeTickCooldown) > CooldownTime)
 				{
 					FTickFunction* TickFunction = TickFunctionsToReschedule[RescheduleIndex].TickFunction;
+					if (TickFunction->TickState == FTickFunction::ETickState::Enabled)
+					{
+						if (TickFunctionsToReschedule[RescheduleIndex].bDeferredRemove)
+						{
+							verify(AllEnabledTickFunctions.Remove(TickFunction) == 1);
+						}
+						TickFunction->TickState = FTickFunction::ETickState::CoolingDown;
+						TickFunction->RelativeTickCooldown = CooldownTime - CumulativeCooldown;
+
+						if (PrevComparisonTickFunction)
+						{
+							PrevComparisonTickFunction->Next = TickFunction;
+						}
+						else
+						{
+							check(ComparisonTickFunction == AllCoolingDownTickFunctions.Head);
+							AllCoolingDownTickFunctions.Head = TickFunction;
+						}
+						TickFunction->Next = ComparisonTickFunction;
+						PrevComparisonTickFunction = TickFunction;
+						ComparisonTickFunction->RelativeTickCooldown -= TickFunction->RelativeTickCooldown;
+						CumulativeCooldown += TickFunction->RelativeTickCooldown;
+					}
+					++RescheduleIndex;
+				}
+				else
+				{
+					CumulativeCooldown += ComparisonTickFunction->RelativeTickCooldown;
+					PrevComparisonTickFunction = ComparisonTickFunction;
+					ComparisonTickFunction = ComparisonTickFunction->Next;
+				}
+			}
+			for ( ; RescheduleIndex < TickFunctionsToReschedule.Num(); ++RescheduleIndex)
+			{
+				FTickFunction* TickFunction = TickFunctionsToReschedule[RescheduleIndex].TickFunction;
+				if (TickFunction->TickState == FTickFunction::ETickState::Enabled)
+				{
 					if (TickFunctionsToReschedule[RescheduleIndex].bDeferredRemove)
 					{
 						verify(AllEnabledTickFunctions.Remove(TickFunction) == 1);
 					}
+					const float CooldownTime = TickFunctionsToReschedule[RescheduleIndex].Cooldown;
+
 					TickFunction->TickState = FTickFunction::ETickState::CoolingDown;
 					TickFunction->RelativeTickCooldown = CooldownTime - CumulativeCooldown;
 
+					TickFunction->Next = nullptr;
 					if (PrevComparisonTickFunction)
 					{
 						PrevComparisonTickFunction->Next = TickFunction;
@@ -846,47 +886,13 @@ public:
 						check(ComparisonTickFunction == AllCoolingDownTickFunctions.Head);
 						AllCoolingDownTickFunctions.Head = TickFunction;
 					}
-					TickFunction->Next = ComparisonTickFunction;
 					PrevComparisonTickFunction = TickFunction;
-					ComparisonTickFunction->RelativeTickCooldown -= TickFunction->RelativeTickCooldown;
+
 					CumulativeCooldown += TickFunction->RelativeTickCooldown;
-					++RescheduleIndex;
 				}
-				else
-				{
-					CumulativeCooldown += ComparisonTickFunction->RelativeTickCooldown;
-					PrevComparisonTickFunction = ComparisonTickFunction;
-					ComparisonTickFunction = ComparisonTickFunction->Next;
-				}
-	}
-			for ( ; RescheduleIndex < TickFunctionsToReschedule.Num(); ++RescheduleIndex)
-			{
-				FTickFunction* TickFunction = TickFunctionsToReschedule[RescheduleIndex].TickFunction;
-				if (TickFunctionsToReschedule[RescheduleIndex].bDeferredRemove)
-				{
-					verify(AllEnabledTickFunctions.Remove(TickFunction) == 1);
-				}
-				const float CooldownTime = TickFunctionsToReschedule[RescheduleIndex].Cooldown;
-
-				TickFunction->TickState = FTickFunction::ETickState::CoolingDown;
-				TickFunction->RelativeTickCooldown = CooldownTime - CumulativeCooldown;
-
-				TickFunction->Next = nullptr;
-				if (PrevComparisonTickFunction)
-				{
-					PrevComparisonTickFunction->Next = TickFunction;
-				}
-				else
-				{
-					check(ComparisonTickFunction == AllCoolingDownTickFunctions.Head);
-					AllCoolingDownTickFunctions.Head = TickFunction;
-				}
-				PrevComparisonTickFunction = TickFunction;
-
-				CumulativeCooldown += TickFunction->RelativeTickCooldown;
 			}
 			TickFunctionsToReschedule.Reset();
-	}
+		}
 	}
 
 	/* Queue all tick functions for execution */

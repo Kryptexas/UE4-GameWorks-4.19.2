@@ -217,6 +217,11 @@ void FBlueprintNativeCodeGenModule::Initialize(const FNativeCodeGenInitData& Ini
 		Manifests.Add(FString(*Platform.Key), TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(NativizationCookControllerImpl::DefaultPluginName, OutputPath)));
 
 		TargetPlatformNames.Add(Platform.Key);
+
+		// Clear source code folder
+		const FString SourceCodeDir = GetManifest(*Platform.Key).GetTargetPaths().PluginSourceDir();
+		UE_LOG(LogBlueprintCodeGen, Log, TEXT("Clear nativized source code directory: %s"), *SourceCodeDir);
+		IFileManager::Get().DeleteDirectory(*SourceCodeDir, false, true);
 	}
 
 	FillTargetedForReplacementQuery();

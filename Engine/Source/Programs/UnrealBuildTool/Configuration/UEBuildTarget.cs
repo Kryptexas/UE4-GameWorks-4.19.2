@@ -3561,6 +3561,10 @@ namespace UnrealBuildTool
 				}
 			}
 
+			// Remove any enabled plugins that are unused on the current platform. This prevents having to stage the .uplugin files, but requires that the project descriptor
+			// doesn't have a platform-neutral reference to it.
+			EnabledPlugins.RemoveAll(Plugin => !UProjectInfo.IsPluginDescriptorRequiredForProject(Plugin, ProjectDescriptor, Platform, TargetType, UEBuildConfiguration.bBuildDeveloperTools, UEBuildConfiguration.bBuildEditor));
+
 			// Set the list of plugins that should be built
 			if (Rules.bBuildAllPlugins)
 			{

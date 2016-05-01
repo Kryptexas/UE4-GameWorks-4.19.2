@@ -20,34 +20,39 @@ DEFINE_LOG_CATEGORY(LogVulkanRHI);
 #if VULKAN_HAS_DEBUGGING_ENABLED
 
 static VkBool32 VKAPI_PTR DebugReportFunction(
-	VkDebugReportFlagsEXT			msgFlags,
-	VkDebugReportObjectTypeEXT		objType,
-    uint64_t						srcObject,
-    size_t							location,
-    int32							msgCode,
-	const ANSICHAR*					pLayerPrefix,
-	const ANSICHAR*					pMsg,
-    void*							pUserData)
+	VkDebugReportFlagsEXT			MsgFlags,
+	VkDebugReportObjectTypeEXT		ObjType,
+    uint64_t						SrcObject,
+    size_t							Location,
+    int32							MsgCode,
+	const ANSICHAR*					LayerPrefix,
+	const ANSICHAR*					Msg,
+    void*							UserData)
 {
-	if (msgFlags != VK_DEBUG_REPORT_ERROR_BIT_EXT && 
-		msgFlags != VK_DEBUG_REPORT_WARNING_BIT_EXT &&
-		msgFlags != VK_DEBUG_REPORT_INFORMATION_BIT_EXT &&
-		msgFlags != VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+	if (MsgFlags != VK_DEBUG_REPORT_ERROR_BIT_EXT && 
+		MsgFlags != VK_DEBUG_REPORT_WARNING_BIT_EXT &&
+		MsgFlags != VK_DEBUG_REPORT_INFORMATION_BIT_EXT &&
+		MsgFlags != VK_DEBUG_REPORT_DEBUG_BIT_EXT)
 	{
 		ensure(0);
 	}
 
-	if (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+	if (MsgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
 	{
 		// Reaching this line should trigger a break/assert. 
 		// Check to see if this is a code we've seen before.
-		FString LayerCode = FString::Printf(TEXT("%s%d"), ANSI_TO_TCHAR(pLayerPrefix), msgCode);
+		FString LayerCode = FString::Printf(TEXT("%s%d"), ANSI_TO_TCHAR(LayerPrefix), MsgCode);
 		static TSet<FString> SeenCodes;
 		if (!SeenCodes.Contains(LayerCode))
 		{
-			FString Message = FString::Printf(TEXT("VulkanRHI: VK ERROR: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(pLayerPrefix), msgCode, ANSI_TO_TCHAR(pMsg));
+			FString Message = FString::Printf(TEXT("VulkanRHI: VK ERROR: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
 			FPlatformMisc::LowLevelOutputDebugStringf(*Message);
     
+			if (!FCStringAnsi::Strcmp(LayerPrefix, "MEM"))
+			{
+				((FVulkanDynamicRHI*)GDynamicRHI)->DumpMemory();
+			}
+
 			// Break debugger on first instance of each message. 
 			// Continuing will ignore the error and suppress this message in future.
 			bool bIgnoreInFuture = true;
@@ -59,32 +64,33 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 		}
 		return VK_FALSE;
 	}
-	else if (msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
+	else if (MsgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
 	{
-		FString Message = FString::Printf(TEXT("VulkanRHI: VK WARNING: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(pLayerPrefix), msgCode, ANSI_TO_TCHAR(pMsg));
+		FString Message = FString::Printf(TEXT("VulkanRHI: VK WARNING: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
 		FPlatformMisc::LowLevelOutputDebugString(*Message);
+		return VK_FALSE;
 	}
 #if VULKAN_ENABLE_API_DUMP
-	else if (msgFlags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+	else if (MsgFlags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
 	{
 #if !VULKAN_ENABLE_API_DUMP_DETAILED
-		if (!FCStringAnsi::Strcmp(pLayerPrefix, "MEM") || !FCStringAnsi::Strcmp(pLayerPrefix, "DS"))
+		if (!FCStringAnsi::Strcmp(LayerPrefix, "MEM") || !FCStringAnsi::Strcmp(LayerPrefix, "DS"))
 		{
 			// Skip Mem messages
 		}
 		else
 #endif
 		{
-			FString Message = FString::Printf(TEXT("VulkanRHI: VK INFO: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(pLayerPrefix), msgCode, ANSI_TO_TCHAR(pMsg));
+			FString Message = FString::Printf(TEXT("VulkanRHI: VK INFO: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
 			FPlatformMisc::LowLevelOutputDebugString(*Message);
 		}
 
 		return VK_FALSE;
 	}
 #if VULKAN_ENABLE_API_DUMP_DETAILED
-	else if (msgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+	else if (MsgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
 	{
-		FString Message = FString::Printf(TEXT("VulkanRHI: VK DEBUG: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(pLayerPrefix), msgCode, ANSI_TO_TCHAR(pMsg));
+		FString Message = FString::Printf(TEXT("VulkanRHI: VK DEBUG: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
 		FPlatformMisc::LowLevelOutputDebugString(*Message);
 		return VK_FALSE;
 	}

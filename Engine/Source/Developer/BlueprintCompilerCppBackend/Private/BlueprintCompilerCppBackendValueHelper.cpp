@@ -48,7 +48,7 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 			FString PathToMember;
 			UBlueprintGeneratedClass* PropertyOwnerAsBPGC = Cast<UBlueprintGeneratedClass>(Property->GetOwnerClass());
 			UScriptStruct* PropertyOwnerAsScriptStruct = Cast<UScriptStruct>(Property->GetOwnerStruct());
-			const bool bNoexportProperty = PropertyOwnerAsScriptStruct
+			const bool bNoExportProperty = PropertyOwnerAsScriptStruct
 				&& PropertyOwnerAsScriptStruct->IsNative()
 				&& (PropertyOwnerAsScriptStruct->StructFlags & STRUCT_NoExport)
 				// && !PropertyOwnerAsScriptStruct->GetBoolMetaData(TEXT("BlueprintType"))
@@ -62,11 +62,25 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 				PathToMember = FString::Printf(TEXT("FUnconvertedWrapper__%s(%s).GetRef__%s()"), *FEmitHelper::GetCppName(PropertyOwnerAsBPGC), *ContainerStr
 					, *UnicodeToCPPIdentifier(Property->GetName(), false, nullptr));
 			}
-			else if (bNoexportProperty || Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate) || (!bAllowProtected && Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)))
+			else if (bNoExportProperty || Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate) || (!bAllowProtected && Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)))
 			{
+				const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(Property);
+				const bool bBietfield = BoolProperty && !BoolProperty->IsNativeBool();
 				const FString OperatorStr = (EPropertyAccessOperator::Dot == AccessOperator) ? TEXT("&") : TEXT("");
 				const FString ContainerStr = (EPropertyAccessOperator::None == AccessOperator) ? TEXT("this") : OuterPath;
-				const FString GetPtrStr = bNoexportProperty
+				if (bBietfield)
+				{
+					const FString PropertyLocalName = FEmitHelper::GenerateGetPropertyByName(Context, Property);
+					const FString ValueStr = Context.ExportTextItem(Property, Property->ContainerPtrToValuePtr<uint8>(DataContainer, ArrayIndex));
+					Context.AddLine(FString::Printf(TEXT("(((UBoolProperty*)%s)->SetPropertyValue_InContainer(%s(%s), %s, %d));")
+						, *PropertyLocalName
+						, *OperatorStr
+						, *ContainerStr
+						, *ValueStr
+						, ArrayIndex));
+					continue;
+				}
+				const FString GetPtrStr = bNoExportProperty
 					? FEmitHelper::AccessInaccessiblePropertyUsingOffset(Context, Property, ContainerStr, OperatorStr, ArrayIndex)
 					: FEmitHelper::AccessInaccessibleProperty(Context, Property, ContainerStr, OperatorStr, ArrayIndex, false);
 				PathToMember = Context.GenerateUniqueLocalName();
@@ -80,9 +94,12 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 				const FString ArrayPost = bStaticArray ? FString::Printf(TEXT("[%d]"), ArrayIndex) : TEXT("");
 				PathToMember = FString::Printf(TEXT("%s%s%s%s"), *OuterPath, *AccessOperatorStr, *FEmitHelper::GetCppName(Property), *ArrayPost);
 			}
-			const uint8* ValuePtr = Property->ContainerPtrToValuePtr<uint8>(DataContainer, ArrayIndex);
-			const uint8* DefaultValuePtr = OptionalDefaultDataContainer ? Property->ContainerPtrToValuePtr<uint8>(OptionalDefaultDataContainer, ArrayIndex) : nullptr;
-			InnerGenerate(Context, Property, PathToMember, ValuePtr, DefaultValuePtr);
+
+			{
+				const uint8* ValuePtr = Property->ContainerPtrToValuePtr<uint8>(DataContainer, ArrayIndex);
+				const uint8* DefaultValuePtr = OptionalDefaultDataContainer ? Property->ContainerPtrToValuePtr<uint8>(OptionalDefaultDataContainer, ArrayIndex) : nullptr;
+				InnerGenerate(Context, Property, PathToMember, ValuePtr, DefaultValuePtr);
+			}
 		}
 	}
 }
@@ -476,12 +493,33 @@ struct FNonativeComponentData
 	bool bSetNativeCreationMethod;
 	/** Socket/Bone that Component might attach to */
 	FName AttachToName;
+	bool bIsRoot;
 
 	FNonativeComponentData()
 		: ComponentTemplate(nullptr)
 		, ObjectToCompare(nullptr)
 		, bSetNativeCreationMethod(false)
+		, bIsRoot(false)
 	{
+	}
+
+	bool HandledAsSpecialProperty(FEmitterLocalContext& Context, const UProperty* Property)
+	{
+		static const FName RelativeLocationName(TEXT("RelativeLocation"));
+		static const FName RelativeRotationName(TEXT("RelativeRotation"));
+
+		// skip relative location and rotation. THey are ignored for root components created from scs (and they probably should be reset by scs editor).
+		if (bIsRoot && (Property->GetOuter() == USceneComponent::StaticClass()))
+		{
+			UProperty* RelativeLocationProperty = USceneComponent::StaticClass()->FindPropertyByName(RelativeLocationName);
+			UProperty* RelativeRotationProperty = USceneComponent::StaticClass()->FindPropertyByName(RelativeRotationName);
+			if ((Property == RelativeLocationProperty) || (Property == RelativeRotationProperty))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	void EmitProperties(FEmitterLocalContext& Context)
@@ -495,19 +533,21 @@ struct FNonativeComponentData
 		if (!ParentVariableName.IsEmpty())
 		{
 			const FString SocketName = (AttachToName == NAME_None) ? FString() : FString::Printf(TEXT(", TEXT(\"%s\")"), *AttachToName.ToString());
-			Context.AddLine(FString::Printf(TEXT("%s->AttachToComponent(%s, FAttachmentTransformRules::KeepRelativeTransform, %s);"), *NativeVariablePropertyName, *ParentVariableName, *SocketName));
+			Context.AddLine(FString::Printf(TEXT("%s->AttachToComponent(%s, FAttachmentTransformRules::KeepRelativeTransform %s);"), *NativeVariablePropertyName, *ParentVariableName, *SocketName));
 			// AttachTo is called first in case some properties will be overridden.
 		}
 
 		UClass* ComponentClass = ComponentTemplate->GetClass();
 		for (auto Property : TFieldRange<const UProperty>(ComponentClass))
 		{
-			FEmitDefaultValueHelper::OuterGenerate(Context, Property, NativeVariablePropertyName
-				, reinterpret_cast<const uint8*>(ComponentTemplate)
-				, reinterpret_cast<const uint8*>(ObjectToCompare)
-				, FEmitDefaultValueHelper::EPropertyAccessOperator::Pointer);
+			if (!HandledAsSpecialProperty(Context, Property))
+			{
+				FEmitDefaultValueHelper::OuterGenerate(Context, Property, NativeVariablePropertyName
+					, reinterpret_cast<const uint8*>(ComponentTemplate)
+					, reinterpret_cast<const uint8*>(ObjectToCompare)
+					, FEmitDefaultValueHelper::EPropertyAccessOperator::Pointer);
+			}
 		}
-
 	}
 
 	void EmitForcedPostLoad(FEmitterLocalContext& Context)
@@ -551,7 +591,9 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 			FNonativeComponentData NonativeComponentData;
 			NonativeComponentData.NativeVariablePropertyName = NativeVariablePropertyName;
 			NonativeComponentData.ComponentTemplate = ComponentTemplate;
-
+			USCS_Node* RootComponentNode = nullptr;
+			Node->GetSCS()->GetSceneRootComponentTemplate(&RootComponentNode);
+			NonativeComponentData.bIsRoot = RootComponentNode == Node;
 			UClass* ComponentClass = ComponentTemplate->GetClass();
 			check(ComponentClass != nullptr);
 
@@ -964,6 +1006,16 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 			for (auto& ComponentToInit : ComponentsToInit)
 			{
 				ComponentToInit.EmitProperties(Context);
+
+				if (Cast<UPrimitiveComponent>(ComponentToInit.ComponentTemplate))
+				{
+					Context.AddLine(FString::Printf(TEXT("if(!%s->IsTemplate())"), *ComponentToInit.NativeVariablePropertyName));
+					Context.AddLine(TEXT("{"));
+					Context.IncreaseIndent();
+					Context.AddLine(FString::Printf(TEXT("%s->BodyInstance.FixupData(%s);"), *ComponentToInit.NativeVariablePropertyName, *ComponentToInit.NativeVariablePropertyName));
+					Context.DecreaseIndent();
+					Context.AddLine(TEXT("}"));
+				}
 			}
 		}
 
@@ -983,20 +1035,6 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 	// TODO: this mechanism could be required by other instanced subobjects.
 	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::Regular;
 	Context.ResetPropertiesForInaccessibleStructs();
-	if (BPGC->IsChildOf<AActor>() && ComponentsToInit.Num())
-	{
-		Context.Header.AddLine(TEXT("virtual void FixComponentsFromDynamicClass() override;"));
-		Context.AddLine(FString::Printf(TEXT("void %s::FixComponentsFromDynamicClass()"), *CppClassName));
-		Context.AddLine(TEXT("{"));
-		Context.IncreaseIndent();
-		Context.AddLine(TEXT("Super::FixComponentsFromDynamicClass();"));
-		for (auto& ComponentToInit : ComponentsToInit)
-		{
-			ComponentToInit.EmitForcedPostLoad(Context);
-		}
-		Context.DecreaseIndent();
-		Context.AddLine(TEXT("}"));
-	}
 
 	Context.ResetPropertiesForInaccessibleStructs();
 	Context.AddLine(FString::Printf(TEXT("void %s::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)"), *CppClassName));

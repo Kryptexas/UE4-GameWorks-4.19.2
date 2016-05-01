@@ -3185,10 +3185,10 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 	return true;
 }
 
-FMetalCodeBackend::FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget) :
+FMetalCodeBackend::FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, bool bInDesktop) :
 	FCodeBackend(InHlslCompileFlags, HCT_FeatureLevelES3_1)
 {
-	bIsDesktop = (InTarget == HCT_FeatureLevelSM4 || InTarget == HCT_FeatureLevelSM5);
+	bIsDesktop = bInDesktop;
 }
 
 void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir)

@@ -4869,6 +4869,8 @@ UWorld* FSeamlessTravelHandler::Tick()
 				}
 			} 
 
+			TArray<AActor*> ActuallyKeptActors;
+
 			// rename dynamic actors in the old world's PersistentLevel that we want to keep into the new world
 			for (FActorIterator It(CurrentWorld); It; ++It)
 			{
@@ -4886,21 +4888,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				if (bSameLevel && (bShouldKeep || (TheActor->Role < ROLE_Authority && !bDormant && !TheActor->IsNetStartupActor())) && !TheActor->IsA(ALevelScriptActor::StaticClass()))
 				{
 					It.ClearCurrent(); //@warning: invalidates *It until next iteration
-					KeepAnnotation.Clear(TheActor);
-					TheActor->Rename(NULL, LoadedWorld->PersistentLevel);
-					// if it's a Controller or a Pawn, add it to the appropriate list in the new world's WorldSettings
-					if (Cast<AController>(TheActor))
-					{
-						LoadedWorld->AddController(static_cast<AController*>(TheActor));
-					}
-					else if (Cast<APawn>(TheActor))
-					{
-						LoadedWorld->AddPawn(static_cast<APawn*>(TheActor));
-					}
-					// add to new world's actor list and remove from old
-					LoadedWorld->PersistentLevel->Actors.Add(TheActor);
-
-					TheActor->bActorSeamlessTraveled = true;
+					ActuallyKeptActors.Add(TheActor);
 				}
 				else
 				{
@@ -4919,6 +4907,28 @@ UWorld* FSeamlessTravelHandler::Tick()
 						NetDriver->NotifyActorLevelUnloaded(TheActor);
 					}
 				}
+			}
+
+			// Second pass to rename and move actors that need to transition into the new world
+			// This is done after cleaning up actors that aren't transitioning in case those actors depend on these
+			// actors being in the same world.
+			for (AActor* const TheActor : ActuallyKeptActors)
+			{
+				KeepAnnotation.Clear(TheActor);
+				TheActor->Rename(NULL, LoadedWorld->PersistentLevel);
+				// if it's a Controller or a Pawn, add it to the appropriate list in the new world's WorldSettings
+				if (Cast<AController>(TheActor))
+				{
+					LoadedWorld->AddController(static_cast<AController*>(TheActor));
+				}
+				else if (Cast<APawn>(TheActor))
+				{
+					LoadedWorld->AddPawn(static_cast<APawn*>(TheActor));
+				}
+				// add to new world's actor list and remove from old
+				LoadedWorld->PersistentLevel->Actors.Add(TheActor);
+
+				TheActor->bActorSeamlessTraveled = true;
 			}
 
 			CopyWorldData(); // This copies the net driver too (LoadedWorld now has whatever NetDriver was previously held by CurrentWorld)

@@ -400,6 +400,11 @@ public:
 		ReflectionCubemap.Bind(ParameterMap, TEXT("ReflectionCubemap"));
 		ReflectionCubemapSampler.Bind(ParameterMap, TEXT("ReflectionCubemapSampler"));
 		CubemapArrayIndex.Bind(ParameterMap, TEXT("CubemapArrayIndex"));
+		ReflectionPositionAndRadius.Bind(ParameterMap, TEXT("ReflectionPositionAndRadius"));
+		ReflectionShape.Bind(ParameterMap, TEXT("ReflectionShape"));
+		BoxTransform.Bind(ParameterMap, TEXT("BoxTransform"));
+		BoxScales.Bind(ParameterMap, TEXT("BoxScales"));		
+		CaptureOffset.Bind(ParameterMap, TEXT("CaptureOffset"));
 		SkyLightReflectionParameters.Bind(ParameterMap);
 	}
 
@@ -414,6 +419,11 @@ public:
 		Ar << P.ReflectionCubemap;
 		Ar << P.ReflectionCubemapSampler;
 		Ar << P.CubemapArrayIndex;
+		Ar << P.ReflectionPositionAndRadius;
+		Ar << P.ReflectionShape;
+		Ar << P.BoxTransform;
+		Ar << P.BoxScales;
+		Ar << P.CaptureOffset;
 		Ar << P.SkyLightReflectionParameters;
 		return Ar;
 	}
@@ -423,7 +433,14 @@ private:
 	FPlanarReflectionParameters PlanarReflectionParameters;
 	FShaderResourceParameter ReflectionCubemap;
 	FShaderResourceParameter ReflectionCubemapSampler;
+
 	FShaderParameter CubemapArrayIndex;
+	FShaderParameter ReflectionPositionAndRadius;	
+	FShaderParameter ReflectionShape;
+	FShaderParameter BoxTransform;
+	FShaderParameter BoxScales;
+	FShaderParameter CaptureOffset;
+
 	FSkyLightReflectionParameters SkyLightReflectionParameters;
 };
 

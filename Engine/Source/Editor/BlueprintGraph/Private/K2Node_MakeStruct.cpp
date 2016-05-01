@@ -361,67 +361,70 @@ void UK2Node_MakeStruct::Serialize(FArchive& Ar)
 		{
 			// Check if this node actually requires warning the user that functionality has changed.
 			bMadeAfterOverridePinRemoval = true;
-			FOptionalPinManager PinManager;
-
-			// Preload all pins so we can examine their values
-			for (UEdGraphPin* Pin : Pins)
+			if (StructType != nullptr)
 			{
-				Ar.Preload(Pin);
-			}
+				FOptionalPinManager PinManager;
 
-			// Have to check if this node is even in danger.
-			for (FOptionalPinFromProperty& PropertyEntry : ShowPinForProperties)
-			{
-				UProperty* Property = StructType->FindPropertyByName(PropertyEntry.PropertyName);
-				bool bNegate = false;
-				if (UProperty* OverrideProperty = PropertyCustomizationHelpers::GetEditConditionProperty(Property, bNegate))
+				// Preload all pins so we can examine their values
+				for (UEdGraphPin* Pin : Pins)
 				{
-					bool bHadOverridePropertySeparation = false;
-					for (FOptionalPinFromProperty& OverridePropertyEntry : ShowPinForProperties)
+					Ar.Preload(Pin);
+				}
+
+				// Have to check if this node is even in danger.
+				for (FOptionalPinFromProperty& PropertyEntry : ShowPinForProperties)
+				{
+					UProperty* Property = StructType->FindPropertyByName(PropertyEntry.PropertyName);
+					bool bNegate = false;
+					if (UProperty* OverrideProperty = PropertyCustomizationHelpers::GetEditConditionProperty(Property, bNegate))
 					{
-						if (OverridePropertyEntry.PropertyName == OverrideProperty->GetFName())
+						bool bHadOverridePropertySeparation = false;
+						for (FOptionalPinFromProperty& OverridePropertyEntry : ShowPinForProperties)
 						{
-							bHadOverridePropertySeparation = true;
-							break;
+							if (OverridePropertyEntry.PropertyName == OverrideProperty->GetFName())
+							{
+								bHadOverridePropertySeparation = true;
+								break;
+							}
 						}
-					}
 
-					bMadeAfterOverridePinRemoval = false;
-					UEdGraphPin* Pin = FindPin(Property->GetName());
+						bMadeAfterOverridePinRemoval = false;
+						UEdGraphPin* Pin = FindPin(Property->GetName());
 
-					if (bHadOverridePropertySeparation)
-					{
-						UEdGraphPin* OverridePin = FindPin(OverrideProperty->GetName());
-						const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-						if (OverridePin)
+						if (bHadOverridePropertySeparation)
 						{
-							// Override pins are always booleans
-							check(OverridePin->PinType.PinCategory == Schema->PC_Boolean);
-							// If the old override pin's default value was true, then the override should be marked as enabled
-							PropertyEntry.bIsOverrideEnabled = OverridePin->DefaultValue.ToBool();
-							// It had an override pin, so conceptually the override pin is visible
-							PropertyEntry.bIsOverridePinVisible = true;
-							// Because there was an override pin visible for this property, this property will be forced to have a pin
-							PropertyEntry.bShowPin = true;
+							UEdGraphPin* OverridePin = FindPin(OverrideProperty->GetName());
+							const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+							if (OverridePin)
+							{
+								// Override pins are always booleans
+								check(OverridePin->PinType.PinCategory == Schema->PC_Boolean);
+								// If the old override pin's default value was true, then the override should be marked as enabled
+								PropertyEntry.bIsOverrideEnabled = OverridePin->DefaultValue.ToBool();
+								// It had an override pin, so conceptually the override pin is visible
+								PropertyEntry.bIsOverridePinVisible = true;
+								// Because there was an override pin visible for this property, this property will be forced to have a pin
+								PropertyEntry.bShowPin = true;
+							}
+							else
+							{
+								// No override pin, ensure all override bools are false
+								PropertyEntry.bIsOverrideEnabled = false;
+								PropertyEntry.bIsOverridePinVisible = false;
+							}
 						}
 						else
 						{
-							// No override pin, ensure all override bools are false
-							PropertyEntry.bIsOverrideEnabled = false;
-							PropertyEntry.bIsOverridePinVisible = false;
+							if (Pin)
+							{
+								PropertyEntry.bIsOverrideEnabled = true;
+								PropertyEntry.bIsOverridePinVisible = true;
+							}
 						}
-					}
-					else
-					{
-						if (Pin)
-						{
-							PropertyEntry.bIsOverrideEnabled = true;
-							PropertyEntry.bIsOverridePinVisible = true;
-						}
-					}
 
-					// If the pin for this property, which sets the property's value, does not exist then the user was not trying to set the value
-					PropertyEntry.bIsSetValuePinVisible = Pin != nullptr;
+						// If the pin for this property, which sets the property's value, does not exist then the user was not trying to set the value
+						PropertyEntry.bIsSetValuePinVisible = Pin != nullptr;
+					}
 				}
 			}
 		}

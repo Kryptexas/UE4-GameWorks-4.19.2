@@ -39,7 +39,7 @@ public:
 
 protected:
 	/** Return true if the an object of type ObjectClass is allowed to be created; If false is returned, the object and subobjects will be ignored. */
-	virtual bool CanCreateClass(UClass* ObjectClass) const;
+	virtual bool CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const;
 
 	/** This is called on each created object after the property text is imported */
 	virtual void ProcessConstructedObject(UObject* CreatedObject);

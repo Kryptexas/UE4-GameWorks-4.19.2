@@ -153,6 +153,27 @@ void FRCPassPostProcessBufferInspector::Process(FRenderingCompositePassContext& 
 			}
 
 			//////////////////////////////////////////////////////////////////////////
+			// SCENE COLOR
+			const FTexture2DRHIRef &DestinationBufferSceneColor = Scene->PixelInspectorData.RenderTargetBufferSceneColor[PixelInspectorRequest->BufferIndex]->GetRenderTargetTexture();
+			if (DestinationBufferSceneColor.IsValid())
+			{
+				const FRenderingCompositeOutputRef* OutputRef0 = GetInput(ePId_Input2);
+				if (OutputRef0)
+				{
+					FRenderingCompositeOutput* Input = OutputRef0->GetOutput();
+					if (Input && Input->PooledRenderTarget.IsValid() && Input->PooledRenderTarget->GetRenderTargetItem().ShaderResourceTexture.IsValid())
+					{
+						FTexture2DRHIRef SourceBufferSceneColor = (FRHITexture2D*)(Input->PooledRenderTarget->GetRenderTargetItem().ShaderResourceTexture.GetReference());
+						if (DestinationBufferSceneColor->GetFormat() == SourceBufferSceneColor->GetFormat())
+						{
+							FBox2D DestinationBox(FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f));
+							RHICmdList.CopySubTextureRegion(SourceBufferSceneColor, DestinationBufferSceneColor, SourceBox, DestinationBox);
+						}
+					}
+				}
+			}
+
+			//////////////////////////////////////////////////////////////////////////
 			// HDR
 			const FTexture2DRHIRef &DestinationBufferHDR = Scene->PixelInspectorData.RenderTargetBufferHDR[PixelInspectorRequest->BufferIndex]->GetRenderTargetTexture();
 			if (InputDescHDR != nullptr && DestinationBufferHDR.IsValid())

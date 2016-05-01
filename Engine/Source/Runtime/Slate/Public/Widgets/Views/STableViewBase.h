@@ -91,6 +91,9 @@ public:
 	/** Set the scroll offset of this view (in items) */
 	void SetScrollOffset( const float InScrollOffset );
 
+	/** Add the scroll offset of this view (in items) */
+	void AddScrollOffset(const float InScrollOffsetDelta, bool RefreshList = false);
+
 public:
 
 	// SWidget interface

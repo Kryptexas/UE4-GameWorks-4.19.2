@@ -688,6 +688,19 @@ void STableViewBase::SetScrollOffset( const float InScrollOffset )
 	}
 }
 
+void STableViewBase::AddScrollOffset(const float InScrollOffsetDelta, bool RefreshList)
+{
+	if (FMath::IsNearlyEqual(InScrollOffsetDelta, 0.0f) == false)
+	{
+		ScrollOffset += InScrollOffsetDelta;
+		if (RefreshList)
+		{
+			OnTableViewScrolled.ExecuteIfBound(ScrollOffset);
+			RequestListRefresh();
+		}
+	}
+}
+
 void STableViewBase::InsertWidget( const TSharedRef<ITableRow> & WidgetToInset )
 {
 	ItemsPanel->AddSlot(0)

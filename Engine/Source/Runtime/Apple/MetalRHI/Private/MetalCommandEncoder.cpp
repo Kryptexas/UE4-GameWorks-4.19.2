@@ -74,6 +74,7 @@ FMetalCommandEncoder::~FMetalCommandEncoder(void)
 		[DepthStencilState release];
 	}
 	[RenderPassDesc release];
+	RenderPassDesc = nil;
 
 	if(DebugGroups)
 	{
@@ -204,6 +205,11 @@ bool FMetalCommandEncoder::IsComputeCommandEncoderActive(void) const
 bool FMetalCommandEncoder::IsBlitCommandEncoderActive(void) const
 {
 	return BlitCommandEncoder != nil;
+}
+
+bool FMetalCommandEncoder::IsRenderPassDescriptorValid(void) const
+{
+	return (RenderPassDesc != nil);
 }
 
 id<MTLRenderCommandEncoder> FMetalCommandEncoder::GetRenderCommandEncoder(void) const
@@ -514,6 +520,7 @@ void FMetalCommandEncoder::SetRenderPassDescriptor(MTLRenderPassDescriptor* cons
 		}
 		RenderPassDesc = RenderPass;
 	}
+	check(RenderPassDesc);
 	
 	if (bReset)
 	{

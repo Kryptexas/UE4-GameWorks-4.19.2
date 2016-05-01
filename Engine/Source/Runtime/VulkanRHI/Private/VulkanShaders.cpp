@@ -225,7 +225,6 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 	, BindingsNum(0)
 	, BindingsMask(0)
 	, AttributesNum(0)
-	, LastFrameRendered(-1)
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	, GlobalListLink(this)
 #endif
@@ -243,20 +242,12 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 	FMemory::Memzero(DirtyPackedUniformBufferStagingMask);
 	FMemory::Memzero(DescriptorBufferInfoForStage);
 	FMemory::Memzero(SRVWriteInfoForStage);
-	FMemory::Memzero(CurrentDS);
 
 	#if VULKAN_HAS_DEBUGGING_ENABLED
 		FMemory::Memzero(ImageDescCount);		
 	#endif
 
 	check(Device);
-
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	//#todo-rco: Fix this!
-	LastFrameRendered = GFrameNumberRenderThread;
-#else
-	LastFrameRendered = Device->GetPendingState().GetCurrentCommandBufferIndex();
-#endif
 
 	Layout = new FVulkanDescriptorSetsLayout(Device);
 
@@ -333,15 +324,11 @@ FVulkanBoundShaderState::~FVulkanBoundShaderState()
 	GlobalListLink.Unlink();
 #endif
 
-	// Nuke descriptor sets
-	for(uint32 CommandIndex=0; CommandIndex<VULKAN_NUM_COMMAND_BUFFERS; ++CommandIndex)
+	for (int32 Index = 0; Index < DescriptorSetsEntries.Num(); ++Index)
 	{
-		TArray<FVulkanDescriptorSets*>& Sets = DescriptorSets[CommandIndex];
-		for(FVulkanDescriptorSets* DescriptorSet : Sets)
-		{
-			Device->GetPendingState().DeallocateDescriptorSet(DescriptorSet, this);
-		}
+		delete DescriptorSetsEntries[Index];
 	}
+	DescriptorSetsEntries.Empty(0);
 
 	// toss the pipeline states
 	for (auto& Pair : PipelineCache)
@@ -396,7 +383,9 @@ FVulkanPipeline* FVulkanBoundShaderState::PrepareForDraw(const FVulkanPipelineGr
 #if !UE_BUILD_SHIPPING
 			if (Device->FrameCounter > 3)
 			{
-				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Created a hitchy pipeline state for hash %llx %x (this = %p) VS %s %p %d PS %s %p %d\n"), PipelineKey, VertexInputKey, this, *VertexShader->DebugName, (void*)VertexShader.GetReference(), VertexShader->GlslSource.Num(), *PixelShader->DebugName, (void*)PixelShader.GetReference(), PixelShader->GlslSource.Num());
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Created a hitchy pipeline state for hash %llx%llx %x (this = %x) VS %s %x %d PS %s %x %d\n"), 
+					PipelineKey.Key[0], PipelineKey.Key[1], VertexInputKey, this, *VertexShader->DebugName, (void*)VertexShader.GetReference(), VertexShader->GlslSource.Num(), 
+					*PixelShader->DebugName, (void*)PixelShader.GetReference(), PixelShader->GlslSource.Num());
 			}
 #endif
 		}
@@ -423,18 +412,6 @@ void FVulkanBoundShaderState::ResetState()
 
 	CurrDescriptorSets = nullptr;
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	//#todo-rco: Fix this!
-	const uint32 CurrentImageIndex = GFrameNumberRenderThread % ARRAY_COUNT(CurrentDS);
-#else
-	// reset the DS list the first time it's used in a frame
-	const uint32 CurrentImageIndex = Device->GetPendingState().GetCurrentCommandBufferIndex();
-#endif
-	if (LastFrameRendered != CurrentImageIndex)
-	{
-		CurrentDS[CurrentImageIndex] = 0;
-		LastFrameRendered = CurrentImageIndex;
-	}
 	LastBoundPipeline = VK_NULL_HANDLE;
 	bDirtyVertexStreams = true;
 }
@@ -1053,7 +1030,48 @@ void FVulkanBoundShaderState::SetLastError(const FString& Error)
 }
 #endif
 
-void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanGlobalUniformPool* GlobalUniformPool)
+FVulkanBoundShaderState::FDescriptorSetsPair::~FDescriptorSetsPair()
+{
+	delete DescriptorSets;
+}
+
+inline FVulkanDescriptorSets* FVulkanBoundShaderState::RequestDescriptorSets(FVulkanCmdBuffer* CmdBuffer)
+{
+	//#todo-rco: Make thread safe!
+	FDescriptorSetsEntry* FoundEntry = nullptr;
+	for (FDescriptorSetsEntry* DescriptorSetsEntry : DescriptorSetsEntries)
+	{
+		if (DescriptorSetsEntry->CmdBuffer == CmdBuffer)
+		{
+			FoundEntry = DescriptorSetsEntry;
+		}
+	}
+
+	if (!FoundEntry)
+	{
+		FoundEntry = new FDescriptorSetsEntry(CmdBuffer);
+		DescriptorSetsEntries.Add(FoundEntry);
+	}
+
+	const uint64 CmdBufferFenceSignaledCounter = CmdBuffer->GetFenceSignaledCounter();
+	for (int32 Index = 0; Index < FoundEntry->Pairs.Num(); ++Index)
+	{
+		FDescriptorSetsPair& Entry = FoundEntry->Pairs[Index];
+		if (Entry.FenceCounter < CmdBufferFenceSignaledCounter)
+		{
+			Entry.FenceCounter = CmdBufferFenceSignaledCounter;
+			return Entry.DescriptorSets;
+		}
+	}
+
+	FDescriptorSetsPair* NewEntry = new (FoundEntry->Pairs) FDescriptorSetsPair;
+	NewEntry->DescriptorSets = new FVulkanDescriptorSets(Device, this, Device->GetDescriptorPool());
+	NewEntry->FenceCounter = CmdBufferFenceSignaledCounter;
+	return NewEntry->DescriptorSets;
+}
+
+
+void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool)
 {
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 	SCOPE_CYCLE_COUNTER(STAT_VulkanUpdateDescriptorSets);
@@ -1065,24 +1083,7 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanGlobalUniformPool* Glo
 
 	int32 WriteIndex = 0;
 
-	// get the next available DS
-
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	//#todo-rco: Fix this!
-	const uint32 CurrentImageIndex = GFrameNumberRenderThread % ARRAY_COUNT(CurrentDS);
-#else
-	// This is the image where we are going to execute command buffer into
-	const uint32 CurrentImageIndex = Device->GetPendingState().GetCurrentCommandBufferIndex();
-#endif
-	TArray<FVulkanDescriptorSets*>& CurrentDescriptorSet = DescriptorSets[CurrentImageIndex];
-	int32& CurrentDescriptorSetIndex = CurrentDS[CurrentImageIndex];
-
-	if (CurrentDescriptorSetIndex == CurrentDescriptorSet.Num())
-	{
-		// @todo vulkan: we need to check we don't make more of these than MaxSets in FVulkanPendingState constructor!!
-		CurrentDescriptorSet.Push(State.AllocateDescriptorSet(this));
-	}
-	CurrDescriptorSets = CurrentDescriptorSet[CurrentDescriptorSetIndex++];
+	CurrDescriptorSets = RequestDescriptorSets(CmdBuffer);
 
 	auto& DescriptorSetHandles = CurrDescriptorSets->GetHandles();
 	int32 DescriptorSetIndex = 0;
@@ -1090,7 +1091,7 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanGlobalUniformPool* Glo
 #if VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS
 	// this is an optimization for the ring buffer to only truly lock once for all uniforms
 	FVulkanRingBuffer* RingBuffer = Device->GetUBRingBuffer();
-	uint8* RingBufferBase = (uint8*)RingBuffer->Buffer->GetMappedPointer();
+	uint8* RingBufferBase = (uint8*)RingBuffer->GetMappedPointer();
 #endif
 
 	//#todo-rco: Compute!
@@ -1156,8 +1157,8 @@ void FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanGlobalUniformPool* Glo
 					// Here we can specify a more precise buffer update
 					// However, this need to complemented with the buffer map/unmap functionality.
 					//@NOTE: bufferView is for texel buffers
-					BufferInfo->buffer = RingBuffer->Buffer->GetHandle();
-					BufferInfo->offset = RingBufferOffset;
+					BufferInfo->buffer = RingBuffer->GetHandle();
+					BufferInfo->offset = RingBufferOffset + RingBuffer->GetBufferOffset();
 					BufferInfo->range = UBSize;
 
 #else

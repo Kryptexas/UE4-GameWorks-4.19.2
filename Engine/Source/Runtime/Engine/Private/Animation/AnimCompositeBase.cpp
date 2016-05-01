@@ -630,6 +630,10 @@ void FAnimTrack::InvalidateRecursiveAsset(class UAnimCompositeBase* CheckAsset)
 				AnimSegment.bValid = IsValidToAdd(CompositeBase);
 			}
 		}
+		else
+		{
+			AnimSegment.bValid = IsValidToAdd(AnimSegment.AnimReference);
+		}
 	}
 }
 
@@ -663,6 +667,19 @@ void FAnimTrack::GetAnimNotifiesFromTrackPositions(const float& PreviousTrackPos
 			AnimSegments[SegmentIndex].GetAnimNotifiesFromTrackPositions(PreviousTrackPosition, CurrentTrackPosition, OutActiveNotifies);
 		}
 	}
+}
+
+bool FAnimTrack::IsNotifyAvailable() const
+{
+	for (int32 SegmentIndex = 0; SegmentIndex < AnimSegments.Num(); ++SegmentIndex)
+	{
+		if (AnimSegments[SegmentIndex].IsNotifyAvailable())
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool FAnimTrack::IsValidToAdd(const UAnimSequenceBase* SequenceBase) const

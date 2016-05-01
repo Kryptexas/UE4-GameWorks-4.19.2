@@ -71,14 +71,6 @@ PFNGLCLEARBUFFERUIVPROC					glClearBufferuiv = NULL;
 PFNGLDRAWBUFFERSPROC					glDrawBuffers = NULL;
 PFNGLTEXBUFFEREXTPROC					glTexBufferEXT = NULL;
 
-static TAutoConsoleVariable<int32> CVarAndroidDisableTextureFormatBGRA8888(
-	TEXT("android.DisableTextureFormatBGRA8888"),
-	0,
-	TEXT("Whether to disable usage of GL_EXT_texture_format_BGRA8888 extension.\n")
-	TEXT(" 0: Enable when extension is available (default)\n")
-	TEXT(" 1: Always disabled"),
-	ECVF_ReadOnly);
-
 struct FPlatformOpenGLDevice
 {
 
@@ -346,6 +338,7 @@ bool FAndroidOpenGL::bUseES30ShadingLanguage = false;
 bool FAndroidOpenGL::bES30Support = false;
 bool FAndroidOpenGL::bES31Support = false;
 bool FAndroidOpenGL::bSupportsInstancing = false;
+bool FAndroidOpenGL::bHasHardwareHiddenSurfaceRemoval = false;
 
 void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
@@ -405,6 +398,13 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		bRequiresTexture2DPrecisionHack = true;
 	}
 
+	const bool bIsPoverVRBased = RendererString.Contains(TEXT("PowerVR"));
+	if (bIsPoverVRBased)
+	{
+		bHasHardwareHiddenSurfaceRemoval = true;
+		UE_LOG(LogRHI, Log, TEXT("Enabling support for Hidden Surface Removal on PowerVR"));
+	}
+	
 	const bool bIsAdrenoBased = RendererString.Contains(TEXT("Adreno"));
 	if (bIsAdrenoBased)
 	{
@@ -495,10 +495,22 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		bSupportsInstancing = false;
 	}
 
-	if (bSupportsBGRA8888 && CVarAndroidDisableTextureFormatBGRA8888.GetValueOnAnyThread() == 1)
+	if (bSupportsBGRA8888)
 	{
-		UE_LOG(LogRHI, Warning, TEXT("Disabling support for GL_EXT_texture_format_BGRA8888"));
-		bSupportsBGRA8888 = false;
+		// Check whether device supports BGRA as color attachment
+		GLuint FrameBuffer;
+		glGenFramebuffers(1, &FrameBuffer);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FrameBuffer);
+		GLuint BGRA8888Texture;
+		glGenTextures(1, &BGRA8888Texture);
+		glBindTexture(GL_TEXTURE_2D, BGRA8888Texture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA_EXT, 256, 256, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, NULL);
+		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, BGRA8888Texture, 0);
+
+		bSupportsBGRA8888RenderTarget = (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+		glDeleteTextures(1, &BGRA8888Texture);
+		glDeleteFramebuffers(1, &FrameBuffer);
 	}
 }
 

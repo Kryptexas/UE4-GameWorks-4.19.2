@@ -869,6 +869,10 @@ struct SLATECORE_API FSliderStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateBrush DisabledThumbImage;
 	FSliderStyle& SetDisabledThumbImage( const FSlateBrush& InDisabledThumbImage ){ DisabledThumbImage = InDisabledThumbImage; return *this; }
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	float BarThickness;
+	FSliderStyle& SetBarThickness(float InBarThickness) { BarThickness = InBarThickness; return *this; }
 };
 
 

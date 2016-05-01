@@ -694,6 +694,64 @@ bool UConsole::InputKey_InputLine( int32 ControllerId, FKey Key, EInputEvent Eve
 		return true;
 	}
 
+	auto DecrementCursor = [this]()
+	{
+		if (AutoCompleteCursor > 0)
+		{
+			// move cursor within displayed region
+			--AutoCompleteCursor;
+		}
+		else
+		{
+			// can we scroll?
+			if (AutoCompleteIndex > 0)
+			{
+				--AutoCompleteIndex;
+			}
+			else
+			{
+				// wrap around
+				AutoCompleteIndex = FMath::Max(0, AutoComplete.Num() - (int32)MAX_AUTOCOMPLETION_LINES - 1);
+				if (AutoComplete.Num() <= MAX_AUTOCOMPLETION_LINES)
+				{
+					AutoCompleteCursor = AutoComplete.Num() + AutoCompleteCursor - 1;
+				}
+				else
+				{
+					// skip the "x more matches" line when wrapping
+					AutoCompleteIndex++;
+					AutoCompleteCursor = MAX_AUTOCOMPLETION_LINES + AutoCompleteCursor - 1;
+				}
+			}
+			bAutoCompleteLocked = false;
+		}
+	};
+
+	auto IncrementCursor = [this]()
+	{
+		if (AutoCompleteCursor + 1 < FMath::Min((int32)MAX_AUTOCOMPLETION_LINES, AutoComplete.Num()))
+		{
+			// move cursor within displayed region
+			++AutoCompleteCursor;
+		}
+		else
+		{
+			// can be negative
+			int32 ScrollRegionSize = AutoComplete.Num() - (int32)MAX_AUTOCOMPLETION_LINES;
+
+			// can we scroll?
+			if (AutoCompleteIndex < ScrollRegionSize)
+			{
+				++AutoCompleteIndex;
+			}
+			else
+			{
+				// wrap around
+				AutoCompleteIndex = AutoCompleteCursor = 0;
+			}
+		}
+	};
+
 	// if user input is open
 	if(ConsoleState != NAME_None)
 	{
@@ -779,34 +837,13 @@ bool UConsole::InputKey_InputLine( int32 ControllerId, FKey Key, EInputEvent Eve
 			{
 				if(AutoComplete.Num())
 				{
-					if (AutoCompleteCursor > 0)
+					if (ConsoleSettings->bOrderTopToBottom)
 					{
-						// move cursor within displayed region
-						--AutoCompleteCursor;
+						DecrementCursor();
 					}
 					else
 					{
-						// can we scroll?
-						if(AutoCompleteIndex > 0)
-						{
-							--AutoCompleteIndex;
-						}
-						else
-						{
-							// wrap around
-							AutoCompleteIndex = FMath::Max(0, AutoComplete.Num() - (int32)MAX_AUTOCOMPLETION_LINES - 1);
-							if (AutoComplete.Num() <= MAX_AUTOCOMPLETION_LINES)
-							{
-								AutoCompleteCursor = AutoComplete.Num() + AutoCompleteCursor - 1;
-							}
-							else
-							{
-								// skip the "x more matches" line when wrapping
-								AutoCompleteIndex++;
-								AutoCompleteCursor = MAX_AUTOCOMPLETION_LINES + AutoCompleteCursor - 1;
-							}
-						}
-						bAutoCompleteLocked = false;
+						IncrementCursor();
 					}
 				}
 				else
@@ -818,41 +855,35 @@ bool UConsole::InputKey_InputLine( int32 ControllerId, FKey Key, EInputEvent Eve
 		}
 		else if( Key == EKeys::Down || Key == EKeys::Tab )
 		{
-			if (!bCtrl && AutoComplete.Num())
+			if (!bCtrl)
 			{
-				bool bScroll = AutoComplete.Num() > 1;
-
-				if (Key == EKeys::Tab)
+				if (AutoComplete.Num())
 				{
-					bCaptureKeyInput = true;
+					bool bScroll = AutoComplete.Num() > 1;
 
-					// If this is a repeated tab press, we want to scroll. Otherwise complete the current command
-					bScroll = bScroll && LastAutoCompletedCommand == TypedStr;
-				}
-
-				if (bScroll)
-				{
-					if (AutoCompleteCursor + 1 < FMath::Min((int32)MAX_AUTOCOMPLETION_LINES, AutoComplete.Num()))
+					if (Key == EKeys::Tab)
 					{
-						// move cursor within displayed region
-						++AutoCompleteCursor;
+						bCaptureKeyInput = true;
+
+						// If this is a repeated tab press, we want to scroll. Otherwise complete the current command
+						bScroll = bScroll && LastAutoCompletedCommand == TypedStr;
 					}
-					else
-					{
-						// can be negative
-						int32 ScrollRegionSize = AutoComplete.Num() - (int32)MAX_AUTOCOMPLETION_LINES;
 
-						// can we scroll?
-						if (AutoCompleteIndex < ScrollRegionSize)
+					if (bScroll)
+					{
+						if (ConsoleSettings->bOrderTopToBottom)
 						{
-							++AutoCompleteIndex;
+							IncrementCursor();
 						}
 						else
 						{
-							// wrap around
-							AutoCompleteIndex = AutoCompleteCursor = 0;
+							DecrementCursor();
 						}
 					}
+				}
+				else
+				{
+					SetAutoCompleteFromHistory();
 				}
 
 				SetInputLineFromAutoComplete();
@@ -1331,10 +1362,8 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 		Canvas->DrawItem(ConsoleOutline, UserInputLinePos.X + xl - Border, y + yl - Height - Border);
 
 		// auto completion elements
-		for(int32 Num = AutoCompleteElements.Num(), i = Num - 1; i >= 0; --i)
+		auto DrawElement = [&](const FAutoCompleteCommand& AutoCompleteElement, int32 i, int32 Num)
 		{
-			const FAutoCompleteCommand& AutoCompleteElement = *AutoCompleteElements[i];
-
 			const bool bCursorLineColor = (i == AutoCompleteCursor);
 			const bool bMoreMatches = (Num > MAX_AUTOCOMPLETION_LINES && i == Num - 1);
 			const bool bHistory = AutoCompleteElement.IsHistory();
@@ -1390,6 +1419,21 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 			ConsoleText.Text = FText::FromString(AutoCompleteElement.GetRight());
 			Canvas->DrawItem( ConsoleText, DescriptionX, y );
 			y -= yl;
+		};
+
+		if (ConsoleSettings->bOrderTopToBottom)
+		{
+			for (int32 Num = AutoCompleteElements.Num(), i = Num - 1; i >= 0; --i)
+			{
+				DrawElement(*AutoCompleteElements[i], i, Num);
+			}
+		}
+		else
+		{
+			for (int32 Num = AutoCompleteElements.Num(), i = 0; i < Num; ++i)
+			{
+				DrawElement(*AutoCompleteElements[i], i, Num);
+			}
 		}
 	}
 

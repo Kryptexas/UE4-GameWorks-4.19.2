@@ -125,7 +125,7 @@ public:
 	{
 		// Slight Depth Bias so that the splines show up when they exactly match the target surface
 		// e.g. someone playing with splines on a newly-created perfectly-flat landscape
-		static const float DepthBias = -0.0001;
+		static const float DepthBias = 0.0001;
 
 		const FMatrix& LocalToWorld = GetLocalToWorld();
 
@@ -1581,8 +1581,15 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 		Points.Emplace(StartLocation, LeftPos, RightPos, FalloffLeftPos, FalloffRightPos, 1.0f);
 	}
 
-	// Update Bounds
+	// Update bounds
 	Bounds = FBox(0);
+
+	// Sprite bounds
+	float SpriteScale = FMath::Clamp<float>(Width != 0 ? Width / 2 : SideFalloff / 4, 10, 1000);
+	Bounds += Location + FVector(0, 0, 0.75f * SpriteScale);
+	Bounds = Bounds.ExpandBy(SpriteScale);
+
+	// Points bounds
 	for (const FLandscapeSplineInterpPoint& Point : Points)
 	{
 		Bounds += Point.FalloffLeft;

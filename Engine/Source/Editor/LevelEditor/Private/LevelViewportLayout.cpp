@@ -245,7 +245,8 @@ void FLevelViewportLayout::SaveCommonLayoutString( const FString& SpecificLayout
 	// Save all our data using the additional layout config
 	for (auto& Pair : Viewports)
 	{
-		FString ConfigName = SpecificLayoutString + Pair.Key.ToString();
+		// The Viewports map is keyed on the full config name, so no need to prepend the SpecificLayoutString
+		FString ConfigName = Pair.Key.ToString();
 
 		Pair.Value->SaveConfig(ConfigName);
 

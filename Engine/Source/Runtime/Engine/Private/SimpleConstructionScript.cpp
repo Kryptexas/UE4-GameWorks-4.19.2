@@ -896,9 +896,10 @@ USceneComponent* USimpleConstructionScript::GetSceneRootComponentTemplate(USCS_N
 
 		for(int32 StackIndex = 0; StackIndex < BPStack.Num(); ++StackIndex)
 		{
-			if(BPStack[StackIndex] && BPStack[StackIndex]->SimpleConstructionScript)
+			if(BPStack[StackIndex] && BPStack[StackIndex]->SimpleConstructionScript && !SCSStack.Contains(BPStack[StackIndex]->SimpleConstructionScript))
 			{
-				SCSStack.AddUnique(BPStack[StackIndex]->SimpleConstructionScript);
+				// UBlueprint::GetBlueprintHierarchyFromClass returns first children then parents. So we need to revert the order.
+				SCSStack.Insert(BPStack[StackIndex]->SimpleConstructionScript, 0);
 			}
 		}
 

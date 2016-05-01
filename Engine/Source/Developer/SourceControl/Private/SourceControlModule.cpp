@@ -172,8 +172,6 @@ void FSourceControlModule::OnSourceControlDialogClosed(const TSharedRef<SWindow>
 	bTemporarilyDisabled = false;
 
 #if WITH_EDITOR
-	GetMutableDefault<UEditorLoadingSavingSettings>()->CheckSourceControlCompatability();
-
 	FString NewProvider = CurrentSourceControlProvider->GetName().ToString();
 	if( FEngineAnalytics::IsAvailable() && !ActiveProviderName.Equals( NewProvider, ESearchCase::IgnoreCase ))
 	{

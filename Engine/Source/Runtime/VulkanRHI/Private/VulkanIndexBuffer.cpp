@@ -152,19 +152,10 @@ void FVulkanResourceMultiBuffer::Unlock()
 			uint32 LockOffset = PendingLock.Offset;
 			VulkanRHI::FStagingBuffer* StagingBuffer = PendingLock.StagingBuffer;
 			PendingLock.StagingBuffer = nullptr;
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-			FVulkanCmdBuffer* Cmd = Device->GetImmediateContext().GetCommandBufferManager()->GetActiveCmdBuffer();
+
+			FVulkanCmdBuffer* Cmd = Device->GetImmediateContext().GetCommandBufferManager()->GetUploadCmdBuffer();
 			ensure(Cmd->IsOutsideRenderPass());
 			VkCommandBuffer CmdBuffer = Cmd->GetHandle();
-#else
-			VkCommandBuffer CmdBuffer = VK_NULL_HANDLE;
-			FVulkanCmdBuffer* CmdObject = nullptr;
-
-			CmdObject = Device->GetImmediateContext().GetCommandBufferManager()->Create();
-			check(CmdObject);
-			CmdObject->Begin();
-			CmdBuffer = CmdObject->GetHandle();
-#endif
 
 			VkBufferCopy Region;
 			FMemory::Memzero(Region);
@@ -174,14 +165,8 @@ void FVulkanResourceMultiBuffer::Unlock()
 			vkCmdCopyBuffer(CmdBuffer, StagingBuffer->GetHandle(), Buffers[DynamicBufferIndex]->GetHandle(), 1, &Region);
 			//UpdateBuffer(ResourceAllocation, IndexBuffer->GetBuffer(), LockSize, LockOffset);
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-			Device->GetDeferredDeletionQueue().EnqueueResource(Cmd, StagingBuffer);
-#else
-			check(CmdObject);
-			Device->GetQueue()->SubmitBlocking(CmdObject);
-			Device->GetImmediateContext().GetCommandBufferManager()->Destroy(CmdObject);
-#endif
-			Device->GetStagingManager().ReleaseBuffer(StagingBuffer);
+			//Device->GetDeferredDeletionQueue().EnqueueResource(Cmd, StagingBuffer);
+			Device->GetStagingManager().ReleaseBuffer(Cmd, StagingBuffer);
 		}
 	}
 }

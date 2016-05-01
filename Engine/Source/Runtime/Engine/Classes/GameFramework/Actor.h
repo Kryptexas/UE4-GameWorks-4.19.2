@@ -2322,9 +2322,6 @@ public:
 	 */
 	void ExecuteConstruction(const FTransform& Transform, const class FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform = false);
 
-	// Forces PostLoad call on natively created components, that were originally in SCS
-	virtual void FixComponentsFromDynamicClass();
-
 	/**
 	 * Called when an instance of this class is placed (in editor) or spawned.
 	 * @param	Transform			The transform the actor was constructed at.
@@ -2717,6 +2714,12 @@ public:
 	/** Completely synchronizes the replicated components array so that it contains exactly the number of replicated components currently owned
 	 */
 	void UpdateAllReplicatedComponents();
+
+	/** Returns whether replication is enabled or not. */
+	FORCEINLINE bool GetIsReplicated() const
+	{
+		return bReplicates;
+	}
 
 	/** Returns a constant reference to the replicated components set
 	 */

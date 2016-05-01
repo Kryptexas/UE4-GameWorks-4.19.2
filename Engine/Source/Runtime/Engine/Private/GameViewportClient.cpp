@@ -35,6 +35,7 @@
 #include "IMovieSceneCapture.h"
 #include "MovieSceneCaptureSettings.h"
 #include "ActorEditorUtils.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 #define LOCTEXT_NAMESPACE "GameViewport"
 
@@ -56,9 +57,6 @@ FSimpleMulticastDelegate UGameViewportClient::CreatedDelegate;
 
 /** A list of all the stat names which are enabled for this viewport (static so they persist between runs) */
 TArray<FString> UGameViewportClient::EnabledStats;
-
-/** The number of GameViewportClients which have enabled 'show collision' */
-int32 UGameViewportClient::NumViewportsShowingCollision = 0;
 
 /** Those sound stat flags which are enabled on this viewport */
 FViewportClient::ESoundShowFlags::Type UGameViewportClient::SoundShowFlags = FViewportClient::ESoundShowFlags::Disabled;
@@ -1376,7 +1374,7 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 	// We need to reset some key inputs, since keyup events will sometimes not be processed (such as going into immersive/maximized mode).  
 	// Resetting them will prevent them from "sticking"
 	UWorld* const ViewportWorld = GetWorld();
-	if (ViewportWorld)
+	if (ViewportWorld && !ViewportWorld->bIsTearingDown)
 	{
 		for (FConstPlayerControllerIterator Iterator = ViewportWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
@@ -2173,26 +2171,6 @@ bool UGameViewportClient::HandleForceFullscreenCommand( const TCHAR* Cmd, FOutpu
 	return true;
 }
 
-/** Contains the previous state of a primitive before turning on collision visibility */
-struct CollVisibilityState
-{
-	bool bHiddenInGame;
-	bool bVisible;
-
-	CollVisibilityState(bool InHidden, bool InVisible) :
-		bHiddenInGame(InHidden),
-		bVisible(InVisible)
-	{
-	}
-};
-
-typedef TMap<TWeakObjectPtr<UPrimitiveComponent>, CollVisibilityState> CollisionComponentVisibilityMap;
-CollisionComponentVisibilityMap& GetCollisionComponentVisibilityMap()
-{
-	static CollisionComponentVisibilityMap Mapping;
-	return Mapping;
-}
-
 bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
 #if UE_BUILD_SHIPPING
@@ -2384,62 +2362,17 @@ void UGameViewportClient::ToggleShowCollision()
 			EngineShowFlags.SetVolumes(false);
 			ToggleShowVolumes();
 		}
-
-		NumViewportsShowingCollision++;
-		if (World != nullptr)
-		{
-			ShowCollisionOnSpawnedActorsDelegateHandle = World->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UGameViewportClient::ShowCollisionOnSpawnedActors));
-		}
 	}
-	else
+
+	if (World != nullptr)
 	{
-		NumViewportsShowingCollision--;
-		check(NumViewportsShowingCollision >= 0);
-		if (World != nullptr)
-		{
-			World->RemoveOnActorSpawnedHandler(ShowCollisionOnSpawnedActorsDelegateHandle);
-		}
+		// Tell engine to create proxies for hidden components, so we can still draw collision
+		World->bCreateRenderStateForHiddenComponents = bIsShowingCollision;
+
+		// Need to recreate scene proxies when this flag changes.
+		FGlobalComponentRecreateRenderStateContext Recreate;
 	}
 
-	CollisionComponentVisibilityMap& Mapping = GetCollisionComponentVisibilityMap();
-
-	// Restore state to any object in the map above
-	for (CollisionComponentVisibilityMap::TIterator It(Mapping); It; ++It)
-	{
-		TWeakObjectPtr<UPrimitiveComponent>& PrimitiveComponent = It.Key();
-		if (PrimitiveComponent.IsValid())
-		{
-			const CollVisibilityState& VisState = It.Value();
-			PrimitiveComponent->SetHiddenInGame(VisState.bHiddenInGame);
-			PrimitiveComponent->SetVisibility(VisState.bVisible);
-		}
-	}
-	Mapping.Empty();
-
-	if (World == nullptr)
-	{
-		return;
-	}
-
-	if (NumViewportsShowingCollision > 0)
-	{
-		for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
-		{
-			UPrimitiveComponent* PrimitiveComponent = *It;
-			if (!PrimitiveComponent->IsVisible() && PrimitiveComponent->IsCollisionEnabled() && PrimitiveComponent->GetScene() == World->Scene)
-			{
-				AActor* Owner = PrimitiveComponent->GetOwner();
-
-				if (Owner && Owner->GetWorld() && Owner->GetWorld()->IsGameWorld() && !FActorEditorUtils::IsABuilderBrush(Owner))
-				{
-					// Save state before modifying the collision visibility
-					Mapping.Add(PrimitiveComponent, CollVisibilityState(PrimitiveComponent->bHiddenInGame, PrimitiveComponent->bVisible));
-					PrimitiveComponent->SetHiddenInGame(false);
-					PrimitiveComponent->SetVisibility(true);
-				}
-			}
-		}
-	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (EngineShowFlags.Collision)
@@ -2465,28 +2398,6 @@ void UGameViewportClient::ToggleShowCollision()
 		}
 	}
 #endif
-}
-
-void UGameViewportClient::ShowCollisionOnSpawnedActors(AActor* Actor)
-{
-	CollisionComponentVisibilityMap& Mapping = GetCollisionComponentVisibilityMap();
-
-	TInlineComponentArray<UPrimitiveComponent*> Components;
-	check(Actor != nullptr);
-	Actor->GetComponents(Components);
-
-	for (auto Component : Components)
-	{
-		if (!Mapping.Contains(Component) && !Component->IsVisible() && Component->IsCollisionEnabled() && Component->GetScene() == GetWorld()->Scene)
-		{
-			check(Component->GetOwner() && Component->GetOwner()->GetWorld() && Component->GetOwner()->GetWorld()->IsGameWorld());
-
-			// Save state before modifying the collision visibility
-			Mapping.Add(Component, CollVisibilityState(Component->bHiddenInGame, Component->bVisible));
-			Component->SetHiddenInGame(false);
-			Component->SetVisibility(true);
-		}
-	}
 }
 
 bool UGameViewportClient::HandleShowLayerCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )

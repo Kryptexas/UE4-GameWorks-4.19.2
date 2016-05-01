@@ -954,7 +954,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 
 	// Parent package to place new meshes
 	UPackage* Package = NULL;
-	if (InParent != nullptr && InParent->IsA(UPackage::StaticClass()))
+	if (ImportOptions->bImportScene && InParent != nullptr && InParent->IsA(UPackage::StaticClass()))
 	{
 		Package = StaticCast<UPackage*>(InParent);
 	}

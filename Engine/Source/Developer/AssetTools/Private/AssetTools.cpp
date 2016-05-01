@@ -1741,7 +1741,7 @@ void FAssetTools::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedPacka
 		}
 	}
 
-	FMessageLog MigrateLog("AssetRegistry");
+	FMessageLog MigrateLog("AssetTools");
 	FText LogMessage = FText::FromString(TEXT("Content migration completed successfully!"));
 	EMessageSeverity::Type Severity = EMessageSeverity::Info;
 	if ( CopyErrors.Len() > 0 || SourceControlErrors.Len() > 0 )

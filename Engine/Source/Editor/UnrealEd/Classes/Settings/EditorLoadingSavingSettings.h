@@ -86,16 +86,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Startup)
 	uint32 bRestoreOpenAssetTabsOnRestart:1;
 
-public:
-
-	/** Check that the current source control settings will play nicely with the auto-reimport feature */
-	void CheckSourceControlCompatability();
-
 private:
 
-	/** true when CheckSourceControlCompatability is enabled */
 	UPROPERTY(config)
-	bool bEnableSourceControlCompatabilityCheck;
+	bool bEnableSourceControlCompatabilityCheck_DEPRECATED;
 
 public:
 

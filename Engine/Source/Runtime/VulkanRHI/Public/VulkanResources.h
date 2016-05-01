@@ -229,13 +229,8 @@ public:
 	uint8 FormatKey;
 private:
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	// Used to clear render-target objects on creation
 	void Clear(const FClearValueBinding& ClearValueBinding, bool bTransitionToPresentable);
-#else
-	// Used to clear render-target objects on creation
-	void ClearBlocking(const FClearValueBinding& ClearValueBinding, bool bTransitionToPresentable);
-#endif
 
 private:
 	// Linear or Optimal. Based on tiling, map/unmap is handled differently.
@@ -553,17 +548,23 @@ public:
 
 };
 
-struct FVulkanBufferView : public FRHIResource
+struct FVulkanBufferView : public FRHIResource, public VulkanRHI::FDeviceChild
 {
-	FVulkanBufferView() :
-		View(VK_NULL_HANDLE),
-		Flags(0)
+	FVulkanBufferView(FVulkanDevice* InDevice)
+		: VulkanRHI::FDeviceChild(InDevice)
+		, View(VK_NULL_HANDLE)
+		, Flags(0)
 	{
 	}
 
-	void Create(FVulkanDevice& Device, FVulkanBuffer& Buffer, EPixelFormat Format, uint32 Offset, uint32 Size);
-	void Create(FVulkanDevice& Device, FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size);
-	void Destroy(FVulkanDevice& Device);
+	virtual ~FVulkanBufferView()
+	{
+		Destroy();
+	}
+
+	void Create(FVulkanBuffer& Buffer, EPixelFormat Format, uint32 Offset, uint32 Size);
+	void Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat Format, uint32 Offset, uint32 Size);
+	void Destroy();
 
 	VkBufferView View;
 	VkFlags Flags;
@@ -611,12 +612,26 @@ public:
 	// allocate some space in the ring buffer
 	uint64 AllocateMemory(uint64 Size, uint32 Alignment);
 
-	VulkanRHI::FStagingBuffer* Buffer;
+	inline uint32 GetBufferOffset() const
+	{
+		return BufferSuballocation->GetOffset();
+	}
+
+	inline VkBuffer GetHandle() const
+	{
+		return BufferSuballocation->GetHandle();
+	}
+
+	inline void* GetMappedPointer()
+	{
+		return BufferSuballocation->GetMappedPointer();
+	}
 
 protected:
 	uint64 BufferSize;
 	uint64 BufferOffset;
 	uint32 MinAlignment;
+	VulkanRHI::FBufferSuballocation* BufferSuballocation;
 };
 
 class FVulkanResourceMultiBuffer : public VulkanRHI::FDeviceChild
@@ -629,7 +644,7 @@ public:
 	{
 		if (NumBuffers == 0)
 		{
-			return VolatileLockInfo.Buffer;
+			return VolatileLockInfo.GetHandle();
 		}
 		return Buffers[DynamicBufferIndex]->GetHandle();
 	}
@@ -639,11 +654,12 @@ public:
 		return NumBuffers > 1;
 	}
 
+	// Offset used for Binding a VkBuffer
 	inline uint32 GetOffset() const
 	{
 		if (NumBuffers == 0)
 		{
-			return VolatileLockInfo.Offset;
+			return VolatileLockInfo.GetBindOffset();
 		}
 		return Buffers[DynamicBufferIndex]->GetOffset();
 	}
@@ -815,7 +831,7 @@ public:
 
 	class FVulkanPipeline* PrepareForDraw(const struct FVulkanPipelineGraphicsKey& PipelineKey, uint32 VertexInputKey, const struct FVulkanPipelineState& State);
 
-    void UpdateDescriptorSets(FVulkanGlobalUniformPool* GlobalUniformPool);
+	void UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
 
 	void BindDescriptorSets(FVulkanCmdBuffer* Cmd);
 
@@ -1052,10 +1068,33 @@ private:
 	// these are the cache pipeline state objects used in this BSS
 	TMap<FVulkanPipelineGraphicsKey, class FVulkanPipeline*> PipelineCache;
 
-	// descriptor set objects used by this BSS
-	uint64 LastFrameRendered;
-	int32 CurrentDS[VULKAN_NUM_COMMAND_BUFFERS];
-	TArray<FVulkanDescriptorSets*> DescriptorSets[VULKAN_NUM_COMMAND_BUFFERS];
+	struct FDescriptorSetsPair
+	{
+		uint64 FenceCounter;
+		FVulkanDescriptorSets* DescriptorSets;
+
+		FDescriptorSetsPair()
+			: FenceCounter(0)
+			, DescriptorSets(nullptr)
+		{
+		}
+
+		~FDescriptorSetsPair();
+	};
+
+	struct FDescriptorSetsEntry
+	{
+		FVulkanCmdBuffer* CmdBuffer;
+		TArray<FDescriptorSetsPair> Pairs;
+
+		FDescriptorSetsEntry(FVulkanCmdBuffer* InCmdBuffer)
+			: CmdBuffer(InCmdBuffer)
+		{
+		}
+	};
+	TArray<FDescriptorSetsEntry*> DescriptorSetsEntries;
+
+	FVulkanDescriptorSets* RequestDescriptorSets(FVulkanCmdBuffer* CmdBuffer);
 };
 
 template<class T>

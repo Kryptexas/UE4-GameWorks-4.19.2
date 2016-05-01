@@ -52,6 +52,9 @@ public:
 	
 	/** @returns True if and only if there is an active blit command encoder, otherwise false. */
 	bool IsBlitCommandEncoderActive(void) const;
+	
+	/** @returns True if and only if there is valid render pass descriptor set on the encoder, otherwise false. */
+	bool IsRenderPassDescriptorValid(void) const;
 
 	/** @returns The active render command encoder or nil if there isn't one. */
 	id<MTLRenderCommandEncoder> GetRenderCommandEncoder(void) const;

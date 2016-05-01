@@ -140,6 +140,7 @@
 #include "Materials/MaterialExpressionDistanceFieldGradient.h"
 #include "Materials/MaterialFunction.h"
 #include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialExpressionClearCoatNormalCustomOutput.h"
 
 #include "EditorSupportDelegates.h"
 #include "MaterialCompiler.h"
@@ -10061,5 +10062,56 @@ void UMaterialExpressionTangentOutput::GetCaption(TArray<FString>& OutCaptions) 
 	OutCaptions.Add(TEXT("Tangent output"));
 }
 #endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
+// Clear Coat Custom Normal Input
+///////////////////////////////////////////////////////////////////////////////
+
+UMaterialExpressionClearCoatNormalCustomOutput::UMaterialExpressionClearCoatNormalCustomOutput(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT("Utility", "Utility"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+	bCollapsed = true;
+
+	// No outputs
+	Outputs.Reset();
+}
+
+#if WITH_EDITOR
+int32  UMaterialExpressionClearCoatNormalCustomOutput::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	if (Input.Expression)
+	{
+		return Compiler->CustomOutput(this, OutputIndex, Input.Compile(Compiler, MultiplexIndex));
+	}
+	else
+	{
+		return CompilerError(Compiler, TEXT("Input missing"));
+	}
+	return INDEX_NONE;
+}
+
+
+void UMaterialExpressionClearCoatNormalCustomOutput::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(FString(TEXT("ClearCoatBottomNormal")));
+}
+#endif // WITH_EDITOR
+
+FExpressionInput* UMaterialExpressionClearCoatNormalCustomOutput::GetInput(int32 InputIndex)
+{
+	return &Input;
+}
 
 #undef LOCTEXT_NAMESPACE

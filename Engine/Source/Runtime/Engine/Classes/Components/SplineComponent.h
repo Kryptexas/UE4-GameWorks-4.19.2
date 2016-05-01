@@ -76,11 +76,16 @@ class ENGINE_API USplineComponent : public UPrimitiveComponent
 	UPROPERTY(EditAnywhere, Category = Spline, meta=(DisplayName="Override Construction Script"))
 	bool bSplineHasBeenEdited;
 
+	/**
+	 * Whether the spline points should be passed to the User Construction Script so they can be further manipulated by it.
+	 * If false, they will not be visible to it, and it will not be able to influence the per-instance positions set in the editor.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Spline)
 	bool bInputSplinePointsToConstructionScript;
 
+	/** If true, the spline will be rendered if the Splines showflag is set. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Spline)
-	bool bAlwaysRenderInEditor;
+	bool bDrawDebug;
 
 private:
 	/**
@@ -94,16 +99,16 @@ public:
 	/** Default up vector in local space to be used when calculating transforms along the spline */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Spline)
 	FVector DefaultUpVector;
-
-#if WITH_EDITORONLY_DATA
+#if !UE_BUILD_SHIPPING
 	/** Color of an unselected spline component segment in the editor */
 	UPROPERTY(EditAnywhere, Category = Editor)
 	FLinearColor EditorUnselectedSplineSegmentColor;
-
 	/** Color of a selected spline component segment in the editor */
 	UPROPERTY(EditAnywhere, Category = Editor)
 	FLinearColor EditorSelectedSplineSegmentColor;
+#endif
 
+#if WITH_EDITORONLY_DATA
 	/** Whether scale visualization should be displayed */
 	UPROPERTY(EditAnywhere, Category = Editor)
 	bool bShouldVisualizeScale;
@@ -126,7 +131,7 @@ public:
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 	//~ End UActorComponent Interface.
 
-#if WITH_EDITOR
+#if !UE_BUILD_SHIPPING
 	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	//~ End UPrimitiveComponent Interface.
@@ -182,6 +187,10 @@ public:
 	/** Specify selected spline component segment color in the editor */
 	UFUNCTION(BlueprintCallable, Category = Editor)
 	void SetSelectedSplineSegmentColor(const FLinearColor& SegmentColor);
+
+	/** Specify whether this spline should be rendered when the Editor/Game spline show flag is set */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	void SetDrawDebug(bool bShow);
 
 	/** Specify whether the spline is a closed loop or not */
 	UFUNCTION(BlueprintCallable, Category = Spline)

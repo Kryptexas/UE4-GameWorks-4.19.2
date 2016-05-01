@@ -561,6 +561,9 @@ public:
 
 protected:
 
+	/** Count of how many PIE instances are waiting to log in */
+	int32 PIEInstancesToLogInCount;
+
 	/* These are parameters that we need to cache for late joining */
 	FString ServerPrefix;
 	int32 PIEInstance;
@@ -2485,6 +2488,9 @@ private:
 	/** Above function but called a frame later, to stop PIE login from happening from a network callback */
 	virtual void OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuccessful, FString ErrorString, FPieLoginStruct DataStruct);
 
+	/** Called when all PIE instances have been successfully logged in */
+	virtual void OnLoginPIEAllComplete();
+
 public:
 	/**
 	 * Continue the creation of a single PIE world after a login was successful
@@ -2535,6 +2541,11 @@ private:
 	 * Called via a delegate to toggle between the editor and pie world
 	 */
 	void OnSwitchWorldsForPIE( bool bSwitchToPieWorld );
+
+	/**
+	 * Gives focus to the server or first PIE client viewport
+	 */
+	void GiveFocusToFirstClientPIEViewport();
 
 public:
 	/**

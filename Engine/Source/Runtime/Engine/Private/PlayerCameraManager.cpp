@@ -592,13 +592,12 @@ UCameraModifier* APlayerCameraManager::FindCameraModifierByClass(TSubclassOf<UCa
 	return nullptr;
 }
 
-
 bool APlayerCameraManager::AddCameraModifierToList(UCameraModifier* NewModifier)
 {
 	if (NewModifier)
 	{
 		// Look through current modifier list and find slot for this priority
-		int32 BestIdx = 0;
+		int32 BestIdx = ModifierList.Num();
 		for (int32 ModifierIdx = 0; ModifierIdx < ModifierList.Num(); ModifierIdx++)
 		{
 			UCameraModifier* const M = ModifierList[ModifierIdx];
@@ -619,12 +618,12 @@ bool APlayerCameraManager::AddCameraModifierToList(UCameraModifier* NewModifier)
 						return false;
 					}
 
+					// Update best index
+					BestIdx = ModifierIdx;
+
 					break;
 				}
 			}
-
-			// Update best index
-			BestIdx = ModifierIdx;
 		}
 
 		// Insert self into best index

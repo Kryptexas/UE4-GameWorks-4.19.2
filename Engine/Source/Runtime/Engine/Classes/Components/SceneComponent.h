@@ -258,6 +258,8 @@ private:
 	UFUNCTION()
 	void OnRep_Visibility(bool OldValue);
 
+protected:
+
 	virtual void PreNetReceive() override;
 	virtual void PostNetReceive() override;
 	virtual void PostRepNotifies() override;

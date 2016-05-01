@@ -1443,6 +1443,20 @@ void LoadSpecialMaterial(const FString& MaterialName, UMaterial*& Material, bool
 }
 
 
+template<typename ClassType>
+void LoadEngineClass(const FStringClassReference& ClassName, TSubclassOf<ClassType>& EngineClassRef)
+{
+	if ( EngineClassRef == nullptr )
+	{
+		EngineClassRef = LoadClass<ClassType>(nullptr, *ClassName.ToString());
+		if (EngineClassRef == nullptr)
+		{
+			EngineClassRef = ClassType::StaticClass();
+			UE_LOG(LogEngine, Error, TEXT("Failed to load '%s', falling back to '%s'"), *ClassName.ToString(), *EngineClassRef->GetName());
+		}
+	}
+}
+
 /**
  * Loads all Engine object references from their corresponding config entries.
  */
@@ -1516,9 +1530,9 @@ void UEngine::InitializeObjectReferences()
 	}
 
 	if( HighFrequencyNoiseTexture == NULL )
-	{
+		{
 		HighFrequencyNoiseTexture = LoadObject<UTexture2D>(NULL, *HighFrequencyNoiseTextureName.ToString(), NULL, LOAD_None, NULL);
-	}
+		}
 
 	if( DefaultBokehTexture == NULL )
 	{
@@ -1552,52 +1566,15 @@ void UEngine::InitializeObjectReferences()
 		checkf(DefaultPhysMaterial != NULL, TEXT("The default material (%s) is not found. Please make sure you have default material set up correctly."), *DefaultPhysMaterialName.ToString());
 	}
 
-	if ( ConsoleClass == NULL )
-	{
-		ConsoleClass = LoadClass<UConsole>(NULL, *ConsoleClassName.ToString(), NULL, LOAD_None, NULL);
-	}
-
-	if ( GameViewportClientClass == NULL )
-	{
-		GameViewportClientClass = LoadClass<UGameViewportClient>(NULL, *GameViewportClientClassName.ToString(), NULL, LOAD_None, NULL);
-
-		checkf(GameViewportClientClass != NULL, TEXT("Engine config value GameViewportClientClassName is not a valid class name."));
-	}
-
-	if ( LocalPlayerClass == NULL )
-	{
-		LocalPlayerClass = LoadClass<ULocalPlayer>(NULL, *LocalPlayerClassName.ToString(), NULL, LOAD_None, NULL);
-	}
-
-	if ( WorldSettingsClass == NULL )
-	{
-		WorldSettingsClass = LoadClass<AWorldSettings>(NULL, *WorldSettingsClassName.ToString(), NULL, LOAD_None, NULL);
-	}
-
-	if ( NavigationSystemClass == NULL )
-	{
-		NavigationSystemClass = LoadClass<UNavigationSystem>(NULL, *NavigationSystemClassName.ToString(), NULL, LOAD_None, NULL);
-	}
-
-	if ( AvoidanceManagerClass == NULL )
-	{
-		AvoidanceManagerClass = LoadClass<UAvoidanceManager>(NULL, *AvoidanceManagerClassName.ToString(), NULL, LOAD_None, NULL);
-	}
-
-	if ( PhysicsCollisionHandlerClass == NULL )
-	{
-		PhysicsCollisionHandlerClass = LoadClass<UPhysicsCollisionHandler>(NULL, *PhysicsCollisionHandlerClassName.ToString(), NULL, LOAD_None, NULL);
-	}
-
-	if ( GameUserSettingsClass == NULL )
-	{
-		GameUserSettingsClass = LoadClass<UGameUserSettings>(NULL, *GameUserSettingsClassName.ToString(), NULL, LOAD_None, NULL);
-	}
-
-	if ( LevelScriptActorClass == NULL )
-	{
-		LevelScriptActorClass = LoadClass<ALevelScriptActor>(NULL, *LevelScriptActorClassName.ToString(), NULL, LOAD_None, NULL);
-	}
+	LoadEngineClass<UConsole>(ConsoleClassName, ConsoleClass);
+	LoadEngineClass<UGameViewportClient>(GameViewportClientClassName, GameViewportClientClass);
+	LoadEngineClass<ULocalPlayer>(LocalPlayerClassName, LocalPlayerClass);
+	LoadEngineClass<AWorldSettings>(WorldSettingsClassName, WorldSettingsClass);
+	LoadEngineClass<UNavigationSystem>(NavigationSystemClassName, NavigationSystemClass);
+	LoadEngineClass<UAvoidanceManager>(AvoidanceManagerClassName, AvoidanceManagerClass);
+	LoadEngineClass<UPhysicsCollisionHandler>(PhysicsCollisionHandlerClassName, PhysicsCollisionHandlerClass);
+	LoadEngineClass<UGameUserSettings>(GameUserSettingsClassName, GameUserSettingsClass);
+	LoadEngineClass<ALevelScriptActor>(LevelScriptActorClassName, LevelScriptActorClass);
 
 	// set the font object pointers, unless on server
 	if (!IsRunningDedicatedServer())
@@ -9221,24 +9198,7 @@ void UEngine::TickWorldTravel(FWorldContext& Context, float DeltaSeconds)
 
 				const bool bLoadedMapSuccessfully = LoadMap(Context, Context.PendingNetGame->URL, Context.PendingNetGame, Error);
 
-				if (!bLoadedMapSuccessfully || Error != TEXT(""))
-				{
-					// we can't guarantee the current World is in a valid state, so travel to the default map
-					BrowseToDefaultMap(Context);
-					BroadcastTravelFailure(Context.World(), ETravelFailure::LoadMapFailure, Error);
-					check(Context.World() != NULL);
-				}
-				else
-				{
-					// Show connecting message, cause precaching to occur.
-					TransitionType = TT_Connecting;
-
-					RedrawViewports();
-
-					// Send join.
-					Context.PendingNetGame->SendJoin();
-					Context.PendingNetGame->NetDriver = NULL;
-				}
+				Context.PendingNetGame->LoadMapCompleted(this, Context, bLoadedMapSuccessfully, Error);
 
 				// Kill the pending level.
 				Context.PendingNetGame = NULL;

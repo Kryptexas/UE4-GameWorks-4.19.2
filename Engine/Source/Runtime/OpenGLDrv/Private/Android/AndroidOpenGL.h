@@ -147,6 +147,8 @@ struct FAndroidOpenGL : public FOpenGLES2
 		return SP_OPENGL_ES2_ANDROID;
 	}
 
+	static FORCEINLINE bool HasHardwareHiddenSurfaceRemoval() { return bHasHardwareHiddenSurfaceRemoval; };
+
 	// Optional:
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID)
 	{
@@ -386,6 +388,9 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	// whether device supports hardware instancing
 	static bool bSupportsInstancing;
+
+	/** Whether device supports Hidden Surface Removal */
+	static bool bHasHardwareHiddenSurfaceRemoval;
 };
 
 typedef FAndroidOpenGL FOpenGL;

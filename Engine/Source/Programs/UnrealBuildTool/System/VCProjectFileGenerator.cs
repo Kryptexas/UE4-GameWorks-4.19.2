@@ -282,13 +282,6 @@ namespace UnrealBuildTool
 						{
 							VCProjectFileFormat ProposedFormat = ProjectFileFormat;
 
-							// Visual Studio 2015 is not supported by PS4 VSI
-							if( SupportedPlatform == UnrealTargetPlatform.PS4 )
-							{
-								Log.TraceInformation("Forcing Visual Studio max version to 2013 projects for PS4 compatibility (use '-2015' to override.)");
-								ProposedFormat = VCProjectFileFormat.VisualStudio2013;
-							}
-
 							// Visual Studio 2015 is not supported by the Android debugger we currently furnish
 							if (SupportedPlatform == UnrealTargetPlatform.Android)
 							{

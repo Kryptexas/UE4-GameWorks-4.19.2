@@ -1801,9 +1801,7 @@ void FFbxImporter::RecursiveFindRigidMesh(FbxNode* Node, TArray< TArray<FbxNode*
 		int32 ChildIndex;
 		for (ChildIndex=0; ChildIndex<Node->GetChildCount(); ++ChildIndex)
 		{
-			FbxNode* MeshNode = FindLODGroupNode(Node, ChildIndex);
-			if(MeshNode != nullptr)
-				RecursiveFindRigidMesh(MeshNode, outSkelMeshArray, SkeletonArray, ExpandLOD);
+			RecursiveFindRigidMesh(Node->GetChild(ChildIndex), outSkelMeshArray, SkeletonArray, ExpandLOD);
 		}
 	}
 }

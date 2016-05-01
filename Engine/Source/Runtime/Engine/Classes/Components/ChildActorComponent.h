@@ -50,7 +50,7 @@ private:
 	TSubclassOf<AActor>	ChildActorClass;
 
 	/** The actor that we spawned and own */
-	UPROPERTY(BlueprintReadOnly, Category=ChildActorComponent, TextExportTransient, NonPIEDuplicateTransient, meta=(AllowPrivateAccess="true"))
+	UPROPERTY(Replicated, BlueprintReadOnly, Category=ChildActorComponent, TextExportTransient, NonPIEDuplicateTransient, meta=(AllowPrivateAccess="true"))
 	AActor*	ChildActor;
 
 	/** We try to keep the child actor's name as best we can, so we store it off here when destroying */
@@ -68,6 +68,8 @@ public:
 	virtual void PostLoad() override;
 #endif
 	virtual void BeginDestroy() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PostRepNotifies() override;
 	//~ End Object Interface.
 
 	//~ Begin ActorComponent Interface.
@@ -89,7 +91,7 @@ public:
 	FName GetChildActorName() const { return ChildActorName; }
 
 	/** Kill any currently present child actor */
-	void DestroyChildActor(const bool bRequiresRename = true);
+	void DestroyChildActor();
 };
 
 

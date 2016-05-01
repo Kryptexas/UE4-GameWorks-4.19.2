@@ -17,7 +17,8 @@ void FMovieSceneActorReferenceTrackInstance::SaveState(const TArray<TWeakObjectP
 	for (auto ObjectPtr : RuntimeObjects)
 	{
 		UObject* Object = ObjectPtr.Get();
-		if (InitActorReferenceMap.Find(Object) == nullptr)
+
+		if (!InitActorReferenceMap.Contains(Object))
 		{
 			AActor* ActorReferenceValue = PropertyBindings->GetCurrentValue<AActor*>(Object);
 			InitActorReferenceMap.Add(FObjectKey(Object), ActorReferenceValue);
@@ -37,10 +38,13 @@ void FMovieSceneActorReferenceTrackInstance::RestoreState(const TArray<TWeakObje
 			continue;
 		}
 
-		AActor** ActorReferenceValue = InitActorReferenceMap.Find(FObjectKey(Object));
-		if (ActorReferenceValue != nullptr)
+		if (InitActorReferenceMap.Contains(FObjectKey(Object)))
 		{
-			PropertyBindings->CallFunction<AActor*>(Object, ActorReferenceValue);
+			TWeakObjectPtr<AActor> ActorReferenceValue = *InitActorReferenceMap.Find(FObjectKey(Object));
+			if (ActorReferenceValue.IsValid())
+			{
+				PropertyBindings->CallFunction<AActor*>(Object, ActorReferenceValue.Get());
+			}
 		}
 	}
 
@@ -54,14 +58,17 @@ void FMovieSceneActorReferenceTrackInstance::Update(EMovieSceneUpdateData& Updat
 	FGuid ActorReferenceGuid;
 	if( ActorReferenceTrack->Eval( UpdateData.Position, UpdateData.LastPosition, ActorReferenceGuid ) )
 	{
-		AActor* CurrentActor;
-		AActor** CachedActorPtr = GuidToActorCache.Find( ActorReferenceGuid );
-
-		if (CachedActorPtr != nullptr)
+		AActor* CurrentActor = nullptr;
+		if (GuidToActorCache.Contains(ActorReferenceGuid))
 		{
-			CurrentActor = *CachedActorPtr;
+			TWeakObjectPtr<AActor> CachedActor = *GuidToActorCache.Find(ActorReferenceGuid);
+			if (CachedActor.IsValid())
+			{
+				CurrentActor = CachedActor.Get();
+			}
 		}
-		else
+
+		if (CurrentActor == nullptr)
 		{
 			TArray<TWeakObjectPtr<UObject>> RuntimeObjectsForGuid;
 			Player.GetRuntimeObjects(SequenceInstance.AsShared(), ActorReferenceGuid, RuntimeObjectsForGuid);
@@ -73,15 +80,21 @@ void FMovieSceneActorReferenceTrackInstance::Update(EMovieSceneUpdateData& Updat
 				if (ActorForGuid != nullptr)
 				{
 					CurrentActor = ActorForGuid;
-					GuidToActorCache.Add(ActorReferenceGuid, CurrentActor);
+					if (CurrentActor != nullptr)
+					{
+						GuidToActorCache.Add(ActorReferenceGuid, CurrentActor);
+					}
 				}
 			}
 		}
 
-		for (auto ObjectPtr : RuntimeObjects)
+		if (CurrentActor != nullptr)
 		{
-			UObject* Object = ObjectPtr.Get();
-			PropertyBindings->CallFunction<AActor*>(Object, &CurrentActor);
+			for (auto ObjectPtr : RuntimeObjects)
+			{
+				UObject* Object = ObjectPtr.Get();
+				PropertyBindings->CallFunction<AActor*>(Object, &CurrentActor);
+			}
 		}
 	}
 }

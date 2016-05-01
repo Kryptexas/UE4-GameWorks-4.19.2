@@ -2,6 +2,7 @@
 
 #include "PixelInspectorPrivatePCH.h"
 #include "PixelInspector.h"
+#include "PixelInspectorStyle.h"
 
 #include "Editor.h"
 #include "EditorModeManager.h"
@@ -9,6 +10,7 @@
 #include "IDetailsView.h"
 #include "PixelInspectorDetailsCustomization.h"
 #include "LevelEditor.h"
+#include "SNumericEntryBox.h"
 
 #define PIXEL_INSPECTOR_REQUEST_TIMEOUT 10
 #define MINIMUM_TICK_BETWEEN_CREATE_REQUEST 10
@@ -19,10 +21,15 @@ namespace PixelInspector
 	SPixelInspector::SPixelInspector()		
 	{
 		DisplayResult = nullptr;
+		LastViewportInspectionPosition = FIntPoint(-1, -1);
+		LastViewportId = 0;
+		LastViewportInspectionSize = FIntPoint(1, 1);
 		bIsPixelInspectorEnable = false;
 
 		Buffer_FinalColor_RGB8[0] = nullptr;
 		Buffer_FinalColor_RGB8[1] = nullptr;
+		Buffer_SceneColor_Float[0] = nullptr;
+		Buffer_SceneColor_Float[1] = nullptr;
 		Buffer_HDR_Float[0] = nullptr;
 		Buffer_HDR_Float[1] = nullptr;
 		Buffer_Depth_Float[0] = nullptr;
@@ -57,7 +64,7 @@ namespace PixelInspector
 	
 	void SPixelInspector::OnApplicationPreInputKeyDownListener(const FKeyEvent& InKeyEvent)
 	{
-		if (InKeyEvent.GetKey() == EKeys::Escape && bIsPixelInspectorEnable)
+		if (InKeyEvent.GetKey() == EKeys::Escape && (bIsPixelInspectorEnable))
 		{
 			// disable the pixel inspector
 			bIsPixelInspectorEnable = false;
@@ -137,6 +144,16 @@ namespace PixelInspector
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 	void SPixelInspector::Construct(const FArguments& InArgs)
 	{
+		//Set the LastViewportId to point on the active viewport
+		FViewport *ActiveViewport = GEditor->GetActiveViewport();
+		for (FEditorViewportClient *EditorViewport : GEditor->AllViewportClients)
+		{
+			if (ActiveViewport == EditorViewport->Viewport && EditorViewport->ViewState.GetReference() != nullptr)
+			{
+				LastViewportId = EditorViewport->ViewState.GetReference()->GetViewKey();
+			}
+		}
+
 		TSharedPtr<SBox> InspectorBox;
 		//Create the PixelInspector UI
 		TSharedPtr<SVerticalBox> VerticalBox = SNew(SVerticalBox)
@@ -145,23 +162,114 @@ namespace PixelInspector
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
+			.Padding(0.0f, 3.0f, 0.0f, 3.0f)
 			.AutoWidth()
 			[
-				SNew(SCheckBox)
+				SNew(SButton)
 				.HAlign(HAlign_Center)
-				.OnCheckStateChanged(this, &SPixelInspector::HandleTogglePixelInspectorEnable)
-				.IsChecked(this, &SPixelInspector::IsPixelInspectorEnable)
+				.ToolTipText(this, &SPixelInspector::GetPixelInspectorEnableButtonTooltipText)
+				.OnClicked(this, &SPixelInspector::HandleTogglePixelInspectorEnableButton)
+				[
+					SNew(SImage)
+					.Image(this, &SPixelInspector::GetPixelInspectorEnableButtonBrush)
+				]
 			]
 			+ SHorizontalBox::Slot()
-			.FillWidth(1.0f)
-			.Padding(0.0f, 3.0f, 6.0f, 3.0f)
+			.Padding(6.0f, 3.0f, 0.0f, 3.0f)
 			.VAlign(VAlign_Center)
+			.AutoWidth()
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("PixelInspector_EnableCheckbox", "Enable Pixel Inspector"))
+				.MinDesiredWidth(75)
+				.Text(this, &SPixelInspector::GetPixelInspectorEnableButtonText)
 			]
 		]
 		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0.0f, 3.0f, 16.0f, 3.0f)
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.MinDesiredWidth(75)
+				.Text(LOCTEXT("PixelInspector_ViewportIdValue", "Viewport Id"))
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0.0f, 3.0f, 0.0f, 3.0f)
+			[
+				SNew(SNumericEntryBox<uint32>)
+				.IsEnabled(false)
+				.MinDesiredValueWidth(75)
+				.Value(this, &SPixelInspector::GetCurrentViewportId)
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0.0f, 3.0f, 16.0f, 3.0f)
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.MinDesiredWidth(75)
+				.Text(LOCTEXT("PixelInspector_ViewportCoordinate", "Coordinate"))
+				.ToolTipText(LOCTEXT("PixelInspector_ViewportCoordinateTooltip", "Coordinate relative to the inspected viewport"))
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0.0f, 3.0f, 8.0f, 3.0f)
+			[
+				SNew(SNumericEntryBox<int32>)
+				.IsEnabled(this, &SPixelInspector::IsPixelInspectorEnable)
+				.Value(this, &SPixelInspector::GetCurrentCoordinateX)
+				.OnValueChanged(this, &SPixelInspector::SetCurrentCoordinateX)
+				.OnValueCommitted(this, &SPixelInspector::SetCurrentCoordinateXCommit)
+				.AllowSpin(true)
+				.MinValue(0)
+				.MaxSliderValue(this, &SPixelInspector::GetMaxCoordinateX)
+				.MinDesiredValueWidth(75)
+				.Label()
+				[
+					SNew(SBox)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("CoordinateViewport_X", "X"))
+					]
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(0.0f, 3.0f, 8.0f, 3.0f)
+			.AutoWidth()
+			[
+				SNew(SNumericEntryBox<int32>)
+				.IsEnabled(this, &SPixelInspector::IsPixelInspectorEnable)
+				.Value(this, &SPixelInspector::GetCurrentCoordinateY)
+				.OnValueChanged(this, &SPixelInspector::SetCurrentCoordinateY)
+				.OnValueCommitted(this, &SPixelInspector::SetCurrentCoordinateYCommit)
+				.AllowSpin(true)
+				.MinValue(0)
+				.MaxSliderValue(this, &SPixelInspector::GetMaxCoordinateY)
+				.MinDesiredValueWidth(75)
+				.Label()
+				[
+					SNew(SBox)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("CoordinateViewport_Y", "Y"))
+					]
+				]
+			]
+		]
+		+ SVerticalBox::Slot()
+		.Padding(0.0f, 12.0f, 0.0f, 3.0f)
 		.FillHeight(1.0f)
 		[
 			SAssignNew(InspectorBox, SBox)
@@ -169,7 +277,13 @@ namespace PixelInspector
 
 		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		FDetailsViewArgs DetailsViewArgs;
-		DetailsViewArgs.bAllowSearch = true;
+		DetailsViewArgs.bAllowSearch = false;
+		DetailsViewArgs.bLockable = false;
+		DetailsViewArgs.bShowActorLabel = false;
+		DetailsViewArgs.bShowOptions = false;
+		DetailsViewArgs.bUpdatesFromSelection = false;
+		DetailsViewArgs.bHideSelectionTip = true;
+		DetailsViewArgs.bSearchInitialKeyFocus = false;
 		DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
 		DisplayDetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
 		InspectorBox->SetContent(DisplayDetailsView->AsShared());
@@ -191,34 +305,128 @@ namespace PixelInspector
 		
 	}
 
+	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+	FReply SPixelInspector::HandleTogglePixelInspectorEnableButton()
+	{
+		bIsPixelInspectorEnable = !bIsPixelInspectorEnable;
+		if (bIsPixelInspectorEnable)
+		{
+			if (LastViewportInspectionPosition == FIntPoint(-1, -1))
+			{
+				//Let the system inspect a pixel so the user can see the UI appear
+				LastViewportInspectionPosition = FIntPoint(0, 0);
+			}
+			//Make sure the viewport is switch to realtime
+			SetCurrentViewportInRealtime();
+		}
+		return FReply::Handled();
+	}
+
+	FText SPixelInspector::GetPixelInspectorEnableButtonText() const
+	{
+		if (bIsPixelInspectorEnable)
+		{
+			return LOCTEXT("PixelInspector_EnableCheckbox_Inspecting", "Inspecting");
+		}
+
+		return LOCTEXT("PixelInspectorMouseHover_EnableCheckbox", "Start Pixel Inspector");
+	}
+
+	FText SPixelInspector::GetPixelInspectorEnableButtonTooltipText() const
+	{
+		if (bIsPixelInspectorEnable)
+		{
+			return LOCTEXT("PixelInspector_EnableCheckbox_ESC", "Inspecting (ESC to stop)");
+		}
+
+		return LOCTEXT("PixelInspectorMouseHover_EnableCheckbox", "Start Pixel Inspection");
+	}
+
+	const FSlateBrush* SPixelInspector::GetPixelInspectorEnableButtonBrush() const
+	{
+		return bIsPixelInspectorEnable ? FPixelInspectorStyle::Get()->GetBrush("PixelInspector.Enabled") : FPixelInspectorStyle::Get()->GetBrush("PixelInspector.Disabled");
+	}
+
+	void SPixelInspector::SetCurrentCoordinateXCommit(int32 NewValue, ETextCommit::Type)
+	{
+		ReleaseAllRequests();
+		SetCurrentCoordinateX(NewValue);
+	}
+
+	void SPixelInspector::SetCurrentCoordinateX(int32 NewValue)
+	{
+		LastViewportInspectionPosition.X = NewValue;
+	}
+
+	void SPixelInspector::SetCurrentCoordinateYCommit(int32 NewValue, ETextCommit::Type)
+	{
+		ReleaseAllRequests();
+		SetCurrentCoordinateY(NewValue);
+	}
+	void SPixelInspector::SetCurrentCoordinateY(int32 NewValue)
+	{
+		LastViewportInspectionPosition.Y = NewValue;
+	}
+
+	void SPixelInspector::SetCurrentCoordinate(FIntPoint NewCoordinate, bool ReleaseAllRequest)
+	{
+		if (ReleaseAllRequest)
+		{
+			ReleaseAllRequests();
+		}
+		LastViewportInspectionPosition.X = NewCoordinate.X;
+		LastViewportInspectionPosition.Y = NewCoordinate.Y;
+	}
+
+	TOptional<int32> SPixelInspector::GetMaxCoordinateX() const
+	{
+		return LastViewportInspectionSize.X - 1;
+	}
+
+	TOptional<int32> SPixelInspector::GetMaxCoordinateY() const
+	{
+		return LastViewportInspectionSize.Y - 1;
+	}
+
+	void SPixelInspector::SetCurrentViewportInRealtime()
+	{
+		//Force viewport refresh
+		for (FEditorViewportClient *EditorViewport : GEditor->AllViewportClients)
+		{
+			if (EditorViewport->ViewState.GetReference() != nullptr)
+			{
+				if (EditorViewport->ViewState.GetReference()->GetViewKey() == LastViewportId)
+				{
+					if (!EditorViewport->IsRealtime())
+					{
+						EditorViewport->SetRealtime(true);
+					}
+				}
+			}
+		}
+	}
 
 	void SPixelInspector::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 	{
 		SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-/*		if (!GIsRequestingExit)
-		{
-			//Read back the buffer that are ready
-			ReadBackRequestData();
-		}*/
 		TickSinceLastCreateRequest++;
 	}
-
-	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-	ECheckBoxState SPixelInspector::IsPixelInspectorEnable() const
-	{
-		return bIsPixelInspectorEnable ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-	}
-
-	void SPixelInspector::HandleTogglePixelInspectorEnable(ECheckBoxState CheckType)
-	{
-		bIsPixelInspectorEnable = (CheckType == ECheckBoxState::Checked);
-	}
-
+	
 	void SPixelInspector::CreatePixelInspectorRequest(FIntPoint ScreenPosition, int32 viewportUniqueId, FSceneInterface *SceneInterface)
 	{
 		if (TickSinceLastCreateRequest < MINIMUM_TICK_BETWEEN_CREATE_REQUEST)
 			return;
+
+		if (ScreenPosition == FIntPoint(-1, -1))
+		{
+			return;
+		}
+		//Make sure we dont get value outside the viewport size
+		if ( ScreenPosition.X >= LastViewportInspectionSize.X || ScreenPosition.Y >= LastViewportInspectionSize.Y )
+		{
+			return;
+		}
 
 		TickSinceLastCreateRequest = 0;
 		// We need to know if the GBuffer is in low, default or high precision buffer
@@ -252,6 +460,12 @@ namespace PixelInspector
 			Buffer_FinalColor_RGB8[BufferIndex]->ClearFlags(RF_Standalone);
 			Buffer_FinalColor_RGB8[BufferIndex]->RemoveFromRoot();
 			Buffer_FinalColor_RGB8[BufferIndex] = nullptr;
+		}
+		if (Buffer_SceneColor_Float[BufferIndex] != nullptr)
+		{
+			Buffer_SceneColor_Float[BufferIndex]->ClearFlags(RF_Standalone);
+			Buffer_SceneColor_Float[BufferIndex]->RemoveFromRoot();
+			Buffer_SceneColor_Float[BufferIndex] = nullptr;
 		}
 		if (Buffer_HDR_Float[BufferIndex] != nullptr)
 		{
@@ -314,6 +528,7 @@ namespace PixelInspector
 		ReleaseBuffers(LastBufferIndex);
 
 		FTextureRenderTargetResource* FinalColorRenderTargetResource = nullptr;
+		FTextureRenderTargetResource* SceneColorRenderTargetResource = nullptr;
 		FTextureRenderTargetResource* HDRRenderTargetResource = nullptr;
 		FTextureRenderTargetResource* DepthRenderTargetResource = nullptr;
 		FTextureRenderTargetResource* BufferARenderTargetResource = nullptr;
@@ -326,6 +541,14 @@ namespace PixelInspector
 		Buffer_FinalColor_RGB8[LastBufferIndex]->ClearColor = FLinearColor::Black;
 		Buffer_FinalColor_RGB8[LastBufferIndex]->UpdateResourceImmediate(true);
 		FinalColorRenderTargetResource = Buffer_FinalColor_RGB8[LastBufferIndex]->GameThread_GetRenderTargetResource();
+
+		//Scene color is in RGB8 format
+		Buffer_SceneColor_Float[LastBufferIndex] = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), TEXT("PixelInspectorBufferSceneColorTarget"), RF_Standalone);
+		Buffer_SceneColor_Float[LastBufferIndex]->AddToRoot();
+		Buffer_SceneColor_Float[LastBufferIndex]->InitCustomFormat(1, 1, PF_FloatRGBA, true);
+		Buffer_SceneColor_Float[LastBufferIndex]->ClearColor = FLinearColor::Black;
+		Buffer_SceneColor_Float[LastBufferIndex]->UpdateResourceImmediate(true);
+		SceneColorRenderTargetResource = Buffer_SceneColor_Float[LastBufferIndex]->GameThread_GetRenderTargetResource();
 
 		//HDR is in float RGB format
 		Buffer_HDR_Float[LastBufferIndex] = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), TEXT("PixelInspectorBufferHDRTarget"), RF_Standalone);
@@ -341,8 +564,8 @@ namespace PixelInspector
 		Buffer_Depth_Float[LastBufferIndex]->InitCustomFormat(1, 1, PF_DepthStencil, true);
 		Buffer_Depth_Float[LastBufferIndex]->ClearColor = FLinearColor::Black;
 		Buffer_Depth_Float[LastBufferIndex]->UpdateResourceImmediate(true);
-		DepthRenderTargetResource = Buffer_Depth_Float[LastBufferIndex]->GameThread_GetRenderTargetResource();
-*/
+		DepthRenderTargetResource = Buffer_Depth_Float[LastBufferIndex]->GameThread_GetRenderTargetResource();*/
+
 
 		//Low precision GBuffer
 		if (GBufferFormat == 0)
@@ -398,7 +621,7 @@ namespace PixelInspector
 			BufferBCDERenderTargetResource = Buffer_BCDE_Float[LastBufferIndex]->GameThread_GetRenderTargetResource();
 		}
 		
-		SceneInterface->InitializePixelInspector(FinalColorRenderTargetResource, DepthRenderTargetResource, HDRRenderTargetResource, BufferARenderTargetResource, BufferBCDERenderTargetResource, LastBufferIndex);
+		SceneInterface->InitializePixelInspector(FinalColorRenderTargetResource, SceneColorRenderTargetResource, DepthRenderTargetResource, HDRRenderTargetResource, BufferARenderTargetResource, BufferBCDERenderTargetResource, LastBufferIndex);
 
 		return LastBufferIndex;
 	}
@@ -411,6 +634,10 @@ namespace PixelInspector
 			{
 				if (Requests[RequestIndex].FrameCountAfterRenderingCommandSend >= WAIT_FRAMENUMBER_BEFOREREADING)
 				{
+					if (Requests[RequestIndex].SourcePixelPosition == FIntPoint(-1, -1))
+					{
+						continue;
+					}
 					PixelInspectorResult PixelResult;
 					PixelResult.ScreenPosition = Requests[RequestIndex].SourcePixelPosition;
 					PixelResult.ViewUniqueId = Requests[RequestIndex].ViewId;
@@ -422,6 +649,14 @@ namespace PixelInspector
 						BufferFinalColorValue.Empty();
 					}
 					PixelResult.DecodeFinalColor(BufferFinalColorValue);
+
+					TArray<FLinearColor> BufferSceneColorValue;
+					FTextureRenderTargetResource* RTResourceSceneColor = Buffer_SceneColor_Float[Requests[RequestIndex].BufferIndex]->GameThread_GetRenderTargetResource();
+					if (RTResourceSceneColor->ReadLinearColorPixels(BufferSceneColorValue) == false)
+					{
+						BufferSceneColorValue.Empty();
+					}
+					PixelResult.DecodeSceneColor(BufferSceneColorValue);
 					
 					if (Buffer_Depth_Float[Requests[RequestIndex].BufferIndex] != nullptr)
 					{
@@ -530,6 +765,11 @@ namespace PixelInspector
 			}
 			DisplayResult->SetFromResult(AccumulationResult[0]);
 			DisplayDetailsView->SetObject(DisplayResult, true);
+			if (AccumulationResult[0].ScreenPosition != LastViewportInspectionPosition)
+			{
+				LastViewportInspectionPosition = AccumulationResult[0].ScreenPosition;
+			}
+			LastViewportId = AccumulationResult[0].ViewUniqueId;
 			AccumulationResult.RemoveAt(0);
 		}
 	}

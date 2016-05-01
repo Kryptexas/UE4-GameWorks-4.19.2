@@ -6,6 +6,7 @@
 #include "Animation/AnimMontage.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
 #include "Animation/BlendSpace.h"
+#include "Animation/AnimSingleNodeInstance.h"
 
 void FAnimSingleNodeInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 {
@@ -259,6 +260,23 @@ void FAnimSingleNodeInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) con
 	}
 }
 
+void FAnimSingleNodeInstanceProxy::InitializeObjects(UAnimInstance* InAnimInstance)
+{
+	FAnimInstanceProxy::InitializeObjects(InAnimInstance);
+
+	UAnimSingleNodeInstance* AnimSingleNodeInstance = CastChecked<UAnimSingleNodeInstance>(InAnimInstance);
+	CurrentAsset = AnimSingleNodeInstance->CurrentAsset;
+	CurrentVertexAnim = AnimSingleNodeInstance->CurrentVertexAnim;
+}
+
+void FAnimSingleNodeInstanceProxy::ClearObjects()
+{
+	FAnimInstanceProxy::ClearObjects();
+
+	CurrentAsset = nullptr;
+	CurrentVertexAnim = nullptr;
+}
+
 void FAnimSingleNodeInstanceProxy::InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext)
 {
 	if (BlendSpace->IsValidAdditive())
@@ -296,38 +314,6 @@ void FAnimSingleNodeInstanceProxy::InternalBlendSpaceEvaluatePose(class UBlendSp
 
 void FAnimSingleNodeInstanceProxy::SetAnimationAsset(class UAnimationAsset* NewAsset, USkeletalMeshComponent* MeshComponent, bool bIsLooping, float InPlayRate)
 {
-	if (NewAsset != CurrentAsset)
-	{
-		CurrentAsset = NewAsset;
-	}
-
-	if (
-#if WITH_EDITOR
-		!bCanProcessAdditiveAnimations &&
-#endif
-		NewAsset && NewAsset->IsValidAdditive())
-	{
-		UE_LOG(LogAnimation, Warning, TEXT("Setting an additve animation (%s) on an AnimSingleNodeInstance is not allowed. This will not function correctly in cooked builds!"), *NewAsset->GetName());
-	}
-
-	if (MeshComponent)
-	{
-		if (MeshComponent->SkeletalMesh == NULL)
-		{
-			// if it does not have SkeletalMesh, we nullify it
-			CurrentAsset = NULL;
-		}
-		else if (CurrentAsset != NULL)
-		{
-			// if we have an asset, make sure their skeleton matches, otherwise, null it
-			if (GetSkeleton() != CurrentAsset->GetSkeleton())
-			{
-				// clear asset since we do not have matching skeleton
-				CurrentAsset = NULL;
-			}
-		}
-	}
-
 	bLooping = bIsLooping;
 	PlayRate = InPlayRate;
 	CurrentTime = 0.f;
@@ -359,29 +345,6 @@ void FAnimSingleNodeInstanceProxy::UpdateBlendspaceSamples(FVector InBlendInput)
 
 void FAnimSingleNodeInstanceProxy::SetVertexAnimation(UVertexAnimation * NewVertexAnim, bool bIsLooping, float InPlayRate)
 {
-	if (NewVertexAnim != CurrentVertexAnim)
-	{
-		CurrentVertexAnim = NewVertexAnim;
-	}
-
-	if (USkeletalMeshComponent * MeshComponent = GetSkelMeshComponent())
-	{
-		if (MeshComponent->SkeletalMesh == NULL)
-		{
-			// if it does not have SkeletalMesh, we nullify it
-			CurrentVertexAnim = NULL;
-		}
-		else if (CurrentVertexAnim != NULL)
-		{
-			// if we have an anim, make sure their mesh matches, otherwise, null it
-			if (MeshComponent->SkeletalMesh != CurrentVertexAnim->BaseSkelMesh)
-			{
-				// clear asset since we do not have matching skeleton
-				CurrentVertexAnim = NULL;
-			}
-		}
-	}
-
 	bLooping = bIsLooping;
 	PlayRate = InPlayRate;
 }
@@ -412,23 +375,6 @@ void FAnimSingleNodeInstanceProxy::SetReverse(bool bInReverse)
 			CurMontageInstance->PlayRate *= -1.f;
 		}
 	}*/
-}
-
-float FAnimSingleNodeInstanceProxy::GetLength()
-{
-	if ((CurrentAsset != NULL))
-	{
-		if (UBlendSpace* BlendSpace = Cast<UBlendSpace>(CurrentAsset))
-		{
-			return BlendSpace->AnimLength;
-		}
-		else if (UAnimSequenceBase* SequenceBase = Cast<UAnimSequenceBase>(CurrentAsset))
-		{
-			return SequenceBase->SequenceLength;
-		}
-	}	
-
-	return 0.f;
 }
 
 void FAnimSingleNodeInstanceProxy::SetBlendSpaceInput(const FVector& InBlendInput)

@@ -4069,7 +4069,7 @@ void UEditorEngine::OnPostSaveWorld(uint32 SaveFlags, UWorld* World, uint32 Orig
 
 					if ( MainFrameModule.GetMRUFavoritesList() )
 					{
-						MainFrameModule.GetMRUFavoritesList()->AddMRUItem( Filename );
+						MainFrameModule.GetMRUFavoritesList()->AddMRUItem(WorldPackage->GetName());
 					}
 
 					FEditorDirectories::Get().SetLastDirectory(ELastDirectory::UNR, FPaths::GetPath(Filename)); // Save path as default for next time.

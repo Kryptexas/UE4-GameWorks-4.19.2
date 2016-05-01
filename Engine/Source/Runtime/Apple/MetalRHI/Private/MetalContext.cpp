@@ -387,10 +387,23 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	// enqueue a present if desired
 	if (bPresent)
 	{
-		id<MTLDrawable> Drawable = Viewport->GetDrawable();
-		[CurrentCommandBuffer addScheduledHandler:^(id<MTLCommandBuffer>) {
-			[Drawable present];
-		 }];
+		id<CAMetalDrawable> Drawable = (id<CAMetalDrawable>)Viewport->GetDrawable();
+		if (Drawable.texture)
+		{
+#if PLATFORM_MAC
+			id<MTLBlitCommandEncoder> Blitter = GetBlitContext();
+			
+			id<MTLTexture> Src = Viewport->GetBackBuffer()->Surface.Texture;
+			id<MTLTexture> Dst = Drawable.texture;
+			
+			[Blitter copyFromTexture:Src sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(Src.width, Src.height, 1) toTexture:Dst destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+			
+			CommandEncoder.EndEncoding();
+#endif
+			[CurrentCommandBuffer addScheduledHandler:^(id<MTLCommandBuffer>) {
+				[Drawable present];
+			}];
+		}
 	}
 	
 	// We may be limiting our framerate to the display link
@@ -737,6 +750,9 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 
 	TRefCountPtr<FMetalBoundShaderState> CurrentBoundShaderState = StateCache.GetBoundShaderState();
 	
+	// Enforce calls to SetRenderTarget prior to issuing draw calls.
+	check(StateCache.GetHasValidRenderTarget());
+	
 	// Validate the vertex layout in debug mode, or when the validation layer is enabled for development builds.
 	// Other builds will just crash & burn if it is incorrect.
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
@@ -795,6 +811,10 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false);
 		
 		bRestoreState = true;
+		
+		// Enforce calls to SetRenderTarget prior to issuing draw calls.
+		check(StateCache.GetHasValidRenderTarget());
+		check(CommandEncoder.IsRenderPassDescriptorValid());
 	}
 	
 	// make sure the BSS has a valid pipeline state object
@@ -812,6 +832,14 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		
 		if(!CommandEncoder.IsRenderCommandEncoderActive())
 		{
+			if (!CommandEncoder.IsRenderPassDescriptorValid())
+			{
+				UE_LOG(LogMetal, Warning, TEXT("Re-binding the render-target because no RenderPassDescriptor was bound!"));
+				FRHISetRenderTargetsInfo Info = StateCache.GetRenderTargetsInfo();
+				StateCache.SetHasValidRenderTarget(false);
+				StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false);
+			}
+			
 			CommandEncoder.RestoreRenderCommandEncoding();
 		}
 		else if (bRestoreState)

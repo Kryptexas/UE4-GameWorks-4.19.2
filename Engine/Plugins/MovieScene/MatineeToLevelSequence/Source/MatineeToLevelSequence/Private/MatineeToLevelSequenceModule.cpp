@@ -231,8 +231,8 @@ protected:
 				NewSequence->BindPossessableObject(ObjectGuid, *PropObject, GWorld);
 			}
 
+			// cbb: String manipulations to get the property path in the rigth form for sequencer
 			FString PropertyName = Property->GetFName().ToString();
-			FString PropertyPath = Property->GetPathName();
 
 			// Special case for Light components which have some deprecated names
 			if (PropObject->GetClass()->IsChildOf(ULightComponentBase::StaticClass()))
@@ -245,17 +245,39 @@ protected:
 				if (RemappedName != nullptr)
 				{
 					PropertyName = RemappedName->ToString();
-					int32 LastDot = INDEX_NONE;
-					PropertyPath.FindLastChar(TCHAR(':'), LastDot);
-					if (LastDot != INDEX_NONE)
-					{
-						PropertyPath = PropertyPath.Left(LastDot) + TEXT(":") + PropertyName;
-					}
 				}
 			}
 
+			// Strip the object part of the property path
+			FString PropertyPath = Property->GetPathName();
+			int32 DotPos = INDEX_NONE;
+			if (PropertyPath.FindLastChar(TEXT('.'), DotPos))
+			{
+				PropertyPath = PropertyPath.RightChop(DotPos+1);
+			}
+
+			// Split it into the components
+			TArray<FString> PropertyPaths;
+			PropertyPath.ParseIntoArray(PropertyPaths, TEXT(":"));
+
+			// Reassemble path with "." separators
+			FString NewPropertyPath;
+			for (int32 PropertyIndex=0; PropertyIndex<PropertyPaths.Num()-1; ++PropertyIndex)
+			{		
+				if (NewPropertyPath.Len())
+				{
+					NewPropertyPath = NewPropertyPath + TEXT(".");
+				}
+				NewPropertyPath = NewPropertyPath + PropertyPaths[PropertyIndex];
+			}
+			if (NewPropertyPath.Len())
+			{
+				NewPropertyPath = NewPropertyPath + TEXT(".");
+			}
+			NewPropertyPath = NewPropertyPath + PropertyName;
+
 			PropertyTrack = NewMovieScene->AddTrack<T>(ObjectGuid);	
-			PropertyTrack->SetPropertyNameAndPath(*PropertyName, PropertyPath);
+			PropertyTrack->SetPropertyNameAndPath(*PropertyName, NewPropertyPath);
 		}
 		else
 		{

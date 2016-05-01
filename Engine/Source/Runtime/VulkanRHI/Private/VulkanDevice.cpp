@@ -14,9 +14,7 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	: Gpu(InGpu)
 	, Device(VK_NULL_HANDLE)
 	, ResourceHeapManager(this)
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	, DeferredDeletionQueue(this)
-#endif
 	, DescriptorPool(nullptr)
 	, DefaultSampler(VK_NULL_HANDLE)
 	, Queue(nullptr)
@@ -432,10 +430,16 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 #endif
 }
 
-void FVulkanDevice::Destroy()
+void FVulkanDevice::PrepareForDestroy()
 {
 	WaitUntilIdle();
 
+	delete ImmediateContext;
+	ImmediateContext = nullptr;
+}
+
+void FVulkanDevice::Destroy()
+{
 	if (TimestampQueryPool[0])
 	{
 		for (int32 Index = 0; Index < NumTimestampPools; ++Index)
@@ -449,9 +453,6 @@ void FVulkanDevice::Destroy()
 	delete PendingState;
 
 	delete UBRingBuffer;
-
-	delete ImmediateContext;
-	ImmediateContext = nullptr;
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	delete PipelineStateCache;
@@ -480,15 +481,6 @@ void FVulkanDevice::WaitUntilIdle()
 {
 	VERIFYVULKANRESULT(vkDeviceWaitIdle(Device));
 }
-
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-#else
-void FVulkanDevice::EndCommandBufferBlock(FVulkanCmdBuffer* CmdBuffer)
-{
-	check(CmdBuffer);
-	GetQueue()->SubmitBlocking(CmdBuffer);
-}
-#endif
 
 bool FVulkanDevice::IsFormatSupported(VkFormat Format) const
 {

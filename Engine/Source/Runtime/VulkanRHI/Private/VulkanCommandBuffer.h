@@ -26,13 +26,6 @@ protected:
 	~FVulkanCmdBuffer();
 
 public:
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-/*
-	inline bool IsWritable() const
-	{
-		return State == EState::IsInsideBegin || State == EState::IsInsideRenderPass;
-	}
-*/
 	FVulkanCommandBufferManager* GetOwner()
 	{
 		return CommandBufferManager;
@@ -83,12 +76,9 @@ public:
 	{
 		return FenceSignaledCounter;
 	}
-#else
-	VkCommandBuffer& GetHandle(const VkBool32 MakeDirty = true);
-#endif
 
 	void Begin();
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+
 	enum class EState
 	{
 		ReadyForBegin,
@@ -97,27 +87,15 @@ public:
 		HasEnded,
 		Submitted,
 	};
-#else
 
-	void Reset();
-
-	void End();
-
-	VkBool32 GetIsWriting() const;
-	VkBool32 GetIsEmpty() const;
-#endif
 private:
 	FVulkanDevice* Device;
 	VkCommandBuffer CommandBufferHandle;
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	EState State;
 	VulkanRHI::FFence* Fence;
 	uint64 FenceSignaledCounter;
+
 	void RefreshFenceStatus();
-#else
-	VkBool32 IsWriting;
-	VkBool32 IsEmpty;
-#endif
 
 	FVulkanCommandBufferManager* CommandBufferManager;
 };
@@ -129,37 +107,26 @@ public:
 
 	~FVulkanCommandBufferManager();
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	FVulkanCmdBuffer* GetActiveCmdBuffer()
-	{
-		return ActiveCmdBuffer;
-	}
+	FVulkanCmdBuffer* GetActiveCmdBuffer();
+
+	FVulkanCmdBuffer* GetUploadCmdBuffer();
 
 	void RefreshFenceStatus();
 	void PrepareForNewActiveCommandBuffer();
-#else
-	FVulkanCmdBuffer* Create();
 
-	void Destroy(FVulkanCmdBuffer* CmdBuffer);
-
-	void Submit(FVulkanCmdBuffer* CmdBuffer);
-
-private:
-	friend class FVulkanCmdBuffer;
-	friend class FVulkanDynamicRHI;
-#endif
 	inline VkCommandPool GetHandle() const
 	{
 		check(Handle != VK_NULL_HANDLE);
 		return Handle;
 	}
+
 private:
 	FVulkanDevice* Device;
 	VkCommandPool Handle;
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	FVulkanCmdBuffer* ActiveCmdBuffer;
+	FVulkanCmdBuffer* UploadCmdBuffer;
+
 	FVulkanCmdBuffer* Create();
-#else
-#endif
+
 	TArray<FVulkanCmdBuffer*> CmdBuffers;
 };

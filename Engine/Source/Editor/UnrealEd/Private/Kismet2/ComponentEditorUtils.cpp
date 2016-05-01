@@ -84,7 +84,7 @@ protected:
 
 	// FCustomizableTextObjectFactory implementation
 
-	virtual bool CanCreateClass(UClass* ObjectClass) const override
+	virtual bool CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const override
 	{
 		// Only allow actor component types to be created
 		return ObjectClass->IsChildOf(UActorComponent::StaticClass());

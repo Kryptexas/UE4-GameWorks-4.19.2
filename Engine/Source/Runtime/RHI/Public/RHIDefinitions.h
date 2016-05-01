@@ -11,53 +11,54 @@
 
 enum EShaderFrequency
 {
-	SF_Vertex = 0,
-	SF_Hull = 1,
-	SF_Domain = 2,
-	SF_Pixel = 3,
-	SF_Geometry = 4,
-	SF_Compute = 5,
+	SF_Vertex			= 0,
+	SF_Hull				= 1,
+	SF_Domain			= 2,
+	SF_Pixel			= 3,
+	SF_Geometry			= 4,
+	SF_Compute			= 5,
 
-	SF_NumFrequencies = 6,
+	SF_NumFrequencies	= 6,
 
-	SF_NumBits = 3,
+	SF_NumBits			= 3,
 };
 static_assert(SF_NumFrequencies <= (1 << SF_NumBits), "SF_NumFrequencies will not fit on SF_NumBits");
 
 /** @warning: update *LegacyShaderPlatform* when the below changes */
 enum EShaderPlatform
 {
-	SP_PCD3D_SM5 = 0,
-	SP_OPENGL_SM4 = 1,
-	SP_PS4 = 2,
+	SP_PCD3D_SM5		= 0,
+	SP_OPENGL_SM4		= 1,
+	SP_PS4				= 2,
 	/** Used when running in Feature Level ES2 in OpenGL. */
-	SP_OPENGL_PCES2 = 3,
-	SP_XBOXONE = 4,
-	SP_PCD3D_SM4 = 5,
-	SP_OPENGL_SM5 = 6,
+	SP_OPENGL_PCES2		= 3,
+	SP_XBOXONE			= 4,
+	SP_PCD3D_SM4		= 5,
+	SP_OPENGL_SM5		= 6,
 	/** Used when running in Feature Level ES2 in D3D11. */
-	SP_PCD3D_ES2 = 7,
+	SP_PCD3D_ES2		= 7,
 	SP_OPENGL_ES2_ANDROID = 8,
-	SP_OPENGL_ES2_WEBGL = 9,
-	SP_OPENGL_ES2_IOS = 10,
-	SP_METAL = 11,
-	SP_OPENGL_SM4_MAC = 12,
-	SP_METAL_MRT = 13,
-	SP_OPENGL_ES31_EXT = 14,
+	SP_OPENGL_ES2_WEBGL = 9, 
+	SP_OPENGL_ES2_IOS	= 10,
+	SP_METAL			= 11,
+	SP_OPENGL_SM4_MAC	= 12,
+	SP_METAL_MRT		= 13,
+	SP_OPENGL_ES31_EXT	= 14,
 	/** Used when running in Feature Level ES3_1 in D3D11. */
-	SP_PCD3D_ES3_1 = 15,
+	SP_PCD3D_ES3_1		= 15,
 	/** Used when running in Feature Level ES3_1 in OpenGL. */
-	SP_OPENGL_PCES3_1 = 16,
-	SP_METAL_SM5 = 17,
-	SP_VULKAN_PCES3_1 = 18,
-	SP_METAL_SM4 = 19,
-	SP_VULKAN_SM4 = 20,
-	SP_VULKAN_SM5 = 21,
+	SP_OPENGL_PCES3_1	= 16,
+	SP_METAL_SM5		= 17,
+	SP_VULKAN_PCES3_1	= 18,
+	SP_METAL_SM4		= 19,
+	SP_VULKAN_SM4		= 20,
+	SP_VULKAN_SM5		= 21,
 	SP_VULKAN_ES3_1_ANDROID = 22,
-	SP_METAL_MACES3_1 = 23,
+	SP_METAL_MACES3_1 	= 23,
+	SP_METAL_MACES2		= 24,
 
-	SP_NumPlatforms = 24,
-	SP_NumBits = 5,
+	SP_NumPlatforms		= 25,
+	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
 
@@ -159,16 +160,16 @@ enum ERasterizerCullMode
 
 enum EColorWriteMask
 {
-	CW_RED = 0x01,
+	CW_RED   = 0x01,
 	CW_GREEN = 0x02,
-	CW_BLUE = 0x04,
+	CW_BLUE  = 0x04,
 	CW_ALPHA = 0x08,
 
-	CW_NONE = 0,
-	CW_RGB = CW_RED | CW_GREEN | CW_BLUE,
-	CW_RGBA = CW_RED | CW_GREEN | CW_BLUE | CW_ALPHA,
-	CW_RG = CW_RED | CW_GREEN,
-	CW_BA = CW_BLUE | CW_ALPHA,
+	CW_NONE  = 0,
+	CW_RGB   = CW_RED | CW_GREEN | CW_BLUE,
+	CW_RGBA  = CW_RED | CW_GREEN | CW_BLUE | CW_ALPHA,
+	CW_RG    = CW_RED | CW_GREEN,
+	CW_BA    = CW_BLUE | CW_ALPHA,
 };
 
 enum ECompareFunction
@@ -183,10 +184,10 @@ enum ECompareFunction
 	CF_Always,
 
 	// Utility enumerations
-	CF_DepthNearOrEqual = (((int32)ERHIZBuffer::IsInverted != 0) ? CF_GreaterEqual : CF_LessEqual),
-	CF_DepthNear = (((int32)ERHIZBuffer::IsInverted != 0) ? CF_Greater : CF_Less),
-	CF_DepthFartherOrEqual = (((int32)ERHIZBuffer::IsInverted != 0) ? CF_LessEqual : CF_GreaterEqual),
-	CF_DepthFarther = (((int32)ERHIZBuffer::IsInverted != 0) ? CF_Less : CF_Greater),
+	CF_DepthNearOrEqual		= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_GreaterEqual : CF_LessEqual),
+	CF_DepthNear			= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_Greater : CF_Less),
+	CF_DepthFartherOrEqual	= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_LessEqual : CF_GreaterEqual),
+	CF_DepthFarther			= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_Less : CF_Greater),
 };
 
 enum EStencilOp
@@ -320,17 +321,17 @@ public:
 private:
 	enum EResourceTableDefinitions
 	{
-		RTD_NumBits_UniformBufferIndex = 8,
-		RTD_NumBits_ResourceIndex = 16,
-		RTD_NumBits_BindIndex = 8,
+		RTD_NumBits_UniformBufferIndex	= 8,
+		RTD_NumBits_ResourceIndex		= 16,
+		RTD_NumBits_BindIndex			= 8,
 
-		RTD_Mask_UniformBufferIndex = (1 << RTD_NumBits_UniformBufferIndex) - 1,
-		RTD_Mask_ResourceIndex = (1 << RTD_NumBits_ResourceIndex) - 1,
-		RTD_Mask_BindIndex = (1 << RTD_NumBits_BindIndex) - 1,
+		RTD_Mask_UniformBufferIndex		= (1 << RTD_NumBits_UniformBufferIndex) - 1,
+		RTD_Mask_ResourceIndex			= (1 << RTD_NumBits_ResourceIndex) - 1,
+		RTD_Mask_BindIndex				= (1 << RTD_NumBits_BindIndex) - 1,
 
-		RTD_Shift_BindIndex = 0,
-		RTD_Shift_ResourceIndex = RTD_Shift_BindIndex + RTD_NumBits_BindIndex,
-		RTD_Shift_UniformBufferIndex = RTD_Shift_ResourceIndex + RTD_NumBits_ResourceIndex,
+		RTD_Shift_BindIndex				= 0,
+		RTD_Shift_ResourceIndex			= RTD_Shift_BindIndex + RTD_NumBits_BindIndex,
+		RTD_Shift_UniformBufferIndex	= RTD_Shift_ResourceIndex + RTD_NumBits_ResourceIndex,
 	};
 	static_assert(RTD_NumBits_UniformBufferIndex + RTD_NumBits_ResourceIndex + RTD_NumBits_BindIndex <= sizeof(uint32)* 8, "RTD_* values must fit in 32 bits");
 };
@@ -407,41 +408,41 @@ static_assert(PT_Num <= (1 << PT_NumBits), "PT_NumBits is too small");
 enum EBufferUsageFlags
 {
 	// Mutually exclusive write-frequency flags
-	BUF_Static = 0x0001, // The buffer will be written to once.
+	BUF_Static            = 0x0001, // The buffer will be written to once.
 	BUF_Dynamic           = 0x0002, // The buffer will be written to occasionally, GPU read only, CPU write only.  The data lifetime is until the next update, or the buffer is destroyed.
-	BUF_Volatile = 0x0004, // The buffer's data will have a lifetime of one frame.  It MUST be written to each frame, or a new one created each frame.
+	BUF_Volatile          = 0x0004, // The buffer's data will have a lifetime of one frame.  It MUST be written to each frame, or a new one created each frame.
 
 	// Mutually exclusive bind flags.
-	BUF_UnorderedAccess = 0x0008, // Allows an unordered access view to be created for the buffer.
+	BUF_UnorderedAccess   = 0x0008, // Allows an unordered access view to be created for the buffer.
 
 	/** Create a byte address buffer, which is basically a structured buffer with a uint32 type. */
 	BUF_ByteAddressBuffer = 0x0020,
 	/** Create a structured buffer with an atomic UAV counter. */
-	BUF_UAVCounter = 0x0040,
+	BUF_UAVCounter        = 0x0040,
 	/** Create a buffer that can be bound as a stream output target. */
-	BUF_StreamOutput = 0x0080,
+	BUF_StreamOutput      = 0x0080,
 	/** Create a buffer which contains the arguments used by DispatchIndirect or DrawIndirect. */
-	BUF_DrawIndirect = 0x0100,
-	/**
-	* Create a buffer that can be bound as a shader resource.
-	* This is only needed for buffer types which wouldn't ordinarily be used as a shader resource, like a vertex buffer.
-	*/
-	BUF_ShaderResource = 0x0200,
+	BUF_DrawIndirect      = 0x0100,
+	/** 
+	 * Create a buffer that can be bound as a shader resource. 
+	 * This is only needed for buffer types which wouldn't ordinarily be used as a shader resource, like a vertex buffer.
+	 */
+	BUF_ShaderResource    = 0x0200,
 
 	/**
-	* Request that this buffer is directly CPU accessible
-	* (@todo josh: this is probably temporary and will go away in a few months)
-	*/
+	 * Request that this buffer is directly CPU accessible
+	 * (@todo josh: this is probably temporary and will go away in a few months)
+	 */
 	BUF_KeepCPUAccessible = 0x0400,
 
 	/**
-	* Provide information that this buffer will contain only one vertex, which should be delivered to every primitive drawn.
-	* This is necessary for OpenGL implementations, which need to handle this case very differently (and can't handle GL_HALF_FLOAT in such vertices at all).
-	*/
-	BUF_ZeroStride = 0x0800,
+	 * Provide information that this buffer will contain only one vertex, which should be delivered to every primitive drawn.
+	 * This is necessary for OpenGL implementations, which need to handle this case very differently (and can't handle GL_HALF_FLOAT in such vertices at all).
+	 */
+	BUF_ZeroStride        = 0x0800,
 
 	/** Buffer should go in fast vram (hint only) */
-	BUF_FastVRAM = 0x1000,
+	BUF_FastVRAM          = 0x1000,
 
 	// Helper bit-masks
 	BUF_AnyDynamic = (BUF_Dynamic | BUF_Volatile),
@@ -485,7 +486,7 @@ enum ERHIResourceType
 /** Flags used for texture creation */
 enum ETextureCreateFlags
 {
-	TexCreate_None = 0,
+	TexCreate_None					= 0,
 
 	// Texture can be used as a render target
 	TexCreate_RenderTargetable		= 1<<0,
@@ -541,6 +542,8 @@ enum ETextureCreateFlags
 	TexCreate_NoFastClear = 1 << 25,
 	// Texture is a depth stencil resolve target
 	TexCreate_DepthStencilResolveTarget = 1 << 26,
+	// RenderTarget will create with delta color compression
+	TexCreate_DeltaColorCompression = 1 << 27,
 };
 
 enum EAsyncComputePriority
@@ -612,13 +615,13 @@ inline bool IsPCPlatform(const EShaderPlatform Platform)
 	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 ||
 		Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 ||
 		Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 ||
-		Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_MACES3_1;
+		Platform == SP_VULKAN_PCES3_1 || Platform == SP_VULKAN_SM4 || Platform == SP_VULKAN_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2;
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
 inline bool IsES2Platform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL;
+	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL_MACES2;
 }
 
 /** Whether the shader platform corresponds to the ES2/ES3.1 feature level. */
@@ -635,7 +638,7 @@ inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 
 inline bool IsMetalPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_METAL || Platform == SP_METAL_MRT || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MACES3_1;
+	return Platform == SP_METAL || Platform == SP_METAL_MRT || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MACES3_1 || Platform == SP_METAL_MACES2;
 }
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
@@ -677,6 +680,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_ES2_ANDROID:
 	case SP_OPENGL_ES2_WEBGL:
 	case SP_OPENGL_ES2_IOS:
+	case SP_METAL_MACES2:
 		return ERHIFeatureLevel::ES2;
 	case SP_METAL:
 	case SP_METAL_MACES3_1:
@@ -741,6 +745,8 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_METAL_MACES3_1:
 		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
+	case SP_METAL_MACES2:
+		return InFeatureLevel <= ERHIFeatureLevel::ES2;
 	default:
 		return false;
 	}

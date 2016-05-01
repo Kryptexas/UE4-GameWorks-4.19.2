@@ -80,8 +80,8 @@ int32 SSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	// draw slider bar
-	auto BarTopLeft = FVector2D(SliderStartPoint.X, SliderStartPoint.Y - 1);
-	auto BarSize = FVector2D(SliderEndPoint.X - SliderStartPoint.X, 2);
+	auto BarTopLeft = FVector2D(SliderStartPoint.X, SliderStartPoint.Y - Style->BarThickness * 0.5f);
+	auto BarSize = FVector2D(SliderEndPoint.X - SliderStartPoint.X, Style->BarThickness);
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerId,
@@ -117,12 +117,14 @@ FVector2D SSlider::ComputeDesiredSize( float ) const
 		return SSliderDesiredSize;
 	}
 
+	const float Thickness = FMath::Max(Style->BarThickness, Style->NormalThumbImage.ImageSize.Y);
+
 	if (Orientation == Orient_Vertical)
 	{
-		return FVector2D(Style->NormalThumbImage.ImageSize.Y, SSliderDesiredSize.Y);
+		return FVector2D(Thickness, SSliderDesiredSize.Y);
 	}
 
-	return FVector2D(SSliderDesiredSize.X, Style->NormalThumbImage.ImageSize.Y);
+	return FVector2D(SSliderDesiredSize.X, Thickness);
 }
 
 

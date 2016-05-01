@@ -11,17 +11,10 @@ FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBuffer
 	: Device(InDevice)
 	, CommandBufferManager(InCommandBufferManager)
 	, CommandBufferHandle(VK_NULL_HANDLE)
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	, State(EState::ReadyForBegin)
 	, Fence(nullptr)
 	, FenceSignaledCounter(0)
-#else
-	, IsWriting(VK_FALSE)
-	, IsEmpty(VK_TRUE)
-#endif
 {
-	check(Device);
-
 	VkCommandBufferAllocateInfo CreateCmdBufInfo;
 	FMemory::Memzero(CreateCmdBufInfo);
 	CreateCmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -31,27 +24,18 @@ FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBuffer
 	CreateCmdBufInfo.commandPool = CommandBufferManager->GetHandle();
 
 	VERIFYVULKANRESULT(vkAllocateCommandBuffers(Device->GetInstanceHandle(), &CreateCmdBufInfo, &CommandBufferHandle));
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	Fence = Device->GetFenceManager().AllocateFence();
-#endif
 }
 
 FVulkanCmdBuffer::~FVulkanCmdBuffer()
 {
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	auto& FenceManager = Device->GetFenceManager();
 	FenceManager.WaitAndReleaseFence(Fence, 0xffffffff);
-#else
-	check(IsWriting == VK_FALSE);
-	if (CommandBufferHandle != VK_NULL_HANDLE)
-#endif
-	{
-		vkFreeCommandBuffers(Device->GetInstanceHandle(), CommandBufferManager->GetHandle(), 1, &CommandBufferHandle);
-		CommandBufferHandle = VK_NULL_HANDLE;
-	}
+
+	vkFreeCommandBuffers(Device->GetInstanceHandle(), CommandBufferManager->GetHandle(), 1, &CommandBufferHandle);
+	CommandBufferHandle = VK_NULL_HANDLE;
 }
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, VkRenderPass RenderPass, VkFramebuffer Framebuffer, const VkClearValue* AttachmentClearValues)
 {
 	check(IsOutsideRenderPass());
@@ -71,24 +55,11 @@ void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, 
 
 	State = EState::IsInsideRenderPass;
 }
-#else
-VkCommandBuffer& FVulkanCmdBuffer::GetHandle(const VkBool32 WritingToCommandBuffer /* = true */)
-{
-	check(CommandBufferHandle != VK_NULL_HANDLE);
-	IsEmpty &= !WritingToCommandBuffer;
-	return CommandBufferHandle;
-}
-#endif
-
 
 void FVulkanCmdBuffer::Begin()
 {
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	check(State == EState::ReadyForBegin);
-#else
-	check(!IsWriting);
-	check(IsEmpty);
-#endif
+
 	VkCommandBufferBeginInfo CmdBufBeginInfo;
 	FMemory::Memzero(CmdBufBeginInfo);
 	CmdBufBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -96,14 +67,9 @@ void FVulkanCmdBuffer::Begin()
 
 	VERIFYVULKANRESULT(vkBeginCommandBuffer(CommandBufferHandle, &CmdBufBeginInfo));
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	State = EState::IsInsideBegin;
-#else
-	IsWriting = VK_TRUE;
-#endif
 }
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 void FVulkanCmdBuffer::RefreshFenceStatus()
 {
 	if (State == EState::Submitted)
@@ -121,44 +87,13 @@ void FVulkanCmdBuffer::RefreshFenceStatus()
 		check(!Fence->IsSignaled());
 	}
 }
-#else
-VkBool32 FVulkanCmdBuffer::GetIsWriting() const
-{
-	return IsWriting;
-}
 
-VkBool32 FVulkanCmdBuffer::GetIsEmpty() const
-{
-	return IsEmpty;
-}
-
-void FVulkanCmdBuffer::Reset()
-{
-	check(!IsWriting)
-
-	VERIFYVULKANRESULT(vkResetCommandBuffer(GetHandle(), VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
-
-	IsEmpty = VK_TRUE;
-}
-
-void FVulkanCmdBuffer::End()
-{
-	check(IsWriting)
-
-	VERIFYVULKANRESULT(vkEndCommandBuffer(GetHandle()));
-
-	IsWriting = VK_FALSE;
-	IsEmpty = VK_TRUE;
-}
-#endif
 
 FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice)
 	: Device(InDevice)
 	, Handle(VK_NULL_HANDLE)
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	, ActiveCmdBuffer(nullptr)
-#else
-#endif
+	, UploadCmdBuffer(nullptr)
 {
 	check(Device);
 
@@ -170,11 +105,8 @@ FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice
 	CmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	VERIFYVULKANRESULT(vkCreateCommandPool(Device->GetInstanceHandle(), &CmdPoolInfo, nullptr, &Handle));
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	ActiveCmdBuffer = Create();
 	ActiveCmdBuffer->Begin();
-#else
-#endif
 }
 
 FVulkanCommandBufferManager::~FVulkanCommandBufferManager()
@@ -188,6 +120,19 @@ FVulkanCommandBufferManager::~FVulkanCommandBufferManager()
 	vkDestroyCommandPool(Device->GetInstanceHandle(), Handle, nullptr);
 }
 
+FVulkanCmdBuffer* FVulkanCommandBufferManager::GetActiveCmdBuffer()
+{
+	if (UploadCmdBuffer)
+	{
+		check(UploadCmdBuffer->IsOutsideRenderPass());
+		UploadCmdBuffer->End();
+		Device->GetQueue()->Submit(UploadCmdBuffer);
+		UploadCmdBuffer = nullptr;
+	}
+
+	return ActiveCmdBuffer;
+}
+
 FVulkanCmdBuffer* FVulkanCommandBufferManager::Create()
 {
 	check(Device);
@@ -197,7 +142,6 @@ FVulkanCmdBuffer* FVulkanCommandBufferManager::Create()
 	return CmdBuffer;
 }
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 void FVulkanCommandBufferManager::RefreshFenceStatus()
 {
 	for (int32 Index = 0; Index < CmdBuffers.Num(); ++Index)
@@ -209,6 +153,8 @@ void FVulkanCommandBufferManager::RefreshFenceStatus()
 
 void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
 {
+	check(!UploadCmdBuffer);
+
 	for (int32 Index = 0; Index < CmdBuffers.Num(); ++Index)
 	{
 		FVulkanCmdBuffer* CmdBuffer = CmdBuffers[Index];
@@ -229,22 +175,27 @@ void FVulkanCommandBufferManager::PrepareForNewActiveCommandBuffer()
 	ActiveCmdBuffer = Create();
 	ActiveCmdBuffer->Begin();
 }
-#else
-void FVulkanCommandBufferManager::Destroy(FVulkanCmdBuffer* CmdBuffer)
-{
-	CmdBuffers.Remove(CmdBuffer);
-	check(Device);
-	if (CmdBuffer->GetIsWriting())
-	{
-		CmdBuffer->End();
-	}
-	vkFreeCommandBuffers(Device->GetInstanceHandle(), GetHandle(), 1, &CmdBuffer->CommandBufferHandle);
-	CmdBuffer->CommandBufferHandle = VK_NULL_HANDLE;
-	delete CmdBuffer;
-}
 
-void FVulkanCommandBufferManager::Submit(FVulkanCmdBuffer* CmdBuffer)
+FVulkanCmdBuffer* FVulkanCommandBufferManager::GetUploadCmdBuffer()
 {
-	Device->GetQueue()->Submit(CmdBuffer);
+	if (!UploadCmdBuffer)
+	{
+		for (int32 Index = 0; Index < CmdBuffers.Num(); ++Index)
+		{
+			FVulkanCmdBuffer* CmdBuffer = CmdBuffers[Index];
+			CmdBuffer->RefreshFenceStatus();
+			if (CmdBuffer->State == FVulkanCmdBuffer::EState::ReadyForBegin)
+			{
+				UploadCmdBuffer = CmdBuffer;
+				UploadCmdBuffer->Begin();
+				return UploadCmdBuffer;
+			}
+		}
+
+		// All cmd buffers are being executed still
+		UploadCmdBuffer = Create();
+		UploadCmdBuffer->Begin();
+	}
+
+	return UploadCmdBuffer;
 }
-#endif

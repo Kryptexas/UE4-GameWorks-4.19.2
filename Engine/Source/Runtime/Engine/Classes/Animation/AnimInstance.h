@@ -1022,6 +1022,9 @@ public:
 	/** Called after updates are completed, dispatches notifies etc. */
 	void PostUpdateAnimation();
 
+	/** Called on the game thread pre-evaluation. */
+	void PreEvaluateAnimation();
+
 	DEPRECATED(4.11, "This function should no longer be used. Use ParallelEvaluateAnimation")
 	void EvaluateAnimation(struct FPoseContext& Output);
 

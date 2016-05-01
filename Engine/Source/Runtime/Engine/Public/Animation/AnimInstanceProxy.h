@@ -171,13 +171,13 @@ public:
 		return LODLevel;
 	}
 
-	/** Get the current skeleton we are using */
+	/** Get the current skeleton we are using. Note that this will return nullptr outside of pre/post update */
 	USkeleton* GetSkeleton() 
 	{ 
 		return Skeleton; 
 	}
 
-	/** Get the current skeletal mesh component we are running on */
+	/** Get the current skeletal mesh component we are running on. Note that this will return nullptr outside of pre/post update */
 	USkeletalMeshComponent* GetSkelMeshComponent() 
 	{ 
 		return SkeletalMeshComponent; 
@@ -284,6 +284,9 @@ protected:
 	/** Updates the anim graph */
 	virtual void UpdateAnimationNode(float DeltaSeconds);
 
+	/** Called on the game thread pre-evaluate. */
+	virtual void PreEvaluateAnimation(UAnimInstance* InAnimInstance);
+
 	/** 
 	 * Evaluate override point 
 	 * @return true if this function is implemented, false otherwise.
@@ -293,6 +296,16 @@ protected:
 
 	/** Called after update so we can copy any data we need */
 	virtual void PostUpdate(UAnimInstance* InAnimInstance) const;
+
+	/** Copy any UObjects we might be using. Called Pre-update and pre-evaluate. */
+	virtual void InitializeObjects(UAnimInstance* InAnimInstance);
+
+	/** 
+	 * Clear any UObjects we might be using. Called at the end of the post-evaluate phase.
+	 * This is to ensure that objects are not used by anything apart from animation nodes.
+	 * Please make sure to call the base implementation if this is overridden.
+	 */
+	virtual void ClearObjects();
 
 	/** Calls Update(), updates the anim graph, ticks asset players */
 	void UpdateAnimation();
@@ -471,12 +484,10 @@ private:
 	/** Our anim blueprint generated class */
 	IAnimClassInterface* AnimClassInterface;
 
-	/** Skeleton we are using, only used for comparison purposes */
-	UPROPERTY(transient)
+	/** Skeleton we are using, only used for comparison purposes. Note that this will be nullptr outside of pre/post update */
 	USkeleton* Skeleton;
 
-	/** Skeletal mesh component we are attached to */
-	UPROPERTY(transient)
+	/** Skeletal mesh component we are attached to. Note that this will be nullptr outside of pre/post update */
 	USkeletalMeshComponent* SkeletalMeshComponent;
 
 	/** The last time passed into PreUpdate() */

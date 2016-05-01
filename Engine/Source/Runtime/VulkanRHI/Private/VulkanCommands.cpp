@@ -524,14 +524,9 @@ void FVulkanCommandListContext::RHIDrawPrimitive(uint32 PrimitiveType, uint32 Ba
 	if (!BSS.HasError())
 #endif
 	{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-		State.PrepareDraw(CmdBuffer, UEToVulkanType((EPrimitiveType)PrimitiveType));
+		State.PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PrimitiveType));
 		vkCmdDraw(CmdBuffer->GetHandle(), NumVertices, NumInstances, BaseVertexIndex, 0);
-#else
-		State.PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
-		vkCmdDraw(Device->GetPendingState().GetCommandBuffer(), NumVertices, NumInstances, BaseVertexIndex, 0);
-#endif
 	}
 
 	//if (IsImmediate())
@@ -574,14 +569,9 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef 
 	#endif
 	{
 		FVulkanIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		FVulkanCmdBuffer* Cmd = CommandBufferManager->GetActiveCmdBuffer();
 		VkCommandBuffer CmdBuffer = Cmd->GetHandle();
-		State.PrepareDraw(Cmd, UEToVulkanType((EPrimitiveType)PrimitiveType));
-#else
-		VkCommandBuffer CmdBuffer = State.GetCommandBuffer();
-		State.PrepareDraw(UEToVulkanType((EPrimitiveType)PrimitiveType));
-#endif
+		State.PrepareDraw(this, Cmd, UEToVulkanType((EPrimitiveType)PrimitiveType));
 
 		vkCmdBindIndexBuffer(CmdBuffer, IndexBuffer->GetHandle(), IndexBuffer->GetOffset(), IndexBuffer->GetIndexType());
 
@@ -668,20 +658,15 @@ void FVulkanCommandListContext::RHIEndDrawPrimitiveUP()
 	FVulkanPendingState& State = Device->GetPendingState();
 	FVulkanBoundShaderState& Shader = State.GetBoundShaderState();
 
-	State.SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.Buffer, PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.Offset);
+	State.SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.GetHandle(), PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.GetBindOffset());
 	
 	#if VULKAN_HAS_DEBUGGING_ENABLED
 		if(!Shader.HasError())
 	#endif
 	{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-		State.PrepareDraw(CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
+		State.PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
 		vkCmdDraw(CmdBuffer->GetHandle(), PendingNumVertices, 1, PendingMinVertexIndex, 0);
-#else
-		State.PrepareDraw(UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
-		vkCmdDraw(State.GetCommandBuffer(), PendingNumVertices, 1, PendingMinVertexIndex, 0);
-#endif
 	}
 
 	//if (IsImmediate())
@@ -721,22 +706,17 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 	FVulkanPendingState& State = Device->GetPendingState();
 	FVulkanBoundShaderState& Shader = State.GetBoundShaderState();
 
-	State.SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.Buffer, PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.Offset);
+	State.SetStreamSource(0, PendingDrawPrimUPVertexAllocInfo.GetHandle(), PendingVertexDataStride, PendingDrawPrimUPVertexAllocInfo.GetBindOffset());
 
 	#if VULKAN_HAS_DEBUGGING_ENABLED
 		if(!Shader.HasError())
 	#endif
 	{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 		FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 		VkCommandBuffer Cmd = CmdBuffer->GetHandle();
-		State.PrepareDraw(CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
-#else
-		VkCommandBuffer Cmd = State.GetCommandBuffer();
-		State.PrepareDraw(UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
-#endif
+		State.PrepareDraw(this, CmdBuffer, UEToVulkanType((EPrimitiveType)PendingPrimitiveType));
 		uint32 NumIndices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
-		vkCmdBindIndexBuffer(Cmd, PendingDrawPrimUPIndexAllocInfo.Buffer, PendingDrawPrimUPIndexAllocInfo.Offset, PendingPrimitiveIndexType);
+		vkCmdBindIndexBuffer(Cmd, PendingDrawPrimUPIndexAllocInfo.GetHandle(), PendingDrawPrimUPIndexAllocInfo.GetBindOffset(), PendingPrimitiveIndexType);
 		vkCmdDrawIndexed(Cmd, NumIndices, 1, PendingMinVertexIndex, 0, 0);
 	}
 
@@ -766,11 +746,7 @@ void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColo
 	check(bClearColor ? NumClearColors > 0 : true);
 
 	FVulkanPendingState& State = Device->GetPendingState();
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
 	State.UpdateRenderPass(CommandBufferManager->GetActiveCmdBuffer());
-#else
-	State.UpdateRenderPass();
-#endif
 	
 #if VULKAN_ALLOW_MIDPASS_CLEAR
 	VkClearRect Rect;

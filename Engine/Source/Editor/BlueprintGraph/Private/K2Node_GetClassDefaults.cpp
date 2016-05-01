@@ -349,26 +349,29 @@ UClass* UK2Node_GetClassDefaults::GetInputClass(const UEdGraphPin* FromPin) cons
 {
 	UClass* InputClass = nullptr;
 
-	const UEdGraphPin* ClassPin = FromPin;
-	if(ClassPin == nullptr)
+	if (FromPin != nullptr)
 	{
-		ClassPin = FindClassPin();
-	}
-	
-	if(ClassPin != nullptr)
-	{
-		check(ClassPin->Direction == EGPD_Input);
+		check(FromPin->Direction == EGPD_Input);
 
-		if(ClassPin->DefaultObject != nullptr && ClassPin->LinkedTo.Num() == 0)
+		if (FromPin->DefaultObject != nullptr && FromPin->LinkedTo.Num() == 0)
 		{
-			InputClass = CastChecked<UClass>(ClassPin->DefaultObject);
+			InputClass = CastChecked<UClass>(FromPin->DefaultObject);
 		}
-		else if(ClassPin->LinkedTo.Num() > 0)
+		else if (FromPin->LinkedTo.Num() > 0)
 		{
-			if(UEdGraphPin* LinkedPin = ClassPin->LinkedTo[0])
+			if (UEdGraphPin* LinkedPin = FromPin->LinkedTo[0])
 			{
 				InputClass = Cast<UClass>(LinkedPin->PinType.PinSubCategoryObject.Get());
 			}
+		}
+	}
+
+	// Switch Blueprint Class types to use the generated skeleton class.
+	if (InputClass)
+	{
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(InputClass->ClassGeneratedBy))
+		{
+			InputClass = Blueprint->SkeletonGeneratedClass;
 		}
 	}
 
@@ -400,6 +403,25 @@ void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 	else if(!bHasAdvancedPins)
 	{
 		AdvancedPinDisplay = ENodeAdvancedPins::NoPins;
+	}
+
+	// Unbind OnChanged() delegate from a previous Blueprint, if valid.
+	if (OnBlueprintChangedDelegate.IsValid())
+	{
+		OnBlueprintChangedDelegate.Reset();
+	}
+
+	// Unbind OnCompiled() delegate from a previous Blueprint, if valid.
+	if (OnBlueprintCompiledDelegate.IsValid())
+	{
+		OnBlueprintCompiledDelegate.Reset();
+	}
+
+	// If the class was generated for a Blueprint, bind delegates to handle any OnChanged() & OnCompiled() events.
+	if (UBlueprint* Blueprint = Cast<UBlueprint>(InClass->ClassGeneratedBy))
+	{
+		OnBlueprintChangedDelegate = Blueprint->OnChanged().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+		OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
 	}
 }
 

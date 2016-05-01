@@ -716,8 +716,12 @@ void UK2Node_CallFunction::CreateExecPinsForFunctionCall(const UFunction* Functi
 				int32 NumExecs = (EnumProp->Enum->NumEnums() - 1);
 				for(int32 ExecIdx=0; ExecIdx<NumExecs; ExecIdx++)
 				{
-					FString ExecName = EnumProp->Enum->GetEnumName(ExecIdx);
-					CreatePin(Direction, K2Schema->PC_Exec, TEXT(""), NULL, false, false, ExecName);
+					bool const bShouldBeHidden = EnumProp->Enum->HasMetaData(TEXT("Hidden"), ExecIdx) || EnumProp->Enum->HasMetaData(TEXT("Spacer"), ExecIdx);
+					if (!bShouldBeHidden)
+					{
+						FString ExecName = EnumProp->Enum->GetEnumName(ExecIdx);
+						CreatePin(Direction, K2Schema->PC_Exec, TEXT(""), NULL, false, false, ExecName);
+					}
 				}
 				
 				if (bIsFunctionInput)

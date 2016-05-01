@@ -227,15 +227,19 @@ void FLevelEditorActionCallbacks::OpenRecentFile( int32 RecentFileIndex )
 	FMainMRUFavoritesList* RecentsAndFavorites = MainFrameModule.GetMRUFavoritesList();
 
 	// Save the name of the file we are attempting to load as VerifyFile/AskSaveChanges might rearrange the MRU list on us
-	const FString NewFilename = RecentsAndFavorites->GetMRUItem( RecentFileIndex );
+	const FString NewPackageName = RecentsAndFavorites->GetMRUItem( RecentFileIndex );
 	
 	if( RecentsAndFavorites->VerifyMRUFile( RecentFileIndex ) )
 	{
 		// Prompt the user to save any outstanding changes.
 		if( FEditorFileUtils::SaveDirtyPackages(true, true, false) )
 		{
-			// Load the requested level.
-			FEditorFileUtils::LoadMap( NewFilename );
+			FString NewFilename;
+			if (FPackageName::TryConvertLongPackageNameToFilename(NewPackageName, NewFilename, FPackageName::GetMapPackageExtension()))
+			{
+				// Load the requested level.
+				FEditorFileUtils::LoadMap(NewFilename);
+			}
 		}
 		else
 		{
@@ -250,18 +254,22 @@ void FLevelEditorActionCallbacks::OpenFavoriteFile( int32 FavoriteFileIndex )
 	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
 	FMainMRUFavoritesList* MRUFavoritesList = MainFrameModule.GetMRUFavoritesList();
 
-	const FString FileName = MRUFavoritesList->GetFavoritesItem( FavoriteFileIndex );
+	const FString PackageName = MRUFavoritesList->GetFavoritesItem( FavoriteFileIndex );
 
 	if( MRUFavoritesList->VerifyFavoritesFile( FavoriteFileIndex ) )
 	{
 		// Prompt the user to save any outstanding changes
 		if( FEditorFileUtils::SaveDirtyPackages(true, true, false) )
 		{
-			// Load the requested level.
-			FEditorFileUtils::LoadMap( FileName );
+			FString FileName;
+			if (FPackageName::TryConvertLongPackageNameToFilename(PackageName, FileName, FPackageName::GetMapPackageExtension()))
+			{
+				// Load the requested level.
+				FEditorFileUtils::LoadMap(FileName);
+			}
 
 			// Move the item to the head of the list
-			MRUFavoritesList->MoveFavoritesItemToHead( FileName );
+			MRUFavoritesList->MoveFavoritesItemToHead(PackageName);
 		}
 		else
 		{
@@ -277,21 +285,23 @@ void FLevelEditorActionCallbacks::ToggleFavorite()
 	FMainMRUFavoritesList* MRUFavoritesList = MainFrameModule.GetMRUFavoritesList();
 	check( MRUFavoritesList );
 
+	const FString PackageName = GetWorld()->GetOutermost()->GetName();
+
 	FString MapFileName;
-	const bool bMapFileExists = FPackageName::DoesPackageExist(GetWorld()->GetOutermost()->GetName(), NULL, &MapFileName);
+	const bool bMapFileExists = FPackageName::DoesPackageExist(PackageName, NULL, &MapFileName);
 
 	// If the user clicked the toggle favorites button, the map file should exist, but double check to be safe.
 	if ( bMapFileExists )
 	{
 		// If the map was already favorited, remove it from the favorites
-		if ( MRUFavoritesList->ContainsFavoritesItem( MapFileName ) )
+		if ( MRUFavoritesList->ContainsFavoritesItem(PackageName) )
 		{
-			MRUFavoritesList->RemoveFavoritesItem( MapFileName );
+			MRUFavoritesList->RemoveFavoritesItem(PackageName);
 		}
 		// If the map was not already favorited, add it to the favorites
 		else
 		{
-			MRUFavoritesList->AddFavoritesItem( MapFileName );
+			MRUFavoritesList->AddFavoritesItem(PackageName);
 		}
 	}
 }
@@ -302,13 +312,13 @@ void FLevelEditorActionCallbacks::RemoveFavorite( int32 FavoriteFileIndex )
 	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
 	FMainMRUFavoritesList* MRUFavoritesList = MainFrameModule.GetMRUFavoritesList();
 
-	const FString FileName = MRUFavoritesList->GetFavoritesItem( FavoriteFileIndex );
+	const FString PackageName = MRUFavoritesList->GetFavoritesItem( FavoriteFileIndex );
 
 	if( MRUFavoritesList->VerifyFavoritesFile( FavoriteFileIndex ) )
 	{
-		if ( MRUFavoritesList->ContainsFavoritesItem( FileName ) )
+		if ( MRUFavoritesList->ContainsFavoritesItem(PackageName) )
 		{
-			MRUFavoritesList->RemoveFavoritesItem( FileName );
+			MRUFavoritesList->RemoveFavoritesItem(PackageName);
 		}
 	}
 }
@@ -333,18 +343,17 @@ bool FLevelEditorActionCallbacks::ToggleFavorite_IsChecked()
 {
 	bool bIsChecked = false;
 
+	const FString PackageName = GetWorld()->GetOutermost()->GetName();
+
 	FString FileName;
-	const bool bMapFileExists = FPackageName::DoesPackageExist(GetWorld()->GetOutermost()->GetName(), NULL, &FileName);
+	const bool bMapFileExists = FPackageName::DoesPackageExist(PackageName, NULL, &FileName);
 	
 	// If the map exists, determine its state based on whether the map is already favorited or not
 	if ( bMapFileExists )
 	{
 		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
 
-		const FString CleanedName = FPaths::ConvertRelativePathToFull(FileName);
-		const bool bCleanAlreadyFavorited = MainFrameModule.GetMRUFavoritesList()->ContainsFavoritesItem( CleanedName );
-		const bool bAlreadyFavorited = bCleanAlreadyFavorited || MainFrameModule.GetMRUFavoritesList()->ContainsFavoritesItem( FileName );
-		bIsChecked = bAlreadyFavorited;
+		bIsChecked = MainFrameModule.GetMRUFavoritesList()->ContainsFavoritesItem(PackageName);
 	}
 
 	return bIsChecked;

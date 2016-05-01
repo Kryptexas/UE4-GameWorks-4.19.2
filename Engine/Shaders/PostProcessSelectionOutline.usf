@@ -219,17 +219,17 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 	int ScountStep = 2;
 #if MSAA_SAMPLE_COUNT > 1
 	int4 StencilScout = int4(
-		EditorPrimitivesStencil.Load(PixelPos + int2( ScountStep,  0), 0).g,
-		EditorPrimitivesStencil.Load(PixelPos + int2(-ScountStep,  0), 0).g,
-		EditorPrimitivesStencil.Load(PixelPos + int2( 0,  ScountStep), 0).g,
-		EditorPrimitivesStencil.Load(PixelPos + int2( 0, -ScountStep), 0).g
+		EditorPrimitivesStencil.Load(PixelPos + int2( ScountStep,  0), 0) STENCIL_COMPONENT_SWIZZLE,
+		EditorPrimitivesStencil.Load(PixelPos + int2(-ScountStep,  0), 0) STENCIL_COMPONENT_SWIZZLE,
+		EditorPrimitivesStencil.Load(PixelPos + int2( 0,  ScountStep), 0) STENCIL_COMPONENT_SWIZZLE,
+		EditorPrimitivesStencil.Load(PixelPos + int2( 0, -ScountStep), 0) STENCIL_COMPONENT_SWIZZLE
 	);
 #else
 	int4 StencilScout = int4(
-		EditorPrimitivesStencil.Load(int3(PixelPos + int2( ScountStep,  0), 0)).g,
-		EditorPrimitivesStencil.Load(int3(PixelPos + int2(-ScountStep,  0), 0)).g,
-		EditorPrimitivesStencil.Load(int3(PixelPos + int2( 0,  ScountStep), 0)).g,
-		EditorPrimitivesStencil.Load(int3(PixelPos + int2( 0, -ScountStep), 0)).g
+		EditorPrimitivesStencil.Load(int3(PixelPos + int2( ScountStep,  0), 0)) STENCIL_COMPONENT_SWIZZLE,
+		EditorPrimitivesStencil.Load(int3(PixelPos + int2(-ScountStep,  0), 0)) STENCIL_COMPONENT_SWIZZLE,
+		EditorPrimitivesStencil.Load(int3(PixelPos + int2( 0,  ScountStep), 0)) STENCIL_COMPONENT_SWIZZLE,
+		EditorPrimitivesStencil.Load(int3(PixelPos + int2( 0, -ScountStep), 0)) STENCIL_COMPONENT_SWIZZLE
 	);
 #endif
 	int ScoutSum = dot(saturate(StencilScout), 1);

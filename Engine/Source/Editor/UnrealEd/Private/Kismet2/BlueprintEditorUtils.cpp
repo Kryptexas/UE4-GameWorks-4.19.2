@@ -5149,12 +5149,26 @@ bool FBlueprintEditorUtils::IsVariableUsed(const UBlueprint* Blueprint, const FN
 			TArray<UK2Node_Variable*> GraphNodes;
 			CurrentGraph->GetNodesOfClass(GraphNodes);
 
-			for( TArray<UK2Node_Variable*>::TConstIterator NodeIt(GraphNodes); NodeIt; ++NodeIt )
+			for (const UK2Node_Variable* CurrentNode : GraphNodes )
 			{
-				UK2Node_Variable* CurrentNode = *NodeIt;
 				if(Name == CurrentNode->GetVarName())
 				{
 					return true;
+				}
+			}
+
+			// Also consider "used" if there's a GetClassDefaults node that exposes the variable as an output pin that's connected to something.
+			TArray<UK2Node_GetClassDefaults*> ClassDefaultsNodes;
+			CurrentGraph->GetNodesOfClass(ClassDefaultsNodes);
+			for (const UK2Node_GetClassDefaults* ClassDefaultsNode : ClassDefaultsNodes)
+			{
+				if (ClassDefaultsNode->GetInputClass() == Blueprint->SkeletonGeneratedClass)
+				{
+					const UEdGraphPin* VarPin = ClassDefaultsNode->FindPin(Name.ToString());
+					if (VarPin && VarPin->Direction == EGPD_Output && VarPin->LinkedTo.Num() > 0)
+					{
+						return true;
+					}
 				}
 			}
 		}

@@ -2761,8 +2761,8 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 	{
 		// @TODO: temporarily disabling the PostConstructLink optimization here
 		//        since it is unknowingly causing issues in gameplay (see 
-		//        UE-28522) - we're still unclear on what specifically this is
-		//        doing wrong, but will investigate (UE-29449)
+		//        UE-29940) - we're still unclear on what specifically this is
+		//        doing wrong, but will investigate (UE-30120)
 		bCanUsePostConstructLink = false;
 
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitProperties_Blueprint);
@@ -2838,15 +2838,24 @@ void FObjectInitializer::InitArrayPropertyFromCustomList(const UArrayProperty* A
 	FScriptArrayHelper DstArrayValueHelper(ArrayProperty, DataPtr);
 	FScriptArrayHelper SrcArrayValueHelper(ArrayProperty, DefaultDataPtr);
 
-	int32 Num = SrcArrayValueHelper.Num();
+	const int32 SrcNum = SrcArrayValueHelper.Num();
+	const int32 DstNum = DstArrayValueHelper.Num();
 
-	if (!(ArrayProperty->Inner->PropertyFlags & CPF_IsPlainOldData))
+	if (SrcNum > DstNum)
 	{
-		DstArrayValueHelper.EmptyAndAddValues(Num);
+		const int32 Count = SrcNum - DstNum;
+		if (!(ArrayProperty->Inner->PropertyFlags & CPF_IsPlainOldData))
+		{
+			DstArrayValueHelper.AddValues(Count);
+		}
+		else
+		{
+			DstArrayValueHelper.AddUninitializedValues(Count);
+		}
 	}
-	else
+	else if (SrcNum < DstNum)
 	{
-		DstArrayValueHelper.EmptyAndAddUninitializedValues(Num);
+		DstArrayValueHelper.RemoveValues(SrcNum, DstNum - SrcNum);
 	}
 
 	for (const FCustomPropertyListNode* CustomArrayPropertyListNode = InPropertyList; CustomArrayPropertyListNode; CustomArrayPropertyListNode = CustomArrayPropertyListNode->PropertyListNext)
@@ -2856,24 +2865,7 @@ void FObjectInitializer::InitArrayPropertyFromCustomList(const UArrayProperty* A
 		uint8* DstArrayItemValue = DstArrayValueHelper.GetRawPtr(ArrayIndex);
 		const uint8* SrcArrayItemValue = SrcArrayValueHelper.GetRawPtr(ArrayIndex);
 
-		// A null property value signals that we should serialize the remaining array values in full starting at this index
-		if (CustomArrayPropertyListNode->Property == nullptr)
-		{
-			int32 Size = ArrayProperty->Inner->ElementSize;
-
-			if (!(ArrayProperty->Inner->PropertyFlags & CPF_IsPlainOldData))
-			{
-				for (int32 i = 0; i < Num - ArrayIndex; i++)
-				{
-					ArrayProperty->Inner->CopyCompleteValue(DstArrayItemValue + i * Size, SrcArrayItemValue + i * Size);
-				}
-			}
-			else
-			{
-				FMemory::Memcpy(DstArrayItemValue, SrcArrayItemValue, (Num - ArrayIndex) * Size);
-			}
-		}
-		else if (const UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner))
+		if (const UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner))
 		{
 			InitPropertiesFromCustomList(CustomArrayPropertyListNode->SubPropertyList, InnerStructProperty->Struct, DstArrayItemValue, SrcArrayItemValue);
 		}

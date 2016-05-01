@@ -48,9 +48,30 @@ namespace PixelInspector
 		void OnApplicationPreInputKeyDownListener(const FKeyEvent& InKeyEvent);
 
 		/** Button handlers */
-		ECheckBoxState IsPixelInspectorEnable() const;
-		void HandleTogglePixelInspectorEnable(ECheckBoxState CheckType);
+		FReply HandleTogglePixelInspectorEnableButton();
+		FText GetPixelInspectorEnableButtonText() const;
+		FText GetPixelInspectorEnableButtonTooltipText() const;
+		const FSlateBrush* GetPixelInspectorEnableButtonBrush() const;
+
+
+		TOptional<uint32> GetCurrentViewportId() const { return LastViewportId; }
+		FIntPoint GetCurrentCoordinate() const { return LastViewportInspectionPosition; }
+		TOptional<int32> GetCurrentCoordinateX() const { return LastViewportInspectionPosition.X; }
+		void SetCurrentCoordinateX(int32 NewValue);
+		void SetCurrentCoordinateXCommit(int32 NewValue, ETextCommit::Type);
+		TOptional<int32> GetCurrentCoordinateY() const { return LastViewportInspectionPosition.Y; }
+		void SetCurrentCoordinateY(int32 NewValue);
+		void SetCurrentCoordinateYCommit(int32 NewValue, ETextCommit::Type);
+		TOptional<int32> GetMaxCoordinateX() const;
+		TOptional<int32> GetMaxCoordinateY() const;
+
 		/** End button handlers */
+
+		bool IsPixelInspectorEnable() const { return bIsPixelInspectorEnable;	}
+
+		void SetCurrentCoordinate(FIntPoint NewCoordinate, bool ReleaseAllRequest);
+
+		void SetViewportInformation(int32 ViewportUniqueId, FIntPoint ViewportSize) { LastViewportInspectionSize = ViewportSize; }
 
 		/*
 		 * Create a request and the associate buffers
@@ -88,7 +109,14 @@ namespace PixelInspector
 		void ReleaseBuffers(int32 BufferIndex);
 
 		void OnLevelActorDeleted(AActor* Actor);
+		
 		void OnRedrawViewport(bool bInvalidateHitProxies);
+
+		/* 
+		* Use by the Coordinate mode only, this change the realtime state of the viewport if the state is not true
+		*/
+		void SetCurrentViewportInRealtime();
+
 	private:
 
 		void ReleaseAllRequests();
@@ -109,6 +137,8 @@ namespace PixelInspector
 		UTextureRenderTarget2D* Buffer_FinalColor_RGB8[2];
 		//Depth Buffer
 		UTextureRenderTarget2D* Buffer_Depth_Float[2];
+		//SceneColor Buffer
+		UTextureRenderTarget2D* Buffer_SceneColor_Float[2];
 		//HDR Buffer
 		UTextureRenderTarget2D* Buffer_HDR_Float[2];
 		//GBufferA RenderTarget
@@ -127,7 +157,15 @@ namespace PixelInspector
 
 		//////////////////////////////////////////////////////////////////////////
 		// Display UObject to use the Detail Property Widget
+		
 		UPixelInspectorView *DisplayResult;
+		
+		FIntPoint LastViewportInspectionSize;
+		
+		FIntPoint LastViewportInspectionPosition;
+		
+		uint32 LastViewportId;
+
 		TSharedPtr<IDetailsView> DisplayDetailsView;
 	};
 }

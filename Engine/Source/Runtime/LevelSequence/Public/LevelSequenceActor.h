@@ -9,7 +9,7 @@
 /**
  * Actor responsible for controlling a specific level sequence in the world.
  */
-UCLASS(Experimental, hideCategories=(Rendering, Physics, LOD, Activation))
+UCLASS(hideCategories=(Rendering, Physics, LOD, Activation))
 class LEVELSEQUENCE_API ALevelSequenceActor
 	: public AActor
 {

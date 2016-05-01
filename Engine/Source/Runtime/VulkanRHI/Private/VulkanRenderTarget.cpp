@@ -37,16 +37,8 @@ void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderT
 	FVulkanPendingState& PendingState = Device->GetPendingState();
 	PendingState.SetRenderTargetsInfo(RenderTargetsInfo);
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
-	auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-	//#todo-rco: Write barrier always for now...
-	FVulkanFramebuffer* Framebuffer = PendingState.GetFrameBuffer();
-	if (Framebuffer)
-	{
-		Framebuffer->InsertWriteBarrier(CmdBuffer);
-	}
-
 #if 0//VULKAN_USE_NEW_RESOURCE_MANAGEMENT
+	auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	if (CmdBuffer->IsInsideRenderPass())
 	{
 		if (
@@ -58,15 +50,13 @@ void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderT
 		}
 	}
 #endif
-#else
-#endif
 }
 
 void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& ResolveParams)
 {
 	FVulkanPendingState& State = Device->GetPendingState();
 
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 	auto* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	// Verify if we need to do some work (for the case of SetRT(), CopyToResolve() with no draw calls in between)
 	State.UpdateRenderPass(CmdBuffer);
@@ -78,7 +68,14 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 		State.RenderPassEnd(CmdBuffer);
 	}
 
-	check(SourceTextureRHI->GetNumSamples() < 2);
+	check(!SourceTextureRHI || SourceTextureRHI->GetNumSamples() < 2);
+
+	FVulkanFramebuffer* Framebuffer = State.GetFrameBuffer();
+	if (Framebuffer)
+	{
+		Framebuffer->InsertWriteBarriers(GetCommandBufferManager()->GetActiveCmdBuffer());
+	}
+
 #else
 	// If we're using the pResolveAttachments property of the subpass, so we don't need manual command buffer resolves and this function is a NoOp.
 #if !VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
@@ -160,7 +157,7 @@ void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess
 				FVulkanTexture2D* Texture = (FVulkanTexture2D*)RHITexture2D;
 				if (Texture->Surface.ImageLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
 				{
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 					check(0);
 #else
 					check(Texture->Surface.GetAspectMask() == VK_IMAGE_ASPECT_COLOR_BIT);

@@ -389,21 +389,11 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	// so that node knows where montage is
 	UpdateMontage(DeltaSeconds);
 
-	if(NeedsImmediateUpdate(DeltaSeconds))
+	if(bNeedsValidRootMotion || NeedsImmediateUpdate(DeltaSeconds))
 	{
 		// cant use parallel update, so just do the work here
 		Proxy.UpdateAnimation();
 		PostUpdateAnimation();
-	}
-	else if(bNeedsValidRootMotion && RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly)
-	{
-		// We may have just partially blended root motion, so make it up to 1 by
-		// blending in identity too
-		FRootMotionMovementParams& ExtractedRootMotion = Proxy.GetExtractedRootMotion();
-		if (ExtractedRootMotion.bHasRootMotion)
-		{
-			ExtractedRootMotion.MakeUpToFullWeight();
-		}
 	}
 }
 
@@ -495,7 +485,6 @@ bool UAnimInstance::NeedsImmediateUpdate(float DeltaSeconds) const
 		bEvaluationPhaseSkipped || 
 		CVarUseParallelAnimUpdate.GetValueOnGameThread() == 0 ||
 		CVarUseParallelAnimationEvaluation.GetValueOnGameThread() == 0 ||
-		GetWorld()->IsServer() ||
 		!bUseParallelUpdateAnimation ||
 		DeltaSeconds == 0.0f ||
 		RootMotionMode == ERootMotionMode::RootMotionFromEverything;
@@ -504,6 +493,11 @@ bool UAnimInstance::NeedsImmediateUpdate(float DeltaSeconds) const
 bool UAnimInstance::NeedsUpdate() const
 {
 	return bNeedsUpdate;
+}
+
+void UAnimInstance::PreEvaluateAnimation()
+{
+	GetProxyOnGameThread<FAnimInstanceProxy>().PreEvaluateAnimation(this);
 }
 
 void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
@@ -563,6 +557,8 @@ void UAnimInstance::PostEvaluateAnimation()
 		SCOPE_CYCLE_COUNTER(STAT_BlueprintPostEvaluateAnimation);
 		BlueprintPostEvaluateAnimation();
 	}
+
+	GetProxyOnGameThread<FAnimInstanceProxy>().ClearObjects();
 }
 
 void UAnimInstance::NativeInitializeAnimation()

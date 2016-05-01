@@ -59,7 +59,10 @@ struct FReferenceBoneFrame
 };
 
 /**
- * This is the runtime version of a bone driven controller, which maps part of the state from one bone to another (e.g., 2 * source.x -> target.z)
+ * This is the node that apply corrective morphtarget for twist 
+ * Good example is that if you twist your neck too far right or left, you're going to see odd stretch shape of neck, 
+ * This node can detect the angle and apply morphtarget curve 
+ * This isn't the twist control node for bone twist
  */
 USTRUCT()
 struct ANIMGRAPHRUNTIME_API FAnimNode_TwistCorrectiveNode : public FAnimNode_SkeletalControlBase

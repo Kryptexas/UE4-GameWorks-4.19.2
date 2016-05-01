@@ -276,6 +276,26 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 		{
 			UClass* TrackClass = DefaultTrack.ResolveClass();
 
+			// exclude any tracks explicitly marked for exclusion
+			for (const FLevelSequenceTrackSettings& ExcludeTrackSettings : GetDefault<ULevelSequenceEditorSettings>()->TrackSettings)
+			{
+				UClass* ExcludeMatchingActorClass = ExcludeTrackSettings.MatchingActorClass.ResolveClass();
+
+				if ((ExcludeMatchingActorClass == nullptr) || !Actor.IsA(ExcludeMatchingActorClass))
+				{
+					continue;
+				}
+				
+				for (const FStringClassReference& ExcludeDefaultTrack : ExcludeTrackSettings.ExcludeDefaultTracks)
+				{
+					if (ExcludeDefaultTrack == DefaultTrack)
+					{
+						TrackClass = nullptr;
+						break;
+					}
+				}				
+			}
+
 			if (TrackClass != nullptr)
 			{
 				UMovieSceneTrack* NewTrack = MovieScene->AddTrack(TrackClass, Binding);
@@ -324,6 +344,46 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 			}
 		}
 
+		// construct a map of the properties that should be excluded per component
+		TMap<UObject*, TArray<FString> > ExcludePropertyTracksMap;
+		for (const FLevelSequenceTrackSettings& ExcludeTrackSettings : GetDefault<ULevelSequenceEditorSettings>()->TrackSettings)
+		{
+			UClass* ExcludeMatchingActorClass = ExcludeTrackSettings.MatchingActorClass.ResolveClass();
+
+			if ((ExcludeMatchingActorClass == nullptr) || !Actor.IsA(ExcludeMatchingActorClass))
+			{
+				continue;
+			}
+
+			for (const FLevelSequencePropertyTrackSettings& PropertyTrackSettings : ExcludeTrackSettings.ExcludeDefaultPropertyTracks)
+			{
+				TArray<UProperty*> PropertyPath;
+				UObject* PropertyOwner = &Actor;
+
+				// determine object hierarchy
+				TArray<FString> ComponentNames;
+				PropertyTrackSettings.ComponentPath.ParseIntoArray(ComponentNames, TEXT("."));
+
+				for (const FString& ComponentName : ComponentNames)
+				{
+					PropertyOwner = FindObjectFast<UObject>(PropertyOwner, *ComponentName);
+
+					if (PropertyOwner == nullptr)
+					{
+						continue;
+					}
+				}
+
+				if (PropertyOwner)
+				{
+					TArray<FString> PropertyNames;
+					PropertyTrackSettings.PropertyPath.ParseIntoArray(PropertyNames, TEXT("."));
+
+					ExcludePropertyTracksMap.Add(PropertyOwner, PropertyNames);
+				}
+			}
+		}
+
 		// add tracks by property
 		for (const FLevelSequencePropertyTrackSettings& PropertyTrackSettings : TrackSettings.DefaultPropertyTracks)
 		{
@@ -352,6 +412,13 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 
 			for (const FString& PropertyName : PropertyNames)
 			{
+				// skip past excluded properties
+				if (ExcludePropertyTracksMap.Contains(PropertyOwner) && ExcludePropertyTracksMap[PropertyOwner].Contains(PropertyName))
+				{
+					PropertyPath.Empty();
+					break;
+				}
+
 				UProperty* Property = PropertyOwnerClass->FindPropertyByName(*PropertyName);
 
 				if (Property != nullptr)

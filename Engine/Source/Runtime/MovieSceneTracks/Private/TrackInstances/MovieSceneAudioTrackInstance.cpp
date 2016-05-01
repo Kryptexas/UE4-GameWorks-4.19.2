@@ -38,7 +38,8 @@ void FMovieSceneAudioTrackInstance::Update(EMovieSceneUpdateData& UpdateData, co
 
 	if (Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing)
 	{
-		if (UpdateData.Position > UpdateData.LastPosition)
+		float LastPosition = UpdateData.bLooped ? UpdateData.Position : UpdateData.LastPosition;
+		if (UpdateData.Position >= LastPosition)
 		{
 			TMap<int32, TArray<UMovieSceneAudioSection*> > AudioSectionsBySectionIndex;
 			for (int32 i = 0; i < AudioSections.Num(); ++i)
@@ -68,7 +69,7 @@ void FMovieSceneAudioTrackInstance::Update(EMovieSceneUpdateData& UpdateData, co
 							UMovieSceneAudioSection* AudioSection = MovieSceneAudioSections[i];
 							if (AudioSection->IsTimeWithinAudioRange(UpdateData.Position))
 							{
-								if (!AudioSection->IsTimeWithinAudioRange(UpdateData.LastPosition) || !Component->IsPlaying())
+								if (!AudioSection->IsTimeWithinAudioRange(LastPosition) || !Component->IsPlaying())
 								{
 									PlaySound(AudioSection, Component, UpdateData.Position);
 								}

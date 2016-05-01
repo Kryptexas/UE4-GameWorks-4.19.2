@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Components/ChildActorComponent.h"
+#include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogChildActorComponent, Warning, All);
 
@@ -34,6 +35,9 @@ void UChildActorComponent::OnRegister()
 				// so moving Attach to happen in Register
 				ChildRoot->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 			}
+
+			// Ensure the components replication is correctly initialized
+			SetIsReplicated(ChildActor->GetIsReplicated());
 		}
 	}
 	else if (ChildActorClass)
@@ -83,6 +87,29 @@ void UChildActorComponent::PostEditUndo()
 }
 #endif
 
+void UChildActorComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UChildActorComponent, ChildActor);
+}
+
+void UChildActorComponent::PostRepNotifies()
+{
+	Super::PostRepNotifies();
+
+	if (ChildActor)
+	{
+		ChildActorClass = ChildActor->GetClass();
+		ChildActorName = ChildActor->GetFName();
+	}
+	else
+	{
+		ChildActorClass = nullptr;
+		ChildActorName = NAME_None;
+	}
+}
+
 void UChildActorComponent::OnComponentCreated()
 {
 	Super::OnComponentCreated();
@@ -94,16 +121,14 @@ void UChildActorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
 
-	const UWorld* const MyWorld = GetWorld();
-	DestroyChildActor(MyWorld && !MyWorld->IsGameWorld());
+	DestroyChildActor();
 }
 
 void UChildActorComponent::OnUnregister()
 {
 	Super::OnUnregister();
 
-	const UWorld* const MyWorld = GetWorld();
-	DestroyChildActor(MyWorld && !MyWorld->IsGameWorld());
+	DestroyChildActor();
 }
 
 FChildActorComponentInstanceData::FChildActorComponentInstanceData(const UChildActorComponent* Component)
@@ -262,6 +287,18 @@ void UChildActorComponent::PostLoad()
 
 void UChildActorComponent::CreateChildActor()
 {
+	AActor* MyOwner = GetOwner();
+
+	if (MyOwner && !MyOwner->HasAuthority())
+	{
+		AActor* ChildClassCDO = (ChildActorClass ? ChildActorClass->GetDefaultObject<AActor>() : nullptr);
+		if (ChildClassCDO && ChildClassCDO->GetIsReplicated())
+		{
+			// If we belong to an actor that is not authoritative and the child class is replicated then we expect that Actor will be replicated across so don't spawn one
+			return;
+		}
+	}
+
 	// Kill spawned actor if we have one
 	DestroyChildActor();
 
@@ -273,7 +310,6 @@ void UChildActorComponent::CreateChildActor()
 		{
 			// Before we spawn let's try and prevent cyclic disaster
 			bool bSpawn = true;
-			AActor* MyOwner = GetOwner();
 			AActor* Actor = MyOwner;
 			while (Actor && bSpawn)
 			{
@@ -323,6 +359,8 @@ void UChildActorComponent::CreateChildActor()
 					ChildActor->FinishSpawning(ComponentToWorld, false, ComponentInstanceData);
 
 					ChildActor->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
+					SetIsReplicated(ChildActor->GetIsReplicated());
 				}
 			}
 		}
@@ -336,50 +374,62 @@ void UChildActorComponent::CreateChildActor()
 	}
 }
 
-void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
+void UChildActorComponent::DestroyChildActor()
 {
-	// If we own an Actor, kill it now
-	if (ChildActor != nullptr && !GExitPurge)
+	// If we own an Actor, kill it now unless we don't have authority on it, for that we rely on the server
+	if (ChildActor && ChildActor->HasAuthority())
 	{
-		// if still alive, destroy, otherwise just clear the pointer
-		if (!ChildActor->IsPendingKillOrUnreachable())
+		if (!GExitPurge)
 		{
+			// if still alive, destroy, otherwise just clear the pointer
+			if (!ChildActor->IsPendingKillOrUnreachable())
+			{
 #if WITH_EDITOR
-			if (CachedInstanceData)
-			{
-				delete CachedInstanceData;
-				CachedInstanceData = nullptr;
-			}
-#else
-			check(!CachedInstanceData);
-#endif
-			// If we're already tearing down we won't be needing this
-			if (!HasAnyFlags(RF_BeginDestroyed))
-			{
-				CachedInstanceData = new FChildActorComponentInstanceData(this);
-			}
-
-			UWorld* World = ChildActor->GetWorld();
-			// World may be nullptr during shutdown
-			if (World != nullptr)
-			{
-				UClass* ChildClass = ChildActor->GetClass();
-
-				// We would like to make certain that our name is not going to accidentally get taken from us while we're destroyed
-				// so we increment ClassUnique beyond our index to be certain of it.  This is ... a bit hacky.
-				int32& ClassUnique = ChildActor->GetOutermost()->ClassUniqueNameIndexMap.FindOrAdd(ChildClass->GetFName());
-				ClassUnique = FMath::Max(ClassUnique, ChildActor->GetFName().GetNumber());
-
-				if (bRequiresRename)
+				if (CachedInstanceData)
 				{
-					const FString ObjectBaseName = FString::Printf(TEXT("DESTROYED_%s_CHILDACTOR"), *ChildClass->GetName());
-					const ERenameFlags RenameFlags = ((GetWorld()->IsGameWorld() || IsLoading()) ? REN_DoNotDirty | REN_ForceNoResetLoaders : REN_DoNotDirty);
-					ChildActor->Rename(*MakeUniqueObjectName(ChildActor->GetOuter(), ChildClass, *ObjectBaseName).ToString(), nullptr, RenameFlags);
+					delete CachedInstanceData;
+					CachedInstanceData = nullptr;
 				}
-				World->DestroyActor(ChildActor);
+#else
+				check(!CachedInstanceData);
+#endif
+				// If we're already tearing down we won't be needing this
+				if (!HasAnyFlags(RF_BeginDestroyed))
+				{
+					CachedInstanceData = new FChildActorComponentInstanceData(this);
+				}
+
+				UWorld* World = ChildActor->GetWorld();
+				// World may be nullptr during shutdown
+				if (World != nullptr)
+				{
+					UClass* ChildClass = ChildActor->GetClass();
+
+					// We would like to make certain that our name is not going to accidentally get taken from us while we're destroyed
+					// so we increment ClassUnique beyond our index to be certain of it.  This is ... a bit hacky.
+					int32& ClassUnique = ChildActor->GetOutermost()->ClassUniqueNameIndexMap.FindOrAdd(ChildClass->GetFName());
+					ClassUnique = FMath::Max(ClassUnique, ChildActor->GetFName().GetNumber());
+
+					// If we are getting here due to garbage collection we can't rename, so we'll have to abandon this child actor name and pick up a new one
+					if (!IsGarbageCollecting())
+					{
+						const FString ObjectBaseName = FString::Printf(TEXT("DESTROYED_%s_CHILDACTOR"), *ChildClass->GetName());
+						const ERenameFlags RenameFlags = ((GetWorld()->IsGameWorld() || IsLoading()) ? REN_DoNotDirty | REN_ForceNoResetLoaders : REN_DoNotDirty);
+						ChildActor->Rename(*MakeUniqueObjectName(ChildActor->GetOuter(), ChildClass, *ObjectBaseName).ToString(), nullptr, RenameFlags);
+					}
+					else
+					{
+						ChildActorName = NAME_None;
+						if (CachedInstanceData)
+						{
+							CachedInstanceData->ChildActorName = NAME_None;
+						}
+					}
+					World->DestroyActor(ChildActor);
+				}
 			}
 		}
-	}
 
-	ChildActor = nullptr;
+		ChildActor = nullptr;
+	}
 }

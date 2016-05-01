@@ -68,7 +68,7 @@ void FVulkanGPUTiming::StartTiming()
 		if (StartTimestamp >= 0 && EndTimestamp >= 0)
 		{
 			auto& State = GTimestampQueryPool->Device->GetPendingState();
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 			check(0);
 #else
 			GTimestampQueryPool->WriteTimestamp(State.GetCommandBuffer(), StartTimestamp, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
@@ -90,7 +90,7 @@ void FVulkanGPUTiming::EndTiming()
 		if (StartTimestamp >= 0 && EndTimestamp >= 0)
 		{
 			auto& State = GTimestampQueryPool->Device->GetPendingState();
-#if VULKAN_USE_NEW_COMMAND_BUFFERS
+#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
 			check(0);
 #else
 			GTimestampQueryPool->WriteTimestamp(State.GetCommandBuffer(), EndTimestamp, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);

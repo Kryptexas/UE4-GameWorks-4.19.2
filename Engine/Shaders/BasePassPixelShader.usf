@@ -54,6 +54,11 @@ SamplerState	PrevSceneColorSampler;
 	TextureCubeArray ReflectionCubemap;
 	SamplerState ReflectionCubemapSampler;
 	int CubemapArrayIndex;
+	float4 ReflectionPositionAndRadius;
+	float ReflectionShape;
+	float4x4 BoxTransform;
+	float4 BoxScales;
+	float3 CaptureOffset;
 #else
 	TextureCube ReflectionCubemap;
 	SamplerState ReflectionCubemapSampler;
@@ -70,13 +75,53 @@ uint MortonCode( uint x )
 
 half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness, half3 SpecularColor, half IndirectIrradiance)
 {
-	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, Frame.ReflectionCubemapMaxMip);
+	float3 N = MaterialParameters.WorldNormal;
+	float3 V = MaterialParameters.CameraVector;
+
+	float3 RayDirection = 2 * dot( V, N ) * N - V;
+	float3 RV =  RayDirection;
+	half NoV = saturate(dot(N, V));
+
+	float RoughnessSq = Roughness * Roughness;
+	float AO = 1.0f;
+	float SpecularOcclusion = GetSpecularOcclusion(NoV, RoughnessSq, AO);
+
+	float4 SpecularIBL = float4(0,0,0,SpecularOcclusion);
+	float3 CaptureVector = MaterialParameters.AbsoluteWorldPosition - ReflectionPositionAndRadius.xyz;
+	float CaptureVectorLength = length(CaptureVector);
+	
+	BRANCH
+	if (CaptureVectorLength < ReflectionPositionAndRadius.w)
+	{
+		float NormalizedDistanceToCapture = saturate(CaptureVectorLength / ReflectionPositionAndRadius.w);
+
+		RV = GetOffSpecularPeakReflectionDir(N, RV, Roughness);
+
+		float DistanceAlpha;
+		float3 ProjectedCaptureVector;
+		if (ReflectionShape > 0.0f)
+		{
+			ProjectedCaptureVector = GetLookupVectorForBoxCapture(RV, MaterialParameters.AbsoluteWorldPosition, ReflectionPositionAndRadius, BoxTransform, BoxScales, CaptureOffset, DistanceAlpha);
+		}
+		else
+		{
+			ProjectedCaptureVector = GetLookupVectorForSphereCapture(RV, MaterialParameters.AbsoluteWorldPosition, ReflectionPositionAndRadius, NormalizedDistanceToCapture, CaptureOffset, DistanceAlpha);
+		}
+			
+		half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, Frame.ReflectionCubemapMaxMip);	
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-	float4 SpecularIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.ReflectionVector, CubemapArrayIndex, AbsoluteSpecularMip);
+		float4 Sample = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, ProjectedCaptureVector, CubemapArrayIndex, AbsoluteSpecularMip);
 #else
-	float4 SpecularIBL = TextureCubeSampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.ReflectionVector, AbsoluteSpecularMip);
+		float4 Sample = TextureCubeSampleLevel(ReflectionCubemap, ReflectionCubemapSampler, ProjectedCaptureVector, AbsoluteSpecularMip);
 #endif
+		Sample *= DistanceAlpha;
+
+		// Under operator (back to front)
+		float IndirectSpecularOcclusion = 1.0f;
+		SpecularIBL.rgb += Sample.rgb * SpecularIBL.a * IndirectSpecularOcclusion;
+		SpecularIBL.a *= 1 - Sample.a;		
+	}	
 
 #if ALLOW_STATIC_LIGHTING
 	FLATTEN
@@ -93,7 +138,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	{
 		// Normalize for static skylight types which mix with lightmaps
 		bool bNormalize = SkyLightParameters.z < 1 && Frame.UseLightmaps;
-		float3 SkyLighting = GetSkyLightReflection(MaterialParameters.ReflectionVector, Roughness, bNormalize);
+		float3 SkyLighting = GetSkyLightReflection(RV, Roughness, bNormalize);
 
 		FLATTEN
 		if (bNormalize)
@@ -126,7 +171,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 
 		RayCast(
 			HZBTexture, HZBSampler, float2(1, 1),
-			MaterialParameters.WorldPosition_CamRelative, MaterialParameters.ReflectionVector, 0, 0, MaterialParameters.ScreenPosition.w,
+			MaterialParameters.WorldPosition_CamRelative, RV, 0, 0, MaterialParameters.ScreenPosition.w,
 			12, StepOffset,
 			HitUVzTime, HCBLevel
 		);
@@ -141,7 +186,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	}
 #endif
 
-	half NoV = saturate(dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector));
+
 	SpecularColor = EnvBRDFApprox(SpecularColor, Roughness, NoV);
 
 	float3 SpecularLighting = SpecularIBL.rgb;
@@ -158,7 +203,6 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 
 	return SpecularLighting * SpecularColor;
 }
-
 #endif
 
 #if TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
@@ -844,6 +888,28 @@ void Main(
 
 		GBuffer.CustomData.x = ClearCoat;
 		GBuffer.CustomData.y = ClearCoatRoughness;
+
+		#if CLEAR_COAT_BOTTOM_NORMAL
+		{
+				float2 oct2 = UnitVectorToOctahedron(GBuffer.WorldNormal);
+
+				#if NUM_MATERIAL_OUTPUTS_CLEARCOATBOTTOMNORMAL > 0
+					#if MATERIAL_TANGENTSPACENORMAL
+						float3 tempnormal = normalize(TransformTangentVectorToWorld( MaterialParameters.TangentToWorld, ClearCoatBottomNormal0(MaterialParameters) ));
+					#else
+						float3 tempnormal =  ClearCoatBottomNormal0(MaterialParameters);
+					#endif
+
+					float2 oct1 = UnitVectorToOctahedron(tempnormal);
+					float2 oct3 = ( (oct1 - oct2) *  0.5 ) + (128.0/255.0);
+					GBuffer.CustomData.a = oct3.x;
+					GBuffer.CustomData.z = oct3.y;
+				#else
+					GBuffer.CustomData.a = 128.0/255.0;
+					GBuffer.CustomData.z = 128.0/255.0;
+				#endif
+		}
+		#endif
 	}
 	#elif MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
 		GBuffer.ShadingModelID = SHADINGMODELID_TWOSIDED_FOLIAGE;
@@ -925,30 +991,6 @@ void Main(
 		
 		Color += (DiffuseIndirectLighting * EffectiveDiffuseColor + SubsurfaceIndirectLighting * SubsurfaceColor) * MaterialAO;
 
-		#if MATERIAL_SHADINGMODEL_CLEAR_COAT
-		{
-			const float ClearCoat			= GBuffer.CustomData.x;
-			const float ClearCoatRoughness	= GBuffer.CustomData.y;
-
-			// TODO EnvBRDF should have a mask param
-			//float2 AB = PreIntegratedGF.SampleLevel( PreIntegratedGFSampler, float2( NoV, GBuffer.Roughness ), 0 ).rg;
-			//Color.rgb *= GBuffer.SpecularColor * AB.x + AB.y * saturate( 50 * GBuffer.SpecularColor.g ) * (1 - ClearCoat);
-
-			float3 N = MaterialParameters.WorldNormal;
-			float3 V = MaterialParameters.CameraVector;
-			float NoV = saturate( dot( N, V ) );
-
-			// F_Schlick
-			float F0 = 0.04;
-			float Fc = Pow5( 1 - NoV );
-			float F = Fc + (1 - Fc) * F0;
-			F *= ClearCoat;
-			
-			float LayerAttenuation = (1 - F);
-
-			Color += LayerAttenuation * GetImageBasedReflectionLighting(MaterialParameters, GBuffer.Roughness, SpecularColor, IndirectIrradiance);
-		}
-		#endif
 
 		#if SIMPLE_DYNAMIC_LIGHTING
 			// always unshadowed so BiasedNDotL is not needed

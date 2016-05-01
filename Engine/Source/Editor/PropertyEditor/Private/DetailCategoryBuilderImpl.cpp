@@ -511,6 +511,12 @@ bool FDetailCategoryImpl::ContainsOnlyAdvanced() const
 	return !bFavoriteCategory && SimpleChildNodes.Num() == 0 && AdvancedChildNodes.Num() > 0;
 }
 
+void FDetailCategoryImpl::GetCategoryInformation(int32 &SimpleChildNum, int32 &AdvanceChildNum) const
+{
+	SimpleChildNum = SimpleChildNodes.Num();
+	AdvanceChildNum = AdvancedChildNodes.Num();
+}
+
 void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FText& LocalizedNameOverride )
 {
 	if( !LocalizedNameOverride.IsEmpty() )

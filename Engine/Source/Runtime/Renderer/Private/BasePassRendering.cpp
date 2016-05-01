@@ -143,10 +143,23 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 	// Note: GBlackCubeArrayTexture has an alpha of 0, which is needed to represent invalid data so the sky cubemap can still be applied
 	FTextureRHIParamRef CubeArrayTexture = FeatureLevel >= ERHIFeatureLevel::SM5 ? GBlackCubeArrayTexture->TextureRHI : GBlackTextureCube->TextureRHI;
 	int32 ArrayIndex = 0;
+	const FReflectionCaptureProxy* ReflectionProxy = PrimitiveSceneInfo ? PrimitiveSceneInfo->CachedReflectionCaptureProxy : nullptr;
 
-	if (PrimitiveSceneInfo && PrimitiveSceneInfo->CachedReflectionCaptureProxy)
+	FMatrix BoxTransformVal = FMatrix::Identity;
+	FVector4 PositionAndRadius = FVector::ZeroVector;
+	FVector4 BoxScalesVal = FVector::ZeroVector;
+	FVector CaptureOffsetVal = FVector::ZeroVector;
+	EReflectionCaptureShape::Type CaptureShape = EReflectionCaptureShape::Box;
+	
+
+	if (PrimitiveSceneInfo && ReflectionProxy)
 	{
-		PrimitiveSceneInfo->Scene->GetCaptureParameters(PrimitiveSceneInfo->CachedReflectionCaptureProxy, CubeArrayTexture, ArrayIndex);
+		PrimitiveSceneInfo->Scene->GetCaptureParameters(ReflectionProxy, CubeArrayTexture, ArrayIndex);
+		PositionAndRadius = FVector4(ReflectionProxy->Position, ReflectionProxy->InfluenceRadius);
+		CaptureShape = ReflectionProxy->Shape;
+		BoxTransformVal = ReflectionProxy->BoxTransform;
+		BoxScalesVal = ReflectionProxy->BoxScales;
+		CaptureOffsetVal = ReflectionProxy->CaptureOffset;
 	}
 
 	SetTextureParameter(
@@ -158,6 +171,12 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 		CubeArrayTexture);
 
 	SetShaderValue(RHICmdList, PixelShaderRHI, CubemapArrayIndex, ArrayIndex);
+	SetShaderValue(RHICmdList, PixelShaderRHI, ReflectionPositionAndRadius, PositionAndRadius);
+	SetShaderValue(RHICmdList, PixelShaderRHI, ReflectionShape, (float)CaptureShape);
+	SetShaderValue(RHICmdList, PixelShaderRHI, BoxTransform, BoxTransformVal);
+	SetShaderValue(RHICmdList, PixelShaderRHI, BoxScales, BoxScalesVal);
+	SetShaderValue(RHICmdList, PixelShaderRHI, CaptureOffset, CaptureOffsetVal);
+	
 }
 
 void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View)

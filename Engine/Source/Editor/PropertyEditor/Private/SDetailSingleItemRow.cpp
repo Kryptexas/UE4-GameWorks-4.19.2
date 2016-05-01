@@ -64,6 +64,28 @@ private:
 	TAttribute< TOptional<float> > MaxWidth;
 };
 
+namespace SDetailSingleItemRow_Helper
+{
+	//Get the node item number in case it is expand we have to recursively count all expanded children
+	void RecursivelyGetItemShow(TSharedRef<IDetailTreeNode> ParentItem, int32 &ItemShowNum)
+	{
+		if (ParentItem->GetVisibility() == ENodeVisibility::Visible)
+		{
+			ItemShowNum++;
+		}
+
+		if (ParentItem->ShouldBeExpanded())
+		{
+			TArray< TSharedRef<IDetailTreeNode> > Childrens;
+			ParentItem->GetChildren(Childrens);
+			for (TSharedRef<IDetailTreeNode> ItemChild : Childrens)
+			{
+				RecursivelyGetItemShow(ItemChild, ItemShowNum);
+			}
+		}
+	}
+}
+
 FReply SDetailSingleItemRow::OnFavoriteToggle()
 {
 	if (Customization->GetPropertyNode().IsValid() && Customization->GetPropertyNode()->CanDisplayFavorite())
@@ -72,6 +94,64 @@ FReply SDetailSingleItemRow::OnFavoriteToggle()
 		Customization->GetPropertyNode()->SetFavorite(toggle);
 		if (OwnerTreeNode.IsValid())
 		{
+			//////////////////////////////////////////////////////////////////////////
+			// Calculate properly the scrolling offset (by item) to make sure the mouse stay over the same property
+
+			//Get the node item number in case it is expand we have to recursively count all childrens
+			int32 ExpandSize = 0;
+			if (OwnerTreeNode.Pin()->ShouldBeExpanded())
+			{
+				SDetailSingleItemRow_Helper::RecursivelyGetItemShow(OwnerTreeNode.Pin().ToSharedRef(), ExpandSize);
+			}
+			else
+			{
+				//if the item is not expand count is 1
+				ExpandSize = 1;
+			}
+			
+			//Get the number of favorite child (simple and advance) to know if the favorite category will be create or remove
+			FString CategoryFavoritesName = TEXT("Favorites");
+			FName CatFavName = *CategoryFavoritesName;
+			int32 SimplePropertiesNum = 0;
+			int32 AdvancePropertiesNum = 0;
+			bool HasCategoryFavorite = OwnerTreeNode.Pin()->GetDetailsView().GetCategoryInfo(CatFavName, SimplePropertiesNum, AdvancePropertiesNum);
+
+			//Check if the property we toggle is an advance property
+			bool IsAdvanceProperty = Customization->GetPropertyNode()->HasNodeFlags(EPropertyNodeFlags::IsAdvanced) == 0 ? false : true;
+
+			//Compute the scrolling offset by item
+			int32 ScrollingOffsetAdd = ExpandSize;
+			int32 ScrollingOffsetRemove = -ExpandSize;
+			if (HasCategoryFavorite)
+			{
+				//Adding the advance button in a category add 1 item
+				ScrollingOffsetAdd += (IsAdvanceProperty && AdvancePropertiesNum == 0) ? 1 : 0;
+
+				if (IsAdvanceProperty && AdvancePropertiesNum == 1)
+				{
+					//Removing the advance button count as 1 item
+					ScrollingOffsetRemove -= 1;
+				}
+				if (AdvancePropertiesNum + SimplePropertiesNum == 1)
+				{
+					//Removing a full category count as 2 items
+					ScrollingOffsetRemove -= 2;
+				}
+			}
+			else
+			{
+				//Adding new category (2 items) adding advance button (1 item)
+				ScrollingOffsetAdd += IsAdvanceProperty ? 3 : 2;
+				
+				//We should never remove an item from favorite if there is no favorite category
+				//Set the remove offset to 0
+				ScrollingOffsetRemove = 0;
+			}
+
+			//Apply the calculated offset
+			OwnerTreeNode.Pin()->GetDetailsView().MoveScrollOffset(toggle ? ScrollingOffsetAdd : ScrollingOffsetRemove);
+
+			//Refresh the tree
 			OwnerTreeNode.Pin()->GetDetailsView().ForceRefresh();
 		}
 	}
