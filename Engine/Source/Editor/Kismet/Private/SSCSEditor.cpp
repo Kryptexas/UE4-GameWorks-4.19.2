@@ -2646,9 +2646,6 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 		if(DroppedNodePtr->GetParent().IsValid()
 			&& DroppedNodePtr->GetBlueprint() == Blueprint)
 		{
-			// Remove the dropped node from its existing parent
-			DroppedNodePtr->GetParent()->RemoveChild(DroppedNodePtr);
-
 			// If the associated component template is a scene component, reset its transform since it will now become the root
 			USceneComponent* SceneComponentTemplate = Cast<USceneComponent>(DroppedNodePtr->GetComponentTemplate());
 			if(SceneComponentTemplate)
@@ -2665,11 +2662,35 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 					SCS_Node->AttachToName = NAME_None;
 				}
 
-				// Reset the relative transform
+				// Reset the relative transform (location and rotation only; scale is preserved)
 				SceneComponentTemplate->SetRelativeLocation(FVector::ZeroVector);
 				SceneComponentTemplate->SetRelativeRotation(FRotator::ZeroRotator);
-				SceneComponentTemplate->SetRelativeScale3D(FVector(1.f));
+
+				// Propagate the root change & detachment to any instances of the template (done within the context of the current transaction)
+				TArray<UObject*> ArchetypeInstances;
+				SceneComponentTemplate->GetArchetypeInstances(ArchetypeInstances);
+				FDetachmentTransformRules DetachmentTransformRules(EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepRelative, true);
+				for (int32 InstanceIndex = 0; InstanceIndex < ArchetypeInstances.Num(); ++InstanceIndex)
+				{
+					USceneComponent* SceneComponentInstance = Cast<USceneComponent>(ArchetypeInstances[InstanceIndex]);
+					if (SceneComponentInstance != nullptr)
+					{
+						// Detach from root (keeping world transform, except for scale)
+						SceneComponentInstance->DetachFromComponent(DetachmentTransformRules);
+
+						// Must also reset the root component here, so that RerunConstructionScripts() will cache the correct root component instance data
+						AActor* Owner = SceneComponentInstance->GetOwner();
+						if (Owner)
+						{
+							Owner->Modify();
+							Owner->SetRootComponent(SceneComponentInstance);
+						}
+					}
+				}
 			}
+
+			// Remove the dropped node from its existing parent
+			DroppedNodePtr->GetParent()->RemoveChild(DroppedNodePtr);
 		}
 
 		check(bWasDefaultSceneRoot || SceneRootNodePtr->CanReparent());
