@@ -962,6 +962,12 @@ void FAnimBlueprintThumbnailScene::GetViewMatrixParameters(const float InFOVDegr
 ***************************************************************
 */
 
+FClassActorThumbnailScene::FClassActorThumbnailScene()
+	: FThumbnailPreviewScene()
+	, PreviewActor(nullptr)
+{
+}
+
 void FClassActorThumbnailScene::SpawnPreviewActor(UClass* InClass)
 {
 	if (PreviewActor)
