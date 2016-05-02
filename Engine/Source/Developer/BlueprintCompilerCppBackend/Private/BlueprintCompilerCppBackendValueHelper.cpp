@@ -201,7 +201,7 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 
 			if (RegularInnerStruct)
 			{
-				const FString InnerStructStr = Context.FindGloballyMappedObject(RegularInnerStruct);
+				const FString InnerStructStr = Context.FindGloballyMappedObject(RegularInnerStruct, UScriptStruct::StaticClass());
 				Context.AddLine(FString::Printf(TEXT("%s->InitializeStruct(%s.GetData(), %d);"), *InnerStructStr, *PathToMember, ScriptArrayHelper.Num()));
 			}
 		}
