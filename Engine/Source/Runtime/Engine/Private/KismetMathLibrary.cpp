@@ -37,6 +37,39 @@ bool UKismetMathLibrary::RandomBool()
 	return FMath::RandBool();
 }
 
+bool UKismetMathLibrary::RandomBoolWithWeight(float Weight)
+{
+	//If the Weight equals to 0.0f then always return false
+	if (Weight <= 0.0f)
+	{
+		return false;
+	}
+	else
+	{
+		//If the Weight is higher or equal to the random number then return true
+		return Weight >= FMath::FRandRange(0.0f, 1.0f);
+	}
+
+}
+
+bool UKismetMathLibrary::RandomBoolWithWeightFromStream(float Weight, const FRandomStream& RandomStream)
+{
+	//If the Weight equals to 0.0f then always return false
+	if (Weight <= 0.0f)
+	{
+		return false;
+	}
+	else
+	{
+		//Create the random float from the specified stream
+		float Number = UKismetMathLibrary::RandomFloatFromStream(RandomStream);
+
+		//If the Weight is higher or equal to number generated from stream then return true
+		return Weight >= Number;
+	}
+
+}
+
 bool UKismetMathLibrary::Not_PreBool(bool A)
 {
 	return !A;
