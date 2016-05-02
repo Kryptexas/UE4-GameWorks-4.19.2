@@ -1820,6 +1820,11 @@ namespace UnrealBuildTool
 			Log.TraceInformation("\n===={0}====PREPARING NATIVE CODE=================================================================", DateTime.Now.ToString());
 			bool HasNDKPath = File.Exists(NDKBuildPath);
 
+			// get Ant verbosity level
+			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			string AntVerbosity;
+			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "AntVerbosity", out AntVerbosity);
+
 			foreach (var build in BuildList)
 			{
 				string Arch = build.Item1;
@@ -1954,10 +1959,24 @@ namespace UnrealBuildTool
 				string ShellExecutable = Utils.IsRunningOnMono ? "/bin/sh" : "cmd.exe";
 				string ShellParametersBegin = Utils.IsRunningOnMono ? "-c '" : "/c ";
 				string ShellParametersEnd = Utils.IsRunningOnMono ? "'" : "";
-				if (RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -quiet " + AntBuildType + ShellParametersEnd, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)") != 0)
+				switch (AntVerbosity.ToLower())
 				{
-					RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
-                }
+					default:
+					case "quiet":
+						if (RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -quiet " + AntBuildType + ShellParametersEnd, "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)") != 0)
+						{
+							RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
+						}
+						break;
+
+					case "normal":
+						RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
+						break;
+
+					case "verbose":
+						RunCommandLineProgramAndReturnError(UE4BuildPath, ShellExecutable, ShellParametersBegin + "\"" + GetAntPath() + "\" -verbose " + AntBuildType + ShellParametersEnd, "Making .apk with Ant again to show errors");
+						break;
+				}
 
 				// make sure destination exists
 				Directory.CreateDirectory(Path.GetDirectoryName(DestApkName));
