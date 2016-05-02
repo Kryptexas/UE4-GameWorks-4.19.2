@@ -36,8 +36,8 @@ PFNGLPOPGROUPMARKEREXTPROC				glPopGroupMarkerEXT = NULL;
 PFNGLLABELOBJECTEXTPROC					glLabelObjectEXT = NULL;
 PFNGLGETOBJECTLABELEXTPROC				glGetObjectLabelEXT = NULL;
 
-PFNGLMAPBUFFEROESPROC					glMapBufferOES = NULL;
-PFNGLUNMAPBUFFEROESPROC					glUnmapBufferOES = NULL;
+PFNGLMAPBUFFEROESPROC					glMapBufferOESa = NULL;
+PFNGLUNMAPBUFFEROESPROC					glUnmapBufferOESa = NULL;
 
 PFNGLTEXSTORAGE2DPROC					glTexStorage2D = NULL;
 
@@ -475,8 +475,8 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		glBlitFramebufferNV = (PFNBLITFRAMEBUFFERNVPROC)((void*)eglGetProcAddress("glBlitFramebufferNV"));
 	}
 
-	glMapBufferOES = (PFNGLMAPBUFFEROESPROC)((void*)eglGetProcAddress("glMapBufferOES"));
-	glUnmapBufferOES = (PFNGLUNMAPBUFFEROESPROC)((void*)eglGetProcAddress("glUnmapBufferOES"));
+	glMapBufferOESa = (PFNGLMAPBUFFEROESPROC)((void*)eglGetProcAddress("glMapBufferOES"));
+	glUnmapBufferOESa = (PFNGLUNMAPBUFFEROESPROC)((void*)eglGetProcAddress("glUnmapBufferOES"));
 
 	//On Android, there are problems compiling shaders with textureCubeLodEXT calls in the glsl code,
 	// so we set this to false to modify the glsl manually at compile-time.
