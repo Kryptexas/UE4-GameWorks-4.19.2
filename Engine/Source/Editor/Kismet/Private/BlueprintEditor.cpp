@@ -2900,6 +2900,8 @@ void FBlueprintEditor::PostUndo(bool bSuccess)
 		{
 			SetUISelectionState(NAME_None);
 
+			RefreshEditors();
+
 			FSlateApplication::Get().DismissAllMenus();
 		}
 	}
@@ -2929,6 +2931,8 @@ void FBlueprintEditor::PostRedo(bool bSuccess)
 		// Transaction affects the Blueprint this editor handles, so react as necessary
 		if (bAffectsBlueprint)
 		{
+			RefreshEditors();
+
 			FSlateApplication::Get().DismissAllMenus();
 		}
 	}
