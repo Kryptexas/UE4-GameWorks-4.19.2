@@ -785,9 +785,6 @@ void FIOSTargetSettingsCustomization::BuildRemoteBuildingSection(IDetailLayoutBu
 	BuildCategory.AddProperty(UseRSyncPropertyHandle)
 		.Visibility(EVisibility::Hidden);
 
-	TSharedRef<IPropertyHandle> DeltaCopyInstallDirPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, DeltaCopyInstallPath));
-	IDetailPropertyRow& DeltaCopyInstallDirPropertyRow = RemoteBuildingGroup.AddPropertyRow(DeltaCopyInstallDirPropertyHandle);
-
 	// Add RSync Username Property
 	TSharedRef<IPropertyHandle> RSyncUsernamePropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, RSyncUsername));
 	IDetailPropertyRow& RSyncUsernamePropertyRow = RemoteBuildingGroup.AddPropertyRow(RSyncUsernamePropertyHandle);
