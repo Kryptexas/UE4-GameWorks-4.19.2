@@ -100,11 +100,14 @@ private:
 
 	TArray<FBodyInstance*> BodyInstances;
 	TArray<UPrimitiveComponent*>		PrimComponents;
+	TMap<FBodyInstance*, UPrimitiveComponent*> BodyInstanceToPrimComponent;
 
 	TArray<FCollisionChannelInfo>	ValidCollisionChannels;
 
 	void RefreshCollisionProfiles();
 
+	UStaticMeshComponent* GetDefaultCollisionProvider(const FBodyInstance* BI) const;
+	void MarkAllBodiesDefaultCollision(bool bUseDefaultCollision);
 	bool CanUseDefaultCollision() const;
 	bool CanShowDefaultCollision() const;
 	int32 GetNumberOfSpecialProfiles() const;

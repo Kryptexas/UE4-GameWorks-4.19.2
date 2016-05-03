@@ -901,7 +901,10 @@ bool FPropertyValueImpl::IsPropertyTypeOf( UClass* ClassType ) const
 	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
 	if( PropertyNodePin.IsValid() )
 	{
-		return PropertyNodePin->GetProperty()->IsA( ClassType );
+		if(UProperty* Property = PropertyNodePin->GetProperty())
+		{
+			return Property->IsA( ClassType );
+		}
 	}
 	return false;
 }
