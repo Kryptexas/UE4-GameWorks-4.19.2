@@ -1788,14 +1788,28 @@ void FBlueprintVarActionDetails::OnBitmaskChanged(ECheckBoxState InNewState)
 	const FName VarName = CachedVariableName;
 	if (VarName != NAME_None)
 	{
+		UBlueprint* Blueprint = GetBlueprintObj();
+
 		const bool bIsBitmask = (InNewState == ECheckBoxState::Checked);
 		if (bIsBitmask)
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_Bitmask, TEXT(""));
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(Blueprint, VarName, nullptr, FBlueprintMetadata::MD_Bitmask, TEXT(""));
 		}
 		else
 		{
-			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_Bitmask);
+			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(Blueprint, VarName, nullptr, FBlueprintMetadata::MD_Bitmask);
+		}
+
+		// Reset default value
+		if (Blueprint->GeneratedClass)
+		{
+			UObject* CDO = Blueprint->GeneratedClass->GetDefaultObject(false);
+			UProperty* VarProperty = FindField<UProperty>(Blueprint->GeneratedClass, VarName);
+
+			if (CDO != nullptr && VarProperty != nullptr)
+			{
+				VarProperty->InitializeValue_InContainer(CDO);
+			}
 		}
 
 		TArray<UK2Node_Variable*> VariableNodes;
@@ -1842,13 +1856,27 @@ void FBlueprintVarActionDetails::OnBitmaskEnumTypeChanged(TSharedPtr<FString> It
 	const FName VarName = CachedVariableName;
 	if (VarName != NAME_None)
 	{
+		UBlueprint* Blueprint = GetBlueprintObj();
+
 		if (ItemSelected == BitmaskEnumTypeNames[0])
 		{
-			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum);
+			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(Blueprint, VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum);
 		}
 		else if(ItemSelected.IsValid())
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum, *ItemSelected);
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(Blueprint, VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum, *ItemSelected);
+		}
+
+		// Reset default value
+		if (Blueprint->GeneratedClass)
+		{
+			UObject* CDO = Blueprint->GeneratedClass->GetDefaultObject(false);
+			UProperty* VarProperty = FindField<UProperty>(Blueprint->GeneratedClass, VarName);
+
+			if (CDO != nullptr && VarProperty != nullptr)
+			{
+				VarProperty->InitializeValue_InContainer(CDO);
+			}
 		}
 
 		TArray<UK2Node_Variable*> VariableNodes;

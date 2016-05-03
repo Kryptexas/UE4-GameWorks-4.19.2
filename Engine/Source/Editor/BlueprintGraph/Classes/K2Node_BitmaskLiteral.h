@@ -30,6 +30,6 @@ class UK2Node_BitmaskLiteral : public UK2Node
 	virtual FText GetMenuCategory() const override;
 	//~ End UK2Node Interface
 
-	static const FString& GetBitmaskInputPinName();
+	BLUEPRINTGRAPH_API static const FString& GetBitmaskInputPinName();
 };
 

@@ -80,6 +80,15 @@ void FBitmaskLiteralDetails::OnBitmaskEnumTypeChanged(TSharedPtr<FString> ItemSe
 	}
 
 	TargetNode->ReconstructNode();
+
+	// Reset default value
+	if (UEdGraphPin* InputPin = TargetNode->FindPin(TargetNode->GetBitmaskInputPinName()))
+	{
+		if (const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(InputPin->GetSchema()))
+		{
+			K2Schema->SetPinDefaultValueBasedOnType(InputPin);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
