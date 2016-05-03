@@ -22,19 +22,10 @@ public class RHI : ModuleRules
 				DynamicallyLoadedModuleNames.Add("D3D12RHI");
             }
 
-			// Build machines don't have the Vulkan SDK installed so we don't generate libs for it. Turning it on if the user
-			// has the SDK installed results in link errors.
-			if (Target.Platform == UnrealTargetPlatform.Win64 && !UnrealBuildTool.UnrealBuildTool.IsEngineInstalled())
-			{
-				string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
-				if (String.IsNullOrEmpty(VulkanSDKPath))
-				{
-					VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
-				}
-				if (!String.IsNullOrEmpty(VulkanSDKPath))
-				{
-					DynamicallyLoadedModuleNames.Add("VulkanRHI");
-				}
+			if ((Target.Platform == UnrealTargetPlatform.Win64) ||
+				(Target.Platform == UnrealTargetPlatform.Win32))
+            {
+				DynamicallyLoadedModuleNames.Add("VulkanRHI");
 			}
 
 			if ((Target.Platform == UnrealTargetPlatform.Win32) ||
