@@ -830,7 +830,7 @@ public:
 				if ((CumulativeCooldown + ComparisonTickFunction->RelativeTickCooldown) > CooldownTime)
 				{
 					FTickFunction* TickFunction = TickFunctionsToReschedule[RescheduleIndex].TickFunction;
-					if (TickFunction->TickState == FTickFunction::ETickState::Enabled)
+					if (TickFunction->TickState != FTickFunction::ETickState::Disabled)
 					{
 						if (TickFunctionsToReschedule[RescheduleIndex].bDeferredRemove)
 						{
@@ -865,7 +865,7 @@ public:
 			for ( ; RescheduleIndex < TickFunctionsToReschedule.Num(); ++RescheduleIndex)
 			{
 				FTickFunction* TickFunction = TickFunctionsToReschedule[RescheduleIndex].TickFunction;
-				if (TickFunction->TickState == FTickFunction::ETickState::Enabled)
+				if (TickFunction->TickState != FTickFunction::ETickState::Disabled)
 				{
 					if (TickFunctionsToReschedule[RescheduleIndex].bDeferredRemove)
 					{
