@@ -20,8 +20,9 @@ public:
 
 	enum ELayerFlags
 	{
-		LAYER_FLAG_TEX_CONTINUOUS_UPDATE	= 0x00000001,
-		LAYER_FLAG_TEX_NO_ALPHA_CHANNEL		= 0x00000002
+		LAYER_FLAG_TEX_CONTINUOUS_UPDATE	= 0x00000001, // Internally copies the texture on every frame for video, etc.
+		LAYER_FLAG_TEX_NO_ALPHA_CHANNEL		= 0x00000002, // Ignore the textures alpha channel, this makes the stereo layer opaque
+		LAYER_FLAG_QUAD_PRESERVE_TEX_RATIO	= 0x00000004, // Quad Y component will be calculated based on the texture dimensions
 	};
 
 	/**
