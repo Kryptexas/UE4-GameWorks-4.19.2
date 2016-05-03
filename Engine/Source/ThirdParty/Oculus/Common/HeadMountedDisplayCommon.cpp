@@ -1020,7 +1020,7 @@ void FHeadMountedDisplay::SetScreenPercentage(float InScreenPercentage)
 
 float FHeadMountedDisplay::GetScreenPercentage() const
 {
-	return (Settings->Flags.bOverrideScreenPercentage) ? Settings->ScreenPercentage : 0.0f;
+	return Settings->GetActualScreenPercentage();
 }
 
 void FHeadMountedDisplay::ResetControlRotation() const
