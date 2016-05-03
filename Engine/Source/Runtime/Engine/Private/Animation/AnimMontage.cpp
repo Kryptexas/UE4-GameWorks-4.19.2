@@ -130,6 +130,15 @@ bool UAnimMontage::IsWithinPos(int32 FirstIndex, int32 SecondIndex, float Curren
 		EndTime = SequenceLength;
 	}
 
+	// since we do range of [StartTime, EndTime) (excluding EndTime) 
+	// there is blindspot of when CurrentTime becomes >= SequenceLength
+	// include that frame if CurrentTime gets there. 
+	// Otherwise, we continue to use [StartTime, EndTime)
+	if (CurrentTime >= SequenceLength)
+	{
+		return (StartTime <= CurrentTime && EndTime >= CurrentTime);
+	}
+
 	return (StartTime <= CurrentTime && EndTime > CurrentTime);
 }
 
