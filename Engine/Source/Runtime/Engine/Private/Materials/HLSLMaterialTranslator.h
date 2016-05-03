@@ -3411,8 +3411,57 @@ protected:
 			return INDEX_NONE;
 		}
 
+		FMaterialUniformExpression* ExpressionX = GetParameterUniformExpression(X);
+		FMaterialUniformExpression* ExpressionY = GetParameterUniformExpression(Y);
+		FMaterialUniformExpression* ExpressionA = GetParameterUniformExpression(A);
+		bool bExpressionsAreEqual = false;
+
+		// Skip over interpolations where inputs are equal
+		if (X == Y)
+		{
+			bExpressionsAreEqual = true;
+		}
+		else if (ExpressionX && ExpressionY)
+		{
+			if (ExpressionX->IsConstant() && ExpressionY->IsConstant() && (*CurrentScopeChunks)[X].Type == (*CurrentScopeChunks)[Y].Type)
+			{
+				FLinearColor ValueX, ValueY;
+				FMaterialRenderContext DummyContext(nullptr, *Material, nullptr);
+				ExpressionX->GetNumberValue(DummyContext, ValueX);
+				ExpressionY->GetNumberValue(DummyContext, ValueY);
+
+				if (ValueX == ValueY)
+				{
+					bExpressionsAreEqual = true;
+				}
+			}
+		}
+
+		if (bExpressionsAreEqual)
+		{
+			return X;
+		}
+
 		EMaterialValueType ResultType = GetArithmeticResultType(X,Y);
 		EMaterialValueType AlphaType = ResultType == (*CurrentScopeChunks)[A].Type ? ResultType : MCT_Float1;
+
+		if (AlphaType == MCT_Float1 && ExpressionA && ExpressionA->IsConstant())
+		{
+			// Skip over interpolations that explicitly select an input
+			FLinearColor Value;
+			FMaterialRenderContext DummyContext(nullptr, *Material, nullptr);
+			ExpressionA->GetNumberValue(DummyContext, Value);
+
+			if (Value.R == 0.0f)
+			{
+				return X;
+			}
+			else if (Value.R == 1.f)
+			{
+				return Y;
+			}
+		}
+
 		return AddCodeChunk(ResultType,TEXT("lerp(%s,%s,%s)"),*CoerceParameter(X,ResultType),*CoerceParameter(Y,ResultType),*CoerceParameter(A,AlphaType));
 	}
 
