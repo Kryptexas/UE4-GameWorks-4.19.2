@@ -10,7 +10,8 @@
  * Implements a media player using the Windows Media Foundation framework.
  */
 class FWmfMediaPlayer
-	: public IMediaInfo
+	: public FTickerObjectBase
+	, public IMediaInfo
 	, public IMediaPlayer
 	, protected IWmfMediaResolverCallbacks
 {
@@ -21,6 +22,12 @@ public:
 
 	/** Destructor. */
 	~FWmfMediaPlayer();
+
+public:
+
+	//~ FTickerObjectBase interface
+
+	virtual bool Tick(float DeltaTime) override;
 
 public:
 
@@ -122,6 +129,9 @@ private:
 
 	/** The media source resolver. */
 	TComPtr<FWmfMediaResolver> Resolver;
+
+	/** Queued up asynchronous tasks. */
+	TQueue<TFunction<void()>> Tasks;
 
 	/** The available video tracks. */
 	TArray<IMediaVideoTrackRef> VideoTracks;
