@@ -302,7 +302,8 @@ public:
 		bUsesEyeAdaptation(false),
 		bModifiesMeshPosition(false),
 		bNeedsGBuffer(false),
-		bUsesGlobalDistanceField(false)
+		bUsesGlobalDistanceField(false),
+		bUsesPixelDepthOffset(false)
 	{}
 
 	ENGINE_API void Serialize(FArchive& Ar);
@@ -328,15 +329,10 @@ public:
 
 	/** true if material uses the global distance field */
 	bool bUsesGlobalDistanceField;
+
+	/** true if the material writes a pixel depth offset */
+	bool bUsesPixelDepthOffset;
 };
-
-
-
-
-
-
-
-
 
 /** 
  * Usage options for a shader map.
@@ -710,6 +706,7 @@ public:
 	bool NeedsGBuffer() const { return MaterialCompilationOutput.bNeedsGBuffer; }
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
+	bool UsesPixelDepthOffset() const { return MaterialCompilationOutput.bUsesPixelDepthOffset; }
 
 	bool IsValidForRendering() const
 	{
@@ -1089,6 +1086,9 @@ public:
 	/** Does the material modify the mesh position. */
 	ENGINE_API bool MaterialModifiesMeshPosition_RenderThread() const;
 	ENGINE_API bool MaterialModifiesMeshPosition_GameThread() const;
+
+	/** Does the material use a pixel depth offset. */
+	ENGINE_API bool MaterialUsesPixelDepthOffset() const;
 
 	/** Note: This function is only intended for use in deciding whether or not shader permutations are required before material translation occurs. */
 	ENGINE_API bool MaterialMayModifyMeshPosition() const;
