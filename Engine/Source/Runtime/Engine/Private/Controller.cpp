@@ -671,7 +671,7 @@ void AController::StopMovement()
 	UPathFollowingComponent* PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
 	if (PathFollowingComp != NULL)
 	{
-		PathFollowingComp->AbortMove(TEXT("StopMovement"));
+		PathFollowingComp->AbortMove(*this, FPathFollowingResultFlags::MovementStop);
 	}
 }
 

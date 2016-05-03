@@ -86,6 +86,25 @@ namespace CharacterMovementComponentStatics
 }
 
 // CVars
+namespace CharacterCVars
+{
+
+	// Logging when character is stuck. Off by default in shipping.
+#if UE_BUILD_SHIPPING
+	static float StuckWarningPeriod = -1.f;
+#else
+	static float StuckWarningPeriod = 1.f;
+#endif
+
+	static FAutoConsoleVariableRef CVarStuckWarningPeriod(
+		TEXT("p.CharacterStuckWarningPeriod"),
+		StuckWarningPeriod,
+		TEXT("How often (in seconds) we are allowed to log a message about being stuck in geometry.\n")
+		TEXT("<0: Disable, >=0: Enable and log this often, in seconds."),
+		ECVF_Default);
+}
+
+
 static TAutoConsoleVariable<int32> CVarNetEnableMoveCombining(
 	TEXT("p.NetEnableMoveCombining"),
 	1,
@@ -231,6 +250,11 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	
 	MaxSimulationTimeStep = 0.05f;
 	MaxSimulationIterations = 8;
+
+	MaxDepenetrationWithGeometry = 500.f;
+	MaxDepenetrationWithGeometryAsProxy = 100.f;
+	MaxDepenetrationWithPawn = 100.f;
+	MaxDepenetrationWithPawnAsProxy = 2.f;
 
 	NetworkSimulatedSmoothLocationTime = 0.100f;
 	NetworkSimulatedSmoothRotationTime = 0.033f;
@@ -915,17 +939,7 @@ void UCharacterMovementComponent::PerformAirControlForPathFollowing(FVector Dire
 	// use air control if low grav or above destination and falling towards it
 	if ( CharacterOwner && Velocity.Z < 0.f && (ZDiff < 0.f || GetGravityZ() > 0.9f * GetWorld()->GetDefaultGravityZ()))
 	{
-		if ( ZDiff > 0.f )
-		{
-			if ( ZDiff > 2.f * GetMaxJumpHeight() )
-			{
-				if (PathFollowingComp.IsValid())
-				{
-					PathFollowingComp->AbortMove(TEXT("missed jump"));
-				}
-			}
-		}
-		else
+		if ( ZDiff < 0.f )
 		{
 			if ( (Velocity.X == 0.f) && (Velocity.Y == 0.f) )
 			{
@@ -1096,8 +1110,9 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 
 void UCharacterMovementComponent::PostPhysicsTickComponent(float DeltaTime, FCharacterMovementComponentPostPhysicsTickFunction& ThisTickFunction)
 {
-	if(bDeferUpdateBasedMovement)
+	if (bDeferUpdateBasedMovement)
 	{
+		FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
 		UpdateBasedMovement(DeltaTime);
 		SaveBaseLocation();
 		bDeferUpdateBasedMovement = false;
@@ -2368,6 +2383,27 @@ float UCharacterMovementComponent::GetMaxSpeed() const
 	default:
 		return 0.f;
 	}
+}
+
+
+FVector UCharacterMovementComponent::GetPenetrationAdjustment(const FHitResult& Hit) const
+{
+	FVector Result = Super::GetPenetrationAdjustment(Hit);
+
+	if (CharacterOwner)
+	{
+		const bool bIsProxy = (CharacterOwner->Role == ROLE_SimulatedProxy);
+		float MaxDistance = bIsProxy ? MaxDepenetrationWithGeometryAsProxy : MaxDepenetrationWithGeometry;
+		const AActor* HitActor = Hit.GetActor();
+		if (Cast<APawn>(HitActor))
+		{
+			MaxDistance = bIsProxy ? MaxDepenetrationWithPawnAsProxy : MaxDepenetrationWithPawn;
+		}
+
+		Result = Result.GetClampedToMaxSize(MaxDistance);
+	}
+
+	return Result;
 }
 
 
@@ -3910,11 +3946,6 @@ void UCharacterMovementComponent::RevertMove(const FVector& OldLocation, UPrimit
 		Velocity = FVector::ZeroVector;
 		Acceleration = FVector::ZeroVector;
 		//UE_LOG(LogCharacterMovement, Log, TEXT("%s FAILMOVE RevertMove"), *CharacterOwner->GetName());
-
-		if (PathFollowingComp.IsValid())
-		{
-			PathFollowingComp->AbortMove(TEXT("RevertMove"));
-		}
 	}
 }
 
@@ -3945,22 +3976,37 @@ FVector UCharacterMovementComponent::ComputeGroundMovementDelta(const FVector& D
 
 void UCharacterMovementComponent::OnCharacterStuckInGeometry(const FHitResult* Hit)
 {
-	if (Hit == nullptr)
+	if (CharacterCVars::StuckWarningPeriod >= 0)
 	{
-		UE_LOG(LogCharacterMovement, Log, TEXT("%s is stuck and failed to move!"), *CharacterOwner->GetName());
-	}
-	else
-	{
-		UE_LOG(LogCharacterMovement, Log, TEXT("%s is stuck and failed to move! Velocity: X=%3.3f Y=%3.3f Z=%3.3f Location: X=%3.3f Y=%3.3f Z=%3.3f Normal: X=%3.3f Y=%3.3f Z=%3.3f PenetrationDepth:%.3f Actor:%s Component:%s BoneName:%s"),
-			   *GetNameSafe(CharacterOwner),
-			   Velocity.X, Velocity.Y, Velocity.Z,
-			   Hit->Location.X, Hit->Location.Y, Hit->Location.Z,
-			   Hit->Normal.X, Hit->Normal.Y, Hit->Normal.Z,
-			   Hit->PenetrationDepth,
-			   *GetNameSafe(Hit->GetActor()),
-			   *GetNameSafe(Hit->GetComponent()),
-			   Hit->BoneName.IsValid() ? *Hit->BoneName.ToString() : TEXT("None")
-			   );
+		UWorld* MyWorld = GetWorld();
+		const float RealTimeSeconds = MyWorld->GetRealTimeSeconds();
+		if ((RealTimeSeconds - LastStuckWarningTime) >= CharacterCVars::StuckWarningPeriod)
+		{
+			LastStuckWarningTime = RealTimeSeconds;
+			if (Hit == nullptr)
+			{
+				UE_LOG(LogCharacterMovement, Log, TEXT("%s is stuck and failed to move! (%d other events since notify)"), *CharacterOwner->GetName(), StuckWarningCountSinceNotify);
+			}
+			else
+			{
+				UE_LOG(LogCharacterMovement, Log, TEXT("%s is stuck and failed to move! Velocity: X=%3.2f Y=%3.2f Z=%3.2f Location: X=%3.2f Y=%3.2f Z=%3.2f Normal: X=%3.2f Y=%3.2f Z=%3.2f PenetrationDepth:%.3f Actor:%s Component:%s BoneName:%s (%d other events since notify)"),
+					   *GetNameSafe(CharacterOwner),
+					   Velocity.X, Velocity.Y, Velocity.Z,
+					   Hit->Location.X, Hit->Location.Y, Hit->Location.Z,
+					   Hit->Normal.X, Hit->Normal.Y, Hit->Normal.Z,
+					   Hit->PenetrationDepth,
+					   *GetNameSafe(Hit->GetActor()),
+					   *GetNameSafe(Hit->GetComponent()),
+					   Hit->BoneName.IsValid() ? *Hit->BoneName.ToString() : TEXT("None"),
+					   StuckWarningCountSinceNotify
+					   );
+			}
+			StuckWarningCountSinceNotify = 0;
+		}
+		else
+		{
+			StuckWarningCountSinceNotify += 1;
+		}
 	}
 
 	// Don't update velocity based on our (failed) change in position this update since we're stuck.
@@ -4983,7 +5029,7 @@ void UCharacterMovementComponent::PhysicsVolumeChanged( APhysicsVolume* NewVolum
 			// AI needs to stop any current moves
 			if (PathFollowingComp.IsValid())
 			{
-				PathFollowingComp->AbortMove(TEXT("water"));
+				PathFollowingComp->AbortMove(*this, FPathFollowingResultFlags::MovementStop);
 			}			
 		}
 		else if ( !IsSwimming() )

@@ -555,6 +555,12 @@ protected:
 	/** Computes the analog input modifier based on current input vector and/or acceleration. */
 	virtual float ComputeAnalogInputModifier() const;
 
+	/** Used for throttling "stuck in geometry" logging. */
+	float LastStuckWarningTime;
+
+	/** Used when throttling "stuck in geometry" logging, to output the number of events we skipped if throttling. */
+	uint32 StuckWarningCountSinceNotify;
+
 public:
 
 	/** Get the value of ServerLastTransformUpdateTimeStamp. */
@@ -592,6 +598,37 @@ public:
 	 */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="1", ClampMax="25", UIMin="1", UIMax="25"))
 	int32 MaxSimulationIterations;
+
+	/**
+	* Max distance we allow simulated proxies to depenetrate when moving out of anything but Pawns.
+	* This is generally more tolerant than with Pawns, because other geometry is either not moving, or is moving predictably with a bit of delay compared to on the server.
+	* @see MaxDepenetrationWithGeometryAsProxy, MaxDepenetrationWithPawn, MaxDepenetrationWithPawnAsProxy
+	*/
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
+	float MaxDepenetrationWithGeometry;
+
+	/**
+	* Max distance we allow simulated proxies to depenetrate when moving out of anything but Pawns.
+	* This is generally more tolerant than with Pawns, because other geometry is either not moving, or is moving predictably with a bit of delay compared to on the server.
+	* @see MaxDepenetrationWithGeometry, MaxDepenetrationWithPawn, MaxDepenetrationWithPawnAsProxy
+	*/
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
+	float MaxDepenetrationWithGeometryAsProxy;
+
+	/**
+	* Max distance we are allowed to depenetrate when moving out of other Pawns.
+	* @see MaxDepenetrationWithGeometry, MaxDepenetrationWithGeometryAsProxy, MaxDepenetrationWithPawnAsProxy
+	*/
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
+	float MaxDepenetrationWithPawn;
+
+	/**
+	 * Max distance we allow simulated proxies to depenetrate when moving out of other Pawns.
+	 * Typically we don't want a large value, because we receive a server authoritative position that we should not then ignore by pushing them out of the local player.
+	 * @see MaxDepenetrationWithGeometry, MaxDepenetrationWithGeometryAsProxy, MaxDepenetrationWithPawn
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
+	float MaxDepenetrationWithPawnAsProxy;
 
 	/**
 	 * How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server. Not used by Linear smoothing.
@@ -1506,6 +1543,9 @@ protected:
 	 * When bMaintainHorizontalGroundVelocity is false, also rescales the velocity vector to maintain the original magnitude, but in the horizontal direction.
 	 */
 	virtual void MaintainHorizontalGroundVelocity();
+
+	/** Overridden to enforce max distances based on hit geometry. */
+	virtual FVector GetPenetrationAdjustment(const FHitResult& Hit) const override;
 
 	/** Overridden to set bJustTeleported to true, so we don't make incorrect velocity calculations based on adjusted movement. */
 	virtual bool ResolvePenetrationImpl(const FVector& Adjustment, const FHitResult& Hit, const FQuat& NewRotation) override;

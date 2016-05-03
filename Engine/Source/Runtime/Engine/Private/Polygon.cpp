@@ -7,9 +7,7 @@
 #include "EnginePrivate.h"
 #include "Model.h"
 
-#if WITH_EDITOR
 #include "GeomTools.h"
-#endif
 #include "Engine/Polys.h"
 
 
@@ -754,7 +752,7 @@ int32 FPoly::Triangulate( ABrush* InOwnerBrush, TArray<FPoly>& OutTriangles )
 
 	// Attempt to triangulate this polygon
 	TArray<FClipSMTriangle> Triangles;
-	if( TriangulatePoly( Triangles, Polygon ) )
+	if( FGeomTools::TriangulatePoly( Triangles, Polygon ) )
 	{
 		// Create a set of FPolys from the triangles
 
@@ -778,7 +776,6 @@ int32 FPoly::Triangulate( ABrush* InOwnerBrush, TArray<FPoly>& OutTriangles )
 			}
 		}
 	}
-
 #endif
 
 	return OutTriangles.Num();

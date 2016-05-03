@@ -1582,12 +1582,12 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 				const int32 NumUnbuiltInstances = LastUnbuiltIndex - FirstUnbuiltIndex + 1;
 				if (NumUnbuiltInstances < 1000)
 				{
-					const int32 LODs = RenderData->LODResources.Num();
+					const int32 NumLODs = RenderData->LODResources.Num();
 
 					int32 Force = CVarForceLOD.GetValueOnRenderThread();
 					if (Force >= 0)
 					{
-						Force = FMath::Clamp(Force, 0, LODs - 1);
+						Force = FMath::Clamp(Force, 0, NumLODs - 1);
 						InstanceParams.AddRun(Force, Force, FirstUnbuiltIndex, LastUnbuiltIndex);
 					}
 					else
@@ -1605,7 +1605,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 						const float MaxDrawDistanceScale = GetCachedScalabilityCVars().ViewDistanceScale;
 						const float SphereRadius = RenderData->Bounds.SphereRadius;
 
-						for (int32 LODIndex = 0; LODIndex < LODs; LODIndex++)
+						for (int32 LODIndex = 0; LODIndex < NumLODs; LODIndex++)
 						{
 							LODPlanesMax[LODIndex] = MIN_flt;
 							LODPlanesMin[LODIndex] = MAX_flt;
@@ -1629,29 +1629,29 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 							FinalCull *= MaxDrawDistanceScale;
 							ElementParams.FinalCullDistance = FMath::Max(ElementParams.FinalCullDistance, FinalCull);
 
-							for (int32 LODIndex = 1; LODIndex < LODs; LODIndex++)
+							for (int32 LODIndex = 1; LODIndex < NumLODs; LODIndex++)
 							{
 								float Val = FMath::Min(FMath::Sqrt(Fac / RenderData->ScreenSize[LODIndex]), FinalCull);
 								LODPlanesMin[LODIndex - 1] = FMath::Min(LODPlanesMin[LODIndex - 1], Val - LODRandom);
 								LODPlanesMax[LODIndex - 1] = FMath::Max(LODPlanesMax[LODIndex - 1], Val);
 							}
-							LODPlanesMin[LODs - 1] = FMath::Min(LODPlanesMin[LODs - 1], FinalCull - LODRandom);
-							LODPlanesMax[LODs - 1] = FMath::Max(LODPlanesMax[LODs - 1], FinalCull);
+							LODPlanesMin[NumLODs - 1] = FMath::Min(LODPlanesMin[NumLODs - 1], FinalCull - LODRandom);
+							LODPlanesMax[NumLODs - 1] = FMath::Max(LODPlanesMax[NumLODs - 1], FinalCull);
 						}
 
 						// calculate runs
 						int32 MinLOD = 0;
-						int32 MaxLOD = LODs;
+						int32 MaxLOD = NumLODs;
 						CalcLOD(MinLOD, MaxLOD, UnbuiltBounds[0].Min, UnbuiltBounds[0].Max, ViewOriginInLocalZero, ViewOriginInLocalOne, LODPlanesMin, LODPlanesMax);
 						int32 FirstIndexInRun = 0;
 						for (int32 Index = 1; Index < NumUnbuiltInstances; ++Index)
 						{
 							int32 TempMinLOD = 0;
-							int32 TempMaxLOD = LODs;
+							int32 TempMaxLOD = NumLODs;
 							CalcLOD(TempMinLOD, TempMaxLOD, UnbuiltBounds[Index].Min, UnbuiltBounds[Index].Max, ViewOriginInLocalZero, ViewOriginInLocalOne, LODPlanesMin, LODPlanesMax);
 							if (TempMinLOD != MinLOD)
 							{
-								if (MinLOD < LODs)
+								if (MinLOD < NumLODs)
 								{
 									InstanceParams.AddRun(MinLOD, MinLOD, FirstIndexInRun + FirstUnbuiltIndex, (Index - 1) + FirstUnbuiltIndex);
 								}
@@ -2595,12 +2595,12 @@ int32 UHierarchicalInstancedStaticMeshComponent::GetOverlappingSphereCount(const
 	TArray<FTransform> Transforms;
 	const FBox AABB(Sphere.Center - FVector(Sphere.W), Sphere.Center + FVector(Sphere.W));
 	GatherInstanceTransformsInArea(*this, AABB, 0, Transforms);
-	const FBoxSphereBounds Bounds = StaticMesh->GetBounds();
+	const FBoxSphereBounds MeshBounds = StaticMesh->GetBounds();
 
 	for (const FTransform& TM : Transforms)
 	{
 		const FVector Center = TM.GetLocation();
-		const FSphere InstanceSphere(Center, Bounds.SphereRadius);
+		const FSphere InstanceSphere(Center, MeshBounds.SphereRadius);
 		
 		if (Sphere.Intersects(InstanceSphere))
 		{
@@ -2617,11 +2617,11 @@ int32 UHierarchicalInstancedStaticMeshComponent::GetOverlappingBoxCount(const FB
 	GatherInstanceTransformsInArea(*this, Box, 0, Transforms);
 	
 	int32 Count = 0;
-	const FBoxSphereBounds Bounds = StaticMesh->GetBounds();
+	const FBoxSphereBounds MeshBounds = StaticMesh->GetBounds();
 	for(FTransform& T : Transforms)
 	{
 		const FVector Centre = T.GetLocation();
-		const FBox OtherBox(FVector(Centre - Bounds.BoxExtent), FVector(Centre + Bounds.BoxExtent));
+		const FBox OtherBox(FVector(Centre - MeshBounds.BoxExtent), FVector(Centre + MeshBounds.BoxExtent));
 
 		if(Box.Intersect(OtherBox))
 		{
@@ -2636,13 +2636,13 @@ void UHierarchicalInstancedStaticMeshComponent::GetOverlappingBoxTransforms(cons
 {
 	GatherInstanceTransformsInArea(*this, Box, 0, OutTransforms);
 
-	const FBoxSphereBounds Bounds = StaticMesh->GetBounds();
+	const FBoxSphereBounds MeshBounds = StaticMesh->GetBounds();
 	int32 NumTransforms = OutTransforms.Num();
 	for(int32 Idx = NumTransforms - 1 ; Idx >= 0 ; --Idx)
 	{
 		FTransform& TM = OutTransforms[Idx];
 		const FVector Centre = TM.GetLocation();
-		const FBox OtherBox(FVector(Centre - Bounds.BoxExtent), FVector(Centre + Bounds.BoxExtent));
+		const FBox OtherBox(FVector(Centre - MeshBounds.BoxExtent), FVector(Centre + MeshBounds.BoxExtent));
 
 		if(!Box.Intersect(OtherBox))
 		{

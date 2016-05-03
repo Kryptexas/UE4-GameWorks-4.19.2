@@ -291,8 +291,8 @@ TSharedRef< ITableRow > SFbxSceneStaticMeshListView::OnGenerateRowFbxSceneListVi
 
 TSharedPtr<SWidget> SFbxSceneStaticMeshListView::OnOpenContextMenu()
 {
-	TArray<FbxMeshInfoPtr> SelectedItems;
-	int32 SelectCount = GetSelectedItems(SelectedItems);
+	TArray<FbxMeshInfoPtr> SelectedFbxMeshInfos;
+	int32 SelectCount = GetSelectedItems(SelectedFbxMeshInfos);
 	// Build up the menu for a selection
 	const bool bCloseAfterSelection = true;
 	FMenuBuilder MenuBuilder(bCloseAfterSelection, TSharedPtr<FUICommandList>());

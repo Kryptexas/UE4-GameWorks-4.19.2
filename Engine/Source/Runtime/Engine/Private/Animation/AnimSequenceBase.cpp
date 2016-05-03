@@ -20,11 +20,11 @@ UAnimSequenceBase::UAnimSequenceBase(const FObjectInitializer& ObjectInitializer
 }
 
 template <typename DataType>
-void UAnimSequenceBase::VerifyCurveNames(USkeleton* Skeleton, const FName& NameContainer, TArray<DataType>& CurveList)
+void UAnimSequenceBase::VerifyCurveNames(USkeleton* InSkeleton, const FName& NameContainer, TArray<DataType>& CurveList)
 {
 	// since this is verify function that makes sure it exists after loaded
 	// we should add it if it doesn't exist
-	const FSmartNameMapping* NameMapping = Skeleton->GetOrAddSmartNameContainer(NameContainer);
+	const FSmartNameMapping* NameMapping = InSkeleton->GetOrAddSmartNameContainer(NameContainer);
 
 	TArray<DataType*> UnlinkedCurves;
 	for(DataType& Curve : CurveList)
@@ -48,7 +48,7 @@ void UAnimSequenceBase::VerifyCurveNames(USkeleton* Skeleton, const FName& NameC
 
 	for(DataType* Curve : UnlinkedCurves)
 	{
-		Skeleton->AddSmartNameAndModify(NameContainer, Curve->LastObservedName, Curve->CurveUid);
+		InSkeleton->AddSmartNameAndModify(NameContainer, Curve->LastObservedName, Curve->CurveUid);
 	}
 }
 
@@ -80,7 +80,7 @@ void UAnimSequenceBase::PostLoad()
 #endif
 	RefreshCacheData();
 
-	if(USkeleton* Skeleton = GetSkeleton())
+	if(USkeleton* MySkeleton = GetSkeleton())
 	{
 		// Fix up the existing curves to work with smartnames
 		if(GetLinkerUE4Version() < VER_UE4_SKELETON_ADD_SMARTNAMES)
@@ -88,16 +88,16 @@ void UAnimSequenceBase::PostLoad()
 			for(FFloatCurve& Curve : RawCurveData.FloatCurves)
 			{
 				// Add the names of the curves into the smartname mapping and store off the curve uid which will be saved next time the sequence saves.
-				Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, Curve.LastObservedName, Curve.CurveUid);
+				MySkeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, Curve.LastObservedName, Curve.CurveUid);
 			}
 		}
 		else
 		{
-			VerifyCurveNames<FFloatCurve>(Skeleton, USkeleton::AnimCurveMappingName, RawCurveData.FloatCurves);
+			VerifyCurveNames<FFloatCurve>(MySkeleton, USkeleton::AnimCurveMappingName, RawCurveData.FloatCurves);
 		}
 
 #if WITH_EDITOR
-		VerifyCurveNames<FTransformCurve>(Skeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
+		VerifyCurveNames<FTransformCurve>(MySkeleton, USkeleton::AnimTrackCurveMappingName, RawCurveData.TransformCurves);
 #endif
 	}
 }
@@ -494,9 +494,9 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 
 	if(Ar.ArIsSaving && Ar.UE4Ver() >= VER_UE4_SKELETON_ADD_SMARTNAMES)
 	{
-		if(USkeleton* Skeleton = GetSkeleton())
+		if(USkeleton* MySkeleton = GetSkeleton())
 		{
-			const FSmartNameMapping* Mapping = GetSkeleton()->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+			const FSmartNameMapping* Mapping = MySkeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 			check(Mapping); // Should always exist
 			RawCurveData.UpdateLastObservedNames(Mapping);
 		}
@@ -505,12 +505,12 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 #if WITH_EDITORONLY_DATA
 	if(Ar.ArIsSaving && Ar.UE4Ver() >= VER_UE4_ANIMATION_ADD_TRACKCURVES)
 	{
-		if(USkeleton* Skeleton = GetSkeleton())
+		if(USkeleton* MySkeleton = GetSkeleton())
 		{
 			// we don't add track curve container unless it has been edited. 
 			if ( RawCurveData.TransformCurves.Num() > 0 )
 			{
-				const FSmartNameMapping* Mapping = GetSkeleton()->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
+				const FSmartNameMapping* Mapping = MySkeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);
 				// this name might not exists because it's only available if you edit animation
 				if (Mapping)
 				{

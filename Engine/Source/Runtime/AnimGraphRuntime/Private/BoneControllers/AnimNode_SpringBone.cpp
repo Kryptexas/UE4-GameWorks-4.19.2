@@ -51,11 +51,11 @@ void FAnimNode_SpringBone::UpdateInternal(const FAnimationUpdateContext& Context
 
 void FAnimNode_SpringBone::GatherDebugData(FNodeDebugData& DebugData)
 {
-	const float ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
+	const float ActualBiasedAlpha = AlphaScaleBias.ApplyTo(Alpha);
 
 	//MDW_TODO Add more output info?
 	FString DebugLine = DebugData.GetNodeName(this);
-	DebugLine += FString::Printf(TEXT("(Alpha: %.1f%% RemainingTime: %.3f)"), ActualAlpha*100.f, RemainingTime);
+	DebugLine += FString::Printf(TEXT("(Alpha: %.1f%% RemainingTime: %.3f)"), ActualBiasedAlpha*100.f, RemainingTime);
 
 	DebugData.AddDebugItem(DebugLine);
 	ComponentPose.GatherDebugData(DebugData);

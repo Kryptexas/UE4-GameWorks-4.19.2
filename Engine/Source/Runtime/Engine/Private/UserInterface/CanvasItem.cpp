@@ -1039,8 +1039,8 @@ void FCanvasTextItem::DrawStringInternal_OfflineCache( FCanvas* InCanvas, const 
 		{
 			if( LastTexture != Tex->Resource || BatchedElements == nullptr )
 			{
-				FBatchedElementParameters* BatchedElementParameters = nullptr;
-				BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, Tex->Resource, BlendMode, FontRenderInfo.GlowInfo);
+				FBatchedElementParameters* BatchedElementParams = nullptr;
+				BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParams, Tex->Resource, BlendMode, FontRenderInfo.GlowInfo);
 				check(BatchedElements != nullptr);
 				// trade-off between memory and performance by pre-allocating more reserved space 
 				// for the triangles/vertices of the batched elements used to render the text tiles
@@ -1181,8 +1181,8 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 				FontTexture = FontCache->GetEngineTextureResource( FontTextureIndex );
 				check(FontTexture);
 
-				FBatchedElementParameters* BatchedElementParameters = nullptr;
-				BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
+				FBatchedElementParameters* BatchedElementParams = nullptr;
+				BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParams, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
 				check(BatchedElements);
 
 				InvTextureSizeX = 1.0f/FontTexture->GetSizeX();
@@ -1327,8 +1327,8 @@ void FCanvasShapedTextItem::DrawStringInternal( FCanvas* InCanvas, const FVector
 					FontTexture = FontCache->GetEngineTextureResource( FontTextureIndex );
 					check(FontTexture);
 
-					FBatchedElementParameters* BatchedElementParameters = nullptr;
-					BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
+					FBatchedElementParameters* BatchedElementParams = nullptr;
+					BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParams, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
 					check(BatchedElements);
 
 					InvTextureSizeX = 1.0f/FontTexture->GetSizeX();

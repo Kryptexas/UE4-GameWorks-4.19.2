@@ -118,6 +118,7 @@ float GetIntervalPerKey(int32 NumFrames, float SequenceLength)
 
 UAnimSequence::UAnimSequence(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, Interpolation(EAnimInterpolationType::Linear)
 	, bEnableRootMotion(false)
 	, RootMotionRootLock(ERootMotionRootLock::RefPose)
 	, bRootMotionSettingsCopiedFromMontage(false)
@@ -739,6 +740,11 @@ void UAnimSequence::ExtractBoneTransform(const struct FRawAnimSequenceTrack& Raw
 	// @Todo fix me: this change is not good, it has lots of branches. But we'd like to save memory for not saving scale if no scale change exists
 	const bool bHasScaleKey = (RawTrack.ScaleKeys.Num() > 0);
 	static const FVector DefaultScale3D = FVector(1.f);
+
+	if (Interpolation == EAnimInterpolationType::Step) 
+	{
+		Alpha = 0.f;
+	}
 
 	if(Alpha <= 0.f)
 	{
@@ -3359,10 +3365,10 @@ int32 FindParentNodeIndex(URig* Rig, USkeleton* Skeleton, FName ParentNodeName)
 
 int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& AnimationDataInComponentSpace, FAnimSequenceTrackContainer * RiggingAnimationData) const
 {
-	USkeleton* Skeleton = GetSkeleton();
+	USkeleton* MySkeleton = GetSkeleton();
 
-	check(Skeleton);
-	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+	check(MySkeleton);
+	const FReferenceSkeleton& RefSkeleton = MySkeleton->GetReferenceSkeleton();
 	int32 NumBones = RefSkeleton.GetNum();
 
 	AnimationDataInComponentSpace.Empty(NumBones);
@@ -3380,7 +3386,7 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& An
 
 	if (RiggingAnimationData)
 	{
-		const URig* Rig = Skeleton->GetRig();
+		const URig* Rig = MySkeleton->GetRig();
 
 		check(Rig);
 
@@ -3398,7 +3404,7 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& An
 				if ( !BoneEvaluated[BoneIndex] )
 				{
 					const FName& BoneName = RefSkeleton.GetBoneName(BoneIndex);
-					const FName& NodeName = Skeleton->GetRigNodeNameFromBoneName(BoneName);
+					const FName& NodeName = MySkeleton->GetRigNodeNameFromBoneName(BoneName);
 					const FTransformBase* TransformBase = Rig->GetTransformBaseByNodeName(NodeName);
 					const int32 NodeIndex = RiggingAnimationData->TrackNames.Find(NodeName);
 					if(NodeIndex != INDEX_NONE)
@@ -3416,7 +3422,7 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& An
 						// this is easy since we just make sure it's evaluated or not
 						{
 							const FName& ParentNodeName = RotTransformConstraints[0].ParentSpace;
-							const FName& ParentBoneName = Skeleton->GetRigBoneMapping(ParentNodeName);
+							const FName& ParentBoneName = MySkeleton->GetRigBoneMapping(ParentNodeName);
 							const int32& ParentBoneIndex = RefSkeleton.FindBoneIndex(ParentBoneName);
 
 							if(ParentBoneIndex != INDEX_NONE)
@@ -3453,7 +3459,7 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& An
 						if (BoneEvaluated[BoneIndex])
 						{
 							const FName& ParentNodeName = PosTransformConstraints[0].ParentSpace;
-							const FName& ParentBoneName = Skeleton->GetRigBoneMapping(ParentNodeName);
+							const FName& ParentBoneName = MySkeleton->GetRigBoneMapping(ParentNodeName);
 							const int32& ParentBoneIndex = RefSkeleton.FindBoneIndex(ParentBoneName);
 
 							if(ParentBoneIndex != INDEX_NONE)
@@ -3535,9 +3541,9 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& An
 		// this one calculates aniamted space per bones and per key
 		for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
 		{
-			FName BoneName = Skeleton->GetReferenceSkeleton().GetBoneName(BoneIndex);
+			FName BoneName = MySkeleton->GetReferenceSkeleton().GetBoneName(BoneIndex);
 			int32 TrackIndex = AnimationTrackNames.Find(BoneName);
-			int32 ParentBoneIndex = Skeleton->GetReferenceSkeleton().GetParentIndex(BoneIndex);
+			int32 ParentBoneIndex = MySkeleton->GetReferenceSkeleton().GetParentIndex(BoneIndex);
 
 			if (TrackIndex != INDEX_NONE)
 			{
@@ -3561,7 +3567,7 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& An
 			else
 			{
 				// get local spaces from refpose and use that to fill it up
-				FTransform LocalTransform = Skeleton->GetReferenceSkeleton().GetRefBonePose()[BoneIndex];
+				FTransform LocalTransform = MySkeleton->GetReferenceSkeleton().GetRefBonePose()[BoneIndex];
 
 				for (int32 Key = 0; Key < NumKeys; ++Key)
 				{
@@ -3574,7 +3580,7 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& An
 						AnimationDataInComponentSpace[BoneIndex][Key] = LocalTransform;
 					}
 				}
-			}
+			}	
 		}
 
 	}
@@ -3584,12 +3590,12 @@ int32 UAnimSequence::GetSpaceBasedAnimationData(TArray< TArray<FTransform> >& An
 
 bool UAnimSequence::ConvertAnimationDataToRiggingData(FAnimSequenceTrackContainer& RiggingAnimationData)
 {
-	USkeleton* Skeleton = GetSkeleton();
-	if (Skeleton && Skeleton->GetRig())
+	USkeleton* MySkeleton = GetSkeleton();
+	if (MySkeleton && MySkeleton->GetRig())
 	{
-		const URig* Rig = Skeleton->GetRig();
+		const URig* Rig = MySkeleton->GetRig();
 		TArray<FName> ValidNodeNames;
-		int32 NumNodes = Skeleton->GetMappedValidNodes(ValidNodeNames);
+		int32 NumNodes = MySkeleton->GetMappedValidNodes(ValidNodeNames);
 		TArray< TArray<FTransform> > AnimationDataInComponentSpace;
 		int32 NumBones = GetSpaceBasedAnimationData(AnimationDataInComponentSpace, NULL);
 
@@ -3602,8 +3608,8 @@ bool UAnimSequence::ConvertAnimationDataToRiggingData(FAnimSequenceTrackContaine
 			{
 				struct FRawAnimSequenceTrack& Track = RiggingAnimationData.AnimationTracks[NodeIndex];
 				const FName& NodeName = ValidNodeNames[NodeIndex];
-				const FName& BoneName = Skeleton->GetRigBoneMapping(NodeName);
-				const int32& BoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(BoneName);
+				const FName& BoneName = MySkeleton->GetRigBoneMapping(NodeName);
+				const int32& BoneIndex = MySkeleton->GetReferenceSkeleton().FindBoneIndex(BoneName);
 
 				if (ensure(BoneIndex != INDEX_NONE))
 				{
@@ -3626,8 +3632,8 @@ bool UAnimSequence::ConvertAnimationDataToRiggingData(FAnimSequenceTrackContaine
 						if (RotationTransformConstraint.Num() > 0)
 						{
 							const FName& ParentSpace = RotationTransformConstraint[0].ParentSpace;
-							const FName& ParentBoneName = Skeleton->GetRigBoneMapping(ParentSpace);
-							const int32& ParentBoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(ParentBoneName);
+							const FName& ParentBoneName = MySkeleton->GetRigBoneMapping(ParentSpace);
+							const int32& ParentBoneIndex = MySkeleton->GetReferenceSkeleton().FindBoneIndex(ParentBoneName);
 							if (ParentBoneIndex != INDEX_NONE)
 							{
 								// if no rig control, component space is used
@@ -3662,8 +3668,8 @@ bool UAnimSequence::ConvertAnimationDataToRiggingData(FAnimSequenceTrackContaine
 						if (TranslationTransformConstraint.Num() > 0)
 						{
 							const FName& ParentSpace = TranslationTransformConstraint[0].ParentSpace;
-							const FName& ParentBoneName = Skeleton->GetRigBoneMapping(ParentSpace);
-							const int32& ParentBoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(ParentBoneName);
+							const FName& ParentBoneName = MySkeleton->GetRigBoneMapping(ParentSpace);
+							const int32& ParentBoneIndex = MySkeleton->GetReferenceSkeleton().FindBoneIndex(ParentBoneName);
 							if (ParentBoneIndex != INDEX_NONE)
 							{
 								// if no rig control, component space is used
@@ -3720,11 +3726,11 @@ bool UAnimSequence::ConvertRiggingDataToAnimationData(FAnimSequenceTrackContaine
 		TArray< TArray<FTransform> > AnimationDataInComponentSpace;
 		int32 NumBones = GetSpaceBasedAnimationData(AnimationDataInComponentSpace, &RiggingAnimationData);
 
-		USkeleton* Skeleton = GetSkeleton();
+		USkeleton* MySkeleton = GetSkeleton();
 		TArray<FRawAnimSequenceTrack> OldAnimationData = RawAnimationData;
 		TArray<FName> OldAnimationTrackNames = AnimationTrackNames;
 		TArray<FName> ValidNodeNames;
-		Skeleton->GetMappedValidNodes(ValidNodeNames);
+		MySkeleton->GetMappedValidNodes(ValidNodeNames);
 		// remove from ValidNodeNames if it doesn't belong to AnimationTrackNames
 		for (int32 NameIndex=0; NameIndex<ValidNodeNames.Num(); ++NameIndex)
 		{
@@ -3750,11 +3756,11 @@ bool UAnimSequence::ConvertRiggingDataToAnimationData(FAnimSequenceTrackContaine
 			ClearBakedTransformData();
 		}
 
-		const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
-		const URig* Rig = Skeleton->GetRig();
+		const FReferenceSkeleton& RefSkeleton = MySkeleton->GetReferenceSkeleton();
+		const URig* Rig = MySkeleton->GetRig();
 		for (int32 NodeIndex = 0; NodeIndex < ValidNumNodes; ++NodeIndex)
 		{
-			FName BoneName = Skeleton->GetRigBoneMapping(ValidNodeNames[NodeIndex]);
+			FName BoneName = MySkeleton->GetRigBoneMapping(ValidNodeNames[NodeIndex]);
 			int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
 
 			if (BoneIndex != INDEX_NONE)
@@ -3805,7 +3811,7 @@ bool UAnimSequence::ConvertRiggingDataToAnimationData(FAnimSequenceTrackContaine
 		int32 TrackIdx = 0;
 		for (auto TrackName : AnimationTrackNames)
 		{
-			TrackToSkeletonMapTable[TrackIdx++].BoneTreeIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(TrackName);
+			TrackToSkeletonMapTable[TrackIdx++].BoneTreeIndex = MySkeleton->GetReferenceSkeleton().FindBoneIndex(TrackName);
 		}
 		PostProcessSequence();
 

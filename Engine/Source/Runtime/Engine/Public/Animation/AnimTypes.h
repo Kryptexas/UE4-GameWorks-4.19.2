@@ -349,3 +349,17 @@ struct FAnimWeight
 		return (InWeight >= (1.f - ZERO_ANIMWEIGHT_THRESH));
 	}
 };
+
+/** 
+ * Indicates how animation should be evaluated between keys.
+ */
+UENUM(BlueprintType)
+enum class EAnimInterpolationType : uint8
+{
+	/** Linear interpolation when looking up values between keys. */
+	Linear		UMETA(DisplayName="Linear"),
+
+	/** Step interpolation when looking up values between keys. */
+	Step		UMETA(DisplayName="Step"),
+};
+

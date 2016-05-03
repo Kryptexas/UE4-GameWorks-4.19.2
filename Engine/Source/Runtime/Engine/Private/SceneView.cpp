@@ -1395,9 +1395,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality"));
+		static const auto SceneColorFringeQualityCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality"));
 
-		int32 FringeQuality = CVar->GetValueOnGameThread();
+		int32 FringeQuality = SceneColorFringeQualityCVar->GetValueOnGameThread();
 		if (FringeQuality <= 0)
 		{
 			FinalPostProcessSettings.SceneFringeIntensity = 0;
@@ -1405,9 +1405,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BloomQuality"));
+		static const auto BloomQualityCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BloomQuality"));
 
-		int Value = CVar->GetValueOnGameThread();
+		int Value = BloomQualityCVar->GetValueOnGameThread();
 
 		if(Value <= 0)
 		{
@@ -1451,9 +1451,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DepthOfFieldQuality"));
+		static const auto DepthOfFieldQualityCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DepthOfFieldQuality"));
 
-		int Value = CVar->GetValueOnGameThread();
+		int Value = DepthOfFieldQualityCVar->GetValueOnGameThread();
 
 		if(Value <= 0)
 		{
@@ -1531,9 +1531,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+		static const auto ScreenPercentageCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
 
-		float Value = CVar->GetValueOnGameThread();
+		float Value = ScreenPercentageCVar->GetValueOnGameThread();
 
 		if(Value >= 0.0)
 		{
@@ -1562,9 +1562,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 #endif
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.AmbientOcclusionStaticFraction"));
+		static const auto AmbientOcclusionStaticFractionCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.AmbientOcclusionStaticFraction"));
 
-		float Value = CVar->GetValueOnGameThread();
+		float Value = AmbientOcclusionStaticFractionCVar->GetValueOnGameThread();
 
 		if(Value >= 0.0)
 		{
@@ -1586,9 +1586,9 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.AmbientOcclusionRadiusScale"));
+		static const auto AmbientOcclusionRadiusScaleCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.AmbientOcclusionRadiusScale"));
 
-		float Scale = FMath::Clamp(CVar->GetValueOnGameThread(), 0.1f, 15.0f);
+		float Scale = FMath::Clamp(AmbientOcclusionRadiusScaleCVar->GetValueOnGameThread(), 0.1f, 15.0f);
 		
 		FinalPostProcessSettings.AmbientOcclusionRadius *= Scale;
 	}
@@ -1649,12 +1649,12 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 
 	// Anti-Aliasing
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PostProcessAAQuality")); 
+		static const auto PostProcessAAQualityCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PostProcessAAQuality")); 
 		static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 		static auto* MobileMSAACvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
 		static uint32 MSAAValue = GShaderPlatformForFeatureLevel[SceneViewFeatureLevel] == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACvar->GetValueOnGameThread();
 
-		int32 Quality = FMath::Clamp(CVar->GetValueOnGameThread(), 0, 6);
+		int32 Quality = FMath::Clamp(PostProcessAAQualityCVar->GetValueOnGameThread(), 0, 6);
 		const bool bWillApplyTemporalAA = Family->EngineShowFlags.PostProcessing || bIsPlanarReflection;
 
 		if( !bWillApplyTemporalAA || !Family->EngineShowFlags.AntiAliasing || Quality <= 0

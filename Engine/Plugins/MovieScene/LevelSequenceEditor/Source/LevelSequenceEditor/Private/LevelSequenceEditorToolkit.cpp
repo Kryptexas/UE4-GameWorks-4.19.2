@@ -196,27 +196,27 @@ FString FLevelSequenceEditorToolkit::GetWorldCentricTabPrefix() const
 }
 
 
-void FLevelSequenceEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FLevelSequenceEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
 	if (IsWorldCentricAssetEditor())
 	{
 		return;
 	}
 
-	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
+	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
 
-	TabManager->RegisterTabSpawner(SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FLevelSequenceEditorToolkit::HandleTabManagerSpawnTab))
+	InTabManager->RegisterTabSpawner(SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FLevelSequenceEditorToolkit::HandleTabManagerSpawnTab))
 		.SetDisplayName(LOCTEXT("SequencerMainTab", "Sequencer"))
 		.SetGroup(WorkspaceMenuCategory.ToSharedRef())
 		.SetIcon(FSlateIcon(Style->GetStyleSetName(), "LevelSequenceEditor.Tabs.Sequencer"));
 }
 
 
-void FLevelSequenceEditorToolkit::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FLevelSequenceEditorToolkit::UnregisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
 	if (!IsWorldCentricAssetEditor())
 	{
-		TabManager->UnregisterTabSpawner(SequencerMainTabId);
+		InTabManager->UnregisterTabSpawner(SequencerMainTabId);
 	}
 
 	// @todo remove when world-centric mode is added

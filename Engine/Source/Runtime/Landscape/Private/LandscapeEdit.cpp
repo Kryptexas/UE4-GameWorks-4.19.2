@@ -57,8 +57,7 @@ ULandscapeLayerInfoObject* ALandscapeProxy::VisibilityLayer = NULL;
 void ULandscapeComponent::Init(int32 InBaseX, int32 InBaseY, int32 InComponentSizeQuads, int32 InNumSubsections, int32 InSubsectionSizeQuads)
 {
 	SetSectionBase(FIntPoint(InBaseX, InBaseY));
-	FVector RelativeLocation = FVector(GetSectionBase() - GetLandscapeProxy()->LandscapeSectionOffset);
-	SetRelativeLocation(RelativeLocation);
+	SetRelativeLocation(FVector(GetSectionBase() - GetLandscapeProxy()->LandscapeSectionOffset));
 	ComponentSizeQuads = InComponentSizeQuads;
 	NumSubsections = InNumSubsections;
 	SubsectionSizeQuads = InSubsectionSizeQuads;

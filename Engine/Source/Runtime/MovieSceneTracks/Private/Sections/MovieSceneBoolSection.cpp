@@ -28,9 +28,6 @@ void UMovieSceneBoolSection::MoveSection( float DeltaPosition, TSet<FKeyHandle>&
 
 void UMovieSceneBoolSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
-	float StartTime = GetStartTime();
-	float EndTime = GetEndTime();
-
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 	
 	BoolCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);

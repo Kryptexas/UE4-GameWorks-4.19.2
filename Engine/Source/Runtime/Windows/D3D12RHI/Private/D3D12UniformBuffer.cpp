@@ -136,9 +136,9 @@ void FD3D12UniformBuffer::CacheResourcesInternal()
 {
 	uint32 Start = FPlatformTime::Cycles();
 
-	const FRHIUniformBufferLayout& Layout = GetLayout();
-	int32 NumResources = Layout.Resources.Num();
-	const uint8* RESTRICT ResourceTypes = Layout.Resources.GetData();
+	const FRHIUniformBufferLayout& MyLayout = GetLayout();
+	int32 NumResources = MyLayout.Resources.Num();
+	const uint8* RESTRICT ResourceTypes = MyLayout.Resources.GetData();
 	const TRefCountPtr<FRHIResource>* RESTRICT Resources = ResourceTable.GetData();
 	FResourcePair* RESTRICT RawResources = RawResourceTable.GetData();
 	float CurrentTime = FApp::GetCurrentTime();

@@ -40,11 +40,11 @@ AEQSTestingPawn::AEQSTestingPawn(const FObjectInitializer& ObjectInitializer)
 	EdRenderComp = CreateEditorOnlyDefaultSubobject<UEQSRenderingComponent>(TEXT("EQSRender"));
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
-		UArrowComponent* ArrowComponent = FindComponentByClass<UArrowComponent>();
-		if (ArrowComponent != NULL)
+		UArrowComponent* ArrowComp = FindComponentByClass<UArrowComponent>();
+		if (ArrowComp != NULL)
 		{
-			ArrowComponent->SetRelativeScale3D(FVector(2, 2, 2));
-			ArrowComponent->bIsScreenSizeScaled = true;
+			ArrowComp->SetRelativeScale3D(FVector(2, 2, 2));
+			ArrowComp->bIsScreenSizeScaled = true;
 		}
 
 		UBillboardComponent* SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));

@@ -80,7 +80,7 @@ FMaterialInstanceResource::FMaterialInstanceResource(UMaterialInstance* InOwner,
 {
 }
 
-const FMaterial* FMaterialInstanceResource::GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+const FMaterial* FMaterialInstanceResource::GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	checkSlow(IsInParallelRenderingThread());
 
@@ -89,7 +89,7 @@ const FMaterial* FMaterialInstanceResource::GetMaterial(ERHIFeatureLevel::Type F
 		if (Owner->bHasStaticPermutationResource)
 		{
 			EMaterialQualityLevel::Type ActiveQualityLevel = GetCachedScalabilityCVars().MaterialQualityLevel;
-			FMaterialResource* StaticPermutationResource = Owner->StaticPermutationMaterialResources[ActiveQualityLevel][FeatureLevel];
+			FMaterialResource* StaticPermutationResource = Owner->StaticPermutationMaterialResources[ActiveQualityLevel][InFeatureLevel];
 
 			if (StaticPermutationResource->GetRenderingThreadShaderMap())
 			{
@@ -104,23 +104,23 @@ const FMaterial* FMaterialInstanceResource::GetMaterial(ERHIFeatureLevel::Type F
 				EMaterialDomain Domain = (EMaterialDomain)StaticPermutationResource->GetMaterialDomain();
 				UMaterial* FallbackMaterial = UMaterial::GetDefaultMaterial(Domain);
 				//there was an error, use the default material's resource
-				return FallbackMaterial->GetRenderProxy(IsSelected(), IsHovered())->GetMaterial(FeatureLevel);
+				return FallbackMaterial->GetRenderProxy(IsSelected(), IsHovered())->GetMaterial(InFeatureLevel);
 			}
 		}
 		else
 		{
 			//use the parent's material resource
-			return Parent->GetRenderProxy(IsSelected(), IsHovered())->GetMaterial(FeatureLevel);
+			return Parent->GetRenderProxy(IsSelected(), IsHovered())->GetMaterial(InFeatureLevel);
 		}
 	}
 	else 
 	{
 		UMaterial* FallbackMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-		return FallbackMaterial->GetRenderProxy(IsSelected(), IsHovered())->GetMaterial(FeatureLevel);
+		return FallbackMaterial->GetRenderProxy(IsSelected(), IsHovered())->GetMaterial(InFeatureLevel);
 	}
 }
 
-FMaterial* FMaterialInstanceResource::GetMaterialNoFallback(ERHIFeatureLevel::Type FeatureLevel) const
+FMaterial* FMaterialInstanceResource::GetMaterialNoFallback(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	checkSlow(IsInParallelRenderingThread());
 
@@ -129,7 +129,7 @@ FMaterial* FMaterialInstanceResource::GetMaterialNoFallback(ERHIFeatureLevel::Ty
 		if (Owner->bHasStaticPermutationResource)
 		{
 			EMaterialQualityLevel::Type ActiveQualityLevel = GetCachedScalabilityCVars().MaterialQualityLevel;
-			FMaterialResource* StaticPermutationResource = Owner->StaticPermutationMaterialResources[ActiveQualityLevel][FeatureLevel];
+			FMaterialResource* StaticPermutationResource = Owner->StaticPermutationMaterialResources[ActiveQualityLevel][InFeatureLevel];
 			return StaticPermutationResource;
 		}
 		else
@@ -138,7 +138,7 @@ FMaterial* FMaterialInstanceResource::GetMaterialNoFallback(ERHIFeatureLevel::Ty
 
 			if (ParentProxy)
 			{
-				return ParentProxy->GetMaterialNoFallback(FeatureLevel);
+				return ParentProxy->GetMaterialNoFallback(InFeatureLevel);
 			}
 		}
 	}
@@ -156,13 +156,13 @@ bool FMaterialInstanceResource::GetScalarValue(
 	static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
 	if (ParameterName == NameSubsurfaceProfile)
 	{
-		const USubsurfaceProfile* SubsurfaceProfileRT = GetSubsurfaceProfileRT();
+		const USubsurfaceProfile* MySubsurfaceProfileRT = GetSubsurfaceProfileRT();
 
 		int32 AllocationId = 0;
-		if (SubsurfaceProfileRT)
+		if (MySubsurfaceProfileRT)
 		{
 			// can be optimized (cached)
-			AllocationId = GSubsurfaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT);
+			AllocationId = GSubsurfaceProfileTextureObject.FindAllocationId(MySubsurfaceProfileRT);
 		}
 		else
 		{

@@ -638,8 +638,8 @@ DynamicDataRender(NULL)
 		{
 			//FMaterialRenderProxy* MaterialProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
 			const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
-			UMaterialInterface *Material = Properties->ParticleMesh->GetMaterial(Section.MaterialIndex);
-			Material->CheckMaterialUsage_Concurrent(MATUSAGE_MeshParticles);
+			UMaterialInterface* ParticleMeshMaterial = Properties->ParticleMesh->GetMaterial(Section.MaterialIndex);
+			ParticleMeshMaterial->CheckMaterialUsage_Concurrent(MATUSAGE_MeshParticles);
 		}
 	}
 
@@ -854,8 +854,8 @@ void NiagaraEffectRendererMeshes::GetDynamicMeshElements(const TArray<const FSce
 				for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 				{
 					const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
-					UMaterialInterface *Material = Properties->ParticleMesh->GetMaterial(Section.MaterialIndex);
-					FMaterialRenderProxy* MaterialProxy = Material->GetRenderProxy(false, false);
+					UMaterialInterface* ParticleMeshMaterial = Properties->ParticleMesh->GetMaterial(Section.MaterialIndex);
+					FMaterialRenderProxy* MaterialProxy = ParticleMeshMaterial->GetRenderProxy(false, false);
 
 					if ((Section.NumTriangles == 0) || (MaterialProxy == NULL))
 					{

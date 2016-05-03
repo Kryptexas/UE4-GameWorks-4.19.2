@@ -75,7 +75,7 @@ FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::String
 FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
 FCoreUObjectDelegates::FPackageCreatedForLoad FCoreUObjectDelegates::PackageCreatedForLoad;
 
-/** Check wehether we should report progress or not */
+/** Check whether we should report progress or not */
 bool ShouldReportProgress()
 {
 	return GIsEditor && IsInGameThread() && !IsRunningCommandlet() && !IsAsyncLoading();
@@ -83,7 +83,7 @@ bool ShouldReportProgress()
 
 /**
  * Returns true if code is called form the game thread while collecting garbage.
- * We only have tp guard agains StaticFindObject on the game thread as other threads will be blocked anyway
+ * We only have to guard against StaticFindObject on the game thread as other threads will be blocked anyway
  */
 static FORCEINLINE bool IsGarbageCollectingOnGameThread()
 {

@@ -1011,7 +1011,7 @@ void FViewInfo::CreateUniformBuffer(
 	FrameUniformShaderParameters.CircleDOFParams = CircleDofHalfCoc(*this);
 
 	FScene* Scene = (FScene*)Family->Scene;
-	ERHIFeatureLevel::Type FeatureLevel = Scene == nullptr ? GMaxRHIFeatureLevel : Scene->GetFeatureLevel();
+	ERHIFeatureLevel::Type RHIFeatureLevel = Scene == nullptr ? GMaxRHIFeatureLevel : Scene->GetFeatureLevel();
 
 	if (Scene && Scene->SkyLight)
 	{
@@ -1038,7 +1038,7 @@ void FViewInfo::CreateUniformBuffer(
 
 	FrameUniformShaderParameters.MobilePreviewMode =
 		(GIsEditor &&
-		(FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1) &&
+		(RHIFeatureLevel == ERHIFeatureLevel::ES2 || RHIFeatureLevel == ERHIFeatureLevel::ES3_1) &&
 		GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1) ? 1.0f : 0.0f;
 
 	// Padding between the left and right eye may be introduced by an HMD, which instanced stereo needs to account for.

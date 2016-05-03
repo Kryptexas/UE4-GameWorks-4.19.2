@@ -1691,17 +1691,17 @@ void AMatineeActor::RecaptureActorState()
 	for(int32 i=0; i<GroupInst.Num(); i++)
 	{
 		UInterpGroupInst* GrInst = GroupInst[i];
-		AActor* GroupActor = GrInst->GetGroupActor();
-		if( GroupActor )
+		AActor* InstGroupActor = GrInst->GetGroupActor();
+		if( InstGroupActor )
 		{
-			ConditionallySaveActorState( GrInst, GroupActor );
+			ConditionallySaveActorState( GrInst, InstGroupActor );
 		}
 	}
 	UpdateInterp( SavedScrubPosition, true );
 #endif // WITH_EDITORONLY_DATA
 }
 
-void AMatineeActor::InitGroupActorForGroup(class UInterpGroup* InGroup, class AActor* GroupActor)
+void AMatineeActor::InitGroupActorForGroup(class UInterpGroup* InGroup, class AActor* InGroupActor)
 {
 	bool bFoundGroup = false;
 	for( int32 GroupIndex = 0; GroupIndex < GroupActorInfos.Num(); ++GroupIndex )
@@ -1710,11 +1710,11 @@ void AMatineeActor::InitGroupActorForGroup(class UInterpGroup* InGroup, class AA
 		if( Info.ObjectName == InGroup->GetFName() )
 		{
 			bFoundGroup = true;
-			Info.Actors.AddUnique( GroupActor );
+			Info.Actors.AddUnique( InGroupActor );
 
-			if (GroupActor)
+			if (InGroupActor)
 			{
-				GroupActor->AddControllingMatineeActor(*this);
+				InGroupActor->AddControllingMatineeActor(*this);
 			}
 		}
 	}
@@ -1723,13 +1723,13 @@ void AMatineeActor::InitGroupActorForGroup(class UInterpGroup* InGroup, class AA
 	{
 		FInterpGroupActorInfo NewInfo;
 		NewInfo.ObjectName = InGroup->GetFName();
-		NewInfo.Actors.Add( GroupActor );
+		NewInfo.Actors.Add( InGroupActor );
 
 		GroupActorInfos.Add( NewInfo );
 
-		if (GroupActor)
+		if (InGroupActor)
 		{
-			GroupActor->AddControllingMatineeActor(*this);
+			InGroupActor->AddControllingMatineeActor(*this);
 		}
 	}
 
@@ -6647,12 +6647,12 @@ void UInterpTrackDirector::PreviewUpdateTrack(float NewPosition, UInterpTrackIns
 }
 
 #if WITH_EDITOR
-bool UInterpTrackDirector::UpdatePreviewCamera(AMatineeActor* MatineeActor, bool bIsSelected)
+bool UInterpTrackDirector::UpdatePreviewCamera(AMatineeActor* MatineeActor, bool bInIsSelected)
 {
 	check( MatineeActor );
 #if WITH_EDITORONLY_DATA
 	// If selected, get the viewed actor in the matinee
-	AActor* Actor = bIsSelected ? MatineeActor->FindViewedActor() : NULL;
+	AActor* Actor = bInIsSelected ? MatineeActor->FindViewedActor() : NULL;
 	if ( PreviewCamera != Actor )
 	{
 		// Try casting it to a camera actor

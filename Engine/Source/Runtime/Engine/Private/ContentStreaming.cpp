@@ -851,16 +851,16 @@ int32 FStreamingManagerCollection::BlockTillAllRequestsFinished( float TimeLimit
 /** Returns the number of resources that currently wants to be streamed in. */
 int32 FStreamingManagerCollection::GetNumWantingResources() const
 {
-	int32 NumWantingResources = 0;
+	int32 NumResourcesWantingStreaming = 0;
 
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
 		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
-		NumWantingResources += StreamingManager->GetNumWantingResources();
+		NumResourcesWantingStreaming += StreamingManager->GetNumWantingResources();
 	}
 
-	return NumWantingResources;
+	return NumResourcesWantingStreaming;
 }
 
 /**
@@ -871,16 +871,16 @@ int32 FStreamingManagerCollection::GetNumWantingResources() const
  */
 int32 FStreamingManagerCollection::GetNumWantingResourcesID() const
 {
-	int32 NumWantingResourcesCounter = MAX_int32;
+	int32 NumWantingResourcesStreamingCounter = MAX_int32;
 
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
 		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
-		NumWantingResourcesCounter = FMath::Min( NumWantingResourcesCounter, StreamingManager->GetNumWantingResourcesID() );
+		NumWantingResourcesStreamingCounter = FMath::Min( NumWantingResourcesStreamingCounter, StreamingManager->GetNumWantingResourcesID() );
 	}
 
-	return NumWantingResourcesCounter;
+	return NumWantingResourcesStreamingCounter;
 }
 
 /**

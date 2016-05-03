@@ -912,6 +912,9 @@ protected:
 	/** Processes the set of pending sounds that need to be stopped */ 
 	void ProcessingPendingActiveSoundStops();
 
+	/** Query if the editor is in VR Preview for the current play world. Returns false for non-editor builds */
+	static bool CanUseVRAudioDevice();
+
 public:
 
 	/** The maximum number of concurrent audible sounds */

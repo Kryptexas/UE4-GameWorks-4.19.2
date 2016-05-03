@@ -873,9 +873,9 @@ protected:
 			{
 				if (IDelegateInstance* OtherInstance = Super::GetDelegateInstanceProtectedHelper(OtherDelegateRef))
 				{
-					FDelegate Temp;
-					((TDelegateInstanceInterface*)OtherInstance)->CreateCopy(Temp);
-					AddInternal(MoveTemp(Temp));
+					FDelegate TempDelegate;
+					((TDelegateInstanceInterface*)OtherInstance)->CreateCopy(TempDelegate);
+					AddInternal(MoveTemp(TempDelegate));
 				}
 			}
 		}

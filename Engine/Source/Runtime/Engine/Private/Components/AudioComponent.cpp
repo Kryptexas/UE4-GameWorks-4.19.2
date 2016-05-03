@@ -158,15 +158,9 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 		// If this is an auto destroy component we need to prevent it from being auto-destroyed since we're really just restarting it
 		bool bCurrentAutoDestroy = bAutoDestroy;
 		bAutoDestroy = false;
-		if (!bShouldRemainActiveIfDropped)
-		{
-			Stop();
-		}
+		Stop();
 		bAutoDestroy = bCurrentAutoDestroy;
 	}
-
-	// Bump ActiveCount... this is used to determine if an audio component is still active after "finishing"
-	++ActiveCount;
 
 	// Whether or not we managed to actually try to play the sound
 	if (Sound && (World == nullptr || World->bAllowAudioPlayback))
@@ -243,6 +237,9 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			{
 				NewActiveSound.CurrentAdjustVolumeMultiplier = FadeVolumeLevel;
 			}
+
+			// Bump ActiveCount... this is used to determine if an audio component is still active after "finishing"
+			++ActiveCount;
 
 			// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
 			AudioDevice->AddNewActiveSound(NewActiveSound);
@@ -352,19 +349,22 @@ void UAudioComponent::PlaybackCompleted(bool bFailedToStart)
 	// Mark inactive before calling destroy to avoid recursion
 	bIsActive = (ActiveCount > 0);
 
-	if (!bFailedToStart && GetWorld() != nullptr && (OnAudioFinished.IsBound() || OnAudioFinishedNative.IsBound()))
+	if (!bIsActive)
 	{
-		INC_DWORD_STAT( STAT_AudioFinishedDelegatesCalled );
-		SCOPE_CYCLE_COUNTER( STAT_AudioFinishedDelegates );
+		if (!bFailedToStart && GetWorld() != nullptr && (OnAudioFinished.IsBound() || OnAudioFinishedNative.IsBound()))
+		{
+			INC_DWORD_STAT(STAT_AudioFinishedDelegatesCalled);
+			SCOPE_CYCLE_COUNTER(STAT_AudioFinishedDelegates);
 
-		OnAudioFinished.Broadcast();
-		OnAudioFinishedNative.Broadcast(this);
-	}
+			OnAudioFinished.Broadcast();
+			OnAudioFinishedNative.Broadcast(this);
+		}
 
-	// Auto destruction is handled via marking object for deletion.
-	if (bAutoDestroy && !bIsActive)
-	{
-		DestroyComponent();
+		// Auto destruction is handled via marking object for deletion.
+		if (bAutoDestroy)
+		{
+			DestroyComponent();
+		}
 	}
 }
 

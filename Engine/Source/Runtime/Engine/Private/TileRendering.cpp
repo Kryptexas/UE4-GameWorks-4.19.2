@@ -84,24 +84,24 @@ public:
 	/** Default constructor. */
 	FTileVertexFactory()
 	{
-		FLocalVertexFactory::FDataType Data;
+		FLocalVertexFactory::FDataType VertexData;
 		// position
-		Data.PositionComponent = FVertexStreamComponent(
+		VertexData.PositionComponent = FVertexStreamComponent(
 			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,Position),sizeof(FMaterialTileVertex),VET_Float3);
 		// tangents
-		Data.TangentBasisComponents[0] = FVertexStreamComponent(
+		VertexData.TangentBasisComponents[0] = FVertexStreamComponent(
 			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,TangentX),sizeof(FMaterialTileVertex),VET_PackedNormal);
-		Data.TangentBasisComponents[1] = FVertexStreamComponent(
+		VertexData.TangentBasisComponents[1] = FVertexStreamComponent(
 			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,TangentZ),sizeof(FMaterialTileVertex),VET_PackedNormal);
 		// color
-		Data.ColorComponent = FVertexStreamComponent(
+		VertexData.ColorComponent = FVertexStreamComponent(
 			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,Color),sizeof(FMaterialTileVertex),VET_Color);
 		// UVs
-		Data.TextureCoordinates.Add(FVertexStreamComponent(
+		VertexData.TextureCoordinates.Add(FVertexStreamComponent(
 			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,U),sizeof(FMaterialTileVertex),VET_Float2));
 
 		// update the data
-		SetData(Data);
+		SetData(VertexData);
 	}
 };
 TGlobalResource<FTileVertexFactory> GTileVertexFactory;

@@ -43,10 +43,10 @@ void AVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	static FName BrushBuilder(TEXT("BrushBuilder"));
+	static FName NAME_BrushBuilder(TEXT("BrushBuilder"));
 
 	// The brush builder that created this volume has changed. Notify listeners
-	if( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && PropertyChangedEvent.MemberProperty && PropertyChangedEvent.MemberProperty->GetFName() == BrushBuilder )
+	if( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && PropertyChangedEvent.MemberProperty && PropertyChangedEvent.MemberProperty->GetFName() == NAME_BrushBuilder )
 	{
 		OnVolumeShapeChanged.Broadcast(*this);
 	}

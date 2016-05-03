@@ -867,16 +867,16 @@ void ULandscapeComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 
 FBoxSphereBounds ULandscapeComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	FBox Bounds = CachedLocalBox.TransformBy(LocalToWorld);
-	Bounds = Bounds.ExpandBy({0, 0, NegativeZBoundsExtension}, {0, 0, PositiveZBoundsExtension});
+	FBox MyBounds = CachedLocalBox.TransformBy(LocalToWorld);
+	MyBounds = MyBounds.ExpandBy({0, 0, NegativeZBoundsExtension}, {0, 0, PositiveZBoundsExtension});
 
 	ALandscapeProxy* Proxy = GetLandscapeProxy();
 	if (Proxy)
 	{
-		Bounds = Bounds.ExpandBy({0, 0, Proxy->NegativeZBoundsExtension}, {0, 0, Proxy->PositiveZBoundsExtension});
+		MyBounds = MyBounds.ExpandBy({0, 0, Proxy->NegativeZBoundsExtension}, {0, 0, Proxy->PositiveZBoundsExtension});
 	}
 
-	return FBoxSphereBounds(Bounds);
+	return FBoxSphereBounds(MyBounds);
 }
 
 void ULandscapeComponent::OnRegister()

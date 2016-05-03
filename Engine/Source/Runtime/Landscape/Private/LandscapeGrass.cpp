@@ -1369,10 +1369,10 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 	{
 		const int32 SubsectionSizeQuads = Component->SubsectionSizeQuads;
 		const int32 NumSubsections = Component->NumSubsections;
-		const int32 ComponentSizeQuads = Component->ComponentSizeQuads;
+		const int32 LandscapeComponentSizeQuads = Component->ComponentSizeQuads;
 	
 		const int32 StaticLightingLOD = Component->GetLandscapeProxy()->StaticLightingLOD;
-		const int32 ComponentSizeVerts = ComponentSizeQuads + 1;
+		const int32 ComponentSizeVerts = LandscapeComponentSizeQuads + 1;
 		const float LightMapRes = Component->StaticLightingResolution > 0.0f ? Component->StaticLightingResolution : Component->GetLandscapeProxy()->StaticLightingResolution;
 		const int32 LightingLOD = Component->GetLandscapeProxy()->StaticLightingLOD;
 
@@ -1381,13 +1381,13 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		int32 PatchExpandCountX = 0;
 		int32 PatchExpandCountY = 0;
 		int32 DesiredSize = 1;
-		const float LightMapRatio = ::GetTerrainExpandPatchCount(LightMapRes, PatchExpandCountX, PatchExpandCountY, ComponentSizeQuads, (NumSubsections * (SubsectionSizeQuads + 1)), DesiredSize, LightingLOD);
+		const float LightMapRatio = ::GetTerrainExpandPatchCount(LightMapRes, PatchExpandCountX, PatchExpandCountY, LandscapeComponentSizeQuads, (NumSubsections * (SubsectionSizeQuads + 1)), DesiredSize, LightingLOD);
 		const float LightmapLODScaleX = LightMapRatio / ((ComponentSizeVerts >> StaticLightingLOD) + 2 * PatchExpandCountX);
 		const float LightmapLODScaleY = LightMapRatio / ((ComponentSizeVerts >> StaticLightingLOD) + 2 * PatchExpandCountY);
 		const float LightmapBiasX = PatchExpandCountX * LightmapLODScaleX;
 		const float LightmapBiasY = PatchExpandCountY * LightmapLODScaleY;
-		const float LightmapScaleX = LightmapLODScaleX * (float)((ComponentSizeVerts >> StaticLightingLOD) - 1) / ComponentSizeQuads;
-		const float LightmapScaleY = LightmapLODScaleY * (float)((ComponentSizeVerts >> StaticLightingLOD) - 1) / ComponentSizeQuads;
+		const float LightmapScaleX = LightmapLODScaleX * (float)((ComponentSizeVerts >> StaticLightingLOD) - 1) / LandscapeComponentSizeQuads;
+		const float LightmapScaleY = LightmapLODScaleY * (float)((ComponentSizeVerts >> StaticLightingLOD) - 1) / LandscapeComponentSizeQuads;
 
 		LightMapComponentScale = FVector2D(LightmapScaleX, LightmapScaleY) / FVector2D(DrawScale);
 		LightMapComponentBias = FVector2D(LightmapBiasX, LightmapBiasY);

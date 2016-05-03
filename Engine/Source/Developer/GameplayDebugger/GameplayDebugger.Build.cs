@@ -8,7 +8,7 @@ namespace UnrealBuildTool.Rules
         {
             // change this flag to if you need to use deprecated GameplayDebugger module
             // however, it will be removed in next engine version!
-            const bool bEnableDeprecatedDebugger = true;
+            const bool bEnableDeprecatedDebugger = false;
 
             PublicDependencyModuleNames.AddRange(
 				new string[] {

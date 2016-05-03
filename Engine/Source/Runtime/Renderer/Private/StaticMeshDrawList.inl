@@ -890,7 +890,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::SortFrontToBack(FVector ViewPositio
 }
 
 template<typename DrawingPolicyType>
-void TStaticMeshDrawList<DrawingPolicyType>::GetUsedPrimitivesBasedOnMaterials(ERHIFeatureLevel::Type FeatureLevel, const TArray<const FMaterial*>& Materials, TArray<FPrimitiveSceneInfo*>& PrimitivesToUpdate)
+void TStaticMeshDrawList<DrawingPolicyType>::GetUsedPrimitivesBasedOnMaterials(ERHIFeatureLevel::Type InFeatureLevel, const TArray<const FMaterial*>& Materials, TArray<FPrimitiveSceneInfo*>& PrimitivesToUpdate)
 {
 	for (typename TDrawingPolicySet::TIterator DrawingPolicyIt(DrawingPolicySet); DrawingPolicyIt; ++DrawingPolicyIt)
 	{
@@ -907,7 +907,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::GetUsedPrimitivesBasedOnMaterials(E
 			if (Proxy)
 			{
 				check(!Proxy->IsDeleted());
-				FMaterial* MaterialResource = Proxy->GetMaterialNoFallback(FeatureLevel);
+				FMaterial* MaterialResource = Proxy->GetMaterialNoFallback(InFeatureLevel);
 
 				if (Materials.Contains(MaterialResource))
 				{

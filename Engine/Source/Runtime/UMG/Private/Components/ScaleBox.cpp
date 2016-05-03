@@ -89,16 +89,16 @@ UClass* UScaleBox::GetSlotClass() const
 	return UScaleBoxSlot::StaticClass();
 }
 
-void UScaleBox::OnSlotAdded(UPanelSlot* Slot)
+void UScaleBox::OnSlotAdded(UPanelSlot* InSlot)
 {
 	// Add the child to the live slot if it already exists
 	if ( MyScaleBox.IsValid() )
 	{
-		Cast<UScaleBoxSlot>(Slot)->BuildSlot(MyScaleBox.ToSharedRef());
+		CastChecked<UScaleBoxSlot>(InSlot)->BuildSlot(MyScaleBox.ToSharedRef());
 	}
 }
 
-void UScaleBox::OnSlotRemoved(UPanelSlot* Slot)
+void UScaleBox::OnSlotRemoved(UPanelSlot* InSlot)
 {
 	// Remove the widget from the live slot if it exists.
 	if ( MyScaleBox.IsValid() )

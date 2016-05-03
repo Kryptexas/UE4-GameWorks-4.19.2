@@ -160,6 +160,42 @@ struct FAnimPhysPlanarLimit
 	FTransform PlaneTransform;
 };
 
+/** Whether spheres keep bodies inside, or outside of their shape */
+UENUM()
+enum class ESphericalLimitType : uint8
+{
+	Inner,
+	Outer
+};
+
+USTRUCT()
+struct FAnimPhysSphericalLimit
+{
+	GENERATED_BODY();
+
+	FAnimPhysSphericalLimit()
+		: SphereLocalOffset(FVector::ZeroVector)
+		, LimitRadius(0.0f)
+		, LimitType(ESphericalLimitType::Outer)
+	{}
+
+	/** Bone to attach the sphere to */
+	UPROPERTY(EditAnywhere, Category = SphericalLimit)
+	FBoneReference DrivingBone;
+
+	/** Local offset for the sphere, if no driving bone is set this is in node space, otherwise bone space */
+	UPROPERTY(EditAnywhere, Category = SphericalLimit)
+	FVector SphereLocalOffset;
+
+	/** Radius of the sphere */
+	UPROPERTY(EditAnywhere, Category = SphericalLimit)
+	float LimitRadius;
+
+	/** Whether to lock bodies inside or outside of the sphere */
+	UPROPERTY(EditAnywhere, Category = SphericalLimit)
+	ESphericalLimitType LimitType;
+};
+
 USTRUCT()
 struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalControlBase
 {
@@ -259,18 +295,28 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Constraint)
 	FAnimPhysConstraintSetup ConstraintSetup;
 
+	/** Whether to evaluate planar limits */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlanarLimit)
 	bool bUsePlanarLimit;
 
+	/** List of available planar limits for this node */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlanarLimit)
 	TArray<FAnimPhysPlanarLimit> PlanarLimits;
 
+	/** Whether to evaluate spherical limits */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SphericalLimit)
+	bool bUseSphericalLimits;
+
+	/** List of available spherical limits for this node */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SphericalLimit)
+	TArray<FAnimPhysSphericalLimit> SphericalLimits;
+
 	/** Resolution method for planar limits */
-	UPROPERTY(EditAnywhere, Category = PlanarLimit)
+	UPROPERTY(EditAnywhere, Category = Collision)
 	AnimPhysCollisionType CollisionType;
 
 	/** Radius to use if CollisionType is set to CustomSphere */
-	UPROPERTY(EditAnywhere, Category = PlanarLimit, meta = (UIMin = "1", ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = Collision, meta = (UIMin = "1", ClampMin = "1"))
 	float SphereCollisionRadius;
 
 	/** An external force to apply to all bodies in the simulation when ticked, specified in world space */

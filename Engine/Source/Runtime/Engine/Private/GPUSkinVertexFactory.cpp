@@ -207,7 +207,7 @@ void FGPUBaseSkinVertexFactory::FShaderDataType::GoToNextFrame(uint32 FrameNumbe
 }
 
 bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListImmediate& RHICmdList, const TArray<FMatrix>& ReferenceToLocalMatrices,
-	const TArray<FBoneIndexType>& BoneMap, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel, bool bUseSkinCache)
+	const TArray<FBoneIndexType>& BoneMap, uint32 FrameNumber, ERHIFeatureLevel::Type InFeatureLevel, bool bUseSkinCache)
 {
 	const uint32 NumBones = BoneMap.Num();
 	check(NumBones <= MaxGPUSkinBones);
@@ -215,7 +215,7 @@ bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListI
 
 	FVertexBufferAndSRV* CurrentBoneBuffer = 0;
 
-	if (FeatureLevel >= ERHIFeatureLevel::ES3_1)
+	if (InFeatureLevel >= ERHIFeatureLevel::ES3_1)
 	{
 		check(IsInRenderingThread());
 		GoToNextFrame(FrameNumber);
@@ -274,7 +274,7 @@ bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListI
 			RefToLocal.To3x4MatrixTranspose( (float*)BoneMat.M );
 		}
 	}
-	if (FeatureLevel >= ERHIFeatureLevel::ES3_1)
+	if (InFeatureLevel >= ERHIFeatureLevel::ES3_1)
 	{
 		if (NumBones)
 		{

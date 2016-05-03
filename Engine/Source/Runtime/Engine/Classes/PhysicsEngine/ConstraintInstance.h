@@ -239,7 +239,9 @@ struct ENGINE_API FConstraintInstance
 	float TwistLimitDamping;
 
 	/** Specifies the angular offset between the two frames of reference. By default limit goes from (-Angle, +Angle)
-	  * This allows you to bias the limit for swing1 swing2 and twist. */
+	  * This allows you to bias the limit for swing1 swing2 and twist.
+      * This is also used as the reference orientation for Angular Orientation Drive.
+      */
 	UPROPERTY(EditAnywhere, Category = Angular)
 	FRotator AngularRotationOffset;
 	

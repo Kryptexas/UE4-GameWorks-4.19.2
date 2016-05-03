@@ -64,7 +64,7 @@ void UAITask_MoveTo::FinishMoveTask(EPathFollowingResult::Type InResult)
 		if (PFComp && PFComp->GetStatus() != EPathFollowingStatus::Idle)
 		{
 			ResetObservers();
-			PFComp->AbortMove(TEXT("AITask_MoveTo finished"), MoveRequestID);
+			PFComp->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished, MoveRequestID);
 		}
 	}
 
@@ -129,7 +129,7 @@ void UAITask_MoveTo::PerformMove()
 
 	case EPathFollowingRequestResult::RequestSuccessful:
 		MoveRequestID = PFComp->GetCurrentRequestId();
-		PathFinishDelegateHandle = PFComp->OnMoveFinished.AddUObject(this, &UAITask_MoveTo::OnRequestFinished);
+		PathFinishDelegateHandle = PFComp->OnRequestFinished.AddUObject(this, &UAITask_MoveTo::OnRequestFinished);
 		SetObservedPath(PFComp->GetPath());
 
 		if (TaskState == EGameplayTaskState::Finished)
@@ -191,7 +191,7 @@ void UAITask_MoveTo::ResetObservers()
 		UPathFollowingComponent* PFComp = OwnerController ? OwnerController->GetPathFollowingComponent() : nullptr;
 		if (PFComp)
 		{
-			PFComp->OnMoveFinished.Remove(PathFinishDelegateHandle);
+			PFComp->OnRequestFinished.Remove(PathFinishDelegateHandle);
 		}
 
 		PathFinishDelegateHandle.Reset();
@@ -231,9 +231,9 @@ void UAITask_MoveTo::ResetTimers()
 	}
 }
 
-void UAITask_MoveTo::OnDestroy(bool bOwnerFinished)
+void UAITask_MoveTo::OnDestroy(bool bInOwnerFinished)
 {
-	Super::OnDestroy(bOwnerFinished);
+	Super::OnDestroy(bInOwnerFinished);
 	
 	ResetObservers();
 	ResetTimers();
@@ -243,23 +243,29 @@ void UAITask_MoveTo::OnDestroy(bool bOwnerFinished)
 		UPathFollowingComponent* PFComp = OwnerController ? OwnerController->GetPathFollowingComponent() : nullptr;
 		if (PFComp && PFComp->GetStatus() != EPathFollowingStatus::Idle)
 		{
-			PFComp->AbortMove(TEXT("AITask_MoveTo finished"), MoveRequestID);
+			PFComp->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished, MoveRequestID);
 		}
 	}
 }
 
-void UAITask_MoveTo::OnRequestFinished(FAIRequestID RequestID, EPathFollowingResult::Type Result)
+void UAITask_MoveTo::OnRequestFinished(FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
 	if (RequestID == MoveRequestID)
 	{
-		// reset request Id, FinishMoveTask doesn't need to update path following's state
-		MoveRequestID = FAIRequestID::InvalidRequest;
-
-		FinishMoveTask(Result);
+		if (Result.IsSkipped() && !Result.HasFlag(FPathFollowingResultFlags::ForcedScript))
+		{
+			UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Log, TEXT("%s> ignoring OnRequestFinished, move was aborted by new request"), *GetName());
+		}
+		else
+		{
+			// reset request Id, FinishMoveTask doesn't need to update path following's state
+			MoveRequestID = FAIRequestID::InvalidRequest;
+			FinishMoveTask(Result.Code);
+		}
 	}
 	else if (IsActive())
 	{
-		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Warning, TEXT("%s> received HandleMoveFinished with not matching RequestID!"), *GetName());
+		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Warning, TEXT("%s> received OnRequestFinished with not matching RequestID!"), *GetName());
 	}
 }
 

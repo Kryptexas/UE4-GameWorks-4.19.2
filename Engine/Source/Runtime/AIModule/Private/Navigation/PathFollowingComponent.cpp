@@ -16,8 +16,6 @@
 
 #include "Navigation/PathFollowingComponent.h"
 
-#define USE_PHYSIC_FOR_VISIBILITY_TESTS 1 // Physic will be used for visibility tests if set or only raycasts on navmesh if not
-
 #if UE_BUILD_TEST || UE_BUILD_SHIPPING
 #define SHIPPING_STATIC static
 #else
@@ -26,12 +24,79 @@
 
 DEFINE_LOG_CATEGORY(LogPathFollowing);
 
+FPathFollowingResult::FPathFollowingResult(uint16 InFlags) : Flags(InFlags)
+{
+	Code =
+		HasFlag(FPathFollowingResultFlags::Success) && !HasFlag(FPathFollowingResultFlags::Blocked | FPathFollowingResultFlags::OffPath | FPathFollowingResultFlags::ExternalCancel) ? EPathFollowingResult::Success :
+		HasFlag(FPathFollowingResultFlags::Blocked) && !HasFlag(FPathFollowingResultFlags::Success | FPathFollowingResultFlags::OffPath | FPathFollowingResultFlags::ExternalCancel) ? EPathFollowingResult::Blocked :
+		HasFlag(FPathFollowingResultFlags::OffPath) && !HasFlag(FPathFollowingResultFlags::Success | FPathFollowingResultFlags::Blocked | FPathFollowingResultFlags::ExternalCancel) ? EPathFollowingResult::OffPath :
+		HasFlag(FPathFollowingResultFlags::ExternalCancel) && !HasFlag(FPathFollowingResultFlags::Success | FPathFollowingResultFlags::Blocked | FPathFollowingResultFlags::OffPath) ? EPathFollowingResult::Aborted :
+		EPathFollowingResult::Invalid;
+}
+
+FPathFollowingResult::FPathFollowingResult(EPathFollowingResult::Type ResultCode, uint16 ExtraFlags) : Code(ResultCode)
+{
+	static uint16 CodeLookup[6] = {
+		FPathFollowingResultFlags::Success,			// EPathFollowingResult::Success
+		FPathFollowingResultFlags::Blocked,			// EPathFollowingResult::Blocked
+		FPathFollowingResultFlags::OffPath,			// EPathFollowingResult::OffPath
+		FPathFollowingResultFlags::ExternalCancel,	// EPathFollowingResult::Aborted
+		0,											// EPathFollowingResult::Skipped_DEPRECATED
+		0,											// EPathFollowingResult::Invalid
+	};
+
+	Flags = CodeLookup[ResultCode] | ExtraFlags;
+}
+
+FString FPathFollowingResult::ToString() const
+{
+	static UEnum* ResultEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingResult"));
+	return FString::Printf(TEXT("%s[%s]"), ResultEnum ? *ResultEnum->GetEnumName(Code) : TEXT("??"), *FPathFollowingResultFlags::ToString(Flags));
+}
+
+FString FPathFollowingResultFlags::ToString(uint16 Value)
+{
+	static FString FlagDesc[] = {
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, Success),
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, Blocked),
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, OffPath),
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, ExternalCancel),
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, OwnerFinished),
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, InvalidPath),
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, MovementStop),
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, NewRequest),
+		GET_FUNCTION_NAME_STRING_CHECKED(FPathFollowingResultFlags, ForcedScript),
+	};
+
+	FString CombinedDesc;
+	for (int32 Idx = 0; Idx < FirstGameplayFlagShift; Idx++)
+	{
+		if (Value & (1 << Idx))
+		{
+			CombinedDesc += FlagDesc[Idx];
+			CombinedDesc += TEXT(' ');
+		}
+	}
+
+	Value = Value >> FirstGameplayFlagShift;
+	for (int32 Idx = 0; Value; Idx++, Value /= 2)
+	{
+		if (Value & 1)
+		{
+			CombinedDesc += TEXT("Game");
+			CombinedDesc += TTypeToString<int32>::ToString(Idx);
+			CombinedDesc += TEXT(' ');
+		}
+	}
+
+	return CombinedDesc.LeftChop(1);
+}
+
 //----------------------------------------------------------------------//
 // Life cycle                                                        
 //----------------------------------------------------------------------//
 uint32 UPathFollowingComponent::NextRequestId = 1;
 const float UPathFollowingComponent::DefaultAcceptanceRadius = -1.f;
-UPathFollowingComponent::FRequestCompletedSignature UPathFollowingComponent::UnboundRequestDelegate;
 
 UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -48,7 +113,6 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 	NextSampleIdx = 0;
 	bUseBlockDetection = true;
 	bLastMoveReachedGoal = false;
-	bUseVisibilityTestsSimplification = false;
 	bStopMovementOnFinish = true;
 	bIsUsingMetaPath = false;
 
@@ -150,7 +214,8 @@ void UPathFollowingComponent::OnPathEvent(FNavigationPath* InPath, ENavPathEvent
 				const bool bIsPathAccepted = HandlePathUpdateEvent();
 				if (!bIsPathAccepted)
 				{
-					AbortMove(TEXT("Failed path update"));
+					UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT(">> updated path was not accepcted, aborting move"));
+					OnPathFinished(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath);
 				}
 			}
 			break;
@@ -195,21 +260,10 @@ bool UPathFollowingComponent::HandlePathUpdateEvent()
 	return true;
 }
 
-FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FRequestCompletedSignature OnComplete,
-	const AActor* InDestinationActor, float InAcceptanceRadius, bool bInStopOnOverlap, FCustomMoveSharedPtr InGameData)
+FAIRequestID UPathFollowingComponent::RequestMove(const FAIMoveRequest& RequestData, FNavPathSharedPtr InPath)
 {
-	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("RequestMove: Path(%s), AcceptRadius(%.1f%s), DestinationActor(%s), GameData(%s)"),
-		*GetPathDescHelper(InPath),
-		InAcceptanceRadius, bInStopOnOverlap ? TEXT(" + agent") : TEXT(""),
-		*GetNameSafe(InDestinationActor),
-		!InGameData.IsValid() ? TEXT("missing") : TEXT("valid"));
-
-	LogPathHelper(GetOwner(), InPath, InDestinationActor);
-
-	if (InAcceptanceRadius == UPathFollowingComponent::DefaultAcceptanceRadius)
-	{
-		InAcceptanceRadius = MyDefaultAcceptanceRadius;
-	}
+	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("RequestMove: Path(%s) %s"), *GetPathDescHelper(InPath), *RequestData.ToString());
+	LogPathHelper(GetOwner(), InPath, RequestData.GetGoalActor());
 
 	if (ResourceLock.IsLocked())
 	{
@@ -217,7 +271,8 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 		return FAIRequestID::InvalidRequest;
 	}
 
-	if (!InPath.IsValid() || InAcceptanceRadius < 0.0f)
+	const float UseAcceptanceRadius = (RequestData.GetAcceptanceRadius() == UPathFollowingComponent::DefaultAcceptanceRadius) ? MyDefaultAcceptanceRadius : RequestData.GetAcceptanceRadius();
+ 	if (!InPath.IsValid() || UseAcceptanceRadius < 0.0f)
 	{
 		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("RequestMove: invalid request"));
 		return FAIRequestID::InvalidRequest;
@@ -230,25 +285,19 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 		return FAIRequestID::InvalidRequest;
 	}
 
-	// update ID first, so any observer notified by AbortMove() could detect new request
-	const uint32 PrevMoveId = CurrentRequestId;
-	
 	// abort previous movement
-	if (Status == EPathFollowingStatus::Paused && Path.IsValid() && InPath.Get() == Path.Get() && DestinationActor == InDestinationActor)
+	if (Status == EPathFollowingStatus::Paused && Path.IsValid() && InPath.Get() == Path.Get() && DestinationActor == RequestData.GetGoalActor())
 	{
 		ResumeMove();
 	}
 	else
 	{
-		if (Status == EPathFollowingStatus::Moving)
+		if (Status != EPathFollowingStatus::Idle)
 		{
-			const bool bResetVelocity = false;
-			const bool bFinishAsSkipped = true;
-			AbortMove(TEXT("new request"), PrevMoveId, bResetVelocity, bFinishAsSkipped, EPathFollowingMessage::OtherRequest);
+			OnPathFinished(EPathFollowingResult::Aborted, FPathFollowingResultFlags::NewRequest);
 		}
 		
 		Reset();
-
 		StoreRequestId();
 
 		// store new data
@@ -272,19 +321,17 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 		PathTimeWhenPaused = 0.0f;
 		OnPathUpdated();
 
-		AcceptanceRadius = InAcceptanceRadius;
-		GameData = InGameData;
-		OnRequestFinished = OnComplete;	
-		bStopOnOverlap = bInStopOnOverlap;
-		SetDestinationActor(InDestinationActor);
+		AcceptanceRadius = UseAcceptanceRadius;
+		bStopOnOverlap = RequestData.CanStopOnOverlap();
+		GameData = RequestData.GetUserData();
+		SetDestinationActor(RequestData.GetGoalActor());
 		UpdateDecelerationData();
 
 	#if ENABLE_VISUAL_LOG
 		const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
 		const FVector DestLocation = InPath->GetDestinationLocation();
 		const FVector ToDest = DestLocation - CurrentLocation;
-		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("RequestMove: accepted, ID(%u) dist2D(%.0f) distZ(%.0f)"),
-			CurrentRequestId.GetID(), ToDest.Size2D(), FMath::Abs(ToDest.Z));
+		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("RequestMove: accepted, ID(%u) dist2D(%.0f) distZ(%.0f)"), CurrentRequestId, ToDest.Size2D(), FMath::Abs(ToDest.Z));
 	#endif // ENABLE_VISUAL_LOG
 
 		// with async pathfinding paths can be incomplete, movement will start after receiving path event 
@@ -320,46 +367,29 @@ bool UPathFollowingComponent::UpdateMove(FNavPathSharedPtr InPath, FAIRequestID 
 	return false;
 }
 
-void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID RequestID, bool bResetVelocity, bool bSilent, uint8 MessageFlags)
+void UPathFollowingComponent::AbortMove(const UObject& Instigator, FPathFollowingResultFlags::Type AbortFlags, FAIRequestID RequestID, EPathFollowingVelocityMode VelocityMode)
 {
-	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("AbortMove: Reason(%s) RequestID(%u)"), *Reason, RequestID);
+	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("AbortMove: RequestID(%u) Instigator(%s)"), RequestID, *Instigator.GetName());
 
 	if ((Status != EPathFollowingStatus::Idle) && RequestID.IsEquivalent(GetCurrentRequestId()))
 	{
-		const EPathFollowingResult::Type FinishResult = bSilent ? EPathFollowingResult::Skipped : EPathFollowingResult::Aborted;
-
-		INavLinkCustomInterface* CustomNavLink = Cast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
-		if (CustomNavLink)
-		{
-			CustomNavLink->OnLinkMoveFinished(this);
-		}
-
-		// save data required for observers before reseting temporary variables
-		const uint32 AbortedMoveId = RequestID ? RequestID : CurrentRequestId;
-		FRequestCompletedSignature SavedReqFinished = OnRequestFinished;
-
-		Reset();
-		bLastMoveReachedGoal = false;
-		UpdateMoveFocus();
-
-		GetWorld()->GetTimerManager().ClearTimer(WaitingForPathTimer);
-		if (bResetVelocity && MovementComp && MovementComp->CanStopPathFollowing())
-		{
-			MovementComp->StopMovementKeepPathing();
-		}
-
-		// notify observers after state was reset (they can request another move)
-		SavedReqFinished.ExecuteIfBound(FinishResult);
-		OnMoveFinished.Broadcast(AbortedMoveId, FinishResult);
-
-		FAIMessage Msg(UBrainComponent::AIMessage_MoveFinished, this, AbortedMoveId, FAIMessage::Failure);
-		Msg.SetFlag(MessageFlags);
-
-		FAIMessage::Send(Cast<AController>(GetOwner()), Msg);
+		bStopMovementOnFinish = (VelocityMode == EPathFollowingVelocityMode::Reset);
+		OnPathFinished(FPathFollowingResult(EPathFollowingResult::Aborted, AbortFlags & FPathFollowingResultFlags::ExternalCancelFlagMask));
 	}
 }
 
-void UPathFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVelocity)
+void UPathFollowingComponent::RequestMoveWithImmediateFinish(EPathFollowingResult::Type Result, EPathFollowingVelocityMode VelocityMode)
+		{
+	if (Status != EPathFollowingStatus::Idle)
+		{
+		OnPathFinished(EPathFollowingResult::Aborted, FPathFollowingResultFlags::NewRequest);
+		}
+
+	StoreRequestId();
+	OnPathFinished(Result, FPathFollowingResultFlags::None);
+}
+
+void UPathFollowingComponent::PauseMove(FAIRequestID RequestID, EPathFollowingVelocityMode VelocityMode)
 {
 	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("PauseMove: RequestID(%u)"), RequestID);
 	if (Status == EPathFollowingStatus::Paused)
@@ -369,7 +399,7 @@ void UPathFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVeloc
 
 	if (RequestID.IsEquivalent(GetCurrentRequestId()))
 	{
-		if (bResetVelocity && MovementComp && MovementComp->CanStopPathFollowing())
+		if ((VelocityMode == EPathFollowingVelocityMode::Reset) && MovementComp && MovementComp->CanStopPathFollowing())
 		{
 			MovementComp->StopMovementKeepPathing();
 		}
@@ -380,8 +410,6 @@ void UPathFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVeloc
 
 		UpdateMoveFocus();
 	}
-
-	// TODO: pause path updates with goal movement
 }
 
 void UPathFollowingComponent::ResumeMove(FAIRequestID RequestID)
@@ -415,13 +443,12 @@ void UPathFollowingComponent::ResumeMove(FAIRequestID RequestID)
 		}
 		else
 		{
-			OnPathFinished(EPathFollowingResult::OffPath);
+			OnPathFinished(EPathFollowingResult::OffPath, FPathFollowingResultFlags::None);
 		}
 	}
 	else
 	{
-		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("ResumeMove: RequestID(%u) is neither \'AnyRequest\' not CurrentRequestId(%u). Ignoring.")
-			, RequestID, CurrentRequestId);
+		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("ResumeMove: RequestID(%u) is neither \'AnyRequest\' not CurrentRequestId(%u). Ignoring."), RequestID, CurrentRequestId);
 	}
 }
 
@@ -445,12 +472,19 @@ bool UPathFollowingComponent::ShouldCheckPathOnResume() const
 	return bCheckPath;
 }
 
-void UPathFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
+void UPathFollowingComponent::OnPathFinished(const FPathFollowingResult& Result)
 {
-	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("OnPathFinished: %s"), *GetResultDesc(Result));
+	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("OnPathFinished: %s"), *Result.ToString());
+	
+	INavLinkCustomInterface* CustomNavLink = Cast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
+	if (CustomNavLink)
+	{
+		CustomNavLink->OnLinkMoveFinished(this);
+		CurrentCustomLinkOb.Reset();
+	}
 	
 	// update meta path if needed
-	if (bIsUsingMetaPath && Result == EPathFollowingResult::Success && MovementComp)
+	if (bIsUsingMetaPath && Result.IsSuccess() && MovementComp)
 	{
 		FMetaNavMeshPath* MetaNavPath = Path->CastPath<FMetaNavMeshPath>();
 		const bool bNeedPathUpdate = MetaNavPath && MetaNavPath->ConditionalMoveToNextSection(MovementComp->GetActorFeetLocation(), EMetaPathUpdateReason::PathFinished);
@@ -462,26 +496,25 @@ void UPathFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
 	}
 
 	// save move status
-	bLastMoveReachedGoal = (Result == EPathFollowingResult::Success) && !HasPartialPath();
+	bLastMoveReachedGoal = Result.IsSuccess() && !HasPartialPath();
 
 	// save data required for observers before reseting temporary variables
 	const FAIRequestID FinishedMoveId = CurrentRequestId;
-	FRequestCompletedSignature SavedReqFinished = OnRequestFinished;
 
 	Reset();
 	UpdateMoveFocus();
 
-	if (MovementComp && MovementComp->CanStopPathFollowing() && 
-		bStopMovementOnFinish && !MovementComp->UseAccelerationForPathFollowing())
+	if (bStopMovementOnFinish && MovementComp && MovementComp->CanStopPathFollowing() && !MovementComp->UseAccelerationForPathFollowing())
 	{
 		MovementComp->StopMovementKeepPathing();
 	}
 
 	// notify observers after state was reset (they can request another move)
-	SavedReqFinished.ExecuteIfBound(Result);
-	OnMoveFinished.Broadcast(FinishedMoveId, Result);
+	OnRequestFinished.Broadcast(FinishedMoveId, Result);
 
-	FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_MoveFinished, this, FinishedMoveId, (Result == EPathFollowingResult::Success)));
+	FAIMessage Msg(UBrainComponent::AIMessage_MoveFinished, this, FinishedMoveId, Result.IsSuccess());
+	Msg.SetFlag(Result.Flags & 0xff);
+	FAIMessage::Send(Cast<AController>(GetOwner()), Msg);
 }
 
 void UPathFollowingComponent::OnSegmentFinished()
@@ -516,7 +549,6 @@ void UPathFollowingComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 	if (Status == EPathFollowingStatus::Moving)
 	{
 		// check finish conditions, update current segment if needed
-		// may result in changing current status!
 		UpdatePathSegment();
 	}
 
@@ -575,17 +607,20 @@ void UPathFollowingComponent::Reset()
 	Path.Reset();
 	GameData.Reset();
 	DestinationActor.Reset();
-	OnRequestFinished.Unbind();
+	CurrentDestination.Clear();
 	AcceptanceRadius = MyDefaultAcceptanceRadius;
 	bStopOnOverlap = true;
 	bCollidedWithGoal = false;
 	bIsUsingMetaPath = false;
 
 	CurrentRequestId = FAIRequestID::InvalidRequest;
-
-	CurrentDestination.Clear();
-
 	Status = EPathFollowingStatus::Idle;
+
+	if (WaitingForPathTimer.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(WaitingForPathTimer);
+		WaitingForPathTimer.Invalidate();
+	}
 }
 
 int32 UPathFollowingComponent::DetermineStartingPathPoint(const FNavigationPath* ConsideredPath) const
@@ -697,137 +732,14 @@ void UPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 
 int32 UPathFollowingComponent::DetermineCurrentTargetPathPoint(int32 StartIndex)
 {
-	if (!bUseVisibilityTestsSimplification ||
-		Path->GetPathPoints()[StartIndex].CustomLinkId ||
-		Path->GetPathPoints()[StartIndex + 1].CustomLinkId)
-	{
 		return StartIndex + 1;
 	}
-
-
-#if WITH_RECAST
-	FNavMeshNodeFlags Flags0(Path->GetPathPoints()[StartIndex].Flags);
-	FNavMeshNodeFlags Flags1(Path->GetPathPoints()[StartIndex + 1].Flags);
-
-	const bool bOffMesh0 = (Flags0.PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;
-	const bool bOffMesh1 = (Flags1.PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;
-
-	if ((Flags0.Area != Flags1.Area) || (bOffMesh0 && bOffMesh1))
-	{
-		return StartIndex + 1;
-	}
-#endif
-
-	return OptimizeSegmentVisibility(StartIndex);
-}
-
-int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
-{
-	//SCOPE_CYCLE_COUNTER(STAT_Navigation_PathVisibilityOptimisation);
-
-	const AAIController* MyAI = Cast<AAIController>(GetOwner());
-	const ANavigationData* NavData = Path.IsValid() ? Path->GetNavigationDataUsed() : NULL;
-	if (NavData == NULL || MyAI == NULL)
-	{
-		return StartIndex + 1;
-	}
-
-	const bool bIsDirect = (Path->CastPath<FAbstractNavigationPath>() != NULL);
-	if (bIsDirect)
-	{
-		// can't optimize anything without real corridor
-		return StartIndex + 1;
-	}
-
-	const APawn* MyPawn = MyAI->GetPawn();
-	const float PawnHalfHeight = (MyAI->GetCharacter() && MyAI->GetCharacter()->GetCapsuleComponent()) ? MyAI->GetCharacter()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0f;
-	const FVector PawnLocation = MyPawn->GetActorLocation();
-
-#if USE_PHYSIC_FOR_VISIBILITY_TESTS
-	static const FName NAME_NavAreaTrace = TEXT("NavmeshVisibilityTrace");
-	float Radius, HalfHeight;
-	MyPawn->GetSimpleCollisionCylinder(Radius, HalfHeight);
-	const FCollisionShape CollisionShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
-	FCollisionQueryParams CapsuleParams(NAME_NavAreaTrace, false, MyAI->GetCharacter());
-	UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(MyPawn->GetRootComponent());
-	if (PrimitiveComponent)
-	{
-		CapsuleParams.AddIgnoredActors(PrimitiveComponent->MoveIgnoreActors);
-	}
-
-#endif
-	FSharedNavQueryFilter QueryFilter = Path->GetFilter()->GetCopy();
-#if WITH_RECAST
-	const uint8 StartArea = FNavMeshNodeFlags(Path->GetPathPoints()[StartIndex].Flags).Area;
-	TArray<float> CostArray;
-	CostArray.Init(DT_UNWALKABLE_POLY_COST, DT_MAX_AREAS);
-	CostArray[StartArea] = 0;
-	QueryFilter->SetAllAreaCosts(CostArray);
-#endif
-
-	const int32 MaxPoints = Path->GetPathPoints().Num();
-	int32 Index = StartIndex + 2;
-	Path->ShortcutNodeRefs.Reset();
-
-	for (; Index <= MaxPoints; ++Index)
-	{
-		if (!Path->GetPathPoints().IsValidIndex(Index))
-		{
-			break;
-		}
-
-		const FNavPathPoint& PathPt1 = Path->GetPathPoints()[Index];
-		const FVector PathPt1Location = *Path->GetPathPointLocation(Index);
-		const FVector AdjustedDestination = PathPt1Location + FVector(0.0f, 0.0f, PawnHalfHeight);
-
-		FVector HitLocation;
-#if WITH_RECAST
-		ARecastNavMesh::FRaycastResult RaycastResult;
-		const bool RaycastHitResult = ARecastNavMesh::NavMeshRaycast(NavData, PawnLocation, AdjustedDestination, HitLocation, QueryFilter, MyAI, RaycastResult);
-		if (Path.IsValid())
-		{
-			Path->ShortcutNodeRefs.Reserve(RaycastResult.CorridorPolysCount);
-			Path->ShortcutNodeRefs.SetNumUninitialized(RaycastResult.CorridorPolysCount);
-
-			FPlatformMemory::Memcpy(Path->ShortcutNodeRefs.GetData(), RaycastResult.CorridorPolys, RaycastResult.CorridorPolysCount * sizeof(NavNodeRef));
-		}
-#else
-		const bool RaycastHitResult = NavData->Raycast(PawnLocation, AdjustedDestination, HitLocation, QueryFilter);
-#endif
-		if (RaycastHitResult)
-		{
-			break;
-		}
-#if USE_PHYSIC_FOR_VISIBILITY_TESTS
-		else
-		{
-			FHitResult Result;
-			if (GetWorld()->SweepSingleByChannel(Result, PawnLocation, AdjustedDestination, FQuat::Identity, ECC_WorldStatic, CollisionShape, CapsuleParams))
-			{
-				break;
-			}
-		}
-#endif
-
-#if WITH_RECAST
-		/** don't move to next point if we are changing area, we are at off mesh connection or it's a custom nav link*/
-		if (FNavMeshNodeFlags(Path->GetPathPoints()[StartIndex].Flags).Area != FNavMeshNodeFlags(PathPt1.Flags).Area ||
-			FNavMeshNodeFlags(PathPt1.Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION || 
-			PathPt1.CustomLinkId)
-		{
-			return Index;
-		}
-#endif
-	}
-
-	return Index-1;
-}
 
 void UPathFollowingComponent::UpdatePathSegment()
 {
 	if (!Path.IsValid() || MovementComp == NULL)
 	{
-		AbortMove(TEXT("no path"), FAIRequestID::CurrentRequest, true, false, EPathFollowingMessage::NoPath);
+		OnPathFinished(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath);
 		return;
 	}
 
@@ -835,8 +747,9 @@ void UPathFollowingComponent::UpdatePathSegment()
 	{
 		if (!Path->IsWaitingForRepath())
 		{
-			AbortMove(TEXT("no path"), FAIRequestID::CurrentRequest, true, false, EPathFollowingMessage::NoPath);
+			OnPathFinished(EPathFollowingResult::Aborted, FPathFollowingResultFlags::InvalidPath);
 		}
+
 		return;
 	}
 
@@ -852,13 +765,13 @@ void UPathFollowingComponent::UpdatePathSegment()
 		{
 			// check if collided with goal actor
 			OnSegmentFinished();
-			OnPathFinished(EPathFollowingResult::Success);
+			OnPathFinished(EPathFollowingResult::Success, FPathFollowingResultFlags::None);
 		}
 		else if (HasReachedDestination(CurrentLocation))
 		{
 			// always check for destination, acceptance radius may cause it to pass before reaching last segment
 			OnSegmentFinished();
-			OnPathFinished(EPathFollowingResult::Success);
+			OnPathFinished(EPathFollowingResult::Success, FPathFollowingResultFlags::None);
 		}
 		else if (bFollowingLastSegment)
 		{
@@ -869,18 +782,13 @@ void UPathFollowingComponent::UpdatePathSegment()
 				const FVector AgentLocation = DestinationAgent ? DestinationAgent->GetNavAgentLocation() : DestinationActor->GetActorLocation();
 				// note that the condition below requires GoalLocation to be in world space.
 				const FVector GoalLocation = FQuatRotationTranslationMatrix(DestinationActor->GetActorQuat(), AgentLocation).TransformPosition(MoveOffset);
-				FVector HitLocation;
 
-				if (MyNavData == nullptr //|| MyNavData->DoesNodeContainLocation(Path->GetPathPoints().Last().NodeRef, GoalLocation))
-					|| (FVector::DistSquared(GoalLocation, *CurrentDestination) > SMALL_NUMBER &&  MyNavData->Raycast(CurrentLocation, GoalLocation, HitLocation, nullptr) == false))
-				{
 					CurrentDestination.Set(NULL, GoalLocation);
 
 					UE_VLOG(this, LogPathFollowing, Log, TEXT("Moving directly to move goal rather than following last path segment"));
 					UE_VLOG_LOCATION(this, LogPathFollowing, VeryVerbose, GoalLocation, 30, FColor::Green, TEXT("Last-segment-to-actor"));
 					UE_VLOG_SEGMENT(this, LogPathFollowing, VeryVerbose, CurrentLocation, GoalLocation, FColor::Green, TEXT_EMPTY);
 				}
-			}
 
 			UpdateMoveFocus();
 		}
@@ -918,7 +826,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 					UE_VLOG(GetOwner(), LogPathFollowing, Verbose, TEXT("Path blocked, but move segment indices are not valid: start %d, end %d of %d"), MoveSegmentStartIndex, MoveSegmentEndIndex, Path->GetPathPoints().Num());
 				}
 			}
-			OnPathFinished(EPathFollowingResult::Blocked);
+			OnPathFinished(EPathFollowingResult::Blocked, FPathFollowingResultFlags::None);
 		}
 	}
 }
@@ -1056,11 +964,6 @@ bool UPathFollowingComponent::HasReachedCurrentTarget(const FVector& CurrentLoca
 	const float GoalHalfHeight = 0.0f;
 
 	return HasReachedInternal(CurrentTarget, GoalRadius, GoalHalfHeight, CurrentLocation, CurrentAcceptanceRadius, 0.05f);
-}
-
-bool UPathFollowingComponent::HasReachedInternal(const FVector& GoalLocation, float GoalRadius, float GoalHalfHeight, const FVector& AgentLocation, float RadiusThreshold, bool bSuccessOnRadiusOverlap) const
-{
-	return HasReachedInternal(GoalLocation, GoalRadius, GoalHalfHeight, AgentLocation, RadiusThreshold, bSuccessOnRadiusOverlap ? MinAgentRadiusPct : 0.0f);
 }
 
 bool UPathFollowingComponent::HasReachedInternal(const FVector& GoalLocation, float GoalRadius, float GoalHalfHeight, const FVector& AgentLocation, float RadiusThreshold, float AgentRadiusMultiplier) const
@@ -1440,34 +1343,6 @@ FVector UPathFollowingComponent::GetCurrentDirection() const
 	return MoveSegmentDirection;
 }
 
-// will be deprecated soon, please don't use it!
-EPathFollowingAction::Type UPathFollowingComponent::GetPathActionType() const
-{
-	switch (Status)
-	{
-		case EPathFollowingStatus::Idle:
-			return EPathFollowingAction::NoMove;
-
-		case EPathFollowingStatus::Waiting:
-		case EPathFollowingStatus::Paused:	
-		case EPathFollowingStatus::Moving:
-			return Path.IsValid() == false ? EPathFollowingAction::Error :
-				Path->CastPath<FAbstractNavigationPath>() ? EPathFollowingAction::DirectMove :
-				Path->IsPartial() ? EPathFollowingAction::PartialPath : EPathFollowingAction::PathToGoal;
-
-		default:
-			break;
-	}
-
-	return EPathFollowingAction::Error;
-}
-
-// will be deprecated soon, please don't use it!
-FVector UPathFollowingComponent::GetPathDestination() const
-{
-	return Path.IsValid() ? Path->GetDestinationLocation() : FVector::ZeroVector;
-}
-
 bool UPathFollowingComponent::HasDirectPath() const
 {
 	return Path.IsValid() ? (Path->CastPath<FNavMeshPath>() == NULL) : false;
@@ -1630,7 +1505,7 @@ void UPathFollowingComponent::LockResource(EAIRequestPriority::Type LockSource)
 	if (bWasLocked == false)
 	{
 		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Locking Move by source %s"), SourceEnum ? *SourceEnum->GetEnumName(Status) : TEXT("invalid"));
-		PauseMove();
+		PauseMove(CurrentRequestId, EPathFollowingVelocityMode::Reset);
 	}
 }
 
@@ -1665,7 +1540,10 @@ bool UPathFollowingComponent::IsResourceLocked() const
 
 void UPathFollowingComponent::SetLastMoveAtGoal(bool bFinishedAtGoal)
 {
+	if (Status == EPathFollowingStatus::Idle)
+	{
 	bLastMoveReachedGoal = bFinishedAtGoal;
+}
 }
 
 void UPathFollowingComponent::OnWaitingPathTimeout()
@@ -1673,8 +1551,94 @@ void UPathFollowingComponent::OnWaitingPathTimeout()
 	if (Status == EPathFollowingStatus::Waiting)
 	{
 		UE_VLOG(GetOwner(), LogPathFollowing, Warning, TEXT("Waiting for path timeout! Aborting current move"));
-		AbortMove(TEXT("waiting timeout"), CurrentRequestId);
+		OnPathFinished(EPathFollowingResult::Invalid, FPathFollowingResultFlags::None);
 	}
+	}
+
+// deprecated functions
+FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FRequestCompletedSignature OnComplete, const AActor* InDestinationActor, float InAcceptanceRadius, bool bInStopOnOverlap, FCustomMoveSharedPtr InGameData)
+{
+	FAIMoveRequest MoveReq;
+	if (InDestinationActor)
+	{
+		MoveReq.SetGoalActor(InDestinationActor);
+	}
+	else
+	{
+		MoveReq.SetGoalLocation(InPath.IsValid() && InPath->GetPathPoints().Num() ? InPath->GetPathPoints().Last().Location : FAISystem::InvalidLocation);
+	}
+
+	MoveReq.SetAcceptanceRadius(InAcceptanceRadius);
+	MoveReq.SetStopOnOverlap(bInStopOnOverlap);
+	MoveReq.SetUserData(InGameData);
+
+	return RequestMove(MoveReq, InPath);
+}
+
+FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, const AActor* InDestinationActor, float InAcceptanceRadius, bool bInStopOnOverlap, FCustomMoveSharedPtr InGameData)
+{
+	FAIMoveRequest MoveReq;
+	if (InDestinationActor)
+	{
+		MoveReq.SetGoalActor(InDestinationActor);
+	}
+	else
+	{
+		MoveReq.SetGoalLocation(InPath.IsValid() && InPath->GetPathPoints().Num() ? InPath->GetPathPoints().Last().Location : FAISystem::InvalidLocation);
+	}
+
+	MoveReq.SetAcceptanceRadius(InAcceptanceRadius);
+	MoveReq.SetStopOnOverlap(bInStopOnOverlap);
+	MoveReq.SetUserData(InGameData);
+
+	return RequestMove(MoveReq, InPath);
+}
+
+void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID RequestID, bool bResetVelocity, bool bSilent, uint8 MessageFlags)
+{
+	const FPathFollowingResultFlags::Type AbortDetails =
+		(MessageFlags == EPathFollowingMessage::NoPath) ? FPathFollowingResultFlags::InvalidPath :
+		(MessageFlags == EPathFollowingMessage::OtherRequest) ? FPathFollowingResultFlags::NewRequest :
+		FPathFollowingResultFlags::None;
+
+	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("AbortMove with reason(%s)"), *Reason);
+	AbortMove(*this, AbortDetails, RequestID, bResetVelocity ? EPathFollowingVelocityMode::Reset : EPathFollowingVelocityMode::Keep);
+}
+
+void UPathFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVelocity)
+{
+	PauseMove(RequestID, bResetVelocity ? EPathFollowingVelocityMode::Reset : EPathFollowingVelocityMode::Keep);
+}
+
+EPathFollowingAction::Type UPathFollowingComponent::GetPathActionType() const
+{
+	switch (Status)
+	{
+	case EPathFollowingStatus::Idle:
+		return EPathFollowingAction::NoMove;
+
+	case EPathFollowingStatus::Waiting:
+	case EPathFollowingStatus::Paused:
+	case EPathFollowingStatus::Moving:
+		return Path.IsValid() == false ? EPathFollowingAction::Error :
+			Path->CastPath<FAbstractNavigationPath>() ? EPathFollowingAction::DirectMove :
+			Path->IsPartial() ? EPathFollowingAction::PartialPath : EPathFollowingAction::PathToGoal;
+
+	default:
+		break;
+	}
+
+	return EPathFollowingAction::Error;
+}
+
+FVector UPathFollowingComponent::GetPathDestination() const
+{
+	return Path.IsValid() ? Path->GetDestinationLocation() : FVector::ZeroVector;
+}
+
+void UPathFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
+{
+	OnPathFinished(Result, FPathFollowingResultFlags::None);
 }
 
 #undef SHIPPING_STATIC

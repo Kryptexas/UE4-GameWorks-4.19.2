@@ -22,16 +22,16 @@ const FText USafeZone::GetPaletteCategory()
 }
 #endif
 
-void USafeZone::OnSlotAdded( UPanelSlot* Slot )
+void USafeZone::OnSlotAdded( UPanelSlot* InSlot )
 {
-	Super::OnSlotAdded( Slot );
+	Super::OnSlotAdded( InSlot );
 
 	UpdateWidgetProperties();
 }
 
-void USafeZone::OnSlotRemoved( UPanelSlot* Slot )
+void USafeZone::OnSlotRemoved( UPanelSlot* InSlot )
 {
-	Super::OnSlotRemoved( Slot );
+	Super::OnSlotRemoved( InSlot );
 
 	if ( MySafeZone.IsValid() )
 	{

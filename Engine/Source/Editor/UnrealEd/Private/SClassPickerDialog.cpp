@@ -288,12 +288,12 @@ void SClassPickerDialog::OnCustomAreaExpansionChanged(bool bExpanded)
 
 EVisibility SClassPickerDialog::GetSelectButtonVisibility() const
 {
-	EVisibility Visibility = EVisibility::Hidden;
-	if( ChosenClass != NULL )
+	EVisibility ButtonVisibility = EVisibility::Hidden;
+	if( ChosenClass != nullptr )
 	{
-		Visibility = EVisibility::Visible;
+		ButtonVisibility = EVisibility::Visible;
 	}
-	return Visibility;
+	return ButtonVisibility;
 }
 
 /** Overridden from SWidget: Called when a key is pressed down - capturing copy */

@@ -1120,10 +1120,10 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
-	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
-	if (AudioDeviceManager)
+	FAudioDeviceManager* GameAudioDeviceManager = GEngine->GetAudioDeviceManager();
+	if (GameAudioDeviceManager)
 	{
-		AudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
+		GameAudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
 	}
 
 	// rendering thread commands

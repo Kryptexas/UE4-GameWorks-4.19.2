@@ -96,8 +96,8 @@ public:
 		ViewArgs.NotifyHook = this;
 
 		DetailsView = PropertyModule.CreateDetailView(ViewArgs);
-		TWeakPtr< FStructureDefaultValueView > WeakThis = SharedThis(this);
-		FOnGetDetailCustomizationInstance LayoutStructDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FDefaultValueDetails::MakeInstance, WeakThis, StructData);
+		TWeakPtr< FStructureDefaultValueView > LocalWeakThis = SharedThis(this);
+		FOnGetDetailCustomizationInstance LayoutStructDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FDefaultValueDetails::MakeInstance, LocalWeakThis, StructData);
 		DetailsView->RegisterInstancedCustomPropertyLayout(UUserDefinedStruct::StaticClass(), LayoutStructDetails);
 		DetailsView->SetObject(UserDefinedStruct.Get());
 	}
@@ -246,23 +246,23 @@ private:
 const FName FUserDefinedStructureEditor::MemberVariablesTabId( TEXT( "UserDefinedStruct_MemberVariablesEditor" ) );
 const FName FUserDefinedStructureEditor::UserDefinedStructureEditorAppIdentifier( TEXT( "UserDefinedStructEditorApp" ) );
 
-void FUserDefinedStructureEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FUserDefinedStructureEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
-	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_UserDefinedStructureEditor", "User-Defined Structure Editor"));
+	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_UserDefinedStructureEditor", "User-Defined Structure Editor"));
 
-	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+	FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
 
-	TabManager->RegisterTabSpawner( MemberVariablesTabId, FOnSpawnTab::CreateSP(this, &FUserDefinedStructureEditor::SpawnStructureTab) )
+	InTabManager->RegisterTabSpawner( MemberVariablesTabId, FOnSpawnTab::CreateSP(this, &FUserDefinedStructureEditor::SpawnStructureTab) )
 		.SetDisplayName( LOCTEXT("MemberVariablesEditor", "Member Variables") )
 		.SetGroup(WorkspaceMenuCategory.ToSharedRef())
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Variables"));
 }
 
-void FUserDefinedStructureEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FUserDefinedStructureEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
-	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
+	FAssetEditorToolkit::UnregisterTabSpawners(InTabManager);
 
-	TabManager->UnregisterTabSpawner( MemberVariablesTabId );
+	InTabManager->UnregisterTabSpawner( MemberVariablesTabId );
 }
 
 void FUserDefinedStructureEditor::InitEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UUserDefinedStruct* Struct)
@@ -341,10 +341,10 @@ TSharedRef<SDockTab> FUserDefinedStructureEditor::SpawnStructureTab(const FSpawn
 	check( Args.GetTabId() == MemberVariablesTabId );
 
 	UUserDefinedStruct* EditedStruct = NULL;
-	const auto EditingObjects = GetEditingObjects();
-	if (EditingObjects.Num())
+	const TArray<UObject*>& EditingObjs = GetEditingObjects();
+	if (EditingObjs.Num())
 	{
-		EditedStruct = Cast<UUserDefinedStruct>(EditingObjects[ 0 ]);
+		EditedStruct = Cast<UUserDefinedStruct>(EditingObjs[ 0 ]);
 	}
 
 	auto Box = SNew(SHorizontalBox);

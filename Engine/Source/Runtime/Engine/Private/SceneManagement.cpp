@@ -154,22 +154,22 @@ void FSimpleElementCollector::RegisterDynamicResource(FDynamicPrimitiveResource*
 	DynamicResource->InitPrimitiveResource();
 }
 
-void FSimpleElementCollector::DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
+void FSimpleElementCollector::DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& InView, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
 {
 	// Mobile HDR does not execute post process, so does not need to render flipped
-	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(View.GetShaderPlatform()) && !bIsMobileHDR;
+	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(InView.GetShaderPlatform()) && !bIsMobileHDR;
 
 	// Draw the batched elements.
 	BatchedElements.Draw(
 		RHICmdList,
-		View.GetFeatureLevel(),
+		InView.GetFeatureLevel(),
 		bNeedToSwitchVerticalAxis,
-		View.ViewProjectionMatrix,
-		View.ViewRect.Width(),
-		View.ViewRect.Height(),
-		View.Family->EngineShowFlags.HitProxies,
+		InView.ViewProjectionMatrix,
+		InView.ViewRect.Width(),
+		InView.ViewRect.Height(),
+		InView.Family->EngineShowFlags.HitProxies,
 		1.0f,
-		&View,
+		&InView,
 		DepthTexture,
 		Filter
 		);

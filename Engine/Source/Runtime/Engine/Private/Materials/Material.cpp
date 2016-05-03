@@ -231,13 +231,13 @@ public:
 			static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
 			if (ParameterName == NameSubsurfaceProfile)
 			{
-				const USubsurfaceProfile* SubsurfaceProfileRT = GetSubsurfaceProfileRT();
+				const USubsurfaceProfile* MySubsurfaceProfileRT = GetSubsurfaceProfileRT();
 
 				int32 AllocationId = 0;
-				if(SubsurfaceProfileRT)
+				if(MySubsurfaceProfileRT)
 				{
 					// can be optimized (cached)
-					AllocationId = GSubsurfaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT);
+					AllocationId = GSubsurfaceProfileTextureObject.FindAllocationId(MySubsurfaceProfileRT);
 				}
 				else
 				{

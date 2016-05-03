@@ -127,13 +127,13 @@ void FItemPropertyNode::InitChildNodes()
 		}
 
 		// Expand array.
-		for( int32 ArrayIndex = 0 ; ArrayIndex < Property->ArrayDim ; ArrayIndex++ )
+		for( int32 Index = 0 ; Index < Property->ArrayDim ; Index++ )
 		{
 			bool bShouldBeHidden = false;
 			if( ArraySizeEnum )
 			{
 				// The enum at this array index is hidden
-				bShouldBeHidden = ArraySizeEnum->HasMetaData(TEXT("Hidden"), ArrayIndex );
+				bShouldBeHidden = ArraySizeEnum->HasMetaData(TEXT("Hidden"), Index );
 			}
 
 			if( !bShouldBeHidden )
@@ -142,8 +142,8 @@ void FItemPropertyNode::InitChildNodes()
 				FPropertyNodeInitParams InitParams;
 				InitParams.ParentNode = SharedThis(this);
 				InitParams.Property = Property;
-				InitParams.ArrayOffset = ArrayIndex*Property->ElementSize;
-				InitParams.ArrayIndex = ArrayIndex;
+				InitParams.ArrayOffset = Index*Property->ElementSize;
+				InitParams.ArrayIndex = Index;
 				InitParams.bAllowChildren = true;
 				InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
 				InitParams.bCreateDisableEditOnInstanceNodes = bShouldShowDisableEditOnInstance;
@@ -164,15 +164,15 @@ void FItemPropertyNode::InitChildNodes()
 
 		if( Array )
 		{
-			for( int32 ArrayIndex = 0 ; ArrayIndex < FScriptArrayHelper::Num(Array) ; ArrayIndex++ )
+			for( int32 Index = 0 ; Index < FScriptArrayHelper::Num(Array) ; Index++ )
 			{
 				TSharedPtr<FItemPropertyNode> NewItemNode( new FItemPropertyNode );
 
 				FPropertyNodeInitParams InitParams;
 				InitParams.ParentNode = SharedThis(this);
 				InitParams.Property = ArrayProperty->Inner;
-				InitParams.ArrayOffset = ArrayIndex*ArrayProperty->Inner->ElementSize;
-				InitParams.ArrayIndex = ArrayIndex;
+				InitParams.ArrayOffset = Index*ArrayProperty->Inner->ElementSize;
+				InitParams.ArrayIndex = Index;
 				InitParams.bAllowChildren = true;
 				InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
 				InitParams.bCreateDisableEditOnInstanceNodes = bShouldShowDisableEditOnInstance;

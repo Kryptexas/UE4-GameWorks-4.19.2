@@ -85,9 +85,9 @@ UBlueprintDelegateNodeSpawner* UBlueprintDelegateNodeSpawner::Create(TSubclassOf
 	// Post-Spawn Setup
 	//--------------------------------------
 
-	auto SetDelegateLambda = [](UEdGraphNode* NewNode, UField const* Field)
+	auto SetDelegateLambda = [](UEdGraphNode* NewNode, UField const* InField)
 	{
-		UMulticastDelegateProperty const* MCDProperty = Cast<UMulticastDelegateProperty>(Field);
+		UMulticastDelegateProperty const* MCDProperty = Cast<UMulticastDelegateProperty>(InField);
 
 		UK2Node_BaseMCDelegate* DelegateNode = Cast<UK2Node_BaseMCDelegate>(NewNode);
 		if ((DelegateNode != nullptr) && (MCDProperty != nullptr))

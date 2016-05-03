@@ -7,6 +7,7 @@
  *
  */
 
+#include "AnimTypes.h"
 #include "AnimSequenceBase.h"
 #include "AnimSequence.generated.h"
 
@@ -460,6 +461,10 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=Animation)
 	FName RetargetSource;
 
+	/** This defines how values between keys are calculated **/
+	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category = Animation)
+	EAnimInterpolationType Interpolation;
+	
 	/** If this is on, it will allow extracting of root motion **/
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category = RootMotion, meta = (DisplayName = "EnableRootMotion"))
 	bool bEnableRootMotion;

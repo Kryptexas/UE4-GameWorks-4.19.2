@@ -38,7 +38,7 @@ FAnimNode_AnimDynamics::FAnimNode_AnimDynamics()
 , NumSolverIterationsPostUpdate(1)
 , bUsePlanarLimit(true)
 {
-
+	
 }
 
 void FAnimNode_AnimDynamics::Initialize(const FAnimationInitializeContext& Context)
@@ -57,6 +57,11 @@ void FAnimNode_AnimDynamics::Initialize(const FAnimationInitializeContext& Conte
 	for(FAnimPhysPlanarLimit& PlanarLimit : PlanarLimits)
 	{
 		PlanarLimit.DrivingBone.Initialize(RequiredBones);
+	}
+
+	for(FAnimPhysSphericalLimit& SphericalLimit : SphericalLimits)
+	{
+		SphericalLimit.DrivingBone.Initialize(RequiredBones);
 	}
 
 	if(SimulationSpace == AnimPhysSimSpaceType::BoneRelative)
@@ -231,10 +236,10 @@ void FAnimNode_AnimDynamics::InitializeBoneReferences(const FBoneContainer& Requ
 
 void FAnimNode_AnimDynamics::GatherDebugData(FNodeDebugData& DebugData)
 {
-	const float ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
+	const float ActualBiasedAlpha = AlphaScaleBias.ApplyTo(Alpha);
 
 	FString DebugLine = DebugData.GetNodeName(this);
-	DebugLine += FString::Printf(TEXT("(Alpha: %.1f%%)"), ActualAlpha*100.f);
+	DebugLine += FString::Printf(TEXT("(Alpha: %.1f%%)"), ActualBiasedAlpha*100.f);
 
 	DebugData.AddDebugItem(DebugLine);
 	ComponentPose.GatherDebugData(DebugData.BranchFlow(1.f));
@@ -563,7 +568,7 @@ void FAnimNode_AnimDynamics::UpdateLimits(USkeletalMeshComponent* SkelComp, FCSP
 			FAnimPhys::ConstrainConeAngle(NextTimeStep, AngularLimits, PrevBody, BoundBoneTransform.GetRotation().GetAxisX(), &RigidBody, FVector(1.0f, 0.0f, 0.0f), ConstraintSetup.ConeAngle);
 		}
 
-		if(PlanarLimits.Num() > 0)
+		if(PlanarLimits.Num() > 0 && bUsePlanarLimit)
 		{
 			for(FAnimPhysPlanarLimit& PlanarLimit : PlanarLimits)
 			{
@@ -578,6 +583,36 @@ void FAnimNode_AnimDynamics::UpdateLimits(USkeletalMeshComponent* SkelComp, FCSP
 				}
 				
 				FAnimPhys::ConstrainPlanar(NextTimeStep, LinearLimits, &RigidBody, LimitPlaneTransform);
+			}
+		}
+
+		if(SphericalLimits.Num() > 0 && bUseSphericalLimits)
+		{
+			for(FAnimPhysSphericalLimit& SphericalLimit : SphericalLimits)
+			{
+				FTransform SphereTransform = FTransform::Identity;
+				SphereTransform.SetTranslation(SphericalLimit.SphereLocalOffset);
+
+				if(SphericalLimit.DrivingBone.IsValid(BoneContainer))
+				{
+					FCompactPoseBoneIndex DrivingBoneIndex = SphericalLimit.DrivingBone.GetCompactPoseIndex(BoneContainer);
+
+					FTransform DrivingBoneTransform = GetBoneTransformInSimSpace(SkelComp, MeshBases, DrivingBoneIndex);
+
+					SphereTransform *= DrivingBoneTransform;
+				}
+
+				switch(SphericalLimit.LimitType)
+				{
+				case ESphericalLimitType::Inner:
+					FAnimPhys::ConstrainSphericalInner(NextTimeStep, LinearLimits, &RigidBody, SphereTransform, SphericalLimit.LimitRadius);
+					break;
+				case ESphericalLimitType::Outer:
+					FAnimPhys::ConstrainSphericalOuter(NextTimeStep, LinearLimits, &RigidBody, SphereTransform, SphericalLimit.LimitRadius);
+					break;
+				default:
+					break;
+				}
 			}
 		}
 

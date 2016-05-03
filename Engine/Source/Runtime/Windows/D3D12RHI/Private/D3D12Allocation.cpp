@@ -322,8 +322,6 @@ void FD3D12BuddyAllocator::CleanUpAllocations()
 
 void FD3D12BuddyAllocator::ReleaseAllResources()
 {
-	FD3D12ResourceBlockInfo* Block = nullptr;
-
 	for (FD3D12ResourceBlockInfo*& Block : DeferredDeletionQueue)
 	{
 		DeallocateInternal(Block);

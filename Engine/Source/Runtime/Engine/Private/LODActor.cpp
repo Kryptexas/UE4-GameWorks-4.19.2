@@ -423,10 +423,10 @@ void ALODActor::SetIsDirty(const bool bNewState)
 	if (IsDirty())
 	{
 		// If this LODActor is a SubActor at a higher LOD level mark parent dirty as well
-		UPrimitiveComponent* ParentComponent = StaticMeshComponent->GetLODParentPrimitive();
-		if (ParentComponent)
+		UPrimitiveComponent* LODParentComponent = StaticMeshComponent->GetLODParentPrimitive();
+		if (LODParentComponent)
 		{
-			ALODActor* LODParentActor = Cast<ALODActor>(ParentComponent->GetOwner());
+			ALODActor* LODParentActor = Cast<ALODActor>(LODParentComponent->GetOwner());
 			if (LODParentActor)
 			{
 				LODParentActor->Modify();

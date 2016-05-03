@@ -83,36 +83,36 @@ static const FName PhATHierarchyName("PhAT_Hierarchy");
 
 
 
-void FPhAT::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FPhAT::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
-	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory( LOCTEXT( "WorkspaceMenu_PhAT", "Physics Asset Editor" ) );
+	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory( LOCTEXT( "WorkspaceMenu_PhAT", "Physics Asset Editor" ) );
 	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
-	FAssetEditorToolkit::RegisterTabSpawners( TabManager );
+	FAssetEditorToolkit::RegisterTabSpawners( InTabManager );
 
-	TabManager->RegisterTabSpawner( PhATPreviewViewportName, FOnSpawnTab::CreateSP( this, &FPhAT::SpawnTab, PhATPreviewViewportName ) )
+	InTabManager->RegisterTabSpawner( PhATPreviewViewportName, FOnSpawnTab::CreateSP( this, &FPhAT::SpawnTab, PhATPreviewViewportName ) )
 		.SetDisplayName( LOCTEXT( "ViewportTab", "Viewport" ) )
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports" ) );
 
-	TabManager->RegisterTabSpawner( PhATPropertiesName, FOnSpawnTab::CreateSP( this, &FPhAT::SpawnTab, PhATPropertiesName ) )
+	InTabManager->RegisterTabSpawner( PhATPropertiesName, FOnSpawnTab::CreateSP( this, &FPhAT::SpawnTab, PhATPropertiesName ) )
 		.SetDisplayName( LOCTEXT( "PropertiesTab", "Details" ) )
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details" ) );
 
-	TabManager->RegisterTabSpawner( PhATHierarchyName, FOnSpawnTab::CreateSP( this, &FPhAT::SpawnTab, PhATHierarchyName ) )
+	InTabManager->RegisterTabSpawner( PhATHierarchyName, FOnSpawnTab::CreateSP( this, &FPhAT::SpawnTab, PhATHierarchyName ) )
 		.SetDisplayName( LOCTEXT( "HierarchyTab", "Hierarchy" ) )
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Palette" ) );
 }
 
-void FPhAT::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FPhAT::UnregisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
-	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
+	FAssetEditorToolkit::UnregisterTabSpawners(InTabManager);
 
-	TabManager->UnregisterTabSpawner(PhATPreviewViewportName);
-	TabManager->UnregisterTabSpawner(PhATPropertiesName);
-	TabManager->UnregisterTabSpawner(PhATHierarchyName);
+	InTabManager->UnregisterTabSpawner(PhATPreviewViewportName);
+	InTabManager->UnregisterTabSpawner(PhATPropertiesName);
+	InTabManager->UnregisterTabSpawner(PhATHierarchyName);
 }
 
 TSharedRef<SDockTab> FPhAT::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FName TabIdentifier )

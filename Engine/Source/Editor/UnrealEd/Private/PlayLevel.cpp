@@ -3871,14 +3871,14 @@ UGameViewportClient * UEditorEngine::GetNextPIEViewport(UGameViewportClient * Cu
 	return NULL;
 }
 
-void UEditorEngine::RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId)
+void UEditorEngine::RemapGamepadControllerIdForPIE(class UGameViewportClient* InGameViewport, int32 &ControllerId)
 {
 	// Increment the controller id if we are the focused window, and RouteGamepadToSecondWindow is true (and we are running multiple clients).
 	// This cause the focused window to NOT handle the input, decrement controllerID, and pass it to the next window.
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	const bool CanRouteGamepadToSecondWindow = [&PlayInSettings]{ bool RouteGamepadToSecondWindow(false); return (PlayInSettings->GetRouteGamepadToSecondWindow(RouteGamepadToSecondWindow) && RouteGamepadToSecondWindow); }();
 	const bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
-	if ( CanRouteGamepadToSecondWindow && CanRunUnderOneProcess && GameViewport->GetWindow().IsValid() && GameViewport->GetWindow()->HasFocusedDescendants())
+	if ( CanRouteGamepadToSecondWindow && CanRunUnderOneProcess && InGameViewport->GetWindow().IsValid() && InGameViewport->GetWindow()->HasFocusedDescendants())
 	{
 		ControllerId++;
 	}

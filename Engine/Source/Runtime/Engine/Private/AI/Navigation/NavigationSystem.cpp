@@ -1203,11 +1203,18 @@ void UNavigationSystem::SimpleMoveToActor(AController* Controller, const AActor*
 		return;
 	}
 
-	if (PFollowComp->HasReached(*Goal))
+	const bool bAlreadyAtGoal = PFollowComp->HasReached(*Goal);
+
+	// script source, keep only one move request at time
+	if (PFollowComp->GetStatus() != EPathFollowingStatus::Idle)
 	{
-		// make sure previous move request gets aborted
-		PFollowComp->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest);
-		PFollowComp->SetLastMoveAtGoal(true);
+		PFollowComp->AbortMove(*NavSys, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest
+			, FAIRequestID::AnyRequest, bAlreadyAtGoal ? EPathFollowingVelocityMode::Reset : EPathFollowingVelocityMode::Keep);
+	}
+
+	if (bAlreadyAtGoal)
+	{
+		PFollowComp->RequestMoveWithImmediateFinish(EPathFollowingResult::Success);
 	}
 	else
 	{
@@ -1219,13 +1226,11 @@ void UNavigationSystem::SimpleMoveToActor(AController* Controller, const AActor*
 			if (Result.IsSuccessful())
 			{
 				Result.Path->SetGoalActorObservation(*Goal, 100.0f);
-
-				PFollowComp->RequestMove(Result.Path, Goal);
+				PFollowComp->RequestMove(FAIMoveRequest(Goal), Result.Path);
 			}
 			else if (PFollowComp->GetStatus() != EPathFollowingStatus::Idle)
 			{
-				PFollowComp->AbortMove(TEXT("Aborting move due to new move request failing to generate a path"), FAIRequestID::AnyRequest);
-				PFollowComp->SetLastMoveAtGoal(false);
+				PFollowComp->RequestMoveWithImmediateFinish(EPathFollowingResult::Invalid);
 			}
 		}
 	}
@@ -1262,11 +1267,18 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 		return;
 	}
 
+	const bool bAlreadyAtGoal = PFollowComp->HasReached(GoalLocation);
+
+	// script source, keep only one move request at time
+	if (PFollowComp->GetStatus() != EPathFollowingStatus::Idle)
+	{
+		PFollowComp->AbortMove(*NavSys, FPathFollowingResultFlags::ForcedScript | FPathFollowingResultFlags::NewRequest
+			, FAIRequestID::AnyRequest, bAlreadyAtGoal ? EPathFollowingVelocityMode::Reset : EPathFollowingVelocityMode::Keep);
+	}
+
 	if (PFollowComp->HasReached(GoalLocation))
 	{
-		// make sure previous move request gets aborted
-		PFollowComp->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest);
-		PFollowComp->SetLastMoveAtGoal(true);
+		PFollowComp->RequestMoveWithImmediateFinish(EPathFollowingResult::Success);
 	}
 	else
 	{
@@ -1277,12 +1289,11 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 			FPathFindingResult Result = NavSys->FindPathSync(Query);
 			if (Result.IsSuccessful())
 			{
-				PFollowComp->RequestMove(Result.Path, NULL);
+				PFollowComp->RequestMove(FAIMoveRequest(GoalLocation), Result.Path);
 			}
 			else if (PFollowComp->GetStatus() != EPathFollowingStatus::Idle)
 			{
-				PFollowComp->AbortMove(TEXT("Aborting move due to new move request failing to generate a path"), FAIRequestID::AnyRequest);
-				PFollowComp->SetLastMoveAtGoal(false);
+				PFollowComp->RequestMoveWithImmediateFinish(EPathFollowingResult::Invalid);
 			}
 		}
 	}

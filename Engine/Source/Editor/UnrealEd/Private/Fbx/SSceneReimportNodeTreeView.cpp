@@ -526,9 +526,9 @@ TSharedPtr<SWidget> SFbxReimportSceneTreeView::OnOpenContextMenu()
 
 	//Get the different type of the multi selection
 	TSet<TSharedPtr<FFbxAttributeInfo>> SelectAssets;
-	TArray<FbxNodeInfoPtr> SelectedItems;
-	const auto NumSelectedItems = GetSelectedItems(SelectedItems);
-	for (auto Item : SelectedItems)
+	TArray<FbxNodeInfoPtr> SelectedFbxNodeInfos;
+	const auto NumSelectedItems = GetSelectedItems(SelectedFbxNodeInfos);
+	for (auto Item : SelectedFbxNodeInfos)
 	{
 		FbxNodeInfoPtr ItemPtr = Item;
 		if (ItemPtr->AttributeInfo.IsValid())
@@ -578,9 +578,9 @@ void SFbxReimportSceneTreeView::RemoveSelectionFromImport()
 
 void SFbxReimportSceneTreeView::SetSelectionImportState(bool MarkForImport)
 {
-	TArray<FbxNodeInfoPtr> SelectedItems;
-	GetSelectedItems(SelectedItems);
-	for (FbxNodeInfoPtr Item : SelectedItems)
+	TArray<FbxNodeInfoPtr> SelectedFbxNodeInfos;
+	GetSelectedItems(SelectedFbxNodeInfos);
+	for (FbxNodeInfoPtr Item : SelectedFbxNodeInfos)
 	{
 		EFbxSceneReimportStatusFlags *ItemStatus = NodeStatusMap->Find(Item->NodeHierarchyPath);
 		if (ItemStatus != nullptr)

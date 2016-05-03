@@ -62,7 +62,7 @@ void UNavMovementComponent::StopActiveMovement()
 {
 	if (PathFollowingComp.IsValid() && bStopMovementAbortPaths)
 	{
-		PathFollowingComp->AbortMove("StopActiveMovement");
+		PathFollowingComp->AbortMove(*this, FPathFollowingResultFlags::MovementStop);
 	}
 }
 

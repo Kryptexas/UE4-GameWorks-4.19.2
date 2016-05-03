@@ -138,7 +138,7 @@ public:
 		FMaterialRenderProxy* MaterialProxy = MaterialInstance->GetRenderProxy(IsSelected());
 #endif
 
-		const FMatrix& LocalToWorld = GetLocalToWorld();
+		const FMatrix& ViewportLocalToWorld = GetLocalToWorld();
 
 		if( RenderTarget )
 		{
@@ -176,7 +176,7 @@ public:
 						MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[1], VertexIndices[2]);
 						MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[2], VertexIndices[3]);
 
-						MeshBuilder.GetMesh(LocalToWorld, MaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
+						MeshBuilder.GetMesh(ViewportLocalToWorld, MaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
 					}
 				}
 			}
@@ -194,7 +194,7 @@ public:
 #endif
 	}
 
-	void RenderCollision(UBodySetup* InBodySetup, FMeshElementCollector& Collector, int32 ViewIndex, const FEngineShowFlags& EngineShowFlags, const FBoxSphereBounds& Bounds, bool bRenderInEditor) const
+	void RenderCollision(UBodySetup* InBodySetup, FMeshElementCollector& Collector, int32 ViewIndex, const FEngineShowFlags& EngineShowFlags, const FBoxSphereBounds& InBounds, bool bRenderInEditor) const
 	{
 		if ( InBodySetup )
 		{
@@ -1074,7 +1074,7 @@ void UWidgetComponent::UpdateWidget()
 
 void UWidgetComponent::UpdateRenderTarget()
 {
-	bool bRenderStateDirty = false;
+	bool bWidgetRenderStateDirty = false;
 	bool bClearColorChanged = false;
 
 	FLinearColor ActualBackgroundColor = BackgroundColor;
@@ -1093,7 +1093,7 @@ void UWidgetComponent::UpdateRenderTarget()
 			RenderTarget = NewObject<UTextureRenderTarget2D>(this);
 			RenderTarget->ClearColor = ActualBackgroundColor;
 
-			bClearColorChanged = bRenderStateDirty = true;
+			bClearColorChanged = bWidgetRenderStateDirty = true;
 
 			RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false);
 
@@ -1106,17 +1106,17 @@ void UWidgetComponent::UpdateRenderTarget()
 			{
 				RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false);
 				RenderTarget->UpdateResourceImmediate(false);
-				bRenderStateDirty = true;
+				bWidgetRenderStateDirty = true;
 			}
 
 			// Update the clear color
 			if ( RenderTarget->ClearColor != ActualBackgroundColor )
 			{
 				RenderTarget->ClearColor = ActualBackgroundColor;
-				bClearColorChanged = bRenderStateDirty = true;
+				bClearColorChanged = bWidgetRenderStateDirty = true;
 			}
 
-			if ( bRenderStateDirty )
+			if ( bWidgetRenderStateDirty )
 			{
 				RenderTarget->UpdateResource();
 			}
@@ -1137,10 +1137,10 @@ void UWidgetComponent::UpdateRenderTarget()
 		if ( MaterialInstance->GetScalarParameterValue(ParabolaDistortionName, CurrentParabolaValue) && CurrentParabolaValue != ParabolaDistortion )
 		{
 			MaterialInstance->SetScalarParameterValue(ParabolaDistortionName, ParabolaDistortion);
-			bRenderStateDirty = true;
+			bWidgetRenderStateDirty = true;
 		}
 
-		if ( bRenderStateDirty )
+		if ( bWidgetRenderStateDirty )
 		{
 			MarkRenderStateDirty();
 		}

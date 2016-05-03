@@ -230,8 +230,8 @@ const float FAnimNode_BoneDrivenController::ExtractSourceValue(const FTransform 
 		// Apply the fixed function remapping/clamping
 		if (bUseRange)
 		{
-			const float Alpha = FMath::Clamp(FMath::GetRangePct(RangeMin, RangeMax, FinalDriverValue), 0.0f, 1.0f);
-			FinalDriverValue = FMath::Lerp(RemappedMin, RemappedMax, Alpha);
+			const float ClampedAlpha = FMath::Clamp(FMath::GetRangePct(RangeMin, RangeMax, FinalDriverValue), 0.0f, 1.0f);
+			FinalDriverValue = FMath::Lerp(RemappedMin, RemappedMax, ClampedAlpha);
 		}
 
 		FinalDriverValue *= Multiplier;

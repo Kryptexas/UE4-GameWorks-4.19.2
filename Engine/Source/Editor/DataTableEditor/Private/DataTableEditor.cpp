@@ -56,23 +56,23 @@ private:
 	FDataTableEditorRowListViewDataPtr Item;
 };
 
-void FDataTableEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FDataTableEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
-	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_Data Table Editor", "Data Table Editor"));
+	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_Data Table Editor", "Data Table Editor"));
 
-	TabManager->RegisterTabSpawner( DataTableTabId, FOnSpawnTab::CreateSP(this, &FDataTableEditor::SpawnTab_DataTable) )
+	InTabManager->RegisterTabSpawner( DataTableTabId, FOnSpawnTab::CreateSP(this, &FDataTableEditor::SpawnTab_DataTable) )
 		.SetDisplayName( LOCTEXT("DataTableTab", "Data Table") )
 		.SetGroup( WorkspaceMenuCategory.ToSharedRef() );
 
-	TabManager->RegisterTabSpawner(RowEditorTabId, FOnSpawnTab::CreateSP(this, &FDataTableEditor::SpawnTab_RowEditor))
+	InTabManager->RegisterTabSpawner(RowEditorTabId, FOnSpawnTab::CreateSP(this, &FDataTableEditor::SpawnTab_RowEditor))
 		.SetDisplayName(LOCTEXT("RowEditorTab", "Row Editor"))
 		.SetGroup(WorkspaceMenuCategory.ToSharedRef());
 }
 
-void FDataTableEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FDataTableEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
-	TabManager->UnregisterTabSpawner( DataTableTabId );
-	TabManager->UnregisterTabSpawner(RowEditorTabId);
+	InTabManager->UnregisterTabSpawner( DataTableTabId );
+	InTabManager->UnregisterTabSpawner(RowEditorTabId);
 }
 
 FDataTableEditor::FDataTableEditor()

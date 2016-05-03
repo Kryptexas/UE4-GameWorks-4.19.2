@@ -332,12 +332,12 @@ void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess Tran
 }
 
 
-void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFenceRHI)
+void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 InNumUAVs, FComputeFenceRHIParamRef WriteComputeFenceRHI)
 {
 	static IConsoleVariable* CVarShowTransitions = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ProfileGPU.ShowTransitions"));
 	const bool bShowTransitionEvents = CVarShowTransitions->GetInt() != 0;
 
-	SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResources, bShowTransitionEvents, TEXT("TransitionTo: %s: %i UAVs"), *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)TransitionType], NumUAVs);
+	SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResources, bShowTransitionEvents, TEXT("TransitionTo: %s: %i UAVs"), *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)TransitionType], InNumUAVs);
 	const bool bUAVTransition = (TransitionType == EResourceTransitionAccess::EReadable) || (TransitionType == EResourceTransitionAccess::EWritable || TransitionType == EResourceTransitionAccess::ERWBarrier);
 	const bool bUAVBarrier = (TransitionType == EResourceTransitionAccess::ERWBarrier && TransitionPipeline == EResourceTransitionPipeline::EComputeToCompute);
 
@@ -386,7 +386,7 @@ void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess Tran
 		uint32 BarrierCount = 0;
 		const uint32 MaxBarrierCount = 16;
 		D3D12_RESOURCE_BARRIER Barriers[MaxBarrierCount];
-		for (int32 i = 0; i < NumUAVs; ++i)
+		for (int32 i = 0; i < InNumUAVs; ++i)
 		{
 			if (InUAVs[i])
 			{
@@ -1416,15 +1416,15 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 
 	// MSFT: Seb: Do we need to support this none parallel case?
 	//if (GRHISupportsParallelRHIExecute)
-	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderState = this->CurrentBoundShaderState.GetReference();
+	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderStatePtr = CurrentBoundShaderState.GetReference();
 	//else
-	//	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderState = (FD3D12BoundShaderState*)OwningRHI.BoundShaderStateHistory.GetLast();
+	//	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderStatePtr = (FD3D12BoundShaderState*)OwningRHI.BoundShaderStateHistory.GetLast();
 
-	check(CurrentBoundShaderState);
+	check(CurrentBoundShaderStatePtr);
 
 	// Only set the constant buffer if this shader needs the global constant buffer bound
 	// Otherwise we will overwrite a different constant buffer
-	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[SF_Vertex])
+	if (CurrentBoundShaderStatePtr->bShaderNeedsGlobalConstantBuffer[SF_Vertex])
 	{
 		// Commit and bind vertex shader constants
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
@@ -1440,7 +1440,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 	// is always reset whenever bUsingTessellation changes in SetBoundShaderState()
 	if (bUsingTessellation)
 	{
-		if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[SF_Hull])
+		if (CurrentBoundShaderStatePtr->bShaderNeedsGlobalConstantBuffer[SF_Hull])
 		{
 			// Commit and bind hull shader constants
 			for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
@@ -1450,7 +1450,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 			}
 		}
 
-		if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[SF_Domain])
+		if (CurrentBoundShaderStatePtr->bShaderNeedsGlobalConstantBuffer[SF_Domain])
 		{
 			// Commit and bind domain shader constants
 			for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
@@ -1461,7 +1461,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 		}
 	}
 
-	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[SF_Geometry])
+	if (CurrentBoundShaderStatePtr->bShaderNeedsGlobalConstantBuffer[SF_Geometry])
 	{
 		// Commit and bind geometry shader constants
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
@@ -1471,7 +1471,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 		}
 	}
 
-	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[SF_Pixel])
+	if (CurrentBoundShaderStatePtr->bShaderNeedsGlobalConstantBuffer[SF_Pixel])
 	{
 		// Commit and bind pixel shader constants
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
@@ -1571,29 +1571,29 @@ void FD3D12CommandContext::CommitGraphicsResourceTables()
 
 	// MSFT: Seb: Do we need this non parallel case now that context objects are always used?
 //#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
-	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderState = this->CurrentBoundShaderState.GetReference();
+	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderStatePtr = CurrentBoundShaderState.GetReference();
 //#else
-//	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderState = (FD3D12BoundShaderState*)OwningRHI.BoundShaderStateHistory.GetLast();
+//	FD3D12BoundShaderState* RESTRICT CurrentBoundShaderStatePtr = (FD3D12BoundShaderState*)OwningRHI.BoundShaderStateHistory.GetLast();
 //#endif
-	check(CurrentBoundShaderState);
+	check(CurrentBoundShaderStatePtr);
 
-	if (auto* Shader = CurrentBoundShaderState->GetVertexShader())
+	if (auto* Shader = CurrentBoundShaderStatePtr->GetVertexShader())
 	{
 		SetResourcesFromTables(Shader);
 	}
-	if (auto* Shader = CurrentBoundShaderState->GetPixelShader())
+	if (auto* Shader = CurrentBoundShaderStatePtr->GetPixelShader())
 	{
 		SetResourcesFromTables(Shader);
 	}
-	if (auto* Shader = CurrentBoundShaderState->GetHullShader())
+	if (auto* Shader = CurrentBoundShaderStatePtr->GetHullShader())
 	{
 		SetResourcesFromTables(Shader);
 	}
-	if (auto* Shader = CurrentBoundShaderState->GetDomainShader())
+	if (auto* Shader = CurrentBoundShaderStatePtr->GetDomainShader())
 	{
 		SetResourcesFromTables(Shader);
 	}
-	if (auto* Shader = CurrentBoundShaderState->GetGeometryShader())
+	if (auto* Shader = CurrentBoundShaderStatePtr->GetGeometryShader())
 	{
 		SetResourcesFromTables(Shader);
 	}

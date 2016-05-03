@@ -3,7 +3,7 @@
 /*=============================================================================
  =============================================================================*/
 
-#include "UnrealEd.h"
+#include "EnginePrivate.h"
 #include "StaticMeshResources.h"
 #include "GeomTools.h"
 #include "Engine/Polys.h"
@@ -128,7 +128,7 @@ FClipSMVertex InterpolateVert(const FClipSMVertex& V0, const FClipSMVertex& V1, 
 }
 
 /** Extracts the triangles from a static-mesh as clippable triangles. */
-void GetClippableStaticMeshTriangles(TArray<FClipSMTriangle>& OutClippableTriangles,const UStaticMesh* StaticMesh)
+void FGeomTools::GetClippableStaticMeshTriangles(TArray<FClipSMTriangle>& OutClippableTriangles,const UStaticMesh* StaticMesh)
 {
 	const FStaticMeshLODResources& RenderData = StaticMesh->RenderData->LODResources[0];
 	FIndexArrayView Indices = RenderData.IndexBuffer.GetArrayView();
@@ -163,7 +163,7 @@ void GetClippableStaticMeshTriangles(TArray<FClipSMTriangle>& OutClippableTriang
 }
 
 /** Take the input mesh and cut it with supplied plane, creating new verts etc. Also outputs new edges created on the plane. */
-void ClipMeshWithPlane( TArray<FClipSMTriangle>& OutTris, TArray<FUtilEdge3D>& OutClipEdges, const TArray<FClipSMTriangle>& InTris, const FPlane& Plane )
+void FGeomTools::ClipMeshWithPlane( TArray<FClipSMTriangle>& OutTris, TArray<FUtilEdge3D>& OutClipEdges, const TArray<FClipSMTriangle>& InTris, const FPlane& Plane )
 {
 	// Iterate over each source triangle
 	for(int32 TriIdx=0; TriIdx<InTris.Num(); TriIdx++)
@@ -236,7 +236,7 @@ void ClipMeshWithPlane( TArray<FClipSMTriangle>& OutTris, TArray<FUtilEdge3D>& O
 }
 
 /** Take a set of 3D Edges and project them onto the supplied plane. Also returns matrix use to convert them back into 3D edges. */
-void ProjectEdges( TArray<FUtilEdge2D>& Out2DEdges, FMatrix& ToWorld, const TArray<FUtilEdge3D>& In3DEdges, const FPlane& InPlane )
+void FGeomTools::ProjectEdges( TArray<FUtilEdge2D>& Out2DEdges, FMatrix& ToWorld, const TArray<FUtilEdge3D>& In3DEdges, const FPlane& InPlane )
 {
 	// Build matrix to transform verts into plane space
 	FVector BasisX, BasisY, BasisZ;
@@ -347,7 +347,7 @@ static void FixPolyWinding(FUtilPoly2D& Poly)
 }
 
 /** Given a set of edges, find the set of closed polygons created by them. */
-void Buid2DPolysFromEdges(TArray<FUtilPoly2D>& OutPolys, const TArray<FUtilEdge2D>& InEdges, const FColor& VertColor)
+void FGeomTools::Buid2DPolysFromEdges(TArray<FUtilPoly2D>& OutPolys, const TArray<FUtilEdge2D>& InEdges, const FColor& VertColor)
 {
 	TArray<FUtilEdge2D> EdgeSet = InEdges;
 
@@ -387,7 +387,7 @@ void Buid2DPolysFromEdges(TArray<FUtilPoly2D>& OutPolys, const TArray<FUtilEdge2
 }
 
 /** Given three direction vectors, indicates if A and B are on the same 'side' of Vec. */
-static bool VectorsOnSameSide(const FVector& Vec, const FVector& A, const FVector& B)
+bool FGeomTools::VectorsOnSameSide(const FVector& Vec, const FVector& A, const FVector& B)
 {
 	const FVector CrossA = Vec ^ A;
 	const FVector CrossB = Vec ^ B;
@@ -395,7 +395,7 @@ static bool VectorsOnSameSide(const FVector& Vec, const FVector& A, const FVecto
 }
 
 /** Util to see if P lies within triangle created by A, B and C. */
-static bool PointInTriangle(const FVector& A, const FVector& B, const FVector& C, const FVector& P)
+bool FGeomTools::PointInTriangle(const FVector& A, const FVector& B, const FVector& C, const FVector& P)
 {
 	// Cross product indicates which 'side' of the vector the point is on
 	// If its on the same side as the remaining vert for all edges, then its inside.	
@@ -476,7 +476,7 @@ static bool AreEdgesMergeable(
 }
 
 /** Given a polygon, decompose into triangles and append to OutTris. */
-bool TriangulatePoly(TArray<FClipSMTriangle>& OutTris, const FClipSMPolygon& InPoly, bool bKeepColinearVertices)
+bool FGeomTools::TriangulatePoly(TArray<FClipSMTriangle>& OutTris, const FClipSMPolygon& InPoly, bool bKeepColinearVertices)
 {
 	// Can't work if not enough verts for 1 triangle
 	if(InPoly.Vertices.Num() < 3)
@@ -577,7 +577,7 @@ bool TriangulatePoly(TArray<FClipSMTriangle>& OutTris, const FClipSMPolygon& InP
 
 
 /** Transform triangle from 2D to 3D static-mesh triangle. */
-FClipSMPolygon Transform2DPolygonToSMPolygon(const FUtilPoly2D& InPoly, const FMatrix& InMatrix)
+FClipSMPolygon FGeomTools::Transform2DPolygonToSMPolygon(const FUtilPoly2D& InPoly, const FMatrix& InMatrix)
 {
 	FClipSMPolygon Result(0);
 
@@ -599,7 +599,7 @@ FClipSMPolygon Transform2DPolygonToSMPolygon(const FUtilPoly2D& InPoly, const FM
 }
 
 /** Does a simple box map onto this 2D polygon. */
-void GeneratePolyUVs(FUtilPoly2D& Polygon)
+void FGeomTools::GeneratePlanarFitPolyUVs(FUtilPoly2D& Polygon)
 {
 	// First work out 2D bounding box for tris.
 	FVector2D Min(BIG_NUMBER, BIG_NUMBER);
@@ -621,6 +621,16 @@ void GeneratePolyUVs(FUtilPoly2D& Polygon)
 		FUtilVertex2D& Vertex = Polygon.Verts[VertexIndex];
 		Vertex.UV.X = (Vertex.Pos.X - Min.X)/Extent.X;
 		Vertex.UV.Y = (Vertex.Pos.Y - Min.Y)/Extent.Y;
+	}
+}
+
+void FGeomTools::GeneratePlanarTilingPolyUVs(FUtilPoly2D& Polygon, float TileSize)
+{
+	for (int32 VertexIndex = 0; VertexIndex < Polygon.Verts.Num(); VertexIndex++)
+	{
+		FUtilVertex2D& Vertex = Polygon.Verts[VertexIndex];
+		Vertex.UV.X = Vertex.Pos.X / TileSize;
+		Vertex.UV.Y = Vertex.Pos.Y / TileSize;
 	}
 }
 
@@ -767,7 +777,7 @@ static bool MergeTriangleIntoPolygon(
 }
 
 /** Given a set of triangles, remove those which share an edge and could be collapsed into one triangle. */
-void RemoveRedundantTriangles(TArray<FClipSMTriangle>& Tris)
+void FGeomTools::RemoveRedundantTriangles(TArray<FClipSMTriangle>& Tris)
 {
 	TArray<FClipSMPolygon> Polygons;
 
@@ -834,7 +844,7 @@ public:
 };
 
 /** Split 2D polygons with a 3D plane. */
-void Split2DPolysWithPlane(FUtilPoly2DSet& PolySet, const FPlane& Plane, const FColor& ExteriorVertColor, const FColor& InteriorVertColor)
+void FGeomTools::Split2DPolysWithPlane(FUtilPoly2DSet& PolySet, const FPlane& Plane, const FColor& ExteriorVertColor, const FColor& InteriorVertColor)
 {
 	// Break down world-space plane into normal and base
 	FVector WNormal =  FVector(Plane.X, Plane.Y, Plane.Z);

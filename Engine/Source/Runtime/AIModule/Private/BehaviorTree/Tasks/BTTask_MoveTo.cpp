@@ -221,8 +221,9 @@ EBlackboardNotificationResult UBTTask_MoveTo::OnBlackboardValueChange(const UBla
 			// don't abort move if using AI tasks - it will mess things up
 			if (MyMemory->MoveRequestID.IsValid())
 			{
+				UE_VLOG(BehaviorComp, LogBehaviorTree, Log, TEXT("Blackboard value for goal has changed, aborting current move request"));
 				StopWaitingForMessages(*BehaviorComp);
-				BehaviorComp->GetAIOwner()->GetPathFollowingComponent()->AbortMove(TEXT("Updating move due to BB value change"), MyMemory->MoveRequestID, /*bResetVelocity=*/false, /*bSilent=*/true);
+				BehaviorComp->GetAIOwner()->GetPathFollowingComponent()->AbortMove(*this, FPathFollowingResultFlags::NewRequest, MyMemory->MoveRequestID, EPathFollowingVelocityMode::Keep);
 			}
 
 			if (!bUseGameplayTasks && BehaviorComp->GetAIOwner()->ShouldPostponePathUpdates())
@@ -254,7 +255,7 @@ EBTNodeResult::Type UBTTask_MoveTo::AbortTask(UBehaviorTreeComponent& OwnerComp,
 			AAIController* MyController = OwnerComp.GetAIOwner();
 			if (MyController && MyController->GetPathFollowingComponent())
 			{
-				MyController->GetPathFollowingComponent()->AbortMove(TEXT("BehaviorTree abort"), MyMemory->MoveRequestID);
+				MyController->GetPathFollowingComponent()->AbortMove(*this, FPathFollowingResultFlags::OwnerFinished, MyMemory->MoveRequestID);
 			}
 		}
 		else

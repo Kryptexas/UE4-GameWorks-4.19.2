@@ -91,5 +91,5 @@ protected:
 	virtual void OnPathEvent(FNavigationPath* InPath, ENavPathEvent::Type Event);
 
 	/** event from path following */
-	virtual void OnRequestFinished(FAIRequestID RequestID, EPathFollowingResult::Type Result);
+	virtual void OnRequestFinished(FAIRequestID RequestID, const FPathFollowingResult& Result);
 };

@@ -400,11 +400,11 @@ void FD3D12DynamicRHI::PostInit()
 	}
 }
 
-void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
+void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* InMainDevice)
 {
 	check(!GIsRHIInitialized);
 
-	DXGI_ADAPTER_DESC* AdapterDesc = MainDevice->GetD3DAdapterDesc();
+	DXGI_ADAPTER_DESC* AdapterDesc = InMainDevice->GetD3DAdapterDesc();
 
     GTexturePoolSize = 0;
 
@@ -434,7 +434,7 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 	// Consider 50% of the shared memory but max 25% of total system memory.
 	int64 ConsideredSharedSystemMemory = FMath::Min(FD3D12GlobalStats::GSharedSystemMemory / 2ll, TotalPhysicalMemory / 4ll);
 
-	IDXGIAdapter3* DxgiAdapter3 = MainDevice->GetAdapter3();
+	IDXGIAdapter3* DxgiAdapter3 = InMainDevice->GetAdapter3();
 	DXGI_QUERY_VIDEO_MEMORY_INFO LocalVideoMemoryInfo;
 	VERIFYD3D11RESULT(DxgiAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &LocalVideoMemoryInfo));
 	const int64 TargetBudget = LocalVideoMemoryInfo.Budget * 0.90f;	// Target using 90% of our budget to account for some fragmentation.

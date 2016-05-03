@@ -71,11 +71,11 @@ UClass* UBorder::GetSlotClass() const
 	return UBorderSlot::StaticClass();
 }
 
-void UBorder::OnSlotAdded(UPanelSlot* Slot)
+void UBorder::OnSlotAdded(UPanelSlot* InSlot)
 {
 	// Copy the content properties into the new slot so that it matches what has been setup
 	// so far by the user.
-	UBorderSlot* BorderSlot = CastChecked<UBorderSlot>(Slot);
+	UBorderSlot* BorderSlot = CastChecked<UBorderSlot>(InSlot);
 	BorderSlot->Padding = Padding;
 	BorderSlot->HorizontalAlignment = HorizontalAlignment;
 	BorderSlot->VerticalAlignment = VerticalAlignment;
@@ -88,7 +88,7 @@ void UBorder::OnSlotAdded(UPanelSlot* Slot)
 	}
 }
 
-void UBorder::OnSlotRemoved(UPanelSlot* Slot)
+void UBorder::OnSlotRemoved(UPanelSlot* InSlot)
 {
 	// Remove the widget from the live slot if it exists.
 	if ( MyBorder.IsValid() )
@@ -305,19 +305,19 @@ void UBorder::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChang
 		{
 			FName PropertyName = PropertyChangedEvent.Property->GetFName();
 
-			if ( UBorderSlot* Slot = Cast<UBorderSlot>(GetContentSlot()) )
+			if ( UBorderSlot* BorderSlot = Cast<UBorderSlot>(GetContentSlot()) )
 			{
 				if ( PropertyName == "Padding" )
 				{
-					FObjectEditorUtils::MigratePropertyValue(this, "Padding", Slot, "Padding");
+					FObjectEditorUtils::MigratePropertyValue(this, "Padding", BorderSlot, "Padding");
 				}
 				else if ( PropertyName == "HorizontalAlignment" )
 				{
-					FObjectEditorUtils::MigratePropertyValue(this, "HorizontalAlignment", Slot, "HorizontalAlignment");
+					FObjectEditorUtils::MigratePropertyValue(this, "HorizontalAlignment", BorderSlot, "HorizontalAlignment");
 				}
 				else if ( PropertyName == "VerticalAlignment" )
 				{
-					FObjectEditorUtils::MigratePropertyValue(this, "VerticalAlignment", Slot, "VerticalAlignment");
+					FObjectEditorUtils::MigratePropertyValue(this, "VerticalAlignment", BorderSlot, "VerticalAlignment");
 				}
 			}
 		}

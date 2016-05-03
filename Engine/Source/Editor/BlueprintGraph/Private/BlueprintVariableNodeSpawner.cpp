@@ -71,9 +71,9 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 	// Post-Spawn Setup
 	//--------------------------------------
 
-	auto MemberVarSetupLambda = [](UEdGraphNode* NewNode, UField const* Field)
+	auto MemberVarSetupLambda = [](UEdGraphNode* NewNode, UField const* InField)
 	{
-		if (UProperty const* Property = Cast<UProperty>(Field))
+		if (UProperty const* Property = Cast<UProperty>(InField))
 		{
 			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(NewNode);
 			UClass* OwnerClass = Property->GetOwnerClass();

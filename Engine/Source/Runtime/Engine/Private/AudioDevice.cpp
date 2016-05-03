@@ -12,6 +12,10 @@
 #include "Sound/SoundWave.h"
 #include "IAudioExtensionPlugin.h"
 
+#if WITH_EDITOR
+#include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
+#endif
+
 /*-----------------------------------------------------------------------------
 FDynamicParameter implementation.
 -----------------------------------------------------------------------------*/
@@ -1751,7 +1755,21 @@ void FAudioDevice::ApplyClassAdjusters(USoundMix* SoundMix, float InterpValue, f
 		{
 			if (Entry.bApplyToChildren)
 			{
-				RecursiveApplyAdjuster(Entry, Entry.SoundClassObject);
+				// If we're using the override, Entry will already have interpolated values
+				if (bUsingOverride)
+				{
+					RecursiveApplyAdjuster(Entry, Entry.SoundClassObject);
+				}
+				else
+				{
+					// Copy the entry with the interpolated values before applying it recursively
+					FSoundClassAdjuster EntryCopy = Entry;
+					EntryCopy.VolumeAdjuster = InterpolateAdjuster(Entry.VolumeAdjuster, InterpValue);
+					EntryCopy.PitchAdjuster = InterpolateAdjuster(Entry.PitchAdjuster, InterpValue);
+					EntryCopy.VoiceCenterChannelVolumeAdjuster = InterpolateAdjuster(Entry.VoiceCenterChannelVolumeAdjuster, InterpValue);
+
+					RecursiveApplyAdjuster(EntryCopy, Entry.SoundClassObject);
+				}
 			}
 			else
 			{
@@ -3464,3 +3482,15 @@ void FAudioDevice::OnEndPIE(const bool bIsSimulating)
 	}
 }
 #endif
+
+bool FAudioDevice::CanUseVRAudioDevice()
+{
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
+		return EdEngine->bUseVRPreviewForPlayWorld;
+	}
+#endif
+	return true;
+}

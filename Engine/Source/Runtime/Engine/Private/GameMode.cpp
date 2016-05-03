@@ -1063,29 +1063,29 @@ bool AGameMode::MustSpectate_Implementation(APlayerController* NewPlayerControll
 	return NewPlayerController->PlayerState->bOnlySpectator;
 }
 
-APlayerController* AGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage)
+APlayerController* AGameMode::Login(UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage)
 {
 	ErrorMessage = GameSession->ApproveLogin(Options);
 	if (!ErrorMessage.IsEmpty())
 	{
-		return NULL;
+		return nullptr;
 	}
 
-	APlayerController* NewPlayerController = SpawnPlayerController(RemoteRole, FVector::ZeroVector, FRotator::ZeroRotator);
+	APlayerController* NewPlayerController = SpawnPlayerController(InRemoteRole, FVector::ZeroVector, FRotator::ZeroRotator);
 
 	// Handle spawn failure.
-	if (NewPlayerController == NULL)
+	if (NewPlayerController == nullptr)
 	{
 		UE_LOG(LogGameMode, Log, TEXT("Couldn't spawn player controller of class %s"), PlayerControllerClass ? *PlayerControllerClass->GetName() : TEXT("NULL"));
 		ErrorMessage = FString::Printf(TEXT("Failed to spawn player controller"));
-		return NULL;
+		return nullptr;
 	}
 
 	// Customize incoming player based on URL options
 	ErrorMessage = InitNewPlayer(NewPlayerController, UniqueId, Options, Portal);
 	if (!ErrorMessage.IsEmpty())
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	// Set up spectating
@@ -1259,7 +1259,7 @@ void AGameMode::PreLogin(const FString& Options, const FString& Address, const T
 	ErrorMessage = GameSession->ApproveLogin(Options);
 }
 
-APlayerController* AGameMode::SpawnPlayerController(ENetRole RemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation)
+APlayerController* AGameMode::SpawnPlayerController(ENetRole InRemoteRole, FVector const& SpawnLocation, FRotator const& SpawnRotation)
 {
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = Instigator;	
@@ -1268,7 +1268,7 @@ APlayerController* AGameMode::SpawnPlayerController(ENetRole RemoteRole, FVector
 	APlayerController* NewPC = GetWorld()->SpawnActor<APlayerController>(PlayerControllerClass, SpawnLocation, SpawnRotation, SpawnInfo);
 	if (NewPC)
 	{
-		if (RemoteRole == ROLE_SimulatedProxy)
+		if (InRemoteRole == ROLE_SimulatedProxy)
 		{
 			// This is a local player because it has no authority/autonomous remote role
 			NewPC->SetAsLocalPlayerController();

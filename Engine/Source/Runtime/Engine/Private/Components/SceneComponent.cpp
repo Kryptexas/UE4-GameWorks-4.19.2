@@ -445,8 +445,8 @@ void USceneComponent::OnRegister()
 		if (AttachToComponent(GetAttachParent(), FAttachmentTransformRules::KeepRelativeTransform, GetAttachSocketName()) == false)
 		{
 			// Failed to attach, we need to clear AttachParent so we don't think we're actually attached when we're not.
-			GetMutableAttachParent() = nullptr;
-			GetMutableAttachSocketName() = NAME_None;
+			AttachParent = nullptr;
+			AttachSocketName = NAME_None;
 		}
 	}
 	
@@ -726,10 +726,10 @@ void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 				{
 					// Attach the child node that we're promoting to the parent and move it to the same position as the old node was in the array
 					ChildToPromote->AttachToComponent(CachedAttachParent, FAttachmentTransformRules::KeepWorldTransform);
-					CachedAttachParent->GetMutableAttachChildren().Remove(ChildToPromote);
+					CachedAttachParent->AttachChildren.Remove(ChildToPromote);
 
 					Index = FMath::Clamp<int32>(Index, 0, AttachSiblings.Num());
-					CachedAttachParent->GetMutableAttachChildren().Insert(ChildToPromote, Index);
+					CachedAttachParent->AttachChildren.Insert(ChildToPromote, Index);
 				}
 			}
 
@@ -769,7 +769,6 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	{
 		// If we're destroying the hierarchy we only have to make sure that we detach children from other Actor's
 		AActor* MyOwner = GetOwner();
-		TArray<USceneComponent*>& AttachedChildren = GetMutableAttachChildren();
 
 		if (bDestroyingHierarchy)
 		{
@@ -778,7 +777,7 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 			bool bExternalAttachParentDetermined = false;
 			USceneComponent* ExternalAttachParent = nullptr;
 
-			int32 ChildCount = AttachedChildren.Num();
+			int32 ChildCount = AttachChildren.Num();
 
 			// We cache the actual children to put back after the detach process
 			TArray<USceneComponent*> CachedChildren;
@@ -786,7 +785,7 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 
 			while (ChildCount > 0)
 			{
-				USceneComponent* Child = AttachedChildren.Last();
+				USceneComponent* Child = AttachChildren.Last();
 				if (Child && Child->GetOwner() != MyOwner)
 				{
 					if (Child->GetAttachParent())
@@ -828,7 +827,7 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 								// so instead of crashing, output an error and gracefully handle
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->GetAttachParent()->GetFullName());
 							}
-							AttachedChildren.Pop(false);
+							AttachChildren.Pop(false);
 						}
 					}
 					else 
@@ -840,28 +839,28 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 						{
 							UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
 						}
-						AttachedChildren.Pop(false);
+						AttachChildren.Pop(false);
 					}
-					checkf(ChildCount > AttachedChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
+					checkf(ChildCount > AttachChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
 				}
 				else
 				{
-					AttachedChildren.Pop(false);
+					AttachChildren.Pop(false);
 					if (Child)
 					{
 						CachedChildren.Add(Child);
 					}
 				}
-				ChildCount = AttachedChildren.Num();
+				ChildCount = AttachChildren.Num();
 			}
-			AttachedChildren = MoveTemp(CachedChildren);
+			AttachChildren = MoveTemp(CachedChildren);
 		}
 		else
 		{
-			int32 ChildCount = AttachedChildren.Num();
+			int32 ChildCount = AttachChildren.Num();
 			while (ChildCount > 0)
 			{
-				if (USceneComponent* Child = AttachedChildren.Last())
+				if (USceneComponent* Child = AttachChildren.Last())
 				{
 					if (Child->GetAttachParent())
 					{
@@ -888,7 +887,7 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 								// so instead of crashing, output an error and gracefully handle
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->GetAttachParent()->GetFullName());
 							}
-							AttachedChildren.Pop(false);
+							AttachChildren.Pop(false);
 						}
 					}
 					else 
@@ -900,15 +899,15 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 						{
 							UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
 						}
-						AttachedChildren.Pop(false);
+						AttachChildren.Pop(false);
 					}
-					checkf(ChildCount > AttachedChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
+					checkf(ChildCount > AttachChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
 				}
 				else
 				{
-					AttachedChildren.Pop(false);
+					AttachChildren.Pop(false);
 				}
-				ChildCount = AttachedChildren.Num();
+				ChildCount = AttachChildren.Num();
 			}
 		}
 
@@ -1406,7 +1405,6 @@ void USceneComponent::AppendDescendants(TArray<USceneComponent*>& Children) cons
 	}
 }
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS // DEPRECATED(4.12)
 void USceneComponent::SetupAttachment(class USceneComponent* InParent, FName InSocketName)
 {
 	if (ensureMsgf(!bRegistered, TEXT("SetupAttachment should only be used to initialize AttachParent and AttachSocketName for a future AttachTo. Once a component is registered you must use AttachTo.")))
@@ -1418,7 +1416,6 @@ void USceneComponent::SetupAttachment(class USceneComponent* InParent, FName InS
 		}
 	}
 }
-PRAGMA_ENABLE_DEPRECATION_WARNINGS // DEPRECATED(4.12)
 
 //This function is used for giving AttachTo different bWeldSimulatedBodies default, but only when called from BP
 bool USceneComponent::K2_AttachTo(class USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType, bool bWeldSimulatedBodies /*= true*/)
@@ -1626,19 +1623,19 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 		PrimaryComponentTick.AddPrerequisite(Parent, Parent->PrimaryComponentTick); // force us to tick after the parent does
 
 		// Save pointer from child to parent
-		GetMutableAttachParent() = Parent;
-		GetMutableAttachSocketName() = SocketName;
+		AttachParent = Parent;
+		AttachSocketName = SocketName;
 
 		OnAttachmentChanged();
 
 		// Preserve order of previous attachment if valid (in case we're doing a reattach operation inside a loop that might assume the AttachChildren order won't change)
 		if(LastAttachIndex != INDEX_NONE)
 		{
-			Parent->GetMutableAttachChildren().Insert(this, LastAttachIndex);
+			Parent->AttachChildren.Insert(this, LastAttachIndex);
 		}
 		else
 		{
-			Parent->GetMutableAttachChildren().Add(this);
+			Parent->AttachChildren.Add(this);
 		}
 
 		// Now apply attachment rules
@@ -1808,7 +1805,7 @@ void USceneComponent::DetachFromComponent(const FDetachmentTransformRules& Detac
 
 		PrimaryComponentTick.RemovePrerequisite(GetAttachParent(), GetAttachParent()->PrimaryComponentTick); // no longer required to tick after the attachment
 
-		GetAttachParent()->GetMutableAttachChildren().Remove(this);
+		GetAttachParent()->AttachChildren.Remove(this);
 		GetAttachParent()->OnChildDetached(this);
 
 #if WITH_EDITOR
@@ -1820,8 +1817,8 @@ void USceneComponent::DetachFromComponent(const FDetachmentTransformRules& Detac
 			}
 		}
 #endif
-		GetMutableAttachParent() = nullptr;
-		GetMutableAttachSocketName() = NAME_None;
+		AttachParent = nullptr;
+		AttachSocketName = NAME_None;
 
 		OnAttachmentChanged();
 
@@ -2760,7 +2757,7 @@ void USceneComponent::PostNetReceive()
 		if (ParentRoot != this)
 		{
 			bNetUpdateAttachment = true;
-			GetMutableAttachParent() = ParentRoot;
+			AttachParent = ParentRoot;
 		}
 	}
 }
@@ -2769,10 +2766,8 @@ void USceneComponent::PostRepNotifies()
 {
 	if (bNetUpdateAttachment)
 	{
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS // DEPRECATED(4.12)
 		Exchange(NetOldAttachParent, AttachParent);
 		Exchange(NetOldAttachSocketName, AttachSocketName);
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS // DEPRECATED(4.12)
 		AttachToComponent(NetOldAttachParent, FAttachmentTransformRules::KeepRelativeTransform, NetOldAttachSocketName);
 		bNetUpdateAttachment = false;
 	}
@@ -2792,11 +2787,9 @@ void USceneComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(USceneComponent, bAbsoluteRotation);
 	DOREPLIFETIME(USceneComponent, bAbsoluteScale);
 	DOREPLIFETIME(USceneComponent, bVisible);
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS // DEPRECATED(4.12)
 	DOREPLIFETIME(USceneComponent, AttachParent);
 	DOREPLIFETIME(USceneComponent, AttachChildren);
 	DOREPLIFETIME(USceneComponent, AttachSocketName);
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS // DEPRECATED(4.12)
 	DOREPLIFETIME(USceneComponent, RelativeLocation);
 	DOREPLIFETIME(USceneComponent, RelativeRotation);
 	DOREPLIFETIME(USceneComponent, RelativeScale3D);

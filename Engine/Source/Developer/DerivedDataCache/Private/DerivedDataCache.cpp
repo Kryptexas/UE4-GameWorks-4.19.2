@@ -975,11 +975,11 @@ public:
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
 			UE_LOG(LogDerivedDataCache, Verbose, TEXT("GetAsynchronous (Rollup) %s"), CacheKey);
-			uint32 CurrentHandle = NextHandle();
-			((FDerivedDataRollup*)Rollup)->Add(CacheKey, CurrentHandle);
-			return CurrentHandle;
+			const uint32 RollupHandle = NextHandle();
+			((FDerivedDataRollup*)Rollup)->Add(CacheKey, RollupHandle);
+			return RollupHandle;
 		}
-		return Super::GetAsynchronous(CacheKey, NULL);
+		return Super::GetAsynchronous(CacheKey, nullptr);
 	}
 
 	virtual void Put(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists = false) override

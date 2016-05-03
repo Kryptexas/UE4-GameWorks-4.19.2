@@ -987,9 +987,9 @@ void UStaticMeshComponent::CopyInstanceVertexColorsIfCompatible( UStaticMeshComp
 	{
 		Modify();
 
-		bool bRegistered = IsRegistered();
+		bool bIsRegistered = IsRegistered();
 		FComponentReregisterContext ReregisterContext(this);
-		if (bRegistered)
+		if (bIsRegistered)
 		{
 			FlushRenderingCommands(); // don't sync threads unless we have to
 		}

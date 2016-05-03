@@ -930,7 +930,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::GetVertexBuffers(
 void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitVertexFactories(
 	const FVertexFactoryBuffers& VertexBuffers, 
 	const TArray<FSkelMeshChunk>& Chunks, 
-	ERHIFeatureLevel::Type FeatureLevel)
+	ERHIFeatureLevel::Type InFeatureLevel)
 {
 	// first clear existing factories (resources assumed to have been released already)
 	// then [re]create the factories
@@ -941,12 +941,12 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitVertexFactories(
 		{
 			if (VertexBuffers.VertexBufferGPUSkin->HasExtraBoneInfluences())
 			{
-				auto* VertexFactory = CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<true> >(VertexFactories, VertexBuffers, FeatureLevel);
+				auto* VertexFactory = CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<true> >(VertexFactories, VertexBuffers, InFeatureLevel);
 				CreatePassthroughVertexFactory<TGPUSkinVertexFactory<true>>(PassthroughVertexFactories, VertexFactory);
 			}
 			else
 			{
-				auto* VertexFactory = CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<false> >(VertexFactories, VertexBuffers, FeatureLevel);
+				auto* VertexFactory = CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<false> >(VertexFactories, VertexBuffers, InFeatureLevel);
 				CreatePassthroughVertexFactory<TGPUSkinVertexFactory<false>>(PassthroughVertexFactories, VertexFactory);
 			}
 		}
@@ -1050,7 +1050,7 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::ReleaseAPEXClothVertexFacto
  * @param bUseLocalVertexFactory - use non-gpu skinned factory when rendering in ref pose
  * @param MeshLODInfo - information about the state of the bone influence swapping
  */
-void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::InitResources(const FSkelMeshObjectLODInfo& MeshLODInfo, ERHIFeatureLevel::Type FeatureLevel)
+void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::InitResources(const FSkelMeshObjectLODInfo& MeshLODInfo, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	check(SkelMeshResource);
 	check(SkelMeshResource->LODModels.IsValidIndex(LODIndex));
@@ -1063,10 +1063,10 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::InitResources(const FSk
 	GetVertexBuffers(VertexBuffers,LODModel,MeshLODInfo);
 
 	// init gpu skin factories
-	GPUSkinVertexFactories.InitVertexFactories(VertexBuffers,LODModel.Chunks, FeatureLevel);
+	GPUSkinVertexFactories.InitVertexFactories(VertexBuffers,LODModel.Chunks, InFeatureLevel);
 	if ( LODModel.HasApexClothData() )
 	{
-		GPUSkinVertexFactories.InitAPEXClothVertexFactories(VertexBuffers,LODModel.Chunks, FeatureLevel);
+		GPUSkinVertexFactories.InitAPEXClothVertexFactories(VertexBuffers,LODModel.Chunks, InFeatureLevel);
 	}
 }
 
@@ -1082,7 +1082,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::ReleaseResources()
 	GPUSkinVertexFactories.ReleaseAPEXClothVertexFactories();
 }
 
-void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::InitMorphResources(const FSkelMeshObjectLODInfo& MeshLODInfo, bool bInUsePerBoneMotionBlur, ERHIFeatureLevel::Type FeatureLevel)
+void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::InitMorphResources(const FSkelMeshObjectLODInfo& MeshLODInfo, bool bInUsePerBoneMotionBlur, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	check(SkelMeshResource);
 	check(SkelMeshResource->LODModels.IsValidIndex(LODIndex));
@@ -1097,7 +1097,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::InitMorphResources(cons
 	FVertexFactoryBuffers VertexBuffers;
 	GetVertexBuffers(VertexBuffers,LODModel,MeshLODInfo);
 	// init morph skin factories
-	GPUSkinVertexFactories.InitMorphVertexFactories(VertexBuffers, LODModel.Chunks, bInUsePerBoneMotionBlur, FeatureLevel);
+	GPUSkinVertexFactories.InitMorphVertexFactories(VertexBuffers, LODModel.Chunks, bInUsePerBoneMotionBlur, InFeatureLevel);
 }
 
 /** 

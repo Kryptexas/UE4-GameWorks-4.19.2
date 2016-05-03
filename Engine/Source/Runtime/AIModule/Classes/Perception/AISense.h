@@ -141,10 +141,10 @@ protected:
 	/** To be called only for BP-generated classes */
 	void ForceSenseID(FAISenseID SenseID);
 
-	DEPRECATED(4.12, "Function removed, use AISenseConfig.GetDebugColor() instead.")
+	DEPRECATED(4.13, "Function removed, use AISenseConfig.GetDebugColor() instead.")
 	FColor GetDebugColor() const { return FColor::White; }
-	DEPRECATED(4.12, "Function removed, use AISenseConfig.GetSenseName() instead.")
+	DEPRECATED(4.13, "Function removed, use AISenseConfig.GetSenseName() instead.")
 	FString GetDebugName() const { return FString(); }
-	DEPRECATED(4.12, "Function removed, use AISenseConfig.DescribeSelfToGameplayDebugger() instead.")
+	DEPRECATED(4.13, "Function removed, use AISenseConfig.DescribeSelfToGameplayDebugger() instead.")
 	virtual FString GetDebugLegend() const { return FString(); };
 };

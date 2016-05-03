@@ -165,6 +165,7 @@ public:
 
 	FProceduralMeshSceneProxy(UProceduralMeshComponent* Component)
 		: FPrimitiveSceneProxy(Component)
+		, BodySetup(Component->GetBodySetup())
 		, MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 	{
 		// Copy each section
@@ -339,6 +340,13 @@ public:
 		{
 			if (VisibilityMap & (1 << ViewIndex))
 			{
+				// Draw simple collision as wireframe if 'show collision', and collision is enabled, and we are not using the complex as the simple
+				if (ViewFamily.EngineShowFlags.Collision && IsCollisionEnabled() && BodySetup->GetCollisionTraceFlag() != ECollisionTraceFlag::CTF_UseComplexAsSimple)
+				{
+					FTransform GeomTransform(GetLocalToWorld());
+					BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(FColor(157, 149, 223, 255), IsSelected(), IsHovered()).ToFColor(true), NULL, false, false, UseEditorDepthTest(), ViewIndex, Collector);
+				}
+
 				// Render bounds
 				RenderBounds(Collector.GetPDI(ViewIndex), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
 			}
@@ -378,6 +386,8 @@ private:
 	/** Array of sections */
 	TArray<FProcMeshProxySection*> Sections;
 
+	UBodySetup* BodySetup;
+
 	FMaterialRelevance MaterialRelevance;
 };
 
@@ -387,6 +397,7 @@ private:
 UProceduralMeshComponent::UProceduralMeshComponent(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
+	bUseComplexAsSimpleCollision = true;
 }
 
 void UProceduralMeshComponent::CreateMeshSection_LinearColor(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FLinearColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision)
@@ -617,6 +628,53 @@ bool UProceduralMeshComponent::IsMeshSectionVisible(int32 SectionIndex) const
 	return (SectionIndex < ProcMeshSections.Num()) ? ProcMeshSections[SectionIndex].bSectionVisible : false;
 }
 
+int32 UProceduralMeshComponent::GetNumSections() const
+{
+	return ProcMeshSections.Num();
+}
+
+void UProceduralMeshComponent::AddCollisionConvexMesh(TArray<FVector> ConvexVerts)
+{
+	if(ConvexVerts.Num() >= 4)
+	{ 
+		// New element
+		FKConvexElem NewConvexElem;
+		// Copy in vertex info
+		NewConvexElem.VertexData = ConvexVerts;
+		// Update bounding box
+		NewConvexElem.ElemBox = FBox(NewConvexElem.VertexData);
+		// Add to array of convex elements
+		CollisionConvexElems.Add(NewConvexElem);
+		// Refresh collision
+		UpdateCollision();
+	}
+}
+
+void UProceduralMeshComponent::ClearCollisionConvexMeshes()
+{
+	// Empty simple collision info
+	CollisionConvexElems.Empty();
+	// Refresh collision
+	UpdateCollision();
+}
+
+void UProceduralMeshComponent::SetCollisionConvexMeshes(const TArray< TArray<FVector> >& ConvexMeshes)
+{
+	CollisionConvexElems.Reset();
+
+	// Create element for each convex mesh
+	for (int32 ConvexIndex = 0; ConvexIndex < ConvexMeshes.Num(); ConvexIndex++)
+	{
+		FKConvexElem NewConvexElem;
+		NewConvexElem.VertexData = ConvexMeshes[ConvexIndex];
+		NewConvexElem.ElemBox = FBox(NewConvexElem.VertexData);
+
+		CollisionConvexElems.Add(NewConvexElem);
+	}
+
+	UpdateCollision();
+}
+
 
 void UProceduralMeshComponent::UpdateLocalBounds()
 {
@@ -631,6 +689,8 @@ void UProceduralMeshComponent::UpdateLocalBounds()
 
 	// Update global bounds
 	UpdateBounds();
+	// Need to send to render thread
+	MarkRenderTransformDirty();
 }
 
 FPrimitiveSceneProxy* UProceduralMeshComponent::CreateSceneProxy()
@@ -643,6 +703,35 @@ FPrimitiveSceneProxy* UProceduralMeshComponent::CreateSceneProxy()
 int32 UProceduralMeshComponent::GetNumMaterials() const
 {
 	return ProcMeshSections.Num();
+}
+
+
+FProcMeshSection* UProceduralMeshComponent::GetProcMeshSection(int32 SectionIndex)
+{
+	if (SectionIndex < ProcMeshSections.Num())
+	{
+		return &ProcMeshSections[SectionIndex];
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+
+void UProceduralMeshComponent::SetProcMeshSection(int32 SectionIndex, const FProcMeshSection& Section)
+{
+	// Ensure sections array is long enough
+	if (SectionIndex >= ProcMeshSections.Num())
+	{
+		ProcMeshSections.SetNum(SectionIndex + 1, false);
+	}
+
+	ProcMeshSections[SectionIndex] = Section;
+
+	UpdateLocalBounds(); // Update overall bounds
+	UpdateCollision(); // Mark collision as dirty
+	MarkRenderStateDirty(); // New section requires recreating scene proxy
 }
 
 FBoxSphereBounds UProceduralMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
@@ -712,7 +801,6 @@ void UProceduralMeshComponent::CreateProcMeshBodySetup()
 		ProcMeshBodySetup = NewObject<UBodySetup>(this);
 		ProcMeshBodySetup->BodySetupGuid = FGuid::NewGuid();
 
-		ProcMeshBodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
 		ProcMeshBodySetup->bGenerateMirroredCollision = false;
 		ProcMeshBodySetup->bDoubleSidedGeometry = true;
 	}
@@ -733,6 +821,15 @@ void UProceduralMeshComponent::UpdateCollision()
 
 	// Ensure we have a BodySetup
 	CreateProcMeshBodySetup();
+
+	// Fill in simple collision convex elements
+	ProcMeshBodySetup->AggGeom.ConvexElems = CollisionConvexElems;
+
+	// Set trace flag
+	ProcMeshBodySetup->CollisionTraceFlag = bUseComplexAsSimpleCollision ? CTF_UseComplexAsSimple : CTF_UseDefault;
+
+	// New GUID as collision has changed
+	ProcMeshBodySetup->BodySetupGuid = FGuid::NewGuid();
 
 #if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	// Clear current mesh data

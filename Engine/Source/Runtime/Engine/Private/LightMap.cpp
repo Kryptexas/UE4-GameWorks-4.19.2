@@ -721,15 +721,15 @@ bool FLightMapPendingTexture::AddElement(FLightMapAllocationGroup& AllocationGro
 	{
 		auto& Allocation = AllocationGroup.Allocations[iAllocation];
 		uint32 BaseX, BaseY;
-		const uint32 SizeX = Allocation->MappedRect.Width();
-		const uint32 SizeY = Allocation->MappedRect.Height();
-		if (FTextureLayout::AddElement(BaseX, BaseY, SizeX, SizeY))
+		const uint32 MappedRectWidth = Allocation->MappedRect.Width();
+		const uint32 MappedRectHeight = Allocation->MappedRect.Height();
+		if (FTextureLayout::AddElement(BaseX, BaseY, MappedRectWidth, MappedRectHeight))
 		{
 			Allocation->OffsetX = BaseX;
 			Allocation->OffsetY = BaseY;
 
 			// Assumes bAlignByFour
-			NewUnallocatedTexels -= ((SizeX + 3) & ~3) * ((SizeY + 3) & ~3);
+			NewUnallocatedTexels -= ((MappedRectWidth + 3) & ~3) * ((MappedRectHeight + 3) & ~3);
 		}
 		else
 		{
@@ -744,9 +744,9 @@ bool FLightMapPendingTexture::AddElement(FLightMapAllocationGroup& AllocationGro
 		for (--iAllocation; iAllocation >= 0; --iAllocation)
 		{
 			auto& Allocation = AllocationGroup.Allocations[iAllocation];
-			const uint32 SizeX = Allocation->MappedRect.Width();
-			const uint32 SizeY = Allocation->MappedRect.Height();
-			verify(FTextureLayout::RemoveElement(Allocation->OffsetX, Allocation->OffsetY, SizeX, SizeY));
+			const uint32 MappedRectWidth = Allocation->MappedRect.Width();
+			const uint32 MappedRectHeight = Allocation->MappedRect.Height();
+			verify(FTextureLayout::RemoveElement(Allocation->OffsetX, Allocation->OffsetY, MappedRectWidth, MappedRectHeight));
 		}
 		return false;
 	}

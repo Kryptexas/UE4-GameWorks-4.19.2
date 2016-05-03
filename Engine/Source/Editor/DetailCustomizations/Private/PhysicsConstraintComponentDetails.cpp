@@ -282,9 +282,7 @@ void FPhysicsConstraintComponentDetails::AddAngularLimits(IDetailLayoutBuilder& 
 
 	if (bInPhat == false)
 	{
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularRotationOffset)).ToSharedRef())
-			.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyEnabled, EPropertyType::AngularAnyLimit)));
-
+	    AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularRotationOffset)).ToSharedRef());
 	}
 	else
 	{

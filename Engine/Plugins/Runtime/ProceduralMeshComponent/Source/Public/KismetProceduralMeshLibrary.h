@@ -5,6 +5,17 @@
 #include "ProceduralMeshComponent.h"
 #include "KismetProceduralMeshLibrary.generated.h"
 
+/** Options for creating cap geometry when slicing */
+UENUM()
+enum class EProcMeshSliceCapOption
+{
+	/** Do not create cap geometry */
+	NoCap,
+	/** Add a new section to ProceduralMesh for cap */
+	CreateNewSectionForCap,
+	/** Add cap geometry to existing last section */
+	UseLastSectionForCap
+};
 
 UCLASS()
 class PROCEDURALMESHCOMPONENT_API UKismetProceduralMeshLibrary : public UBlueprintFunctionLibrary
@@ -35,4 +46,25 @@ class PROCEDURALMESHCOMPONENT_API UKismetProceduralMeshLibrary : public UBluepri
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
 	static void CreateGridMeshTriangles(int32 NumX, int32 NumY, bool bWinding, TArray<int32>& Triangles);
+
+	/** Grab geometry data from a StaticMesh asset. */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
+	static void GetSectionFromStaticMesh(UStaticMesh* InMesh, int32 LODIndex, int32 SectionIndex, TArray<FVector>& Vertices, TArray<int32>& Triangles, TArray<FVector>& Normals, TArray<FVector2D>& UVs, TArray<FProcMeshTangent>& Tangents);
+
+	/** Copy materials from StaticMeshComponent to ProceduralMeshComponent. */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
+	static void CopyProceduralMeshFromStaticMeshComponent(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, UProceduralMeshComponent* ProcMeshComponent, bool bCreateCollision);
+
+	/** 
+	 *	Slice the ProceduralMeshComponent (including simple convex collision) using a plane. Optionally create 'cap' geometry. 
+	 *	@param	InProcMesh				ProceduralMeshComponent to slice
+	 *	@param	PlanePosition			Point on the plane to use for slicing, in world space
+	 *	@param	PlaneNormal				Normal of plane used for slicing. Geometry on the positive side of the plane will be kept.
+	 *	@param	bCreateOtherHalf		If true, an additional ProceduralMeshComponent (OutOtherHalfProcMesh) will be created using the other half of the sliced geometry
+	 *	@param	OutOtherHalfProcMesh	If bCreateOtherHalf is set, this is the new component created. Its owner will be the same as the supplied InProcMesh.
+	 *	@param	CapOption				If and how to create 'cap' geometry on the slicing plane
+	 *	@param	CapMaterial				If creating a new section for the cap, assign this material to that section
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
+	static void SliceProceduralMesh(UProceduralMeshComponent* InProcMesh, FVector PlanePosition, FVector PlaneNormal, bool bCreateOtherHalf, UProceduralMeshComponent*& OutOtherHalfProcMesh, EProcMeshSliceCapOption CapOption, UMaterialInterface* CapMaterial);
 };

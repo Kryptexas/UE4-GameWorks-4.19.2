@@ -4,6 +4,8 @@
 #include "Components/MeshComponent.h"
 #include "ProceduralMeshComponent.generated.h"
 
+struct FKConvexElem;
+
 /**
 *	Struct used to specify a tangent vector for a vertex
 *	The Y tangent is computed from the cross product of the vertex normal (Tangent Z) and the TangentX member.
@@ -194,20 +196,46 @@ class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshCompone
 	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
 	bool IsMeshSectionVisible(int32 SectionIndex) const;
 
+	/** Returns number of sections currently created for this component */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
+	int32 GetNumSections() const;
+
+	/** Add simple collision convex to this component */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
+	void AddCollisionConvexMesh(TArray<FVector> ConvexVerts);
+
+	/** Add simple collision convex to this component */
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
+	void ClearCollisionConvexMeshes();
+
+	/** Function to replace _all_ simple collision in one go */
+	void SetCollisionConvexMeshes(const TArray< TArray<FVector> >& ConvexMeshes);
+
 	//~ Begin Interface_CollisionDataProvider Interface
 	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
 	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
 	virtual bool WantsNegXTriMesh() override{ return false; }
 	//~ End Interface_CollisionDataProvider Interface
 
+	/** 
+	 *	Controls whether the complex (Per poly) geometry should be treated as 'simple' collision. 
+	 *	Should be set to false if this component is going to be given simple collision and simulated.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Procedural Mesh")
+	bool bUseComplexAsSimpleCollision;
+
 	/** Collision data */
 	UPROPERTY(transient, duplicatetransient)
 	class UBodySetup* ProcMeshBodySetup;
 
-private:
-	//~ Begin USceneComponent Interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	//~ Begin USceneComponent Interface.
+	/** 
+	 *	Get pointer to internal data for one section of this procedural mesh component. 
+	 *	Note that pointer will becomes invalid if sections are added or removed.
+	 */
+	FProcMeshSection* GetProcMeshSection(int32 SectionIndex);
+
+	/** Replace a section with new section geometry */
+	void SetProcMeshSection(int32 SectionIndex, const FProcMeshSection& Section);
 
 	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
@@ -218,6 +246,11 @@ private:
 	virtual int32 GetNumMaterials() const override;
 	//~ End UMeshComponent Interface.
 
+
+private:
+	//~ Begin USceneComponent Interface.
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+	//~ Begin USceneComponent Interface.
 
 
 	/** Update LocalBounds member from the local box of each section */
@@ -230,6 +263,10 @@ private:
 	/** Array of sections of mesh */
 	UPROPERTY()
 	TArray<FProcMeshSection> ProcMeshSections;
+
+	/** Convex shapes used for simple collision */
+	UPROPERTY()
+	TArray<FKConvexElem> CollisionConvexElems;
 
 	/** Local space bounds of mesh */
 	UPROPERTY()

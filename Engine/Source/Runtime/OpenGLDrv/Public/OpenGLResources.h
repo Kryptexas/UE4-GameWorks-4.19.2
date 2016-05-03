@@ -65,13 +65,13 @@ class TOpenGLBuffer : public BaseType
 		{
 			while ( InSize > 0)
 			{
-				const uint32 Size = FMath::Min<uint32>( BlockSize, InSize);
+				const uint32 BufferSize = FMath::Min<uint32>( BlockSize, InSize);
 			
-				FOpenGL::BufferSubData( Type, InOffset, Size, Data);
+				FOpenGL::BufferSubData( Type, InOffset, BufferSize, Data);
 
-				InOffset += Size;
-				InSize -= Size;
-				Data += Size;
+				InOffset += BufferSize;
+				InSize -= BufferSize;
+				Data += BufferSize;
 			}
 		}
 		else

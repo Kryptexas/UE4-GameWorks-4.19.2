@@ -1496,6 +1496,17 @@ FBox UStaticMesh::GetBoundingBox() const
 	return ExtendedBounds.GetBox();
 }
 
+int32 UStaticMesh::GetNumSections(int32 InLOD) const
+{
+	int32 NumSections = 0;
+	if (RenderData != NULL && RenderData->LODResources.IsValidIndex(InLOD))
+	{
+		const FStaticMeshLODResources& LOD = RenderData->LODResources[InLOD];
+		NumSections = LOD.Sections.Num();
+	}
+	return NumSections;
+}
+
 float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex) const
 {
 	check(RequestedUVIndex >= 0);

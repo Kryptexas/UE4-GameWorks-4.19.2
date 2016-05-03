@@ -2033,14 +2033,14 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 					{
 						if ( TagIt->Type != UObject::FAssetRegistryTag::TT_Hidden )
 						{
-							const FName& Tag = TagIt->Name;
+							const FName TagName = TagIt->Name;
 
-							if ( !OnAssetTagWantsToBeDisplayed.IsBound() || OnAssetTagWantsToBeDisplayed.Execute(NewMajorityAssetType, Tag) )
+							if ( !OnAssetTagWantsToBeDisplayed.IsBound() || OnAssetTagWantsToBeDisplayed.Execute(NewMajorityAssetType, TagName) )
 							{
 								// Get tag metadata
 								TMap<FName, UObject::FAssetRegistryTagMetadata> MetadataMap;
 								CDO->GetAssetRegistryTagMetadata(MetadataMap);
-								const UObject::FAssetRegistryTagMetadata* Metadata = MetadataMap.Find(Tag);
+								const UObject::FAssetRegistryTagMetadata* Metadata = MetadataMap.Find(TagName);
 
 								FText DisplayName;
 								if (Metadata != nullptr && !Metadata->DisplayName.IsEmpty())
@@ -2049,7 +2049,7 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 								}
 								else
 								{
-									DisplayName = FText::FromName(Tag);
+									DisplayName = FText::FromName(TagName);
 								}
 
 								FText TooltipText;
@@ -2060,14 +2060,14 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 								else
 								{
 									// If the tag name corresponds to a property name, use the property tooltip
-									UProperty* Property = FindField<UProperty>(TypeClass, Tag);
-									TooltipText = (Property != nullptr) ? Property->GetToolTipText() : FText::FromString(FName::NameToDisplayString(Tag.ToString(), false));
+									UProperty* Property = FindField<UProperty>(TypeClass, TagName);
+									TooltipText = (Property != nullptr) ? Property->GetToolTipText() : FText::FromString(FName::NameToDisplayString(TagName.ToString(), false));
 								}
 
 								ColumnView->GetHeaderRow()->AddColumn(
-										SHeaderRow::Column(Tag)
-										.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, Tag ) ) )
-										.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, Tag)))
+										SHeaderRow::Column(TagName)
+										.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, TagName ) ) )
+										.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, TagName)))
 										.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
 										.DefaultLabel( DisplayName )
 										.DefaultTooltip( TooltipText )
@@ -2078,7 +2078,7 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 								// If we found a tag the matches the column we are currently sorting on, there will be no need to change the column
 								for (int32 SortIdx = 0; SortIdx < CurrentSortOrder.Num(); SortIdx++)
 								{
-									if (Tag == CurrentSortOrder[SortIdx].SortColumn)
+									if (TagName == CurrentSortOrder[SortIdx].SortColumn)
 									{
 										CurrentSortOrder[SortIdx].bSortRelevant = true;
 									}
@@ -2159,7 +2159,6 @@ void SAssetView::ProcessRecentlyAddedAssets()
 
 	if (FilteredRecentlyAddedAssets.Num() > 0)
 	{
-		const static float MaxSecondsPerFrame = 0.015;
 		double TickStartTime = FPlatformTime::Seconds();
 		bool bNeedsRefresh = false;
 

@@ -238,10 +238,10 @@ FString USoundCue::GetDesc()
 	FString Description = TEXT( "" );
 
 	// Display duration
-	const float Duration = GetDuration();
-	if( Duration < INDEFINITELY_LOOPING_DURATION )
+	const float CueDuration = GetDuration();
+	if( CueDuration < INDEFINITELY_LOOPING_DURATION )
 	{
-		Description = FString::Printf( TEXT( "%3.2fs" ), Duration );
+		Description = FString::Printf( TEXT( "%3.2fs" ), CueDuration );
 	}
 	else
 	{

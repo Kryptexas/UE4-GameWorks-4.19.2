@@ -778,6 +778,43 @@ void FAnimPhys::ConstrainPlanar(float DeltaTime, TArray<FAnimPhysLinearLimit>& L
 	LimitContainer.Add(FAnimPhysLinearLimit(nullptr, Body, Position0, Position1, LimitPlane.GetSafeNormal(), TargetSpeed, TargetSpeed, FVector2D(0.0f, MAX_flt)));
 }
 
+void FAnimPhys::ConstrainSphericalInner(float DeltaTime, TArray<FAnimPhysLinearLimit>& LimitContainer, FAnimPhysRigidBody* Body, const FTransform& SphereTransform, float SphereRadius)
+{
+	FVector SphereToBody = Body->Pose.Position - SphereTransform.GetLocation();
+	FVector LimitNormal = SphereToBody.GetSafeNormal();
+	float DistanceToLimit = SphereToBody.Size() - SphereRadius;
+
+	if(Body->CollisionType != AnimPhysCollisionType::CoM)
+	{
+		DistanceToLimit += Body->SphereCollisionRadius;
+	}
+
+	float TargetSpeed = DistanceToLimit / DeltaTime;
+
+	FVector Position0 = SphereTransform.GetLocation();
+	FVector Position1 = FVector::ZeroVector;
+
+	LimitContainer.Add(FAnimPhysLinearLimit(nullptr, Body, Position0, Position1, LimitNormal, TargetSpeed, TargetSpeed, FVector2D(-MAX_flt, 0.0f)));
+}
+
+void FAnimPhys::ConstrainSphericalOuter(float DeltaTime, TArray<FAnimPhysLinearLimit>& LimitContainer, FAnimPhysRigidBody* Body, const FTransform& SphereTransform, float SphereRadius)
+{
+	FVector SphereToBody = Body->Pose.Position - SphereTransform.GetLocation();
+	float DistanceToLimit = SphereToBody.Size() - SphereRadius;
+
+	if(Body->CollisionType != AnimPhysCollisionType::CoM)
+	{
+		DistanceToLimit -= Body->SphereCollisionRadius;
+	}
+
+	float TargetSpeed = DistanceToLimit / DeltaTime;
+
+	FVector Position0 = SphereTransform.GetLocation();
+	FVector Position1 = FVector::ZeroVector;
+
+	LimitContainer.Add(FAnimPhysLinearLimit(nullptr, Body, Position0, Position1, SphereToBody.GetSafeNormal(), TargetSpeed, TargetSpeed, FVector2D(0.0f, MAX_flt)));
+}
+
 void FAnimPhys::CreateSpring(TArray<FAnimPhysSpring>& SpringContainer, FAnimPhysRigidBody* Body0, FVector Position0, FAnimPhysRigidBody* Body1, FVector Position1)
 {
 	FAnimPhysSpring NewSpring;

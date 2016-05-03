@@ -127,7 +127,7 @@ public:
 		// e.g. someone playing with splines on a newly-created perfectly-flat landscape
 		static const float DepthBias = 0.0001;
 
-		const FMatrix& LocalToWorld = GetLocalToWorld();
+		const FMatrix& MyLocalToWorld = GetLocalToWorld();
 
 		const FLinearColor SelectedSplineColor = GEngine->GetSelectedMaterialColor();
 		const FLinearColor SelectedControlPointSpriteColor = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensityBillboards * 10); 
@@ -144,19 +144,19 @@ public:
 					const FLinearColor SegmentColor = Segment.bSelected ? SelectedSplineColor : SplineColor;
 
 					FLandscapeSplineInterpPoint OldPoint = Segment.Points[0];
-					OldPoint.Center       = LocalToWorld.TransformPosition(OldPoint.Center);
-					OldPoint.Left         = LocalToWorld.TransformPosition(OldPoint.Left);
-					OldPoint.Right        = LocalToWorld.TransformPosition(OldPoint.Right);
-					OldPoint.FalloffLeft  = LocalToWorld.TransformPosition(OldPoint.FalloffLeft);
-					OldPoint.FalloffRight = LocalToWorld.TransformPosition(OldPoint.FalloffRight);
+					OldPoint.Center       = MyLocalToWorld.TransformPosition(OldPoint.Center);
+					OldPoint.Left         = MyLocalToWorld.TransformPosition(OldPoint.Left);
+					OldPoint.Right        = MyLocalToWorld.TransformPosition(OldPoint.Right);
+					OldPoint.FalloffLeft  = MyLocalToWorld.TransformPosition(OldPoint.FalloffLeft);
+					OldPoint.FalloffRight = MyLocalToWorld.TransformPosition(OldPoint.FalloffRight);
 					for (int32 i = 1; i < Segment.Points.Num(); i++)
 					{
 						FLandscapeSplineInterpPoint NewPoint = Segment.Points[i];
-						NewPoint.Center       = LocalToWorld.TransformPosition(NewPoint.Center);
-						NewPoint.Left         = LocalToWorld.TransformPosition(NewPoint.Left);
-						NewPoint.Right        = LocalToWorld.TransformPosition(NewPoint.Right);
-						NewPoint.FalloffLeft  = LocalToWorld.TransformPosition(NewPoint.FalloffLeft);
-						NewPoint.FalloffRight = LocalToWorld.TransformPosition(NewPoint.FalloffRight);
+						NewPoint.Center       = MyLocalToWorld.TransformPosition(NewPoint.Center);
+						NewPoint.Left         = MyLocalToWorld.TransformPosition(NewPoint.Left);
+						NewPoint.Right        = MyLocalToWorld.TransformPosition(NewPoint.Right);
+						NewPoint.FalloffLeft  = MyLocalToWorld.TransformPosition(NewPoint.FalloffLeft);
+						NewPoint.FalloffRight = MyLocalToWorld.TransformPosition(NewPoint.FalloffRight);
 
 						// Draw lines from the last keypoint.
 						PDI->SetHitProxy(Segment.HitProxy);
@@ -183,12 +183,12 @@ public:
 
 				for (const FControlPointProxy& ControlPoint : ControlPoints)
 				{
-					const FVector ControlPointLocation = LocalToWorld.TransformPosition(ControlPoint.Location);
+					const FVector ControlPointLocation = MyLocalToWorld.TransformPosition(ControlPoint.Location);
 
 					// Draw Sprite
 					if (bDrawControlPointSprite)
 					{
-						const float ControlPointSpriteScale = LocalToWorld.GetScaleVector().X * ControlPoint.SpriteScale;
+						const float ControlPointSpriteScale = MyLocalToWorld.GetScaleVector().X * ControlPoint.SpriteScale;
 						const FVector ControlPointSpriteLocation = ControlPointLocation + FVector(0, 0, ControlPointSpriteScale * 0.75f);
 						const FLinearColor ControlPointSpriteColor = ControlPoint.bSelected ? SelectedControlPointSpriteColor : FLinearColor::White;
 
@@ -213,11 +213,11 @@ public:
 					if (ControlPoint.Points.Num() == 1)
 					{
 						FLandscapeSplineInterpPoint NewPoint = ControlPoint.Points[0];
-						NewPoint.Center = LocalToWorld.TransformPosition(NewPoint.Center);
-						NewPoint.Left   = LocalToWorld.TransformPosition(NewPoint.Left);
-						NewPoint.Right  = LocalToWorld.TransformPosition(NewPoint.Right);
-						NewPoint.FalloffLeft  = LocalToWorld.TransformPosition(NewPoint.FalloffLeft);
-						NewPoint.FalloffRight = LocalToWorld.TransformPosition(NewPoint.FalloffRight);
+						NewPoint.Center = MyLocalToWorld.TransformPosition(NewPoint.Center);
+						NewPoint.Left   = MyLocalToWorld.TransformPosition(NewPoint.Left);
+						NewPoint.Right  = MyLocalToWorld.TransformPosition(NewPoint.Right);
+						NewPoint.FalloffLeft  = MyLocalToWorld.TransformPosition(NewPoint.FalloffLeft);
+						NewPoint.FalloffRight = MyLocalToWorld.TransformPosition(NewPoint.FalloffRight);
 
 						// draw end for spline connection
 						PDI->DrawPoint(NewPoint.Center, ControlPointColor, 6.0f, GetDepthPriorityGroup(View));
@@ -232,19 +232,19 @@ public:
 					else if (ControlPoint.Points.Num() >= 2)
 					{
 						FLandscapeSplineInterpPoint OldPoint = ControlPoint.Points.Last();
-						//OldPoint.Left   = LocalToWorld.TransformPosition(OldPoint.Left);
-						OldPoint.Right  = LocalToWorld.TransformPosition(OldPoint.Right);
-						//OldPoint.FalloffLeft  = LocalToWorld.TransformPosition(OldPoint.FalloffLeft);
-						OldPoint.FalloffRight = LocalToWorld.TransformPosition(OldPoint.FalloffRight);
+						//OldPoint.Left   = MyLocalToWorld.TransformPosition(OldPoint.Left);
+						OldPoint.Right  = MyLocalToWorld.TransformPosition(OldPoint.Right);
+						//OldPoint.FalloffLeft  = MyLocalToWorld.TransformPosition(OldPoint.FalloffLeft);
+						OldPoint.FalloffRight = MyLocalToWorld.TransformPosition(OldPoint.FalloffRight);
 
 						for (const FLandscapeSplineInterpPoint& Point : ControlPoint.Points)
 						{
 							FLandscapeSplineInterpPoint NewPoint = Point;
-							NewPoint.Center = LocalToWorld.TransformPosition(NewPoint.Center);
-							NewPoint.Left   = LocalToWorld.TransformPosition(NewPoint.Left);
-							NewPoint.Right  = LocalToWorld.TransformPosition(NewPoint.Right);
-							NewPoint.FalloffLeft  = LocalToWorld.TransformPosition(NewPoint.FalloffLeft);
-							NewPoint.FalloffRight = LocalToWorld.TransformPosition(NewPoint.FalloffRight);
+							NewPoint.Center = MyLocalToWorld.TransformPosition(NewPoint.Center);
+							NewPoint.Left   = MyLocalToWorld.TransformPosition(NewPoint.Left);
+							NewPoint.Right  = MyLocalToWorld.TransformPosition(NewPoint.Right);
+							NewPoint.FalloffLeft  = MyLocalToWorld.TransformPosition(NewPoint.FalloffLeft);
+							NewPoint.FalloffRight = MyLocalToWorld.TransformPosition(NewPoint.FalloffRight);
 
 							PDI->SetHitProxy(ControlPoint.HitProxy);
 

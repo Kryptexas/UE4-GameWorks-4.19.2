@@ -290,11 +290,11 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 
 		if (PercentUnderTarget >= CVarPercentThreshold->GetFloat())
 		{
-			static IConsoleVariable* CVarCoarseSampleTime = IConsoleManager::Get().FindConsoleVariable(TEXT("PerfWarn.CoarseSampleTime"));
+			static IConsoleVariable* CoarseSampleTimeCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("PerfWarn.CoarseSampleTime"));
 
 			Arguments.Add(TEXT("Framerate"), CVarMinFPS->GetInt());
 			Arguments.Add(TEXT("Percentage"), FMath::FloorToFloat(PercentUnderTarget));
-			SampleTime = CVarCoarseSampleTime->GetInt();
+			SampleTime = CoarseSampleTimeCVar->GetInt();
 
 			bLowFramerate = true;
 		}

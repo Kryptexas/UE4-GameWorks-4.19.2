@@ -27,6 +27,7 @@ AGameplayDebuggerPlayerManager::AGameplayDebuggerPlayerManager(const FObjectInit
 #endif
 
 	bIsLocal = false;
+	bInitialized = false;
 }
 
 void AGameplayDebuggerPlayerManager::BeginPlay()
@@ -38,12 +39,20 @@ void AGameplayDebuggerPlayerManager::BeginPlay()
 	
 	bHasAuthority = (NetMode != NM_Client);
 	bIsLocal = (NetMode != NM_DedicatedServer);
+	bInitialized = true;
 
 	if (bHasAuthority)
 	{
 		UpdateAuthReplicators();
 		SetActorTickEnabled(true);
 	}
+	
+	for (int32 Idx = 0; Idx < PendingRegistrations.Num(); Idx++)
+	{
+		RegisterReplicator(*PendingRegistrations[Idx]);
+	}
+
+	PendingRegistrations.Empty();
 }
 
 void AGameplayDebuggerPlayerManager::EndPlay(const EEndPlayReason::Type Reason)
@@ -113,6 +122,12 @@ void AGameplayDebuggerPlayerManager::RegisterReplicator(AGameplayDebuggerCategor
 	APlayerController* OwnerPC = Replicator.GetReplicationOwner();
 	if (OwnerPC == nullptr)
 	{
+		return;
+	}
+
+	if (!bInitialized)
+	{
+		PendingRegistrations.Add(&Replicator);
 		return;
 	}
 

@@ -1293,7 +1293,7 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache()
 
 	uint32 NumGraphicsPSOs = DiskCaches[PSO_CACHE_GRAPHICS].GetNumPSOs();
 
-	for (uint32 i = 0; i < NumGraphicsPSOs; i++)
+	for (uint32 GraphicPSOIndex = 0; GraphicPSOIndex < NumGraphicsPSOs; GraphicPSOIndex++)
 	{
 		FD3D12LowLevelGraphicsPipelineStateDesc* GraphicsPSODesc = nullptr;
 		DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&GraphicsPSODesc, sizeof(*GraphicsPSODesc));
@@ -1318,23 +1318,23 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache()
 		if (PSODesc->InputLayout.NumElements)
 		{
 			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->InputLayout.pInputElementDescs, PSODesc->InputLayout.NumElements * sizeof(D3D12_INPUT_ELEMENT_DESC), true);
-			for (uint32 i = 0; i < PSODesc->InputLayout.NumElements; i++)
+			for (uint32 InputElementIndex = 0; InputElementIndex < PSODesc->InputLayout.NumElements; InputElementIndex++)
 			{
 				// Get the Sematic name string
 				uint32* stringLength = nullptr;
 				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&stringLength, sizeof(uint32));
-				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->InputLayout.pInputElementDescs[i].SemanticName, *stringLength, true);
+				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->InputLayout.pInputElementDescs[InputElementIndex].SemanticName, *stringLength, true);
 			}
 		}
 		if (PSODesc->StreamOutput.NumEntries)
 		{
 			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->StreamOutput.pSODeclaration, PSODesc->StreamOutput.NumEntries * sizeof(D3D12_SO_DECLARATION_ENTRY), true);
-			for (uint32 i = 0; i < PSODesc->StreamOutput.NumEntries; i++)
+			for (uint32 InputElementIndex = 0; InputElementIndex < PSODesc->StreamOutput.NumEntries; InputElementIndex++)
 			{
 				//Get the Sematic name string
 				uint32* stringLength = nullptr;
 				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&stringLength, sizeof(uint32));
-				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->StreamOutput.pSODeclaration[i].SemanticName, *stringLength, true);
+				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->StreamOutput.pSODeclaration[InputElementIndex].SemanticName, *stringLength, true);
 			}
 		}
 		if (PSODesc->StreamOutput.NumStrides)
@@ -1380,7 +1380,7 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache()
 
 	uint32 NumComputePSOs = DiskCaches[PSO_CACHE_COMPUTE].GetNumPSOs();
 
-	for (uint32 i = 0; i < NumComputePSOs; i++)
+	for (uint32 ComputeIndex = 0; ComputeIndex < NumComputePSOs; ComputeIndex++)
 	{
 		FD3D12ComputePipelineStateDesc* ComputePSODesc = nullptr;
 		DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&ComputePSODesc, sizeof(*ComputePSODesc));

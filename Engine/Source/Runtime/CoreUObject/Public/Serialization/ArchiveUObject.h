@@ -1033,7 +1033,7 @@ protected:
 	/**
 	* Serializes a single object
 	*/
-	void SerializeObject(UObject* ObjectToSerialzie);
+	void SerializeObject(UObject* ObjectToSerialize);
 };
 
 /*----------------------------------------------------------------------------

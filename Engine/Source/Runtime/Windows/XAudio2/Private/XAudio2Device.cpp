@@ -136,7 +136,7 @@ bool FXAudio2Device::InitializeHardware()
 	GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("AudioDevice"), WindowsAudioDeviceName, GEngineIni);
 
 	// Allow HMD to specify audio device, if one was not specified in settings
-	if (WindowsAudioDeviceName.IsEmpty() && IHeadMountedDisplayModule::IsAvailable())
+	if (WindowsAudioDeviceName.IsEmpty() && FAudioDevice::CanUseVRAudioDevice() && IHeadMountedDisplayModule::IsAvailable())
 	{
 		WindowsAudioDeviceName = IHeadMountedDisplayModule::Get().GetAudioOutputDevice();
 	}

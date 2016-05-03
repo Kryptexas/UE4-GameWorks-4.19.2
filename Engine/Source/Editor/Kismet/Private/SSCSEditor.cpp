@@ -2951,7 +2951,7 @@ TSharedRef<SWidget> SSCS_RowWidget_ActorRoot::GenerateWidgetForColumn(const FNam
 	ensure(ColumnName == SCS_ColumnName_ComponentClass);
 
 	// Create the name field
-	TSharedPtr<SInlineEditableTextBlock> InlineWidget =
+	TSharedPtr<SInlineEditableTextBlock> InlineEditableWidget =
 		SNew(SInlineEditableTextBlock)
 		.Text(this, &SSCS_RowWidget_ActorRoot::GetActorDisplayText)
 		.OnVerifyTextChanged(this, &SSCS_RowWidget_ActorRoot::OnVerifyActorLabelChanged)
@@ -2959,7 +2959,7 @@ TSharedRef<SWidget> SSCS_RowWidget_ActorRoot::GenerateWidgetForColumn(const FNam
 		.IsSelected(this, &SSCS_RowWidget_ActorRoot::IsSelectedExclusively)
 		.IsReadOnly(!NodePtr->CanRename() || (SCSEditor.IsValid() && !SCSEditor.Pin()->IsEditingAllowed()));
 
-	NodePtr->SetRenameRequestedDelegate(FSCSEditorTreeNode::FOnRenameRequested::CreateSP(InlineWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode));
+	NodePtr->SetRenameRequestedDelegate(FSCSEditorTreeNode::FOnRenameRequested::CreateSP(InlineEditableWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode));
 
 	return SNew(SHorizontalBox)
 		.ToolTip(CreateToolTipWidget())
@@ -2979,7 +2979,7 @@ TSharedRef<SWidget> SSCS_RowWidget_ActorRoot::GenerateWidgetForColumn(const FNam
 		.VAlign(VAlign_Center)
 		.Padding(0.0f, 0.0f)
 		[
-			InlineWidget.ToSharedRef()
+			InlineEditableWidget.ToSharedRef()
 		]
 
 	+SHorizontalBox::Slot()
@@ -5492,30 +5492,30 @@ void SSCSEditor::GetCollapsedNodes(const FSCSEditorTreeNodePtrType& InNodePtr, T
 
 EVisibility SSCSEditor::GetPromoteToBlueprintButtonVisibility() const
 {
-	EVisibility Visibility = EVisibility::Collapsed;
+	EVisibility ButtonVisibility = EVisibility::Collapsed;
 	if (EditorMode == EComponentEditorMode::ActorInstance)
 	{
 		if (GetBlueprint() == nullptr)
 		{
-			Visibility = EVisibility::Visible;
+			ButtonVisibility = EVisibility::Visible;
 		}
 	}
 
-	return Visibility;
+	return ButtonVisibility;
 }
 
 EVisibility SSCSEditor::GetEditBlueprintButtonVisibility() const
 {
-	EVisibility Visibility = EVisibility::Collapsed;
+	EVisibility ButtonVisibility = EVisibility::Collapsed;
 	if (EditorMode == EComponentEditorMode::ActorInstance)
 	{
 		if (GetBlueprint() != nullptr)
 		{
-			Visibility = EVisibility::Visible;
+			ButtonVisibility = EVisibility::Visible;
 		}
 	}
 
-	return Visibility;
+	return ButtonVisibility;
 }
 
 FText SSCSEditor::OnGetApplyChangesToBlueprintTooltip() const
