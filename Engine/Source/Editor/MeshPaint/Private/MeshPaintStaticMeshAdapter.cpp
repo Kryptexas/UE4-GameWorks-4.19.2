@@ -188,8 +188,11 @@ void FMeshPaintGeometryAdapterForStaticMeshes::OnRemoved()
 
 		for (const auto& Info : StaticMeshReferencers->Referencers)
 		{
-			Info.StaticMeshComponent->BodyInstance.SetCollisionEnabled(Info.CachedCollisionType, false);
-			Info.StaticMeshComponent->RecreatePhysicsState();
+			if (Info.StaticMeshComponent)
+			{
+				Info.StaticMeshComponent->BodyInstance.SetCollisionEnabled(Info.CachedCollisionType, false);
+				Info.StaticMeshComponent->RecreatePhysicsState();
+			}
 		}
 
 		StaticMeshReferencers->Referencers.Reset();
@@ -266,6 +269,11 @@ void FMeshPaintGeometryAdapterForStaticMeshes::AddReferencedObjects(FReferenceCo
 	FStaticMeshReferencers* StaticMeshReferencers = MeshToComponentMap.Find(ReferencedStaticMesh);
 	check(StaticMeshReferencers);
 	Collector.AddReferencedObject(StaticMeshReferencers->RestoreBodySetup);
+
+	for (auto& Info : StaticMeshReferencers->Referencers)
+	{
+		Collector.AddReferencedObject(Info.StaticMeshComponent);
+	}
 }
 
 
