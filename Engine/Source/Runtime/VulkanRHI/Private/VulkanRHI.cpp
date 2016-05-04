@@ -409,6 +409,9 @@ void FVulkanDynamicRHI::Shutdown()
 		// Flush all pending deletes before destroying the device.
 		FRHIResource::FlushPendingDeletes();
 
+		// And again since some might get on a pending queue
+		FRHIResource::FlushPendingDeletes();
+
 		//ReleasePooledTextures();
 	}
 

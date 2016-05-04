@@ -630,6 +630,7 @@ namespace VulkanRHI
 		{
 			delete ResourceHeaps[Index];
 		}
+		ResourceHeaps.Empty(0);
 	}
 
 	void FResourceHeapManager::DestroyResourceAllocations()
