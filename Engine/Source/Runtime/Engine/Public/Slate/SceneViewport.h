@@ -230,6 +230,8 @@ public:
 
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() override;
 
+	bool RestoreCaptureState(uint32 UserIndex);
+
 	/** Utility function to create an FReply that properly gets Focus and capture based on the settings*/
 	FReply AcquireFocusAndCapture(FIntPoint MousePosition);
 
