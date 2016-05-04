@@ -408,11 +408,11 @@ partial class GUBP
             {
                 Agenda.DotNetProjects.AddRange(
                     new string[] 
-			    {
-				    @"Engine\Source\Programs\DotNETCommon\DotNETUtilities\DotNETUtilities.csproj",
-                    @"Engine\Source\Programs\RPCUtility\RPCUtility.csproj",
-			    }
-                    );
+					{
+						CombinePaths(@"Engine\Source\Programs\DotNETCommon\DotNETUtilities\DotNETUtilities.csproj"),
+						CombinePaths(@"Engine\Source\Programs\RPCUtility\RPCUtility.csproj"),
+					}
+				);
             }
             string AddArgs = "-CopyAppBundleBackToDevice";
 
