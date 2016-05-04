@@ -39,8 +39,7 @@ inline FBox2D CreateFBox2D(FVector2D InMin, FVector2D InMax, bool InIsValid)
 template<class NativeType>
 inline NativeType* NoNativeCast(UClass* NoNativeClass, UObject* Object)
 {
-	check(NoNativeClass);
-	check(!Object || (nullptr != Cast<NativeType>(Object)));
+	check(NoNativeClass && NoNativeClass->IsChildOf<NativeType>());
 	return (Object && Object->IsA(NoNativeClass)) ? ((NativeType*)Object) : nullptr;
 }
 
