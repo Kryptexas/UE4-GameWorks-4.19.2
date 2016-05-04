@@ -91,6 +91,10 @@ public:
 	void Update(float DeltaTime);
 	void FinishRecording(bool bShowMessage = true);
 
+private:
+	void InitInternal(USkeletalMeshComponent* InComponent, float SampleRateHz, float MaxLength, bool bRecordInWorldSpace, bool bAutoSaveAsset);
+
+public:
 	TWeakObjectPtr<USkeletalMeshComponent> SkelComp;
 	TWeakObjectPtr<UAnimSequence> Sequence;
 	FString AssetPath;
@@ -100,6 +104,12 @@ public:
 	int CachedSkelCompForcedLodModel;
 
 	TSharedPtr<FAnimationRecorder> Recorder;
+
+	/** Used to store/restore update flag when recording */
+	EMeshComponentUpdateFlag::Type CachedMeshComponentUpdateFlag;
+
+	/** Used to store/restore URO when recording */
+	bool bCachedEnableUpdateRateOptimizations;
 };
 
 

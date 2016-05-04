@@ -56,10 +56,4 @@ private:
 	FTransform ComponentTransform;
 
 	FAnimationRecordingSettings AnimationSettings;
-
-	/** Used to store/restore update flag when recording */
-	EMeshComponentUpdateFlag::Type MeshComponentUpdateFlag;
-
-	/** Used to store/restore URO when recording */
-	bool bEnableUpdateRateOptimizations;
 };

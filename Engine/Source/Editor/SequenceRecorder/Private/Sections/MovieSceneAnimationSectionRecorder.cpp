@@ -54,13 +54,6 @@ void FMovieSceneAnimationSectionRecorder::CreateSection(UObject* InObjectToRecor
 	{
 		SkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
 
-		// turn off URO and make sure we always update even if out of view
-		bEnableUpdateRateOptimizations = SkeletalMeshComponent->bEnableUpdateRateOptimizations;
-		MeshComponentUpdateFlag = SkeletalMeshComponent->MeshComponentUpdateFlag;
-
-		SkeletalMeshComponent->bEnableUpdateRateOptimizations = false;
-		SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-
 		ComponentTransform = SkeletalMeshComponent->GetComponentToWorld().GetRelativeTransform(SkeletalMeshComponent->GetOwner()->GetTransform());
 
 		if(!AnimSequence.IsValid())
@@ -116,10 +109,6 @@ void FMovieSceneAnimationSectionRecorder::FinalizeSection()
 
 	if(SkeletalMeshComponent.IsValid())
 	{
-		// restore update flags
-		SkeletalMeshComponent->bEnableUpdateRateOptimizations = bEnableUpdateRateOptimizations;
-		SkeletalMeshComponent->MeshComponentUpdateFlag = MeshComponentUpdateFlag;
-
 		// only show a message if we dont have a valid movie section
 		const bool bShowMessage = !MovieSceneSection.IsValid();
 		FAnimationRecorderManager::Get().StopRecordingAnimation(SkeletalMeshComponent.Get(), bShowMessage);

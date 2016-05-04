@@ -676,31 +676,29 @@ FAnimationRecorderManager& FAnimationRecorderManager::Get()
 FAnimRecorderInstance::FAnimRecorderInstance()
 	: SkelComp(nullptr)
 	, Recorder(nullptr)
+	, CachedMeshComponentUpdateFlag(EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones)
+	, bCachedEnableUpdateRateOptimizations(false)
 {
 }
 
 void FAnimRecorderInstance::Init(USkeletalMeshComponent* InComponent, const FString& InAssetPath, const FString& InAssetName, float SampleRateHz, float MaxLength, bool bRecordInWorldSpace, bool bAutoSaveAsset)
 {
-	SkelComp = InComponent;
 	AssetPath = InAssetPath;
 	AssetName = InAssetName;
-	Recorder = MakeShareable(new FAnimationRecorder());
-	Recorder->SetSampleRateAndLength(SampleRateHz, MaxLength);
-	Recorder->bRecordLocalToWorld = bRecordInWorldSpace;
-	Recorder->SetAnimCompressionScheme(UAnimCompress_BitwiseCompressOnly::StaticClass());
-	Recorder->bAutoSaveAsset = bAutoSaveAsset;
 
-	if (InComponent)
-	{
-		CachedSkelCompForcedLodModel = InComponent->ForcedLodModel;
-		InComponent->ForcedLodModel = 1;
-	}
+	InitInternal(InComponent,  SampleRateHz, MaxLength, bRecordInWorldSpace, bAutoSaveAsset);
 }
 
 void FAnimRecorderInstance::Init(USkeletalMeshComponent* InComponent, UAnimSequence* InSequence, float SampleRateHz, float MaxLength, bool bRecordInWorldSpace, bool bAutoSaveAsset)
 {
-	SkelComp = InComponent;
 	Sequence = InSequence;
+	
+	InitInternal(InComponent, SampleRateHz, MaxLength, bRecordInWorldSpace, bAutoSaveAsset);
+}
+
+void FAnimRecorderInstance::InitInternal(USkeletalMeshComponent* InComponent, float SampleRateHz, float MaxLength, bool bRecordInWorldSpace, bool bAutoSaveAsset)
+{
+	SkelComp = InComponent;
 	Recorder = MakeShareable(new FAnimationRecorder());
 	Recorder->SetSampleRateAndLength(SampleRateHz, MaxLength);
 	Recorder->bRecordLocalToWorld = bRecordInWorldSpace;
@@ -711,6 +709,13 @@ void FAnimRecorderInstance::Init(USkeletalMeshComponent* InComponent, UAnimSeque
 	{
 		CachedSkelCompForcedLodModel = InComponent->ForcedLodModel;
 		InComponent->ForcedLodModel = 1;
+
+		// turn off URO and make sure we always update even if out of view
+		bCachedEnableUpdateRateOptimizations = InComponent->bEnableUpdateRateOptimizations;
+		CachedMeshComponentUpdateFlag = InComponent->MeshComponentUpdateFlag;
+
+		InComponent->bEnableUpdateRateOptimizations = false;
+		InComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	}
 }
 
@@ -752,10 +757,14 @@ void FAnimRecorderInstance::FinishRecording(bool bShowMessage)
 		Recorder->StopRecord(bShowMessage);
 	}
 
-	// restore force lod setting
 	if (SkelComp.IsValid())
 	{
+		// restore force lod setting
 		SkelComp->ForcedLodModel = CachedSkelCompForcedLodModel;
+
+		// restore update flags
+		SkelComp->bEnableUpdateRateOptimizations = bCachedEnableUpdateRateOptimizations;
+		SkelComp->MeshComponentUpdateFlag = CachedMeshComponentUpdateFlag;
 	}
 }
 
