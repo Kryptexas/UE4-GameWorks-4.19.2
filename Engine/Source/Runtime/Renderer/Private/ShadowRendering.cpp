@@ -4052,10 +4052,12 @@ void FForwardShadingSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediat
 	if (Scene->SimpleDirectionalLight)
 	{
 		const FLightSceneInfo& LightSceneInfo = *Scene->SimpleDirectionalLight;
+		static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
+		const bool bMobileEnableStaticAndCSMShadowReceivers = CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread() == 1;
 
 		if (LightSceneInfo.ShouldRenderViewIndependentWholeSceneShadows()
 			// Only render movable shadowcasting lights
-			&& (!LightSceneInfo.Proxy->HasStaticShadowing() || LightSceneInfo.Proxy->UseCSMForDynamicObjects())
+			&& (!LightSceneInfo.Proxy->HasStaticShadowing() || (LightSceneInfo.Proxy->UseCSMForDynamicObjects() && bMobileEnableStaticAndCSMShadowReceivers))
 			&& CheckForProjectedShadows(&LightSceneInfo))
 		{
 			bool bRender = false;
