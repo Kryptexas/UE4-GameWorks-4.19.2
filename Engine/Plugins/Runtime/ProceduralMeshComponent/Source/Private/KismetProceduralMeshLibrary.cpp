@@ -456,7 +456,7 @@ void UKismetProceduralMeshLibrary::CopyProceduralMeshFromStaticMeshComponent(USt
 //////////////////////////////////////////////////////////////////////////
 
 /** Util that returns 1 ir on positive side of plane, -1 if negative, or 0 if split by plane */
-int32 BoxPlaneCompare(FBox InBox, FPlane InPlane)
+int32 BoxPlaneCompare(FBox InBox, const FPlane& InPlane)
 {
 	FVector BoxCenter, BoxExtents;
 	InBox.GetCenterAndExtents(BoxCenter, BoxExtents);
