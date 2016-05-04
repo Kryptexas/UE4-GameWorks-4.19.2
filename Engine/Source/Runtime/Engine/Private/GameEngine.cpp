@@ -329,13 +329,35 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 		AutoCenterType = EAutoCenter::None;
 	}
 
+	// Give the window the max width/height of either the requested resolution, or your available desktop resolution
+	// We need to do this as we request some 4K windows when rendering sequences, and the OS may try and clamp that
+	// window to your available desktop resolution
+	TOptional<float> MaxWindowWidth;
+	TOptional<float> MaxWindowHeight;
+	if (WindowMode == EWindowMode::Windowed)
+	{
+		// Get available desktop area
+		FDisplayMetrics DisplayMetrics;
+		if (FSlateApplication::IsInitialized())
+		{
+			FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
+		}
+		else
+		{
+			FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+		}
+
+		MaxWindowWidth = FMath::Max(DisplayMetrics.VirtualDisplayRect.Right - DisplayMetrics.VirtualDisplayRect.Left, ResX);
+		MaxWindowHeight = FMath::Max(DisplayMetrics.VirtualDisplayRect.Bottom - DisplayMetrics.VirtualDisplayRect.Top, ResY);
+	}
+
 	TSharedRef<SWindow> Window = SNew(SWindow)
 	.ClientSize(FVector2D( ResX, ResY ))
 	.Title(WindowTitle)
 	.AutoCenter(AutoCenterType)
 	.ScreenPosition(FVector2D(WinX, WinY))
-	.MaxWidth(ResX)
-	.MaxHeight(ResY)
+	.MaxWidth(MaxWindowWidth)
+	.MaxHeight(MaxWindowHeight)
 	.FocusWhenFirstShown(true)
 	.SaneWindowPlacement(AutoCenterType == EAutoCenter::None)
 	.UseOSWindowBorder(true);
