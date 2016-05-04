@@ -594,6 +594,17 @@ public:
 	}
 
 	/**
+	 * Checks if platform wants to allow the thread heartbeat hang detection
+	 *
+	 * @return true if allows, false if shouldn't allow thread heartbeat hang detection
+	 */
+	static bool AllowThreadHeartBeat()
+	{
+		// allow if not overridden
+		return true;
+	}
+
+	/**
 	 * return the number of hardware CPU cores
 	 */
 	static int32 NumberOfCores()
