@@ -118,6 +118,7 @@ public:
 	static bool IsStoppedAtBreakpoint();
 
 	static bool CanShowNonPlayWorldOnlyActions();
+	static bool CanShowVulkanNonPlayWorldOnlyActions();
 	static bool CanShowVROnlyActions();
 
 	static int32 GetNumberOfClients();
@@ -323,7 +324,7 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 		FExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked, false, true),
 		FCanExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInNewProcess_CanExecute),
 		FIsActionChecked::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_InVulkanPreview),
-		FIsActionButtonVisible::CreateStatic(&FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions)
+		FIsActionButtonVisible::CreateStatic(&FInternalPlayWorldCommandCallbacks::CanShowVulkanNonPlayWorldOnlyActions)
 		);
 
 	ActionList.MapAction(Commands.PlayInNewProcess,
@@ -1852,6 +1853,11 @@ void FInternalPlayWorldCommandCallbacks::TogglePlayPause_Clicked()
 bool FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions()
 {
 	return !HasPlayWorld();
+}
+
+bool FInternalPlayWorldCommandCallbacks::CanShowVulkanNonPlayWorldOnlyActions()
+{
+	return !HasPlayWorld() && GetDefault<UEditorExperimentalSettings>()->bAllowVulkanPreview;
 }
 
 bool FInternalPlayWorldCommandCallbacks::CanShowVROnlyActions()
