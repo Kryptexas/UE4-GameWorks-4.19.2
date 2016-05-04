@@ -70,7 +70,7 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 }
 
 #define VULKAN_ENABLE_API_DUMP									0
-#define VULKAN_ENABLE_DRAW_MARKERS								0//PLATFORM_WINDOWS
+#define VULKAN_ENABLE_DRAW_MARKERS								PLATFORM_WINDOWS
 #define VULKAN_ALLOW_MIDPASS_CLEAR								0
 
 #define VULKAN_SINGLE_ALLOCATION_PER_RESOURCE					0

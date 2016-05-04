@@ -192,7 +192,7 @@ private:
 
 	FVulkanRingBuffer* UBRingBuffer;
 
-	void GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers);
+	void GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers, bool& bOutDebugMarkers);
 	void SetupFormats();
 
 #if VULKAN_ENABLE_DRAW_MARKERS
