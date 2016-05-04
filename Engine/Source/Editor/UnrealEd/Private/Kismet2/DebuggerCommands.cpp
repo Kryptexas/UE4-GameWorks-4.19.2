@@ -1857,7 +1857,7 @@ bool FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions()
 
 bool FInternalPlayWorldCommandCallbacks::CanShowVulkanNonPlayWorldOnlyActions()
 {
-	return !HasPlayWorld() && GetDefault<UEditorExperimentalSettings>()->bAllowVulkanPreview;
+	return !HasPlayWorld() && GetDefault<UEditorExperimentalSettings>()->bAllowVulkanPreview && FModuleManager::Get().ModuleExists(TEXT("VulkanRHI"));
 }
 
 bool FInternalPlayWorldCommandCallbacks::CanShowVROnlyActions()
