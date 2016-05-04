@@ -224,6 +224,8 @@ bool GIsTextureMemoryCorrupted = false;
 	bool GIsPrepareMapChangeBroken = false;
 #endif
 
+FSimpleMulticastDelegate UEngine::OnPostEngineInit;
+
 // We expose these variables to everyone as we need to access them in other files via an extern
 ENGINE_API float GAverageFPS = 0.0f;
 ENGINE_API float GAverageMS = 0.0f;

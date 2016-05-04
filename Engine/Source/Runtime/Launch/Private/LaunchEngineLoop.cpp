@@ -2277,6 +2277,8 @@ int32 FEngineLoop::Init()
 
 	GEngine->Init(this);
 
+	UEngine::OnPostEngineInit.Broadcast();
+
 	SlowTask.EnterProgressFrame(30);
 
 	// initialize engine instance discovery
