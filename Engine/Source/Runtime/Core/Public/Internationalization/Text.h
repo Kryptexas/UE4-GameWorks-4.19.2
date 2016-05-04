@@ -549,7 +549,25 @@ struct FFormatArgumentData
 
 	friend inline FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value )
 	{
-		Ar << Value.ArgumentName;
+		if (Ar.IsLoading())
+		{
+			// ArgumentName was changed in 4.11 to be FString rather than FText, we need to convert on this boundry to
+			// ensure serialization stays happy outside of UStruct::SerializeTaggedProperties.
+			if (Ar.EngineVer().GetMajor() == 4U && Ar.EngineVer().GetMinor() > 10U)
+			{
+				Ar << Value.ArgumentName;
+			}
+			else
+			{
+				FText TempValue;
+				Ar << TempValue;
+				Value.ArgumentName = TempValue.ToString();
+			}
+		}
+		if (Ar.IsSaving())
+		{
+			Ar << Value.ArgumentName;
+		}
 		Ar << Value.ArgumentValue;
 		return Ar;
 	}
