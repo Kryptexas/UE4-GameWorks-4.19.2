@@ -98,10 +98,11 @@ public abstract class BaseLinuxPlatform : Platform
 				// Move the executable for content-only projects into the project directory, using the project name, so it can figure out the UProject to look for and is consistent with code projects.
 				if (!Params.IsCodeBasedProject && Exe == Exes[0])
 				{
-					// ensure the ue4game binary exists, if applicable
-					if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(Params.ProjectGameExeFilename) && !SC.bIsCombiningMultiplePlatforms)
+                    // ensure the ue4game binary exists, if applicable
+                    string FullExePath = CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), Path.GetFileNameWithoutExtension(Exes[0]));
+					if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullExePath) && !SC.bIsCombiningMultiplePlatforms)
 					{
-						LogError("Failed to find game binary " + Params.ProjectGameExeFilename);
+						LogError("Failed to find game binary " + FullExePath);
                         throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find game binary {0}. You may need to build the UE4 project with your target configuration and platform.", Params.ProjectGameExeFilename);
 					}
 
