@@ -559,7 +559,7 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 
 	ModuleCompilerStartedEvent.Broadcast(false); // we never perform an async compile
 
-	FModuleManager ModuleManager = FModuleManager::Get();
+	FModuleManager& ModuleManager = FModuleManager::Get();
 
 	// Update our set of known modules, in case we don't already know about this module
 	ModuleManager.AddModule( InModuleName );
@@ -625,7 +625,7 @@ bool FHotReloadModule::RecompileModule(const FName InModuleName, const bool bRel
 		// Reload the module if it was loaded before we recompiled
 		if( bWasSuccessful && (bWasModuleLoaded || bForceCodeProject) && bReloadAfterRecompile )
 		{
-			Ar.Logf( TEXT( "Reloading module after successful compile." ) );
+			Ar.Logf( TEXT( "Reloading module %s after successful compile." ), *InModuleName.ToString() );
 			bWasSuccessful = ModuleManager.LoadModuleWithCallback( InModuleName, Ar );
 		}
 	}
