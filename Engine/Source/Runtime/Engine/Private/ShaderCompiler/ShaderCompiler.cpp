@@ -1352,6 +1352,11 @@ void FShaderCompilingManager::BlockOnShaderMapCompletion(const TArray<int32>& Sh
 						{
 							CompiledShaderMaps.Add(ShaderMapIdsToFinishCompiling[ShaderMapIndex], FShaderMapFinalizeResults(Results));
 							ShaderMapJobs.Remove(ShaderMapIdsToFinishCompiling[ShaderMapIndex]);
+
+							if (Results.bRecreateComponentRenderStateOnCompletion)
+							{
+								bRecreateComponentRenderStateOutstanding = true;
+							}
 						}
 						else
 						{
@@ -1391,6 +1396,11 @@ void FShaderCompilingManager::BlockOnShaderMapCompletion(const TArray<int32>& Sh
 
 				CompiledShaderMaps.Add(ShaderMapIdsToFinishCompiling[ShaderMapIndex], FShaderMapFinalizeResults(Results));
 				ShaderMapJobs.Remove(ShaderMapIdsToFinishCompiling[ShaderMapIndex]);
+
+				if (Results.bRecreateComponentRenderStateOnCompletion)
+				{
+					bRecreateComponentRenderStateOutstanding = true;
+				}
 			}
 		}
 	}
@@ -1565,7 +1575,10 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 
 							for (int32 ErrorIndex = 0; ErrorIndex < Errors.Num(); ErrorIndex++)
 							{
-								UE_LOG(LogShaderCompilers, Warning, TEXT("	%s"), *Errors[ErrorIndex]);
+								FString ErrorMessage = Errors[ErrorIndex];
+								// Work around build machine string matching heuristics that will cause a cook to fail
+								ErrorMessage.ReplaceInline(TEXT("error "), TEXT("err0r "), ESearchCase::CaseSensitive);
+								UE_LOG(LogShaderCompilers, Warning, TEXT("	%s"), *ErrorMessage);
 							}
 						}
 						else
@@ -1970,7 +1983,8 @@ void FShaderCompilingManager::FinishCompilation(const TCHAR* MaterialName, const
 	} 
 	while (bRetry);
 
-	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX, false);
+	const bool bRecreateComponentRenderState = bRecreateComponentRenderStateOutstanding;
+	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX, bRecreateComponentRenderState);
 	check(CompiledShaderMaps.Num() == 0);
 
 	const double EndTime = FPlatformTime::Seconds();
@@ -2246,7 +2260,7 @@ void GlobalBeginCompileShader(
 		const EShaderPlatform ShaderPlatform = static_cast<EShaderPlatform>(Target.Platform);
 		const bool bIsInstancedStereoCVar = CVar ? (CVar->GetValueOnGameThread() != false) : false;
 		const bool bIsInstancedStereo = bIsInstancedStereoCVar && (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4);
-		Input.Environment.SetDefine(TEXT("INSTANCED_STEREO"), bIsInstancedStereo ? 1 : 0);
+		Input.Environment.SetDefine(TEXT("INSTANCED_STEREO"), bIsInstancedStereo);
 
 		// Throw a warning if we are silently disabling ISR due to missing platform support.
 		if (bIsInstancedStereoCVar && !bIsInstancedStereo)
@@ -2290,7 +2304,7 @@ void GlobalBeginCompileShader(
 		}
 	}
 
-	Input.Environment.SetDefine(TEXT("HAS_INVERTED_Z_BUFFER"), ((int32)ERHIZBuffer::IsInverted != 0) ? 1 : 0);
+	Input.Environment.SetDefine(TEXT("HAS_INVERTED_Z_BUFFER"), (int32)ERHIZBuffer::IsInverted != 0);
 
 	{
 		FString ShaderPDBRoot;

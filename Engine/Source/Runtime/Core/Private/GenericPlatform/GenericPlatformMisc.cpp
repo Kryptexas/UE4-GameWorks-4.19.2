@@ -907,6 +907,11 @@ int32 FGenericPlatformMisc::NumberOfWorkerThreadsToSpawn()
 	return FMath::Max(FMath::Min(NumberOfCores - 1, MaxWorkerThreadsWanted), 1);
 }
 
+int32 FGenericPlatformMisc::NumberOfIOWorkerThreadsToSpawn()
+{
+	return 4;
+}
+
 void FGenericPlatformMisc::GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames)
 {
 	// by default, just return the running PlatformName as the only TargetPlatform we support

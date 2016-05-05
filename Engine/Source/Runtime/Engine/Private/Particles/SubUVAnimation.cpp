@@ -10,9 +10,16 @@
 // Can change this guid to force SubUV derived data to be regenerated on next load
 #define SUBUV_DERIVEDDATA_VER TEXT("96DFC022836B48889143E9DF484C3296")
 
-FString FSubUVDerivedData::GetDDCKeyString(const FGuid& StateId, int32 SizeX, int32 SizeY, int32 Mode, float AlphaThreshold)
+FString FSubUVDerivedData::GetDDCKeyString(const FGuid& StateId, int32 SizeX, int32 SizeY, int32 Mode, float AlphaThreshold, int32 OpacitySourceMode)
 {
-	return FDerivedDataCacheInterface::BuildCacheKey(TEXT("SUBUV_"), SUBUV_DERIVEDDATA_VER, *FString::Printf(TEXT("%s_%u_%u_%u_%f"), *StateId.ToString(), SizeX, SizeY, Mode, AlphaThreshold));
+	FString KeyString = FString::Printf(TEXT("%s_%u_%u_%u_%f"), *StateId.ToString(), SizeX, SizeY, Mode, AlphaThreshold);
+
+	if (OpacitySourceMode != 0)
+	{
+		KeyString += FString::Printf(TEXT("_%u"), OpacitySourceMode);
+	}
+
+	return FDerivedDataCacheInterface::BuildCacheKey(TEXT("SUBUV_"), SUBUV_DERIVEDDATA_VER, *KeyString);
 }
 
 void FSubUVDerivedData::Serialize(FArchive& Ar)
@@ -97,7 +104,7 @@ void USubUVAnimation::Serialize(FArchive& Ar)
 void USubUVAnimation::CacheDerivedData()
 {
 #if WITH_EDITORONLY_DATA
-	const FString KeyString = FSubUVDerivedData::GetDDCKeyString(SubUVTexture->Source.GetId(), SubImages_Horizontal, SubImages_Vertical, (int32)BoundingMode, AlphaThreshold);
+	const FString KeyString = FSubUVDerivedData::GetDDCKeyString(SubUVTexture->Source.GetId(), SubImages_Horizontal, SubImages_Vertical, (int32)BoundingMode, AlphaThreshold, (int32)OpacitySourceMode);
 	TArray<uint8> Data;
 
 	if (GetDerivedDataCacheRef().GetSynchronous(*KeyString, Data))
@@ -108,7 +115,7 @@ void USubUVAnimation::CacheDerivedData()
 	}
 	else
 	{
-		DerivedData.Build(SubUVTexture, SubImages_Horizontal, SubImages_Vertical, BoundingMode, AlphaThreshold);
+		DerivedData.Build(SubUVTexture, SubImages_Horizontal, SubImages_Vertical, BoundingMode, AlphaThreshold, OpacitySourceMode);
 
 		Data.Empty(DerivedData.BoundingGeometry.Num() * sizeof(FVector2D));
 		Data.AddUninitialized(DerivedData.BoundingGeometry.Num() * sizeof(FVector2D));
@@ -538,8 +545,24 @@ FIntPoint Neighbors[] =
 	FIntPoint(-1, 0)
 };
 
+uint8 ComputeOpacityValue(const uint8* RGBA, EOpacitySourceMode OpacitySourceMode)
+{
+	if (OpacitySourceMode == OSM_Alpha)
+	{
+		return *(RGBA + 3);
+	}
+	else
+	{
+		uint32 R = *RGBA;
+		uint32 G = *(RGBA + 1);
+		uint32 B = *(RGBA + 2);
+
+		return (uint8)((R + G + B) / 3);
+	}
+}
+
 /** Counts how many neighbors have non-zero alpha. */
-int32 ComputeNeighborCount(int32 X, int32 Y, int32 GlobalX, int32 GlobalY, int32 SubImageSizeX, int32 SubImageSizeY, int32 TextureSizeX, const TArray<uint8>& MipData, uint8 AlphaThresholdByte)
+int32 ComputeNeighborCount(int32 X, int32 Y, int32 GlobalX, int32 GlobalY, int32 SubImageSizeX, int32 SubImageSizeY, int32 TextureSizeX, const TArray<uint8>& MipData, uint8 AlphaThresholdByte, EOpacitySourceMode OpacitySourceMode)
 {
 	int32 NeighborCount = 0;
 
@@ -551,7 +574,7 @@ int32 ComputeNeighborCount(int32 X, int32 Y, int32 GlobalX, int32 GlobalY, int32
 		if (NeighborX >= 0 && NeighborX < SubImageSizeX 
 			&& NeighborY >= 0 && NeighborY < SubImageSizeY)
 		{
-			uint8 NeighborAlphaValue = MipData[((GlobalY + Neighbors[NeighborIndex].Y) * TextureSizeX + GlobalX + Neighbors[NeighborIndex].X) * 4 + 3];
+			uint8 NeighborAlphaValue = ComputeOpacityValue(&MipData[((GlobalY + Neighbors[NeighborIndex].Y) * TextureSizeX + GlobalX + Neighbors[NeighborIndex].X) * 4], OpacitySourceMode);
 
 			if (NeighborAlphaValue > AlphaThresholdByte)
 			{
@@ -568,7 +591,7 @@ struct FSubUVFrameData
 	TArray<FVector2D> BoundingVertices;
 };
 
-void FSubUVDerivedData::Build(UTexture2D* SubUVTexture, int32 SubImages_Horizontal, int32 SubImages_Vertical, ESubUVBoundingVertexCount BoundingMode, float AlphaThreshold)
+void FSubUVDerivedData::Build(UTexture2D* SubUVTexture, int32 SubImages_Horizontal, int32 SubImages_Vertical, ESubUVBoundingVertexCount BoundingMode, float AlphaThreshold, EOpacitySourceMode OpacitySourceMode)
 {
 #if WITH_EDITORONLY_DATA
 	if (SubUVTexture)
@@ -643,13 +666,13 @@ void FSubUVDerivedData::Build(UTexture2D* SubUVTexture, int32 SubImages_Horizont
 						{
 							int32 GlobalX = SubImageX * SubImageSizeX + X;
 							int32 NextGlobalX = NextSubImageX * SubImageSizeX + X;
-							uint8 AlphaValue = MipData[(GlobalY * TextureSizeX + GlobalX) * 4 + 3];
-							uint8 NextAlphaValue = MipData[(NextGlobalY * TextureSizeX + NextGlobalX) * 4 + 3];
+							uint8 AlphaValue = ComputeOpacityValue(&MipData[(GlobalY * TextureSizeX + GlobalX) * 4], OpacitySourceMode);
+							uint8 NextAlphaValue = ComputeOpacityValue(&MipData[(NextGlobalY * TextureSizeX + NextGlobalX) * 4], OpacitySourceMode);
 
 							if (AlphaValue > AlphaThresholdByte || NextAlphaValue > AlphaThresholdByte)
 							{
-								int32 NeighborCount = AlphaValue > AlphaThresholdByte ? ComputeNeighborCount(X, Y, GlobalX, GlobalY, SubImageSizeX, SubImageSizeY, TextureSizeX, MipData, AlphaThresholdByte) : 8;
-								int32 NextNeighborCount = NextAlphaValue > AlphaThresholdByte ? ComputeNeighborCount(X, Y, NextGlobalX, NextGlobalY, SubImageSizeX, SubImageSizeY, TextureSizeX, MipData, AlphaThresholdByte) : 8;
+								int32 NeighborCount = AlphaValue > AlphaThresholdByte ? ComputeNeighborCount(X, Y, GlobalX, GlobalY, SubImageSizeX, SubImageSizeY, TextureSizeX, MipData, AlphaThresholdByte, OpacitySourceMode) : 8;
+								int32 NextNeighborCount = NextAlphaValue > AlphaThresholdByte ? ComputeNeighborCount(X, Y, NextGlobalX, NextGlobalY, SubImageSizeX, SubImageSizeY, TextureSizeX, MipData, AlphaThresholdByte, OpacitySourceMode) : 8;
 
 								// Points with non-zero alpha that have 5 or more filled in neighbors must be in the solid interior
 								if (NeighborCount < 5 || NextNeighborCount < 5)

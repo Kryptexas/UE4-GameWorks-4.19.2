@@ -258,6 +258,7 @@ class PAKFILE_API FPakFile : FNoncopyable
 {
 	/** Pak filename. */
 	FString PakFilename;
+	FName PakFilenameName;
 	/** Archive to serialize the pak file from. */
 	TAutoPtr<class FChunkCacheWorker> Decryptor;
 	/** Map of readers assigned to threads. */
@@ -274,6 +275,8 @@ class PAKFILE_API FPakFile : FNoncopyable
 	TMap<FString, FPakDirectory> Index;
 	/** Timestamp of this pak file. */
 	FDateTime Timestamp;	
+	/** TotalSize of the pak file */
+	int64 CachedTotalSize;
 	/** True if this is a signed pak file. */
 	bool bSigned;
 	/** True if this pak file is valid and usable. */
@@ -329,6 +332,15 @@ public:
 	const FString& GetFilename() const
 	{
 		return PakFilename;
+	}
+	FName GetFilenameName() const
+	{
+		return PakFilenameName;
+	}
+
+	int64 TotalSize() const
+	{
+		return CachedTotalSize;
 	}
 
 	/**
@@ -1536,6 +1548,10 @@ public:
 	}
 
 	virtual bool CopyFile(const TCHAR* To, const TCHAR* From) override;
+
+#if USE_NEW_ASYNC_IO
+	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override;
+#endif // USE_NEW_ASYNC_IO
 
 	/**
 	 * Converts a filename to a path inside pak file.

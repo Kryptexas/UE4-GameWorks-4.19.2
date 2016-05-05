@@ -103,6 +103,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	, LightMapResolution(InComponent->GetStaticLightMapResolution())
 	, LODForCollision(InComponent->StaticMesh->LODForCollision)
 	, bDrawMeshCollisionWireframe(InComponent->bDrawMeshCollisionWireframe)
 #endif
@@ -1423,6 +1424,8 @@ float FStaticMeshSceneProxy::GetScreenSize( int32 LODIndex ) const
  */
 int32 FStaticMeshSceneProxy::GetLOD(const FSceneView* View) const 
 {
+	ensureMsgf(RenderData, TEXT("StaticMesh [%s] missing RenderData."), StaticMesh ? *StaticMesh->GetName() : TEXT("None"));
+
 	int32 CVarForcedLODLevel = GetCVarForceLOD();
 
 	//If a LOD is being forced, use that one
@@ -1449,6 +1452,8 @@ int32 FStaticMeshSceneProxy::GetLOD(const FSceneView* View) const
 
 FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
 {
+	ensureMsgf(RenderData, TEXT("StaticMesh [%s] missing RenderData."), StaticMesh ? *StaticMesh->GetName() : TEXT("None"));
+
 	FLODMask Result;
 	int32 CVarForcedLODLevel = GetCVarForceLOD();
 

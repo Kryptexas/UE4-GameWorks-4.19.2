@@ -528,6 +528,11 @@ public:
 	 */
 	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(float& OutDistanceMultiplier, int32 LODIndex, int32 ElementIndex) const { return nullptr; }
 
+	/**
+	* Get the lightmap resolution for this primitive. Used in VMI_LightmapDensity.
+	*/
+	virtual int32 GetLightMapResolution() const { return 0; }
+
 protected:
 
 	/** Allow subclasses to override the primitive name. Used primarily by BSP. */

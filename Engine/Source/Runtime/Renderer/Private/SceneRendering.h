@@ -60,11 +60,74 @@ public:
 	TArray<FProjectedShadowInfo*,SceneRenderingAllocator> OccludedPerObjectShadows;
 };
 
-// enum instead of bool to get better visibility when we pass around multiple bools
-enum ETranslucencyPassType
+// enum instead of bool to get better visibility when we pass around multiple bools, also allows for easier extensions
+namespace ETranslucencyPass
 {
-	TPT_NonSeparateTransluceny,
-	TPT_SeparateTransluceny
+	enum Type
+	{
+		TPT_NonSeparateTransluceny,
+		TPT_SeparateTransluceny,
+
+		TPT_MAX
+	};
+};
+
+// Stores the primitive count of each translucency pass (redundant, could be computed after sorting but this way we touch less memory)
+struct FTranslucenyPrimCount
+{
+private:
+	uint32 Count[ETranslucencyPass::TPT_MAX];
+
+public:
+	// constructor
+	FTranslucenyPrimCount()
+	{
+		for(uint32 i = 0; i < ETranslucencyPass::TPT_MAX; ++i)
+		{
+			Count[i] = 0;
+		}
+	}
+
+	// interface similar to TArray but here we only store the count of Prims per pass
+	void Append(const FTranslucenyPrimCount& InSrc)
+	{
+		for(uint32 i = 0; i < ETranslucencyPass::TPT_MAX; ++i)
+		{
+			Count[i] += InSrc.Count[i];
+		}
+	}
+
+	// interface similar to TArray but here we only store the count of Prims per pass
+	void Add(ETranslucencyPass::Type InPass)
+	{
+		++Count[InPass];
+	}
+
+	// @return range in SortedPrims[] after sorting
+	FInt32Range GetPassRange(ETranslucencyPass::Type InPass) const
+	{
+		// can be optimized (if needed)
+
+		// inclusive
+		int32 Start = 0;
+
+		uint32 i = 0;
+
+		for(; i < (uint32)InPass; ++i)
+		{
+			Start += Count[i];
+		}
+
+		// exclusive
+		int32 End = Start + Count[i];
+		
+		return FInt32Range(Start, End);
+	}
+
+	int32 Num(ETranslucencyPass::Type InPass) const
+	{
+		return Count[InPass];
+	}
 };
 
 /** 
@@ -73,33 +136,32 @@ enum ETranslucencyPassType
 class FTranslucentPrimSet
 {
 public:
-
 	/** 
 	* Iterate over the sorted list of prims and draw them
 	* @param View - current view used to draw items
 	* @param PhaseSortedPrimitives - array with the primitives we want to draw
 	* @param TranslucenyPassType
 	*/
-	void DrawPrimitives(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPassType TranslucenyPassType) const;
+	void DrawPrimitives(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType) const;
 
 	/**
 	* Iterate over the sorted list of prims and draw them
 	* @param View - current view used to draw items
 	* @param PhaseSortedPrimitives - array with the primitives we want to draw
 	* @param TranslucenyPassType
-	* @param FirstIndex, range of elements to render
-	* @param LastIndex, range of elements to render
+	* @param FirstPrimIdx, range of elements to render (included), index into SortedPrims[] after sorting
+	* @param LastPrimIdx, range of elements to render (included), index into SortedPrims[] after sorting
 	*/
-	void DrawPrimitivesParallel(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPassType TranslucenyPassType, int32 FirstIndex, int32 LastIndex) const;
+	void DrawPrimitivesParallel(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 FirstPrimIdx, int32 LastPrimIdx) const;
 
 	/**
 	* Draw a single primitive...this is used when we are rendering in parallel and we need to handlke a translucent shadow
 	* @param View - current view used to draw items
 	* @param PhaseSortedPrimitives - array with the primitives we want to draw
 	* @param TranslucenyPassType
-	* @param Index, element to render
+	* @param PrimIdx in SortedPrims[]
 	*/
-	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPassType TranslucenyPassType, int32 Index) const;
+	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 PrimIdx) const;
 
 	/** 
 	* Draw all the primitives in this set for the forward shading pipeline. 
@@ -117,7 +179,7 @@ public:
 	/**
 	* Similar to AddScenePrimitive, but we are doing placement news and increasing counts when that happens
 	*/
-	static void PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum);
+	static void PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency, void *InPlace, int32& InOutNum, FTranslucenyPrimCount& OutCount);
 
 	/**
 	* Sort any primitives that were added to the set back-to-front
@@ -129,73 +191,56 @@ public:
 	*/
 	int32 NumPrims() const
 	{
-		return SortedPrims.Num() + SortedSeparateTranslucencyPrims.Num();
+		return SortedPrims.Num();
 	}
-
-	/** 
-	* @return number of prims that render as separate translucency
-	*/
-	int32 NumSeparateTranslucencyPrims() const
-	{
-		return SortedSeparateTranslucencyPrims.Num();
-	}
-
-	/** 
-	* @return the interface to a primitive which render in separate translucency
-	*/
-	const FPrimitiveSceneInfo* GetSeparateTranslucencyPrim(int32 i)const
-	{
-		check(i>=0 && i<NumSeparateTranslucencyPrims());
-		return SortedSeparateTranslucencyPrims[i].PrimitiveSceneInfo;
-	}
-
-	/** contains a sort key */
-	struct FDepthSortedPrim
-	{
-		/** Default constructor. */
-		FDepthSortedPrim() {}
-
-		FDepthSortedPrim(FPrimitiveSceneInfo* InPrimitiveSceneInfo, float InSortKey)
-			:	PrimitiveSceneInfo(InPrimitiveSceneInfo)
-			,	SortKey(InSortKey)
-		{
-		}
-
-		FPrimitiveSceneInfo* PrimitiveSceneInfo;
-		float SortKey;
-	};
 
 	/** contains a scene prim and its sort key */
-	struct FSortedPrim :public FDepthSortedPrim
+	struct FSortedPrim
 	{
 		/** Default constructor. */
 		FSortedPrim() {}
 
-		FSortedPrim(FPrimitiveSceneInfo* InPrimitiveSceneInfo,float InSortKey,int32 InSortPriority)
-			:	FDepthSortedPrim(InPrimitiveSceneInfo, InSortKey)
-			,	SortPriority(InSortPriority)
+		// @param InPass (first we sort by this)
+		// @param InSortPriority SHRT_MIN .. SHRT_MAX (then we sort by this)
+		// @param InSortKey from UPrimitiveComponent::TranslucencySortPriority e.g. SortByDistance/SortAlongAxis (then by this)
+		FSortedPrim(FPrimitiveSceneInfo* InPrimitiveSceneInfo, ETranslucencyPass::Type InPass, int16 InSortPriority, float InSortKey)
+			:	PrimitiveSceneInfo(InPrimitiveSceneInfo)
+			,	SortKey(InSortKey)
 		{
+			SetSortOrder(InPass, InSortPriority);
 		}
 
-		int32 SortPriority;
+		void SetSortOrder(ETranslucencyPass::Type InPass, int16 InSortPriority)
+		{
+			uint32 UpperShort = (uint32)InPass;
+			// 0 .. 0xffff
+			int32 SortPriorityWithoutSign = (int32)InSortPriority - (int32)SHRT_MIN;
+			uint32 LowerShort = SortPriorityWithoutSign;
+
+			check(LowerShort <= 0xffff);
+
+			// top 8 bits are currently unused
+			SortOrder = (UpperShort << 16) | LowerShort;
+		}
+
+		//
+		FPrimitiveSceneInfo* PrimitiveSceneInfo;
+		// single 32bit sort order containing Pass and SortPriority (first we sort by this)
+		uint32 SortOrder;
+		// from UPrimitiveComponent::TranslucencySortPriority (then by this)
+		float SortKey;
 	};
 
 	/**
 	* Adds primitives originally created with PlaceScenePrimitive
 	*/
-	void AppendScenePrimitives(FSortedPrim* Normal, int32 NumNormal, FSortedPrim* Separate, int32 NumSeparate);
+	void AppendScenePrimitives(FSortedPrim* Elements, int32 Num, const FTranslucenyPrimCount& TranslucentPrimitiveCountPerPass);
 
+	// belongs to SortedPrims
+	FTranslucenyPrimCount SortedPrimsNum;
 
 private:
 
-	/** sortkey compare class */
-	struct FCompareFDepthSortedPrim
-	{
-		FORCEINLINE bool operator()( const FDepthSortedPrim& A, const FDepthSortedPrim& B ) const
-		{
-			return B.SortKey < A.SortKey;
-		}
-	};
 	/** sortkey compare class */
 	struct FCompareFSortedPrim
 	{
@@ -203,20 +248,18 @@ private:
 		{
 			// If priorities are equal sort normally from back to front
 			// otherwise lower sort priorities should render first
-			return ( A.SortPriority == B.SortPriority ) ? ( B.SortKey < A.SortKey ) : ( A.SortPriority < B.SortPriority );
+			return ( A.SortOrder == B.SortOrder ) ? ( B.SortKey < A.SortKey ) : ( A.SortOrder < B.SortOrder );
 		}
 	};
 
-	/** list of sorted translucent primitives */
+	/** list of translucent primitives, sorted after calling Sort() */
 	TArray<FSortedPrim,SceneRenderingAllocator> SortedPrims;
-	/** list of sorted translucent primitives that render in separate translucency. Those are not blurred by Depth of Field and don't affect bloom. */
-	TArray<FSortedPrim,SceneRenderingAllocator> SortedSeparateTranslucencyPrims;
+
 
 	/** Renders a single primitive for the deferred shading pipeline. */
-	void RenderPrimitive(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, ETranslucencyPassType TranslucenyPassType) const;
+	void RenderPrimitive(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, ETranslucencyPass::Type TranslucenyPassType) const;
 };
 
-template <> struct TIsPODType<FTranslucentPrimSet::FDepthSortedPrim> { enum { Value = true }; };
 template <> struct TIsPODType<FTranslucentPrimSet::FSortedPrim> { enum { Value = true }; };
 
 /** A batched occlusion primitive. */
@@ -912,7 +955,7 @@ protected:
 	/** Initialized the fog constants for each view. */
 	void InitFogConstants();
 
-	/** Returns whether there are translucent primitives to be renderered. */
+	/** Returns whether there are translucent primitives to be rendered. */
 	bool ShouldRenderTranslucency() const;
 
 	/** TODO: REMOVE if no longer needed: Copies scene color to the viewport's render target after applying gamma correction. */

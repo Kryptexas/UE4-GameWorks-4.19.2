@@ -288,7 +288,8 @@ static FORCEINLINE_DEBUGGABLE VectorRegister DecompressSingleTrackRotationVector
  * @param	MemoryStream		The MemoryReader or MemoryWriter object to read from/write to.
  * @param	Offset				The starting offset into the compressed byte stream for this track (can be INDEX_NONE to indicate an identity track)
  */
-void AEFPerTrackCompressionCodec::ByteSwapOneTrack(UAnimSequence& Seq, FMemoryArchive& MemoryStream, int32 Offset)
+template<class TArchive>
+void AEFPerTrackCompressionCodec::ByteSwapOneTrack(UAnimSequence& Seq, TArchive& MemoryStream, int32 Offset)
 {
 	// Translation data.
 	if (Offset != INDEX_NONE)
@@ -346,6 +347,10 @@ void AEFPerTrackCompressionCodec::ByteSwapOneTrack(UAnimSequence& Seq, FMemoryAr
 		PreservePadding(TrackData, MemoryStream);
 	}
 }
+
+template void AEFPerTrackCompressionCodec::ByteSwapOneTrack(UAnimSequence& Seq, FMemoryReader& MemoryStream, int32 Offset);
+template void AEFPerTrackCompressionCodec::ByteSwapOneTrack(UAnimSequence& Seq, FMemoryWriter& MemoryStream, int32 Offset);
+
 
 /**
  * Preserves 4 byte alignment within a stream

@@ -20,6 +20,7 @@
 #include "LightGrid.h"
 #include "AtmosphereRendering.h"
 #include "Components/PlanarReflectionComponent.h"
+#include "Matinee/MatineeActor.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -112,6 +113,14 @@ static TAutoConsoleVariable<float> CVarRoughnessMax(
 	TEXT("1: (default)"),
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
+static TAutoConsoleVariable<int32> CVarDisplayInternals(
+	TEXT("r.DisplayInternals"),
+	0,
+	TEXT("Allows to enable screen printouts that show the internals on the engine/renderer\n")
+	TEXT("This is mostly useful to be able to reason why a screenshots looks different.\n")
+	TEXT(" 0: off (default)\n")
+	TEXT(" 1: enabled"),
+	ECVF_RenderThreadSafe | ECVF_Cheat);
 #endif
 
 /**
@@ -686,6 +695,18 @@ void FViewInfo::CreateUniformBuffer(
 	FrameUniformShaderParameters.CullingSign = bReverseCulling ? -1.0f : 1.0f;
 	FrameUniformShaderParameters.NearPlane = GNearClippingPlane;
 
+#if WITH_EDITOR
+	if (Family->bNullifyWorldSpacePosition)
+	{
+		// Forces world space position to 0 and view vector to up.
+		ViewUniformShaderParameters.SVPositionToTranslatedWorld = 
+			FMatrix(FPlane( 0,   0,  0,   0),
+					FPlane( 0,   0,  0,   0),
+					FPlane( 0,   0,  0,   0),
+					FPlane( 0,   0,  1,   1));
+	}
+	else
+#endif
 	{
 		// setup a matrix to transform float4(SvPosition.xyz,1) directly to TranslatedWorld (quality, performance as we don't need to convert or use interpolator)
 
@@ -1389,6 +1410,39 @@ void FViewInfo::SetValidEyeAdaptation() const
 	}
 }
 
+void FDisplayInternalsData::Setup(UWorld *World)
+{
+	DisplayInternalsCVarValue = 0;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	DisplayInternalsCVarValue = CVarDisplayInternals.GetValueOnGameThread();
+
+	if(IsValid())
+	{
+		MatineeTime = -1.0f;
+		uint32 Count = 0;
+
+		for (TObjectIterator<AMatineeActor> It; It; ++It)
+		{
+			AMatineeActor* MatineeActor = *It;
+
+			if(MatineeActor->GetWorld() == World && MatineeActor->bIsPlaying)
+			{
+				MatineeTime = MatineeActor->InterpPosition;
+				++Count;
+			}
+		}
+
+		if(Count > 1)
+		{
+			MatineeTime = -2;
+		}
+
+		check(IsValid());
+	}
+#endif
+}
+
 /*-----------------------------------------------------------------------------
 	FSceneRenderer
 -----------------------------------------------------------------------------*/
@@ -1555,13 +1609,14 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 			FViewInfo& View = Views[ViewIndex];
 			if (!View.bIsReflectionCapture && !View.bIsSceneCapture )
 			{
-				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 				// display a message saying we're frozen
 				FSceneViewState* ViewState = (FSceneViewState*)View.State;
 				bool bViewParentOrFrozen = ViewState && (ViewState->HasViewParent() || ViewState->bIsFrozen);
 				bool bLocked = View.bIsLocked;
 				if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning || bLocked || bShowGlobalClipPlaneWarning)
 				{
+					SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
+
 					// this is a helper class for FCanvas to be able to get screen size
 					class FRenderTargetTemp : public FRenderTarget
 					{
@@ -1673,8 +1728,16 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 			GRenderTargetPool.PresentContent(RHICmdList, View);
 		}
 	}
-
 #endif
+
+	for(int32 ViewExt = 0; ViewExt < ViewFamily.ViewExtensions.Num(); ++ViewExt)
+	{
+		ViewFamily.ViewExtensions[ViewExt]->PostRenderViewFamily_RenderThread(RHICmdList, ViewFamily);
+		for(int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex)
+		{
+			ViewFamily.ViewExtensions[ViewExt]->PostRenderView_RenderThread(RHICmdList, Views[ViewIndex]);
+		}
+	}
 
 	// Notify the RHI we are done rendering a scene.
 	RHICmdList.EndScene();
@@ -1887,7 +1950,7 @@ void FSceneRenderer::ClearPrimitiveSingleFramePrecomputedLightingBuffers()
 }
 
 /*-----------------------------------------------------------------------------
-	FRendererModule::BeginRenderingViewFamily
+	FRendererModule
 -----------------------------------------------------------------------------*/
 
 /**
@@ -1981,7 +2044,7 @@ void FRendererModule::CreateAndInitSingleView(FRHICommandListImmediate& RHICmdLi
 	View->InitRHIResources(nullptr);
 }
 
-void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,FSceneViewFamily* ViewFamily)
+void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily* ViewFamily)
 {
 	UWorld* World = nullptr; 
 	check(ViewFamily->Scene);
@@ -2033,6 +2096,8 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,FSceneViewFamily*
 				SceneRenderer->Scene->UpdatePlanarReflectionContents(ReflectionComponent, *SceneRenderer);
 			}
 		}
+
+		SceneRenderer->ViewFamily.DisplayInternalsData.Setup(World);
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			FDrawSceneCommand,

@@ -1104,6 +1104,105 @@ bool FAutomationAttachment::RunTest(const FString& Parameters)
 	return true;
 }
 
+// ----------------------------------------------------------------------------------------------------------------
+
+#include "Matinee/MatineeActor.h"
+
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FWaitForMatineeToCompleteAndDoScreenshotsLatentCommand, AMatineeActor*, MatineeActor);
+
+bool FWaitForMatineeToCompleteAndDoScreenshotsLatentCommand::Update()
+{
+	bool bTestComplete = true;
+	if (MatineeActor)
+	{
+		bTestComplete = !MatineeActor->bIsPlaying;
+	}
+	return bTestComplete;
+}
+
+/**
+ * FRenderOutputValidation - render deterministic and compare results of multiple runs
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRenderOutputValidation, "Rendering.RenderOutputValidation", EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
+
+/** 
+ * render deterministic and compare results of multiple runs
+ *
+ * @param Parameters - Unused for this test
+ * @return	TRUE if the test was successful, FALSE otherwise
+ */
+bool FRenderOutputValidation::RunTest(const FString& Parameters)
+{
+	const bool bChangeResolution = false;
+	const bool bLoadMap = false;			// true doesn't work at the moment (iterate matinees needs to happen after loading the map)
+
+	//Gets the default map that the game uses.
+	const UGameMapsSettings* GameMapsSettings = GetDefault<UGameMapsSettings>();
+//	const FString& MapName = GameMapsSettings->GetGameDefaultMap();
+	const FString MapName = TEXT("ScreenshotsTest");
+
+	// to make sure the state of the FAutomationTestFramework is reset before we call the test
+	check(!FAutomationTestFramework::GetInstance().ShouldUseFullSizeScreenshots());
+
+	// request full res screenshots
+	FAutomationTestFramework::GetInstance().SetScreenshotOptions(true, true);
+
+	if(bLoadMap)
+	{
+		// Opens the actual default map in game.
+		GEngine->Exec(GetSimpleEngineAutomationTestGameWorld(GetTestFlags()), *FString::Printf(TEXT("Open %s"), *MapName));
+		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(2.0f));
+	}
+
+	// Gets the current resolution.
+	FString RestoreResolutionString = FString::Printf(TEXT("setres %dx%d"), GSystemResolution.ResX, GSystemResolution.ResY);
+
+	if(bChangeResolution)
+	{
+		// Change the resolution
+		ADD_LATENT_AUTOMATION_COMMAND(FExecStringLatentCommand(TEXT("setres 640x480")));
+		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(2.0f));
+	}
+	// 5 sec should be enough, if more is needed - we should investigate
+	ADD_LATENT_AUTOMATION_COMMAND(FStreamAllResourcesLatentCommand(5.0f));
+
+	if( FAutomationTestFramework::GetInstance().IsScreenshotAllowed() )
+	{
+		for (TObjectIterator<AMatineeActor> It; It; ++It)
+		{
+			AMatineeActor* MatineeActor = *It;
+
+			FString Name;
+			MatineeActor->GetName(Name);
+
+			if(Name.Contains(TEXT("Automation")))
+			{
+				UE_LOG(LogEngineAutomationTests, Log, TEXT("Iterated matinee: %p '%s'"), MatineeActor, *MatineeActor->GetName())
+
+				//add latent action to execute this matinee
+				ADD_LATENT_AUTOMATION_COMMAND(FPlayMatineeLatentCommand(MatineeActor));
+
+				//Run the Stat FPS Chart command
+		//			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StartFPSChart")));
+
+				//add action to wait until matinee is complete
+				ADD_LATENT_AUTOMATION_COMMAND(FWaitForMatineeToCompleteAndDoScreenshotsLatentCommand(MatineeActor));
+
+				//Stop the Stat FPS Chart command
+		//			ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StopFPSChart")));
+			}
+		}
+	}
+
+	if(bChangeResolution)
+	{
+		// restore the resolution
+		ADD_LATENT_AUTOMATION_COMMAND(FExecStringLatentCommand(RestoreResolutionString));
+	}
+
+	return true;
+}
+
 #endif //WITH_DEV_AUTOMATION_TESTS
 
 /* UAutomationTestSettings interface

@@ -690,7 +690,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_VULKAN_ES3_1_ANDROID:
 		return ERHIFeatureLevel::ES3_1;
 	default:
-		check(0);
+		checkf(0, TEXT("Unknown ShaderPlatform %d"), (int32)InShaderPlatform);
 		return ERHIFeatureLevel::Num;
 	}
 }
@@ -817,7 +817,7 @@ inline int32 GetFeatureLevelMaxNumberOfBones(ERHIFeatureLevel::Type FeatureLevel
 	case ERHIFeatureLevel::SM5:
 		return 256;
 	default:
-		check(0);
+		checkf(0, TEXT("Unknown FeatureLevel %d"), (int32)FeatureLevel);
 	}
 
 	return 0;
@@ -838,7 +838,9 @@ inline const TCHAR* GetShaderFrequencyString(EShaderFrequency Frequency)
 	case SF_Geometry:		return TEXT("SF_Geometry");
 	case SF_Pixel:			return TEXT("SF_Pixel");
 	case SF_Compute:		return TEXT("SF_Compute");
-	default:				check(0); break;
+	default:				
+		checkf(0, TEXT("Unknown ShaderFrequency %d"), (int32)Frequency);
+		break;
 	}
 
 	return nullptr;

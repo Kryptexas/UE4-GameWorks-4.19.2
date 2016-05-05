@@ -2,7 +2,7 @@
 
 #pragma once
 
-
+#include "AsyncFileHandle.h"
 struct FObjectInstancingGraph;
 
 
@@ -116,12 +116,14 @@ protected:
 /**
  * UObject Memory Reader Archive.
  */
-class FObjectReader : public FMemoryReader
+class FObjectReader : public FMemoryArchive
 {
 public:
 	FObjectReader(UObject* Obj, TArray<uint8>& InBytes, bool bIgnoreClassRef = false, bool bIgnoreArchetypeRef = false)
-		: FMemoryReader(InBytes)
+		: Bytes(InBytes)
 	{
+		ArIsLoading = true;
+		ArIsPersistent = false;
 		ArIgnoreClassRef = bIgnoreClassRef;
 		ArIgnoreArchetypeRef = bIgnoreArchetypeRef;
 
@@ -129,6 +131,29 @@ public:
 	}
 
 	//~ Begin FArchive Interface
+
+	int64 TotalSize()
+	{
+		return (int64)Bytes.Num();
+	}
+
+	void Serialize(void* Data, int64 Num)
+	{
+		if (Num && !ArIsError)
+		{
+			// Only serialize if we have the requested amount of data
+			if (Offset + Num <= TotalSize())
+			{
+				FMemory::Memcpy(Data, &Bytes[Offset], Num);
+				Offset += Num;
+			}
+			else
+			{
+				ArIsError = true;
+			}
+		}
+	}
+
 	COREUOBJECT_API virtual FArchive& operator<<( class FName& N ) override;
 	COREUOBJECT_API virtual FArchive& operator<<( class UObject*& Res ) override;
 	COREUOBJECT_API virtual FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr ) override;
@@ -137,13 +162,19 @@ public:
 	COREUOBJECT_API virtual FString GetArchiveName() const override;
 	//~ End FArchive Interface
 
+
+
 protected:
 	FObjectReader(TArray<uint8>& InBytes)
-		: FMemoryReader(InBytes)
+		: Bytes(InBytes)
 	{
+		ArIsLoading = true;
+		ArIsPersistent = false;
 		ArIgnoreClassRef = false;
 		ArIgnoreArchetypeRef = false;
 	}
+
+	const TArray<uint8>& Bytes;
 };
 
 /**
@@ -1384,6 +1415,7 @@ public:
 	}
 };
 
+#if !USE_NEW_ASYNC_IO
 /*----------------------------------------------------------------------------
 	FArchiveAsync.
 ----------------------------------------------------------------------------*/
@@ -1392,7 +1424,7 @@ public:
  * Rough and basic version of async archive. The code relies on Serialize only ever to be called on the last
  * precached region.
  */
-class COREUOBJECT_API FArchiveAsync : public FArchive
+class COREUOBJECT_API FArchiveAsync final: public FArchive
 {
 public:
 	/**
@@ -1550,6 +1582,16 @@ private:
 	/** Caches the return value of FPlatformMisc::SupportsMultithreading (comes up in profiles often) */
 	bool PlatformIsSinglethreaded;
 };
+
+#else
+
+COREUOBJECT_API FArchive* NewFArchiveAsync2(const TCHAR* InFileName);
+
+COREUOBJECT_API void HintFutureReadDone(const TCHAR * FileName);
+
+COREUOBJECT_API void HintFutureRead(const TCHAR * FileName);
+
+#endif // USE_NEW_ASYNC_IO
 
 /*----------------------------------------------------------------------------
 FArchiveObjectCrc32

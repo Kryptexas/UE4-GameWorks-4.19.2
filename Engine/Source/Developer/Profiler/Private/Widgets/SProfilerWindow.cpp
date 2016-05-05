@@ -153,17 +153,49 @@ void SProfilerWindow::Construct( const FArguments& InArgs )
 						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 						[
 							SNew(SSplitter)
-								.IsEnabled( this, &SProfilerWindow::IsProfilerEnabled )
 								.Orientation(Orient_Horizontal)
 
 							+ SSplitter::Slot()
-								.Expose(FiltersAndPresetsSlot)
 								.Value(0.25f)
 								[
-									SNew(SBox)
-										.WidthOverride(256.0f)
+									SNew(SSplitter)
+									.Orientation(Orient_Vertical)
+									+ SSplitter::Slot()
+										.Value(0.25f)
 										[
 											SNew(SVerticalBox)
+											+ SVerticalBox::Slot()
+											.AutoHeight()
+												[
+													SNew(SHorizontalBox)
+													+ SHorizontalBox::Slot()
+													.AutoWidth()
+														[
+															SNew(SImage)
+															.Image(FEditorStyle::GetBrush(TEXT("Profiler.Tab.FiltersAndPresets")))
+														]
+
+													+ SHorizontalBox::Slot()
+														.AutoWidth()
+														[
+															SNew(STextBlock)
+															.Text(LOCTEXT("MultiFileBrowser", "Stats dump browser"))
+														]
+												]
+											+ SVerticalBox::Slot()
+												.AutoHeight()
+												[
+													//SNew(STextBlock)
+													//.Text(LOCTEXT("FileList", "File list here"))
+													SAssignNew(MultiDumpBrowser, SMultiDumpBrowser)
+												]
+										]
+
+									+ SSplitter::Slot()
+										.Expose(FiltersAndPresetsSlot)
+										[
+											SNew(SVerticalBox)
+											.IsEnabled(this, &SProfilerWindow::IsProfilerEnabled)
 
 											// Header
 											+ SVerticalBox::Slot()

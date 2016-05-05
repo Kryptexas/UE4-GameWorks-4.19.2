@@ -1131,6 +1131,9 @@ void UReflectionCaptureComponent::PostDuplicate(bool bDuplicateForPIE)
 
 void UReflectionCaptureComponent::UpdateDerivedData(FReflectionCaptureFullHDR* NewDerivedData)
 {
+#if UE_SERVER
+	delete FullHDRData;
+#else
 	if (FullHDRData)
 	{
 		// Delete the derived data on the rendering thread, since the rendering thread may be reading from its contents in FScene::UpdateReflectionCaptureContents
@@ -1141,6 +1144,7 @@ void UReflectionCaptureComponent::UpdateDerivedData(FReflectionCaptureFullHDR* N
 			delete FullHDRData;
 		});
 	}
+#endif
 
 	FullHDRData = NewDerivedData;
 }

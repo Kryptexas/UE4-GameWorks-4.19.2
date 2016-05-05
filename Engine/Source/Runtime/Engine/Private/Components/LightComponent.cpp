@@ -1281,5 +1281,6 @@ static void ToggleLight(const TArray<FString>& Args)
 static FAutoConsoleCommand ToggleLightCmd(
 	TEXT("ToggleLight"),
 	TEXT("Toggles all lights whose name contains the specified string"),
-	FConsoleCommandWithArgsDelegate::CreateStatic(ToggleLight)
+	FConsoleCommandWithArgsDelegate::CreateStatic(ToggleLight),
+	ECVF_Cheat
 	);

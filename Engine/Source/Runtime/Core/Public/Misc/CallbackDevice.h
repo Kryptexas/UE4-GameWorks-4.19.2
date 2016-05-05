@@ -260,6 +260,8 @@ public:
 	/* Sent just before the rendering thread is destroyed. */
 	static FRenderingThreadChanged PreRenderingThreadDestroyed;
 
+	// Called when appInit is called.
+	static FSimpleMulticastDelegate OnFEngineLoopInitComplete;
 private:
 
 	// Callbacks for hotfixes

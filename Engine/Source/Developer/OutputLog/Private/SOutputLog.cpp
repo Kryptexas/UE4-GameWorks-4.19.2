@@ -233,18 +233,25 @@ TSharedRef<ITableRow> SConsoleInputBox::MakeSuggestionListItemWidget(TSharedPtr<
 {
 	check(Text.IsValid());
 
-	FString Left, Right, Combined;
+	FString Left, Mid, Right, TempRight, Combined;
 
-	if(Text->Split(TEXT("\t"), &Left, &Right))
+	if(Text->Split(TEXT("\t"), &Left, &TempRight))
 	{
-		Combined = Left + Right;
+		if (TempRight.Split(TEXT("\t"), &Mid, &Right))
+		{
+			Combined = Left + Mid + Right;
+		}
+		else
+		{
+			Combined = Left + Right;
+		}
 	}
 	else
 	{
 		Combined = *Text;
 	}
 
-	FText HighlightText = FText::FromString(Left);
+	FText HighlightText = FText::FromString(Mid);
 
 	return
 		SNew(STableRow< TSharedPtr<FString> >, OwnerTable)
@@ -296,7 +303,7 @@ void SConsoleInputBox::OnTextChanged(const FText& InText)
 
 		// console variables
 		{
-			IConsoleManager::Get().ForEachConsoleObject(
+			IConsoleManager::Get().ForEachConsoleObjectThatContains(
 				FConsoleObjectVisitor::CreateStatic< TArray<FString>& >(
 				&FConsoleVariableAutoCompleteVisitor::OnConsoleVariable,
 				AutoCompleteList ), *InputTextStr);
@@ -307,8 +314,12 @@ void SConsoleInputBox::OnTextChanged(const FText& InText)
 		for(uint32 i = 0; i < (uint32)AutoCompleteList.Num(); ++i)
 		{
 			FString &ref = AutoCompleteList[i];
+			int32 Start = ref.Find(InputTextStr);
 
-			ref = ref.Left(InputTextStr.Len()) + TEXT("\t") + ref.RightChop(InputTextStr.Len());
+			if (Start != INDEX_NONE)
+			{
+				ref = ref.Left(Start) + TEXT("\t") + ref.Mid(Start, InputTextStr.Len()) + TEXT("\t") + ref.RightChop(Start + InputTextStr.Len());
+			}
 		}
 
 		SetSuggestions(AutoCompleteList, false);

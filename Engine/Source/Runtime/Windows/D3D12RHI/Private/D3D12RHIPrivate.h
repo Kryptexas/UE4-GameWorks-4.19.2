@@ -144,27 +144,14 @@ struct FD3D12GlobalStats
 	static int64 GTotalGraphicsMemory;
 };
 
-static int32 GEnableMultiEngine = 1;
-static FAutoConsoleVariableRef CVarEnableMultiEngine(
-	TEXT("D3D12.EnableMultiEngine"),
-	GEnableMultiEngine,
-	TEXT("Enables multi engine (3D, Copy, Compute) use."),
-	ECVF_RenderThreadSafe | ECVF_ReadOnly
-	);
+extern int32 GEnableMultiEngine;
+extern int32 GCommandListBatchingMode;
 
 enum ECommandListBatchMode
 {
 	CLB_NormalBatching = 1,			// Submits work on explicit Flush and at the end of a context container batch
 	CLB_AggressiveBatching = 2,		// Submits work on explicit Flush (after Occlusion queries, and before Present) - Least # of submits.
 };
-
-static int32 GCommandListBatchingMode = CLB_NormalBatching;
-static FAutoConsoleVariableRef CVarCommandListBatchingMode(
-	TEXT("D3D12.CommandListBatchingMode"),
-	GCommandListBatchingMode,
-	TEXT("Changes how command lists are batched and submitted to the GPU."),
-	ECVF_RenderThreadSafe
-	);
 
 // This class handles query heaps
 class FD3D12QueryHeap : public FD3D12DeviceChild

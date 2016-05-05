@@ -17,11 +17,11 @@ public:
 	struct ContextType 
 	{
 		const FProjectedShadowInfo* TranslucentSelfShadow;
-		ETranslucencyPassType TranslucenyPassType;
+		ETranslucencyPass::Type TranslucenyPassType;
 		bool bSceneColorCopyIsUpToDate;
 		bool bPostAA;
 
-		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, ETranslucencyPassType InTranslucenyPassType = TPT_NonSeparateTransluceny, bool bPostAAIn = false)
+		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, ETranslucencyPass::Type InTranslucenyPassType = ETranslucencyPass::TPT_NonSeparateTransluceny, bool bPostAAIn = false)
 			: TranslucentSelfShadow(InTranslucentSelfShadow)
 			, TranslucenyPassType(InTranslucenyPassType)
 			, bSceneColorCopyIsUpToDate(false)
@@ -42,7 +42,7 @@ public:
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId,
-		bool bSeparateTranslucencyEnabled = true
+		bool bSeparateTranslucencyEnabled = false
 		);
 
 	/**
@@ -82,7 +82,7 @@ private:
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId,
-		bool bSeparateTranslucencyEnabled = true
+		bool bSeparateTranslucencyEnabled = false
 		);
 
 };

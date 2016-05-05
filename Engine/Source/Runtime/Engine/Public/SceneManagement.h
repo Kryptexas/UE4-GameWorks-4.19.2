@@ -1506,6 +1506,7 @@ struct FMeshBatchAndRelevance
 	/** The render info for the primitive which created this mesh, required. */
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy;
 
+private:
 	/** 
 	 * Cached usage information to speed up traversal in the most costly passes (depth-only, base pass, shadow depth), 
 	 * This is done so the Mesh does not have to be dereferenced to determine pass relevance. 
@@ -1513,7 +1514,11 @@ struct FMeshBatchAndRelevance
 	uint32 bHasOpaqueOrMaskedMaterial : 1;
 	uint32 bRenderInMainPass : 1;
 
+public:
 	FMeshBatchAndRelevance(const FMeshBatch& InMesh, const FPrimitiveSceneProxy* InPrimitiveSceneProxy, ERHIFeatureLevel::Type FeatureLevel);
+
+	bool GetHasOpaqueOrMaskedMaterial() const { return bHasOpaqueOrMaskedMaterial; }
+	bool GetRenderInMainPass() const { return bRenderInMainPass; }
 };
 
 /** 

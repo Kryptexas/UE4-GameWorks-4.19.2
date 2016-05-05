@@ -977,40 +977,16 @@ public:
 
 #endif
 
-
-/**
-* Loads a package and all contained objects that match context flags.
-*
-* @param	InOuter		Package to load new package into (usually NULL or ULevel->GetOuter())
-* @param	Filename	Long package name to load.
-* @param	LoadFlags	Flags controlling loading behavior
-* @param	ImportLinker	Linker that requests this package through one of its imports
-* @return	Loaded package if successful, NULL otherwise
-*/
-UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, FLinkerLoad* ImportLinker, TSet<FName>& InDependencyTracker, IAssetRegistryInterface* InAssetRegistry)
+void ScanPackageDependenciesForLoadOrder(const TCHAR* InLongPackageName, TMap<FName, int32>& InOrderTracker, int32& Order, IAssetRegistryInterface* InAssetRegistry)
 {
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("LoadPackageInternal"), STAT_LoadPackageInternal, STATGROUP_ObjectVerbose);
-
-	UPackage* Result = NULL;
-
 	FString FileToLoad;
-
-#if WITH_EDITOR
-	FString DiffFileToLoad;
-	if (LoadFlags & LOAD_ForFileDiff)
-	{
-		FString TempFilenames = InLongPackageName;
-		ensure(TempFilenames.Split(TEXT(";"), &FileToLoad, &DiffFileToLoad, ESearchCase::CaseSensitive));
-	}
-	else
-#endif
-	if( InLongPackageName && FCString::Strlen(InLongPackageName) > 0 )
+	if (InLongPackageName && FCString::Strlen(InLongPackageName) > 0)
 	{
 		FileToLoad = InLongPackageName;
 	}
-	else if( InOuter )
+	else
 	{
-		FileToLoad = InOuter->GetName();
+		return;
 	}
 
 	// Make sure we're trying to load long package names only.
@@ -1026,14 +1002,85 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		else if (!FPackageName::SearchForPackageOnDisk(FileToLoad, &FileToLoad))
 		{
 			UE_LOG(LogUObjectGlobals, Warning, TEXT("LoadPackage can't find package %s."), *FileToLoad);
-			return NULL;
+			return;
 		}
 	}
 
 	FName PackageName(InLongPackageName);
-	check(!InDependencyTracker.Contains(InLongPackageName));
-	InDependencyTracker.Add(PackageName);
+	InOrderTracker.Add(PackageName, -1); // this is just a placeholder to prevent recursion
 
+	TArray<FName> PackageDependencies;
+	InAssetRegistry->GetDependencies(PackageName, PackageDependencies, EAssetRegistryDependencyType::Hard);
+	for (auto Dependency : PackageDependencies)
+	{
+		if (!InOrderTracker.Contains(Dependency) && !FindObjectFast<UPackage>(nullptr, Dependency, false, false))
+		{
+			ScanPackageDependenciesForLoadOrder(*Dependency.ToString(), InOrderTracker, Order, InAssetRegistry);
+		}
+	}
+	InOrderTracker.Add(PackageName, Order++);
+}
+
+/**
+* Loads a package and all contained objects that match context flags.
+*
+* @param	InOuter		Package to load new package into (usually NULL or ULevel->GetOuter())
+* @param	Filename	Long package name to load.
+* @param	LoadFlags	Flags controlling loading behavior
+* @param	ImportLinker	Linker that requests this package through one of its imports
+* @return	Loaded package if successful, NULL otherwise
+*/
+static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, FLinkerLoad* ImportLinker, bool bSkipNameChecks = false)
+{
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("LoadPackageInternal"), STAT_LoadPackageInternal, STATGROUP_ObjectVerbose);
+
+	UPackage* Result = NULL;
+
+	FString FileToLoad;
+#if WITH_EDITOR
+	FString DiffFileToLoad;
+#endif
+	if (bSkipNameChecks)
+	{
+		FileToLoad = InLongPackageName;
+	}
+	else
+	{
+
+#if WITH_EDITOR
+		if (LoadFlags & LOAD_ForFileDiff)
+		{
+			FString TempFilenames = InLongPackageName;
+			ensure(TempFilenames.Split(TEXT(";"), &FileToLoad, &DiffFileToLoad, ESearchCase::CaseSensitive));
+		}
+		else
+#endif
+		if (InLongPackageName && FCString::Strlen(InLongPackageName) > 0)
+		{
+			FileToLoad = InLongPackageName;
+		}
+		else if (InOuter)
+		{
+			FileToLoad = InOuter->GetName();
+		}
+
+		// Make sure we're trying to load long package names only.
+		if (FPackageName::IsShortPackageName(FileToLoad))
+		{
+			FString LongPackageName;
+			FName* ScriptPackageName = FPackageName::FindScriptPackageName(*FileToLoad);
+			if (ScriptPackageName)
+			{
+				UE_LOG(LogUObjectGlobals, Warning, TEXT("LoadPackage: %s is a short script package name."), InLongPackageName);
+				FileToLoad = ScriptPackageName->ToString();
+			}
+			else if (!FPackageName::SearchForPackageOnDisk(FileToLoad, &FileToLoad))
+			{
+				UE_LOG(LogUObjectGlobals, Warning, TEXT("LoadPackage can't find package %s."), *FileToLoad);
+				return NULL;
+			}
+		}
+	}
 #if WITH_EDITOR
 	TGuardValue<bool> IsEditorLoadingPackage(GIsEditorLoadingPackage, GIsEditor || GIsEditorLoadingPackage);
 #endif
@@ -1045,20 +1092,6 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 
 	// Try to load.
 	BeginLoad();
-
-	if (InAssetRegistry)
-	{
-		TArray<FName> PackageDependencies;
-		InAssetRegistry->GetDependencies(PackageName, PackageDependencies, EAssetRegistryDependencyType::Hard);
-
-		for (auto Dependency : PackageDependencies)
-		{
-			if (!InDependencyTracker.Contains(Dependency) && FindObjectFast<UPackage>(nullptr, Dependency, false, false) == nullptr)
-			{
-				LoadPackageInternal(InOuter, *Dependency.ToString(), LoadFlags, nullptr, InDependencyTracker, InAssetRegistry);
-			}
-		}
-	}
 
 	bool bFullyLoadSkipped = false;
 
@@ -1156,7 +1189,11 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 			// Make sure we pass the property that's currently being serialized by the linker that owns the import 
 			// that triggered this LoadPackage call
 			FSerializedPropertyScope SerializedProperty(*Linker, ImportLinker ? ImportLinker->GetSerializedProperty() : Linker->GetSerializedProperty());
+#if USE_NEW_ASYNC_IO 
+			Linker->LoadAllObjects(true);
+#else
 			Linker->LoadAllObjects();
+#endif		
 		}
 		else
 		{
@@ -1267,7 +1304,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 {
 	IAssetRegistryInterface* AssetRegistry = nullptr;
 #if !WITH_EDITOR
-	bool bAllowDependencyPreloading = ((LoadFlags & LOAD_DisableDependencyPreloading) == 0);
+	bool bAllowDependencyPreloading = !InOuter && ((LoadFlags & (LOAD_DisableDependencyPreloading | LOAD_ForFileDiff)) == 0);
 	static auto CVarPreloadDependencies = IConsoleManager::Get().FindConsoleVariable(TEXT("s.PreloadPackageDependencies"));
 	
 	if (bAllowDependencyPreloading && CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
@@ -1278,9 +1315,49 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		}
 	}
 #endif
+	if (AssetRegistry)
+	{
+		//MaybeFlushCachedAsyncArchive();
+		check(!InOuter);
+		TMap<FName, int32> OrderTracker;
+		int32 Order = 0;
+		ScanPackageDependenciesForLoadOrder(InLongPackageName, OrderTracker, Order, AssetRegistry);
 
-	TSet<FName> DependencyTracker;
-	return LoadPackageInternal(InOuter, InLongPackageName, LoadFlags, ImportLinker, DependencyTracker, AssetRegistry);
+		OrderTracker.ValueSort(TLess<int32>());
+#if USE_NEW_ASYNC_IO
+		TArray<FString> Hints;
+		for (auto& Dependency : OrderTracker)
+		{
+			FString PrestreamFilename = GetPrestreamPackageLinkerName(*Dependency.Key.ToString());
+			if (PrestreamFilename.Len() > 0)
+			{
+				HintFutureRead(*PrestreamFilename);
+				Hints.Add(PrestreamFilename);
+			}
+		}
+#endif // USE_NEW_ASYNC_IO
+		UPackage* Result = nullptr;
+		for (auto& Dependency : OrderTracker)
+		{
+			Result = FindObjectFast<UPackage>(nullptr, Dependency.Key, false, false); // might have already loaded this via a circular dependency
+			if (Result)
+			{
+				//UE_LOG(LogUObjectGlobals, Warning, TEXT("LoadPackage already loaded, skipping %s."), *Dependency.Key.ToString());
+			}
+			else
+			{
+				Result = LoadPackageInternalInner(nullptr, *Dependency.Key.ToString(), LoadFlags, ImportLinker, true);
+			}
+		}
+#if USE_NEW_ASYNC_IO
+		for (auto& Dependency : Hints)
+		{
+			HintFutureReadDone(*Dependency);
+		}
+#endif // USE_NEW_ASYNC_IO
+		return Result;
+	}
+	return LoadPackageInternalInner(InOuter, InLongPackageName, LoadFlags, ImportLinker);
 }
 
 UPackage* LoadPackage(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags)

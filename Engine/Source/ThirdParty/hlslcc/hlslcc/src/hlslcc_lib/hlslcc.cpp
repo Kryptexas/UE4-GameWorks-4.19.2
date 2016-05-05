@@ -110,6 +110,7 @@ FHlslCrossCompilerContext::~FHlslCrossCompilerContext()
 	{
 		if (ParseState)
 		{
+			delete ParseState->symbols;
 			ParseState->~_mesa_glsl_parse_state();
 		}
 
@@ -173,7 +174,7 @@ bool FHlslCrossCompilerContext::Init(
 	ParseState->bGenerateES = bIsES;
 	ParseState->bGenerateLayoutLocations = (CompileTarget == HCT_FeatureLevelSM5) || (CompileTarget == HCT_FeatureLevelES3_1Ext) || bSeparateShaderObjects;
 	ParseState->bSeparateShaderObjects = bSeparateShaderObjects;
-
+	glsl_type::SetTransientContext(MemContext);
 	return true;
 }
 
@@ -215,7 +216,7 @@ bool FHlslCrossCompilerContext::RunFrontend(const char** InOutShaderSource)
 		printf( "## End AST dump\n");
 		printf( "###########################################################################\n");
 	}
-	ir = new(MemContext)exec_list();
+	ir = new(MemContext) exec_list();
 	_mesa_ast_to_hir(ir, ParseState);
 	//TIMER(ast_to_hir);
 	//IRDump(ir);

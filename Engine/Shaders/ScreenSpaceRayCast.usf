@@ -201,7 +201,7 @@ void RayCast(
 	float3 RayUVz = RayStartUVz + RayStepUVz * StepOffset;
 
 	LOOP
-	for( uint i = 0; i < NumSteps; i += 4 )
+	for( int i = 0; i < NumSteps; i += 4 )
 	{
 		// Vectorized to group fetches
 		float4 SampleUV0 = RayUVz.xyxy + RayStepUVz.xyxy * float4( 1, 1, 2, 2 );

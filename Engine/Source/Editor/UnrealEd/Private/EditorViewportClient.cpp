@@ -4856,7 +4856,7 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 
 		// If capture region isn't valid, we need to determine which rectangle to capture from.
 		// We need to calculate a proper view rectangle so that we can take into account camera
-		// properties, such as it being aspect ratio constrainted
+		// properties, such as it being aspect ratio constrained
 		if (GIsHighResScreenshot && !bCaptureAreaValid)
 		{
 			FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(

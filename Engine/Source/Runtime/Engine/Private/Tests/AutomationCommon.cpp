@@ -194,6 +194,25 @@ bool FEngineWaitLatentCommand::Update()
 	return false;
 }
 
+bool FStreamAllResourcesLatentCommand::Update()
+{
+	float StartTime = FPlatformTime::Seconds();
+
+	int32 StillInFlight = IStreamingManager::Get().StreamAllResources(Duration);
+
+	float Time = FPlatformTime::Seconds();
+
+	if(StillInFlight)
+	{
+		UE_LOG(LogEngineAutomationLatentCommand, Warning, TEXT("StreamAllResources() waited for %.2fs but %d resources are still in flight."), Time - StartTime, StillInFlight);
+	}
+	else
+	{
+		UE_LOG(LogEngineAutomationLatentCommand, Log, TEXT("StreamAllResources() waited for %.2fs (max duration: %.2f)."), Time - StartTime, Duration);
+	}
+
+	return true;
+}
 
 bool FEnqueuePerformanceCaptureCommands::Update()
 {

@@ -676,6 +676,8 @@ static void CompileDirect(const TArray<const class IShaderFormat*>& ShaderFormat
 			}
 		}
 	}
+
+	UE_LOG(LogShaders, Warning, TEXT("Unable to find shader compiler backend for format %s!"), *FormatName.ToString());
 }
 
 

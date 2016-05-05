@@ -537,7 +537,15 @@ struct CORE_API IConsoleManager
 	 *  @param Visitor must not be 0
 	 *  @param ThatStartsWith must not be 0 
 	 */
-	virtual void ForEachConsoleObject( const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith = TEXT("")) const = 0;
+	virtual void ForEachConsoleObjectThatStartsWith( const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith = TEXT("")) const = 0;
+
+	/**
+	 *  Not case sensitive, does not guarantee that UnregisterConsoleObject() will work in the loop
+	 *  @param Visitor must not be 0
+	 *  @param ThatContains must not be 0 
+	 */
+	virtual void ForEachConsoleObjectThatContains(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatContains) const = 0;
+
 	/**
 	 * Process user input
 	 *  e.g.

@@ -29,6 +29,7 @@ namespace CCT
 		bool bUseNew;
 		bool bList;
 		bool bPreprocessOnly;
+		bool bTestRemoveUnused;
 		bool bPackIntoUBs;
 		bool bUseDX11Clip;
 		bool bFlattenUBs;

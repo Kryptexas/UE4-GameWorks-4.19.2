@@ -3090,19 +3090,22 @@ UMaterialExpressionPanner::UMaterialExpressionPanner(const FObjectInitializer& O
 int32 UMaterialExpressionPanner::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
 	int32 TimeArg = Time.Expression ? Time.Compile(Compiler) : Compiler->GameTime(false, 0.0f);
+	int32 SpeedVectorArg = Speed.Expression ? Speed.Compile(Compiler) : INDEX_NONE;
+	int32 SpeedXArg = Speed.Expression ? Compiler->ComponentMask(SpeedVectorArg, true, false, false, false) : Compiler->Constant(SpeedX);
+	int32 SpeedYArg = Speed.Expression ? Compiler->ComponentMask(SpeedVectorArg, false, true, false, false) : Compiler->Constant(SpeedY);
 	int32 Arg1;
 	int32 Arg2;
 	if (bFractionalPart)
 	{
 		// Note: this is to avoid (delay) divergent accuracy issues as GameTime increases.
 		// TODO: C++ to calculate its phase via per frame time delta.
-		Arg1 = Compiler->PeriodicHint(Compiler->Frac(Compiler->Mul(TimeArg, Compiler->Constant(SpeedX))));
-		Arg2 = Compiler->PeriodicHint(Compiler->Frac(Compiler->Mul(TimeArg, Compiler->Constant(SpeedY))));
+		Arg1 = Compiler->PeriodicHint(Compiler->Frac(Compiler->Mul(TimeArg, SpeedXArg)));
+		Arg2 = Compiler->PeriodicHint(Compiler->Frac(Compiler->Mul(TimeArg, SpeedYArg)));
 	}
 	else
 	{
-		Arg1 = Compiler->PeriodicHint(Compiler->Mul(TimeArg, Compiler->Constant(SpeedX)));
-		Arg2 = Compiler->PeriodicHint(Compiler->Mul(TimeArg, Compiler->Constant(SpeedY)));
+		Arg1 = Compiler->PeriodicHint(Compiler->Mul(TimeArg, SpeedXArg));
+		Arg2 = Compiler->PeriodicHint(Compiler->Mul(TimeArg, SpeedYArg));
 	}
 
 	int32 Arg3 = Coordinate.Expression ? Coordinate.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false);

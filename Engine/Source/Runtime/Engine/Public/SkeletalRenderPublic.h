@@ -111,6 +111,7 @@ public:
 	/** 
 	 *	Given a set of views, update the MinDesiredLODLevel member to indicate the minimum (ie best) LOD we would like to use to render this mesh. 
 	 *	This is called from the rendering thread (PreRender) so be very careful what you read/write to.
+	 * @param FrameNumber from ViewFamily.FrameNumber
 	 */
 	void UpdateMinDesiredLODLevel(const FSceneView* View, const FBoxSphereBounds& Bounds, int32 FrameNumber);
 
@@ -235,7 +236,7 @@ protected:
 	/** GPU Skin Cache Keys per chunk; -1 means not using GPU Skin Cache **/
 	int16 GPUSkinCacheKeys[MAX_GPUSKINCACHE_CHUNKS_PER_LOD];
 
-	/** Used to keep track of the first call to UpdateMinDesiredLODLevel each frame. */
+	/** Used to keep track of the first call to UpdateMinDesiredLODLevel each frame. from ViewFamily.FrameNumber */
 	uint32 LastFrameNumber;
 
 	/** Editor only. Used for visualizing drawing order in Animset Viewer. If < 1.0,

@@ -257,6 +257,21 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 		}
 	}
 
+	for (auto It = SceneCaptureComponent->HiddenActors.CreateConstIterator(); It; ++It)
+	{
+		AActor* Actor = *It;
+
+		if (Actor)
+		{
+			TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
+			Actor->GetComponents(PrimitiveComponents);
+			for (int32 ComponentIndex = 0; ComponentIndex < PrimitiveComponents.Num(); ++ComponentIndex)
+			{
+				View->HiddenPrimitives.Add(PrimitiveComponents[ComponentIndex]->ComponentId);
+			}
+		}
+	}
+
 	for (auto It = SceneCaptureComponent->ShowOnlyComponents.CreateConstIterator(); It; ++It)
 	{
 		// If the primitive component was destroyed, the weak pointer will return NULL.
@@ -264,6 +279,21 @@ FSceneRenderer* CreateSceneRendererForSceneCapture(
 		if (PrimitiveComponent)
 		{
 			View->ShowOnlyPrimitives.Add(PrimitiveComponent->ComponentId);
+		}
+	}
+
+	for (auto It = SceneCaptureComponent->ShowOnlyActors.CreateConstIterator(); It; ++It)
+	{
+		AActor* Actor = *It;
+
+		if (Actor)
+		{
+			TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
+			Actor->GetComponents(PrimitiveComponents);
+			for (int32 ComponentIndex = 0; ComponentIndex < PrimitiveComponents.Num(); ++ComponentIndex)
+			{
+				View->ShowOnlyPrimitives.Add(PrimitiveComponents[ComponentIndex]->ComponentId);
+			}
 		}
 	}
 

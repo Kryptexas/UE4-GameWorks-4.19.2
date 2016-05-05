@@ -400,6 +400,8 @@ void USceneCaptureComponent2D::Serialize(FArchive& Ar)
 APlanarReflection::APlanarReflection(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bShowPreviewPlane = true;
+
 	PlanarReflectionComponent = CreateDefaultSubobject<UPlanarReflectionComponent>(TEXT("NewPlanarReflectionComponent"));
 	RootComponent = PlanarReflectionComponent;
 
@@ -412,6 +414,32 @@ APlanarReflection::APlanarReflection(const FObjectInitializer& ObjectInitializer
 	GetMeshComp()->SetWorldRotation(FRotator(0, 0, 0));
 	GetMeshComp()->SetWorldScale3D(FVector(4, 4, 1));
 	GetMeshComp()->SetupAttachment(PlanarReflectionComponent);
+
+#if WITH_EDITORONLY_DATA
+	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
+	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			FName NAME_ReflectionCapture;
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> DecalTexture;
+			FConstructorStatics()
+				: NAME_ReflectionCapture(TEXT("ReflectionCapture"))
+				, DecalTexture(TEXT("/Engine/EditorResources/S_ReflActorIcon"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		SpriteComponent->Sprite = ConstructorStatics.DecalTexture.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+		SpriteComponent->bHiddenInGame = true;
+		SpriteComponent->bAbsoluteScale = true;
+		SpriteComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+		SpriteComponent->bIsScreenSizeScaled = true;
+	}
+#endif
 }
 
 void APlanarReflection::OnInterpToggle(bool bEnable)
@@ -437,6 +465,8 @@ void APlanarReflection::PostActorCreated()
 				GetMeshComp()->SetMaterial(0, PlaneMaterial);
 			}
 		}
+
+		GetMeshComp()->bVisible = bShowPreviewPlane;
 	}
 #endif
 }
@@ -453,6 +483,18 @@ void APlanarReflection::EditorApplyScale(const FVector& DeltaScale, const FVecto
 	FMath::ApplyScaleToFloat(ReflectionComponent->DistanceFromPlaneFadeEnd, ModifiedScale);
 	PostEditChange();
 }
+
+void APlanarReflection::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (GetMeshComp())
+	{
+		GetMeshComp()->bVisible = bShowPreviewPlane;
+		GetMeshComp()->MarkRenderStateDirty();
+	}
+}
+
 #endif
 
 // -----------------------------------------------
@@ -531,6 +573,19 @@ void UPlanarReflectionComponent::DestroyRenderState_Concurrent()
 		SceneProxy = NULL;
 	}
 }
+
+#if WITH_EDITOR
+
+void UPlanarReflectionComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	// Recreate the view state to reset temporal history so that property changes can be seen immediately
+	ViewState.Destroy();
+	ViewState.Allocate();
+}
+
+#endif
 
 void UPlanarReflectionComponent::BeginDestroy()
 {

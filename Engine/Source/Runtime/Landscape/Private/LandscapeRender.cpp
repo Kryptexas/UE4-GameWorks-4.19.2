@@ -567,6 +567,9 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	, SimpleCollisionMipLevel(InComponent->SimpleCollisionMipLevel)
 	, CollisionResponse(InComponent->GetLandscapeProxy()->BodyInstance.GetResponseToChannels())
 #endif
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	, LightMapResolution(InComponent->GetStaticLightMapResolution())
+#endif
 {
 	if (!IsComponentLevelVisible())
 	{

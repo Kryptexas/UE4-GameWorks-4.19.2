@@ -2403,7 +2403,7 @@ struct _mesa_glsl_parse_state *state)
 			auto* VarDeRef = SamplerStateDeRef->as_dereference_variable();
 			if (VarDeRef && VarDeRef->var && VarDeRef->var->name)
 			{
-				texop->SamplerStateName = VarDeRef->var->name;
+				texop->SamplerStateName = ralloc_strdup(ctx, VarDeRef->var->name);
 			}
 		}
 

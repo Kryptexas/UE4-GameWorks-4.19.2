@@ -155,6 +155,11 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FExecStringLatentCommand, FString
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEngineWaitLatentCommand, float, Duration);
 
+/**
+* Wait until data is streamed in
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FStreamAllResourcesLatentCommand, float, Duration);
+
 
 /**
 * Enqueue performance capture commands after a map has been loaded

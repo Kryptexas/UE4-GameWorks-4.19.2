@@ -997,7 +997,7 @@ void FConsoleManager::SaveHistory()
 }
 
 
-void FConsoleManager::ForEachConsoleObject(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith) const
+void FConsoleManager::ForEachConsoleObjectThatStartsWith(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith) const
 {
 	check(Visitor.IsBound());
 	check(ThatStartsWith);
@@ -1012,6 +1012,49 @@ void FConsoleManager::ForEachConsoleObject(const FConsoleObjectVisitor& Visitor,
 		if(MatchPartialName(*Name, ThatStartsWith))
 		{
 			Visitor.Execute(*Name, CVar);
+		}
+	}
+}
+
+void FConsoleManager::ForEachConsoleObjectThatContains(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatContains) const
+{
+	check(Visitor.IsBound());
+	check(ThatContains);
+
+	TArray<FString> ThatContainsArray;
+	FString(ThatContains).ParseIntoArray(ThatContainsArray, TEXT(" "), true);
+	int32 ContainsStringLength = FCString::Strlen(ThatContains);
+
+	//@caution, potential deadlock if the visitor tries to call back into the cvar system. Best not to do this, but we could capture and array of them, then release the lock, then dispatch the visitor.
+	FScopeLock ScopeLock( &ConsoleObjectsSynchronizationObject );
+	for(TMap<FString, IConsoleObject*>::TConstIterator PairIt(ConsoleObjects); PairIt; ++PairIt)
+	{
+		const FString& Name = PairIt.Key();
+		IConsoleObject* CVar = PairIt.Value();
+
+		if (ContainsStringLength == 1)
+		{
+			if (MatchPartialName(*Name, ThatContains))
+			{
+				Visitor.Execute(*Name, CVar);
+			}
+		}
+		else
+		{
+			bool bMatchesAll = true;
+
+			for (int32 MatchIndex = 0; MatchIndex < ThatContainsArray.Num(); MatchIndex++)
+			{
+				if (!MatchSubstring(*Name, *ThatContainsArray[MatchIndex]))
+				{
+					bMatchesAll = false;
+				}
+			}
+
+			if (bMatchesAll && ThatContainsArray.Num() > 0)
+			{
+				Visitor.Execute(*Name, CVar);
+			}
 		}
 	}
 }
@@ -1091,6 +1134,12 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 				if(Param2[0] == (TCHAR)'\"' && Param2[Param2.Len() - 1] == (TCHAR)'\"')
 				{
 					Param2 = Param2.Mid(1, Param2.Len() - 2);
+				}
+				// this is assumed to be unintended e.g. copy and paste accident from ini file
+				if(Param2[0] == (TCHAR)'=')
+				{
+					Ar.Logf(TEXT("Warning: Processing the console input parameters the leading '=' is ignored (only needed for ini files)."));
+					Param2 = Param2.Mid(1, Param2.Len() - 1);
 				}
 			}
 
@@ -1297,6 +1346,35 @@ bool FConsoleManager::MatchPartialName(const TCHAR* Stream, const TCHAR* Pattern
 	}
 
 	return true;
+}
+
+bool FConsoleManager::MatchSubstring(const TCHAR* Stream, const TCHAR* Pattern)
+{
+	while(*Stream)
+	{
+		int32 StreamIndex = 0;
+		int32 PatternIndex = 0;
+
+		do
+		{
+			if (Pattern[PatternIndex] == 0)
+			{
+				return true;
+			}
+			else if (FChar::ToLower(Stream[StreamIndex]) != FChar::ToLower(Pattern[PatternIndex]))
+			{
+				break;
+			}
+
+			PatternIndex++;
+			StreamIndex++;
+		} 
+		while (Stream[StreamIndex] != 0 || Pattern[PatternIndex] == 0);
+
+		++Stream;
+	}
+
+	return false;
 }
 
 void CreateConsoleVariables();

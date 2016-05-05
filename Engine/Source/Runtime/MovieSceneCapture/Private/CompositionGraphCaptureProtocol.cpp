@@ -11,7 +11,7 @@
 struct FSceneViewExtension : ISceneViewExtension
 {
 	FSceneViewExtension(const TArray<FString>& InRenderPasses, bool bInCaptureFramesInHDR, UMaterialInterface* InPostProcessingMaterial)
-		: RenderPasses(InRenderPasses)
+	: RenderPasses(InRenderPasses), RestoreDumpHDR(0), bNeedsCapture(true)
 	{
 		PostProcessingMaterial = InPostProcessingMaterial;
 		bCaptureFramesInHDR = bInCaptureFramesInHDR;
@@ -42,12 +42,20 @@ struct FSceneViewExtension : ISceneViewExtension
 		CVarDumpFrames->Set(1);
 	}
 
-	void Disable()
+	void Disable(bool bFinalize = false)
 	{
-		if (bNeedsCapture)
+		if (bNeedsCapture || bFinalize)
 		{
 			bNeedsCapture = false;
-			CVarDumpFramesAsHDR->Set(RestoreDumpHDR);
+			if (bFinalize)
+			{
+				CVarDumpFramesAsHDR->Set(0);
+				RestoreDumpHDR = 0;
+			}
+			else
+			{
+				CVarDumpFramesAsHDR->Set(RestoreDumpHDR);
+			}
 			CVarDumpFrames->Set(0);
 		}
 	}
@@ -107,13 +115,12 @@ private:
 
 	UMaterialInterface* PostProcessingMaterial;
 
+	int32 RestoreDumpHDR;
 	bool bNeedsCapture;
 	FString OutputFilename;
 
 	IConsoleVariable* CVarDumpFrames;
 	IConsoleVariable* CVarDumpFramesAsHDR;
-
-	int32 RestoreDumpHDR;
 };
 
 void UCompositionGraphCaptureSettings::OnReleaseConfig(FMovieSceneCaptureSettings& InSettings)

@@ -1924,10 +1924,14 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 			{
 				if (TextureIndexScales.Num())
 				{
+					// Cause 1 : the output does not map to an actual uniform scale.
+					// Cause 2 : the alogrithm fails to find the scale value (even though it is somewhat there).
 					UE_LOG(LogMaterialUtilities, Warning, TEXT("ExportMaterialTexCoordScales: Failed to find constant scale for texture index %d of material %s (bound to texture %s)"), RegisterIndex, *InMaterial->GetName(), *FailedTexture->GetName());
 				}
 				else
 				{
+					// Cause 1: the shader did not use this texture at all, resulting in value being the default value (could be because of some branching)
+					// Cause 2: the shader outputs the scale, but the scale was 0. That means the coordinate did not change between the pixels. For instance, if the mapping was based on the world position.
 					UE_LOG(LogMaterialUtilities, Warning, TEXT("ExportMaterialTexCoordScales: Failed to generate scales for texture index %d of material %s (bound to texture %s)"), RegisterIndex, *InMaterial->GetName(), *FailedTexture->GetName());
 				}
 			}

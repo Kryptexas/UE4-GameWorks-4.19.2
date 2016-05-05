@@ -352,16 +352,19 @@ int8 ComputeTemporalStaticMeshLOD( const FStaticMeshRenderData* RenderData, cons
 
 int8 ComputeStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, int32 MinLOD, float FactorScale )
 {
-	const int32 NumLODs = MAX_STATIC_MESH_LODS;
-
-	const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View) * FactorScale;
-
-	// Walk backwards and return the first matching LOD
-	for(int32 LODIndex = NumLODs - 1 ; LODIndex >= 0 ; --LODIndex)
+	if (RenderData)
 	{
-		if(RenderData->ScreenSize[LODIndex] > ScreenSize)
+		const int32 NumLODs = MAX_STATIC_MESH_LODS;
+
+		const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View) * FactorScale;
+
+		// Walk backwards and return the first matching LOD
+		for (int32 LODIndex = NumLODs - 1; LODIndex >= 0; --LODIndex)
 		{
-			return FMath::Max(LODIndex, MinLOD);
+			if (RenderData->ScreenSize[LODIndex] > ScreenSize)
+			{
+				return FMath::Max(LODIndex, MinLOD);
+			}
 		}
 	}
 

@@ -13,6 +13,11 @@ DECLARE_DWORD_COUNTER_STAT( TEXT( "ThreadPoolDummyCounter" ), STAT_ThreadPoolDum
 
 /** The global thread pool */
 FQueuedThreadPool* GThreadPool = nullptr;
+
+#if USE_NEW_ASYNC_IO
+FQueuedThreadPool* GIOThreadPool = nullptr;
+#endif // USE_NEW_ASYNC_IO
+
 #if WITH_EDITOR
 FQueuedThreadPool* GLargeThreadPool = nullptr;
 #endif

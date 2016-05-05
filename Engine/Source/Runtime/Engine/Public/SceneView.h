@@ -730,6 +730,9 @@ public:
 	/** Whether this view is being used to render a planar reflection. */
 	bool bIsPlanarReflection;
 
+	/** Whether to force two sided rendering for this view. */
+	bool bRenderSceneTwoSided;
+
 	/** Whether this view was created from a locked viewpoint. */
 	bool bIsLocked;
 
@@ -927,6 +930,29 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 
+// for r.DisplayInternals (allows for easy passing down data from main to render thread)
+struct FDisplayInternalsData
+{
+	int32 DisplayInternalsCVarValue;
+	// current time Matinee location (in seconds) of the single playing playing actor, -1 if none is playing, -2 if multiple are playing
+	float MatineeTime;
+
+	FDisplayInternalsData()
+		: DisplayInternalsCVarValue(0)
+		, MatineeTime(-1.0f)
+	{
+		check(!IsValid());
+	}
+
+	// called on main thread
+	// @param World may be 0
+	void Setup(UWorld *World);
+
+	bool IsValid() const { return DisplayInternalsCVarValue != 0; }
+};
+
+//////////////////////////////////////////////////////////////////////////
+
 /**
  * A set of views into a scene which only have different view transforms and owner actors.
  */
@@ -1080,6 +1106,9 @@ public:
     /** Extensions that can modify view parameters on the render thread. */
     TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> > ViewExtensions;
 
+	// for r.DisplayInternals (allows for easy passing down data from main to render thread)
+	FDisplayInternalsData DisplayInternalsData;
+
 #if WITH_EDITOR
 	// Override the LOD of landscape in this viewport
 	int8 LandscapeLODOverride;
@@ -1087,8 +1116,16 @@ public:
 	// Override the LOD of landscape in this viewport
 	int8 HierarchicalLODOverride;
 
-	/** Indicates whether, of not, the base attachment volume should be drawn. */
+	/** Indicates whether, or not, the base attachment volume should be drawn. */
 	bool bDrawBaseInfo;
+
+	/**
+	 * Indicates whether the shader world space position should be forced to 0. Also sets the view vector to (0,0,1) for all pixels.
+	 * This is used in the texture streaming build when computing material tex coords scale.
+	 * Because the material are rendered in tiles, there is no actual valid mapping for world space position.
+	 * World space mapping would require to render mesh with the level transforms to be valid.
+	 */
+	bool bNullifyWorldSpacePosition;
 #endif
 
 	/** Initialization constructor. */

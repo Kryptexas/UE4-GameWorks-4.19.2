@@ -612,6 +612,11 @@ public:
 	static int32 NumberOfWorkerThreadsToSpawn();
 
 	/**
+	* Return the number of worker threads we should spawn to service IO, NOT based on number of cores
+	*/
+	static int32 NumberOfIOWorkerThreadsToSpawn();
+
+	/**
 	 * Return the platform specific async IO system, or nullptr if the standard one should be used.
 	 */
 	static struct FAsyncIOSystemBase* GetPlatformSpecificAsyncIOSystem()

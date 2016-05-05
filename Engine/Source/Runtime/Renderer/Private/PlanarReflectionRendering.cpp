@@ -209,7 +209,7 @@ static void UpdatePlanarReflectionContents_RenderThread(
 				const FRenderTarget* Target = SceneRenderer->ViewFamily.RenderTarget;
 				SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL, true);
 
-				// Clear color alpha to 1 so we know which parts got written to (base pass writes 0)
+				// Note: relying on GBuffer SceneColor alpha being cleared to 1 in the main scene rendering
 				RHICmdList.Clear(true, FLinearColor(0, 0, 0, 1), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 
 				// Render the scene normally
@@ -290,7 +290,13 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 
 		FPostProcessSettings PostProcessSettings;
 		PostProcessSettings.bOverride_AntiAliasingMethod = true;
-		PostProcessSettings.AntiAliasingMethod = AAM_TemporalAA;
+
+		static IConsoleVariable* CVarDefaultAntiAliasing = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DefaultFeature.AntiAliasing"));
+		int32 Value = CVarDefaultAntiAliasing->GetInt();
+		if (Value >= 0 && Value < AAM_MAX)
+		{
+			PostProcessSettings.AntiAliasingMethod = (EAntiAliasingMethod)Value;
+		}
 
 		FMatrix ComponentTransform = CaptureComponent->ComponentToWorld.ToMatrixWithScale();
 		FPlane MirrorPlane = FPlane(ComponentTransform.TransformPosition(FVector::ZeroVector), ComponentTransform.TransformVector(FVector(0, 0, 1)));
@@ -321,6 +327,7 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 		// Jitter can't be removed completely due to the clipping plane
 		// Also, this prevents the prefilter pass, which reads from jittered depth, from having to do special handling of it's depth-dependent input
 		SceneRenderer->Views[0].bAllowTemporalJitter = false;
+		SceneRenderer->Views[0].bRenderSceneTwoSided = CaptureComponent->bRenderSceneTwoSided;
 
 		const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;
 

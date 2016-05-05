@@ -47,7 +47,7 @@ struct FTexCoordScalesParams
 	float4 ScalesPerIndex;
 };
 
-MaterialFloat StoreTexCoordScale(in out FTexCoordScalesParams Params, float2 UV, uniform uint TextureReferenceIndex)
+MaterialFloat StoreTexCoordScale(in out FTexCoordScalesParams Params, float2 UV, int TextureReferenceIndex)
 {
 	// Take the minimum scale since high scale requires less resolution.
 	float GPUScaleX = length(ddx(UV));
@@ -73,7 +73,7 @@ MaterialFloat StoreTexCoordScale(in out FTexCoordScalesParams Params, float2 UV,
 	return 1.f;
 }
 
-MaterialFloat StoreTexSample(in out FTexCoordScalesParams Params, float4 C, uniform uint TextureReferenceIndex)
+MaterialFloat StoreTexSample(in out FTexCoordScalesParams Params, float4 C, int TextureReferenceIndex)
 {
 	// Alpha?
 	Params.TexSample = TextureAnalysisIndex == TextureReferenceIndex ? lerp(.4f, 1.f, saturate(Luminance(C.rgb))) : Params.TexSample;
@@ -117,21 +117,6 @@ void Main(
 	FLATTEN
 	if (TextureAnalysisIndex == -1)
 	{
-		// @TODO : The quad vertex data has invalid tangent space for some reason, even though the code in FMeshMaterialRenderItem::FillQuadData looks like setting it right.
-		MaterialParameters.TangentToWorld = float3x3(1,0,0,0,1,0,0,0,1);
-
-		// The next line ensures a constant view vector of (0,0,1) for all pixels. Required because here SVPositionToTranslatedWorld is identity, making excessive view angle increase per pixel.
-		// That creates bad side effects for anything that depends on the view vector, like parallax or bump offset mappings. For those, we want the tangent
-		// space view vector to be perpendicular to the surface in order to generate the same results as if the feature was turned off. Which gives the good results
-		// since any sub height sampling would in pratice requires less and less texture resolution, where as we are only concerned about the highest resolution the material needs.
-		// This can be seen in the debug view mode, by a checkboard of white and cyan (up to green) values. The white value meaning the highest resolution taken is the good one
-		// (blue meaning the texture has more resolution than required). Checkboard are only possible when a texture is sampled several times, like in parallax.
-		//
-		// Additionnal to affecting the view vector, it also forces a constant world position value, zeroing any textcoord scales that depends on the world position (as the UV don't change).
-		// This is alright thought since the uniform quad can obviously not compute a valid mapping for world space texture mapping (only rendering the mesh at its world position could fix that).
-		// The zero scale will be caught as an error, and the computed scale will fallback to 1.f
-		ResolvedView.SVPositionToTranslatedWorld = float4x4(0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1);
-
 #if NUM_MATERIAL_TEXCOORDS > 0
 		// Set all texcoord but one to 0. This allows the analysis to figure out which texcoord is driving the lookup.
 		int CurrentCoordIndex = (Params.PixelPosition.y / TILE_RESOLUTION) % MAX_NUM_TEX_COORD;

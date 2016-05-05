@@ -1276,8 +1276,8 @@ bool IsRichView(const FSceneViewFamily& ViewFamily)
 	}
 
 	// Flags which make the view rich when present.
-	if( ViewFamily.EngineShowFlags.LightComplexity ||
-		ViewFamily.EngineShowFlags.ShaderComplexity ||
+	if( ViewFamily.UseDebugViewPS()	||
+		ViewFamily.EngineShowFlags.LightComplexity ||
 		ViewFamily.EngineShowFlags.StationaryLightOverlap ||
 		ViewFamily.EngineShowFlags.BSPSplit ||
 		ViewFamily.EngineShowFlags.LightMapDensity ||

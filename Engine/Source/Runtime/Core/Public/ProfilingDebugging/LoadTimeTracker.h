@@ -91,6 +91,11 @@ public:
 	double Package_Tick;
 	double Package_CreateAsyncPackagesFromQueue;
 
+	double Package_Temp1;
+	double Package_Temp2;
+	double Package_Temp3;
+	double Package_Temp4;
+
 	double TickAsyncLoading_ProcessLoadedPackages;
 
 

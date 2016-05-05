@@ -272,12 +272,15 @@ float3 MinimalReprojectionForDebugging(float2 UV, float4 SvPosition)
 	return NewColor;
 }
 
-void SSRTemporalAAPS( noperspective float2 UV : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, 
-	float4 Unused1 : TEXCOORD2,
-	float4 Unused2 : TEXCOORD3,
-	float4 Unused3 : TEXCOORD4,
-	float4 SvPosition : SV_POSITION,		// after all interpolators
-	out float4 OutColor : SV_Target0 )
+void SSRTemporalAAPS( 
+	noperspective 	float2 UV 						: TEXCOORD0, 
+					float3 InExposureScaleVignette 	: TEXCOORD1, 
+					float4 Unused2 					: TEXCOORD2,
+					float4 Unused3 					: TEXCOORD3,
+					float4 Unused4 					: TEXCOORD4,
+					float4 SvPosition 				: SV_POSITION,		// after all interpolators
+	out 			float4 OutColor 				: SV_Target0 
+	)
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;

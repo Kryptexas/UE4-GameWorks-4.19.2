@@ -128,6 +128,7 @@ void FProfilerManager::PostConstructor()
 void FProfilerManager::BindCommands()
 {
 	ProfilerActionManager.Map_ProfilerManager_Load();
+	ProfilerActionManager.Map_ProfilerManager_LoadMultiple();
 	ProfilerActionManager.Map_ToggleDataPreview_Global();
 	ProfilerActionManager.Map_ProfilerManager_ToggleLivePreview_Global();
 	ProfilerActionManager.Map_ToggleDataCapture_Global();

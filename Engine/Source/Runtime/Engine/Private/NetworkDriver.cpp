@@ -2082,7 +2082,7 @@ void FPacketSimulationSettings::UnregisterCommands()
 
 	// Gather up all relevant console commands
 	TArray<IConsoleObject*> PacketSimulationConsoleCommands;
-	ConsoleManager.ForEachConsoleObject(
+	ConsoleManager.ForEachConsoleObjectThatStartsWith(
 		FConsoleObjectVisitor::CreateStatic< TArray<IConsoleObject*>& >(
 		&FPacketSimulationConsoleCommandVisitor::OnPacketSimulationConsoleCommand,
 		PacketSimulationConsoleCommands ), TEXT("Net Pkt"));

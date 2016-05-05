@@ -118,6 +118,11 @@ void FLoadTimeTracker::DumpRawLoadTimes() const
 
 	UE_LOG(LogStreaming, Display, TEXT("TickAsyncLoading_ProcessLoadedPackages: %f"), TickAsyncLoading_ProcessLoadedPackages);
 
+	UE_LOG(LogStreaming, Display, TEXT("Package_Temp1: %f"), Package_Temp1);
+	UE_LOG(LogStreaming, Display, TEXT("Package_Temp2: %f"), Package_Temp2);
+	UE_LOG(LogStreaming, Display, TEXT("Package_Temp3: %f"), Package_Temp3);
+	UE_LOG(LogStreaming, Display, TEXT("Package_Temp4: %f"), Package_Temp4);
+
 
 	UE_LOG(LogStreaming, Display, TEXT("-------------------------------------------------"));
 
@@ -171,6 +176,11 @@ void FLoadTimeTracker::ResetRawLoadTimes()
 	Package_PostLoadObjects = 0.0;
 	Package_Tick = 0.0;
 	Package_CreateAsyncPackagesFromQueue = 0.0;
+
+	Package_Temp1 = 0.0;
+	Package_Temp2 = 0.0;
+	Package_Temp3 = 0.0;
+	Package_Temp4 = 0.0;
 
 	TickAsyncLoading_ProcessLoadedPackages = 0.0;
 

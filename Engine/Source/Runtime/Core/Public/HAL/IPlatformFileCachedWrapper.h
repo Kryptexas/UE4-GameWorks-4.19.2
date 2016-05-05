@@ -377,4 +377,10 @@ public:
 	{
 		return LowerLevel->SendMessageToServer(Message, Handler);
 	}
+#if USE_NEW_ASYNC_IO
+	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
+	{
+		return LowerLevel->OpenAsyncRead(Filename);
+	}
+#endif // USE_NEW_ASYNC_IO
 };

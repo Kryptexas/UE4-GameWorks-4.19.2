@@ -17,6 +17,7 @@ namespace CCT
 		bUseNew(false),
 		bList(false),
 		bPreprocessOnly(false),
+		bTestRemoveUnused(false),
 		bPackIntoUBs(false),
 		bUseDX11Clip(false),
 		bFlattenUBs(false),
@@ -366,6 +367,10 @@ namespace CCT
 			else if (Switch.StartsWith(TEXT("groupflatub")))
 			{
 				bGroupFlattenUBs = true;
+			}
+			else if (Switch.StartsWith(TEXT("removeunused")))
+			{
+				bTestRemoveUnused = true;
 			}
 			else if (Switch.StartsWith(TEXT("packintoubs")))
 			{

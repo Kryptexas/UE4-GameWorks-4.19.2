@@ -704,6 +704,13 @@ bool ULandscapeComponent::GetLightMapResolution( int32& Width, int32& Height ) c
 	return false;
 }
 
+int32 ULandscapeComponent::GetStaticLightMapResolution() const
+{
+	int32 Width, Height;
+	GetLightMapResolution(Width, Height);
+	return FMath::Max<int32>(Width, Height);
+}
+
 void ULandscapeComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const
 {
 	int32 Width, Height;

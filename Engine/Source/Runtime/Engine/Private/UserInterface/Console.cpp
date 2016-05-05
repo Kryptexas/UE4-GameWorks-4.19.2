@@ -152,7 +152,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 
 	// console variables
 	{
-		IConsoleManager::Get().ForEachConsoleObject(
+		IConsoleManager::Get().ForEachConsoleObjectThatStartsWith(
 			FConsoleObjectVisitor::CreateStatic< TArray<struct FAutoCompleteCommand>& >(
 				&FConsoleVariableAutoCompleteVisitor::OnConsoleVariable,
 				AutoCompleteList ) );

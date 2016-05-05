@@ -1978,11 +1978,17 @@ public:
 	void ClearOnScreenDebugMessages();
 
 #if !UE_BUILD_SHIPPING
-	/** Capture screenshots and performance metrics */
-	void PerformanceCapture(UWorld* World, const FString& CaptureName);
+	/** 
+	 * Capture screenshots and performance metrics
+	 * @param EventTime time of the Matinee event
+	 */
+	void PerformanceCapture(UWorld* World, const FString& MapName, const FString& MatineeName, float EventTime);
 
-	/** Logs performance capture for use in automation analytics */
-	void LogPerformanceCapture(UWorld* World, const FString& CaptureName);
+	/**
+	 * Logs performance capture for use in automation analytics
+	 * @param EventTime time of the Matinee event
+	 */
+	void LogPerformanceCapture(UWorld* World, const FString& MapName, const FString& MatineeName, float EventTime);
 #endif	// UE_BUILD_SHIPPING
 
 	/**
@@ -2293,6 +2299,8 @@ protected:
 	 *	@return true if there is an initialized device, false otherwise
 	 */
 	virtual bool InitializeHMDDevice();
+
+	virtual void InitializeViewExtentions();
 
 	/**	Record EngineAnalytics information for attached HMD devices. */
 	virtual void RecordHMDAnalytics();

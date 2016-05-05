@@ -2202,59 +2202,21 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 							{
 								bool bDone = false;
 
-								int32 CheckSelIndex = ++LastSelectedParticleIndex;
-								if (CheckSelIndex >= SourceEmitter->ActiveParticles)
+								if (++LastSelectedParticleIndex >= SourceEmitter->ActiveParticles)
 								{
-									CheckSelIndex = 0;
+									LastSelectedParticleIndex = 0;
 								}
-								int32 StartIdx = CheckSelIndex;
-								
-								Index = -1;
-								while (!bDone)
+								Index = LastSelectedParticleIndex;
+
+								for (int32 TrailCheckIdx = 0; TrailCheckIdx < MaxTrailCount; TrailCheckIdx++)
 								{
-									int32 CheckIndex = SourceEmitter->GetParticleDirectIndex(CheckSelIndex);
-									if (CheckIndex == -1)
+									if (TrailCheckIdx != InTrailIdx)
 									{
-										bDone = true;
-									}
-									else
-									{
-										bool bFound = false;
-										for (int32 TrailCheckIdx = 0; TrailCheckIdx < MaxTrailCount; TrailCheckIdx++)
+										if (SourceIndices[TrailCheckIdx] == Index)
 										{
-											if (TrailCheckIdx != InTrailIdx)
-											{
-												if (SourceIndices[TrailCheckIdx] == CheckIndex)
-												{
-													bFound = true;
-												}
-											}
-										}
-
-										if (bFound == false)
-										{
-											bDone = true;
-											Index = CheckIndex;
-										}
-										else
-										{
-											CheckSelIndex++;
-											if (CheckSelIndex >= SourceEmitter->ActiveParticles)
-											{
-												CheckSelIndex = 0;
-											}
+											Index = -1;
 										}
 									}
-
-									if (CheckSelIndex == StartIdx)
-									{
-										bDone = true;
-									}
-								}
-
-								if (Index != -1)
-								{
-									LastSelectedParticleIndex = CheckSelIndex;
 								}
 							}
 							break;

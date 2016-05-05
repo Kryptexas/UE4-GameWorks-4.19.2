@@ -1400,6 +1400,12 @@ MaterialFloat3 TransformWorldVectorToTangent(MaterialFloat3x3 TangentToWorld, Ma
 	return mul(TangentToWorld, InWorldVector);
 }
 
+float3 TransformWorldVectorToView(float3 InTangentVector)
+{
+	// Transform from world to view space
+	return mul(InTangentVector, (float3x3)ResolvedView.TranslatedWorldToView);
+}
+
 /** Computes the distance from the center to the edge of an AABB with the given extents in the given direction. */
 MaterialFloat GetBoxPushout(MaterialFloat3 Normal,MaterialFloat3 Extent)
 {

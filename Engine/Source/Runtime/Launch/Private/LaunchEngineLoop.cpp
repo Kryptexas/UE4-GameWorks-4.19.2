@@ -1092,20 +1092,23 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	FApp::SetUseFixedTimeStep(FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep")));
 
+	FApp::bUseFixedSeed = FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FIXEDSEED"));
+
 	// Initialize random number generator.
-	if( FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FIXEDSEED")) )
 	{
-		FMath::RandInit( 0 );
-		FMath::SRandInit( 0 );
-		UE_LOG(LogInit, Display, TEXT("RandInit(0) SRandInit(0)."));
-	}
-	else
-	{
-		uint32 Cycles1 = FPlatformTime::Cycles();
-		FMath::RandInit(Cycles1);
-		uint32 Cycles2 = FPlatformTime::Cycles();
-		FMath::SRandInit(Cycles2);
-		UE_LOG(LogInit, Display, TEXT("RandInit(%d) SRandInit(%d)."), Cycles1, Cycles2);
+		uint32 Seed1 = 0;
+		uint32 Seed2 = 0;
+
+		if(!FApp::bUseFixedSeed)
+		{
+			Seed1 = FPlatformTime::Cycles();
+			Seed2 = FPlatformTime::Cycles();
+		}
+
+		FMath::RandInit(Seed1);
+		FMath::SRandInit(Seed2);
+
+		UE_LOG(LogInit, Display, TEXT("RandInit(%d) SRandInit(%d)."), Seed1, Seed2);
 	}
 
 	// Set up the module list and version information, if it's not compiled-in
@@ -1199,15 +1202,28 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	if (FPlatformProcess::SupportsMultithreading())
 	{
-		GThreadPool	= FQueuedThreadPool::Allocate();
-		int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfWorkerThreadsToSpawn();
-
-		// we are only going to give dedicated servers one pool thread
-		if (FPlatformProperties::IsServerOnly())
 		{
-			NumThreadsInThreadPool = 1;
+			GThreadPool = FQueuedThreadPool::Allocate();
+			int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfWorkerThreadsToSpawn();
+
+			// we are only going to give dedicated servers one pool thread
+			if (FPlatformProperties::IsServerOnly())
+			{
+				NumThreadsInThreadPool = 1;
+			}
+			verify(GThreadPool->Create(NumThreadsInThreadPool));
 		}
-		verify(GThreadPool->Create(NumThreadsInThreadPool));
+#if USE_NEW_ASYNC_IO
+		{
+			GIOThreadPool = FQueuedThreadPool::Allocate();
+			int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfIOWorkerThreadsToSpawn();
+			if (FPlatformProperties::IsServerOnly())
+			{
+				NumThreadsInThreadPool = 2;
+			}
+			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 16 * 1024, TPri_AboveNormal));
+		}
+#endif // USE_NEW_ASYNC_IO
 
 #if WITH_EDITOR
 		// when we are in the editor we like to do things like build lighting and such
@@ -2337,6 +2353,7 @@ int32 FEngineLoop::Init()
 	// Ready to measure thread heartbeat
 	FThreadHeartBeat::Get().Start();
 
+	FCoreDelegates::OnFEngineLoopInitComplete.Broadcast();
 	return 0;
 }
 
@@ -3341,6 +3358,12 @@ void FEngineLoop::AppPreExit( )
 	{
 		GThreadPool->Destroy();
 	}
+#if USE_NEW_ASYNC_IO
+	if (GIOThreadPool != nullptr)
+	{
+		GIOThreadPool->Destroy();
+	}
+#endif // USE_NEW_ASYNC_IO
 
 #if WITH_ENGINE
 	if ( GShaderCompilingManager )

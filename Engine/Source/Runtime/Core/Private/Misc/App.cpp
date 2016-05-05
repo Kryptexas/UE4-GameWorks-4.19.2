@@ -16,6 +16,7 @@ FString FApp::SessionOwner = FString();
 TArray<FString> FApp::SessionUsers = TArray<FString>();
 bool FApp::Standalone = true;
 bool FApp::bIsBenchmarking = false;
+bool FApp::bUseFixedSeed = false;
 bool FApp::bUseFixedTimeStep = false;
 double FApp::FixedDeltaTime = 1 / 30.0;
 double FApp::CurrentTime = 0.0;

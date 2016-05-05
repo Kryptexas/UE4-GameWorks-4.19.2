@@ -560,6 +560,11 @@ protected:
 	FCollisionResponseContainer CollisionResponse;
 #endif
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** LightMap resolution used for VMI_LightmapDensity */
+	int32 LightMapResolution;
+#endif
+
 	TUniformBuffer<FLandscapeUniformShaderParameters> LandscapeUniformShaderParameters;
 
 	// Cached versions of these
@@ -605,6 +610,10 @@ public:
 	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, UTexture2D*& OutDiffuseColorTexture, FHeightfieldComponentDescription& OutDescription) override;
 
 	virtual void GetLCIs(FLCIArray& LCIs) override;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	virtual int32 GetLightMapResolution() const override { return LightMapResolution; }
+#endif
 };
 
 class FLandscapeDebugMaterialRenderProxy : public FMaterialRenderProxy

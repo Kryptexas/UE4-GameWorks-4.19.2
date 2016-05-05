@@ -43,6 +43,13 @@ namespace Scalability
 			return !(*this == Other);
 		}
 
+		/** used for DisplayInternals to quickly identify why a screenshot looks different */
+		uint32 GetHash() const
+		{
+			// Note: this assumes the memory of this class is not containing any uninitialized memory
+			return FCrc::MemCrc32(this, sizeof(*this));
+		}
+
 		// Sets all other settings based on an overall value
 		// @param Value 0:low, 1:medium, 2:high, 3:epic (gets clamped if needed)
 		void SetFromSingleQualityLevel(int32 Value);

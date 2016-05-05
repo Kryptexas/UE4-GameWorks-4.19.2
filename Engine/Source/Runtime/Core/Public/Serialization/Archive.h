@@ -22,11 +22,11 @@ public:
 	 **/
 	virtual FString GetArchiveName() const { return TEXT("FMemoryArchive"); }
 
-	void Seek( int64 InPos )
+	void Seek( int64 InPos ) final
 	{
 		Offset = InPos;
 	}
-	int64 Tell()
+	int64 Tell() final
 	{
 		return Offset;
 	}
@@ -150,7 +150,7 @@ public:
 /**
  * Archive for reading arbitrary data from the specified memory location
  */
-class FMemoryReader : public FMemoryArchive
+class FMemoryReader final : public FMemoryArchive
 {
 public:
 	/**
@@ -164,12 +164,6 @@ public:
 	int64 TotalSize()
 	{
 		return FMath::Min((int64)Bytes.Num(), LimitSize);
-	}
-
-	void Seek(int64 InPos )
-	{
-		check(InPos <= TotalSize());
-		FMemoryArchive::Seek(InPos);
 	}
 
 	void Serialize( void* Data, int64 Num )
@@ -216,26 +210,129 @@ protected:
  */
 typedef FBufferArchive FArrayWriter;
 
-class FArrayReader : public FMemoryReader, public TArray<uint8>
+class FArrayReader final : public FMemoryArchive, public TArray<uint8>
 {
 public:
 	FArrayReader( bool bIsPersistent=false )
-	: FMemoryReader( (TArray<uint8>&)*this, bIsPersistent )
-	{}
+	{
+		ArIsLoading = true;
+		ArIsPersistent = bIsPersistent;
+	}
+
 	/**
-  	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
-	 * is in when a loading error occurs.
-	 *
-	 * This is overridden for the specific Archive Types
-	 **/
+	* Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	* is in when a loading error occurs.
+	*
+	* This is overridden for the specific Archive Types
+	**/
 	virtual FString GetArchiveName() const { return TEXT("FArrayReader"); }
+
+	int64 TotalSize()
+	{
+		return (int64)Num();
+	}
+
+	void Serialize(void* Data, int64 Count)
+	{
+		if (Count && !ArIsError)
+		{
+			// Only serialize if we have the requested amount of data
+			if (Offset + Count <= Num())
+			{
+				FMemory::Memcpy(Data, &((*this)[Offset]), Count);
+				Offset += Count;
+			}
+			else
+			{
+				ArIsError = true;
+			}
+		}
+	}
+};
+
+/**
+* Similar to FMemoryReader, but able to internally
+* manage the memory for the buffer.
+*/
+class FBufferReaderBase : public FArchive
+{
+public:
+	/**
+	* Constructor
+	*
+	* @param Data Buffer to use as the source data to read from
+	* @param Size Size of Data
+	* @param bInFreeOnClose If true, Data will be FMemory::Free'd when this archive is closed
+	* @param bIsPersistent Uses this value for ArIsPersistent
+	* @param bInSHAVerifyOnClose It true, an async SHA verification will be done on the Data buffer (bInFreeOnClose will be passed on to the async task)
+	*/
+	FBufferReaderBase(void* Data, int64 Size, bool bInFreeOnClose, bool bIsPersistent = false)
+		: ReaderData(Data)
+		, ReaderPos(0)
+		, ReaderSize(Size)
+		, bFreeOnClose(bInFreeOnClose)
+	{
+		ArIsLoading = true;
+		ArIsPersistent = bIsPersistent;
+	}
+
+	~FBufferReaderBase()
+	{
+		Close();
+	}
+	bool Close()
+	{
+		if (bFreeOnClose)
+		{
+			FMemory::Free(ReaderData);
+			ReaderData = nullptr;
+		}
+		return !ArIsError;
+	}
+	void Serialize(void* Data, int64 Num) final
+	{
+		check(ReaderPos >= 0);
+		check(ReaderPos + Num <= ReaderSize);
+		FMemory::Memcpy(Data, (uint8*)ReaderData + ReaderPos, Num);
+		ReaderPos += Num;
+	}
+	int64 Tell() final
+	{
+		return ReaderPos;
+	}
+	int64 TotalSize() final
+	{
+		return ReaderSize;
+	}
+	void Seek(int64 InPos) final 
+	{
+		check(InPos >= 0);
+		check(InPos <= ReaderSize);
+		ReaderPos = InPos;
+	}
+	bool AtEnd() final 
+	{
+		return ReaderPos >= ReaderSize;
+	}
+	/**
+	* Returns the name of the Archive.  Useful for getting the name of the package a struct or object
+	* is in when a loading error occurs.
+	*
+	* This is overridden for the specific Archive Types
+	**/
+	virtual FString GetArchiveName() const { return TEXT("FBufferReaderBase"); }
+protected:
+	void*		ReaderData;
+	int64		ReaderPos;
+	int64		ReaderSize;
+	bool	bFreeOnClose;
 };
 
 /**
  * Similar to FMemoryReader, but able to internally
  * manage the memory for the buffer.
  */
-class FBufferReader : public FArchive
+class FBufferReader final : public FBufferReaderBase
 {
 public:
 	/**
@@ -248,73 +345,20 @@ public:
 	 * @param bInSHAVerifyOnClose It true, an async SHA verification will be done on the Data buffer (bInFreeOnClose will be passed on to the async task)
 	 */
 	FBufferReader( void* Data, int64 Size, bool bInFreeOnClose, bool bIsPersistent = false )
-	:	ReaderData			( Data )
-	,	ReaderPos 			( 0 )
-	,	ReaderSize			( Size )
-	,	bFreeOnClose		( bInFreeOnClose )
+		: FBufferReaderBase(Data, Size, bInFreeOnClose, bIsPersistent)
 	{
-		ArIsLoading		= true;
-		ArIsPersistent	= bIsPersistent;
 	}
 
-	~FBufferReader()
-	{
-		Close();
-	}
-	bool Close()
-	{
-		if( bFreeOnClose )
-		{
-			FMemory::Free( ReaderData );
-			ReaderData = nullptr;
-		}
-		return !ArIsError;
-	}
-	void Serialize( void* Data, int64 Num )
-	{
-		check( ReaderPos >=0 );
-		check( ReaderPos+Num <= ReaderSize );
-		FMemory::Memcpy( Data, (uint8*)ReaderData + ReaderPos, Num );
-		ReaderPos += Num;
-	}
-	int64 Tell()
-	{
-		return ReaderPos;
-	}
-	int64 TotalSize()
-	{
-		return ReaderSize;
-	}
-	void Seek( int64 InPos )
-	{
-		check( InPos >= 0 );
-		check( InPos <= ReaderSize );
-		ReaderPos = InPos;
-	}
-	bool AtEnd()
-	{
-		return ReaderPos >= ReaderSize;
-	}
-	/**
-  	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
-	 * is in when a loading error occurs.
-	 *
-	 * This is overridden for the specific Archive Types
-	 **/
 	virtual FString GetArchiveName() const { return TEXT("FBufferReader"); }
-protected:
-	void*		ReaderData;
-	int64		ReaderPos;
-	int64		ReaderSize;
-	bool	bFreeOnClose;
 };
+
 
 
 /**
 * Similar to FMemoryWriter, but able to internally
 * manage the memory for the buffer.
 */
-class FBufferWriter : public FArchive
+class FBufferWriter final : public FArchive
 {
 public:
 	/**

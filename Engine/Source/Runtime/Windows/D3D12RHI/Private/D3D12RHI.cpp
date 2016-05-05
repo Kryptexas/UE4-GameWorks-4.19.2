@@ -25,6 +25,22 @@
 
 DEFINE_LOG_CATEGORY(LogD3D12RHI);
 
+int32 GEnableMultiEngine = 1;
+static FAutoConsoleVariableRef CVarEnableMultiEngine(
+	TEXT("D3D12.EnableMultiEngine"),
+	GEnableMultiEngine,
+	TEXT("Enables multi engine (3D, Copy, Compute) use."),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly
+	);
+
+int32 GCommandListBatchingMode = CLB_NormalBatching;
+static FAutoConsoleVariableRef CVarCommandListBatchingMode(
+	TEXT("D3D12.CommandListBatchingMode"),
+	GCommandListBatchingMode,
+	TEXT("Changes how command lists are batched and submitted to the GPU."),
+	ECVF_RenderThreadSafe
+	);
+
 namespace D3D12RHI
 {
 	extern void UniformBufferBeginFrame();

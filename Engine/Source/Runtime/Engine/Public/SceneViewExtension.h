@@ -9,7 +9,9 @@
 class ISceneViewExtension
 {
 public:
-    /**
+	virtual ~ISceneViewExtension() {}
+
+	/**
      * Called on game thread when creating the view family.
      */
     virtual void SetupViewFamily(FSceneViewFamily& InViewFamily) = 0;
@@ -33,6 +35,16 @@ public:
      * Called on render thread at the start of rendering, for each view, after PreRenderViewFamily_RenderThread call.
      */
     virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) = 0;
+
+	/**
+	 * Allows to render content after the 3D content scene, useful for debugging
+	 */
+	virtual void PostRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {}
+
+	/**
+	 * Allows to render content after the 3D content scene, useful for debugging
+	 */
+	virtual void PostRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {}
 
 	/**
      * Called to determine view extensions priority in relation to other view extensions, higher comes first

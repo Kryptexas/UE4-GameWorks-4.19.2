@@ -290,6 +290,17 @@ COREUOBJECT_API void StaticTick( float DeltaTime, bool bUseFullTimeLimit = true,
  */
 COREUOBJECT_API UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags );
 
+/**
+* Scans to determine load order via package dependencies
+*
+* @param	InLongPackageName	Long package name to load
+* @param	InOrderTracker	structure that tracks and returns the load order
+* @param	Order	tracks the current load order
+* @param	InAssetRegistry	asset registry to use for dependency tracking
+*/
+COREUOBJECT_API void ScanPackageDependenciesForLoadOrder(const TCHAR* InLongPackageName, TMap<FName, int32>& InOrderTracker, int32& Order, class IAssetRegistryInterface* InAssetRegistry);
+
+
 /* Async package loading result */
 namespace EAsyncLoadingResult
 {

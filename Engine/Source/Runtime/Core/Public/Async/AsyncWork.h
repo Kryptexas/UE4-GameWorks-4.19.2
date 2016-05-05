@@ -540,6 +540,57 @@ public:
 		CheckIdle(); // Must have had bDoWorkOnThisThreadIfNotStarted == false and needed it to be true for a synchronous job
 	}
 
+	/**
+	* Cancel the task, if possible.
+	* Note that this is different than abandoning (which is called by the thread pool at shutdown). 
+	* @return true if the task was canceled and is safe to delete. If it wasn't canceled, it may be done, but that isn't checked here.
+	**/
+	bool Cancel()
+	{
+		if (QueuedPool)
+		{
+			if (QueuedPool->RetractQueuedWork(this))
+			{
+				check(WorkNotFinishedCounter.GetValue() == 1);
+				WorkNotFinishedCounter.Decrement();
+				FinishThreadedWork();
+				QueuedPool = 0;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	* Wait until the job is complete, up to a time limit
+	* @param TimeLimitSeconds Must be positive, if you want to wait forever or poll, use a different call.
+	* @return true if the task is completed
+	**/
+	bool WaitCompletionWithTimeout(float TimeLimitSeconds)
+	{
+		check(TimeLimitSeconds > 0.0f)
+		FPlatformMisc::MemoryBarrier();
+		if (QueuedPool)
+		{
+			FScopeCycleCounter Scope(Task.GetStatId());
+			DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FAsyncTask::SyncCompletion"), STAT_FAsyncTask_SyncCompletion, STATGROUP_ThreadPoolAsyncTasks);
+
+			uint32 Ms = uint32(TimeLimitSeconds * 1000.0f) + 1;
+			check(Ms);
+
+			check(DoneEvent); // if it is not done yet, we must have an event
+			if (DoneEvent->Wait(Ms))
+			{
+				QueuedPool = 0;
+				CheckIdle();
+				return true;
+			}
+			return false;
+		}
+		CheckIdle();
+		return true;
+	}
+
 	/** Returns true if the work and TASK has completed, false while it's still in progress. 
 	 * prior to returning true, it synchronizes so the task can be destroyed or reused
 	*/

@@ -591,6 +591,9 @@ public:
 	{
 		return bHasVRFocus;
 	}
+	
+	/* If the random seed started with a constant or on time, can be affected by -FIXEDSEED or -BENCHMARK */
+	static bool bUseFixedSeed;
 
 private:
 

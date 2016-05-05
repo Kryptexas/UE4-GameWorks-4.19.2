@@ -18,6 +18,7 @@
 #include "IHeadMountedDisplay.h"
 #include "Classes/Engine/RendererSettings.h"
 #include "LightPropagationVolumeBlendable.h"
+#include "SceneViewExtension.h"
 
 #if WITH_EDITOR
 	#include "UnrealEd.h"
@@ -411,6 +412,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsSceneCapture(false)
 	, bIsReflectionCapture(false)
 	, bIsPlanarReflection(false)
+	, bRenderSceneTwoSided(false)
 	, bIsLocked(false)
 	, bStaticSceneOnly(false)
 	, bIsInstancedStereoEnabled(false)
@@ -610,6 +612,8 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	bUseFieldOfViewForLOD = InitOptions.bUseFieldOfViewForLOD;
 	DrawDynamicFlags = EDrawDynamicFlags::None;
 	bAllowTemporalJitter = true;
+	TemporalJitterPixelsX = 0.0f;
+	TemporalJitterPixelsY = 0.0f;
 
 #if WITH_EDITOR
 	bUsePixelInspector = false;
@@ -1899,12 +1903,8 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 
 			if (World->IsPaused())
 			{
-				bool bCameraCanMove = false;
-
-#if WITH_EDITOR
 				// to fix UE-17047 Motion Blur exaggeration when Paused in Simulate
-				bCameraCanMove = GEditor && GEditor->bIsSimulatingInEditor;
-#endif
+				bool bCameraCanMove = GEditor && GEditor->bIsSimulatingInEditor;
 				if(!bCameraCanMove)
 				{
 					bWorldIsPaused = true;
@@ -1916,6 +1916,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	LandscapeLODOverride = -1;
 	HierarchicalLODOverride = -1;
 	bDrawBaseInfo = true;
+	bNullifyWorldSpacePosition = false;
 #endif
 }
 
@@ -2043,6 +2044,12 @@ EDebugViewShaderMode FSceneViewFamily::ChooseDebugViewShaderMode() const
 	return DVSM_None;
 }
 
+static bool PlatformSupportsDebugViewShaders(EShaderPlatform Platform)
+{
+	// List of platforms that have been tested and proven functional. 
+	return Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5 || Platform == SP_OPENGL_SM4;
+}
+
 bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform)
 {
 #if WITH_EDITOR
@@ -2060,13 +2067,13 @@ bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform)
 	case DVSM_ShaderComplexityContainedQuadOverhead:
 	case DVSM_ShaderComplexityBleedingQuadOverhead:
 	case DVSM_QuadComplexity:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceQuadOverdraw || Platform == SP_PCD3D_SM5);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceQuadOverdraw || PlatformSupportsDebugViewShaders(Platform));
 	case DVSM_PrimitiveDistanceAccuracy:
 	case DVSM_MeshTexCoordSizeAccuracy:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceStreamingAccuracy || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForceStreamingAccuracy || PlatformSupportsDebugViewShaders(Platform));
 	case DVSM_MaterialTexCoordScalesAccuracy:
 	case DVSM_MaterialTexCoordScalesAnalysis:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceTextureStreamingBuild || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForceTextureStreamingBuild || PlatformSupportsDebugViewShaders(Platform));
 	default:
 		return false;
 	}
@@ -2084,7 +2091,7 @@ bool AllowDebugViewVSDSHS(EShaderPlatform Platform)
 		FParse::Param(FCommandLine::Get(), TEXT("streamingaccuracy")) || 
 		FParse::Param(FCommandLine::Get(), TEXT("streamingbuild"));
 
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForce || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForce || PlatformSupportsDebugViewShaders(Platform));
 #else
 	return false;
 #endif
@@ -2093,6 +2100,129 @@ bool AllowDebugViewVSDSHS(EShaderPlatform Platform)
 bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode)
 {
 	return AllowDebugViewPS(ShaderMode, GMaxRHIShaderPlatform);
+}
+
+
+class FConsoleVariableAutoCompleteVisitor 
+{
+public:
+	// @param Name must not be 0
+	// @param CVar must not be 0
+	static void OnConsoleVariable(const TCHAR *Name, IConsoleObject* CObj, uint32& Crc)
+	{
+		IConsoleVariable* CVar = CObj->AsVariable();
+		if(CVar)
+		{
+			if(CObj->TestFlags(ECVF_Scalability) || CObj->TestFlags(ECVF_ScalabilityGroup))
+			{
+				// float shoudl work on int32 as well
+				float Value = CVar->GetFloat();
+				Crc = FCrc::MemCrc32(&Value, sizeof(Value), Crc);
+			}
+		}
+	}
+};
+static uint32 ComputeScalabilityCVarHash()
+{
+	uint32 Ret = 0;
+
+	IConsoleManager::Get().ForEachConsoleObjectThatStartsWith(FConsoleObjectVisitor::CreateStatic< uint32& >(&FConsoleVariableAutoCompleteVisitor::OnConsoleVariable, Ret));
+
+	return Ret;
+}
+
+static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	auto Family = InView.Family;
+	// if r.DisplayInternals != 0
+	if(Family->EngineShowFlags.OnScreenDebug && Family->DisplayInternalsData.IsValid())
+	{
+		auto State = InView.State;
+
+		FCanvas Canvas((FRenderTarget*)Family->RenderTarget, NULL, Family->CurrentRealTime, Family->CurrentWorldTime, Family->DeltaWorldTime, InView.GetFeatureLevel());
+		Canvas.SetRenderTargetRect(InView.ViewRect);
+
+		SetRenderTarget(RHICmdList, Family->RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+
+		// further down to not intersect with "LIGHTING NEEDS TO BE REBUILT"
+		FVector2D Pos(30, 140);
+		const int32 FontSizeY = 14;
+
+		// dark background
+		Canvas.DrawTile(Pos.X - 4, Pos.Y - 4, 500 + 8, FontSizeY * 26 + 8, 0, 0, 1, 1, FLinearColor(0,0,0,0.6f), 0, true);
+
+		UFont* Font = GEngine->GetSmallFont();
+		FCanvasTextItem SmallTextItem( Pos, FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
+
+		SmallTextItem.SetColor(FLinearColor::White);
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("r.DisplayInternals = %d"), Family->DisplayInternalsData.DisplayInternalsCVarValue));
+		Canvas.DrawItem(SmallTextItem, Pos);
+		SmallTextItem.SetColor(FLinearColor::Gray);
+		Pos.Y += FontSizeY;
+		Pos.Y += FontSizeY;
+
+		SmallTextItem.Text = FText::FromString(TEXT("command line options:")); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		{
+			bool bDeterministic = FApp::UseFixedTimeStep() && FApp::bUseFixedSeed;
+			SmallTextItem.SetColor(bDeterministic ? FLinearColor::Gray : FLinearColor::Red);
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  -UseFixedTimeStep: %u"), FApp::UseFixedTimeStep())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  -FixedSeed: %u"), FApp::bUseFixedSeed)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+			SmallTextItem.SetColor(FLinearColor::Gray);
+			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  -gABC= (changelist): %d"), GetChangeListNumberForPerfTesting())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		}
+
+		SmallTextItem.Text = FText::FromString(TEXT("Global:")); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  Scalability CVar Hash: %x (use console command \"Scalability\")"), ComputeScalabilityCVarHash())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  FrameNumberRT: %u"), GFrameNumberRenderThread)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  FrameCounter: %u"), GFrameCounter)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  rand()/SRand: %x/%x"), FMath::Rand(), FMath::GetRandSeed())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+
+		SmallTextItem.Text = FText::FromString(TEXT("State:")); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  TemporalAASample: %u"), State->GetCurrentTemporalAASampleIndex())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  LODTransition: %.2f"), State->GetTemporalLODTransition())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+
+		SmallTextItem.Text = FText::FromString(TEXT("Family:")); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  Time (Real/World/DeltaWorld): %.2f/%.2f/%.2f"), Family->CurrentRealTime, Family->CurrentWorldTime, Family->DeltaWorldTime)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  MatineeTime: %f"), Family->DisplayInternalsData.MatineeTime)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  FrameNumber: %u"), Family->FrameNumber)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  ExposureSettings: %s"), *Family->ExposureSettings.ToString())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  GammaCorrection: %.2f"), Family->GammaCorrection)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+
+		SmallTextItem.Text = FText::FromString(TEXT("View:")); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  TemporalJitter: %.2f/%.2f"), InView.TemporalJitterPixelsX, InView.TemporalJitterPixelsY)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  ViewProjectionMatrix Hash: %x"), InView.ViewProjectionMatrix.ComputeHash())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  ViewLocation: %s"), *InView.ViewLocation.ToString())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  ViewRotation: %s"), *InView.ViewRotation.ToString())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  ViewRect: %s"), *InView.ViewRect.ToString())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+
+		Canvas.Flush_RenderThread(RHICmdList);
+	}
+#endif
+}
+
+TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension()
+{
+	class FRendererViewExtension : public ISceneViewExtension
+	{
+	public:
+		virtual void SetupViewFamily(FSceneViewFamily& InViewFamily) {}
+		virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) {}
+		virtual void BeginRenderViewFamily(FSceneViewFamily& InViewFamily) {}
+		virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {}
+		virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {}
+		virtual int32 GetPriority() const { return 0; }
+		virtual void PostRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
+		{
+			DisplayInternals(RHICmdList, InView);
+		}
+	};
+	TSharedPtr<FRendererViewExtension, ESPMode::ThreadSafe> ptr(new FRendererViewExtension);
+	return StaticCastSharedPtr<ISceneViewExtension>(ptr);
 }
 
 #endif

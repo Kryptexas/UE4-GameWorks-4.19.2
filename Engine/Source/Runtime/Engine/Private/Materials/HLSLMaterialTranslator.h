@@ -725,15 +725,15 @@ public:
 		{
 			OutEnvironment.SetDefine(TEXT("USES_EYE_ADAPTATION"), TEXT("1"));
 		}
-		OutEnvironment.SetDefine(TEXT("MATERIAL_ATMOSPHERIC_FOG"), bUsesAtmosphericFog ? TEXT("1") : TEXT("0"));
-		OutEnvironment.SetDefine(TEXT("INTERPOLATE_VERTEX_COLOR"), bUsesVertexColor ? TEXT("1") : TEXT("0")); 
-		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_COLOR"), bUsesParticleColor ? TEXT("1") : TEXT("0")); 
-		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector ? TEXT("1") : TEXT("0")); 
-		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset ? TEXT("1") : TEXT("0")); 
+		OutEnvironment.SetDefine(TEXT("MATERIAL_ATMOSPHERIC_FOG"), bUsesAtmosphericFog);
+		OutEnvironment.SetDefine(TEXT("INTERPOLATE_VERTEX_COLOR"), bUsesVertexColor); 
+		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_COLOR"), bUsesParticleColor); 
+		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector); 
+		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset); 
 		// Distortion uses tangent space transform 
-		OutEnvironment.SetDefine(TEXT("USES_DISTORTION"), Material->IsDistorted() ? TEXT("1") : TEXT("0")); 
+		OutEnvironment.SetDefine(TEXT("USES_DISTORTION"), Material->IsDistorted()); 
 
-		OutEnvironment.SetDefine(TEXT("ENABLE_TRANSLUCENCY_VERTEX_FOG"), Material->UseTranslucencyVertexFog() ? TEXT("1") : TEXT("0"));
+		OutEnvironment.SetDefine(TEXT("ENABLE_TRANSLUCENCY_VERTEX_FOG"), Material->UseTranslucencyVertexFog());
 
 		for (int32 CollectionIndex = 0; CollectionIndex < ParameterCollections.Num(); CollectionIndex++)
 		{
@@ -1607,17 +1607,16 @@ protected:
 			return INDEX_NONE;
 		}
 
-		if(GetParameterUniformExpression(Code) && !GetParameterUniformExpression(Code)->IsConstant())
-		{
-			return ValidCast(AccessUniformExpression(Code),DestType);
-		}
-
 		EMaterialValueType SourceType = GetParameterType(Code);
-
 		int32 CompiledResult = INDEX_NONE;
+
 		if (SourceType & DestType)
 		{
 			CompiledResult = Code;
+		}
+		else if(GetParameterUniformExpression(Code) && !GetParameterUniformExpression(Code)->IsConstant())
+		{
+			return ValidCast(AccessUniformExpression(Code), DestType);
 		}
 		else if((SourceType & MCT_Float) && (DestType & MCT_Float))
 		{
@@ -2681,7 +2680,7 @@ protected:
 
 		FString UVs = CoerceParameter(CoordinateIndex, UVsType);
 
-		const bool bStoreTexCoordScales = (TextureReferenceIndex != INDEX_NONE && Material && Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
+		const bool bStoreTexCoordScales = (ShaderFrequency == SF_Pixel && TextureReferenceIndex != INDEX_NONE && Material && Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
 		if (bStoreTexCoordScales)
 		{
 			AddCodeChunk(MCT_Float, TEXT("StoreTexCoordScale(Parameters.TexCoordScalesParams, %s, %d)"), *UVs, (int)TextureReferenceIndex);
@@ -3411,8 +3410,57 @@ protected:
 			return INDEX_NONE;
 		}
 
+		FMaterialUniformExpression* ExpressionX = GetParameterUniformExpression(X);
+		FMaterialUniformExpression* ExpressionY = GetParameterUniformExpression(Y);
+		FMaterialUniformExpression* ExpressionA = GetParameterUniformExpression(A);
+		bool bExpressionsAreEqual = false;
+
+		// Skip over interpolations where inputs are equal
+		if (X == Y)
+		{
+			bExpressionsAreEqual = true;
+		}
+		else if (ExpressionX && ExpressionY)
+		{
+			if (ExpressionX->IsConstant() && ExpressionY->IsConstant() && (*CurrentScopeChunks)[X].Type == (*CurrentScopeChunks)[Y].Type)
+			{
+				FLinearColor ValueX, ValueY;
+				FMaterialRenderContext DummyContext(nullptr, *Material, nullptr);
+				ExpressionX->GetNumberValue(DummyContext, ValueX);
+				ExpressionY->GetNumberValue(DummyContext, ValueY);
+
+				if (ValueX == ValueY)
+				{
+					bExpressionsAreEqual = true;
+				}
+			}
+		}
+
+		if (bExpressionsAreEqual)
+		{
+			return X;
+		}
+
 		EMaterialValueType ResultType = GetArithmeticResultType(X,Y);
 		EMaterialValueType AlphaType = ResultType == (*CurrentScopeChunks)[A].Type ? ResultType : MCT_Float1;
+
+		if (AlphaType == MCT_Float1 && ExpressionA && ExpressionA->IsConstant())
+		{
+			// Skip over interpolations that explicitly select an input
+			FLinearColor Value;
+			FMaterialRenderContext DummyContext(nullptr, *Material, nullptr);
+			ExpressionA->GetNumberValue(DummyContext, Value);
+
+			if (Value.R == 0.0f)
+			{
+				return X;
+			}
+			else if (Value.R == 1.f)
+			{
+				return Y;
+			}
+		}
+
 		return AddCodeChunk(ResultType,TEXT("lerp(%s,%s,%s)"),*CoerceParameter(X,ResultType),*CoerceParameter(Y,ResultType),*CoerceParameter(A,AlphaType));
 	}
 
@@ -4194,7 +4242,10 @@ protected:
 			Code = FString(TEXT("return "))+Code+TEXT(";");
 		}
 		Code.ReplaceInline(TEXT("\n"),TEXT("\r\n"), ESearchCase::CaseSensitive);
-		FString ImplementationCode = FString::Printf(TEXT("%s CustomExpression%d(FMaterial%sParameters Parameters%s)\r\n{\r\n%s\r\n}\r\n"), *OutputTypeString, CustomExpressionIndex, ShaderFrequency==SF_Vertex?TEXT("Vertex"):TEXT("Pixel"), *InputParamDecl, *Code);
+
+		FString ParametersType = ShaderFrequency == SF_Vertex ? TEXT("Vertex") : (ShaderFrequency == SF_Domain ? TEXT("Tessellation") : TEXT("Pixel"));
+
+		FString ImplementationCode = FString::Printf(TEXT("%s CustomExpression%d(FMaterial%sParameters Parameters%s)\r\n{\r\n%s\r\n}\r\n"), *OutputTypeString, CustomExpressionIndex, *ParametersType, *InputParamDecl, *Code);
 		CustomExpressionImplementations.Add( ImplementationCode );
 
 		// Add call to implementation function

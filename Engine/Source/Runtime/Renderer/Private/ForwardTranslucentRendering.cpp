@@ -269,11 +269,14 @@ FTranslucentPrimSet
 
 void FTranslucentPrimSet::DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const bool bRenderSeparateTranslucency) const
 {
+	ETranslucencyPass::Type TranslucencyPass = bRenderSeparateTranslucency ? ETranslucencyPass::TPT_SeparateTransluceny : ETranslucencyPass::TPT_NonSeparateTransluceny;
+
+	FInt32Range PassRange = SortedPrimsNum.GetPassRange(TranslucencyPass);
+
 	// Draw sorted scene prims
-	const TArray<FSortedPrim, SceneRenderingAllocator>& PrimList = (bRenderSeparateTranslucency) ? SortedSeparateTranslucencyPrims : SortedPrims;
-	for (int32 PrimIdx = 0; PrimIdx < PrimList.Num(); PrimIdx++)
+	for (int32 PrimIdx = PassRange.GetLowerBoundValue(); PrimIdx < PassRange.GetUpperBoundValue(); PrimIdx++)
 	{
-		FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimList[PrimIdx].PrimitiveSceneInfo;
+		FPrimitiveSceneInfo* PrimitiveSceneInfo = SortedPrims[PrimIdx].PrimitiveSceneInfo;
 		int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
 		const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
 

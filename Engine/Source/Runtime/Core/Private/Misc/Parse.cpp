@@ -75,7 +75,7 @@ void ConsoleCommandLibrary_DumpLibrary(UWorld* InWorld, FExec& SubSystem, const 
 	bool bExecuted = SubSystem.Exec( InWorld, *Pattern, Null);
 
 	{
-		IConsoleManager::Get().ForEachConsoleObject(
+		IConsoleManager::Get().ForEachConsoleObjectThatStartsWith(
 			FConsoleObjectVisitor::CreateStatic< TSet<FString>& >(
 			&FConsoleVariableDumpVisitor::OnConsoleVariable,
 			LocalConsoleCommandLibrary.KnownNames ) );
@@ -109,7 +109,7 @@ void ConsoleCommandLibrary_DumpLibraryHTML(UWorld* InWorld, FExec& SubSystem, co
 	bool bExecuted = SubSystem.Exec( InWorld, *LocalConsoleCommandLibrary.Pattern, Null);
 
 	{
-		IConsoleManager::Get().ForEachConsoleObject(
+		IConsoleManager::Get().ForEachConsoleObjectThatStartsWith(
 			FConsoleObjectVisitor::CreateStatic< TSet<FString>& >(
 			&FConsoleVariableDumpVisitor::OnConsoleVariable,
 			LocalConsoleCommandLibrary.KnownNames ) );

@@ -3345,7 +3345,7 @@ CORE_API void OnSetCVarFromIniEntry(const TCHAR *IniFile, const TCHAR *Key, cons
 				// We have one special cvar to test cheating and here we don't want to both the user of the engine
 				if(FCString::Stricmp(Key, TEXT("con.DebugEarlyCheat")) != 0)
 				{
-					ensureMsgf(false, TEXT("The ini file '%s' tries to set the console variable '%s' marked with ECVF_Cheat, this is only allowed in consolevariables.ini (was always like this in Shipping / Test but the ensure/message is new)"),
+					ensureMsgf(false, TEXT("The ini file '%s' tries to set the console variable '%s' marked with ECVF_Cheat, this is only allowed in consolevariables.ini"),
 						IniFile, Key);
 				}
 			}

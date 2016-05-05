@@ -87,3 +87,4 @@ FCoreDelegates::FOnCrashOverrideParamsChanged FCoreDelegates::CrashOverrideParam
 FCoreDelegates::FOnAsyncLoadingFlush FCoreDelegates::OnAsyncLoadingFlush;
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PostRenderingThreadCreated;
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PreRenderingThreadDestroyed;
+FSimpleMulticastDelegate FCoreDelegates::OnFEngineLoopInitComplete;

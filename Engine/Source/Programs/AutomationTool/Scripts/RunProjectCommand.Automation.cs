@@ -817,6 +817,10 @@ public partial class Project : CommandUtils
 			{
 				TempCmdLine += "-game " + Params.MapToRun + " ";
 			}
+            else
+            {
+                TempCmdLine += Params.MapToRun + " ";
+            }
 		}
 		if (Params.LogWindow)
 		{

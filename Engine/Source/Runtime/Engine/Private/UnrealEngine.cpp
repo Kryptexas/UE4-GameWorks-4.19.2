@@ -814,6 +814,8 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// Initialize the HMDs and motion controllers, if any
 	InitializeHMDDevice();
 
+	InitializeViewExtentions();
+
 	// Disable the screensaver when running the game.
 	if( GIsClient && !GIsEditor )
 	{
@@ -2085,6 +2087,15 @@ bool UEngine::InitializeHMDDevice()
 	}
  
 	return StereoRenderingDevice.IsValid();
+}
+
+void UEngine::InitializeViewExtentions()
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	extern TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> GetRendererViewExtension();
+
+	ViewExtensions.Add(GetRendererViewExtension());
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UEngine::RecordHMDAnalytics()
@@ -6931,59 +6942,41 @@ void UEngine::ClearOnScreenDebugMessages()
 }
 
 #if !UE_BUILD_SHIPPING
-void UEngine::PerformanceCapture(UWorld* World, const FString& CaptureName)
+void UEngine::PerformanceCapture(UWorld* World, const FString& MapName, const FString& MatineeName, float EventTime)
 {
-	//mapname
-	FString PathName = CaptureName + TEXT("/") + FPlatformProperties::PlatformName();
-	LogPerformanceCapture(World, CaptureName);
-	// Create the folder name based on the hardware specs we have been provided
-	FString HardwareDetails = FHardwareInfo::GetHardwareDetailsString();
+	LogPerformanceCapture(World, MapName, MatineeName, EventTime);
 
-	FString RHIString;
-	FString RHILookup = NAME_RHI.ToString() + TEXT( "=" );
-	if( FParse::Value( *HardwareDetails, *RHILookup, RHIString ) )
-	{
-		PathName = ( PathName + TEXT( "_" ) ) + RHIString;
-	}
+	FString ClNumberOrGivenName = FString::Printf(TEXT("CL%d"), GetChangeListNumberForPerfTesting());
 
-	FString TextureFormatString;
-	FString TextureFormatLookup = NAME_TextureFormat.ToString() + TEXT( "=" );
-	if( FParse::Value( *HardwareDetails, *TextureFormatLookup, TextureFormatString ) )
-	{
-		PathName = ( PathName + TEXT( "_" ) ) + TextureFormatString;
-	}
-
-	FString DeviceTypeString;
-	FString DeviceTypeLookup = NAME_DeviceType.ToString() + TEXT( "=" );
-	if( FParse::Value( *HardwareDetails, *DeviceTypeLookup, DeviceTypeString ) )
-	{
-		PathName = ( PathName + TEXT( "_" ) ) + DeviceTypeString;
-	}
-
-	PathName += TEXT("/");
-
-	//mapname/CaptureName/platform/version.png
-
-	//Make path relative to the root.
-	PathName = FPaths::AutomationDir() + PathName;
-	FPaths::MakePathRelativeTo(PathName,*FPaths::RootDir());
+	// e.g. XboxOne, AllDesktop, Android_.., PS4, HTML5, WinRT, 
+	FString PlatformName = FPlatformProperties::PlatformName();
 	
-	FString ScreenshotName = FString::Printf(TEXT("%s%d.png"), *PathName, FEngineVersion::Current().GetChangelist());
+	// e.g. D3D11,OpenGL,Vulcan,D3D12
+	FString RHIName = TEXT("UnknownRHI");
+	{
+		// Create the folder name based on the hardware specs we have been provided
+		FString HardwareDetails = FHardwareInfo::GetHardwareDetailsString();
+
+		FString RHILookup = NAME_RHI.ToString() + TEXT("=");
+		if (!FParse::Value(*HardwareDetails, *RHILookup, RHIName))
+		{
+			// todo error?
+		}
+	}
+
+	FString CaptureName = FString::Printf(TEXT("Map(%s) Actor(%s) Time(%4.2fs)"), *MapName, *GetName(), EventTime);
+
+	FString ScreenshotName = FPaths::AutomationDir() / TEXT("RenderOutputValidation") / ClNumberOrGivenName / PlatformName + TEXT("_") + RHIName / CaptureName + TEXT(".png");
 	
 	const bool bShowUI = false;
 	const bool bAddFilenameSuffix = false;
 	FScreenshotRequest::RequestScreenshot( ScreenshotName, bShowUI, bAddFilenameSuffix );
 }
 
-void UEngine::LogPerformanceCapture(UWorld* World, const FString& CaptureName)
+void UEngine::LogPerformanceCapture(UWorld* World, const FString& MapName, const FString& MatineeName, float EventTime)
 {
 	const FString EventType = TEXT("PERF");
 	const int32 ChangeList = FEngineVersion::Current().GetChangelist();
-
-	TArray<FString> PathArray;
-	CaptureName.ParseIntoArray(PathArray, TEXT("/"), true);
-	FString MapName = PathArray[1];
-	FString MatineeName = PathArray[2];
 
 	extern ENGINE_API float GAverageFPS;
 
@@ -7541,7 +7534,6 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				MessageY += FontSizeY;
 			}
 			
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			if (FPlatformProperties::SupportsTextureStreaming() && IStreamingManager::Get().IsTextureStreamingEnabled())
 			{
 				auto MemOver = IStreamingManager::Get().GetTextureStreamingManager().GetMemoryOverBudget();
@@ -7553,7 +7545,6 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 					MessageY += FontSizeY;
 				}
 			}
-#endif
 
 			// check navmesh
 #if WITH_EDITOR
