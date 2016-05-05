@@ -1459,10 +1459,6 @@ namespace UnrealBuildTool
 					BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, "Resources/UE4Editor.icns"), BuildProductType.RequiredResource);
 					BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, "Resources/UProject.icns"), BuildProductType.RequiredResource);
 				}
-				else if (Binary.Target.ShouldCompileMonolithic() || Binary.Target.TargetType == TargetRules.TargetType.Program)
-				{
-					BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, "Resources/" + Binary.Target.TargetName + ".icns"), BuildProductType.RequiredResource);
-				}
 				else
 				{
 					string IconName = Binary.Target.TargetName;
