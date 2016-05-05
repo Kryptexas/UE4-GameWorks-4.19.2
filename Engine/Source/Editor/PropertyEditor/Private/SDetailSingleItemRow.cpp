@@ -228,6 +228,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 					SNew(SButton)
 					.HAlign(HAlign_Center)
 					.VAlign(VAlign_Center)
+					.IsFocusable(false)
 					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 					.OnClicked(this, &SDetailSingleItemRow::OnFavoriteToggle)
 					[
