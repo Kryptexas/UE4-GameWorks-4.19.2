@@ -2818,15 +2818,18 @@ void AActor::PostActorConstruction()
 		if (!IsPendingKill())
 		{
 			PostInitializeComponents();
-			if (!bActorInitialized && !IsPendingKill())
+			if (!IsPendingKill())
 			{
-				UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName());
-			}
+				if (!bActorInitialized)
+				{
+					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName());
+				}
 
-			if (World->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
-			{
-				SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
-				BeginPlay();
+				if (World->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
+				{
+					SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
+					BeginPlay();
+				}
 			}
 		}
 	}
