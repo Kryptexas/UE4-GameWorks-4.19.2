@@ -279,6 +279,8 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 	const bool bCanRunCrashReportClient = FCString::Stristr( ExecutableName, TEXT( "CrashReportClient" ) ) == nullptr;
 	if( bCanRunCrashReportClient )
 	{
+		FString CrashGUID(TEXT("WindowsWERFailureNoGUID"));
+
 		// Set the report to force queue
 		FScopedWERQueuing ScopedQueueForcer;
 
@@ -307,12 +309,13 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 				// No super safe due to dynamic memory allocations, but at least enables new functionality.
 				// Introduces a new runtime crash context. Will replace all Windows related crash reporting.
 				FWindowsPlatformCrashContext CrashContext(bIsEnsure);
+				CrashGUID = CrashContext.GetUniqueCrashName();
 
-				const FString CrashContextXMLPath = FPaths::Combine( *FPaths::GameLogDir(), *CrashContext.GetUniqueCrashName(), FPlatformCrashContext::CrashContextRuntimeXMLNameW );
+				const FString CrashContextXMLPath = FPaths::Combine( *FPaths::GameLogDir(), *CrashGUID, FPlatformCrashContext::CrashContextRuntimeXMLNameW );
 				CrashContext.SerializeAsXML( *CrashContextXMLPath );
 				WerReportAddFile( ReportHandle, *CrashContextXMLPath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );
 
-				const FString MinidumpFileName = FPaths::Combine( *FPaths::GameLogDir(), *CrashContext.GetUniqueCrashName(), *FGenericCrashContext::UE4MinidumpName );
+				const FString MinidumpFileName = FPaths::Combine( *FPaths::GameLogDir(), *CrashGUID, *FGenericCrashContext::UE4MinidumpName );
 				if (WriteMinidump( *MinidumpFileName, ExceptionInfo, bIsEnsure ))
 				{
 					WerReportAddFile( ReportHandle, *MinidumpFileName, WerFileTypeMinidump, WER_FILE_ANONYMOUS_DATA );
@@ -375,7 +378,8 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 			CrashReportClientArguments += TEXT(" -nullrhi");
 		}
 
-		CrashReportClientArguments += FString( TEXT( " -AppName=" ) ) + ReportInformation.wzApplicationName;
+		CrashReportClientArguments += FString(TEXT(" -AppName=")) + ReportInformation.wzApplicationName;
+		CrashReportClientArguments += FString(TEXT(" -CrashGUID=")) + CrashGUID;
 
 		const FString DownstreamStorage = FWindowsPlatformStackWalk::GetDownstreamStorage();
 		if (!DownstreamStorage.IsEmpty())
