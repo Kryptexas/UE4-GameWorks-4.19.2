@@ -223,7 +223,7 @@ public partial class Project : CommandUtils
                     {
                         // If you change this target path you must also update logic in CookOnTheFlyServer.cpp. Passing a single directory around is cumbersome for testing, so I have hard coded it.
                         // Similarly if you change the .uplugin name you must update DefaultPluginName in BlueprintNativeCodeGenModule.cpp
-                        string GeneratedPluginPath = CombinePaths(GetDirectoryName(ProjectDir), "Intermediate", Platform, "NativizedAssets/NativizedAssets.uplugin");
+                        string GeneratedPluginPath = CombinePaths(ProjectDir, "Intermediate", Platform, "NativizedAssets/NativizedAssets.uplugin");
                         Params.BlueprintPluginPaths.Add( new FileReference(GeneratedPluginPath) );
                     }
                 }
