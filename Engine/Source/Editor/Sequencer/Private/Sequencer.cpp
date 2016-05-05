@@ -5030,7 +5030,11 @@ void FSequencer::BindCommands()
 				FMovieScenePossessable* Possessable = MovieScene->FindPossessable(static_cast<FSequencerObjectBindingNode&>(*Node).GetObjectBinding());
 				if (Possessable && !Possessable->GetParent().IsValid())
 				{
-					return true;
+					UObject* RuntimeObject = GetFocusedMovieSceneSequenceInstance()->FindObject(Possessable->GetGuid(), *this);
+					if (RuntimeObject)
+					{
+						return true;
+					}
 				}
 			}
 		}
