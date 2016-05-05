@@ -1094,6 +1094,20 @@ void FVulkanTexture2D::Destroy(FVulkanDevice& Device)
 }
 
 
+FVulkanBackBuffer::FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo)
+	: FVulkanTexture2D(Device, Format, SizeX, SizeY, Image, UEFlags, CreateInfo)
+	, AcquiredSemaphore(nullptr)
+{
+	RenderingDoneSemaphore = new FVulkanSemaphore(Device);
+}
+
+FVulkanBackBuffer::~FVulkanBackBuffer()
+{
+	//#todo-rco: Enqueue for deletion as we first need to destroy the cmd buffers and queues otherwise validation fails
+	delete RenderingDoneSemaphore;
+}
+
+
 void FVulkanTextureReference::SetReferencedTexture(FRHITexture* InTexture)
 {
 	FRHITextureReference::SetReferencedTexture(InTexture);

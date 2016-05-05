@@ -311,7 +311,6 @@ class FVulkanTexture2D : public FRHITexture2D, public FVulkanTextureBase
 {
 public:
 	FVulkanTexture2D(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 NumMips, uint32 NumSamples, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
-	FVulkanTexture2D(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
 	virtual ~FVulkanTexture2D();
 
 	void Destroy(FVulkanDevice& Device);
@@ -329,6 +328,33 @@ public:
 	{
 		return FRHIResource::GetRefCount();
 	}
+
+	virtual bool IsBackBuffer() const
+	{
+		return false;
+	}
+
+protected:
+	// Only used for back buffer
+	FVulkanTexture2D(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
+};
+
+class FVulkanBackBuffer : public FVulkanTexture2D
+{
+public:
+	FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
+	virtual ~FVulkanBackBuffer();
+
+	virtual bool IsBackBuffer() const override final
+	{
+		return true;
+	}
+
+	// Just a pointer, not owned by this class
+	FVulkanSemaphore* AcquiredSemaphore;
+
+	// Is owned by this class
+	FVulkanSemaphore* RenderingDoneSemaphore;
 };
 
 class FVulkanTexture2DArray : public FRHITexture2DArray, public FVulkanTextureBase

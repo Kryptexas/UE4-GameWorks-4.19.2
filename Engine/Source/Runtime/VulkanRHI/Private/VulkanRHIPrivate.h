@@ -190,6 +190,12 @@ public:
 
 	void InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer);
 
+	// Returns the backbuffer render target if used by this framebuffer
+	FVulkanBackBuffer* GetBackBuffer()
+	{
+		return BackBuffer;
+	}
+
 private:
 	VkFramebuffer Framebuffer;
 
@@ -197,6 +203,8 @@ private:
 	// it's up to VulkanRHI to handle this correctly.
 	FRHISetRenderTargetsInfo RTInfo;
 	uint32 NumColorAttachments;
+
+	FVulkanBackBuffer* BackBuffer;
 
 	// Predefined set of barriers, when executes ensuring all writes are finished
 	TArray<VkImageMemoryBarrier> WriteBarriers;

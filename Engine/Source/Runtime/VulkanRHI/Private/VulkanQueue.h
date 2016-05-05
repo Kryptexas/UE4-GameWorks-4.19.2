@@ -12,6 +12,7 @@ class FVulkanDevice;
 class FVulkanCmdBuffer;
 struct FVulkanSemaphore;
 class FVulkanSwapChain;
+class FVulkanCommandListContext;
 
 namespace VulkanRHI
 {
@@ -30,9 +31,7 @@ public:
 		return FamilyIndex;
 	}
 
-	void Submit(FVulkanCmdBuffer* CmdBuffer);
-
-	void SubmitBlocking(FVulkanCmdBuffer* CmdBuffer);
+	void Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSemaphore, VkPipelineStageFlags WaitStageFlags, FVulkanSemaphore* SignalSemaphore);
 
 	inline VkQueue GetHandle() const
 	{

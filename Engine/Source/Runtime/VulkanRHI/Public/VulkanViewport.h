@@ -39,18 +39,11 @@ public:
 		return SwapChain;
 	}
 
-	FVulkanSemaphore* AcquirePendingSemaphore()
-	{
-		FVulkanSemaphore* Semaphore = PendingImageSemaphore;
-		PendingImageSemaphore = nullptr;
-		return Semaphore;
-	}
-
 	void AcquireBackBuffer(FVulkanCmdBuffer* CmdBuffer);
-	void PrepareBackBufferForPresent(FVulkanCmdBuffer* CmdBuffer);
+	FVulkanBackBuffer* PrepareBackBufferForPresent(FVulkanCmdBuffer* CmdBuffer);
 
 protected:
-	TRefCountPtr<FVulkanTexture2D> BackBuffers[NUM_BUFFERS];
+	TRefCountPtr<FVulkanBackBuffer> BackBuffers[NUM_BUFFERS];
 	FVulkanDynamicRHI* RHI;
 	uint32 SizeX;
 	uint32 SizeY;
@@ -58,8 +51,6 @@ protected:
 	EPixelFormat PixelFormat;
 	int32 CurrentBackBuffer;
 	FVulkanSwapChain* SwapChain;
-
-	FVulkanSemaphore* PendingImageSemaphore;
 
 	friend class FVulkanDynamicRHI;
 	friend class FVulkanCommandListContext;
