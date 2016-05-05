@@ -4753,34 +4753,27 @@ void FSequencer::CreateCamera()
 		return;
 	}
 
-	FGuid CameraGuid;
-
-	if (Settings->GetCreateSpawnableCameras())
-	{
-		CameraGuid = MakeNewSpawnable(*NewCamera);
-		UpdateRuntimeInstances();
-		UObject* SpawnedCamera = FindSpawnedObjectOrTemplate(CameraGuid);
-		if (SpawnedCamera)
-		{
-			GWorld->EditorDestroyActor(NewCamera, true);
-			NewCamera = Cast<ACineCameraActor>(SpawnedCamera);
-		}
-	}
-	else
-	{
-		CameraGuid = CreateBinding(*NewCamera, NewCamera->GetActorLabel());
-	}
-	
-	if (!CameraGuid.IsValid())
-	{
-		return;	
-	}	
-
 	NewCamera->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
 	NewCamera->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
 	//pNewCamera->CameraComponent->FieldOfView = ViewportClient->ViewFOV; //@todo set the focal length from this field of view
-	
+
+	FGuid CameraGuid = CreateBinding(*NewCamera, NewCamera->GetActorLabel());
+
 	OnActorAddedToSequencerEvent.Broadcast(NewCamera, CameraGuid);
+
+	if (Settings->GetCreateSpawnableCameras())
+	{
+		FMovieSceneSpawnable* Spawnable = ConvertToSpawnableInternal(CameraGuid);
+
+		UpdateRuntimeInstances();
+
+		UObject* RuntimeObject = GetFocusedMovieSceneSequenceInstance()->FindObject(Spawnable->GetGuid(), *this);
+
+		AActor* SpawnedActor = Cast<AActor>(RuntimeObject);
+
+		CameraGuid = Spawnable->GetGuid();
+		NewCamera = Cast<ACineCameraActor>(SpawnedActor);
+	}
 
 	const bool bLockToCamera = true;
 	NewCameraAdded(NewCamera, CameraGuid, bLockToCamera);
