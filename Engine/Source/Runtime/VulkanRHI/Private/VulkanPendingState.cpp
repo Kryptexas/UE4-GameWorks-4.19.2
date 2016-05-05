@@ -639,16 +639,6 @@ void FVulkanPendingState::SubmitPendingCommandBuffers(FVulkanPendingState::TCall
 #endif
 }
 
-void FVulkanPendingState::SubmitPendingCommandBuffersBlockingNoRenderPass()
-{
-#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
-	check(0);
-#else
-	check(Device);
-	Device->GetQueue()->SubmitBlocking(&GetCurrentCommandBuffer());
-#endif
-}
-
 void FVulkanPendingState::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& InRTInfo)
 {
 	//#todo-rco: Check perf

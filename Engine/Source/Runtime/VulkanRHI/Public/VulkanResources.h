@@ -25,6 +25,8 @@ struct FVulkanTextureBase;
 class FVulkanTexture2D;
 struct FVulkanBufferView;
 class FVulkanResourceMultiBuffer;
+struct FVulkanSemaphore;
+class FVulkanPendingState;
 
 namespace VulkanRHI
 {
@@ -172,6 +174,7 @@ public:
 
 	void Destroy();
 
+#if 0
 	/**
 	 * Locks one of the texture's mip-maps.
 	 * @param ArrayIndex Index of the texture array/face in the form Index*6+Face
@@ -183,6 +186,7 @@ public:
 	 * @param ArrayIndex Index of the texture array/face in the form Index*6+Face
 	 */
 	void Unlock(uint32 MipIndex, uint32 ArrayIndex);
+#endif
 
 	/**
 	 * Returns how much memory is used by the surface
@@ -583,9 +587,6 @@ public:
 	void* Lock(uint32 InSize, uint32 InOffset = 0);
 
 	void Unlock();
-
-	// By not providing a pending state, the copy is occuring immediately and is blocking..
-	void CopyTo(FVulkanSurface& Surface, const VkBufferImageCopy& CopyDesc, class FVulkanPendingState* State = nullptr);
 
 	inline const VkFlags& GetFlags() const { return Usage; }
 
