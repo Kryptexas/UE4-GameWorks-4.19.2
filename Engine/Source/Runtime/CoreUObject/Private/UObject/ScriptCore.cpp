@@ -339,14 +339,25 @@ FString FFrame::GetScriptCallstack()
 // Error or warning handler.
 //
 //@TODO: This function should take more information in, or be able to gather it from the callstack!
-void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity)
+void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity, FName WarningId)
 {
-
 #if !UE_BUILD_SHIPPING
 	// Optionally always treat errors/warnings as bad
 	if (Verbosity <= ELogVerbosity::Warning && FParse::Param(FCommandLine::Get(), TEXT("FATALSCRIPTWARNINGS")))
 	{
 		Verbosity = ELogVerbosity::Fatal;
+	}
+	else if(Verbosity == ELogVerbosity::Warning && WarningId != FName())
+	{
+		// check to see if this specific warning has been elevated to an error:
+		if( FBlueprintSupport::ShouldTreatWarningAsError(WarningId) )
+		{
+			Verbosity = ELogVerbosity::Error;
+		}
+		else if(FBlueprintSupport::ShouldSuppressWarning(WarningId))
+		{
+			return;
+		}
 	}
 #endif
 
@@ -1534,7 +1545,7 @@ IMPLEMENT_VM_FUNCTION( EX_WireTracepoint, execWireTracepoint );
 void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 {
 #if !UE_BUILD_SHIPPING
-	const EScriptInstrumentation::Type EventType = static_cast<EScriptInstrumentation::Type>(Stack.ReadInt<int32>());
+	const EScriptInstrumentation::Type EventType = static_cast<EScriptInstrumentation::Type>(Stack.PeekCode());
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor)
 	{
@@ -1548,10 +1559,16 @@ void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 			FBlueprintExceptionInfo WiretraceExceptionInfo(EBlueprintExceptionType::WireTracepoint);
 			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, WiretraceExceptionInfo);
 		}
+		else if (EventType == EScriptInstrumentation::NodeDebugSite)
+		{
+			FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::Breakpoint);
+			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, TracepointExceptionInfo);
+		}
 	}
 #endif
 	EScriptInstrumentationEvent InstrumentationEventInfo(EventType, this, Stack);
 	FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
+	Stack.SkipCode(1);
 #endif
 }
 IMPLEMENT_VM_FUNCTION( EX_InstrumentationEvent, execInstrumentation );

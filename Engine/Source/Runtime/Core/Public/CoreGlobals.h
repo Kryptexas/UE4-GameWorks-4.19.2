@@ -313,9 +313,6 @@ extern CORE_API float GAsyncIOBandwidthLimit;
 /** Whether or not messages are being pumped outside of main loop */
 extern CORE_API bool GPumpingMessagesOutsideOfMainLoop;
 
-/** Total blueprint compile time. */
-extern CORE_API double GBlueprintCompileTime;
-
 /** Enables various editor and HMD hacks that allow the experimental VR editor feature to work, perhaps at the expense of other systems */
 extern CORE_API bool GEnableVREditorHacks;
 

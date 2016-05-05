@@ -134,7 +134,13 @@ public:
 
 	COREUOBJECT_API virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 	
-	COREUOBJECT_API static void KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity);
+	COREUOBJECT_API static void KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity, FName WarningId = FName());
+
+	/** Returns the current script op code */
+	const uint8 PeekCode() const { return *Code; }
+
+	/** Skips over the number of op codes specified by NumOps */
+	void SkipCode(const int32 NumOps) { Code += NumOps; }
 
 	template<typename TNumericType>
 	TNumericType ReadInt();

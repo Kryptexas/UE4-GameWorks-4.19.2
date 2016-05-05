@@ -250,6 +250,16 @@ bool FBPProfilerStatDiplayOptions::IsFiltered(TSharedPtr<FScriptExecutionNode> N
 //////////////////////////////////////////////////////////////////////////
 // FBPProfilerStatWidget
 
+FBPProfilerStatWidget::FBPProfilerStatWidget(TSharedPtr<class FScriptExecutionNode> InExecNode, const FTracePath& WidgetTracePathIn)
+	: WidgetTracePath(WidgetTracePathIn)
+	, ExecNode(InExecNode)
+{
+	if (ExecNode->HasFlags(EScriptExecutionNodeFlags::FunctionTunnel))
+	{
+		WidgetTracePath = FTracePath(WidgetTracePathIn, StaticCastSharedPtr<FScriptExecutionTunnelEntry>(InExecNode));
+	}
+}
+
 TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName)
 {
 	if (ExecNode.IsValid())
@@ -307,7 +317,7 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 				if (ExecNode->HasFlags(NonNodeStats))
 				{
 					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetInclusiveTimingText);
-					ColorAttr = TAttribute<FSlateColor>(PerformanceStats.Get(), &FScriptPerfData::GetInclusiveHeatColor);
+					ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetInclusiveHeatColor);
 				}
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_Time)
@@ -315,7 +325,7 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 				if (!ExecNode->HasFlags(EScriptExecutionNodeFlags::ExecPin))
 				{
 					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetNodeTimingText);
-					ColorAttr = TAttribute<FSlateColor>(PerformanceStats.Get(), &FScriptPerfData::GetNodeHeatColor);
+					ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetNodeHeatColor);
 				}
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_MaxTime)
@@ -323,7 +333,7 @@ TSharedRef<SWidget> FBPProfilerStatWidget::GenerateColumnWidget(FName ColumnName
 				if (!ExecNode->HasFlags(EScriptExecutionNodeFlags::ExecPin))
 				{
 					TextAttr = TAttribute<FText>(PerformanceStats.Get(), &FScriptPerfData::GetMaxTimingText);
-					ColorAttr = TAttribute<FSlateColor>(PerformanceStats.Get(), &FScriptPerfData::GetMaxTimeHeatColor);
+					ColorAttr = TAttribute<FSlateColor>(this, &FBPProfilerStatWidget::GetMaxTimeHeatColor);
 				}
 			}
 			else if (ColumnName == BlueprintProfilerStatText::ColumnId_MinTime)
@@ -354,6 +364,24 @@ void FBPProfilerStatWidget::NavigateTo() const
 	{
 		ExecNode->NavigateToObject();
 	}
+}
+
+FSlateColor FBPProfilerStatWidget::GetNodeHeatColor() const
+{
+	const float Value = 1.f - PerformanceStats->GetNodeHeatLevel();
+	return FLinearColor(1.f, Value, Value);
+}
+
+FSlateColor FBPProfilerStatWidget::GetInclusiveHeatColor() const
+{
+	const float Value = 1.f - PerformanceStats->GetInclusiveHeatLevel();
+	return FLinearColor(1.f, Value, Value);
+}
+
+FSlateColor FBPProfilerStatWidget::GetMaxTimeHeatColor() const
+{
+	const float Value = 1.f - PerformanceStats->GetMaxTimeHeatLevel();
+	return FLinearColor(1.f, Value, Value);
 }
 
 void FBPProfilerStatWidget::GenerateExecNodeWidgets(const TSharedPtr<FBPProfilerStatDiplayOptions> DisplayOptions)

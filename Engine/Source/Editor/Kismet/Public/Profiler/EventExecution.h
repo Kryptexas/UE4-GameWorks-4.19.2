@@ -26,7 +26,7 @@ namespace EScriptExecutionNodeFlags
 		TunnelEntryPin				= 0x00020000,	// Tunnel entry pin
 		TunnelExitPin				= 0x00040000,	// Tunnel exit pin
 		ReEntrantTunnelPin			= 0x00080000,	// Re-Entrant tunnel pin
-		TunnelThenPin				= 0x00100000,	// Tunnel final exit or exec then pin
+		TunnelFinalExitPin			= 0x00100000,	// Tunnel final exit or exec then pin
 		PureChain					= 0x00200000,	// Pure node call chain
 		CyclicLinkage				= 0x00400000,	// Marks execution path as cyclic.
 		InvalidTrace				= 0x00800000,	// Indicates that node doesn't contain a valid script trace.
@@ -109,6 +109,9 @@ class KISMET_API FScriptNodePerfData
 {
 public:
 
+	/** Returns a TSet containing all valid instance names */
+	void GetValidInstanceNames(TSet<FName>& ValidInstances) const;
+
 	/** Test whether or not perf data is available for the given instance/trace path */
 	bool HasPerfDataForInstanceAndTracePath(FName InstanceName, const FTracePath& TracePath) const;
 
@@ -120,6 +123,9 @@ public:
 
 	/** Get global blueprint perf data for the trace path */
 	TSharedPtr<FScriptPerfData> GetBlueprintPerfDataByTracePath(const FTracePath& TracePath);
+
+	/** Get global blueprint perf data for all trace paths */
+	virtual void GetBlueprintPerfDataForAllTracePaths(FScriptPerfData& OutPerfData);
 
 protected:
 
@@ -233,9 +239,6 @@ public:
 	/** Returns the icon for widget UI */
 	const FSlateBrush* GetIcon() const { return Icon; }
 
-	/** Returns the profiler heat color */
-	FLinearColor GetHeatColor(const FTracePath& TracePath) const;
-
 	/** Returns the current expansion state for widget UI */
 	bool IsExpanded() const { return bExpansionState; }
 
@@ -252,7 +255,7 @@ public:
 	void SetPureNodeScriptCodeRange(FInt32Range InScriptCodeRange) { PureNodeScriptCodeRange = InScriptCodeRange; }
 
 	/** Return the linear execution path from this node */
-	void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath);
+	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath);
 
 	/** Get statistic container type */
 	virtual EScriptStatContainerType::Type GetStatisticContainerType() const;
@@ -296,6 +299,117 @@ protected:
 	bool bExpansionState;
 	/** Script code range for pure node linkage */
 	FInt32Range PureNodeScriptCodeRange;
+};
+
+//////////////////////////////////////////////////////////////////////////
+// FScriptExecutionTunnelInstance
+
+class KISMET_API FScriptExecutionTunnelInstance : public FScriptExecutionNode
+{
+public:
+
+	FScriptExecutionTunnelInstance(const FScriptExecNodeParams& InitParams)
+		: FScriptExecutionNode(InitParams)
+	{
+	}
+
+	// FScriptNodePerfData
+	virtual void GetBlueprintPerfDataForAllTracePaths(FScriptPerfData& OutPerfData) override;
+	// ~FScriptNodePerfData
+
+	/** Adds a custom child entry point */
+	void AddCustomEntryPoint(TSharedPtr<class FScriptExecutionTunnelEntry> CustomEntryPoint) { CustomEntryPoints.Add(CustomEntryPoint); }
+
+private:
+
+	/** List of custom entry points */
+	TArray<TSharedPtr<class FScriptExecutionTunnelEntry>> CustomEntryPoints;
+
+};
+
+//////////////////////////////////////////////////////////////////////////
+// FScriptExecutionTunnelEntry
+
+class KISMET_API FScriptExecutionTunnelEntry : public FScriptExecutionNode
+{
+public:
+
+	FScriptExecutionTunnelEntry(const FScriptExecNodeParams& InitParams, const class UK2Node_Tunnel* TunnelInstanceIn)
+		: FScriptExecutionNode(InitParams)
+		, TunnelInstance(TunnelInstanceIn)
+	{
+	}
+
+	// FScriptExecutionNode
+	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath) override;
+	virtual void RefreshStats(const FTracePath& TracePath) override;
+	// ~FScriptExecutionNode
+
+	/** Add tunnel timing */
+	void AddTunnelTiming(const FName InstanceName, const FTracePath& TracePath, const double Time);
+
+	/** Update tunnel exit site */
+	void UpdateTunnelExit(const FName InstanceName, const FTracePath& TracePath, const int32 ExitScriptOffset);
+
+	/** Returns true if the script offset is valid for this tunnel */
+	bool IsPathValidForTunnel(const int32 ScriptOffset) const;
+
+	/** Returns the tunnel instance graph node */
+	const UK2Node_Tunnel* GetTunnelInstance() const { return TunnelInstance.Get(); }
+
+	/** Adds a valid exit script offset */
+	void AddExitSite(TSharedPtr<FScriptExecutionNode> ExitSite, const int32 ExitScriptOffset);
+
+	/** Returns the exit point associated with the script offset */
+	TSharedPtr<FScriptExecutionNode> GetExitSite(const int32 ScriptOffset) const;
+
+	/** Returns if the exit point associated with the script offset is the final exit site */
+	bool IsFinalExitSite(const int32 ScriptOffset) const;
+
+private:
+
+	/** The tunnel instance this node represents */
+	TWeakObjectPtr<const UK2Node_Tunnel> TunnelInstance;
+	/** List of valid exit scripts offsets */
+	TMap<int32, TSharedPtr<FScriptExecutionNode>> ValidExitPoints;
+
+};
+
+//////////////////////////////////////////////////////////////////////////
+// FScriptExecutionTunnelExit
+
+class KISMET_API FScriptExecutionTunnelExit : public FScriptExecutionNode
+{
+public:
+
+	FScriptExecutionTunnelExit(const FScriptExecNodeParams& InitParams)
+		: FScriptExecutionNode(InitParams)
+	{
+	}
+
+	// FScriptExecutionNode
+	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath) override;
+	// ~FScriptExecutionNode
+
+};
+
+//////////////////////////////////////////////////////////////////////////
+// FScriptExecutionPureNode
+
+class KISMET_API FScriptExecutionPureNode : public FScriptExecutionNode
+{
+public:
+
+	FScriptExecutionPureNode(const FScriptExecNodeParams& InitParams)
+		: FScriptExecutionNode(InitParams)
+	{
+	}
+
+	// FScriptExecutionNode
+	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath) override;
+	virtual void RefreshStats(const FTracePath& TracePath) override;
+	// ~FScriptExecutionNode
+
 };
 
 //////////////////////////////////////////////////////////////////////////

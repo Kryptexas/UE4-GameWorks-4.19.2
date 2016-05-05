@@ -18,6 +18,16 @@ public:
 
 	FTracePath(const FTracePath& TracePathIn)
 		: CachedCrc(TracePathIn.CachedCrc)
+		, Tunnel(TracePathIn.Tunnel)
+#if TRACEPATH_DEBUG
+		, TraceStack(TracePathIn.TraceStack)
+#endif
+	{
+	}
+
+	FTracePath(const FTracePath& TracePathIn, TSharedPtr<const class FScriptExecutionTunnelEntry> TunnelNode)
+		: CachedCrc(TracePathIn.CachedCrc)
+		, Tunnel(TunnelNode)
 #if TRACEPATH_DEBUG
 		, TraceStack(TracePathIn.TraceStack)
 #endif
@@ -30,6 +40,7 @@ public:
 	{
 		TraceStack = TracePathIn.TraceStack;
 		CachedCrc = TracePathIn.CachedCrc;
+		Tunnel = TracePathIn.Tunnel;
 		return *this;
 	}
 #endif
@@ -53,8 +64,11 @@ public:
 		TraceStack.SetNum(0);
 #endif
 		CachedCrc = 0;
-
+		Tunnel.Reset();
 	}
+
+	/** Returns the current tunnel */
+	TSharedPtr<const class FScriptExecutionTunnelEntry> GetTunnel() const { return Tunnel; }
 
 #if TRACEPATH_DEBUG
 	const FString GetPathString() const
@@ -71,10 +85,13 @@ public:
 
 private:
 
-#if TRACEPATH_DEBUG
-	TArray<int32> TraceStack;
-#endif
 	/** Cached crc */
 	uint32 CachedCrc;
+	/** The current tunnel entry point */
+	TSharedPtr<const class FScriptExecutionTunnelEntry> Tunnel;
 
+#if TRACEPATH_DEBUG
+	/** Contributing pin list - for debugging only */
+	TArray<int32> TraceStack;
+#endif
 };

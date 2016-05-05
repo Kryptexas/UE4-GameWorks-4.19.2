@@ -1225,13 +1225,13 @@ void UBlueprint::TagSubobjects(EObjectFlags NewFlags)
 {
 	Super::TagSubobjects(NewFlags);
 
-	if (GeneratedClass && !GeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS) && !GeneratedClass->IsRooted())
+	if (GeneratedClass && !GeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS))
 	{
 		GeneratedClass->SetFlags(NewFlags);
 		GeneratedClass->TagSubobjects(NewFlags);
 	}
 
-	if (SkeletonGeneratedClass && SkeletonGeneratedClass != GeneratedClass && !SkeletonGeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS) && !SkeletonGeneratedClass->IsRooted())
+	if (SkeletonGeneratedClass && SkeletonGeneratedClass != GeneratedClass && !SkeletonGeneratedClass->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS))
 	{
 		SkeletonGeneratedClass->SetFlags(NewFlags);
 		SkeletonGeneratedClass->TagSubobjects(NewFlags);

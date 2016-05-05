@@ -227,6 +227,12 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 				// Make sure that nodes are up to date, so that we get any updated blueprint signatures
 				FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(GeneratingBP);
 
+				// Normal blueprints get their status reset by RecompileBlueprintBytecode, but macros will not:
+				if ((GeneratingBP->Status != BS_Error) && (GeneratingBP->BlueprintType == EBlueprintType::BPTYPE_MacroLibrary))
+				{
+					GeneratingBP->Status = BS_UpToDate;
+				}
+
 				if (Package != nullptr && Package->IsDirty() && !bStartedWithUnsavedChanges)
 				{
 					Package->SetDirtyFlag(false);

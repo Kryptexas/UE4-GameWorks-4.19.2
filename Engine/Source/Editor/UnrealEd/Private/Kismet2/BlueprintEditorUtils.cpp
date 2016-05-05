@@ -2262,10 +2262,7 @@ void FBlueprintEditorUtils::MarkBlueprintAsModified(UBlueprint* Blueprint)
 			}
 		}
 
-		if (Blueprint->BlueprintType != BPTYPE_MacroLibrary)
-		{
-			Blueprint->Status = BS_Dirty;
-		}
+		Blueprint->Status = BS_Dirty;
 		Blueprint->MarkPackageDirty();
 		Blueprint->PostEditChange();
 	}
@@ -2401,10 +2398,14 @@ UFunction* FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(const UBlu
 			UClass* SearchClass = (*It);
 			if( SearchClass )
 			{
-				if (UFunction* OverriddenFunction = SearchClass->FindFunctionByName(FunctionName, EIncludeSuperFlag::ExcludeSuper))
+				do
 				{
-					return OverriddenFunction;
-				}
+					if( UFunction* OverriddenFunction = SearchClass->FindFunctionByName(FunctionName, EIncludeSuperFlag::ExcludeSuper) )
+					{
+						return OverriddenFunction;
+					}
+					SearchClass = SearchClass->GetSuperClass();
+				} while (SearchClass);
 			}
 			else if( bOutInvalidInterface )
 			{
@@ -4615,15 +4616,7 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 							BlueprintEditor->SummonSearchUI(bSetFindWithinBlueprint, AllVariableNodes[0]->GetFindReferenceSearchString(), bSelectFirstResult);
 						}
 					}
-					else
-					{
-						// And recompile
-						FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-					}
 				}
-
-				// And recompile
-				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 			}
 		}
 	}
@@ -5082,9 +5075,6 @@ void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, con
 				{
 					K2Schema->ReconstructNode(*VariableNode, true);
 				}
-
-				// And recompile
-				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
 
 				TSharedPtr<IToolkit> FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(InBlueprint);
 
@@ -5889,7 +5879,23 @@ void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 				// If the event is loaded and is not a custom event
 				if(!EventNode->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad) && EventNode->bOverrideFunction)
 				{
-					const bool bEventNodeUsedByInterface = ImplementedInterfaceClasses.Contains(EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode()));
+					UClass* EventClass = EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode());
+					bool bEventNodeUsedByInterface = false;
+					int32 Idx = 0;
+					while (Idx != ImplementedInterfaceClasses.Num() && bEventNodeUsedByInterface == false)
+					{
+						const UClass* CurrentInterface = ImplementedInterfaceClasses[Idx];
+						while (CurrentInterface)
+						{
+							if (EventClass == CurrentInterface )
+							{
+								bEventNodeUsedByInterface = true;
+								break;
+							}
+							CurrentInterface = CurrentInterface->GetSuperClass();
+						}
+						++Idx;
+					}
 					if (Blueprint->GeneratedClass && !bEventNodeUsedByInterface)
 					{
 						FixOverriddenEventSignature(EventNode, Blueprint, CurrentGraph);

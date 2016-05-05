@@ -89,10 +89,9 @@ void FScriptPerfData::SetNodePerformanceThreshold(const float NodePerformanceThr
 	NodePerformanceThreshold = NodePerformanceThresholdIn;
 }
 
-FSlateColor FScriptPerfData::GetNodeHeatColor() const
+float FScriptPerfData::GetNodeHeatLevel() const
 {
-	const float Value = 1.f - FMath::Min<float>(NodeTiming / NodePerformanceThreshold, 1.f);
-	return FLinearColor(1.f, Value, Value);
+	return FMath::Min<float>(NodeTiming / NodePerformanceThreshold, 1.f);
 }
 
 void FScriptPerfData::SetInclusivePerformanceThreshold(const float InclusivePerformanceThresholdIn)
@@ -100,10 +99,9 @@ void FScriptPerfData::SetInclusivePerformanceThreshold(const float InclusivePerf
 	InclusivePerformanceThreshold = InclusivePerformanceThresholdIn;
 }
 
-FSlateColor FScriptPerfData::GetInclusiveHeatColor() const
+float FScriptPerfData::GetInclusiveHeatLevel() const
 {
-	const float Value = 1.f - FMath::Min<float>(InclusiveTiming / InclusivePerformanceThreshold, 1.f);
-	return FLinearColor(1.f, Value, Value);
+	return FMath::Min<float>(InclusiveTiming / InclusivePerformanceThreshold, 1.f);
 }
 
 void FScriptPerfData::SetMaxPerformanceThreshold(const float MaxPerformanceThresholdIn)
@@ -111,10 +109,9 @@ void FScriptPerfData::SetMaxPerformanceThreshold(const float MaxPerformanceThres
 	MaxPerformanceThreshold = MaxPerformanceThresholdIn;
 }
 
-FSlateColor FScriptPerfData::GetMaxTimeHeatColor() const
+float FScriptPerfData::GetMaxTimeHeatLevel() const
 {
-	const float Value = 1.f - FMath::Min<float>(MaxTiming / MaxPerformanceThreshold, 1.f);
-	return FLinearColor(1.f, Value, Value);
+	return FMath::Min<float>(MaxTiming / MaxPerformanceThreshold, 1.f);
 }
 
 FText FScriptPerfData::GetNodeTimingText() const

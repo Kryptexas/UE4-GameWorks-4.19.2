@@ -306,6 +306,7 @@ namespace EScriptInstrumentation
 		Event,
 		ResumeEvent,
 		PureNodeEntry,
+		NodeDebugSite,
 		NodeEntry,
 		NodeExit,
 		PushState,

@@ -35,7 +35,10 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 	auto ClassString = [&]() -> FString
 	{
 		const UClass* ObjectClassToUse = ExpectedClass ? ExpectedClass : GetFirstNativeOrConvertedClass(Object->GetClass());
-		return FEmitHelper::GetCppName(ObjectClassToUse);
+		ObjectClassToUse = (UUserDefinedEnum::StaticClass() == ObjectClassToUse) ? UEnum::StaticClass() : ObjectClassToUse;
+		ObjectClassToUse = (UUserDefinedStruct::StaticClass() == ObjectClassToUse) ? UScriptStruct::StaticClass() : ObjectClassToUse;
+		ObjectClassToUse = (!ExpectedClass && ObjectClassToUse && ObjectClassToUse->IsChildOf<UBlueprintGeneratedClass>()) ? UClass::StaticClass() : ObjectClassToUse;
+		return FEmitHelper::GetCppName((UUserDefinedEnum::StaticClass() == ObjectClassToUse) ? UEnum::StaticClass() : ObjectClassToUse);
 	};
 	
 	if (ActualClass && Object 
@@ -137,14 +140,6 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		// Check if  
 		// TODO: check if supported 
 		return FString::Printf(TEXT("%s::StaticStruct()"), *FEmitHelper::GetCppName(UDS));
-	}
-
-	if (auto UDE = Cast<UEnum>(Object))
-	{
-		// TODO:
-		// TODO: check if supported 
-		//return FString::Printf(TEXT("%s_StaticEnum()"), *UDE->GetName());
-		return FString::Printf(TEXT("FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT(\"%s\"))"), *FEmitHelper::GetCppName(UDE));
 	}
 
 	// TODO: handle subobjects
@@ -979,12 +974,12 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 	{
 		if (auto FoundClass = Cast<const UClass>(LiteralObject))
 		{
-			const FString MappedObject = EmitterContext.FindGloballyMappedObject(LiteralObject);
+			const FString MappedObject = EmitterContext.FindGloballyMappedObject(LiteralObject, UClass::StaticClass());
 			if (!MappedObject.IsEmpty())
 			{
 				return MappedObject;
 			}
-			return FString::Printf(TEXT("LoadClass<UObject>(nullptr, TEXT(\"%s\"), nullptr, 0, nullptr)"), *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
+			return FString::Printf(TEXT("LoadClass<UClass>(nullptr, TEXT(\"%s\"), nullptr, 0, nullptr)"), *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
 		}
 		return FString(TEXT("nullptr"));
 	}
@@ -1240,7 +1235,7 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 		if (!RType.bIsArray && LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
 		{
 			OutCastBegin = FString::Printf(TEXT("CastChecked<%s>("), *FEmitHelper::GetCppName(LClass));
-			OutCastEnd = TEXT(")");
+			OutCastEnd = TEXT(", ECastCheckedType::NullAllowed)");
 			return true;
 		}
 		else if (RType.bIsArray && LClass && RClass && (LClass->IsChildOf(RClass) || RClass->IsChildOf(LClass)) && (LClass != RClass))

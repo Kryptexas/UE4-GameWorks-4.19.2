@@ -125,13 +125,17 @@ void FBlueprintCompilerCppBackendBase::DeclareDelegates(FEmitterLocalContext& Em
 		for (int32 I = 0; I < Delegates.Num(); ++I)
 		{
 			UFunction* TargetFn = Delegates[I]->SignatureFunction;
-			for (int32 J = I + 1; J < Delegates.Num(); ++J)
+			for (int32 J = I + 1; J < Delegates.Num();)
 			{
 				if (TargetFn == Delegates[J]->SignatureFunction)
 				{
 					// swap erase:
 					Delegates[J] = Delegates[Delegates.Num() - 1];
 					Delegates.RemoveAt(Delegates.Num() - 1);
+				}
+				else
+				{
+					J++;
 				}
 			}
 		}
@@ -680,27 +684,30 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 	}
 	Header.DecreaseIndent();
 	Header.AddLine(TEXT("};"));
-	/*
-	Header.AddLine(FString::Printf(TEXT("FString %s__GetUserFriendlyName(int32 InValue)"), *EnumCppName));
+
+	Header.AddLine(FString::Printf(TEXT("inline FString %s__GetUserFriendlyName(int32 InValue)"), *EnumCppName));
 	Header.AddLine(TEXT("{"));
 	Header.IncreaseIndent();
 
-	Header.AddLine(TEXT("switch(InValue)"));
+	Header.AddLine(TEXT("FText Text;"));
+	Header.AddLine(FString::Printf(TEXT("const auto EnumValue = static_cast<%s>(InValue);"), *EnumCppName));
+	Header.AddLine(TEXT("switch(EnumValue)"));
 	Header.AddLine(TEXT("{"));
 	Header.IncreaseIndent();
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
 	{
-		const FString DisplayNameStr = SourceEnum->GetEnumText(Index).ToString().ReplaceCharWithEscapedChar();
-		Header.AddLine(FString::Printf(TEXT("case %s::%s: return FString(TEXT(\"%s\"));"), *EnumCppName, *SourceEnum->GetEnumName(Index), *DisplayNameStr));
+		FString DisplayNameStr;
+		FTextStringHelper::WriteToString(DisplayNameStr, SourceEnum->GetEnumText(Index));
+		Header.AddLine(FString::Printf(TEXT("case %s::%s: FTextStringHelper::ReadFromString(TEXT(\"%s\"), Text); break;"), *EnumCppName, *SourceEnum->GetEnumName(Index), *DisplayNameStr.ReplaceCharWithEscapedChar()));
 	}
+	Header.AddLine(TEXT("default: ensure(false);"));
 	Header.DecreaseIndent();
 	Header.AddLine(TEXT("};"));
 
-	Header.AddLine(TEXT("ensure(false);"));
-	Header.AddLine(TEXT("return FString();"));
+	Header.AddLine(TEXT("return Text.ToString();"));
 	Header.DecreaseIndent();
 	Header.AddLine(TEXT("};"));
-	*/
+
 	return Header.Result;
 }
 

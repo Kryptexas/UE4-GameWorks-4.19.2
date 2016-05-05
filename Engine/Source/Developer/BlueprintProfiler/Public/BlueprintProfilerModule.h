@@ -4,6 +4,22 @@
 
 #include "ModuleManager.h"
 
+#if WITH_EDITOR
+
+/** Profiler heat map display mode */
+namespace EBlueprintProfilerHeatMapDisplayMode
+{
+	enum Type
+	{
+		None = 0,
+		Inclusive,
+		Exclusive,
+		MaxTiming
+	};
+}
+
+#endif
+
 /** Delegate to broadcast structural stats changes */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBPStatGraphLayoutChanged, TWeakObjectPtr<UBlueprint>);
 
@@ -45,6 +61,12 @@ public:
 
 	/** Process profiling event data */
 	virtual void ProcessEventProfilingData() {}
+
+	/** Returns the current graph node heat map display mode setting */
+	virtual EBlueprintProfilerHeatMapDisplayMode::Type GetGraphNodeHeatMapDisplayMode() const = 0;
+
+	/** Sets the current graph node heat map display mode setting */
+	virtual void SetGraphNodeHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) {}
 
 #endif // WITH_EDITOR
 

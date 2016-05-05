@@ -19,15 +19,21 @@
 UGameplayAbility::UGameplayAbility(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	auto ImplementedInBlueprint = [](const UFunction* Func) -> bool
+	{
+		return Func && ensure(Func->GetOuter())
+			&& (Func->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass()) || Func->GetOuter()->IsA(UDynamicClass::StaticClass()));
+	};
+
 	{
 		static FName FuncName = FName(TEXT("K2_ShouldAbilityRespondToEvent"));
 		UFunction* ShouldRespondFunction = GetClass()->FindFunctionByName(FuncName);
-		bHasBlueprintShouldAbilityRespondToEvent = ShouldRespondFunction && ensure(ShouldRespondFunction->GetOuter()) && ShouldRespondFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+		bHasBlueprintShouldAbilityRespondToEvent = ImplementedInBlueprint(ShouldRespondFunction);
 	}
 	{
 		static FName FuncName = FName(TEXT("K2_CanActivateAbility"));
 		UFunction* CanActivateFunction = GetClass()->FindFunctionByName(FuncName);
-		bHasBlueprintCanUse = CanActivateFunction && ensure(CanActivateFunction->GetOuter()) && CanActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+		bHasBlueprintCanUse = ImplementedInBlueprint(CanActivateFunction);
 	}
 	{
 		static FName FuncName = FName(TEXT("K2_ActivateAbility"));
@@ -35,13 +41,13 @@ UGameplayAbility::UGameplayAbility(const FObjectInitializer& ObjectInitializer)
 		// FIXME: temp to work around crash
 		if (ActivateFunction && (HasAnyFlags(RF_ClassDefaultObject) || ActivateFunction->IsValidLowLevelFast()))
 		{
-			bHasBlueprintActivate = ActivateFunction && ensure(ActivateFunction->GetOuter()) && ActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+			bHasBlueprintActivate = ImplementedInBlueprint(ActivateFunction);
 		}
 	}
 	{
 		static FName FuncName = FName(TEXT("K2_ActivateAbilityFromEvent"));
 		UFunction* ActivateFunction = GetClass()->FindFunctionByName(FuncName);
-		bHasBlueprintActivateFromEvent = ActivateFunction && ensure(ActivateFunction->GetOuter()) && ActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
+		bHasBlueprintActivateFromEvent = ImplementedInBlueprint(ActivateFunction);
 	}
 	
 #if WITH_EDITOR

@@ -1482,12 +1482,6 @@ void FKismetFunctionContext::SetExternalNetNameMap(FNetNameMapping* NewMap)
 	NetNameMap = NewMap;
 }
 
-int32 FKismetFunctionContext::GetContextUniqueID()
-{
-	static int32 UUIDCounter = 1;
-	return UUIDCounter++;
-}
-
 bool FKismetFunctionContext::DoesStatementRequiresSwitch(const FBlueprintCompiledStatement* Statement)
 {
 	return Statement && (

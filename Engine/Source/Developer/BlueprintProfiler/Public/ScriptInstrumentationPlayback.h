@@ -123,11 +123,20 @@ public:
 	/** Returns the execution node representing the node name */
 	TSharedPtr<FScriptExecutionNode> GetProfilerDataForNode(const FName NodeName);
 
+	/** Returns the execution node representing the node name */
+	template<typename ExecNodeType> TSharedPtr<ExecNodeType> GetTypedProfilerDataForNode(const FName NodeName);
+
 	/** Adds all function entry points to node as children */
 	void AddCallSiteEntryPointsToNode(TSharedPtr<FScriptExecutionNode> CallingNode) const;
 
 	/** Returns the function name for this context */
 	FName GetFunctionName() const { return FunctionName; }
+
+	/** Returns the tunnel entry from the script code offset */
+	TSharedPtr<FScriptExecutionTunnelEntry> GetTunnelEntrySite(const int32 ScriptCodeOffset);
+
+	/** Returns the tunnel custom entry from the script code offset */
+	TSharedPtr<FScriptExecutionTunnelEntry> GetTunnelFromExitSite(const int32 ScriptCodeOffset);
 
 private:
 
@@ -135,6 +144,9 @@ private:
 
 	/** Utility to create execution node */
 	TSharedPtr<FScriptExecutionNode> CreateExecutionNode(FScriptExecNodeParams& InitParams);
+
+	/** Utility to create typed execution node */
+	template<typename ExecNodeType> TSharedPtr<ExecNodeType> CreateTypedExecutionNode(FScriptExecNodeParams& InitParams);
 
 	/** Adds and links in a new function entry point */
 	void AddEntryPoint(TSharedPtr<FScriptExecutionNode> EntryPoint);
@@ -206,6 +218,10 @@ private:
 	TMap<FName, TSharedPtr<FScriptExecutionNode>> TunnelEntryPointMap;
 	/** Map associating function entry points to exit points */
 	TMap<FName, TArray<TSharedPtr<FScriptExecutionNode>>> TunnelExitPointMap;
+	/** Map associating tunnel entry points to script code offsets */
+	TMap<int32, TSharedPtr<FScriptExecutionTunnelEntry>> TunnelEntrySites;
+	/** Map associating custom tunnel entries to script code offsets */
+	TMap<int32, TSharedPtr<FScriptExecutionTunnelEntry>> TunnelExitSites;
 	/** Staging tunnel name during mapping */
 	FName StagingTunnelName;
 	/** Map of tunnel Ids */
@@ -230,6 +246,13 @@ class FScriptEventPlayback : public TSharedFromThis<FScriptEventPlayback>
 {
 public:
 
+	struct TunnelEventHelper
+	{
+		double TunnelEntryTime;
+		FTracePath EntryTracePath;
+		TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntryPoint;
+	};
+
 	FScriptEventPlayback(TSharedPtr<FBlueprintExecutionContext> BlueprintContextIn, const FName InstanceNameIn)
 		: InstanceName(InstanceNameIn)
 		, ProcessingState(EEventProcessingResult::None)
@@ -251,6 +274,11 @@ public:
 
 private:
 
+	/** Process tunnel entry points */
+	void ProcessTunnelEntryPoints(TSharedPtr<FBlueprintFunctionContext> FunctionContext, const FScriptInstrumentedEvent& CurrSignal);
+
+private:
+
 	/** Instance name */
 	FName InstanceName;
 	/** Event name */
@@ -261,6 +289,8 @@ private:
 	FTracePath TracePath;
 	/** Current tracepath stack */
 	TArray<FTracePath> TraceStack;
+	/** Active tunnels */
+	TMap<FName, TunnelEventHelper> ActiveTunnels;
 	/** Event Timings */
 	TMultiMap<FName, double> EventTimings;
 	/** Blueprint exec context */

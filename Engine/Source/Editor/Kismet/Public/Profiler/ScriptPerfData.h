@@ -34,6 +34,9 @@ public:
 	/** Add branch data */
 	void AddBranchData(const FScriptPerfData& DataIn);
 
+	/** Increments sample count without affecting data */
+	void TickSamples() { NumSamples++; }
+
 	/** Reset the current data buffer and all derived data stats */
 	void Reset();
 
@@ -55,10 +58,10 @@ public:
 	double GetTotalTiming() const { return TotalTiming; }
 	int32 GetSampleCount() const { return NumSamples; }
 
-	// Returns various performance colors for visual display
-	FSlateColor GetNodeHeatColor() const;
-	FSlateColor GetInclusiveHeatColor() const;
-	FSlateColor GetMaxTimeHeatColor() const;
+	// Returns various performance heat levels for visual display
+	float GetNodeHeatLevel() const;
+	float GetInclusiveHeatLevel() const;
+	float GetMaxTimeHeatLevel() const;
 
 	// Returns the various stats this container holds in FText format
 	FText GetTotalTimingText() const;

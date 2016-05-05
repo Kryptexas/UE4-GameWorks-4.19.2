@@ -10,6 +10,11 @@
 #include "IDocumentation.h"
 #include "TutorialMetaData.h"
 
+// Blueprint Profiler
+#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
+#include "Editor/Kismet/Public/Profiler/EventExecution.h"
+#include "Editor/Kismet/Public/Profiler/ScriptPerfData.h"
+
 #define LOCTEXT_NAMESPACE "SGraphNodeK2Base"
 
 //////////////////////////////////////////////////////////////////////////
@@ -80,8 +85,20 @@ void SGraphNodeK2Base::UpdateCompactNode()
 			+SOverlay::Slot()
 			.Padding(Settings->GetNonPinNodeBodyPadding())
 			[
-				SNew(SImage)
-				.Image( FEditorStyle::GetBrush("Graph.CompactNode.Body") )
+				SNew(SOverlay)
+				+SOverlay::Slot()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("Graph.CompactNode.Body"))
+					.ColorAndOpacity(this, &SGraphNodeK2Base::GetNodeBodyColor)
+				]
+				+SOverlay::Slot()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("Graph.CompactNode.IndicatorOverlay"))
+					.Visibility(this, &SGraphNodeK2Base::GetNodeIndicatorOverlayVisibility)
+					.ColorAndOpacity(this, &SGraphNodeK2Base::GetNodeIndicatorOverlayColor)
+				]
 			]
 			+SOverlay::Slot()
 			.HAlign(HAlign_Center)
@@ -264,6 +281,53 @@ FText SGraphNodeK2Base::GetToolTipHeading() const
 		return K2Node->GetToolTipHeading();
 	}
 	return FText::GetEmpty();
+}
+
+FSlateColor SGraphNodeK2Base::GetNodeIndicatorOverlayColor() const
+{
+	float IntensityValue = 0.0f;
+	const float IntensityScale = 0.8f;
+
+	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+	if (ProfilerModule.IsProfilerEnabled())
+	{
+		TSharedPtr<class FScriptExecutionNode> ExecNode = ProfilerModule.GetProfilerDataForNode(GetNodeObj());
+		if (ExecNode.IsValid())
+		{
+			FScriptPerfData NodePerfData;
+			ExecNode->GetBlueprintPerfDataForAllTracePaths(NodePerfData);
+
+			switch (ProfilerModule.GetGraphNodeHeatMapDisplayMode())
+			{
+			case EBlueprintProfilerHeatMapDisplayMode::Exclusive:
+				IntensityValue = NodePerfData.GetNodeHeatLevel();
+				break;
+
+			case EBlueprintProfilerHeatMapDisplayMode::Inclusive:
+				IntensityValue = NodePerfData.GetInclusiveHeatLevel();
+				break;
+
+			case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:
+				IntensityValue = NodePerfData.GetMaxTimeHeatLevel();
+				break;
+			}
+		}
+	}
+
+	return FLinearColor(0.9f, 0.0f, 0.0f, FMath::Clamp<float>(IntensityValue, 0.0f, 1.0f) * IntensityScale);
+}
+
+EVisibility SGraphNodeK2Base::GetNodeIndicatorOverlayVisibility() const
+{
+	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+	if (ProfilerModule.IsProfilerEnabled() && ProfilerModule.GetGraphNodeHeatMapDisplayMode() != EBlueprintProfilerHeatMapDisplayMode::None)
+	{
+		return EVisibility::Visible;
+	}
+	else
+	{
+		return EVisibility::Hidden;
+	}
 }
 
 /**

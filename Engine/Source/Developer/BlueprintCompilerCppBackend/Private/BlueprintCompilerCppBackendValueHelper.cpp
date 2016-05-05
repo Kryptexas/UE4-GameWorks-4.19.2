@@ -201,7 +201,7 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 
 			if (RegularInnerStruct)
 			{
-				const FString InnerStructStr = Context.FindGloballyMappedObject(RegularInnerStruct);
+				const FString InnerStructStr = Context.FindGloballyMappedObject(RegularInnerStruct, UScriptStruct::StaticClass());
 				Context.AddLine(FString::Printf(TEXT("%s->InitializeStruct(%s.GetData(), %d);"), *InnerStructStr, *PathToMember, ScriptArrayHelper.Num()));
 			}
 		}
@@ -653,7 +653,7 @@ public:
 		{
 			return Result;
 		}
-		
+
 		for (UObject* Outer = Item; Outer; Outer = Outer->GetOuter())
 		{
 			if (!Result.IsEmpty())
@@ -809,6 +809,15 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 		const FString StructConstructor = FDependenciesHelper::GenerateZConstructor(LocStruct);
 		Context.AddLine(FString::Printf(TEXT("extern UScriptStruct* %s;"), *StructConstructor));
 		Context.AddLine(FString::Printf(TEXT("InDynamicClass->ReferencedConvertedFields.Add(%s);"), *StructConstructor));
+	}
+
+	if (Context.Dependencies.ConvertedEnum.Num())
+	{
+		Context.AddLine(TEXT("// List of all referenced converted enums"));
+	}
+	for (auto LocEnum : Context.Dependencies.ConvertedEnum)
+	{
+		Context.AddLine(FString::Printf(TEXT("InDynamicClass->ReferencedConvertedFields.Add(LoadObject<UEnum>(nullptr, TEXT(\"%s\")));"), *(LocEnum->GetPathName().ReplaceCharWithEscapedChar())));
 	}
 
 	TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;

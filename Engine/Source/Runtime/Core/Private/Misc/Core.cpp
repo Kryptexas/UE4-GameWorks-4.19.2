@@ -259,9 +259,6 @@ bool					GPumpingMessagesOutsideOfMainLoop = false;
 /** Enables various editor and HMD hacks that allow the experimental VR editor feature to work, perhaps at the expense of other systems */
 bool					GEnableVREditorHacks = false;
 
-/** Total blueprint compile time.																			*/
-double GBlueprintCompileTime = 0.0;
-
 DEFINE_STAT(STAT_AudioMemory);
 DEFINE_STAT(STAT_TextureMemory);
 DEFINE_STAT(STAT_MemoryPhysXTotalAllocationSize);

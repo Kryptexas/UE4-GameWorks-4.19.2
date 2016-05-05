@@ -123,6 +123,36 @@ bool FBlueprintSupport::IsInBlueprintPackage(UObject* LoadedObj)
 	return false;
 }
 
+static TArray<FBlueprintWarningDeclaration> BlueprintWarnings;
+static TSet<FName> BlueprintWarningsToTreatAsError;
+static TSet<FName> BlueprintWarningsToSuppress;
+
+void FBlueprintSupport::RegisterBlueprintWarning(const FBlueprintWarningDeclaration& Warning)
+{
+	BlueprintWarnings.Add(Warning);
+}
+
+const TArray<FBlueprintWarningDeclaration>& FBlueprintSupport::GetBlueprintWarnings()
+{
+	return BlueprintWarnings;
+}
+
+void FBlueprintSupport::UpdateWarningBehavior(const TArray<FName>& WarningIdentifiersToTreatAsError, const TArray<FName>& WarningIdentifiersToSuppress)
+{
+	BlueprintWarningsToTreatAsError = TSet<FName>(WarningIdentifiersToTreatAsError);
+	BlueprintWarningsToSuppress = TSet<FName>(WarningIdentifiersToSuppress);
+}
+
+bool FBlueprintSupport::ShouldTreatWarningAsError(FName WarningIdentifier)
+{
+	return BlueprintWarningsToTreatAsError.Find(WarningIdentifier) != nullptr;
+}
+
+bool FBlueprintSupport::ShouldSuppressWarning(FName WarningIdentifier)
+{
+	return BlueprintWarningsToSuppress.Find(WarningIdentifier) != nullptr;
+}
+
 /*******************************************************************************
  * FScopedClassDependencyGather
  ******************************************************************************/

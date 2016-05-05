@@ -37,6 +37,8 @@ public:
 	virtual FName MapBlueprintInstance(TSharedPtr<FBlueprintExecutionContext> BlueprintContext, const FString& InstancePath) override;
 	virtual bool HasDataForInstance(const UObject* Instance) const override;
 	virtual void ProcessEventProfilingData() override;
+	virtual EBlueprintProfilerHeatMapDisplayMode::Type GetGraphNodeHeatMapDisplayMode() const { return GraphNodeHeatMapDisplayMode; }
+	virtual void SetGraphNodeHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) { GraphNodeHeatMapDisplayMode = InHeatMapDisplayMode; }
 #endif
 	// End IBlueprintProfilerModule
 
@@ -81,6 +83,8 @@ protected:
 #if WITH_EDITOR
 	/** PIE Active */
 	bool bPIEActive;
+	/** Current graph node heat map display mode */
+	EBlueprintProfilerHeatMapDisplayMode::Type GraphNodeHeatMapDisplayMode;
 	/** Suspended script events */
 	TMap<FName, TSharedPtr<FScriptEventPlayback>> SuspendedEvents;
 	/** Cached object path and code offset lookup to UObjects */

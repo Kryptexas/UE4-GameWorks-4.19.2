@@ -129,13 +129,26 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 						{
 							check((*Term)->bIsLiteral);
 						
-							const int32 UUID = Context.GetContextUniqueID();
+							int32 LatentUUID = INDEX_NONE;
+							UEdGraphNode* AssociatedNode = LatentInfoPin->GetOwningNode();
+							if (AssociatedNode && AssociatedNode->NodeGuid.IsValid())
+							{
+								LatentUUID = GetTypeHash(AssociatedNode->NodeGuid);
+							}
+							else
+							{
+								static int32 FallbackUUID = 0;
+								LatentUUID = FallbackUUID++;
+
+								CompilerContext.MessageLog.Warning(*LOCTEXT("UUIDDeterministicCookWarn", "Failed to produce a deterministic UUID for a node's latent action: @@. Cooking this Blueprint (@@) asset will non-deterministic.").ToString(), LatentInfoPin, Context.Blueprint);
+							}							
+
 							const FString ExecutionFunctionName = CompilerContext.GetSchema()->FN_ExecuteUbergraphBase.ToString() + TEXT("_") + Context.Blueprint->GetName();
-							(*Term)->Name = FString::Printf(TEXT("(Linkage=%s,UUID=%s,ExecutionFunction=%s,CallbackTarget=None)"), *FString::FromInt(INDEX_NONE), *FString::FromInt(UUID), *ExecutionFunctionName);
+							(*Term)->Name = FString::Printf(TEXT("(Linkage=%s,UUID=%s,ExecutionFunction=%s,CallbackTarget=None)"), *FString::FromInt(INDEX_NONE), *FString::FromInt(LatentUUID), *ExecutionFunctionName);
 
 							// Record the UUID in the debugging information
 							UEdGraphNode* TrueSourceNode = Cast<UEdGraphNode>(Context.MessageLog.FindSourceObject(Node));
-							Context.NewClass->GetDebugData().RegisterUUIDAssociation(TrueSourceNode, UUID);
+							Context.NewClass->GetDebugData().RegisterUUIDAssociation(TrueSourceNode, LatentUUID);
 						}
 					}
 					else

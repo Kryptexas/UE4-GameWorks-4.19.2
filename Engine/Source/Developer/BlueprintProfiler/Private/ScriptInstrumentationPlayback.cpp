@@ -380,7 +380,7 @@ bool FBlueprintFunctionContext::DetectCyclicLinks(TSharedPtr<FScriptExecutionNod
 				{
 					// Break links and flag cycle linkage.
 					FScriptExecNodeParams CycleLinkParams;
-					const FString NodeName = FString::Printf(TEXT("CyclicLinkTo_%i_%s"), LinkedNode.Key, *LinkedExecNode->GetName().ToString());
+					const FString NodeName = FString::Printf(TEXT("CyclicLinkTo_%i_%s"), ExecutionNodes.Num(), *LinkedExecNode->GetName().ToString());
 					CycleLinkParams.NodeName = FName(*NodeName);
 					CycleLinkParams.ObservedObject = LinkedExecNode->GetObservedObject();
 					CycleLinkParams.DisplayName = LinkedExecNode->GetDisplayName();
@@ -653,6 +653,7 @@ void FBlueprintFunctionContext::MapExecPins(TSharedPtr<FScriptExecutionNode> Exe
 {
 	const bool bBranchedExecution = ExecNode->IsBranch();
 	int32 NumUnwiredPins = 0;
+	const UEdGraphPin* FinalExecPin = nullptr;
 	for (auto Pin : Pins)
 	{
 		int32 PinScriptCodeOffset = GetCodeLocationFromPin(Pin);
@@ -708,11 +709,19 @@ void FBlueprintFunctionContext::MapExecPins(TSharedPtr<FScriptExecutionNode> Exe
 				// Check for re-entrant exit site
 				if (ExecNode->HasFlags(EScriptExecutionNodeFlags::SequentialBranch))
 				{
-					// Last pin in sequence is not re-entrant.
-					if (Pin != Pins.Last())
+					// Locate the last linked exec pin
+					if (!FinalExecPin)
 					{
-						TunnelExitNode->AddFlags(EScriptExecutionNodeFlags::ReEntrantTunnelPin);
+						for (auto SeqPin : Pins)
+						{
+							if (SeqPin->LinkedTo.Num())
+							{
+								FinalExecPin = SeqPin;
+							}
+						}
 					}
+					// Last pin in sequence is not re-entrant, but all others are assumed to be.
+					TunnelExitNode->AddFlags(Pin == FinalExecPin ? EScriptExecutionNodeFlags::TunnelFinalExitPin : EScriptExecutionNodeFlags::ReEntrantTunnelPin);
 				}
 				if (bBranchedExecution)
 				{
@@ -750,10 +759,26 @@ void FBlueprintFunctionContext::MapExecPins(TSharedPtr<FScriptExecutionNode> Exe
 TSharedPtr<FScriptExecutionNode> FBlueprintFunctionContext::MapTunnelEntry(const FName TunnelName, const UEdGraphPin* ExecPin, const UEdGraphPin* TunnelPin, const int32 PinScriptOffset)
 {
 	// Retrieve tunnel function context
-	const UEdGraphNode* TunnelNode = TunnelPin->GetOwningNode();
+	const UK2Node_Tunnel* TunnelNode = Cast<UK2Node_Tunnel>(TunnelPin->GetOwningNode());
 	TSharedPtr<FBlueprintFunctionContext> TunnelContext = GetTunnelContextFromNode(TunnelNode);
 	const int32 TunnelId = TunnelContext->GetTunnelIdFromName(TunnelName);
 	check(TunnelId != INDEX_NONE);
+	// Create node for collapsed tunnel/macro
+	TSharedPtr<FScriptExecutionTunnelInstance> TunnelInstance = GetTypedProfilerDataForNode<FScriptExecutionTunnelInstance>(TunnelNode->GetFName());
+	if (!TunnelInstance.IsValid())
+	{
+		FScriptExecNodeParams TunnelInstanceParams;
+		TunnelInstanceParams.NodeName = TunnelNode->GetFName();
+		TunnelInstanceParams.ObservedObject = TunnelNode;
+		TunnelInstanceParams.DisplayName = TunnelNode->GetNodeTitle(ENodeTitleType::ListView);
+		TunnelInstanceParams.Tooltip = LOCTEXT("NavigateToNodeLocationHyperlink_ToolTip", "Navigate to the Node");
+		TunnelInstanceParams.NodeFlags = EScriptExecutionNodeFlags::FunctionTunnel;
+		TunnelInstanceParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
+		const FSlateBrush* TunnelIcon = TunnelNode->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(TunnelNode->GetPaletteIcon(TunnelInstanceParams.IconColor)) :
+																				FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
+		TunnelInstanceParams.Icon = const_cast<FSlateBrush*>(TunnelIcon);
+		TunnelInstance = CreateTypedExecutionNode<FScriptExecutionTunnelInstance>(TunnelInstanceParams);
+	}
 	// Create tunnel graph instance node
 	FScriptExecNodeParams TunnelParams;
 	TunnelParams.NodeName = FName(*FString::Printf(TEXT("%s_EntryPointId%i"), *TunnelNode->GetFName().ToString(), TunnelId));
@@ -765,7 +790,9 @@ TSharedPtr<FScriptExecutionNode> FBlueprintFunctionContext::MapTunnelEntry(const
 	const FSlateBrush* TunnelIcon = TunnelNode->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(TunnelNode->GetPaletteIcon(TunnelParams.IconColor)) :
 																			FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
 	TunnelParams.Icon = const_cast<FSlateBrush*>(TunnelIcon);
-	TSharedPtr<FScriptExecutionNode> TunnelCallNode = CreateExecutionNode(TunnelParams);
+	TSharedPtr<FScriptExecutionTunnelEntry> TunnelCallNode = MakeShareable(new FScriptExecutionTunnelEntry(TunnelParams, TunnelNode));
+	ExecutionNodes.FindOrAdd(TunnelParams.NodeName) = TunnelCallNode;
+	TunnelInstance->AddCustomEntryPoint(TunnelCallNode);
 	// Add entry point children
 	TSharedPtr<FScriptExecutionNode> EntryPinNode = TunnelContext->GetProfilerDataForNode(TunnelName);
 	check (EntryPinNode.IsValid());
@@ -779,35 +806,60 @@ TSharedPtr<FScriptExecutionNode> FBlueprintFunctionContext::MapTunnelEntry(const
 	// Map exit points
 	TArray<TSharedPtr<FScriptExecutionNode>> TunnelExitPoints;
 	TunnelContext->GetTunnelExitPoints(TunnelName, TunnelExitPoints);
-	if (const UK2Node_Tunnel* TunnelGraphNode = Cast<UK2Node_Tunnel>(TunnelNode))
+	TMap<FName, const UEdGraphPin*> NameToPinMap;
+	for (auto ExitPin : TunnelNode->Pins)
 	{
-		TMap<FName, const UEdGraphPin*> NameToPinMap;
-		for (auto ExitPin : TunnelGraphNode->Pins)
+		if (ExitPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec && ExitPin->LinkedTo.Num())
 		{
-			if (ExitPin->Direction == EGPD_Output && ExitPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec && ExitPin->LinkedTo.Num())
+			NameToPinMap.Add(FName(*ExitPin->PinName)) = ExitPin;
+		}
+	}
+	// Register tunnel input pin node using the script offset from the first script offset emitted pin.
+	if (const UEdGraphPin** InputPin = NameToPinMap.Find(TunnelName))
+	{
+		if ((*InputPin)->LinkedTo.Num())
+		{
+			if (const UEdGraphPin* InputLinkedPin = (*InputPin)->LinkedTo[0])
 			{
-				NameToPinMap.Add(FName(*ExitPin->PinName)) = ExitPin;
+				const int32 EntryScriptCodeOffset = GetCodeLocationFromPin(InputLinkedPin);
+				ScriptOffsetToPins.Add(EntryScriptCodeOffset) = *InputPin;
+				TunnelEntrySites.Add(EntryScriptCodeOffset) = TunnelCallNode;
 			}
 		}
-		for (auto CurrExitPoint : TunnelExitPoints)
+	}
+	for (auto CurrExitPoint : TunnelExitPoints)
+	{
+		if (const UEdGraphPin** ExitPin = NameToPinMap.Find(CurrExitPoint->GetName()))
 		{
-			if (const UEdGraphPin** ExitPin = NameToPinMap.Find(CurrExitPoint->GetName()))
+			for (auto LinkedExitPin : (*ExitPin)->LinkedTo)
 			{
-				for (auto LinkedExitPin : (*ExitPin)->LinkedTo)
+				const int32 ExitScriptCodeOffset = GetCodeLocationFromPin(*ExitPin);
+				// Add entry site for exit script offset
+				TunnelExitSites.Add(ExitScriptCodeOffset) = TunnelCallNode;
+				// map tunnel exit links
+				UEdGraphNode* LinkedExitNode = LinkedExitPin->GetOwningNode();
+				TSharedPtr<FScriptExecutionNode> LinkedExecNode;
+				if (LinkedExitNode->IsA<UK2Node_Tunnel>())
 				{
-					TSharedPtr<FScriptExecutionNode> LinkedExecNode = MapNodeExecution(LinkedExitPin->GetOwningNode());
-					if (LinkedExecNode.IsValid())
+					const FName LinkedTunnelName(*LinkedExitPin->PinName);
+					LinkedExecNode = MapTunnelEntry(LinkedTunnelName, *ExitPin, LinkedExitPin, ExitScriptCodeOffset);
+				}
+				else
+				{
+					LinkedExecNode = MapNodeExecution(LinkedExitPin->GetOwningNode());
+				}
+				if (LinkedExecNode.IsValid())
+				{
+					TunnelCallNode->AddExitSite(CurrExitPoint, ExitScriptCodeOffset);
+					if (CurrExitPoint->HasFlags(EScriptExecutionNodeFlags::ReEntrantTunnelPin))
 					{
-						const int32 ExitScriptCodeOffset = GetCodeLocationFromPin(*ExitPin);
-						if (CurrExitPoint->HasFlags(EScriptExecutionNodeFlags::ReEntrantTunnelPin))
-						{
-							CurrExitPoint->AddLinkedNode(ExitScriptCodeOffset, LinkedExecNode);
-						}
-						else
-						{
-							LinkedExecNode->AddFlags(EScriptExecutionNodeFlags::TunnelThenPin);
-							TunnelCallNode->AddLinkedNode(ExitScriptCodeOffset, LinkedExecNode);
-						}
+						CurrExitPoint->AddLinkedNode(ExitScriptCodeOffset, LinkedExecNode);
+					}
+					else
+					{
+						CurrExitPoint->AddFlags(EScriptExecutionNodeFlags::TunnelFinalExitPin);
+						LinkedExecNode->AddFlags(EScriptExecutionNodeFlags::TunnelFinalExitPin);
+						TunnelCallNode->AddLinkedNode(ExitScriptCodeOffset, LinkedExecNode);
 					}
 				}
 			}
@@ -828,6 +880,16 @@ TSharedPtr<FScriptExecutionNode> FBlueprintFunctionContext::GetProfilerDataForNo
 	if (TSharedPtr<FScriptExecutionNode>* SearchResult = ExecutionNodes.Find(NodeName))
 	{
 		Result = *SearchResult;
+	}
+	return Result;
+}
+
+template<typename ExecNodeType> TSharedPtr<ExecNodeType> FBlueprintFunctionContext::GetTypedProfilerDataForNode(const FName NodeName)
+{
+	TSharedPtr<ExecNodeType> Result;
+	if (TSharedPtr<FScriptExecutionNode>* SearchResult = ExecutionNodes.Find(NodeName))
+	{
+		Result = StaticCastSharedPtr<ExecNodeType>(*SearchResult);
 	}
 	return Result;
 }
@@ -898,6 +960,17 @@ TSharedPtr<FScriptExecutionNode> FBlueprintFunctionContext::CreateExecutionNode(
 	InitParams.OwningGraphName = OuterGraph ? OuterGraph->GetFName() : NAME_None;
 	ScriptExecNode = MakeShareable(new FScriptExecutionNode(InitParams));
 	return ScriptExecNode;
+}
+
+template<typename ExecNodeType> TSharedPtr<ExecNodeType> FBlueprintFunctionContext::CreateTypedExecutionNode(FScriptExecNodeParams& InitParams)
+{
+	TSharedPtr<FScriptExecutionNode>& ScriptExecNode = ExecutionNodes.FindOrAdd(InitParams.NodeName);
+	check(!ScriptExecNode.IsValid());
+	UEdGraph* OuterGraph = InitParams.ObservedObject.IsValid() ? InitParams.ObservedObject.Get()->GetTypedOuter<UEdGraph>() : nullptr;
+	InitParams.OwningGraphName = OuterGraph ? OuterGraph->GetFName() : NAME_None;
+	TSharedPtr<ExecNodeType> NewTypedNode = MakeShareable(new ExecNodeType(InitParams));
+	ScriptExecNode = NewTypedNode;
+	return NewTypedNode;
 }
 
 void FBlueprintFunctionContext::AddCallSiteEntryPointsToNode(TSharedPtr<FScriptExecutionNode> CallingNode) const
@@ -972,6 +1045,10 @@ void FBlueprintFunctionContext::MapTunnelInstance(UK2Node_Tunnel* TunnelInstance
 			}
 			TunnelGraphContext->StagingTunnelName = NAME_None;
 		}
+		// Setup tunnel graph context from instance.
+		TunnelGraphContext->BlueprintContext = BlueprintContext;
+		TunnelGraphContext->Function = Function;
+		TunnelGraphContext->BlueprintClass = BlueprintClass;
 		// Patch info into the calling function context
 		for (auto ExecutionNode : TunnelGraphContext->ExecutionNodes)
 		{
@@ -1041,7 +1118,7 @@ void FBlueprintFunctionContext::MapTunnelIO(UEdGraph* TunnelGraph)
 					LinkParams.ObservedObject = Pin;
 					LinkParams.DisplayName = Pin->GetDisplayName().IsEmpty() ? FText::FromString(*Pin->PinName) : Pin->GetDisplayName();
 					LinkParams.Tooltip = LOCTEXT("ExecPin_ToolTip", "Expand tunnel entry point");
-					LinkParams.NodeFlags = EScriptExecutionNodeFlags::TunnelPin;
+					LinkParams.NodeFlags = EScriptExecutionNodeFlags::TunnelEntryPin;
 					LinkParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
 					const FSlateBrush* Icon = FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPPinConnected"));
 					LinkParams.Icon = const_cast<FSlateBrush*>(Icon);
@@ -1060,7 +1137,7 @@ void FBlueprintFunctionContext::MapTunnelIO(UEdGraph* TunnelGraph)
 					LinkParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
 					const FSlateBrush* Icon = FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPPinConnected"));
 					LinkParams.Icon = const_cast<FSlateBrush*>(Icon);
-					TSharedPtr<FScriptExecutionNode> ExitPoint = CreateExecutionNode(LinkParams);
+					TSharedPtr<FScriptExecutionNode> ExitPoint = CreateTypedExecutionNode<FScriptExecutionTunnelExit>(LinkParams);
 					AddExitPoint(ExitPoint);
 				}
 			}
@@ -1092,6 +1169,26 @@ void FBlueprintFunctionContext::AddExitPoint(TSharedPtr<FScriptExecutionNode> Ex
 	TunnelIds.Add(ExitPoint->GetName()) = TunnelId;
 }
 
+TSharedPtr<FScriptExecutionTunnelEntry> FBlueprintFunctionContext::GetTunnelEntrySite(const int32 ScriptCodeOffset)
+{
+	TSharedPtr<FScriptExecutionTunnelEntry> Result;
+	if (TSharedPtr<FScriptExecutionTunnelEntry>* SearchResult = TunnelEntrySites.Find(ScriptCodeOffset))
+	{
+		Result = *SearchResult;
+	}
+	return Result;
+}
+
+TSharedPtr<FScriptExecutionTunnelEntry> FBlueprintFunctionContext::GetTunnelFromExitSite(const int32 ScriptCodeOffset)
+{
+	TSharedPtr<FScriptExecutionTunnelEntry> Result;
+	if (TSharedPtr<FScriptExecutionTunnelEntry>* SearchResult = TunnelExitSites.Find(ScriptCodeOffset))
+	{
+		Result = *SearchResult;
+	}
+	return Result;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FScriptEventPlayback
 
@@ -1104,12 +1201,6 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 		TSharedPtr<FScriptExecutionNode> ExecNode;
 		TSharedPtr<FBlueprintFunctionContext> FunctionContext;
 		TArray<FScriptInstrumentedEvent> UnproccessedEvents;
-	};
-	struct TunnelEventHelper
-	{
-		double TunnelEntryTime;
-		FTracePath EntryTracePath;
-		TSharedPtr<FScriptExecutionNode> TunnelEntryPoint;
 	};
 
 	const int32 NumEvents = (StopIdx+1) - StartIdx;
@@ -1125,7 +1216,6 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 		TSharedPtr<FScriptExecutionNode> EventNode = FunctionContext->GetProfilerDataForNode(EventName);
 		// Find Associated graph nodes and submit into a node map for later processing.
 		TMap<const UEdGraphNode*, PerNodeEventHelper> NodeMap;
-		TArray<TunnelEventHelper> Tunnels;
 		ProcessingState = EEventProcessingResult::Success;
 		int32 LastEventIdx = StartIdx;
 		const int32 EventStartOffset = SignalData[StartIdx].IsResumeEvent() ? 3 : 1;
@@ -1165,6 +1255,7 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 						break;
 					}
 					case EScriptInstrumentation::NodeEntry:
+					case EScriptInstrumentation::NodeDebugSite:
 					{
 						// Handle timings for events called as functions
 						if (NodeEntry.ExecNode->IsCustomEvent())
@@ -1183,6 +1274,9 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 								}
 							}
 						}
+						// Process tunnel timings
+						ProcessTunnelEntryPoints(FunctionContext, CurrSignal);
+						// Queue events
 						NodeEntry.EntryTracePaths.Push(TracePath);
 						NodeEntry.UnproccessedEvents.Add(CurrSignal);
 						break;
@@ -1221,7 +1315,7 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 							{
 								const FScriptInstrumentedEvent& NodeEvent = NodeEntry.UnproccessedEvents[NodeEventIdx];
 
-								if (NodeEvent.GetType() == EScriptInstrumentation::NodeEntry)
+								if (NodeEvent.GetType() == EScriptInstrumentation::NodeEntry || NodeEvent.GetType() == EScriptInstrumentation::NodeDebugSite)
 								{
 									if (NodeEntryIdx != INDEX_NONE)
 									{
@@ -1241,6 +1335,15 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 					}
 					case EScriptInstrumentation::NodeExit:
 					{
+						// Handle duplicate exit sites for If Then Else nodes, This should be cleaned up in the refactor.
+						if (GraphNode->IsA<UK2Node_IfThenElse>())
+						{
+							const int32 NextSignal = SignalIdx + 1;
+							if (NextSignal < StopIdx && SignalData[NextSignal].GetType() == EScriptInstrumentation::NodeExit)
+							{
+								continue;
+							}
+						}
 						// Cleanup branching multiple exits and correct the tracepath
 						if (NodeEntry.UnproccessedEvents.Num() && NodeEntry.UnproccessedEvents.Last().GetType() == EScriptInstrumentation::NodeExit)
 						{
@@ -1250,33 +1353,10 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 								TracePath = NodeEntry.EntryTracePaths.Last();
 							}
 						}
-						const int32 ScriptCodeExit = CurrSignal.GetScriptCodeOffset();
 						// Process tunnel timings
-						for (auto LinkIter : NodeEntry.ExecNode->GetLinkedNodes())
-						{
-							if (LinkIter.Key == ScriptCodeExit && LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::FunctionTunnel))
-							{
-								TunnelEventHelper NewTunnel;
-								NewTunnel.EntryTracePath = TracePath;
-								NewTunnel.EntryTracePath.AddExitPin(ScriptCodeExit);
-								NewTunnel.TunnelEntryPoint = LinkIter.Value;
-								NewTunnel.TunnelEntryTime = CurrSignal.GetTime();
-								Tunnels.Push(NewTunnel);
-							}
-							else if (LinkIter.Value->HasFlags(EScriptExecutionNodeFlags::TunnelExitPin))
-							{
-								if (Tunnels.Num())
-								{
-									TunnelEventHelper Tunnel = Tunnels.Pop();
-									TSharedPtr<FScriptPerfData> PerfData = Tunnel.TunnelEntryPoint->GetPerfDataByInstanceAndTracePath(InstanceName, Tunnel.EntryTracePath);
-									PerfData->AddEventTiming(CurrSignal.GetTime() - Tunnel.TunnelEntryTime);
-									FTracePath ExitTrace(TracePath);
-									ExitTrace.AddExitPin(LinkIter.Key);
-									PerfData = LinkIter.Value->GetPerfDataByInstanceAndTracePath(InstanceName, ExitTrace);
-									PerfData->AddEventTiming(0.0);
-								}
-							}
-						}
+						ProcessTunnelEntryPoints(FunctionContext, CurrSignal);
+						// Process node exit
+						const int32 ScriptCodeExit = CurrSignal.GetScriptCodeOffset();
 						TracePath.AddExitPin(ScriptCodeExit);
 						NodeEntry.UnproccessedEvents.Add(CurrSignal);
 						// Process cyclic linkage - reset to root link tracepath
@@ -1370,6 +1450,7 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 						break;
 					}
 					case EScriptInstrumentation::NodeEntry:
+					case EScriptInstrumentation::NodeDebugSite:
 					{
 						if (PureNode.IsValid())
 						{
@@ -1409,6 +1490,43 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 		}
 	}
 	return ProcessingState != EEventProcessingResult::Failed;
+}
+
+void FScriptEventPlayback::ProcessTunnelEntryPoints(TSharedPtr<FBlueprintFunctionContext> FunctionContext, const FScriptInstrumentedEvent& CurrSignal)
+{
+	const int32 ScriptOffset = CurrSignal.GetScriptCodeOffset();
+	if (const UEdGraphPin* TunnelPin = FunctionContext->GetPinFromCodeLocation(ScriptOffset))
+	{
+		if (const UK2Node_Tunnel* TunnelInstance = Cast<UK2Node_Tunnel>(TunnelPin->GetOwningNode()))
+		{
+			TSharedPtr<FScriptExecutionTunnelEntry> ExitSite = FunctionContext->GetTunnelFromExitSite(ScriptOffset);
+			if (ExitSite.IsValid())
+			{
+				if (TunnelEventHelper* OpenTunnel = ActiveTunnels.Find(ExitSite->GetName()))
+				{
+					const double TunnelTiming = CurrSignal.GetTime() - OpenTunnel->TunnelEntryTime;
+					TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntryNode = OpenTunnel->TunnelEntryPoint;
+					TunnelEntryNode->UpdateTunnelExit(InstanceName, TracePath, ScriptOffset);
+					if (TunnelEntryNode->IsFinalExitSite(ScriptOffset))
+					{
+						TunnelEntryNode->AddTunnelTiming(InstanceName, OpenTunnel->EntryTracePath, TunnelTiming);
+						TracePath = OpenTunnel->EntryTracePath;
+						ActiveTunnels.Remove(ExitSite->GetName());
+					}
+				}
+			}
+			// Handle tunnel entries
+			TSharedPtr<FScriptExecutionTunnelEntry> EntrySite = FunctionContext->GetTunnelEntrySite(ScriptOffset);
+			if (EntrySite.IsValid())
+			{
+				TunnelEventHelper& NewTunnel = ActiveTunnels.Add(EntrySite->GetName());
+				NewTunnel.EntryTracePath = TracePath;
+				NewTunnel.EntryTracePath.AddExitPin(ScriptOffset);
+				NewTunnel.TunnelEntryPoint = EntrySite;
+				NewTunnel.TunnelEntryTime = CurrSignal.GetTime();
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

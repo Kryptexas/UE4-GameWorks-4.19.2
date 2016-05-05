@@ -1403,7 +1403,7 @@ public:
 		}
 		else
 		{
-			int32 EventType = 0;
+			uint8 EventType = 0;
 			switch (Statement.Type)
 			{
 			case KCST_InstrumentedWireExit:			EventType = EScriptInstrumentation::NodeExit; break;
@@ -1417,8 +1417,6 @@ public:
 			}
 			Writer << EX_InstrumentationEvent;
 			Writer << EventType;
-
-			Offset += sizeof(int32);
 		}
 
 		if (Statement.Type != KCST_InstrumentedStateRestore)
@@ -1453,7 +1451,8 @@ public:
 					}
 
 					TArray<TWeakObjectPtr<UEdGraphNode>> MacroInstanceNodes;
-					bool bBreakpointSite = Statement.Type == KCST_DebugSite;
+					const bool bInstrumentedBreakpoint = Statement.Type == KCST_InstrumentedWireEntry;
+					bool bBreakpointSite = Statement.Type == KCST_DebugSite || bInstrumentedBreakpoint;
 
 					if (MacroSourceNode)
 					{

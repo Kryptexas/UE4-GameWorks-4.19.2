@@ -18,6 +18,7 @@ FBlueprintProfiler::FBlueprintProfiler()
 	: bProfilerActive(false)
 	, bProfilingCaptureActive(false)
 	, bPIEActive(false)
+	, GraphNodeHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::None)
 {
 }
 

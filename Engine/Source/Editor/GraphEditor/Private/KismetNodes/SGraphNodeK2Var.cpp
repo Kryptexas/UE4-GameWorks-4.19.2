@@ -206,6 +206,13 @@ void SGraphNodeK2Var::UpdateGraphNode()
 			+ SOverlay::Slot()
 			[
 				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("Graph.VarNode.IndicatorOverlay"))
+				.Visibility(this, &SGraphNodeK2Var::GetNodeIndicatorOverlayVisibility)
+				.ColorAndOpacity(this, &SGraphNodeK2Var::GetNodeIndicatorOverlayColor)
+			]
+			+ SOverlay::Slot()
+			[
+				SNew(SImage)
 				.Image( FEditorStyle::GetBrush("Graph.VarNode.Gloss") )
 			]
 			+SOverlay::Slot()

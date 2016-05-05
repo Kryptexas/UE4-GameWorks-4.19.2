@@ -84,6 +84,48 @@ void SBlueprintProfilerView::UpdateActiveProfilerWidget()
 										NAME_None, 
 										EUserInterfaceActionType::Button);
 
+		FMenuBuilder HeatMapDisplayModeComboContent(true, nullptr);
+		HeatMapDisplayModeComboContent.AddMenuEntry(LOCTEXT("HeatMapDisplayMode_None", "Off"),
+			LOCTEXT("HeatMapDisplayMode_None_Desc", "Normal Display (No Heat Map)"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SBlueprintProfilerView::OnHeatMapDisplayModeChanged, EBlueprintProfilerHeatMapDisplayMode::None),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SBlueprintProfilerView::IsHeatMapDisplayModeSelected, EBlueprintProfilerHeatMapDisplayMode::None)
+			),
+			NAME_None,
+			EUserInterfaceActionType::Check);
+		HeatMapDisplayModeComboContent.AddMenuEntry(LOCTEXT("HeatMapDisplayMode_Exclusive", "Exclusive"),
+			LOCTEXT("HeatMapDisplayMode_Exclusive_Desc", "Heat Map - Exclusive Timings"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SBlueprintProfilerView::OnHeatMapDisplayModeChanged, EBlueprintProfilerHeatMapDisplayMode::Exclusive),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SBlueprintProfilerView::IsHeatMapDisplayModeSelected, EBlueprintProfilerHeatMapDisplayMode::Exclusive)
+			),
+			NAME_None,
+			EUserInterfaceActionType::Check);
+		HeatMapDisplayModeComboContent.AddMenuEntry(LOCTEXT("HeatMapDisplayMode_Inclusive", "Inclusive"),
+			LOCTEXT("HeatMapDisplayMode_Inclusive_Desc", "Heat Map - Inclusive Timings"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SBlueprintProfilerView::OnHeatMapDisplayModeChanged, EBlueprintProfilerHeatMapDisplayMode::Inclusive),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SBlueprintProfilerView::IsHeatMapDisplayModeSelected, EBlueprintProfilerHeatMapDisplayMode::Inclusive)
+			),
+			NAME_None,
+			EUserInterfaceActionType::Check);
+		HeatMapDisplayModeComboContent.AddMenuEntry(LOCTEXT("HeatMapDisplayMode_MaxTiming", "Max Time"),
+			LOCTEXT("HeatMapDisplayMode_MaxTiming_Desc", "Heat Map - Max Time"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SBlueprintProfilerView::OnHeatMapDisplayModeChanged, EBlueprintProfilerHeatMapDisplayMode::MaxTiming),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SBlueprintProfilerView::IsHeatMapDisplayModeSelected, EBlueprintProfilerHeatMapDisplayMode::MaxTiming)
+			),
+			NAME_None,
+			EUserInterfaceActionType::Check);
+
 		ChildSlot
 		[
 			SNew(SVerticalBox)
@@ -98,6 +140,30 @@ void SBlueprintProfilerView::UpdateActiveProfilerWidget()
 				.HAlign(HAlign_Right)
 				[
 					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(FMargin(5, 0))
+					[
+						SAssignNew(HeatMapDisplayModeComboButton, SComboButton)
+						.ForegroundColor(this, &SBlueprintProfilerView::GetHeatMapDisplayModeButtonForegroundColor)
+						.ToolTipText(LOCTEXT("BlueprintProfilerHeatMapDisplayMode_Tooltip", "Heat Map Display Mode"))
+						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+						.ContentPadding(2)
+						.MenuContent()
+						[
+							HeatMapDisplayModeComboContent.MakeWidget()
+						]
+						.ButtonContent()
+						[
+							CreateHeatMapDisplayModeButton()
+						]
+					]
+					+SHorizontalBox::Slot()
+					.Padding(FMargin(5, 0))
+					[
+						SNew(SSeparator)
+						.Orientation(Orient_Vertical)
+					]
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(FMargin(5,0))
@@ -174,6 +240,52 @@ void SBlueprintProfilerView::OnViewSelectionChanged(const EBlueprintPerfViewType
 	{
 		CurrentViewType = NewViewType;
 		UpdateActiveProfilerWidget();
+	}
+}
+
+FText SBlueprintProfilerView::GetCurrentHeatMapDisplayModeText() const
+{
+	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+	switch (ProfilerModule.GetGraphNodeHeatMapDisplayMode())
+	{
+	case EBlueprintProfilerHeatMapDisplayMode::None:		return LOCTEXT("HeatMapDisplayModeLabel_None", "Heat Map: Off");
+	case EBlueprintProfilerHeatMapDisplayMode::Exclusive:	return LOCTEXT("HeatMapDisplayModeLabel_Exclusive", "Heat Map: Exclusive");
+	case EBlueprintProfilerHeatMapDisplayMode::Inclusive:	return LOCTEXT("HeatMapDisplayModeLabel_Inclusive", "Heat Map: Inclusive");
+	case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:	return LOCTEXT("HeatMapDisplayModeLabel_MaxTiming", "Heat Map: Max Timing");
+	}
+	return LOCTEXT("HeatMapDisplayModeLabel_Unknown", "<unknown>");
+}
+
+TSharedRef<SWidget> SBlueprintProfilerView::CreateHeatMapDisplayModeButton() const
+{
+	return SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(this, &SBlueprintProfilerView::GetCurrentHeatMapDisplayModeText)
+		];
+}
+
+FSlateColor SBlueprintProfilerView::GetHeatMapDisplayModeButtonForegroundColor() const
+{
+	static const FName InvertedForegroundName("InvertedForeground");
+	static const FName DefaultForegroundName("DefaultForeground");
+	return HeatMapDisplayModeComboButton->IsHovered() ? FEditorStyle::GetSlateColor(InvertedForegroundName) : FEditorStyle::GetSlateColor(DefaultForegroundName);
+}
+
+bool SBlueprintProfilerView::IsHeatMapDisplayModeSelected(const EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) const
+{
+	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+	return ProfilerModule.GetGraphNodeHeatMapDisplayMode() == InHeatMapDisplayMode;
+}
+
+void SBlueprintProfilerView::OnHeatMapDisplayModeChanged(const EBlueprintProfilerHeatMapDisplayMode::Type NewHeatMapDisplayMode)
+{
+	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+	if (ProfilerModule.GetGraphNodeHeatMapDisplayMode() != NewHeatMapDisplayMode)
+	{
+		ProfilerModule.SetGraphNodeHeatMapDisplayMode(NewHeatMapDisplayMode);
 	}
 }
 

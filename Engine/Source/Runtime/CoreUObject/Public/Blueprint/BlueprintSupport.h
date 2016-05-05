@@ -4,6 +4,18 @@
 
 #include "GCObject.h"
 
+struct FBlueprintWarningDeclaration
+{
+	FBlueprintWarningDeclaration(FName InWarningIdentifier, FText InWarningDescription)
+		: WarningIdentifier(InWarningIdentifier)
+		, WarningDescription( InWarningDescription )
+	{
+	}
+
+	FName WarningIdentifier;
+	FText WarningDescription;
+};
+
 /** 
  * This set of functions contains blueprint related UObject functionality.
  */
@@ -33,6 +45,12 @@ struct FBlueprintSupport
 
 	/** Not a particularly fast function. Mostly intended for validation in debug builds. */
 	static bool IsInBlueprintPackage(UObject* LoadedObj);
+
+	COREUOBJECT_API static void RegisterBlueprintWarning(const FBlueprintWarningDeclaration& Warning);
+	COREUOBJECT_API static const TArray<FBlueprintWarningDeclaration>& GetBlueprintWarnings();
+	COREUOBJECT_API static void UpdateWarningBehavior(const TArray<FName>& WarningIdentifiersToTreatAsError, const TArray<FName>& WarningIdentifiersToSuppress);
+	COREUOBJECT_API static bool ShouldTreatWarningAsError(FName WarningIdentifier);
+	COREUOBJECT_API static bool ShouldSuppressWarning(FName WarningIdentifier);
 };
 
 #if WITH_EDITOR
