@@ -1092,8 +1092,8 @@ private:
 		TArray<VkDeviceSize> VertexOffsets;
 	} Tmp;
 
-	// these are the cache pipeline state objects used in this BSS
-	TMap<FVulkanPipelineGraphicsKey, class FVulkanPipeline*> PipelineCache;
+	// these are the cache pipeline state objects used in this BSS; RefCounts must be manually controlled for the FVulkanPipelines!
+	TMap<FVulkanPipelineGraphicsKey, FVulkanPipeline* > PipelineCache;
 
 	struct FDescriptorSetsPair
 	{

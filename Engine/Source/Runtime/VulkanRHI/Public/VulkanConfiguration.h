@@ -85,7 +85,7 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 
 #define VULKAN_ENABLE_AGGRESSIVE_STATS							1
 
-#define VULKAN_ENABLE_PIPELINE_CACHE							0
+#define VULKAN_ENABLE_PIPELINE_CACHE							1
 
 #define VULKAN_ENABLE_RHI_DEBUGGING								1
 

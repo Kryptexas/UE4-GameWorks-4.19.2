@@ -333,7 +333,12 @@ FVulkanBoundShaderState::~FVulkanBoundShaderState()
 	// toss the pipeline states
 	for (auto& Pair : PipelineCache)
 	{
+#if VULKAN_ENABLE_PIPELINE_CACHE
+		// Reference is decremented inside the Destroy function
+		Device->PipelineStateCache->DestroyPipeline(Pair.Value);
+#else
 		Pair.Value->Destroy();
+#endif
 	}
 
 	check(Layout);
@@ -363,8 +368,9 @@ FVulkanPipeline* FVulkanBoundShaderState::PrepareForDraw(const FVulkanPipelineGr
 		Pipeline = Device->PipelineStateCache->Find(PipelineCreateInfo);
 		if (Pipeline)
 		{
-			// Add it to the local cache
+			// Add it to the local cache; manually control RefCount
 			PipelineCache.Add(PipelineKey, Pipeline);
+			Pipeline->AddRef();
 		}
 		else
 #endif
@@ -377,8 +383,9 @@ FVulkanPipeline* FVulkanBoundShaderState::PrepareForDraw(const FVulkanPipelineGr
 			Pipeline->Create(State);
 #endif
 
-			// Add it to the local cache
+			// Add it to the local cache; manually control RefCount
 			PipelineCache.Add(PipelineKey, Pipeline);
+			Pipeline->AddRef();
 
 #if !UE_BUILD_SHIPPING
 			if (Device->FrameCounter > 3)

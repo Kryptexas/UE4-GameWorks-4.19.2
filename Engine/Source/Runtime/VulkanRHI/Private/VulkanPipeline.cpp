@@ -54,6 +54,13 @@ FVulkanPipeline::FVulkanPipeline(FVulkanDevice* InDevice)
 {
 }
 
+FVulkanPipeline::~FVulkanPipeline()
+{
+#if VULKAN_ENABLE_PIPELINE_CACHE
+	vkDestroyPipeline(Device->GetInstanceHandle(), Pipeline, nullptr);
+#endif
+}
+
 #if !VULKAN_ENABLE_PIPELINE_CACHE
 void FVulkanPipeline::Create(const FVulkanPipelineState& State)
 {
@@ -130,6 +137,7 @@ void FVulkanPipeline::Create(const FVulkanPipelineState& State)
 }
 #endif
 
+#if !VULKAN_ENABLE_PIPELINE_CACHE
 void FVulkanPipeline::Destroy()
 {
 	if (Pipeline)
@@ -143,6 +151,7 @@ void FVulkanPipeline::Destroy()
 		Pipeline = VK_NULL_HANDLE;
 	}
 }
+#endif
 
 void FVulkanPipeline::InternalUpdateDynamicStates(FVulkanCmdBuffer* Cmd, FVulkanPipelineState& State, bool bNeedsViewportUpdate, bool bNeedsScissorUpdate)
 {
@@ -242,6 +251,7 @@ bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames, TArr
 				// Add to the cache
 				KeyToPipelineMap.Add(CreateInfo, Pipeline);
 				CreatedPipelines.Add(DiskEntry, Pipeline);
+				Pipeline->AddRef();
 			}
 
 			Ar << OutDeviceCache;
@@ -280,6 +290,16 @@ bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames, TArr
 	return bLoaded;
 }
 
+
+void FVulkanPipelineStateCache::DestroyPipeline(FVulkanPipeline* Pipeline)
+{
+	if (Pipeline->Release() == 0)
+	{
+		const FVulkanPipelineStateKey* Key = KeyToPipelineMap.FindKey(Pipeline);
+		check(Key);
+		KeyToPipelineMap.Remove(*Key);
+	}
+}
 
 void FVulkanPipelineStateCache::InitAndLoad(const TArray<FString>& CacheFilenames)
 {
@@ -1021,6 +1041,20 @@ void FVulkanPipelineStateCache::DestroyCache()
 		DiskEntry.RenderPass = nullptr;
 	};
 
+	for (TLinkedList<FVulkanBoundShaderState*>::TIterator It(GetBSSList()); It; It.Next())
+	{
+		FVulkanBoundShaderState* BSS = *It;
+
+		// toss the pipeline states
+		for (auto& Pair : BSS->PipelineCache)
+		{
+			// Reference is decremented inside the Destroy function
+			DestroyPipeline(Pair.Value);
+		}
+
+		BSS->PipelineCache.Empty(0);
+	}
+
 	for (FDiskEntry& Entry : DiskEntries)
 	{
 		if (Entry.bLoaded)
@@ -1029,9 +1063,15 @@ void FVulkanPipelineStateCache::DestroyCache()
 			Entry.bLoaded = false;
 
 			FVulkanPipeline* Pipeline = CreatedPipelines.FindAndRemoveChecked(&Entry);
-			check(Pipeline);
-			Pipeline->Destroy();
-			delete Pipeline;
+			if (Pipeline->GetRefCount() >= 1)
+			{
+				check(Pipeline->GetRefCount() == 1);
+				Pipeline->Release();
+			}
+			else
+			{
+				delete Pipeline;
+			}
 		}
 		else
 		{
@@ -1040,13 +1080,6 @@ void FVulkanPipelineStateCache::DestroyCache()
 	}
 
 	DiskEntries.Empty();
-	for (TLinkedList<FVulkanBoundShaderState*>::TIterator It(GetBSSList()); It; It.Next())
-	{
-		FVulkanBoundShaderState* BSS = *It;
-		//#todo-rco: Can't destroy; some pipelines come from Cache, others from BSS!
-		//BSS->DestroyPipelineCache();
-		BSS->PipelineCache.Empty(0);
-	}
 
 	KeyToPipelineMap.Empty();
 	CreatedPipelines.Empty();
@@ -1056,6 +1089,10 @@ void FVulkanPipelineStateCache::RebuildCache()
 {
 	UE_LOG(LogVulkanRHI, Warning, TEXT("Rebuilding pipeline cache; ditching %d entries"), DiskEntries.Num());
 
+	if (IsInGameThread())
+	{
+		FlushRenderingCommands();
+	}
 	DestroyCache();
 }
 
