@@ -4752,21 +4752,41 @@ void FSequencer::CreateCamera()
 	{
 		return;
 	}
+
+	FGuid CameraGuid;
+
+	if (Settings->GetCreateSpawnableCameras())
+	{
+		CameraGuid = MakeNewSpawnable(*NewCamera);
+		UpdateRuntimeInstances();
+		UObject* SpawnedCamera = FindSpawnedObjectOrTemplate(CameraGuid);
+		if (SpawnedCamera)
+		{
+			GWorld->EditorDestroyActor(NewCamera, true);
+			NewCamera = Cast<ACineCameraActor>(SpawnedCamera);
+		}
+	}
+	else
+	{
+		CameraGuid = CreateBinding(*NewCamera, NewCamera->GetActorLabel());
+	}
+	
+	if (!CameraGuid.IsValid())
+	{
+		return;	
+	}	
+
 	NewCamera->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
 	NewCamera->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
 	//pNewCamera->CameraComponent->FieldOfView = ViewportClient->ViewFOV; //@todo set the focal length from this field of view
-	FGuid PossessableGuid = CreateBinding(*NewCamera, NewCamera->GetActorLabel());
-	if (!PossessableGuid.IsValid())
-	{
-		return;
-	}
-	OnActorAddedToSequencerEvent.Broadcast(NewCamera, PossessableGuid);
+	
+	OnActorAddedToSequencerEvent.Broadcast(NewCamera, CameraGuid);
 
 	const bool bLockToCamera = true;
-	NewCameraAdded(NewCamera, PossessableGuid, bLockToCamera);
+	NewCameraAdded(NewCamera, CameraGuid, bLockToCamera);
 }
 
-void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid PossessableGuid, bool bLockToCamera)
+void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid CameraGuid, bool bLockToCamera)
 {
 	SetPerspectiveViewportCameraCutEnabled(false);
 
@@ -4806,7 +4826,7 @@ void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid PossessableGu
 		if (CameraCutSection)
 		{
 			CameraCutSection->Modify();
-			CameraCutSection->SetCameraGuid(PossessableGuid);
+			CameraCutSection->SetCameraGuid(CameraGuid);
 		}
 		else
 		{
@@ -4815,7 +4835,7 @@ void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid PossessableGu
 			UMovieSceneCameraCutSection* NewSection = Cast<UMovieSceneCameraCutSection>(CameraCutTrack->CreateNewSection());
 			NewSection->SetStartTime(GetPlaybackRange().GetLowerBoundValue());
 			NewSection->SetEndTime(GetPlaybackRange().GetUpperBoundValue());
-			NewSection->SetCameraGuid(PossessableGuid);
+			NewSection->SetCameraGuid(CameraGuid);
 			CameraCutTrack->AddSection(*NewSection);
 		}
 	}

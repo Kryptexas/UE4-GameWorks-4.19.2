@@ -455,6 +455,11 @@ public:
 	{
 		return EditorData;
 	}
+
+	void SetEditorData(FMovieSceneEditorData& InEditorData)
+	{
+		EditorData = InEditorData;
+	}
 #endif
 
 protected:

@@ -10,6 +10,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bKeyInterpPropertiesOnly = false;
 	KeyInterpolation = EMovieSceneKeyInterpolation::Auto;
 	SpawnPosition = SSP_Origin;
+	bCreateSpawnableCameras = true;
 	bShowFrameNumbers = true;
 	bShowRangeSlider = false;
 	bIsSnapEnabled = true;
@@ -106,6 +107,20 @@ void USequencerSettings::SetSpawnPosition(ESequencerSpawnPosition InSpawnPositio
 	if ( SpawnPosition != InSpawnPosition)
 	{
 		SpawnPosition = InSpawnPosition;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetCreateSpawnableCameras() const
+{
+	return bCreateSpawnableCameras;
+}
+
+void USequencerSettings::SetCreateSpawnableCameras(bool bInCreateSpawnableCameras)
+{
+	if ( bCreateSpawnableCameras != bInCreateSpawnableCameras)
+	{
+		bCreateSpawnableCameras = bInCreateSpawnableCameras;
 		SaveConfig();
 	}
 }

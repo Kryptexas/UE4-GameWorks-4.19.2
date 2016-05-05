@@ -135,6 +135,77 @@ FString MovieSceneToolHelpers::ComposeShotName(const FString& ShotPrefix, uint32
 	return ShotName;
 }
 
+bool IsPackageNameUnique(const TArray<FAssetData>& ObjectList, FString& NewPackageName)
+{
+	for (auto AssetObject : ObjectList)
+	{
+		if (AssetObject.PackageName.ToString() == NewPackageName)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+FString MovieSceneToolHelpers::GenerateNewShotPath(UMovieScene* SequenceMovieScene, FString& NewShotName)
+{
+	const UMovieSceneToolsProjectSettings* ProjectSettings = GetDefault<UMovieSceneToolsProjectSettings>();
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+	TArray<FAssetData> ObjectList;
+	AssetRegistryModule.Get().GetAssetsByClass(ULevelSequence::StaticClass()->GetFName(), ObjectList);
+
+	UObject* SequenceAsset = SequenceMovieScene->GetOuter();
+	UPackage* SequencePackage = SequenceAsset->GetOutermost();
+	FString SequencePackageName = SequencePackage->GetName(); // ie. /Game/cine/max/master
+	int LastSlashPos = SequencePackageName.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+	FString SequencePath = SequencePackageName.Left(LastSlashPos);
+
+	FString NewShotPrefix;
+	uint32 NewShotNumber = INDEX_NONE;
+	uint32 NewTakeNumber = INDEX_NONE;
+	ParseShotName(NewShotName, NewShotPrefix, NewShotNumber, NewTakeNumber);
+
+	FString NewShotDirectory = ComposeShotName(NewShotPrefix, NewShotNumber, INDEX_NONE);
+	FString NewShotPath = SequencePath;
+
+	FString ShotDirectory = ProjectSettings->ShotDirectory;
+	if (!ShotDirectory.IsEmpty())
+	{
+		NewShotPath /= ShotDirectory;
+	}
+	NewShotPath /= NewShotDirectory; // put this in the shot directory, ie. /Game/cine/max/shots/shot0010
+
+	// Make sure this shot path is unique
+	FString NewPackageName = NewShotPath;
+	NewPackageName /= NewShotName; // ie. /Game/cine/max/shots/shot0010/shot0010_001
+	if (!IsPackageNameUnique(ObjectList, NewPackageName))
+	{
+		while (1)
+		{
+			NewShotNumber += ProjectSettings->ShotIncrement;
+			NewShotName = ComposeShotName(NewShotPrefix, NewShotNumber, NewTakeNumber);
+			NewShotDirectory = ComposeShotName(NewShotPrefix, NewShotNumber, INDEX_NONE);
+			NewShotPath = SequencePath;
+			if (!ShotDirectory.IsEmpty())
+			{
+				NewShotPath /= ShotDirectory;
+			}
+			NewShotPath /= NewShotDirectory;
+
+			NewPackageName = NewShotPath;
+			NewPackageName /= NewShotName;
+			if (IsPackageNameUnique(ObjectList, NewPackageName))
+			{
+				break;
+			}
+		}
+	}
+
+	return NewShotPath;
+}
+
 
 FString MovieSceneToolHelpers::GenerateNewShotName(const TArray<UMovieSceneSection*>& AllSections, float Time)
 {

@@ -113,6 +113,14 @@ public:
 	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) = 0;
 
 	/**
+	 * Attempts to add a new spawnable to the MovieScene for the specified object (asset, class or actor instance)
+	 *
+	 * @param	Object	The asset, class, or actor to add a spawnable for
+	 * @return	The spawnable guid for the spawnable, or an invalid Guid if we were not able to create a spawnable
+	 */
+	virtual FGuid MakeNewSpawnable(UObject& SourceObject) = 0;
+
+	/**
 	 * Given a sub-movie scene section, returns the instance of the movie scene for that section.
 	 *
 	 * @param Section The sub-movie scene section containing the sequence instance to get.
