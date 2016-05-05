@@ -24,16 +24,23 @@ UK2Node_BitmaskLiteral::UK2Node_BitmaskLiteral(const FObjectInitializer& ObjectI
 	
 }
 
-void UK2Node_BitmaskLiteral::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UK2Node_BitmaskLiteral::ValidateBitflagsEnumType()
 {
-	// Rebuild the node if the bitflags enum property was changed
-	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if ((PropertyName == TEXT("BitflagsEnum")))
+	// Reset enum type reference if it no longer has the proper meta data.
+	if (BitflagsEnum != nullptr && (BitflagsEnum->IsPendingKill() || !BitflagsEnum->HasMetaData(TEXT("Bitflags"))))
 	{
-		GetSchema()->ReconstructNode(*this);
-	}
+		BitflagsEnum = nullptr;
 
-	Super::PostEditChangeProperty(PropertyChangedEvent);
+		// Note: The input pin's default value is intentionally not reset here. This ensures that we preserve the default value even if the enum type representing the bitflags is removed.
+	}
+}
+
+void UK2Node_BitmaskLiteral::PostLoad()
+{
+	Super::PostLoad();
+
+	// Post-load validation of the enum type.
+	ValidateBitflagsEnumType();
 }
 
 void UK2Node_BitmaskLiteral::AllocateDefaultPins()
@@ -46,6 +53,14 @@ void UK2Node_BitmaskLiteral::AllocateDefaultPins()
 	CreatePin(EGPD_Output, Schema->PC_Int, Schema->PSC_Bitmask, BitflagsEnum, false, false, Schema->PN_ReturnValue);
 
 	Super::AllocateDefaultPins();
+}
+
+void UK2Node_BitmaskLiteral::ReconstructNode()
+{
+	// Validate the enum type prior to reconstruction so that the input pin's default value is reset first (if needed).
+	ValidateBitflagsEnumType();
+
+	Super::ReconstructNode();
 }
 
 void UK2Node_BitmaskLiteral::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)

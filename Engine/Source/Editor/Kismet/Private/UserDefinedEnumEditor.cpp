@@ -228,32 +228,12 @@ FReply FEnumDetails::OnAddNewEnumerator()
 
 ECheckBoxState FEnumDetails::OnGetBitmaskFlagsAttributeState() const
 {
-	ECheckBoxState Result = ECheckBoxState::Unchecked;
-	const UUserDefinedEnum* Enum = TargetEnum.Get();
-	if (Enum && Enum->HasMetaData(TEXT("Bitflags")))
-	{
-		Result = ECheckBoxState::Checked;
-	}
-
-	return Result;
+	return FEnumEditorUtils::IsEnumeratorBitflagsType(TargetEnum.Get()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void FEnumDetails::OnBitmaskFlagsAttributeStateChanged(ECheckBoxState InNewState)
 {
-	UUserDefinedEnum* Enum = TargetEnum.Get();
-	if (Enum)
-	{
-		Enum->Modify();
-
-		if (InNewState == ECheckBoxState::Checked)
-		{
-			Enum->SetMetaData(TEXT("Bitflags"), TEXT(""));
-		}
-		else
-		{
-			Enum->RemoveMetaData(TEXT("Bitflags"));
-		}
-	}
+	FEnumEditorUtils::SetEnumeratorBitflagsTypeState(TargetEnum.Get(), InNewState == ECheckBoxState::Checked);
 }
 
 bool FUserDefinedEnumLayout::CausedChange() const

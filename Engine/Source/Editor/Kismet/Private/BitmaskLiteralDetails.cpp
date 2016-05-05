@@ -35,8 +35,9 @@ void FBitmaskLiteralDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BitmaskEnumLabel", "Bitmask Enum"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(LOCTEXT("BitmaskEnumLabel", "Bitmask Enum"))
+			.ToolTipText(LOCTEXT("BitmaskEnumTooltip", "Choose an optional enumeration type for the flags. Note that changing this will also reset the input pin's default value."))
 		]
 		.ValueContent()
 		[
