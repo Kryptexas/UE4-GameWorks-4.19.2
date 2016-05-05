@@ -86,6 +86,19 @@ namespace CharacterMovementComponentStatics
 }
 
 // CVars
+namespace CharacterCVars
+{
+	// Listen server smoothing
+	static int32 NetEnableListenServerSmoothing = 1;
+	static FAutoConsoleVariableRef CVarNetEnableListenServerSmoothing(
+		TEXT("p.NetEnableListenServerSmoothing"),
+		NetEnableListenServerSmoothing,
+		TEXT("Whether to enable move combining on the client to reduce bandwidth by combining similar moves.\n")
+		TEXT("0: Disable, 1: Enable"),
+		ECVF_Default);
+}
+
+
 static TAutoConsoleVariable<int32> CVarNetEnableMoveCombining(
 	TEXT("p.NetEnableMoveCombining"),
 	1,
@@ -234,6 +247,8 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 
 	NetworkSimulatedSmoothLocationTime = 0.100f;
 	NetworkSimulatedSmoothRotationTime = 0.033f;
+	ListenServerNetworkSimulatedSmoothLocationTime = 0.033f;
+	ListenServerNetworkSimulatedSmoothRotationTime = 0.033f;
 	NetworkMaxSmoothUpdateDistance = 256.f;
 	NetworkNoSmoothUpdateDistance = 384.f;
 	NetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
@@ -387,7 +402,8 @@ void UCharacterMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& 
 
 void UCharacterMovementComponent::OnRegister()
 {
-	if (bUseRVOAvoidance && GetNetMode() == NM_Client)
+	const ENetMode NetMode = GetNetMode();
+	if (bUseRVOAvoidance && NetMode == NM_Client)
 	{
 		bUseRVOAvoidance = false;
 	}
@@ -412,6 +428,14 @@ void UCharacterMovementComponent::OnRegister()
 		else
 		{
 			NetworkSmoothingMode = ENetworkSmoothingMode::Linear;
+		}
+	}
+	else if (NetMode == NM_ListenServer)
+	{
+		// Linear smoothing works on listen servers, but makes a lot less sense under the typical high update rate.
+		if (NetworkSmoothingMode == ENetworkSmoothingMode::Linear)
+		{
+			NetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
 		}
 	}
 }
@@ -1061,6 +1085,12 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 			// otherwise the object will move on intermediate frames and we won't follow it.
 			MaybeUpdateBasedMovement(DeltaTime);
 			MaybeSaveBaseLocation();
+
+			// Smooth on listen server for local view of remote clients. We may receive updates at a rate different than our own tick rate.
+			if (CharacterCVars::NetEnableListenServerSmoothing && !bNetworkSmoothingComplete && GetNetMode() == NM_ListenServer)
+			{
+				SmoothClientPosition(DeltaTime);
+			}
 		}
 	}
 	else if (CharacterOwner->Role == ROLE_SimulatedProxy)
@@ -6247,22 +6277,30 @@ float UCharacterMovementComponent::GetSimulationTimeStep(float RemainingTime, in
 void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation, const FVector& NewLocation, const FQuat& NewRotation)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CharacterMovementSmoothCorrection);
-	if (!HasValidData() || CharacterOwner->Role == ROLE_Authority)
+	if (!HasValidData())
 	{
 		return;
 	}
+
+	// We shouldn't be running this on a server that is not a listen server.
+	checkSlow(GetNetMode() != NM_DedicatedServer);
+	checkSlow(GetNetMode() != NM_Standalone);
+
+	// Only client proxies or remote clients on a listen server should run this code.
+	const bool bIsSimulatedProxy = (CharacterOwner->Role == ROLE_SimulatedProxy);
+	const bool bIsRemoteAutoProxy = (CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy);
+	ensure(bIsSimulatedProxy || bIsRemoteAutoProxy);
 
 	// Getting a correction means new data, so smoothing needs to run.
 	bNetworkSmoothingComplete = false;
 
-	if ( NetworkSmoothingMode == ENetworkSmoothingMode::Replay )
+	// Handle selected smoothing mode.
+	if (NetworkSmoothingMode == ENetworkSmoothingMode::Replay)
 	{
 		// Replays use pure interpolation in this mode, all of the work is done in SmoothClientPosition_Interpolate
 		return;
 	}
-
-	// Handle selected smoothing mode.
-	if (NetworkSmoothingMode == ENetworkSmoothingMode::Disabled)
+	else if (NetworkSmoothingMode == ENetworkSmoothingMode::Disabled)
 	{
 		UpdatedComponent->SetWorldLocationAndRotation(NewLocation, NewRotation);
 		bNetworkSmoothingComplete = true;
@@ -6325,7 +6363,7 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 		}
 
 		// Using server timestamp lets us know how much time actually elapsed, regardless of packet lag variance.
-		ClientData->SmoothingServerTimeStamp = CharacterOwner->GetServerLastTransformUpdateTimeStamp();
+		ClientData->SmoothingServerTimeStamp = (bIsSimulatedProxy ? CharacterOwner->GetReplicatedServerLastTransformUpdateTimeStamp() : ServerLastTransformUpdateTimeStamp);
 
 		// Initial update has no delta.
 		if (ClientData->LastCorrectionTime == 0)
@@ -6411,7 +6449,19 @@ FArchive& operator<<( FArchive& Ar, FCharacterReplaySample& V )
 
 void UCharacterMovementComponent::SmoothClientPosition(float DeltaSeconds)
 {
-	if (!HasValidData() || CharacterOwner->Role == ROLE_Authority || NetworkSmoothingMode == ENetworkSmoothingMode::Disabled)
+	if (!HasValidData() || NetworkSmoothingMode == ENetworkSmoothingMode::Disabled)
+	{
+		return;
+	}
+
+	// We shouldn't be running this on a server that is not a listen server.
+	checkSlow(GetNetMode() != NM_DedicatedServer);
+	checkSlow(GetNetMode() != NM_Standalone);
+
+	// Only client proxies or remote clients on a listen server should run this code.
+	const bool bIsSimulatedProxy = (CharacterOwner->Role == ROLE_SimulatedProxy);
+	const bool bIsRemoteAutoProxy = (CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy);
+	if (!ensure(bIsSimulatedProxy || bIsRemoteAutoProxy))
 	{
 		return;
 	}
@@ -6862,19 +6912,17 @@ void UCharacterMovementComponent::ForcePositionUpdate(float DeltaTime)
 	check(CharacterOwner->Role == ROLE_Authority);
 	check(CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy);
 
-	if (!Velocity.IsZero())
-	{
-		PerformMovement(DeltaTime);
-	}
+	// TODO: smooth correction on listen server?
+	PerformMovement(DeltaTime);
 }
 
 
 FNetworkPredictionData_Client* UCharacterMovementComponent::GetPredictionData_Client() const
 {
-	// Should only be called on client in network games
+	// Should only be called on client or listen server (for remote clients) in network games
 	check(CharacterOwner != NULL);
-	check(CharacterOwner->Role < ROLE_Authority);
-	checkSlow(GetNetMode() == NM_Client);
+	checkSlow(CharacterOwner->Role < ROLE_Authority || (CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy && GetNetMode() == NM_ListenServer));
+	checkSlow(GetNetMode() == NM_Client || GetNetMode() == NM_ListenServer);
 
 	if (!ClientPredictionData)
 	{
@@ -7844,6 +7892,9 @@ void UCharacterMovementComponent::MoveAutonomous
 	Acceleration = Acceleration.GetClampedToMaxSize(GetMaxAcceleration());
 	AnalogInputModifier = ComputeAnalogInputModifier();
 	
+	const FVector OldLocation = UpdatedComponent->GetComponentLocation();
+	const FQuat OldRotation = UpdatedComponent->GetComponentQuat();
+
 	PerformMovement(DeltaTime);
 
 	// Check if data is valid as PerformMovement can mark character for pending kill
@@ -7857,6 +7908,17 @@ void UCharacterMovementComponent::MoveAutonomous
 	{
 		TickCharacterPose(DeltaTime);
 		// TODO: SaveBaseLocation() in case tick moves us?
+	}
+
+	if (CharacterOwner && UpdatedComponent)
+	{
+		// Smooth local view of remote clients on listen servers
+		if (CharacterCVars::NetEnableListenServerSmoothing &&
+			CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy &&
+			GetNetMode() == NM_ListenServer)
+		{
+			SmoothCorrection(OldLocation, OldRotation, UpdatedComponent->GetComponentLocation(), UpdatedComponent->GetComponentQuat());
+		}
 	}
 }
 
@@ -8818,8 +8880,10 @@ FNetworkPredictionData_Client_Character::FNetworkPredictionData_Client_Character
 {
 	MaxSmoothNetUpdateDist = ClientMovement.NetworkMaxSmoothUpdateDistance;
 	NoSmoothNetUpdateDist = ClientMovement.NetworkNoSmoothUpdateDistance;
-	SmoothNetUpdateTime = ClientMovement.NetworkSimulatedSmoothLocationTime;
-	SmoothNetUpdateRotationTime = ClientMovement.NetworkSimulatedSmoothRotationTime;	
+
+	const bool bIsListenServer = (ClientMovement.GetNetMode() == NM_ListenServer);
+	SmoothNetUpdateTime = (bIsListenServer ? ClientMovement.ListenServerNetworkSimulatedSmoothLocationTime : ClientMovement.NetworkSimulatedSmoothLocationTime);
+	SmoothNetUpdateRotationTime = (bIsListenServer ? ClientMovement.ListenServerNetworkSimulatedSmoothRotationTime : ClientMovement.NetworkSimulatedSmoothRotationTime);
 
 	AGameNetworkManager* GameNetworkManager = AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>();
 	if (GameNetworkManager)
