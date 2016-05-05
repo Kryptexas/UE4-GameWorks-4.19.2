@@ -90,7 +90,7 @@ public:
 	FDirectoryPath MasterSequenceBasePath;
 
 	/** Master sequence number of shots. */
-	UPROPERTY(config, DisplayName="Number of Shots", EditAnywhere, Category=MasterSequence)
+	UPROPERTY(config, DisplayName="Number of Shots", EditAnywhere, Category=MasterSequence, meta = (UIMin = "1", UIMax = "100"))
 	uint32 MasterSequenceNumShots;
 
 	/** Master sequence level sequence to duplicate when creating shots. */
