@@ -2176,7 +2176,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					ResolveSource();
 				}
 
-				if (SourceEmitter)
+				if (SourceEmitter && SourceEmitter->ParticleIndices)
 				{
 					if (SourceIndices[InTrailIdx] != -1)
 					{
@@ -2193,82 +2193,44 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 						int32 Index = 0;
 						switch (SourceModule->SelectionMethod)
 						{
-						case EPSSM_Random:
+							case EPSSM_Random:
 							{
 								Index = FMath::TruncToInt(FMath::FRand() * SourceEmitter->ActiveParticles);
 							}
-							break;
-						case EPSSM_Sequential:
+								break;
+							case EPSSM_Sequential:
 							{
 								bool bDone = false;
 
-								int32 CheckSelIndex = ++LastSelectedParticleIndex;
-								if (CheckSelIndex >= SourceEmitter->ActiveParticles)
+								if (++LastSelectedParticleIndex >= SourceEmitter->ActiveParticles)
 								{
-									CheckSelIndex = 0;
+									LastSelectedParticleIndex = 0;
 								}
-								int32 StartIdx = CheckSelIndex;
-								
-								Index = -1;
-								while (!bDone)
-								{
-									int32 CheckIndex = SourceEmitter->GetParticleDirectIndex(CheckSelIndex);
-									if (CheckIndex == -1)
-									{
-										bDone = true;
-									}
-									else
-									{
-										bool bFound = false;
-										for (int32 TrailCheckIdx = 0; TrailCheckIdx < MaxTrailCount; TrailCheckIdx++)
-										{
-											if (TrailCheckIdx != InTrailIdx)
-											{
-												if (SourceIndices[TrailCheckIdx] == CheckIndex)
-												{
-													bFound = true;
-												}
-											}
-										}
-
-										if (bFound == false)
-										{
-											bDone = true;
-											Index = CheckIndex;
-										}
-										else
-										{
-											CheckSelIndex++;
-											if (CheckSelIndex >= SourceEmitter->ActiveParticles)
-											{
-												CheckSelIndex = 0;
-											}
-										}
-									}
-
-									if (CheckSelIndex == StartIdx)
-									{
-										bDone = true;
-									}
-								}
-
-								if (Index != -1)
-								{
-									LastSelectedParticleIndex = CheckSelIndex;
-								}
+								Index = LastSelectedParticleIndex;
 							}
 							break;
 						}
 
-						SourceIndices[InTrailIdx] = Index;
+						for (int32 TrailCheckIdx = 0; TrailCheckIdx < MaxTrailCount; TrailCheckIdx++)
+						{
+							if (TrailCheckIdx != InTrailIdx)
+							{
+								if (SourceIndices[TrailCheckIdx] == SourceEmitter->ParticleIndices[Index])
+								{
+									Index = -1;
+								}
+							}
+						}
+
+						SourceIndices[InTrailIdx] = Index != -1 ? SourceEmitter->ParticleIndices[Index] : -1;
 					}
 
 					bool bEncounteredNaNError = false;
 
 					// Grab the particle
-					
+
 					const int32 SourceEmitterParticleIndex = SourceIndices[InTrailIdx];
-					FBaseParticle* SourceParticle = ((SourceEmitterParticleIndex >= 0) && (SourceEmitterParticleIndex < SourceEmitter->ActiveParticles)) ? SourceEmitter->GetParticle(SourceEmitterParticleIndex) : nullptr;
+					FBaseParticle* SourceParticle = ((SourceEmitterParticleIndex >= 0)) ? SourceEmitter->GetParticleDirect(SourceEmitterParticleIndex) : nullptr;
 					if (SourceParticle != nullptr)
 					{
 						const FVector WorldOrigin = SourceEmitter->SimulationToWorld.GetOrigin();
