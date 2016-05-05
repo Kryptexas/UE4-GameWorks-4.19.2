@@ -1829,9 +1829,9 @@ void AActor::RouteEndPlay(const EEndPlayReason::Type EndPlayReason)
 		{
 			EndPlay(EndPlayReason);
 		}
-
-		UninitializeComponents();
 	}
+
+	UninitializeComponents();
 }
 
 void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
