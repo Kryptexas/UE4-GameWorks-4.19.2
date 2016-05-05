@@ -202,14 +202,14 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange MipRange)
     }
 	if(Source.MSAATexture)
 	{
-		MSAATexture = Texture;
+		MSAATexture = [Texture retain];
 	}
 	if(Source.StencilTexture)
 	{
 #if PLATFORM_IOS
 		check(false); // @todo Zebra Must handle separate stencil texture SRV!
 #endif
-		StencilTexture = Texture;
+		StencilTexture = [Texture retain];
 	}
 	
 	const uint32 BlockSizeX = GPixelFormats[PixelFormat].BlockSizeX;
@@ -253,15 +253,6 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 		Source.PrepareTextureView();
 	}
 #endif
-	
-	if(Source.MSAATexture)
-	{
-		MSAATexture = Texture;
-	}
-	if(Source.StencilTexture)
-	{
-		StencilTexture = Texture;
-	}
 	
 	NSRange Slices = NSMakeRange(0, Source.Texture.arrayLength * (bIsCubemap ? 6 : 1));
     // @todo Zebra Temporary workaround for absence of X24_G8 or equivalent to GL_STENCIL_INDEX so that the stencil part of a texture may be sampled
@@ -349,7 +340,16 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 	else
     {
         Texture = [Source.Texture retain];
-    }
+	}
+	
+	if(Source.MSAATexture)
+	{
+		MSAATexture = [Texture retain];
+	}
+	if(Source.StencilTexture && !StencilTexture)
+	{
+		StencilTexture = [Texture retain];
+	}
 	
 	const uint32 BlockSizeX = GPixelFormats[PixelFormat].BlockSizeX;
 	const uint32 BlockSizeY = GPixelFormats[PixelFormat].BlockSizeY;
@@ -619,7 +619,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 			if (Format == PF_DepthStencil)
 			{
 				[Texture release];
-				Texture = MSAATexture;
+				Texture = [MSAATexture retain];
 
 				// we don't have the resolve texture, so we just update the memory size with the MSAA size
 				TotalTextureSize = TotalTextureSize * NumSamples;
@@ -649,7 +649,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 		// 1 byte per texel
 		TotalTextureSize += SizeX * SizeY;
 #else
-		StencilTexture = Texture;
+		StencilTexture = [Texture retain];
 		
 		// 1 byte per texel
 		TotalTextureSize += SizeX * SizeY;
@@ -753,20 +753,34 @@ FMetalSurface::~FMetalSurface()
 	{
 		GCurrentTextureMemorySize -= Align(TotalTextureSize, 1024) / 1024;
 	}
+	
+	if (!(Flags & TexCreate_Presentable) && Texture != nil)
+	{
+		SafeReleaseMetalResource(Texture);
+	}
 
 	if (MSAATexture != nil)
     {
-		SafeReleaseMetalResource(MSAATexture);
+		if (Texture != MSAATexture)
+		{
+			SafeReleaseMetalResource(MSAATexture);
+		}
+		else
+		{
+			[MSAATexture release];
+		}
 	}
 	
-	if (StencilTexture != nil && StencilTexture != Texture)
+	if (StencilTexture != nil)
 	{
-		SafeReleaseMetalResource(StencilTexture);
-	}
-	
-	if (!(Flags & TexCreate_Presentable) && MSAATexture != Texture)
-	{
-		SafeReleaseMetalResource(Texture);
+		if (StencilTexture != Texture)
+		{
+			SafeReleaseMetalResource(StencilTexture);
+		}
+		else
+		{
+			[StencilTexture release];
+		}
 	}
 	
 	if(IB)
@@ -1114,11 +1128,11 @@ void FMetalSurface::UpdateSRV(FTextureRHIRef SourceTex)
 		{
 			if (MSAATexture == Texture)
 			{
-				Texture = Surf->Texture;
+				MSAATexture = [Surf->Texture retain];
 			}
 			if (StencilTexture == Texture)
 			{
-				Texture = Surf->Texture;
+				StencilTexture = [Surf->Texture retain];
 			}
 			SafeReleaseMetalResource(Texture);
 			Texture = [Surf->Texture retain];
