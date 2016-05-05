@@ -114,7 +114,7 @@ class UMaterialParameterCollection : public UObject
 private:
 
 	/** Default resource used when no instance is available. */
-	FMaterialParameterCollectionInstanceResource* DefaultResource;
+	class FMaterialParameterCollectionInstanceResource* DefaultResource;
 
 	TScopedPointer<FUniformBufferStruct> UniformBufferStruct;
 
