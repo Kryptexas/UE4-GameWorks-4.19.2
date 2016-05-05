@@ -3456,7 +3456,7 @@ bool UEditorEngine::ShouldOpenMatinee(AMatineeActor* MatineeActor) const
 void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 {
 	// Drop out if the user doesn't want to proceed to matinee atm
-	if( bWarnUser && !ShouldOpenMatinee( MatineeActor ) )
+	if( bWarnUser && ( (ShouldOpenMatineeCallback.IsBound() && !ShouldOpenMatineeCallback.Execute(MatineeActor)) || !ShouldOpenMatinee( MatineeActor ) ) )
 	{
 		return;
 	}

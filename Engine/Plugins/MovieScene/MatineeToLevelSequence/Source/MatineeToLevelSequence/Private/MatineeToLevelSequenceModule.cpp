@@ -2,6 +2,8 @@
 
 #include "MatineeToLevelSequencePCH.h"
 #include "ModuleInterface.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "MatineeToLevelSequence"
 
@@ -19,6 +21,11 @@ public:
 
 	virtual void StartupModule() override
 	{
+		if (GEditor)
+		{
+			GEditor->OnShouldOpenMatinee().BindStatic(ShouldOpenMatinee);
+		}
+		
 		RegisterMenuExtensions();
 	}
 	
@@ -96,14 +103,48 @@ protected:
 		MenuBuilder.EndSection();
 	}
 
+	/** Callback when opening a matinee. Prompts the user whether to convert this matinee to a level sequence actor */
+	static bool ShouldOpenMatinee(AMatineeActor* MatineeActor)
+	{
+		//@todo Camera anims aren't supported as level sequence assets yet
+		if (MatineeActor->IsA(AMatineeActorCameraAnim::StaticClass()))
+		{
+			return true;
+		}
+
+		// Pop open a dialog asking whether the user to convert and launcher sequencer or no
+		FSuppressableWarningDialog::FSetupInfo Info( 
+			LOCTEXT("MatineeToLevelSequencePrompt", "Matinee is now a legacy tool. Would you like to continue opening Matinee or convert your Matinee to a Level Sequence Asset?"), 
+			LOCTEXT("MatineeToLevelSequenceTitle", "Convert Matinee to Level Sequence Asset"), 
+			TEXT("MatineeToLevelSequence") );
+		Info.ConfirmText = LOCTEXT("MatineeToLevelSequence_ConfirmText", "Open Matinee");
+		Info.CancelText = LOCTEXT("MatineeToLevelSequence_CancelText", "Convert");
+		Info.CheckBoxText = LOCTEXT("MatineeToLevelSequence_CheckBoxText", "Don't Ask Again");
+
+		FSuppressableWarningDialog ShouldOpenMatineeDialog( Info );
+
+		if (ShouldOpenMatineeDialog.ShowModal() == FSuppressableWarningDialog::EResult::Cancel)
+		{
+			TArray<TWeakObjectPtr<AActor>> ActorsToConvert;
+			ActorsToConvert.Add(MatineeActor);
+			OnConvertMatineeToLevelSequence(ActorsToConvert);
+
+			// Return false so that the editor doesn't open matinee
+			return false;
+		}
+	
+		return true;
+	}
+
 	/** Callback for converting a matinee to a level sequence asset. */
 	static void OnConvertMatineeToLevelSequence(TArray<TWeakObjectPtr<AActor> > ActorsToConvert)
 	{
 		TArray<TWeakObjectPtr<ALevelSequenceActor> > NewActors;
 
+		int32 NumWarnings = 0;
 		for (TWeakObjectPtr<AActor> Actor : ActorsToConvert)
 		{
-			TWeakObjectPtr<ALevelSequenceActor> NewActor = ConvertSingleMatineeToLevelSequence(Actor);
+			TWeakObjectPtr<ALevelSequenceActor> NewActor = ConvertSingleMatineeToLevelSequence(Actor, NumWarnings);
 			if (NewActor.IsValid())
 			{
 				NewActors.Add(NewActor);
@@ -137,6 +178,22 @@ protected:
 			{
 				FAssetEditorManager::Get().OpenEditorForAsset(NewAsset);
 			}
+
+			FText NotificationText;
+			if (NewActors.Num() == 1)
+			{
+				NotificationText = FText::Format(LOCTEXT("MatineeToLevelSequence_Result", "Conversion to {0} complete with {1} warnings"), FText::FromString(NewActors[0]->GetActorLabel()), FText::AsNumber(NumWarnings));
+			}
+			else
+			{
+				NotificationText = FText::Format(LOCTEXT("MatineeToLevelSequence_Result", "Converted {0} with {1} warnings"), FText::AsNumber(NewActors.Num()), FText::AsNumber(NumWarnings));
+			}
+
+			FNotificationInfo NotificationInfo(NotificationText);
+			NotificationInfo.ExpireDuration = 5.f;
+			NotificationInfo.Hyperlink = FSimpleDelegate::CreateStatic([](){ FGlobalTabmanager::Get()->InvokeTab(FName("OutputLog")); });
+			NotificationInfo.HyperlinkText = LOCTEXT("ShowMessageLogHyperlink", "Show Output Log");
+			FSlateNotificationManager::Get().AddNotification(NotificationInfo);
 		}
 	}
 
@@ -211,7 +268,7 @@ protected:
 
 	/** Add property to possessable node **/
 	template <typename T>
-	static T* AddPropertyTrack(FName InPropertyName, AActor* InActor, const FGuid& PossessableGuid, UMovieSceneSequence* NewSequence, UMovieScene* NewMovieScene)
+	static T* AddPropertyTrack(FName InPropertyName, AActor* InActor, const FGuid& PossessableGuid, UMovieSceneSequence* NewSequence, UMovieScene* NewMovieScene, int32& NumWarnings)
 	{
 		T* PropertyTrack = nullptr;
 
@@ -281,14 +338,15 @@ protected:
 		}
 		else
 		{
-			UE_LOG(LogMatineeToLevelSequence, Log, TEXT("Can't find property '%s' for '%s'."), *InPropertyName.ToString(), *InActor->GetActorLabel());
+			UE_LOG(LogMatineeToLevelSequence, Warning, TEXT("Can't find property '%s' for '%s'."), *InPropertyName.ToString(), *InActor->GetActorLabel());
+			++NumWarnings;
 		}
 
 		return PropertyTrack;
 	}
 
 	/** Convert an interp group */
-	static void ConvertInterpGroup(UInterpGroup* Group, AActor* GroupActor, UMovieScene* NewMovieScene, UMovieSceneSequence* NewSequence)
+	static void ConvertInterpGroup(UInterpGroup* Group, AActor* GroupActor, UMovieScene* NewMovieScene, UMovieSceneSequence* NewSequence, int32& NumWarnings)
 	{
 		FGuid PossessableGuid;
 
@@ -371,7 +429,7 @@ protected:
 				UInterpTrackBoolProp* MatineeBoolTrack = StaticCast<UInterpTrackBoolProp*>(Track);
 				if (MatineeBoolTrack->GetNumKeyframes() != 0 && GroupActor && PossessableGuid.IsValid())
 				{
-					UMovieSceneBoolTrack* BoolTrack = AddPropertyTrack<UMovieSceneBoolTrack>(MatineeBoolTrack->PropertyName, GroupActor, PossessableGuid, NewSequence, NewMovieScene);
+					UMovieSceneBoolTrack* BoolTrack = AddPropertyTrack<UMovieSceneBoolTrack>(MatineeBoolTrack->PropertyName, GroupActor, PossessableGuid, NewSequence, NewMovieScene, NumWarnings);
 					if (BoolTrack)
 					{
 						FMatineeImportTools::CopyInterpBoolTrack(MatineeBoolTrack, BoolTrack);
@@ -383,7 +441,7 @@ protected:
 				UInterpTrackFloatProp* MatineeFloatTrack = StaticCast<UInterpTrackFloatProp*>(Track);
 				if (MatineeFloatTrack->GetNumKeyframes() != 0 && GroupActor && PossessableGuid.IsValid())
 				{
-					UMovieSceneFloatTrack* FloatTrack = AddPropertyTrack<UMovieSceneFloatTrack>(MatineeFloatTrack->PropertyName, GroupActor, PossessableGuid, NewSequence, NewMovieScene);
+					UMovieSceneFloatTrack* FloatTrack = AddPropertyTrack<UMovieSceneFloatTrack>(MatineeFloatTrack->PropertyName, GroupActor, PossessableGuid, NewSequence, NewMovieScene, NumWarnings);
 					if (FloatTrack)
 					{
 						FMatineeImportTools::CopyInterpFloatTrack(MatineeFloatTrack, FloatTrack);
@@ -395,7 +453,7 @@ protected:
 				UInterpTrackColorProp* MatineeColorTrack = StaticCast<UInterpTrackColorProp*>(Track);
 				if (MatineeColorTrack->GetNumKeyframes() != 0 && GroupActor && PossessableGuid.IsValid())
 				{
-					UMovieSceneColorTrack* ColorTrack = AddPropertyTrack<UMovieSceneColorTrack>(MatineeColorTrack->PropertyName, GroupActor, PossessableGuid, NewSequence, NewMovieScene);
+					UMovieSceneColorTrack* ColorTrack = AddPropertyTrack<UMovieSceneColorTrack>(MatineeColorTrack->PropertyName, GroupActor, PossessableGuid, NewSequence, NewMovieScene, NumWarnings);
 					if (ColorTrack)
 					{
 						FMatineeImportTools::CopyInterpColorTrack(MatineeColorTrack, ColorTrack);
@@ -424,18 +482,20 @@ protected:
 			{
 				if (GroupActor)
 				{
-					UE_LOG(LogMatineeToLevelSequence, Log, TEXT("Unsupported track '%s' for '%s'."), *Track->TrackTitle, *GroupActor->GetActorLabel());
+					UE_LOG(LogMatineeToLevelSequence, Warning, TEXT("Unsupported track '%s' for '%s'."), *Track->TrackTitle, *GroupActor->GetActorLabel());
 				}
 				else
 				{
-					UE_LOG(LogMatineeToLevelSequence, Log, TEXT("Unsupported track '%s'."), *Track->TrackTitle);
+					UE_LOG(LogMatineeToLevelSequence, Warning, TEXT("Unsupported track '%s'."), *Track->TrackTitle);
 				}
+
+				++NumWarnings;
 			}
 		}
 	}
 
 	/** Convert a single matinee to a level sequence asset */
-	static TWeakObjectPtr<ALevelSequenceActor> ConvertSingleMatineeToLevelSequence(TWeakObjectPtr<AActor> ActorToConvert)
+	static TWeakObjectPtr<ALevelSequenceActor> ConvertSingleMatineeToLevelSequence(TWeakObjectPtr<AActor> ActorToConvert, int32& NumWarnings)
 	{
 		UObject* AssetOuter = ActorToConvert->GetOuter();
 		UPackage* AssetPackage = AssetOuter->GetOutermost();
@@ -495,7 +555,7 @@ protected:
 				UInterpGroupInst* GrInst = MatineeActor->GroupInst[i];
 				UInterpGroup* Group = GrInst->Group;
 				AActor* GroupActor = GrInst->GetGroupActor();
-				ConvertInterpGroup(Group, GroupActor, NewMovieScene, NewSequence);
+				ConvertInterpGroup(Group, GroupActor, NewMovieScene, NewSequence, NumWarnings);
 			}
 
 			// Director group - convert this after the regular groups to ensure that the camera cut bindings are there
@@ -523,7 +583,19 @@ protected:
 					FMatineeImportTools::CopyInterpFloatTrack(MatineeSlomoTrack, SlomoTrack);
 				}
 				
-				//@todo - color scale, audio master
+				UInterpTrackColorScale* MatineeColorScaleTrack = DirGroup->GetColorScaleTrack();
+				if (MatineeColorScaleTrack && MatineeColorScaleTrack->GetNumKeyframes() != 0)
+				{
+					UE_LOG(LogMatineeToLevelSequence, Warning, TEXT("Unsupported track '%s'."), *MatineeColorScaleTrack->TrackTitle);
+					++NumWarnings;
+				}
+
+				UInterpTrackAudioMaster* MatineeAudioMasterTrack = DirGroup->GetAudioMasterTrack();
+				if (MatineeAudioMasterTrack && MatineeAudioMasterTrack->GetNumKeyframes() != 0)
+				{
+					UE_LOG(LogMatineeToLevelSequence, Warning, TEXT("Unsupported track '%s'."), *MatineeAudioMasterTrack->TrackTitle);
+					++NumWarnings;
+				}
 			}
 
 			MatineeActor->TermInterp();
@@ -536,6 +608,7 @@ private:
 	FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors LevelEditorMenuExtenderDelegate;
 
 	FDelegateHandle LevelEditorExtenderDelegateHandle;
+
 };
 
 IMPLEMENT_MODULE(FMatineeToLevelSequenceModule, MatineeToLevelSequence);
