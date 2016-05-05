@@ -3290,6 +3290,26 @@ void FPersona::ShowReferencePose(bool bReferencePose)
 	}
 }
 
+bool FPersona::ShouldDisplayAdditiveScaleErrorMessage()
+{
+	UAnimSequence* AnimSequence = Cast<UAnimSequence>(GetAnimationAssetBeingEdited());
+	if (AnimSequence)
+	{
+		if (AnimSequence->IsValidAdditive() && AnimSequence->RefPoseSeq)
+		{
+			if (RefPoseGuid != AnimSequence->RefPoseSeq->RawDataGuid)
+			{
+				RefPoseGuid = AnimSequence->RefPoseSeq->RawDataGuid;
+				bDoesAdditiveRefPoseHaveZeroScale = AnimSequence->DoesSequenceContainZeroScale();
+			}
+			return bDoesAdditiveRefPoseHaveZeroScale;
+		}
+	}
+
+	RefPoseGuid.Invalidate();
+	return false;
+}
+
 bool FPersona::CanShowReferencePose() const
 {
 	return PreviewComponent != NULL;
