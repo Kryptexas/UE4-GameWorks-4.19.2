@@ -75,7 +75,7 @@ public class VulkanRHI : ModuleRules
 				else
 				{
 					// Fall back to the Windows Vulkan SDK (the headers are the same)
-					bHasVulkan = true;
+					bHaveVulkan = true;
 					PrivateIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Vulkan/Windows/Include/vulkan");
 				}
 			}
