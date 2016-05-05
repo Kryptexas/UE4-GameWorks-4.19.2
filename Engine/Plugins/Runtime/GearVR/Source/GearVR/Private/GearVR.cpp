@@ -1180,7 +1180,7 @@ void FGearVR::DrawDebug(UCanvas* Canvas)
 #if !UE_BUILD_SHIPPING
 	check(IsInGameThread());
 	const auto frame = GetCurrentFrame();
-	if (frame)
+	if (frame && Canvas && Canvas->SceneView)
 	{
 		if (frame->Settings->Flags.bDrawSensorFrustum)
 		{
