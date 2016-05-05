@@ -241,11 +241,15 @@ static void FreeVulkanLibrary()
 	bAttemptedLoad = false;
 }
 
-#else
+#elif PLATFORM_WINDOWS
 
+#include "AllowWindowsPlatformTypes.h"
+static HMODULE GVulkanDLLModule = nullptr;
 static bool LoadVulkanLibrary()
 {
-	return true;
+	// Try to load the vulkan dll, as not everyone has the sdk installed
+	GVulkanDLLModule = ::LoadLibraryW(TEXT("vulkan-1.dll"));
+	return GVulkanDLLModule != nullptr;
 }
 
 static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
@@ -255,8 +259,16 @@ static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
 
 static void FreeVulkanLibrary()
 {
+	if (GVulkanDLLModule != nullptr)
+	{
+		::FreeLibrary(GVulkanDLLModule);
+		GVulkanDLLModule = nullptr;
+	}
 }
+#include "HideWindowsPlatformTypes.h"
 
+#else
+#error Unsupported!
 #endif // PLATFORM_ANDROID
 
 bool FVulkanDynamicRHIModule::IsSupported()
@@ -359,7 +371,7 @@ void FVulkanDynamicRHI::Init()
 {
 	if (!LoadVulkanLibrary())
 	{
-		UE_LOG(LogVulkanRHI, Fatal, TEXT("Failed to find all required Vulkan entry points."));
+		UE_LOG(LogVulkanRHI, Fatal, TEXT("Failed to find all required Vulkan entry points; make sure your driver supports Vulkan!"));
 	}
 
 	InitInstance();
@@ -506,8 +518,7 @@ void FVulkanDynamicRHI::CreateInstance()
 
 	if (!LoadVulkanInstanceFunctions(Instance))
 	{
-		checkf(0, TEXT(
-			"Failed to find all required entry points."));
+		UE_LOG(LogVulkanRHI, Fatal, TEXT("Failed to find all required Vulkan entry points! Maybe using an older SDK/driver?"));
 	}
 
 #if !VULKAN_DISABLE_DEBUG_CALLBACK && VULKAN_HAS_DEBUGGING_ENABLED

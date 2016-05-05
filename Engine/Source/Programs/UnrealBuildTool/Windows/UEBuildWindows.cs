@@ -95,7 +95,7 @@ namespace UnrealBuildTool
 					}
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
 
-           			Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
+					Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
 					Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
 				}
 			}
@@ -112,7 +112,7 @@ namespace UnrealBuildTool
 				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
 			}
 
-			if(SupportWindowsXP)
+			if (SupportWindowsXP)
 			{
 				Rules.DynamicallyLoadedModuleNames.Remove("D3D12RHI");
 				Rules.DynamicallyLoadedModuleNames.Remove("D3D11RHI");
@@ -123,9 +123,7 @@ namespace UnrealBuildTool
 				Rules.DynamicallyLoadedModuleNames.Remove("OculusAudio");
 				Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
 				Rules.PrivateDependencyModuleNames.Remove("DX11");
-				Rules.PrivateDependencyModuleNames.Remove("D3D11RHI");
 				Rules.PrivateDependencyModuleNames.Remove("DX12");
-				Rules.PrivateDependencyModuleNames.Remove("D3D12RHI");
 
 				// If we're targeting Windows XP, then always delay-load D3D11 as it won't exist on that architecture
 				if (ModuleName == "DX11")
@@ -134,6 +132,9 @@ namespace UnrealBuildTool
 					Rules.PublicDelayLoadDLLs.Add("dxgi.dll");
 				}
 			}
+
+			// For now let's always delay load the vulkan dll as not everyone has it installed
+			Rules.PublicDelayLoadDLLs.Add("vulkan-1.dll");
 		}
 
 		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
