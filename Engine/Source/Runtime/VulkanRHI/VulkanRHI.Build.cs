@@ -68,8 +68,15 @@ public class VulkanRHI : ModuleRules
 				else
 				if (!String.IsNullOrEmpty(VulkanSDKPath))
 				{
+					// If the user has an installed SDK, use that instead
 					bHaveVulkan = true;
 					PrivateIncludePaths.Add(VulkanSDKPath + "/Include/vulkan");
+				}
+				else
+				{
+					// Fall back to the Windows Vulkan SDK (the headers are the same)
+					bHasVulkan = true;
+					PrivateIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Vulkan/Windows/Include/vulkan");
 				}
 			}
 			else
