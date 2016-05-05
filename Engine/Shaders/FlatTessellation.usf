@@ -64,9 +64,9 @@ struct FFlatTessellationHSToDS
 		float3 WorldPostion2 = I[2].PassSpecificData.Position.xyz;
 
 		float4 TessellationMultipliers;
-		TessellationMultipliers.x = 0.5 * (I[0].TessellationMultiplier + I[1].TessellationMultiplier);
-		TessellationMultipliers.y = 0.5 * (I[1].TessellationMultiplier + I[2].TessellationMultiplier);
-		TessellationMultipliers.z = 0.5 * (I[2].TessellationMultiplier + I[0].TessellationMultiplier);
+		TessellationMultipliers.x = 0.5 * (I[1].TessellationMultiplier + I[2].TessellationMultiplier);
+		TessellationMultipliers.y = 0.5 * (I[2].TessellationMultiplier + I[0].TessellationMultiplier);
+		TessellationMultipliers.z = 0.5 * (I[0].TessellationMultiplier + I[1].TessellationMultiplier);
 		TessellationMultipliers.w = 0.333 * (I[0].TessellationMultiplier + I[1].TessellationMultiplier + I[2].TessellationMultiplier);
 
 		//@todo: This should be vectorized and done in the MainHull shader.
