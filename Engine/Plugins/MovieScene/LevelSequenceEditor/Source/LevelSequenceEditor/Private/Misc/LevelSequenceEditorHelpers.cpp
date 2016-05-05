@@ -11,6 +11,7 @@
 #include "PropertyEditorModule.h"
 #include "SDockTab.h"
 #include "UObjectGlobals.h"
+#include "Factories/Factory.h"
 
 /* LevelSequenceEditorHelpers
  *****************************************************************************/
