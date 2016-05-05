@@ -7,6 +7,8 @@
 #include "Serialization/Archive.h"
 #include "Serialization/CustomVersion.h"
 #include "EngineVersion.h"
+#include "TargetPlatform.h"
+#include "GenericPlatformCompression.h"
 
 /*-----------------------------------------------------------------------------
 	FArchiveProxy implementation.
@@ -310,7 +312,7 @@ public:
 	/** Uncompressed size in bytes as passed to compressor.						*/
 	int32 UncompressedSize;
 	/** Target platform for compressed data										*/
-	const ITargetPlatform* CookingTargetPlatform;
+	int32 BitWindow;
 	/** Flags to control compression											*/
 	ECompressionFlags Flags;
 
@@ -322,7 +324,7 @@ public:
 		, CompressedBuffer(0)
 		, CompressedSize(0)
 		, UncompressedSize(0)
-		, CookingTargetPlatform(nullptr)
+		, BitWindow(DEFAULT_ZLIB_BIT_WINDOW)
 		, Flags(ECompressionFlags(0))
 	{
 	}
@@ -332,7 +334,7 @@ public:
 	void DoWork()
 	{
 		// Compress from memory to memory.
-		verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize, CookingTargetPlatform) );
+		verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize, BitWindow) );
 	}
 
 	FORCEINLINE TStatId GetStatId() const
@@ -559,7 +561,16 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 						SrcBuffer += NewChunk.UncompressedSize;
 					}
 
-					NewChunk.CookingTargetPlatform = CookingTargetPlatform;
+					if (CookingTargetPlatform)
+					{
+						NewChunk.BitWindow = CookingTargetPlatform->GetCompressionBitWindow();
+					}
+					else
+					{
+						IPlatformCompression* PlatformCompression = FPlatformMisc::GetPlatformCompression();
+						check(PlatformCompression);
+						NewChunk.BitWindow = PlatformCompression->GetCompressionBitWindow();
+					}
 
 					// Update status variables for tracking how much work is left, what to do next.
 					BytesRemainingToKickOff -= NewChunk.UncompressedSize;
@@ -674,7 +685,20 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 
 			check(CompressedSize < INT_MAX);
 			int32 CompressedSizeInt = (int32)CompressedSize;
-			verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSizeInt, Src, BytesToCompress ) );
+			
+			int32 BitWindow = 0;
+			if (CookingTargetPlatform)
+			{
+				BitWindow = CookingTargetPlatform->GetCompressionBitWindow();
+			}
+			else
+			{
+				IPlatformCompression* PlatformCompression = FPlatformMisc::GetPlatformCompression();
+				check(PlatformCompression);
+				BitWindow = PlatformCompression->GetCompressionBitWindow();
+			}
+			
+			verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSizeInt, Src, BytesToCompress, BitWindow) );
 			CompressedSize = CompressedSizeInt;
 			// move to next chunk if not reading from file
 			if (!bTreatBufferAsFileReader)
