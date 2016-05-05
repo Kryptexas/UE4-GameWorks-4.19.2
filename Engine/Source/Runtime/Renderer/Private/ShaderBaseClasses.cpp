@@ -6,6 +6,7 @@
 
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
+#include "ParameterCollection.h"
 
 /** If true, cached uniform expressions are allowed. */
 int32 FMaterialShader::bAllowCachedUniformExpressions = true;
@@ -76,7 +77,14 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 FUniformBufferRHIParamRef FMaterialShader::GetParameterCollectionBuffer(const FGuid& Id, const FSceneInterface* SceneInterface) const
 {
 	const FScene* Scene = (const FScene*)SceneInterface;
-	return Scene ? Scene->GetParameterCollectionBuffer(Id) : FUniformBufferRHIParamRef();
+	FUniformBufferRHIParamRef UniformBuffer = Scene ? Scene->GetParameterCollectionBuffer(Id) : FUniformBufferRHIParamRef();
+
+	if (!UniformBuffer)
+	{
+		UniformBuffer = GDefaultMaterialParameterCollectionInstances.FindChecked(Id)->GetUniformBuffer();
+	}
+
+	return UniformBuffer;
 }
 
 template<typename ShaderRHIParamRef>
