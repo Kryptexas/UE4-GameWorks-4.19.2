@@ -735,10 +735,7 @@ private:
 
 	/** Delegate handler for when all stats are disabled in a viewport */
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
-
-	/** Delegate handler for when an actor is spawned */
-	void ShowCollisionOnSpawnedActors(AActor* Actor);
-
+	
 	/** Adds a cursor to the set based on the enum and the class reference to it. */
 	void AddCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass);
 
