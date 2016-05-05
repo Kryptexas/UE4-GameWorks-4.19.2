@@ -517,6 +517,22 @@ void UParticleModuleLocationEmitter::Spawn(FParticleEmitterInstance* Owner, int3
 					// If the ScreenAlignment of the source emitter is PSA_Velocity, 
 					// and that of the local is not, then the rotation will NOT be correct!
 					Particle.Rotation		+= pkParticle->Rotation * InheritSourceRotationScale;
+
+					// for mesh emitters only: get the mesh rotation payloads for both emitters and update the rotations accordingly; if the offset is 0, the module
+					// doesn't exist, so we can't transfer rotation; if the offsets exist, the payload should never be nullptr.
+					//
+					const int32 MeshRotationOffset = Owner->GetMeshRotationOffset();
+					const int32 SrcMeshRotationOffset = LocationEmitterInst->GetMeshRotationOffset();
+					if (MeshRotationOffset && SrcMeshRotationOffset)
+					{
+						FMeshRotationPayloadData* DestPayloadData = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
+						FMeshRotationPayloadData* SrcPayloadData = (FMeshRotationPayloadData*)((uint8*)pkParticle + SrcMeshRotationOffset);
+
+						ensure(DestPayloadData != nullptr && SrcPayloadData != nullptr);
+
+						DestPayloadData->Rotation += SrcPayloadData->Rotation;
+						DestPayloadData->InitialOrientation += SrcPayloadData->InitialOrientation;
+					}
 				}
 			}
 		}
