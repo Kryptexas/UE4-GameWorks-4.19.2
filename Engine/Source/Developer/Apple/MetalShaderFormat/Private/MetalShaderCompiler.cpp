@@ -447,6 +447,11 @@ static void BuildMetalShaderOutput(
 				bSucceeded = true;
 			}
 		}
+		else
+		{
+			UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Could not find offline 'metal' shader compiler - falling back to slower online compiled text shaders."));
+			bSucceeded = true;
+		}
 	#else
 		// do not compile on non-Windows
 		UE_LOG(LogMetalShaderCompiler, Fatal, TEXT("Metal shader compilation is not supported on this platform"));
