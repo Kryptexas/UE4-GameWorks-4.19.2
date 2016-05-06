@@ -37,6 +37,8 @@ public:
 
 	USkeletalMesh* GetSkeletalMesh() const { return SkeletalMesh.Get(); }
 
+	USkeletalMeshComponent* GetSkeletalMeshComponent() const { return SkeletalMeshComponent.Get(); }
+
 	const FTransform& GetComponentTransform() const { return ComponentTransform; }
 
 private:

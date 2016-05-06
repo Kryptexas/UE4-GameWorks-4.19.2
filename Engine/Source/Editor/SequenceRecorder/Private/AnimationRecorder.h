@@ -21,6 +21,8 @@ private:
 	TArray<FTransform> PreviousSpacesBases;
 	FBlendedHeapCurve PreviousAnimCurves;
 	FTransform PreviousComponentToWorld;
+	FTransform InvInitialRootTransform;
+	int32 SkeletonRootIndex;
 
 	/** Array of currently active notifies that have duration */
 	TArray<TPair<const FAnimNotifyEvent*, bool>> ActiveNotifies;
