@@ -156,6 +156,9 @@ static void TerminateOnDeviceRemoved(HRESULT D3DResult)
 {
 	if (D3DResult == DXGI_ERROR_DEVICE_REMOVED)
 	{
+		// Workaround for the fact that in non-monolithic builds the exe gets into a weird state and exception handling fails. 
+		// @todo investigate why non-monolithic builds fail to capture the exception when graphics driver crashes.
+#if !IS_MONOLITHIC
 		if (!FApp::IsUnattended())
 		{
 			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *LOCTEXT("DeviceRemoved", "Video driver crashed and was reset!  Make sure your video drivers are up to date.  Exiting...").ToString(), TEXT("Error"));
@@ -164,7 +167,12 @@ static void TerminateOnDeviceRemoved(HRESULT D3DResult)
 		{
 			UE_LOG(LogD3D11RHI, Error, TEXT("%s"), *LOCTEXT("DeviceRemoved", "Video driver crashed and was reset!  Make sure your video drivers are up to date.  Exiting...").ToString());
 		}
+	
 		FPlatformMisc::RequestExit(true);
+#else
+		// Crash in monolithic builds
+		UE_LOG(LogD3D11RHI, Fatal, TEXT("%s"), *LOCTEXT("DeviceRemoved", "Video driver crashed and was reset!  Make sure your video drivers are up to date.  Exiting...").ToString());
+#endif
 	}
 }
 

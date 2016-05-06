@@ -799,10 +799,15 @@ const FStyleNode* FSlateApplication::GetRootStyle() const
 	return RootStyleNode;
 }
 
-void FSlateApplication::InitializeRenderer( TSharedRef<FSlateRenderer> InRenderer )
+bool FSlateApplication::InitializeRenderer( TSharedRef<FSlateRenderer> InRenderer, bool bQuietMode )
 {
 	Renderer = InRenderer;
-	Renderer->Initialize();
+	bool bResult = Renderer->Initialize();
+	if (!bResult && !bQuietMode)
+	{
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *NSLOCTEXT("SlateD3DRenderer", "ProblemWithGraphicsCard", "There is a problem with your graphics card. Please ensure your card meets the minimum system requirements and that you have the latest drivers installed.").ToString(), *NSLOCTEXT("SlateD3DRenderer", "UnsupportedVideoCardErrorTitle", "Unsupported Video Card").ToString());
+	}
+	return bResult;
 }
 
 void FSlateApplication::InitializeSound( const TSharedRef<ISlateSoundDevice>& InSlateSoundDevice )

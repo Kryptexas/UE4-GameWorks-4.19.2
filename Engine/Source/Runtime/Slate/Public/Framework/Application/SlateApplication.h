@@ -169,8 +169,9 @@ public:
 	 * Initializes the renderer responsible for drawing all elements in this application
 	 *
 	 * @param InRenderer The renderer to use.
+	 * @param bQuietMode Don't show any message boxes when initialization fails.
 	 */
-	virtual void InitializeRenderer( TSharedRef<FSlateRenderer> InRenderer );
+	virtual bool InitializeRenderer( TSharedRef<FSlateRenderer> InRenderer, bool bQuietMode = false );
 
 	/** Set the slate sound provider that the slate app should use. */
 	virtual void InitializeSound( const TSharedRef<ISlateSoundDevice>& InSlateSoundDevice );

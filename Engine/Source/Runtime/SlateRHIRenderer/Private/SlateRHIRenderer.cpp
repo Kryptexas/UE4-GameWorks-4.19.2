@@ -151,13 +151,15 @@ FMatrix FSlateRHIRenderer::CreateProjectionMatrix(uint32 Width, uint32 Height)
 		);
 }
 
-void FSlateRHIRenderer::Initialize()
+bool FSlateRHIRenderer::Initialize()
 {
 	LoadUsedTextures();
 
 	RenderingPolicy = MakeShareable( new FSlateRHIRenderingPolicy( SlateFontServices.ToSharedRef(), ResourceManager.ToSharedRef() ) );
 
 	ElementBatcher = MakeShareable( new FSlateElementBatcher( RenderingPolicy.ToSharedRef() ) );
+
+	return true;
 }
 
 void FSlateRHIRenderer::Destroy()
