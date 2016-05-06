@@ -234,6 +234,9 @@ public:
 	/* Handle error checking for additive base pose */
 	bool ShouldDisplayAdditiveScaleErrorMessage();
 
+	/** Validates curve use */
+	void TestSkeletonCurveNamesForUse() const;
+
 protected:
 	bool IsPreviewAssetEnabled() const;
 	bool CanPreviewAsset() const;
