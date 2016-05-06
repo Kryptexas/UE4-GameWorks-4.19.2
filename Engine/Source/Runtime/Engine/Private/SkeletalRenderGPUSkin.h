@@ -69,7 +69,7 @@ public:
 	int32 NumWeightedActiveVertexAnims;
 
 	/** data for updating cloth section */
-	TArray<FClothSimulData> ClothSimulUpdateData;
+	TMap<int32, FClothSimulData> ClothSimulUpdateData;
 
 	/** a weight factor to blend between simulated positions and skinned positions */	
 	float ClothBlendWeight;

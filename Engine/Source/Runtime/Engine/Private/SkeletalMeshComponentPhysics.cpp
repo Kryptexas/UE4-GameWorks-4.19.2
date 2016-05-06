@@ -3906,7 +3906,7 @@ void USkeletalMeshComponent::TickClothing(float DeltaTime, FTickFunction& ThisTi
 #endif// #if WITH_APEX_CLOTHING
 }
 
-void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent)
+void USkeletalMeshComponent::GetUpdateClothSimulationData(TMap<int32, FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent)
 {
 #if WITH_APEX_CLOTHING
 
@@ -3927,8 +3927,7 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 
 	if(OutClothSimData.Num() != NumClothingActors)
 	{
-		OutClothSimData.Reset();
-		OutClothSimData.AddZeroed(NumClothingActors);
+		OutClothSimData.Empty(NumClothingActors);
 	}
 
 	bool bSimulated = false;
@@ -3938,10 +3937,10 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 		const FClothingActor& ClothingActor = ClothingActors[ActorIndex];
 		if(!IsValidClothingActor(ClothingActor))
 		{
-			OutClothSimData[ActorIndex].ClothSimulPositions.Reset();
-			OutClothSimData[ActorIndex].ClothSimulNormals.Reset();
 			continue;
 		}
+
+		FClothSimulData& ClothData = OutClothSimData.Add(ClothingActor.ParentClothingAssetIndex);
 
 		// update simulation positions & normals
 		if(NxClothingActor* ApexClothingActor = ClothingActor.ApexClothingActor)
@@ -3951,8 +3950,6 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 			if(NumSimulVertices > 0)
 			{
 				bSimulated = true;
-
-				FClothSimulData& ClothData = OutClothSimData[ActorIndex];
 
 				if(ClothData.ClothSimulPositions.Num() != NumSimulVertices)
 				{
