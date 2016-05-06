@@ -80,7 +80,7 @@ void SetDeferredLightParameters(
 
 	const bool bDynamicShadows = View.Family->EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
 	const bool bHasLightFunction = LightSceneInfo->Proxy->GetLightFunctionMaterial() != NULL;
-	DeferredLightUniformsValue.bShadowed = (LightSceneInfo->Proxy->CastsDynamicShadow() || LightSceneInfo->Proxy->CastsStaticShadow()) && bDynamicShadows || bHasLightFunction;
+	DeferredLightUniformsValue.bShadowed = ((LightSceneInfo->Proxy->CastsDynamicShadow() || LightSceneInfo->Proxy->CastsStaticShadow()) && bDynamicShadows) || bHasLightFunction;
 
 	if( LightSceneInfo->Proxy->IsInverseSquared() )
 	{
