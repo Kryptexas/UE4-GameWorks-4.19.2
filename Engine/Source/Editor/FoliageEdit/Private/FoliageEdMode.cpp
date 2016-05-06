@@ -592,9 +592,13 @@ void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, in
 				.SetRealtimeUpdate(ViewportClient->IsRealtime()));
 			FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
 			FViewportCursorLocation MouseViewportRay(View, ViewportClient, MouseX, MouseY);
+			BrushTraceDirection = MouseViewportRay.GetDirection();
 
 			FVector Start = MouseViewportRay.GetOrigin();
-			BrushTraceDirection = MouseViewportRay.GetDirection();
+			if (ViewportClient->IsOrtho())
+			{
+				Start += -WORLD_MAX * BrushTraceDirection;
+			}
 			FVector End = Start + WORLD_MAX * BrushTraceDirection;
 
 			FHitResult Hit;
