@@ -624,6 +624,9 @@ private:
 	/** Handles the crash */
 	FORCENOINLINE void HandleCrashInternal()
 	{
+		// Stop the heartbeat thread so that it doesn't interfere with crashreporting
+		FThreadHeartBeat::Get().Stop();
+
 		GLog->PanicFlushThreadedLogs();
 
 		// First launch the crash reporter client.

@@ -112,6 +112,7 @@ uint32 FThreadHeartBeat::Run()
 
 void FThreadHeartBeat::Stop()
 {
+	bReadyToCheckHeartbeat = false;
 	StopTaskCounter.Increment();
 }
 
