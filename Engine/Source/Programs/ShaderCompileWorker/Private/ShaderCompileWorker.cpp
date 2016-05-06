@@ -157,6 +157,13 @@ public:
 				// We only do one pass per process when using XGE.
 				break;
 			}
+
+			if (PLATFORM_LINUX)
+			{
+				// do only one pass on Linux as a workaround for UE-26495
+				UE_LOG(LogShaders, Warning, TEXT("Exiting after processing just one batch (Linux-specific workaround for UE-26495)."));
+				break;
+			}
 		}
 
 		UE_LOG(LogShaders, Log, TEXT("Exiting job loop"));
