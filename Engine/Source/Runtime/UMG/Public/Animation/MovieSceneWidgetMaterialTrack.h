@@ -20,7 +20,7 @@ public:
 	// UMovieSceneTrack interface
 
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
-	virtual FName GetTrackName() const override { return BrushPropertyName; }
+	virtual FName GetTrackName() const override;
 
 #if WITH_EDITORONLY_DATA
 	virtual FText GetDefaultDisplayName() const override;
@@ -29,17 +29,18 @@ public:
 public:
 
 	/** Gets name of the brush property which has the material to animate. */
-	FName GetBrushPropertyName() const { return BrushPropertyName; }
+	const TArray<FName>& GetBrushPropertyNamePath() const { return BrushPropertyNamePath; }
 
 	/** Sets the name of the brush property which has the material to animate. */
-	void SetBrushPropertyName(FName InBrushPropertyName) 
-	{
-		BrushPropertyName = InBrushPropertyName;
-	}
+	UMG_API void SetBrushPropertyNamePath( TArray<FName> InBrushPropertyNamePath );
 
 private:
 
 	/** The name of the brush property which will be animated by this track. */
 	UPROPERTY()
-	FName BrushPropertyName;
+	TArray<FName> BrushPropertyNamePath;
+
+	/** The name of this track, generated from the property name path. */
+	UPROPERTY()
+	FName TrackName;
 };

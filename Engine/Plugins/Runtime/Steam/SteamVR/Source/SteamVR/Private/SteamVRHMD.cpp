@@ -629,11 +629,6 @@ bool FSteamVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	return false;
 }
 
-void FSteamVRHMD::OnScreenModeChange(EWindowMode::Type WindowMode)
-{
-	EnableStereo(WindowMode != EWindowMode::Windowed);
-}
-
 bool FSteamVRHMD::IsPositionalTrackingEnabled() const
 {
 	return bHmdPosTracking;
@@ -655,7 +650,7 @@ bool FSteamVRHMD::IsInLowPersistenceMode() const
 	return true;
 }
 
-void FSteamVRHMD::OnEndPlay()
+void FSteamVRHMD::OnEndPlay(FWorldContext& InWorldContext)
 {
 	EnableStereo(false);
 }
@@ -779,7 +774,7 @@ bool FSteamVRHMD::EnableStereo(bool bStereo)
 {
 	bStereoEnabled = (IsHMDEnabled()) ? bStereo : false;
 
-	FSystemResolution::RequestResolutionChange(1280, 720, (bStereo) ? EWindowMode::WindowedMirror : EWindowMode::Windowed);
+	FSystemResolution::RequestResolutionChange(1280, 720, EWindowMode::Windowed);
 
 	// Set the viewport to match that of the HMD display
 	FSceneViewport* SceneVP = FindSceneViewport();

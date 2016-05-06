@@ -2209,6 +2209,7 @@ void FSequencer::HandleRecordingFinished(UMovieSceneSequence* Sequence)
 	}
 
 	bNeedTreeRefresh = true;
+	bNeedInstanceRefresh = true;
 }
 
 FReply FSequencer::OnStepForward()

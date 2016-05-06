@@ -806,7 +806,7 @@ public:
 	}
 
 	/**
-	 * Tests if index is valid, i.e. than or equal to zero, and less than the number of elements in the array.
+	 * Tests if index is valid, i.e. greater than or equal to zero, and less than the number of elements in the array.
 	 *
 	 * @param Index Index to test.
 	 * @returns True if index is valid. False otherwise.

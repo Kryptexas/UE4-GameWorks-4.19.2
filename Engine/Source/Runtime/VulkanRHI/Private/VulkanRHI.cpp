@@ -24,6 +24,19 @@ static_assert(VK_API_VERSION >= UE_VK_API_VERSION, "Vulkan SDK is older than the
 	#include <vulkan/vk_ext_debug_report.h>
 #endif
 
+///////////////////////////////////////////////////////////////////////////////
+
+#if PLATFORM_ANDROID
+
+// Vulkan function pointers
+
+#define DEFINE_VK_ENTRYPOINTS(Type,Func) Type Func = NULL;
+ENUM_VK_ENTRYPOINTS_ALL(DEFINE_VK_ENTRYPOINTS)
+
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
 static TAutoConsoleVariable<int32> GLSLCvar(
 	TEXT("r.Vulkan.UseGLSL"),
 	PLATFORM_ANDROID ? 2 : 0,
@@ -162,6 +175,90 @@ static inline int32 CountSetBits(int32 n)
 
 DEFINE_LOG_CATEGORY(LogVulkan)
 
+#if PLATFORM_ANDROID
+#include <dlfcn.h>
+
+static void *VulkanLib = nullptr;
+static bool bAttemptedLoad = false;
+
+static bool LoadVulkanLibrary()
+{
+	if (bAttemptedLoad)
+	{
+		return (VulkanLib != nullptr);
+	}
+	bAttemptedLoad = true;
+
+	// try to load libvulkan.so
+	VulkanLib = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
+	if (VulkanLib == nullptr)
+	{
+		return false;
+	}
+
+	bool bFoundAllEntryPoints = true;
+#define CHECK_VK_ENTRYPOINTS(Type,Func) if (Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
+
+	// Initialize all of the entry points we have to query manually
+#define GET_VK_ENTRYPOINTS(Type,Func) Func = (Type)dlsym(VulkanLib, #Func);
+	ENUM_VK_ENTRYPOINTS_BASE(GET_VK_ENTRYPOINTS);
+	ENUM_VK_ENTRYPOINTS_BASE(CHECK_VK_ENTRYPOINTS);
+	if (!bFoundAllEntryPoints)
+	{
+		dlclose(VulkanLib);
+		VulkanLib = nullptr;
+		return false;
+	}
+
+	ENUM_VK_ENTRYPOINTS_OPTIONAL(GET_VK_ENTRYPOINTS);
+	//ENUM_VK_ENTRYPOINTS_OPTIONAL(CHECK_VK_ENTRYPOINTS);
+
+	return true;
+}
+
+static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
+{
+	bool bFoundAllEntryPoints = true;
+#define CHECK_VK_ENTRYPOINTS(Type,Func) if (Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
+
+#define GETINSTANCE_VK_ENTRYPOINTS(Type, Func) Func = (Type)vkGetInstanceProcAddr(inInstance, #Func);
+	ENUM_VK_ENTRYPOINTS_INSTANCE(GETINSTANCE_VK_ENTRYPOINTS);
+	ENUM_VK_ENTRYPOINTS_INSTANCE(CHECK_VK_ENTRYPOINTS);
+
+	return bFoundAllEntryPoints;
+}
+
+static void FreeVulkanLibrary()
+{
+	if (VulkanLib != nullptr)
+	{
+#define CLEAR_VK_ENTRYPOINTS(Type,Func) Func = nullptr;
+		ENUM_VK_ENTRYPOINTS_ALL(CLEAR_VK_ENTRYPOINTS);
+
+		dlclose(VulkanLib);
+		VulkanLib = nullptr;
+	}
+	bAttemptedLoad = false;
+}
+
+#else
+
+static bool LoadVulkanLibrary()
+{
+	return true;
+}
+
+static bool LoadVulkanInstanceFunctions(VkInstance inInstance)
+{
+	return true;
+}
+
+static void FreeVulkanLibrary()
+{
+}
+
+#endif // PLATFORM_ANDROID
+
 bool FVulkanDynamicRHIModule::IsSupported()
 {
 	return true;
@@ -260,6 +357,11 @@ FVulkanDynamicRHI::FVulkanDynamicRHI()
 
 void FVulkanDynamicRHI::Init()
 {
+	if (!LoadVulkanLibrary())
+	{
+		UE_LOG(LogVulkanRHI, Fatal, TEXT("Failed to find all required Vulkan entry points."));
+	}
+
 	InitInstance();
 }
 
@@ -329,6 +431,8 @@ void FVulkanDynamicRHI::Shutdown()
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	IConsoleManager::Get().UnregisterConsoleObject(DumpMemoryCmd);
 #endif
+
+	FreeVulkanLibrary();
 }
 
 void FVulkanDynamicRHI::CreateInstance()
@@ -396,6 +500,12 @@ void FVulkanDynamicRHI::CreateInstance()
 	}
 
 	VERIFYVULKANRESULT(Result);
+
+	if (!LoadVulkanInstanceFunctions(Instance))
+	{
+		checkf(0, TEXT(
+			"Failed to find all required entry points."));
+	}
 
 #if !VULKAN_DISABLE_DEBUG_CALLBACK && VULKAN_HAS_DEBUGGING_ENABLED
 	SetupDebugLayerCallback();

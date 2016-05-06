@@ -221,10 +221,20 @@ public:
 		const FMeshMergingSettings& InSettings,
 		UPackage* InOuter,
 		const FString& InBasePackageName,
-		int32 UseLOD, // does not build all LODs but only use this LOD to create base mesh
 		TArray<UObject*>& OutAssetsToSync, 
 		FVector& OutMergedActorLocation, 
 		bool bSilent=false) const = 0;
+
+	virtual void MergeActors(
+		const TArray<AActor*>& SourceActors,
+		const FMeshMergingSettings& InSettings,
+		UPackage* InOuter,		
+		const FString& InBasePackageName,
+		int32 UseLOD, // does not build all LODs but only use this LOD to create base mesh
+		TArray<UObject*>& OutAssetsToSync,
+		FVector& OutMergedActorLocation,
+		bool bSilent = false) const = 0;
+
 
 	/**
 	* MergeStaticMeshComponents
@@ -248,11 +258,22 @@ public:
 		const FMeshMergingSettings& InSettings,
 		UPackage* InOuter,
 		const FString& InBasePackageName,
-		int32 UseLOD, /* does not build all LODs but only use this LOD to create base mesh */
 		TArray<UObject*>& OutAssetsToSync,
 		FVector& OutMergedActorLocation,
 		const float ScreenAreaSize,
 		bool bSilent /*= false*/) const = 0;
+
+	virtual void MergeStaticMeshComponents(
+		const TArray<UStaticMeshComponent*>& ComponentsToMerge,
+		UWorld* World,
+		const FMeshMergingSettings& InSettings,
+		UPackage* InOuter,
+		const FString& InBasePackageName,
+		int32 UseLOD, // does not build all LODs but only use this LOD to create base mesh
+		TArray<UObject*>& OutAssetsToSync,
+		FVector& OutMergedActorLocation,
+		const float ScreenAreaSize,
+		bool bSilent = false) const = 0;
 
 	/**
 	* Creates a (proxy)-mesh combining the static mesh components from the given list of actors (at the moment this requires having Simplygon)

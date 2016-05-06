@@ -3344,22 +3344,6 @@ void SLevelViewport::OnSetViewportConfiguration(FName ConfigurationName)
 	}
 }
 
-void SLevelViewport::RefreshViewportConfiguration()
-{
-	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
-	if (LayoutPinned.IsValid())
-	{
-		TSharedPtr<FLevelViewportTabContent> ViewportTabPinned = LayoutPinned->GetParentTabContent().Pin();
-		if (ViewportTabPinned.IsValid())
-		{
-			// Viewport clients are going away.  Any current one is invalid.
-			GCurrentLevelEditingViewportClient = nullptr;
-			ViewportTabPinned->RefreshViewportConfiguration();
-			FSlateApplication::Get().DismissAllMenus();
-		}
-	}
-}
-
 bool SLevelViewport::IsViewportConfigurationSet(FName ConfigurationName) const
 {
 	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
@@ -3393,11 +3377,21 @@ void SLevelViewport::SetViewportTypeWithinLayout(FName InLayoutType)
 	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
 	if (LayoutPinned.IsValid() && !ConfigKey.IsEmpty())
 	{
+		// Important - RefreshViewportConfiguration does not save config values. We save its state first, to ensure that .TypeWithinLayout (below) doesn't get overwritten
+		TSharedPtr<FLevelViewportTabContent> ViewportTabPinned = LayoutPinned->GetParentTabContent().Pin();
+		if (ViewportTabPinned.IsValid())
+		{
+			ViewportTabPinned->SaveConfig();
+		}
+
 		const FString& IniSection = FLayoutSaveRestore::GetAdditionalLayoutConfigIni();
 		GConfig->SetString( *IniSection, *( ConfigKey + TEXT(".TypeWithinLayout") ), *InLayoutType.ToString(), GEditorPerProjectIni );
 
 		// Force a refresh of the tab content
-		RefreshViewportConfiguration();
+		// Viewport clients are going away.  Any current one is invalid.
+		GCurrentLevelEditingViewportClient = nullptr;
+		ViewportTabPinned->RefreshViewportConfiguration();
+		FSlateApplication::Get().DismissAllMenus();
 	}
 }
 

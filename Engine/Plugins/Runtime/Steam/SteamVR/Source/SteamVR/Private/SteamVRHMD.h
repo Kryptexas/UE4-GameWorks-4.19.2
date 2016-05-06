@@ -64,9 +64,6 @@ public:
 	virtual bool IsChromaAbCorrectionEnabled() const override;
 
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) override;
-
-	virtual bool IsFullscreenAllowed() override { return false; }
 
 	virtual bool IsPositionalTrackingEnabled() const override;
 	virtual bool EnablePositionalTracking(bool enable) override;
@@ -98,7 +95,7 @@ public:
 
 	virtual void UpdateScreenSettings(const FViewport* InViewport) override {}
 
-	virtual void OnEndPlay() override;
+	virtual void OnEndPlay(FWorldContext& InWorldContext) override;
 
 	virtual void SetTrackingOrigin(EHMDTrackingOrigin::Type NewOrigin) override;
 	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() override;

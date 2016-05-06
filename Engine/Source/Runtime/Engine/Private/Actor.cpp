@@ -263,6 +263,13 @@ void AActor::PostInitProperties()
 	}
 }
 
+void AActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	AActor* This = CastChecked<AActor>(InThis);
+	Collector.AddReferencedObjects(This->OwnedComponents);
+	Super::AddReferencedObjects(InThis, Collector);
+}
+
 UWorld* AActor::GetWorld() const
 {
 	// CDO objects do not belong to a world

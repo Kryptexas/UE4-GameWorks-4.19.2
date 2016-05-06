@@ -159,6 +159,7 @@ void USoundNodeConcatenator::ParseNodes( FAudioDevice* AudioDevice, const UPTRIN
 
 				ConcatenatorPayload = LocalPayload;
 				ConcatenatorPayload.CurrentChildNodeNumSound = ChildNode->GetNumSounds(ChildNodeWaveInstanceHash, ActiveSound);
+
 				break;
 			}
 		}

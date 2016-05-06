@@ -211,8 +211,11 @@ void AActor::RerunConstructionScripts()
 		// that out. So instead we redirect up the hierarchy
 		if (IsChildActor())
 		{
-			GetParentComponent()->GetOwner()->RerunConstructionScripts();
-			return;
+			if (AActor* ParentActor = GetParentComponent()->GetOwner())
+			{
+				ParentActor->RerunConstructionScripts();
+				return;
+			}
 		}
 
 		// Set global flag to let system know we are reconstructing blueprint instances
@@ -220,12 +223,9 @@ void AActor::RerunConstructionScripts()
 
 		// Temporarily suspend the undo buffer; we don't need to record reconstructed component objects into the current transaction
 		ITransaction* CurrentTransaction = GUndo;
-		GUndo = NULL;
+		GUndo = nullptr;
 		
 		// Create cache to store component data across rerunning construction scripts
-#if WITH_EDITOR
-		FActorTransactionAnnotation* ActorTransactionAnnotation = CurrentTransactionAnnotation.Get();
-#endif
 		FComponentInstanceDataCache* InstanceDataCache;
 		
 		FTransform OldTransform = FTransform::Identity;
@@ -248,46 +248,49 @@ void AActor::RerunConstructionScripts()
 		TArray<FAttachedActorInfo> AttachedActorInfos;
 
 #if WITH_EDITOR
-		if (ActorTransactionAnnotation)
+		if (!CurrentTransactionAnnotation.IsValid())
 		{
-			InstanceDataCache = &ActorTransactionAnnotation->ComponentInstanceData;
-
-			if (ActorTransactionAnnotation->bRootComponentDataCached)
-			{
-				OldTransform = ActorTransactionAnnotation->RootComponentData.Transform;
-				Parent = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.Actor.Get();
-				if (Parent)
-				{
-					USceneComponent* AttachParent = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.AttachParent.Get();
-					AttachParentComponent = (AttachParent ? AttachParent : FindObjectFast<USceneComponent>(Parent, ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.AttachParentName));
-					SocketName = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.SocketName;
-					DetachRootComponentFromParent();
-				}
-
-				for (const auto& CachedAttachInfo : ActorTransactionAnnotation->RootComponentData.AttachedToInfo)
-				{
-					AActor* AttachedActor = CachedAttachInfo.Actor.Get();
-					if (AttachedActor)
-					{
-						FAttachedActorInfo Info;
-						Info.AttachedActor = AttachedActor;
-						Info.AttachedToSocket = CachedAttachInfo.SocketName;
-						Info.bSetRelativeTransform = true;
-						Info.RelativeTransform = CachedAttachInfo.RelativeTransform;
-						AttachedActorInfos.Add(Info);
-
-						AttachedActor->DetachRootComponentFromParent();
-					}
-				}
-
-				bUseRootComponentProperties = false;
-			}
+			CurrentTransactionAnnotation = MakeShareable(new FActorTransactionAnnotation(this, false));
 		}
-		else
-#endif
-		{
-			InstanceDataCache = new FComponentInstanceDataCache(this);
+		FActorTransactionAnnotation* ActorTransactionAnnotation = CurrentTransactionAnnotation.Get();
+		InstanceDataCache = &ActorTransactionAnnotation->ComponentInstanceData;
 
+		if (ActorTransactionAnnotation->bRootComponentDataCached)
+		{
+			OldTransform = ActorTransactionAnnotation->RootComponentData.Transform;
+			Parent = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.Actor.Get();
+			if (Parent)
+			{
+				USceneComponent* AttachParent = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.AttachParent.Get();
+				AttachParentComponent = (AttachParent ? AttachParent : FindObjectFast<USceneComponent>(Parent, ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.AttachParentName));
+				SocketName = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.SocketName;
+				DetachRootComponentFromParent();
+			}
+
+			for (const auto& CachedAttachInfo : ActorTransactionAnnotation->RootComponentData.AttachedToInfo)
+			{
+				AActor* AttachedActor = CachedAttachInfo.Actor.Get();
+				if (AttachedActor)
+				{
+					FAttachedActorInfo Info;
+					Info.AttachedActor = AttachedActor;
+					Info.AttachedToSocket = CachedAttachInfo.SocketName;
+					Info.bSetRelativeTransform = true;
+					Info.RelativeTransform = CachedAttachInfo.RelativeTransform;
+					AttachedActorInfos.Add(Info);
+
+					AttachedActor->DetachRootComponentFromParent();
+				}
+			}
+
+			bUseRootComponentProperties = false;
+		}
+#else
+		InstanceDataCache = new FComponentInstanceDataCache(this);
+#endif
+
+		if (bUseRootComponentProperties)
+		{
 			// If there are attached objects detach them and store the socket names
 			TArray<AActor*> AttachedActors;
 			GetAttachedActors(AttachedActors);
@@ -295,7 +298,7 @@ void AActor::RerunConstructionScripts()
 			for (AActor* AttachedActor : AttachedActors)
 			{
 				// We don't need to detach child actors, that will be handled by component tear down
-				if (!AttachedActor->ParentComponent.IsValid())
+				if (!AttachedActor->IsChildActor())
 				{
 					USceneComponent* EachRoot = AttachedActor->GetRootComponent();
 					// If the component we are attached to is about to go away...
@@ -318,30 +321,30 @@ void AActor::RerunConstructionScripts()
 					check(AttachedActor->ParentComponent->GetOwner() == this);
 				}
 			}
-		}
 
-		if (bUseRootComponentProperties && RootComponent != nullptr)
-		{
-			// Do not need to detach if root component is not going away
-			if (RootComponent->GetAttachParent() != NULL && RootComponent->IsCreatedByConstructionScript())
+			if (RootComponent != nullptr)
 			{
-				Parent = RootComponent->GetAttachParent()->GetOwner();
-				// Root component should never be attached to another component in the same actor!
-				if (Parent == this)
+				// Do not need to detach if root component is not going away
+				if (RootComponent->GetAttachParent() != nullptr && RootComponent->IsCreatedByConstructionScript())
 				{
-					UE_LOG(LogActor, Warning, TEXT("RerunConstructionScripts: RootComponent (%s) attached to another component in this Actor (%s)."), *RootComponent->GetPathName(), *Parent->GetPathName());
-					Parent = NULL;
+					Parent = RootComponent->GetAttachParent()->GetOwner();
+					// Root component should never be attached to another component in the same actor!
+					if (Parent == this)
+					{
+						UE_LOG(LogActor, Warning, TEXT("RerunConstructionScripts: RootComponent (%s) attached to another component in this Actor (%s)."), *RootComponent->GetPathName(), *Parent->GetPathName());
+						Parent = nullptr;
+					}
+					AttachParentComponent = RootComponent->GetAttachParent();
+					SocketName = RootComponent->GetAttachSocketName();
+					//detach it to remove any scaling 
+					RootComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 				}
-				AttachParentComponent = RootComponent->GetAttachParent();
-				SocketName = RootComponent->GetAttachSocketName();
-				//detach it to remove any scaling 
-				RootComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-			}
 
-			// Update component transform and remember it so it can be reapplied to any new root component which exists after construction.
-			// (Component transform may be stale if we are here following an Undo)
-			RootComponent->UpdateComponentToWorld();
-			OldTransform = RootComponent->ComponentToWorld;
+				// Update component transform and remember it so it can be reapplied to any new root component which exists after construction.
+				// (Component transform may be stale if we are here following an Undo)
+				RootComponent->UpdateComponentToWorld();
+				OldTransform = RootComponent->ComponentToWorld;
+			}
 		}
 
 #if WITH_EDITOR
@@ -349,7 +352,7 @@ void AActor::RerunConstructionScripts()
 		TMap<const FName, UObject*> DestroyedComponentsByName;
 		TInlineComponentArray<UActorComponent*> PreviouslyAttachedComponents;
 		GetComponents(PreviouslyAttachedComponents);
-		for (auto Component : PreviouslyAttachedComponents)
+		for (UActorComponent* Component : PreviouslyAttachedComponents)
 		{
 			if (Component)
 			{
@@ -389,7 +392,7 @@ void AActor::RerunConstructionScripts()
 		}
 
 		// Run the construction scripts
-		ExecuteConstruction(OldTransform, InstanceDataCache);
+		const bool bErrorFree = ExecuteConstruction(OldTransform, InstanceDataCache);
 
 		if(Parent)
 		{
@@ -432,7 +435,7 @@ void AActor::RerunConstructionScripts()
 
 		TInlineComponentArray<UActorComponent*> NewComponents;
 		GetComponents(NewComponents);
-		for (auto NewComp : NewComponents)
+		for (UActorComponent* NewComp : NewComponents)
 		{
 			const FName NewCompName = NewComp->GetFName();
 			if (DestroyedComponentsByName.Contains(NewCompName))
@@ -446,20 +449,18 @@ void AActor::RerunConstructionScripts()
 			GEditor->NotifyToolsOfObjectReplacement(OldToNewComponentMapping);
 		}
 
-		if (ActorTransactionAnnotation)
+		if (bErrorFree)
 		{
-			CurrentTransactionAnnotation = NULL;
+			CurrentTransactionAnnotation = nullptr;
 		}
-		else
+#else
+		delete InstanceDataCache;
 #endif
-		{
-			delete InstanceDataCache;
-		}
 
 	}
 }
 
-void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform)
+bool AActor::ExecuteConstruction(const FTransform& Transform, const FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform)
 {
 	check(!IsPendingKill());
 	check(!HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed));
@@ -563,13 +564,13 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 		{
 			// Disaster recovery mode; create a dummy billboard component to retain the actor location
 			// until the compile error can be fixed
-			if (RootComponent == NULL)
+			if (RootComponent == nullptr)
 			{
 				UBillboardComponent* BillboardComponent = NewObject<UBillboardComponent>(this);
 				BillboardComponent->SetFlags(RF_Transactional);
 				BillboardComponent->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
 #if WITH_EDITOR
-				BillboardComponent->Sprite = (UTexture2D*)(StaticLoadObject(UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorResources/BadBlueprintSprite.BadBlueprintSprite"), NULL, LOAD_None, NULL));
+				BillboardComponent->Sprite = (UTexture2D*)(StaticLoadObject(UTexture2D::StaticClass(), nullptr, TEXT("/Engine/EditorResources/BadBlueprintSprite.BadBlueprintSprite")));
 #endif
 				BillboardComponent->SetRelativeTransform(Transform);
 
@@ -596,6 +597,8 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 
 	// Now run virtual notification
 	OnConstruction(Transform);
+
+	return bErrorFree;
 }
 
 void AActor::ProcessUserConstructionScript()

@@ -130,6 +130,35 @@ namespace UnrealBuildTool
 			return CachedSDKLevel;
 		}
 
+		private bool IsVulkanSDKAvailable()
+		{
+			bool bHaveVulkan = false;
+
+			// First look for VulkanSDK (two possible env variables)
+			string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
+			if (String.IsNullOrEmpty(VulkanSDKPath))
+			{
+				VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+			}
+
+			// Note: header is the same for all architectures so just use arch-arm
+			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
+			string NDKVulkanIncludePath = NDKPath + "/android-24/arch-arm/usr/include/vulkan";
+
+			// Use NDK Vulkan header if discovered, or VulkanSDK if available
+			if (File.Exists(NDKVulkanIncludePath + "/vulkan.h"))
+			{
+				bHaveVulkan = true;
+			}
+			else
+			if (!String.IsNullOrEmpty(VulkanSDKPath))
+			{
+				bHaveVulkan = true;
+			}
+
+			return bHaveVulkan;
+		}
+
 		public static string GetOBBVersionNumber(int PackageVersion)
 		{
 			string VersionString = PackageVersion.ToString("0");
@@ -1164,13 +1193,7 @@ namespace UnrealBuildTool
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportsVulkan", out bSupportsVulkan);
 			if (bSupportsVulkan)
 			{
-				string VulkanSDKPath = Environment.GetEnvironmentVariable("VULKAN_SDK");
-				if (String.IsNullOrEmpty(VulkanSDKPath))
-				{
-					VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
-				}
-				string VulkanSoPath = Path.Combine(VulkanSDKPath, "Source/lib/libvulkan.so");
-				bSupportsVulkan = File.Exists(VulkanSoPath);
+				bSupportsVulkan = IsVulkanSDKAvailable();
 			}
 			bool bEnableIAP = false;
 			Ini.GetBool("OnlineSubsystemGooglePlay.Store", "bSupportsInAppPurchasing", out bEnableIAP);

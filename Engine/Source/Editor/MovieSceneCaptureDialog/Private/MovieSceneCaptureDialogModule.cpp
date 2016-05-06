@@ -642,8 +642,8 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 			EditorCommandLine.Append(TEXT(" -NoTextureStreaming"));
 		}
 		
-		// Set the game resolution
-		EditorCommandLine += FString::Printf(TEXT(" -ResX=%d -ResY=%d"), CaptureObject->Settings.Resolution.ResX, CaptureObject->Settings.Resolution.ResY);
+		// Set the game resolution - we always want it windowed
+		EditorCommandLine += FString::Printf(TEXT(" -ResX=%d -ResY=%d -Windowed"), CaptureObject->Settings.Resolution.ResX, CaptureObject->Settings.Resolution.ResY);
 
 		// Ensure game session is correctly set up 
 		EditorCommandLine += FString::Printf(TEXT(" -messaging -SessionName=\"%s\""), MovieCaptureSessionName);

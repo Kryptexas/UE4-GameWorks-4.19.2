@@ -2804,7 +2804,6 @@ bool SAssetView::IsShowingDevelopersFolder() const
 
 void SAssetView::ToggleShowL10NFolder()
 {
-	check(IsToggleShowFoldersAllowed());
 	GetMutableDefault<UContentBrowserSettings>()->SetDisplayL10NFolder(!GetDefault<UContentBrowserSettings>()->GetDisplayL10NFolder());
 	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
 }

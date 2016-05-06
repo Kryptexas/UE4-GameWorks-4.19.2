@@ -838,7 +838,7 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 #if METAL_API_1_1
 			id<MTLBlitCommandEncoder> Blitter = GetMetalDeviceContext().GetBlitContext();
 			
-			if (Texture.storageMode == MTLStorageModePrivate)
+			if (bSupportsResourceOptions && Texture.storageMode == MTLStorageModePrivate)
 			{
 				[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:LockedMemory[MipIndex] destinationOffset:0 destinationBytesPerRow:DestStride destinationBytesPerImage:MipBytes];
 				
@@ -951,7 +951,7 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 #endif
 
 #if METAL_API_1_1
-		if(Texture.storageMode == MTLStorageModePrivate)
+		if(bSupportsResourceOptions && Texture.storageMode == MTLStorageModePrivate)
 		{
 			SCOPED_AUTORELEASE_POOL;
 			

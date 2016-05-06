@@ -23,6 +23,7 @@
 #include "SExpandableArea.h"
 #include "Animation/BlendProfile.h"
 #include "SBlendProfilePicker.h"
+#include "AnimGraphNode_AssetPlayerBase.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -128,7 +129,7 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 		FDetailWidgetRow Row;
 		PropertyRow.GetDefaultWidgets( NameWidget, ValueWidget, Row );
 
-		TSharedRef<SWidget> TempWidget = CreatePropertyWidget(TargetProperty, TargetPropertyHandle);
+		TSharedRef<SWidget> TempWidget = CreatePropertyWidget(TargetProperty, TargetPropertyHandle, AnimGraphNode->GetClass());
 		ValueWidget = (TempWidget == SNullWidget::NullWidget) ? ValueWidget : TempWidget;
 
 		if (OptionalPin.bCanToggleVisibility)
@@ -201,7 +202,7 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 	}
 }
 
-TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* TargetProperty, TSharedRef<IPropertyHandle> TargetPropertyHandle)
+TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* TargetProperty, TSharedRef<IPropertyHandle> TargetPropertyHandle, const UClass* NodeClass)
 {
 	if(const UObjectPropertyBase* ObjectProperty = Cast<const UObjectPropertyBase>( TargetProperty ))
 	{
@@ -213,7 +214,7 @@ TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* Targe
 				.PropertyHandle(TargetPropertyHandle)
 				.AllowedClass(ObjectProperty->PropertyClass)
 				.AllowClear(bAllowClear)
-				.OnShouldFilterAsset(FOnShouldFilterAsset::CreateSP(this, &FAnimGraphNodeDetails::OnShouldFilterAnimAsset));
+				.OnShouldFilterAsset(FOnShouldFilterAsset::CreateSP(this, &FAnimGraphNodeDetails::OnShouldFilterAnimAsset, NodeClass));
 		}
 		else if(ObjectProperty->PropertyClass->IsChildOf(UBlendProfile::StaticClass()) && TargetSkeleton)
 		{
@@ -235,10 +236,18 @@ TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* Targe
 	return SNullWidget::NullWidget;
 }
 
-bool FAnimGraphNodeDetails::OnShouldFilterAnimAsset( const FAssetData& AssetData ) const
+bool FAnimGraphNodeDetails::OnShouldFilterAnimAsset( const FAssetData& AssetData, const UClass* NodeToFilterFor ) const
 {
 	const FString* SkeletonName = AssetData.TagsAndValues.Find(TEXT("Skeleton"));
-	return *SkeletonName != TargetSkeletonName;
+	if (*SkeletonName == TargetSkeletonName)
+	{
+		const UClass* AssetClass = AssetData.GetClass();
+		if (NodeToFilterFor == GetNodeClassForAsset(AssetClass))
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 EVisibility FAnimGraphNodeDetails::GetVisibilityOfProperty(TSharedRef<IPropertyHandle> Handle) const

@@ -17,6 +17,7 @@
 #include "InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -277,6 +278,24 @@ public:
 	FLandscapeToolVisibility(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<FLandscapeToolStrokeVisibility>(InEdMode)
 	{
+	}
+
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
+	{
+		ALandscapeProxy* Proxy = InTarget.LandscapeInfo->GetLandscapeProxy();
+		UMaterialInterface* HoleMaterial = Proxy->GetLandscapeHoleMaterial();
+		if (!HoleMaterial)
+		{
+			HoleMaterial = Proxy->GetLandscapeMaterial();
+		}
+		if (!HoleMaterial->GetMaterial()->HasAnyExpressionsInMaterialAndFunctionsOfType<UMaterialExpressionLandscapeVisibilityMask>())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok,
+				LOCTEXT("LandscapeVisibilityMaskMissing", "You must add a \"Landscape Visibility Mask\" node to your material before you can paint visibility."));
+			return false;
+		}
+
+		return FLandscapeToolBase<FLandscapeToolStrokeVisibility>::BeginTool(ViewportClient, InTarget, InHitLocation);
 	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Visibility"); }

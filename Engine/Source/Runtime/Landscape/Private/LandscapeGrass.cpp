@@ -673,9 +673,15 @@ public:
 };
 
 FLandscapeComponentGrassData::FLandscapeComponentGrassData(ULandscapeComponent* Component)
-	: MaterialStateId(Component->MaterialInstance->GetMaterial()->StateId)
-	, RotationForWPO(Component->MaterialInstance->GetMaterial()->WorldPositionOffset.IsConnected() ? Component->ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0))
+	: RotationForWPO(Component->MaterialInstance->GetMaterial()->WorldPositionOffset.IsConnected() ? Component->ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0))
 {
+	UMaterialInterface* Material = Component->GetLandscapeMaterial();
+	for (UMaterialInstanceConstant* MIC = Cast<UMaterialInstanceConstant>(Material); MIC; MIC = Cast<UMaterialInstanceConstant>(Material))
+	{
+		MaterialStateIds.Add(MIC->ParameterStateId);
+		Material = MIC->Parent;
+	}
+	MaterialStateIds.Add(CastChecked<UMaterial>(Material)->StateId);
 }
 
 bool ULandscapeComponent::MaterialHasGrass() const
@@ -696,10 +702,26 @@ bool ULandscapeComponent::IsGrassMapOutdated() const
 {
 	if (GrassData->HasData())
 	{
-		if (GrassData->MaterialStateId != MaterialInstance->GetMaterial()->StateId)
+		// check material / instances haven't changed
+		const auto& MaterialStateIds = GrassData->MaterialStateIds;
+		UMaterialInterface* Material = GetLandscapeMaterial();
+		int32 TestIndex = 0;
+		for (UMaterialInstanceConstant* MIC = Cast<UMaterialInstanceConstant>(Material); MIC; MIC = Cast<UMaterialInstanceConstant>(Material))
+		{
+			if (!MaterialStateIds.IsValidIndex(TestIndex) || MaterialStateIds[TestIndex] != MIC->ParameterStateId)
+			{
+				return true;
+			}
+			Material = MIC->Parent;
+			++TestIndex;
+		}
+
+		// last one should be a UMaterial
+		if (TestIndex != MaterialStateIds.Num() - 1 || MaterialStateIds[TestIndex] != CastChecked<UMaterial>(Material)->StateId)
 		{
 			return true;
 		}
+
 		FQuat RotationForWPO = MaterialInstance->GetMaterial()->WorldPositionOffset.IsConnected() ? ComponentToWorld.GetRotation() : FQuat(0, 0, 0, 0);
 		if (GrassData->RotationForWPO != RotationForWPO)
 		{
@@ -1071,24 +1093,39 @@ SIZE_T FLandscapeComponentGrassData::GetAllocatedSize() const
 
 FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data)
 {
-	if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA_MATERIAL_GUID)
-	{
-		Ar << Data.MaterialStateId;
-	}
-
 	Ar.UsingCustomVersion(FLandscapeCustomVersion::GUID);
 
-	if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::GrassMaterialWPO)
+#if WITH_EDITORONLY_DATA
+	if (!Ar.IsFilterEditorOnly())
 	{
-		Ar << Data.RotationForWPO;
+		if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::GrassMaterialInstanceFix)
+		{
+			Ar << Data.MaterialStateIds;
+		}
+		else
+		{
+			Data.MaterialStateIds.Empty(1);
+			if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA_MATERIAL_GUID)
+			{
+				FGuid MaterialStateId;
+				Ar << MaterialStateId;
+				Data.MaterialStateIds.Add(MaterialStateId);
+			}
+		}
+
+		if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::GrassMaterialWPO)
+		{
+			Ar << Data.RotationForWPO;
+		}
 	}
+#endif
 
 	Data.HeightData.BulkSerialize(Ar);
 
 #if WITH_EDITORONLY_DATA
-	if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::CollisionMaterialWPO)
+	if (!Ar.IsFilterEditorOnly())
 	{
-		if (!Ar.IsFilterEditorOnly())
+		if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::CollisionMaterialWPO)
 		{
 			if (Ar.CustomVer(FLandscapeCustomVersion::GUID) >= FLandscapeCustomVersion::LightmassMaterialWPO)
 			{

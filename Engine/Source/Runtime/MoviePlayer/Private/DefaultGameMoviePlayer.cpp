@@ -243,6 +243,13 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 {
 	bool bBeganPlaying = false;
 
+	// Allow systems to hook onto the movie player and provide loading screen data on demand 
+	// if it has not been setup explicitly by the user.
+	if ( !LoadingScreenIsPrepared() )
+	{
+		OnPrepareLoadingScreenDelegate.Broadcast();
+	}
+
 	if (LoadingScreenIsPrepared() && !IsMovieCurrentlyPlaying() && FPlatformMisc::NumberOfCores() > 1)
 	{
 		check(LoadingScreenAttributes.IsValid());

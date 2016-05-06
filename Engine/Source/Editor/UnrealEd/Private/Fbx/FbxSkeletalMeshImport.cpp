@@ -2614,11 +2614,13 @@ void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkelet
 			LODMatIndex = BaseSkeletalMesh->Materials.Find(InSkeletalMesh->Materials[MatIdx]);
 		}
 
+		//TODO fix this to allow a workflow where people can import LOD with different material
 		// Add the missing materials to the USkeletalMesh
-		if (LODMatIndex == INDEX_NONE)
+/*		if (LODMatIndex == INDEX_NONE && InSkeletalMesh->Materials[MatIdx].MaterialInterface != NULL)
 		{
 			LODMatIndex = BaseSkeletalMesh->Materials.Add(InSkeletalMesh->Materials[MatIdx]);
 		}
+*/
 
 		// If we didn't just use the index - but make sure its within range of the Materials array.
 		if (LODMatIndex == INDEX_NONE)

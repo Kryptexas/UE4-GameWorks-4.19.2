@@ -19,8 +19,6 @@ namespace EWindowMode
 		WindowedFullscreen,
 		/** The window has a border and may not take up the entire screen area */
 		Windowed,
-		/** Pseudo-fullscreen mode for devices like HMDs */
-		WindowedMirror
 	};
 }
 
@@ -311,7 +309,6 @@ protected:
 	 *	0 = Fullscreen
 	 *	1 = Windowed fullscreen
 	 *	2 = Windowed
-	 *	3 = WindowedMirror
 	 */
 	UPROPERTY(config)
 	int32 FullscreenMode;

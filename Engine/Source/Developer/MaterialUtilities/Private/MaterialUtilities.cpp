@@ -1436,29 +1436,21 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 
 	for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
 	{
-		for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
+		const int32 LODIndex = InMeshData[MeshIndex].ExportLODIndex;
+		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
+		const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, InMeshData[MeshIndex].ExportLODIndex)];
+		int32 NumTexCoords = 0;
+		bool bUseVertexData = false;
+		// Accumulate data of all materials.
+		for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
 		{
-			if (InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num())
-			{
-				const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
-				int32 NumTexCoords = 0;
-				bool bUseVertexData = false;
-				// Accumulate data of all materials.
-				for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-				{
-					UMaterialInterface* Material = InMaterials[MeshMaterialMap[LocalMaterialIndex]];
-					NumTexCoords = FMath::Max(NumTexCoords, MaterialNumTexCoords[Material]);
-					bUseVertexData |= MaterialUseVertexData[Material];
-				}
-				// Store data.
-				MeshUsesVertexData[MeshIndex] = bUseVertexData;
-				OutMeshShouldBakeVertexData[MeshIndex] = bUseVertexData || (NumTexCoords >= 2);
-			}
-			else
-			{
-				break;
-			}
+			UMaterialInterface* Material = InMaterials[MeshMaterialMap[LocalMaterialIndex]];
+			NumTexCoords = FMath::Max(NumTexCoords, MaterialNumTexCoords[Material]);
+			bUseVertexData |= MaterialUseVertexData[Material];
 		}
+		// Store data.
+		MeshUsesVertexData[MeshIndex] = bUseVertexData;
+		OutMeshShouldBakeVertexData[MeshIndex] = bUseVertexData || (NumTexCoords >= 2);		
 	}
 
 	// Build new material map.
@@ -1486,52 +1478,45 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 	OutMaterialMap.Empty();
 	for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
 	{
-		for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
+		const int32 LODIndex = InMeshData[MeshIndex].ExportLODIndex;
+		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
+		
+		const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
+		TArray<int32>& NewMeshMaterialMap = OutMaterialMap.Add(FMeshIdAndLOD(MeshIndex, LODIndex));
+		UStaticMesh* StaticMesh = InMeshData[MeshIndex].SourceStaticMesh;
+
+		if (!MeshUsesVertexData[MeshIndex])
 		{
-			if (InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh.VertexPositions.Num())
+			// No vertex data needed - could merge materials with other meshes.
+			if (!OutMeshShouldBakeVertexData[MeshIndex])
 			{
-				const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
-				TArray<int32>& NewMeshMaterialMap = OutMaterialMap.Add(FMeshIdAndLOD(MeshIndex, LODIndex));
-				UStaticMesh* StaticMesh = InMeshData[MeshIndex].MeshLODData[LODIndex].SourceStaticMesh;
-
-				if (!MeshUsesVertexData[MeshIndex])
-				{
-					// No vertex data needed - could merge materials with other meshes.
-					if (!OutMeshShouldBakeVertexData[MeshIndex])
-					{
-						// Set to 'nullptr' if don't need to bake vertex data to be able to merge materials with any meshes
-						// which don't require vertex data baking too.
-						StaticMesh = nullptr;
-					}
-
-					for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-					{
-						FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
-						int32 Index = MeshMaterialData.Find(Data);
-						if (Index == INDEX_NONE)
-						{
-							// Not found, add new entry.
-							Index = MeshMaterialData.Add(Data);
-						}
-						NewMeshMaterialMap.Add(Index);
-					}
-				}
-				else
-				{
-					// Mesh with vertex data baking, and with vertex colors - don't share materials at all.
-					for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-					{
-						FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, true);
-						int32 Index = MeshMaterialData.Add(Data);
-						NewMeshMaterialMap.Add(Index);
-					}
-				}
+				// Set to 'nullptr' if don't need to bake vertex data to be able to merge materials with any meshes
+				// which don't require vertex data baking too.
+				StaticMesh = nullptr;
 			}
-			else
+
+			for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
 			{
-				break;
+				FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
+				int32 Index = MeshMaterialData.Find(Data);
+				if (Index == INDEX_NONE)
+				{
+					// Not found, add new entry.
+					Index = MeshMaterialData.Add(Data);
+				}
+				NewMeshMaterialMap.Add(Index);
 			}
 		}
+		else
+		{
+			// Mesh with vertex data baking, and with vertex colors - don't share materials at all.
+			for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
+			{
+				FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, true);
+				int32 Index = MeshMaterialData.Add(Data);
+				NewMeshMaterialMap.Add(Index);
+			}
+		}		
 	}
 
 	// Build new material list - simply extract MeshMaterialData[i].Material.

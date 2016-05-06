@@ -1482,6 +1482,7 @@ public:
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual bool Rename( const TCHAR* NewName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) override;
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -1514,7 +1515,7 @@ public:
 	class FActorTransactionAnnotation : public ITransactionObjectAnnotation
 	{
 	public:
-		FActorTransactionAnnotation(const AActor* Actor);
+		FActorTransactionAnnotation(const AActor* Actor, const bool bCacheRootComponentData = true);
 
 		virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
@@ -2319,8 +2320,10 @@ public:
 	 * @param	Transform			The transform to construct the actor at.
 	 * @param	InstanceDataCache	Optional cache of state to apply to newly created components (e.g. precomputed lighting)
 	 * @param	bIsDefaultTransform	Whether or not the given transform is a "default" transform, in which case it can be overridden by template defaults
+	 *
+	 * @return Returns false if the hierarchy was not error free and we've put the Actor is disaster recovery mode
 	 */
-	void ExecuteConstruction(const FTransform& Transform, const class FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform = false);
+	bool ExecuteConstruction(const FTransform& Transform, const class FComponentInstanceDataCache* InstanceDataCache, bool bIsDefaultTransform = false);
 
 	/**
 	 * Called when an instance of this class is placed (in editor) or spawned.

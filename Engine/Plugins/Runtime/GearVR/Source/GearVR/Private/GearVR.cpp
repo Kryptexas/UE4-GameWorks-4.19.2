@@ -450,6 +450,87 @@ bool FGearVR::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			SetLoadingIconTexture(nullptr);
 		}
 	}
+#if 0
+	else if (FParse::Command(&Cmd, TEXT("TESTL"))) 
+	{
+		static uint32 LID1 = 0, LID2 = 0, LID3 = 0;
+		IStereoLayers* StereoL = this;
+
+		FString ValueStr = FParse::Token(Cmd, 0);
+		int t = FCString::Atoi(*ValueStr);
+
+		if (!FCString::Stricmp(*ValueStr, TEXT("OFF")))
+		{
+			t = -1;
+		}
+
+		switch(t)
+		{
+			case 0:
+			{
+				const TCHAR* iconPath = TEXT("/Game/Tuscany_LoadScreen.Tuscany_LoadScreen");
+				UE_LOG(LogHMD, Log, TEXT("Loading texture for loading icon %s..."), iconPath);
+				UTexture2D* LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
+				UE_LOG(LogHMD, Log, TEXT("...EEE"));
+
+				if (LoadingTexture != nullptr) 
+				{
+					//LoadingTexture->SetFlags(RF_RootSet);
+					UE_LOG(LogHMD, Log, TEXT("...Success. "));
+
+					LID1 = StereoL->CreateLayer(LoadingTexture, 10);
+					FTransform tr(FVector(400, 30, 130));
+					StereoL->SetTransform(LID1, tr);
+					StereoL->SetQuadSize(LID1, FVector2D(200, 200));
+				}
+			} 
+			break;
+			case 1:
+			{
+				const TCHAR* iconPath = TEXT("/Game/Tuscany_OculusCube.Tuscany_OculusCube");
+				UE_LOG(LogHMD, Log, TEXT("Loading texture for loading icon %s..."), iconPath);
+				UTexture2D* LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
+				if (LoadingTexture != nullptr) 
+				{
+					LID2 = StereoL->CreateLayer(LoadingTexture, 9, true);
+					FTransform tr(FRotator(0, 30, 0), FVector(300, 0, 0));
+					StereoL->SetTransform(LID2, tr);
+					StereoL->SetQuadSize(LID2, FVector2D(200, 200));
+				}
+			} 
+			break;
+			case 2:
+			{
+				const TCHAR* iconPath = TEXT("/Game/Tuscany_OculusCube.Tuscany_OculusCube");
+				UE_LOG(LogHMD, Log, TEXT("Loading texture for loading icon %s..."), iconPath);
+				UTexture2D* LoadingTexture = LoadObject<UTexture2D>(NULL, iconPath, NULL, LOAD_None, NULL);
+				if (LoadingTexture != nullptr) 
+				{
+					LID3 = CreateLayerEx(LoadingTexture, 9, FHMDLayerManager::Layer_TorsoLocked);
+					FTransform tr(FRotator(0, 30, 0), FVector(300, 0, 0));
+					StereoL->SetTransform(LID3, tr);
+					StereoL->SetQuadSize(LID3, FVector2D(200, 200));
+				}
+			} 
+			break;
+			case 3: 
+			{
+				FTransform tr(FVector(400, 30, 130));
+				StereoL->SetTransform(LID2, tr);
+				StereoL->SetQuadSize(LID2, FVector2D(200, 200));
+
+			} 
+			break;
+			default: 
+			{
+				UE_LOG(LogHMD, Log, TEXT("Destroy layers %d %d %d"), LID1, LID2, LID3);
+				StereoL->DestroyLayer(LID1);
+				StereoL->DestroyLayer(LID2);
+				StereoL->DestroyLayer(LID3);
+			}
+		}
+	}
+#endif
 #endif
 	return false;
 }
@@ -475,12 +556,6 @@ void FGearVR::GetRawSensorData(SensorData& OutData)
 	OutData.AngularVelocity = ToFVector(frame->HeadPose.AngularVelocity);
 	OutData.LinearVelocity = ToFVector(frame->HeadPose.LinearVelocity);
 	OutData.TimeInSeconds = frame->HeadPose.TimeInSeconds;
-}
-
-void FGearVR::OnScreenModeChange(EWindowMode::Type WindowMode)
-{
-	//EnableStereo(WindowMode != EWindowMode::Windowed);
-	//UpdateStereoRenderingParams();
 }
 
 bool FGearVR::IsPositionalTrackingEnabled() const
@@ -513,7 +588,7 @@ bool FGearVR::EnableStereo(bool bStereo)
 	return Settings->Flags.bStereoEnabled;
 }
 
-bool FGearVR::DoEnableStereo(bool bStereo, bool bApplyToHmd)
+bool FGearVR::DoEnableStereo(bool bStereo)
 {
 	check(IsInGameThread());
 
@@ -619,6 +694,7 @@ void FGearVR::CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, 
 			FVector CurEyePosition;
 			FQuat CurEyeOrient;
 			frame->PoseToOrientationAndPosition(frame->EyeRenderPose[idx], CurEyeOrient, CurEyePosition);
+			frame->PlayerLocation = ViewLocation;
 
 			FVector HeadPosition = FVector::ZeroVector;
 			// If we use PlayerController->bFollowHmd then we must apply full EyePosition (HeadPosition == 0).

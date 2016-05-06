@@ -854,9 +854,17 @@ namespace UnrealBuildTool
 				{
 					BuildConfiguration.bUseFastPDBLinking = true;
 				}
-				else if(LowercaseArg == "-mapfile")
+				else if (LowercaseArg == "-mapfile")
 				{
 					BuildConfiguration.bCreateMapFile = true;
+				}
+				else if (LowercaseArg.StartsWith("-architectures="))
+				{
+					UEBuildConfiguration.Architectures = LowercaseArg.Replace("-architectures=", "").Split(new char[] { '+' }, StringSplitOptions.RemoveEmptyEntries);
+				}
+				else if (LowercaseArg.StartsWith("-gpuarchitectures="))
+				{
+					UEBuildConfiguration.GPUArchitectures = LowercaseArg.Replace("-gpuarchitectures=", "").Split(new char[] { '+' }, StringSplitOptions.RemoveEmptyEntries);
 				}
 			}
 		}

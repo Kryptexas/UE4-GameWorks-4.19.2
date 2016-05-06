@@ -471,6 +471,11 @@ bool FSlateEditableTextLayout::RefreshImpl(const FText* InTextToSet, const bool 
 
 	bWasPasswordLastTick = bIsPassword;
 
+	if (bHasSetText)
+	{
+		TextLayout->UpdateIfNeeded();
+	}
+
 	return bHasSetText;
 }
 
@@ -2617,9 +2622,13 @@ void FSlateEditableTextLayout::BeginEditTransation()
 	// Never change text on read only controls! 
 	check(!OwnerWidget->IsTextReadOnly());
 
-	// We're starting to (potentially) change text
-	check(!StateBeforeChangingText.IsSet());
+	if (StateBeforeChangingText.IsSet())
+	{
+		// Already within a translation - don't open another
+		return;
+	}
 
+	// We're starting to (potentially) change text
 	// Save off an undo state in case we actually change the text
 	StateBeforeChangingText = SlateEditableTextTypes::FUndoState();
 	MakeUndoState(StateBeforeChangingText.GetValue());
@@ -2627,9 +2636,13 @@ void FSlateEditableTextLayout::BeginEditTransation()
 
 void FSlateEditableTextLayout::EndEditTransaction()
 {
-	// We're no longer changing text
-	check(StateBeforeChangingText.IsSet());
+	if (!StateBeforeChangingText.IsSet())
+	{
+		// No transaction to close
+		return;
+	}
 
+	// We're no longer changing text
 	const FText EditedText = GetEditableText();
 
 	// Has the text changed?

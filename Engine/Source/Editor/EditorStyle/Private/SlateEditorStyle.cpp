@@ -4598,6 +4598,7 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 
 		Set( "MergeActors.MeshMergingTool", new IMAGE_BRUSH( "Icons/icon_MergeActors_MeshMerging_40x", Icon40x40 ) );
 		Set( "MergeActors.MeshProxyTool", new IMAGE_BRUSH( "Icons/icon_MergeActors_MeshProxy_40x", Icon40x40 ) );
+		Set( "MergeActors.TabIcon", new IMAGE_BRUSH("Icons/Icon_MergeActors_MeshMerging_16x", Icon16x16));
 		
 		Set( "PlacementBrowser.OptionsMenu", new IMAGE_BRUSH( "Icons/icon_Blueprint_Macro_16x", Icon16x16 ) );
 

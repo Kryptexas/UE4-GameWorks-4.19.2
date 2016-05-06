@@ -43,8 +43,6 @@
 	bool bIsUsingMetal;
 }
 
-+(bool)IsDeviceOnIOS8;
-
 //// SHARED FUNCTIONALITY
 @property (nonatomic) GLuint SwapCount;
 

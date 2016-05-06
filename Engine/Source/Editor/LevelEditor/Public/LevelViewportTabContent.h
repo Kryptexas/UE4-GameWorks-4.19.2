@@ -35,7 +35,8 @@ public:
 	void SetViewportConfiguration(const FName& ConfigurationName);
 
 	/**
-	 * Refresh the current layout
+	 * Refresh the current layout.
+	 * @note Does not save config
 	 */
 	void RefreshViewportConfiguration();
 
@@ -56,14 +57,14 @@ public:
 		return LayoutString;
 	}
 
+	/** Save any configuration required to persist state for this viewport layout */
+	void SaveConfig() const;
+
 private:
 	/**
 	 * Updates state after the layout is changed by SetViewportConfiguration()
 	 */
 	void UpdateViewportTabWidget();
-
-	/** Callback registered with the parent dock tab to persist state when needed */
-	void SaveLayoutString(const FString LayoutString) const;
 
 	/**
 	 * Translates layout names from namespace LevelViewportConfigurationNames into layout class and returns a new object of that class

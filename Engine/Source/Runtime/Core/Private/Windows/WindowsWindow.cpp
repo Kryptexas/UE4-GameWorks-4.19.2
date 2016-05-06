@@ -538,12 +538,6 @@ void FWindowsWindow::Hide()
 /** Toggle native window between fullscreen and normal mode */
 void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 {
-	if (NewWindowMode == EWindowMode::WindowedMirror)
-	{
-		// treat WindowedMirror as a regular Windowed mode here
-		NewWindowMode = EWindowMode::Windowed;
-	}
-
 	if (NewWindowMode != WindowMode)
 	{
 		WindowMode = NewWindowMode;

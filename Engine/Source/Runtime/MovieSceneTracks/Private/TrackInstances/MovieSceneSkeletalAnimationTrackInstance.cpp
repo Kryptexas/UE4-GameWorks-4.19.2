@@ -144,10 +144,6 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update(EMovieSceneUpdateData& Up
 				if (AnimSection == nullptr)
 				{
 					AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(MovieSceneHelpers::FindNearestSectionAtTime(AnimationTrack->GetAllSections(), UpdateData.Position));
-					if (AnimSection != nullptr && (UpdateData.Position >= AnimSection->GetStartTime() || UpdateData.Position <= AnimSection->GetEndTime()))
-					{
-						AnimSection = nullptr;
-					}
 				}
 
 				if (AnimSection && AnimSection->IsActive())

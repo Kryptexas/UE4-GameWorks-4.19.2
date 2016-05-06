@@ -3886,18 +3886,23 @@ void USkeletalMeshComponent::TickClothing(float DeltaTime, FTickFunction& ThisTi
 	}
 
 #if WITH_APEX_CLOTHING
-	// animated but bone transforms were not updated because it was not rendered
-	if (PoseTickedThisFrame() && !bRecentlyRendered)
-	{
-		ForceClothNextUpdateTeleportAndReset();
-	}
-	else
+
+	// Use the component update flag to gate simulation to respect the always tick options
+	bool bShouldTick = ((MeshComponentUpdateFlag < EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered) || bRecentlyRendered);
+
+	if (bShouldTick)
 	{
 		UpdateClothStateAndSimulate(DeltaTime, ThisTickFunction);
 	}
+	else
+	{
+		ForceClothNextUpdateTeleportAndReset();
+	}
+
 #if 0 //if turn on this flag, you can check which primitive objects are activated for collision detection
 	DrawDebugClothCollisions();
 #endif 
+
 #endif// #if WITH_APEX_CLOTHING
 }
 

@@ -10,7 +10,7 @@
 #include "VulkanMemory.h"
 
 static int32 GWaitForIdleOnSubmit = 0;
-static FAutoConsoleVariableRef CVarVulkanUseExternalShaderCompiler(
+static FAutoConsoleVariableRef CVarVulkanWaitForIdleOnSubmit(
 	TEXT("r.Vulkan.WaitForIdleOnSubmit"),
 	GWaitForIdleOnSubmit,
 	TEXT("Waits for the GPU to be idle on every submit. Useful for tracking GPU hangs.\n")

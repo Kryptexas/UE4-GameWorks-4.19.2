@@ -11,6 +11,8 @@
 #include "ShowFlags.h"
 #include "Collision.h"
 #include "ConvexVolume.h"
+#include "HierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
 #endif
 #include "ComponentInstanceDataCache.h"
 #include "LightMap.h"
@@ -1400,6 +1402,19 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 		if ( PropertyThatChanged->GetName() == TEXT("StaticMesh") )
 		{
 			InvalidateLightingCache();
+			
+			// If the owning actor is part of a cluster flag it as dirty
+			IHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<IHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+			Utilities->HandleActorModified(GetOwner());
+		}
+
+		if (PropertyThatChanged->GetName() == TEXT("overridematerials"))
+		{
+			// If the owning actor is part of a cluster flag it as dirty
+			IHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<IHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+			Utilities->HandleActorModified(GetOwner());
 		}
 	}
 

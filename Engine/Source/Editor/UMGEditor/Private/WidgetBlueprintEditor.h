@@ -190,8 +190,8 @@ private:
 	/** Add an animation track for the supplied slot to the current animation. */
 	void AddSlotTrack( UPanelSlot* Slot );
 
-	/** Add an animation track for the supplied material property to the current animation. */
-	void AddMaterialTrack( UWidget* Widget, FName MaterialPropertyName, FText MaterialPropertyDisplayName );
+	/** Add an animation track for the supplied material property path to the current animation. */
+	void AddMaterialTrack( UWidget* Widget, TArray<UProperty*> MaterialPropertyPath, FText MaterialPropertyDisplayName );
 
 private:
 	/** The preview scene that owns the preview GUI */

@@ -490,8 +490,6 @@ void UAnimSequenceBase::EvaluateCurveData(FBlendedCurve& OutCurve, float Current
 
 void UAnimSequenceBase::Serialize(FArchive& Ar)
 {
-	Super::Serialize(Ar);
-
 	if(Ar.ArIsSaving && Ar.UE4Ver() >= VER_UE4_SKELETON_ADD_SMARTNAMES)
 	{
 		if(USkeleton* MySkeleton = GetSkeleton())
@@ -520,6 +518,8 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 		}
 	}
 #endif //WITH_EDITORONLY_DATA
+
+	Super::Serialize(Ar);
 
 	RawCurveData.Serialize(Ar);
 }

@@ -70,6 +70,11 @@ public:
 			SetShaderValue(RHICmdList, GetVertexShader(), IsInstancedStereoParameter, bIsInstancedStereo);
 		}
 
+		if (InstancedEyeIndexParameter.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, 0);
+		}
+
 		if (NeedsInstancedStereoBiasParameter.IsBound())
 		{
 			SetShaderValue(RHICmdList, GetVertexShader(), NeedsInstancedStereoBiasParameter, bNeedsInstancedStereoBias);
@@ -81,8 +86,9 @@ public:
 		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(),VertexFactory,View,Proxy,BatchElement,DrawRenderState);
 	}
 
-	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) {
-		if (InstancedEyeIndexParameter.IsBound())
+	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex)
+	{
+		if (EyeIndex > 0 && InstancedEyeIndexParameter.IsBound())
 		{
 			SetShaderValue(RHICmdList, GetVertexShader(), InstancedEyeIndexParameter, EyeIndex);
 		}
@@ -242,7 +248,8 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	}
 }
 
-void FDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
+void FDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const
+{
 	VertexShader->SetInstancedEyeIndex(RHICmdList, EyeIndex);
 }
 
@@ -408,7 +415,8 @@ void FPositionOnlyDepthDrawingPolicy::SetMeshRenderState(
 	SetDitheredLODDepthStencilState(RHICmdList, DrawRenderState);
 }
 
-void FPositionOnlyDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
+void FPositionOnlyDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const
+{
 	VertexShader->SetInstancedEyeIndex(RHICmdList, EyeIndex);
 }
 

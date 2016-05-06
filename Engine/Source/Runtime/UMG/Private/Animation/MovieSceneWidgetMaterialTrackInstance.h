@@ -19,5 +19,5 @@ protected:
 	virtual void SetMaterialForObject( UObject* Object, UMaterialInterface* Material ) override;
 
 private:
-	FName BrushPropertyName;
+	TArray<FName> BrushPropertyNamePath;
 };

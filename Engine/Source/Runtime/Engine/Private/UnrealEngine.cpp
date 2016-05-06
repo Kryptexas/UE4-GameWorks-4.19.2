@@ -2082,6 +2082,10 @@ bool UEngine::InitializeHMDDevice()
 			if (HMDDevice.IsValid())
 			{
 				StereoRenderingDevice = HMDDevice;
+				if (FParse::Param(FCommandLine::Get(), TEXT("vr")))
+				{
+					HMDDevice->EnableStereo(true);
+				}
 			}
 		}
 	}
@@ -8943,12 +8947,10 @@ EBrowseReturnVal::Type UEngine::Browse( FWorldContext& WorldContext, FURL URL, F
 		}
 		
 		const UGameMapsSettings* GameMapsSettings = GetDefault<UGameMapsSettings>();
-		if (!LoadMap(WorldContext, FURL(&URL, *(GameMapsSettings->GetGameDefaultMap() + GameMapsSettings->LocalMapOptions), TRAVEL_Partial), NULL, Error))
+		const FString TextURL = GameMapsSettings->GetGameDefaultMap() + GameMapsSettings->LocalMapOptions;
+		if (!LoadMap(WorldContext, FURL(&URL, *TextURL, TRAVEL_Partial), NULL, Error))
 		{
-			UE_LOG(LogNet, Error, TEXT("Failed to load default map (%s). Error: (%s)"), *(GameMapsSettings->GetGameDefaultMap() + GameMapsSettings->LocalMapOptions), *Error);
-			const FText Message = FText::Format(NSLOCTEXT("Engine", "FailedToLoadDefaultMap", "Error '{1}'. Exiting."), FText::FromString(Error));
-			FMessageDialog::Open(EAppMsgType::Ok, Message);
-			FPlatformMisc::RequestExit(false);
+			HandleBrowseToDefaultMapFailure(WorldContext, TextURL, Error);
 			return EBrowseReturnVal::Failure;
 		}
 
@@ -9078,10 +9080,24 @@ void UEngine::BrowseToDefaultMap( FWorldContext& Context )
 	FURL DefaultURL;
 	DefaultURL.LoadURLConfig( TEXT("DefaultPlayer"), GGameIni );
 	const UGameMapsSettings* GameMapsSettings = GetDefault<UGameMapsSettings>();
+	const FString& TextURL = GameMapsSettings->GetGameDefaultMap() + GameMapsSettings->LocalMapOptions;
 
-	if (Browse( Context, FURL(&DefaultURL, *(GameMapsSettings->GetGameDefaultMap() + GameMapsSettings->LocalMapOptions), TRAVEL_Partial), Error ) != EBrowseReturnVal::Success)
+	if (Browse( Context, FURL(&DefaultURL, *TextURL, TRAVEL_Partial), Error ) != EBrowseReturnVal::Success)
 	{
-		UE_LOG(LogLoad, Fatal, TEXT("%s"), *Error);
+		HandleBrowseToDefaultMapFailure(Context, TextURL, Error);
+	}
+}
+
+void UEngine::HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error)
+{
+	UE_LOG(LogNet, Error, TEXT("Failed to load default map (%s). Error: (%s)"), *TextURL, *Error);
+	const FText Message = FText::Format(NSLOCTEXT("Engine", "FailedToLoadDefaultMap", "Error '{0}'. Exiting."), FText::FromString(Error));
+	FMessageDialog::Open(EAppMsgType::Ok, Message);
+
+	// Even though we're probably going to shut down anyway, create a dummy world since a lot of code expects it.
+	if (Context.World() == nullptr)
+	{
+		Context.SetCurrentWorld( UWorld::CreateWorld( Context.WorldType, false ) );
 	}
 }
 
@@ -9861,6 +9877,10 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// Prime texture streaming.
 	IStreamingManager::Get().NotifyLevelChange();
 
+	if (GEngine && GEngine->HMDDevice.IsValid())
+	{
+		GEngine->HMDDevice->OnBeginPlay(WorldContext);
+	}
 	WorldContext.World()->BeginPlay();
 
 	// send a callback message
@@ -11281,10 +11301,6 @@ void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWin
 		case EWindowMode::Windowed:
 		{
 			WindowModeSuffix = TEXT("w");
-		} break;
-		case EWindowMode::WindowedMirror:
-		{
-			WindowModeSuffix = TEXT("wm");
 		} break;
 		case EWindowMode::WindowedFullscreen:
 		{

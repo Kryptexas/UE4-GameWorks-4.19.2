@@ -843,7 +843,7 @@ bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FM
 			// when loading a scene on UnrealEd startup. Use GetRendererModule().BeginRenderingViewFamily()
 			// for that. Prepare a dummy scene because it is required by that function.
 			FClassThumbnailScene DummyScene;
-			DummyScene.SetClass(UStaticMesh::StaticClass());
+			DummyScene.SetClass(AStaticMeshActor::StaticClass());
 			ViewFamily.Scene = DummyScene.GetScene();
 			int32 X = 0, Y = 0, Width = 256, Height = 256;
 			DummyScene.GetView(&ViewFamily, X, Y, Width, Height);

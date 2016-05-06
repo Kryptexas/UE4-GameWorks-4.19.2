@@ -240,6 +240,12 @@ public:
 		UKismetArrayLibrary::GenericArray_SetArrayPropertyByName(Object, PropertyName, &Value);
 	}
 
+	template<typename T>
+	static bool Array_IsValidIndex(const TArray<T>& TargetArray, int32 Index)
+	{
+		return TargetArray.IsValidIndex(Index);
+	}
+
 	//Replacements for CustomThunk functions from UDataTableFunctionLibrary
 
 	template<typename T>

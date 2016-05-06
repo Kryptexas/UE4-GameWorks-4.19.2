@@ -8,7 +8,7 @@
 
 FMovieSceneWidgetMaterialTrackInstance::FMovieSceneWidgetMaterialTrackInstance( UMovieSceneWidgetMaterialTrack& InMaterialTrack )
 	: FMovieSceneMaterialTrackInstance( InMaterialTrack )
-	, BrushPropertyName( InMaterialTrack.GetBrushPropertyName() )
+	, BrushPropertyNamePath( InMaterialTrack.GetBrushPropertyNamePath() )
 {
 }
 
@@ -18,8 +18,11 @@ UMaterialInterface* FMovieSceneWidgetMaterialTrackInstance::GetMaterialForObject
 	UWidget* Widget = Cast<UWidget>(Object);
 	if ( Widget != nullptr )
 	{
-		FSlateBrush* Brush = WidgetMaterialTrackUtilities::GetBrush( Widget, BrushPropertyName );
-		return Cast<UMaterialInterface>( Brush->GetResourceObject() );
+		FSlateBrush* Brush = WidgetMaterialTrackUtilities::GetBrush( Widget, BrushPropertyNamePath );
+		if ( Brush != nullptr )
+		{
+			return Cast<UMaterialInterface>( Brush->GetResourceObject() );
+		}
 	}
 	return nullptr;
 }
@@ -30,7 +33,7 @@ void FMovieSceneWidgetMaterialTrackInstance::SetMaterialForObject( UObject* Obje
 	UWidget* Widget = Cast<UWidget>( Object );
 	if ( Widget != nullptr )
 	{
-		FSlateBrush* Brush = WidgetMaterialTrackUtilities::GetBrush( Widget, BrushPropertyName );
+		FSlateBrush* Brush = WidgetMaterialTrackUtilities::GetBrush( Widget, BrushPropertyNamePath );
 		Brush->SetResourceObject( Material );
 	}
 }

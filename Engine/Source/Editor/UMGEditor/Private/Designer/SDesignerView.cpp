@@ -886,7 +886,10 @@ void SDesignerView::PushDesignerMessage(const FText& Message)
 
 void SDesignerView::PopDesignerMessage()
 {
-	DesignerMessageStack.Pop();
+	if ( DesignerMessageStack.Num() > 0)
+	{
+		DesignerMessageStack.Pop();
+	}
 }
 
 void SDesignerView::OnEditorSelectionChanged()

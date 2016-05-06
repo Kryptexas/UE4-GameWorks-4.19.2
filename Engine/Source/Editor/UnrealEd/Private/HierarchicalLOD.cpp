@@ -15,6 +15,7 @@
 #include "ObjectTools.h"
 #include "MeshUtilities.h"
 #include "HierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
 #endif // WITH_EDITOR
 
 #include "GameFramework/WorldSettings.h"
@@ -464,7 +465,10 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 
 		if (LevelIter->Actors.Num() > 0)
 		{
-			UPackage* AssetsOuter = FHierarchicalLODUtilities::CreateOrRetrieveLevelHLODPackage(LevelIter);
+			FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
+
+			UPackage* AssetsOuter = Utilities->CreateOrRetrieveLevelHLODPackage(LevelIter);
 
 			if (AssetsOuter)
 			{
@@ -494,7 +498,7 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 					TArray<ALODActor*>& LODLevel = LODLevelActors[CurrentLODLevel];					
 					for (ALODActor* Actor : LODLevel)
 					{
-						bBuildSuccesfull &= FHierarchicalLODUtilities::BuildStaticMeshForLODActor(Actor, AssetsOuter, BuildLODLevelSettings[CurrentLODLevel], CurrentLODLevel);
+						bBuildSuccesfull &= Utilities->BuildStaticMeshForLODActor(Actor, AssetsOuter, BuildLODLevelSettings[CurrentLODLevel]);
 						SlowTask.EnterProgressFrame(100.0f / (float)NumLODActors, FText::Format(LOCTEXT("HierarchicalLOD_BuildLODActorMeshesProgress", "Building LODActor Mesh {1} / {2} in LOD Level {0}"), FText::AsNumber(LODIndex), FText::AsNumber(LODActorIndex), FText::AsNumber(LODLevelActors[CurrentLODLevel].Num())));
 						++LODActorIndex;
 					}
@@ -555,9 +559,12 @@ void FHierarchicalLODBuilder::BuildMeshForLODActor(ALODActor* LODActor, const ui
 {
 	AWorldSettings* WorldSetting = World->GetWorldSettings();
 	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
-	UPackage* AssetsOuter = FHierarchicalLODUtilities::CreateOrRetrieveLevelHLODPackage(LODActor->GetLevel());
+	
+	FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
+	IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
 
-	const bool bResult = FHierarchicalLODUtilities::BuildStaticMeshForLODActor(LODActor, AssetsOuter, BuildLODLevelSettings[LODLevel], LODLevel);
+	UPackage* AssetsOuter = Utilities->CreateOrRetrieveLevelHLODPackage(LODActor->GetLevel());
+	const bool bResult = Utilities->BuildStaticMeshForLODActor(LODActor, AssetsOuter, BuildLODLevelSettings[LODLevel]);
 
 	if (bResult == false)
 	{

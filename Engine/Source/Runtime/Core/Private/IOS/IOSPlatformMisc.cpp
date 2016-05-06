@@ -395,13 +395,14 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 
 	// convert to NSStringt
 	NSString *DeviceIDString= [NSString stringWithCString:DeviceID encoding:NSUTF8StringEncoding];
+    FString DeviceIDFstring = FString(DeviceIDString);
 	free(DeviceID);
 
 	// iPods
 	if ([DeviceIDString hasPrefix:@"iPod"])
 	{
 		// get major revision number
-		int Major = [DeviceIDString characterAtIndex:4] - '0';
+        int Major = FCString::Atoi(&DeviceIDFstring[4]);
 
 		if (Major == 5)
 		{
@@ -416,8 +417,8 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 	else if ([DeviceIDString hasPrefix:@"iPad"])
 	{
 		// get major revision number
-		int Major = [DeviceIDString characterAtIndex:4] - '0';
-		int Minor = [DeviceIDString characterAtIndex:6] - '0';
+		int Major = FCString::Atoi(&DeviceIDFstring[4]);
+		int Minor = FCString::Atoi(&DeviceIDFstring[([DeviceIDString rangeOfString:@","].location + 1)]);
 
 		// iPad2,[1|2|3] is iPad 2 (1 - wifi, 2 - gsm, 3 - cdma)
 		if (Major == 2)
@@ -471,7 +472,14 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 		}
 		else if (Major == 6)
 		{
-			DeviceType = IOS_IPadPro;
+			if (Minor == 3 || Minor == 4)
+			{
+				DeviceType = IOS_IPadPro_97;
+			}
+			else
+			{
+				DeviceType = IOS_IPadPro_129;
+			}
 		}
 		// Default to highest settings currently available for any future device
 		else if (Major > 6)
@@ -482,8 +490,8 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 	// iPhones
 	else if ([DeviceIDString hasPrefix:@"iPhone"])
 	{
-		int Major = [DeviceIDString characterAtIndex:6] - '0';
-		int Minor = [DeviceIDString characterAtIndex:8] - '0';
+        int Major = FCString::Atoi(&DeviceIDFstring[6]);
+        int Minor = FCString::Atoi(&DeviceIDFstring[([DeviceIDString rangeOfString:@","].location + 1)]);
 
 		if (Major == 3)
 		{
@@ -522,6 +530,10 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 			else if (Minor == 2)
 			{
 				DeviceType = IOS_IPhone6SPlus;
+			}
+			else if (Minor == 4)
+			{
+				DeviceType = IOS_IPhoneSE;
 			}
 		}
 		else if (Major >= 9)

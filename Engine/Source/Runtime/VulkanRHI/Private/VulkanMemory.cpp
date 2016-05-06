@@ -7,6 +7,8 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanMemory.h"
 
+#define DO_LOG_BINDINGS		0
+
 namespace VulkanRHI
 {
 	static FCriticalSection GBufferAllocationLock;
@@ -225,7 +227,9 @@ namespace VulkanRHI
 
 	void FOldResourceAllocation::BindBuffer(FVulkanDevice* Device, VkBuffer Buffer)
 	{
-		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindBufferMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buffer, GetHandle(), GetOffset(), GetSize());
+#if DO_LOG_BINDINGS
+		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindBufferMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buffer, GetHandle(), GetOffset(), GetSize());
+#endif
 		VkResult Result = vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, GetHandle(), GetOffset());
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		if (Result == VK_ERROR_OUT_OF_DEVICE_MEMORY || Result == VK_ERROR_OUT_OF_HOST_MEMORY)
@@ -239,7 +243,9 @@ namespace VulkanRHI
 
 	void FOldResourceAllocation::BindImage(FVulkanDevice* Device, VkImage Image)
 	{
-		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** vkBindImageMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, GetHandle(), GetOffset(), GetSize());
+#if DO_LOG_BINDINGS
+		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindImageMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, GetHandle(), GetOffset(), GetSize());
+#endif
 		VkResult Result = vkBindImageMemory(Device->GetInstanceHandle(), Image, GetHandle(), GetOffset());
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		if (Result == VK_ERROR_OUT_OF_DEVICE_MEMORY || Result == VK_ERROR_OUT_OF_HOST_MEMORY)
@@ -699,6 +705,11 @@ namespace VulkanRHI
 
 	FBufferSuballocation* FResourceHeapManager::AllocateBuffer(uint32 Size, VkBufferUsageFlags BufferUsageFlags, VkMemoryPropertyFlags MemoryPropertyFlags, const char* File, uint32 Line)
 	{
+		const auto& Limits = Device->GetLimits();
+		uint32 Alignment = ((BufferUsageFlags & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) != 0) ? (uint32)Limits.minUniformBufferOffsetAlignment : 1;
+		Alignment = FMath::Max(Alignment, ((BufferUsageFlags & (VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)) != 0) ? (uint32)Limits.minTexelBufferOffsetAlignment : 1u);
+		Alignment = FMath::Max(Alignment, ((BufferUsageFlags & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) != 0) ? (uint32)Limits.minStorageBufferOffsetAlignment : 1u);
+
 		FScopeLock ScopeLock(&CS);
 
 		for (int32 Index = 0; Index < UsedBufferAllocations.Num(); ++Index)
@@ -707,7 +718,7 @@ namespace VulkanRHI
 			if ((BufferAllocation->BufferUsageFlags & BufferUsageFlags) == BufferUsageFlags &&
 				(BufferAllocation->MemoryPropertyFlags & MemoryPropertyFlags) == MemoryPropertyFlags)
 			{
-				FBufferSuballocation* Suballocation = (FBufferSuballocation*)BufferAllocation->TryAllocateNoLocking(Size, File, Line);
+				FBufferSuballocation* Suballocation = (FBufferSuballocation*)BufferAllocation->TryAllocateNoLocking(Size, Alignment, File, Line);
 				if (Suballocation)
 				{
 					return Suballocation;
@@ -721,7 +732,7 @@ namespace VulkanRHI
 			if ((BufferAllocation->BufferUsageFlags & BufferUsageFlags) == BufferUsageFlags &&
 				(BufferAllocation->MemoryPropertyFlags & MemoryPropertyFlags) == MemoryPropertyFlags)
 			{
-				FBufferSuballocation* Suballocation = (FBufferSuballocation*)BufferAllocation->TryAllocateNoLocking(Size, File, Line);
+				FBufferSuballocation* Suballocation = (FBufferSuballocation*)BufferAllocation->TryAllocateNoLocking(Size, Alignment, File, Line);
 				if (Suballocation)
 				{
 					FreeBufferAllocations.RemoveAtSwap(Index, 1, false);
@@ -749,6 +760,9 @@ namespace VulkanRHI
 		VERIFYVULKANRESULT(Device->GetMemoryManager().GetMemoryTypeFromProperties(MemReqs.memoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
 
 		auto* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(BufferSize, MemoryTypeIndex, File, Line);
+#if DO_LOG_BINDINGS
+		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindBufferMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Buffer, DeviceMemoryAllocation->GetHandle(), 0, DeviceMemoryAllocation->GetSize());
+#endif
 		VERIFYVULKANRESULT(vkBindBufferMemory(Device->GetInstanceHandle(), Buffer, DeviceMemoryAllocation->GetHandle(), 0));
 		if (MemoryPropertyFlags == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
 		{
@@ -758,7 +772,7 @@ namespace VulkanRHI
 		auto* BufferAllocation = new FBufferAllocation(this, DeviceMemoryAllocation, MemoryTypeIndex, MemoryPropertyFlags, MemReqs.alignment, Buffer, BufferUsageFlags);
 		UsedBufferAllocations.Add(BufferAllocation);
 
-		return (FBufferSuballocation*)BufferAllocation->TryAllocateNoLocking(Size, File, Line);
+		return (FBufferSuballocation*)BufferAllocation->TryAllocateNoLocking(Size, Alignment, File, Line);
 	}
 
 	void FResourceHeapManager::ReleaseBuffer(FBufferAllocation* BufferAllocation)
@@ -822,6 +836,9 @@ namespace VulkanRHI
 		VERIFYVULKANRESULT(Device->GetMemoryManager().GetMemoryTypeFromProperties(MemReqs.memoryTypeBits, MemoryPropertyFlags, &MemoryTypeIndex));
 
 		auto* DeviceMemoryAllocation = Device->GetMemoryManager().Alloc(ImageSize, MemoryTypeIndex, File, Line);
+#if DO_LOG_BINDINGS
+		UE_LOG(LogVulkanRHI, Display, TEXT("** vkBindImageMemory Image %p MemHandle %p MemOffset %d Size %u\n"), (void*)Image, DeviceMemoryAllocation->GetHandle(), DeviceMemoryAllocation->GetOffset(), DeviceMemoryAllocation->GetSize());
+#endif
 		VERIFYVULKANRESULT(vkBindImageMemory(Device->GetInstanceHandle(), Image, DeviceMemoryAllocation->GetHandle(), 0));
 		if (MemoryPropertyFlags == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
 		{
@@ -909,15 +926,16 @@ namespace VulkanRHI
 		return false;
 	}
 	
-	FResourceSuballocation* FSubresourceAllocator::TryAllocateNoLocking(uint32 Size, const char* File, uint32 Line)
+	FResourceSuballocation* FSubresourceAllocator::TryAllocateNoLocking(uint32 InSize, uint32 InAlignment, const char* File, uint32 Line)
 	{
+		InAlignment = FMath::Max(InAlignment, Alignment);
 		for (int32 Index = 0; Index < FreeList.Num(); ++Index)
 		{
 			FPair& Entry = FreeList[Index];
 			uint32 AllocatedOffset = Entry.Offset;
-			uint32 AlignedOffset = Align(Entry.Offset, Alignment);
+			uint32 AlignedOffset = Align(Entry.Offset, InAlignment);
 			uint32 AlignmentAdjustment = AlignedOffset - Entry.Offset;
-			uint32 AllocatedSize = AlignmentAdjustment + Size;
+			uint32 AllocatedSize = AlignmentAdjustment + InSize;
 			if (AllocatedSize <= Entry.Size)
 			{
 				if (AllocatedSize < Entry.Size)
@@ -934,7 +952,7 @@ namespace VulkanRHI
 
 				UsedSize += AllocatedSize;
 
-				auto* NewSuballocation = CreateSubAllocation(Size, AlignedOffset, AllocatedSize, AllocatedOffset);// , File, Line);
+				auto* NewSuballocation = CreateSubAllocation(InSize, AlignedOffset, AllocatedSize, AllocatedOffset);// , File, Line);
 				Suballocations.Add(NewSuballocation);
 
 				//PeakNumAllocations = FMath::Max(PeakNumAllocations, ResourceAllocations.Num());

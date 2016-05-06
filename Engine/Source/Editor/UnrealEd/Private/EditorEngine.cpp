@@ -6385,6 +6385,12 @@ void UEditorEngine::VerifyLoadMapWorldCleanup()
 	}
 }
 
+void UEditorEngine::HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error)
+{
+	Super::HandleBrowseToDefaultMapFailure(Context, TextURL, Error);
+	RequestEndPlayMap();
+}
+
 void UEditorEngine::TriggerStreamingDataRebuild()
 {
 	for (int32 WorldIndex = 0; WorldIndex < WorldList.Num(); ++WorldIndex)

@@ -1180,7 +1180,8 @@ private:
 		{
 			FScriptInterface* InterfaceValue = InterfaceProp->GetPropertyValuePtr(PropertyValueAddress);
 
-			if (InterfaceValue->GetObject()->IsDefaultSubobject())
+			UObject* InterfaceObj = InterfaceValue->GetObject();
+			if (InterfaceObj && InterfaceObj->IsDefaultSubobject())
 			{
 				Components.AddUnique(InterfaceValue->GetObject());
 			}

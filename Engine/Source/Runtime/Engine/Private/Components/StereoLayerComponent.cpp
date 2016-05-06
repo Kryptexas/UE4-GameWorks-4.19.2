@@ -6,13 +6,18 @@
 
 UStereoLayerComponent::UStereoLayerComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bLiveTexture(false)
+	, bNoAlphaChannel(false)
 	, Texture(nullptr)
 	, QuadSize(FVector2D(100.0f, 100.0f))
 	, UVRect(FBox2D(FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f)))
 	, StereoLayerType(SLT_FaceLocked)
 	, Priority(0)
 	, bIsDirty(true)
+	, bTextureNeedsUpdate(false)
 	, LayerId(0)
+	, LastTransform(FTransform::Identity)
+	, bLastVisible(false)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -40,51 +45,85 @@ void UStereoLayerComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 		return;
 	}
 
-	FTransform RelativeTransform = GetRelativeTransform();
+	FTransform Transform;
+	if (StereoLayerType == SLT_WorldLocked)
+	{
+		Transform = GetComponentTransform();
+	}
+	else
+	{
+		Transform = GetRelativeTransform();
+	}
 	
 	// If the transform changed dirty the layer and push the new transform
-	if (!bIsDirty && FMemory::Memcmp(&LastTransform, &RelativeTransform, sizeof(RelativeTransform)) != 0)
+	if (!bIsDirty && (bLastVisible != bVisible || FMemory::Memcmp(&LastTransform, &Transform, sizeof(Transform)) != 0))
 	{
 		bIsDirty = true;
 	}
 
+	bool bCurrVisible = bVisible;
+	if (!Texture || !Texture->Resource)
+	{
+		bCurrVisible = false;
+	}
+
 	if (bIsDirty)
 	{
-		IStereoLayers::FLayerDesc LayerDsec;
-		LayerDsec.Priority = Priority;
-		LayerDsec.QuadSize = QuadSize;
-		LayerDsec.Texture = Texture;
-		LayerDsec.UVRect = UVRect;
-		LayerDsec.Transform = RelativeTransform;
-
-		switch (StereoLayerType)
+		if (!bCurrVisible)
 		{
-		case SLT_WorldLocked:
-			LayerDsec.Type = IStereoLayers::WorldLocked;;
-			break;
-		case SLT_TorseLocked:
-			LayerDsec.Type = IStereoLayers::TorsoLocked;
-			break;
-		case SLT_FaceLocked:
-			LayerDsec.Type = IStereoLayers::FaceLocked;
-			break;
-		}
-
-		if (LayerId)
-		{
-			StereoLayers->SetLayerDesc(LayerId, LayerDsec);
+			if (LayerId)
+			{
+				StereoLayers->DestroyLayer(LayerId);
+				LayerId = 0;
+			}
 		}
 		else
 		{
-			LayerId = StereoLayers->CreateLayer(LayerDsec);
-		}
+			IStereoLayers::FLayerDesc LayerDsec;
+			LayerDsec.Priority = Priority;
+			LayerDsec.QuadSize = QuadSize;
+			LayerDsec.UVRect = UVRect;
+			LayerDsec.Transform = Transform;
+			LayerDsec.Texture = Texture->Resource->TextureRHI;
+			
+			LayerDsec.Flags |= (bLiveTexture) ? IStereoLayers::LAYER_FLAG_TEX_CONTINUOUS_UPDATE : 0;
+			LayerDsec.Flags |= (bNoAlphaChannel) ? IStereoLayers::LAYER_FLAG_TEX_NO_ALPHA_CHANNEL : 0;
 
-		LastTransform = RelativeTransform;
+			switch (StereoLayerType)
+			{
+			case SLT_WorldLocked:
+				LayerDsec.Type = IStereoLayers::WorldLocked;
+				break;
+			case SLT_TorseLocked:
+				LayerDsec.Type = IStereoLayers::TorsoLocked;
+				break;
+			case SLT_FaceLocked:
+				LayerDsec.Type = IStereoLayers::FaceLocked;
+				break;
+			}
+
+			if (LayerId)
+			{
+				StereoLayers->SetLayerDesc(LayerId, LayerDsec);
+			}
+			else
+			{
+				LayerId = StereoLayers->CreateLayer(LayerDsec);
+			}
+		}
+		LastTransform = Transform;
+		bLastVisible = bCurrVisible;
 		bIsDirty = false;
+	}
+
+	if (bTextureNeedsUpdate && LayerId)
+	{
+		StereoLayers->MarkTextureForUpdate(LayerId);
+		bTextureNeedsUpdate = false;
 	}
 }
 
-void UStereoLayerComponent::SetTexture(UTexture2D* InTexture)
+void UStereoLayerComponent::SetTexture(UTexture* InTexture)
 {
 	if (Texture == InTexture)
 	{
@@ -126,5 +165,10 @@ void UStereoLayerComponent::SetPriority(int32 InPriority)
 
 	Priority = InPriority;
 	bIsDirty = true;
+}
+
+void UStereoLayerComponent::MarkTextureForUpdate()
+{
+	bTextureNeedsUpdate = true;
 }
 

@@ -102,20 +102,27 @@ enum ETextureSizingType
 	TextureSizingType_MAX,
 };
 
+UENUM()
+enum EMaterialMergeType
+{
+	MaterialMergeType_Default,
+	MaterialMergeType_Simplygon
+};
+
 USTRUCT()
 struct FMaterialProxySettings
 {
 	GENERATED_USTRUCT_BODY()
 
-		// Size of generated BaseColor map
-		UPROPERTY(Category = Material, EditAnywhere)
-		FIntPoint TextureSize;
+	// Size of generated BaseColor map
+	UPROPERTY(Category = Material, EditAnywhere)
+	FIntPoint TextureSize;
 
 	UPROPERTY(Category = Material, EditAnywhere)
-		TEnumAsByte<ETextureSizingType> TextureSizingType;
+	TEnumAsByte<ETextureSizingType> TextureSizingType;
 
-	UPROPERTY(Category = Material, EditAnywhere)
-		float GutterSpace;
+	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
+	float GutterSpace;
 
 	// Whether to generate normal map
 	UPROPERTY(Category = Material, EditAnywhere)
@@ -150,36 +157,39 @@ struct FMaterialProxySettings
 		bool bEmissiveMap;
 
 	// Whether to generate opacity map
-	UPROPERTY(Category = Material, EditAnywhere)
-		bool bOpacityMap;
+	UPROPERTY()
+	bool bOpacityMap;
 
 	// Override diffuse map size
 	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-		FIntPoint DiffuseTextureSize;
+	FIntPoint DiffuseTextureSize;
 
 	// Override normal map size
 	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-		FIntPoint NormalTextureSize;
+	FIntPoint NormalTextureSize;
 
 	// Override metallic map size
 	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-		FIntPoint MetallicTextureSize;
+	FIntPoint MetallicTextureSize;
 
 	// Override roughness map size
 	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-		FIntPoint RoughnessTextureSize;
+	FIntPoint RoughnessTextureSize;
 
 	// Override specular map size
 	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-		FIntPoint SpecularTextureSize;
+	FIntPoint SpecularTextureSize;
 
 	// Override emissive map size
 	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-		FIntPoint EmissiveTextureSize;
+	FIntPoint EmissiveTextureSize;
 
 	// Override opacity map size
-	UPROPERTY(Category = Material, AdvancedDisplay, EditAnywhere)
-		FIntPoint OpacityTextureSize;
+	UPROPERTY()
+	FIntPoint OpacityTextureSize;
+
+	UPROPERTY()
+	TEnumAsByte<EMaterialMergeType> MaterialMergeType;
 
 	FMaterialProxySettings()
 		: TextureSize(1024, 1024)
@@ -200,6 +210,7 @@ struct FMaterialProxySettings
 		, RoughnessTextureSize(1024, 1024)
 		, EmissiveTextureSize(1024, 1024)
 		, OpacityTextureSize(1024, 1024)
+		, MaterialMergeType( EMaterialMergeType::MaterialMergeType_Default )
 	{
 	}
 

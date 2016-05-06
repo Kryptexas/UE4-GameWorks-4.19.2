@@ -377,15 +377,13 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 						? FPopupMethodReply::UseMethod(Method.GetValue())
 						: QueryPopupMethod(MyWidgetPath);
 
-					const bool CollapsedByParent = false;	// don't auto-close child menus when the parent gets focus
-
 					// "Normal" menus are created and managed by the application's menu stack functions
 					if (bUseApplicationMenuStack)
 					{
 						if (MethodInUse.GetPopupMethod() == EPopupMethod::CreateNewWindow)
 						{
 							// Open the pop-up
-							TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushMenu(AsShared(), MyWidgetPath, MenuContentRef, NewPosition, TransitionEffect, bFocusMenu, SummonLocationSize, MethodInUse.GetPopupMethod(), CollapsedByParent);
+							TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushMenu(AsShared(), MyWidgetPath, MenuContentRef, NewPosition, TransitionEffect, bFocusMenu, SummonLocationSize, MethodInUse.GetPopupMethod(), bIsCollapsedByParent);
 
 							PopupMenuPtr = NewMenu;
 							check(NewMenu.IsValid() && NewMenu->GetOwnedWindow().IsValid());
@@ -408,7 +406,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 							TSharedRef<SMenuAnchor> SharedThis = StaticCastSharedRef<SMenuAnchor>(AsShared());
 
 							TSharedPtr<IMenu> NewMenu = FSlateApplication::Get().PushHostedMenu(
-								SharedThis, MyWidgetPath, SharedThis, MenuContentRef, WrappedContent, TransitionEffect, MethodInUse.GetShouldThrottle(), CollapsedByParent);
+								SharedThis, MyWidgetPath, SharedThis, MenuContentRef, WrappedContent, TransitionEffect, MethodInUse.GetShouldThrottle(), bIsCollapsedByParent);
 
 							PopupMenuPtr = NewMenu;
 							check(NewMenu.IsValid());
@@ -476,7 +474,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 								NewMenuWindow->SetWidgetToFocusOnActivate(MenuContentRef);
 							}
 
-							TSharedPtr<IMenu> NewMenu = MakeShareable(new FMenuInWindow(NewMenuWindow, MenuContentRef, CollapsedByParent));
+							TSharedPtr<IMenu> NewMenu = MakeShareable(new FMenuInWindow(NewMenuWindow, MenuContentRef, bIsCollapsedByParent));
 							FSlateApplication::Get().AddWindowAsNativeChild(NewMenuWindow, MyWidgetPath.GetWindow(), true);
 
 							PopupMenuPtr = OwnedMenuPtr = NewMenu;
@@ -498,7 +496,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 							}
 
 							TSharedRef<SMenuAnchor> SharedThis = StaticCastSharedRef<SMenuAnchor>(AsShared());
-							TSharedPtr<IMenu> NewMenu = MakeShareable(new FMenuInHostWidget(SharedThis, MenuContentRef, CollapsedByParent));
+							TSharedPtr<IMenu> NewMenu = MakeShareable(new FMenuInHostWidget(SharedThis, MenuContentRef, bIsCollapsedByParent));
 
 							PopupMenuPtr = OwnedMenuPtr = NewMenu;
 							check(NewMenu.IsValid());

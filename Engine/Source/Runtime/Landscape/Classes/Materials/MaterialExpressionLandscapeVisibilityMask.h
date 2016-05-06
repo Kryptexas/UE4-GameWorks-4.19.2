@@ -5,7 +5,7 @@
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionLandscapeVisibilityMask.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(MinimalAPI, collapseCategories, hideCategories=Object)
 class UMaterialExpressionLandscapeVisibilityMask : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

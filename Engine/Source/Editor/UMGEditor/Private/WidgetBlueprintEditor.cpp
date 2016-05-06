@@ -855,17 +855,24 @@ void FWidgetBlueprintEditor::ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrack
 				AddTrackMenuBuilder.EndSection();
 			}
 
-			TArray<UProperty*> MaterialBrushProperties;
-			WidgetMaterialTrackUtilities::GetMaterialBrushProperties( Widget, MaterialBrushProperties );
-			if ( MaterialBrushProperties.Num() > 0 )
+			TArray<TArray<UProperty*>> MaterialBrushPropertyPaths;
+			WidgetMaterialTrackUtilities::GetMaterialBrushPropertyPaths( Widget, MaterialBrushPropertyPaths );
+			if ( MaterialBrushPropertyPaths.Num() > 0 )
 			{
 				AddTrackMenuBuilder.BeginSection( "Materials", LOCTEXT( "MaterialsSection", "Materials" ) );
 				{
-					for ( UProperty* MaterialBrushProperty : MaterialBrushProperties )
+					for ( TArray<UProperty*>& MaterialBrushPropertyPath : MaterialBrushPropertyPaths )
 					{
-						FUIAction AddMaterialAction( FExecuteAction::CreateRaw( this, &FWidgetBlueprintEditor::AddMaterialTrack, Widget, MaterialBrushProperty->GetFName(), MaterialBrushProperty->GetDisplayNameText() ) );
-						FText AddMaterialLabel = MaterialBrushProperty->GetDisplayNameText();
-						FText AddMaterialToolTip = FText::Format( LOCTEXT( "MaterialToolTipFormat", "Add a material track for the {0} property." ), MaterialBrushProperty->GetDisplayNameText() );
+						FString DisplayName = MaterialBrushPropertyPath[0]->GetDisplayNameText().ToString();
+						for ( int32 i = 1; i < MaterialBrushPropertyPath.Num(); i++)
+						{
+							DisplayName.AppendChar( '.' );
+							DisplayName.Append( MaterialBrushPropertyPath[i]->GetDisplayNameText().ToString() );
+						}
+						FText DisplayNameText = FText::FromString( DisplayName );
+						FUIAction AddMaterialAction( FExecuteAction::CreateRaw( this, &FWidgetBlueprintEditor::AddMaterialTrack, Widget, MaterialBrushPropertyPath, DisplayNameText ) );
+						FText AddMaterialLabel = DisplayNameText;
+						FText AddMaterialToolTip = FText::Format( LOCTEXT( "MaterialToolTipFormat", "Add a material track for the {0} property." ), DisplayNameText );
 						AddTrackMenuBuilder.AddMenuEntry( AddMaterialLabel, AddMaterialToolTip, FSlateIcon(), AddMaterialAction );
 					}
 				}
@@ -880,13 +887,18 @@ void FWidgetBlueprintEditor::AddSlotTrack( UPanelSlot* Slot )
 	GetSequencer()->GetHandleToObject( Slot );
 }
 
-void FWidgetBlueprintEditor::AddMaterialTrack( UWidget* Widget, FName MaterialPropertyName, FText MaterialPropertyDisplayName )
+void FWidgetBlueprintEditor::AddMaterialTrack( UWidget* Widget, TArray<UProperty*> MaterialPropertyPath, FText MaterialPropertyDisplayName )
 {
 	FGuid WidgetHandle = Sequencer->GetHandleToObject( Widget );
 	if ( WidgetHandle.IsValid() )
 	{
 		UMovieScene* MovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
-		if( MovieScene->FindTrack( UMovieSceneWidgetMaterialTrack::StaticClass(), WidgetHandle, MaterialPropertyName ) == nullptr)
+		TArray<FName> MaterialPropertyNamePath;
+		for ( UProperty* Property : MaterialPropertyPath )
+		{
+			MaterialPropertyNamePath.Add( Property->GetFName() );
+		}
+		if( MovieScene->FindTrack( UMovieSceneWidgetMaterialTrack::StaticClass(), WidgetHandle, WidgetMaterialTrackUtilities::GetTrackNameFromPropertyNamePath( MaterialPropertyNamePath ) ) == nullptr)
 		{
 			const FScopedTransaction Transaction( LOCTEXT( "AddWidgetMaterialTrack", "Add widget material track" ) );
 
@@ -894,7 +906,7 @@ void FWidgetBlueprintEditor::AddMaterialTrack( UWidget* Widget, FName MaterialPr
 
 			UMovieSceneWidgetMaterialTrack* NewTrack = Cast<UMovieSceneWidgetMaterialTrack>( MovieScene->AddTrack( UMovieSceneWidgetMaterialTrack::StaticClass(), WidgetHandle ) );
 			NewTrack->Modify();
-			NewTrack->SetBrushPropertyName( MaterialPropertyName );
+			NewTrack->SetBrushPropertyNamePath( MaterialPropertyNamePath );
 			NewTrack->SetDisplayName( FText::Format( LOCTEXT( "TrackDisplayNameFormat", "{0} Material"), MaterialPropertyDisplayName ) );
 
 			Sequencer->NotifyMovieSceneDataChanged();

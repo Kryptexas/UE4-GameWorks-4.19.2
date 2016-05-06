@@ -923,7 +923,7 @@ void FPhysXErrorCallback::reportError(PxErrorCode::Enum e, const char* message, 
 	// Make string to print out, include physx file/line
 	FString ErrorString = FString::Printf(TEXT("PHYSX: (%s %d) %s : %s"), ANSI_TO_TCHAR(file), line, *ErrorCodeToString(e), ANSI_TO_TCHAR(message));
 
-	if (e == PxErrorCode::eOUT_OF_MEMORY || e == PxErrorCode::eINTERNAL_ERROR || e == PxErrorCode::eABORT)
+	if (e == PxErrorCode::eOUT_OF_MEMORY || e == PxErrorCode::eABORT)
 	{
 		UE_LOG(LogPhysics, Error, TEXT("%s"), *ErrorString);
 		//ensureMsgf(false, TEXT("%s"), *ErrorString);
@@ -933,7 +933,7 @@ void FPhysXErrorCallback::reportError(PxErrorCode::Enum e, const char* message, 
 		UE_LOG(LogPhysics, Error, TEXT("%s"), *ErrorString);
 		//ensureMsgf(false, TEXT("%s"), *ErrorString);
 	}
-	else if (e == PxErrorCode::ePERF_WARNING)
+	else if (e == PxErrorCode::ePERF_WARNING || e == PxErrorCode::eINTERNAL_ERROR)
 	{
 		UE_LOG(LogPhysics, Warning, TEXT("%s"), *ErrorString);
 	}
