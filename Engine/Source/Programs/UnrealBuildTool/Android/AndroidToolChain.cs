@@ -406,7 +406,7 @@ namespace UnrealBuildTool
 			// debug info
 			if (CompileEnvironment.Config.bCreateDebugInfo)
 			{
-				Result += " -g2 -gdwarf-2";
+				Result += " -g2 -gdwarf-4";
 			}
 
 			// optimization level
