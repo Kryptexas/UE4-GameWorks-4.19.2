@@ -47,7 +47,7 @@ public:
 	//~ End USoundNode Interface
 
 	//~ Begin USoundNodeAssetReferencer Interface
-	virtual void LoadAsset() override;
+	virtual void LoadAsset(bool bAddToRoot = false) override;
 	//~ End USoundNode Interface
 
 };

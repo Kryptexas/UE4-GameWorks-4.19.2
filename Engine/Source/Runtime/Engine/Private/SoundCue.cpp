@@ -114,7 +114,7 @@ void USoundCue::PostLoad()
 #endif
 	if (GEngine)
 	{
-		EvaluateNodes();
+		EvaluateNodes(false);
 	}
 	else
 	{
@@ -127,10 +127,10 @@ void USoundCue::OnPostEngineInit()
 	UEngine::OnPostEngineInit.Remove(OnPostEngineInitHandle);
 	OnPostEngineInitHandle.Reset();
 
-	EvaluateNodes();
+	EvaluateNodes(true);
 }
 
-void USoundCue::EvaluateNodes()
+void USoundCue::EvaluateNodes(bool bAddToRoot)
 {
 	TArray<USoundNode*> NodesToEvaluate;
 	NodesToEvaluate.Push(FirstNode);
@@ -141,7 +141,7 @@ void USoundCue::EvaluateNodes()
 		{
 			if (USoundNodeAssetReferencer* AssetReferencerNode = Cast<USoundNodeAssetReferencer>(SoundNode))
 			{
-				AssetReferencerNode->LoadAsset();
+				AssetReferencerNode->LoadAsset(bAddToRoot);
 			}
 			else if (USoundNodeQualityLevel* QualityLevelNode = Cast<USoundNodeQualityLevel>(SoundNode))
 			{

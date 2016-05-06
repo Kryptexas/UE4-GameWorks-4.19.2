@@ -8,10 +8,11 @@
 
 #define LOCTEXT_NAMESPACE "SoundNodeWavePlayer"
 
-void USoundNodeWavePlayer::LoadAsset()
+void USoundNodeWavePlayer::LoadAsset(bool bAddToRoot)
 {
 	if (IsAsyncLoading())
 	{
+		check(!bAddToRoot);
 		SoundWave = SoundWaveAssetPtr.Get();
 		if (SoundWave == nullptr)
 		{
@@ -26,6 +27,10 @@ void USoundNodeWavePlayer::LoadAsset()
 	else
 	{
 		SoundWave = SoundWaveAssetPtr.LoadSynchronous();
+		if (bAddToRoot && SoundWave)
+		{
+			SoundWave->AddToRoot();
+		}
 	}
 }
 

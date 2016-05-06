@@ -6,10 +6,11 @@
 
 #define LOCTEXT_NAMESPACE "SoundNodeModPlayer"
 
-void USoundNodeModPlayer::LoadAsset()
+void USoundNodeModPlayer::LoadAsset(bool bAddToRoot)
 {
 	if (IsAsyncLoading())
 	{
+		check(!bAddToRoot);
 		SoundMod = SoundModAssetPtr.Get();
 		if (SoundMod == nullptr)
 		{
@@ -24,6 +25,10 @@ void USoundNodeModPlayer::LoadAsset()
 	else
 	{
 		SoundMod = SoundModAssetPtr.LoadSynchronous();
+		if (bAddToRoot && SoundMod)
+		{
+			SoundMod->AddToRoot();
+		}
 	}
 }
 

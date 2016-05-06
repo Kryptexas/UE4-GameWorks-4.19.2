@@ -131,7 +131,7 @@ protected:
 
 private:
 	void OnPostEngineInit();
-	void EvaluateNodes();
+	void EvaluateNodes(bool bAddToRoot);
 
 	FDelegateHandle OnPostEngineInitHandle;
 
