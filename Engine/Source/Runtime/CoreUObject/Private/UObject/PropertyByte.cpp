@@ -174,9 +174,9 @@ void UByteProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue
 }
 const TCHAR* UByteProperty::ImportText_Internal( const TCHAR* InBuffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
 {
-	FString Temp;
 	if( Enum && (PortFlags & PPF_ConsoleVariable) == 0 )
 	{
+		FString Temp;
 		const TCHAR* Buffer = UPropertyHelpers::ReadToken( InBuffer, Temp, true );
 		if( Buffer != NULL )
 		{
