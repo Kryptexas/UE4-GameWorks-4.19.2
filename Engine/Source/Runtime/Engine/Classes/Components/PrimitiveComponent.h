@@ -335,9 +335,13 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	TEnumAsByte<EIndirectLightingCacheQuality> IndirectLightingCacheQuality;
 
-	/** Should this primitive receive dynamic-only CSM shadows */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Lighting, meta=(Display="Receive CSM Shadows From Dynamic Objects"))
-	uint32 bReceiveCSMFromDynamicObjects : 1;
+	/** 
+	 * Mobile only:
+	 * If enabled this component can receive combined static and CSM shadows from a stationary light. (Enabling will increase shading cost.) 
+	 * If disabled this component will only receive static shadows from stationary lights.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Mobile, meta=(DisplayName ="Receive Combined Static and CSM Shadows from Stationary Lights"))
+	uint32 bReceiveCombinedCSMAndStaticShadowsFromStationaryLights : 1;
 
 	/** 
 	 * Whether the whole component should be shadowed as one from stationary lights, which makes shadow receiving much cheaper.
