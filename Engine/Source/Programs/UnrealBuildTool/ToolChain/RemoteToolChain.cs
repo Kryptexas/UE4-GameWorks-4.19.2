@@ -603,11 +603,24 @@ namespace UnrealBuildTool
 			return RemoteFileItem;
 		}
 
-		/// <summary>
-		/// Helper function to sync source files to and from the local system and a remote Mac
-		/// </summary>
-		//This chunk looks to be required to pipe output to VS giving information on the status of a remote build.
-		public static bool OutputReceivedDataEventHandlerEncounteredError = false;
+        public FileItem RemoteToLocalFileItem(FileItem RemoteFileItem)
+        {
+            // Look to see if we've already made a remote FileItem for this local FileItem
+            foreach (var Item in CachedRemoteFileItems)
+            {
+                if (Item.Value.AbsolutePath == RemoteFileItem.AbsolutePath)
+                {
+                    return Item.Key;
+                }
+            }
+            return RemoteFileItem;
+        }
+
+        /// <summary>
+        /// Helper function to sync source files to and from the local system and a remote Mac
+        /// </summary>
+        //This chunk looks to be required to pipe output to VS giving information on the status of a remote build.
+        public static bool OutputReceivedDataEventHandlerEncounteredError = false;
 		public static string OutputReceivedDataEventHandlerEncounteredErrorMessage = "";
 		public static void OutputReceivedDataEventHandler(Object Sender, DataReceivedEventArgs Line)
 		{
