@@ -17,7 +17,6 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 				    "CoreUObject",
-                    "Settings",
 				}
 			);
 		}
