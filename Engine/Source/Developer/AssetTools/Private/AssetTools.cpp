@@ -912,10 +912,19 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 							TArray< UObject* > ObjectsToDelete;
 							ObjectsToDelete.Add(ExistingObject);
 
+							// If the user forcefully deletes the package, all sorts of things could become invalidated,
+							// the Pkg pointer might be killed even though it was added to the root.
+							TWeakObjectPtr<UPackage> WeakPkg(Pkg);
+							
 							// Dont let the package get garbage collected (just in case we are deleting the last asset in the package)
 							Pkg->AddToRoot();
 							NumObjectsDeleted = ObjectTools::DeleteObjects(ObjectsToDelete, /*bShowConfirmation=*/false);
-							Pkg->RemoveFromRoot();
+							
+							// If the weak package ptr is still valid, it should then be safe to remove it from the root.
+							if ( WeakPkg.IsValid() )
+							{
+								Pkg->RemoveFromRoot();
+							}
 
 							const FString QualifiedName = PackageName + TEXT(".") + Name;
 							FText Reason;
