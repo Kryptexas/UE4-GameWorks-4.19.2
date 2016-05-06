@@ -146,6 +146,12 @@ void FAppEntry::PlatformInit()
 
 	// set the GL context to this thread
 	[AppDelegate.IOSView MakeCurrent];
+
+	// Set GSystemResolution now that we have the size.
+	FDisplayMetrics DisplayMetrics;
+	FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+	FSystemResolution::RequestResolutionChange(DisplayMetrics.PrimaryDisplayWidth, DisplayMetrics.PrimaryDisplayHeight, EWindowMode::Fullscreen);
+	IConsoleManager::Get().CallAllConsoleVariableSinks();
 }
 
 void FAppEntry::Init()
