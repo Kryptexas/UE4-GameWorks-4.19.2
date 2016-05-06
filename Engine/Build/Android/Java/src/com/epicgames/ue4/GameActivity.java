@@ -662,12 +662,13 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			HasAllFiles = true;
 		}
 
-//$${gameActivityOnCreateAdditions}$$
 		// Need to create our surface view here regardless of if we are going to end up using it
 		getWindow().takeSurface(null);
 		MySurfaceView = new SurfaceView(this);
 		MySurfaceView.getHolder().addCallback(this);
 		setContentView(MySurfaceView);
+
+//$${gameActivityOnCreateAdditions}$$
 		
 		Log.debug("==============> GameActive.onCreate complete!");
 	}
