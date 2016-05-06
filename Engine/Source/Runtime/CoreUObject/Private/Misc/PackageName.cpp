@@ -676,7 +676,7 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FPackageName::SearchForPackageOnDisk"), STAT_PackageName_SearchForPackageOnDisk, STATGROUP_LoadTime);
 	
 	// This function may take a long time to complete, so suspend heartbeat measure while we're here
-	FSlowHeartBeatScope SlowHeartBeatScope(GGameThreadId);
+	FSlowHeartBeatScope SlowHeartBeatScope;
 
 	bool bResult = false;
 	double StartTime = FPlatformTime::Seconds();
