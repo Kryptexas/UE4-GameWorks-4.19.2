@@ -4568,7 +4568,8 @@ void FBodyInstance::LoadProfileData(bool bVerifyProfile)
 			// if external profile copy the data over
 			if (ExternalCollisionProfileBodySetup.IsValid(true))
 			{
-				const FBodyInstance& ExternalBodyInstance = ExternalCollisionProfileBodySetup->DefaultInstance;
+				UBodySetup* BodySetup = ExternalCollisionProfileBodySetup.Get(true);
+				const FBodyInstance& ExternalBodyInstance = BodySetup->DefaultInstance;
 				CollisionProfileName = ExternalBodyInstance.CollisionProfileName;
 				ObjectType = ExternalBodyInstance.ObjectType;
 				CollisionEnabled = ExternalBodyInstance.CollisionEnabled;

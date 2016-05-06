@@ -132,8 +132,6 @@ void FMeshPaintGeometryAdapterForStaticMeshes::OnAdded()
 	// If this is the first attempt to add a temporary body setup to the mesh, do it
 	if (StaticMeshReferencers.NumReferencers == 0)
 	{
-		ReferencedStaticMesh->Modify();
-
 		// Remember the old body setup (this will be added as a GC reference so that it doesn't get destroyed)
 		StaticMeshReferencers.RestoreBodySetup = ReferencedStaticMesh->BodySetup;
 
