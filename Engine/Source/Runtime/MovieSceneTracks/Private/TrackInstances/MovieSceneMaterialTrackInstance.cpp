@@ -109,7 +109,8 @@ void FMovieSceneMaterialTrackInstance::RefreshInstance( const TArray<TWeakObject
 			{
 				DynamicMaterialInstance = UMaterialInstanceDynamic::Create( Material, Object );
 				FString DynamicName = Material->GetName() + "_Animated";
-				DynamicMaterialInstance->Rename( *DynamicName );
+				FName UniqueDynamicName = MakeUniqueObjectName( DynamicMaterialInstance->GetOuter(), DynamicMaterialInstance->GetClass(), *DynamicName );
+				DynamicMaterialInstance->Rename( *UniqueDynamicName.ToString() );
 				SetMaterialForObject( Object, DynamicMaterialInstance );
 				DynamicMaterialToOriginalMaterialMap.Add( FObjectKey( DynamicMaterialInstance ), Material );
 			}
