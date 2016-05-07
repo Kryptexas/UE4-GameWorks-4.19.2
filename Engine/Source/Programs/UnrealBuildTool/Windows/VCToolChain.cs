@@ -1330,7 +1330,23 @@ namespace UnrealBuildTool
 					UnrealCodeAnalyzerArguments = UCAMode + SourceFile.AbsolutePath + @" -OutputFile=""" + ObjectFile.AbsolutePath + @""" -- " + ClangPath + @" --driver-mode=cl ";
 				}
 
-				CompileAction.CommandArguments = UnrealCodeAnalyzerArguments + SharedArguments.ToString() + FileArguments.ToString() + CompileEnvironment.Config.AdditionalArguments;
+				if (!ProjectFileGenerator.bGenerateProjectFiles
+					&& !WindowsPlatform.bCompileWithClang
+					&& CompileAction.ProducedItems.Count > 0)
+				{
+					FileItem TargetFile = CompileAction.ProducedItems[0];
+					string ResponseFileName = TargetFile.AbsolutePath + ".response";
+					List<string> ResponseLines = new List<string>();
+					string ResponseLine = UnrealCodeAnalyzerArguments + SharedArguments.ToString() + FileArguments.ToString() + CompileEnvironment.Config.AdditionalArguments;
+					ResponseLines.Add(ActionThread.ExpandEnvironmentVariables(ResponseLine));
+					ResponseFile.Create(new FileReference(ResponseFileName), ResponseLines);
+					CompileAction.CommandArguments = " @\"" + ResponseFileName + "\"";
+					CompileAction.PrerequisiteItems.Add(FileItem.GetExistingItemByPath(ResponseFileName));
+				}
+				else
+				{
+					CompileAction.CommandArguments = UnrealCodeAnalyzerArguments + SharedArguments.ToString() + FileArguments.ToString() + CompileEnvironment.Config.AdditionalArguments;
+				}
 
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{

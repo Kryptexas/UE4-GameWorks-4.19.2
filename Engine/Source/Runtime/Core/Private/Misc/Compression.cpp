@@ -5,37 +5,13 @@
 #include "GenericPlatformCompression.h"
 #include "TargetPlatform.h"
 // #include "TargetPlatformBase.h"
-#include "ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
+#include "zlib.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCompression, Log, All);
 DEFINE_LOG_CATEGORY(LogCompression);
 
 DECLARE_STATS_GROUP( TEXT( "Compression" ), STATGROUP_Compression, STATCAT_Advanced );
 
-
-/**
- * Thread-safe abstract compression routine. Compresses memory from uncompressed buffer and writes it to compressed
- * buffer. Updates CompressedSize with size of compressed data.
- *
- * @param	CompressedBuffer			Buffer compressed data is going to be written to
- * @param	CompressedSize	[in/out]	Size of CompressedBuffer, at exit will be size of compressed data
- * @param	UncompressedBuffer			Buffer containing uncompressed data
- * @param	UncompressedSize			Size of uncompressed data in bytes
- * @return true if compression succeeds, false if it fails because CompressedBuffer was too small or other reasons
- */
-static bool appCompressMemoryZLIB( void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize )
-{
-	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "Compress Memory ZLIB" ), STAT_appCompressMemoryZLIB, STATGROUP_Compression );
-
-	// Zlib wants to use unsigned long.
-	unsigned long ZCompressedSize	= CompressedSize;
-	unsigned long ZUncompressedSize	= UncompressedSize;
-	// Compress data
-	bool bOperationSucceeded = compress( (uint8*) CompressedBuffer, &ZCompressedSize, (const uint8*) UncompressedBuffer, ZUncompressedSize ) == Z_OK ? true : false;
-	// Propagate compressed size from intermediate variable back into out variable.
-	CompressedSize = ZCompressedSize;
-	return bOperationSucceeded;
-}
 
 static void *zalloc(void *opaque, unsigned int size, unsigned int num)
 {
@@ -45,6 +21,66 @@ static void *zalloc(void *opaque, unsigned int size, unsigned int num)
 static void zfree(void *opaque, void *p)
 {
 	FMemory::Free(p);
+}
+
+/**
+ * Thread-safe abstract compression routine. Compresses memory from uncompressed buffer and writes it to compressed
+ * buffer. Updates CompressedSize with size of compressed data.
+ *
+ * @param	CompressedBuffer			Buffer compressed data is going to be written to
+ * @param	CompressedSize	[in/out]	Size of CompressedBuffer, at exit will be size of compressed data
+ * @param	UncompressedBuffer			Buffer containing uncompressed data
+ * @param	UncompressedSize			Size of uncompressed data in bytes
+ * @param	BitWindow					Bit window to use in compression
+ * @return true if compression succeeds, false if it fails because CompressedBuffer was too small or other reasons
+ */
+static bool appCompressMemoryZLIB( void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize, int32 BitWindow )
+{
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "Compress Memory ZLIB" ), STAT_appCompressMemoryZLIB, STATGROUP_Compression );
+
+	// Zlib wants to use unsigned long.
+	unsigned long ZCompressedSize	= CompressedSize;
+	unsigned long ZUncompressedSize	= UncompressedSize;
+	bool bOperationSucceeded = false;
+
+	// Compress data
+	// If using the default Zlib bit window, use the zlib routines, otherwise go manual with deflate2
+	if (BitWindow == DEFAULT_ZLIB_BIT_WINDOW)
+	{
+		bOperationSucceeded = compress((uint8*)CompressedBuffer, &ZCompressedSize, (const uint8*)UncompressedBuffer, ZUncompressedSize) == Z_OK ? true : false;
+	}
+	else
+	{
+		z_stream stream;
+		stream.next_in = (Bytef*)UncompressedBuffer;
+		stream.avail_in = (uInt)ZUncompressedSize;
+		stream.next_out = (Bytef*)CompressedBuffer;
+		stream.avail_out = (uInt)ZCompressedSize;
+		stream.zalloc = &zalloc;
+		stream.zfree = &zfree;
+		stream.opaque = Z_NULL;
+
+		;
+		if (ensure(Z_OK == deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, BitWindow, MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY)))
+		{
+			if (ensure(Z_STREAM_END == deflate(&stream, Z_FINISH)))
+			{
+				ZCompressedSize = stream.total_out;
+				if (ensure(Z_OK == deflateEnd(&stream)))
+				{
+					bOperationSucceeded = true;
+				}
+			}
+			else
+			{
+				deflateEnd(&stream);
+			}
+		}
+	}
+
+	// Propagate compressed size from intermediate variable back into out variable.
+	CompressedSize = ZCompressedSize;
+	return bOperationSucceeded;
 }
 
 static bool appCompressMemoryGZIP(void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize)
@@ -184,9 +220,10 @@ static ECompressionFlags CheckGlobalCompressionFlags(ECompressionFlags Flags)
 *
 * @param	Flags						Flags to control what method to use and optionally control memory vs speed
 * @param	UncompressedSize			Size of uncompressed data in bytes
+* @param	BitWindow					Bit window to use in compression
 * @return The maximum possible bytes needed for compression of data buffer of size UncompressedSize
 */
-int32 FCompression::CompressMemoryBound( ECompressionFlags Flags, int32 UncompressedSize ) 
+int32 FCompression::CompressMemoryBound( ECompressionFlags Flags, int32 UncompressedSize, int32 BitWindow ) 
 {
 	int32 CompressionBound = UncompressedSize;
 	// make sure a valid compression scheme was provided
@@ -197,12 +234,22 @@ int32 FCompression::CompressMemoryBound( ECompressionFlags Flags, int32 Uncompre
 	switch(Flags & COMPRESSION_FLAGS_TYPE_MASK)
 	{
 	case COMPRESS_ZLIB:
-		CompressionBound = compressBound(UncompressedSize);
+		// Zlib's compressBounds gives a better (smaller) value, but only for a 15 bit window.
+		if (BitWindow == DEFAULT_ZLIB_BIT_WINDOW)
+		{
+			CompressionBound = compressBound(UncompressedSize);
+		}
+		else
+		{
+			// Calculate pessimistic bounds for compression. This value is calculated based on the algorithm used in deflate2.
+			CompressionBound = UncompressedSize + ((UncompressedSize + 7) >> 3) + ((UncompressedSize + 63) >> 6) + 5 + 6;
+		}
 		break;
 	default:
 		break;
 	}
 
+#if !WITH_EDITOR
 	// check platform specific bounds, if available
 	IPlatformCompression* PlatformCompression = FPlatformMisc::GetPlatformCompression();
 	if (PlatformCompression != nullptr)
@@ -215,6 +262,7 @@ int32 FCompression::CompressMemoryBound( ECompressionFlags Flags, int32 Uncompre
 			CompressionBound = PlatformSpecificCompressionBound;
 		}
 	}
+#endif
 
 
 	return CompressionBound;
@@ -229,9 +277,10 @@ int32 FCompression::CompressMemoryBound( ECompressionFlags Flags, int32 Uncompre
  * @param	CompressedSize	[in/out]	Size of CompressedBuffer, at exit will be size of compressed data
  * @param	UncompressedBuffer			Buffer containing uncompressed data
  * @param	UncompressedSize			Size of uncompressed data in bytes
+ * @param	BitWindow					Bit window to use in compression
  * @return true if compression succeeds, false if it fails because CompressedBuffer was too small or other reasons
  */
-bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize, const ITargetPlatform* TargetPlatform )
+bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize, int32 BitWindow )
 {
 	double CompressorStartTime = FPlatformTime::Seconds();
 
@@ -242,11 +291,11 @@ bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuff
 
 	Flags = CheckGlobalCompressionFlags(Flags);
 
-	// try to use a platform specific compression routine if available
-	// target platform for cooking, otherwise runtime platform
-	if (TargetPlatform != nullptr)
+#if !WITH_EDITOR
+	IPlatformCompression* PlatformCompression = FPlatformMisc::GetPlatformCompression();
+	if (PlatformCompression != nullptr)
 	{
-		bCompressSucceeded = TargetPlatform->CompressMemory(Flags, CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize);
+		bCompressSucceeded = PlatformCompression->CompressMemory(Flags, CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize);
 		if (bCompressSucceeded)
 		{
 			// Keep track of compression time and stats.
@@ -260,31 +309,12 @@ bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuff
 		}
 		// if platform compression fails, fall through to generic code path
 	}
-	else
-	{
-		IPlatformCompression* PlatformCompression = FPlatformMisc::GetPlatformCompression();
-		if (PlatformCompression != nullptr)
-		{
-			bCompressSucceeded = PlatformCompression->CompressMemory(Flags, CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize);
-			if (bCompressSucceeded)
-			{
-				// Keep track of compression time and stats.
-				CompressorTime += FPlatformTime::Seconds() - CompressorStartTime;
-				if (bCompressSucceeded)
-				{
-					CompressorSrcBytes += UncompressedSize;
-					CompressorDstBytes += CompressedSize;
-				}
-				return true;
-			}
-			// if platform compression fails, fall through to generic code path
-		}
-	}
+#endif
 
 	switch(Flags & COMPRESSION_FLAGS_TYPE_MASK)
 	{
 		case COMPRESS_ZLIB:
-			bCompressSucceeded = appCompressMemoryZLIB(CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize);
+			bCompressSucceeded = appCompressMemoryZLIB(CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize, BitWindow);
 			break;
 		case COMPRESS_GZIP:
 			bCompressSucceeded = appCompressMemoryGZIP(CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize);

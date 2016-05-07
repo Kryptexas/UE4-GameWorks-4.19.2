@@ -1229,8 +1229,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// when we are in the editor we like to do things like build lighting and such
 		// this thread pool can be used for those purposes
 		GLargeThreadPool = FQueuedThreadPool::Allocate();
-		int32 NumThreadsInLargeThreadPool = FMath::Max(FPlatformMisc::NumberOfCoresIncludingHyperthreads() - 2, 1);
-
+		int32 NumThreadsInLargeThreadPool = FMath::Max(FPlatformMisc::NumberOfCoresIncludingHyperthreads() - 2, 2);
+		
 		verify(GLargeThreadPool->Create(NumThreadsInLargeThreadPool));
 #endif
 	}
@@ -3104,7 +3104,10 @@ bool FEngineLoop::AppInit( )
 		{
 			bool bNeedCompile = false;
 			GConfig->GetBool(TEXT("/Script/UnrealEd.EditorLoadingSavingSettings"), TEXT("bForceCompilationAtStartup"), bNeedCompile, GEditorPerProjectIni);
-
+			if(FParse::Param(FCommandLine::Get(), TEXT("SKIPCOMPILE")) || FParse::Param(FCommandLine::Get(), TEXT("MULTIPROCESS")))
+			{
+				bNeedCompile = false;
+			}
 			if(!bNeedCompile)
 			{
 				// Check if any of the project or plugin modules are out of date, and the user wants to compile them.

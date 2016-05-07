@@ -212,10 +212,10 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		/*if (bIsForGeometryShader && !RHISupportsGeometryShaders(Platform))
+		if (bIsForGeometryShader && !RHISupportsGeometryShaders(Platform) && !RHISupportsVertexShaderLayer(Platform))
 		{
 			return false;
-		}*/
+		}
 
 		//Note: This logic needs to stay in sync with OverrideWithDefaultMaterialForShadowDepth!
 		// Compile for special engine materials.

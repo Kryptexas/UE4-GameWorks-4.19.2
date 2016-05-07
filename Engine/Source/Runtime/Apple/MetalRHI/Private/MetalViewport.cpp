@@ -188,6 +188,8 @@ void FMetalRHICommandContext::RHIBeginDrawingViewport(FViewportRHIParamRef Viewp
 void FMetalDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTargetRHI)
 {
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
+	
+	check(Viewport);
 
 	check(Viewport);
 	

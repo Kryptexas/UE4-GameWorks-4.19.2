@@ -20,6 +20,13 @@ public:
 	virtual ~IPlatformCompression() {}
 
 	/**
+	 * Gets the bit window for compressor for this platform.
+	 *
+	 * @return Compression bit window.
+	 */
+	virtual int32 GetCompressionBitWindow() const = 0;
+	
+	/**
 	* Thread-safe abstract compression routine to query memory requirements for a compression operation.
 	* @param	Flags						Flags to control what method to use and optionally control memory vs speed
 	* @param	UncompressedSize			Size of uncompressed data in bytes
@@ -62,6 +69,16 @@ public:
 class CORE_API FGenericPlatformCompression : public IPlatformCompression
 {
 public:
+	/**
+	 * Gets the bit window for compressor for this platform.
+	 *
+	 * @return Compression bit window.
+	 */
+	virtual int32 GetCompressionBitWindow() const override
+	{
+		return DEFAULT_ZLIB_BIT_WINDOW;
+	}
+	
 	/**
 	* Thread-safe abstract compression routine to query memory requirements for a compression operation.
 	* @param	Flags						Flags to control what method to use and optionally control memory vs speed

@@ -14,7 +14,8 @@ namespace UnrealBuildTool.Rules
                     "ImageCore",
                     "Sockets",
                     "OnlineSubSystemUtils",
-                    "libWebSockets"
+                    "libWebSockets",
+                    "zlib"
                 }
             );
 		}

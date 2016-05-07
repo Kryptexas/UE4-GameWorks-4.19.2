@@ -22,7 +22,9 @@
 
 
 if [ "X$EMSCRIPTEN" == "X" ]; then
-	EMSDK=$(pwd)/emsdk
+	cd ../../../Extras/ThirdPartyNotUE
+		EMSDK=$(pwd)/emsdk
+	cd -
 	if [ ! -d "$EMSDK" ]; then
 		echo ERROR: emscripten toolchain folder not found
 		exit

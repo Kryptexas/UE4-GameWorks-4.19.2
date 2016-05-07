@@ -26,6 +26,7 @@ FMetalCommandEncoder::FMetalCommandEncoder(FMetalCommandList& CmdList)
 , PipelineStatsOffset(0)
 , PipelineStatsMask(0)
 , RenderPassDesc(nil)
+, RenderPassDescApplied(0)
 , CommandBuffer(nil)
 , RenderCommandEncoder(nil)
 , RenderPipelineState(nil)
@@ -119,6 +120,7 @@ void FMetalCommandEncoder::Reset(void)
 		[RenderPassDesc release];
 		RenderPassDesc = nil;
 	}
+	RenderPassDescApplied = 0;
 	
 	[DebugGroups removeAllObjects];
 	
@@ -236,6 +238,7 @@ void FMetalCommandEncoder::BeginRenderCommandEncoding(void)
 	check(IsRenderCommandEncoderActive() == false && IsComputeCommandEncoderActive() == false && IsBlitCommandEncoderActive() == false);
 	
 	RenderCommandEncoder = [[CommandBuffer renderCommandEncoderWithDescriptor:RenderPassDesc] retain];
+	RenderPassDescApplied++;
 	
 	if(GEmitDrawEvents)
 	{
@@ -257,6 +260,57 @@ void FMetalCommandEncoder::RestoreRenderCommandEncoding(void)
 	check(RenderPassDesc);
 	check(CommandBuffer);
 	check(IsRenderCommandEncoderActive() == false && IsComputeCommandEncoderActive() == false && IsBlitCommandEncoderActive() == false);
+	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	if ((UE_BUILD_DEBUG || GetMetalDeviceContext().IsValidationLayerEnabled()) && RenderPassDescApplied == 1)
+	{
+		bool bAllLoadActionsOK = true;
+		if(RenderPassDesc.colorAttachments)
+		{
+			for(uint i = 0; i< 8; i++)
+			{
+				MTLRenderPassColorAttachmentDescriptor* Desc = [RenderPassDesc.colorAttachments objectAtIndexedSubscript:i];
+				if(Desc)
+				{
+					bAllLoadActionsOK |= (Desc.loadAction == MTLLoadActionLoad);
+				}
+			}
+		}
+		if(RenderPassDesc.depthAttachment)
+		{
+			bAllLoadActionsOK |= (RenderPassDesc.depthAttachment.loadAction == MTLLoadActionLoad);
+		}
+		if(RenderPassDesc.stencilAttachment)
+		{
+			bAllLoadActionsOK |= (RenderPassDesc.stencilAttachment.loadAction == MTLLoadActionLoad);
+		}
+		
+		if (!bAllLoadActionsOK)
+		{
+			UE_LOG(LogMetal, Warning, TEXT("Called RestoreRenderCommandEncoding after the first use of a render-pass to restore the render pass with a clear operation - this would erroneously re-clear any existing draw calls."));
+			
+			if(RenderPassDesc.colorAttachments)
+			{
+				for(uint i = 0; i< 8; i++)
+				{
+					MTLRenderPassColorAttachmentDescriptor* Desc = [RenderPassDesc.colorAttachments objectAtIndexedSubscript:i];
+					if(Desc)
+					{
+						Desc.loadAction = MTLLoadActionLoad;
+					}
+				}
+			}
+			if(RenderPassDesc.depthAttachment)
+			{
+				RenderPassDesc.depthAttachment.loadAction = MTLLoadActionLoad;
+			}
+			if(RenderPassDesc.stencilAttachment)
+			{
+				RenderPassDesc.stencilAttachment.loadAction = MTLLoadActionLoad;
+			}
+		}
+	}
+#endif
 	
 	BeginRenderCommandEncoding();
 	RestoreRenderCommandEncodingState();
@@ -511,6 +565,7 @@ void FMetalCommandEncoder::SetRenderPassDescriptor(MTLRenderPassDescriptor* cons
 	check(IsRenderCommandEncoderActive() == false && IsComputeCommandEncoderActive() == false && IsBlitCommandEncoderActive() == false);
 	check(RenderPass);
 	
+	RenderPassDescApplied = 0;
 	if(RenderPass != RenderPassDesc)
 	{
 		[RenderPass retain];

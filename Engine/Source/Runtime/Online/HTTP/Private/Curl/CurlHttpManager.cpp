@@ -89,13 +89,6 @@ void FCurlHttpManager::InitCurl()
 
 	// Init curl request options
 
-	// set certificate verification (disable to allow self-signed certificates)
-	bool bVerifyPeer = true;
-	if (GConfig->GetBool(TEXT("/Script/Engine.NetworkSettings"), TEXT("n.VerifyPeer"), bVerifyPeer, GEngineIni))
-	{
-		CurlRequestOptions.bVerifyPeer = bVerifyPeer;
-	}
-
 	FString ProxyAddress;
 	if (FParse::Value(FCommandLine::Get(), TEXT("httpproxy="), ProxyAddress))
 	{
@@ -216,6 +209,20 @@ void FCurlHttpManager::InitCurl()
 		}
 	}
 #endif
+
+	// set certificate verification (disable to allow self-signed certificates)
+	if (CurlRequestOptions.CertBundlePath == nullptr)
+	{
+		CurlRequestOptions.bVerifyPeer = false;
+	}
+	else
+	{
+		bool bVerifyPeer = true;
+		if (GConfig->GetBool(TEXT("/Script/Engine.NetworkSettings"), TEXT("n.VerifyPeer"), bVerifyPeer, GEngineIni))
+		{
+			CurlRequestOptions.bVerifyPeer = bVerifyPeer;
+		}
+	}
 
 	// print for visibility
 	CurlRequestOptions.Log();

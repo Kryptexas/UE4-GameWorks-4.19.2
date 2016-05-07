@@ -1448,11 +1448,16 @@ void UStaticMeshComponent::UpdateCollisionFromStaticMesh()
 
 void UStaticMeshComponent::PostLoad()
 {
+	// need to postload the StaticMesh because super initializes variables based on GetStaticLightingType() which we override and use from the StaticMesh
+	if (StaticMesh)
+	{
+		StaticMesh->ConditionalPostLoad();
+	}
+
 	Super::PostLoad();
 
 	if ( StaticMesh )
 	{
-		StaticMesh->ConditionalPostLoad();
 		CachePaintedDataIfNecessary();
 		if ( FixupOverrideColorsIfNecessary() )
 		{

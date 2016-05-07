@@ -32,8 +32,8 @@ typedef khronos_uint64_t GLuint64;
 
 #define GL_BGRA			GL_BGRA_EXT 
 #define GL_UNSIGNED_INT_8_8_8_8_REV	GL_UNSIGNED_BYTE
-#define glMapBuffer		glMapBufferOES
-#define glUnmapBuffer	glUnmapBufferOES
+#define glMapBuffer		glMapBufferOESa
+#define glUnmapBuffer	glUnmapBufferOESa
 
 #ifndef GL_HALF_FLOAT
 #define GL_HALF_FLOAT	GL_HALF_FLOAT_OES
@@ -91,8 +91,8 @@ extern PFNGLGETQUERYIVEXTPROC 			glGetQueryivEXT;
 extern PFNGLGETQUERYOBJECTIVEXTPROC 	glGetQueryObjectivEXT;
 extern PFNGLGETQUERYOBJECTUIVEXTPROC 	glGetQueryObjectuivEXT;
 extern PFNGLGETQUERYOBJECTUI64VEXTPROC	glGetQueryObjectui64vEXT;
-extern PFNGLMAPBUFFEROESPROC			glMapBufferOES;
-extern PFNGLUNMAPBUFFEROESPROC			glUnmapBufferOES;
+extern PFNGLMAPBUFFEROESPROC			glMapBufferOESa;
+extern PFNGLUNMAPBUFFEROESPROC			glUnmapBufferOESa;
 extern PFNGLDISCARDFRAMEBUFFEREXTPROC 	glDiscardFramebufferEXT ;
 extern PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC	glFramebufferTexture2DMultisampleEXT;
 extern PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC	glRenderbufferStorageMultisampleEXT;

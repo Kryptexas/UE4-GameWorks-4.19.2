@@ -44,16 +44,7 @@ public:
 	 */
 	void Submit(uint32 Index, uint32 Count);
 	
-	/** Called by the command-queue once all the buffers have been scheduled for execution. */
-	void OnScheduled(void);
-	
 #pragma mark - Public Command List Accessors -
-
-	/**
-	* Accessor to the internal array of submitted command buffers waiting for execution - called by the Command Queue.
-	* @returns The internal array of submitted command buffers waiting for scheduling.
-	*/
-	NSArray<id<MTLCommandBuffer>>* GetCommandBuffers() const;
 	
 	/**
 	 * True iff the command-list submits immediately to the command-queue, false if it performs any buffering.

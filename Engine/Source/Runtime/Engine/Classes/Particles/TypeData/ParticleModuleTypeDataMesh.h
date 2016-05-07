@@ -192,6 +192,8 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 	static int32 GetCurrentDetailMode();
 	static int32 GetMeshParticleMotionBlurMinDetailMode();
 
+	virtual void PostLoad();
+
 	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

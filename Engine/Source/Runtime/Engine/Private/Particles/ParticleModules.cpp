@@ -3292,6 +3292,16 @@ void UParticleModuleTypeDataMesh::CreateDistribution()
 }
 
 
+void UParticleModuleTypeDataMesh::PostLoad()
+{
+	Super::PostLoad();
+
+	if (Mesh != nullptr)
+	{
+		Mesh->ConditionalPostLoad();
+	}
+}
+
 
 #if WITH_EDITOR
 void UParticleModuleTypeDataMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

@@ -231,14 +231,22 @@ struct FOpenGLES2 : public FOpenGLBase
 #endif
 		check(Type == GL_ARRAY_BUFFER || Type == GL_ELEMENT_ARRAY_BUFFER);
 
+#if PLATFORM_ANDROID
+		uint8* Data = (uint8*)glMapBufferOESa(Type, GL_WRITE_ONLY_OES);
+#else
 		uint8* Data = (uint8*) glMapBufferOES(Type, GL_WRITE_ONLY_OES);
+#endif
 		return Data ? Data + InOffset : NULL;
 	}
 
 	static FORCEINLINE void UnmapBuffer(GLenum Type)
 	{
 		check(Type == GL_ARRAY_BUFFER || Type == GL_ELEMENT_ARRAY_BUFFER);
+#if PLATFORM_ANDROID
+		glUnmapBufferOESa(Type);
+#else
 		glUnmapBufferOES(Type);
+#endif
 	}
 
 	static FORCEINLINE void UnmapBufferRange(GLenum Type, uint32 InOffset, uint32 InSize)

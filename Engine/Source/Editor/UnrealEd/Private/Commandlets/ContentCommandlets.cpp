@@ -192,6 +192,33 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		}
 	}
 
+	const bool bResaveDirectRefsAndDeps = Switches.Contains(TEXT("resavedirectrefsanddeps"));
+	if (bExplicitPackages && PackageNames.Num() == 1 && bResaveDirectRefsAndDeps)
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		AssetRegistryModule.Get().SearchAllAssets(true);
+
+		FName PackageName = FName(*FPackageName::FilenameToLongPackageName(PackageNames[0]));
+
+		TArray<FName> Referencers;
+		AssetRegistryModule.Get().GetReferencers(PackageName, Referencers);
+		TArray<FName> Dependencies;
+		AssetRegistryModule.Get().GetDependencies(PackageName, Dependencies);
+
+		for (FName Ref : Referencers)
+		{
+			FString File;
+			FPackageName::SearchForPackageOnDisk(*Ref.ToString(), NULL, &File);
+			PackageNames.Add(File);
+		}
+		for (FName Dep : Dependencies)
+		{
+			FString File;
+			FPackageName::SearchForPackageOnDisk(*Dep.ToString(), NULL, &File);
+			PackageNames.Add(File);
+		}
+	}
+
 	// Check for the min and max versions
 	MinResaveUE4Version = IGNORE_PACKAGE_VERSION;
 	MaxResaveUE4Version = IGNORE_PACKAGE_VERSION;
@@ -463,41 +490,41 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 					if (bAutoCheckOut)
 					{
-					if (SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()))
-					{
-						UE_LOG(LogContentCommandlet, Display, TEXT("Revert '%s' from source control..."), *Filename);
-						SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), PackageFilename);
+						if (SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()))
+						{
+							UE_LOG(LogContentCommandlet, Display, TEXT("Revert '%s' from source control..."), *Filename);
+							SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), PackageFilename);
 
-						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
-						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
-					}
-					else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
-					{
-						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
-						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
-					}
-					else if (SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther())
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("Couldn't delete '%s' from source control, someone has it checked out, skipping..."), *Filename);
-					}
-					else if (SourceControlState.IsValid() && !SourceControlState->IsSourceControlled())
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is not in source control, attempting to delete from disk..."), *Filename);
-						if (!IFileManager::Get().Delete(*Filename, false, true))
-						{
-							UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
+							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
 						}
-					}
-					else
-					{
-						UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is in an unknown source control state, attempting to delete from disk..."), *Filename);
-						if (!IFileManager::Get().Delete(*Filename, false, true))
+						else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
 						{
-							UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
+							SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
+						}
+						else if (SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther())
+						{
+							UE_LOG(LogContentCommandlet, Warning, TEXT("Couldn't delete '%s' from source control, someone has it checked out, skipping..."), *Filename);
+						}
+						else if (SourceControlState.IsValid() && !SourceControlState->IsSourceControlled())
+						{
+							UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is not in source control, attempting to delete from disk..."), *Filename);
+							if (!IFileManager::Get().Delete(*Filename, false, true))
+							{
+								UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							}
+						}
+						else
+						{
+							UE_LOG(LogContentCommandlet, Warning, TEXT("'%s' is in an unknown source control state, attempting to delete from disk..."), *Filename);
+							if (!IFileManager::Get().Delete(*Filename, false, true))
+							{
+								UE_LOG(LogContentCommandlet, Warning, TEXT("  ... failed to delete from disk."), *Filename);
+							}
 						}
 					}
 				}
-			}
 			}
 
 			// Now based on the computation above we will see if we should actually attempt

@@ -283,6 +283,10 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	if (ServerPlatforms.Len() > 0)
 	{
 		ServerCommand = TEXT(" -server -serverplatform=") + ServerPlatforms.RightChop(1);
+		if (Platforms.Len() == 0)
+		{
+			OptionalParams += TEXT(" -noclient");
+		}
 	}
 	if (Platforms.Len() > 0)
 	{

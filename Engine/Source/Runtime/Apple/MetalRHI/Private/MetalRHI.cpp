@@ -7,6 +7,8 @@
 #include "MetalRHIPrivate.h"
 #if PLATFORM_IOS
 #include "IOSAppDelegate.h"
+#elif PLATFORM_MAC
+#include "MacApplication.h"
 #endif
 #include "ShaderCache.h"
 #include "MetalProfiler.h"
@@ -66,11 +68,15 @@ FMetalDynamicRHI::FMetalDynamicRHI()
     {
         GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
         GMaxRHIShaderPlatform = SP_METAL_MRT;
+		GSupportsMultipleRenderTargets = true;
     }
     else
     {
         GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
         GMaxRHIShaderPlatform = SP_METAL;
+		// disable MRTs completely, because there is code in the engine that assumes the ability to use
+		// 32 bytes of pixel storage (like the 2 VERY WIDE ones in GPU particles)
+		GSupportsMultipleRenderTargets = false;
 	}
 	
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL;
@@ -531,13 +537,110 @@ void FMetalRHICommandContext::RHIPopEvent()
 
 void FMetalDynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height )
 {
-
+#if PLATFORM_MAC
+	uint32 InitializedMode = false;
+	uint32 BestWidth = 0;
+	uint32 BestHeight = 0;
+	
+	CFArrayRef AllModes = CGDisplayCopyAllDisplayModes(kCGDirectMainDisplay, NULL);
+	if (AllModes)
+	{
+		int32 NumModes = CFArrayGetCount(AllModes);
+		for (int32 Index = 0; Index < NumModes; Index++)
+		{
+			CGDisplayModeRef Mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(AllModes, Index);
+			int32 ModeWidth = (int32)CGDisplayModeGetWidth(Mode);
+			int32 ModeHeight = (int32)CGDisplayModeGetHeight(Mode);
+			
+			bool IsEqualOrBetterWidth = FMath::Abs((int32)ModeWidth - (int32)Width) <= FMath::Abs((int32)BestWidth - (int32)Width);
+			bool IsEqualOrBetterHeight = FMath::Abs((int32)ModeHeight - (int32)Height) <= FMath::Abs((int32)BestHeight - (int32)Height);
+			if(!InitializedMode || (IsEqualOrBetterWidth && IsEqualOrBetterHeight))
+			{
+				BestWidth = ModeWidth;
+				BestHeight = ModeHeight;
+				InitializedMode = true;
+			}
+		}
+		CFRelease(AllModes);
+	}
+	check(InitializedMode);
+	Width = BestWidth;
+	Height = BestHeight;
+#else
+	UE_LOG(LogMetal, Warning,  TEXT("RHIGetSupportedResolution unimplemented!"));
+#endif
 }
 
 bool FMetalDynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate)
 {
-
+#if PLATFORM_MAC
+	const int32 MinAllowableResolutionX = 0;
+	const int32 MinAllowableResolutionY = 0;
+	const int32 MaxAllowableResolutionX = 10480;
+	const int32 MaxAllowableResolutionY = 10480;
+	const int32 MinAllowableRefreshRate = 0;
+	const int32 MaxAllowableRefreshRate = 10480;
+	
+	CFArrayRef AllModes = CGDisplayCopyAllDisplayModes(kCGDirectMainDisplay, NULL);
+	if (AllModes)
+	{
+		const int32 NumModes = CFArrayGetCount(AllModes);
+		const int32 Scale = FMacApplication::GetPrimaryScreenBackingScaleFactor();
+		
+		for (int32 Index = 0; Index < NumModes; Index++)
+		{
+			const CGDisplayModeRef Mode = (const CGDisplayModeRef)CFArrayGetValueAtIndex(AllModes, Index);
+			const int32 Width = (int32)CGDisplayModeGetWidth(Mode) / Scale;
+			const int32 Height = (int32)CGDisplayModeGetHeight(Mode) / Scale;
+			const int32 RefreshRate = (int32)CGDisplayModeGetRefreshRate(Mode);
+			
+			if (Width >= MinAllowableResolutionX && Width <= MaxAllowableResolutionX && Height >= MinAllowableResolutionY && Height <= MaxAllowableResolutionY)
+			{
+				bool bAddIt = true;
+				if (bIgnoreRefreshRate == false)
+				{
+					if (RefreshRate < MinAllowableRefreshRate || RefreshRate > MaxAllowableRefreshRate)
+					{
+						continue;
+					}
+				}
+				else
+				{
+					// See if it is in the list already
+					for (int32 CheckIndex = 0; CheckIndex < Resolutions.Num(); CheckIndex++)
+					{
+						FScreenResolutionRHI& CheckResolution = Resolutions[CheckIndex];
+						if ((CheckResolution.Width == Width) &&
+							(CheckResolution.Height == Height))
+						{
+							// Already in the list...
+							bAddIt = false;
+							break;
+						}
+					}
+				}
+				
+				if (bAddIt)
+				{
+					// Add the mode to the list
+					const int32 Temp2Index = Resolutions.AddZeroed();
+					FScreenResolutionRHI& ScreenResolution = Resolutions[Temp2Index];
+					
+					ScreenResolution.Width = Width;
+					ScreenResolution.Height = Height;
+					ScreenResolution.RefreshRate = RefreshRate;
+				}
+			}
+		}
+		
+		CFRelease(AllModes);
+	}
+	
+	return true;
+#else
+	UE_LOG(LogMetal, Warning,  TEXT("RHIGetAvailableResolutions unimplemented!"));
 	return false;
+#endif
 }
 
 void FMetalDynamicRHI::RHIFlushResources()

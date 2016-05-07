@@ -233,6 +233,11 @@ public:
 		// do nothing in the base class
 	}
 
+	virtual int32 GetCompressionBitWindow() const override
+	{
+		return DEFAULT_ZLIB_BIT_WINDOW;
+	}
+
 protected:
 
 	FTargetPlatformBase(const PlatformInfo::FPlatformInfo *const InPlatformInfo)

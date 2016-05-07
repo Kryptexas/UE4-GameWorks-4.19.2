@@ -340,9 +340,11 @@ void FMetalRHICommandContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef Unorde
 	FMetalUnorderedAccessView* UnorderedAccessView = ResourceCast(UnorderedAccessViewRHI);
 	if (UnorderedAccessView->SourceStructuredBuffer)
 	{
+		UE_LOG(LogRHI, Fatal,TEXT("Metal RHI doesn't support RHIClearUAV with FStructuredBufferRHIParamRef yet!"));
 	}
 	else if (UnorderedAccessView->SourceTexture)
 	{
+		UE_LOG(LogRHI, Fatal,TEXT("Metal RHI doesn't support RHIClearUAV with FRHITexture yet!"));
 	}
 	else
 	{

@@ -49,8 +49,6 @@ public class OpenSSL : ModuleRules
 				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/OpenSSL/Win64/VS2012/ssleay32.dll"));
 				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/OpenSSL/Win64/VS2013/libeay32.dll"));
 				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/OpenSSL/Win64/VS2013/ssleay32.dll"));
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/OpenSSL/Win64/VS2015/libeay32.dll"));
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/OpenSSL/Win64/VS2015/ssleay32.dll"));
 			}
 		}
 	}

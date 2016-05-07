@@ -259,7 +259,11 @@ void UStructProperty::UStructProperty_ExportTextItem(class UScriptStruct* InStru
 	{
 		ValueStr += TEXT(")");
 	}
-} 
+	else
+	{
+		ValueStr += TEXT("()");
+	}
+}
 
 void UStructProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const
 {

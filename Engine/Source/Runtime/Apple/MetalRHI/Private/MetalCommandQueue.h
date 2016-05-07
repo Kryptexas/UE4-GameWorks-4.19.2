@@ -52,7 +52,7 @@ public:
 	 * @param Index The 0-based index to commit BufferList's contents into relative to other active deferred contexts.
 	 * @param Count The total number of deferred contexts that will submit - only once all are submitted can any command-buffer be committed.
 	 */
-	void SubmitCommandBuffers(FMetalCommandList* BufferList, uint32 Index, uint32 Count);
+	void SubmitCommandBuffers(NSArray<id<MTLCommandBuffer>>* BufferList, uint32 Index, uint32 Count);
 
 #pragma mark - Public Command Queue Accessors -
 	
@@ -77,5 +77,5 @@ private:
 #if METAL_STATISTICS
 	class IMetalStatistics* Statistics;
 #endif
-	TArray<FMetalCommandList*> CommandBuffers;
+	TArray<NSArray<id<MTLCommandBuffer>>*> CommandBuffers;
 };

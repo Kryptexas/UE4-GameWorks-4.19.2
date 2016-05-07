@@ -16,12 +16,14 @@ struct FPakCommandLineParameters
 {
 	FPakCommandLineParameters()
 		: CompressionBlockSize(64*1024)
+		, CompressionBitWindow(DEFAULT_ZLIB_BIT_WINDOW)
 		, FileSystemBlockSize(0)
 		, PatchFilePadAlign(0)
 		, GeneratePatch(false)
 	{}
 
 	int32  CompressionBlockSize;
+	int32  CompressionBitWindow;
 	int64  FileSystemBlockSize;
 	int64  PatchFilePadAlign;
 	bool   GeneratePatch;
@@ -101,7 +103,7 @@ struct FCompressedFileBuffer
 		}
 	}
 
-	bool CompressFileToWorkingBuffer(const FPakInputPair& InFile,uint8*& InOutPersistentBuffer,int64& InOutBufferSize,ECompressionFlags CompressionMethod,const int32 CompressionBlockSize);
+	bool CompressFileToWorkingBuffer(const FPakInputPair& InFile,uint8*& InOutPersistentBuffer,int64& InOutBufferSize,ECompressionFlags CompressionMethod,const int32 CompressionBlockSize,const int32 CompressionBitWindow);
 
 	int64						 OriginalSize;
 	int64						 TotalCompressedSize;
@@ -170,7 +172,7 @@ FString GetCommonRootPath(TArray<FPakInputPair>& FilesToAdd)
 	return Root;
 }
 
-bool FCompressedFileBuffer::CompressFileToWorkingBuffer(const FPakInputPair& InFile, uint8*& InOutPersistentBuffer, int64& InOutBufferSize, ECompressionFlags CompressionMethod, const int32 CompressionBlockSize)
+bool FCompressedFileBuffer::CompressFileToWorkingBuffer(const FPakInputPair& InFile, uint8*& InOutPersistentBuffer, int64& InOutBufferSize, ECompressionFlags CompressionMethod, const int32 CompressionBlockSize, const int32 CompressionBitWindow)
 {
 	TAutoPtr<FArchive> FileHandle(IFileManager::Get().CreateFileReader(*InFile.Source));
 	if(!FileHandle.IsValid())
@@ -206,7 +208,7 @@ bool FCompressedFileBuffer::CompressFileToWorkingBuffer(const FPakInputPair& InF
 		int32 CompressedBlockSize = CompressionBufferSize;
 		FileCompressionBlockSize = FMath::Max<uint32>(BlockSize, FileCompressionBlockSize);
 		EnsureBufferSpace(TotalCompressedSize+CompressedBlockSize);
-		if(!FCompression::CompressMemory(CompressionMethod,CompressedBuffer.Get()+TotalCompressedSize,CompressedBlockSize,InOutPersistentBuffer+UncompressedBytes,BlockSize))
+		if(!FCompression::CompressMemory(CompressionMethod,CompressedBuffer.Get()+TotalCompressedSize,CompressedBlockSize,InOutPersistentBuffer+UncompressedBytes,BlockSize,CompressionBitWindow))
 		{
 			return false;
 		}
@@ -410,6 +412,11 @@ void ProcessCommandLine(int32 ArgC, TCHAR* ArgV[], TArray<FPakInputPair>& Entrie
 	else
 	{
 		CmdLineParameters.FileSystemBlockSize = 0;
+	}
+
+	if (!FParse::Value(FCommandLine::Get(), TEXT("-bitwindow="), CmdLineParameters.CompressionBitWindow))
+	{
+		CmdLineParameters.CompressionBitWindow = DEFAULT_ZLIB_BIT_WINDOW;
 	}
 
 	if (!FParse::Value(FCommandLine::Get(), TEXT("-patchpaddingalign="), CmdLineParameters.PatchFilePadAlign))
@@ -783,7 +790,7 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 
 		if (CompressionMethod != COMPRESS_None)
 		{
-			if (CompressedFileBuffer.CompressFileToWorkingBuffer(FilesToAdd[FileIndex], ReadBuffer, BufferSize, CompressionMethod, CmdLineParameters.CompressionBlockSize))
+			if (CompressedFileBuffer.CompressFileToWorkingBuffer(FilesToAdd[FileIndex], ReadBuffer, BufferSize, CompressionMethod, CmdLineParameters.CompressionBlockSize, CmdLineParameters.CompressionBitWindow))
 			{
 				// Check the compression ratio, if it's too low just store uncompressed. Also take into account read size
 				// if we still save 64KB it's probably worthwhile compressing, as that saves a file read operation in the runtime.
@@ -1381,6 +1388,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak -TestEncryption"));
 		UE_LOG(LogPakFile, Error, TEXT("  Options:"));
 		UE_LOG(LogPakFile, Error, TEXT("    -blocksize=<BlockSize>"));
+		UE_LOG(LogPakFile, Error, TEXT("    -bitwindow=<BitWindow>"));
 		UE_LOG(LogPakFile, Error, TEXT("    -compress"));
 		UE_LOG(LogPakFile, Error, TEXT("    -encrypt"));
 		UE_LOG(LogPakFile, Error, TEXT("    -order=<OrderingFile>"));

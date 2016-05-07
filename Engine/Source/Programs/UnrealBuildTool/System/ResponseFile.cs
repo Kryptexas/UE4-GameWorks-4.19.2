@@ -17,9 +17,16 @@ namespace UnrealBuildTool
 		public static FileReference Create(FileReference TempFileName, List<string> Lines)
 		{
 			FileInfo TempFileInfo = new FileInfo(TempFileName.FullName);
-			// Delete the existing file if it exists
 			if (TempFileInfo.Exists)
 			{
+				string Body = string.Join(Environment.NewLine, Lines);
+				// Reuse the existing response file if it remains unchanged
+				string OriginalBody = File.ReadAllText(TempFileName.FullName);
+				if (string.Equals(OriginalBody, Body, StringComparison.Ordinal))
+				{
+					return TempFileName;
+				}
+				// Delete the existing file if it exists and requires modification
 				TempFileInfo.IsReadOnly = false;
 				TempFileInfo.Delete();
 				TempFileInfo.Refresh();
