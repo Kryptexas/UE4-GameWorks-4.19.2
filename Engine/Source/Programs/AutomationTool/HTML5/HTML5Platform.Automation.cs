@@ -127,10 +127,10 @@ public class HTML5Platform : Platform
 		var bGotHeapSize = ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "HeapSize" + Params.ClientConfigsToBuild[0].ToString(), out ConfigHeapSize);
 
 		// Fallback if the previous method failed
-		if (!bGotHeapSize && !ConfigCache.GetInt32("BuildSettings", "HeapSize" + Params.ClientConfigsToBuild[0].ToString(), out ConfigHeapSize)) // in Megs.
+		if (!bGotHeapSize && !ConfigCache.GetInt32("/Script/BuildSettings.BuildSettings", "HeapSize" + Params.ClientConfigsToBuild[0].ToString(), out ConfigHeapSize)) // in Megs.
 		{
 			// we couldn't find a per config heap size, look for a common one.
-			if (!ConfigCache.GetInt32("BuildSettings", "HeapSize", out ConfigHeapSize))
+			if (!ConfigCache.GetInt32("/Script/BuildSettings.BuildSettings", "HeapSize", out ConfigHeapSize))
 			{
 				ConfigHeapSize = Params.IsCodeBasedProject ? 1024 : 512;
 				Log("Could not find Heap Size setting in .ini for Client config {0}", Params.ClientConfigsToBuild[0].ToString());
