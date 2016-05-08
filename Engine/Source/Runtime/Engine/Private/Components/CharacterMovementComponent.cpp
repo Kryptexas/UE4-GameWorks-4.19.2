@@ -247,7 +247,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 
 	NetworkSimulatedSmoothLocationTime = 0.100f;
 	NetworkSimulatedSmoothRotationTime = 0.033f;
-	ListenServerNetworkSimulatedSmoothLocationTime = 0.033f;
+	ListenServerNetworkSimulatedSmoothLocationTime = 0.040f;
 	ListenServerNetworkSimulatedSmoothRotationTime = 0.033f;
 	NetworkMaxSmoothUpdateDistance = 256.f;
 	NetworkNoSmoothUpdateDistance = 384.f;
