@@ -205,9 +205,10 @@ bool FCompressedFileBuffer::CompressFileToWorkingBuffer(const FPakInputPair& InF
 	while(UncompressedSize)
 	{
 		int32 BlockSize = (int32)FMath::Min<int64>(UncompressedSize,CompressionBlockSize);
-		int32 CompressedBlockSize = CompressionBufferSize;
+		int32 MaxCompressedBlockSize = FCompression::CompressMemoryBound(CompressionMethod, BlockSize);
+		int32 CompressedBlockSize = FMath::Max<int32>(CompressionBufferSize, MaxCompressedBlockSize);
 		FileCompressionBlockSize = FMath::Max<uint32>(BlockSize, FileCompressionBlockSize);
-		EnsureBufferSpace(TotalCompressedSize+CompressedBlockSize);
+		EnsureBufferSpace(Align(TotalCompressedSize+CompressedBlockSize,FAES::AESBlockSize));
 		if(!FCompression::CompressMemory(CompressionMethod,CompressedBuffer.Get()+TotalCompressedSize,CompressedBlockSize,InOutPersistentBuffer+UncompressedBytes,BlockSize,CompressionBitWindow))
 		{
 			return false;
@@ -807,6 +808,12 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 					RealFileSize = CompressedFileBuffer.TotalCompressedSize + NewEntry.Info.GetSerializedSize(FPakInfo::PakFile_Version_Latest);
 					NewEntry.Info.CompressionBlocks.Reset();
 				}
+			}
+			else
+			{
+				// Compression failed. Include file uncompressed and warn the user.
+				UE_LOG(LogPakFile, Warning, TEXT("File \"%s\" failed compression. File will be saved uncompressed."), *FilesToAdd[FileIndex].Source);
+				CompressionMethod = COMPRESS_None;
 			}
 		}
 
