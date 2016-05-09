@@ -35,11 +35,11 @@ FRenderQueryRHIRef FD3D12DynamicRHI::RHICreateRenderQuery(ERenderQueryType Query
 		D3D12_QUERY_HEAP_DESC QueryHeapDesc = {};
 		QueryHeapDesc.Count = 1;
 		QueryHeapDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-		VERIFYD3D11RESULT(GetRHIDevice()->GetDevice()->CreateQueryHeap(&QueryHeapDesc, IID_PPV_ARGS(&pQueryHeap)));
+		VERIFYD3D12RESULT(GetRHIDevice()->GetDevice()->CreateQueryHeap(&QueryHeapDesc, IID_PPV_ARGS(&pQueryHeap)));
 
 		const D3D12_HEAP_PROPERTIES HeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
 		const D3D12_RESOURCE_DESC HeapDesc = CD3DX12_RESOURCE_DESC::Buffer(8);
-		VERIFYD3D11RESULT(
+		VERIFYD3D12RESULT(
 			GetRHIDevice()->GetDevice()->CreateCommittedResource(
 				&HeapProperties,
 				D3D12_HEAP_FLAG_NONE,
@@ -111,7 +111,7 @@ bool FD3D12Device::GetQueryData(FD3D12OcclusionQuery& Query, bool bWait)
 	{
 		const uint32 BeginOffset = Query.HeapIndex * sizeof(Query.Result);
 		CD3DX12_RANGE range(BeginOffset, BeginOffset + sizeof(Query.Result));
-		VERIFYD3D11RESULT(OcclusionQueryHeap.MapResultBufferRange(range));
+		VERIFYD3D12RESULT(OcclusionQueryHeap.MapResultBufferRange(range));
 		FMemory::Memcpy(&Query.Result, OcclusionQueryHeap.GetResultBufferData(range), sizeof(Query.Result));
 		OcclusionQueryHeap.UnmapResultBufferRange();
 		return true;
@@ -137,7 +137,7 @@ bool FD3D12Device::GetQueryData(FD3D12OcclusionQuery& Query, bool bWait)
 		}
 		else
 		{
-			VERIFYD3D11RESULT(Result);
+			VERIFYD3D12RESULT(Result);
 			return false;
 		}
 	}
@@ -179,9 +179,13 @@ FD3D12QueryHeap::FD3D12QueryHeap(FD3D12Device* InParent, const D3D12_QUERY_HEAP_
 	{
 		QueryType = D3D12_QUERY_TYPE_TIMESTAMP;
 	}
+	else
+	{
+		check(false);
+	}
 
 	// Setup the query heap desc
-	QueryHeapDesc ={};
+	QueryHeapDesc = {};
 	QueryHeapDesc.Type = InQueryHeapType;
 	QueryHeapDesc.Count = InQueryHeapCount;
 
@@ -213,6 +217,18 @@ void FD3D12QueryHeap::Init()
 
 	// Create the result buffer
 	CreateResultBuffer();
+}
+
+void FD3D12QueryHeap::Destroy()
+{
+	if (pResultData)
+	{
+		ResultBuffer->GetResource()->Unmap(0, nullptr);
+		pResultData = nullptr;
+	}
+
+	QueryHeap = nullptr;
+	ResultBuffer = nullptr;
 }
 
 uint32 FD3D12QueryHeap::GetNextElement(uint32 InElement)
@@ -356,6 +372,8 @@ void FD3D12QueryHeap::EndQueryBatchAndResolveQueryData(FD3D12CommandContext& Cmd
 	CmdContext.CommandListHandle->ResolveQueryData(
 		QueryHeap, InQueryType, CurrentQueryBatch.StartElement, CurrentQueryBatch.ElementCount,
 		ResultBuffer->GetResource(), GetResultBufferOffsetForElement(CurrentQueryBatch.StartElement));
+
+	CmdContext.CommandListHandle.UpdateResidency(ResultBuffer);
 }
 
 uint32 FD3D12QueryHeap::BeginQuery(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType)
@@ -363,6 +381,9 @@ uint32 FD3D12QueryHeap::BeginQuery(FD3D12CommandContext& CmdContext, D3D12_QUERY
 	const uint32 Element = AllocQuery(CmdContext, InQueryType);
 	CmdContext.otherWorkCounter++;
 	CmdContext.CommandListHandle->BeginQuery(QueryHeap, InQueryType, Element);
+
+	CmdContext.CommandListHandle.UpdateResidency(ResultBuffer);
+
 	return Element;
 }
 
@@ -370,12 +391,14 @@ void FD3D12QueryHeap::EndQuery(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYP
 {
 	CmdContext.otherWorkCounter++;
 	CmdContext.CommandListHandle->EndQuery(QueryHeap, InQueryType, InElement);
+
+	CmdContext.CommandListHandle.UpdateResidency(ResultBuffer);
 }
 
 void FD3D12QueryHeap::CreateQueryHeap()
 {
 	// Create the upload heap
-	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateQueryHeap(&QueryHeapDesc, IID_PPV_ARGS(QueryHeap.GetInitReference())));
+	VERIFYD3D12RESULT(GetParentDevice()->GetDevice()->CreateQueryHeap(&QueryHeapDesc, IID_PPV_ARGS(QueryHeap.GetInitReference())));
 }
 
 void FD3D12QueryHeap::CreateResultBuffer()
@@ -384,7 +407,7 @@ void FD3D12QueryHeap::CreateResultBuffer()
 	D3D12_RESOURCE_DESC ResultBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(ResultSize * QueryHeapDesc.Count); // Each query's result occupies ResultSize bytes.
 
 	// Create the readback heap
-	VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateCommittedResource(
+	VERIFYD3D12RESULT(GetParentDevice()->GetResourceHelper().CreateCommittedResource(
 		ResultBufferDesc,
 		ResultBufferHeapProperties,
 		D3D12_RESOURCE_STATE_COPY_DEST,
@@ -392,7 +415,7 @@ void FD3D12QueryHeap::CreateResultBuffer()
 		ResultBuffer.GetInitReference()));
 
 	// Map the result buffer (and keep it mapped)
-	VERIFYD3D11RESULT(ResultBuffer->GetResource()->Map(0, nullptr, &pResultData));
+	VERIFYD3D12RESULT(ResultBuffer->GetResource()->Map(0, nullptr, &pResultData));
 }
 
 
@@ -410,14 +433,9 @@ FD3D12BufferedGPUTiming::FD3D12BufferedGPUTiming(FD3D12Device* InParent, int32 I
 	: BufferSize(InBufferSize)
 	, CurrentTimestamp(-1)
 	, NumIssuedTimestamps(0)
-	, StartTimestampQueryHeap(nullptr)
-	, StartTimestampListHandles(nullptr)
-	, StartTimestampQueryHeapBuffer(nullptr)
-	, StartTimestampQueryHeapBufferData(nullptr)
-	, EndTimestampQueryHeap(nullptr)
-	, EndTimestampListHandles(nullptr)
-	, EndTimestampQueryHeapBuffer(nullptr)
-	, EndTimestampQueryHeapBufferData(nullptr)
+	, TimestampQueryHeap(nullptr)
+	, TimestampQueryHeapBuffer(nullptr)
+	, TimestampQueryHeapBufferData(nullptr)
 	, bIsTiming(false)
 	, bStablePowerState(false)
 	, FD3D12DeviceChild(InParent)
@@ -434,7 +452,7 @@ void FD3D12BufferedGPUTiming::PlatformStaticInitialize(void* UserData)
 
 	GTimingFrequency = 0;
 	FD3D12Device* ParentDevice = (FD3D12Device*)UserData;
-	VERIFYD3D11RESULT(ParentDevice->GetCommandListManager().GetTimestampFrequency(&GTimingFrequency));
+	VERIFYD3D12RESULT(ParentDevice->GetCommandListManager().GetTimestampFrequency(&GTimingFrequency));
 }
 
 /**
@@ -449,30 +467,24 @@ void FD3D12BufferedGPUTiming::InitDynamicRHI()
 	bIsTiming = false;
 
 	// Now initialize the queries and backing buffers for this timing object.
-
 	if (GIsSupported)
 	{
-		D3D12_QUERY_HEAP_DESC QueryHeapDesc ={};
+		D3D12_QUERY_HEAP_DESC QueryHeapDesc = {};
 		QueryHeapDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-		QueryHeapDesc.Count = BufferSize;
+		QueryHeapDesc.Count = BufferSize * 2;	// Space for each Start + End pair.
+		VERIFYD3D12RESULT(GetParentDevice()->GetDevice()->CreateQueryHeap(&QueryHeapDesc, IID_PPV_ARGS(TimestampQueryHeap.GetInitReference())));
+		SetName(TimestampQueryHeap, L"FD3D12BufferedGPUTiming: Timestamp Query Heap");
 
-		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateQueryHeap(&QueryHeapDesc, IID_PPV_ARGS(StartTimestampQueryHeap.GetInitReference())));
-		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateQueryHeap(&QueryHeapDesc, IID_PPV_ARGS(EndTimestampQueryHeap.GetInitReference())));
+		ID3D12Resource* Buffer = nullptr;
+		const D3D12_HEAP_PROPERTIES QueryHeapBufferHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
+		const D3D12_RESOURCE_DESC QueryHeapBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(8 * QueryHeapDesc.Count); // Each timestamp query occupies 8 bytes.
+		VERIFYD3D12RESULT(GetParentDevice()->GetDevice()->CreateCommittedResource(&QueryHeapBufferHeapProperties, D3D12_HEAP_FLAG_NONE, &QueryHeapBufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&Buffer)));
+		VERIFYD3D12RESULT(Buffer->Map(0, nullptr, reinterpret_cast<void**>(&TimestampQueryHeapBufferData)));
 
-		D3D12_HEAP_PROPERTIES queryHeapBufferHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
+		TimestampQueryHeapBuffer = new FD3D12Resource(GetParentDevice(), Buffer, QueryHeapBufferDesc, nullptr, QueryHeapBufferHeapProperties.Type);
+		SetName(TimestampQueryHeapBuffer, L"FD3D12BufferedGPUTiming: Timestamp Query Result Buffer");
 
-		D3D12_RESOURCE_DESC queryHeapBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(8 * BufferSize); // Each timestamp query occupies 8 bytes.
-
-		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateCommittedResource(&queryHeapBufferHeapProperties, D3D12_HEAP_FLAG_NONE, &queryHeapBufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(StartTimestampQueryHeapBuffer.GetInitReference())));
-		VERIFYD3D11RESULT(StartTimestampQueryHeapBuffer->Map(0, nullptr, reinterpret_cast<void**>(&StartTimestampQueryHeapBufferData)));
-
-		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateCommittedResource(&queryHeapBufferHeapProperties, D3D12_HEAP_FLAG_NONE, &queryHeapBufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(EndTimestampQueryHeapBuffer.GetInitReference())));
-		VERIFYD3D11RESULT(EndTimestampQueryHeapBuffer->Map(0, nullptr, reinterpret_cast<void**>(&EndTimestampQueryHeapBufferData)));
-
-		StartTimestampListHandles = new FD3D12CLSyncPoint[BufferSize];
-		ZeroMemory(StartTimestampListHandles, sizeof(FD3D12CLSyncPoint) * BufferSize);
-		EndTimestampListHandles = new FD3D12CLSyncPoint[BufferSize];
-		ZeroMemory(EndTimestampListHandles, sizeof(FD3D12CLSyncPoint) * BufferSize);
+		TimestampListHandles.AddZeroed(QueryHeapDesc.Count);
 	}
 }
 
@@ -481,21 +493,8 @@ void FD3D12BufferedGPUTiming::InitDynamicRHI()
  */
 void FD3D12BufferedGPUTiming::ReleaseDynamicRHI()
 {
-	StartTimestampQueryHeap = nullptr;
-	if (StartTimestampListHandles)
-	{
-		delete[] StartTimestampListHandles;
-		StartTimestampListHandles = nullptr;
-	}
-	StartTimestampQueryHeapBuffer = nullptr;
-
-	EndTimestampQueryHeap = nullptr;
-	if (EndTimestampListHandles)
-	{
-		delete[] EndTimestampListHandles;
-		EndTimestampListHandles = nullptr;
-	}
-	EndTimestampQueryHeapBuffer = nullptr;
+	TimestampQueryHeap = nullptr;
+	TimestampQueryHeapBuffer = nullptr;
 }
 
 /**
@@ -507,13 +506,13 @@ void FD3D12BufferedGPUTiming::StartTiming()
 	if (GIsSupported && !bIsTiming)
 	{
 		// Check to see if stable power state cvar has changed
-		bool bStablePowerStateCVar = RHIConsoleVariables::bStablePowerState != 0;
+		const bool bStablePowerStateCVar = RHIConsoleVariables::bStablePowerState != 0;
 		if (bStablePowerState != bStablePowerStateCVar)
 		{
 			if (SUCCEEDED(GetParentDevice()->GetDevice()->SetStablePowerState(bStablePowerStateCVar)))
 			{
 				// SetStablePowerState succeeded. Update timing frequency.
-				VERIFYD3D11RESULT(GetParentDevice()->GetCommandListManager().GetTimestampFrequency(&GTimingFrequency));
+				VERIFYD3D12RESULT(GetParentDevice()->GetCommandListManager().GetTimestampFrequency(&GTimingFrequency));
 				bStablePowerState = bStablePowerStateCVar;
 			}
 			else
@@ -522,13 +521,17 @@ void FD3D12BufferedGPUTiming::StartTiming()
 				RHIConsoleVariables::CVarStablePowerState->Set(0, ECVF_SetByConsole);
 			}
 		}
-		int32 NewTimestampIndex = (CurrentTimestamp + 1) % BufferSize;
+
+		CurrentTimestamp = (CurrentTimestamp + 1) % BufferSize;
+
+		const uint32 QueryStartIndex = GetStartTimestampIndex(CurrentTimestamp);
 		FD3D12CommandContext& CmdContext = GetParentDevice()->GetDefaultCommandContext();
-		CmdContext.otherWorkCounter += 2;
-		CmdContext.CommandListHandle->EndQuery(StartTimestampQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, NewTimestampIndex);
-		CmdContext.CommandListHandle->ResolveQueryData(StartTimestampQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, CurrentTimestamp, 1, StartTimestampQueryHeapBuffer, 8 * CurrentTimestamp);
-		StartTimestampListHandles[NewTimestampIndex] = CmdContext.CommandListHandle;
-		CurrentTimestamp = NewTimestampIndex;
+		CmdContext.otherWorkCounter++;
+		CmdContext.CommandListHandle->EndQuery(TimestampQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, QueryStartIndex);
+
+		CmdContext.CommandListHandle.UpdateResidency(TimestampQueryHeapBuffer);
+
+		TimestampListHandles[QueryStartIndex] = CmdContext.CommandListHandle;
 		bIsTiming = true;
 	}
 }
@@ -543,11 +546,17 @@ void FD3D12BufferedGPUTiming::EndTiming()
 	if (GIsSupported && bIsTiming)
 	{
 		check(CurrentTimestamp >= 0 && CurrentTimestamp < BufferSize);
+		const uint32 QueryStartIndex = GetStartTimestampIndex(CurrentTimestamp);
+		const uint32 QueryEndIndex = GetEndTimestampIndex(CurrentTimestamp);
+		check(QueryEndIndex == QueryStartIndex + 1);	// Make sure they're adjacent indices.
 		FD3D12CommandContext& CmdContext = GetParentDevice()->GetDefaultCommandContext();
 		CmdContext.otherWorkCounter += 2;
-		CmdContext.CommandListHandle->EndQuery(EndTimestampQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, CurrentTimestamp);
-		CmdContext.CommandListHandle->ResolveQueryData(EndTimestampQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, CurrentTimestamp, 1, EndTimestampQueryHeapBuffer, 8 * CurrentTimestamp);
-		EndTimestampListHandles[CurrentTimestamp] = CmdContext.CommandListHandle;
+		CmdContext.CommandListHandle->EndQuery(TimestampQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, QueryEndIndex);
+		CmdContext.CommandListHandle->ResolveQueryData(TimestampQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, QueryStartIndex, 2, TimestampQueryHeapBuffer->GetResource(), 8 * QueryStartIndex);
+
+		CmdContext.CommandListHandle.UpdateResidency(TimestampQueryHeapBuffer);
+
+		TimestampListHandles[QueryEndIndex] = CmdContext.CommandListHandle;
 		NumIssuedTimestamps = FMath::Min<int32>(NumIssuedTimestamps + 1, BufferSize);
 		bIsTiming = false;
 	}
@@ -574,12 +583,14 @@ uint64 FD3D12BufferedGPUTiming::GetTiming(bool bGetCurrentResultsAndBlock)
 			// Quickly check the most recent measurements to see if any of them has been resolved.  Do not flush these queries.
 			for (int32 IssueIndex = 1; IssueIndex < NumIssuedTimestamps; ++IssueIndex)
 			{
-				if (CommandListManager.IsComplete(EndTimestampListHandles[TimestampIndex]))
+				const uint32 QueryStartIndex = GetStartTimestampIndex(TimestampIndex);
+				const uint32 QueryEndIndex = GetEndTimestampIndex(TimestampIndex);
+				const FD3D12CLSyncPoint& StartQuerySyncPoint = TimestampListHandles[QueryStartIndex];
+				const FD3D12CLSyncPoint& EndQuerySyncPoint = TimestampListHandles[QueryEndIndex];
+				if (EndQuerySyncPoint.IsComplete() && StartQuerySyncPoint.IsComplete())
 				{
-					check(CommandListManager.IsComplete(StartTimestampListHandles[TimestampIndex]));
-
-					StartTime = StartTimestampQueryHeapBufferData[TimestampIndex];
-					EndTime = EndTimestampQueryHeapBufferData[TimestampIndex];
+					StartTime = TimestampQueryHeapBufferData[QueryStartIndex];
+					EndTime = TimestampQueryHeapBufferData[QueryEndIndex];
 
 					if (EndTime > StartTime)
 					{
@@ -603,17 +614,34 @@ uint64 FD3D12BufferedGPUTiming::GetTiming(bool bGetCurrentResultsAndBlock)
 
 			SCOPE_CYCLE_COUNTER(STAT_RenderQueryResultTime);
 
+			const uint32 QueryStartIndex = GetStartTimestampIndex(TimestampIndex);
+			const uint32 QueryEndIndex = GetEndTimestampIndex(TimestampIndex);
+
 			if (bBlocking)
-				GetParentDevice()->GetDefaultCommandContext().FlushCommands(true);
+			{
+				const FD3D12CLSyncPoint& StartQuerySyncPoint = TimestampListHandles[QueryStartIndex];
+				const FD3D12CLSyncPoint& EndQuerySyncPoint = TimestampListHandles[QueryEndIndex];
+				if (EndQuerySyncPoint.IsOpen() || StartQuerySyncPoint.IsOpen())
+				{
+					// Need to submit the open command lists.
+					GetParentDevice()->GetDefaultCommandContext().FlushCommands();
+				}
+
+				// CPU wait for query results to be ready.
+				StartQuerySyncPoint.WaitForCompletion();
+				EndQuerySyncPoint.WaitForCompletion();
+			}
 
 			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUQuery] += FPlatformTime::Cycles() - IdleStart;
 			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUQuery]++;
 
-			StartTime = StartTimestampQueryHeapBufferData[TimestampIndex];
-			EndTime = EndTimestampQueryHeapBufferData[TimestampIndex];
+			StartTime = TimestampQueryHeapBufferData[QueryStartIndex];
+			EndTime = TimestampQueryHeapBufferData[QueryEndIndex];
 
 			if (EndTime > StartTime)
+			{
 				return EndTime - StartTime;
+			}
 		}
 	}
 

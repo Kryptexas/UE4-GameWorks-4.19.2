@@ -43,6 +43,15 @@ bool D3D12RHI_ShouldAllowAsyncResourceCreation()
 	return bAllowAsyncResourceCreation;
 }
 
+bool D3D12RHI_ShouldForceCompatibility()
+{
+	// Suppress the use of newer D3D12 features.
+	static bool bForceCompatibility =
+		FParse::Param(FCommandLine::Get(), TEXT("d3dcompat")) ||
+		FParse::Param(FCommandLine::Get(), TEXT("d3d12compat"));
+	return bForceCompatibility;
+}
+
 IMPLEMENT_MODULE(FD3D12DynamicRHIModule, D3D12RHI);
 
 FD3D12DynamicRHI* FD3D12DynamicRHI::SingleD3DRHI = nullptr;
@@ -170,9 +179,6 @@ public:
 
 		if (Flush)
 		{
-#if SUPPORTS_MEMORY_RESIDENCY
-			OwningDevice->GetOwningRHI()->GetResourceResidencyManager().MakeResident();
-#endif
 			OwningDevice->GetCommandListManager().ExecuteCommandLists(OwningDevice->PendingCommandLists);
 			OwningDevice->PendingCommandLists.Reset();
 			OwningDevice->PendingCommandListsTotalWorkCommands = 0;
@@ -199,7 +205,7 @@ IRHICommandContextContainer* FD3D12DynamicRHI::RHIGetCommandContextContainer()
 
 #endif // D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE
 
-FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc, bool InIsAsyncComputeContext) :
+FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc, bool InIsDefaultContext, bool InIsAsyncComputeContext) :
 	OwningRHI(*InParent->GetOwningRHI()),
 	bUsingTessellation(false),
 	PendingNumVertices(0),
@@ -214,6 +220,7 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllo
 	NumUAVs(0),
 	CurrentDSVAccessType(FExclusiveDepthStencil::DepthWrite_StencilWrite),
 	bDiscardSharedConstants(false),
+	bIsDefaultContext(InIsDefaultContext),
 	bIsAsyncComputeContext(InIsAsyncComputeContext),
 	CommandListHandle(),
 	CommandAllocator(nullptr),
@@ -253,8 +260,6 @@ FD3D12Device::FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIF
 	OwningRHI(InOwningRHI),
 	DXGIFactory(InDXGIFactory),
 	DeviceAdapter(InAdapter),
-	Direct3DDevice(nullptr),
-	DxgiAdapter3(nullptr),
 	bDeviceRemoved(false),
 	RTVAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 256),
 	DSVAllocator(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 256),
@@ -273,7 +278,7 @@ FD3D12Device::FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIF
 	CommandListManager(this, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	CopyCommandListManager(this, D3D12_COMMAND_LIST_TYPE_COPY),
 	AsyncCommandListManager(this, D3D12_COMMAND_LIST_TYPE_COMPUTE),
-	TextureStreamingCommandAllocatorManager(this, GEnableMultiEngine ? D3D12_COMMAND_LIST_TYPE_COPY : D3D12_COMMAND_LIST_TYPE_DIRECT),
+	TextureStreamingCommandAllocatorManager(this, D3D12_COMMAND_LIST_TYPE_COPY),
 	GlobalSamplerHeap(this),
 	GlobalViewHeap(this),
 	FirstFrameSeen(false),
@@ -328,10 +333,6 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& 
 	FeatureLevel = MainAdapter.MaxSupportedFeatureLevel;
 
 	GPUProfilingData.Init(MainDevice);
-
-#if SUPPORTS_MEMORY_RESIDENCY
-	ResourceResidencyManager.Init(MainDevice);
-#endif
 
 	// Allocate a buffer of zeroes. This is used when we need to pass D3D memory
 	// that we don't care about and will overwrite with valid data in the future.
@@ -482,7 +483,8 @@ void FD3D12Device::CreateCommandContexts()
 	{
 		FD3D12SubAllocatedOnlineHeap::SubAllocationDesc SubHeapDesc(&GlobalViewHeap, CurrentGlobalHeapOffset, DescriptorSuballocationPerContext);
 
-		FD3D12CommandContext* NewCmdContext = new FD3D12CommandContext(this, SubHeapDesc);
+		const bool bIsDefaultContext = (i == 0);
+		FD3D12CommandContext* NewCmdContext = new FD3D12CommandContext(this, SubHeapDesc, bIsDefaultContext);
 		CurrentGlobalHeapOffset += DescriptorSuballocationPerContext;
 
 		// without that the first RHIClear would get a scissor rect of (0,0)-(0,0) which means we get a draw call clear 
@@ -491,7 +493,7 @@ void FD3D12Device::CreateCommandContexts()
 		CommandContextArray.Add(NewCmdContext);
 
 		// Make available all but the first command context for parallel threads
-		if (i > 0)
+		if (!bIsDefaultContext)
 		{
 			FreeCommandContexts.Add(CommandContextArray[i]);
 		}
@@ -501,8 +503,9 @@ void FD3D12Device::CreateCommandContexts()
 	{
 		FD3D12SubAllocatedOnlineHeap::SubAllocationDesc SubHeapDesc(&GlobalViewHeap, CurrentGlobalHeapOffset, DescriptorSuballocationPerContext);
 
+		const bool bIsDefaultContext = (i == 0);
 		const bool bIsAsyncComputeContext = true;
-		FD3D12CommandContext* NewCmdContext = new FD3D12CommandContext(this, SubHeapDesc, bIsAsyncComputeContext);
+		FD3D12CommandContext* NewCmdContext = new FD3D12CommandContext(this, SubHeapDesc, bIsDefaultContext, bIsAsyncComputeContext);
 		CurrentGlobalHeapOffset += DescriptorSuballocationPerContext;
 
 		AsyncComputeContextArray.Add(NewCmdContext);
@@ -567,7 +570,11 @@ void FD3D12DynamicRHI::Shutdown()
 
 void FD3D12CommandContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 {
-	OwningRHI.PushGPUEvent(Name, Color);
+	if (IsDefaultContext())
+	{
+		OwningRHI.PushGPUEvent(Name, Color);
+	}
+
 #if USE_PIX
 	PIXBeginEvent(CommandListHandle.CommandList(), PIX_COLOR_DEFAULT, Name);
 #endif
@@ -575,7 +582,11 @@ void FD3D12CommandContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 
 void FD3D12CommandContext::RHIPopEvent()
 {
-	OwningRHI.PopGPUEvent();
+	if (IsDefaultContext())
+	{
+		OwningRHI.PopGPUEvent();
+	}
+
 #if USE_PIX
 	PIXEndEvent(CommandListHandle.CommandList());
 #endif
@@ -586,7 +597,7 @@ void FD3D12CommandContext::RHIPopEvent()
 * @param Width - Input: Desired resolution width in pixels. Output: A width that the platform supports.
 * @param Height - Input: Desired resolution height in pixels. Output: A height that the platform supports.
 */
-void FD3D12DynamicRHI::RHIGetSupportedResolution(uint32 &Width, uint32 &Height)
+void FD3D12DynamicRHI::RHIGetSupportedResolution(uint32& Width, uint32& Height)
 {
 	uint32 InitializedMode = false;
 	DXGI_MODE_DESC BestMode;
@@ -608,7 +619,7 @@ void FD3D12DynamicRHI::RHIGetSupportedResolution(uint32 &Width, uint32 &Height)
 
 		// get the description of the adapter
 		DXGI_ADAPTER_DESC AdapterDesc;
-		VERIFYD3D11RESULT(Adapter->GetDesc(&AdapterDesc));
+		VERIFYD3D12RESULT(Adapter->GetDesc(&AdapterDesc));
 
 #ifndef PLATFORM_XBOXONE // No need for display mode enumeration on console
 		// Enumerate outputs for this adapter
@@ -643,7 +654,7 @@ void FD3D12DynamicRHI::RHIGetSupportedResolution(uint32 &Width, uint32 &Height)
 				return;
 			}
 			DXGI_MODE_DESC* ModeList = new DXGI_MODE_DESC[NumModes];
-			VERIFYD3D11RESULT(Output->GetDisplayModeList(Format, 0, &NumModes, ModeList));
+			VERIFYD3D12RESULT(Output->GetDisplayModeList(Format, 0, &NumModes, ModeList));
 
 			for (uint32 m = 0;m < NumModes;m++)
 			{
@@ -695,7 +706,7 @@ void FD3D12DynamicRHI::GetBestSupportedMSAASetting(DXGI_FORMAT PlatformFormat, u
 	for (uint32 SampleCount = MSAACount; SampleCount > 0; SampleCount--)
 	{
 		// The multisampleQualityLevels struct serves as both the input and output to CheckFeatureSupport.
-		D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS multisampleQualityLevels ={};
+		D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS multisampleQualityLevels = {};
 		multisampleQualityLevels.SampleCount = SampleCount;
 
 		if (SUCCEEDED(GetRHIDevice()->GetDevice()->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &multisampleQualityLevels, sizeof(multisampleQualityLevels))))
@@ -731,27 +742,30 @@ bool FD3D12Device::IsGPUIdle()
 void FD3D12Device::CreateSignatures()
 {
 	// ExecuteIndirect command signatures
-	D3D12_COMMAND_SIGNATURE_DESC commandSignatureDesc ={};
+	D3D12_COMMAND_SIGNATURE_DESC commandSignatureDesc = {};
 	commandSignatureDesc.NumArgumentDescs = 1;
 	commandSignatureDesc.ByteStride = 20;
 
-	D3D12_INDIRECT_ARGUMENT_DESC indirectParameterDesc[1] ={};
+	D3D12_INDIRECT_ARGUMENT_DESC indirectParameterDesc[1] = {};
 	indirectParameterDesc[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
 
 	commandSignatureDesc.pArgumentDescs = indirectParameterDesc;
 
-	VERIFYD3D11RESULT(GetDevice()->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(DrawIndirectCommandSignature.GetInitReference())));
+	commandSignatureDesc.ByteStride = sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+
+	VERIFYD3D12RESULT(GetDevice()->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(DrawIndirectCommandSignature.GetInitReference())));
 
 	indirectParameterDesc[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
-	VERIFYD3D11RESULT(GetDevice()->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(DrawIndexedIndirectCommandSignature.GetInitReference())));
+	VERIFYD3D12RESULT(GetDevice()->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(DrawIndexedIndirectCommandSignature.GetInitReference())));
 
 	indirectParameterDesc[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
-	VERIFYD3D11RESULT(GetDevice()->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(DispatchIndirectCommandSignature.GetInitReference())));
+	commandSignatureDesc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
+	VERIFYD3D12RESULT(GetDevice()->CreateCommandSignature(&commandSignatureDesc, nullptr, IID_PPV_ARGS(DispatchIndirectCommandSignature.GetInitReference())));
 
 	CD3DX12_HEAP_PROPERTIES CounterHeapProperties(D3D12_HEAP_TYPE_UPLOAD);
 	D3D12_RESOURCE_DESC CounterBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(COUNTER_HEAP_SIZE);
 
-	VERIFYD3D11RESULT(
+	VERIFYD3D12RESULT(
 		GetDevice()->CreateCommittedResource(
 			&CounterHeapProperties,
 			D3D12_HEAP_FLAG_NONE,
@@ -762,7 +776,7 @@ void FD3D12Device::CreateSignatures()
 			)
 		);
 
-	VERIFYD3D11RESULT(
+	VERIFYD3D12RESULT(
 		CounterUploadHeap->Map(
 			0,
 			NULL,
@@ -949,9 +963,11 @@ void FD3D12Device::CleanupD3DDevice()
 		CopyCommandListManager.Destroy();
 		AsyncCommandListManager.Destroy();
 
+		OcclusionQueryHeap.Destroy();
 
 		FenceCorePool.Destroy();
 
+		D3DX12Residency::DestroyResidencyManager(ResidencyManager);
 	}
 }
 
