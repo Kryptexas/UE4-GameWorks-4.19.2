@@ -1048,6 +1048,7 @@ void UReflectionCaptureComponent::PostLoad()
 			bDerivedDataDirty = true;
 			delete FullHDRData;
 			FullHDRData = nullptr;
+			EncodedHDRDerivedData = nullptr;
 		}
 
 		// If we have full HDR data but not encoded HDR data, generate the encoded data now
@@ -1074,7 +1075,7 @@ void UReflectionCaptureComponent::PostLoad()
 
 		if (!bEncodedDataRequired)
 		{
-			EncodedHDRDerivedData = NULL;
+			EncodedHDRDerivedData = nullptr;
 		}
 	}
 
