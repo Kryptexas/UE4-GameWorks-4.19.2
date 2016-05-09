@@ -1643,19 +1643,17 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		}
 
 		// report to main frame
-		switch (Result)
+		if ((Result & ETargetPlatformReadyStatus::CodeUnsupported) != 0)
 		{
-		case ETargetPlatformReadyStatus::CodeUnsupported:
 			// show the message
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, launching a code-based project for the selected platform is currently not supported. This feature may be available in a future release."));
 			return false;
-
-		case ETargetPlatformReadyStatus::PluginsUnsupported:
+		}
+		if ((Result & ETargetPlatformReadyStatus::PluginsUnsupported) != 0)
+		{
 			// show the message
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, launching a project with third-party plugins is currently not supported for the selected platform. This feature may be available in a future release."));
 			return false;
-		default:
-			break;
 		}
 	}
 	else
