@@ -448,7 +448,7 @@ void FD3D12DescriptorCache::SetSamplers(EShaderFrequency ShaderStage, FD3D12Samp
 	bool CacheHit = false;
 
 	// Check to see if the sampler configuration is already in the sampler heap
-	FD3D12SamplerArrayDesc Desc;
+	FD3D12SamplerArrayDesc Desc = {};
 	if (SlotsNeeded <= _countof(Desc.SamplerID))
 	{
 		Desc.Count = SlotsNeeded;
