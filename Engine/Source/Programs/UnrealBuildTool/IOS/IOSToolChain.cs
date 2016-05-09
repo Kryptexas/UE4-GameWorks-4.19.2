@@ -776,12 +776,12 @@ namespace UnrealBuildTool
 
             string Arguments = "";
             Arguments += " actool --output-format human-readable-text --notices --warnings";
-            Arguments += " --output-partial-info-plist ";
-            Arguments += Path.GetDirectoryName(DestFile.AbsolutePath).Replace("\\", "/") + "/assetcatalog_generated_info.plist";
+            Arguments += " --output-partial-info-plist \"";
+            Arguments += Path.GetDirectoryName(DestFile.AbsolutePath).Replace("\\", "/") + "/assetcatalog_generated_info.plist\"";
             Arguments += " --app-icon AppIcon --launch-image LaunchImage --compress-pngs";
             Arguments += " --enable-on-demand-resources YES --filter-for-device-model AppleTV5,3 --filter-for-device-os-version 9.2";
-            Arguments += " --target-device tv --minimum-deployment-target 9.2 --platform appletvos --compile ";
-            Arguments += Path.GetDirectoryName(DestFile.AbsolutePath).Replace("\\", "/") + " " + InputFile.AbsolutePath;
+            Arguments += " --target-device tv --minimum-deployment-target 9.2 --platform appletvos --compile \"";
+            Arguments += Path.GetDirectoryName(DestFile.AbsolutePath).Replace("\\", "/") + "\" \"" + InputFile.AbsolutePath + "\"";
 
             CompileAssetAction.CommandArguments = Arguments;
             CompileAssetAction.PrerequisiteItems.Add(Executable);
