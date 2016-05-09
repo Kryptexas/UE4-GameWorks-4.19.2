@@ -27,7 +27,7 @@ ACameraRig_Rail::ACameraRig_Rail(const FObjectInitializer& ObjectInitializer)
 	RailCameraMount = CreateDefaultSubobject<USceneComponent>(TEXT("RailCameraMount"));
 	RailCameraMount->SetupAttachment(RailSplineComponent);
 
-	if (!IsRunningCommandlet() && !IsRunningDedicatedServer())
+	if (!IsRunningDedicatedServer())
 	{
 		static ConstructorHelpers::FObjectFinder<UStaticMesh> RailMesh(TEXT("/Engine/EditorMeshes/Camera/SM_RailRig_Track.SM_RailRig_Track"));
 		PreviewRailStaticMesh = RailMesh.Object;
