@@ -412,7 +412,8 @@ int32 ReportCrashUsingCrashReportClient(FWindowsPlatformCrashContext& InContext,
 static FCriticalSection EnsureLock;
 static bool bReentranceGuard = false;
 
-/** 
+#if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
+/**
  * A wrapper for ReportCrashUsingCrashReportClient that creates a new ensure crash context
  */
 int32 ReportEnsureUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const TCHAR* ErrorMessage, EErrorReportUI ReportUI)
@@ -422,6 +423,7 @@ int32 ReportEnsureUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, cons
 
 	return ReportCrashUsingCrashReportClient(CrashContext, ExceptionInfo, ErrorMessage, ReportUI, bIsEnsure);
 }
+#endif
 
 // #CrashReport: 2015-05-28 This should be named EngineEnsureHandler
 /** 
