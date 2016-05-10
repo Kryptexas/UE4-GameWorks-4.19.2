@@ -152,7 +152,7 @@ bool FXAudio2Device::InitializeHardware()
 			XAUDIO2_DEVICE_DETAILS Details;
 			DeviceProperties->XAudio2->GetDeviceDetails(i, &Details);
 
-			if (FString(Details.DeviceID) == WindowsAudioDeviceName)
+			if (FString(Details.DeviceID) == WindowsAudioDeviceName || FString(Details.DisplayName) == WindowsAudioDeviceName)
 			{
 				DeviceIndex = i;
 				break;
