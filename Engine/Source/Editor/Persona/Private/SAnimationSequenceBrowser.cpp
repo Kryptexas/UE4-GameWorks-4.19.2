@@ -810,7 +810,7 @@ TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetD
 		];
 
 	TSharedPtr<SHorizontalBox> ContentBox = nullptr;
-	TSharedRef<SToolTip> ToolTip = SNew(SToolTip)
+	TSharedRef<SToolTip> ToolTipWidget = SNew(SToolTip)
 	.TextMargin(1)
 	.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ToolTipBorder"))
 	[
@@ -880,7 +880,7 @@ TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetD
 		]
 	];
 
-	return ToolTip;
+	return ToolTipWidget;
 }
 
 void SAnimationSequenceBrowser::CreateAssetTooltipResources()

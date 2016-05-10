@@ -101,7 +101,7 @@ void SPropertyComboBox::OnSelectionChangedInternal( TSharedPtr<FString> InSelect
 TSharedRef<SWidget> SPropertyComboBox::OnGenerateComboWidget( TSharedPtr<FString> InComboString )
 {
 	//Find the corresponding tool tip for this combo entry if any
-	FText ToolTip;
+	FText ToolTipText;
 	bool bEnabled = true;
 	if (ToolTipList.Num() > 0)
 	{
@@ -110,7 +110,7 @@ TSharedRef<SWidget> SPropertyComboBox::OnGenerateComboWidget( TSharedPtr<FString
 		{
 			//A list of tool tips should have been populated in a 1 to 1 correspondance
 			check(ComboItemList.Num() == ToolTipList.Num());
-			ToolTip = ToolTipList[Index];
+			ToolTipText = ToolTipList[Index];
 
 			if( RestrictedList.Num() > 0 )
 			{
@@ -123,7 +123,7 @@ TSharedRef<SWidget> SPropertyComboBox::OnGenerateComboWidget( TSharedPtr<FString
 		SNew( STextBlock )
 		.Text( FText::FromString(*InComboString) )
 		.Font( Font )
-		.ToolTipText(ToolTip)
+		.ToolTipText(ToolTipText)
 		.IsEnabled(bEnabled);
 }
 

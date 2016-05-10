@@ -349,7 +349,7 @@ TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FOculusRiftHMD::CreateNewSettings(
 	return Result;
 }
 
-bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& WorldContext )
+bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& InWorldContext )
 {
 	if (GIsRequestingExit)
 	{
@@ -394,7 +394,7 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& WorldContext )
 		}
 	}
 
-	if (!FHeadMountedDisplay::OnStartGameFrame( WorldContext ))
+	if (!FHeadMountedDisplay::OnStartGameFrame( InWorldContext ))
 	{
 		return false;
 	}
@@ -456,7 +456,7 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& WorldContext )
 
 			if (bPrevPause != Settings->Flags.bPauseRendering)
 			{
-				APlayerController* const PC = GEngine->GetFirstLocalPlayerController(WorldContext.World());
+				APlayerController* const PC = GEngine->GetFirstLocalPlayerController(InWorldContext.World());
 				if (Settings->Flags.bPauseRendering)
 				{
 					// focus is lost
@@ -532,11 +532,7 @@ bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& WorldContext )
 				FCoreDelegates::VRHeadsetRecenter.Broadcast();
 
 				// we must call ovr_ClearShouldRecenterFlag, otherwise ShouldRecenter flag won't reset
-				FOvrSessionShared::AutoSession OvrSession(Session);
-				if (OvrSession)
-				{
-					ovr_ClearShouldRecenterFlag(OvrSession);
-				}
+				ovr_ClearShouldRecenterFlag(OvrSession);
 			}
 			else
 			{

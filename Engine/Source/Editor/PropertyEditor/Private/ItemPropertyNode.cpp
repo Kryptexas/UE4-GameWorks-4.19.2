@@ -96,7 +96,7 @@ void FItemPropertyNode::InitExpansionFlags (void)
 	if(	Cast<UStructProperty>(MyProperty)
 		||	( Cast<UArrayProperty>(MyProperty) && GetReadAddress(false,Addresses) )
 		||  HasNodeFlags(EPropertyNodeFlags::EditInline)
-		||	( Property->ArrayDim > 1 && ArrayIndex == -1 ) )
+		||	( MyProperty->ArrayDim > 1 && ArrayIndex == -1 ) )
 	{
 		SetNodeFlags(EPropertyNodeFlags::CanBeExpanded, true);
 	}
@@ -107,27 +107,27 @@ void FItemPropertyNode::InitExpansionFlags (void)
 void FItemPropertyNode::InitChildNodes()
 {
 	//NOTE - this is only turned off as to not invalidate child object nodes.
-	UProperty* Property = GetProperty();
-	UStructProperty* StructProperty = Cast<UStructProperty>(Property);
-	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
-	UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(Property);
+	UProperty* MyProperty = GetProperty();
+	UStructProperty* StructProperty = Cast<UStructProperty>(MyProperty);
+	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(MyProperty);
+	UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(MyProperty);
 
 	const bool bShouldShowHiddenProperties = !!HasNodeFlags(EPropertyNodeFlags::ShouldShowHiddenProperties);
 	const bool bShouldShowDisableEditOnInstance = !!HasNodeFlags(EPropertyNodeFlags::ShouldShowDisableEditOnInstance);
 
-	if( Property->ArrayDim > 1 && ArrayIndex == -1 )
+	if( MyProperty->ArrayDim > 1 && ArrayIndex == -1 )
 	{
 		// Do not add array children which are defined by an enum but the enum at the array index is hidden
 		// This only applies to static arrays
 		static const FName NAME_ArraySizeEnum("ArraySizeEnum");
 		UEnum* ArraySizeEnum = NULL; 
-		if (Property->HasMetaData(NAME_ArraySizeEnum))
+		if (MyProperty->HasMetaData(NAME_ArraySizeEnum))
 		{
-			ArraySizeEnum	= FindObject<UEnum>(NULL, *Property->GetMetaData(NAME_ArraySizeEnum));
+			ArraySizeEnum	= FindObject<UEnum>(NULL, *MyProperty->GetMetaData(NAME_ArraySizeEnum));
 		}
 
 		// Expand array.
-		for( int32 Index = 0 ; Index < Property->ArrayDim ; Index++ )
+		for( int32 Index = 0 ; Index < MyProperty->ArrayDim ; Index++ )
 		{
 			bool bShouldBeHidden = false;
 			if( ArraySizeEnum )
@@ -141,8 +141,8 @@ void FItemPropertyNode::InitChildNodes()
 				TSharedPtr<FItemPropertyNode> NewItemNode( new FItemPropertyNode);
 				FPropertyNodeInitParams InitParams;
 				InitParams.ParentNode = SharedThis(this);
-				InitParams.Property = Property;
-				InitParams.ArrayOffset = Index*Property->ElementSize;
+				InitParams.Property = MyProperty;
+				InitParams.ArrayOffset = Index*MyProperty->ElementSize;
 				InitParams.ArrayIndex = Index;
 				InitParams.bAllowChildren = true;
 				InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
@@ -223,7 +223,7 @@ void FItemPropertyNode::InitChildNodes()
 			}
 		}
 	}
-	else if( ObjectProperty || Property->IsA(UInterfaceProperty::StaticClass()))
+	else if( ObjectProperty || MyProperty->IsA(UInterfaceProperty::StaticClass()))
 	{
 		uint8* ReadValue = NULL;
 
@@ -260,7 +260,7 @@ void FItemPropertyNode::InitChildNodes()
 
 				FPropertyNodeInitParams InitParams;
 				InitParams.ParentNode = SharedThis(this);
-				InitParams.Property = Property;
+				InitParams.Property = MyProperty;
 				InitParams.ArrayOffset = 0;
 				InitParams.ArrayIndex = INDEX_NONE;
 				InitParams.bAllowChildren = true;

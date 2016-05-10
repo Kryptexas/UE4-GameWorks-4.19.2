@@ -615,7 +615,7 @@ void UCheatManager::DisableDebugCamera()
 
 void UCheatManager::InitCheatManager() 
 {
-	// Empty
+	ReceiveInitCheatManager(); //BP Initialization event
 }
 
 void UCheatManager::BeginDestroy()

@@ -3855,14 +3855,14 @@ void FEdModeMeshPaint::PushInstanceVertexColorsToMesh()
 	const bool bMeshSelected = GetSelectedMeshInfo( NumBaseVertexColorBytes, NumInstanceVertexColorBytes, bHasInstanceMaterialAndTexture );
 	if ( bMeshSelected && NumInstanceVertexColorBytes > 0 )
 	{
-		FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("PushInstanceVertexColorsPrompt_Message", "Copying the instance vertex colors to the source mesh will replace any of the source mesh's pre-existing vertex colors and affect every instance of the source mesh." ),
+		FSuppressableWarningDialog::FSetupInfo SetupInfo( LOCTEXT("PushInstanceVertexColorsPrompt_Message", "Copying the instance vertex colors to the source mesh will replace any of the source mesh's pre-existing vertex colors and affect every instance of the source mesh." ),
 													 LOCTEXT("PushInstanceVertexColorsPrompt_Title", "Warning: Copying vertex data overwrites all instances" ), "Warning_PushInstanceVertexColorsPrompt" );
 
-		Info.ConfirmText = LOCTEXT("PushInstanceVertexColorsPrompt_ConfirmText", "Continue");
-		Info.CancelText = LOCTEXT("PushInstanceVertexColorsPrompt_CancelText", "Abort");
-		Info.CheckBoxText = LOCTEXT("PushInstanceVertexColorsPrompt_CheckBoxText","Always copy vertex colors without prompting");
+		SetupInfo.ConfirmText = LOCTEXT("PushInstanceVertexColorsPrompt_ConfirmText", "Continue");
+		SetupInfo.CancelText = LOCTEXT("PushInstanceVertexColorsPrompt_CancelText", "Abort");
+		SetupInfo.CheckBoxText = LOCTEXT("PushInstanceVertexColorsPrompt_CheckBoxText","Always copy vertex colors without prompting");
 
-		FSuppressableWarningDialog VertexColorCopyWarning( Info );
+		FSuppressableWarningDialog VertexColorCopyWarning( SetupInfo );
 
 		// Prompt the user to see if they really want to push the vert colors to the source mesh and to explain
 		// the ramifications of doing so. This uses a suppressible dialog so that the user has the choice to always ignore the warning.

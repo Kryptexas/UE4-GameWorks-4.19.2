@@ -63,11 +63,11 @@ void ATP_TopDownPlayerController::MoveToTouchLocation(const ETouchIndex::Type Fi
 
 void ATP_TopDownPlayerController::SetNewMoveDestination(const FVector DestLocation)
 {
-	APawn* const Pawn = GetPawn();
-	if (Pawn)
+	APawn* const MyPawn = GetPawn();
+	if (MyPawn)
 	{
 		UNavigationSystem* const NavSys = GetWorld()->GetNavigationSystem();
-		float const Distance = FVector::Dist(DestLocation, Pawn->GetActorLocation());
+		float const Distance = FVector::Dist(DestLocation, MyPawn->GetActorLocation());
 
 		// We need to issue move command only if far enough in order for walk animation to play correctly
 		if (NavSys && (Distance > 120.0f))

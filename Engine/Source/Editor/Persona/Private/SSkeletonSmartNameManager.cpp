@@ -206,16 +206,16 @@ TSharedPtr<SWidget> SSkeletonSmartNameManager::OnGetContextMenu() const
 			Action.ExecuteAction = FExecuteAction::CreateSP(this, &SSkeletonSmartNameManager::OnRenameClicked);
 			Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &SSkeletonSmartNameManager::CanRename);
 			const FText Label = LOCTEXT("RenameSmartNameLabel", "Rename");
-			const FText ToolTip = LOCTEXT("RenameSmartNameToolTip", "Rename the selected item");
-			MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+			const FText ToolTipText = LOCTEXT("RenameSmartNameToolTip", "Rename the selected item");
+			MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
 		}
 		// Delete a name
 		{
 			Action.ExecuteAction = FExecuteAction::CreateSP(this, &SSkeletonSmartNameManager::OnDeleteNameClicked);
 			Action.CanExecuteAction = FCanExecuteAction::CreateSP(this, &SSkeletonSmartNameManager::CanDelete);
 			const FText Label = LOCTEXT("DeleteSmartNameLabel", "Delete");
-			const FText ToolTip = LOCTEXT("DeleteSmartNameToolTip", "Delete the selected item");
-			MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+			const FText ToolTipText = LOCTEXT("DeleteSmartNameToolTip", "Delete the selected item");
+			MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
 		}
 		// Add a name
 		MenuBuilder.AddMenuSeparator();
@@ -223,8 +223,8 @@ TSharedPtr<SWidget> SSkeletonSmartNameManager::OnGetContextMenu() const
 			Action.ExecuteAction = FExecuteAction::CreateSP(this, &SSkeletonSmartNameManager::OnAddClicked);
 			Action.CanExecuteAction = nullptr;
 			const FText Label = LOCTEXT("AddSmartNameLabel", "Add...");
-			const FText ToolTip = LOCTEXT("AddSmartNameToolTip", "Add an entry to the skeleton");
-			MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+			const FText ToolTipText = LOCTEXT("AddSmartNameToolTip", "Add an entry to the skeleton");
+			MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
 		}
 	}
 	MenuBuilder.EndSection();
@@ -404,9 +404,9 @@ void SCurveNameManager::OnDeleteNameClicked()
 				TArray<UObject::FAssetRegistryTag> Tags;
 				Asset->GetAssetRegistryTags(Tags);
 				
-				UObject::FAssetRegistryTag* CurveTag = Tags.FindByPredicate([](const UObject::FAssetRegistryTag& Tag)
+				UObject::FAssetRegistryTag* CurveTag = Tags.FindByPredicate([](const UObject::FAssetRegistryTag& InTag)
 				{
-					return Tag.Name == USkeleton::CurveTag;
+					return InTag.Name == USkeleton::CurveTag;
 				});
 				CurveDataCopy = CurveTag->Value;
 			}

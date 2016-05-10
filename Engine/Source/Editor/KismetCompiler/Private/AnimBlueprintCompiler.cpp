@@ -250,8 +250,6 @@ void FAnimBlueprintCompiler::CreateEvaluationHandler(UAnimGraphNode_Base* Visual
 
 void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAnimNode)
 {
-	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
-
 	// Early out if this node has already been processed
 	if (AllocatedAnimNodes.Contains(VisualAnimNode))
 	{
@@ -280,8 +278,10 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 	// Create a property for the node
 	const FString NodeVariableName = ClassScopeNetNameMap.MakeValidName(VisualAnimNode);
 
+	const UAnimationGraphSchema* AnimGraphDefaultSchema = GetDefault<UAnimationGraphSchema>();
+
 	FEdGraphPinType NodeVariableType;
-	NodeVariableType.PinCategory = Schema->PC_Struct;
+	NodeVariableType.PinCategory = AnimGraphDefaultSchema->PC_Struct;
 	NodeVariableType.PinSubCategoryObject = NodeType;
 
 	UStructProperty* NewProperty = Cast<UStructProperty>(CreateVariable(FName(*NodeVariableName), NodeVariableType));
@@ -327,7 +327,7 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 		bool bConsumed = false;
 
 		// Register pose links for future use
-		if ((SourcePin->Direction == EGPD_Input) && (Schema->IsPosePin(SourcePin->PinType)))
+		if ((SourcePin->Direction == EGPD_Input) && (AnimGraphDefaultSchema->IsPosePin(SourcePin->PinType)))
 		{
 			// Input pose pin, going to need to be linked up
 			FPoseLinkMappingRecord LinkRecord = VisualAnimNode->GetLinkIDLocation(NodeType, SourcePin);
@@ -355,11 +355,11 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 				else
 				{
 					// Dynamic value that needs to be wired up and evaluated each frame
-					FString EvaluationHandlerStr = SourcePinProperty->GetMetaData(Schema->NAME_OnEvaluate);
+					FString EvaluationHandlerStr = SourcePinProperty->GetMetaData(AnimGraphDefaultSchema->NAME_OnEvaluate);
 					FName EvaluationHandlerName(*EvaluationHandlerStr);
 					if (EvaluationHandlerName == NAME_None)
 					{
-						EvaluationHandlerName = Schema->DefaultEvaluationHandlerName;
+						EvaluationHandlerName = AnimGraphDefaultSchema->DefaultEvaluationHandlerName;
 					}
 
 					EvaluationHandlers.FindOrAdd(EvaluationHandlerName).RegisterPin(SourcePin, SourcePinProperty, SourceArrayIndex);
@@ -413,7 +413,7 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 		}
 		else
 		{
-			MessageLog.Error(*FString::Printf(TEXT("A property on @@ references a non-existent %s property named %s"), VisualAnimNode), *(Schema->NAME_OnEvaluate.ToString()), *(EvaluationHandlerName.ToString()));
+			MessageLog.Error(*FString::Printf(TEXT("A property on @@ references a non-existent %s property named %s"), VisualAnimNode), *(AnimGraphDefaultSchema->NAME_OnEvaluate.ToString()), *(EvaluationHandlerName.ToString()));
 		}
 	}
 }
@@ -2070,8 +2070,6 @@ static UEdGraphNode* FollowKnots(UEdGraphPin* FromPin, UEdGraphPin*& DestPin)
 
 void FAnimBlueprintCompiler::FEvaluationHandlerRecord::RegisterPin(UEdGraphPin* SourcePin, UProperty* AssociatedProperty, int32 AssociatedPropertyArrayIndex)
 {
-	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
-
 	FAnimNodeSinglePropertyHandler& Handler = ServicedProperties.FindOrAdd(AssociatedProperty->GetFName());
 
 	if (AssociatedPropertyArrayIndex != INDEX_NONE)
@@ -2235,7 +2233,7 @@ bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForStructMemberAcces
 
 bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForMemberOnlyAccess(FAnimNodeSinglePropertyHandler& Handler, UEdGraphPin* SourcePin)
 {
-	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
+	const UAnimationGraphSchema* AnimGraphDefaultSchema = GetDefault<UAnimationGraphSchema>();
 
 	Handler.bHasOnlyMemberAccess = true;
 
@@ -2255,7 +2253,7 @@ bool FAnimBlueprintCompiler::FEvaluationHandlerRecord::CheckForMemberOnlyAccess(
 					bool bLeafNode = true;
 					for(auto& Pin : LinkedNode->Pins)
 					{
-						if(Pin != LinkedPin && Pin->Direction == EGPD_Input && !Schema->IsPosePin(Pin->PinType))
+						if(Pin != LinkedPin && Pin->Direction == EGPD_Input && !AnimGraphDefaultSchema->IsPosePin(Pin->PinType))
 						{
 							bLeafNode = false;
 							PinStack.Add(Pin);

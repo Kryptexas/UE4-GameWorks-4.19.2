@@ -45,5 +45,7 @@ public class WebBrowser : ModuleRules
 				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess.exe"));
 			}
 		}
+
+        bEnableShadowVariableWarnings = false;
 	}
 }

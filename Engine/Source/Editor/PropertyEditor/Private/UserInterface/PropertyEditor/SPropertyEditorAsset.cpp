@@ -515,31 +515,31 @@ FText SPropertyEditorAsset::OnGetToolTip() const
 	FObjectOrAssetData Value; 
 	FPropertyAccess::Result Result = GetValue( Value );
 
-	FText ToolTip = FText::GetEmpty();
+	FText ToolTipText = FText::GetEmpty();
 
 	if( Result == FPropertyAccess::Success )
 	{
 		if(Value.Object != NULL && !bIsActor )
 		{
 			// Display the package name which is a valid path to the object without redundant information
-			ToolTip = FText::FromString(Value.Object->GetOutermost()->GetName());
+			ToolTipText = FText::FromString(Value.Object->GetOutermost()->GetName());
 		}
 		else if( Value.AssetData.IsValid() )
 		{
-			ToolTip = FText::FromName(Value.AssetData.PackageName);
+			ToolTipText = FText::FromName(Value.AssetData.PackageName);
 		}
 	}
 	else if( Result == FPropertyAccess::MultipleValues )
 	{
-		ToolTip = LOCTEXT("MultipleValues", "Multiple Values");
+		ToolTipText = LOCTEXT("MultipleValues", "Multiple Values");
 	}
 
-	if( ToolTip.IsEmpty() )
+	if( ToolTipText.IsEmpty() )
 	{
-		ToolTip = FText::FromString(ObjectPath.Get());
+		ToolTipText = FText::FromString(ObjectPath.Get());
 	}
 
-	return ToolTip;
+	return ToolTipText;
 }
 
 void SPropertyEditorAsset::SetValue( const FAssetData& AssetData )

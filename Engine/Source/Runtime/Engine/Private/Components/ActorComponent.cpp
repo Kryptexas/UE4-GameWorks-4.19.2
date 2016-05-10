@@ -750,6 +750,16 @@ bool UActorComponent::IsComponentTickEnabled() const
 	return PrimaryComponentTick.IsTickFunctionEnabled();
 }
 
+void UActorComponent::SetComponentTickInterval(float TickInterval)
+{
+	PrimaryComponentTick.TickInterval = TickInterval;
+}
+
+float UActorComponent::GetComponentTickInterval() const
+{
+	return PrimaryComponentTick.TickInterval;
+}
+
 static UActorComponent* GTestRegisterComponentTickFunctions = NULL;
 
 void UActorComponent::RegisterComponentTickFunctions(bool bRegister)

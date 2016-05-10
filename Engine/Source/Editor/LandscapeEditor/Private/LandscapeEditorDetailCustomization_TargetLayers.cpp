@@ -1018,17 +1018,17 @@ FReply SLandscapeEditorSelectableBorder::OnMouseButtonUp(const FGeometry& MyGeom
 const FSlateBrush* SLandscapeEditorSelectableBorder::GetBorder() const
 {
 	const bool bIsSelected = IsSelected.Get();
-	const bool bIsHovered = IsHovered() && OnSelected.IsBound();
+	const bool bHovered = IsHovered() && OnSelected.IsBound();
 
 	if (bIsSelected)
 	{
-		return bIsHovered
+		return bHovered
 			? FEditorStyle::GetBrush("LandscapeEditor.TargetList", ".RowSelectedHovered")
 			: FEditorStyle::GetBrush("LandscapeEditor.TargetList", ".RowSelected");
 	}
 	else
 	{
-		return bIsHovered
+		return bHovered
 			? FEditorStyle::GetBrush("LandscapeEditor.TargetList", ".RowBackgroundHovered")
 			: FEditorStyle::GetBrush("LandscapeEditor.TargetList", ".RowBackground");
 	}

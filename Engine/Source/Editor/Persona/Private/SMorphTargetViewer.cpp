@@ -397,8 +397,8 @@ TSharedPtr<SWidget> SMorphTargetViewer::OnGetContextMenuContent() const
 		FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SMorphTargetViewer::OnDeleteMorphTargets ), 
 									  FCanExecuteAction::CreateSP( this, &SMorphTargetViewer::CanPerformDelete ) );
 		const FText Label = LOCTEXT("DeleteMorphTargetButtonLabel", "Delete");
-		const FText ToolTip = LOCTEXT("DeleteMorphTargetButtonTooltip", "Deletes the selected morph targets.");
-		MenuBuilder.AddMenuEntry( Label, ToolTip, FSlateIcon(), Action);
+		const FText ToolTipText = LOCTEXT("DeleteMorphTargetButtonTooltip", "Deletes the selected morph targets.");
+		MenuBuilder.AddMenuEntry( Label, ToolTipText, FSlateIcon(), Action);
 	}
 	MenuBuilder.EndSection();
 

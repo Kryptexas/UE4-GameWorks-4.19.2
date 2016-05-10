@@ -44,15 +44,15 @@ ATP_SideScrollerCharacter::ATP_SideScrollerCharacter()
 //////////////////////////////////////////////////////////////////////////
 // Input
 
-void ATP_SideScrollerCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+void ATP_SideScrollerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// set up gameplay key bindings
-	InputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	InputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-	InputComponent->BindAxis("MoveRight", this, &ATP_SideScrollerCharacter::MoveRight);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ATP_SideScrollerCharacter::MoveRight);
 
-	InputComponent->BindTouch(IE_Pressed, this, &ATP_SideScrollerCharacter::TouchStarted);
-	InputComponent->BindTouch(IE_Released, this, &ATP_SideScrollerCharacter::TouchStopped);
+	PlayerInputComponent->BindTouch(IE_Pressed, this, &ATP_SideScrollerCharacter::TouchStarted);
+	PlayerInputComponent->BindTouch(IE_Released, this, &ATP_SideScrollerCharacter::TouchStopped);
 }
 
 void ATP_SideScrollerCharacter::MoveRight(float Value)

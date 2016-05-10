@@ -2136,11 +2136,11 @@ void TrimLineToFrustum(const FConvexVolume& Frustum, FVector& Start, FVector& En
 	}
 }
 
-void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& Actors, FViewport* Viewport, const FVector& Drag, const FRotator& Rot)
+void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& Actors, FViewport* InViewport, const FVector& Drag, const FRotator& Rot)
 {
 	// Compile an array of selected actors
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-		Viewport, 
+		InViewport, 
 		GetScene(),
 		EngineShowFlags)
 		.SetRealtimeUpdate( IsRealtime() ));
@@ -2181,7 +2181,7 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 		{
 			// We only snap things that are on screen
 			FVector2D ScreenPos;
-			FIntPoint ViewportSize = Viewport->GetSizeXY();
+			FIntPoint ViewportSize = InViewport->GetSizeXY();
 			if (SceneView->WorldToPixel(NewActorPosition, ScreenPos) && FMath::IsWithin<float>(ScreenPos.X, 0, ViewportSize.X) && FMath::IsWithin<float>(ScreenPos.Y, 0, ViewportSize.Y))
 			{
 				bIsOnScreen = true;
@@ -2250,9 +2250,9 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 	}
 }
 
-bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList::Type InCurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale)
+bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisList::Type InCurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale)
 {
-	if (GUnrealEd->ComponentVisManager.HandleInputDelta(this, Viewport, Drag, Rot, Scale))
+	if (GUnrealEd->ComponentVisManager.HandleInputDelta(this, InViewport, Drag, Rot, Scale))
 	{
 		return true;
 	}
@@ -2260,7 +2260,7 @@ bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList
 	bool bHandled = false;
 
 	// Give the current editor mode a chance to use the input first.  If it does, don't apply it to anything else.
-	if (FEditorViewportClient::InputWidgetDelta(Viewport, InCurrentAxis, Drag, Rot, Scale))
+	if (FEditorViewportClient::InputWidgetDelta(InViewport, InCurrentAxis, Drag, Rot, Scale))
 	{
 		bHandled = true;
 	}
@@ -2273,9 +2273,9 @@ bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList
 			// but still pretend that we have handled the input
 			if (!GEditor->HasLockedActors())
 			{
-				const bool LeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton);
-				const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton);
-				const bool MiddleMouseButtonDown = Viewport->KeyState(EKeys::MiddleMouseButton);
+				const bool LeftMouseButtonDown = InViewport->KeyState(EKeys::LeftMouseButton);
+				const bool RightMouseButtonDown = InViewport->KeyState(EKeys::RightMouseButton);
+				const bool MiddleMouseButtonDown = InViewport->KeyState(EKeys::MiddleMouseButton);
 
 				// If duplicate dragging . . .
 				if ( IsAltPressed() && (LeftMouseButtonDown || RightMouseButtonDown) )
@@ -2317,7 +2317,7 @@ bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList
 							}
 						}
 
-						ProjectActorsIntoWorld(SelectedActors, Viewport, Drag, Rot);
+						ProjectActorsIntoWorld(SelectedActors, InViewport, Drag, Rot);
 					}
 					else
 					{
@@ -2432,7 +2432,7 @@ void FLevelEditorViewportClient::SetLastKeyViewport()
 	}
 }
 
-bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
+bool FLevelEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
 {
 	if (bDisableInput)
 	{
@@ -2440,16 +2440,16 @@ bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 	}
 
 	
-	const int32	HitX = Viewport->GetMouseX();
-	const int32	HitY = Viewport->GetMouseY();
+	const int32	HitX = InViewport->GetMouseX();
+	const int32	HitY = InViewport->GetMouseY();
 
-	FInputEventState InputState( Viewport, Key, Event );
+	FInputEventState InputState( InViewport, Key, Event );
 
 	SetLastKeyViewport();
 
 	// Compute a view.
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-		Viewport,
+		InViewport,
 		GetScene(),
 		EngineShowFlags )
 		.SetRealtimeUpdate( IsRealtime() ) );
@@ -2468,12 +2468,12 @@ bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 		FSnappingUtils::SnapPointToGrid(GEditor->ClickLocation, FVector::ZeroVector);
 	}
 
-	if (GUnrealEd->ComponentVisManager.HandleInputKey(this, Viewport, Key, Event))
+	if (GUnrealEd->ComponentVisManager.HandleInputKey(this, InViewport, Key, Event))
 	{
 		return true;
 	}
 
-	bool bHandled = FEditorViewportClient::InputKey(Viewport,ControllerId,Key,Event,AmountDepressed,bGamepad);
+	bool bHandled = FEditorViewportClient::InputKey(InViewport,ControllerId,Key,Event,AmountDepressed,bGamepad);
 
 	// Handle input for the player height preview mode. 
 	if (!InputState.IsMouseButtonEvent() && CommandAcceptsInput(*this, Key, GetLevelViewportCommands().EnablePreviewMesh))
@@ -2786,12 +2786,12 @@ void FLevelEditorViewportClient::OnActorMoved(AActor* InActor)
 
 void FLevelEditorViewportClient::NudgeSelectedObjects( const struct FInputEventState& InputState )
 {
-	FViewport* Viewport = InputState.GetViewport();
+	FViewport* InViewport = InputState.GetViewport();
 	EInputEvent Event = InputState.GetInputEvent();
 	FKey Key = InputState.GetKey();
 
-	const int32 MouseX = Viewport->GetMouseX();
-	const int32 MouseY = Viewport->GetMouseY();
+	const int32 MouseX = InViewport->GetMouseX();
+	const int32 MouseY = InViewport->GetMouseY();
 
 	if( Event == IE_Pressed || Event == IE_Repeat )
 	{
@@ -2807,7 +2807,7 @@ void FLevelEditorViewportClient::NudgeSelectedObjects( const struct FInputEventS
 		}
 
 		FIntPoint StartMousePos;
-		Viewport->GetMousePos( StartMousePos );
+		InViewport->GetMousePos( StartMousePos );
 		FKey VirtualKey = EKeys::MouseX;
 		EAxisList::Type VirtualAxis = GetHorizAxis();
 		float VirtualDelta = GEditor->GetGridSize() * (Key == EKeys::Left?-1:1);
@@ -2823,7 +2823,7 @@ void FLevelEditorViewportClient::NudgeSelectedObjects( const struct FInputEventS
 		MouseDeltaTracker->AddDelta( this, VirtualKey , VirtualDelta, 1 );
 		Widget->SetCurrentAxis( VirtualAxis );
 		UpdateMouseDelta();
-		Viewport->SetMouse( StartMousePos.X , StartMousePos.Y );
+		InViewport->SetMouse( StartMousePos.X , StartMousePos.Y );
 	}
 	else if( bIsTracking && Event == IE_Released )
 	{
@@ -2910,7 +2910,7 @@ private:
 	FLevelEditorViewportClient* PrevCurrentLevelEditingViewportClient;
 };
 
-bool FLevelEditorViewportClient::InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
+bool FLevelEditorViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
 {
 	if (bDisableInput)
 	{
@@ -2921,7 +2921,7 @@ bool FLevelEditorViewportClient::InputAxis(FViewport* Viewport, int32 Controller
 
 	FScopedSetCurrentViewportClient( this );
 
-	return FEditorViewportClient::InputAxis(Viewport, ControllerId, Key, Delta, DeltaTime, NumSamples, bGamepad);
+	return FEditorViewportClient::InputAxis(InViewport, ControllerId, Key, Delta, DeltaTime, NumSamples, bGamepad);
 }
 
 
@@ -3528,14 +3528,14 @@ void FLevelEditorViewportClient::ApplyDeltaToActor( AActor* InActor, const FVect
 	UpdateLockedActorViewports(InActor, true);
 }
 
-EMouseCursor::Type FLevelEditorViewportClient::GetCursor(FViewport* Viewport,int32 X,int32 Y)
+EMouseCursor::Type FLevelEditorViewportClient::GetCursor(FViewport* InViewport,int32 X,int32 Y)
 {
-	EMouseCursor::Type CursorType = FEditorViewportClient::GetCursor(Viewport,X,Y);
+	EMouseCursor::Type CursorType = FEditorViewportClient::GetCursor(InViewport,X,Y);
 
-	HHitProxy* HitProxy = Viewport->GetHitProxy(X,Y);
+	HHitProxy* HitProxy = InViewport->GetHitProxy(X,Y);
 
 	// Don't select widget axes by mouse over while they're being controlled by a mouse drag.
-	if( Viewport->IsCursorVisible() && !bWidgetAxisControlledByDrag && !HitProxy )
+	if( InViewport->IsCursorVisible() && !bWidgetAxisControlledByDrag && !HitProxy )
 	{
 		if( HoveredObjects.Num() > 0 )
 		{

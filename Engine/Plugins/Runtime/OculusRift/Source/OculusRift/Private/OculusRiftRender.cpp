@@ -983,9 +983,9 @@ bool FCustomPresent::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uin
 		if (ColorTextureSet.IsValid())
 		{
 			// update the eye layer textureset. at the moment only one eye layer is supported
-			const FHMDLayerDesc* pEyeLayerDesc = LayerMgr->GetLayerDesc(0);
-			check(pEyeLayerDesc);
-			FHMDLayerDesc EyeLayerDesc = *pEyeLayerDesc;
+			const FHMDLayerDesc* EyeLayerDescPtr = LayerMgr->GetLayerDesc(0);
+			check(EyeLayerDescPtr);
+			FHMDLayerDesc EyeLayerDesc = *EyeLayerDescPtr;
 			EyeLayerDesc.SetHighQuality(bEyeLayerShouldBeHQ);
 			EyeLayerDesc.SetTextureSet(ColorTextureSet);
 			LayerMgr->UpdateLayer(EyeLayerDesc);

@@ -183,30 +183,30 @@ public:
 	/** Default constructor. */
 	FMeshVertexFactory()
 	{
-		FLocalVertexFactory::FDataType Data;
+		FLocalVertexFactory::FDataType VertexData;
 
 		// position
-		Data.PositionComponent = FVertexStreamComponent(
+		VertexData.PositionComponent = FVertexStreamComponent(
 			&GDummyMeshRendererVertexBuffer,
 			STRUCT_OFFSET(FMaterialMeshVertex, Position),
 			sizeof(FMaterialMeshVertex),
 			VET_Float3
 			);
 		// tangents
-		Data.TangentBasisComponents[0] = FVertexStreamComponent(
+		VertexData.TangentBasisComponents[0] = FVertexStreamComponent(
 			&GDummyMeshRendererVertexBuffer,
 			STRUCT_OFFSET(FMaterialMeshVertex, TangentX),
 			sizeof(FMaterialMeshVertex),
 			VET_PackedNormal
 			);
-		Data.TangentBasisComponents[1] = FVertexStreamComponent(
+		VertexData.TangentBasisComponents[1] = FVertexStreamComponent(
 			&GDummyMeshRendererVertexBuffer,
 			STRUCT_OFFSET(FMaterialMeshVertex, TangentZ),
 			sizeof(FMaterialMeshVertex),
 			VET_PackedNormal
 			);
 		// color
-		Data.ColorComponent = FVertexStreamComponent(
+		VertexData.ColorComponent = FVertexStreamComponent(
 			&GDummyMeshRendererVertexBuffer,
 			STRUCT_OFFSET(FMaterialMeshVertex, Color),
 			sizeof(FMaterialMeshVertex),
@@ -216,7 +216,7 @@ public:
 		int32 UVIndex;
 		for (UVIndex = 0; UVIndex < MAX_STATIC_TEXCOORDS - 1; UVIndex += 2)
 		{
-			Data.TextureCoordinates.Add(FVertexStreamComponent(
+			VertexData.TextureCoordinates.Add(FVertexStreamComponent(
 				&GDummyMeshRendererVertexBuffer,
 				STRUCT_OFFSET(FMaterialMeshVertex, TextureCoordinate) + sizeof(FVector2D)* UVIndex,
 				sizeof(FMaterialMeshVertex),
@@ -227,7 +227,7 @@ public:
 		// likely the following code will never be executed)
 		if (UVIndex < MAX_STATIC_TEXCOORDS)
 		{
-			Data.TextureCoordinates.Add(FVertexStreamComponent(
+			VertexData.TextureCoordinates.Add(FVertexStreamComponent(
 				&GDummyMeshRendererVertexBuffer,
 				STRUCT_OFFSET(FMaterialMeshVertex, TextureCoordinate) + sizeof(FVector2D)* UVIndex,
 				sizeof(FMaterialMeshVertex),
@@ -239,7 +239,7 @@ public:
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 			FMeshVertexFactoryConstructor,
 			FMeshVertexFactory*, FactoryParam, this,
-			FLocalVertexFactory::FDataType, DataParam, Data,
+			FLocalVertexFactory::FDataType, DataParam, VertexData,
 			{
 				FactoryParam->SetData(DataParam);
 			}

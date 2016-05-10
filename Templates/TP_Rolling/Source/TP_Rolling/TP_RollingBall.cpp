@@ -41,13 +41,13 @@ ATP_RollingBall::ATP_RollingBall()
 }
 
 
-void ATP_RollingBall::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+void ATP_RollingBall::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// set up gameplay key bindings
-	InputComponent->BindAxis("MoveRight", this, &ATP_RollingBall::MoveRight);
-	InputComponent->BindAxis("MoveForward", this, &ATP_RollingBall::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ATP_RollingBall::MoveRight);
+	PlayerInputComponent->BindAxis("MoveForward", this, &ATP_RollingBall::MoveForward);
 
-	InputComponent->BindAction("Jump", IE_Pressed, this, &ATP_RollingBall::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ATP_RollingBall::Jump);
 }
 
 void ATP_RollingBall::MoveRight(float Val)

@@ -484,6 +484,7 @@ public:
 	 * @return  true if this component met the criteria for actually being ticked.
 	 */
 	bool SetupActorComponentTickFunction(struct FTickFunction* TickFunction);
+
 	/** 
 	 * Set this component's tick functions to be enabled or disabled. Only has an effect if the function is registered
 	 * 
@@ -502,6 +503,19 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	bool IsComponentTickEnabled() const;
+
+	/** 
+	* Sets the tick interval for this component's primary tick function. Does not enable the tick interval. Takes effect on next tick.
+	* @param TickInterval	The duration between ticks for this component's primary tick function
+	*/
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	void SetComponentTickInterval(float TickInterval);
+
+	/** 
+	* Returns whether this component has tick enabled or not
+	*/
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	float GetComponentTickInterval() const;
 
 	/**
 	 * @param InWorld - The world to register the component with.

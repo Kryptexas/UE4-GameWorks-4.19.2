@@ -371,7 +371,7 @@ void UPhATEdSkeletalMeshComponent::DrawCurrentInfluences(FPrimitiveDrawInterface
 
 FTransform UPhATEdSkeletalMeshComponent::GetPrimitiveTransform(FTransform& BoneTM, int32 BodyIndex, EKCollisionPrimitiveType PrimType, int32 PrimIndex, float Scale)
 {
-	UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[BodyIndex];
+	UBodySetup* SharedBodySetup = SharedData->PhysicsAsset->BodySetup[BodyIndex];
 	FVector Scale3D(Scale);
 
 	FTransform ManTM = FTransform::Identity;
@@ -393,25 +393,25 @@ FTransform UPhATEdSkeletalMeshComponent::GetPrimitiveTransform(FTransform& BoneT
 
 	if (PrimType == KPT_Sphere)
 	{
-		FTransform PrimTM = ManTM * BodySetup->AggGeom.SphereElems[PrimIndex].GetTransform();
+		FTransform PrimTM = ManTM * SharedBodySetup->AggGeom.SphereElems[PrimIndex].GetTransform();
 		PrimTM.ScaleTranslation(Scale3D);
 		return PrimTM * BoneTM;
 	}
 	else if (PrimType == KPT_Box)
 	{
-		FTransform PrimTM = ManTM * BodySetup->AggGeom.BoxElems[PrimIndex].GetTransform();
+		FTransform PrimTM = ManTM * SharedBodySetup->AggGeom.BoxElems[PrimIndex].GetTransform();
 		PrimTM.ScaleTranslation(Scale3D);
 		return PrimTM * BoneTM;
 	}
 	else if (PrimType == KPT_Sphyl)
 	{
-		FTransform PrimTM = ManTM * BodySetup->AggGeom.SphylElems[PrimIndex].GetTransform();
+		FTransform PrimTM = ManTM * SharedBodySetup->AggGeom.SphylElems[PrimIndex].GetTransform();
 		PrimTM.ScaleTranslation(Scale3D);
 		return PrimTM * BoneTM;
 	}
 	else if (PrimType == KPT_Convex)
 	{
-		FTransform PrimTM = ManTM * BodySetup->AggGeom.ConvexElems[PrimIndex].GetTransform();
+		FTransform PrimTM = ManTM * SharedBodySetup->AggGeom.ConvexElems[PrimIndex].GetTransform();
 		PrimTM.ScaleTranslation(Scale3D);
 		return PrimTM * BoneTM;
 	}
@@ -423,17 +423,17 @@ FTransform UPhATEdSkeletalMeshComponent::GetPrimitiveTransform(FTransform& BoneT
 
 FColor UPhATEdSkeletalMeshComponent::GetPrimitiveColor(int32 BodyIndex, EKCollisionPrimitiveType PrimitiveType, int32 PrimitiveIndex)
 {
-	UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[ BodyIndex ];
+	UBodySetup* SharedBodySetup = SharedData->PhysicsAsset->BodySetup[ BodyIndex ];
 
 	if (!SharedData->bRunningSimulation && SharedData->EditingMode == FPhATSharedData::PEM_ConstraintEdit && SharedData->GetSelectedConstraint())
 	{
 		UPhysicsConstraintTemplate* cs = SharedData->PhysicsAsset->ConstraintSetup[ SharedData->GetSelectedConstraint()->Index ];
 
-		if (cs->DefaultInstance.ConstraintBone1 == BodySetup->BoneName)
+		if (cs->DefaultInstance.ConstraintBone1 == SharedBodySetup->BoneName)
 		{
 			return ConstraintBone1Color;
 		}
-		else if (cs->DefaultInstance.ConstraintBone2 == BodySetup->BoneName)
+		else if (cs->DefaultInstance.ConstraintBone2 == SharedBodySetup->BoneName)
 		{
 			return ConstraintBone2Color;
 		}
@@ -467,7 +467,7 @@ FColor UPhATEdSkeletalMeshComponent::GetPrimitiveColor(int32 BodyIndex, EKCollis
 	
 	if (SharedData->bShowFixedStatus && SharedData->bRunningSimulation)
 	{
-		const bool bIsSimulatedAtAll = BodySetup->PhysicsType == PhysType_Simulated || (BodySetup->PhysicsType == PhysType_Default && SharedData->EditorSimOptions->PhysicsBlend > 0.f);
+		const bool bIsSimulatedAtAll = SharedBodySetup->PhysicsType == PhysType_Simulated || (SharedBodySetup->PhysicsType == PhysType_Default && SharedData->EditorSimOptions->PhysicsBlend > 0.f);
 		if (!bIsSimulatedAtAll)
 		{
 			return FixedColor;

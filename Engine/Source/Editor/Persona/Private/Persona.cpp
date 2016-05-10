@@ -1020,12 +1020,12 @@ void FPersona::ExtendDefaultPersonaToolbar()
 
 UBlueprint* FPersona::GetBlueprintObj() const
 {
-	auto EditingObjects = GetEditingObjects();
-	for (int32 i = 0; i < EditingObjects.Num(); ++i)
+	const TArray<UObject*>& EditingObjs = GetEditingObjects();
+	for (int32 i = 0; i < EditingObjs.Num(); ++i)
 	{
-		if (EditingObjects[i]->IsA<UAnimBlueprint>()) {return (UBlueprint*)EditingObjects[i];}
+		if (EditingObjs[i]->IsA<UAnimBlueprint>()) {return (UBlueprint*)EditingObjs[i];}
 	}
-	return NULL;
+	return nullptr;
 }
 
 UObject* FPersona::GetPreviewAnimationAsset() const

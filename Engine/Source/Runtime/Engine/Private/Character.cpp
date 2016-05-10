@@ -154,9 +154,9 @@ UPawnMovementComponent* ACharacter::GetMovementComponent() const
 }
 
 
-void ACharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
+void ACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	check(InInputComponent);
+	check(PlayerInputComponent);
 }
 
 

@@ -927,10 +927,10 @@ private:
 	 */
 	FText GetVisibilityToggleToolTip() const
 	{
-		FText ToolTip = FText::GetEmpty();
+		FText ToolTipText = FText::GetEmpty();
 		if ( GetVisibilityToggleState() != ECheckBoxState::Checked )
 		{
-			ToolTip = LOCTEXT("VariablePrivacy_not_public_Tooltip", "Variable is not public and will not be editable on an instance of this Blueprint.");
+			ToolTipText = LOCTEXT("VariablePrivacy_not_public_Tooltip", "Variable is not public and will not be editable on an instance of this Blueprint.");
 		}
 		else
 		{
@@ -940,14 +940,14 @@ private:
 			FBlueprintEditorUtils::GetBlueprintVariableMetaData(BlueprintObj, VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
 			if ( !Result.IsEmpty() )
 			{
-				ToolTip = LOCTEXT("VariablePrivacy_is_public_Tooltip", "Variable is public and is editable on each instance of this Blueprint.");
+				ToolTipText = LOCTEXT("VariablePrivacy_is_public_Tooltip", "Variable is public and is editable on each instance of this Blueprint.");
 			}
 			else
 			{
-				ToolTip = LOCTEXT("VariablePrivacy_is_public_no_tooltip_Tooltip", "Variable is public but MISSING TOOLTIP.");
+				ToolTipText = LOCTEXT("VariablePrivacy_is_public_no_tooltip_Tooltip", "Variable is public but MISSING TOOLTIP.");
 			}
 		}
-		return ToolTip;
+		return ToolTipText;
 	}
 
 private:

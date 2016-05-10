@@ -583,9 +583,12 @@ namespace UnrealBuildTool
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
 			{
 				// Disable shadow variable warnings
-				Arguments.Append(" /wd4456"); // 4456 - declaration of 'LocalVariable' hides previous local declaration
-				Arguments.Append(" /wd4458"); // 4458 - declaration of 'parameter' hides class member
-				Arguments.Append(" /wd4459"); // 4459 - declaration of 'LocalVariable' hides global declaration
+				if (CompileEnvironment.Config.bEnableShadowVariableWarning == false)
+				{
+					Arguments.Append(" /wd4456"); // 4456 - declaration of 'LocalVariable' hides previous local declaration
+					Arguments.Append(" /wd4458"); // 4458 - declaration of 'parameter' hides class member
+					Arguments.Append(" /wd4459"); // 4459 - declaration of 'LocalVariable' hides global declaration
+				}
 
 				Arguments.Append(" /wd4463"); // 4463 - overflow; assigning 1 to bit-field that can only hold values from -1 to 0
 

@@ -641,23 +641,23 @@ void SParentPlayerTreeRow::Construct(const FArguments& InArgs, const TSharedRef<
 
 TSharedRef<SWidget> SParentPlayerTreeRow::GenerateWidgetForColumn(const FName& ColumnName)
 {
-	TSharedPtr<SHorizontalBox> Box;
-	SAssignNew(Box, SHorizontalBox);
+	TSharedPtr<SHorizontalBox> HorizBox;
+	SAssignNew(HorizBox, SHorizontalBox);
 
 	if(ColumnName == "Name")
 	{
-		Box->AddSlot()
+		HorizBox->AddSlot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
 			[
 				SNew(SExpanderArrow, SharedThis(this))
 			];
 
-		Item->GenerateNameWidget(Box);
+		Item->GenerateNameWidget(HorizBox);
 	}
 	else if(Item->Override)
 	{
-		Box->AddSlot()
+		HorizBox->AddSlot()
 			.Padding(2)
 			.VAlign(VAlign_Center)
 			.AutoWidth()
@@ -676,7 +676,7 @@ TSharedRef<SWidget> SParentPlayerTreeRow::GenerateWidgetForColumn(const FName& C
 		
 		TArray<const UClass*> AllowedClasses;
 		AllowedClasses.Add(UAnimationAsset::StaticClass());
-		Box->AddSlot()
+		HorizBox->AddSlot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
 			[
@@ -687,7 +687,7 @@ TSharedRef<SWidget> SParentPlayerTreeRow::GenerateWidgetForColumn(const FName& C
 				.AllowedClass(GetCurrentAssetToUse()->GetClass())
 			];
 
-		Box->AddSlot()
+		HorizBox->AddSlot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
 			[
@@ -704,7 +704,7 @@ TSharedRef<SWidget> SParentPlayerTreeRow::GenerateWidgetForColumn(const FName& C
 			];
 	}
 
-	return Box.ToSharedRef();
+	return HorizBox.ToSharedRef();
 }
 
 bool SParentPlayerTreeRow::OnShouldFilterAsset(const FAssetData& AssetData)

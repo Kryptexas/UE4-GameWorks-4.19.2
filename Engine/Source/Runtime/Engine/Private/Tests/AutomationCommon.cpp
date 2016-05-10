@@ -196,7 +196,7 @@ bool FEngineWaitLatentCommand::Update()
 
 bool FStreamAllResourcesLatentCommand::Update()
 {
-	float StartTime = FPlatformTime::Seconds();
+	const float CommandStartTime = FPlatformTime::Seconds();
 
 	int32 StillInFlight = IStreamingManager::Get().StreamAllResources(Duration);
 
@@ -204,11 +204,11 @@ bool FStreamAllResourcesLatentCommand::Update()
 
 	if(StillInFlight)
 	{
-		UE_LOG(LogEngineAutomationLatentCommand, Warning, TEXT("StreamAllResources() waited for %.2fs but %d resources are still in flight."), Time - StartTime, StillInFlight);
+		UE_LOG(LogEngineAutomationLatentCommand, Warning, TEXT("StreamAllResources() waited for %.2fs but %d resources are still in flight."), Time - CommandStartTime, StillInFlight);
 	}
 	else
 	{
-		UE_LOG(LogEngineAutomationLatentCommand, Log, TEXT("StreamAllResources() waited for %.2fs (max duration: %.2f)."), Time - StartTime, Duration);
+		UE_LOG(LogEngineAutomationLatentCommand, Log, TEXT("StreamAllResources() waited for %.2fs (max duration: %.2f)."), Time - CommandStartTime, Duration);
 	}
 
 	return true;

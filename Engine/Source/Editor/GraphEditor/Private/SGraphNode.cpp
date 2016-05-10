@@ -1250,7 +1250,7 @@ void SGraphNode::PositionThisNodeBetweenOtherNodes(const TMap< UObject*, TShared
 
 void SGraphNode::PositionThisNodeBetweenOtherNodes(const FVector2D& PrevPos, const FVector2D& NextPos, float HeightAboveWire) const
 {
-	const FVector2D DesiredSize = GetDesiredSize();
+	const FVector2D DesiredNodeSize = GetDesiredSize();
 
 	FVector2D DeltaPos(NextPos - PrevPos);
 	if (DeltaPos.IsNearlyZero())
@@ -1260,12 +1260,12 @@ void SGraphNode::PositionThisNodeBetweenOtherNodes(const FVector2D& PrevPos, con
 
 	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).GetSafeNormal();
 
-	const FVector2D SlidingCapsuleBias = FVector2D::ZeroVector;//(0.5f * FMath::Sin(Normal.X * (float)HALF_PI) * DesiredSize.X, 0.0f);
+	const FVector2D SlidingCapsuleBias = FVector2D::ZeroVector;//(0.5f * FMath::Sin(Normal.X * (float)HALF_PI) * DesiredNodeSize.X, 0.0f);
 
 	const FVector2D NewCenter = PrevPos + (0.5f * DeltaPos) + (HeightAboveWire * Normal) + SlidingCapsuleBias;
 
 	// Now we need to adjust the new center by the node size and zoom factor
-	const FVector2D NewCorner = NewCenter - (0.5f * DesiredSize);
+	const FVector2D NewCorner = NewCenter - (0.5f * DesiredNodeSize);
 
 	GraphNode->NodePosX = NewCorner.X;
 	GraphNode->NodePosY = NewCorner.Y;

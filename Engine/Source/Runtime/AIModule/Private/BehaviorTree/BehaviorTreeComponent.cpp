@@ -1025,7 +1025,7 @@ void UBehaviorTreeComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 		ProcessExecutionRequest();
 	}
 
-	if (InstanceStack.Num() == 0 || !bIsRunning)
+	if (InstanceStack.Num() == 0 || !bIsRunning || bIsPaused)
 	{
 		return;
 	}

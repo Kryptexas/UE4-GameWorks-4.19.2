@@ -53,10 +53,10 @@ void FSequencerFolderNode::SetDisplayName( const FText& NewDisplayName )
 	if ( MovieSceneFolder.GetFolderName() != FName( *NewDisplayName.ToString() ) )
 	{
 		TArray<FName> SiblingNames;
-		TSharedPtr<FSequencerDisplayNode> ParentNode = GetParent();
-		if ( ParentNode.IsValid() )
+		TSharedPtr<FSequencerDisplayNode> ParentSeqNode = GetParent();
+		if ( ParentSeqNode.IsValid() )
 		{
-			for ( TSharedRef<FSequencerDisplayNode> SiblingNode : ParentNode->GetChildNodes() )
+			for ( TSharedRef<FSequencerDisplayNode> SiblingNode : ParentSeqNode->GetChildNodes() )
 			{
 				if ( SiblingNode != AsShared() )
 				{
@@ -138,8 +138,8 @@ TOptional<EItemDropZone> FSequencerFolderNode::CanDrop( FSequencerDisplayNodeDra
 
 		for ( TSharedRef<FSequencerDisplayNode> DraggedNode : DragDropOp.GetDraggedNodes() )
 		{
-			TSharedPtr<FSequencerDisplayNode> ParentNode = DraggedNode->GetParent();
-			if ( ParentNode.IsValid() && ParentNode.Get() == this )
+			TSharedPtr<FSequencerDisplayNode> ParentSeqNode = DraggedNode->GetParent();
+			if ( ParentSeqNode.IsValid() && ParentSeqNode.Get() == this )
 			{
 				DragDropOp.CurrentHoverText = NSLOCTEXT( "SeqeuencerFolderNode", "SameParentDragError", "Can't drag a node onto the same parent." );
 				return TOptional<EItemDropZone>();
@@ -179,7 +179,7 @@ void FSequencerFolderNode::Drop( const TArray<TSharedRef<FSequencerDisplayNode>>
 	GetFolder().Modify();
 	for ( TSharedRef<FSequencerDisplayNode> DraggedNode : DraggedNodes )
 	{
-		TSharedPtr<FSequencerDisplayNode> ParentNode = DraggedNode->GetParent();
+		TSharedPtr<FSequencerDisplayNode> ParentSeqNode = DraggedNode->GetParent();
 		switch ( DraggedNode->GetType() )
 		{
 			case ESequencerNode::Folder:
@@ -197,10 +197,10 @@ void FSequencerFolderNode::Drop( const TArray<TSharedRef<FSequencerDisplayNode>>
 					FocusedMovieScene->GetRootFolders().Add( &DraggedFolderNode->GetFolder() );
 				}
 				
-				if ( ParentNode.IsValid() )
+				if ( ParentSeqNode.IsValid() )
 				{
-					checkf( ParentNode->GetType() == ESequencerNode::Folder, TEXT( "Can not remove from unsupported parent node." ) );
-					TSharedPtr<FSequencerFolderNode> ParentFolder = StaticCastSharedPtr<FSequencerFolderNode>( ParentNode );
+					checkf( ParentSeqNode->GetType() == ESequencerNode::Folder, TEXT( "Can not remove from unsupported parent node." ) );
+					TSharedPtr<FSequencerFolderNode> ParentFolder = StaticCastSharedPtr<FSequencerFolderNode>( ParentSeqNode );
 					ParentFolder->GetFolder().Modify();
 					ParentFolder->GetFolder().RemoveChildFolder( &DraggedFolderNode->GetFolder() );
 				}
@@ -221,10 +221,10 @@ void FSequencerFolderNode::Drop( const TArray<TSharedRef<FSequencerDisplayNode>>
 					GetFolder().AddChildMasterTrack( DraggedTrackNode->GetTrack() );
 				}
 				
-				if ( ParentNode.IsValid() )
+				if ( ParentSeqNode.IsValid() )
 				{
-					checkf( ParentNode->GetType() == ESequencerNode::Folder, TEXT( "Can not remove from unsupported parent node." ) );
-					TSharedPtr<FSequencerFolderNode> ParentFolder = StaticCastSharedPtr<FSequencerFolderNode>( ParentNode );
+					checkf( ParentSeqNode->GetType() == ESequencerNode::Folder, TEXT( "Can not remove from unsupported parent node." ) );
+					TSharedPtr<FSequencerFolderNode> ParentFolder = StaticCastSharedPtr<FSequencerFolderNode>( ParentSeqNode );
 					ParentFolder->GetFolder().Modify();
 					ParentFolder->GetFolder().RemoveChildMasterTrack( DraggedTrackNode->GetTrack() );
 				}
@@ -240,10 +240,10 @@ void FSequencerFolderNode::Drop( const TArray<TSharedRef<FSequencerDisplayNode>>
 					GetFolder().AddChildObjectBinding( DraggedObjectBindingNode->GetObjectBinding() );
 				}
 
-				if ( ParentNode.IsValid() )
+				if ( ParentSeqNode.IsValid() )
 				{
-					checkf( ParentNode->GetType() == ESequencerNode::Folder, TEXT( "Can not remove from unsupported parent node." ) );
-					TSharedPtr<FSequencerFolderNode> ParentFolder = StaticCastSharedPtr<FSequencerFolderNode>( ParentNode );
+					checkf( ParentSeqNode->GetType() == ESequencerNode::Folder, TEXT( "Can not remove from unsupported parent node." ) );
+					TSharedPtr<FSequencerFolderNode> ParentFolder = StaticCastSharedPtr<FSequencerFolderNode>( ParentSeqNode );
 					ParentFolder->GetFolder().Modify();
 					ParentFolder->GetFolder().RemoveChildObjectBinding( DraggedObjectBindingNode->GetObjectBinding() );
 				}

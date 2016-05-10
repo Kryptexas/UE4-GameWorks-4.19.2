@@ -73,8 +73,8 @@ TSharedRef<SWidget> FParticleParameterTrackEditor::OnGetAddParameterMenuContent(
 {
 	FMenuBuilder AddParameterMenuBuilder( true, nullptr );
 
-	TSharedPtr<ISequencer> Sequencer = GetSequencer();
-	AEmitter* Emitter = Sequencer.IsValid() ? Cast<AEmitter>( Sequencer->FindSpawnedObjectOrTemplate( ObjectBinding ) ) : nullptr;
+	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
+	AEmitter* Emitter = SequencerPtr.IsValid() ? Cast<AEmitter>( SequencerPtr->FindSpawnedObjectOrTemplate( ObjectBinding ) ) : nullptr;
 
 	if ( Emitter != nullptr )
 	{

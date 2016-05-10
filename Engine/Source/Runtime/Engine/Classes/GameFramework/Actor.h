@@ -1899,7 +1899,7 @@ public:
 	/** 
 	 * Set this actor's tick functions to be enabled or disabled. Only has an effect if the function is registered
 	 * This only modifies the tick function on actor itself
-	 * @param	bEnabled - Rather it should be enabled or not
+	 * @param	bEnabled	Whether it should be enabled or not
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	void SetActorTickEnabled(bool bEnabled);
@@ -1907,6 +1907,17 @@ public:
 	/**  Returns whether this actor has tick enabled or not	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	bool IsActorTickEnabled() const;
+
+	/** 
+	* Sets the tick interval of this actor's primary tick function. Will not enable a disabled tick function. Takes effect on next tick. 
+	* @param TickInterval	The rate at which this actor should be ticking
+	*/
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	void SetActorTickInterval(float TickInterval);
+
+	/**  Returns the tick interval of this actor's primary tick function */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	float GetActorTickInterval() const;
 
 	/**
 	 *	ticks the actor

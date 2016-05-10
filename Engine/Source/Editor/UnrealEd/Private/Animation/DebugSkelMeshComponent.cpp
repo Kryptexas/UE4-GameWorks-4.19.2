@@ -43,8 +43,7 @@ public:
 			// We don't want to draw the mesh geometry to the hit testing render target
 			// so that we can get to triangle strips that are partially obscured by other
 			// triangle strips easier.
-			const bool bSelectable = false;
-			GetMeshElementsConditionallySelectable(Views, ViewFamily, bSelectable, VisibilityMap, Collector);
+			GetMeshElementsConditionallySelectable(Views, ViewFamily, /*bSelectable=*/false, VisibilityMap, Collector);
 		}
 
 		//@todo - the rendering thread should never read from UObjects directly!  These are race conditions, the properties should be mirrored on the proxy
@@ -366,15 +365,15 @@ bool UDebugSkelMeshComponent::ShouldCPUSkin()
 }
 
 
-void UDebugSkelMeshComponent::PostInitMeshObject(FSkeletalMeshObject* MeshObject)
+void UDebugSkelMeshComponent::PostInitMeshObject(FSkeletalMeshObject* InMeshObject)
 {
-	Super::PostInitMeshObject( MeshObject );
+	Super::PostInitMeshObject( InMeshObject );
 
-	if (MeshObject)
+	if (InMeshObject)
 	{
 		if(bDrawBoneInfluences)
 		{
-			MeshObject->EnableBlendWeightRendering(true, BonesOfInterest);
+			InMeshObject->EnableBlendWeightRendering(true, BonesOfInterest);
 		}
 	}
 }

@@ -5694,11 +5694,10 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 		Mesh->AssetImportData = ImportData;
 		ReimportUI->StaticMeshImportData = ImportData;
 		
-		bool bOperationCanceled = false;
-		bool bShowOption = true;
-		bool bForceImportType = true;
+		bool bImportOperationCanceled = false;
+		bool bImportForceType = true;
 
-		GetImportOptions( FFbxImporter, ReimportUI, bShowOption, Obj->GetPathName(), bOperationCanceled, bForceImportType, FBXIT_StaticMesh );
+		GetImportOptions( FFbxImporter, ReimportUI, /*bShowOptionDialog=*/true, Obj->GetPathName(), bImportOperationCanceled, bImportForceType, FBXIT_StaticMesh );
 	}
 
 	if( !bOperationCanceled && ensure(ImportData) )
@@ -5918,8 +5917,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 		SkeletalMesh->AssetImportData = ImportData;
 		ReimportUI->SkeletalMeshImportData = ImportData;
 
-		bool bOperationCanceled = false;
-		bool bShowOption = true;
+		bool bImportOperationCanceled = false;
 		bool bForceImportType = true;
 
 		// arggg... hate this different option class to confuse everybody
@@ -5928,7 +5926,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 		ImportOptions->bCreatePhysicsAsset = false;
 		ImportOptions->PhysicsAsset = SkeletalMesh->PhysicsAsset;
 
-		ImportOptions = GetImportOptions( FFbxImporter, ReimportUI, bShowOption, Obj->GetPathName(), bOperationCanceled, bForceImportType, FBXIT_SkeletalMesh );
+		ImportOptions = GetImportOptions( FFbxImporter, ReimportUI, /*bShowOptionDialog=*/true, Obj->GetPathName(), bImportOperationCanceled, bForceImportType, FBXIT_SkeletalMesh );
 	}
 
 	if( !bOperationCanceled && ensure(ImportData) )

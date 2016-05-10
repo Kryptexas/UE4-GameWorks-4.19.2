@@ -1557,10 +1557,10 @@ struct WorldReferenceGenerator : public FFindReferencedAssets
 		}
 
 		// Transverse the reference graph looking for actor objects
-		TSet<UObject*>* Referencers = ReferenceGraph.Find(AssetToFind);
-		if (Referencers)
+		TSet<UObject*>* ReferencingObjects = ReferenceGraph.Find(AssetToFind);
+		if (ReferencingObjects)
 		{
-			for(TSet<UObject*>::TConstIterator SetIt(*Referencers); SetIt; ++SetIt)
+			for(TSet<UObject*>::TConstIterator SetIt(*ReferencingObjects); SetIt; ++SetIt)
 			{
 				Generate(*SetIt, OutObjects);
 			}

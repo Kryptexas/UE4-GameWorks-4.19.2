@@ -232,19 +232,19 @@ void ALobbyBeaconHost::ProcessDisconnect(ALobbyBeaconClient* ClientActor)
 	}
 }
 
-void ALobbyBeaconHost::ProcessKickPlayer(ALobbyBeaconClient* Instigator, const FUniqueNetIdRepl& PlayerToKick, const FText& Reason)
+void ALobbyBeaconHost::ProcessKickPlayer(ALobbyBeaconClient* InInstigator, const FUniqueNetIdRepl& PlayerToKick, const FText& Reason)
 {
-	if (Instigator && PlayerToKick.IsValid())
+	if (InInstigator && PlayerToKick.IsValid())
 	{
 		for (AOnlineBeaconClient* ExistingClient : ClientActors)
 		{
-			if (ExistingClient != Instigator)
+			if (ExistingClient != InInstigator)
 			{
 				ALobbyBeaconClient* LBC = Cast<ALobbyBeaconClient>(ExistingClient);
 				if (LBC && LBC->PlayerState && LBC->PlayerState->UniqueId == PlayerToKick)
 				{
 					// Right now the only eligible lobby kick is a party leader telling the server it kicked a party member
-					bool bPartyLeaderKick = (Instigator->PlayerState->UniqueId == LBC->PlayerState->PartyOwnerUniqueId);
+					bool bPartyLeaderKick = (InInstigator->PlayerState->UniqueId == LBC->PlayerState->PartyOwnerUniqueId);
 					if (bPartyLeaderKick)
 					{
 						FText KickReason = NSLOCTEXT("NetworkErrors", "KickedPlayerFromParty", "Kicked from party.");

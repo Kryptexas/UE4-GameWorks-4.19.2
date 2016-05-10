@@ -54,29 +54,29 @@ AFP_FirstPersonCharacter::AFP_FirstPersonCharacter()
 //////////////////////////////////////////////////////////////////////////
 // Input
 
-void AFP_FirstPersonCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+void AFP_FirstPersonCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// set up gameplay key bindings
-	check(InputComponent);
+	check(PlayerInputComponent);
 
 	// Bind jump events
-	InputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	InputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 	
-	InputComponent->BindAction("Fire", IE_Pressed, this, &AFP_FirstPersonCharacter::OnFire);
-	TryEnableTouchscreenMovement(InputComponent);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFP_FirstPersonCharacter::OnFire);
+	TryEnableTouchscreenMovement(PlayerInputComponent);
 
 	// Bind movement events
-	InputComponent->BindAxis("MoveForward", this, &AFP_FirstPersonCharacter::MoveForward);
-	InputComponent->BindAxis("MoveRight", this, &AFP_FirstPersonCharacter::MoveRight);
+	PlayerInputComponent->BindAxis("MoveForward", this, &AFP_FirstPersonCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &AFP_FirstPersonCharacter::MoveRight);
 	
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
-	InputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	InputComponent->BindAxis("TurnRate", this, &AFP_FirstPersonCharacter::TurnAtRate);
-	InputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-	InputComponent->BindAxis("LookUpRate", this, &AFP_FirstPersonCharacter::LookUpAtRate);
+	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("TurnRate", this, &AFP_FirstPersonCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("LookUpRate", this, &AFP_FirstPersonCharacter::LookUpAtRate);
 }
 
 void AFP_FirstPersonCharacter::OnFire()
@@ -249,9 +249,9 @@ FHitResult AFP_FirstPersonCharacter::WeaponTrace(const FVector& StartTrace, cons
 	return Hit;
 }
 
-void AFP_FirstPersonCharacter::TryEnableTouchscreenMovement(UInputComponent* InputComponent)
+void AFP_FirstPersonCharacter::TryEnableTouchscreenMovement(UInputComponent* PlayerInputComponent)
 {
-	InputComponent->BindTouch(EInputEvent::IE_Pressed, this, &AFP_FirstPersonCharacter::BeginTouch);
-	InputComponent->BindTouch(EInputEvent::IE_Released, this, &AFP_FirstPersonCharacter::EndTouch);
-	InputComponent->BindTouch(EInputEvent::IE_Repeat, this, &AFP_FirstPersonCharacter::TouchUpdate);	
+	PlayerInputComponent->BindTouch(EInputEvent::IE_Pressed, this, &AFP_FirstPersonCharacter::BeginTouch);
+	PlayerInputComponent->BindTouch(EInputEvent::IE_Released, this, &AFP_FirstPersonCharacter::EndTouch);
+	PlayerInputComponent->BindTouch(EInputEvent::IE_Repeat, this, &AFP_FirstPersonCharacter::TouchUpdate);	
 }

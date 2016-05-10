@@ -810,11 +810,11 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	ActorFactories.Sort( FCompareUActorFactoryByMenuPriority() );
 
 	// Load game user settings and apply
-	auto GameUserSettings = GetGameUserSettings();
-	if (GameUserSettings)
+	UGameUserSettings* MyGameUserSettings = GetGameUserSettings();
+	if (MyGameUserSettings)
 	{
-		GameUserSettings->LoadSettings();
-		GameUserSettings->ApplySettings(true);
+		MyGameUserSettings->LoadSettings();
+		MyGameUserSettings->ApplySettings(true);
 	}
 
 	UEditorStyleSettings* Settings = GetMutableDefault<UEditorStyleSettings>();
@@ -1535,7 +1535,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	IStreamingManager::Get().Tick(DeltaSeconds);
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
-	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 	if (AudioDeviceManager)
 	{
 		UWorld* OldGWorld = NULL;
@@ -4222,14 +4221,14 @@ FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* Owne
 	return FoundText.ToString();
 }
 
-AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags ObjectFlags )
+AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags InObjectFlags )
 {
 	// ensure that all selected assets are loaded
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-	return UseActorFactory(Factory, FAssetData( GetSelectedObjects()->GetTop<UObject>() ), InActorTransform, ObjectFlags );
+	return UseActorFactory(Factory, FAssetData( GetSelectedObjects()->GetTop<UObject>() ), InActorTransform, InObjectFlags );
 }
 
-AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FTransform* InActorTransform, EObjectFlags ObjectFlags )
+AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FTransform* InActorTransform, EObjectFlags InObjectFlags )
 {
 	check( Factory );
 
@@ -4279,7 +4278,7 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 				const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateActor", "Create Actor") );
 
 				// Create the actor.
-				Actor = Factory->CreateActor( Asset, DesiredLevel, ActorTransform, ObjectFlags );
+				Actor = Factory->CreateActor( Asset, DesiredLevel, ActorTransform, InObjectFlags );
 				if(Actor != NULL)
 				{
 					SelectNone( false, true );
@@ -5624,7 +5623,7 @@ bool UEditorEngine::AreAllWindowsHidden() const
 	return bAllHidden;
 }
 
-AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform& Transform, bool bSilent, EObjectFlags ObjectFlags)
+AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform& Transform, bool bSilent, EObjectFlags InObjectFlags)
 {
 	check( Class );
 
@@ -5672,7 +5671,7 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform
 	AActor* Actor = NULL;
 	{
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddActor", "Add Actor") );
-		if ( !(ObjectFlags & RF_Transactional) )
+		if ( !(InObjectFlags & RF_Transactional) )
 		{
 			// Don't attempt a transaction if the actor we are spawning isn't transactional
 			Transaction.Cancel();
@@ -5684,7 +5683,7 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.OverrideLevel = DesiredLevel;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnInfo.ObjectFlags = ObjectFlags;
+		SpawnInfo.ObjectFlags = InObjectFlags;
 		const auto Location = Transform.GetLocation();
 		const auto Rotation = Transform.GetRotation().Rotator();
 		Actor = World->SpawnActor( Class, &Location, &Rotation, SpawnInfo );
@@ -5716,7 +5715,7 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform
 	return Actor;
 }
 
-TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bool bSilent, EObjectFlags ObjectFlags)
+TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bool bSilent, EObjectFlags InObjectFlags)
 {
 	TArray<AActor*> NewActors;
 
@@ -5733,7 +5732,7 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 	FVector Location;
 	{
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddActor", "Add Actor") );
-		if ( !(ObjectFlags & RF_Transactional) )
+		if ( !(InObjectFlags & RF_Transactional) )
 		{
 			// Don't attempt a transaction if the actor we are spawning isn't transactional
 			Transaction.Cancel();
@@ -5741,7 +5740,7 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 		// Remove the selection to detect the actors that were created during FactoryCreateText. They will be selected when the operation in complete
 		GEditor->SelectNone( false, true );
 		const TCHAR* Text = *ExportText;
-		if ( Factory->FactoryCreateText( ULevel::StaticClass(), CurrentLevel, CurrentLevel->GetFName(), ObjectFlags, NULL, TEXT("paste"), Text, Text + FCString::Strlen(Text), GWarn ) != NULL )
+		if ( Factory->FactoryCreateText( ULevel::StaticClass(), CurrentLevel, CurrentLevel->GetFName(), InObjectFlags, nullptr, TEXT("paste"), Text, Text + FCString::Strlen(Text), GWarn ) != nullptr )
 		{
 			// Now get the selected actors and calculate a center point between all their locations.
 			USelection* ActorSelection = GEditor->GetSelectedActors();

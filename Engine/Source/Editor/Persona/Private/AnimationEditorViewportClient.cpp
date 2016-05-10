@@ -1293,12 +1293,12 @@ void FAnimationViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 }
 }
 
-bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
+bool FAnimationViewportClient::InputWidgetDelta( FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
 {
 	// Get some useful info about buttons being held down
-	const bool bCtrlDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
-	const bool bShiftDown = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
-	const bool bMouseButtonDown = Viewport->KeyState( EKeys::LeftMouseButton ) || Viewport->KeyState( EKeys::MiddleMouseButton ) || Viewport->KeyState( EKeys::RightMouseButton );
+	const bool bCtrlDown = InViewport->KeyState(EKeys::LeftControl) || InViewport->KeyState(EKeys::RightControl);
+	const bool bShiftDown = InViewport->KeyState(EKeys::LeftShift) || InViewport->KeyState(EKeys::RightShift);
+	const bool bMouseButtonDown = InViewport->KeyState( EKeys::LeftMouseButton ) || InViewport->KeyState( EKeys::MiddleMouseButton ) || InViewport->KeyState( EKeys::RightMouseButton );
 
 	bool bHandled = false;
 
@@ -1449,7 +1449,7 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 			}
 		}
 
-		Viewport->Invalidate();
+		InViewport->Invalidate();
 	}
 
 	return bHandled;
@@ -1668,10 +1668,10 @@ void FAnimationViewportClient::SetViewportType(ELevelViewportType InViewportType
 	FocusViewportOnPreviewMesh();
 }
 
-bool FAnimationViewportClient::InputKey( FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad )
+bool FAnimationViewportClient::InputKey( FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad )
 {
-	const int32 HitX = Viewport->GetMouseX();
-	const int32 HitY = Viewport->GetMouseY();
+	const int32 HitX = InViewport->GetMouseX();
+	const int32 HitY = InViewport->GetMouseY();
 
 	bool bHandled = false;
 
@@ -1726,7 +1726,7 @@ bool FAnimationViewportClient::InputKey( FViewport* Viewport, int32 ControllerId
 	// Pass keys to standard controls, if we didn't consume input
 	return (bHandled)
 		? true
-		: FEditorViewportClient::InputKey(Viewport,  ControllerId,  Key,  Event,  AmountDepressed,  bGamepad);
+		: FEditorViewportClient::InputKey(InViewport,  ControllerId,  Key,  Event,  AmountDepressed,  bGamepad);
 }
 
 void FAnimationViewportClient::SetWidgetMode(FWidget::EWidgetMode InMode)

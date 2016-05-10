@@ -293,13 +293,13 @@ void FSCSEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& Vi
 	}
 }
 
-bool FSCSEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
+bool FSCSEditorViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
 {
 	bool bHandled = false;
 
 	if( !bHandled )
 	{
-		bHandled = FEditorViewportClient::InputKey(Viewport, ControllerId, Key, Event, AmountDepressed, bGamepad);
+		bHandled = FEditorViewportClient::InputKey(InViewport, ControllerId, Key, Event, AmountDepressed, bGamepad);
 	}
 
 	return bHandled;
@@ -358,7 +358,7 @@ void FSCSEditorViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 	}
 }
 
-bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
+bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
 {
 	bool bHandled = false;
 	if(bIsManipulating && CurrentAxis != EAxisList::None)

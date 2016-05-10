@@ -153,15 +153,15 @@ void FOculusRiftHMD::D3D12Bridge::BeginRendering(FHMDViewExtension& InRenderCont
 
 	SetRenderContext(&InRenderContext);
 
-	FGameFrame* CurrentFrame = GetRenderFrame();
-	check(CurrentFrame);
-	FSettings* FrameSettings = CurrentFrame->GetSettings();
+	FGameFrame* CurrentRenderFrame = GetRenderFrame();
+	check(CurrentRenderFrame);
+	FSettings* FrameSettings = CurrentRenderFrame->GetSettings();
 	check(FrameSettings);
 
 	const uint32 RTSizeX = RT->GetSizeX();
 	const uint32 RTSizeY = RT->GetSizeY();
 
-	const FVector2D ActualMirrorWindowSize = CurrentFrame->WindowSize;
+	const FVector2D ActualMirrorWindowSize = CurrentRenderFrame->WindowSize;
 	// detect if mirror texture needs to be re-allocated or freed
 	FOvrSessionShared::AutoSession OvrSession(Session);
 	if (Session->IsActive() && MirrorTextureRHI && (bNeedReAllocateMirrorTexture || 

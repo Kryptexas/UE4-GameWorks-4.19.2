@@ -379,13 +379,13 @@ private:
 	EWidgetZone FindMouseZone( const FVector2D& LocalMouseCoordinates ) const
 	{
 		EWidgetZone InMouseZone = WZ_NotInWidget;
-		const FVector2D DesiredSize( GetDesiredSize() );
+		const FVector2D DesiredZoneSize( GetDesiredSize() );
 
-		if( LocalMouseCoordinates.X > DesiredSize.X - BorderHitSize )
+		if( LocalMouseCoordinates.X > DesiredZoneSize.X - BorderHitSize )
 		{
-			InMouseZone = LocalMouseCoordinates.Y > DesiredSize.Y - BorderHitSize ? WZ_BottomRightBorder : WZ_RightBorder;
+			InMouseZone = LocalMouseCoordinates.Y > DesiredZoneSize.Y - BorderHitSize ? WZ_BottomRightBorder : WZ_RightBorder;
 		}
-		else if( LocalMouseCoordinates.Y > DesiredSize.Y - BorderHitSize )
+		else if( LocalMouseCoordinates.Y > DesiredZoneSize.Y - BorderHitSize )
 		{
 			InMouseZone = WZ_BottomBorder;
 		}

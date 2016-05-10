@@ -11,7 +11,6 @@
 // Global constants
 namespace
 {
-	const TEncryptionInt One(1);
 	const TEncryptionInt Two(2);
 	const TEncryptionInt IterationStep(1000);
 	TArray<TEncryptionInt> PrimeLookupTable;
@@ -42,7 +41,7 @@ public:
 		, MaxValue(InMaxValue)
 	{
 		// Must be odd number
-		check(!(Candidate & One).IsZero());
+		check(!(Candidate & TEncryptionInt::One).IsZero());
 		Thread = FRunnableThread::Create(this, TEXT("FPrimeCheckRunnable"));
 	}
 
@@ -96,7 +95,7 @@ public:
 bool IsPrime(const TEncryptionInt& InValue, bool bUseTasks)
 {
 	// 2 is but we don't care about small numbers here.
-	if ((InValue & One) == 0)
+	if ((InValue & TEncryptionInt::One) == 0)
 	{
 		return false;
 	}
@@ -145,7 +144,7 @@ bool IsPrime(const TEncryptionInt& InValue, bool bUseTasks)
 			TEncryptionInt MaxValue(Factor + Range);
 			Tasks.Add(new FPrimeCheckRunnable(FoundFactors, InValue, Factor, MaxValue)); 
 			Factor = MaxValue;
-			if ((Factor & One) == 0)
+			if ((Factor & TEncryptionInt::One) == 0)
 			{
 				++Factor;
 			}
@@ -299,7 +298,7 @@ public:
 		, MaxValue(InMaxValue)
 	{
 		// Must be an odd number
-		check(!(MinValue & One).IsZero());
+		check(!(MinValue & TEncryptionInt::One).IsZero());
 		Thread = FRunnableThread::Create(this, TEXT("FPrimeFinderRunnable"));
 	}
 
@@ -368,7 +367,7 @@ void GeneratePrimeNumberLookupTable()
 		TEncryptionInt MaxValue(MinPrimeValue + Range);
 		Tasks.Add(new FPrimeFinderRunnable(MinPrimeValue, MaxValue)); 
 		MinPrimeValue = MaxValue;
-		if ((MinPrimeValue & One) == 0)
+		if ((MinPrimeValue & TEncryptionInt::One) == 0)
 		{
 			++MinPrimeValue;
 		}

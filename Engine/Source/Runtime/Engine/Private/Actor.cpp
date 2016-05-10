@@ -752,6 +752,16 @@ bool AActor::IsActorTickEnabled() const
 	return PrimaryActorTick.IsTickFunctionEnabled();
 }
 
+void AActor::SetActorTickInterval(float TickInterval)
+{
+	PrimaryActorTick.TickInterval = TickInterval;
+}
+
+float AActor::GetActorTickInterval() const
+{
+	return PrimaryActorTick.TickInterval;
+}
+
 bool AActor::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
 {
 	if (NewOuter)
@@ -1829,9 +1839,9 @@ void AActor::RouteEndPlay(const EEndPlayReason::Type EndPlayReason)
 		{
 			EndPlay(EndPlayReason);
 		}
-
-		UninitializeComponents();
 	}
+
+	UninitializeComponents();
 }
 
 void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -2818,15 +2828,18 @@ void AActor::PostActorConstruction()
 		if (!IsPendingKill())
 		{
 			PostInitializeComponents();
-			if (!bActorInitialized && !IsPendingKill())
+			if (!IsPendingKill())
 			{
-				UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName());
-			}
+				if (!bActorInitialized)
+				{
+					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName());
+				}
 
-			if (World->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
-			{
-				SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
-				BeginPlay();
+				if (World->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
+				{
+					SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
+					BeginPlay();
+				}
 			}
 		}
 	}

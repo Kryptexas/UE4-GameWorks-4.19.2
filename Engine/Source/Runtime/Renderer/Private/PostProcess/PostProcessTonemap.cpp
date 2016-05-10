@@ -1040,12 +1040,12 @@ public:
 
 		{
 			static TConsoleVariableData<int32>* CVar709 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper709"));
-			static TConsoleVariableData<float>* CVarGamma = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
+			static TConsoleVariableData<float>* CVarTonemapperGamma = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
 			static TConsoleVariableData<int32>* CVar2084 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper2084"));
 
 			int32 Rec709 = CVar709->GetValueOnRenderThread();
 			int32 ST2084 = CVar2084->GetValueOnRenderThread();
-			float Gamma = CVarGamma->GetValueOnRenderThread();
+			float Gamma = CVarTonemapperGamma->GetValueOnRenderThread();
 
 			if (PLATFORM_APPLE && Gamma == 0.0f)
 			{

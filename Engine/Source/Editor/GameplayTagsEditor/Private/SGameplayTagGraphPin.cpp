@@ -74,8 +74,8 @@ void SGameplayTagGraphPin::ParseDefaultValueData()
 
 	if (!TagString.IsEmpty())
 	{
-		FGameplayTag Tag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(FName(*TagString));
-		TagContainer->AddTag(Tag);
+		FGameplayTag GameplayTag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(FName(*TagString));
+		TagContainer->AddTag(GameplayTag);
 	}
 }
 

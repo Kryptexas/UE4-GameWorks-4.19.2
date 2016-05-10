@@ -116,15 +116,15 @@ void ATP_2DSideScrollerCharacter::Tick(float DeltaSeconds)
 //////////////////////////////////////////////////////////////////////////
 // Input
 
-void ATP_2DSideScrollerCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+void ATP_2DSideScrollerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// Note: the 'Jump' action and the 'MoveRight' axis are bound to actual keys/buttons/sticks in DefaultInput.ini (editable from Project Settings..Input)
-	InputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	InputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-	InputComponent->BindAxis("MoveRight", this, &ATP_2DSideScrollerCharacter::MoveRight);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ATP_2DSideScrollerCharacter::MoveRight);
 
-	InputComponent->BindTouch(IE_Pressed, this, &ATP_2DSideScrollerCharacter::TouchStarted);
-	InputComponent->BindTouch(IE_Released, this, &ATP_2DSideScrollerCharacter::TouchStopped);
+	PlayerInputComponent->BindTouch(IE_Pressed, this, &ATP_2DSideScrollerCharacter::TouchStarted);
+	PlayerInputComponent->BindTouch(IE_Released, this, &ATP_2DSideScrollerCharacter::TouchStopped);
 }
 
 void ATP_2DSideScrollerCharacter::MoveRight(float Value)

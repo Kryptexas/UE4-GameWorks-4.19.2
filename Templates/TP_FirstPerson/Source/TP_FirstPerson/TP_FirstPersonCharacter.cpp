@@ -64,30 +64,30 @@ void ATP_FirstPersonCharacter::BeginPlay()
 //////////////////////////////////////////////////////////////////////////
 // Input
 
-void ATP_FirstPersonCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+void ATP_FirstPersonCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// set up gameplay key bindings
-	check(InputComponent);
+	check(PlayerInputComponent);
 
-	InputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	InputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	//InputComponent->BindTouch(EInputEvent::IE_Pressed, this, &ATP_FirstPersonCharacter::TouchStarted);
-	if (EnableTouchscreenMovement(InputComponent) == false)
+	if (EnableTouchscreenMovement(PlayerInputComponent) == false)
 	{
-		InputComponent->BindAction("Fire", IE_Pressed, this, &ATP_FirstPersonCharacter::OnFire);
+		PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ATP_FirstPersonCharacter::OnFire);
 	}
 
-	InputComponent->BindAxis("MoveForward", this, &ATP_FirstPersonCharacter::MoveForward);
-	InputComponent->BindAxis("MoveRight", this, &ATP_FirstPersonCharacter::MoveRight);
+	PlayerInputComponent->BindAxis("MoveForward", this, &ATP_FirstPersonCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ATP_FirstPersonCharacter::MoveRight);
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
-	InputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	InputComponent->BindAxis("TurnRate", this, &ATP_FirstPersonCharacter::TurnAtRate);
-	InputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-	InputComponent->BindAxis("LookUpRate", this, &ATP_FirstPersonCharacter::LookUpAtRate);
+	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("TurnRate", this, &ATP_FirstPersonCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("LookUpRate", this, &ATP_FirstPersonCharacter::LookUpAtRate);
 }
 
 void ATP_FirstPersonCharacter::OnFire()
@@ -216,15 +216,15 @@ void ATP_FirstPersonCharacter::LookUpAtRate(float Rate)
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
-bool ATP_FirstPersonCharacter::EnableTouchscreenMovement(class UInputComponent* InputComponent)
+bool ATP_FirstPersonCharacter::EnableTouchscreenMovement(class UInputComponent* PlayerInputComponent)
 {
 	bool bResult = false;
 	if (FPlatformMisc::GetUseVirtualJoysticks() || GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
 		bResult = true;
-		InputComponent->BindTouch(EInputEvent::IE_Pressed, this, &ATP_FirstPersonCharacter::BeginTouch);
-		InputComponent->BindTouch(EInputEvent::IE_Released, this, &ATP_FirstPersonCharacter::EndTouch);
-		InputComponent->BindTouch(EInputEvent::IE_Repeat, this, &ATP_FirstPersonCharacter::TouchUpdate);
+		PlayerInputComponent->BindTouch(EInputEvent::IE_Pressed, this, &ATP_FirstPersonCharacter::BeginTouch);
+		PlayerInputComponent->BindTouch(EInputEvent::IE_Released, this, &ATP_FirstPersonCharacter::EndTouch);
+		PlayerInputComponent->BindTouch(EInputEvent::IE_Repeat, this, &ATP_FirstPersonCharacter::TouchUpdate);
 	}
 	return bResult;
 }

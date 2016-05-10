@@ -266,8 +266,8 @@ TSharedPtr<SWidget> SSkeletonSlotNames::OnGetContextMenuContent() const
 			FUIAction Action = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonSlotNames::OnDeleteSlotGroup, SlotInfo->Name));
 			Action.CanExecuteAction.BindSP(this, &SSkeletonSlotNames::CanDeleteSlotGroup, SlotInfo->Name);
 			const FText Label = LOCTEXT("AnimSlotManagerContextMenuDeleteSlotGroupLabel", "Delete Slot Group");
-			const FText ToolTip = LOCTEXT("AnimSlotManagerContextMenuDeleteSlotGroupTooltip", "Delete this slot group.");
-			MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+			const FText ToolTipText = LOCTEXT("AnimSlotManagerContextMenuDeleteSlotGroupTooltip", "Delete this slot group.");
+			MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -289,8 +289,8 @@ TSharedPtr<SWidget> SSkeletonSlotNames::OnGetContextMenuContent() const
 
 			FUIAction Action = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonSlotNames::OnRenameSlot, SlotInfo->Name));
 			const FText Label = LOCTEXT("AnimSlotManagerContextMenuRenameSlotLabel", "Rename Slot");
-			const FText ToolTip = LOCTEXT("AnimSlotManagerContextMenuRenameSlotTooltip", "Rename this slot");
-			MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+			const FText ToolTipText = LOCTEXT("AnimSlotManagerContextMenuRenameSlotTooltip", "Rename this slot");
+			MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
 		}
 		// Delete Slot
 		{
@@ -298,8 +298,8 @@ TSharedPtr<SWidget> SSkeletonSlotNames::OnGetContextMenuContent() const
 
 			FUIAction Action = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonSlotNames::OnDeleteSlot, SlotInfo->Name));
 			const FText Label = LOCTEXT("AnimSlotManagerContextMenuDeleteSlotLabel", "Delete Slot");
-			const FText ToolTip = LOCTEXT("AnimSlotManagerContextMenuDeleteSlotTooltip", "Delete this slot.");
-			MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+			const FText ToolTipText = LOCTEXT("AnimSlotManagerContextMenuDeleteSlotTooltip", "Delete this slot.");
+			MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -309,15 +309,15 @@ TSharedPtr<SWidget> SSkeletonSlotNames::OnGetContextMenuContent() const
 	{
 		FUIAction Action = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonSlotNames::OnAddSlot));
 		const FText Label = LOCTEXT("AnimSlotManagerContextMenuAddSlotLabel", "Add Slot");
-		const FText ToolTip = LOCTEXT("AnimSlotManagerContextMenuAddSlotTooltip", "Adds a new Slot");
-		MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+		const FText ToolTipText = LOCTEXT("AnimSlotManagerContextMenuAddSlotTooltip", "Adds a new Slot");
+		MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
 	}
 	// Add Group
 	{
 		FUIAction Action = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonSlotNames::OnAddGroup));
 		const FText Label = LOCTEXT("AnimSlotManagerContextMenuAddGroupLabel", "Add Group");
-		const FText ToolTip = LOCTEXT("AnimSlotManagerContextMenuAddGroupTooltip", "Adds a new Group");
-		MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+		const FText ToolTipText = LOCTEXT("AnimSlotManagerContextMenuAddGroupTooltip", "Adds a new Group");
+		MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), Action);
 	}
 	MenuBuilder.EndSection();
 
@@ -331,13 +331,13 @@ void SSkeletonSlotNames::FillSetSlotGroupSubMenu(FMenuBuilder& MenuBuilder)
 	{
 		const FName& GroupName = SlotGroup.GroupName;
 
-		const FText ToolTip = FText::Format(LOCTEXT("ContextMenuSetSlotSubMenuToolTip", "Changes slot's group to {0}"), FText::FromName(GroupName));
+		const FText ToolTipText = FText::Format(LOCTEXT("ContextMenuSetSlotSubMenuToolTip", "Changes slot's group to {0}"), FText::FromName(GroupName));
 /*		FString Label = Class->GetDisplayNameText().ToString();*/
 		const FText Label = FText::FromName(GroupName);
 
 		FUIAction UIAction;
 		UIAction.ExecuteAction.BindRaw(this, &SSkeletonSlotNames::ContextMenuOnSetSlot,	GroupName);
-		MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), UIAction);
+		MenuBuilder.AddMenuEntry(Label, ToolTipText, FSlateIcon(), UIAction);
 	}
 }
 

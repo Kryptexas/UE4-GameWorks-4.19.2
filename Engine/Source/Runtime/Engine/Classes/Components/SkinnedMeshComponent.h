@@ -257,15 +257,12 @@ public:
 	 *	Best LOD that was 'predicted' by UpdateSkelPose. 
 	 *	This is what bones were updated based on, so we do not allow rendering at a better LOD than this. 
 	 */
-	UPROPERTY()
 	int32 PredictedLODLevel;
 
 	/** LOD level from previous frame, so we can detect changes in LOD to recalc required bones. */
-	UPROPERTY()
 	int32 OldPredictedLODLevel;
 
 	/**	High (best) DistanceFactor that was desired for rendering this USkeletalMesh last frame. Represents how big this mesh was in screen space   */
-	UPROPERTY()
 	float MaxDistanceFactor;
 
 	/** LOD array info. Each index will correspond to the LOD index **/

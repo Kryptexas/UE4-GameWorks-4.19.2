@@ -330,8 +330,8 @@ void FSequencerObjectBindingNode::SetDisplayName(const FText& NewDisplayName)
 
 bool FSequencerObjectBindingNode::CanDrag() const
 {
-	TSharedPtr<FSequencerDisplayNode> ParentNode = GetParent();
-	return ParentNode.IsValid() == false || ParentNode->GetType() != ESequencerNode::Object;
+	TSharedPtr<FSequencerDisplayNode> ParentSeqNode = GetParent();
+	return ParentSeqNode.IsValid() == false || ParentSeqNode->GetType() != ESequencerNode::Object;
 }
 
 

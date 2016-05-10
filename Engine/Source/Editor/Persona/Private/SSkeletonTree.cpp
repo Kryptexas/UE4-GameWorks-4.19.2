@@ -165,19 +165,19 @@ TSharedRef< SWidget > SSkeletonTreeRow::GenerateWidgetForColumn( const FName& Co
 {
 	if ( ColumnName == ColumnID_BoneLabel )
 	{
-		TSharedPtr< SHorizontalBox > Box;
+		TSharedPtr< SHorizontalBox > RowBox;
 
-		SAssignNew( Box, SHorizontalBox );
+		SAssignNew( RowBox, SHorizontalBox );
 
-		Box->AddSlot()
+		RowBox->AddSlot()
 			.AutoWidth()
 			[
 				SNew( SExpanderArrow, SharedThis(this) )
 			];
 
-		Item->GenerateWidgetForNameColumn( Box, FilterText, FIsSelected::CreateSP(this, &STableRow::IsSelectedExclusively ) );
+		Item->GenerateWidgetForNameColumn( RowBox, FilterText, FIsSelected::CreateSP(this, &STableRow::IsSelectedExclusively ) );
 
-		return Box.ToSharedRef();
+		return RowBox.ToSharedRef();
 	}
 	else
 	{

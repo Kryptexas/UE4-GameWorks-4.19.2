@@ -84,10 +84,10 @@ bool FSocketSteam::HasPendingData(uint32& PendingDataSize)
  * @param		SocketDescription debug description of socket
  * @return		The new (heap-allocated) socket, or NULL if unsuccessful.
  */
-FSocket* FSocketSteam::Accept(const FString& SocketDescription) 
+FSocket* FSocketSteam::Accept(const FString& InSocketDescription) 
 {
 	/** Not supported - connectionless (UDP) only */
-	return NULL;
+	return nullptr;
 }
 
 /**
@@ -98,10 +98,10 @@ FSocket* FSocketSteam::Accept(const FString& SocketDescription)
  *
  * @return		The new (heap-allocated) socket, or NULL if unsuccessful.
  */
-FSocket* FSocketSteam::Accept(FInternetAddr& OutAddr, const FString& SocketDescription) 
+FSocket* FSocketSteam::Accept(FInternetAddr& OutAddr, const FString& InSocketDescription) 
 {
 	/** Not supported - connectionless (UDP) only */
-	return NULL;
+	return nullptr;
 }
 
 /**

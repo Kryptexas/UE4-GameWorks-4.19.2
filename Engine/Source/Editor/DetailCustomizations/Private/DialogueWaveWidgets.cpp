@@ -183,16 +183,16 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 FText SDialogueVoicePropertyEditor::OnGetToolTip() const
 {
-	FText ToolTip;
+	FText ToolTipText;
 
 	const FAssetData& AssetData = AssetThumbnail->GetAssetData();
 	if( AssetData.IsValid() )
 	{
 		
-		ToolTip = FText::FromName(AssetData.PackageName);
+		ToolTipText = FText::FromName(AssetData.PackageName);
 	}
 
-	return ToolTip;
+	return ToolTipText;
 }
 
 TSharedRef<SWidget> SDialogueVoicePropertyEditor::OnGetMenuContent()

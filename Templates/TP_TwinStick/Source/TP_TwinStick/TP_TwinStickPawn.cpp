@@ -44,15 +44,15 @@ ATP_TwinStickPawn::ATP_TwinStickPawn()
 	bCanFire = true;
 }
 
-void ATP_TwinStickPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+void ATP_TwinStickPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
-	check(InputComponent);
+	check(PlayerInputComponent);
 
 	// set up gameplay key bindings
-	InputComponent->BindAxis(MoveForwardBinding);
-	InputComponent->BindAxis(MoveRightBinding);
-	InputComponent->BindAxis(FireForwardBinding);
-	InputComponent->BindAxis(FireRightBinding);
+	PlayerInputComponent->BindAxis(MoveForwardBinding);
+	PlayerInputComponent->BindAxis(MoveRightBinding);
+	PlayerInputComponent->BindAxis(FireForwardBinding);
+	PlayerInputComponent->BindAxis(FireRightBinding);
 }
 
 void ATP_TwinStickPawn::Tick(float DeltaSeconds)

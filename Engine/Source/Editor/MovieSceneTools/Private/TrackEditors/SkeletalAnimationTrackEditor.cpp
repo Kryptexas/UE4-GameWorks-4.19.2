@@ -165,9 +165,9 @@ void FSkeletalAnimationTrackEditor::AddKey(const FGuid& ObjectGuid)
 
 bool FSkeletalAnimationTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid)
 {
-	TSharedPtr<ISequencer> Sequencer = GetSequencer();
+	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
 
-	if (Asset->IsA<UAnimSequence>() && Sequencer.IsValid())
+	if (Asset->IsA<UAnimSequence>() && SequencerPtr.IsValid())
 	{
 		UAnimSequence* AnimSequence = Cast<UAnimSequence>(Asset);
 		
@@ -179,7 +179,7 @@ bool FSkeletalAnimationTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid
 			{
 				
 
-				UObject* Object = Sequencer->FindSpawnedObjectOrTemplate(TargetObjectGuid);
+				UObject* Object = SequencerPtr->FindSpawnedObjectOrTemplate(TargetObjectGuid);
 				AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FSkeletalAnimationTrackEditor::AddKeyInternal, Object, AnimSequence));
 
 				return true;
@@ -256,13 +256,13 @@ void FSkeletalAnimationTrackEditor::OnAnimationAssetSelected(const FAssetData& A
 	FSlateApplication::Get().DismissAllMenus();
 
 	UObject* SelectedObject = AssetData.GetAsset();
-	TSharedPtr<ISequencer> Sequencer = GetSequencer();
+	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
 
-	if (SelectedObject && SelectedObject->IsA(UAnimSequence::StaticClass()) && Sequencer.IsValid())
+	if (SelectedObject && SelectedObject->IsA(UAnimSequence::StaticClass()) && SequencerPtr.IsValid())
 	{
 		UAnimSequence* AnimSequence = CastChecked<UAnimSequence>(AssetData.GetAsset());
 
-		UObject* Object = Sequencer->FindSpawnedObjectOrTemplate(ObjectBinding);
+		UObject* Object = SequencerPtr->FindSpawnedObjectOrTemplate(ObjectBinding);
 		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FSkeletalAnimationTrackEditor::AddKeyInternal, Object, AnimSequence) );
 	}
 }
@@ -296,8 +296,8 @@ bool FSkeletalAnimationTrackEditor::AddKeyInternal( float KeyTime, UObject* Obje
 
 USkeleton* FSkeletalAnimationTrackEditor::AcquireSkeletonFromObjectGuid(const FGuid& Guid)
 {
-	TSharedPtr<ISequencer> Sequencer = GetSequencer();
-	UObject* BoundObject = Sequencer.IsValid() ? Sequencer->FindSpawnedObjectOrTemplate(Guid) : nullptr;
+	TSharedPtr<ISequencer> SequencerPtr = GetSequencer();
+	UObject* BoundObject = SequencerPtr.IsValid() ? SequencerPtr->FindSpawnedObjectOrTemplate(Guid) : nullptr;
 
 	if (AActor* Actor = Cast<AActor>(BoundObject))
 	{

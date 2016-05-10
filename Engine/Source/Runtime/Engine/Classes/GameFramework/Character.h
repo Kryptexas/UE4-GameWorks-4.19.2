@@ -423,7 +423,7 @@ public:
 	virtual void PawnClientRestart() override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void UnPossessed() override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* InInputComponent) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	virtual void RecalculateBaseEyeHeight() override;
 	virtual void UpdateNavigationRelevance() override;
