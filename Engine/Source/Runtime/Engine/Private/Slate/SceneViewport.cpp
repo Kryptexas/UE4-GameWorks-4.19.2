@@ -1065,7 +1065,12 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 				NewWindowSizeY = DisplayMetrics.PrimaryDisplayHeight;
 			}
 
-			FVector2D NewWindowPos(InPosX, InPosY);
+			// Resize window
+			FVector2D WindowPos = WindowToResize->GetPositionInScreen();
+			FVector2D WindowSize = WindowToResize->GetSizeInScreen();
+			FVector2D NewWindowSize(NewWindowSizeX, NewWindowSizeY);
+			FVector2D NewWindowPos = WindowPos;
+
 			IHeadMountedDisplay::MonitorInfo MonitorInfo;
 			if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetHMDMonitorInfo(MonitorInfo))
 			{
@@ -1076,11 +1081,6 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 					NewWindowPos = FVector2D(MonitorInfo.DesktopX, MonitorInfo.DesktopY);
 				}
 			}
-
-			// Resize window
-			FVector2D WindowPos = WindowToResize->GetPositionInScreen();
-			FVector2D WindowSize = WindowToResize->GetSizeInScreen();
-			FVector2D NewWindowSize(NewWindowSizeX, NewWindowSizeY);
 
 			if(NewWindowSize != WindowSize || NewWindowPos != WindowPos || DesiredWindowMode != WindowToResize->GetWindowMode())
 			{
