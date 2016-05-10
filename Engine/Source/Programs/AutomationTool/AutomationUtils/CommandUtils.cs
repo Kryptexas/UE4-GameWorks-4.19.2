@@ -1698,36 +1698,6 @@ namespace AutomationTool
 			}
 		}
 
-		/// <summary>
-		/// Gets environment variables set by a batch file.
-		/// </summary>
-		/// <param name="BatchFileName">Filename that sets the environment variables</param>
-		/// <param name="AlsoSet">True if found variables should be automatically set withing this process.</param>
-		/// <returns>Dictionary of environment variables set by the batch file.</returns>
-		public static CaselessDictionary<string> GetEnvironmentVariablesFromBatchFile(string BatchFileName, bool AlsoSet = false)
-		{
-			CaselessDictionary<string> Result;
-			try
-			{
-				Result = HarvestEnvVars.HarvestEnvVarsFromBatchFile(BatchFileName, "", HarvestEnvVars.EPathOverride.User);
-			}
-			catch (Exception Ex)
-			{
-				throw new AutomationException(Ex, "Failed to harvest environment variables");
-			}
-
-			if (AlsoSet)
-			{
-				// Set the environment variables
-				foreach (var Envvar in Result)
-				{
-					Environment.SetEnvironmentVariable(Envvar.Key, Envvar.Value);
-				}
-			}
-
-			return Result;
-		}
-
 		#endregion
 
 		#region CommandLine

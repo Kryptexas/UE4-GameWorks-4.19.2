@@ -825,7 +825,7 @@ namespace UnrealGameSync
 				for(int ChangeIdx = 0; ChangeIdx < Changes.Count; ChangeIdx++)
 				{
 					PerforceChangeSummary Change = Changes[ChangeIdx];
-					if(String.Compare(Change.User, "buildmachine", true) != 0 || PromotedChangeNumbers.Contains(Change.Number))
+					if(ShouldShowChange(Change) || PromotedChangeNumbers.Contains(Change.Number))
 					{
 						SortedChangeNumbers.Add(Change.Number);
 
@@ -913,6 +913,15 @@ namespace UnrealGameSync
 
 			UpdateBuildSteps();
 			UpdateSyncActionCheckboxes();
+		}
+
+		bool ShouldShowChange(PerforceChangeSummary Change)
+		{
+			if(String.Compare(Change.User, "buildmachine", true) == 0 && Change.Description.IndexOf("lightmaps", StringComparison.InvariantCultureIgnoreCase) == -1)
+			{
+				return false;
+			}
+			return true;
 		}
 
 		void UpdateBuildMetadataCallback()

@@ -67,7 +67,9 @@ namespace AutomationTool
 			}
 
 			// Write the output file
-			string OutputFileName = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine", "Intermediate", "Changes.txt");
+			string OutputDirName = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine", "Intermediate");
+			CommandUtils.CreateDirectory(OutputDirName);
+			string OutputFileName = Path.Combine(OutputDirName, "Changes.txt");
 			using (StreamWriter Writer = new StreamWriter(OutputFileName))
 			{
 				Writer.WriteLine("Copying {0} to {1} (Source: {0} @ {2})", Stream, Target.Trim(), ChangeRecords[0].CL);

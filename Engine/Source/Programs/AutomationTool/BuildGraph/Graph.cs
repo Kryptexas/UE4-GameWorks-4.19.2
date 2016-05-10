@@ -102,6 +102,11 @@ namespace AutomationTool
 		public Dictionary<string, Node[]> AggregateNameToNodes = new Dictionary<string,Node[]>(StringComparer.InvariantCultureIgnoreCase);
 
 		/// <summary>
+		/// List of badges that can be displayed for this build
+		/// </summary>
+		public List<Badge> Badges = new List<Badge>();
+
+		/// <summary>
 		/// Diagnostic messages for this graph
 		/// </summary>
 		public List<GraphDiagnostic> Diagnostics = new List<GraphDiagnostic>();
@@ -256,6 +261,9 @@ namespace AutomationTool
 			// Create a new list of aggregates for everything that's left
 			AggregateNameToNodes = AggregateNameToNodes.Where(x => x.Value.All(y => RetainNodes.Contains(y))).ToDictionary(Pair => Pair.Key, Pair => Pair.Value);
 
+			// Remove any badges which do not have all their dependencies
+			Badges.RemoveAll(x => x.Nodes.Any(y => !RetainNodes.Contains(y)));
+
 			// Remove any diagnostics which are no longer part of the graph
 			Diagnostics.RemoveAll(x => (x.EnclosingNode != null && !RetainNodes.Contains(x.EnclosingNode)) || (x.EnclosingAgent != null && !Agents.Contains(x.EnclosingAgent)));
 		}
@@ -308,6 +316,18 @@ namespace AutomationTool
 					Writer.WriteStartElement("Report");
 					Writer.WriteAttributeString("Name", Report.Name);
 					Writer.WriteAttributeString("Requires", String.Join(";", Report.Nodes.Select(x => x.Name)));
+					Writer.WriteEndElement();
+				}
+
+				foreach (Badge Badge in Badges)
+				{
+					Writer.WriteStartElement("Badge");
+					Writer.WriteAttributeString("Name", Badge.Name);
+					if (Badge.Project != null)
+					{
+						Writer.WriteAttributeString("Project", Badge.Project);
+					}
+					Writer.WriteAttributeString("Requires", String.Join(";", Badge.Nodes.Select(x => x.Name)));
 					Writer.WriteEndElement();
 				}
 
@@ -370,6 +390,33 @@ namespace AutomationTool
 							JsonWriter.WriteObjectEnd();
 						}
 						JsonWriter.WriteArrayEnd();
+						JsonWriter.WriteObjectEnd();
+					}
+				}
+				JsonWriter.WriteArrayEnd();
+
+				// Write all the badges
+				JsonWriter.WriteArrayStart("Badges");
+				foreach (Badge Badge in Badges)
+				{
+					Node[] Dependencies = Badge.Nodes.Where(x => NodesToExecute.Contains(x)).ToArray();
+					if (Dependencies.Length > 0)
+					{
+						// Reduce that list to the smallest subset of direct dependencies
+						HashSet<Node> DirectDependencies = new HashSet<Node>(Dependencies);
+						foreach (Node Dependency in Dependencies)
+						{
+							DirectDependencies.ExceptWith(Dependency.OrderDependencies);
+						}
+
+						JsonWriter.WriteObjectStart();
+						JsonWriter.WriteValue("Name", Badge.Name);
+						if (!String.IsNullOrEmpty(Badge.Project))
+						{
+							JsonWriter.WriteValue("Project", Badge.Project);
+						}
+						JsonWriter.WriteValue("AllDependencies", String.Join(";", Agents.SelectMany(x => x.Nodes).Where(x => Dependencies.Contains(x)).Select(x => x.Name)));
+						JsonWriter.WriteValue("DirectDependencies", String.Join(";", DirectDependencies.Select(x => x.Name)));
 						JsonWriter.WriteObjectEnd();
 					}
 				}

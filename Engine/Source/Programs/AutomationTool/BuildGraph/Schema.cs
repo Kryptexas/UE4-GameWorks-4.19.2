@@ -116,6 +116,7 @@ namespace AutomationTool
 		NodeBody,
 		Aggregate,
 		Report,
+		Badge,
 		Notify,
 		Include,
 		Property,
@@ -278,6 +279,7 @@ namespace AutomationTool
 			NewSchema.Items.Add(CreateNodeBodyType(TaskNameToType));
 			NewSchema.Items.Add(CreateAggregateType());
 			NewSchema.Items.Add(CreateReportType());
+			NewSchema.Items.Add(CreateBadgeType());
 			NewSchema.Items.Add(CreateNotifyType());
 			NewSchema.Items.Add(CreateIncludeType());
 			NewSchema.Items.Add(CreatePropertyType(ScriptSchemaStandardType.Property));
@@ -401,6 +403,7 @@ namespace AutomationTool
 			GraphChoice.Items.Add(CreateSchemaElement("Trigger", ScriptSchemaStandardType.Trigger));
 			GraphChoice.Items.Add(CreateSchemaElement("Aggregate", ScriptSchemaStandardType.Aggregate));
 			GraphChoice.Items.Add(CreateSchemaElement("Report", ScriptSchemaStandardType.Report));
+			GraphChoice.Items.Add(CreateSchemaElement("Badge", ScriptSchemaStandardType.Badge));
 			GraphChoice.Items.Add(CreateSchemaElement("Notify", ScriptSchemaStandardType.Notify));
 			GraphChoice.Items.Add(CreateSchemaElement("Warning", ScriptSchemaStandardType.Warning));
 			GraphChoice.Items.Add(CreateSchemaElement("Error", ScriptSchemaStandardType.Error));
@@ -571,12 +574,27 @@ namespace AutomationTool
 		/// <returns>Type definition for a report</returns>
 		static XmlSchemaType CreateReportType()
 		{
-			XmlSchemaComplexType AggregateType = new XmlSchemaComplexType();
-			AggregateType.Name = GetTypeName(ScriptSchemaStandardType.Report);
-			AggregateType.Attributes.Add(CreateSchemaAttribute("Name", ScriptSchemaStandardType.Name, XmlSchemaUse.Required));
-			AggregateType.Attributes.Add(CreateSchemaAttribute("Requires", ScriptSchemaStandardType.NameOrTagList, XmlSchemaUse.Required));
-			AggregateType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
-			return AggregateType;
+			XmlSchemaComplexType ReportType = new XmlSchemaComplexType();
+			ReportType.Name = GetTypeName(ScriptSchemaStandardType.Report);
+			ReportType.Attributes.Add(CreateSchemaAttribute("Name", ScriptSchemaStandardType.Name, XmlSchemaUse.Required));
+			ReportType.Attributes.Add(CreateSchemaAttribute("Requires", ScriptSchemaStandardType.NameOrTagList, XmlSchemaUse.Required));
+			ReportType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
+			return ReportType;
+		}
+
+		/// <summary>
+		/// Creates the schema type representing the badge type
+		/// </summary>
+		/// <returns>Type definition for a badge</returns>
+		static XmlSchemaType CreateBadgeType()
+		{
+			XmlSchemaComplexType BadgeType = new XmlSchemaComplexType();
+			BadgeType.Name = GetTypeName(ScriptSchemaStandardType.Badge);
+			BadgeType.Attributes.Add(CreateSchemaAttribute("Name", ScriptSchemaStandardType.Name, XmlSchemaUse.Required));
+			BadgeType.Attributes.Add(CreateSchemaAttribute("Requires", ScriptSchemaStandardType.NameOrTagList, XmlSchemaUse.Required));
+			BadgeType.Attributes.Add(CreateSchemaAttribute("Project", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Required));
+			BadgeType.Attributes.Add(CreateSchemaAttribute("If", ScriptSchemaStandardType.BalancedString, XmlSchemaUse.Optional));
+			return BadgeType;
 		}
 
 		/// <summary>

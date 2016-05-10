@@ -62,6 +62,7 @@
       <Link>Properties\MetaData.cs</Link>
     </Compile>
     <Compile Include="Agent.cs" />
+    <Compile Include="Badge.cs" />
     <Compile Include="BuildGraph.cs" />
     <Compile Include="Graph.cs" />
     <Compile Include="Node.cs" />
@@ -81,6 +82,7 @@
     <Compile Include="Tasks\RenameTask.cs" />
     <Compile Include="Tasks\SpawnTask.cs" />
     <Compile Include="Tasks\LogTask.cs" />
+    <Compile Include="Tasks\SubmitTask.cs" />
     <Compile Include="Tasks\TagTask.cs" />
     <Compile Include="Tasks\CommandTask.cs" />
     <Compile Include="Tasks\CompileTask.cs" />

@@ -277,6 +277,9 @@ namespace AutomationTool
 					case "Report":
 						ReadReport(ChildElement);
 						break;
+					case "Badge":
+						ReadBadge(ChildElement);
+						break;
 					case "Notify":
 						ReadNotifier(ChildElement);
 						break;
@@ -605,6 +608,28 @@ namespace AutomationTool
 					NewReport.Nodes.UnionWith(ReferencedNode.OrderDependencies);
 				}
 				Graph.NameToReport.Add(Name, NewReport);
+			}
+		}
+
+		/// <summary>
+		/// Reads the definition for a badge
+		/// </summary>
+		/// <param name="Element">Xml element to read the definition from</param>
+		void ReadBadge(ScriptElement Element)
+		{
+			string Name;
+			if (EvaluateCondition(Element) && TryReadObjectName(Element, out Name))
+			{
+				string[] RequiredNames = ReadListAttribute(Element, "Requires");
+				string Project = ReadAttribute(Element, "Project");
+
+				Badge NewBadge = new Badge(Name, Project);
+				foreach (Node ReferencedNode in ResolveReferences(Element, RequiredNames))
+				{
+					NewBadge.Nodes.Add(ReferencedNode);
+					NewBadge.Nodes.UnionWith(ReferencedNode.OrderDependencies);
+				}
+				Graph.Badges.Add(NewBadge);
 			}
 		}
 
