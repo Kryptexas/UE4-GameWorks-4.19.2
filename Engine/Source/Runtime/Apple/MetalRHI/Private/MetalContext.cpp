@@ -230,11 +230,10 @@ void FMetalDeviceContext::ClearFreeList()
 		FMetalDelayedFreeList* Pair = DelayedFreeLists[0];
 		if(dispatch_semaphore_wait(Pair->Signal, DISPATCH_TIME_NOW))
 		{
-#if PLATFORM_IOS
+
             Pair->FrameCount--;
             if (Pair->FrameCount == 0)
             {
-#endif
                 dispatch_release(Pair->Signal);
                 for( id Entry : Pair->FreeList )
                 {
@@ -243,13 +242,11 @@ void FMetalDeviceContext::ClearFreeList()
                 }
                 delete Pair;
                 DelayedFreeLists.RemoveAt(0, 1, false);
-#if PLATFORM_IOS
             }
             else
             {
                 break;
             }
-#endif
 		}
 		else
 		{
@@ -304,9 +301,7 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	
 	// kick the whole buffer
 	FMetalDelayedFreeList* NewList = new FMetalDelayedFreeList;
-#if PLATFORM_IOS
     NewList->FrameCount = 3;
-#endif
 	NewList->Signal = dispatch_semaphore_create(0);
 	if(GUseRHIThread)
 	{
