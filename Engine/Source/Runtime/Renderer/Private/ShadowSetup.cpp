@@ -2650,6 +2650,4 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate&
 
 	// Generate mesh element arrays from shadow primitive arrays
 	GatherShadowDynamicMeshElements();
-
-	CreateIndirectCapsuleShadows();
 }
