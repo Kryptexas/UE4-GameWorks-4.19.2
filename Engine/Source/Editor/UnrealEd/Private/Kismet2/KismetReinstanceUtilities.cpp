@@ -402,6 +402,16 @@ public:
 			for (auto Obj : ObjectsToFinalize)
 			{
 				auto Actor = CastChecked<AActor>(Obj);
+
+				UWorld* World = Actor->GetWorld();
+				if (World)
+				{
+					// Remove any pending latent actions, as the compiled script code may have changed, and thus the
+					// cached LinkInfo data may now be invalid. This could happen in the fast path, since the original
+					// Actor instance will not be replaced in that case, and thus might still have latent actions pending.
+					World->GetLatentActionManager().RemoveActionsForObject(Actor);
+				}
+
 				Actor->ReregisterAllComponents();
 				Actor->RerunConstructionScripts();
 
