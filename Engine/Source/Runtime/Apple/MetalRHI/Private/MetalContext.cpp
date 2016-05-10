@@ -854,7 +854,7 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
 	// Force submit if there's enough outstanding commands to prevent the GPU going idle.
-	ConditionalSwitchToGraphics();
+	ConditionalSwitchToGraphics(StateCache.NeedsToSetRenderTarget(RenderTargetsInfo));
 	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	if (!CommandList.IsImmediate())
@@ -1158,9 +1158,9 @@ void FMetalContext::CommitNonComputeShaderConstants()
 	}
 }
 
-void FMetalContext::ConditionalSwitchToGraphics()
+void FMetalContext::ConditionalSwitchToGraphics(bool bRTChangePending)
 {
-	ConditionalSubmit();
+	ConditionalSubmit(bRTChangePending);
 	
 	StateCache.ConditionalSwitchToRender();
 }
@@ -1183,11 +1183,38 @@ void FMetalContext::ConditionalSwitchToCompute()
 	}
 }
 
-void FMetalContext::ConditionalSubmit()
+void FMetalContext::ConditionalSubmit(bool bRTChangePending)
 {
 	if (GMetalCommandBufferCommitThreshold > 0 && OutstandingOpCount >= GMetalCommandBufferCommitThreshold)
 	{
-		SubmitCommandsHint();
+		// AJB: This triggers a 'unset' of the RT. Causing a Load/Store at potentially awkward times.
+		// check that the load/store behaviour of the current RT setup will allows resumption without affecting RT content.
+		// i.e. - dont want to clear 1/2 way through a pass either.
+		bool bCanChangeRT = false;
+		if( bRTChangePending == false)
+		{
+			const FRHISetRenderTargetsInfo& CurrentRenderTargets = StateCache.GetRenderTargetsInfo();
+			const bool bIsMSAAActive = StateCache.GetHasValidRenderTarget() && StateCache.GetRenderPipelineDesc().SampleCount != 1;
+			bCanChangeRT = !bIsMSAAActive;
+			for (int32 RenderTargetIndex = 0; RenderTargetIndex < CurrentRenderTargets.NumColorRenderTargets && bCanChangeRT; RenderTargetIndex++)
+			{
+				const FRHIRenderTargetView& RenderTargetView = CurrentRenderTargets.ColorRenderTarget[RenderTargetIndex];
+				bCanChangeRT = bCanChangeRT
+				&& RenderTargetView.LoadAction == ERenderTargetLoadAction::ELoad
+				&& RenderTargetView.StoreAction == ERenderTargetStoreAction::EStore;
+			}
+			bCanChangeRT = bCanChangeRT
+			&& (!CurrentRenderTargets.DepthStencilRenderTarget.Texture
+				|| (CurrentRenderTargets.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::ELoad
+					&& CurrentRenderTargets.DepthStencilRenderTarget.DepthStoreAction == ERenderTargetStoreAction::EStore
+					&& CurrentRenderTargets.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::ELoad
+					&& CurrentRenderTargets.DepthStencilRenderTarget.GetStencilStoreAction() == ERenderTargetStoreAction::EStore));
+		}
+
+		if(bRTChangePending || bCanChangeRT)
+		{
+			SubmitCommandsHint();
+		}
 	}
 }
 
