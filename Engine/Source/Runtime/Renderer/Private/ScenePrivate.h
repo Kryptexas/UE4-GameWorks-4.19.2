@@ -958,6 +958,7 @@ public:
 		}
 
 		check(NewMID->GetRenderProxy(false));
+		MIDUsedCount++;
 		return NewMID;
 	}
 
