@@ -2683,15 +2683,16 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 
 }
 
-void FAudioDevice::ProcessingPendingActiveSoundStops()
+void FAudioDevice::ProcessingPendingActiveSoundStops(bool bForceDelete)
 {
 	// Process the PendingSoundsToDelete. These may have 
 	// had their deletion deferred due to an async operation
 	for (int32 i = PendingSoundsToDelete.Num() - 1; i >= 0; --i)
 	{
 		FActiveSound* ActiveSound = PendingSoundsToDelete[i];
-		if (ActiveSound->CanDelete())
+		if (bForceDelete || ActiveSound->CanDelete())
 		{
+			ActiveSound->bAsyncOcclusionPending = false;
 			PendingSoundsToDelete.RemoveAtSwap(i, 1, false);
 			delete ActiveSound;
 		}
@@ -2704,8 +2705,9 @@ void FAudioDevice::ProcessingPendingActiveSoundStops()
 		ActiveSound->Stop();
 
 		// If we can delete the active sound now, then delete it
-		if (ActiveSound->CanDelete())
+		if (bForceDelete || ActiveSound->CanDelete())
 		{
+			ActiveSound->bAsyncOcclusionPending = false;
 			delete ActiveSound;
 		}
 		else
@@ -3123,7 +3125,7 @@ void FAudioDevice::Flush(UWorld* WorldToFlush, bool bClearActivatedReverb)
 	}
 
 	// Immediately stop all pending active sounds
-	ProcessingPendingActiveSoundStops();
+	ProcessingPendingActiveSoundStops(WorldToFlush == nullptr || WorldToFlush->bIsTearingDown);
 
 	// Anytime we flush, make sure to clear all the listeners.  We'll get the right ones soon enough.
 	Listeners.Reset();

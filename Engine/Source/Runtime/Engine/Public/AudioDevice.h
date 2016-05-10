@@ -910,7 +910,7 @@ protected:
 	FVector GetListenerTransformedDirection(const FVector& Position, float* OutDistance);
 
 	/** Processes the set of pending sounds that need to be stopped */ 
-	void ProcessingPendingActiveSoundStops();
+	void ProcessingPendingActiveSoundStops(bool bForceDelete = false);
 
 	/** Query if the editor is in VR Preview for the current play world. Returns false for non-editor builds */
 	static bool CanUseVRAudioDevice();
