@@ -1087,10 +1087,27 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			{
 				MINMAXINFO* MinMaxInfo = (MINMAXINFO*)lParam;
 				FWindowSizeLimits SizeLimits = MessageHandler->GetSizeLimitsForWindow(CurrentNativeEventWindow);
+
+				// We need to inflate the max values if using an OS window border
+				int32 BorderWidth = 0;
+				int32 BorderHeight = 0;
+				if (CurrentNativeEventWindow->GetDefinition().HasOSWindowBorder)
+				{
+					const DWORD WindowStyle = ::GetWindowLong(hwnd, GWL_STYLE);
+					const DWORD WindowExStyle = ::GetWindowLong(hwnd, GWL_EXSTYLE);
+
+					// This adjusts a zero rect to give us the size of the border
+					RECT BorderRect = { 0, 0, 0, 0 };
+					::AdjustWindowRectEx(&BorderRect, WindowStyle, false, WindowExStyle);
+
+					BorderWidth = BorderRect.right - BorderRect.left;
+					BorderHeight = BorderRect.bottom - BorderRect.top;
+				}
+
 				MinMaxInfo->ptMinTrackSize.x = FMath::RoundToInt( SizeLimits.GetMinWidth().Get(MinMaxInfo->ptMinTrackSize.x) );
 				MinMaxInfo->ptMinTrackSize.y = FMath::RoundToInt( SizeLimits.GetMinHeight().Get(MinMaxInfo->ptMinTrackSize.y) );
-				MinMaxInfo->ptMaxTrackSize.x = FMath::RoundToInt( SizeLimits.GetMaxWidth().Get(MinMaxInfo->ptMaxTrackSize.x) );
-				MinMaxInfo->ptMaxTrackSize.y = FMath::RoundToInt( SizeLimits.GetMaxHeight().Get(MinMaxInfo->ptMaxTrackSize.y) );
+				MinMaxInfo->ptMaxTrackSize.x = FMath::RoundToInt( SizeLimits.GetMaxWidth().Get(MinMaxInfo->ptMaxTrackSize.x - BorderWidth) ) + BorderWidth;
+				MinMaxInfo->ptMaxTrackSize.y = FMath::RoundToInt( SizeLimits.GetMaxHeight().Get(MinMaxInfo->ptMaxTrackSize.y - BorderHeight) ) + BorderHeight;
 				return 0;
 			}
 			break;
