@@ -648,7 +648,7 @@ void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashCont
 	FMemory::Memzero(&PrevActions, sizeof(PrevActions));
 
 	// Passing -1 will leave these restored and won't trap them
-	if ((int64)CrashHandler == -1)
+	if ((PTRINT)CrashHandler == -1)
 	{
 		return;
 	}
