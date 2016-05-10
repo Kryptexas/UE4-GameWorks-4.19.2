@@ -174,6 +174,7 @@ public class UE4EditorTarget : TargetRules
         NonCodeProjectNames.Add("MorphTargets", DesktopPlats);
         NonCodeProjectNames.Add("PostProcessMatinee", DesktopPlats);
         NonCodeProjectNames.Add("SciFiHallway", DesktopPlats);
+        NonCodeProjectNames.Add("SubwaySequencer", DesktopPlats);
 
         // Windows only due to VR elements
         if (HostPlatform == UnrealTargetPlatform.Win64)
