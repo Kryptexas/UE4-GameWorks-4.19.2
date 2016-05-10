@@ -551,7 +551,7 @@ FReply STiledLandcapeImportDlg::OnClickedSelectHeightmapTiles()
 							{
 								Arguments.Add(TEXT("Size"), ImageWrapper->GetWidth());
 								Arguments.Add(TEXT("TargetSize"), TargetSizeX);
-								StatusMessage = FText::Format(LOCTEXT("TiledLandscapeImport_HeightmapPngTileSizeMismatch", "File ({FileName}) size ({Size}×{Size}) should match other tiles file size ({TargetSize}×{TargetSize})."), Arguments);
+								StatusMessage = FText::Format(LOCTEXT("TiledLandscapeImport_HeightmapPngTileSizeMismatch", "File ({FileName}) size ({Size}x{Size}) should match other tiles file size ({TargetSize}x{TargetSize})."), Arguments);
 								bValidTiles = false;
 								break;
 							}
@@ -595,7 +595,7 @@ FReply STiledLandcapeImportDlg::OnClickedSelectHeightmapTiles()
 						{
 							FFormatNamedArguments Arguments;
 							Arguments.Add(TEXT("Size"), TargetSizeX);
-							StatusMessage = FText::Format(LOCTEXT("TiledLandscapeImport_HeightmapPngTileInvalidSize", "No landscape configuration found for ({Size}×{Size})."), Arguments);
+							StatusMessage = FText::Format(LOCTEXT("TiledLandscapeImport_HeightmapPngTileInvalidSize", "No landscape configuration found for ({Size}x{Size})."), Arguments);
 							bValidTiles = false;
 						}
 					}
