@@ -375,18 +375,18 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 		CrashGuid = FGuid::NewGuid().ToString();
 	}
 
-	FString CrashInfoFolder = FString::Printf(TEXT("%sinfo-%s-pid-%d-%s"), bReportingNonCrash ? TEXT("ensure") : TEXT("crash"), FApp::GetGameName(), getpid(), *CrashGuid);
+	FString CrashInfoFolder = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Crashes"), *FString::Printf(TEXT("%sinfo-%s-pid-%d-%s"), bReportingNonCrash ? TEXT("ensure") : TEXT("crash"), FApp::GetGameName(), getpid(), *CrashGuid));
 	FString CrashInfoAbsolute = FPaths::ConvertRelativePathToFull(CrashInfoFolder);
-	if (IFileManager::Get().MakeDirectory(*CrashInfoFolder))
+	if (IFileManager::Get().MakeDirectory(*CrashInfoAbsolute, true))
 	{
 		// generate "minidump"
-		GenerateReport(FPaths::Combine(*CrashInfoFolder, TEXT("Diagnostics.txt")));
+		GenerateReport(FPaths::Combine(*CrashInfoAbsolute, TEXT("Diagnostics.txt")));
 
 		// generate "WER"
-		GenerateWindowsErrorReport(FPaths::Combine(*CrashInfoFolder, TEXT("wermeta.xml")), bReportingNonCrash);
+		GenerateWindowsErrorReport(FPaths::Combine(*CrashInfoAbsolute, TEXT("wermeta.xml")), bReportingNonCrash);
 
 		// generate "minidump" (just >1 byte)
-		GenerateMinidump(FPaths::Combine(*CrashInfoFolder, TEXT("minidump.dmp")));
+		GenerateMinidump(FPaths::Combine(*CrashInfoAbsolute, TEXT("minidump.dmp")));
 
 		// Introduces a new runtime crash context. Will replace all Windows related crash reporting.
 		//FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
