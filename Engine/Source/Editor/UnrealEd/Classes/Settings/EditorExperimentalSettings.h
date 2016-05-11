@@ -105,7 +105,7 @@ public:
 	bool bLiveStreamingFromEditor;
 
 	/** Enables Metal/High-end mobile rendering path preview on Desktop */
-	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/High-end mobile rendering preview"))
+	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor"))
 	bool bFeatureLevelES31Preview;
 
 	/** Enable late joining in PIE */
@@ -113,7 +113,7 @@ public:
 	bool bAllowLateJoinInPIE;
 
 	/** Allow Vulkan Preview */
-	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow Vulkan Preview"))
+	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow Vulkan Mobile Preview"))
 	bool bAllowVulkanPreview;
 
 	/** Enable multithreaded lightmap encoding (decreases time taken to encode lightmaps) */
