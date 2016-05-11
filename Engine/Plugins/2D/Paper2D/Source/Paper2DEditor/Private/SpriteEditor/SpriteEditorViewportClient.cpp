@@ -707,11 +707,11 @@ void FSpriteEditorViewportClient::UpdateRelatedSpritesList()
 				continue;
 			}
 
-			const FString* SourceUVString = SpriteAsset.TagsAndValues.Find("SourceUV");
-			const FString* SourceDimensionString = SpriteAsset.TagsAndValues.Find("SourceDimension");
-			FVector2D SourceUV, SourceDimension;
-			if (SourceUVString != nullptr && SourceDimensionString != nullptr)
+			const FString SourceUVString = SpriteAsset.GetTagValueRef<FString>("SourceUV");
+			const FString SourceDimensionString = SpriteAsset.GetTagValueRef<FString>("SourceDimension");
+			if (!SourceUVString.IsEmpty() && !SourceDimensionString.IsEmpty())
 			{
+				FVector2D SourceUV, SourceDimension;
 				if (SourceUV.InitFromString(*SourceUVString) && SourceDimension.InitFromString(*SourceDimensionString))
 				{
 					FRelatedSprite RelatedSprite;

@@ -706,7 +706,14 @@ bool FStructureEditorUtils::CanEnableMultiLineText(const UUserDefinedStruct* Str
 	auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
 	if (VarDesc)
 	{
-		auto Property = FindField<UProperty>(Struct, VarDesc->VarName);
+		UProperty* Property = FindField<UProperty>(Struct, VarDesc->VarName);
+
+		// If this is an array, we need to test its inner property as that's the real type
+		if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property))
+		{
+			Property = ArrayProperty->Inner;
+		}
+
 		if (Property)
 		{
 			// Can only set multi-line text on string and text properties
@@ -738,6 +745,7 @@ bool FStructureEditorUtils::ChangeMultiLineTextEnabled(UUserDefinedStruct* Struc
 				Property->RemoveMetaData("MultiLine");
 			}
 		}
+		OnStructureChanged(Struct);
 		return true;
 	}
 	return false;

@@ -6,7 +6,7 @@
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "ISequencer.h"
 #include "ISequencerModule.h"
 #include "MovieScene.h"
@@ -485,13 +485,11 @@ void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& Men
 	ActorsValidForPossession.RemoveAll([&](AActor* In){ return !IsActorValidForPossession(In); });
 
 	FText SelectedLabel;
-	FSlateIcon ActorIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(AActor::StaticClass()));
-
+	FSlateIcon ActorIcon = FSlateIconFinder::FindIconForClass(AActor::StaticClass());
 	if (ActorsValidForPossession.Num() == 1)
 	{
 		SelectedLabel = FText::Format(LOCTEXT("AddSpecificActor", "Add '{0}'"), FText::FromString(ActorsValidForPossession[0]->GetActorLabel()));
-		FName IconName = FClassIconFinder::FindIconNameForActor(ActorsValidForPossession[0]);
-		ActorIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(ActorsValidForPossession[0]->GetClass()));
+		ActorIcon = FSlateIconFinder::FindIconForClass(ActorsValidForPossession[0]->GetClass());
 	}
 	else if (ActorsValidForPossession.Num() > 1)
 	{

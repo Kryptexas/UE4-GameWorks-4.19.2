@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-
+#include "SlateCorePrivatePCH.h"
+#include "SlateIcon.h"
 
 /* FSlateIcon structors
  *****************************************************************************/
@@ -48,7 +48,7 @@ const FSlateBrush* FSlateIcon::GetSmallIcon( ) const
 
 const ISlateStyle* FSlateIcon::GetStyleSet( ) const
 {
-	return FSlateStyleRegistry::FindSlateStyle(StyleSetName);
+	return StyleSetName.IsNone() ? nullptr : FSlateStyleRegistry::FindSlateStyle(StyleSetName);
 }
 
 
@@ -62,4 +62,18 @@ const FSlateBrush* FSlateIcon::GetIcon( ) const
 	}
 
 	return FStyleDefaults::GetNoBrush();
+}
+
+
+const FSlateBrush* FSlateIcon::GetOptionalIcon( ) const
+{
+	const ISlateStyle* StyleSet = GetStyleSet();
+	return StyleSet ? StyleSet->GetOptionalBrush(StyleName) : nullptr;
+}
+
+
+const FSlateBrush* FSlateIcon::GetOptionalSmallIcon( ) const
+{
+	const ISlateStyle* StyleSet = GetStyleSet();
+	return StyleSet ? StyleSet->GetOptionalBrush(SmallStyleName) : nullptr;
 }

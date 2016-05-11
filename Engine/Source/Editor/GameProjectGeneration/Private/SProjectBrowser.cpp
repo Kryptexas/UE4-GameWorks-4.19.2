@@ -628,7 +628,7 @@ TSharedPtr<SWidget> SProjectBrowser::OnGetContextMenuContent() const
 
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("FileManagerName"), FPlatformMisc::GetFileManagerName());
-	const FText ExploreToText = FText::Format(NSLOCTEXT("GenericPlatform", "ShowInFileManager", "Show In {FileManagerName}"), Args);
+	const FText ExploreToText = FText::Format(NSLOCTEXT("GenericPlatform", "ShowInFileManager", "Show in {FileManagerName}"), Args);
 
 	MenuBuilder.AddMenuEntry(
 		ExploreToText,

@@ -1157,28 +1157,33 @@ static FLinearColor GetPalletteIconColor(UFunction const* Function)
 	return GetDefault<UGraphEditorSettings>()->FunctionCallNodeTitleColor;
 }
 
-FName UK2Node_CallFunction::GetPaletteIconForFunction(UFunction const* Function, FLinearColor& OutColor)
+FSlateIcon UK2Node_CallFunction::GetPaletteIconForFunction(UFunction const* Function, FLinearColor& OutColor)
 {
 	static const FName NativeMakeFunc(TEXT("NativeMakeFunc"));
 	static const FName NativeBrakeFunc(TEXT("NativeBreakFunc"));
 
 	if (Function && Function->HasMetaData(NativeMakeFunc))
 	{
-		return TEXT("GraphEditor.MakeStruct_16x");
+		static FSlateIcon Icon("EditorStyle", "GraphEditor.MakeStruct_16x");
+		return Icon;
 	}
 	else if (Function && Function->HasMetaData(NativeBrakeFunc))
 	{
-		return TEXT("GraphEditor.BreakStruct_16x");
+		static FSlateIcon Icon("EditorStyle", "GraphEditor.BreakStruct_16x");
+		return Icon;
 	}
 	// Check to see if the function is calling an function that could be an event, display the event icon instead.
 	else if (Function && UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function))
 	{
-		return TEXT("GraphEditor.Event_16x");
+		static FSlateIcon Icon("EditorStyle", "GraphEditor.Event_16x");
+		return Icon;
 	}
 	else
 	{
 		OutColor = GetPalletteIconColor(Function);
-		return TEXT("Kismet.AllClasses.FunctionIcon");
+
+		static FSlateIcon Icon("EditorStyle", "Kismet.AllClasses.FunctionIcon");
+		return Icon;
 	}
 }
 
@@ -2217,7 +2222,7 @@ FName UK2Node_CallFunction::GetCornerIcon() const
 	return Super::GetCornerIcon();
 }
 
-FName UK2Node_CallFunction::GetPaletteIcon(FLinearColor& OutColor) const
+FSlateIcon UK2Node_CallFunction::GetIconAndTint(FLinearColor& OutColor) const
 {
 	return GetPaletteIconForFunction(GetTargetFunction(), OutColor);
 }

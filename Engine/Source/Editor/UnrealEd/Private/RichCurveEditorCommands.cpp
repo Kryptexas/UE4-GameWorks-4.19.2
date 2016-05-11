@@ -3,7 +3,7 @@
 #include "UnrealEd.h"
 #include "RichCurveEditorCommands.h"
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "RichCurveEditorCommands"
 
 void FRichCurveEditorCommands::RegisterCommands()
 {

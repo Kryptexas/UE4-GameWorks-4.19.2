@@ -1785,11 +1785,7 @@ FText SAssetColumnItem::GetAssetTagText(FName AssetRegistryTag) const
 	{
 		if(AssetItem->GetType() != EAssetItemType::Folder)
 		{
-			const FString* TagValue = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data.TagsAndValues.Find(AssetRegistryTag);
-			if ( TagValue != NULL )
-			{
-				return FText::FromString(*TagValue);
-			}
+			return StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data.GetTagValueRef<FText>(AssetRegistryTag);
 		}
 	}
 	

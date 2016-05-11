@@ -6,7 +6,7 @@
 #include "Editor/ClassViewer/Private/SClassViewer.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/ClassDragDropOp.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
-#include "Editor/UnrealEd/Public/ClassIconFinder.h"
+
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 
 #include "Kismet2/KismetEditorUtilities.h"
@@ -17,6 +17,8 @@
 #include "AssetRegistryModule.h"
 #include "AssetSelection.h"
 #include "AssetToolsModule.h"
+
+#include "SlateIconFinder.h"
 
 #include "ClassViewerNode.h"
 
@@ -1297,7 +1299,7 @@ public:
 
 		bool bIsRestricted = AssociatedNode->IsRestricted();
 
-		const FSlateBrush* ClassIcon = FClassIconFinder::FindIconForClass(AssociatedNode->Class.Get());
+		const FSlateBrush* ClassIcon = FSlateIconFinder::FindIconBrushForClass(AssociatedNode->Class.Get());
 		
 		this->ChildSlot
 		[
@@ -1520,10 +1522,7 @@ static TSharedPtr< FClassViewerNode > CreateNodeForClass(UClass* Class, const TM
 	if ( BlueprintList.Num() )
 	{
 		// Grab the generated class name and check it before assigning. Objects that haven't been saved since this has started to be exported do not have the information.
-		if (auto GeneratedClassnamePtr = BlueprintList[0].TagsAndValues.Find(FName("GeneratedClass")))
-		{
-			NewNode->GeneratedClassname = FName(**GeneratedClassnamePtr);
-		}
+		BlueprintList[0].GetTagValue("GeneratedClass", NewNode->GeneratedClassname);
 	}
 
 	return NewNode;
@@ -1790,29 +1789,26 @@ void FClassHierarchy::FindClass(TSharedPtr< FClassViewerNode > InOutClassNode)
 
 void FClassHierarchy::LoadUnloadedTagData(TSharedPtr<FClassViewerNode>& InOutClassViewerNode, const FAssetData& InAssetData)
 {
-	const FString GeneratedClassPackage = InAssetData.PackageName.ToString();
-
-	const FString* GeneratedClassname = InAssetData.TagsAndValues.Find("GeneratedClass");
-	const FString* ParentClassname = InAssetData.TagsAndValues.Find("ParentClass");
-	const FString* BlueprintType = InAssetData.TagsAndValues.Find("BlueprintType");
-	const FString AssetName = InAssetData.AssetName.ToString();
-
 	// Create the viewer node.
+	const FString AssetName = InAssetData.AssetName.ToString();
 	InOutClassViewerNode = MakeShareable(new FClassViewerNode(AssetName, AssetName));
+
+	InOutClassViewerNode->AssetName = AssetName;
+	InOutClassViewerNode->GeneratedClassPackage = InAssetData.PackageName.ToString();
+	InAssetData.GetTagValue("GeneratedClass", InOutClassViewerNode->GeneratedClassname);
+	InAssetData.GetTagValue("ParentClass", InOutClassViewerNode->ParentClassname);
+	InOutClassViewerNode->bIsBPNormalType = InAssetData.GetTagValueRef<FString>("BlueprintType") == TEXT("BPType_Normal");
 			
 	// It is an unloaded blueprint, so we need to create the structure that will hold the data.
 	TSharedPtr<FUnloadedBlueprintData> UnloadedBlueprintData = MakeShareable( new FUnloadedBlueprintData(InOutClassViewerNode) );
 	InOutClassViewerNode->UnloadedBlueprintData = UnloadedBlueprintData;
 
 	// Get the class flags.
-	const FString* ClassFlags = InAssetData.TagsAndValues.Find("ClassFlags");
-	if(ClassFlags)
-	{
-		InOutClassViewerNode->UnloadedBlueprintData->SetClassFlags(FCString::Atoi(**ClassFlags));
-	}
+	const uint32 ClassFlags = InAssetData.GetTagValueRef<uint32>("ClassFlags");
+	InOutClassViewerNode->UnloadedBlueprintData->SetClassFlags(ClassFlags);
 
-	const FString* ImplementedInterfaces = InAssetData.TagsAndValues.Find("ImplementedInterfaces");
-	if(ImplementedInterfaces)
+	const FString ImplementedInterfaces = InAssetData.GetTagValueRef<FString>("ImplementedInterfaces");
+	if(!ImplementedInterfaces.IsEmpty())
 	{
 		FString FullInterface;
 		FString RemainingString;
@@ -1833,26 +1829,6 @@ void FClassHierarchy::LoadUnloadedTagData(TSharedPtr<FClassViewerNode>& InOutCla
 			CurrentString = RemainingString;
 		}
 	}
-
-	InOutClassViewerNode->GeneratedClassPackage = GeneratedClassPackage;
-
-	InOutClassViewerNode->ParentClassname = NAME_None;
-	if(ParentClassname)
-	{
-		InOutClassViewerNode->ParentClassname = FName(**ParentClassname);
-	}
-
-	if(GeneratedClassname)
-	{
-		InOutClassViewerNode->GeneratedClassname = FName(**GeneratedClassname);
-	}
-
-	if(BlueprintType && *BlueprintType == TEXT("BPType_Normal"))
-	{
-		InOutClassViewerNode->bIsBPNormalType = true;
-	}
-
-	InOutClassViewerNode->AssetName = AssetName;
 }
 
 void FClassHierarchy::PopulateClassHierarchy()

@@ -322,6 +322,12 @@ FText UK2Node_MakeArray::GetTooltipText() const
 	return LOCTEXT("MakeArrayTooltip", "Create an array from a series of items.");
 }
 
+FSlateIcon UK2Node_MakeArray::GetIconAndTint(FLinearColor& OutColor) const
+{
+	static FSlateIcon Icon("EditorStyle", "GraphEditor.MakeArray_16x");
+	return Icon;
+}
+
 void UK2Node_MakeArray::AddInputPin()
 {
 	FScopedTransaction Transaction( LOCTEXT("AddPinTx", "AddPin") );

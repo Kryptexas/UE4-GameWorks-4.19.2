@@ -25,6 +25,7 @@ public class BlueprintProfiler : ModuleRules
             PrivateDependencyModuleNames.Add("BlueprintGraph");
             PrivateDependencyModuleNames.Add("EditorStyle");
             PrivateDependencyModuleNames.Add("InputCore");
+            PrivateDependencyModuleNames.Add("SlateCore");
         }
     }
 }

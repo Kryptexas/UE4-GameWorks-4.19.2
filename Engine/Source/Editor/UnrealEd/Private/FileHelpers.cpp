@@ -317,7 +317,7 @@ FString FEditorFileUtils::GetFilterString(EFileInteraction Interaction)
 		Result = TEXT("Unreal Text (*.t3d)|*.t3d|All Files|*.*");
 		break;
 	case FI_ImportScene:
-		Result = TEXT("FBX (*.fbx)|*.fbx|All Files|*.*");
+		Result = TEXT("FBX (*.fbx) OBJ (.obj)|*.fbx;*.obj|FBX (*.fbx)|*.fbx|OBJ (*.obj)|*.obj|All Files|*.*");
 		break;
 
 	case FI_Export:
@@ -1439,7 +1439,10 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 	// If any files were just checked out, remove any pending flag to show a notification prompting for checkout.
 	if (PackagesToCheckOut.Num() > 0)
 	{
-		GUnrealEd->bNeedToPromptForCheckout = false;
+		for (UPackage* Package : PackagesToCheckOut)
+		{
+			GUnrealEd->PackageToNotifyState.Add(Package, NS_DialogPrompted);
+		}
 	}
 
 	if (OutPackagesNotNeedingCheckout)
@@ -1940,7 +1943,7 @@ bool FEditorFileUtils::AttemptUnloadInactiveWorldPackage(UPackage* PackageToUnlo
 				case EWorldType::PIE:
 				case EWorldType::Preview:
 				default:
-					OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingWorldNotInactive", "The level you are attempting to unload is invalid.");
+					OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingWorldInvalid", "The level you are attempting to unload is invalid.");
 					bContinueUnloadingExistingWorld = false;
 					break;
 			}

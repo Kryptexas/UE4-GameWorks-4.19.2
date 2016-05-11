@@ -843,7 +843,7 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 		}
 		else
 		{
-			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_InvalidBindPose", "Could not find the bind pose.  It will use time 0 as bind pose.")), FFbxErrors::SkeletalMesh_InvalidBindPose);
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_MissingBindPose", "Could not find the bind pose.  It will use time 0 as bind pose.")), FFbxErrors::SkeletalMesh_InvalidBindPose);
 			bUseTime0AsRefPose = true;
 		}
 	}
@@ -1800,6 +1800,12 @@ void UnFbx::FFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshImportData& Import
 			{
 				MissingSkinSuffixMaterial.Add(MaterialIndex);
 			}
+		}
+
+		if (bNeedsReorder && MissingSkinSuffixMaterial.Num() > 0)
+		{
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FbxSkeletaLMeshimport_Skinxx_missing", "Cannot mix skinxx suffix materials with no skinxx material, mesh section order will not be right.")), FFbxErrors::Generic_Mesh_SkinxxNameError);
+			return;
 		}
 
 		//Fill the array MaterialIndexToSkinIndex so we order material by _skinXX order
@@ -3163,7 +3169,19 @@ FFbxLogger::FFbxLogger()
 
 FFbxLogger::~FFbxLogger()
 {
-	if(TokenizedErrorMessages.Num() > 0)
+	bool ShowLogMessage = !ShowLogMessageOnlyIfError;
+	if (ShowLogMessageOnlyIfError)
+	{
+		for (TSharedRef<FTokenizedMessage> TokenMessage : TokenizedErrorMessages)
+		{
+			if (TokenMessage->GetSeverity() == EMessageSeverity::CriticalError || TokenMessage->GetSeverity() == EMessageSeverity::Error)
+			{
+				ShowLogMessage = true;
+				break;
+			}
+		}
+	}
+	if(ShowLogMessage && TokenizedErrorMessages.Num() > 0)
 	{
 		const TCHAR* LogTitle = TEXT("FBXImport");
 		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");

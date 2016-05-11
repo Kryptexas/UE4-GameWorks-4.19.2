@@ -1436,9 +1436,9 @@ bool UUnrealEdEngine::IsUserInteracting()
 	return bUserIsInteracting;
 }
 
-void UUnrealEdEngine::AttemptModifiedPackageNotification()
+void UUnrealEdEngine::ShowPackageNotification()
 {
-	if( bNeedToPromptForCheckout && !FApp::IsUnattended() )
+	if( !FApp::IsUnattended() )
 	{
 		// Defer prompting for checkout if we cant prompt because of the following:
 		// The user is interacting with something,
@@ -1486,9 +1486,6 @@ void UUnrealEdEngine::AttemptModifiedPackageNotification()
 				// For adding notifications.
 				FSlateNotificationManager::Get().AddNotification(ErrorNotification);
 			}
-
-			// No longer have a pending prompt.
-			bNeedToPromptForCheckout = false;
 		}
 	}
 }

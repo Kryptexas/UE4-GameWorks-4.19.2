@@ -356,9 +356,9 @@ bool SAnimationRemapSkeleton::OnShouldFilterAsset(const class FAssetData& AssetD
 		{
 			URig * Rig = OldSkeleton->GetRig();
 
-			const FString* Value = AssetData.TagsAndValues.Find(USkeleton::RigTag);
+			const FString Value = AssetData.GetTagValueRef<FString>(USkeleton::RigTag);
 
-			if(Value && Rig->GetFullName() == *Value)
+			if(Rig->GetFullName() == Value)
 			{
 				return false;
 			}
@@ -1732,7 +1732,7 @@ FReply SAnimationRemapAssets::OnBestGuessClicked()
 
 	for(const FAssetData& Data : AssetDataList)
 	{
-		if(Data.TagsAndValues.FindRef("Skeleton") == SkeletonName)
+		if(Data.GetTagValueRef<FString>("Skeleton") == SkeletonName)
 		{
 			CompatibleAssets.Add(Data);
 		}
@@ -1921,7 +1921,7 @@ void SAssetEntryRow::OnAssetSelected(const FAssetData& AssetData)
 
 bool SAssetEntryRow::OnShouldFilterAsset(const FAssetData& AssetData) const
 {
-	if(AssetData.TagsAndValues.FindRef("Skeleton") == SkeletonExportName)
+	if(AssetData.GetTagValueRef<FString>("Skeleton") == SkeletonExportName)
 	{
 		return false;
 	}

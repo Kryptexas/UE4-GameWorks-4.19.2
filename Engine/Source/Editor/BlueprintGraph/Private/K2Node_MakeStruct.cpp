@@ -225,6 +225,12 @@ FText UK2Node_MakeStruct::GetTooltipText() const
 	return CachedTooltip;
 }
 
+FSlateIcon UK2Node_MakeStruct::GetIconAndTint(FLinearColor& OutColor) const
+{
+	static FSlateIcon Icon("EditorStyle", "GraphEditor.MakeStruct_16x");
+	return Icon;
+}
+
 FLinearColor UK2Node_MakeStruct::GetNodeTitleColor() const
 {
 	if(const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>())

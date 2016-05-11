@@ -148,6 +148,7 @@ namespace SceneOutliner
 			{
 				FTreeItemRef NewItem = MakeShareable(new TreeItemType(Data));
 				PendingOperations.Emplace(FPendingTreeOperation::Added, NewItem);
+				PendingTreeItemMap.Add(NewItem->GetID(), NewItem);
 				Refresh();
 			}
 		}
@@ -428,6 +429,9 @@ namespace SceneOutliner
 
 		/** A map of all items we have in the tree */
 		FTreeItemMap TreeItemMap;
+
+		/** Pending tree items that are yet to be added the tree */
+		FTreeItemMap PendingTreeItemMap;
 
 		/** Root level tree items */
 		TArray<FTreeItemPtr> RootTreeItems;

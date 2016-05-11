@@ -913,31 +913,19 @@ FTransform UStaticMeshComponent::GetSocketTransform(FName InSocketName, ERelativ
 }
 
 
-bool UStaticMeshComponent::RequiresOverrideVertexColorsFixup( TArray<int32>& OutLODIndices )
+bool UStaticMeshComponent::RequiresOverrideVertexColorsFixup()
 {
-	OutLODIndices.Empty();
 	bool bFixupRequired = false;
 
 #if WITH_EDITORONLY_DATA
 	if ( StaticMesh && StaticMesh->RenderData
-		&& StaticMesh->RenderData->DerivedDataKey != StaticMeshDerivedDataKey )
+		&& StaticMesh->RenderData->DerivedDataKey != StaticMeshDerivedDataKey
+		&& LODData.Num() > 0
+		&& LODData[0].OverrideVertexColors
+		&& LODData[0].OverrideVertexColors->GetNumVertices() > 0
+		&& LODData[0].PaintedVertices.Num() > 0 )
 	{
-		int32 NumLODs = StaticMesh->GetNumLODs();
-		// Iterate over each LOD to confirm which ones, if any, actually need to have their colors updated
-		for ( TArray<FStaticMeshComponentLODInfo>::TConstIterator LODIter( LODData ); LODIter; ++LODIter )
-		{
-			const FStaticMeshComponentLODInfo& CurCompLODInfo = *LODIter;
-
-			// Confirm that the LOD has override colors and cached vertex data. If it doesn't have both, it can't be fixed up.
-			if ( CurCompLODInfo.OverrideVertexColors && 
-				CurCompLODInfo.OverrideVertexColors->GetNumVertices() > 0 && 
-				CurCompLODInfo.PaintedVertices.Num() > 0 && 
-				LODIter.GetIndex() < NumLODs )
-			{
-				OutLODIndices.Add( LODIter.GetIndex() );
-				bFixupRequired = true;
-			}
-		}
+		bFixupRequired = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 
@@ -1111,60 +1099,27 @@ bool UStaticMeshComponent::FixupOverrideColorsIfNecessary( bool bRebuildingStati
 
 	// Detect if there is a version mismatch between the source mesh and the component. If so, the component's LODs potentially
 	// need to have their override colors updated to match changes in the source mesh.
-	TArray<int32> LODsToUpdate;
 
-	if ( RequiresOverrideVertexColorsFixup( LODsToUpdate ) )
+	if ( RequiresOverrideVertexColorsFixup() )
 	{
 		// Check if we are building the static mesh.  If so we dont need to reregister this component as its already unregistered and will be reregistered
 		// when the static mesh is done building.  Having nested reregister contexts is not supported.
 		if( bRebuildingStaticMesh )
 		{
-			PrivateFixupOverrideColors( LODsToUpdate );
+			PrivateFixupOverrideColors();
 		}
 		else
 		{
 			// Detach this component because rendering changes are about to be applied
 			FComponentReregisterContext ReregisterContext( this );
-			PrivateFixupOverrideColors( LODsToUpdate );
+			PrivateFixupOverrideColors();
 		}
+
+		return true;
 	}
-	return LODsToUpdate.Num() > 0 ? true : false;
-#else
-	return false;
 #endif // WITH_EDITORONLY_DATA
 
-}
-
-void UStaticMeshComponent::PrivateFixupOverrideColors( const TArray<int32>& LODsToUpdate )
-{
-#if WITH_EDITOR
-	UE_LOG(LogStaticMesh,Verbose,TEXT("Fixing up override colors for %s [%s]"),*GetPathName(),*StaticMesh->GetPathName());
-	for ( TArray<int32>::TConstIterator LODIdxIter( LODsToUpdate ); LODIdxIter; ++LODIdxIter )
-	{
-		FStaticMeshComponentLODInfo& CurCompLODInfo = LODData[ *LODIdxIter ];
-		FStaticMeshLODResources& CurRenderData = StaticMesh->RenderData->LODResources[ *LODIdxIter ];
-		TArray<FColor> NewOverrideColors;
-
-		CurCompLODInfo.BeginReleaseOverrideVertexColors();
-		FlushRenderingCommands();
-		RemapPaintedVertexColors(
-			CurCompLODInfo.PaintedVertices,
-			*CurCompLODInfo.OverrideVertexColors,
-			CurRenderData.PositionVertexBuffer,
-			&CurRenderData.VertexBuffer,
-			NewOverrideColors
-			);
-		if (NewOverrideColors.Num())
-		{
-			CurCompLODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
-		}
-		// Note: In order to avoid data loss we dont clear the colors if they cannot be fixed up.
-
-		// Initialize the vert. colors
-		BeginInitResource( CurCompLODInfo.OverrideVertexColors );
-	}
-	StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
-#endif // WITH_EDITOR
+	return false;
 }
 
 void UStaticMeshComponent::InitResources()
@@ -1178,6 +1133,79 @@ void UStaticMeshComponent::InitResources()
 			INC_DWORD_STAT_BY( STAT_InstVertexColorMemory, LODInfo.OverrideVertexColors->GetAllocatedSize() );
 		}
 	}
+}
+
+void UStaticMeshComponent::PrivateFixupOverrideColors()
+{
+#if WITH_EDITOR
+	if (!StaticMesh || !StaticMesh->RenderData)
+	{
+		return;
+	}
+
+	const uint32 NumLODs = StaticMesh->RenderData->LODResources.Num();
+
+	// Initialize override vertex colors on any new LODs which have just been created
+	SetLODDataCount(NumLODs, LODData.Num());
+
+	FStaticMeshComponentLODInfo& LOD0Info = LODData[0];
+	if (LOD0Info.OverrideVertexColors)
+	{
+		for (uint32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
+		{
+			FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
+
+			if (LODInfo.OverrideVertexColors == nullptr)
+			{
+				LODInfo.OverrideVertexColors = new FColorVertexBuffer;
+			}
+			else
+			{
+				LODInfo.BeginReleaseOverrideVertexColors();
+				FlushRenderingCommands();
+			}
+
+			FStaticMeshLODResources& CurRenderData = StaticMesh->RenderData->LODResources[LODIndex];
+
+			TArray<FColor> NewOverrideColors;
+
+			if (LOD0Info.PaintedVertices.Num() > 0)
+			{
+				// Build override colors for LOD, based on LOD0
+				RemapPaintedVertexColors(
+					LOD0Info.PaintedVertices,
+					*LOD0Info.OverrideVertexColors,
+					CurRenderData.PositionVertexBuffer,
+					&CurRenderData.VertexBuffer,
+					NewOverrideColors
+					);
+			}
+
+			if (NewOverrideColors.Num())
+			{
+				LODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
+
+				// Update the PaintedVertices array
+				const int32 NumVerts = CurRenderData.GetNumVertices();
+				check(NumVerts == NewOverrideColors.Num());
+
+				LODInfo.PaintedVertices.Reserve(NumVerts);
+				for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
+				{
+					FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;
+					Vertex->Position = CurRenderData.PositionVertexBuffer.VertexPosition(VertIndex);
+					Vertex->Normal = CurRenderData.VertexBuffer.VertexTangentZ(VertIndex);
+					Vertex->Color = LODInfo.OverrideVertexColors->VertexColor(VertIndex);
+				}
+			}
+
+			BeginInitResource(LODInfo.OverrideVertexColors);
+		}
+
+		StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
+	}
+
+#endif // WITH_EDITOR
 }
 
 float GKeepPreCulledIndicesThreshold = .95f;

@@ -287,6 +287,12 @@ void UK2Node_BreakStruct::ValidateNodeDuringCompilation(class FCompilerResultsLo
 	}
 }
 
+FSlateIcon UK2Node_BreakStruct::GetIconAndTint(FLinearColor& OutColor) const
+{
+	static FSlateIcon Icon("EditorStyle", "GraphEditor.BreakStruct_16x");
+	return Icon;
+}
+
 FLinearColor UK2Node_BreakStruct::GetNodeTitleColor() const 
 {
 	if(const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>())

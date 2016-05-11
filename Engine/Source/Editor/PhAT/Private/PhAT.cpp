@@ -1778,9 +1778,9 @@ UObject* FPhAT::GetSelectedAnimation() const
 bool FPhAT::ShouldFilterAssetBasedOnSkeleton( const FAssetData& AssetData )
 {
 	// @TODO This is a duplicate of FPersona::ShouldFilterAssetBasedOnSkeleton(), but should go away once PhAT is integrated with Persona
-	const FString* SkeletonName = AssetData.TagsAndValues.Find(TEXT("Skeleton"));
+	const FString SkeletonName = AssetData.GetTagValueRef<FString>("Skeleton");
 
-	if ( SkeletonName )
+	if ( !SkeletonName.IsEmpty() )
 	{
 		USkeleton* Skeleton = SharedData->EditorSkelMesh->Skeleton;
 

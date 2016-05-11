@@ -2773,17 +2773,21 @@ namespace UnrealBuildTool
 		{
 			List<UEBuildBinary> Result = new List<UEBuildBinary>();
 
-			foreach (UEBuildBinary DLLBinary in Binaries)
+			foreach (UEBuildBinary Binary in Binaries)
 			{
-				OnlyModule FoundOnlyModule = DLLBinary.FindOnlyModule(OnlyModules);
-				if (FoundOnlyModule != null)
+				// If we're doing an OnlyModule compile, we never want the executable that static libraries are linked into for monolithic builds
+				if(Binary.Config.Type != UEBuildBinaryType.Executable)
 				{
-					Result.Add(DLLBinary);
-
-					if (!String.IsNullOrEmpty(FoundOnlyModule.OnlyModuleSuffix))
+					OnlyModule FoundOnlyModule = Binary.FindOnlyModule(OnlyModules);
+					if (FoundOnlyModule != null)
 					{
-						DLLBinary.Config.OriginalOutputFilePaths = DLLBinary.Config.OutputFilePaths;
-						DLLBinary.Config.OutputFilePaths = DLLBinary.Config.OutputFilePaths.Select(Path => AddModuleFilenameSuffix(FoundOnlyModule.OnlyModuleName, Path, FoundOnlyModule.OnlyModuleSuffix)).ToList();
+						Result.Add(Binary);
+
+						if (!String.IsNullOrEmpty(FoundOnlyModule.OnlyModuleSuffix))
+						{
+							Binary.Config.OriginalOutputFilePaths = Binary.Config.OutputFilePaths;
+							Binary.Config.OutputFilePaths = Binary.Config.OutputFilePaths.Select(Path => AddModuleFilenameSuffix(FoundOnlyModule.OnlyModuleName, Path, FoundOnlyModule.OnlyModuleSuffix)).ToList();
+						}
 					}
 				}
 			}

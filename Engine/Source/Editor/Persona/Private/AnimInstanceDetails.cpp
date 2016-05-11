@@ -117,6 +117,6 @@ TSharedRef<SWidget> FAnimInstanceDetails::CreateFilteredObjectPropertyWidget(UPr
 
 bool FAnimInstanceDetails::OnShouldFilterAnimAsset(const FAssetData& AssetData) const
 {
-	const FString* SkeletonName = AssetData.TagsAndValues.Find(TEXT("Skeleton"));
-	return *SkeletonName != TargetSkeletonName;
+	const FString SkeletonName = AssetData.GetTagValueRef<FString>("Skeleton");
+	return SkeletonName != TargetSkeletonName;
 }

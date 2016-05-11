@@ -4686,7 +4686,7 @@ bool UTextureExporterBMP::ExportBinary( UObject* Object, const TCHAR* Type, FArc
 		FMessageLog ExportWarning("EditorErrors");
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("Name"), FText::FromString(Texture->GetName()));
-		ExportWarning.Warning(FText::Format(LOCTEXT("BitDepthWarning", "{Name}: Texture is RGBA16 and cannot be represented at such high bit depth in .bmp. Color will be scaled to RGBA8."), Arguments));
+		ExportWarning.Warning(FText::Format(LOCTEXT("BitDepthBMPWarning", "{Name}: Texture is RGBA16 and cannot be represented at such high bit depth in .bmp. Color will be scaled to RGBA8."), Arguments));
 		ExportWarning.Open(EMessageSeverity::Warning);
 	}
 
@@ -5068,7 +5068,7 @@ bool UTextureExporterTGA::ExportBinary( UObject* Object, const TCHAR* Type, FArc
 		FMessageLog ExportWarning("EditorErrors");
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("Name"), FText::FromString(Texture->GetName()));
-		ExportWarning.Warning(FText::Format(LOCTEXT("BitDepthWarning", "{Name}: Texture is RGBA16 and cannot be represented at such high bit depth in .tga. Color will be scaled to RGBA8."), Arguments));
+		ExportWarning.Warning(FText::Format(LOCTEXT("BitDepthTGAWarning", "{Name}: Texture is RGBA16 and cannot be represented at such high bit depth in .tga. Color will be scaled to RGBA8."), Arguments));
 		ExportWarning.Open(EMessageSeverity::Warning);
 	}
 
@@ -5695,9 +5695,11 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 		ReimportUI->StaticMeshImportData = ImportData;
 		
 		bool bImportOperationCanceled = false;
-		bool bImportForceType = true;
-
-		GetImportOptions( FFbxImporter, ReimportUI, /*bShowOptionDialog=*/true, Obj->GetPathName(), bImportOperationCanceled, bImportForceType, FBXIT_StaticMesh );
+		bool bForceImportType = true;
+		bool bShowOptionDialog = true;
+		bool bOutImportAll = false;
+		bool bIsObjFormat = false;
+		GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_StaticMesh );
 	}
 
 	if( !bOperationCanceled && ensure(ImportData) )
@@ -5882,6 +5884,10 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 
 	UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 	UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+
+	//Pop the message log in case of error
+	UnFbx::FFbxLoggerSetter Logger(FFbxImporter, true);
+
 	//Clean up the options
 	UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 
@@ -5918,7 +5924,10 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 		ReimportUI->SkeletalMeshImportData = ImportData;
 
 		bool bImportOperationCanceled = false;
+		bool bShowOptionDialog = true;
 		bool bForceImportType = true;
+		bool bOutImportAll = false;
+		bool bIsObjFormat = false;
 
 		// arggg... hate this different option class to confuse everybody
 		// @hack to make sure skeleton is set before opening the dialog
@@ -5926,7 +5935,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 		ImportOptions->bCreatePhysicsAsset = false;
 		ImportOptions->PhysicsAsset = SkeletalMesh->PhysicsAsset;
 
-		ImportOptions = GetImportOptions( FFbxImporter, ReimportUI, /*bShowOptionDialog=*/true, Obj->GetPathName(), bImportOperationCanceled, bForceImportType, FBXIT_SkeletalMesh );
+		ImportOptions = GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_SkeletalMesh );
 	}
 
 	if( !bOperationCanceled && ensure(ImportData) )

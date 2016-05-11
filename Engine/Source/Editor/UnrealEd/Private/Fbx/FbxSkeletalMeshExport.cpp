@@ -242,9 +242,9 @@ FbxNode* FFbxExporter::CreateMesh(const USkeletalMesh* SkelMesh, const TCHAR* Me
 		UMaterialInterface* MatInterface = SkelMesh->Materials[MaterialIndex].MaterialInterface;
 
 		FbxSurfaceMaterial* FbxMaterial = NULL;
-		if(MatInterface && !FbxMaterials.Find(MatInterface->GetMaterial()))
+		if(MatInterface && !FbxMaterials.Find(MatInterface))
 		{
-			FbxMaterial = ExportMaterial(MatInterface->GetMaterial());
+			FbxMaterial = ExportMaterial(MatInterface);
 		}
 		else
 		{

@@ -3,7 +3,7 @@
 #include "PersonaPrivatePCH.h"
 #include "SkeletonTreeCommands.h"
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "SkeletonTreeCommands"
 
 void FSkeletonTreeCommands::RegisterCommands()
 {

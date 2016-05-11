@@ -131,7 +131,7 @@ public abstract class LocalizationProvider
 		}
 		else
 		{
-			throw new AutomationException("Could not find a localization provider for: '" + InLocalizationProviderId + "'");
+			BuildCommand.LogWarning("Could not find a localization provider for '{0}'", InLocalizationProviderId);
 		}
 
 		return null;

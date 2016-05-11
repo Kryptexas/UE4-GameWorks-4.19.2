@@ -415,14 +415,14 @@ bool UActorFactoryDeferredDecal::CanCreateActorFrom( const FAssetData& AssetData
 	FAssetData CurrentAssetData = AssetData;
 	while( SanityCheck < 1000 && !CurrentAssetData.GetClass()->IsChildOf( UMaterial::StaticClass() ) )
 	{
-		const FString* ObjectPath = CurrentAssetData.TagsAndValues.Find( TEXT("Parent") );
-		if ( ObjectPath == NULL )
+		const FString ObjectPath = CurrentAssetData.GetTagValueRef<FString>( "Parent" );
+		if ( ObjectPath.IsEmpty() )
 		{
 			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoMaterial", "A valid material must be specified.");
 			return false;
 		}
 
-		CurrentAssetData = AssetRegistry.GetAssetByObjectPath( **ObjectPath );
+		CurrentAssetData = AssetRegistry.GetAssetByObjectPath( *ObjectPath );
 		if ( !CurrentAssetData.IsValid() )
 		{
 			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoMaterial", "A valid material must be specified.");
@@ -443,8 +443,8 @@ bool UActorFactoryDeferredDecal::CanCreateActorFrom( const FAssetData& AssetData
 		return false;
 	}
 
-	const FString* MaterialDomain = CurrentAssetData.TagsAndValues.Find( TEXT("MaterialDomain") );
-	if ( MaterialDomain == NULL || *MaterialDomain != TEXT("MD_DeferredDecal") )
+	const FString MaterialDomain = CurrentAssetData.GetTagValueRef<FString>( "MaterialDomain" );
+	if ( MaterialDomain != TEXT("MD_DeferredDecal") )
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NotDecalMaterial", "Only materials with a material domain of DeferredDecal can be specified.");
 		return false;
@@ -611,7 +611,7 @@ UActorFactoryNiagara
 UActorFactoryNiagara::UActorFactoryNiagara(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	DisplayName = LOCTEXT("EmitterDisplayName", "NiagaraEffect");
+	DisplayName = LOCTEXT("NiagaraEffectDisplayName", "NiagaraEffect");
 	NewActorClass = ANiagaraActor::StaticClass();
 }
 
@@ -829,14 +829,14 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 
 	if ( AssetData.GetClass()->IsChildOf( UAnimSequenceBase::StaticClass() ) )
 	{
-		const FString* SkeletonPath = AssetData.TagsAndValues.Find("Skeleton");
-		if ( SkeletonPath == NULL || SkeletonPath->IsEmpty() ) 
+		const FString SkeletonPath = AssetData.GetTagValueRef<FString>("Skeleton");
+		if ( SkeletonPath.IsEmpty() ) 
 		{
 			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoSkeleton", "UAnimationAssets must have a valid Skeleton.");
 			return false;
 		}
 
-		FAssetData SkeletonData = AssetRegistry.GetAssetByObjectPath( **SkeletonPath );
+		FAssetData SkeletonData = AssetRegistry.GetAssetByObjectPath( *SkeletonPath );
 
 		if ( !SkeletonData.IsValid() )
 		{
@@ -871,14 +871,14 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 
 	if ( AssetData.GetClass()->IsChildOf( UVertexAnimation::StaticClass() ) )
 	{
-		const FString* BaseSkeletalMeshPath = AssetData.TagsAndValues.Find( TEXT("BaseSkelMesh") );
-		if ( BaseSkeletalMeshPath == NULL || BaseSkeletalMeshPath->IsEmpty() ) 
+		const FString BaseSkeletalMeshPath = AssetData.GetTagValueRef<FString>( "BaseSkelMesh" );
+		if ( BaseSkeletalMeshPath.IsEmpty() ) 
 		{
 			OutErrorMsg = NSLOCTEXT("CanCreateActor", "UVertexAnimationNoSkeleton", "UVertexAnimations must have a valid base skeletal mesh.");
 			return false;
 		}
 
-		SkeletalMeshData = AssetRegistry.GetAssetByObjectPath( **BaseSkeletalMeshPath );
+		SkeletalMeshData = AssetRegistry.GetAssetByObjectPath( *BaseSkeletalMeshPath );
 	}
 
 	if ( !SkeletalMeshData.IsValid() )
@@ -1023,17 +1023,17 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 
 	if ( !SkeletalMeshData.IsValid() && AssetData.GetClass()->IsChildOf( UAnimBlueprint::StaticClass() ) )
 	{
-		const FString* TargetSkeletonPath = AssetData.TagsAndValues.Find( TEXT("TargetSkeleton") );
-		if ( TargetSkeletonPath == NULL || TargetSkeletonPath->IsEmpty() )
+		const FString TargetSkeletonPath = AssetData.GetTagValueRef<FString>( "TargetSkeleton" );
+		if ( TargetSkeletonPath.IsEmpty() )
 		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
+			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoAnimBPTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
 			return false;
 		}
 
-		FAssetData TargetSkeleton = AssetRegistry.GetAssetByObjectPath( **TargetSkeletonPath );
+		FAssetData TargetSkeleton = AssetRegistry.GetAssetByObjectPath( *TargetSkeletonPath );
 		if ( !TargetSkeleton.IsValid() )
 		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
+			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoAnimBPTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
 			return false;
 		}
 
@@ -1055,7 +1055,7 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 		}
 		else
 		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
+			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoAnimBPTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
 		}
 	}
 
@@ -1078,7 +1078,7 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 		}
 		else
 		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoTargetSkeleton", "SkeletalMesh must have a valid Target Skeleton.");
+			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoSkelMeshTargetSkeleton", "SkeletalMesh must have a valid Target Skeleton.");
 		}
 	}
 
@@ -1407,14 +1407,14 @@ bool UActorFactoryBlueprint::CanCreateActorFrom( const FAssetData& AssetData, FT
 		return false;
 	}
 
-	const FString* ParentClassPath = AssetData.TagsAndValues.Find( TEXT("ParentClass") );
-	if ( ParentClassPath == NULL || ParentClassPath->IsEmpty() )
+	const FString ParentClassPath = AssetData.GetTagValueRef<FString>( "ParentClass" );
+	if ( ParentClassPath.IsEmpty() )
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoBlueprint", "No Blueprint was specified, or the specified Blueprint needs to be compiled.");
 		return false;
 	}
 
-	UClass* ParentClass = FindObject<UClass>(NULL, **ParentClassPath);
+	UClass* ParentClass = FindObject<UClass>(NULL, *ParentClassPath);
 
 	bool bIsActorBased = false;
 	if ( ParentClass != NULL )
@@ -1453,13 +1453,13 @@ AActor* UActorFactoryBlueprint::GetDefaultActor( const FAssetData& AssetData )
 		return NULL;
 	}
 
-	const FString* GeneratedClassPath = AssetData.TagsAndValues.Find("GeneratedClass");
-	if ( GeneratedClassPath == NULL || GeneratedClassPath->IsEmpty() )
+	const FString GeneratedClassPath = AssetData.GetTagValueRef<FString>("GeneratedClass");
+	if ( GeneratedClassPath.IsEmpty() )
 	{
 		return NULL;
 	}
 
-	UClass* GeneratedClass = Cast<UClass>(StaticLoadObject(UClass::StaticClass(), NULL, **GeneratedClassPath, NULL, LOAD_NoWarn, NULL));
+	UClass* GeneratedClass = Cast<UClass>(StaticLoadObject(UClass::StaticClass(), NULL, *GeneratedClassPath, NULL, LOAD_NoWarn, NULL));
 
 	if ( GeneratedClass == NULL )
 	{

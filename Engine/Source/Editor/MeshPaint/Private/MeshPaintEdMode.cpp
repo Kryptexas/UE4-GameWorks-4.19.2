@@ -1328,6 +1328,12 @@ static bool PropagateColorsToRawMesh(UStaticMesh* StaticMesh, int32 LODIndex, FS
 	}
 	else
 	{
+		// If there's no raw mesh data, don't try to do any fixup here
+		if (SrcModel.RawMeshBulkData->IsEmpty())
+		{
+			return false;
+		}
+
 		// Fall back to mapping based on position.
 		FRawMesh RawMesh;
 		SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
@@ -1555,6 +1561,10 @@ void FEdModeMeshPaint::PaintMeshVertices(
 					// Try using the mapping generated when building the mesh.
 					if(PropagateColorsToRawMesh(StaticMesh, PaintingMeshLODIndex, *InstanceMeshLODInfo))
 					{
+						for (int32 LODIndex = 1; LODIndex < StaticMesh->RenderData->LODResources.Num(); LODIndex++)
+						{
+							PropagateColorsToRawMesh(StaticMesh, LODIndex, *InstanceMeshLODInfo);
+						}
 						RemoveComponentInstanceVertexColors(StaticMeshComponent);
 						StaticMesh->Build();
 					}
@@ -3690,8 +3700,7 @@ bool FEdModeMeshPaint::RequiresInstanceVertexColorsFixup() const
 			for(const auto& StaticMeshComponent : StaticMeshComponents)
 			{
 				// If a static mesh component was found and it requires fixup, exit out and indicate as such
-				TArray<int32> LODsToFixup;
-				if( StaticMeshComponent && StaticMeshComponent->RequiresOverrideVertexColorsFixup( LODsToFixup ) )
+				if( StaticMeshComponent && StaticMeshComponent->RequiresOverrideVertexColorsFixup() )
 				{
 					bRequiresFixup = true;
 					break;

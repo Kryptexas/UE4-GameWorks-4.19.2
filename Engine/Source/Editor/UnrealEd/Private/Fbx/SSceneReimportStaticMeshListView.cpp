@@ -82,7 +82,7 @@ public:
 		else if (ColumnName == FbxSceneReimportStaticMesh::ClassIconHeaderIdName && SlateBrush != nullptr)
 		{
 			UClass *IconClass = FbxMeshInfo->GetType();
-			const FSlateBrush* ClassIcon = FClassIconFinder::FindIconForClass(IconClass);
+			const FSlateBrush* ClassIcon = FSlateIconFinder::FindIconBrushForClass(IconClass);
 			TSharedRef<SOverlay> IconContent = SNew(SOverlay)
 				+ SOverlay::Slot()
 				.HAlign(HAlign_Right)

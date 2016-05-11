@@ -271,7 +271,7 @@ void FBlueprintFunctionContext::InitialiseContextFromGraph(TSharedPtr<FBlueprint
 					EventParams.Tooltip = LOCTEXT("NavigateToEventLocationHyperlink_ToolTip", "Navigate to the Event");
 					EventParams.NodeFlags = EScriptExecutionNodeFlags::Event;
 					EventParams.IconColor = FLinearColor(0.91f, 0.16f, 0.16f);
-					const FSlateBrush* EventIcon = EventNode->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(EventNode->GetPaletteIcon(EventParams.IconColor)) :
+					const FSlateBrush* EventIcon = EventNode->ShowPaletteIconOnNode() ?	EventNode->GetIconAndTint(EventParams.IconColor).GetOptionalIcon() :
 																						FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
 					EventParams.Icon = const_cast<FSlateBrush*>(EventIcon);
 					TSharedPtr<FScriptExecutionNode> EventExecNode = CreateExecutionNode(EventParams);
@@ -304,7 +304,7 @@ void FBlueprintFunctionContext::InitialiseContextFromGraph(TSharedPtr<FBlueprint
 					FunctionNodeParams.Tooltip = LOCTEXT("NavigateToFunctionLocationHyperlink_ToolTip", "Navigate to the Function");
 					FunctionNodeParams.NodeFlags = EScriptExecutionNodeFlags::Event;
 					FunctionNodeParams.IconColor = FLinearColor(0.91f, 0.16f, 0.16f);
-					const FSlateBrush* Icon = FunctionEntry->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(FunctionEntry->GetPaletteIcon(FunctionNodeParams.IconColor)) :
+					const FSlateBrush* Icon = FunctionEntry->ShowPaletteIconOnNode() ? FunctionEntry->GetIconAndTint(FunctionNodeParams.IconColor).GetOptionalIcon() :
 																						FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
 					FunctionNodeParams.Icon = const_cast<FSlateBrush*>(Icon);
 					TSharedPtr<FScriptExecutionNode> FunctionEntryNode = CreateExecutionNode(FunctionNodeParams);
@@ -502,7 +502,7 @@ void FBlueprintFunctionContext::CreateInputEvents(TSharedPtr<FBlueprintExecution
 		EventParams.Tooltip = LOCTEXT("NavigateToEventLocationHyperlink_ToolTip", "Navigate to the Event");
 		EventParams.NodeFlags = EScriptExecutionNodeFlags::Event;
 		EventParams.IconColor = FLinearColor(0.91f, 0.16f, 0.16f);
-		const FSlateBrush* EventIcon = GraphNode->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(GraphNode->GetPaletteIcon(EventParams.IconColor)) :
+		const FSlateBrush* EventIcon = GraphNode->ShowPaletteIconOnNode() ? GraphNode->GetIconAndTint(EventParams.IconColor).GetOptionalIcon() :
 																			FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
 		EventParams.Icon = const_cast<FSlateBrush*>(EventIcon);
 		TSharedPtr<FScriptExecutionNode> EventExecNode = CreateExecutionNode(EventParams);
@@ -526,7 +526,7 @@ TSharedPtr<FScriptExecutionNode> FBlueprintFunctionContext::MapNodeExecution(UEd
 			NodeParams.Tooltip = LOCTEXT("NavigateToNodeLocationHyperlink_ToolTip", "Navigate to the Node");
 			NodeParams.NodeFlags = EScriptExecutionNodeFlags::Node;
 			NodeParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
-			const FSlateBrush* NodeIcon = NodeToMap->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(NodeToMap->GetPaletteIcon(NodeParams.IconColor)) :
+			const FSlateBrush* NodeIcon = NodeToMap->ShowPaletteIconOnNode() ? NodeToMap->GetIconAndTint(NodeParams.IconColor).GetOptionalIcon() :
 																				FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
 			NodeParams.Icon = const_cast<FSlateBrush*>(NodeIcon);
 			MappedNode = CreateExecutionNode(NodeParams);
@@ -579,7 +579,7 @@ TSharedPtr<FScriptExecutionNode> FBlueprintFunctionContext::MapNodeExecution(UEd
 					const bool bEventCall = FunctionNode ? FunctionNode->IsA<UK2Node_Event>() : false;
 					MappedNode->AddFlags(EScriptExecutionNodeFlags::FunctionCall);
 					MappedNode->SetIconColor(FLinearColor(0.46f, 0.54f, 0.95f));
-					MappedNode->SetToolTipText(LOCTEXT("NavigateToFunctionLocationHyperlink_ToolTip", "Navigate to the Function Callsite"));
+					MappedNode->SetToolTipText(LOCTEXT("NavigateToFunctionCallsiteHyperlink_ToolTip", "Navigate to the Function Callsite"));
 					// Don't add entry points for events.
 					if (!bEventCall)
 					{
@@ -670,7 +670,7 @@ void FBlueprintFunctionContext::MapExecPins(TSharedPtr<FScriptExecutionNode> Exe
 			LinkNodeParams.NodeName = Pin->GetFName();
 			LinkNodeParams.ObservedObject = Pin;
 			LinkNodeParams.DisplayName = Pin->GetDisplayName();
-			LinkNodeParams.Tooltip = LOCTEXT("ExecPin_ToolTip", "Expand execution path");
+			LinkNodeParams.Tooltip = LOCTEXT("ExecPin_ExpandExecutionPath_ToolTip", "Expand execution path");
 			LinkNodeParams.NodeFlags = !bInvalidTrace ? EScriptExecutionNodeFlags::ExecPin : (EScriptExecutionNodeFlags::ExecPin|EScriptExecutionNodeFlags::InvalidTrace);
 			LinkNodeParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
 			const FSlateBrush* Icon = LinkedPin ?	FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPPinConnected")) : 
@@ -774,8 +774,8 @@ TSharedPtr<FScriptExecutionNode> FBlueprintFunctionContext::MapTunnelEntry(const
 		TunnelInstanceParams.Tooltip = LOCTEXT("NavigateToNodeLocationHyperlink_ToolTip", "Navigate to the Node");
 		TunnelInstanceParams.NodeFlags = EScriptExecutionNodeFlags::FunctionTunnel;
 		TunnelInstanceParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
-		const FSlateBrush* TunnelIcon = TunnelNode->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(TunnelNode->GetPaletteIcon(TunnelInstanceParams.IconColor)) :
-																				FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
+		const FSlateBrush* TunnelIcon = TunnelNode->ShowPaletteIconOnNode() ? TunnelNode->GetIconAndTint(TunnelInstanceParams.IconColor).GetOptionalIcon() :
+																			  FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
 		TunnelInstanceParams.Icon = const_cast<FSlateBrush*>(TunnelIcon);
 		TunnelInstance = CreateTypedExecutionNode<FScriptExecutionTunnelInstance>(TunnelInstanceParams);
 	}
@@ -787,8 +787,8 @@ TSharedPtr<FScriptExecutionNode> FBlueprintFunctionContext::MapTunnelEntry(const
 	TunnelParams.Tooltip = LOCTEXT("NavigateToNodeLocationHyperlink_ToolTip", "Navigate to the Node");
 	TunnelParams.NodeFlags = EScriptExecutionNodeFlags::FunctionTunnel;
 	TunnelParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
-	const FSlateBrush* TunnelIcon = TunnelNode->ShowPaletteIconOnNode() ?	FEditorStyle::GetBrush(TunnelNode->GetPaletteIcon(TunnelParams.IconColor)) :
-																			FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
+	const FSlateBrush* TunnelIcon = TunnelNode->ShowPaletteIconOnNode() ? TunnelNode->GetIconAndTint(TunnelParams.IconColor).GetOptionalIcon() :
+																		  FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPNode"));
 	TunnelParams.Icon = const_cast<FSlateBrush*>(TunnelIcon);
 	TSharedPtr<FScriptExecutionTunnelEntry> TunnelCallNode = MakeShareable(new FScriptExecutionTunnelEntry(TunnelParams, TunnelNode));
 	ExecutionNodes.FindOrAdd(TunnelParams.NodeName) = TunnelCallNode;
@@ -1117,7 +1117,7 @@ void FBlueprintFunctionContext::MapTunnelIO(UEdGraph* TunnelGraph)
 					LinkParams.NodeName = FName(*Pin->PinName);
 					LinkParams.ObservedObject = Pin;
 					LinkParams.DisplayName = Pin->GetDisplayName().IsEmpty() ? FText::FromString(*Pin->PinName) : Pin->GetDisplayName();
-					LinkParams.Tooltip = LOCTEXT("ExecPin_ToolTip", "Expand tunnel entry point");
+					LinkParams.Tooltip = LOCTEXT("ExecPin_ExpandTunnelEntryPoint_ToolTip", "Expand tunnel entry point");
 					LinkParams.NodeFlags = EScriptExecutionNodeFlags::TunnelEntryPin;
 					LinkParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
 					const FSlateBrush* Icon = FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPPinConnected"));
@@ -1132,7 +1132,7 @@ void FBlueprintFunctionContext::MapTunnelIO(UEdGraph* TunnelGraph)
 					LinkParams.NodeName = FName(*Pin->PinName);
 					LinkParams.ObservedObject = Pin;
 					LinkParams.DisplayName = Pin->GetDisplayName().IsEmpty() ? FText::FromString(*Pin->PinName) : Pin->GetDisplayName();
-					LinkParams.Tooltip = LOCTEXT("ExecPin_ToolTip", "Expand tunnel exit point");
+					LinkParams.Tooltip = LOCTEXT("ExecPin_ExpandTunnelExitPoint_ToolTip", "Expand tunnel exit point");
 					LinkParams.NodeFlags = EScriptExecutionNodeFlags::TunnelExitPin;
 					LinkParams.IconColor = FLinearColor(1.f, 1.f, 1.f, 0.8f);
 					const FSlateBrush* Icon = FEditorStyle::GetBrush(TEXT("BlueprintProfiler.BPPinConnected"));

@@ -35,6 +35,7 @@ public class MainFrame : ModuleRules
 				"WorkspaceMenuStructure",
 				"MessageLog",
 //				"SearchUI",
+				"UATHelper",
 				"TranslationEditor",
 				"Projects",
                 "DeviceProfileEditor",

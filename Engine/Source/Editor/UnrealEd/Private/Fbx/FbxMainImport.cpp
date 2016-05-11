@@ -1151,7 +1151,8 @@ FbxAMatrix FFbxImporter::ComputeTotalMatrix(FbxNode* Node)
 		FullPivot[2] = -RotationPivot[2];
 		PivotGeometry.SetT(FullPivot);
 	}
-	FbxAMatrix TotalMatrix = ImportOptions->bTransformVertexToAbsolute ? GlobalTransform * Geometry * PivotGeometry : PivotGeometry;
+	//We must always add the geometric transform. Only Max use the geometric transform which is an offset to the local transform of the node
+	FbxAMatrix TotalMatrix = ImportOptions->bTransformVertexToAbsolute ? GlobalTransform * Geometry * PivotGeometry : Geometry * PivotGeometry;
 
 	return TotalMatrix;
 }
@@ -1691,7 +1692,8 @@ void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNod
 			}
 		}
 	}
-	else
+	
+	//Skeletalmesh node can have child so let's always iterate trough child
 	{
 		int32 ChildIndex;
 		TArray<FbxNode*> ChildNoScale;

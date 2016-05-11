@@ -697,7 +697,7 @@ void UMaterialGraphSchema::GetMaterialFunctionActions(FGraphActionMenuBuilder& A
 
 	for (const FAssetData& AssetData : AssetDataList)
 	{
-		const bool bExposeToLibrary = AssetData.TagsAndValues.FindRef("bExposeToLibrary") == TEXT("TRUE");
+		const bool bExposeToLibrary = AssetData.GetTagValueRef<bool>("bExposeToLibrary");
 
 		// If this was a function that was selected to be exposed to the library
 		if ( bExposeToLibrary )
@@ -714,10 +714,10 @@ void UMaterialGraphSchema::GetMaterialFunctionActions(FGraphActionMenuBuilder& A
 			{
 				// Gather the relevant information from the asset data
 				const FString FunctionPathName = AssetData.ObjectPath.ToString();
-				const FString Description = AssetData.TagsAndValues.FindRef("Description");
+				const FString Description = AssetData.GetTagValueRef<FString>("Description");
 				TArray<FString> LibraryCategories;
 				{
-					const FString LibraryCategoriesString = AssetData.TagsAndValues.FindRef("LibraryCategories");
+					const FString LibraryCategoriesString = AssetData.GetTagValueRef<FString>("LibraryCategories");
 					if ( !LibraryCategoriesString.IsEmpty() )
 					{
 						if (UArrayProperty* LibraryCategoriesProperty = FindFieldChecked<UArrayProperty>(UMaterialFunction::StaticClass(), TEXT("LibraryCategories")))
@@ -729,7 +729,7 @@ void UMaterialGraphSchema::GetMaterialFunctionActions(FGraphActionMenuBuilder& A
 				}
 				TArray<FText> LibraryCategoriesText;
 				{
-					const FString LibraryCategoriesString = AssetData.TagsAndValues.FindRef("LibraryCategoriesText");
+					const FString LibraryCategoriesString = AssetData.GetTagValueRef<FString>("LibraryCategoriesText");
 					if ( !LibraryCategoriesString.IsEmpty() )
 					{
 						UArrayProperty* LibraryCategoriesProperty = FindFieldChecked<UArrayProperty>(UMaterialFunction::StaticClass(), GET_MEMBER_NAME_CHECKED(UMaterialFunction, LibraryCategoriesText));
@@ -798,10 +798,8 @@ bool UMaterialGraphSchema::HasCompatibleConnection(const FAssetData& FunctionAss
 {
 	if (TestType != 0)
 	{
-		const FString* CombinedInputTagValue = FunctionAssetData.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedInputTypes));
-		const FString* CombinedOutputTagValue = FunctionAssetData.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedOutputTypes));
-		uint32 CombinedInputTypes = CombinedInputTagValue ? FCString::Atoi(**CombinedInputTagValue) : 0;
-		uint32 CombinedOutputTypes = CombinedOutputTagValue ? FCString::Atoi(**CombinedOutputTagValue) : 0;
+		uint32 CombinedInputTypes = FunctionAssetData.GetTagValueRef<uint32>(GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedInputTypes));
+		uint32 CombinedOutputTypes = FunctionAssetData.GetTagValueRef<uint32>(GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedOutputTypes));
 
 		if (CombinedOutputTypes == 0)
 		{

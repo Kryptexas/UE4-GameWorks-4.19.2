@@ -14,7 +14,7 @@ class UUserWidget;
 /**
  * widget blueprint editor (extends Blueprint editor)
  */
-class FWidgetBlueprintEditor : public FBlueprintEditor
+class UMGEDITOR_API FWidgetBlueprintEditor : public FBlueprintEditor
 {
 public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnHoveredWidgetSet, const FWidgetReference&)
@@ -56,7 +56,7 @@ public:
 	void SetIsSimulating(bool bSimulating);
 
 	/** Causes the preview to be destroyed and a new one to be created next tick */
-	void InvalidatePreview();
+	void InvalidatePreview(bool bViewOnly = false);
 
 	/** Immediately rebuilds the preview widget. */
 	void RefreshPreview();
@@ -90,9 +90,6 @@ public:
 
 	/** @return The selected set of Objects */
 	const TSet< TWeakObjectPtr<UObject> >& GetSelectedObjects() const;
-
-	/** @return Notification for when the preview widget has been updated */
-	FOnWidgetPreviewUpdated& GetOnWidgetPreviewUpdated() { return OnWidgetPreviewUpdated; }
 
 	TSharedPtr<class FWidgetBlueprintEditorToolbar> GetWidgetToolbarBuilder() { return WidgetToolbar; }
 
@@ -136,6 +133,9 @@ public:
 
 	/** Fires whenever the selected set of widgets changes */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanged;
+
+	/** Notification for when the preview widget has been updated */
+	FOnWidgetPreviewUpdated OnWidgetPreviewUpdated;
 
 	/** Command list for handling widget actions in the WidgetBlueprintEditor */
 	TSharedPtr< FUICommandList > DesignerCommandList;
@@ -217,9 +217,6 @@ private:
 
 	/** The preview GUI object */
 	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetPtr;
-
-	/** Notification for when the preview widget has been updated */
-	FOnWidgetPreviewUpdated OnWidgetPreviewUpdated;
 
 	/** Delegate called when a undo/redo transaction happens */
 	FOnWidgetBlueprintTransaction OnWidgetBlueprintTransaction;

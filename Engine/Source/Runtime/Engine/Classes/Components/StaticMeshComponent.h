@@ -440,11 +440,9 @@ public:
 	/**
 	 * Determines whether any of the component's LODs require override vertex color fixups
 	 *
-	 * @param	OutLODIndices	Indices of the LODs requiring fixup, if any
-	 *
 	 * @return	true if any LODs require override vertex color fixups
 	 */
-	bool RequiresOverrideVertexColorsFixup( TArray<int32>& OutLODIndices );
+	bool RequiresOverrideVertexColorsFixup();
 
 	/**
 	 * Update the vertex override colors if necessary (i.e. vertices from source mesh have changed from override colors)
@@ -492,7 +490,7 @@ private:
 	void InitResources();
 
 	/** Update the vertex override colors */
-	void PrivateFixupOverrideColors( const TArray<int32>& LODsToUpdate );
+	void PrivateFixupOverrideColors();
 
 protected:
 

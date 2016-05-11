@@ -19,7 +19,7 @@ namespace BlueprintDelegateNodeSpawnerImpl
 {
 	static FText GetDefaultMenuName(UMulticastDelegateProperty const* Delegate);
 	static FText GetDefaultMenuCategory(UMulticastDelegateProperty const* Delegate);
-	static FName GetDefaultMenuIcon(UMulticastDelegateProperty const* Delegate, FLinearColor& ColorOut);
+	static FSlateIcon GetDefaultMenuIcon(UMulticastDelegateProperty const* Delegate, FLinearColor& ColorOut);
 }
 
 //------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ static FText BlueprintDelegateNodeSpawnerImpl::GetDefaultMenuCategory(UMulticast
 }
 
 //------------------------------------------------------------------------------
-static FName BlueprintDelegateNodeSpawnerImpl::GetDefaultMenuIcon(UMulticastDelegateProperty const* Delegate, FLinearColor& ColorOut)
+static FSlateIcon BlueprintDelegateNodeSpawnerImpl::GetDefaultMenuIcon(UMulticastDelegateProperty const* Delegate, FLinearColor& ColorOut)
 {
 	FName    const PropertyName = Delegate->GetFName();
 	UStruct* const PropertyOwner = CastChecked<UStruct>(Delegate->GetOuterUField());
@@ -79,7 +79,7 @@ UBlueprintDelegateNodeSpawner* UBlueprintDelegateNodeSpawner::Create(TSubclassOf
 	MenuSignature.Category = BlueprintDelegateNodeSpawnerImpl::GetDefaultMenuCategory(Property);
 	//MenuSignature.Tooltip,  will be pulled from the node template
 	//MenuSignature.Keywords, will be pulled from the node template
-	MenuSignature.IconName = BlueprintDelegateNodeSpawnerImpl::GetDefaultMenuIcon(Property, MenuSignature.IconTint);
+	MenuSignature.Icon = BlueprintDelegateNodeSpawnerImpl::GetDefaultMenuIcon(Property, MenuSignature.IconTint);
 
 	//--------------------------------------
 	// Post-Spawn Setup

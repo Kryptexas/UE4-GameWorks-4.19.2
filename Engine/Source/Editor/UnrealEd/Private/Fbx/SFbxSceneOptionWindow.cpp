@@ -451,8 +451,8 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSkeletalMeshReimportTab(const F
 								.AutoWidth()
 								[
 									SNew(SButton)
-									.Text(LOCTEXT("FbxOptionWindow_SM_CreateOverride", "Create Override"))
-									.ToolTipText(LOCTEXT("FbxOptionWindow_SM_CreateOverrideTooltip", "Create Override to specify custom import options for some Skeletal meshes.\nTo assign options use context menu on Skeletal meshes."))
+									.Text(LOCTEXT("FbxOptionWindow_SKM_CreateOverride", "Create Override"))
+									.ToolTipText(LOCTEXT("FbxOptionWindow_SKM_CreateOverrideTooltip", "Create Override to specify custom import options for some Skeletal meshes.\nTo assign options use context menu on Skeletal meshes."))
 									.OnClicked(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::OnCreateOverrideOptions)
 								]
 								+ SHorizontalBox::Slot()

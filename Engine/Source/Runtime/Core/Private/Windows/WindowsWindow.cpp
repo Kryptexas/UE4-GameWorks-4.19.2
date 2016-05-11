@@ -857,18 +857,18 @@ FDragDropOLEData DecipherOLEData(IDataObject* DataObjectPointer)
 	if (bHaveUnicodeText && S_OK == DataObjectPointer->GetData(&FormatEtc_UNICODE, &StorageMedium))
 	{
 		FOLEResourceGuard ResourceGuard(StorageMedium);
-		OLEData.Type = FDragDropOLEData::Text;
+		OLEData.Type |= FDragDropOLEData::Text;
 		OLEData.OperationText = static_cast<TCHAR*>(ResourceGuard.DataPointer);
 	}
-	else if (bHaveAnsiText && S_OK == DataObjectPointer->GetData(&FormatEtc_Ansii, &StorageMedium))
+	if (bHaveAnsiText && S_OK == DataObjectPointer->GetData(&FormatEtc_Ansii, &StorageMedium))
 	{
 		FOLEResourceGuard ResourceGuard(StorageMedium);
-		OLEData.Type = FDragDropOLEData::Text;
+		OLEData.Type |= FDragDropOLEData::Text;
 		OLEData.OperationText = static_cast<ANSICHAR*>(ResourceGuard.DataPointer);
 	}
-	else if (bHaveFiles && S_OK == DataObjectPointer->GetData(&FormatEtc_File, &StorageMedium))
+	if (bHaveFiles && S_OK == DataObjectPointer->GetData(&FormatEtc_File, &StorageMedium))
 	{
-		OLEData.Type = FDragDropOLEData::Files;
+		OLEData.Type |= FDragDropOLEData::Files;
 
 		FOLEResourceGuard ResourceGuard(StorageMedium);
 		const DROPFILES* DropFiles = static_cast<DROPFILES*>(ResourceGuard.DataPointer);

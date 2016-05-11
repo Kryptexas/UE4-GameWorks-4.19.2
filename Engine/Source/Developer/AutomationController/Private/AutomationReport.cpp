@@ -202,6 +202,15 @@ uint32 FAutomationReport::GetTestFlags( ) const
 	return TestInfo.GetTestFlags();
 }
 
+FString FAutomationReport::GetSourceFile() const
+{
+	return TestInfo.GetSourceFile();
+}
+
+int32 FAutomationReport::GetSourceFileLine() const
+{
+	return TestInfo.GetSourceFileLine();
+}
 
 void FAutomationReport::SetTestFlags( const uint32 InTestFlags)
 {

@@ -321,7 +321,7 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 
 		// Ask node for a palette icon
 		FLinearColor IconLinearColor = FLinearColor::White;
-		BrushOut = FEditorStyle::GetBrush(NodeTemplate->GetPaletteIcon(IconLinearColor));
+		BrushOut = NodeTemplate->GetIconAndTint(IconLinearColor).GetOptionalIcon();
 		ColorOut = IconLinearColor;
 	}
 	// for MyBlueprint tab specific actions:

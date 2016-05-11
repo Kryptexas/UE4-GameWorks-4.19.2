@@ -86,10 +86,13 @@ class Localise : BuildCommand
 			ProjectInfos.Add(GenerateProjectInfo(RootWorkingDirectory, ProjectName));
 		}
 
-		// Export all text from our localization provider
-		foreach (var ProjectInfo in ProjectInfos)
+		if (LocProvider != null)
 		{
-			LocProvider.DownloadProjectFromLocalizationProvider(ProjectInfo.ProjectName, ProjectInfo.ImportInfo);
+			// Export all text from our localization provider
+			foreach (var ProjectInfo in ProjectInfos)
+			{
+				LocProvider.DownloadProjectFromLocalizationProvider(ProjectInfo.ProjectName, ProjectInfo.ImportInfo);
+			}
 		}
 
 		// Setup editor arguments for SCC.
@@ -141,8 +144,8 @@ class Localise : BuildCommand
 		{
 			LogWarning("Skipping upload to the localization provider due to an earlier commandlet failure.");
 		}
-		else
-		{
+		else if (LocProvider != null)
+        {
 			// Upload all text to our localization provider
 			foreach (var ProjectInfo in ProjectInfos)
 			{

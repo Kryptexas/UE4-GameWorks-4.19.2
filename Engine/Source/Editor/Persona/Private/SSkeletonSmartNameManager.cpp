@@ -388,13 +388,11 @@ void SCurveNameManager::OnDeleteNameClicked()
 		FAssetData& Data = AnimationAssets[Idx];
 		bool bRemove = true;
 
-		const FString* SkeletonDataTag = Data.TagsAndValues.Find("Skeleton");
-		if(SkeletonDataTag && *SkeletonDataTag == CurrentSkeletonName)
+		const FString SkeletonDataTag = Data.GetTagValueRef<FString>("Skeleton");
+		if(!SkeletonDataTag.IsEmpty() && SkeletonDataTag == CurrentSkeletonName)
 		{
-			const FString* CurveData = Data.TagsAndValues.Find(USkeleton::CurveTag);
-			FString CurveDataCopy;
-
-			if(!CurveData)
+			FString CurveData;
+			if(!Data.GetTagValue(USkeleton::CurveTag, CurveData))
 			{
 				// This asset is old; it hasn't been loaded since before smartnames were added for curves.
 				// unfortunately the only way to delete curves safely is to load old assets to see if they're
@@ -408,15 +406,11 @@ void SCurveNameManager::OnDeleteNameClicked()
 				{
 					return InTag.Name == USkeleton::CurveTag;
 				});
-				CurveDataCopy = CurveTag->Value;
-			}
-			else
-			{
-				CurveDataCopy = *CurveData;
+				CurveData = CurveTag->Value;
 			}
 
 			TArray<FString> ParsedStringUids;
-			CurveDataCopy.ParseIntoArray(ParsedStringUids, *USkeleton::CurveTagDelimiter, true);
+			CurveData.ParseIntoArray(ParsedStringUids, *USkeleton::CurveTagDelimiter, true);
 
 			for(const FString& UidString : ParsedStringUids)
 			{

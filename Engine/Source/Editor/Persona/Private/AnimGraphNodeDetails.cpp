@@ -709,12 +709,12 @@ TSharedRef<SWidget> SParentPlayerTreeRow::GenerateWidgetForColumn(const FName& C
 
 bool SParentPlayerTreeRow::OnShouldFilterAsset(const FAssetData& AssetData)
 {
-	const FString* SkeletonName = AssetData.TagsAndValues.Find(TEXT("Skeleton"));
+	const FString SkeletonName = AssetData.GetTagValueRef<FString>("Skeleton");
 
-	if(SkeletonName)
+	if(!SkeletonName.IsEmpty())
 	{
 		USkeleton* CurrentSkeleton = GraphNode->GetAnimBlueprint()->TargetSkeleton;
-		if(*SkeletonName == FString::Printf(TEXT("%s'%s'"), *CurrentSkeleton->GetClass()->GetName(), *CurrentSkeleton->GetPathName()))
+		if(SkeletonName == FString::Printf(TEXT("%s'%s'"), *CurrentSkeleton->GetClass()->GetName(), *CurrentSkeleton->GetPathName()))
 		{
 			return false;
 		}

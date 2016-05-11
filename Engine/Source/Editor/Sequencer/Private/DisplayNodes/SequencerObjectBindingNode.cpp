@@ -9,7 +9,7 @@
 #include "ObjectEditorUtils.h"
 #include "AssetEditorManager.h"
 #include "SequencerUtilities.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "SequencerCommands.h"
 
 #define LOCTEXT_NAMESPACE "FObjectBindingNode"
@@ -273,7 +273,7 @@ FText FSequencerObjectBindingNode::GetDisplayNameToolTipText() const
 
 const FSlateBrush* FSequencerObjectBindingNode::GetIconBrush() const
 {
-	return FClassIconFinder::FindIconForClass(GetClassForObjectBinding());
+	return FSlateIconFinder::FindIconBrushForClass(GetClassForObjectBinding());
 }
 
 const FSlateBrush* FSequencerObjectBindingNode::GetIconOverlayBrush() const

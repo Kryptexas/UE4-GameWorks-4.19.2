@@ -870,10 +870,10 @@ bool FAssetContextMenu::AddDocumentationMenuOptions(FMenuBuilder& MenuBuilder)
 		const bool bIsBlueprint = SelectedClass->IsChildOf<UBlueprint>();
 		if (bIsBlueprint)
 		{
-			auto ParentClassPath = SelectedAssets[0].TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UBlueprint,ParentClass));
-			if (ParentClassPath)
+			const FString ParentClassPath = SelectedAssets[0].GetTagValueRef<FString>(GET_MEMBER_NAME_CHECKED(UBlueprint,ParentClass));
+			if (!ParentClassPath.IsEmpty())
 			{
-				SelectedClass = FindObject<UClass>(nullptr,**ParentClassPath);
+				SelectedClass = FindObject<UClass>(nullptr,*ParentClassPath);
 			}
 		}
 
@@ -919,8 +919,8 @@ bool FAssetContextMenu::AddDocumentationMenuOptions(FMenuBuilder& MenuBuilder)
 						}
 
 						UEnum* BlueprintTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EBlueprintType"), true);
-						auto EnumString = SelectedAssets[0].TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UBlueprint,BlueprintType));
-						EBlueprintType BlueprintType = (EnumString ? (EBlueprintType)BlueprintTypeEnum->GetValueByName(**EnumString) : BPTYPE_Normal);
+						const FString EnumString = SelectedAssets[0].GetTagValueRef<FString>(GET_MEMBER_NAME_CHECKED(UBlueprint,BlueprintType));
+						EBlueprintType BlueprintType = (!EnumString.IsEmpty() ? (EBlueprintType)BlueprintTypeEnum->GetValueByName(*EnumString) : BPTYPE_Normal);
 
 						switch (BlueprintType)
 						{
@@ -1446,8 +1446,8 @@ void FAssetContextMenu::ExecuteFindInExplorer()
 				FString ModulePath;
 				if (FSourceCodeNavigation::FindModulePath(ModuleName, ModulePath))
 				{
-					const FString* RelativePath = AssetData.TagsAndValues.Find("ModuleRelativePath");
-					if (RelativePath)
+					FString RelativePath;
+					if (AssetData.GetTagValue("ModuleRelativePath", RelativePath))
 					{
 						const FString FullFilePath = FPaths::ConvertRelativePathToFull(ModulePath / (*RelativePath));
 						FPlatformProcess::ExploreFolder(*FullFilePath);

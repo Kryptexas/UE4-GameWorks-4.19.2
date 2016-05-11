@@ -42,6 +42,20 @@ FORCEINLINE FReply BoolToReply(const bool bHandled)
 	return (bHandled) ? FReply::Handled() : FReply::Unhandled();
 }
 
+bool IsCharAllowed(const TCHAR InChar)
+{
+	// Certain characters are not allowed
+	if (InChar == TEXT('\t'))
+	{
+		return true;
+	}
+	else if (InChar <= 0x1F)
+	{
+		return false;
+	}
+	return true;
+}
+
 }
 
 FSlateEditableTextLayout::FSlateEditableTextLayout(ISlateEditableTextWidget& InOwnerWidget, const TAttribute<FText>& InInitialText, FTextBlockStyle InTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InTextMarshaller, TSharedRef<ITextLayoutMarshaller> InHintTextMarshaller)
@@ -1205,18 +1219,7 @@ bool FSlateEditableTextLayout::HandleTypeChar(const TCHAR InChar)
 	}
 
 	// Certain characters are not allowed
-	bool bIsCharAllowed = true;
-	{
-		if (InChar == TEXT('\t'))
-		{
-			bIsCharAllowed = true;
-		}
-		else if (InChar <= 0x1F)
-		{
-			bIsCharAllowed = false;
-		}
-	}
-
+	const bool bIsCharAllowed = IsCharAllowed(InChar);
 	if (bIsCharAllowed)
 	{
 		const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
@@ -1626,7 +1629,11 @@ void FSlateEditableTextLayout::PasteTextFromClipboard()
 	FString PastedText;
 	FPlatformMisc::ClipboardPaste(PastedText);
 
-	InsertTextAtCursorImpl(PastedText);
+	if (PastedText.Len() > 0)
+	{
+		InsertTextAtCursorImpl(PastedText);
+		TextLayout->UpdateIfNeeded();
+	}
 }
 
 void FSlateEditableTextLayout::InsertTextAtCursor(const FString& InString)
@@ -1639,27 +1646,74 @@ void FSlateEditableTextLayout::InsertTextAtCursor(const FString& InString)
 	FScopedEditableTextTransaction TextTransaction(*this);
 
 	DeleteSelectedText();
-	InsertTextAtCursorImpl(InString);
+
+	if (InString.Len() > 0)
+	{
+		InsertTextAtCursorImpl(InString);
+		TextLayout->UpdateIfNeeded();
+	}
 }
 
 void FSlateEditableTextLayout::InsertTextAtCursorImpl(const FString& InString)
 {
-	if (InString.Len())
+	if (OwnerWidget->IsTextReadOnly() || InString.Len() == 0)
 	{
-		for (const TCHAR* Character = InString.GetCharArray().GetData(); *Character; ++Character)
+		return;
+	}
+
+	// Sanitize out any invalid characters
+	FString SanitizedString = InString;
+	{
+		const bool bIsMultiLine = OwnerWidget->IsMultiLineTextEdit();
+		SanitizedString.GetCharArray().RemoveAll([&](const TCHAR InChar) -> bool
 		{
-			if (*Character == '\n')
+			const bool bIsCharAllowed = IsCharAllowed(InChar) || (bIsMultiLine || !FChar::IsLinebreak(InChar));
+			return !bIsCharAllowed;
+		});
+	}
+
+	// Split into lines
+	TArray<FTextRange> LineRanges;
+	FTextRange::CalculateLineRangesFromString(SanitizedString, LineRanges);
+
+	if (AnyTextSelected())
+	{
+		// Delete selected text
+		DeleteSelectedText();
+	}
+
+	// Insert each line
+	{
+		bool bIsFirstLine = true;
+		for (const FTextRange& LineRange : LineRanges)
+		{
+			if (!bIsFirstLine)
 			{
-				if (OwnerWidget->IsMultiLineTextEdit())
+				const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+				if (TextLayout->SplitLineAt(CursorInteractionPosition))
 				{
-					InsertNewLineAtCursorImpl();
+					// Adjust the cursor position to be at the beginning of the new line
+					const FTextLocation NewCursorPosition = FTextLocation(CursorInteractionPosition.GetLineIndex() + 1, 0);
+					CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 				}
 			}
-			else
-			{
-				HandleTypeChar(*Character);
-			}
+			bIsFirstLine = false;
+
+			const FString NewLineText = FString(SanitizedString.Mid(LineRange.BeginIndex, LineRange.Len()));
+
+			const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+			const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+			const FTextLayout::FLineModel& Line = Lines[CursorInteractionPosition.GetLineIndex()];
+
+			// Insert character at caret position
+			TextLayout->InsertAt(CursorInteractionPosition, NewLineText);
+
+			// Advance caret position
+			const FTextLocation NewCursorPosition = FTextLocation(CursorInteractionPosition.GetLineIndex(), FMath::Min(CursorInteractionPosition.GetOffset() + NewLineText.Len(), Line.Text->Len()));
+			CursorInfo.SetCursorLocationAndCalculateAlignment(*TextLayout, NewCursorPosition);
 		}
+
+		UpdateCursorHighlight();
 	}
 }
 

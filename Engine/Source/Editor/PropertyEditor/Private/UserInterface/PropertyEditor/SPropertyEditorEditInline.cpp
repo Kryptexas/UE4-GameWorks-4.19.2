@@ -10,7 +10,7 @@
 #include "SPropertyComboBox.h"
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 
 class FPropertyEditorInlineClassFilter : public IClassViewerFilter
 {
@@ -116,7 +116,7 @@ const FSlateBrush* SPropertyEditorEditInline::GetDisplayValueIcon() const
 	FPropertyAccess::Result Result = PropertyEditor->GetPropertyHandle()->GetValue( CurrentValue );
 	if( Result == FPropertyAccess::Success && CurrentValue != nullptr )
 	{
-		return FClassIconFinder::FindIconForClass(CurrentValue->GetClass());
+		return FSlateIconFinder::FindIconBrushForClass(CurrentValue->GetClass());
 	}
 
 	return nullptr;

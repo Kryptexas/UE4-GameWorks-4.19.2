@@ -1077,6 +1077,7 @@ private:
 	friend struct FInitBodiesHelper<false>;
 	friend class FDerivedDataPhysXBinarySerializer;
 	friend class FBodyInstanceCustomizationHelper;
+	friend class FFoliageTypeCustomizationHelpers;
 
 #if WITH_BOX2D
 

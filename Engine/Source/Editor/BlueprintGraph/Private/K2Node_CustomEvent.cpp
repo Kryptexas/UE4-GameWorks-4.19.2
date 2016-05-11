@@ -471,9 +471,9 @@ FString UK2Node_CustomEvent::GetDocumentationExcerptName() const
 	return TEXT("UK2Node_CustomEvent");
 }
 
-FName UK2Node_CustomEvent::GetPaletteIcon(FLinearColor& OutColor) const
+FSlateIcon UK2Node_CustomEvent::GetIconAndTint(FLinearColor& OutColor) const
 {
-	return bCallInEditor ? TEXT("GraphEditor.CallInEditorEvent_16x") : TEXT("GraphEditor.CustomEvent_16x");
+	return FSlateIcon("EditorStyle", bCallInEditor ? "GraphEditor.CallInEditorEvent_16x" : "GraphEditor.CustomEvent_16x");
 }
 
 void UK2Node_CustomEvent::AutowireNewNode(UEdGraphPin* FromPin)

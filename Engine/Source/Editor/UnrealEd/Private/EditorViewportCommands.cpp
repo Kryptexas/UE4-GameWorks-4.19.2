@@ -4,7 +4,7 @@
 #include "UnrealEd.h"
 #include "EditorViewportCommands.h"
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "EditorViewportCommands"
 
 void FEditorViewportCommands::RegisterCommands()
 {

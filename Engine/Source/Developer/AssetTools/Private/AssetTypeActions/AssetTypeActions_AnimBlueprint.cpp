@@ -7,7 +7,7 @@
 #include "SBlueprintDiff.h"
 #include "SNotificationList.h"
 #include "SSkeletonWidget.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -251,7 +251,7 @@ void FAssetTypeActions_AnimBlueprint::RetargetAssets(TArray<UObject*> InAnimBlue
 
 TSharedPtr<SWidget> FAssetTypeActions_AnimBlueprint::GetThumbnailOverlay(const FAssetData& AssetData) const
 {
-	const FSlateBrush* Icon = FClassIconFinder::FindIconForClass(UAnimBlueprint::StaticClass());
+	const FSlateBrush* Icon = FSlateIconFinder::FindIconBrushForClass(UAnimBlueprint::StaticClass());
 
 	return SNew(SBorder)
 		.BorderImage(FEditorStyle::GetNoBrush())

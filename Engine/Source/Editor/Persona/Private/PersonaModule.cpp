@@ -38,7 +38,7 @@ void FPersonaModule::StartupModule()
 
 		for (int32 AssetIndex = 0; AssetIndex < AssetData.Num(); ++AssetIndex)
 		{
-			FString TagValue = AssetData[ AssetIndex ].TagsAndValues.FindRef(BPParentClassName);
+			FString TagValue = AssetData[ AssetIndex ].GetTagValueRef<FString>(BPParentClassName);
 			if (TagValue == BPAnimNotify)
 			{
 				FString BlueprintPath = AssetData[AssetIndex].ObjectPath.ToString();

@@ -18,7 +18,7 @@
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "ComponentAssetBroker.h"
 
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 
 #include "Editor/UnrealEd/Public/AssetNotifications.h"
 
@@ -777,7 +777,7 @@ TSharedRef<ITableRow> FDisplayedAttachedAssetInfo::MakeTreeRowWidget(
 void FDisplayedAttachedAssetInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected )
 {
 	UActorFactory* ActorFactory = FActorFactoryAssetProxy::GetFactoryForAssetObject( Asset );
-	const FSlateBrush* IconBrush = FClassIconFinder::FindIconForClass( ActorFactory->GetDefaultActorClass( FAssetData() ) );		
+	const FSlateBrush* IconBrush = FSlateIconFinder::FindIconBrushForClass(ActorFactory->GetDefaultActorClass(FAssetData()));
 	
 	Box->AddSlot()
 		.AutoWidth()

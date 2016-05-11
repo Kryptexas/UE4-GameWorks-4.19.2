@@ -209,6 +209,14 @@ FReply SSlider::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEve
 			CommitValue(FMath::Clamp(NewValue, 0.0f, 1.0f));
 			Reply = FReply::Handled();
 		}
+		else
+		{
+			Reply = SLeafWidget::OnKeyDown(MyGeometry, InKeyEvent);
+		}
+	}
+	else
+	{
+		Reply = SLeafWidget::OnKeyDown(MyGeometry, InKeyEvent);
 	}
 
 	return Reply;

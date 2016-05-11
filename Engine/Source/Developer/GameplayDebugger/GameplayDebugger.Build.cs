@@ -21,6 +21,7 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"RenderCore",
 					"InputCore",
+					"SlateCore",
 					"Slate",
 				});
 

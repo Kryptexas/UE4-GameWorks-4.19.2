@@ -134,11 +134,11 @@ FText UAIGraphNode::GetTooltipText() const
 			if (NodeInstance->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
 			{
 				FAssetData AssetData(NodeInstance->GetClass()->ClassGeneratedBy);
-				const FString* Description = AssetData.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UBlueprint, BlueprintDescription));
-
-				if (Description && !Description->IsEmpty())
+				FString Description = AssetData.GetTagValueRef<FString>(GET_MEMBER_NAME_CHECKED(UBlueprint, BlueprintDescription));
+				if (!Description.IsEmpty())
 				{
-					TooltipDesc = FText::FromString(Description->Replace(TEXT("\\n"), TEXT("\n")));
+					Description.ReplaceInline(TEXT("\\n"), TEXT("\n"));
+					TooltipDesc = FText::FromString(MoveTemp(Description));
 				}
 			}
 			else

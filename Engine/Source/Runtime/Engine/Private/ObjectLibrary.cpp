@@ -405,10 +405,10 @@ int32 UObjectLibrary::LoadBlueprintAssetDataFromPaths(const TArray<FString>& Pat
 			FAssetData& Data = AssetDataList[AssetIdx];
 
 			bool bShouldRemove = true;
-			const FString* ParentClassFromData = Data.TagsAndValues.Find("ParentClass");
-			if (ParentClassFromData && !ParentClassFromData->IsEmpty())
+			const FString ParentClassFromData = Data.GetTagValueRef<FString>("ParentClass");
+			if (!ParentClassFromData.IsEmpty())
 			{
-				const FString ClassObjectPath = FPackageName::ExportTextPathToObjectPath(*ParentClassFromData);
+				const FString ClassObjectPath = FPackageName::ExportTextPathToObjectPath(ParentClassFromData);
 				const FString ClassName = FPackageName::ObjectPathToObjectName(ClassObjectPath);
 				if (DerivedClassNames.Contains(FName(*ClassName)))
 				{

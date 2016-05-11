@@ -412,6 +412,12 @@ FText UK2Node_SpawnActorFromClass::GetTooltipText() const
 	return NodeTooltip;
 }
 
+FSlateIcon UK2Node_SpawnActorFromClass::GetIconAndTint(FLinearColor& OutColor) const
+{
+	static FSlateIcon Icon("EditorStyle", "GraphEditor.SpawnActor_16x");
+	return Icon;
+}
+
 UEdGraphPin* UK2Node_SpawnActorFromClass::GetThenPin()const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

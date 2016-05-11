@@ -1973,17 +1973,17 @@ HRESULT FWindowsApplication::OnOLEDragEnter( const HWND HWnd, const FDragDropOLE
 		return 0;
 	}
 
-	switch (OLEData.Type)
+	if ((OLEData.Type & FDragDropOLEData::Text) && (OLEData.Type & FDragDropOLEData::Files))
 	{
-		case FDragDropOLEData::Text:
-			*CursorEffect = MessageHandler->OnDragEnterText(Window.ToSharedRef(), OLEData.OperationText);
-			break;
-		case FDragDropOLEData::Files:
-			*CursorEffect = MessageHandler->OnDragEnterFiles(Window.ToSharedRef(), OLEData.OperationFilenames);
-			break;
-		case FDragDropOLEData::None:
-		default:
-			break;
+		*CursorEffect = MessageHandler->OnDragEnterExternal(Window.ToSharedRef(), OLEData.OperationText, OLEData.OperationFilenames);
+	}
+	else if (OLEData.Type & FDragDropOLEData::Text)
+	{
+		*CursorEffect = MessageHandler->OnDragEnterText(Window.ToSharedRef(), OLEData.OperationText);
+	}
+	else if (OLEData.Type & FDragDropOLEData::Files)
+	{
+		*CursorEffect = MessageHandler->OnDragEnterFiles(Window.ToSharedRef(), OLEData.OperationFilenames);
 	}
 
 	return 0;

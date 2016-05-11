@@ -495,7 +495,7 @@ void SSkeletonSlotNames::GetCompatibleAnimBlueprints( TArray<FAssetData>& OutAss
 
 	for(FAssetData& Data : AssetDataList)
 	{
-		FString AssetSkeleton = Data.TagsAndValues.FindRef("TargetSkeleton");
+		const FString AssetSkeleton = Data.GetTagValueRef<FString>("TargetSkeleton");
 		if(AssetSkeleton == SkeletonExportName)
 		{
 			OutAssets.Add(Data);
@@ -580,7 +580,7 @@ void SSkeletonSlotNames::GetCompatibleAnimMontages(TArray<class FAssetData>& Out
 	for( int32 AssetIndex = 0; AssetIndex < AssetDataList.Num(); ++AssetIndex )
 	{
 		const FAssetData& PossibleAnimMontage = AssetDataList[AssetIndex];
-		if( SkeletonExportName == PossibleAnimMontage.TagsAndValues.FindRef("Skeleton") )
+		if( SkeletonExportName == PossibleAnimMontage.GetTagValueRef<FString>("Skeleton") )
 		{
 			OutAssets.Add( PossibleAnimMontage );
 		}

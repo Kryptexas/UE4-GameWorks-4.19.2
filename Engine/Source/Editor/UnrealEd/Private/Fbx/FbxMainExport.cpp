@@ -615,7 +615,7 @@ void FFbxExporter::ExportModel(UModel* Model, FbxNode* Node, const char* Name)
 		FbxSurfaceMaterial* FbxMaterial;
 		if (MaterialInterface != NULL && MaterialInterface->GetMaterial() != NULL)
 		{
-			FbxMaterial = ExportMaterial(MaterialInterface->GetMaterial());
+			FbxMaterial = ExportMaterial(MaterialInterface);
 		}
 		else
 		{
@@ -1037,31 +1037,32 @@ bool FFbxExporter::FillFbxTextureProperty(const char *PropertyName, const FExpre
 /**
 * Exports the profile_COMMON information for a material.
 */
-FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
+FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterialInterface* MaterialInterface)
 {
-	if (Scene == NULL || Material == NULL) return NULL;
+	if (Scene == nullptr || MaterialInterface == nullptr || MaterialInterface->GetMaterial() == nullptr) return nullptr;
 	
 	// Verify that this material has not already been exported:
-	if (FbxMaterials.Find(Material))
+	if (FbxMaterials.Find(MaterialInterface))
 	{
-		return *FbxMaterials.Find(Material);
+		return *FbxMaterials.Find(MaterialInterface);
 	}
 
 	// Create the Fbx material
-	FbxSurfaceMaterial* FbxMaterial = NULL;
+	FbxSurfaceMaterial* FbxMaterial = nullptr;
+
+	UMaterial *Material = MaterialInterface->GetMaterial();
 	
 	// Set the shading model
 	if (Material->GetShadingModel() == MSM_DefaultLit)
 	{
-		FbxMaterial = FbxSurfacePhong::Create(Scene, TCHAR_TO_UTF8(*Material->GetName()));
+		FbxMaterial = FbxSurfacePhong::Create(Scene, TCHAR_TO_UTF8(*MaterialInterface->GetName()));
 		//((FbxSurfacePhong*)FbxMaterial)->Specular.Set(Material->Specular));
 		//((FbxSurfacePhong*)FbxMaterial)->Shininess.Set(Material->SpecularPower.Constant);
 	}
 	else // if (Material->ShadingModel == MSM_Unlit)
 	{
-		FbxMaterial = FbxSurfaceLambert::Create(Scene, TCHAR_TO_UTF8(*Material->GetName()));
+		FbxMaterial = FbxSurfaceLambert::Create(Scene, TCHAR_TO_UTF8(*MaterialInterface->GetName()));
 	}
-	
 	
 	((FbxSurfaceLambert*)FbxMaterial)->TransparencyFactor.Set(Material->Opacity.Constant);
 
@@ -1075,7 +1076,7 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
 	{
 		((FbxSurfaceLambert*)FbxMaterial)->Emissive.Set(SetMaterialComponent(Material->EmissiveColor, true));
 	}
-	
+
 	//Always set the ambient to zero since we dont have ambient in unreal we want to avoid default value in DCCs
 	((FbxSurfaceLambert*)FbxMaterial)->Ambient.Set(FbxDouble3(0.0, 0.0, 0.0));
 
@@ -1095,7 +1096,7 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
 		}
 	}
 
-	FbxMaterials.Add(Material, FbxMaterial);
+	FbxMaterials.Add(MaterialInterface, FbxMaterial);
 	
 	return FbxMaterial;
 }
@@ -2184,7 +2185,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 			FIndexArrayView RawIndices = RenderMesh.IndexBuffer.GetArrayView();
 			UMaterialInterface* Material = StaticMesh->GetMaterial(Polygons.MaterialIndex);
 
-			FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material->GetMaterial()) : NULL;
+			FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material) : NULL;
 			if (!FbxMaterial)
 			{
 				FbxMaterial = CreateDefaultMaterial();
@@ -2297,7 +2298,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 			FIndexArrayView RawIndices = RenderMesh.IndexBuffer.GetArrayView();
 			UMaterialInterface* Material = StaticMesh->GetMaterial(Polygons.MaterialIndex);
 
-			FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material->GetMaterial()) : NULL;
+			FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material) : NULL;
 			if (!FbxMaterial)
 			{
 				FbxMaterial = CreateDefaultMaterial();
@@ -2497,7 +2498,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 		FIndexArrayView RawIndices = RenderMesh.IndexBuffer.GetArrayView();
 		UMaterialInterface* Material = StaticMesh->GetMaterial(Polygons.MaterialIndex);
 
-		FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material->GetMaterial()) : NULL;
+		FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material) : NULL;
 		if (!FbxMaterial)
 		{
 			FbxMaterial = CreateDefaultMaterial();
@@ -2768,7 +2769,7 @@ void FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TCHAR*
 	Layer0->SetMaterials(LayerElementMaterials);
 
 	UMaterialInterface* Material = Landscape->GetLandscapeMaterial();
-	FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material->GetMaterial()) : NULL;
+	FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material) : NULL;
 	if (!FbxMaterial)
 	{
 		FbxMaterial = CreateDefaultMaterial();

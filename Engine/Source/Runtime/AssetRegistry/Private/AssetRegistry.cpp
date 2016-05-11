@@ -2275,12 +2275,12 @@ void FAssetRegistry::AddAssetData(FAssetData* AssetData)
 	// Populate the class map if adding blueprint
 	if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 	{
-		auto GeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
-		auto ParentClassPtr = AssetData->TagsAndValues.Find("ParentClass");
-		if ( GeneratedClassPtr && ParentClassPtr )
+		const FString GeneratedClass = AssetData->GetTagValueRef<FString>("GeneratedClass");
+		const FString ParentClass = AssetData->GetTagValueRef<FString>("ParentClass");
+		if ( !GeneratedClass.IsEmpty() && !ParentClass.IsEmpty() )
 		{
-			const FName GeneratedClassFName = FName(*ExportTextPathToObjectName(*GeneratedClassPtr));
-			const FName ParentClassFName = FName(*ExportTextPathToObjectName(*ParentClassPtr));
+			const FName GeneratedClassFName = *ExportTextPathToObjectName(GeneratedClass);
+			const FName ParentClassFName = *ExportTextPathToObjectName(ParentClass);
 			CachedInheritanceMap.Add(GeneratedClassFName, ParentClassFName);
 		}
 	}
@@ -2364,20 +2364,19 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 	// Update the class map if updating a blueprint
 	if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 	{
-		auto OldGeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
-
-		if ( OldGeneratedClassPtr )
+		const FString OldGeneratedClass = AssetData->GetTagValueRef<FString>("GeneratedClass");
+		if ( !OldGeneratedClass.IsEmpty() )
 		{
-			const FName OldGeneratedClassFName = FName(*ExportTextPathToObjectName(*OldGeneratedClassPtr));
+			const FName OldGeneratedClassFName = *ExportTextPathToObjectName(OldGeneratedClass);
 			CachedInheritanceMap.Remove(OldGeneratedClassFName);
 		}
 
-		const FString* NewGeneratedClassPtr = NewAssetData.TagsAndValues.Find("GeneratedClass");
-		const FString* NewParentClassPtr = NewAssetData.TagsAndValues.Find("ParentClass");
-		if ( NewGeneratedClassPtr && NewParentClassPtr )
+		const FString NewGeneratedClass = NewAssetData.GetTagValueRef<FString>("GeneratedClass");
+		const FString NewParentClass = NewAssetData.GetTagValueRef<FString>("ParentClass");
+		if ( !NewGeneratedClass.IsEmpty() && !NewParentClass.IsEmpty() )
 		{
-			const FName NewGeneratedClassFName = FName(*ExportTextPathToObjectName(*NewGeneratedClassPtr));
-			const FName NewParentClassFName = FName(*ExportTextPathToObjectName(*NewParentClassPtr));
+			const FName NewGeneratedClassFName = *ExportTextPathToObjectName(*NewGeneratedClass);
+			const FName NewParentClassFName = *ExportTextPathToObjectName(*NewParentClass);
 			CachedInheritanceMap.Add(NewGeneratedClassFName, NewParentClassFName);
 		}
 	}
@@ -2398,11 +2397,10 @@ bool FAssetRegistry::RemoveAssetData(FAssetData* AssetData)
 		// Remove from the class map if removing a blueprint
 		if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 		{
-			auto OldGeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
-
-			if ( OldGeneratedClassPtr )
+			const FString OldGeneratedClass = AssetData->GetTagValueRef<FString>("GeneratedClass");
+			if ( !OldGeneratedClass.IsEmpty() )
 			{
-				const FName OldGeneratedClassFName = FName(*ExportTextPathToObjectName(*OldGeneratedClassPtr));
+				const FName OldGeneratedClassFName = *ExportTextPathToObjectName(OldGeneratedClass);
 				CachedInheritanceMap.Remove(OldGeneratedClassFName);
 			}
 		}

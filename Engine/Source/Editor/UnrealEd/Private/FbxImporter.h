@@ -1174,6 +1174,9 @@ class FFbxLogger
 	/** Error messages **/
 	TArray<TSharedRef<FTokenizedMessage>> TokenizedErrorMessages;
 
+	/* The logger will show the LogMessage only if at least one TokenizedErrorMessage have a severity of Error or CriticalError*/
+	bool ShowLogMessageOnlyIfError;
+
 	friend class FFbxImporter;
 	friend class FFbxLoggerSetter;
 };
@@ -1189,12 +1192,13 @@ class FFbxLoggerSetter
 	FFbxImporter * Importer;
 
 public:
-	FFbxLoggerSetter(FFbxImporter * InImpoter)
+	FFbxLoggerSetter(FFbxImporter * InImpoter, bool ShowLogMessageOnlyIfError = false)
 		: Importer(InImpoter)
 	{
 		// if impoter doesn't have logger, sets it
 		if(Importer->Logger == NULL)
 		{
+			Logger.ShowLogMessageOnlyIfError = ShowLogMessageOnlyIfError;
 			Importer->SetLogger(&Logger);
 		}
 		else

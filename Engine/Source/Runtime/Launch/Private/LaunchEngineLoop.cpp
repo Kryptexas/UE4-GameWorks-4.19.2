@@ -2313,6 +2313,8 @@ int32 FEngineLoop::Init()
 		GIsRequestingExit = true;
 		return 1;
 	}
+
+	GEngine->Start();
 	
 	GetMoviePlayer()->WaitForMovieToFinish();
 
@@ -2412,15 +2414,15 @@ void FEngineLoop::Exit()
 		GEngine->PreExit();
 	}
 
+	// close all windows
+	FSlateApplication::Shutdown();
+
 #if !UE_SERVER
 	if ( FEngineFontServices::IsInitialized() )
 	{
 		FEngineFontServices::Destroy();
 	}
 #endif
-
-	// close all windows
-	FSlateApplication::Shutdown();
 
 #if !PLATFORM_ANDROID 	// AppPreExit doesn't work on Android
 	AppPreExit();

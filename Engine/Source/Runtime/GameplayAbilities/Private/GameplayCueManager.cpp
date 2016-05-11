@@ -460,19 +460,19 @@ void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& As
 			continue;
 		}
 
-		const FString* FoundGameplayTag = Data.TagsAndValues.Find(TagPropertyName);
-		if (FoundGameplayTag && FoundGameplayTag->Equals(TEXT("None")) == false)
+		const FName FoundGameplayTag = Data.GetTagValueRef<FName>(TagPropertyName);
+		if (!FoundGameplayTag.IsNone())
 		{
-			const FString* GeneratedClassTag = Data.TagsAndValues.Find(TEXT("GeneratedClass"));
-			if (GeneratedClassTag == nullptr)
+			const FString GeneratedClassTag = Data.GetTagValueRef<FString>("GeneratedClass");
+			if (GeneratedClassTag.IsEmpty())
 			{
 				ABILITY_LOG(Warning, TEXT("Unable to find GeneratedClass value for AssetData %s"), *Data.ObjectPath.ToString());
 				continue;
 			}
 
-			ABILITY_LOG(Log, TEXT("GameplayCueManager Found: %s / %s"), **FoundGameplayTag, **GeneratedClassTag);
+			ABILITY_LOG(Log, TEXT("GameplayCueManager Found: %s / %s"), *FoundGameplayTag.ToString(), **GeneratedClassTag);
 
-			FGameplayTag  GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(**FoundGameplayTag), false);
+			FGameplayTag  GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FoundGameplayTag, false);
 			if (GameplayCueTag.IsValid())
 			{
 				// Add a new NotifyData entry to our flat list for this one
@@ -485,7 +485,7 @@ void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& As
 			}
 			else
 			{
-				ABILITY_LOG(Warning, TEXT("Found GameplayCue tag %s in asset %s but there is no corresponding tag in the GameplayTagManager."), **FoundGameplayTag, *Data.PackageName.ToString());
+				ABILITY_LOG(Warning, TEXT("Found GameplayCue tag %s in asset %s but there is no corresponding tag in the GameplayTagManager."), *FoundGameplayTag.ToString(), *Data.PackageName.ToString());
 			}
 		}
 	}
@@ -667,11 +667,9 @@ void UGameplayCueManager::HandleAssetDeleted(UObject *Object)
 /** Handles cleaning up an object library if it matches the passed in object */
 void UGameplayCueManager::HandleAssetRenamed(const FAssetData& Data, const FString& String)
 {
-	const FString* ParentClassNamePtr = Data.TagsAndValues.Find(TEXT("ParentClass"));
-	if (ParentClassNamePtr)
+	const FString ParentClassName = Data.GetTagValueRef<FString>("ParentClass");
+	if (!ParentClassName.IsEmpty())
 	{
-		FString ParentClassName = *ParentClassNamePtr;
-		
 		UClass* DataClass = FindObject<UClass>(nullptr, *ParentClassName);
 		if (DataClass)
 		{

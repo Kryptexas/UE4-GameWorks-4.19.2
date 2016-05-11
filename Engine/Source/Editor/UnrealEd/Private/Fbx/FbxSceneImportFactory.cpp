@@ -671,6 +671,7 @@ UFbxSceneImportFactory::UFbxSceneImportFactory(const FObjectInitializer& ObjectI
 {
 	SupportedClass = UWorld::StaticClass();
 	Formats.Add(TEXT("fbx;Fbx Scene"));
+	Formats.Add(TEXT("obj;OBJ Scene"));
 
 	bCreateNew = false;
 	bText = false;
@@ -1310,6 +1311,8 @@ void UFbxSceneImportFactory::CreateLevelActorHierarchy(TSharedPtr<FFbxSceneInfo>
 
 				//Apply the hierarchy local transform to the root component
 				ApplyTransformToComponent(RootComponent, &(NodeInfo->Transform), ParentActor == nullptr ? &RootTransform : nullptr, PivotLocation, ParentPivotAccumulation);
+				//Notify people that the component get created/changed
+				RootComponent->PostEditChange();
 			}
 		}
 		//We select only the first actor
@@ -1510,7 +1513,8 @@ AActor *UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxSc
 
 		//Apply the local transform to the scene component
 		ApplyTransformToComponent(SceneComponent, &(NodeInfo->Transform), ParentRootComponent != nullptr ? nullptr : &RootTransform, PivotLocation, ParentPivotAccumulation);
-		
+		//Notify people that the component get created/changed
+		SceneComponent->PostEditChange();
 	}
 	// End of iteration of the hierarchy
 	//////////////////////////////////////////////////////////////////////////

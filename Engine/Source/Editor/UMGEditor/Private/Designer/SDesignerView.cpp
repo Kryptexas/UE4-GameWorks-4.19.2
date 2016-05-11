@@ -255,7 +255,7 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	Register(MakeShareable(new FUniformGridSlotExtension()));
 	Register(MakeShareable(new FGridSlotExtension()));
 
-	GEditor->OnBlueprintReinstanced().AddRaw(this, &SDesignerView::OnBlueprintReinstanced);
+	GEditor->OnBlueprintReinstanced().AddRaw(this, &SDesignerView::OnPreviewNeedsRecreation);
 
 	BindCommands();
 
@@ -365,6 +365,7 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	PinnedBlueprintEditor->OnSelectedWidgetsChanged.AddRaw(this, &SDesignerView::OnEditorSelectionChanged);
 	PinnedBlueprintEditor->OnHoveredWidgetSet.AddRaw(this, &SDesignerView::OnHoveredWidgetSet);
 	PinnedBlueprintEditor->OnHoveredWidgetCleared.AddRaw(this, &SDesignerView::OnHoveredWidgetCleared);
+	PinnedBlueprintEditor->OnWidgetPreviewUpdated.AddRaw(this, &SDesignerView::OnPreviewNeedsRecreation);
 
 	ZoomToFit(/*bInstantZoom*/ true);
 }
@@ -627,6 +628,7 @@ SDesignerView::~SDesignerView()
 		PinnedEditor->OnSelectedWidgetsChanged.RemoveAll(this);
 		PinnedEditor->OnHoveredWidgetSet.RemoveAll(this);
 		PinnedEditor->OnHoveredWidgetCleared.RemoveAll(this);
+		PinnedEditor->OnWidgetPreviewUpdated.RemoveAll(this);
 	}
 
 	if ( GEditor )
@@ -1160,7 +1162,7 @@ void SDesignerView::Register(TSharedRef<FDesignerExtension> Extension)
 	DesignerExtensions.Add(Extension);
 }
 
-void SDesignerView::OnBlueprintReinstanced()
+void SDesignerView::OnPreviewNeedsRecreation()
 {
 	// Because widget blueprints can contain other widget blueprints, the safe thing to do is to have all
 	// designers jettison their previews on the compilation of any widget blueprint.  We do this to prevent
@@ -1676,7 +1678,7 @@ void SDesignerView::UpdatePreviewWidget(bool bForceUpdate)
 
 			// The constraint box for the widget size needs to inside the DPI scaler in order to make sure it too
 			// is sized accurately for the size screen it's on.
-			TSharedRef<SBox> NewPreviewSizeConstraintBox = SAssignNew(PreviewSizeConstraint, SBox)
+			TSharedRef<SBox> NewPreviewSizeConstraintBox = SNew(SBox)
 				.WidthOverride(this, &SDesignerView::GetPreviewSizeWidth)
 				.HeightOverride(this, &SDesignerView::GetPreviewSizeHeight)
 				[

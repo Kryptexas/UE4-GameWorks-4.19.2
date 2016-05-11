@@ -5860,6 +5860,20 @@ EDropEffect::Type FSlateApplication::OnDragEnterFiles( const TSharedRef< FGeneri
 	return Result;
 }
 
+EDropEffect::Type FSlateApplication::OnDragEnterExternal( const TSharedRef< FGenericWindow >& Window, const FString& Text, const TArray< FString >& Files )
+{
+	const TSharedPtr< FExternalDragOperation > DragDropOperation = FExternalDragOperation::NewOperation( Text, Files );
+	const TSharedPtr< SWindow > EffectingWindow = FSlateWindowHelper::FindWindowByPlatformWindow( SlateWindows, Window );
+
+	EDropEffect::Type Result = EDropEffect::None;
+	if ( DragDropOperation.IsValid() && EffectingWindow.IsValid() )
+	{
+		Result = OnDragEnter( EffectingWindow.ToSharedRef(), DragDropOperation.ToSharedRef() );
+	}
+
+	return Result;
+}
+
 EDropEffect::Type FSlateApplication::OnDragEnter( const TSharedRef< SWindow >& Window, const TSharedRef<FExternalDragOperation>& DragDropOperation )
 {
 	// We are encountering a new drag and drop operation.

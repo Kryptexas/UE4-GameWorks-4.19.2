@@ -99,6 +99,7 @@ public:
 	// UEngine interface
 
 	virtual void Init(class IEngineLoop* InEngineLoop) override;
+	virtual void Start() override;
 	virtual void PreExit() override;
 	virtual void Tick( float DeltaSeconds, bool bIdleMode ) override;
 	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) const override;

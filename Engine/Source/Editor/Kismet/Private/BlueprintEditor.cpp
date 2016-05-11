@@ -498,7 +498,7 @@ const FSlateBrush* FBlueprintEditor::GetGlyphForGraph(const UEdGraph* Graph, boo
 FSlateBrush const* FBlueprintEditor::GetVarIconAndColor(const UStruct* VarScope, FName VarName, FSlateColor& IconColorOut)
 {
 	FLinearColor ColorOut;
-	const FSlateBrush* IconBrush = FEditorStyle::GetBrush(UK2Node_Variable::GetVariableIconAndColor(VarScope, VarName, ColorOut));
+	const FSlateBrush* IconBrush = UK2Node_Variable::GetVariableIconAndColor(VarScope, VarName, ColorOut).GetOptionalIcon();
 	IconColorOut = ColorOut;
 	return IconBrush;
 }
@@ -1565,7 +1565,7 @@ void FBlueprintEditor::LoadLibrariesFromAssetRegistry()
 
 			for (int32 AssetIndex = 0; AssetIndex < AssetData.Num(); ++AssetIndex)
 			{
-				FString TagValue = AssetData[ AssetIndex ].TagsAndValues.FindRef(BPTypeName);
+				FString TagValue = AssetData[ AssetIndex ].GetTagValueRef<FString>(BPTypeName);
 
 				//Only check for Blueprint Macros & Functions in the asset data for loading
 				if ( TagValue == BPMacroTypeStr || TagValue == BPFunctionTypeStr )

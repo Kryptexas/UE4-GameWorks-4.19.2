@@ -54,7 +54,7 @@
 #include "EditorCategoryUtils.h"
 #include "EngineUtils.h"
 #include "Engine/LevelScriptActor.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #define LOCTEXT_NAMESPACE "Blueprint"
 
 DEFINE_LOG_CATEGORY(LogBlueprintDebug);
@@ -4893,7 +4893,7 @@ void FBlueprintEditorUtils::RenameLocalVariable(UBlueprint* InBlueprint, const U
 
 		if (LocalVariable && !bHasExistingProperty)
 		{
-			const FScopedTransaction Transaction( LOCTEXT("RenameVariable", "Rename Local Variable") );
+			const FScopedTransaction Transaction( LOCTEXT("RenameLocalVariable", "Rename Local Variable") );
 			InBlueprint->Modify();
 			FunctionEntry->Modify();
 
@@ -8309,7 +8309,7 @@ const FSlateBrush* FBlueprintEditorUtils::GetIconFromPin( const FEdGraphPinType&
 		UClass* VarClass = FindObject<UClass>(ANY_PACKAGE, *PinSubObject->GetName());
 		if( VarClass )
 		{
-			IconBrush = FClassIconFinder::FindIconForClass( VarClass );
+			IconBrush = FSlateIconFinder::FindIconBrushForClass( VarClass );
 		}
 	}
 	return IconBrush;

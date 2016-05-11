@@ -531,13 +531,73 @@ void FConfigFile::Read( const FString& Filename )
 	}
 }
 
-bool FConfigFile::ShouldExportQuotedString(const FString& PropertyValue) const
+bool FConfigFile::ShouldExportQuotedString(const FString& PropertyValue)
 {
-	// The value should be exported as quoted string if it begins with a space (which is stripped on import) or
-	// when it contains '//' (interpreted as a comment when importing).
-	return **PropertyValue == TEXT(' ') || FCString::Strstr(*PropertyValue, TEXT("//")) != nullptr;
+	bool bEscapeNextChar = false;
+	bool bIsWithinQuotes = false;
+
+	// The value should be exported as quoted string if...
+	const TCHAR* const DataPtr = *PropertyValue;
+	for (const TCHAR* CharPtr = DataPtr; *CharPtr; ++CharPtr)
+	{
+		const TCHAR ThisChar = *CharPtr;
+		const TCHAR NextChar = *(CharPtr + 1);
+
+		const bool bIsFirstChar = CharPtr == DataPtr;
+		const bool bIsLastChar = NextChar == 0;
+
+		if (ThisChar == TEXT('"') && !bEscapeNextChar)
+		{
+			bIsWithinQuotes = !bIsWithinQuotes;
+		}
+		bEscapeNextChar = ThisChar == TEXT('\\') && bIsWithinQuotes && !bEscapeNextChar;
+
+		// ... it begins or ends with a space (which is stripped on import)
+		if (ThisChar == TEXT(' ') && (bIsFirstChar || bIsLastChar))
+		{
+			return true;
+		}
+
+		// ... it begins with a '"' (which would be treated as a quoted string)
+		if (ThisChar == TEXT('"') && bIsFirstChar)
+		{
+			return true;
+		}
+
+		// ... it ends with a '\' (which would be treated as a line extension)
+		if (ThisChar == TEXT('\\') && bIsLastChar)
+		{
+			return true;
+		}
+
+		// ... it contains unquoted '{' or '}' (which are stripped on import)
+		if ((ThisChar == TEXT('{') || ThisChar == TEXT('}')) && !bIsWithinQuotes)
+		{
+			return true;
+		}
+		
+		// ... it contains unquoted '//' (interpreted as a comment when importing)
+		if ((ThisChar == TEXT('/') && NextChar == TEXT('/')) && !bIsWithinQuotes)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
+FString FConfigFile::GenerateExportedPropertyLine(const FString& PropertyName, const FString& PropertyValue)
+{
+	const bool bShouldQuote = ShouldExportQuotedString(PropertyValue);
+	if (bShouldQuote)
+	{
+		return FString::Printf(TEXT("%s=\"%s\"") LINE_TERMINATOR, *PropertyName, *PropertyValue.ReplaceCharWithEscapedChar());
+	}
+	else
+	{
+		return FString::Printf(TEXT("%s=%s") LINE_TERMINATOR, *PropertyName, *PropertyValue);
+	}
+}
 
 #if ALLOW_INI_OVERRIDE_FROM_COMMANDLINE
 
@@ -905,13 +965,6 @@ bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/
 						bWroteASectionProperty = true;
 					}
 
-					// Print the property to the file.
-					TCHAR QuoteString[2] = {0,0};
-					if (ShouldExportQuotedString(PropertyValue))
-					{
-						QuoteString[0] = TEXT('\"');
-					}
-
 					// Write out our property, if it is an array we need to write out the entire array.
 					TArray<FConfigValue> CompletePropertyToWrite;
 					Section.MultiFind( PropertyName, CompletePropertyToWrite, true );
@@ -924,8 +977,7 @@ bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/
 					{
 						for (const FConfigValue& ConfigValue : CompletePropertyToWrite)
 						{
-							Text += FString::Printf( TEXT("%s=%s%s%s") LINE_TERMINATOR, 
-								*PropertyName.ToString(), QuoteString, *ConfigValue.GetSavedValue(), QuoteString);	
+							Text += GenerateExportedPropertyLine(PropertyName.ToString(), ConfigValue.GetSavedValue());
 						}
 					}
 
@@ -1165,16 +1217,7 @@ void FConfigFile::SaveSourceToBackupFile()
 		{
 			const FName PropertyName = PropertyIterator.Key();
 			const FString& PropertyValue = PropertyIterator.Value().GetSavedValue();
-
-			// Print the property to the file.
-			TCHAR QuoteString[2] = {0,0};
-			if (ShouldExportQuotedString(PropertyValue))
-			{
-				QuoteString[0] = TEXT('\"');
-			}
-
-			Text += FString::Printf( TEXT("%s=%s%s%s") LINE_TERMINATOR, 
-				*PropertyName.ToString(), QuoteString, *PropertyValue, QuoteString);	
+			Text += FConfigFile::GenerateExportedPropertyLine(PropertyName.ToString(), PropertyValue);
 		}
 		Text += LINE_TERMINATOR;
 	}
@@ -1250,7 +1293,7 @@ void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FConfigValue
 			for (const FString& NextElement : ArrayProperties)
 			{
 				FString PropertyNameWithRemoveOp = PropertyName.Replace(TEXT("+"), TEXT("-"));
-				OutText += FString::Printf(TEXT("%s=%s") LINE_TERMINATOR, *PropertyNameWithRemoveOp, *NextElement);
+				OutText += GenerateExportedPropertyLine(PropertyNameWithRemoveOp, NextElement);
 			}
 		}
 	}
@@ -1258,14 +1301,7 @@ void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FConfigValue
 	// Write the properties out to a file.
 	for ( const FConfigValue& PropertyIt : InCompletePropertyToProcess)
 	{
-		FString PropertyValue = PropertyIt.GetSavedValue();
-
-		if (ShouldExportQuotedString(PropertyValue))
-		{
-			PropertyValue = FString::Printf(TEXT("\"%s\""), *PropertyValue);
-		}
-
-		OutText += FString::Printf(TEXT("%s=%s") LINE_TERMINATOR, *PropertyName, *PropertyValue);
+		OutText += GenerateExportedPropertyLine(PropertyName, PropertyIt.GetSavedValue());
 	}
 }
 
@@ -1708,7 +1744,7 @@ void FConfigCacheIni::SetString( const TCHAR* Section, const TCHAR* Key, const T
 		Sec->Add( Key, Value );
 		File->Dirty = true;
 	}
-	else if( FCString::Stricmp(*ConfigValue->GetSavedValue(),Value)!=0 )
+	else if( FCString::Strcmp(*ConfigValue->GetSavedValue(),Value)!=0 )
 	{
 		File->Dirty = true;
 		*ConfigValue = FConfigValue(Value);
@@ -1739,7 +1775,7 @@ void FConfigCacheIni::SetText( const TCHAR* Section, const TCHAR* Key, const FTe
 		Sec->Add( Key, StrValue );
 		File->Dirty = true;
 	}
-	else if( FCString::Stricmp(*ConfigValue->GetSavedValue(), *StrValue)!=0 )
+	else if( FCString::Strcmp(*ConfigValue->GetSavedValue(), *StrValue)!=0 )
 	{
 		File->Dirty = true;
 		*ConfigValue = FConfigValue(StrValue);
@@ -3170,8 +3206,7 @@ private:
 			{
 				if (SectionLine.StartsWith(FString::Printf(TEXT("%s="), *PropertyName)))
 				{
-					UpdatedSection += FString::Printf(TEXT("%s=%s"), *PropertyName, *PropertyValue);
-					UpdatedSection += LINE_TERMINATOR;
+					UpdatedSection += FConfigFile::GenerateExportedPropertyLine(PropertyName, PropertyValue);
 					bWrotePropertyOnPass = true;
 				}
 				else
@@ -3251,8 +3286,7 @@ private:
 		// Make sure we dont leave much whitespace, and append the property name/value entry
 		ClearTrailingWhitespace(PreText);
 		PreText += LINE_TERMINATOR;
-		PreText += FString::Printf(TEXT("%s=%s"), *PropertyName, *PropertyValue);
-		PreText += LINE_TERMINATOR;
+		PreText += FConfigFile::GenerateExportedPropertyLine(PropertyName, PropertyValue);
 		PreText += LINE_TERMINATOR;
 	}
 

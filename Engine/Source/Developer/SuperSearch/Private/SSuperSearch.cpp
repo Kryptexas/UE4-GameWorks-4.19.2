@@ -390,26 +390,23 @@ void SSuperSearchBox::OnTextChanged(const FText& InText)
 
 			for (const FAssetData& Asset : AssetData)
 			{
-				const FString* SearchTag = Asset.TagsAndValues.Find("SearchTags");
-				const FString* ResultTitle = Asset.TagsAndValues.Find("Title");
-				if( ResultTitle)
+				const FString ResultTitle = Asset.GetTagValueRef<FString>("Title");
+				if (ResultTitle.Contains(InText.ToString()))
 				{
-					if (ResultTitle->Contains(InText.ToString()))
-					{
-						FSearchEntry SearchEntry;
-						SearchEntry.Title = *ResultTitle;
-						SearchEntry.URL = "";
-						SearchEntry.bCategory = false;
-						SearchEntry.AssetData = Asset;
-						TutorialResults.Add(SearchEntry);
-					}
+					FSearchEntry SearchEntry;
+					SearchEntry.Title = ResultTitle;
+					SearchEntry.URL = "";
+					SearchEntry.bCategory = false;
+					SearchEntry.AssetData = Asset;
+					TutorialResults.Add(SearchEntry);
 				}
 
 				// If the asset has search tags, search them
-				if ((SearchTag) && (SearchTag->IsEmpty()== false))
+				const FString SearchTag = Asset.GetTagValueRef<FString>("SearchTags");
+				if (!SearchTag.IsEmpty())
 				{
 					TArray<FString> SearchTags;			
-					SearchTag->ParseIntoArray(SearchTags,TEXT(","));
+					SearchTag.ParseIntoArray(SearchTags,TEXT(","));
 					//trim any xs spaces off the strings.
 					for (int32 iTag = 0; iTag < SearchTags.Num() ; iTag++)
 					{
@@ -419,7 +416,7 @@ void SSuperSearchBox::OnTextChanged(const FText& InText)
 					if (SearchTags.Find(InText.ToString()) != INDEX_NONE)
 					{
 						FSearchEntry SearchEntry;
-						SearchEntry.Title = *ResultTitle;
+						SearchEntry.Title = ResultTitle;
 						SearchEntry.URL = "";
 						SearchEntry.bCategory = false;
 						SearchEntry.AssetData = Asset;

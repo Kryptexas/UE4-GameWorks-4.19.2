@@ -1461,14 +1461,16 @@ bool TextBiDi::IsControlCharacter(const TCHAR InChar)
 		|| InChar == TEXT('\u2069'); // POP DIRECTIONAL ISOLATE
 }
 
+#define LOC_DEFINE_REGION
+const FString FTextStringHelper::InvTextMarker = TEXT("INVTEXT");
+const FString FTextStringHelper::NsLocTextMarker = TEXT("NSLOCTEXT");
+const FString FTextStringHelper::LocTextMarker = TEXT("LOCTEXT");
+#undef LOC_DEFINE_REGION
+
 bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace, int32* OutNumCharsRead)
 {
 #define LOC_DEFINE_REGION
 	const TCHAR* const Start = Buffer;
-
-	static const FString InvTextMarker = TEXT("INVTEXT");
-	static const FString NsLocTextMarker = TEXT("NSLOCTEXT");
-	static const FString LocTextMarker = TEXT("LOCTEXT");
 
 	auto ExtractQuotedString = [&](FString& OutStr) -> const TCHAR*
 	{
@@ -1741,6 +1743,13 @@ bool FTextStringHelper::WriteToString(FString& Buffer, const FText& Value, const
 #undef LOC_DEFINE_REGION
 
 	return true;
+}
+
+bool FTextStringHelper::IsComplexText(const TCHAR* Buffer)
+{
+#define LOC_DEFINE_REGION
+	return FCString::Strstr(Buffer, *InvTextMarker) || FCString::Strstr(Buffer, *NsLocTextMarker) || FCString::Strstr(Buffer, *LocTextMarker);
+#undef LOC_DEFINE_REGION
 }
 
 #undef LOCTEXT_NAMESPACE

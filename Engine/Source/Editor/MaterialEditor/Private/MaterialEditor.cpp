@@ -3425,6 +3425,15 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 				// Just update the function input/outputs here.
 				const bool bRecreateAndLinkNode = false;
 				FunctionCall->UpdateFromFunctionResource(bRecreateAndLinkNode);
+
+				// If an unknown material function has been pasted, remove the graph node pins (as the expression will also have had its inputs/outputs removed).
+				// This will be displayed as an orphaned "Unspecified Function" node.
+				if (FunctionCall->MaterialFunction == nullptr &&
+					FunctionCall->FunctionInputs.Num() == 0 &&
+					FunctionCall->FunctionOutputs.Num() == 0)
+				{
+					GraphNode->Pins.Empty();
+				}
 			}
 		}
 		else if (UMaterialGraphNode_Comment* CommentNode = Cast<UMaterialGraphNode_Comment>(Node))

@@ -744,13 +744,14 @@ void USkeleton::CollectAnimationNotifies()
 	for (auto Iter = AssetList.CreateConstIterator(); Iter; ++Iter)
 	{
 		const FAssetData& Asset = *Iter;
-		const FString* SkeletonValue = Asset.TagsAndValues.Find(TEXT("Skeleton"));
-		if (SkeletonValue && *SkeletonValue == CurrentSkeletonName)
+		const FString SkeletonValue = Asset.GetTagValueRef<FString>(TEXT("Skeleton"));
+		if (SkeletonValue == CurrentSkeletonName)
 		{
-			if (const FString* Value = Asset.TagsAndValues.Find(USkeleton::AnimNotifyTag))
+			FString Value;
+			if (Asset.GetTagValue(USkeleton::AnimNotifyTag, Value))
 			{
 				TArray<FString> NotifyList;
-				Value->ParseIntoArray(NotifyList, *USkeleton::AnimNotifyTagDelimiter, true);
+				Value.ParseIntoArray(NotifyList, *USkeleton::AnimNotifyTagDelimiter, true);
 				for (auto NotifyIter = NotifyList.CreateConstIterator(); NotifyIter; ++NotifyIter)
 				{
 					FString NotifyName = *NotifyIter;

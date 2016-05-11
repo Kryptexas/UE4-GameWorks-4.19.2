@@ -571,14 +571,18 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		UGameViewportClient::OnViewportCreated().Broadcast();
 	}
 
-	GameInstance->StartGameInstance();
-
 	UE_LOG(LogInit, Display, TEXT("Game Engine Initialized.") );
 
 	// for IsInitialized()
 	bIsInitialized = true;
 }
 
+void UGameEngine::Start()
+{
+	UE_LOG(LogInit, Display, TEXT("Starting Game."));
+
+	GameInstance->StartGameInstance();
+}
 
 void UGameEngine::PreExit()
 {

@@ -157,7 +157,7 @@ private:
 	FGuid NodeGuid;
 
 	/** The glyph brush for this node */
-	const struct FSlateBrush* GlyphBrush;
+	FSlateIcon Glyph;
 
 	/** The glyph color for this node */
 	FLinearColor GlyphColor;

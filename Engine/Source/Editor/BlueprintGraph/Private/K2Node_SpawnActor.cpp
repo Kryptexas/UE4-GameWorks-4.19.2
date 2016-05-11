@@ -492,4 +492,10 @@ FString UK2Node_SpawnActor::GetDeprecationMessage() const
 	return LOCTEXT("SpawnActorNodeOnlyDefaultBlueprint_Deprecatio", "Spawn Actor @@ is DEPRECATED and should be replaced by SpawnActorFromClass").ToString();
 }
 
+FSlateIcon UK2Node_SpawnActor::GetIconAndTint(FLinearColor& OutColor) const
+{
+	static FSlateIcon Icon("EditorStyle", "GraphEditor.SpawnActor_16x");
+	return Icon;
+}
+
 #undef LOCTEXT_NAMESPACE

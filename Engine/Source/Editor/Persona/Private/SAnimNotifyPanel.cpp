@@ -4736,11 +4736,11 @@ void SAnimNotifyPanel::OnGetNotifyBlueprintData(TArray<FAssetData>& OutNotifyDat
 		for(int32 AssetIndex = 0; AssetIndex < AssetDataList.Num(); ++AssetIndex)
 		{
 			FAssetData& AssetData = AssetDataList[AssetIndex];
-			FString TagValue = AssetData.TagsAndValues.FindRef(BPParentClassName);
+			FString TagValue = AssetData.GetTagValueRef<FString>(BPParentClassName);
 
 			if(InOutAllowedClassNames->Contains(TagValue))
 			{
-				FString GenClass = AssetData.TagsAndValues.FindRef(BPGenClassName);
+				FString GenClass = AssetData.GetTagValueRef<FString>(BPGenClassName);
 
 				if(!OutNotifyData.Contains(AssetData))
 				{

@@ -111,7 +111,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		SpriteIDToIndexMap.Add( SpriteInfo.Category, InfoIndex );
 	}
 
-	if (FPaths::IsProjectFilePathSet() && GIsEditor)
+	if (FPaths::IsProjectFilePathSet() && GIsEditor && !FApp::IsUnattended())
 	{
 		AutoReimportManager = NewObject<UAutoReimportManager>();
 		AutoReimportManager->Initialize();
@@ -517,102 +517,132 @@ void UUnrealEdEngine::OnPackageDirtyStateUpdated( UPackage* Pkg)
 			!bAlreadyAsked && // Don't ask if we already asked once!
 			(Settings->bPromptForCheckoutOnAssetModification || Settings->bAutomaticallyCheckoutOnAssetModification) )
 		{
-			// Force source control state to be updated
-			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-
-			TArray<FString> Files;
-			Files.Add(SourceControlHelpers::PackageFilename(Package));
-			SourceControlProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), SourceControlHelpers::AbsoluteFilenames(Files), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateUObject(this, &UUnrealEdEngine::OnSourceControlStateUpdated, TWeakObjectPtr<UPackage>(Package)));
+			PackagesDirtiedThisTick.Add(Package);
+			PackageToNotifyState.Add(Package, NS_Updating);
 		}
 	}
 	else
 	{
 		// This package was saved, the user should be prompted again if they checked in the package
+		PackagesDirtiedThisTick.Remove(Package);
 		PackageToNotifyState.Remove( Package );
 	}
 }
 
-
-void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationRef& SourceControlOp, ECommandResult::Type ResultType, TWeakObjectPtr<UPackage> Package)
+void UUnrealEdEngine::AttemptModifiedPackageNotification()
 {
-	if (ResultType == ECommandResult::Succeeded && Package.IsValid())
+	bool bIsCooking = CookServer && CookServer->IsCookingInEditor() && CookServer->IsCookByTheBookRunning();
+
+	if (PackagesDirtiedThisTick.Num() > 0 && !bIsCooking)
 	{
+		// Force source control state to be updated
+		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+
+		TArray<FString> Files;
+		TArray<TWeakObjectPtr<UPackage>> Packages;
+		for (const auto& Package : PackagesDirtiedThisTick)
+		{
+			if (Package.IsValid())
+			{
+				Packages.Add(Package);
+				Files.Add(SourceControlHelpers::PackageFilename(Package.Get()));
+			}
+		}
+		SourceControlProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), SourceControlHelpers::AbsoluteFilenames(Files), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateUObject(this, &UUnrealEdEngine::OnSourceControlStateUpdated, Packages));
+
+	}
+
+	PackagesDirtiedThisTick.Empty();
+}
+
+void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationRef& SourceControlOp, ECommandResult::Type ResultType, TArray<TWeakObjectPtr<UPackage>> Packages)
+{
+	if (ResultType == ECommandResult::Succeeded)
+	{
+		bool bShowNotification = false;
+
 		// Get the source control state of the package
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Package.Get(), EStateCacheUsage::Use);
 
-		if (SourceControlState.IsValid())
+		TArray<TWeakObjectPtr<UPackage>> PackagesToAutomaticallyCheckOut;
+		TArray<FString> FilesToAutomaticallyCheckOut;
+
+		const UEditorLoadingSavingSettings* Settings = GetDefault<UEditorLoadingSavingSettings>();
+		for (const auto& PackagePtr : Packages)
 		{
-			const UEditorLoadingSavingSettings* Settings = GetDefault<UEditorLoadingSavingSettings>();
-			check(Settings->bPromptForCheckoutOnAssetModification || Settings->bAutomaticallyCheckoutOnAssetModification);
+			if (PackagePtr.IsValid())
+			{
+				UPackage* Package = PackagePtr.Get();
 
-			if (Settings->bAutomaticallyCheckoutOnAssetModification && SourceControlState->CanCheckout())
-			{
-				// Automatically check out asset
-				TArray<FString> Files;
-				Files.Add(SourceControlHelpers::PackageFilename(Package.Get()));
-				SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), SourceControlHelpers::AbsoluteFilenames(Files), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateUObject(this, &UUnrealEdEngine::OnPackageCheckedOut, TWeakObjectPtr<UPackage>(Package)));
-			}
-			else
-			{
-				bool bIsCooking = CookServer && CookServer->IsCookingInEditor() && CookServer->IsCookByTheBookRunning();
-				// Note when cooking in the editor we ignore package notifications.  The cooker is saving packages in a temp location which generates bogus checkout messages otherwise.
-				if ((SourceControlState->CanCheckout() || !SourceControlState->IsCurrent() || SourceControlState->IsCheckedOutOther()) && !bIsCooking )
+				FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Package, EStateCacheUsage::Use);
+				if (SourceControlState.IsValid())
 				{
-					// To get here, either "prompt for checkout on asset modification" is set, or "automatically checkout on asset modification"
-					// is set, but it failed.
-
-					// Allow packages that are not checked out to pass through.
-					// Allow packages that are not current or checked out by others pass through.  
-					// The user wont be able to checkout these packages but the checkout dialog will show up with a special icon 
-					// to let the user know they wont be able to checkout the package they are modifying.
-
-					PackageToNotifyState.Add(Package, SourceControlState->CanCheckout() ? NS_PendingPrompt : NS_PendingWarning);
-					// We need to prompt since a new package was added
-					bNeedToPromptForCheckout = true;
+					if (SourceControlState->CanCheckout())
+					{
+						if (Settings->bAutomaticallyCheckoutOnAssetModification)
+						{
+							PackagesToAutomaticallyCheckOut.Add(PackagePtr);
+							FilesToAutomaticallyCheckOut.Add(SourceControlHelpers::PackageFilename(Package));
+						}
+						else
+						{
+							PackageToNotifyState.Add(PackagePtr, NS_PendingPrompt);
+							bShowNotification = true;
+						}
+					}
+					else if (!SourceControlState->IsCurrent() || SourceControlState->IsCheckedOutOther())
+					{
+						PackageToNotifyState.Add(PackagePtr, NS_PendingWarning);
+						bShowNotification = true;
+					}
 				}
 			}
+		}
+
+		if (FilesToAutomaticallyCheckOut.Num() > 0)
+		{
+			SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), SourceControlHelpers::AbsoluteFilenames(FilesToAutomaticallyCheckOut), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateUObject(this, &UUnrealEdEngine::OnPackagesCheckedOut, PackagesToAutomaticallyCheckOut));
+		}
+
+		if (bShowNotification)
+		{
+			ShowPackageNotification();
 		}
 	}
 }
 
 
-void UUnrealEdEngine::OnPackageCheckedOut(const FSourceControlOperationRef& SourceControlOp, ECommandResult::Type ResultType, TWeakObjectPtr<UPackage> Package)
+void UUnrealEdEngine::OnPackagesCheckedOut(const FSourceControlOperationRef& SourceControlOp, ECommandResult::Type ResultType, TArray<TWeakObjectPtr<UPackage>> Packages)
 {
-	if (Package.IsValid())
+	if (ResultType == ECommandResult::Succeeded)
 	{
-		// Get the source control state of the package
-		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Package.Get(), EStateCacheUsage::Use);
+		FNotificationInfo Notification(NSLOCTEXT("SourceControl", "AutoCheckOutNotification", "Packages automatically checked out."));
+		Notification.bFireAndForget = true;
+		Notification.ExpireDuration = 4.0f;
+		Notification.bUseThrobber = true;
 
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("Package"), FText::FromString(Package->GetName()));
+		FSlateNotificationManager::Get().AddNotification(Notification);
 
-		if (ResultType == ECommandResult::Succeeded)
+		for (const auto& Package : Packages)
 		{
-			if (SourceControlState.IsValid() && SourceControlState->IsCheckedOut())
-	{
-				FNotificationInfo Notification(FText::Format(NSLOCTEXT("SourceControl", "AutoCheckOutNotification", "Package '{Package}' automatically checked out."), Arguments));
-				Notification.bFireAndForget = true;
-				Notification.ExpireDuration = 4.0f;
-				Notification.bUseThrobber = true;
-
-				FSlateNotificationManager::Get().AddNotification(Notification);
-
-				return;
-			}
+			PackageToNotifyState.Add(Package, NS_DialogPrompted);
 		}
-
-		FNotificationInfo ErrorNotification(FText::Format(NSLOCTEXT("SourceControl", "AutoCheckOutFailedNotification", "Unable to automatically check out Package '{Package}'."), Arguments));
+	}
+	else
+	{
+		FNotificationInfo ErrorNotification(NSLOCTEXT("SourceControl", "AutoCheckOutFailedNotification", "Unable to automatically check out packages."));
 		ErrorNotification.bFireAndForget = true;
 		ErrorNotification.ExpireDuration = 4.0f;
 		ErrorNotification.bUseThrobber = true;
 
 		FSlateNotificationManager::Get().AddNotification(ErrorNotification);
 
-		// Automatic checkout failed - pop up the notification for manual checkout
-		PackageToNotifyState.Add(Package, SourceControlState->CanCheckout() ? NS_PendingPrompt : NS_PendingWarning);
-		bNeedToPromptForCheckout = true;
+		for (const auto& Package : Packages)
+		{
+			PackageToNotifyState.Add(Package, NS_PendingPrompt);
+		}
+
+		ShowPackageNotification();
 	}
 }
 

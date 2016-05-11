@@ -10,6 +10,7 @@
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
 #include "Editor/Kismet/Public/FindInBlueprintManager.h"
+#include "EditorStyle.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "EdGraph"
@@ -220,6 +221,20 @@ FString UEdGraphNode::GetDocumentationExcerptName() const
 	return FString::Printf(TEXT("%s%s"), MyClass->GetPrefixCPP(), *MyClass->GetName());
 }
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+FSlateIcon UEdGraphNode::GetIconAndTint(FLinearColor& OutColor) const
+{
+	// @todo: Remove with GetPaletteIcon
+	FName DeprecatedName = GetPaletteIcon(OutColor);
+	if (!DeprecatedName.IsNone())
+	{
+		return FSlateIcon("EditorStyle", DeprecatedName);
+	}
+	
+	static const FSlateIcon Icon = FSlateIcon("EditorStyle", "GraphEditor.Default_16x");
+	return Icon;
+}
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 FString UEdGraphNode::GetDescriptiveCompiledName() const
 {
@@ -410,7 +425,9 @@ void UEdGraphNode::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutT
 
 	// Non-Searchable - Used to display the icon and color for this node for better visual identification.
 	FLinearColor GlyphColor = FLinearColor::White;
-	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_Glyph, FText::FromString(GetPaletteIcon(GlyphColor).ToString())));
+	FSlateIcon Icon = GetIconAndTint(GlyphColor);
+	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_Glyph, FText::FromName(Icon.GetStyleName())));
+	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_GlyphStyleSet, FText::FromName(Icon.GetStyleSetName())));
 	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_GlyphColor, FText::FromString(GlyphColor.ToString())));
 	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_Comment, FText::FromString(NodeComment)));
 }

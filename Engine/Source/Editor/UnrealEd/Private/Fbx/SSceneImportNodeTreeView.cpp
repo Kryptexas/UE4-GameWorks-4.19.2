@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 #include "SSceneImportNodeTreeView.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 
 #define LOCTEXT_NAMESPACE "SFbxSceneTreeView"
 
@@ -97,7 +97,7 @@ public:
 		{
 			IconClass = UCameraComponent::StaticClass();
 		}
-		const FSlateBrush* ClassIcon = FClassIconFinder::FindIconForClass(IconClass);
+		const FSlateBrush* ClassIcon = FSlateIconFinder::FindIconBrushForClass(IconClass);
 
 		//Prepare the tooltip
 		FString Tooltip = FbxNodeInfo->NodeName;

@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 #include "SSceneReimportNodeTreeView.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "SSceneImportStaticMeshListView.h"
 
 #define LOCTEXT_NAMESPACE "SFbxReimportSceneTreeView"
@@ -177,7 +177,7 @@ public:
 		{
 			IconClass = UCameraComponent::StaticClass();
 		}
-		const FSlateBrush* ClassIcon = FClassIconFinder::FindIconForClass(IconClass);
+		const FSlateBrush* ClassIcon = FSlateIconFinder::FindIconBrushForClass(IconClass);
 
 		this->ChildSlot
 		[

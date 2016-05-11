@@ -93,6 +93,7 @@ public:
 		ViewArgs.bAllowSearch = false;
 		ViewArgs.bHideSelectionTip = false;
 		ViewArgs.bShowActorLabel = false;
+		ViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
 		ViewArgs.NotifyHook = this;
 
 		DetailsView = PropertyModule.CreateDetailView(ViewArgs);
@@ -359,6 +360,7 @@ TSharedRef<SDockTab> FUserDefinedStructureEditor::SpawnStructureTab(const FSpawn
 		PropertyView->RegisterInstancedCustomPropertyLayout(UUserDefinedStruct::StaticClass(), LayoutStructDetails);
 		PropertyView->SetObject(EditedStruct);
 		Box->AddSlot()
+		.VAlign(EVerticalAlignment::VAlign_Top)
 		[
 			PropertyView.ToSharedRef()
 		];
@@ -376,6 +378,7 @@ TSharedRef<SDockTab> FUserDefinedStructureEditor::SpawnStructureTab(const FSpawn
 		{
 			Box->AddSlot()
 			.VAlign(EVerticalAlignment::VAlign_Top)
+			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 			[
 				DefaultValueWidget.ToSharedRef()
 			];
@@ -585,9 +588,10 @@ public:
 		if(StructureDetailsSP.IsValid())
 		{
 			FStructureEditorUtils::ChangeVariableType(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, PinType);
-			if (StructureLayout.IsValid())
+			auto StructureLayoutPin = StructureLayout.Pin();
+			if (StructureLayoutPin.IsValid())
 			{
-				StructureLayout.Pin()->OnPinTypeSelected(PinType);
+				StructureLayoutPin->OnPinTypeSelected(PinType);
 			}
 		}
 	}

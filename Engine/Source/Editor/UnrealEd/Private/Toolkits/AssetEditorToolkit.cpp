@@ -8,7 +8,7 @@
 #include "Toolkits/GlobalEditorCommonCommands.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "CollectionManagerModule.h"
 #include "IUserFeedbackModule.h"
 #include "IDocumentation.h"
@@ -601,7 +601,7 @@ const FSlateBrush* FAssetEditorToolkit::GetDefaultTabIcon() const
 
 	for (auto ObjectIt = EditingObjects.CreateConstIterator(); ObjectIt; ++ObjectIt)
 	{
-		const FSlateBrush* ThisAssetBrush = FClassIconFinder::FindIconForClass((*ObjectIt)->GetClass());
+		const FSlateBrush* ThisAssetBrush = FSlateIconFinder::FindIconBrushForClass((*ObjectIt)->GetClass());
 		
 		if (!IconBrush)
 		{

@@ -200,6 +200,9 @@ private:
 
 	/** Gets children tests for a node in the hierarchy */
 	void OnGetChildren(TSharedPtr<IAutomationReport> InItem, TArray<TSharedPtr<IAutomationReport> >& OutItems);
+
+	/** Callback for a test expansion changing recursively */
+	void OnTestExpansionRecursive(TSharedPtr<IAutomationReport> InTreeNode, bool bInIsItemExpanded);
 	
 	/** Callback for a new test being selected */
 	void OnTestSelectionChanged(TSharedPtr<IAutomationReport> Selection, ESelectInfo::Type SelectInfo);
@@ -383,11 +386,16 @@ private:
 	bool IsAutomationRunButtonEnabled() const;
 
 	/**
- 	 * Set whether tests are available to run.
+	 * Set whether tests are available to run.
 	 *
 	 * @param The Automation controller state.
 	 */
 	void OnTestAvailableCallback( EAutomationControllerModuleState::Type InAutomationControllerState );
+
+	/**
+	 * Called when tests complete.
+	 */
+	void OnTestsCompleteCallback();
 
 	/** Copies the selected log messages to the clipboard. */
 	void CopyLog();

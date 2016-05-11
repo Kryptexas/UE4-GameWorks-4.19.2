@@ -142,10 +142,7 @@ void UAnimGraphNode_SequencePlayer::GetMenuActions(FBlueprintActionDatabaseRegis
 		UAnimGraphNode_SequencePlayer* SequencePlayerNode = CastChecked<UAnimGraphNode_SequencePlayer>(NewNode);
 		if (bIsTemplateNode)
 		{
-			if (const FString* SkeletonTag = AssetData.TagsAndValues.Find(TEXT("Skeleton")))
-			{
-				SequencePlayerNode->UnloadedSkeletonName = *SkeletonTag;
-			}
+			AssetData.GetTagValue("Skeleton", SequencePlayerNode->UnloadedSkeletonName);
 		}
 		else
 		{

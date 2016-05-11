@@ -5,7 +5,7 @@
 #include "GraphEditorCommon.h"
 #include "SGraphNodeK2Base.h"
 #include "SGraphNodeK2Var.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "IDocumentation.h"
 #include "BlueprintEditorUtils.h"
 #include "TutorialMetaData.h"
@@ -114,7 +114,7 @@ void SGraphNodeK2Var::UpdateGraphNode()
 				.AutoWidth()
 			[
 				SNew(SImage)
-					.Image( FClassIconFinder::FindIconForClass( LiteralRef->GetObjectRef() ? LiteralRef->GetObjectRef()->GetClass() : NULL ))
+				.Image(FSlateIconFinder::FindIconBrushForClass(LiteralRef->GetObjectRef() ? LiteralRef->GetObjectRef()->GetClass() : NULL))
 			]
 
 			+SHorizontalBox::Slot()

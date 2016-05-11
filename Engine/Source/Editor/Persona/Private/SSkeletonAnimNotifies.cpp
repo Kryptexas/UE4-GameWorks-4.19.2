@@ -471,7 +471,7 @@ void SSkeletonAnimNotifies::GetCompatibleAnimSequences(TArray<class FAssetData>&
 	for( int32 AssetIndex = 0; AssetIndex < AssetDataList.Num(); ++AssetIndex )
 	{
 		const FAssetData& PossibleAnimSequence = AssetDataList[AssetIndex];
-		if( SkeletonExportName == PossibleAnimSequence.TagsAndValues.FindRef("Skeleton") )
+		if( SkeletonExportName == PossibleAnimSequence.GetTagValueRef<FString>("Skeleton") )
 		{
 			OutAssets.Add( PossibleAnimSequence );
 		}

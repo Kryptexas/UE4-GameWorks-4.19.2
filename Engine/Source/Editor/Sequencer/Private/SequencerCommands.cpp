@@ -3,7 +3,7 @@
 #include "SequencerPrivatePCH.h"
 #include "SequencerCommands.h"
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "SequencerCommands"
 
 void FSequencerCommands::RegisterCommands()
 {

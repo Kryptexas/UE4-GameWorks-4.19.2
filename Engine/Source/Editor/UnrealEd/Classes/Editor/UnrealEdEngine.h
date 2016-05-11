@@ -10,6 +10,8 @@
 UENUM()
 enum EPackageNotifyState
 {
+	/** Updating the source control state of the package */
+	NS_Updating,
 	/** The user has been prompted with the balloon taskbar message. */
 	NS_BalloonPrompted,
 	/** The user responded to the balloon task bar message and got the modal prompt to checkout dialog and responded to it. */
@@ -126,10 +128,6 @@ public:
 	UPROPERTY()
 	class AActor* CurrentLODParentActor;
 
-	/** If we have packages that are pending and we should notify the user that they need to be checked out */
-	UPROPERTY()
-	uint32 bNeedToPromptForCheckout:1;
-
 	/** Whether the user needs to be prompted about a package being saved with an engine version newer than the current one or not */
 	UPROPERTY()
 	uint32 bNeedWarningForPkgEngineVer:1;
@@ -149,6 +147,9 @@ public:
 	/** Cooker server incase we want to cook ont he side while editing... */
 	UPROPERTY()
 	class UCookOnTheFlyServer* CookServer;
+
+	/** A list of packages dirtied this tick */
+	TArray<TWeakObjectPtr<UPackage>> PackagesDirtiedThisTick;
 
 	/** A mapping of packages to their checkout notify state.  This map only contains dirty packages.  Once packages become clean again, they are removed from the map.*/
 	TMap<TWeakObjectPtr<UPackage>, uint8>	PackageToNotifyState;
@@ -222,9 +223,9 @@ public:
 	/** called when a package has has its dirty state updated */
 	void OnPackageDirtyStateUpdated( UPackage* Pkg);
 	/** called when a package's source control state is updated */
-	void OnSourceControlStateUpdated(const FSourceControlOperationRef& SourceControlOp, ECommandResult::Type ResultType, TWeakObjectPtr<UPackage> Package);
+	void OnSourceControlStateUpdated(const FSourceControlOperationRef& SourceControlOp, ECommandResult::Type ResultType, TArray<TWeakObjectPtr<UPackage>> Packages);
 	/** called when a package is automatically checked out from source control */
-	void OnPackageCheckedOut(const FSourceControlOperationRef& SourceControlOp, ECommandResult::Type ResultType, TWeakObjectPtr<UPackage> Package);
+	void OnPackagesCheckedOut(const FSourceControlOperationRef& SourceControlOp, ECommandResult::Type ResultType, TArray<TWeakObjectPtr<UPackage>> Packages);
 	/** caled by FCoreDelegate::PostGarbageCollect */
 	void OnPostGarbageCollect();
 	/** called by color picker change event */
@@ -624,6 +625,11 @@ public:
 	 * @param bPromptAll	If true we prompt for all packages in the PackageToNotifyState map.  If false only prompt about ones we have never prompted about before.
 	 */
 	void PromptToCheckoutModifiedPackages( bool bPromptAll = false );
+
+	/**
+	 * Displays a toast notification or warning when a package is dirtied, indicating that it needs checking out (or that it cannot be checked out)
+	 */
+	void ShowPackageNotification();
 
 	/**
 	 * Checks to see if there are any packages in the PackageToNotifyState map that are not checked out by the user

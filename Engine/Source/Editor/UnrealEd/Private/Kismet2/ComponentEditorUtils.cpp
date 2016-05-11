@@ -12,7 +12,7 @@
 #include "UnrealExporter.h"
 #include "GenericCommands.h"
 #include "SourceCodeNavigation.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "AssetEditorManager.h"
 #include "Components/DecalComponent.h"
 
@@ -829,7 +829,7 @@ void FComponentEditorUtils::FillComponentContextMenuOptions(FMenuBuilder& MenuBu
 				MenuBuilder.AddMenuEntry(
 					FText::Format(LOCTEXT("GoToBlueprintForComponent", "Edit {0}"), FText::FromString(Component->GetClass()->ClassGeneratedBy->GetName())),
 					LOCTEXT("EditBlueprintForComponent_ToolTip", "Edits the Blueprint Class that defines this component."),
-					FSlateIcon(FEditorStyle::GetStyleSetName(), FClassIconFinder::FindIconNameForClass(Component->GetClass())),
+					FSlateIconFinder::FindIconForClass(Component->GetClass()),
 					FUIAction(
 					FExecuteAction::CreateStatic(&FComponentEditorUtils::OnEditBlueprintComponent, Component->GetClass()->ClassGeneratedBy),
 					FCanExecuteAction()));

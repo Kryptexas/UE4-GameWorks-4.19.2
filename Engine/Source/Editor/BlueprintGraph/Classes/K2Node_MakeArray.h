@@ -27,7 +27,7 @@ public:
 	virtual void AllocateDefaultPins() override;
 	virtual void PostReconstructNode() override;
 	virtual FText GetTooltipText() const override;
-	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.MakeArray_16x"); }
+	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	// End of UEdGraphNode interface
 

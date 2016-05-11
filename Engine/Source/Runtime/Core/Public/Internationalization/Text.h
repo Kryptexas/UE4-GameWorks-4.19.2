@@ -670,12 +670,25 @@ public:
 	 * @param Value				The text value to write into the buffer.
 	 * @param bRequiresQuotes	True if the written text literal must be surrounded by quotes (eg, when saving as a delimited list)
 	 *
-	 * @return True if we read a valid FText instance into OutValue, false otherwise
+	 * @return True if we wrote a valid FText instance into Buffer, false otherwise
 	 */
 	static bool WriteToString(FString& Buffer, const FText& Value, const bool bRequiresQuotes = false);
 
+	/**
+	 * Test to see whether a given buffer contains complex text.
+	 *
+	 * @return True if it does, false otherwise
+	 */
+	static bool IsComplexText(const TCHAR* Buffer);
+
 private:
 	static bool ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace, int32* OutNumCharsRead);
+
+#define LOC_DEFINE_REGION
+	static const FString InvTextMarker;
+	static const FString NsLocTextMarker;
+	static const FString LocTextMarker;
+#undef LOC_DEFINE_REGION
 };
 
 class CORE_API FTextBuilder

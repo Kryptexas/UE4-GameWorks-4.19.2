@@ -1553,7 +1553,7 @@ void UEditorEngine::HandleLaunchCompleted(bool Succeeded, double TotalTime, int3
 		if ((PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS") && PlayUsingLauncherDeviceName.Contains(DummyIOSDeviceName)) ||
 			(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("TVOS") && PlayUsingLauncherDeviceName.Contains(DummyTVOSDeviceName)))
 		{
-			CompletionMsg = LOCTEXT("LauncherTaskCompleted", "Deployment complete! Open the app on your device to launch.");
+			CompletionMsg = LOCTEXT("DeploymentTaskCompleted", "Deployment complete! Open the app on your device to launch.");
 			TSharedPtr<SNotificationItem> NotificationItem = NotificationItemPtr.Pin();
 //			NotificationItem->SetExpireDuration(30.0f);
 		}
@@ -1581,7 +1581,7 @@ void UEditorEngine::HandleLaunchCompleted(bool Succeeded, double TotalTime, int3
 		if ((PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS") && PlayUsingLauncherDeviceName.Contains(DummyIOSDeviceName)) ||
 			(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("TVOS") && PlayUsingLauncherDeviceName.Contains(DummyTVOSDeviceName)))
 		{
-			CompletionMsg = LOCTEXT("LauncherTaskFailed", "Deployment failed!");
+			CompletionMsg = LOCTEXT("DeploymentTaskFailed", "Deployment failed!");
 		}
 		else
 		{
@@ -2701,7 +2701,7 @@ void UEditorEngine::OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuc
 		{
 			if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
 			{
-				FMessageLog(NAME_CategoryPIE).Info(LOCTEXT("LoggedInClient", "Server logged in"));
+				FMessageLog(NAME_CategoryPIE).Info(LOCTEXT("LoggedInServer", "Server logged in"));
 			}
 			else
 			{
@@ -2712,7 +2712,7 @@ void UEditorEngine::OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuc
 		{
 			if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
 			{
-				FMessageLog(NAME_CategoryPIE).Warning(LOCTEXT("LoggedInClientFailure", "Server failed to login"));
+				FMessageLog(NAME_CategoryPIE).Warning(LOCTEXT("LoggedInServerFailure", "Server failed to login"));
 			}
 			else
 			{

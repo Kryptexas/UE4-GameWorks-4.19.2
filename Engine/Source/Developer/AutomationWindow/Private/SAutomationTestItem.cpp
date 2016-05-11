@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationWindowPrivatePCH.h"
-
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "AutomationTestItem"
 
@@ -139,6 +139,23 @@ TSharedRef<SWidget> SAutomationTestItem::GenerateWidgetForColumn( const FName& C
 
 	if( ColumnName == AutomationTestWindowConstants::Title)
 	{
+		TSharedRef<SWidget> TestNameWidget = SNullWidget::NullWidget;
+
+		// Would be nice to warp to text location...more difficult when distributed.
+		if ( TestStatus->GetSourceFile().IsEmpty() )
+		{
+			TestNameWidget = SNew(STextBlock)
+				.HighlightText(HighlightText)
+				.Text(FText::FromString(TestStatus->GetDisplayNameWithDecoration()));
+		}
+		else
+		{
+			TestNameWidget = SNew(SHyperlink)
+				.Style(FEditorStyle::Get(), "Common.GotoNativeCodeHyperlink")
+				.OnNavigate_Lambda([=] { FSlateApplication::Get().GotoLineInSource(TestStatus->GetSourceFile(), TestStatus->GetSourceFileLine()); })
+				.Text(FText::FromString(TestStatus->GetDisplayNameWithDecoration()));
+		}
+
 		return SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -162,9 +179,7 @@ TSharedRef<SWidget> SAutomationTestItem::GenerateWidgetForColumn( const FName& C
 			.HAlign(HAlign_Center)
 			[
 				//name of the test
-				SNew( STextBlock )
-				.HighlightText( HighlightText )
-				.Text( FText::FromString(TestStatus->GetDisplayNameWithDecoration()) )
+				TestNameWidget
 			];
 	}
 	else if( ColumnName == AutomationTestWindowConstants::SmokeTest )

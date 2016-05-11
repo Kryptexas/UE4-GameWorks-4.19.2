@@ -366,18 +366,13 @@ void FComponentTypeRegistryData::Tick(float)
 		for (auto Asset : PendingAssetData)
 		{
 			const FName BPParentClassName(GET_MEMBER_NAME_CHECKED(UBlueprint, ParentClass));
-
-			bool FoundBPNotify = false;
-			for (auto TagIt = Asset.TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
+			const FString TagValue = Asset.GetTagValueRef<FString>(BPParentClassName);
+			const FString ObjectPath = FPackageName::ExportTextPathToObjectPath(TagValue);
+			FName ObjectName = FName(*FPackageName::ObjectPathToObjectName(ObjectPath));
+			if (DerivedClassNames.Contains(ObjectName))
 			{
-				FString TagValue = Asset.TagsAndValues.FindRef(BPParentClassName);
-				const FString ObjectPath = FPackageName::ExportTextPathToObjectPath(TagValue);
-				FName ObjectName = FName(*FPackageName::ObjectPathToObjectName(ObjectPath));
-				if (DerivedClassNames.Contains(ObjectName))
-				{
-					bRequiresRefresh = true;
-					break;
-				}
+				bRequiresRefresh = true;
+				break;
 			}
 		}
 		PendingAssetData.Empty();

@@ -13,15 +13,12 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 {
 	PropertyEditor = InPropertyEditor;
 
-	const UProperty* Property = InPropertyEditor->GetProperty();
+	bIsFNameProperty = InPropertyEditor->PropertyIsA(UNameProperty::StaticClass());
+	bIsMultiLine = InPropertyEditor->GetPropertyHandle()->GetMetaDataProperty()->GetBoolMetaData("MultiLine");
 
+	const bool bIsPassword = InPropertyEditor->GetPropertyHandle()->GetMetaDataProperty()->GetBoolMetaData("PasswordField");
+	
 	TSharedPtr<SHorizontalBox> HorizontalBox;
-
-	bIsFNameProperty = Property->IsA<UNameProperty>();
-
-	bool bIsPassword = Property->GetBoolMetaData("PasswordField");
-
-	bIsMultiLine = Property->GetBoolMetaData("MultiLine");
 	if(bIsMultiLine)
 	{
 		ChildSlot

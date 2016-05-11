@@ -66,7 +66,7 @@ void FSubtitleManager::QueueSubtitles( PTRINT SubtitleID, float Priority, bool b
 	FActiveSubtitle& NewSubtitle = ActiveSubtitles.Add( SubtitleID, FActiveSubtitle( 0, Priority, bManualWordWrap, bSingleLine, Subtitles ) );
 
 	// Resolve time offsets to absolute time
-	for( FSubtitleCue& Subtitle : Subtitles )
+	for( FSubtitleCue& Subtitle : NewSubtitle.Subtitles )
 	{
 		if (Subtitle.Time > SoundDuration)
 		{
@@ -78,9 +78,9 @@ void FSubtitleManager::QueueSubtitles( PTRINT SubtitleID, float Priority, bool b
 	}
 
 	// Add on a blank at the end to clear
-	FSubtitleCue* Temp = new( NewSubtitle.Subtitles ) FSubtitleCue();
-	Temp->Text = FText::GetEmpty();
-	Temp->Time = InStartTime + SoundDuration;
+	FSubtitleCue& Temp = NewSubtitle.Subtitles[NewSubtitle.Subtitles.AddDefaulted()];
+	Temp.Text = FText::GetEmpty();
+	Temp.Time = InStartTime + SoundDuration;
 }
 
 /**
@@ -217,18 +217,18 @@ void FSubtitleManager::SplitLinesToSafeZone( FCanvas* Canvas, FIntRect& Subtitle
 		Cumulative = 0.0f;
 		for( i = 0; i < Lines.Num(); i++ )
 		{
-			FSubtitleCue* Line = new( Subtitle.Subtitles ) FSubtitleCue();
+			FSubtitleCue& Line = Subtitle.Subtitles[Subtitle.Subtitles.AddDefaulted()];
 			
-			Line->Text = FText::FromString(Lines[ i ].Value);
-			Line->Time = StartTime + Cumulative;
+			Line.Text = FText::FromString(Lines[ i ].Value);
+			Line.Time = StartTime + Cumulative;
 
-			Cumulative += SecondsPerChar * Line->Text.ToString().Len();
+			Cumulative += SecondsPerChar * Line.Text.ToString().Len();
 		}
 
 		// Add in the blank terminating line
-		FSubtitleCue* Temp = new( Subtitle.Subtitles ) FSubtitleCue();
-		Temp->Text = FText::GetEmpty();
-		Temp->Time = StartTime + SoundDuration;
+		FSubtitleCue& Temp = Subtitle.Subtitles[Subtitle.Subtitles.AddDefaulted()];
+		Temp.Text = FText::GetEmpty();
+		Temp.Time = StartTime + SoundDuration;
 
 		UE_LOG(LogAudio, Log, TEXT( "Splitting subtitle:" ) );
 		for( i = 0; i < Subtitle.Subtitles.Num() - 1; i++ )

@@ -337,6 +337,7 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 	UTextureRenderTarget2D* Texture2DRT = Cast<UTextureRenderTarget2D>(Texture);
 	UTextureRenderTargetCube* TextureCubeRT = Cast<UTextureRenderTargetCube>(Texture);
 	UTextureCube* TextureCube = Cast<UTextureCube>(Texture);
+	UTexture2DDynamic* Texture2DDynamic = Cast<UTexture2DDynamic>(Texture);
 
 	uint32 ImportedWidth = Texture->Source.GetSizeX();
 	uint32 ImportedHeight = Texture->Source.GetSizeY();
@@ -403,6 +404,10 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 	{
 		TextureFormatIndex = Texture2DRT->GetFormat();
 	}
+	else if (Texture2DDynamic)
+	{
+		TextureFormatIndex = Texture2DDynamic->Format;
+	}
 
 	if (TextureFormatIndex != PF_MAX)
 	{
@@ -421,6 +426,10 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 	else if (Texture2DRT)
 	{
 		NumMips = Texture2DRT->GetNumMips();
+	}
+	else if (Texture2DDynamic)
+	{
+		NumMips = Texture2DDynamic->NumMips;
 	}
 
 	NumMipsText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_NumMips", "Number of Mips: {0}"), FText::AsNumber(NumMips)));

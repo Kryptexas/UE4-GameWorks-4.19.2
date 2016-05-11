@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 #include "SSceneReimportSkeletalMeshListView.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "Dialogs/DlgPickAssetPath.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "SFbxSceneOptionWindow.h"
@@ -83,7 +83,7 @@ public:
 		else if (ColumnName == FbxSceneReimportSkeletalMesh::ClassIconHeaderIdName && SlateBrush != nullptr)
 		{
 			UClass *IconClass = FbxMeshInfo->GetType();
-			const FSlateBrush* ClassIcon = FClassIconFinder::FindIconForClass(IconClass);
+			const FSlateBrush* ClassIcon = FSlateIconFinder::FindIconBrushForClass(IconClass);
 			TSharedRef<SOverlay> IconContent = SNew(SOverlay)
 				+ SOverlay::Slot()
 				.HAlign(HAlign_Right)

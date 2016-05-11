@@ -272,10 +272,13 @@ public:
 	 */
 	void ProcessSourceAndCheckAgainstBackup();
 
-private:
-
 	/** Checks if the PropertyValue should be exported in quotes when writing the ini to disk. */
-	bool ShouldExportQuotedString(const FString& PropertyValue) const;
+	static bool ShouldExportQuotedString(const FString& PropertyValue);
+
+	/** Generate a correctly escaped line to add to the config file for the given property */
+	static FString GenerateExportedPropertyLine(const FString& PropertyName, const FString& PropertyValue);
+
+private:
 
 	/** 
 	 * Save the source hierarchy which was loaded out to a backup file so we can check future changes in the base/default configs

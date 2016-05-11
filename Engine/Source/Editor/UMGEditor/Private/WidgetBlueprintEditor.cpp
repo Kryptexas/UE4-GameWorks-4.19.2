@@ -234,9 +234,16 @@ const TSet< TWeakObjectPtr<UObject> >& FWidgetBlueprintEditor::GetSelectedObject
 	return SelectedObjects;
 }
 
-void FWidgetBlueprintEditor::InvalidatePreview()
+void FWidgetBlueprintEditor::InvalidatePreview(bool bViewOnly)
 {
-	bPreviewInvalidated = true;
+	if ( bViewOnly )
+	{
+		OnWidgetPreviewUpdated.Broadcast();
+	}
+	else
+	{
+		bPreviewInvalidated = true;
+	}
 }
 
 void FWidgetBlueprintEditor::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeingCompiled )

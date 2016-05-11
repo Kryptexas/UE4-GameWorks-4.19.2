@@ -222,6 +222,12 @@ FLinearColor UK2Node_Switch::GetNodeTitleColor() const
 	return FLinearColor(255.0f, 255.0f, 0.0f);
 }
 
+FSlateIcon UK2Node_Switch::GetIconAndTint(FLinearColor& OutColor) const
+{
+	static FSlateIcon Icon("EditorStyle", "GraphEditor.Switch_16x");
+	return Icon;
+}
+
 void UK2Node_Switch::AddPinToSwitchNode()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

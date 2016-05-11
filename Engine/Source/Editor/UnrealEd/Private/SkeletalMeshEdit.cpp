@@ -1074,7 +1074,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 	//
 	if (ImportOptions->bImportCustomAttribute)
 	{
-		GWarn->BeginSlowTask( LOCTEXT("BeginImportMorphTargetCurves", "Importing Custom Attirubte Curves"), true);
+		GWarn->BeginSlowTask( LOCTEXT("BeginImportCustomAttributeCurves", "Importing Custom Attribute Curves"), true);
 		const int32 TotalLinks = SortedLinks.Num();
 		int32 CurLinkIndex=0;
 		for(auto Node: SortedLinks)

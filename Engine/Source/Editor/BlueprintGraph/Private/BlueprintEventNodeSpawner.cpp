@@ -73,7 +73,7 @@ UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(UFunction const* 
 	{
 		MenuSignature.Keywords = FText::FromString(TEXT(" "));
 	}
-	MenuSignature.IconName = TEXT("GraphEditor.Event_16x");
+	MenuSignature.Icon = FSlateIcon("EditorStyle", "GraphEditor.Event_16x");
 
 	return NodeSpawner;
 }
@@ -94,13 +94,13 @@ UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(TSubclassOf<UK2No
 	if (CustomEventName.IsNone())
 	{
 		MenuSignature.MenuName = LOCTEXT("AddCustomEvent", "Add Custom Event...");
-		MenuSignature.IconName = TEXT("GraphEditor.CustomEvent_16x");
+		MenuSignature.Icon = FSlateIcon("EditorStyle", "GraphEditor.CustomEvent_16x");
 	}
 	else
 	{
 		FText const EventName = FText::FromName(CustomEventName);
 		MenuSignature.MenuName = FText::Format(LOCTEXT("EventWithSignatureName", "Event {0}"), EventName);
-		MenuSignature.IconName = TEXT("GraphEditor.Event_16x");
+		MenuSignature.Icon = FSlateIcon("EditorStyle", "GraphEditor.Event_16x");
 	}
 	//MenuSignature.Category, will be pulled from the node template
 	//MenuSignature.Tooltip,  will be pulled from the node template 

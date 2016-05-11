@@ -1334,6 +1334,11 @@ int32 FTextLayout::GetLineViewIndexForTextLocation(const TArray< FTextLayout::FL
 	const int32 LineModelIndex = Location.GetLineIndex();
 	const int32 Offset = Location.GetOffset();
 
+	if (!LineModels.IsValidIndex(LineModelIndex))
+	{
+		return INDEX_NONE;
+	}
+
 	const FLineModel& LineModel = LineModels[LineModelIndex];
 	for(int32 Index = 0; Index < InLineViews.Num(); Index++)
 	{
@@ -1646,7 +1651,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TSharedRef<IRun> InRun
 			InRun->Move(LineModel.Text, FTextRange(InsertLocation, InsertLocationEnd));
 
 			// Remove the old run (it may get re-added again as the right hand run)
-			LineModel.Runs.RemoveAt(RunIndex--);
+			LineModel.Runs.RemoveAt(RunIndex--, /*bAllowShrinking*/false);
 
 			// Insert the new runs at the correct place, and then skip over these new array entries
 			const bool LeftRunHasText = !LeftRun->GetTextRange().IsEmpty();
@@ -1714,7 +1719,7 @@ bool FTextLayout::JoinLineWithNextLine(int32 LineIndex)
 	}
 
 	//Remove the next line from the list of line models
-	LineModels.RemoveAt(LineIndex + 1);
+	LineModels.RemoveAt(LineIndex + 1, /*bAllowShrinking*/false);
 
 	DirtyFlags |= ETextLayoutDirtyState::Layout;
 	return true;
@@ -1804,8 +1809,7 @@ bool FTextLayout::SplitLineAt(const FTextLocation& Location)
 		}
 	}
 
-	LineModels.RemoveAt(LineIndex);
-	LineModels.Insert(LeftLineModel, LineIndex);
+	LineModels[LineIndex] = LeftLineModel;
 	LineModels.Insert(RightLineModel, LineIndex + 1);
 
 	DirtyFlags |= ETextLayoutDirtyState::Layout;

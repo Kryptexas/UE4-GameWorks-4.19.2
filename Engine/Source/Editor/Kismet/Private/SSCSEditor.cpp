@@ -1317,7 +1317,7 @@ TSharedRef<SWidget> SSCS_RowWidget::GenerateWidgetForColumn( const FName& Column
 		const FSlateBrush* ComponentIcon = FEditorStyle::GetBrush("SCS.NativeComponent");
 		if(NodePtr->GetComponentTemplate() != NULL)
 		{
-			ComponentIcon = FClassIconFinder::FindIconForClass( NodePtr->GetComponentTemplate()->GetClass(), TEXT("SCS.Component") );
+			ComponentIcon = FSlateIconFinder::FindIconBrushForClass( NodePtr->GetComponentTemplate()->GetClass(), TEXT("SCS.Component") );
 		}
 
 		InlineWidget =

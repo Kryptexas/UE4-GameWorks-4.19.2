@@ -8,7 +8,7 @@
 #include "GameplayCueNotify_Static.h"
 #include "GameplayCueNotify_Actor.h"
 #include "SExpandableArea.h"
-#include "ClassIconFinder.h"
+#include "SlateIconFinder.h"
 #include "EditorClassUtils.h"
 #include "GameplayTagsSettings.h"
 #include "SNotificationList.h"
@@ -255,7 +255,7 @@ void SGameplayCuePickerDialog::OnClassPicked(UClass* InChosenClass)
 /** Generates rows in the list of GameplayCueNotify classes to pick from */
 TSharedRef<ITableRow> SGameplayCuePickerDialog::GenerateListRow(UClass* ItemClass, const TSharedRef<STableViewBase>& OwnerTable)
 {	
-	const FSlateBrush* ItemBrush = FClassIconFinder::FindIconForClass(ItemClass);
+	const FSlateBrush* ItemBrush = FSlateIconFinder::FindIconBrushForClass(ItemClass);
 
 	return 
 	SNew(STableRow< UClass* >, OwnerTable)

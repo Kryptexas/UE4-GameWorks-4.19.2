@@ -4,7 +4,7 @@
 #include "PhATActions.h"
 #include "PhAT.h"
 
-#define LOCTEXT_NAMESPACE ""
+#define LOCTEXT_NAMESPACE "PhATCommands"
 
 void FPhATCommands::RegisterCommands()
 {

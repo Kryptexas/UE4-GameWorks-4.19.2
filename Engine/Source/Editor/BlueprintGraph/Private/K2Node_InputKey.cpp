@@ -192,9 +192,9 @@ FText UK2Node_InputKey::GetTooltipText() const
 	return CachedTooltip;
 }
 
-FName UK2Node_InputKey::GetPaletteIcon(FLinearColor& OutColor) const
+FSlateIcon UK2Node_InputKey::GetIconAndTint(FLinearColor& OutColor) const
 {
-	return EKeys::GetMenuCategoryPaletteIcon(InputKey.GetMenuCategory());
+	return FSlateIcon("EditorStyle", EKeys::GetMenuCategoryPaletteIcon(InputKey.GetMenuCategory()));
 }
 
 bool UK2Node_InputKey::IsCompatibleWithGraph(UEdGraph const* Graph) const

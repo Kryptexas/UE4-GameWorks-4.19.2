@@ -55,7 +55,7 @@ public:
 
 
 		// Register for the callback that tells us there are tests available
-		AutomationController->OnTestsRefreshed().BindRaw(this, &FAutomationExecCmd::HandleRefreshTestCallback);
+		AutomationController->OnTestsRefreshed().AddRaw(this, &FAutomationExecCmd::HandleRefreshTestCallback);
 
 		TickHandler = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FAutomationExecCmd::Tick));
 
@@ -78,8 +78,12 @@ public:
 	}
 	void Shutdown()
 	{
-		//IAutomationControllerModule* AutomationControllerModule = &FModuleManager::LoadModuleChecked<IAutomationControllerModule>("AutomationController");
-		//AutomationControllerModule->ShutdownModule();
+		IAutomationControllerModule* AutomationControllerModule = FModuleManager::GetModulePtr<IAutomationControllerModule>("AutomationController");
+		if ( AutomationControllerModule )
+		{
+			AutomationController = AutomationControllerModule->GetAutomationController();
+			AutomationController->OnTestsRefreshed().RemoveAll(this);
+		}
 
 		FTicker::GetCoreTicker().RemoveTicker(TickHandler);
 	}

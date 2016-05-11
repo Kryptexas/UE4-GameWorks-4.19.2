@@ -1635,6 +1635,9 @@ public:
 	/** Initialize the game engine. */
 	virtual void Init(IEngineLoop* InEngineLoop);
 
+	/** Start the game, separate from the initialize call to allow for post initialize configuration before the game starts. */
+	virtual void Start();
+
 	/** Called at shutdown, just before the exit purge.	 */
 	virtual void PreExit();
 	virtual void ShutdownAudioDeviceManager();

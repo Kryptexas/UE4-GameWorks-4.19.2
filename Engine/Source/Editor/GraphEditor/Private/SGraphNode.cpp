@@ -712,7 +712,7 @@ void SGraphNode::UpdateGraphNode()
 	const FSlateBrush* IconBrush = NULL;
 	if (GraphNode != NULL && GraphNode->ShowPaletteIconOnNode())
 	{
-		IconBrush = FEditorStyle::GetBrush(GraphNode->GetPaletteIcon(IconColor));
+		IconBrush = GraphNode->GetIconAndTint(IconColor).GetOptionalIcon();
 	}
 
 	TSharedRef<SOverlay> DefaultTitleAreaWidget =
