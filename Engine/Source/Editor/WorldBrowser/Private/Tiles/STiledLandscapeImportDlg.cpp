@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "WorldBrowserPrivatePCH.h"
 #include "STiledLandscapeImportDlg.h"
@@ -551,7 +551,7 @@ FReply STiledLandcapeImportDlg::OnClickedSelectHeightmapTiles()
 							{
 								Arguments.Add(TEXT("Size"), ImageWrapper->GetWidth());
 								Arguments.Add(TEXT("TargetSize"), TargetSizeX);
-								StatusMessage = FText::Format(LOCTEXT("TiledLandscapeImport_HeightmapPngTileSizeMismatch", "File ({FileName}) size ({Size}x{Size}) should match other tiles file size ({TargetSize}x{TargetSize})."), Arguments);
+								StatusMessage = FText::Format(LOCTEXT("TiledLandscapeImport_HeightmapPngTileSizeMismatch", "File ({FileName}) size ({Size}\u00D7{Size}) should match other tiles file size ({TargetSize}\u00D7{TargetSize})."), Arguments);
 								bValidTiles = false;
 								break;
 							}
@@ -595,7 +595,7 @@ FReply STiledLandcapeImportDlg::OnClickedSelectHeightmapTiles()
 						{
 							FFormatNamedArguments Arguments;
 							Arguments.Add(TEXT("Size"), TargetSizeX);
-							StatusMessage = FText::Format(LOCTEXT("TiledLandscapeImport_HeightmapPngTileInvalidSize", "No landscape configuration found for ({Size}x{Size})."), Arguments);
+							StatusMessage = FText::Format(LOCTEXT("TiledLandscapeImport_HeightmapPngTileInvalidSize", "No landscape configuration found for ({Size}\u00D7{Size})."), Arguments);
 							bValidTiles = false;
 						}
 					}
