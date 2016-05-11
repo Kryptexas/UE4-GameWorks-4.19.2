@@ -1188,9 +1188,9 @@ FTransform UKismetMathLibrary::ComposeTransforms(const FTransform& A, const FTra
 	return A * B;
 }
 
-FTransform UKismetMathLibrary::ConvertTransformToRelative(const FTransform& WorldTransform, const FTransform& LocalTransform)
+FTransform UKismetMathLibrary::ConvertTransformToRelative(const FTransform& Transform, const FTransform& ParentTransform)
 {
-	return LocalTransform.GetRelativeTransformReverse(WorldTransform);
+	return ParentTransform.GetRelativeTransform(Transform);
 }
 
 FTransform UKismetMathLibrary::InvertTransform(const FTransform& T)
