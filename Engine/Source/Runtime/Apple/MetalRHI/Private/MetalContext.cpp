@@ -80,9 +80,31 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 	TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = FPlatformMisc::GetGPUDescriptors();
 	check(GPUs.Num() > 0);
 	
-	id<MTLDevice> SelectedDevice = nil;
-	
 	int32 ExplicitRendererId = FPlatformMisc::GetExplicitRendererIndex();
+	if(ExplicitRendererId < 0 && GPUs.Num() > 1 && FMacPlatformMisc::MacOSXVersionCompare(10, 11, 5) == 0)
+	{
+		int32 OverrideRendererId = -1;
+		bool bForceExplicitRendererId = false;
+		for(uint32 i = 0; i < GPUs.Num(); i++)
+		{
+			FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[i];
+			if((GPU.GPUVendorId == 0x10DE))
+			{
+				OverrideRendererId = i;
+				bForceExplicitRendererId = (GPU.GPUMetalBundle && ![GPU.GPUMetalBundle isEqualToString:@"GeForceMTLDriverWeb"]);
+			}
+			else if(!GPU.GPUHeadless && GPU.GPUVendorId != 0x8086)
+			{
+				OverrideRendererId = i;
+			}
+		}
+		if (bForceExplicitRendererId)
+		{
+			ExplicitRendererId = OverrideRendererId;
+		}
+	}
+	
+	id<MTLDevice> SelectedDevice = nil;
 	if (ExplicitRendererId >= 0 && ExplicitRendererId < GPUs.Num())
 	{
 		FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[ExplicitRendererId];
