@@ -801,8 +801,13 @@ bool FAssetDataGatherer::ReadAssetFile(const FString& AssetFilename, TArray<FAss
 	FPackageReader::EOpenPackageResult OpenPackageResult;
 	if ( !PackageReader.OpenPackageFile(AssetFilename, &OpenPackageResult) )
 	{
-		// If we're missing a custom version, we might be able to load this package later once the module containing that version is loaded
-		OutCanRetry = OpenPackageResult == FPackageReader::EOpenPackageResult::CustomVersionMissing;
+		// If we're missing a custom version, we might be able to load this package later once the module containing that version is loaded...
+		//   -	We can only attempt a retry in editors (not commandlets) that haven't yet finished initializing (!GIsRunning), as we 
+		//		have no guarantee that a commandlet or an initialized editor is going to load any more modules/plugins
+		//   -	Likewise, we can only attempt a retry for asynchronous scans, as during a synchronous scan we won't be loading any 
+		//		modules/plugins so it would last forever
+		const bool bAllowRetry = GIsEditor && !IsRunningCommandlet() && !GIsRunning && !bIsSynchronous;
+		OutCanRetry = bAllowRetry && OpenPackageResult == FPackageReader::EOpenPackageResult::CustomVersionMissing;
 		return false;
 	}
 
