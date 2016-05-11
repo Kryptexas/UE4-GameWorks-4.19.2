@@ -795,10 +795,13 @@ void FGearVRCustomPresent::OnBackBufferResize()
 void FGearVRCustomPresent::UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI)
 {
 	check(IsInGameThread());
-	check(ViewportRHI);
 
 	this->ViewportRHI = ViewportRHI;
-	ViewportRHI->SetCustomPresent(this);
+
+	if (ViewportRHI)
+	{
+		ViewportRHI->SetCustomPresent(this);
+	}
 }
 
 void FGearVRCustomPresent::UpdateLayers(FRHICommandListImmediate& RHICmdList)
