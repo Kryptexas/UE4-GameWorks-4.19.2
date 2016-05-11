@@ -315,13 +315,25 @@ void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const 
 
 			if (TrackClass != nullptr)
 			{
-				UMovieSceneTrack* NewTrack = MovieScene->AddTrack(TrackClass, Binding);
+				UMovieSceneTrack* NewTrack = MovieScene->FindTrack(TrackClass, Binding);
+				if (!NewTrack)
+				{
+					NewTrack = MovieScene->AddTrack(TrackClass, Binding);
+				}
 
 				// Create a section for any property tracks
 				if (Cast<UMovieScenePropertyTrack>(NewTrack))
 				{
-					UMovieSceneSection* NewSection = NewTrack->CreateNewSection();
-					NewTrack->AddSection(*NewSection);
+					UMovieSceneSection* NewSection;
+					if (NewTrack->GetAllSections().Num() > 0)
+					{
+						NewSection = NewTrack->GetAllSections()[0];
+					}
+					else
+					{
+						NewSection = NewTrack->CreateNewSection();
+						NewTrack->AddSection(*NewSection);
+					}
 
 					// @todo sequencer: hack: setting defaults for transform tracks
 					if (NewTrack->IsA(UMovieScene3DTransformTrack::StaticClass()))
@@ -645,6 +657,10 @@ void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTra
 			CameraGuid = GetSequencer()->CreateBinding(*NewCamera, NewCamera->GetActorLabel());
 		}
 
+		NewCamera->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
+		NewCamera->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
+		//pNewCamera->CameraComponent->FieldOfView = ViewportClient->ViewFOV; //@todo set the focal length from this field of view
+		
 		AddDefaultTracksForActor(*NewCamera, CameraGuid);
 
 		// Create a new camera cut section and add it to the camera cut track
