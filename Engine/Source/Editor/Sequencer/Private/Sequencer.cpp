@@ -3794,10 +3794,9 @@ void FSequencer::AssignActor(FMenuBuilder& MenuBuilder, FGuid InObjectBinding)
 	// actor selector to allow the user to choose an actor
 	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");
 	TSharedRef< SWidget > MiniSceneOutliner =
-		SNew( SVerticalBox )
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.MaxHeight(400.0f)
+		SNew( SBox )
+		.MaxDesiredHeight(400.0f)
+		.WidthOverride(300.0f)
 		[
 			SceneOutlinerModule.CreateSceneOutliner(
 				InitOptions,
