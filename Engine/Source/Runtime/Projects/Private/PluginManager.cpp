@@ -67,6 +67,7 @@ FPlugin::FPlugin(const FString& InFileName, const FPluginDescriptor& InDescripto
 	, LoadedFrom(InLoadedFrom)
 	, bEnabled(false)
 {
+
 }
 
 FPlugin::~FPlugin()
@@ -215,17 +216,21 @@ void FPluginManager::ReadPluginsInDirectory(const FString& PluginsDirectory, con
 
 		for(const FString& FileName: FileNames)
 		{
-			FString FullPath = FPaths::ConvertRelativePathToFull(FileName);
-
 			FPluginDescriptor Descriptor;
 			FText FailureReason;
-			if ( Descriptor.Load(FullPath, FailureReason) )
+			if ( Descriptor.Load(FileName, FailureReason) )
 			{
-				Plugins.Add(MakeShareable(new FPlugin(FullPath, Descriptor, LoadedFrom)));
+				TSharedRef<FPlugin> Plugin = MakeShareable(new FPlugin(FileName, Descriptor, LoadedFrom));
+				
+				FString FullPath = FPaths::ConvertRelativePathToFull(FileName);
+				UE_LOG(LogPluginManager, Log, TEXT("Loaded Plugin %s, From %s"), *Plugin->GetName(), *FullPath);
+
+				Plugins.Add(Plugin);
 			}
 			else
 			{
 				// NOTE: Even though loading of this plugin failed, we'll keep processing other plugins
+				FString FullPath = FPaths::ConvertRelativePathToFull(FileName);
 				FText FailureMessage = FText::Format(LOCTEXT("FailureFormat", "{0} ({1})"), FailureReason, FText::FromString(FullPath));
 				FText DialogTitle = LOCTEXT("PluginFailureTitle", "Failed to load Plugin");
 				UE_LOG(LogPluginManager, Error, TEXT("%s"), *FailureMessage.ToString());

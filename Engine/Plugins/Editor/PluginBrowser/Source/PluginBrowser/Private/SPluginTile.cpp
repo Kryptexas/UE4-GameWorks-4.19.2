@@ -555,8 +555,9 @@ void SPluginTile::OnPackagePlugin()
 	}
 
 	// Ensure path is full rather than relative (for macs)
-	FString UPluginFilename = Plugin->GetDescriptorFileName();
-	FString CommandLine = FString::Printf(TEXT("BuildPlugin -Rocket -Plugin=\"%s\" -Package=\"%s\""), *UPluginFilename, *OutputDirectory);
+	FString DescriptorFilename = Plugin->GetDescriptorFileName();
+	FString DescriptorFullPath = FPaths::ConvertRelativePathToFull(DescriptorFilename);
+	FString CommandLine = FString::Printf(TEXT("BuildPlugin -Rocket -Plugin=\"%s\" -Package=\"%s\""), *DescriptorFullPath, *OutputDirectory);
 
 #if PLATFORM_WINDOWS
 	FText PlatformName = LOCTEXT("PlatformName_Windows", "Windows");
