@@ -126,10 +126,10 @@ struct TStaticMeshVertexTangentDatum
 
 	FORCEINLINE FVector GetTangentY() const
 	{
-		FVector  TangentX = GetTangentX();
-		FVector4 TangentZ = GetTangentZ();
+		FVector  TanX = GetTangentX();
+		FVector4 TanZ = GetTangentZ();
 
-		return (FVector(TangentZ) ^ TangentX) * TangentZ.W;
+		return (FVector(TanZ) ^ TanX) * TanZ.W;
 	}
 
 	FORCEINLINE void SetTangents(FVector X, FVector Y, FVector Z)
@@ -674,7 +674,7 @@ public:
 	* Convert the existing data in this mesh without rebuilding the mesh (loss of precision)
 	*/
 	template<typename SrcVertexTypeT, typename DstVertexTypeT>
-	void FStaticMeshVertexBuffer::ConvertVertexFormat()
+	void ConvertVertexFormat()
 	{
 		if (SrcVertexTypeT::TangentBasisType == DstVertexTypeT::TangentBasisType &&
 			SrcVertexTypeT::UVType == DstVertexTypeT::UVType)

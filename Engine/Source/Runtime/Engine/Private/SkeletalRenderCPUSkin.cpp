@@ -546,8 +546,8 @@ FORCEINLINE void RebuildTangentBasis( VertexType& DestVertex )
 {
 	// derive the new tangent by orthonormalizing the new normal against
 	// the base tangent vector (assuming these are normalized)
-	FVector Tangent( DestVertex.TangentX );
-	FVector Normal( DestVertex.TangentZ );
+	FVector Tangent = DestVertex.TangentX;
+	FVector Normal = DestVertex.TangentZ;
 	Tangent = Tangent - ((Tangent | Normal) * Normal);
 	Tangent.Normalize();
 	DestVertex.TangentX = Tangent;
