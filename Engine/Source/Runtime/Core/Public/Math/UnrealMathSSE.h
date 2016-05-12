@@ -20,6 +20,7 @@
  */
 typedef __m128	VectorRegister;
 typedef __m128i VectorRegisterInt;
+typedef __m128d VectorRegisterDouble;
 
 // for an __m128, we need a single set of braces (for clang)
 #define DECLARE_VECTOR_REGISTER(X, Y, Z, W) { X, Y, Z, W }
@@ -911,7 +912,7 @@ FORCEINLINE void VectorStoreByte4( const VectorRegister& Vec, void* Ptr )
 * @param Ptr			Unaligned memory pointer to the RGB10A2(4 bytes).
 * @return				VectorRegister with 4 FLOATs loaded from Ptr.
 */
-FORCEINLINE VectorRegister VectorLoadRGB10A2(void* Ptr)
+FORCEINLINE VectorRegister VectorLoadURGB10A2N(void* Ptr)
 {
 	VectorRegister Tmp;
 
@@ -929,9 +930,9 @@ FORCEINLINE VectorRegister VectorLoadRGB10A2(void* Ptr)
 * IMPORTANT: You need to call VectorResetFloatRegisters() before using scalar FLOATs after you've used this intrinsic!
 *
 * @param Vec			Vector containing 4 FLOATs
-* @param Ptr			Unaligned memory pointer to store the packed RGB10A2(4 bytes).
+* @param Ptr			Unaligned memory pointer to store the packed RGBA16(8 bytes).
 */
-FORCEINLINE void VectorStoreRGB10A2(const VectorRegister& Vec, void* Ptr)
+FORCEINLINE void VectorStoreURGB10A2N(const VectorRegister& Vec, void* Ptr)
 {
 	VectorRegister Tmp;
 	Tmp = _mm_max_ps(Vec, MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f));
@@ -951,6 +952,56 @@ FORCEINLINE void VectorStoreRGB10A2(const VectorRegister& Vec, void* Ptr)
 	TmpI = _mm_or_si128(TmpI, TmpI2);
 
 	_mm_store_ss((float *)Ptr, *(const VectorRegister*)&TmpI);
+}
+
+/**
+* Loads packed RGBA16(4 bytes) from unaligned memory and converts them into 4 FLOATs.
+* IMPORTANT: You need to call VectorResetFloatRegisters() before using scalar FLOATs after you've used this intrinsic!
+*
+* @param Ptr			Unaligned memory pointer to the RGBA16(8 bytes).
+* @return				VectorRegister with 4 FLOATs loaded from Ptr.
+*/
+FORCEINLINE VectorRegister VectorLoadURGBA16N(void* Ptr)
+{
+	VectorRegisterDouble TmpD = _mm_load1_pd(reinterpret_cast<const double *>(Ptr));
+
+	VectorRegisterInt Mask = MakeVectorRegisterInt(0x0000FFFF, 0x0000FFFF, 0xFFFF0000, 0xFFFF0000);
+	VectorRegisterInt FlipSign = MakeVectorRegisterInt(0, 0, 0x80000000, 0x80000000);
+
+	VectorRegister Tmp = _mm_and_ps(
+		reinterpret_cast<const VectorRegister*>(&TmpD)[0], 
+		reinterpret_cast<const VectorRegister*>(&Mask)[0]
+		);
+
+	Tmp = _mm_xor_ps(Tmp, reinterpret_cast<const VectorRegister*>(&FlipSign)[0]);
+	Tmp = _mm_cvtepi32_ps(reinterpret_cast<const VectorRegisterInt*>(&Tmp)[0]);
+	Tmp = _mm_add_ps(Tmp, MakeVectorRegister(0, 0, 32768.0f*65536.0f, 32768.0f*65536.0f));
+	Tmp = _mm_mul_ps(Tmp, MakeVectorRegister(1.0f / 65535.0f, 1.0f / 65535.0f, 1.0f / (65535.0f*65536.0f), 1.0f / (65535.0f*65536.0f)));
+	return _mm_shuffle_ps(Tmp, Tmp, _MM_SHUFFLE(3, 1, 2, 0));
+}
+
+/**
+* Converts the 4 FLOATs in the vector RGBA16, clamped to [0, 65535], and stores to unaligned memory.
+* IMPORTANT: You need to call VectorResetFloatRegisters() before using scalar FLOATs after you've used this intrinsic!
+*
+* @param Vec			Vector containing 4 FLOATs
+* @param Ptr			Unaligned memory pointer to store the packed RGB10A2(4 bytes).
+*/
+FORCEINLINE void VectorStoreURGBA16N(const VectorRegister& Vec, void* Ptr)
+{
+
+	VectorRegister Tmp;
+	Tmp = _mm_max_ps(Vec, MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f));
+	Tmp = _mm_min_ps(Tmp, MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f));
+	Tmp = _mm_mul_ps(Tmp, MakeVectorRegister(65535.0f, 65535.0f, 65535.0f, 65535.0f));
+
+	VectorRegisterInt TmpI = _mm_cvtps_epi32(Tmp);
+
+	uint16* Out = (uint16*)Ptr;
+	Out[0] = static_cast<int16>(_mm_extract_epi16(TmpI, 0));
+	Out[1] = static_cast<int16>(_mm_extract_epi16(TmpI, 2));
+	Out[2] = static_cast<int16>(_mm_extract_epi16(TmpI, 4));
+	Out[3] = static_cast<int16>(_mm_extract_epi16(TmpI, 6));
 }
 
 /**

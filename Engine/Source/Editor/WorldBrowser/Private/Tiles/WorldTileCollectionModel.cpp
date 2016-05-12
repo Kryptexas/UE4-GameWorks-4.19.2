@@ -2114,6 +2114,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				SrcModel->BuildSettings.bRecomputeNormals = false;
 				SrcModel->BuildSettings.bRecomputeTangents = false;
 				SrcModel->BuildSettings.bRemoveDegenerates = false;
+				SrcModel->BuildSettings.bUseHighPrecisionTangentBasis = false;
 				SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
 				SrcModel->RawMeshBulkData->SaveRawMesh(LandscapeRawMesh);
 

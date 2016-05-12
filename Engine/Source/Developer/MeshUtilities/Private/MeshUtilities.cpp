@@ -391,6 +391,7 @@ protected:
 		SrcModel->BuildSettings.bRecomputeNormals = false;
 		SrcModel->BuildSettings.bRecomputeTangents = false;
 		SrcModel->BuildSettings.bRemoveDegenerates = false;
+		SrcModel->BuildSettings.bUseHighPrecisionTangentBasis = false;
 		SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
 		SrcModel->RawMeshBulkData->SaveRawMesh(Data->RawMesh);
 
@@ -3226,6 +3227,7 @@ public:
 
 			// Initialize the vertex buffer.
 			int32 NumTexCoords = ComputeNumTexCoords(RawMesh, MAX_STATIC_TEXCOORDS);
+			LODModel.VertexBuffer.SetUseHighPrecisionTangentBasis(LODBuildSettings[LODIndex].bUseHighPrecisionTangentBasis);
 			LODModel.VertexBuffer.SetUseFullPrecisionUVs(LODBuildSettings[LODIndex].bUseFullPrecisionUVs);
 			LODModel.VertexBuffer.Init(Vertices, NumTexCoords);
 			LODModel.PositionVertexBuffer.Init(Vertices);
@@ -7320,6 +7322,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 				SrcModel->BuildSettings.bRecomputeNormals = false;
 				SrcModel->BuildSettings.bRecomputeTangents = false;
 				SrcModel->BuildSettings.bRemoveDegenerates = false;
+				SrcModel->BuildSettings.bUseHighPrecisionTangentBasis = false;
 				SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
 				SrcModel->BuildSettings.bGenerateLightmapUVs = InSettings.bGenerateLightMapUV;
 				SrcModel->BuildSettings.MinLightmapResolution = InSettings.TargetLightMapResolution;

@@ -2336,6 +2336,10 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bBuildReversedIndexBuffer;
 
+	/** If true, Tangents will be stored at 16 bit vs 8 bit precision. */
+	UPROPERTY(EditAnywhere, Category = BuildSettings)
+	bool bUseHighPrecisionTangentBasis;
+
 	/** If true, UVs will be stored at full floating point precision. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bUseFullPrecisionUVs;
@@ -2384,6 +2388,7 @@ struct FMeshBuildSettings
 		, bRemoveDegenerates(true)
 		, bBuildAdjacencyBuffer(true)
 		, bBuildReversedIndexBuffer(true)
+		, bUseHighPrecisionTangentBasis(false)
 		, bUseFullPrecisionUVs(false)
 		, bGenerateLightmapUVs(true)
 		, MinLightmapResolution(64)
@@ -2405,6 +2410,7 @@ struct FMeshBuildSettings
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bBuildAdjacencyBuffer == Other.bBuildAdjacencyBuffer
 			&& bBuildReversedIndexBuffer == Other.bBuildReversedIndexBuffer
+			&& bUseHighPrecisionTangentBasis == Other.bUseHighPrecisionTangentBasis
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
 			&& bGenerateLightmapUVs == Other.bGenerateLightmapUVs
 			&& MinLightmapResolution == Other.MinLightmapResolution

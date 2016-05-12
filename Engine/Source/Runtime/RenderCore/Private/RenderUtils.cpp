@@ -37,9 +37,18 @@ FArchive& operator<<(FArchive& Ar,FPackedNormal& N)
 	return Ar;
 }
 
-FArchive& operator<<(FArchive& Ar, FPackedRGB10A2& N)
+FArchive& operator<<(FArchive& Ar, FPackedRGB10A2N& N)
 {
 	Ar << N.Vector.Packed;
+	return Ar;
+}
+
+FArchive& operator<<(FArchive& Ar, FPackedRGBA16N& N)
+{
+	Ar << N.X;
+	Ar << N.Y;
+	Ar << N.Z;
+	Ar << N.W;
 	return Ar;
 }
 
