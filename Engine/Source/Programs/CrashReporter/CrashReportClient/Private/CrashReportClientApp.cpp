@@ -317,7 +317,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 				// UI failed to initialize, probably due to driver crash. Send in unattended mode if allowed.
 				bool bCanSendWhenUIFailedToInitialize = true;
 				GConfig->GetBool(TEXT("CrashReportClient"), TEXT("CanSendWhenUIFailedToInitialize"), bCanSendWhenUIFailedToInitialize, GEngineIni);
-				if (bCanSendWhenUIFailedToInitialize)
+				if (bCanSendWhenUIFailedToInitialize && !FCrashReportClientConfig::Get().IsAllowedToCloseWithoutSending())
 				{
 					RunUnattended(ErrorReport);
 				}
