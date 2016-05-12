@@ -54,7 +54,8 @@ static TAutoConsoleVariable<int32> CVarMaxTrianglesToRender(
 TAutoConsoleVariable<float> CVarFoliageMinimumScreenSize(
 	TEXT("foliage.MinimumScreenSize"),
 	0.000005f,
-	TEXT("This controls the screen size at which we cull foliage instances entirely."));
+	TEXT("This controls the screen size at which we cull foliage instances entirely."),
+	ECVF_Scalability);
 
 TAutoConsoleVariable<float> CVarFoliageLODDistanceScale(
 	TEXT("foliage.LODDistanceScale"),

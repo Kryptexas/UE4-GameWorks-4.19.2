@@ -2302,7 +2302,7 @@ public:
 	{
 	}
 
-	friend FArchive& operator<<( FArchive& Ar, FCharacterReplaySample& V );
+	friend ENGINE_API FArchive& operator<<( FArchive& Ar, FCharacterReplaySample& V );
 
 	FVector			Location;
 	FRotator		Rotation;

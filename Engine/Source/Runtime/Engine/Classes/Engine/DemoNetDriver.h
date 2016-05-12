@@ -177,6 +177,8 @@ public:
 	bool IsRecording() const;
 	bool IsPlaying() const;
 
+	FString GetDemoURL() { return DemoURL.ToString(); }
+
 public:
 
 	// FExec interface
@@ -248,4 +250,16 @@ public:
 
 	/** Read the streaming level information from the metadata after the level is loaded */
 	void PendingNetGameLoadMapCompleted();
+
+protected:
+	/** allows subclasses to write game specific data to demo header which is then handled by ProcessGameSpecificDemoHeader */
+	virtual void WriteGameSpecificDemoHeader(TArray<FString>& GameSpecificData)
+	{}
+	/** allows subclasses to read game specific data from demo
+	 * return false to cancel playback
+	 */
+	virtual bool ProcessGameSpecificDemoHeader(const TArray<FString>& GameSpecificData, FString& Error)
+	{
+		return true;
+	}
 };

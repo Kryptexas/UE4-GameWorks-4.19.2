@@ -141,7 +141,7 @@ namespace FNavMeshRenderingHelpers
 		return FColor(((Col >> 1) & 0x007f7f7f) | (Col & 0xff000000));
 	}
 
-	void AddVertex(FNavMeshSceneProxyData::FDebugMeshData& MeshData, const FVector& Pos, const FColor Color = FColor::White)
+	void AddVertex(FNavMeshSceneProxyData::FDebugMeshData& MeshData, const FVector& Pos, const FColor Color)
 	{
 		const int32 VertexIndex = MeshData.Vertices.Num();
 		FDynamicMeshVertex* Vertex = new(MeshData.Vertices) FDynamicMeshVertex;

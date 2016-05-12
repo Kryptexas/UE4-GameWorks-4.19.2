@@ -366,6 +366,7 @@ struct FNetworkDemoHeader
 	uint32	InternalProtocolVersion;	// Version of the engine internal network format
 	uint32	EngineNetVersion;			// Version of engine networking format
 	FString LevelName;					// Name of level loaded for demo
+	TArray<FString> GameSpecificData;   // Area for subclasses to write stuff
 	
 	FNetworkDemoHeader() : 
 		Magic( NETWORK_DEMO_MAGIC ), 
@@ -408,6 +409,8 @@ struct FNetworkDemoHeader
 
 		Ar << Header.EngineNetVersion;
 		Ar << Header.LevelName;
+
+		Ar << Header.GameSpecificData;
 
 		return Ar;
 	}
@@ -532,6 +535,13 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 		Error = FString( TEXT( "Demo file is corrupt" ) );
 		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
 		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Corrupt, Error );
+		return false;
+	}
+
+	if (!ProcessGameSpecificDemoHeader(DemoHeader.GameSpecificData, Error))
+	{
+		UE_LOG(LogDemo, Error, TEXT("UDemoNetDriver::InitConnect: (Game Specific) %s"), *Error);
+		GameInstance->HandleDemoPlaybackFailure(EDemoPlayFailure::Generic, Error);
 		return false;
 	}
 
@@ -663,6 +673,8 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 	FNetworkDemoHeader DemoHeader;
 
 	DemoHeader.LevelName = World->GetCurrentLevel()->GetOutermost()->GetName();
+
+	WriteGameSpecificDemoHeader(DemoHeader.GameSpecificData);
 
 	// Write the header
 	(*FileAr) << DemoHeader;

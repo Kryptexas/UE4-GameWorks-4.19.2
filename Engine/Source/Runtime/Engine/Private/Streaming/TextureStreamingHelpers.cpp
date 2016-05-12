@@ -72,7 +72,7 @@ TAutoConsoleVariable<float> CVarStreamingBoost(
 	TEXT("=1.0: normal\n")
 	TEXT("<1.0: decrease wanted mip levels\n")
 	TEXT(">1.0: increase wanted mip levels"),
-	ECVF_Default
+	ECVF_Scalability
 	);
 
 TAutoConsoleVariable<float> CVarStreamingScreenSizeEffectiveMax(
