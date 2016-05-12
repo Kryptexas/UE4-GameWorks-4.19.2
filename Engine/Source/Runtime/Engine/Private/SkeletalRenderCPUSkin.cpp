@@ -564,8 +564,11 @@ FORCEINLINE void ApplyMorphBlend( VertexType& DestVertex, const FVertexAnimDelta
 
 	// Save W before = operator. That overwrites W to be 127.
 	uint8 W = DestVertex.TangentZ.Vector.W;
+
+	FVector TanZ = DestVertex.TangentZ;
+
 	// add normal offset. can only apply normal deltas up to a weight of 1
-	DestVertex.TangentZ = FVector(FVector(DestVertex.TangentZ) + SrcMorph.TangentZDelta * FMath::Min(Weight,1.0f)).GetUnsafeNormal();
+	DestVertex.TangentZ = FVector(TanZ + SrcMorph.TangentZDelta * FMath::Min(Weight,1.0f)).GetUnsafeNormal();
 	// Recover W
 	DestVertex.TangentZ.Vector.W = W;
 } 

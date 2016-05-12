@@ -674,43 +674,7 @@ public:
 	* Convert the existing data in this mesh without rebuilding the mesh (loss of precision)
 	*/
 	template<typename SrcVertexTypeT, typename DstVertexTypeT>
-	void ConvertVertexFormat()
-	{
-		if (SrcVertexTypeT::TangentBasisType == DstVertexTypeT::TangentBasisType &&
-			SrcVertexTypeT::UVType == DstVertexTypeT::UVType)
-		{
-			return;
-		}
-
-		check(SrcVertexTypeT::NumTexCoords == DstVertexTypeT::NumTexCoords);
-
-		auto& SrcVertexData = *static_cast<TStaticMeshVertexData<SrcVertexTypeT>*>(VertexData);
-
-		TArray<DstVertexTypeT> DstVertexData;
-		DstVertexData.AddUninitialized(SrcVertexData.Num());
-
-		for (int32 VertIdx = 0; VertIdx < SrcVertexData.Num(); VertIdx++)
-		{
-			SrcVertexTypeT& SrcVert = SrcVertexData[VertIdx];
-			DstVertexTypeT& DstVert = DstVertexData[VertIdx];
-
-			DstVert.SetTangents(SrcVert.GetTangentX(), SrcVert.GetTangentY(), SrcVert.GetTangentZ());
-
-			for (int32 UVIdx = 0; UVIdx < DstVertexTypeT::NumTexCoords; UVIdx++)
-			{
-				DstVert.SetUV(UVIdx, SrcVert.GetUV(UVIdx));
-			}
-		}
-
-		bUseHighPrecisionTangentBasis = DstVertexTypeT::TangentBasisType == EStaticMeshVertexTangentBasisType::HighPrecision;
-		bUseFullPrecisionUVs = DstVertexTypeT::UVType == EStaticMeshVertexUVType::HighPrecision;
-
-		AllocateData();
-		*static_cast<TStaticMeshVertexData<DstVertexTypeT>*>(VertexData) = DstVertexData;
-
-		Data = VertexData->GetDataPointer();
-		Stride = VertexData->GetStride();
-	}
+	void ConvertVertexFormat();
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;
