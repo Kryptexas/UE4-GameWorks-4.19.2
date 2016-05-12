@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 	 * The following variables are initialized automatically:
 	 * 
 	 *	$S(Output) = the output returned for evaluating the section (initialized to Input)
-	 *	$S(Architecture) = target architecture (armeabi-armv7, armeabi-armv8, x86, x86_64)
+	 *	$S(Architecture) = target architecture (armeabi-armv7a, arm64-v8a, x86, x86_64)
 	 *	$S(PluginDir) = directory the XML file was loaded from
 	 *	$S(EngineDir) = engine directory
 	 *	$S(BuildDir) = project's Intermediate/Android/APK directory
