@@ -138,6 +138,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Default")
 	bool IsLightVisible() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Default")
+	void OnScreenshotButtonClicked();
+
 	UFUNCTION( BlueprintCallable, Category = "Default" )
 	void OnAssetEditorButtonClicked( const bool bIsChecked );
 
