@@ -101,7 +101,7 @@ bool FMapPakDownloader::Init()
 	//  figure out where we are hosted 
 	ANSICHAR *LocationString = (ANSICHAR*)EM_ASM_INT_V({
 
-		var hoststring = "http://" + location.host; 
+		var hoststring = location.href.substring(0, location.href.lastIndexOf('/'));
 		var buffer = Module._malloc(hoststring.length);
 		Module.writeAsciiToMemory(hoststring, buffer);
 		return buffer;

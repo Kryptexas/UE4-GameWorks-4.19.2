@@ -464,11 +464,11 @@ public class HTML5Platform : Platform
 
 		if (LowerBrowserPath.Contains("chrome"))
 		{
-			BrowserCommandline  += "  " + String.Format("--user-data-dir=\"{0}\" --enable-logging --no-first-run", Path.Combine(ProfileDirectory, "chrome"));
+			BrowserCommandline  += "  " + String.Format("--user-data-dir=\\\"{0}\\\" --enable-logging --no-first-run", Path.Combine(ProfileDirectory, "chrome"));
 		}
 		else if (LowerBrowserPath.Contains("firefox"))
 		{
-			BrowserCommandline += "  " +  String.Format("-no-remote -profile \"{0}\"", Path.Combine(ProfileDirectory, "firefox"));
+			BrowserCommandline += "  " +  String.Format("-no-remote -profile \\\"{0}\\\"", Path.Combine(ProfileDirectory, "firefox"));
 		}
 
 		string LauncherArguments = string.Format(" -Browser=\"{0}\" + -BrowserCommandLine=\"{1}\" -ServerPort=\"{2}\" -ServerRoot=\"{3}\" ", new object[] { BrowserPath, BrowserCommandline, ServerPort, WorkingDirectory });
