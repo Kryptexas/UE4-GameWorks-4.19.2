@@ -572,22 +572,22 @@ public:
 		{
 			if (GetUseFullPrecisionUVs())
 			{
-				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::HighPrecision, 7>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
+				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::HighPrecision, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
 			}
 			else
 			{
-				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::Default, 7>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
+				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::Default, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
 			}
 		}
 		else
 		{
 			if (GetUseFullPrecisionUVs())
 			{
-				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::HighPrecision, 7>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
+				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::HighPrecision, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
 			}
 			else
 			{
-				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::Default, 7>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
+				reinterpret_cast<TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::Default, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->SetUV(UVIndex, Vec2D);
 			}
 		}
 	}
@@ -608,22 +608,22 @@ public:
 		{
 			if (GetUseFullPrecisionUVs())
 			{
-				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::HighPrecision, 7>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
+				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::HighPrecision, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
 			}
 			else
 			{
-				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::Default, 7>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
+				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::HighPrecision, EStaticMeshVertexUVType::Default, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
 			}
 		}
 		else
 		{
 			if (GetUseFullPrecisionUVs())
 			{
-				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::HighPrecision, 7>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
+				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::HighPrecision, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
 			}
 			else
 			{
-				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::Default, 7>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
+				return reinterpret_cast<const TStaticMeshFullVertex<EStaticMeshVertexTangentBasisType::Default, EStaticMeshVertexUVType::Default, MAX_STATIC_TEXCOORDS>*>(Data + VertexIndex * Stride)->GetUV(UVIndex);
 			}
 		}
 	}
