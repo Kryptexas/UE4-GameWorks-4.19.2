@@ -1444,7 +1444,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				int controllerNumber = 0;
 
 				// requires 4.1 (Jellybean)
-				string descriptor = ANDROID_BUILD_VERSION >= 16 ? inputDevice.getDescriptor() : Integer.toString(deviceId);
+				String descriptor = ANDROID_BUILD_VERSION >= 16 ? inputDevice.getDescriptor() : Integer.toString(deviceId);
 
 				// supported on 4.4 (KitKat) onward
 				if (ANDROID_BUILD_VERSION >= 19)
