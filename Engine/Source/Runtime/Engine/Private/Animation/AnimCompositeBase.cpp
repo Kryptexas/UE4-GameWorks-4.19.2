@@ -404,7 +404,7 @@ FAnimSegment* FAnimTrack::GetSegmentAtTime(float InTime)
 	FAnimSegment* Result = nullptr;
 	for(FAnimSegment& Segment : AnimSegments)
 	{
-		if(Segment.AnimStartTime <= InTime && InTime <= Segment.StartPos + Segment.GetLength())
+		if(Segment.StartPos <= InTime && InTime <= Segment.StartPos + Segment.GetLength())
 		{
 			Result = &Segment;
 			break;
@@ -419,7 +419,7 @@ int32 FAnimTrack::GetSegmentIndexAtTime(float InTime)
 	for(int32 Idx = 0 ; Idx < AnimSegments.Num() ; ++Idx)
 	{
 		FAnimSegment& Segment = AnimSegments[Idx];
-		if(Segment.AnimStartTime <= InTime && InTime <= Segment.StartPos + Segment.GetLength())
+		if(Segment.StartPos <= InTime && InTime <= Segment.StartPos + Segment.GetLength())
 		{
 			Result = Idx;
 			break;
