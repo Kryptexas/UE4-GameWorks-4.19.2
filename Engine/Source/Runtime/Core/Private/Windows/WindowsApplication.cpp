@@ -902,15 +902,21 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 
 		case WM_MOVE:
 			{
-				// client area position
-				const int32 NewX = (int)(short)(LOWORD(lParam));
-				const int32 NewY = (int)(short)(HIWORD(lParam));
-				FIntPoint NewPosition(NewX,NewY);
+				// client area position (needed to test for minimized windows)
+				int32 NewX = (int)(short)(LOWORD(lParam));
+				int32 NewY = (int)(short)(HIWORD(lParam));
 
 				// Only cache the screen position if its not minimized
-				if ( FWindowsApplication::MinimizedWindowPosition != NewPosition )
+				if (FWindowsApplication::MinimizedWindowPosition.X != NewX && FWindowsApplication::MinimizedWindowPosition.Y != NewY)
 				{
-					MessageHandler->OnMovedWindow( CurrentNativeEventWindow, NewX, NewY );
+					// Slate expects screen space, but WM_MOVE is given in client space - get the real window rect
+					RECT WndRect;
+					::GetWindowRect(hwnd, &WndRect);
+
+					NewX = WndRect.left;
+					NewY = WndRect.top;
+
+					MessageHandler->OnMovedWindow(CurrentNativeEventWindow, NewX, NewY);
 
 					return 0;
 				}
