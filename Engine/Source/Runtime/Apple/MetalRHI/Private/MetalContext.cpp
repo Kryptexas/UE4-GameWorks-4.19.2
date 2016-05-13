@@ -247,13 +247,13 @@ void FMetalDeviceContext::BeginFrame()
 
 void FMetalDeviceContext::ClearFreeList()
 {
+	uint32 Index = 0;
  	while(DelayedFreeLists.Num())
 	{
-		FMetalDelayedFreeList* Pair = DelayedFreeLists[0];
+		FMetalDelayedFreeList* Pair = DelayedFreeLists[Index];
 		if(dispatch_semaphore_wait(Pair->Signal, DISPATCH_TIME_NOW))
 		{
-
-            Pair->FrameCount--;
+			Pair->FrameCount--;
             if (Pair->FrameCount == 0)
             {
                 dispatch_release(Pair->Signal);
@@ -265,10 +265,14 @@ void FMetalDeviceContext::ClearFreeList()
                 delete Pair;
                 DelayedFreeLists.RemoveAt(0, 1, false);
             }
-            else
-            {
-                break;
-            }
+			else
+			{
+				Index++;
+				if (Index >= DelayedFreeLists.Num())
+				{
+					break;
+				}
+			}
 		}
 		else
 		{
@@ -871,7 +875,7 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
 	// Force submit if there's enough outstanding commands to prevent the GPU going idle.
-	ConditionalSwitchToGraphics(StateCache.NeedsToSetRenderTarget(RenderTargetsInfo));
+	ConditionalSwitchToGraphics(StateCache.NeedsToSetRenderTarget(RenderTargetsInfo), !(PLATFORM_MAC));
 	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	if (!CommandList.IsImmediate())
@@ -1175,9 +1179,9 @@ void FMetalContext::CommitNonComputeShaderConstants()
 	}
 }
 
-void FMetalContext::ConditionalSwitchToGraphics(bool bRTChangePending)
+void FMetalContext::ConditionalSwitchToGraphics(bool bRTChangePending, bool bRTChangeForce)
 {
-	ConditionalSubmit(bRTChangePending);
+	ConditionalSubmit(bRTChangePending, bRTChangeForce);
 	
 	StateCache.ConditionalSwitchToRender();
 }
@@ -1200,9 +1204,9 @@ void FMetalContext::ConditionalSwitchToCompute()
 	}
 }
 
-void FMetalContext::ConditionalSubmit(bool bRTChangePending)
+void FMetalContext::ConditionalSubmit(bool bRTChangePending, bool bRTChangeForce)
 {
-	if (GMetalCommandBufferCommitThreshold > 0 && OutstandingOpCount >= GMetalCommandBufferCommitThreshold)
+	if ((GMetalCommandBufferCommitThreshold > 0 && OutstandingOpCount >= GMetalCommandBufferCommitThreshold) || (bRTChangePending && bRTChangeForce))
 	{
 		// AJB: This triggers a 'unset' of the RT. Causing a Load/Store at potentially awkward times.
 		// check that the load/store behaviour of the current RT setup will allows resumption without affecting RT content.

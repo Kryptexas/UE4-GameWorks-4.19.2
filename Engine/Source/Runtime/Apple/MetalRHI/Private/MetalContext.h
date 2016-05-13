@@ -118,7 +118,7 @@ protected:
 	/**
 	 * Possibly switch from blit or compute to graphics
 	 */
-	void ConditionalSwitchToGraphics(bool bRTChangePending = false);
+	void ConditionalSwitchToGraphics(bool bRTChangePending = false, bool bRTChangeForce = false);
 	
 	/**
 	 * Switch to blitting
@@ -131,7 +131,7 @@ protected:
 	void ConditionalSwitchToCompute();
 	
 	/** Conditionally submit based on the number of outstanding draw/dispatch ops. */
-	void ConditionalSubmit(bool bRTChangePending = false);
+	void ConditionalSubmit(bool bRTChangePending = false, bool bRTChangeForce = false);
 	
 	/** Apply the SRT before drawing */
 	void CommitGraphicsResourceTables();
