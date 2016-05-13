@@ -10,7 +10,6 @@ void USoundNodeModPlayer::LoadAsset(bool bAddToRoot)
 {
 	if (IsAsyncLoading())
 	{
-		check(!bAddToRoot);
 		SoundMod = SoundModAssetPtr.Get();
 		if (SoundMod == nullptr)
 		{
@@ -18,8 +17,12 @@ void USoundNodeModPlayer::LoadAsset(bool bAddToRoot)
 			if (!LongPackageName.IsEmpty())
 			{
 				bAsyncLoading = true;
-				LoadPackageAsync(LongPackageName, FLoadPackageAsyncDelegate::CreateUObject(this, &USoundNodeModPlayer::OnSoundModLoaded));
+				LoadPackageAsync(LongPackageName, FLoadPackageAsyncDelegate::CreateUObject(this, &USoundNodeModPlayer::OnSoundModLoaded, bAddToRoot));
 			}
+		}
+		else if (bAddToRoot)
+		{
+			SoundMod->AddToRoot();
 		}
 	}
 	else
@@ -32,11 +35,15 @@ void USoundNodeModPlayer::LoadAsset(bool bAddToRoot)
 	}
 }
 
-void USoundNodeModPlayer::OnSoundModLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result)
+void USoundNodeModPlayer::OnSoundModLoaded(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result, bool bAddToRoot)
 {
 	if (Result == EAsyncLoadingResult::Succeeded)
 	{
 		SoundMod = SoundModAssetPtr.Get();
+		if (bAddToRoot && SoundMod)
+		{
+			SoundMod->AddToRoot();
+		}
 	}
 	bAsyncLoading = false;
 }

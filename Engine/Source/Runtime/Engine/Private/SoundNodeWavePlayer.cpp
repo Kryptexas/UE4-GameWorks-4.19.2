@@ -12,7 +12,6 @@ void USoundNodeWavePlayer::LoadAsset(bool bAddToRoot)
 {
 	if (IsAsyncLoading())
 	{
-		check(!bAddToRoot);
 		SoundWave = SoundWaveAssetPtr.Get();
 		if (SoundWave == nullptr)
 		{
@@ -20,8 +19,12 @@ void USoundNodeWavePlayer::LoadAsset(bool bAddToRoot)
 			if (!LongPackageName.IsEmpty())
 			{
 				bAsyncLoading = true;
-				LoadPackageAsync(LongPackageName, FLoadPackageAsyncDelegate::CreateUObject(this, &USoundNodeWavePlayer::OnSoundWaveLoaded));
+				LoadPackageAsync(LongPackageName, FLoadPackageAsyncDelegate::CreateUObject(this, &USoundNodeWavePlayer::OnSoundWaveLoaded, bAddToRoot));
 			}
+		}
+		else if (bAddToRoot)
+		{
+			SoundWave->AddToRoot();
 		}
 	}
 	else
@@ -34,11 +37,15 @@ void USoundNodeWavePlayer::LoadAsset(bool bAddToRoot)
 	}
 }
 
-void USoundNodeWavePlayer::OnSoundWaveLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result)
+void USoundNodeWavePlayer::OnSoundWaveLoaded(const FName& PackageName, UPackage* Package, EAsyncLoadingResult::Type Result, bool bAddToRoot)
 {
 	if (Result == EAsyncLoadingResult::Succeeded)
 	{
 		SoundWave = SoundWaveAssetPtr.Get();
+		if (bAddToRoot && SoundWave)
+		{
+			SoundWave->AddToRoot();
+		}
 	}
 	bAsyncLoading = false;
 }

@@ -25,7 +25,7 @@ private:
 
 	uint32 bAsyncLoading:1;
 
-	void OnSoundModLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result);
+	void OnSoundModLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result, bool bAddToRoot);
 
 public:	
 

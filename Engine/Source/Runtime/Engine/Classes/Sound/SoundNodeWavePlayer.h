@@ -20,7 +20,7 @@ private:
 	UPROPERTY(transient)
 	USoundWave* SoundWave;
 
-	void OnSoundWaveLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result);
+	void OnSoundWaveLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result, bool bAddToRoot);
 
 	uint32 bAsyncLoading:1;
 public:	
