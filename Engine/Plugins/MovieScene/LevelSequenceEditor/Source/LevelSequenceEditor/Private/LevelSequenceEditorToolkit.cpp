@@ -688,9 +688,11 @@ void FLevelSequenceEditorToolkit::HandleMasterSequenceCreated(UObject* MasterSeq
 	// Create shots with a camera cut and a camera for each
 	float SequenceStartTime = ProjectSettings->DefaultStartTime;
 	float ShotStartTime = SequenceStartTime;
-	float ShotEndTime = ShotStartTime + ProjectSettings->DefaultDuration;
+	float ShotEndTime = ShotStartTime;
 	for (uint32 ShotIndex = 0; ShotIndex < NumShots; ++ShotIndex)
 	{
+		ShotEndTime += ProjectSettings->DefaultDuration;
+
 		FString ShotName = MovieSceneToolHelpers::GenerateNewShotName(ShotTrack->GetAllSections(), ShotStartTime);
 		FString ShotPackagePath = MovieSceneToolHelpers::GenerateNewShotPath(MasterSequence->GetMovieScene(), ShotName);
 
@@ -698,15 +700,16 @@ void FLevelSequenceEditorToolkit::HandleMasterSequenceCreated(UObject* MasterSeq
 		GetSequencer()->ResetToNewRootSequence(*MasterSequence);
 
 		ShotStartTime = ShotEndTime;
-		ShotEndTime += ProjectSettings->DefaultDuration;
 	}
 
 	MasterSequence->GetMovieScene()->SetPlaybackRange(SequenceStartTime, ShotEndTime);
 
 #if WITH_EDITORONLY_DATA
+	const float OutputViewSize = ShotEndTime - SequenceStartTime;
+	const float OutputChange = OutputViewSize * 0.1f;
 	struct FMovieSceneEditorData EditorData;
-	EditorData.ViewRange = FFloatRange(SequenceStartTime, ShotEndTime);
-	EditorData.WorkingRange = FFloatRange(SequenceStartTime, ShotEndTime);
+	EditorData.ViewRange = FFloatRange(SequenceStartTime - OutputChange, ShotEndTime + OutputChange);
+	EditorData.WorkingRange = FFloatRange(SequenceStartTime - OutputChange, ShotEndTime + OutputChange);
 	MasterSequence->GetMovieScene()->SetEditorData(EditorData);
 #endif
 		
