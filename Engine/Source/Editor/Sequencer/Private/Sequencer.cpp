@@ -505,18 +505,14 @@ void FSequencer::ResetToNewRootSequence(UMovieSceneSequence& NewSequence)
 
 	//@todo Sequencer - Encapsulate this better
 	SequenceInstanceStack.Empty();
-	Selection.Empty();
 	SequenceInstanceBySection.Empty();
 
 	// Focusing the initial movie scene needs to be done before the first time NewSequence or GetRootMovieSceneInstance is used
 	RootMovieSceneSequenceInstance = MakeShareable(new FMovieSceneSequenceInstance(NewSequence));
 	SequenceInstanceStack.Add(RootMovieSceneSequenceInstance.ToSharedRef());
 
+	ResetPerMovieSceneData();
 	SequencerWidget->ResetBreadcrumbs();
-	SequencerWidget->UpdateLayoutTree();
-
-	UpdateTimeBoundsToFocusedMovieScene();
-	UpdateRuntimeInstances();
 
 	OnActivateSequenceEvent.Broadcast(*SequenceInstanceStack.Top());
 }
@@ -563,11 +559,6 @@ void FSequencer::FocusSequenceInstance(UMovieSceneSubSection& InSubSection)
 
 	// Reset data that is only used for the previous movie scene
 	ResetPerMovieSceneData();
-
-	// Update internal data for the new movie scene
-	NotifyMovieSceneDataChanged();
-	UpdateTimeBoundsToFocusedMovieScene();
-
 	SequencerWidget->UpdateBreadcrumbs();
 
 	SetGlobalTime(AbsoluteShotPosition, ESnapTimeMode::STM_Interval);
@@ -762,8 +753,7 @@ void FSequencer::PopToSequenceInstance(TSharedRef<FMovieSceneSequenceInstance> S
 		SetPerspectiveViewportCameraCutEnabled(true);
 
 		ResetPerMovieSceneData();
-		NotifyMovieSceneDataChanged();
-		UpdateTimeBoundsToFocusedMovieScene();
+		SequencerWidget->UpdateBreadcrumbs();
 
 		OnActivateSequenceEvent.Broadcast(*SequenceInstanceStack.Top());
 	}
@@ -1713,6 +1703,13 @@ void FSequencer::ResetPerMovieSceneData()
 {
 	//@todo Sequencer - We may want to preserve selections when moving between movie scenes
 	Selection.Empty();
+
+	SequencerWidget->UpdateLayoutTree();
+
+	UpdateTimeBoundsToFocusedMovieScene();
+	UpdateRuntimeInstances();
+
+	LabelManager.SetMovieScene( SequenceInstanceStack.Top()->GetSequence()->GetMovieScene() );
 
 	// @todo run through all tracks for new movie scene changes
 	//  needed for audio track decompression
@@ -2998,7 +2995,8 @@ void FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode> N
 
 	if( bAnythingRemoved )
 	{
-		NotifyMovieSceneDataChanged();
+		SequencerWidget->UpdateLayoutTree();
+		UpdateRuntimeInstances();
 	}
 }
 
@@ -3046,7 +3044,8 @@ void FSequencer::GetActorRecordingState( bool& bIsRecording /* In+Out */ ) const
 
 void FSequencer::PostUndo(bool bSuccess)
 {
-	NotifyMovieSceneDataChanged();
+	SequencerWidget->UpdateLayoutTree();
+	UpdateRuntimeInstances();
 }
 
 
@@ -3952,7 +3951,9 @@ void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid In
 	}
 
 	RootMovieSceneSequenceInstance->RestoreState(*this);
-	NotifyMovieSceneDataChanged();
+
+	SequencerWidget->UpdateLayoutTree();
+	UpdateRuntimeInstances();
 }
 
 
