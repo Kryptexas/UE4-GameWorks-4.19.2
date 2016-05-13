@@ -416,21 +416,7 @@ bool FWindowsWindow::GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32&
 /** Native windows should implement MoveWindowTo by relocating the platform-specific window to (X,Y). */
 void FWindowsWindow::MoveWindowTo( int32 X, int32 Y )
 {
-	RECT WindowRect;
-	::GetWindowRect(HWnd, &WindowRect);
-
-	POINT ClientPoint;
-	ClientPoint.x = 0;
-	ClientPoint.y = 0;
-	::ClientToScreen( HWnd, &ClientPoint );
-
-	const int32 XMoveDistance = X - ClientPoint.x;
-	const int32 YMoveDistance = Y - ClientPoint.y;
-
-	X = WindowRect.left + XMoveDistance;
-	Y = WindowRect.top + YMoveDistance;
-
-	::MoveWindow( HWnd, X, Y, WindowRect.right - WindowRect.left, WindowRect.bottom - WindowRect.top, true );
+	::SetWindowPos(HWnd, nullptr, X, Y, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER);
 }
 
 /** Native windows should implement BringToFront by making this window the top-most window (i.e. focused).
