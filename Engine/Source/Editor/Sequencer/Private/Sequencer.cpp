@@ -513,9 +513,10 @@ void FSequencer::ResetToNewRootSequence(UMovieSceneSequence& NewSequence)
 	SequenceInstanceStack.Add(RootMovieSceneSequenceInstance.ToSharedRef());
 
 	SequencerWidget->ResetBreadcrumbs();
+	SequencerWidget->UpdateLayoutTree();
 
-	NotifyMovieSceneDataChanged();
 	UpdateTimeBoundsToFocusedMovieScene();
+	UpdateRuntimeInstances();
 
 	OnActivateSequenceEvent.Broadcast(*SequenceInstanceStack.Top());
 }
