@@ -260,13 +260,19 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 	// skip same view target
 	AActor* ViewTarget = PC->GetViewTarget();
 
+	// save the last view target so that it can be restored when the camera object is null
+	if (!LastViewTarget.IsValid())
+	{
+		LastViewTarget = ViewTarget;
+	}
+
 	if (CameraObject == ViewTarget)
 	{
 		return;
 	}
 
 	// skip unlocking if the current view target differs
-	ACameraActor* UnlockIfCameraActor = Cast<ACameraActor>(UnlockIfCameraObject);
+	AActor* UnlockIfCameraActor = Cast<AActor>(UnlockIfCameraObject);
 
 	if ((CameraObject == nullptr) && (UnlockIfCameraActor != ViewTarget))
 	{
@@ -274,7 +280,13 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 	}
 
 	// override the player controller's view target
-	ACameraActor* CameraActor = Cast<ACameraActor>(CameraObject);
+	AActor* CameraActor = Cast<AActor>(CameraObject);
+
+	// if the camera object is null, use the last view target so that it is restored to the state before the sequence takes control
+	if (CameraActor == nullptr)
+	{
+		CameraActor = LastViewTarget.Get();
+	}
 
 	FViewTargetTransitionParams TransitionParams;
 	PC->SetViewTarget(CameraActor, TransitionParams);
