@@ -468,6 +468,9 @@ public:
 	FCompiledEvent& OnCompiled() { return CompiledEvent; }
 	void BroadcastCompiled() { CompiledEvent.Broadcast(this); }
 
+	/** Whether or not this blueprint can be considered for a bytecode only compile */
+	virtual bool IsValidForBytecodeOnlyRecompile() const { return true; }
+
 #if WITH_EDITORONLY_DATA
 protected:
 	/** Current object being debugged for this blueprint */
