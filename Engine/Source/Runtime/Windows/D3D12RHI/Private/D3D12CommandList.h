@@ -23,6 +23,8 @@ private:
 		{
 			if (!IsClosed)
 			{
+				FlushResourceBarriers();
+
 				VERIFYD3D12RESULT(CommandList->Close());
 
 				D3DX12Residency::Close(ResidencySet);
@@ -51,7 +53,8 @@ private:
 			// in the residency manager. Beware, this will increase the CPU memory usage of every tracked resource.
 			D3DX12Residency::Open(ResidencySet);
 
-			ResourceBarrierBatcher.Reset();
+			// If this fails then some previous resource barriers were never submitted.
+			check(ResourceBarrierBatcher.GetBarriers().Num() == 0);
 
 #if DEBUG_RESOURCE_STATES
 			ResourceBarriers.Reset();
@@ -158,6 +161,20 @@ private:
 
 			// Update the associated command allocator's sync point so it's not reset until the GPU is done with all command lists using it.
 			CurrentCommandAllocator->SetSyncPoint(SyncPoint);
+		}
+
+		void FlushResourceBarriers()
+		{
+#if DEBUG_RESOURCE_STATES
+			// Keep track of all the resource barriers that have been submitted to the current command list.
+			const TArray<D3D12_RESOURCE_BARRIER>& Barriers = ResourceBarrierBatcher.GetBarriers();
+			if (Barriers.Num())
+			{
+				ResourceBarriers.Append(Barriers.GetData(), Barriers.Num());
+			}
+#endif
+
+			ResourceBarrierBatcher.Flush(CommandList);
 		}
 
 		uint32 AddRef() const
@@ -469,17 +486,7 @@ public:
 	void FlushResourceBarriers()
 	{
 		check(CommandListData);
-
-#if DEBUG_RESOURCE_STATES
-		// Keep track of all the resource barriers that have been submitted to the current command list.
-		const TArray<D3D12_RESOURCE_BARRIER>& Barriers = CommandListData->ResourceBarrierBatcher.GetBarriers();
-		if (Barriers.Num())
-		{
-			CommandListData->ResourceBarriers.Append(Barriers.GetData(), Barriers.Num());
-		}
-#endif
-
-		CommandListData->ResourceBarrierBatcher.Flush(CommandListData->CommandList);
+		CommandListData->FlushResourceBarriers();
 	}
 
 	void FD3D12CommandListHandle::LogResourceBarriers()

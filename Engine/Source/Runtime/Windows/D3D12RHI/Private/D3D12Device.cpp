@@ -444,7 +444,6 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& 
 	GMaxTextureDimensions = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
 	GMaxCubeTextureDimensions = D3D12_REQ_TEXTURECUBE_DIMENSION;
 	GMaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
-	GSupportsTimestampRenderQueries = true;
 
 	GMaxTextureMipCount = FMath::CeilLogTwo(GMaxTextureDimensions) + 1;
 	GMaxTextureMipCount = FMath::Min<int32>(MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount);
@@ -457,6 +456,9 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& 
 		GRHISupportsRHIThread = true;
 	}
 	GRHISupportsParallelRHIExecute = D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE;
+
+	GSupportsTimestampRenderQueries = true;
+	GSupportsParallelOcclusionQueries = true;
 
 	// Disable Async compute by default for now.
 	GEnableAsyncCompute = false;
@@ -790,7 +792,6 @@ void FD3D12Device::SetupAfterDeviceCreation()
 {
 	CreateSignatures();
 
-	PipelineStateCache = FD3D12PipelineStateCache(this);
 	FString GraphicsCacheFile = FPaths::GameSavedDir() / TEXT("D3DGraphics.ushaderprecache");
 	FString ComputeCacheFile = FPaths::GameSavedDir() / TEXT("D3DCompute.ushaderprecache");
 	FString DriverBlobFilename = FPaths::GameSavedDir() / TEXT("D3DDriverByteCodeBlob.ushaderprecache");

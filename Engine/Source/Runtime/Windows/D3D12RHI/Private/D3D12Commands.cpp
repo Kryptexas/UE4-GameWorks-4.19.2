@@ -1216,7 +1216,7 @@ void FD3D12CommandContext::RHISetRenderTargetsAndClear(const FRHISetRenderTarget
 			ClearValue.GetDepthStencil(DepthClear, StencilClear);
 		}
 
-		this->RHIClearMRTImpl(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, ClearColors, RenderTargetsInfo.bClearDepth, DepthClear, RenderTargetsInfo.bClearStencil, StencilClear, FIntRect(), false);
+		this->RHIClearMRTImpl(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, ClearColors, RenderTargetsInfo.bClearDepth, DepthClear, RenderTargetsInfo.bClearStencil, StencilClear, FIntRect());
 	}
 }
 
@@ -1948,19 +1948,17 @@ void FD3D12CommandContext::RHIEndDrawIndexedPrimitiveUP()
 // Raster operations.
 void FD3D12CommandContext::RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
 {
-	RHIClearMRTImpl(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect, true);
+	RHIClearMRTImpl(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 }
 
 void FD3D12CommandContext::RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
 {
-	RHIClearMRTImpl(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect, true);
+	RHIClearMRTImpl(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 }
 
-void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect, bool bForceShaderClear)
+void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
 {
 	SCOPE_CYCLE_COUNTER(STAT_D3D12ClearMRT);
-
-	UNREFERENCED_PARAMETER(bForceShaderClear);
 
 	uint32 NumViews = 1;
 	D3D12_VIEWPORT Viewport;
@@ -1987,6 +1985,18 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	FD3D12BoundRenderTargets BoundRenderTargets(RenderTargetViews, NumSimultaneousRTs, DSView);
 	FD3D12DepthStencilView* DepthStencilView = BoundRenderTargets.GetDepthStencilView();
 
+	// Use rounding for when the number can't be perfectly represented by a float
+	const LONG Width = static_cast<LONG>(FMath::RoundToInt(Viewport.Width));
+	const LONG Height = static_cast<LONG>(FMath::RoundToInt(Viewport.Height));
+
+	// When clearing we must pay attention to the currently set scissor rect
+	bool bClearCoversEntireSurface = false;
+	if (ScissorRect.left <= 0 && ScissorRect.top <= 0 &&
+		ScissorRect.right >= Width && ScissorRect.bottom >= Height)
+	{
+		bClearCoversEntireSurface = true;
+	}
+
 	// Must specify enough clear colors for all active RTs
 	check(!bClearColor || NumClearColors >= BoundRenderTargets.GetNumActiveTargets());
 
@@ -1994,8 +2004,12 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	uint32 ClearRectCount = 0;
 	D3D12_RECT* pClearRects = nullptr;
 	D3D12_RECT ClearRects[4];
-	if (!bSupportsFastClear)
+
+	// Only pass a rect down to the driver if we specifically want to clear a sub-rect
+	if (bSupportsFastClear == false || bClearCoversEntireSurface == false)
 	{
+// TODO: Exclude rects are an optional optimzation, need to make them work with the scissor rect as well
+#if 0
 		// Add clear rects only if fast clears are not supported.
 		if (ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0)
 		{
@@ -2018,12 +2032,22 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 			ClearRectCount++;
 		}
 		else
+#endif
 		{
 			ClearRects[ClearRectCount] = ScissorRect;
 			ClearRectCount++;
 		}
 
 		pClearRects = ClearRects;
+
+		static const bool bSpewPerfWarnings = false;
+
+		if (bSpewPerfWarnings)
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("RHIClearMRTImpl: Using non-fast clear path! This has performance implications"));
+			UE_LOG(LogD3D12RHI, Warning, TEXT("       Viewport: Width %d, Height: %d"), static_cast<LONG>(FMath::RoundToInt(Viewport.Width)), static_cast<LONG>(FMath::RoundToInt(Viewport.Height)));
+			UE_LOG(LogD3D12RHI, Warning, TEXT("   Scissor Rect: Width %d, Height: %d"), ScissorRect.right, ScissorRect.bottom);
+		}
 	}
 
 	const bool ClearRTV = bClearColor && BoundRenderTargets.GetNumActiveTargets() > 0;

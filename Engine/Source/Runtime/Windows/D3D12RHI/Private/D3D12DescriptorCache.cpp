@@ -276,6 +276,7 @@ void FD3D12DescriptorCache::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStar
 	}
 
 	// Reserve heap slots
+	// Note: SlotsNeeded already accounts for the UAVStartSlot. For example, if a shader has 4 UAVs starting at slot 2 then SlotsNeeded will be 6 (because the root descriptor table currently starts at slot 0).
 	uint32 FirstSlotIndex = HeapSlot;
 	HeapSlot += SlotsNeeded;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE DestDescriptor(CurrentViewHeap->GetCPUSlotHandle(FirstSlotIndex));
@@ -287,37 +288,25 @@ void FD3D12DescriptorCache::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStar
 
 	// Fill heap slots
 	check(UAVStartSlot != -1);	// This should never happen or we'll write past the end of the descriptor heap.
-	for (uint32 i = 0; i < UAVStartSlot; i++)
+	check(UAVStartSlot < D3D12_PS_CS_UAV_REGISTER_COUNT);
+	for (uint32 i = 0; i < SlotsNeeded; i++)
 	{
-		SrcDescriptors[i] = pNullUAV->GetView();
-	}
-
-	uint32 DestinationIndex = UAVStartSlot;
-	// Tier 2 hardware needs to pad the descriptors to the rootsignature size. Make sure we don't overflow when there is an offset
-	// from the start slot.
-	check(D3D12_PS_CS_UAV_REGISTER_COUNT > UAVStartSlot);
-	const uint32 ActualSlotsNeeded = FMath::Min(SlotsNeeded, D3D12_PS_CS_UAV_REGISTER_COUNT - UAVStartSlot);
-
-	for (uint32 i = 0; i < ActualSlotsNeeded; i++)
-	{
-		if (UnorderedAccessViewArray[i] != NULL)
+		if ((i < UAVStartSlot) || (UnorderedAccessViewArray[i] == nullptr))
 		{
-			FD3D12DynamicRHI::TransitionResource(CommandList, UnorderedAccessViewArray[i], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			SrcDescriptors[DestinationIndex] = UnorderedAccessViewArray[i]->GetView();
-			CommandList.UpdateResidency(UnorderedAccessViewArray[i]->GetResource());
+			SrcDescriptors[i] = pNullUAV->GetView();
 		}
 		else
 		{
-			SrcDescriptors[DestinationIndex] = pNullUAV->GetView();
+			FD3D12DynamicRHI::TransitionResource(CommandList, UnorderedAccessViewArray[i], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			SrcDescriptors[i] = UnorderedAccessViewArray[i]->GetView();
+			CommandList.UpdateResidency(UnorderedAccessViewArray[i]->GetResource());
 		}
-		DestinationIndex++;
 	}
 
 	// Gather the descriptors from the offline heaps to the online heap
-	const uint32 NumCopySlots = DestinationIndex;
 	GetParentDevice()->GetDevice()->CopyDescriptors(
-		1, &DestDescriptor, &NumCopySlots,
-		NumCopySlots, SrcDescriptors, nullptr /* sizes */,
+		1, &DestDescriptor, &SlotsNeeded,
+		SlotsNeeded, SrcDescriptors, nullptr /* sizes */,
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	if (ShaderStage == SF_Pixel)
@@ -325,14 +314,11 @@ void FD3D12DescriptorCache::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStar
 		const uint32 RDTIndex = CmdContext->StateCache.GetGraphicsRootSignature()->UAVRDTBindSlot(ShaderStage);
 		CommandList->SetGraphicsRootDescriptorTable(RDTIndex, BindDescriptor);
 	}
-	else if (ShaderStage == SF_Compute)
-	{
-		const uint32 RDTIndex = CmdContext->StateCache.GetComputeRootSignature()->UAVRDTBindSlot(ShaderStage);
-		CommandList->SetComputeRootDescriptorTable(RDTIndex, BindDescriptor);
-	}
 	else
 	{
-		check(false);
+		check(ShaderStage == SF_Compute);
+		const uint32 RDTIndex = CmdContext->StateCache.GetComputeRootSignature()->UAVRDTBindSlot(ShaderStage);
+		CommandList->SetComputeRootDescriptorTable(RDTIndex, BindDescriptor);
 	}
 
 #ifdef VERBOSE_DESCRIPTOR_HEAP_DEBUG
@@ -341,7 +327,7 @@ void FD3D12DescriptorCache::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStar
 
 }
 
-void FD3D12DescriptorCache::SetRenderTargets(FD3D12RenderTargetView** RenderTargetViewArray, uint32 Count, FD3D12DepthStencilView* DepthStencilTarget, const D3D12_DEPTH_STENCIL_DESC* const DSDesc, bool bDepthPlaneIsBoundAsSRV, bool bStencilPlaneIsBoundAsSRV)
+void FD3D12DescriptorCache::SetRenderTargets(FD3D12RenderTargetView** RenderTargetViewArray, uint32 Count, FD3D12DepthStencilView* DepthStencilTarget)
 {
 	// NOTE: For this function, setting zero render targets might not be a no-op, since this is also used
 	//       sometimes for only setting a depth stencil.
@@ -369,13 +355,7 @@ void FD3D12DescriptorCache::SetRenderTargets(FD3D12RenderTargetView** RenderTarg
 
 	if (DepthStencilTarget != nullptr)
 	{
-#if USE_CONSERVATIVE_DEPTH_STENCIL_RESOURCE_BARRIERS
-		if (!bDepthPlaneIsBoundAsSRV && !bStencilPlaneIsBoundAsSRV)
-		{
-			// If depth is bound as SRV then it will be transitioned in SetSRVs.
-			FD3D12DynamicRHI::TransitionResource(CommandList, DepthStencilTarget, DSDesc);
-		}
-#endif
+		FD3D12DynamicRHI::TransitionResource(CommandList, DepthStencilTarget);
 
 		const D3D12_CPU_DESCRIPTOR_HANDLE DSVDescriptor = DepthStencilTarget->GetView();
 		CommandList->OMSetRenderTargets(Count, RTVDescriptors, 0, &DSVDescriptor);
@@ -552,7 +532,6 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, FD3D12ShaderRe
 
 			if (SRVs[i]->IsDepthStencilResource())
 			{
-				checkf(!SRVs[i]->IsStencilPlaneResource(), TEXT("SRV index %u contains the stencil plane of texture: %s. Much of the depth stencil resource state code assumes that SRVs only contain the depth plane (not the stencil). If this check fails then the stencil state tracking should be updated similarly how depth is handled."), i, SRVs[i]->GetResource()->GetName().GetPlainNameString());
 				FD3D12DynamicRHI::TransitionResource(CommandList, SRVs[i], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_DEPTH_READ);
 			}
 			else

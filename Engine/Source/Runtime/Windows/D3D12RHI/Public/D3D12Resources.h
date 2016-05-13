@@ -89,6 +89,7 @@ inline DXGI_FORMAT FindDepthStencilParentDXGIFormat(DXGI_FORMAT InFormat)
 	switch (InFormat)
 	{
 	case DXGI_FORMAT_D24_UNORM_S8_UINT:
+	case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
 		return DXGI_FORMAT_R24G8_TYPELESS;
 #if DEPTH_32_BIT_CONVERSION
 		// Changing Depth Buffers to 32 bit on Dingo as D24S8 is actually implemented as a 32 bit buffer in the hardware
@@ -195,7 +196,7 @@ private:
 #endif
 
 public:
-	explicit FD3D12Resource(FD3D12Device* ParentDevice, ID3D12Resource* InResource, D3D12_RESOURCE_DESC const& InDesc, FD3D12Heap* InHeap = nullptr, D3D12_HEAP_TYPE InHeapType = D3D12_HEAP_TYPE_DEFAULT)
+	explicit FD3D12Resource(FD3D12Device* ParentDevice, ID3D12Resource* InResource, D3D12_RESOURCE_STATES InitialState, D3D12_RESOURCE_DESC const& InDesc, FD3D12Heap* InHeap = nullptr, D3D12_HEAP_TYPE InHeapType = D3D12_HEAP_TYPE_DEFAULT)
 		: Resource(InResource)
 		, Heap(InHeap)
 		, Desc(InDesc)
@@ -219,7 +220,7 @@ public:
 			GPUVirtualAddress = Resource->GetGPUVirtualAddress();
 		}
 
-		InitalizeResourceState();
+		InitalizeResourceState(InitialState);
 	}
 
 	virtual ~FD3D12Resource();
@@ -310,7 +311,7 @@ public:
 	};
 
 private:
-	void InitalizeResourceState()
+	void InitalizeResourceState(D3D12_RESOURCE_STATES InitialState)
 	{
 		SubresourceCount = GetMipLevels() * GetArraySize() * GetPlaneCount();
 		DetermineResourceStates();
@@ -320,7 +321,7 @@ private:
 			// Only a few resources (~1%) actually need resource state tracking
 			pResourceState = new CResourceState();
 			pResourceState->Initialize(SubresourceCount);
-			pResourceState->SetResourceState(D3D12_RESOURCE_STATE_COMMON);
+			pResourceState->SetResourceState(InitialState);
 		}
 	}
 

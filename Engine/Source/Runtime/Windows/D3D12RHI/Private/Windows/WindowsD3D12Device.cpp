@@ -1,15 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	D3D12Device.cpp: D3D device RHI implementation.
+	WindowsD3D12Device.cpp: Windows D3D device RHI implementation.
 =============================================================================*/
 
 #include "D3D12RHIPrivate.h"
 #include "AllowWindowsPlatformTypes.h"
-#include <delayimp.h>
+	#include <delayimp.h>
 #include "HideWindowsPlatformTypes.h"
+
 #include "HardwareInfo.h"
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
+#include "GenericPlatformDriver.h"			// FGPUDriverInfo
 
 #pragma comment(lib, "d3d12.lib")
 
@@ -413,15 +415,21 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 	GRHIVendorId = AdapterDesc->VendorId;
 	GRHIDeviceId = AdapterDesc->DeviceId;
 
-	// Copied from the D3D11 RHI but disabled for now as this doesn't exist for UT.
-	//// get driver version (todo: share with other RHIs)
-	//{
-	//	FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName, GRHIAdapterInternalDriverVersion, GRHIAdapterUserDriverVersion, GRHIAdapterDriverDate);
+	UE_LOG(LogD3D12RHI, Log, TEXT("    GPU DeviceId: 0x%x (for the marketing name, search the web for \"GPU Device Id\")"),
+		AdapterDesc->DeviceId);
 
-	//	UE_LOG(LogD3D12RHI, Log, TEXT("    Adapter Name: %s"), *GRHIAdapterName);
-	//	UE_LOG(LogD3D12RHI, Log, TEXT("  Driver Version: %s (internal %s)"), *GRHIAdapterUserDriverVersion, *GRHIAdapterInternalDriverVersion);
-	//	UE_LOG(LogD3D12RHI, Log, TEXT("     Driver Date: %s"), *GRHIAdapterDriverDate);
-	//}
+	// get driver version (todo: share with other RHIs)
+	{
+		FGPUDriverInfo GPUDriverInfo = FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName);
+
+		GRHIAdapterUserDriverVersion = GPUDriverInfo.UserDriverVersion;
+		GRHIAdapterInternalDriverVersion = GPUDriverInfo.InternalDriverVersion;
+		GRHIAdapterDriverDate = GPUDriverInfo.DriverDate;
+
+		UE_LOG(LogD3D12RHI, Log, TEXT("    Adapter Name: %s"), *GRHIAdapterName);
+		UE_LOG(LogD3D12RHI, Log, TEXT("  Driver Version: %s (internal:%s, unified:%s)"), *GRHIAdapterUserDriverVersion, *GRHIAdapterInternalDriverVersion, *GPUDriverInfo.GetUnifiedDriverVersion());
+		UE_LOG(LogD3D12RHI, Log, TEXT("     Driver Date: %s"), *GRHIAdapterDriverDate);
+	}
 
 	// Issue: 32bit windows doesn't report 64bit value, we take what we get.
 	FD3D12GlobalStats::GDedicatedVideoMemory = int64(AdapterDesc->DedicatedVideoMemory);
@@ -480,6 +488,9 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_PCD3D_ES3_1;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_PCD3D_SM4;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_PCD3D_SM5;
+
+	GSupportsEfficientAsyncCompute = GRHISupportsParallelRHIExecute && IsRHIDeviceAMD();
+	GSupportsDepthBoundsTest = false;
 
 	// Notify all initialized FRenderResources that there's a valid RHI device to create their RHI resources for now.
 	for (TLinkedList<FRenderResource*>::TIterator ResourceIt(FRenderResource::GetResourceList()); ResourceIt; ResourceIt.Next())

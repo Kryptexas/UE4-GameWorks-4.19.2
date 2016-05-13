@@ -58,7 +58,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 
 // Definitions.
 #define USE_D3D12RHI_RESOURCE_STATE_TRACKING 1	// Fully relying on the engine's resource barriers is a work in progress. For now, continue to use the D3D12 RHI's resource state tracking.
-#define USE_CONSERVATIVE_DEPTH_STENCIL_RESOURCE_BARRIERS 0	// Always attempt to transition depth stencil resources based on the DSV/DSS flags. Possibly results in unnecessary resource barriers because the DEPTH_WRITE state is sufficient for "normal" depth reads.
 
 #define EXECUTE_DEBUG_COMMAND_LISTS 0
 #define ENABLE_PLACED_RESOURCES 0 // Disabled due to a couple of NVidia bugs related to placed resources. Works fine on Intel
@@ -73,7 +72,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 
 #if DEBUG_RESOURCE_STATES
 #define LOG_EXECUTE_COMMAND_LISTS 1
-#define ASSERT_RESOURCE_STATES 1
+#define ASSERT_RESOURCE_STATES 0	// Disabled for now.
 #define LOG_PRESENT 1
 #else
 #define LOG_EXECUTE_COMMAND_LISTS 0
@@ -386,7 +385,7 @@ public:
 	/** Transition a resource's state based on a Render target view */
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12RenderTargetView* pView, D3D12_RESOURCE_STATES after)
 	{
-#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING
 		FD3D12Resource* pResource = pView->GetResource();
 
 		const D3D12_RENDER_TARGET_VIEW_DESC &desc = pView->GetDesc();
@@ -412,53 +411,44 @@ public:
 			check(false);	// Need to update this code to include the view type
 			break;
 		}
-#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING
 	}
 
 	/** Transition a resource's state based on a Depth stencil view's desc flags */
-	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12DepthStencilView* pView, const D3D12_DEPTH_STENCIL_DESC* const DSDesc)
+	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12DepthStencilView* pView)
 	{
-#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
-
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING
 		// Determine the required subresource states from the view desc
 		const D3D12_DEPTH_STENCIL_VIEW_DESC& DSVDesc = pView->GetDesc();
 		const bool bDSVDepthIsWritable = (DSVDesc.Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH) == 0;
 		const bool bDSVStencilIsWritable = (DSVDesc.Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL) == 0;
-		const bool bPSODepthIsWritable = DSDesc->DepthEnable && (DSDesc->DepthWriteMask == D3D12_DEPTH_WRITE_MASK_ALL);
-		const bool bPSOStencilIsWritable = DSDesc->StencilEnable && (DSDesc->StencilWriteMask != 0);
+		// TODO: Check if the PSO depth stencil is writable. When this is done, we need to transition in SetDepthStencilState too.
 
 		// This code assumes that the DSV always contains the depth plane
 		check(pView->HasDepth());
 		const bool bHasDepth = true;
 		const bool bHasStencil = pView->HasStencil();
-		const bool bDepthIsWritable = bHasDepth && bDSVDepthIsWritable && bPSODepthIsWritable;
-		const bool bStencilIsWritable = bHasStencil && bDSVStencilIsWritable && bPSOStencilIsWritable;
+		const bool bDepthIsWritable = bHasDepth && bDSVDepthIsWritable;
+		const bool bStencilIsWritable = bHasStencil && bDSVStencilIsWritable;
 
 		// DEPTH_WRITE is suitable for read operations when used as a normal depth/stencil buffer.
-		const D3D12_RESOURCE_STATES DepthState = bDepthIsWritable ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_DEPTH_READ;
-		const D3D12_RESOURCE_STATES StencilState = bStencilIsWritable ? D3D12_RESOURCE_STATE_DEPTH_WRITE : D3D12_RESOURCE_STATE_DEPTH_READ;
-		const bool bSameState = DepthState == StencilState;
-
 		FD3D12Resource* pResource = pView->GetResource();
-		if (!bHasStencil || bSameState)
+		if (bDepthIsWritable)
 		{
-			// Only one plane, depth, to transition. Or transition multiple planes to the same state.
-			TransitionResource(hCommandList, pResource, DepthState, pView->GetViewSubresourceSubset());
+			TransitionResource(hCommandList, pResource, D3D12_RESOURCE_STATE_DEPTH_WRITE, pView->GetDepthOnlyViewSubresourceSubset());
 		}
-		else
+
+		if (bStencilIsWritable)
 		{
-			// Transition each plane separately because they need to be in different states
-			check(bHasDepth && bHasStencil && !bSameState);
-			TransitionResource(hCommandList, pResource, DepthState, pView->GetDepthOnlyViewSubresourceSubset());
-			TransitionResource(hCommandList, pResource, StencilState, pView->GetStencilOnlyViewSubresourceSubset());
+			TransitionResource(hCommandList, pResource, D3D12_RESOURCE_STATE_DEPTH_WRITE, pView->GetStencilOnlyViewSubresourceSubset());
 		}
-#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING
 	}
 
 	/** Transition a resource's state based on a Depth stencil view */
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12DepthStencilView* pView, D3D12_RESOURCE_STATES after)
 	{
-#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING
 		FD3D12Resource* pResource = pView->GetResource();
 
 		const D3D12_DEPTH_STENCIL_VIEW_DESC &desc = pView->GetDesc();
@@ -492,13 +482,13 @@ public:
 			check(false);	// Need to update this code to include the view type
 			break;
 		}
-#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING
 	}
 
 	/** Transition a resource's state based on a Unordered access view */
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12UnorderedAccessView* pView, D3D12_RESOURCE_STATES after)
 	{
-#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING
 		FD3D12Resource* pResource = pView->GetResource();
 
 		const D3D12_UNORDERED_ACCESS_VIEW_DESC &desc = pView->GetDesc();
@@ -530,13 +520,13 @@ public:
 			check(false);	// Need to update this code to include the view type
 			break;
 		}
-#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING
 	}
 
 	/** Transition a resource's state based on a Shader resource view */
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12ShaderResourceView* pView, D3D12_RESOURCE_STATES after)
 	{
-#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING
 		FD3D12Resource* pResource = pView->GetResource();
 
 		if (!pResource || !pResource->RequiresResourceStateTracking())
@@ -568,23 +558,23 @@ public:
 			break;
 		}
 		}
-#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING
 	}
 
 	// Transition a specific subresource to the after state.
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12Resource* pResource, D3D12_RESOURCE_STATES after, uint32 subresource)
 	{
-#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING
 		TransitionResourceWithTracking(hCommandList, pResource, after, subresource);
-#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING
 	}
 
 	// Transition a subset of subresources to the after state.
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12Resource* pResource, D3D12_RESOURCE_STATES after, const CViewSubresourceSubset& subresourceSubset)
 	{
-#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING
 		TransitionResourceWithTracking(hCommandList, pResource, after, subresourceSubset);
-#endif USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING
 	}
 
 	// Transition a subresource from current to a new state, using resource state tracking.
@@ -637,10 +627,6 @@ public:
 			}
 		}
 #endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING
-
-#if ASSERT_RESOURCE_STATES
-		AssertResourceState(hCommandList.CommandList(), pResource, after, subresource);
-#endif // ASSERT_RESOURCE_STATES
 	}
 
 	// Transition subresources from current to a new state, using resource state tracking.
@@ -712,10 +698,6 @@ public:
 			}
 		}
 #endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING
-
-#if ASSERT_RESOURCE_STATES
-		AssertResourceState(hCommandList.CommandList(), pResource, after, subresourceSubset);
-#endif // ASSERT_RESOURCE_STATES
 	}
 
 	void GetLocalVideoMemoryInfo(DXGI_QUERY_VIDEO_MEMORY_INFO* LocalVideoMemoryInfo);

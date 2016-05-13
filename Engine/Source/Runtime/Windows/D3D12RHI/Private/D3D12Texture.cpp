@@ -2058,7 +2058,8 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 	bool bCreateDSV = (TextureDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
 	bool bCreatedRTVPerSlice = false;
 
-	TRefCountPtr<FD3D12Resource> TextureResource = new FD3D12Resource(GetRHIDevice(), Resource, TextureDesc);
+	const D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COMMON;
+	TRefCountPtr<FD3D12Resource> TextureResource = new FD3D12Resource(GetRHIDevice(), Resource, State, TextureDesc);
 	TArray<TRefCountPtr<FD3D12RenderTargetView> > RenderTargetViews;
 	TRefCountPtr<FD3D12DepthStencilView> DepthStencilViews[FExclusiveDepthStencil::MaxIndex];
 

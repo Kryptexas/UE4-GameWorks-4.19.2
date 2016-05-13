@@ -438,7 +438,7 @@ public:
 	void SetIndexBuffer(FD3D12IndexBufferCache& Cache);
 	void SetVertexBuffers(FD3D12VertexBufferCache& Cache);
 	void SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStartSlot, TRefCountPtr<FD3D12UnorderedAccessView>* UnorderedAccessViewArray, uint32 Count, uint32 &HeapSlot);
-	void SetRenderTargets(FD3D12RenderTargetView** RenderTargetViewArray, uint32 Count, FD3D12DepthStencilView* DepthStencilTarget, const D3D12_DEPTH_STENCIL_DESC* const DSDesc, bool bDepthPlaneIsBoundAsSRV, bool bStencilPlaneIsBoundAsSRV);
+	void SetRenderTargets(FD3D12RenderTargetView** RenderTargetViewArray, uint32 Count, FD3D12DepthStencilView* DepthStencilTarget);
 	void SetSamplers(EShaderFrequency ShaderStage, FD3D12SamplerState** Samplers, uint32 Count, uint32 &HeapSlot);
 	void SetSRVs(EShaderFrequency ShaderStage, FD3D12ShaderResourceViewCache& Cache, uint32 Count, uint32 &HeapSlot);
 	void SetConstantBuffers(EShaderFrequency ShaderStage, uint32 Count, uint32 &HeapSlot);

@@ -510,9 +510,7 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 		}
 		if (bNeedSetRTs || bForceState)
 		{
-			const bool bDepthPlaneIsBoundAsSRV = PipelineState.Common.SRVCache.NumViewsIntersectWithDepthCount > 0;
-			const bool bStencilPlaneIsBoundAsSRV = false;	// This is an assumption that the stencil plane never used as SRV.
-			DescriptorCache.SetRenderTargets(PipelineState.Graphics.RenderTargetArray, PipelineState.Graphics.HighLevelDesc.NumRenderTargets, PipelineState.Graphics.CurrentDepthStencilTarget, PipelineState.Graphics.HighLevelDesc.DepthStencilState, bDepthPlaneIsBoundAsSRV, bStencilPlaneIsBoundAsSRV);
+			DescriptorCache.SetRenderTargets(PipelineState.Graphics.RenderTargetArray, PipelineState.Graphics.HighLevelDesc.NumRenderTargets, PipelineState.Graphics.CurrentDepthStencilTarget);
 			bNeedSetRTs = false;
 		}
 	}
@@ -1134,11 +1132,14 @@ void FD3D12StateCacheBase::InternalSetShaderResourceView(FD3D12ShaderResourceVie
 			if (FD3D12DynamicRHI::ResourceViewsIntersect(PipelineState.Graphics.CurrentDepthStencilTarget, SRV))
 			{
 				const D3D12_DEPTH_STENCIL_VIEW_DESC &DSVDesc = PipelineState.Graphics.CurrentDepthStencilTarget->GetDesc();
-				const bool bReadOnlyDepth = (DSVDesc.Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH) != 0;
-				if (bReadOnlyDepth)
+				const bool bHasDepth = PipelineState.Graphics.CurrentDepthStencilTarget->HasDepth();
+				const bool bHasStencil = PipelineState.Graphics.CurrentDepthStencilTarget->HasStencil();
+				const bool bWritableDepth = bHasDepth && (DSVDesc.Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH) == 0;
+				const bool bWritableStencil = bHasStencil && (DSVDesc.Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL) == 0;
+				const bool bUnbindDepthStencil = (bWritableDepth && SRV->IsDepthPlaneResource()) || (bWritableStencil && SRV->IsStencilPlaneResource());
+				if (!bUnbindDepthStencil)
 				{
-					// If the DSV has the read only depth then we can leave the depth stencil bound. This should be safe,
-					// as only the stencil bits should have artifacts and the shader reading the DS shouldn't care about it.
+					// If the DSV isn't writing to the same subresource as the SRV then we can leave the depth stencil bound.
 					if (!Cache.ViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
 					{
 						Cache.ViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex] = true;
@@ -1148,7 +1149,7 @@ void FD3D12StateCacheBase::InternalSetShaderResourceView(FD3D12ShaderResourceVie
 				else
 				{
 					// Unbind the DSV because it's being used for depth write
-					check(!bReadOnlyDepth);
+					check(bWritableDepth || bWritableStencil);
 					PipelineState.Graphics.CurrentDepthStencilTarget = nullptr;
 					if (Cache.ViewsIntersectWithDepthRT[ShaderFrequency][ResourceIndex])
 					{

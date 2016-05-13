@@ -62,29 +62,27 @@ FRenderQueryRHIRef FD3D12DynamicRHI::RHICreateRenderQuery(ERenderQueryType Query
 
 bool FD3D12DynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI, uint64& OutResult, bool bWait)
 {
-	check(IsInRenderingThread());
 	FD3D12OcclusionQuery* Query = FD3D12DynamicRHI::ResourceCast(QueryRHI);
 
 	bool bSuccess = true;
-	if (Query != NULL)
+	if (!Query->bResultIsCached)
 	{
-		if (!Query->bResultIsCached)
-		{
-			Query->bResultIsCached = GetRHIDevice()->GetQueryData(*Query, bWait);
-		}
+		bSuccess = GetRHIDevice()->GetQueryData(*Query, bWait);
 
-		if (Query->Type == RQT_AbsoluteTime)
-		{
-			// GetTimingFrequency is the number of ticks per second
-			uint64 Div = FGPUTiming::GetTimingFrequency() / (1000 * 1000);
+		Query->bResultIsCached = bSuccess;
+	}
 
-			// convert from GPU specific timestamp to micro sec (1 / 1 000 000 s) which seems a reasonable resolution
-			OutResult = Query->Result / Div;
-		}
-		else
-		{
-			OutResult = Query->Result;
-		}
+	if (Query->Type == RQT_AbsoluteTime)
+	{
+		// GetTimingFrequency is the number of ticks per second
+		uint64 Div = FGPUTiming::GetTimingFrequency() / (1000 * 1000);
+
+		// convert from GPU specific timestamp to micro sec (1 / 1 000 000 s) which seems a reasonable resolution
+		OutResult = Query->Result / Div;
+	}
+	else
+	{
+		OutResult = Query->Result;
 	}
 	return bSuccess;
 }
@@ -92,18 +90,23 @@ bool FD3D12DynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,
 bool FD3D12Device::GetQueryData(FD3D12OcclusionQuery& Query, bool bWait)
 {
 	FD3D12CommandContext& CmdContext = (Query.Type == RQT_Occlusion) ? OcclusionQueryHeap.GetOwningContext() : *Query.OwningContext;
-	FD3D12CLSyncPoint SyncPoint = (Query.Type == RQT_Occlusion) ? OcclusionQueryHeap.GetSyncPoint() : Query.OwningCommandList;
-	CommandListState ListState = GetCommandListManager().GetCommandListState(SyncPoint);
+	const FD3D12CLSyncPoint SyncPoint = (Query.Type == RQT_Occlusion) ? OcclusionQueryHeap.GetSyncPoint() : Query.OwningCommandList;
 
-	if (ListState != CommandListState::kFinished)
+	if (!SyncPoint.IsComplete())
 	{
 		if (!bWait)
+		{
 			return false;
+		}
 
-		if (ListState == CommandListState::kOpen)
+		if (SyncPoint.IsOpen())
+		{
 			CmdContext.FlushCommands(true);
+		}
 		else
+		{
 			SyncPoint.WaitForCompletion();
+		}
 	}
 
 	// Read the data from the query's buffer.
@@ -478,10 +481,11 @@ void FD3D12BufferedGPUTiming::InitDynamicRHI()
 		ID3D12Resource* Buffer = nullptr;
 		const D3D12_HEAP_PROPERTIES QueryHeapBufferHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
 		const D3D12_RESOURCE_DESC QueryHeapBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(8 * QueryHeapDesc.Count); // Each timestamp query occupies 8 bytes.
-		VERIFYD3D12RESULT(GetParentDevice()->GetDevice()->CreateCommittedResource(&QueryHeapBufferHeapProperties, D3D12_HEAP_FLAG_NONE, &QueryHeapBufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&Buffer)));
+		const D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COPY_DEST;
+		VERIFYD3D12RESULT(GetParentDevice()->GetDevice()->CreateCommittedResource(&QueryHeapBufferHeapProperties, D3D12_HEAP_FLAG_NONE, &QueryHeapBufferDesc, State, nullptr, IID_PPV_ARGS(&Buffer)));
 		VERIFYD3D12RESULT(Buffer->Map(0, nullptr, reinterpret_cast<void**>(&TimestampQueryHeapBufferData)));
 
-		TimestampQueryHeapBuffer = new FD3D12Resource(GetParentDevice(), Buffer, QueryHeapBufferDesc, nullptr, QueryHeapBufferHeapProperties.Type);
+		TimestampQueryHeapBuffer = new FD3D12Resource(GetParentDevice(), Buffer, State, QueryHeapBufferDesc, nullptr, QueryHeapBufferHeapProperties.Type);
 		SetName(TimestampQueryHeapBuffer, L"FD3D12BufferedGPUTiming: Timestamp Query Result Buffer");
 
 		TimestampListHandles.AddZeroed(QueryHeapDesc.Count);

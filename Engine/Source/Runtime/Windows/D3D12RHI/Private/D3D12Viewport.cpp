@@ -116,7 +116,9 @@ FD3D12Texture2D* GetSwapChainSurface(FD3D12Device* Parent, EPixelFormat PixelFor
 	VERIFYD3D12RESULT_EX(SwapChain->GetBuffer(backBufferIndex, __uuidof(ID3D12Resource), (void**)BackBufferResource.GetInitReference()), Parent->GetDevice());
 
 	D3D12_RESOURCE_DESC BackBufferDesc = BackBufferResource->GetDesc();
-	TRefCountPtr<FD3D12Resource> BackBufferWrappedResource = new FD3D12Resource(Parent, BackBufferResource, BackBufferDesc);
+
+	const D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COMMON;
+	TRefCountPtr<FD3D12Resource> BackBufferWrappedResource = new FD3D12Resource(Parent, BackBufferResource, State, BackBufferDesc);
 
 	// create the render target view
 	TRefCountPtr<FD3D12RenderTargetView> BackBufferRenderTargetView;

@@ -460,7 +460,7 @@ HRESULT FD3D12ResourceHelper::CreateCommittedResource(const D3D12_RESOURCE_DESC&
 	if (SUCCEEDED(hr))
 	{
 		// Set the output pointer
-		*ppResource = new FD3D12Resource(ParentDevice, pResource, Desc, nullptr, HeapProps.Type);
+		*ppResource = new FD3D12Resource(ParentDevice, pResource, InitialUsage, Desc, nullptr, HeapProps.Type);
 		(*ppResource)->AddRef();
 
 		// Only track resources in local VRam
@@ -498,7 +498,7 @@ HRESULT FD3D12ResourceHelper::CreatePlacedResource(const D3D12_RESOURCE_DESC& De
 	if (SUCCEEDED(hr))
 	{
 		// Set the output pointer
-		*ppResource = new FD3D12Resource(ParentDevice, pResource, Desc, BackingHeap, heapDesc.Properties.Type);
+		*ppResource = new FD3D12Resource(ParentDevice, pResource, InitialUsage, Desc, BackingHeap, heapDesc.Properties.Type);
 		(*ppResource)->AddRef();
 	}
 
