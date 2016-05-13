@@ -751,6 +751,8 @@ namespace VulkanRHI
 		virtual ~FStagingResource();
 
 		virtual void Destroy(VkDevice DeviceHandle) = 0;
+
+		friend class FStagingManager;
 	};
 
 	class FStagingBuffer : public FStagingResource
@@ -811,7 +813,7 @@ namespace VulkanRHI
 
 		TArray<FStagingBuffer*> UsedStagingBuffers;
 		TArray<FPendingItem> PendingFreeStagingBuffers;
-		TArray<FStagingBuffer*> FreeStagingBuffers;
+		TArray<FPendingItem> FreeStagingBuffers;
 
 		FVulkanDevice* Device;
 		FVulkanQueue* Queue;

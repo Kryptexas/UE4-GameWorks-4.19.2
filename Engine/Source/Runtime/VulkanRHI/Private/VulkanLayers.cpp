@@ -16,7 +16,8 @@
 TAutoConsoleVariable<int32> GValidationCvar(
 	TEXT("r.Vulkan.EnableValidation"),
 	0,
-	TEXT("1 to use validation layers")
+	TEXT("1 to use validation layers"),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe
 	);
 
 // List of validation layers which we want to activate for the (device)-instance (used in VulkanRHI.cpp)

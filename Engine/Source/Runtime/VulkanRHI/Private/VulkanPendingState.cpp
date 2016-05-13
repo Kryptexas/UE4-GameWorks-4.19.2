@@ -599,22 +599,6 @@ void FVulkanPendingState::PrepareDraw(FVulkanCommandListContext* CmdListContext,
 
 		CurrentState.Shader->BindDescriptorSets(Cmd);
 		CurrentState.Shader->BindVertexStreams(Cmd, PendingStreams);
-
-		switch (Topology)
-		{
-		default:
-			if (CurrentState.RasterizerState->RasterizerState.polygonMode != VK_POLYGON_MODE_LINE)
-			{
-				break;
-			}
-			// Fall through...
-		case VK_PRIMITIVE_TOPOLOGY_LINE_LIST:
-		case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP:
-		case VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY:
-		case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY:
-			vkCmdSetLineWidth(Cmd->GetHandle(), 1.0f);
-			break;
-		}
 	}
 }
 
