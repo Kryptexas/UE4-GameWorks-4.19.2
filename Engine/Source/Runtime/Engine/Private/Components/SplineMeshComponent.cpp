@@ -101,12 +101,30 @@ FVertexFactoryShaderParameters* FSplineMeshVertexFactory::ConstructShaderParamet
 
 void FSplineMeshSceneProxy::InitVertexFactory(USplineMeshComponent* InComponent, int32 InLODIndex, FColorVertexBuffer* InOverrideColorVertexBuffer)
 {
+	uint32 TangentXOffset = 0;
+	uint32 TangetnZOffset = 0;
+	uint32 UVsBaseOffset = 0;
+
+	auto& RenderData = InComponent->StaticMesh->RenderData->LODResources[InLODIndex];
+	SELECT_STATIC_MESH_VERTEX_TYPE(
+		RenderData.VertexBuffer.GetUseHighPrecisionTangentBasis(),
+		RenderData.VertexBuffer.GetUseFullPrecisionUVs(),
+		RenderData.VertexBuffer.GetNumTexCoords(),
+		{
+			TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
+			TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
+			UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
+		});
+
 	// Initialize the static mesh's vertex factory.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER(
 		InitSplineMeshVertexFactory,
 		FStaticMeshLODResources*, RenderData, &InComponent->StaticMesh->RenderData->LODResources[InLODIndex],
 		UStaticMesh*, Parent, InComponent->StaticMesh,
 		bool, bOverrideColorVertexBuffer, !!InOverrideColorVertexBuffer,
+		uint32, TangentXOffset, TangentXOffset,
+		uint32, TangetnZOffset, TangetnZOffset,
+		uint32, UVsBaseOffset, UVsBaseOffset,
 		{
 
 		if ((RenderData->SplineVertexFactory && !bOverrideColorVertexBuffer) || (RenderData->SplineVertexFactoryOverrideColorVertexBuffer && bOverrideColorVertexBuffer))
@@ -131,20 +149,6 @@ void FSplineMeshSceneProxy::InitVertexFactory(USplineMeshComponent* InComponent,
 			RenderData->PositionVertexBuffer.GetStride(),
 			VET_Float3
 			);
-
-		uint32 TangentXOffset = 0;
-		uint32 TangetnZOffset = 0;
-		uint32 UVsBaseOffset = 0;
-
-		SELECT_STATIC_MESH_VERTEX_TYPE(
-			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis(),
-			RenderData->VertexBuffer.GetUseFullPrecisionUVs(),
-			RenderData->VertexBuffer.GetNumTexCoords(),
-			{
-				TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
-				TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
-				UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
-			});
 
 		Data.TangentBasisComponents[0] = FVertexStreamComponent(
 			&RenderData->VertexBuffer,

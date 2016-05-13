@@ -361,10 +361,27 @@ void FStaticMeshLODResources::InitVertexFactory(
 	Params.bOverrideColorVertexBuffer = bInOverrideColorVertexBuffer;
 	Params.Parent = InParentMesh;
 
+	uint32 TangentXOffset = 0;
+	uint32 TangetnZOffset = 0;
+	uint32 UVsBaseOffset = 0;
+
+	SELECT_STATIC_MESH_VERTEX_TYPE(
+		Params.LODResources->VertexBuffer.GetUseHighPrecisionTangentBasis(),
+		Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs(),
+		Params.LODResources->VertexBuffer.GetNumTexCoords(),
+		{
+			TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
+			TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
+			UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
+		});
+
 	// Initialize the static mesh's vertex factory.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 		InitStaticMeshVertexFactory,
-		InitStaticMeshVertexFactoryParams,Params,Params,
+		InitStaticMeshVertexFactoryParams, Params, Params,
+		uint32, TangentXOffset, TangentXOffset,
+		uint32, TangetnZOffset, TangetnZOffset,
+		uint32, UVsBaseOffset, UVsBaseOffset,
 		{
 			FLocalVertexFactory::FDataType Data;
 			Data.PositionComponent = FVertexStreamComponent(
@@ -373,20 +390,6 @@ void FStaticMeshLODResources::InitVertexFactory(
 				Params.LODResources->PositionVertexBuffer.GetStride(),
 				VET_Float3
 				);
-
-			uint32 TangentXOffset = 0;
-			uint32 TangetnZOffset = 0;
-			uint32 UVsBaseOffset = 0;
-
-			SELECT_STATIC_MESH_VERTEX_TYPE(
-				Params.LODResources->VertexBuffer.GetUseHighPrecisionTangentBasis(),
-				Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs(),
-				Params.LODResources->VertexBuffer.GetNumTexCoords(),
-				{
-					TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
-					TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
-					UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
-				});
 
 			Data.TangentBasisComponents[0] = FVertexStreamComponent(
 				&Params.LODResources->VertexBuffer,
