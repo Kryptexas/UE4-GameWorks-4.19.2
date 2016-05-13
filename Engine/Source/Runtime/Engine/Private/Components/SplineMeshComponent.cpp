@@ -105,11 +105,11 @@ void FSplineMeshSceneProxy::InitVertexFactory(USplineMeshComponent* InComponent,
 	uint32 TangetnZOffset = 0;
 	uint32 UVsBaseOffset = 0;
 
-	auto& RenderData = InComponent->StaticMesh->RenderData->LODResources[InLODIndex];
+	auto& RD = InComponent->StaticMesh->RenderData->LODResources[InLODIndex];
 	SELECT_STATIC_MESH_VERTEX_TYPE(
-		RenderData.VertexBuffer.GetUseHighPrecisionTangentBasis(),
-		RenderData.VertexBuffer.GetUseFullPrecisionUVs(),
-		RenderData.VertexBuffer.GetNumTexCoords(),
+		RD.VertexBuffer.GetUseHighPrecisionTangentBasis(),
+		RD.VertexBuffer.GetUseFullPrecisionUVs(),
+		RD.VertexBuffer.GetNumTexCoords(),
 		{
 			TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
 			TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
