@@ -748,7 +748,7 @@ namespace UnrealBuildTool
         {
             // Make a file item for the source and destination files
             FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
-            string FullDestPathRoot = Path.GetDirectoryName(LocalExecutable.AbsolutePath) + "\\Assets.car";
+            string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "Assets.car");
 
             FileItem OutputFile;
 /*            if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
@@ -770,9 +770,9 @@ namespace UnrealBuildTool
             CompileAssetAction.WorkingDirectory = GetMacDevSrcRoot();
             CompileAssetAction.CommandPath = "/usr/bin/xcrun";
 
-            FileItem AssetCat = FileItem.GetItemByPath(IntermediateDir + "\\Assets.xcassets");
+            FileItem AssetCat = FileItem.GetItemByPath(Path.Combine(IntermediateDir, "Assets.xcassets"));
             FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
-            FileItem InputFile = LocalToRemoteFileItem(AssetCat, true);
+            FileItem InputFile = LocalToRemoteFileItem(AssetCat, BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
 
             string Arguments = "";
             Arguments += " actool --output-format human-readable-text --notices --warnings";
@@ -1052,15 +1052,15 @@ namespace UnrealBuildTool
                     Directory.CreateDirectory(Dir);
                 }
                 File.WriteAllText(Path.Combine(Dir, "Contents.json"), Contents[i]);
-                LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, "Contents.json")), true);
+                LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, "Contents.json")), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
                 if (Images[i] != null)
                 {
-                    string Image = (Directory.Exists(BuildDir + "/Resource/Graphics") ? (BuildDir) : (EngineDir + "/Build/TVOS")) + "/Resources/Graphics/" + Images[i];
+                    string Image = Path.Combine((Directory.Exists(Path.Combine(BuildDir, "Resource", "Graphics")) ? (BuildDir) : (Path.Combine(EngineDir,"Build", "TVOS"))), "Resources", "Graphics", Images[i]);
                     if (File.Exists(Image))
                     {
-                        File.Copy(Image, Dir + "/" + Images[i], true);
-                        LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, Images[i])), true);
-                        FileInfo DestFileInfo = new FileInfo(Dir + "/" + Images[i]);
+                        File.Copy(Image, Path.Combine(Dir, Images[i]), true);
+                        LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, Images[i])), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
+                        FileInfo DestFileInfo = new FileInfo(Path.Combine(Dir, Images[i]));
                         DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
                     }
                 }
