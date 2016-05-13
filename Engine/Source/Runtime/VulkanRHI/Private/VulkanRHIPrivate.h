@@ -196,6 +196,28 @@ public:
 		return BackBuffer;
 	}
 
+	inline bool ContainsRenderTarget(const FVulkanTextureBase* Texture) const
+	{
+		for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
+		{
+			FRHITexture* RHITexture = RTInfo.ColorRenderTarget[Index].Texture;
+			if (RHITexture->GetTexture2D() && Texture == (FVulkanTextureBase*)(FVulkanTexture2D*)RHITexture)
+			{
+				return true;
+			}
+			else if (RHITexture->GetTextureCube() && Texture == (FVulkanTextureBase*)(FVulkanTextureCube*)RHITexture)
+			{
+				return true;
+			}
+			else if (RHITexture->GetTexture3D() && Texture == (FVulkanTextureBase*)(FVulkanTexture3D*)RHITexture)
+			{
+				return true;
+			}
+		}
+
+		return Texture == (FVulkanTexture2D*)RTInfo.DepthStencilRenderTarget.Texture;
+	}
+
 private:
 	VkFramebuffer Framebuffer;
 

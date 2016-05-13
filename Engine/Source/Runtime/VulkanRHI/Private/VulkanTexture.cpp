@@ -1084,6 +1084,11 @@ FVulkanTexture2D::FVulkanTexture2D(FVulkanDevice& Device, EPixelFormat Format, u
 
 FVulkanTexture2D::~FVulkanTexture2D()
 {
+	if ((GetFlags() & (TexCreate_DepthStencilTargetable | TexCreate_RenderTargetable)) != 0)
+	{
+		Surface.Device->NotifyDeletedRenderTarget(this);
+	}
+
 	Destroy(*Surface.Device);
 }
 
@@ -1123,6 +1128,11 @@ FVulkanTextureCube::FVulkanTextureCube(FVulkanDevice& Device, EPixelFormat Forma
 
 FVulkanTextureCube::~FVulkanTextureCube()
 {
+	if ((GetFlags() & (TexCreate_DepthStencilTargetable | TexCreate_RenderTargetable)) != 0)
+	{
+		Surface.Device->NotifyDeletedRenderTarget(this);
+	}
+
 	Destroy(*Surface.Device);
 }
 

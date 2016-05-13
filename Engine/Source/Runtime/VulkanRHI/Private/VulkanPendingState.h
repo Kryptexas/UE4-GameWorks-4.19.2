@@ -59,6 +59,7 @@ public:
 	FVulkanRenderPass& GetRenderPass();
 
 	FVulkanFramebuffer* GetFrameBuffer();
+	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
 
 	inline void UpdateRenderPass(FVulkanCmdBuffer* CmdBuffer)
 	{

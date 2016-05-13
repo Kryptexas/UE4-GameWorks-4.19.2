@@ -521,3 +521,9 @@ void FVulkanDevice::BindSRV(FVulkanShaderResourceView* SRV, uint32 TextureIndex,
 		ShaderState.SetBufferViewState(Stage, TextureIndex, nullptr);
 	}
 }
+
+void FVulkanDevice::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)
+{
+	//#todo-rco: Loop through all contexts!
+	GetPendingState().NotifyDeletedRenderTarget(Texture);
+}

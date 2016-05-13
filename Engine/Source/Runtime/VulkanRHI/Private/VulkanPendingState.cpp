@@ -884,3 +884,21 @@ FVulkanFramebuffer* FVulkanPendingState::GetFrameBuffer()
 {
 	return CurrentState.FrameBuffer;
 }
+
+void FVulkanPendingState::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)
+{
+	for (auto& Pair : FrameBufferMap)
+	{
+		TArray<FVulkanFramebuffer*>& FrameBuffers = Pair.Value;
+		for (int32 Index = FrameBuffers.Num() - 1; Index >= 0; --Index)
+		{
+			FVulkanFramebuffer* FB = FrameBuffers[Index];
+			if (FB->ContainsRenderTarget(Texture))
+			{
+				FB->Destroy(*Device);
+				delete FB;
+				FrameBuffers.RemoveAtSwap(Index, 1, false);
+			}
+		}
+	}
+}
