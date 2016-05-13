@@ -1008,10 +1008,16 @@ namespace UnrealBuildTool
 					bool bIsLauncherProduct = ExeName.StartsWith("EpicGamesLauncher") || ExeName.StartsWith("EpicGamesBootstrapLauncher");
 					string[] ExeNameParts = ExeName.Split('-');
 					string GameName = ExeNameParts[0];
+					FileReference UProjectFilePath = null;
 
 					if (GameName == "EpicGamesBootstrapLauncher")
 					{
 						GameName = "EpicGamesLauncher";
+					}
+					else if (GameName == "UE4" && ProjectFile != null)
+					{
+						UProjectFilePath = ProjectFile;
+						GameName = UProjectFilePath.GetFileNameWithoutAnyExtensions();
 					}
 
 					AppendMacLine(FinalizeAppBundleScript, "mkdir -p \"{0}.app/Contents/MacOS\"", ExeName);
@@ -1023,10 +1029,9 @@ namespace UnrealBuildTool
 					string IconName = "UE4";
 					string BundleVersion = bIsLauncherProduct ? LoadLauncherDisplayVersion() : LoadEngineDisplayVersion();
 					string EngineSourcePath = ConvertPath(Directory.GetCurrentDirectory()).Replace("$", "\\$");
-					FileReference UProjectFilePath;
 					string CustomResourcesPath = "";
 					string CustomBuildPath = "";
-					if (!UProjectInfo.TryGetProjectFileName(GameName, out UProjectFilePath))
+					if (UProjectFilePath == null && !UProjectInfo.TryGetProjectFileName(GameName, out UProjectFilePath))
 					{
 						string[] TargetFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), GameName + ".Target.cs", SearchOption.AllDirectories);
 						if (TargetFiles.Length == 1)
