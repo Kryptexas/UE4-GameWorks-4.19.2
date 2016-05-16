@@ -223,7 +223,7 @@ TSharedRef<ITableRow> SMeshMergingDialog::MakeComponentListItemWidget(TSharedPtr
 
 	// Retrieve information about the mesh component
 	const FString OwningActorName = MeshComponentData->MeshComponent->GetOwner()->GetName();
-	const FString StaticMeshName = MeshComponentData->MeshComponent->StaticMesh->GetName();
+	const FString StaticMeshName = (MeshComponentData->MeshComponent->StaticMesh != nullptr) ? MeshComponentData->MeshComponent->StaticMesh->GetName() : TEXT("No Static Mesh");
 	const FString ComponentName = MeshComponentData->MeshComponent->GetName();
 
 	// See if we stored a checkbox state for this mesh component, and set accordingly
