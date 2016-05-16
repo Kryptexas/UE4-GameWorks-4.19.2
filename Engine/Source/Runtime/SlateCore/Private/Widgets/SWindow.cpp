@@ -335,6 +335,10 @@ void SWindow::Construct(const FArguments& InArgs)
 		const FVector2D DisplayTopLeft( AutoCenterRect.Left, AutoCenterRect.Top );
 		const FVector2D DisplaySize( AutoCenterRect.Right - AutoCenterRect.Left, AutoCenterRect.Bottom - AutoCenterRect.Top );
 		WindowPosition = DisplayTopLeft + ( DisplaySize - WindowSize ) * 0.5f;
+
+		// Don't allow the window to center to outside of the work area
+		WindowPosition.X = FMath::Max(WindowPosition.X, (float)PrimaryDisplayRect.Left);
+		WindowPosition.Y = FMath::Max(WindowPosition.Y, (float)PrimaryDisplayRect.Top);
 	}
 
 #if PLATFORM_HTML5 

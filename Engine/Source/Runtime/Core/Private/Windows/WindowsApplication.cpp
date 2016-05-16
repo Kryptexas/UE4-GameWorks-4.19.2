@@ -902,21 +902,15 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 
 		case WM_MOVE:
 			{
-				// client area position (needed to test for minimized windows)
-				int32 NewX = (int)(short)(LOWORD(lParam));
-				int32 NewY = (int)(short)(HIWORD(lParam));
+				// client area position
+				const int32 NewX = (int)(short)(LOWORD(lParam));
+				const int32 NewY = (int)(short)(HIWORD(lParam));
+				FIntPoint NewPosition(NewX,NewY);
 
 				// Only cache the screen position if its not minimized
-				if (FWindowsApplication::MinimizedWindowPosition.X != NewX && FWindowsApplication::MinimizedWindowPosition.Y != NewY)
+				if ( FWindowsApplication::MinimizedWindowPosition != NewPosition )
 				{
-					// Slate expects screen space, but WM_MOVE is given in client space - get the real window rect
-					RECT WndRect;
-					::GetWindowRect(hwnd, &WndRect);
-
-					NewX = WndRect.left;
-					NewY = WndRect.top;
-
-					MessageHandler->OnMovedWindow(CurrentNativeEventWindow, NewX, NewY);
+					MessageHandler->OnMovedWindow( CurrentNativeEventWindow, NewX, NewY );
 
 					return 0;
 				}
@@ -1110,10 +1104,11 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 					BorderHeight = BorderRect.bottom - BorderRect.top;
 				}
 
+				// We always apply BorderWidth and BorderHeight since Slate always works with client area window sizes
 				MinMaxInfo->ptMinTrackSize.x = FMath::RoundToInt( SizeLimits.GetMinWidth().Get(MinMaxInfo->ptMinTrackSize.x) );
 				MinMaxInfo->ptMinTrackSize.y = FMath::RoundToInt( SizeLimits.GetMinHeight().Get(MinMaxInfo->ptMinTrackSize.y) );
-				MinMaxInfo->ptMaxTrackSize.x = FMath::RoundToInt( SizeLimits.GetMaxWidth().Get(MinMaxInfo->ptMaxTrackSize.x - BorderWidth) ) + BorderWidth;
-				MinMaxInfo->ptMaxTrackSize.y = FMath::RoundToInt( SizeLimits.GetMaxHeight().Get(MinMaxInfo->ptMaxTrackSize.y - BorderHeight) ) + BorderHeight;
+				MinMaxInfo->ptMaxTrackSize.x = FMath::RoundToInt( SizeLimits.GetMaxWidth().Get(MinMaxInfo->ptMaxTrackSize.x) ) + BorderWidth;
+				MinMaxInfo->ptMaxTrackSize.y = FMath::RoundToInt( SizeLimits.GetMaxHeight().Get(MinMaxInfo->ptMaxTrackSize.y) ) + BorderHeight;
 				return 0;
 			}
 			break;
