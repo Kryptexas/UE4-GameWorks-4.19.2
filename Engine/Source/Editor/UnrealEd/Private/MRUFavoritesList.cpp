@@ -44,13 +44,14 @@ void FMainMRUFavoritesList::WriteToINI() const
  */
 void FMainMRUFavoritesList::AddFavoritesItem( const FString& Item )
 {
-	check(FPackageName::IsValidLongPackageName(Item));
-
-	// Only add the item if it isn't already a favorite!
-	if ( !FavoriteItems.Contains( Item ) )
+	if (ensureMsgf(FPackageName::IsValidLongPackageName(Item), TEXT("Item is not a valid long package name: '%s'"), *Item))
 	{
-		FavoriteItems.Insert( Item, 0 );
-		WriteToINI();
+		// Only add the item if it isn't already a favorite!
+		if ( !FavoriteItems.Contains( Item ) )
+		{
+			FavoriteItems.Insert( Item, 0 );
+			WriteToINI();
+		}
 	}
 }
 
@@ -61,12 +62,14 @@ void FMainMRUFavoritesList::AddFavoritesItem( const FString& Item )
  */
 void FMainMRUFavoritesList::RemoveFavoritesItem( const FString& Item )
 {
-	check(FPackageName::IsValidLongPackageName(Item));
-	const int32 ItemIndex = FavoriteItems.Find( Item );
-	if ( ItemIndex != INDEX_NONE )
+	if (ensureMsgf(FPackageName::IsValidLongPackageName(Item), TEXT("Item is not a valid long package name: '%s'"), *Item))
 	{
-		FavoriteItems.RemoveAt( ItemIndex );
-		WriteToINI();
+		const int32 ItemIndex = FavoriteItems.Find( Item );
+		if ( ItemIndex != INDEX_NONE )
+		{
+			FavoriteItems.RemoveAt( ItemIndex );
+			WriteToINI();
+		}
 	}
 }
 
@@ -77,11 +80,13 @@ void FMainMRUFavoritesList::RemoveFavoritesItem( const FString& Item )
  */
 void FMainMRUFavoritesList::MoveFavoritesItemToHead(const FString& Item)
 {
-	check(FPackageName::IsValidLongPackageName(Item));
-	if ( FavoriteItems.RemoveSingle(Item) == 1 )
+	if (ensureMsgf(FPackageName::IsValidLongPackageName(Item), TEXT("Item is not a valid long package name: '%s'"), *Item))
 	{
-		FavoriteItems.Insert( Item, 0 );
-		WriteToINI();
+		if ( FavoriteItems.RemoveSingle(Item) == 1 )
+		{
+			FavoriteItems.Insert( Item, 0 );
+			WriteToINI();
+		}
 	}
 }
 
@@ -94,9 +99,11 @@ void FMainMRUFavoritesList::MoveFavoritesItemToHead(const FString& Item)
  */
 bool FMainMRUFavoritesList::ContainsFavoritesItem( const FString& Item )
 {
-	check(FPackageName::IsValidLongPackageName(Item));
-	const FString CleanedName = FPaths::ConvertRelativePathToFull(Item);
-	return FavoriteItems.Contains( CleanedName );
+	if (ensureMsgf(FPackageName::IsValidLongPackageName(Item), TEXT("Item is not a valid long package name: '%s'"), *Item))
+	{
+		return FavoriteItems.Contains( Item );
+	}
+	return false;
 }
 
 /**
