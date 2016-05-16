@@ -284,6 +284,31 @@ public partial class Project : CommandUtils
 		Log("********** COOK COMMAND COMPLETED **********");
 	}
 
+    public struct FileInfo
+    {
+        public FileInfo(string InFilename)
+        {
+            Filename = InFilename;
+            FirstByteFailed = -1;
+            BytesMismatch = 0;
+            File1Size = 0;
+            File2Size = 0;
+        }
+        public FileInfo(string InFilename, long InFirstByteFailed, long InBytesMismatch, long InFile1Size, long InFile2Size)
+        {
+            Filename = InFilename;
+            FirstByteFailed = InFirstByteFailed;
+            BytesMismatch = InBytesMismatch;
+            File1Size = InFile1Size;
+            File2Size = InFile2Size;
+        }
+        public string Filename;
+        public long FirstByteFailed;
+        public long BytesMismatch;
+        public long File1Size;
+        public long File2Size;
+    };
+
     private static void DiffCookedContent( ProjectParams Params)
     {
         List<UnrealTargetPlatform> PlatformsToCook = Params.ClientTargetPlatforms;
@@ -306,7 +331,10 @@ public partial class Project : CommandUtils
             }
             catch(Exception Ex)
             {
-                Log("Failed deleting temporary directories "+TemporaryPakPath+" continuing. "+ Ex.GetType().ToString());
+                if (!(Ex is System.IO.DirectoryNotFoundException))
+                {
+                    Log("Failed deleting temporary directories " + TemporaryPakPath + " continuing. " + Ex.GetType().ToString());
+                }
             }
             try
             {
@@ -314,7 +342,10 @@ public partial class Project : CommandUtils
             }
             catch (Exception Ex)
             {
-                Log("Failed deleting temporary directories " + TemporaryFilesPath + " continuing. " + Ex.GetType().ToString());
+                if (!(Ex is System.IO.DirectoryNotFoundException))
+                {
+                    Log("Failed deleting temporary directories " + TemporaryFilesPath + " continuing. " + Ex.GetType().ToString());
+                }
             }
 
             try
@@ -399,6 +430,8 @@ public partial class Project : CommandUtils
                 Directory.CreateDirectory(FailedContentDirectory);
 
                 // diff the content
+                List<FileInfo> FileReport = new List<FileInfo>();
+
                 List<string> AllFiles = Directory.EnumerateFiles(FullCookPath, "*.uasset", System.IO.SearchOption.AllDirectories).ToList();
                 AllFiles.AddRange(Directory.EnumerateFiles(FullCookPath, "*.umap", System.IO.SearchOption.AllDirectories).ToList());
                 foreach (string SourceFilename in AllFiles)
@@ -436,51 +469,92 @@ public partial class Project : CommandUtils
                     }
                     else if (SourceFile.LongLength == DestFile.LongLength)
                     {
+                        /*long FirstByteFailed = -1;
+                        long BytesFailed = 0;*/
+
+                        FileInfo DiffFileInfo = new FileInfo(SourceFilename);
+                        DiffFileInfo.File1Size = DiffFileInfo.File2Size = SourceFile.LongLength;
+
                         bool bFailedDiff = false;
                         for (long Index = 0; Index < SourceFile.LongLength; ++Index) 
                         {
                             if (SourceFile[Index] != DestFile[Index])
                             {
-                                bFailedDiff = true;
-                                Log("Diff cooked content failed on file " + SourceFilename + " when comparing against " + DestFilename + " at offset " + Index.ToString());
-                                string SavedSourceFilename = CombinePaths(FailedContentDirectory, Path.GetFileName(SourceFilename) + "Source");
-                                string SavedDestFilename = CombinePaths(FailedContentDirectory, Path.GetFileName(DestFilename) + "Dest");
+                                if ( DiffFileInfo.FirstByteFailed == -1)
+                                {
+                                    DiffFileInfo.FirstByteFailed = Index;
+                                }
+                                DiffFileInfo.BytesMismatch += 1;
 
-                                Log("Creating directory " + Path.GetDirectoryName(SavedSourceFilename));
-                                
-                                try
+                                if (bFailedDiff == false)
                                 {
-                                    Directory.CreateDirectory(Path.GetDirectoryName(SavedSourceFilename));
+                                    bFailedDiff = true;
+
+                                    Log("Diff cooked content failed on file " + SourceFilename + " when comparing against " + DestFilename + " at offset " + Index.ToString());
+                                    string SavedSourceFilename = CombinePaths(FailedContentDirectory, Path.GetFileName(SourceFilename) + "Source");
+                                    string SavedDestFilename = CombinePaths(FailedContentDirectory, Path.GetFileName(DestFilename) + "Dest");
+
+                                    Log("Creating directory " + Path.GetDirectoryName(SavedSourceFilename));
+
+                                    try
+                                    {
+                                        Directory.CreateDirectory(Path.GetDirectoryName(SavedSourceFilename));
+                                    }
+                                    catch (Exception E)
+                                    {
+                                        Log("Failed to create directory " + Path.GetDirectoryName(SavedSourceFilename) + " Exception " + E.ToString());
+                                    }
+                                    Log("Creating directory " + Path.GetDirectoryName(SavedDestFilename));
+                                    try
+                                    {
+                                        Directory.CreateDirectory(Path.GetDirectoryName(SavedDestFilename));
+                                    }
+                                    catch (Exception E)
+                                    {
+                                        Log("Failed to create directory " + Path.GetDirectoryName(SavedDestFilename) + " Exception " + E.ToString());
+                                    }
+                                    File.Copy(SourceFilename, SavedSourceFilename, true);
+                                    File.Copy(DestFilename, SavedDestFilename, true);
+                                    Log("Content temporarily saved to " + SavedSourceFilename + " and " + SavedDestFilename + " at offset " + Index.ToString());
                                 }
-                                catch (Exception E)
-                                {
-                                    Log("Failed to create directory " + Path.GetDirectoryName(SavedSourceFilename) + " Exception " + E.ToString());
-                                }
-                                Log("Creating directory " + Path.GetDirectoryName(SavedDestFilename));
-                                try
-                                {
-                                    Directory.CreateDirectory(Path.GetDirectoryName(SavedDestFilename));
-                                }
-                                catch(Exception E)
-                                {
-                                    Log("Failed to create directory " + Path.GetDirectoryName(SavedDestFilename) + " Exception " + E.ToString());
-                                }
-                                File.Copy(SourceFilename, SavedSourceFilename, true);
-                                File.Copy(DestFilename, SavedDestFilename, true);
-                                Log("Content temporarily saved to " + SavedSourceFilename + " and " + SavedDestFilename + " at offset " + Index.ToString());
-                                break;
+                                // break;
                             }
                         }
                         if (!bFailedDiff)
                         {
                             Log("Content matches for " + SourceFilename + " and " + DestFilename);
                         }
+                        else 
+                        {
+                            FileReport.Add(DiffFileInfo);
+                        }
                     }
                     else
                     {
                         Log("Diff cooked content failed on file " + SourceFilename + " when comparing against " + DestFilename + " files are different sizes " + SourceFile.LongLength.ToString() + " " + DestFile.LongLength.ToString());
+
+                        FileInfo DiffFileInfo = new FileInfo(SourceFilename);
+
+                        DiffFileInfo.File1Size = SourceFile.LongLength;
+                        DiffFileInfo.File2Size = DestFile.LongLength;
+
+                        FileReport.Add(DiffFileInfo);
                     }
                 }
+
+                Log("Mismatching files:");
+                foreach (var Report in FileReport)
+                {
+                    if ( Report.FirstByteFailed == -1)
+                    {
+                        Log("File " + Report.Filename + " size mismatch: " + Report.File1Size + " VS " +Report.File2Size);
+                    }
+                    else
+                    {
+                        Log("File " + Report.Filename + " bytes mismatch: " + Report.BytesMismatch + " first byte failed at: " + Report.FirstByteFailed + " file size: " + Report.File1Size);
+                    }
+                }
+
             }
             catch ( Exception Ex )
             {

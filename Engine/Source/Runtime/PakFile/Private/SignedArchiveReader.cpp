@@ -279,9 +279,10 @@ bool FChunkCacheWorker::CheckSignature(const FChunkRequest& ChunkInfo)
 	}
 
 	// Compare hashes
-	if (DecryptedSignature != SourceSignature)
+	if (!ensure(DecryptedSignature == SourceSignature))
 	{
-		UE_LOG(LogPakFile, Fatal, TEXT("Pak file has been tampered with."));
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Corrupt Installation Detected. Please use \"Verify\" in the Epic Games Launcher"), TEXT("Pakfile Error"));
+		FPlatformMisc::RequestExit(1);
 	}
 
 	return true;

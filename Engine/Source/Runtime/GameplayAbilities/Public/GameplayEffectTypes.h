@@ -837,7 +837,8 @@ struct GAMEPLAYABILITIES_API FGameplayCueParameters
 
 	bool IsInstigatorLocallyControlled() const;
 
-	bool IsInstigatorLocallyControlledPlayer() const;
+	// Fallback actor is used if the parameters have nullptr for instigator and effect causer
+	bool IsInstigatorLocallyControlledPlayer(AActor* FallbackActor=nullptr) const;
 
 	AActor* GetInstigator() const;
 
@@ -1033,6 +1034,23 @@ struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 		}
 
 		return false;
+	}
+
+	/**
+	* return the count for a specified tag 
+	*
+	* @param Tag			Tag to update
+	*
+	* @return the count of the passed in tag
+	*/
+	FORCEINLINE int32 GetTagCount(const FGameplayTag& Tag) const
+	{
+		if (const int32* Ptr = GameplayTagCountMap.Find(Tag))
+		{
+			return *Ptr;
+		}
+
+		return 0;
 	}
 
 	/**

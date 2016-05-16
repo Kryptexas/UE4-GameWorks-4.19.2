@@ -1388,18 +1388,6 @@ namespace UnrealBuildTool
 
 						Log.TraceInformation("Execution time: {0}s", BuildDuration);
 					}
-
-					//Telemetry.SendEvent("PerformanceInfo.2",
-					//    "TotalExecutionTimeSec", BuildDuration.ToString("0.00"),
-					//    "TotalTimeSpentGettingIncludesSec", CPPEnvironment.TotalTimeSpentGettingIncludes.ToString("0.00"),
-					//    "TotalIncludesRequested", CPPEnvironment.TotalIncludesRequested.ToString(),
-					//    "DirectIncludeCacheMissesTotalTimeSec", CPPEnvironment.DirectIncludeCacheMissesTotalTime.ToString("0.00"),
-					//    "TotalDirectIncludeCacheMisses", CPPEnvironment.TotalDirectIncludeCacheMisses.ToString(),
-					//    "TotalFindIncludedFileCalls", CPPEnvironment.TotalFindIncludedFileCalls.ToString(),
-					//    "IncludePathSearchAttempts", CPPEnvironment.IncludePathSearchAttempts.ToString(),
-					//    "TotalFileItemCount", FileItem.TotalFileItemCount.ToString(),
-					//    "MissingFileItemCount", FileItem.MissingFileItemCount.ToString()
-					//    );
 				}
 				catch (Exception Exception)
 				{
@@ -1824,8 +1812,6 @@ namespace UnrealBuildTool
 				Dictionary<string, List<UHTModuleInfo>> TargetNameToUObjectModules = new Dictionary<string, List<UHTModuleInfo>>(StringComparer.InvariantCultureIgnoreCase);
 				foreach (UEBuildTarget Target in Targets)
 				{
-					DateTime TargetStartTime = DateTime.UtcNow;
-
 					if (bIsHotReload)
 					{
 						// Don't produce new DLLs if there's been no code changes
@@ -1883,21 +1869,6 @@ namespace UnrealBuildTool
 								ActionGraph.SaveActionGraphVisualization(Target, Path.Combine(BuildConfiguration.BaseIntermediatePath, Target.GetTargetName() + ".gexf"), Target.GetTargetName(), VisualizationType, ActionsToExecute);
 							}
 						}
-
-						double TargetBuildTime = (DateTime.UtcNow - TargetStartTime).TotalSeconds;
-
-						// Send out telemetry for this target
-						Telemetry.SendEvent("TargetBuildStats.2",
-							"AppName", Target.AppName,
-							"GameName", Target.TargetName,
-							"Platform", Target.Platform.ToString(),
-							"Configuration", Target.Configuration.ToString(),
-							"CleanTarget", UEBuildConfiguration.bCleanProject.ToString(),
-							"Monolithic", Target.ShouldCompileMonolithic().ToString(),
-							"CreateDebugInfo", Target.IsCreatingDebugInfo().ToString(),
-							"TargetType", Target.TargetType.ToString(),
-							"TargetCreateTimeSec", TargetBuildTime.ToString("0.00")
-							);
 					}
 				}
 
@@ -2141,16 +2112,6 @@ namespace UnrealBuildTool
 					TotalLinkTime,
 					TotalOtherActionsTime
 				);
-				//Telemetry.SendEvent("BuildStatsTotal.2",
-				//    "ExecutorName", ExecutorName,
-				//    "TotalUBTWallClockTimeSec", BuildDuration.ToString("0.00"),
-				//    "TotalBuildProjectThreadTimeSec", TotalBuildProjectTime.ToString("0.00"),
-				//    "TotalCompileThreadTimeSec", TotalCompileTime.ToString("0.00"),
-				//    "TotalCreateAppBundleThreadTimeSec", TotalCreateAppBundleTime.ToString("0.00"),
-				//    "TotalGenerateDebugInfoThreadTimeSec", TotalGenerateDebugInfoTime.ToString("0.00"),
-				//    "TotalLinkThreadTimeSec", TotalLinkTime.ToString("0.00"),
-				//    "TotalOtherActionsThreadTimeSec", TotalOtherActionsTime.ToString("0.00")
-				//    );
 
 				Log.TraceInformation("Total build time: {0:0.00} seconds", BuildDuration);
 
@@ -2168,10 +2129,6 @@ namespace UnrealBuildTool
 				{
 					Log.TraceInformation("XGE execution time: {0:0.00} seconds", BuildDuration);
 				}
-				//Telemetry.SendEvent("BuildStatsTotal.2",
-				//    "ExecutorName", ExecutorName,
-				//    "TotalUBTWallClockTimeSec", BuildDuration.ToString("0.00")
-				//    );
 			}
 
 			return BuildResult;

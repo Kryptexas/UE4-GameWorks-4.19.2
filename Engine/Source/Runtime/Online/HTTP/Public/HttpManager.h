@@ -6,11 +6,14 @@
 #include "HttpPackage.h"
 
 class IHttpRequest;
+class IHttpThreadedRequest;
 
 /**
  * Manages Http request that are currently being processed
  */
-class FHttpManager : public FTickerObjectBase
+class FHttpManager
+	: public FTickerObjectBase
+	, FRunnable
 {
 public:
 
@@ -47,7 +50,7 @@ public:
 	*
 	* @param RequestPtr - ptr to the http request object to find
 	*
-	* @return shared ptr to the request or invalid shared ptr
+	* @return true if the request is being tracked, false if not
 	*/
 	virtual bool IsValidRequest(const IHttpRequest* RequestPtr) const;
 
@@ -66,7 +69,21 @@ public:
 	 * @return false if no longer needs ticking
 	 */
 	virtual bool Tick(float DeltaSeconds) override;
-	
+
+	/** 
+	 * Add a http request to be executed on the http thread
+	 *
+	 * @param Request - the request object to add
+	 */
+	virtual void AddThreadedRequest(const TSharedRef<IHttpThreadedRequest>& Request);
+
+	/**
+	 * Mark a threaded http request as cancelled to be removed from the http thread
+	 *
+	 * @param Request - the request object to cancel
+	 */
+	virtual void CancelThreadedRequest(const TSharedRef<IHttpThreadedRequest>& Request);
+
 	/**
 	 * List all of the Http requests currently being processed
 	 *
@@ -75,20 +92,32 @@ public:
 	virtual void DumpRequests(FOutputDevice& Ar) const;
 
 protected:
+	// FRunnable
+	virtual bool Init() override;
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+	virtual void Exit() override;
+
+	/** signal request to stop and exit thread */
+	FThreadSafeCounter ExitRequest;
+
+	/**
+	 * Tick on http thread
+	 */
+	virtual void HttpThreadTick(float DeltaSeconds);
 	
-	/** Keep track of an http request while it is being processed */
-	class FActiveHttpRequest
-	{
-	public:
-		FActiveHttpRequest(double InStartTime, const TSharedRef<IHttpRequest>& InHttpRequest)
-			: StartTime(InStartTime)
-			, HttpRequest(InHttpRequest)
-		{}
+	/** 
+	 * Start processing a request on the http thread
+	 */
+	virtual bool StartThreadedRequest(IHttpThreadedRequest* Request);
 
-		double StartTime;
-		TSharedRef<IHttpRequest> HttpRequest;
-	};
+	/** 
+	 * Complete a request on the http thread
+	 */
+	virtual void CompleteThreadedRequest(IHttpThreadedRequest* Request);
 
+protected:
+	
 	/** List of Http requests that are actively being processed */
 	TArray<TSharedRef<IHttpRequest>> Requests;
 
@@ -112,6 +141,23 @@ protected:
 
 	/** Dead requests that need to be destroyed */
 	TArray<FRequestPendingDestroy> PendingDestroyRequests;
+
+	/** Threaded requests that have been added on the game thread and are waiting to be processed on the http thread */
+	TArray<IHttpThreadedRequest*> PendingThreadedRequests;
+
+	/** Threaded requests that have been cancelled on the game thread and are waiting to be cancelled on the http thread */
+	TArray<IHttpThreadedRequest*> CancelledThreadedRequests;
+
+	/** Currently running threaded requests */
+	TArray<IHttpThreadedRequest*> RunningThreadedRequests;
+
+	/** Threaded requests completed on the http thread, awaiting processing on the game thread */
+	TArray<IHttpThreadedRequest*> CompletedThreadedRequests;
+
+	/** Target frame duration of a http thread tick, in seconds. */
+	double	HttpThreadTickBudget;
+
+	FRunnableThread* Thread;
 
 PACKAGE_SCOPE:
 

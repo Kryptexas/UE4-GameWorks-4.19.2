@@ -123,7 +123,7 @@ void UConsole::PostInitProperties()
 
 void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 {
-#if !UE_BUILD_SHIPPING
+#if ALLOW_CONSOLE
 	if (!bForce)
 	{
 		// unless forced delay updating until needed

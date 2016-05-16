@@ -24,6 +24,7 @@ UInterpToMovementComponent::UInterpToMovementComponent(const FObjectInitializer&
 	CurrentDirection = 1.0f;
 	CurrentTime = 0.0f;
 	bStopped = false;
+	bPointsFinalized = false;
 }
 
 void UInterpToMovementComponent::InitializeComponent()
@@ -494,13 +495,24 @@ float UInterpToMovementComponent::ReverseDirection(const FHitResult& Hit, float 
 
 void UInterpToMovementComponent::AddControlPointPosition(FVector Pos,bool bPositionIsRelative)
 {
-	UE_LOG(LogInterpToMovementComponent, Warning, TEXT("Pos:%s"),*Pos.ToString());
+	UE_LOG(LogInterpToMovementComponent, Verbose, TEXT("Pos:%s"),*Pos.ToString());
 	ControlPoints.Add( FInterpControlPoint(Pos,bPositionIsRelative));
+}
+
+void UInterpToMovementComponent::ResetControlPoints()
+{
+	bStopped = true;
+	ControlPoints.Empty();
+	bPointsFinalized = false;
 }
 
 void UInterpToMovementComponent::FinaliseControlPoints()
 {
 	if (UpdatedComponent == nullptr)
+	{
+		return;
+	}
+	if(bPointsFinalized == true)
 	{
 		return;
 	}
@@ -514,7 +526,9 @@ void UInterpToMovementComponent::FinaliseControlPoints()
 		FRotator CurrentRotation = UpdatedComponent->GetComponentRotation();
 		FHitResult Hit(1.f);
 		UpdatedComponent->MoveComponent(MoveDelta, CurrentRotation, false, &Hit);
-	} 
+		bPointsFinalized = true;
+	}
+	
 }
 
 void UInterpToMovementComponent::RestartMovement(float InitialDirection)

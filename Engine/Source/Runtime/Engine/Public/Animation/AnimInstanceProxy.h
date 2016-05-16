@@ -207,10 +207,7 @@ public:
 	void SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, float InSourceWeight, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float InBlendWeight, float InTotalNodeWeight);
 	
 	// Allow slot nodes to store off their weight during ticking
-	void UpdateSlotNodeWeight(FName SlotNodeName, float Weight);
-
-	// Allow slot nodes to store off their root motion weight during ticking
-	void UpdateSlotRootMotionWeight(FName SlotNodeName, float Weight);
+	void UpdateSlotNodeWeight(FName SlotNodeName, float InLocalMontageWeight, float InNodeGlobalWeight);
 
 	/** Register a named slot */
 	void RegisterSlotNodeWithAnimInstance(FName SlotNodeName);
@@ -256,7 +253,10 @@ public:
 	 */
 	int32 GetInstanceAssetPlayerIndex(FName MachineName, FName StateName, FName InstanceName = NAME_None);
 
-	float GetRecordedStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex);
+	float GetRecordedMachineWeight(const int32& InMachineClassIndex) const;
+	void RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight);
+
+	float GetRecordedStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex) const;
 	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
 
 	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
@@ -351,8 +351,13 @@ protected:
 	// if it doesn't tick, it will keep old weight, so we'll have to clear it in the beginning of tick
 	void ClearSlotNodeWeights();
 
-	// Get the root motion weight for the montage slot
-	float GetSlotRootMotionWeight(FName SlotNodeName) const;
+	/** Get global weight in AnimGraph for this slot node. 
+	 * Note: this is the weight of the node, not the weight of any potential montage it is playing. */
+	float GetSlotNodeGlobalWeight(FName SlotNodeName) const;
+
+	/** Get Global weight of any montages this slot node is playing. 
+	 * If this slot is not currently playing a montage, it will return 0. */
+	float GetSlotMontageGlobalWeight(FName SlotNodeName) const;
 
 	/** 
 	 * Recalculate Required Bones [RequiredBones]
@@ -417,6 +422,9 @@ protected:
 	float GetInstanceAssetPlayerTimeFromEndFraction(int32 AssetPlayerIndex);
 
 	/** Get the blend weight of a specified state */
+	float GetInstanceMachineWeight(int32 MachineIndex);
+
+	/** Get the blend weight of a specified state */
 	float GetInstanceStateWeight(int32 MachineIndex, int32 StateIndex);
 
 	/** Get the current elapsed time of a state within the specified state machine */
@@ -474,6 +482,8 @@ protected:
 	/** Gets the index of the state machine matching MachineName */
 	int32 GetStateMachineIndex(FName MachineName);
 
+	void GetStateMachineIndexAndDescription(FName InMachineName, int32& OutMachineIndex, const FBakedAnimationStateMachine** OutMachineDescription);
+
 	/** Initialize the root node - split into a separate function for backwards compatibility (initialization order) reasons */
 	void InitializeRootNode();
 
@@ -520,6 +530,9 @@ private:
 	/** The set of tick groups for this anim instance */
 	TArray<FAnimGroupInstance> SyncGroupArrays[2];
 
+	/** Buffers containing read/write buffers for all current machine weights */
+	TArray<float> MachineWeightArrays[2];
+
 	/** Buffers containing read/write buffers for all current state weights */
 	TArray<float> StateWeightArrays[2];
 
@@ -538,8 +551,9 @@ private:
 	// Diplicate of bool result of ShouldExtractRootMotion()
 	bool bShouldExtractRootMotion;
 
-	// Tracker map for slot name->weights/relevancy
-	TMap<FName, FMontageActiveSlotTracker> SlotWeightTracker;
+	// Read/write buffers Tracker map for slot name->weights/relevancy
+	TMap<FName, int32> SlotNameToTrackerIndex;
+	TArray<FMontageActiveSlotTracker> SlotWeightTracker[2];
 
 	// Counters for synchronization
 	FGraphTraversalCounter InitializationCounter;

@@ -221,8 +221,11 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPlatformChangedLaptopMode, EConvertibleLaptopMode);
 	static FPlatformChangedLaptopMode PlatformChangedLaptopMode;
 
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FLoadStringAssetReferenceInCook, FString&);
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FLoadStringAssetReferenceInCook, const FString&);
 	static FLoadStringAssetReferenceInCook LoadStringAssetReferenceInCook;
+
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FStringAssetReferenceLoaded, const FName&);
+	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
 
 	/** Sent when the platform requests a low-level VR recentering */
 	DECLARE_MULTICAST_DELEGATE(FVRHeadsetRecenter);

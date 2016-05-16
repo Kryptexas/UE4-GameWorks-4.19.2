@@ -1015,6 +1015,8 @@ FString MakePositionMessage(const FMarkerSyncAnimPosition& Position)
 
 void UAnimMontage::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const
 {
+	bool bRecordNeedsResetting = true;
+
 	// nothing has to happen here
 	// we just have to make sure we set Context data correct
 	//if (ensure (Context.IsLeader()))
@@ -1049,6 +1051,7 @@ void UAnimMontage::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotify
 				// @todo this won't work well once we start jumping
 				// only thing is that passed markers won't work in this frame. To do that, I have to figure out how it jumped from where to where, 
 				GetMarkerIndicesForTime(CurrentTime, false, MarkerTickContext.GetValidMarkerNames(), MarkerTickRecord->PreviousMarker, MarkerTickRecord->NextMarker);
+				bRecordNeedsResetting = false; // we have updated it now, no need to reset
 				MarkerTickContext.SetMarkerSyncEndPosition(GetMarkerSyncPositionfromMarkerIndicies(MarkerTickRecord->PreviousMarker.MarkerIndex, MarkerTickRecord->NextMarker.MarkerIndex, CurrentTime));
 
 				MarkerTickContext.MarkersPassedThisTick = *Instance.Montage.MarkersPassedThisTick;
@@ -1069,6 +1072,11 @@ void UAnimMontage::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotify
 		}
 
 		Context.SetAnimationPositionRatio(CurrentTime / SequenceLength);
+	}
+
+	if (bRecordNeedsResetting && Instance.MarkerTickRecord)
+	{
+		Instance.MarkerTickRecord->Reset();
 	}
 }
 
@@ -1253,7 +1261,7 @@ void FAnimMontageInstance::Initialize(class UAnimMontage * InMontage)
 	if (InMontage)
 	{
 		Montage = InMontage;
-		Position = 0.f;
+		SetPosition(0.f);
 		// initialize Blend
 		Blend.SetValueRange(0.f, 1.0f);
 		RefreshNextPrevSections();
@@ -1345,7 +1353,8 @@ bool FAnimMontageInstance::JumpToSectionName(FName const & SectionName, bool bEn
 	if (Montage->IsValidSectionIndex(SectionID))
 	{
 		FCompositeSection & CurSection = Montage->GetAnimCompositeSection(SectionID);
-		Position = Montage->CalculatePos(CurSection, bEndOfSection ? Montage->GetSectionLength(SectionID) - KINDA_SMALL_NUMBER : 0.0f);
+		const float NewPosition = Montage->CalculatePos(CurSection, bEndOfSection ? Montage->GetSectionLength(SectionID) - KINDA_SMALL_NUMBER : 0.0f);
+		SetPosition(NewPosition);
 		OnMontagePositionChanged(SectionName);
 		return true;
 	}

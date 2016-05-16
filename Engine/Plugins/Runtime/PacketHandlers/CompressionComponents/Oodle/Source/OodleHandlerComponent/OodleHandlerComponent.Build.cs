@@ -29,19 +29,19 @@ public class OodleHandlerComponent : ModuleRules
         {
 			OodleNotForLicenseesLibDir = System.IO.Path.Combine( UEBuildConfiguration.UEThirdPartySourceDirectory, "..", "..",
 				"Plugins", "Runtime", "PacketHandlers", "CompressionComponents", "Oodle", "Source", "ThirdParty", "NotForLicensees",
-				"Oodle", "212", "win", "lib" );
+				"Oodle", "215", "win", "lib" );
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			OodleNotForLicenseesLibDir = System.IO.Path.Combine( UEBuildConfiguration.UEThirdPartySourceDirectory, "..", "..",
 				"Plugins", "Runtime", "PacketHandlers", "CompressionComponents", "Oodle", "Source", "ThirdParty", "NotForLicensees",
-				"Oodle", "212", "linux", "lib" );
+				"Oodle", "215", "linux", "lib" );
 		}
 		else if ( Target.Platform == UnrealTargetPlatform.PS4 )
 		{
 			OodleNotForLicenseesLibDir = System.IO.Path.Combine( UEBuildConfiguration.UEThirdPartySourceDirectory, "..", "..",
 				"Plugins", "Runtime", "PacketHandlers", "CompressionComponents", "Oodle", "Source", "ThirdParty", "NotForLicensees",
-				"Oodle", "212", "ps4", "lib" );
+				"Oodle", "215", "ps4", "lib" );
 		}
 
 		if (OodleNotForLicenseesLibDir.Length > 0)

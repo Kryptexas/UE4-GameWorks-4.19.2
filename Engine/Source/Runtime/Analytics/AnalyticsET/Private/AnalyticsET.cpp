@@ -184,8 +184,8 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 	// Allow the cmdline to force a specific AppVersion so it can be set dynamically.
 	FParse::Value(FCommandLine::Get(), TEXT("ANALYTICSAPPVERSION="), ConfigAppVersion, false);
 	AppVersion = ConfigAppVersion.IsEmpty() 
-		? FEngineVersion::Current().ToString() 
-		: ConfigAppVersion.Replace(TEXT("%VERSION%"), *FEngineVersion::Current().ToString(), ESearchCase::CaseSensitive);
+		? FString(FApp::GetBuildVersion())
+		: ConfigAppVersion.Replace(TEXT("%VERSION%"), FApp::GetBuildVersion(), ESearchCase::CaseSensitive);
 
 	// support legacy connections that send to the old URL and route them to the new URL.
 	// This automatically route older titles to the new endpoint until all their configs can be updated.

@@ -14,6 +14,8 @@
 DECLARE_CYCLE_STAT(TEXT("TranslucencyTimestampQueryFence Wait"), STAT_TranslucencyTimestampQueryFence_Wait, STATGROUP_SceneRendering);
 DECLARE_CYCLE_STAT(TEXT("TranslucencyTimestampQuery Wait"), STAT_TranslucencyTimestampQuery_Wait, STATGROUP_SceneRendering);
 
+DECLARE_FLOAT_COUNTER_STAT(TEXT("Translucency GPU Time (MS)"), STAT_TranslucencyGPU, STATGROUP_SceneRendering);
+
 static TAutoConsoleVariable<int32> CVarSeparateTranslucencyAutoDownsample(
 	TEXT("r.SeparateTranslucencyAutoDownsample"),
 	0,
@@ -40,11 +42,11 @@ static TAutoConsoleVariable<float> CVarSeparateTranslucencyMinDownsampleChangeTi
 	TEXT("Minimum time in seconds between changes to automatic downsampling state, used to prevent rapid swapping between half and full res."),
 	ECVF_Scalability | ECVF_Default);
 
-void FDeferredShadingSceneRenderer::UpdateSeparateTranslucencyBufferSize(FRHICommandListImmediate& RHICmdList)
+void FDeferredShadingSceneRenderer::UpdateTranslucencyTimersAndSeparateTranslucencyBufferSize(FRHICommandListImmediate& RHICmdList)
 {
 	bool bAnyViewWantsDownsampledSeparateTranslucency = false;
-
-	if (CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0)
+	bool bCVarSeparateTranslucencyAutoDownsample = CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0;
+	if (STATS || bCVarSeparateTranslucencyAutoDownsample)
 	{
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
@@ -53,85 +55,61 @@ void FDeferredShadingSceneRenderer::UpdateSeparateTranslucencyBufferSize(FRHICom
 
 			if (ViewState)
 			{
-				// Buffer one extra frame for translucency timestamps because we don't care about latency (times are smoothed anyway)
-				// And we want to make sure we never block on the RHI thread or GPU
-				const int32 NumTimestampBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames() + 1;
-				const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryLookupIndex(View.ViewState->OcclusionFrameCounter, NumTimestampBufferedFrames);
-
-				if (GSupportsTimestampRenderQueries
-					&& ViewState->PendingTranslucencyStartTimestamps[QueryIndex]
-					&& ViewState->PendingTranslucencyEndTimestamps[QueryIndex])
+				//We always tick the separate trans timer but only need the other timer for stats
+				bool bSeparateTransTimerSuccess = ViewState->SeparateTranslucencyTimer.Tick(RHICmdList);
+				if (STATS)
 				{
-					if (GRHIThread)
+					ViewState->TranslucencyTimer.Tick(RHICmdList);
+					//Stats are fed the most recent available time and so are lagged a little. 
+					float MostRecentTotalTime = ViewState->TranslucencyTimer.GetTimeMS() + ViewState->SeparateTranslucencyTimer.GetTimeMS();
+					SET_FLOAT_STAT(STAT_TranslucencyGPU, MostRecentTotalTime);
+				}
+			
+				if (bCVarSeparateTranslucencyAutoDownsample && bSeparateTransTimerSuccess)
+				{
+					float LastFrameTranslucencyDurationMS = ViewState->SeparateTranslucencyTimer.GetTimeMS();
+					const bool bOriginalShouldAutoDownsampleTranslucency = ViewState->bShouldAutoDownsampleTranslucency;
+
+					if (ViewState->bShouldAutoDownsampleTranslucency)
 					{
-						// Block until the RHI thread has processed the previous query commands, if necessary
-						// Stat disabled since we buffer 2 frames minimum, it won't actually block
-						//SCOPE_CYCLE_COUNTER(STAT_TranslucencyTimestampQueryFence_Wait);
-						int32 BlockFrame = NumTimestampBufferedFrames - 1;
-						FRHICommandListExecutor::WaitOnRHIThreadFence(TranslucencyTimestampQuerySubmittedFence[BlockFrame]);
-						TranslucencyTimestampQuerySubmittedFence[BlockFrame] = nullptr;
-					}
+						ViewState->SmoothedFullResTranslucencyGPUDuration = 0;
+						const float LerpAlpha = ViewState->SmoothedHalfResTranslucencyGPUDuration == 0 ? 1.0f : .1f;
+						ViewState->SmoothedHalfResTranslucencyGPUDuration = FMath::Lerp(ViewState->SmoothedHalfResTranslucencyGPUDuration, LastFrameTranslucencyDurationMS, LerpAlpha);
 
-					uint64 StartMicroseconds;
-					uint64 EndMicroseconds;
-					bool bStartSuccess;
-					bool bEndSuccess;
-
-					{
-						// Block on the GPU until we have the timestamp query results, if necessary
-						// Stat disabled since we buffer 2 frames minimum, it won't actually block
-						//SCOPE_CYCLE_COUNTER(STAT_TranslucencyTimestampQuery_Wait);
-						bStartSuccess = RHICmdList.GetRenderQueryResult(ViewState->PendingTranslucencyStartTimestamps[QueryIndex], StartMicroseconds, true);
-						bEndSuccess = RHICmdList.GetRenderQueryResult(ViewState->PendingTranslucencyEndTimestamps[QueryIndex], EndMicroseconds, true);
-					}
-
-					if (bStartSuccess && bEndSuccess)
-					{
-						const float LastFrameTranslucencyDurationMS = (EndMicroseconds - StartMicroseconds) / 1000.0f;
-						const bool bOriginalShouldAutoDownsampleTranslucency = ViewState->bShouldAutoDownsampleTranslucency;
-
-						//UE_LOG(LogRenderer, Log, TEXT("%u %.1fms"), bOriginalShouldAutoDownsampleTranslucency, LastFrameTranslucencyDurationMS);
-
-						if (ViewState->bShouldAutoDownsampleTranslucency)
+						// Don't re-asses switching for some time after the last switch
+						if (View.Family->CurrentRealTime - ViewState->LastAutoDownsampleChangeTime > CVarSeparateTranslucencyMinDownsampleChangeTime.GetValueOnRenderThread())
 						{
-							ViewState->SmoothedFullResTranslucencyGPUDuration = 0;
-							const float LerpAlpha = ViewState->SmoothedHalfResTranslucencyGPUDuration == 0 ? 1.0f : .1f;
-							ViewState->SmoothedHalfResTranslucencyGPUDuration = FMath::Lerp(ViewState->SmoothedHalfResTranslucencyGPUDuration, LastFrameTranslucencyDurationMS, LerpAlpha);
+							// Downsample if the smoothed time is larger than the threshold
+							ViewState->bShouldAutoDownsampleTranslucency = ViewState->SmoothedHalfResTranslucencyGPUDuration > CVarSeparateTranslucencyDurationUpsampleThreshold.GetValueOnRenderThread();
 
-							// Don't re-asses switching for some time after the last switch
-							if (View.Family->CurrentRealTime - ViewState->LastAutoDownsampleChangeTime > CVarSeparateTranslucencyMinDownsampleChangeTime.GetValueOnRenderThread())
+							if (!ViewState->bShouldAutoDownsampleTranslucency)
 							{
-								// Downsample if the smoothed time is larger than the threshold
-								ViewState->bShouldAutoDownsampleTranslucency = ViewState->SmoothedHalfResTranslucencyGPUDuration > CVarSeparateTranslucencyDurationUpsampleThreshold.GetValueOnRenderThread();
-
-								if (!ViewState->bShouldAutoDownsampleTranslucency)
-								{
-									// Do 'log LogRenderer verbose' to get these
-									UE_LOG(LogRenderer, Verbose, TEXT("Upsample: %.1fms < %.1fms"), ViewState->SmoothedHalfResTranslucencyGPUDuration, CVarSeparateTranslucencyDurationUpsampleThreshold.GetValueOnRenderThread());
-								}
+								// Do 'log LogRenderer verbose' to get these
+								UE_LOG(LogRenderer, Verbose, TEXT("Upsample: %.1fms < %.1fms"), ViewState->SmoothedHalfResTranslucencyGPUDuration, CVarSeparateTranslucencyDurationUpsampleThreshold.GetValueOnRenderThread());
 							}
 						}
-						else
+					}
+					else
+					{
+						ViewState->SmoothedHalfResTranslucencyGPUDuration = 0;
+						const float LerpAlpha = ViewState->SmoothedFullResTranslucencyGPUDuration == 0 ? 1.0f : .1f;
+						ViewState->SmoothedFullResTranslucencyGPUDuration = FMath::Lerp(ViewState->SmoothedFullResTranslucencyGPUDuration, LastFrameTranslucencyDurationMS, LerpAlpha);
+
+						if (View.Family->CurrentRealTime - ViewState->LastAutoDownsampleChangeTime > CVarSeparateTranslucencyMinDownsampleChangeTime.GetValueOnRenderThread())
 						{
-							ViewState->SmoothedHalfResTranslucencyGPUDuration = 0;
-							const float LerpAlpha = ViewState->SmoothedFullResTranslucencyGPUDuration == 0 ? 1.0f : .1f;
-							ViewState->SmoothedFullResTranslucencyGPUDuration = FMath::Lerp(ViewState->SmoothedFullResTranslucencyGPUDuration, LastFrameTranslucencyDurationMS, LerpAlpha);
+							// Downsample if the smoothed time is larger than the threshold
+							ViewState->bShouldAutoDownsampleTranslucency = ViewState->SmoothedFullResTranslucencyGPUDuration > CVarSeparateTranslucencyDurationDownsampleThreshold.GetValueOnRenderThread();
 
-							if (View.Family->CurrentRealTime - ViewState->LastAutoDownsampleChangeTime > CVarSeparateTranslucencyMinDownsampleChangeTime.GetValueOnRenderThread())
+							if (ViewState->bShouldAutoDownsampleTranslucency)
 							{
-								ViewState->bShouldAutoDownsampleTranslucency = ViewState->SmoothedFullResTranslucencyGPUDuration > CVarSeparateTranslucencyDurationDownsampleThreshold.GetValueOnRenderThread();
-
-								if (ViewState->bShouldAutoDownsampleTranslucency)
-								{
-									UE_LOG(LogRenderer, Verbose, TEXT("Downsample: %.1fms > %.1fms"), ViewState->SmoothedFullResTranslucencyGPUDuration, CVarSeparateTranslucencyDurationDownsampleThreshold.GetValueOnRenderThread());
-								}
+								UE_LOG(LogRenderer, Verbose, TEXT("Downsample: %.1fms > %.1fms"), ViewState->SmoothedFullResTranslucencyGPUDuration, CVarSeparateTranslucencyDurationDownsampleThreshold.GetValueOnRenderThread());
 							}
 						}
+					}
 
-						if (bOriginalShouldAutoDownsampleTranslucency != ViewState->bShouldAutoDownsampleTranslucency)
-						{
-							ViewState->LastAutoDownsampleChangeTime = View.Family->CurrentRealTime;
-						}
+					if (bOriginalShouldAutoDownsampleTranslucency != ViewState->bShouldAutoDownsampleTranslucency)
+					{
+						ViewState->LastAutoDownsampleChangeTime = View.Family->CurrentRealTime;
 					}
 
 					bAnyViewWantsDownsampledSeparateTranslucency = bAnyViewWantsDownsampledSeparateTranslucency || ViewState->bShouldAutoDownsampleTranslucency;
@@ -148,20 +126,9 @@ void FDeferredShadingSceneRenderer::BeginTimingSeparateTranslucencyPass(FRHIComm
 {
 	if (View.ViewState 
 		&& GSupportsTimestampRenderQueries
-		&& CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0)
+		&& (STATS || CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0))
 	{
-		// Buffer one extra frame for translucency timestamps because we don't care about latency (times are smoothed anyway)
-		// And we want to make sure we never block on the RHI thread or GPU
-		const int32 NumTimestampBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames() + 1;
-		const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(View.ViewState->OcclusionFrameCounter, NumTimestampBufferedFrames);
-
-		if (!View.ViewState->PendingTranslucencyStartTimestamps[QueryIndex])
-		{
-			View.ViewState->PendingTranslucencyStartTimestamps[QueryIndex] = RHICmdList.CreateRenderQuery(RQT_AbsoluteTime);
-		}
-						
-		// Insert a timestamp query at the beginning of separate translucency rendering
-		RHICmdList.EndRenderQuery(View.ViewState->PendingTranslucencyStartTimestamps[QueryIndex]);
+		View.ViewState->SeparateTranslucencyTimer.Begin(RHICmdList);
 	}
 }
 
@@ -169,36 +136,9 @@ void FDeferredShadingSceneRenderer::EndTimingSeparateTranslucencyPass(FRHIComman
 {
 	if (View.ViewState 
 		&& GSupportsTimestampRenderQueries
-		&& CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0)
+		&& (STATS || CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0))
 	{
-		// Buffer one extra frame for translucency timestamps because we don't care about latency (times are smoothed anyway)
-		// And we want to make sure we never block on the RHI thread or GPU
-		const int32 NumTimestampBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames() + 1;
-		const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(View.ViewState->OcclusionFrameCounter, NumTimestampBufferedFrames);
-
-		if (!View.ViewState->PendingTranslucencyEndTimestamps[QueryIndex])
-		{
-			View.ViewState->PendingTranslucencyEndTimestamps[QueryIndex] = RHICmdList.CreateRenderQuery(RQT_AbsoluteTime);
-		}
-
-		// Insert a timestamp query at the end of separate translucency rendering
-		RHICmdList.EndRenderQuery(View.ViewState->PendingTranslucencyEndTimestamps[QueryIndex]);
-
-		// Hint to the RHI to submit commands up to this point to the GPU if possible.  Can help avoid CPU stalls next frame waiting
-		// for these query results on some platforms.
-		RHICmdList.SubmitCommandsHint();
-
-		if (GRHIThread)
-		{
-			int32 NumFrames = NumTimestampBufferedFrames;
-			for (int32 Dest = 1; Dest < NumFrames; Dest++)
-			{
-				TranslucencyTimestampQuerySubmittedFence[Dest] = TranslucencyTimestampQuerySubmittedFence[Dest - 1];
-			}
-			// Start an RHI thread fence so we can be sure the RHI thread has processed the EndRenderQuery before we ask for results
-			TranslucencyTimestampQuerySubmittedFence[0] = RHICmdList.RHIThreadFence();
-			RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
-		}
+		View.ViewState->SeparateTranslucencyTimer.End(RHICmdList);
 	}
 }
 
@@ -1155,6 +1095,11 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 				}
 			}
 
+			if (STATS && View.ViewState)
+			{
+				View.ViewState->TranslucencyTimer.Begin(RHICmdList);
+			}
+			
 			ETranslucencyPass::Type TranslucenyPassType = ETranslucencyPass::TPT_NonSeparateTransluceny;
 
 			FTranslucencyPassParallelCommandListSet ParallelCommandListSet(View, RHICmdList, 
@@ -1204,6 +1149,10 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 			}
 
 			FinishTranslucentRenderTarget(RHICmdList, View, TranslucenyPassType);
+		}
+		if (STATS && View.ViewState)
+		{
+			View.ViewState->TranslucencyTimer.End(RHICmdList);
 		}
 
 #if 0 // unsupported visualization in the parallel case
@@ -1309,6 +1258,11 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 
 			// non separate translucency
 			{
+				if (STATS && View.ViewState)
+				{
+					View.ViewState->TranslucencyTimer.Begin(RHICmdList);
+				}
+
 				bool bFirstTimeThisFrame = (ViewIndex == 0);
 				SetTranslucentRenderTargetAndState(RHICmdList, View, ETranslucencyPass::TPT_NonSeparateTransluceny, bFirstTimeThisFrame);
 
@@ -1327,6 +1281,11 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 				}
 
 				FinishTranslucentRenderTarget(RHICmdList, View, ETranslucencyPass::TPT_NonSeparateTransluceny);
+
+				if (STATS && View.ViewState)
+				{
+					View.ViewState->TranslucencyTimer.End(RHICmdList);
+				}
 			}
 			
 			// separate translucency

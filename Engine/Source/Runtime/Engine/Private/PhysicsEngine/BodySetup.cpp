@@ -17,6 +17,18 @@
 
 #include "PhysDerivedData.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "CookStats.h"
+
+#if ENABLE_COOK_STATS
+namespace PhysXBodySetupCookStats
+{
+	static FCookStats::FDDCResourceUsageStats UsageStats;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("PhysX.Usage"), TEXT("BodySetup"));
+	});
+}
+#endif
 
 #if WITH_PHYSX
 	// Quaternion that converts Sphyls from UE space to PhysX space (negate Y, swap X & Z)
@@ -1061,10 +1073,13 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format, bool bRuntimeOnlyOptimize
 		if (DerivedPhysXData->CanBuild())
 		{
 		#if WITH_EDITOR
-			GetDerivedDataCacheRef().GetSynchronous(DerivedPhysXData, OutData);
+			COOK_STAT(auto Timer = PhysXBodySetupCookStats::UsageStats.TimeSyncWork());
+			bool bDataWasBuilt = false;
+			bool DDCHit = GetDerivedDataCacheRef().GetSynchronous(DerivedPhysXData, OutData, &bDataWasBuilt);
 		#elif WITH_RUNTIME_PHYSICS_COOKING
 			DerivedPhysXData->Build(OutData);
 		#endif
+			COOK_STAT(Timer.AddHitOrMiss(!DDCHit || bDataWasBuilt ? FCookStats::CallStats::EHitOrMiss::Miss : FCookStats::CallStats::EHitOrMiss::Hit, OutData.Num()));
 			if (OutData.Num())
 			{
 				Result->Lock(LOCK_READ_WRITE);

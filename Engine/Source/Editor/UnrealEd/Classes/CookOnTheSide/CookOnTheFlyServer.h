@@ -1082,6 +1082,12 @@ public:
 	 */
 	void MaybeMarkPackageAsAlreadyLoaded(UPackage* Package);
 
+	/**
+	 * Callbacks from UObject globals
+	 */
+
+	void OnStringAssetReferenceLoadedPackage(const FName& PackageName);
+
 
 private:
 	

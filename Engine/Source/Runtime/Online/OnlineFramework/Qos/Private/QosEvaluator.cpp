@@ -560,6 +560,7 @@ void UQosEvaluator::OnPingResultComplete(const FString& RegionId, int32 NumTests
 			Region.PingResults.Add(Result.Status == EIcmpResponseStatus::Success ? (int32)(Result.Time * 1000.0f) : UNREACHABLE_PING);
 			if (Region.PingResults.Num() == NumTests)
 			{
+				Region.LastCheckTimestamp = FDateTime::UtcNow();
 				Region.Result = EQosCompletionResult::Success;
 			}
 			break;

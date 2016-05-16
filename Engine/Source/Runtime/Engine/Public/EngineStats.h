@@ -188,3 +188,15 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Object path (bytes)"),STAT_ObjPathBy
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("NetGUID Out Rate (bytes)"),STAT_NetGUIDOutRate,STATGROUP_Net, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("NetGUID In Rate (bytes)"),STAT_NetGUIDInRate,STATGROUP_Net, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Saturated"),STAT_NetSaturated,STATGROUP_Net, );
+
+#if !UE_BUILD_SHIPPING
+/**
+ * Packet stats counters
+ */
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Max Packet (bits)"), STAT_MaxPacket, STATGROUP_Packet, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Max Packet Minus Reserved (bits)"), STAT_MaxPacketMinusReserved, STATGROUP_Packet, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Reserved Total (bits)"), STAT_PacketReservedTotal, STATGROUP_Packet, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Reserved NetConnection (bits)"), STAT_PacketReservedNetConnection, STATGROUP_Packet, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Reserved PacketHandler Total (bits)"), STAT_PacketReservedPacketHandler, STATGROUP_Packet, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Reserved Handshake (bits)"), STAT_PacketReservedHandshake, STATGROUP_Packet, );
+#endif

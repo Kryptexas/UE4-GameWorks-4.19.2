@@ -14,6 +14,7 @@
 #include "ShaderCompiler.h"
 #include "RendererInterface.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "CookStats.h"
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
@@ -133,6 +134,29 @@ namespace XGEConsoleVariables
 		TEXT("Default = 0.5\n"),
 		ECVF_Default);
 }
+
+#if ENABLE_COOK_STATS
+#include "ScopedTimers.h"
+namespace ShaderCompilerCookStats
+{
+	static double BlockingTimeSec = 0.0;
+	static double GlobalBeginCompileShaderTimeSec = 0.0;
+	static int32 GlobalBeginCompileShaderCalls = 0;
+	static double ProcessAsyncResultsTimeSec = 0.0;
+	static double AsyncCompileTimeSec = 0.0;
+
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		AddStat(TEXT("ShaderCompiler"), FCookStatsManager::CreateKeyValueArray(
+			TEXT("BlockingTimeSec"), BlockingTimeSec,
+			TEXT("AsyncCompileTimeSec"), AsyncCompileTimeSec,
+			TEXT("GlobalBeginCompileShaderTimeSec"), GlobalBeginCompileShaderTimeSec,
+			TEXT("GlobalBeginCompileShaderCalls"), GlobalBeginCompileShaderCalls,
+			TEXT("ProcessAsyncResultsTimeSec"), ProcessAsyncResultsTimeSec
+			));
+	});
+}
+#endif
 
 static const TArray<const IShaderFormat*>& GetShaderFormats()
 {
@@ -730,6 +754,7 @@ int32 FShaderCompileThreadRunnable::PullTasksFromQueue()
 					const float ElapsedTime = FPlatformTime::Seconds() - CurrentWorkerInfo.StartTime;
 
 					Manager->WorkersBusyTime += ElapsedTime;
+					COOK_STAT(ShaderCompilerCookStats::AsyncCompileTimeSec += ElapsedTime);
 
 					// Log if requested or if there was an exceptionally slow batch, to see the offender easily
 					if (Manager->bLogJobCompletionTimes || ElapsedTime > 30.0f)
@@ -946,7 +971,7 @@ void FShaderCompileThreadRunnable::ReadAvailableResults()
 				{
 					FArchive& OutputFile = *OutputFilePtr;
 					check(!CurrentWorkerInfo.bComplete);
-						DoReadTaskResults(CurrentWorkerInfo.QueuedJobs, OutputFile);
+					DoReadTaskResults(CurrentWorkerInfo.QueuedJobs, OutputFile);
 
 					// Close the output file.
 					delete OutputFilePtr;
@@ -972,6 +997,9 @@ void FShaderCompileThreadRunnable::ReadAvailableResults()
 
 void FShaderCompileThreadRunnable::CompileDirectlyThroughDll()
 {
+	// If we aren't compiling through workers, so we can just track the serial time here.
+	COOK_STAT(FScopedDurationTimer CompileTimer (ShaderCompilerCookStats::AsyncCompileTimeSec));
+
 	for (int32 WorkerIndex = 0; WorkerIndex < WorkerInfos.Num(); WorkerIndex++)
 	{
 		FShaderCompileWorkerInfo& CurrentWorkerInfo = *WorkerInfos[WorkerIndex];
@@ -1328,6 +1356,7 @@ FProcHandle FShaderCompilingManager::LaunchWorker(const FString& WorkingDirector
 /** Flushes all pending jobs for the given shader maps. */
 void FShaderCompilingManager::BlockOnShaderMapCompletion(const TArray<int32>& ShaderMapIdsToFinishCompiling, TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps)
 {
+	COOK_STAT(FScopedDurationTimer BlockingTimer(ShaderCompilerCookStats::BlockingTimeSec));
 	if (bAllowAsynchronousShaderCompiling)
 	{
 		int32 NumPendingJobs = 0;
@@ -1408,6 +1437,7 @@ void FShaderCompilingManager::BlockOnShaderMapCompletion(const TArray<int32>& Sh
 
 void FShaderCompilingManager::BlockOnAllShaderMapCompletion(TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps)
 {
+	COOK_STAT(FScopedDurationTimer BlockingTimer(ShaderCompilerCookStats::BlockingTimeSec));
 	if (bAllowAsynchronousShaderCompiling)
 	{
 		int32 NumPendingJobs = 0;
@@ -2020,6 +2050,7 @@ void FShaderCompilingManager::FinishAllCompilation()
 
 void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool bBlockOnGlobalShaderCompletion)
 {
+	COOK_STAT(FScopedDurationTimer Timer(ShaderCompilerCookStats::ProcessAsyncResultsTimeSec));
 	if (bAllowAsynchronousShaderCompiling)
 	{
 		Thread->CheckHealth();
@@ -2138,6 +2169,9 @@ void GlobalBeginCompileShader(
 	bool bAllowDevelopmentShaderCompile
 	)
 {
+	COOK_STAT(ShaderCompilerCookStats::GlobalBeginCompileShaderCalls++);
+	COOK_STAT(FScopedDurationTimer DurationTimer(ShaderCompilerCookStats::GlobalBeginCompileShaderTimeSec));
+
 	FShaderCompilerInput& Input = NewJob->Input;
 	Input.Target = Target;
 	Input.ShaderFormat = LegacyShaderPlatformToShaderFormat(EShaderPlatform(Target.Platform));

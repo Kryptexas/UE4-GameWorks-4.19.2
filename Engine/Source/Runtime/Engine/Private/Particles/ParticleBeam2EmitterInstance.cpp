@@ -923,6 +923,7 @@ void FParticleBeam2EmitterInstance::ResolveTarget()
 				}
 				break;
 			case PEB2STM_Emitter:
+			case PEB2STM_Particle:
 				if (TargetEmitter == NULL)
 				{
 					for (int32 ii = 0; ii < Component->EmitterInstances.Num(); ii++)

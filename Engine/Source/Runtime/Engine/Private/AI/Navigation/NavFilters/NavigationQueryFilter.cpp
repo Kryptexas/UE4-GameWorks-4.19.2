@@ -114,10 +114,26 @@ UNavigationQueryFilter::UNavigationQueryFilter(const FObjectInitializer& ObjectI
 	IncludeFlags.Packed = 0xffff;
 	ExcludeFlags.Packed = 0;
 	bInstantiateForQuerier = false;
+	bIsMetaFilter = false;
 }
 
 FSharedConstNavQueryFilter UNavigationQueryFilter::GetQueryFilter(const ANavigationData& NavData, const UObject* Querier) const
 {
+	if (bIsMetaFilter && Querier != nullptr)
+	{
+		TSubclassOf<UNavigationQueryFilter> SimpleFilterClass = GetSimpleFilterForAgent(*Querier);
+		if (*SimpleFilterClass)
+		{
+			const UNavigationQueryFilter* DefFilterOb = SimpleFilterClass.GetDefaultObject();
+			check(DefFilterOb);
+			if (DefFilterOb->bIsMetaFilter == false)
+			{
+				return DefFilterOb->GetQueryFilter(NavData, nullptr);
+			}
+		}
+	}
+	
+	// the default, simple filter implementation
 	FSharedConstNavQueryFilter SharedFilter = bInstantiateForQuerier ? nullptr : NavData.GetQueryFilter(GetClass());
 	if (!SharedFilter.IsValid())
 	{
@@ -176,7 +192,7 @@ FSharedConstNavQueryFilter UNavigationQueryFilter::GetQueryFilter(const ANavigat
 {
 	if (FilterClass)
 	{
-		UNavigationQueryFilter* DefFilterOb = FilterClass.GetDefaultObject();
+		const UNavigationQueryFilter* DefFilterOb = FilterClass.GetDefaultObject();
 		// no way we have not default object here
 		check(DefFilterOb);
 		return DefFilterOb->GetQueryFilter(NavData, nullptr);
@@ -189,7 +205,7 @@ FSharedConstNavQueryFilter UNavigationQueryFilter::GetQueryFilter(const ANavigat
 {
 	if (FilterClass)
 	{
-		UNavigationQueryFilter* DefFilterOb = FilterClass.GetDefaultObject();
+		const UNavigationQueryFilter* DefFilterOb = FilterClass.GetDefaultObject();
 		// no way we have not default object here
 		check(DefFilterOb);
 		return DefFilterOb->GetQueryFilter(NavData, Querier);

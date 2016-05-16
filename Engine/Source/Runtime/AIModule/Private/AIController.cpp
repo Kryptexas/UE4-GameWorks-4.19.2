@@ -571,7 +571,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(AActor* Goal, float
 	FAIMoveRequest MoveReq(Goal);
 	MoveReq.SetUsePathfinding(bUsePathfinding);
 	MoveReq.SetAllowPartialPath(bAllowPartialPaths);
-	MoveReq.SetNavigationFilter(FilterClass);
+	MoveReq.SetNavigationFilter(*FilterClass ? FilterClass : DefaultNavigationFilterClass);
 	MoveReq.SetAcceptanceRadius(AcceptanceRadius);
 	MoveReq.SetStopOnOverlap(bStopOnOverlap);
 	MoveReq.SetCanStrafe(bCanStrafe);
@@ -591,7 +591,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	MoveReq.SetUsePathfinding(bUsePathfinding);
 	MoveReq.SetAllowPartialPath(bAllowPartialPaths);
 	MoveReq.SetProjectGoalLocation(bProjectDestinationToNavigation);
-	MoveReq.SetNavigationFilter(FilterClass);
+	MoveReq.SetNavigationFilter(*FilterClass ? FilterClass : DefaultNavigationFilterClass);
 	MoveReq.SetAcceptanceRadius(AcceptanceRadius);
 	MoveReq.SetStopOnOverlap(bStopOnOverlap);
 	MoveReq.SetCanStrafe(bCanStrafe);
@@ -618,6 +618,8 @@ EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& Mo
 		UE_VLOG(this, LogAINavigation, Error, TEXT("MoveTo request failed due missing PathFollowingComponent"));
 		return EPathFollowingRequestResult::Failed;
 	}
+
+	ensure(MoveRequest.GetNavigationFilter() || !DefaultNavigationFilterClass);
 
 	EPathFollowingRequestResult::Type Result = EPathFollowingRequestResult::Failed;
 	bool bCanRequestMove = true;

@@ -480,11 +480,6 @@ void UAbilitySystemComponent::DecrementAbilityListLock()
 	}
 }
 
-const TArray<FGameplayAbilitySpec>& UAbilitySystemComponent::GetActivatableAbilities() const
-{
-	return ActivatableAbilities.Items;
-}
-
 FGameplayAbilitySpec* UAbilitySystemComponent::FindAbilitySpecFromHandle(FGameplayAbilitySpecHandle Handle)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FindAbilitySpecFromHandle);
@@ -2254,13 +2249,19 @@ void UAbilitySystemComponent::OnPredictiveMontageRejected(UAnimMontage* Predicti
 	}
 }
 
+bool UAbilitySystemComponent::IsReadyForReplicatedMontage()
+{
+	/** Children may want to override this for additional checks (e.g, "has skin been applied") */
+	return true;
+}
+
 /**	Replicated Event for AnimMontages */
 void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 {
 	static const float MONTAGE_REP_POS_ERR_THRESH = 0.1f;
 
 	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
-	if (AnimInstance == nullptr)
+	if (AnimInstance == nullptr || !IsReadyForReplicatedMontage())
 	{
 		// We can't handle this yet
 		bPendingMontagerep = true;

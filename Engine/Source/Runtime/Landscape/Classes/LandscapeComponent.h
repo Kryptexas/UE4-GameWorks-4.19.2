@@ -40,6 +40,12 @@ public:
 		return CompressedLandscapeData.Num() != 0;
 	}
 
+	/** Returns the size of the platform data if there is any. */
+	int32 GetPlatformDataSize() const
+	{
+		return CompressedLandscapeData.Num();
+	}
+
 	/** Initializes the compressed data from an uncompressed source. */
 	void InitializeFromUncompressedData(const TArray<uint8>& UncompressedData);
 

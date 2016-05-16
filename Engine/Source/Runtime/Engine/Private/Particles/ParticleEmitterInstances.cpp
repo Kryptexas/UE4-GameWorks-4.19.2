@@ -222,6 +222,7 @@ FParticleEmitterBuildInfo::FParticleEmitterBuildInfo()
 	, bLocalVectorFieldTileX(false)
 	, bLocalVectorFieldTileY(false)
 	, bLocalVectorFieldTileZ(false)
+	, bLocalVectorFieldUseFixDT(false)
 {
 	DragScale.InitializeWithConstant(1.0f);
 	VectorFieldScale.InitializeWithConstant(1.0f);

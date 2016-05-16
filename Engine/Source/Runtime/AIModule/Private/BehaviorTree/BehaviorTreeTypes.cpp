@@ -169,6 +169,38 @@ bool FBehaviorTreeInstance::HasActiveNode(uint16 TestExecutionIndex) const
 	return false;
 }
 
+void FBehaviorTreeInstance::DeactivateNodes(FBehaviorTreeSearchData& SearchData, uint16 InstanceIndex)
+{
+	for (int32 Idx = SearchData.PendingUpdates.Num() - 1; Idx >= 0; Idx--)
+	{
+		FBehaviorTreeSearchUpdate& UpdateInfo = SearchData.PendingUpdates[Idx];
+		if (UpdateInfo.InstanceIndex == InstanceIndex && UpdateInfo.Mode == EBTNodeUpdateMode::Add)
+		{
+			UE_VLOG(SearchData.OwnerComp.GetOwner(), LogBehaviorTree, Verbose, TEXT("Search node update[%s]: %s"),
+				*UBehaviorTreeTypes::DescribeNodeUpdateMode(EBTNodeUpdateMode::Remove),
+				*UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.AuxNode ? (UBTNode*)UpdateInfo.AuxNode : (UBTNode*)UpdateInfo.TaskNode));
+
+			SearchData.PendingUpdates.RemoveAt(Idx, 1, false);
+		}
+	}
+
+	for (int32 Idx = 0; Idx < ParallelTasks.Num(); Idx++)
+	{
+		const FBehaviorTreeParallelTask& ParallelTask = ParallelTasks[Idx];
+		if (ParallelTask.TaskNode && ParallelTask.Status == EBTTaskStatus::Active)
+		{
+			SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(ParallelTask.TaskNode, InstanceIndex, EBTNodeUpdateMode::Remove));
+		}
+	}
+
+	for (int32 Idx = 0; Idx < ActiveAuxNodes.Num(); Idx++)
+	{
+		if (ActiveAuxNodes[Idx])
+		{
+			SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(ActiveAuxNodes[Idx], InstanceIndex, EBTNodeUpdateMode::Remove));
+		}
+	}
+}
 
 
 //----------------------------------------------------------------------//

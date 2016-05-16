@@ -206,7 +206,7 @@ void FAnimSingleNodeInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 				// in the future, maybe we can support which slot
 				const FName CurrentSlotNodeName = Montage->SlotAnimTracks[0].SlotName;
 				GetSlotWeight(CurrentSlotNodeName, WeightInfo.SlotNodeWeight, WeightInfo.SourceWeight, WeightInfo.TotalNodeWeight);
-				UpdateSlotNodeWeight(CurrentSlotNodeName, WeightInfo.SlotNodeWeight);
+				UpdateSlotNodeWeight(CurrentSlotNodeName, WeightInfo.SlotNodeWeight, 1.f);
 			}
 			// get the montage position
 			// @todo anim: temporarily just choose first slot and show the location

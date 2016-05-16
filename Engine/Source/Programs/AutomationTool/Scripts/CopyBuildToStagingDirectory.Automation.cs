@@ -1132,7 +1132,7 @@ public partial class Project : CommandUtils
         }
         else // DontCare
         {
-            return (Params.Pak || Params.SignedPak || !String.IsNullOrEmpty(Params.SignPak));
+            return (Params.Pak);
         }
 	}
 
@@ -1154,7 +1154,7 @@ public partial class Project : CommandUtils
         }
         else // DontCare
         {
-            return (Params.Pak || Params.SignedPak || !String.IsNullOrEmpty(Params.SignPak));
+            return (Params.Pak);
         }
 	}
 

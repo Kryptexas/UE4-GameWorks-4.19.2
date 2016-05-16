@@ -75,10 +75,16 @@ public:
 	void SetIsDirty(const bool bNewState);
 	
 	/**
-	* Determines whether or not this LODActor has valid SubActors (more than one, or one staticmesh actor)
-	* @return const bool
-	*/
-	const bool HasValidSubActors();
+	 * Determines whether or not this LODActor has valid SubActors and can be built
+	 * @return true if the subactor(s) contain at least two static mesh components
+	 */
+	const bool HasValidSubActors() const;
+
+	/**
+	 * Determines whether or not this LODActor has any SubActors
+	 * @return true if it contains any subactors
+	 */
+	const bool HasAnySubActors() const;
 
 	/** Toggles forcing the StaticMeshComponent drawing distance to 0 or LODDrawDistance */
 	void ToggleForceView();

@@ -336,6 +336,8 @@ TAutoConsoleVariable<int32> CVarAnimStateMachineRelevancyReset(TEXT("a.AnimNode.
 
 void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 {
+	Context.AnimInstanceProxy->RecordMachineWeight(StateMachineIndexInClass, Context.GetFinalBlendWeight());
+
 	// If we just became relevant and haven't been initialized yet, then reinitialize state machine.
 	if (!bFirstUpdate && (UpdateCounter.Get() != INDEX_NONE) && !UpdateCounter.WasSynchronizedInTheLastFrame(Context.AnimInstanceProxy->GetUpdateCounter()) && (CVarAnimStateMachineRelevancyReset.GetValueOnAnyThread() == 1))
 	{

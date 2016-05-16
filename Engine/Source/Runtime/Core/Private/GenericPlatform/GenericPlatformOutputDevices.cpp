@@ -73,7 +73,7 @@ class FOutputDevice* FGenericPlatformOutputDevices::GetLog()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				 && FParse::Param(FCommandLine::Get(), TEXT("LOGTOMEMORY")) 
 #else
-				 && !FParse::Param(FCommandLine::Get(), TEXT("NOLOGTOMEMORY"))
+				 && !FParse::Param(FCommandLine::Get(), TEXT("NOLOGTOMEMORY")) && !FPlatformProperties::IsServerOnly()
 #endif
 				 )
 			{

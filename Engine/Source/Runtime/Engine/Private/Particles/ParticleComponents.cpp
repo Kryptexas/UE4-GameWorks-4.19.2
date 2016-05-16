@@ -3159,6 +3159,7 @@ void UParticleSystemComponent::SetRequiredSignificance(EParticleSignificanceLeve
 
 void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bApplyToEmitters, bool bAsync)
 {
+	ForceAsyncWorkCompletion(STALL, false);
 	int32 LocalNumSignificantEmitters = 0;
 	if (bSignificant)
 	{
@@ -3431,13 +3432,16 @@ bool UParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor* Source
 
 	if ( HalfExtent.IsZero() )
 	{
-		return GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, ObjectParams, FCollisionQueryParams(NAME_ParticleCollision, true, SourceActor));
+		FCollisionQueryParams QueryParams(NAME_ParticleCollision, true, SourceActor);
+		QueryParams.bReturnPhysicalMaterial = true;
+		return GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, ObjectParams, QueryParams);
 	}
 	else
 	{
 		FCollisionQueryParams BoxParams;
 		BoxParams.TraceTag = NAME_ParticleCollision;
 		BoxParams.AddIgnoredActor(SourceActor);
+		BoxParams.bReturnPhysicalMaterial = true;
 		return GetWorld()->SweepSingleByObjectType(Hit, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeBox(HalfExtent), BoxParams);
 	}
 }
@@ -4808,28 +4812,47 @@ void UParticleSystemComponent::FinalizeTickComponent()
 
 }
 
-void UParticleSystemComponent::WaitForAsyncAndFinalize(EForceAsyncWorkCompletion Behavior) const
+void UParticleSystemComponent::WaitForAsyncAndFinalize(EForceAsyncWorkCompletion Behavior, bool bDefinitelyGameThread) const
 {
 	if (AsyncWork.GetReference() && !AsyncWork->IsComplete())
 	{
-		check(IsInGameThread());
-		SCOPE_CYCLE_COUNTER(STAT_GTSTallTime);
 		double StartTime = FPlatformTime::Seconds();
-		SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_WaitForAsyncAndFinalize);
-#if WITH_EDITOR
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(AsyncWork, ENamedThreads::GameThread_Local);
-#else
-		// since in the non-editor case the completion is chained to a game thread task (not a gamethread_local one), and we don't want to execute arbitrary tasks 
-		// in what is probably a very, very deep callstack, we will spin here and wait for the async task to finish. The we will do the finalize. The finalize will be attempted again later but do nothing
-		while (bAsyncWorkOutstanding)
+		if (bDefinitelyGameThread)
 		{
-			FPlatformProcess::SleepNoStats(0.0f);
-		}
+			check(IsInGameThread());
+			SCOPE_CYCLE_COUNTER(STAT_GTSTallTime);
+			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_WaitForAsyncAndFinalize);
+#if WITH_EDITOR
+			FTaskGraphInterface::Get().WaitUntilTaskCompletes(AsyncWork, ENamedThreads::GameThread_Local);
+#else
+			// since in the non-editor case the completion is chained to a game thread task (not a gamethread_local one), and we don't want to execute arbitrary tasks 
+			// in what is probably a very, very deep callstack, we will spin here and wait for the async task to finish. The we will do the finalize. The finalize will be attempted again later but do nothing
+			while (bAsyncWorkOutstanding)
+			{
+				FPlatformProcess::SleepNoStats(0.0f);
+			}
 #endif
+		}
+		else
+		{
+			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_WaitForAsyncAndFinalize);
+			while (bAsyncWorkOutstanding)
+			{
+				FPlatformProcess::SleepNoStats(0.0f);
+			}
+		}
+
 		float ThisTime = float(FPlatformTime::Seconds() - StartTime) * 1000.0f;
 		if (Behavior != SILENT)
 		{
-			UE_LOG(LogParticles, Warning, TEXT("Stalled gamethread waiting for particles %5.2fms '%s' '%s'"), ThisTime, *GetFullNameSafe(this), *GetFullNameSafe(Template));
+			if (bDefinitelyGameThread || IsInGameThread())
+			{
+				UE_LOG(LogParticles, Warning, TEXT("Stalled gamethread waiting for particles %5.2fms '%s' '%s'"), ThisTime, *GetFullNameSafe(this), *GetFullNameSafe(Template));
+			}
+			else
+			{
+				UE_LOG(LogParticles, Warning, TEXT("Stalled worker thread waiting for particles %5.2fms '%s' '%s'"), ThisTime, *GetFullNameSafe(this), *GetFullNameSafe(Template));
+			}
 		}
 		const_cast<UParticleSystemComponent*>(this)->FinalizeTickComponent();
 	}
@@ -6589,7 +6612,7 @@ void UParticleSystemComponent::ReportEventDeath(const FName InEventName, const f
 
 void UParticleSystemComponent::ReportEventCollision(const FName InEventName, const float InEmitterTime, 
 	const FVector InLocation, const FVector InDirection, const FVector InVelocity, const TArray<UParticleModuleEventSendToGame*>& InEventData,
-	const float InParticleTime, const FVector InNormal, const float InTime, const int32 InItem, const FName InBoneName)
+	const float InParticleTime, const FVector InNormal, const float InTime, const int32 InItem, const FName InBoneName, UPhysicalMaterial* PhysMat)
 {
 	FParticleEventCollideData* CollideData = new(CollisionEvents)FParticleEventCollideData;
 	CollideData->Type = EPET_Collision;
@@ -6604,6 +6627,7 @@ void UParticleSystemComponent::ReportEventCollision(const FName InEventName, con
 	CollideData->Time = InTime;
 	CollideData->Item = InItem;
 	CollideData->BoneName = InBoneName;
+	CollideData->PhysMat = PhysMat;
 }
 
 void UParticleSystemComponent::ReportEventBurst(const FName InEventName, const float InEmitterTime, const int32 InParticleCount,

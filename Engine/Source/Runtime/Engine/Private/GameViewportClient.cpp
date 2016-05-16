@@ -1521,7 +1521,7 @@ ULocalPlayer* UGameViewportClient::SetupInitialLocalPlayer(FString& OutError)
 
 	ActiveSplitscreenType = ESplitScreenType::None;
 
-#if !UE_BUILD_SHIPPING
+#if ALLOW_CONSOLE
 	// Create the viewport's console.
 	ViewportConsole = NewObject<UConsole>(this, GetOuterUEngine()->ConsoleClass);
 	// register console to get all log messages

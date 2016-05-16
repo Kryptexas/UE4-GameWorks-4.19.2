@@ -36,6 +36,7 @@ Landscape.cpp: Terrain rendering
 #include "Materials/MaterialExpressionLandscapeLayerSample.h"
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
+#include "CookStats.h"
 
 #if WITH_EDITOR
 #include "MaterialUtilities.h"
@@ -51,6 +52,17 @@ DEFINE_STAT(STAT_LandscapeDrawCalls);
 DEFINE_STAT(STAT_LandscapeTriangles);
 DEFINE_STAT(STAT_LandscapeVertexMem);
 DEFINE_STAT(STAT_LandscapeComponentMem);
+
+#if ENABLE_COOK_STATS
+namespace LandscapeCookStats
+{
+	static FCookStats::FDDCResourceUsageStats UsageStats;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("Landscape.Usage"), TEXT(""));
+	});
+}
+#endif
 
 // Set this to 0 to disable landscape cooking and thus disable it on device.
 #define ENABLE_LANDSCAPE_COOKING 1
@@ -167,19 +179,34 @@ void ULandscapeComponent::CheckGenerateLandscapePlatformData(bool bIsCooking)
 			bGenerateVertexData = false;
 		}
 		else
-		if (PlatformData.LoadFromDDC(NewSourceHash))
 		{
-			bGenerateVertexData = false;
+			// Pull some of the code to build the platform data into this block so we can get accurate the hit/miss timings.
+			COOK_STAT(auto Timer = LandscapeCookStats::UsageStats.TimeSyncWork());
+			if (PlatformData.LoadFromDDC(NewSourceHash))
+			{
+				COOK_STAT(Timer.AddHit(PlatformData.GetPlatformDataSize()));
+				bGenerateVertexData = false;
+			}
+			else if (bIsCooking)
+			{
+				GeneratePlatformVertexData();
+				PlatformData.SaveToDDC(NewSourceHash);
+				COOK_STAT(Timer.AddMiss(PlatformData.GetPlatformDataSize()));
+				bGenerateVertexData = false;
+			}
 		}
 	}
 
 	if (bGenerateVertexData)
 	{
+		// If we didn't even try to load from the DDC for some reason, but still need to build the data, treat that as a separate "miss" case that is causing DDC-related work to be done.
+		COOK_STAT(auto Timer = LandscapeCookStats::UsageStats.TimeSyncWork());
 		GeneratePlatformVertexData();
 		if (bIsCooking)
 		{
 			PlatformData.SaveToDDC(NewSourceHash);
 		}
+		COOK_STAT(Timer.AddMiss(PlatformData.GetPlatformDataSize()));
 	}
 
 	if (bGeneratePixelData)

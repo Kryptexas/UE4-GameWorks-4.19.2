@@ -245,6 +245,9 @@ private:
 	UPROPERTY(Config)
 	TArray<FQosDatacenterInfo> Datacenters;
 
+	UPROPERTY()
+	FDateTime LastCheckTimestamp;
+
 	/** Reference to the evaluator for making datacenter determinations (null when not active) */
 	UPROPERTY()
 	UQosEvaluator* Evaluator;

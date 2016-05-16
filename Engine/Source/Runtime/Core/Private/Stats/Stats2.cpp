@@ -1266,16 +1266,18 @@ void FThreadStats::StartThread()
 	FStatsThreadState::GetLocalState(); // start up the state
 	FStatsThread::Get();
 	FStatsThread::Get().Start();
+
+	// Preallocate a bunch of FThreadStats to avoid dynamic memory allocation.
+	// (Must do this before we expose ourselves to other threads via tls).
+	FThreadStatsPool::Get();
+
 	if (!TlsSlot)
 	{
 		TlsSlot = FPlatformTLS::AllocTlsSlot();
 	}
 	check(IsThreadingReady());
 	CheckEnable();
-
-	// Preallocate a bunch of FThreadStats to avoid dynamic memory allocation.
-	FThreadStatsPool::Get();
-
+	
 	if( FThreadStats::WillEverCollectData() )
 	{
 		FThreadStats::ExplicitFlush(); // flush the stats and set update the scope so we don't flush again until a frame update, this helps prevent fragmentation

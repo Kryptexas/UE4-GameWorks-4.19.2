@@ -661,7 +661,7 @@ namespace HLODOutliner
 			for (auto SelectedItem : SelectedItems )
 			{
 				FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
-				if (ActorItem->LODActor->SubActors.Num() > 1)
+				if (ActorItem->LODActor->HasValidSubActors())
 				{
 					auto Parent = ActorItem->GetParent();
 
@@ -693,7 +693,7 @@ namespace HLODOutliner
 			for (auto SelectedItem : SelectedItems)
 			{
 				FLODActorItem* ActorItem = (FLODActorItem*)(SelectedItem.Get());
-				if (ActorItem->LODActor->SubActors.Num() > 1)
+				if (ActorItem->LODActor->HasValidSubActors())
 				{
 					auto Parent = ActorItem->GetParent();
 
@@ -1294,7 +1294,7 @@ namespace HLODOutliner
 				if (CurrentParent->GetTreeItemType() == ITreeItem::HierarchicalLODActor)
 				{
 					FLODActorItem* ParentLODActorItem = (FLODActorItem*)CurrentParent.Get();
-					if (!ParentLODActorItem->LODActor->HasValidSubActors())
+					if (!ParentLODActorItem->LODActor->HasAnySubActors())
 					{
 						HierarchicalLODUtilities->DestroyLODActor(ParentLODActorItem->LODActor.Get());
 						PendingActions.Emplace(FOutlinerAction::RemoveItem, CurrentParent);

@@ -26,7 +26,20 @@
 #include "EngineGlobals.h"
 #include "InstancedFoliageActor.h"
 #include "EngineUtils.h"
+#include "CookStats.h"
 
+#if ENABLE_COOK_STATS
+namespace LandscapeCollisionCookStats
+{
+	static FCookStats::FDDCResourceUsageStats HeightfieldUsageStats;
+	static FCookStats::FDDCResourceUsageStats MeshUsageStats;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		HeightfieldUsageStats.LogStats(AddStat, TEXT("LandscapeCollision.Usage"), TEXT("Heightfield"));
+		MeshUsageStats.LogStats(AddStat, TEXT("LandscapeCollision.Usage"), TEXT("Mesh"));
+	});
+}
+#endif
 
 TMap<FGuid, ULandscapeHeightfieldCollisionComponent::FPhysXHeightfieldRef* > GSharedHeightfieldRefs;
 
@@ -494,6 +507,7 @@ TArray<PxHeightFieldSample> ConvertHeightfieldDataForPhysx(const ULandscapeHeigh
 bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& Format, bool bUseDefMaterial, bool bCheckDDC, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& InOutMaterials) const
 {
 #if WITH_PHYSX
+	COOK_STAT(auto Timer = LandscapeCollisionCookStats::HeightfieldUsageStats.TimeSyncWork());
 	// we have 2 versions of collision objects
 	const int32 CookedDataIndex = bUseDefMaterial ? 0 : 1;
 
@@ -507,19 +521,29 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 			// Check if the speculatively-loaded data loaded and is what we wanted
 			if (SpeculativeDDCRequest.IsValid() && DDCKey == SpeculativeDDCRequest->GetKey())
 			{
+				// If we have a DDC request in flight, just time the synchronous cycles used.
+				COOK_STAT(auto WaitTimer = LandscapeCollisionCookStats::HeightfieldUsageStats.TimeAsyncWait());
 				SpeculativeDDCRequest->WaitAsynchronousCompletion();
 				bool bSuccess = SpeculativeDDCRequest->GetAsynchronousResults(OutCookedData);
 				// World will clean up remaining reference
 				SpeculativeDDCRequest.Reset();
 				if (bSuccess)
 				{
+					COOK_STAT(Timer.Cancel());
+					COOK_STAT(WaitTimer.AddHit(OutCookedData.Num()));
 					bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 					return true;
+				}
+				else
+				{
+					// If the DDC request failed, then we waited for nothing and will build the resource anyway. Just ignore the wait timer and treat it all as sync time.
+					COOK_STAT(WaitTimer.Cancel());
 				}
 			}
 
 			if (GetDerivedDataCacheRef().GetSynchronous(*DDCKey, OutCookedData))
 			{
+				COOK_STAT(Timer.AddHit(OutCookedData.Num()));
 				bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 				return true;
 			}
@@ -529,6 +553,8 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 	ALandscapeProxy* Proxy = GetLandscapeProxy();
 	if (!Proxy || !Proxy->GetRootComponent())
 	{
+		// We didn't actually build anything, so just track the cycles.
+		COOK_STAT(Timer.TrackCyclesOnly());
 		return false;
 	}
 
@@ -597,6 +623,7 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 
 	if (Result)
 	{
+		COOK_STAT(Timer.AddMiss(OutData.Num()));
 		OutCookedData.SetNumUninitialized(OutData.Num());
 		FMemory::Memcpy(OutCookedData.GetData(), OutData.GetData(), OutData.Num());
 
@@ -608,6 +635,8 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 	}
 	else
 	{
+		// if we failed to build the resource, just time the cycles we spent.
+		COOK_STAT(Timer.TrackCyclesOnly());
 		OutCookedData.Empty();
 		InOutMaterials.Empty();
 	}
@@ -621,6 +650,7 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bool bUseDefMaterial, bool bCheckDDC, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& InOutMaterials) const
 {
 #if WITH_PHYSX
+	COOK_STAT(auto Timer = LandscapeCollisionCookStats::MeshUsageStats.TimeSyncWork());
 	// we have 2 versions of collision objects
 	const int32 CookedDataIndex = bUseDefMaterial ? 0 : 1;
 
@@ -634,19 +664,29 @@ bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bo
 			// Check if the speculatively-loaded data loaded and is what we wanted
 			if (SpeculativeDDCRequest.IsValid() && DDCKey == SpeculativeDDCRequest->GetKey())
 			{
+				// If we have a DDC request in flight, just time the synchronous cycles used.
+				COOK_STAT(auto WaitTimer = LandscapeCollisionCookStats::MeshUsageStats.TimeAsyncWait());
 				SpeculativeDDCRequest->WaitAsynchronousCompletion();
 				bool bSuccess = SpeculativeDDCRequest->GetAsynchronousResults(OutCookedData);
 				// World will clean up remaining reference
 				SpeculativeDDCRequest.Reset();
 				if (bSuccess)
 				{
+					COOK_STAT(Timer.Cancel());
+					COOK_STAT(WaitTimer.AddHit(OutCookedData.Num()));
 					bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 					return true;
+				}
+				else
+				{
+					// If the DDC request failed, then we waited for nothing and will build the resource anyway. Just ignore the wait timer and treat it all as sync time.
+					COOK_STAT(WaitTimer.Cancel());
 				}
 			}
 
 			if (GetDerivedDataCacheRef().GetSynchronous(*DDCKey, OutCookedData))
 			{
+				COOK_STAT(Timer.AddHit(OutCookedData.Num()));
 				bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 				return true;
 			}
@@ -784,6 +824,7 @@ bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bo
 
 	if (Result)
 	{
+		COOK_STAT(Timer.AddMiss(OutData.Num()));
 		OutCookedData.SetNumUninitialized(OutData.Num());
 		FMemory::Memcpy(OutCookedData.GetData(), OutData.GetData(), OutData.Num());
 
@@ -795,6 +836,8 @@ bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bo
 	}
 	else
 	{
+		// We didn't actually build anything, so just track the cycles.
+		COOK_STAT(Timer.TrackCyclesOnly());
 		OutCookedData.Empty();
 		InOutMaterials.Empty();
 	}

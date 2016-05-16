@@ -243,15 +243,9 @@ void FDecalRendering::BuildVisibleDecalList(const FScene& Scene, const FViewInfo
 	{
 		bool bIsShown = true;
 
-		// Handle the decal actor having bHidden set when we are in the editor, in G mode
-#if WITH_EDITOR
-		if (View.Family->EngineShowFlags.Editor)
-#endif
+		if (!DecalProxy->IsShown(&View))
 		{
-			if (!DecalProxy->DrawInGame)
-			{
-				bIsShown = false;
-			}
+			bIsShown = false;
 		}
 
 		const FMatrix ComponentToWorldMatrix = DecalProxy->ComponentTrans.ToMatrixWithScale();

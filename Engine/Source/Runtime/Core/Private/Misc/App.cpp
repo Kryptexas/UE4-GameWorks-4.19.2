@@ -37,6 +37,10 @@ FString FApp::GetBranchName()
 	return FString(TEXT(BRANCH_NAME));
 }
 
+const TCHAR* FApp::GetBuildVersion()
+{
+	return BUILD_VERSION;
+}
 
 int32 FApp::GetEngineIsPromotedBuild()
 {

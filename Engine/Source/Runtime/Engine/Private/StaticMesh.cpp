@@ -25,6 +25,7 @@
 #include "Engine/StaticMeshSocket.h"
 #include "EditorFramework/AssetImportData.h"
 #include "AI/Navigation/NavCollision.h"
+#include "CookStats.h"
 
 #include "ReleaseObjectVersion.h"
 
@@ -40,6 +41,17 @@ DECLARE_MEMORY_STAT( TEXT( "StaticMesh Total Memory" ), STAT_StaticMeshTotalMemo
 
 /** Package name, that if set will cause only static meshes in that package to be rebuilt based on SM version. */
 ENGINE_API FName GStaticMeshPackageNameToRebuild = NAME_None;
+
+#if ENABLE_COOK_STATS
+namespace StaticMeshCookStats
+{
+	static FCookStats::FDDCResourceUsageStats UsageStats;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("StaticMesh.Usage"), TEXT(""));
+	});
+}
+#endif
 
 /*-----------------------------------------------------------------------------
 	FStaticMeshVertexBuffer
@@ -1266,43 +1278,48 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 	}
 
 
-	int32 T0 = FPlatformTime::Cycles();
-	int32 NumLODs = Owner->SourceModels.Num();
-	const FStaticMeshLODGroup& LODGroup = LODSettings.GetLODGroup(Owner->LODGroup);
-	DerivedDataKey = BuildStaticMeshDerivedDataKey(Owner, LODGroup);
-
-	TArray<uint8> DerivedData;
-	if (GetDerivedDataCacheRef().GetSynchronous(*DerivedDataKey, DerivedData))
 	{
-		FMemoryReader Ar(DerivedData, /*bIsPersistent=*/ true);
-		Serialize(Ar, Owner, /*bCooked=*/ false);
+		COOK_STAT(auto Timer = StaticMeshCookStats::UsageStats.TimeSyncWork());
+		int32 T0 = FPlatformTime::Cycles();
+		int32 NumLODs = Owner->SourceModels.Num();
+		const FStaticMeshLODGroup& LODGroup = LODSettings.GetLODGroup(Owner->LODGroup);
+		DerivedDataKey = BuildStaticMeshDerivedDataKey(Owner, LODGroup);
 
-		int32 T1 = FPlatformTime::Cycles();
-		UE_LOG(LogStaticMesh,Verbose,TEXT("Static mesh found in DDC [%fms] %s"),
-			FPlatformTime::ToMilliseconds(T1-T0),
-			*Owner->GetPathName()
-			);
-		FPlatformAtomics::InterlockedAdd(&StaticMeshDerivedDataTimings::GetCycles, T1-T0);
-	}
-	else
-	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("StaticMeshName"), FText::FromString( Owner->GetName() ) );
-		FStaticMeshStatusMessageContext StatusContext( FText::Format( NSLOCTEXT("Engine", "BuildingStaticMeshStatus", "Building static mesh {StaticMeshName}..."), Args ) );
+		TArray<uint8> DerivedData;
+		if (GetDerivedDataCacheRef().GetSynchronous(*DerivedDataKey, DerivedData))
+		{
+			COOK_STAT(Timer.AddHit(DerivedData.Num()));
+			FMemoryReader Ar(DerivedData, /*bIsPersistent=*/ true);
+			Serialize(Ar, Owner, /*bCooked=*/ false);
 
-		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-		MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup);
-		bLODsShareStaticLighting = Owner->CanLODsShareStaticLighting();
-		FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
-		Serialize(Ar, Owner, /*bCooked=*/ false);
-		GetDerivedDataCacheRef().Put(*DerivedDataKey, DerivedData);
+			int32 T1 = FPlatformTime::Cycles();
+			UE_LOG(LogStaticMesh,Verbose,TEXT("Static mesh found in DDC [%fms] %s"),
+				FPlatformTime::ToMilliseconds(T1-T0),
+				*Owner->GetPathName()
+				);
+			FPlatformAtomics::InterlockedAdd(&StaticMeshDerivedDataTimings::GetCycles, T1 - T0);
+		}
+		else
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("StaticMeshName"), FText::FromString( Owner->GetName() ) );
+			FStaticMeshStatusMessageContext StatusContext( FText::Format( NSLOCTEXT("Engine", "BuildingStaticMeshStatus", "Building static mesh {StaticMeshName}..."), Args ) );
 
-		int32 T1 = FPlatformTime::Cycles();
-		UE_LOG(LogStaticMesh,Log,TEXT("Built static mesh [%.2fs] %s"),
-			FPlatformTime::ToMilliseconds(T1-T0) / 1000.0f,
-			*Owner->GetPathName()
-			);
-		FPlatformAtomics::InterlockedAdd(&StaticMeshDerivedDataTimings::BuildCycles, T1-T0);
+			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
+			MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup);
+			bLODsShareStaticLighting = Owner->CanLODsShareStaticLighting();
+			FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
+			Serialize(Ar, Owner, /*bCooked=*/ false);
+			GetDerivedDataCacheRef().Put(*DerivedDataKey, DerivedData);
+
+			int32 T1 = FPlatformTime::Cycles();
+			UE_LOG(LogStaticMesh,Log,TEXT("Built static mesh [%.2fs] %s"),
+				FPlatformTime::ToMilliseconds(T1-T0) / 1000.0f,
+				*Owner->GetPathName()
+				);
+			FPlatformAtomics::InterlockedAdd(&StaticMeshDerivedDataTimings::BuildCycles, T1 - T0);
+			COOK_STAT(Timer.AddMiss(DerivedData.Num()));
+		}
 	}
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));

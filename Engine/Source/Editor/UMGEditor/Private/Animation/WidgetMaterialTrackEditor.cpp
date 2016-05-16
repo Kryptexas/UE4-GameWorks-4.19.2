@@ -32,7 +32,10 @@ UMaterialInterface* FWidgetMaterialTrackEditor::GetMaterialInterfaceForTrack( FG
 	if ( Widget != nullptr && WidgetMaterialTrack != nullptr )
 	{
 		FSlateBrush* Brush = WidgetMaterialTrackUtilities::GetBrush( Widget, WidgetMaterialTrack->GetBrushPropertyNamePath() );
-		return Cast<UMaterialInterface>(Brush->GetResourceObject());
+		if ( Brush != nullptr )
+		{
+			return Cast<UMaterialInterface>(Brush->GetResourceObject());
+		}
 	}
 	return nullptr;
 }

@@ -251,6 +251,13 @@ bool UAnimationAsset::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>&
 	return false;
 }
 
+void UAnimationAsset::HandleAnimReferenceCollection(TArray<UAnimationAsset*>& AnimationAssets) 
+{
+	AnimationAssets.AddUnique(this);
+	// anim sequence still should call this
+	GetAllAnimationSequencesReferred(AnimationAssets);
+}
+
 void UAnimationAsset::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
 }
@@ -590,3 +597,4 @@ void FBlendSampleData::NormalizeDataWeight(TArray<FBlendSampleData>& SampleDataL
 		}
 	}
 }
+

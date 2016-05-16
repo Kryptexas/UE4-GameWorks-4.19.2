@@ -63,6 +63,12 @@ namespace BuildGraph.Tasks
 		public string ToDir;
 
 		/// <summary>
+		/// Whether to overwrite existing files
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public bool Overwrite;
+
+		/// <summary>
 		/// Tag to be applied to build products of this task
 		/// </summary>
 		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.Tag)]
@@ -160,7 +166,7 @@ namespace BuildGraph.Tasks
 				}
 
 				// Only copy the output file if it doesn't already exist. We can stage multiple targets to the same output directory.
-				if(!TargetFile.Exists())
+				if(Parameters.Overwrite || !TargetFile.Exists())
 				{
 					TargetFile.Directory.CreateDirectory();
 					CommandUtils.CopyFile(SourceFile.FullName, TargetFile.FullName);

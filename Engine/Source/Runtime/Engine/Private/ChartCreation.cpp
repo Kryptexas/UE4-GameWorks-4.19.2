@@ -12,6 +12,9 @@
 #include "AnalyticsEventAttribute.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Performance/EnginePerformanceTargets.h"
+#if USE_SERVER_PERF_COUNTERS
+	#include "PerfCountersModule.h"
+#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogChartCreation, Log, All);
 
@@ -199,7 +202,7 @@ protected:
 	{
 		PrintToEndpoint(FString::Printf(TEXT("--- Begin : FPS chart dump for level '%s'"), *MapName));
 
-		PrintToEndpoint(FString::Printf(TEXT("Dumping FPS chart at %s using build %s in config %s built from changelist %i"), *FDateTime::Now().ToString(), *FEngineVersion::Current().ToString(), EBuildConfigurations::ToString(FApp::GetBuildConfiguration()), GetChangeListNumberForPerfTesting()));
+		PrintToEndpoint(FString::Printf(TEXT("Dumping FPS chart at %s using build %s in config %s built from changelist %i"), *FDateTime::Now().ToString(), FApp::GetBuildVersion(), EBuildConfigurations::ToString(FApp::GetBuildConfiguration()), GetChangeListNumberForPerfTesting()));
 
 		PrintToEndpoint(TEXT("Machine info:"));
 		PrintToEndpoint(FString::Printf(TEXT("\tOS: %s %s"), *OSMajor, *OSMinor));
@@ -675,6 +678,24 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 	}
 	GLastTimeChartCreationTicked = CurrentTime;
 
+#if USE_SERVER_PERF_COUNTERS
+	IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
+	if (LIKELY(PerfCounters))
+	{
+		FHistogram* MatchHistogram = PerfCounters->PerformanceHistograms().Find(IPerfCounters::Histograms::FrameTime);
+		if (LIKELY(MatchHistogram))
+		{
+			MatchHistogram->AddMeasurement(DeltaSeconds * 1000.0);
+		}
+
+		FHistogram* PeriodicHistogram = PerfCounters->PerformanceHistograms().Find(IPerfCounters::Histograms::FrameTimePeriodic);
+		if (LIKELY(PeriodicHistogram))
+		{
+			PeriodicHistogram->AddMeasurement(DeltaSeconds * 1000.0);
+		}
+	}
+#endif // USE_SERVER_PERF_COUNTERS
+
 	// subtract idle time (FPS chart is ticked after UpdateTimeAndHandleMaxTickRate(), so we know time we spent sleeping this frame)
 	if (GFPSChartExcludeIdleTime.GetValueOnGameThread() != 0)
 	{
@@ -985,6 +1006,24 @@ void UEngine::StartFPSChart(const FString& Label, bool bRecordPerFrameTimes)
 
 	GCaptureStartTime = FDateTime::Now().ToString();
 
+#if USE_SERVER_PERF_COUNTERS
+	IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
+	if (LIKELY(PerfCounters))
+	{
+		// remove existing histograms
+		PerfCounters->PerformanceHistograms().Reset();
+
+		// create named histograms
+		FHistogram NewHitchTrackingHistogram;
+		NewHitchTrackingHistogram.InitHitchTracking();
+
+		PerfCounters->PerformanceHistograms().Add(IPerfCounters::Histograms::FrameTime, NewHitchTrackingHistogram);
+		PerfCounters->PerformanceHistograms().Add(IPerfCounters::Histograms::FrameTimePeriodic, NewHitchTrackingHistogram);		
+		PerfCounters->PerformanceHistograms().Add(IPerfCounters::Histograms::ServerReplicateActorsTime, NewHitchTrackingHistogram);
+		PerfCounters->PerformanceHistograms().Add(IPerfCounters::Histograms::SleepTime, NewHitchTrackingHistogram);
+	}
+#endif // USE_SERVER_PERF_COUNTERS
+
 	UE_LOG(LogChartCreation, Log, TEXT("Started creating FPS charts at %f seconds"), GFPSChartStartTime);
 }
 
@@ -992,6 +1031,15 @@ void UEngine::StopFPSChart()
 {
 	GFPSChartStopTime = FPlatformTime::Seconds();
 	GEnableDataCapture = false;
+
+#if USE_SERVER_PERF_COUNTERS
+	IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
+	if (LIKELY(PerfCounters))
+	{
+		// remove existing histograms so the code doesn't keep updating them. If you need to use them, do that before calling StopFPSChart() (or copy)
+		PerfCounters->PerformanceHistograms().Reset();
+	}
+#endif // USE_SERVER_PERF_COUNTERS
 
 	UE_LOG(LogChartCreation, Log, TEXT("Stopped creating FPS charts at %f seconds"), GFPSChartStopTime);
 }
@@ -1146,59 +1194,254 @@ void UEngine::DumpFPSChartToStatsLog( float TotalTime, float DeltaTime, int32 Nu
 #endif // ALLOW_DEBUG_FILES
 }
 
+#if ALLOW_DEBUG_FILES
+
+const TCHAR* GFPSChartPreamble =
+L"<HTML>\n"
+L"   <HEAD>\n"
+L"    <TITLE>FPS Chart</TITLE>\n"
+L"\n"
+L"    <META HTTP-EQUIV=\"CONTENT-TYPE\" CONTENT=\"TEXT/HTML; CHARSET=UTF-8\">\n"
+L"    <LINK TITLE=\"default style\" REL=\"STYLESHEET\" HREF=\"../../Engine/Stats/ChartStyle.css\" TYPE=\"text/css\">\n"
+L"    <LINK TITLE=\"default style\" REL=\"STYLESHEET\" HREF=\"../../Engine/Stats/FPSStyle.css\" TYPE=\"text/css\">\n"
+L"\n"
+L"  </HEAD>\n"
+L"</HEAD>\n"
+L"<BODY>\n"
+L"\n"
+L"<DIV CLASS=\"ChartStyle\">\n"
+L"\n"
+L"<TABLE BORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\" BGCOLOR=\"#808080\">\n"
+L"<TR><TD>\n"
+L"<TABLE WIDTH=\"4000\" HEIGHT=\"100%\" BORDER=\"0\" CELLSPACING=\"1\" CELLPADDING=\"3\" BGCOLOR=\"#808080\">\n"
+L"\n"
+L"<TR CLASS=\"rowHeader\">\n"
+L"<TD CLASS=\"rowHeadermapname\"><DIV CLASS=\"rowHeaderValue\">mapname</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderChangelist\"><DIV CLASS=\"rowHeaderValue\">changelist</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderDateStamp\"><DIV CLASS=\"rowHeaderValue\">datestamp</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderOS\"><DIV CLASS=\"rowHeaderValue\">OS</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderCPU\"><DIV CLASS=\"rowHeaderValue\">CPU</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderGPU\"><DIV CLASS=\"rowHeaderValue\">GPU</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSettingsRes\"><DIV CLASS=\"rowHeaderValue\">Res Qual</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSettingsVD\"><DIV CLASS=\"rowHeaderValue\">View Dist Qual</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSettingsAA\"><DIV CLASS=\"rowHeaderValue\">AA Qual</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSettingsShadow\"><DIV CLASS=\"rowHeaderValue\">Shadow Qual</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSettingsPP\"><DIV CLASS=\"rowHeaderValue\">PP Qual</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSettingsTex\"><DIV CLASS=\"rowHeaderValue\">Tex Qual</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSettingsFX\"><DIV CLASS=\"rowHeaderValue\">FX Qual</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"rowHeaderSummary\"><DIV>avg FPS</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSummary\"><DIV>% over 30 FPS</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSummary\"><DIV>% over 60 FPS</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSummary\"><DIV>% over 120 FPS</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"rowHeaderSummary\"><DIV>Hitches/Min</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSummary\"><DIV>% Missed VSync 30</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSummary\"><DIV>% Missed VSync 60</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSummary\"><DIV>% Missed VSync 120</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"rowHeaderSummary\"><DIV>avg GPU time</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSummary\"><DIV>avg RT time</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderSummary\"><DIV>avg GT time</DIV></TD>\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>Game Thread Bound By Percent</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>Render Thread Bound By Percent</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>GPU Bound By Percent</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">0 - 5</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">5 - 10</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">10 - 15</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">15 - 20</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">20 - 25</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">25 - 30</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">30 - 40</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">40 - 50</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">50 - 60</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">60 - 70</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">70 - 80</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">80 - 90</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">90 - 100</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">100 - 110</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">110 - 120</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">120 - INF</DIV></TD>\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"rowHeaderTimes\"><DIV>time</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderTimes\"><DIV>frame count</DIV></TD>\n"
+L"<TD CLASS=\"rowHeaderTimes\"<DIV>time disregarded</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderTimes\">Total Hitches</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderTimes\">Game Thread Bound Hitch Frames</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderTimes\">Render Thread Bound Hitch Frames</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderTimes\">GPU Bound Hitch Frames</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">5.0 - INF</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">2.5 - 5.0</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">2.0 - 2.5</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">1.5 - 2.0</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">1.0 - 1.5</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">0.75 - 1.00</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">0.50 - 0.75</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">0.30 - 0.50</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">0.20 - 0.30</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">0.15 - 0.20</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">0.10 - 0.15</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">0.06 - 0.10</DIV></TD>\n"
+L"<TD><DIV CLASS=\"rowHeaderValue\">0.03 - 0.06</DIV></TD>\n"
+L"\n"
+L"</TR>\n"
+L"\n"
+L"<UE4></UE4>";
+
+const TCHAR* GFPSChartPostamble =
+L"</TABLE>\n"
+L"</TD></TR></TABLE>\n"
+L"\n"
+L"</DIV> <!-- <DIV CLASS=\"ChartStyle\"> -->\n"
+L"\n"
+L"</BODY>\n"
+L"</HTML>\n"
+L"";
+
+const TCHAR* GFPSChartRow =
+L"<TR CLASS=\"dataRow\">\n"
+L"<TD CLASS=\"rowEntryMapName\"><DIV>TOKEN_MAPNAME</DIV></TD>\n"
+L"<TD CLASS=\"rowEntryChangelist\"><DIV>TOKEN_CHANGELIST</DIV></TD>\n"
+L"<TD CLASS=\"rowEntryDateStamp\"><DIV>TOKEN_DATESTAMP</DIV></TD>\n"
+L"<TD CLASS=\"rowEntryOS\"><DIV>TOKEN_OS</DIV></TD>\n"
+L"<TD CLASS=\"rowEntryCPU\"><DIV>TOKEN_CPU</DIV></TD>\n"
+L"<TD CLASS=\"rowEntryGPU\"><DIV>TOKEN_GPU</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySettingsRes\"><DIV>TOKEN_SETTINGS_RES</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySettingsVD\"><DIV>TOKEN_SETTINGS_VD</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySettingsAA\"><DIV>TOKEN_SETTINGS_AA</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySettingsShadow\"><DIV>TOKEN_SETTINGS_SHADOW</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySettingsPP\"><DIV>TOKEN_SETTINGS_PP</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySettingsTex\"><DIV>TOKEN_SETTINGS_TEX</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySettingsFX\"><DIV>TOKEN_SETTINGS_FX</DIV></TD>\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_AVG_FPS</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_PCT_ABOVE_30</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_PCT_ABOVE_60</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_PCT_ABOVE_120</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_HITCHES_PER_MIN</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_MVP_30</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_MVP_60</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_MVP_120</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_AVG_GPUTIME</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_AVG_RENDTIME</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_AVG_GAMETIME</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_BOUND_GAME_THREAD_PERCENT</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_BOUND_RENDER_THREAD_PERCENT</DIV></TD>\n"
+L"<TD CLASS=\"rowEntrySummary\"><DIV>TOKEN_BOUND_GPU_PERCENT</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_0_5</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_5_10</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_10_15</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_15_20</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_20_25</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_25_30</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_30_40</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_40_50</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_50_60</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_60_70</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_70_80</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_80_90</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_90_100</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_100_110</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_110_120</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_120_999</DIV></TD>\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"\n"
+L"\n"
+L"<TD CLASS=\"rowEntryTimes\"><DIV>TOKEN_TIME</DIV></TD>\n"
+L"<TD CLASS=\"rowEntryTimes\"><DIV>TOKEN_FRAMECOUNT</DIV></TD>\n"
+L"<TD CLASS=\"rowEntryTimes\"><DIV>TOKEN_TIME_DISREGARDED</DIV></TD>\n"
+L"\n"
+L"\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_TOTAL</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_GAME_BOUND_COUNT</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_RENDER_BOUND_COUNT</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_GPU_BOUND_COUNT</DIV></TD>\n"
+L"\n"
+L"<TD CLASS=\"columnSeparator\"><DIV>&nbsp;</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_5000_PLUS</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_2500_5000</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_2000_2500</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_1500_2000</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_1000_1500</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_750_1000</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_500_750</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_300_500</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_200_300</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_150_200</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_100_150</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_60_100</DIV></TD>\n"
+L"<TD><DIV CLASS=\"value\">TOKEN_HITCH_30_60</DIV></TD>\n"
+L"\n"
+L"</TR>";
+
+#endif
+
 void UEngine::DumpFPSChartToHTML( float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName )
 {
 #if ALLOW_DEBUG_FILES
 	// Load the HTML building blocks from the Engine\Stats folder.
-	FString FPSChartPreamble;
-	FString FPSChartPostamble;
-	FString FPSChartRow;
-	bool bAreAllHTMLPartsLoaded = true;
+	FString FPSChartPreamble(GFPSChartPreamble);
+	FString FPSChartPostamble(GFPSChartPostamble);
+	FString FPSChartRow(GFPSChartRow);
 
-	bAreAllHTMLPartsLoaded = bAreAllHTMLPartsLoaded && FFileHelper::LoadFileToString( FPSChartPreamble,	*(FPaths::EngineContentDir() + TEXT("Stats/FPSChart_Preamble.html")	) );
-	bAreAllHTMLPartsLoaded = bAreAllHTMLPartsLoaded && FFileHelper::LoadFileToString( FPSChartPostamble,	*(FPaths::EngineContentDir() + TEXT("Stats/FPSChart_Postamble.html")	) );
-	bAreAllHTMLPartsLoaded = bAreAllHTMLPartsLoaded && FFileHelper::LoadFileToString( FPSChartRow,		*(FPaths::EngineContentDir() + TEXT("Stats/FPSChart_Row.html")			) );
+	FDumpFPSChartToHTMLEndpoint HTMLEndpoint(FPSChartRow);
+	HTMLEndpoint.DumpChart(TotalTime, DeltaTime, NumFrames, InMapName);
 
-	// Successfully loaded all HTML templates.
-	if( bAreAllHTMLPartsLoaded )
+	const FString OutputDir = CreateOutputDirectory();
+
+	// Create FPS chart filename.
+	const FString ChartType = GetFPSChartType();
+
+	const FString& FPSChartFilename = OutputDir / CreateFileNameForChart( ChartType, *InMapName, TEXT( ".html" ) );
+	FString FPSChart;
+
+	// See whether file already exists and load it into string if it does.
+	if( FFileHelper::LoadFileToString( FPSChart, *FPSChartFilename ) )
 	{
-		FDumpFPSChartToHTMLEndpoint HTMLEndpoint(FPSChartRow);
-		HTMLEndpoint.DumpChart(TotalTime, DeltaTime, NumFrames, InMapName);
+		// Split string where we want to insert current row.
+		const FString HeaderSeparator = TEXT("<UE4></UE4>");
+		FString FPSChartBeforeCurrentRow, FPSChartAfterCurrentRow;
+		FPSChart.Split( *HeaderSeparator, &FPSChartBeforeCurrentRow, &FPSChartAfterCurrentRow );
 
-		const FString OutputDir = CreateOutputDirectory();
-
-		// Create FPS chart filename.
-		const FString ChartType = GetFPSChartType();
-
-		const FString& FPSChartFilename = OutputDir / CreateFileNameForChart( ChartType, *InMapName, TEXT( ".html" ) );
-		FString FPSChart;
-
-		// See whether file already exists and load it into string if it does.
-		if( FFileHelper::LoadFileToString( FPSChart, *FPSChartFilename ) )
-		{
-			// Split string where we want to insert current row.
-			const FString HeaderSeparator = TEXT("<UE4></UE4>");
-			FString FPSChartBeforeCurrentRow, FPSChartAfterCurrentRow;
-			FPSChart.Split( *HeaderSeparator, &FPSChartBeforeCurrentRow, &FPSChartAfterCurrentRow );
-
-			// Assemble FPS chart by inserting current row at the top.
-			FPSChart = FPSChartPreamble + FPSChartRow + FPSChartAfterCurrentRow;
-		}
-		// Assemble from scratch.
-		else
-		{
-			FPSChart = FPSChartPreamble + FPSChartRow + FPSChartPostamble;
-		}
-
-		// Save the resulting file back to disk.
-		FFileHelper::SaveStringToFile( FPSChart, *FPSChartFilename );
-
-		UE_LOG( LogProfilingDebugging, Warning, TEXT( "FPS Chart (HTML) saved to %s" ), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *FPSChartFilename ) );
+		// Assemble FPS chart by inserting current row at the top.
+		FPSChart = FPSChartPreamble + FPSChartRow + FPSChartAfterCurrentRow;
 	}
+	// Assemble from scratch.
 	else
 	{
-		UE_LOG(LogChartCreation, Log, TEXT("Missing FPS chart template files."));
+		FPSChart = FPSChartPreamble + FPSChartRow + FPSChartPostamble;
 	}
+
+	// Save the resulting file back to disk.
+	FFileHelper::SaveStringToFile( FPSChart, *FPSChartFilename );
+
+	UE_LOG( LogProfilingDebugging, Warning, TEXT( "FPS Chart (HTML) saved to %s" ), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *FPSChartFilename ) );
 #endif // ALLOW_DEBUG_FILES
 }
 

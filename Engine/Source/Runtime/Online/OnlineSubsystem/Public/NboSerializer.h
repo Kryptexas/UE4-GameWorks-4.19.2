@@ -233,17 +233,21 @@ public:
 	 */
 	friend inline FNboSerializeToBuffer& operator<<(FNboSerializeToBuffer& Ar,const TCHAR* String)
 	{
-		// We send strings length prefixed
-		int32 Len = String != NULL ? FCString::Strlen(String) : 0;
+		// We send strings length prefixed (conversion handles null pointers)
+		FTCHARToUTF8 Converted(String);
+		int32 Len = Converted.Length();
+
 		Ar << Len;
 
 		if (!Ar.HasOverflow() && Ar.NumBytes + Len <= Ar.GetBufferSize())
 		{
-			// Don't process if null
-			if (String)
+			// Handle empty/null strings
+			if (Len > 0)
 			{
+				ANSICHAR* Ptr = (ANSICHAR*)Converted.Get();
+
 				// memcpy it into the buffer
-				FMemory::Memcpy(&Ar.Data[Ar.NumBytes],TCHAR_TO_ANSI(String),Len);
+				FMemory::Memcpy(&Ar.Data[Ar.NumBytes], Ptr, Len);
 				Ar.NumBytes += Len;
 			}
 		}

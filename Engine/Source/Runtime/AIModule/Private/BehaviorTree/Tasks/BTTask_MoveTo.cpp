@@ -76,7 +76,7 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 	if (MyController && MyBlackboard)
 	{
 		FAIMoveRequest MoveReq;
-		MoveReq.SetNavigationFilter(FilterClass);
+		MoveReq.SetNavigationFilter(*FilterClass ? FilterClass : MyController->GetDefaultNavigationFilterClass());
 		MoveReq.SetAllowPartialPath(bAllowPartialPath);
 		MoveReq.SetAcceptanceRadius(AcceptableRadius);
 		MoveReq.SetCanStrafe(bAllowStrafe);

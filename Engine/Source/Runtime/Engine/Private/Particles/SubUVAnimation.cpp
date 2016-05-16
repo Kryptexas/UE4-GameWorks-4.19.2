@@ -6,6 +6,18 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "ParticleHelper.h"
 #include "DerivedDataCacheInterface.h"
+#include "CookStats.h"
+
+#if ENABLE_COOK_STATS
+namespace SubUVAnimationCookStats
+{
+	static FCookStats::FDDCResourceUsageStats UsageStats;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("SubUVAnimation.Usage"), TEXT(""));
+	});
+}
+#endif
 
 // Can change this guid to force SubUV derived data to be regenerated on next load
 #define SUBUV_DERIVEDDATA_VER TEXT("96DFC022836B48889143E9DF484C3296")
@@ -107,8 +119,10 @@ void USubUVAnimation::CacheDerivedData()
 	const FString KeyString = FSubUVDerivedData::GetDDCKeyString(SubUVTexture->Source.GetId(), SubImages_Horizontal, SubImages_Vertical, (int32)BoundingMode, AlphaThreshold, (int32)OpacitySourceMode);
 	TArray<uint8> Data;
 
+	COOK_STAT(auto Timer = SubUVAnimationCookStats::UsageStats.TimeSyncWork());
 	if (GetDerivedDataCacheRef().GetSynchronous(*KeyString, Data))
 	{
+		COOK_STAT(Timer.AddHit(Data.Num()));
 		DerivedData.BoundingGeometry.Empty(Data.Num() / sizeof(FVector2D));
 		DerivedData.BoundingGeometry.AddUninitialized(Data.Num() / sizeof(FVector2D));
 		FPlatformMemory::Memcpy(DerivedData.BoundingGeometry.GetData(), Data.GetData(), Data.Num() * Data.GetTypeSize());
@@ -121,6 +135,7 @@ void USubUVAnimation::CacheDerivedData()
 		Data.AddUninitialized(DerivedData.BoundingGeometry.Num() * sizeof(FVector2D));
 		FPlatformMemory::Memcpy(Data.GetData(), DerivedData.BoundingGeometry.GetData(), DerivedData.BoundingGeometry.Num() * DerivedData.BoundingGeometry.GetTypeSize());
 		GetDerivedDataCacheRef().Put(*KeyString, Data);
+		COOK_STAT(Timer.AddMiss(Data.Num()));
 	}
 #endif
 }

@@ -126,24 +126,6 @@ namespace UnrealBuildTool
             Environment.SetEnvironmentVariable("LIB", String.Join(";", LibraryPaths));
 		}
 
-		/// <summary>
-		/// Check that an environment variable is the same as one derived from keys in the registry, and send a telemetry event if it's not
-		/// </summary>
-		private void CompareEnvironmentVariable(string VariableName, string RegistryValue, bool bSupportWindowsXP)
-		{
-			string EnvironmentValue = Environment.GetEnvironmentVariable(VariableName);
-			Telemetry.SendEvent("CompareEnvironmentVariable",
-				"Name", VariableName,
-				"Match", (EnvironmentValue == RegistryValue).ToString(),
-				"EnvironmentValue", EnvironmentValue,
-				"RegistryValue", RegistryValue,
-				"Platform", Platform.ToString(),
-				"UWPBuildForStore", UWPPlatform.bBuildForStore.ToString(),
-				"WinXP", bSupportWindowsXP.ToString(),
-				"Compiler", WindowsPlatform.Compiler.ToString(),
-				"UseWindowsSDK10", WindowsPlatform.bUseWindowsSDK10.ToString());
-		}
-
 		/// <returns>The path to Windows SDK directory for the specified version.</returns>
 		private static string FindWindowsSDKInstallationFolder(CPPTargetPlatform InPlatform, bool bSupportWindowsXP)
 		{

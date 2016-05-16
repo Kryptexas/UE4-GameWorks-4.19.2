@@ -279,6 +279,8 @@ struct FBehaviorTreeInstanceId
 	}
 };
 
+struct FBehaviorTreeSearchData;
+
 /** data required for instance of single subtree */
 struct FBehaviorTreeInstance
 {
@@ -332,6 +334,9 @@ struct FBehaviorTreeInstance
 
 	/** check if instance has active node with given execution index */
 	bool HasActiveNode(uint16 TestExecutionIndex) const;
+
+	/** deactivate all active aux nodes and remove their requests from SearchData */
+	void DeactivateNodes(FBehaviorTreeSearchData& SearchData, uint16 InstanceIndex);
 
 protected:
 

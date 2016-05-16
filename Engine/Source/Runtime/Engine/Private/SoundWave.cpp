@@ -11,6 +11,18 @@
 #include "SubtitleManager.h"
 #include "DerivedDataCacheInterface.h"
 #include "EditorFramework/AssetImportData.h"
+#include "CookStats.h"
+
+#if ENABLE_COOK_STATS
+namespace SoundWaveCookStats
+{
+	static FCookStats::FDDCResourceUsageStats UsageStats;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("SoundWave.Usage"), TEXT(""));
+	});
+}
+#endif
 
 /*-----------------------------------------------------------------------------
 	FStreamedAudioChunk
@@ -35,7 +47,7 @@ void FStreamedAudioChunk::Serialize(FArchive& Ar, UObject* Owner, int32 ChunkInd
 }
 
 #if WITH_EDITORONLY_DATA
-void FStreamedAudioChunk::StoreInDerivedDataCache(const FString& InDerivedDataKey)
+uint32 FStreamedAudioChunk::StoreInDerivedDataCache(const FString& InDerivedDataKey)
 {
 	int32 BulkDataSizeInBytes = BulkData.GetBulkDataSize();
 	check(BulkDataSizeInBytes > 0);
@@ -49,9 +61,11 @@ void FStreamedAudioChunk::StoreInDerivedDataCache(const FString& InDerivedDataKe
 		BulkData.Unlock();
 	}
 
+	const uint32 Result = DerivedData.Num();
 	GetDerivedDataCacheRef().Put(*InDerivedDataKey, DerivedData);
 	DerivedDataKey = InDerivedDataKey;
 	BulkData.RemoveBulkData();
+	return Result;
 }
 #endif // #if WITH_EDITORONLY_DATA
 
@@ -309,9 +323,12 @@ FByteBulkData* USoundWave::GetCompressedData(FName Format)
 		{
 			TArray<uint8> OutData;
 			FDerivedAudioDataCompressor* DeriveAudioData = new FDerivedAudioDataCompressor(this, Format);
-			GetDerivedDataCacheRef().GetSynchronous(DeriveAudioData, OutData);
-			if (OutData.Num())
+
+			COOK_STAT(auto Timer = SoundWaveCookStats::UsageStats.TimeSyncWork());
+			bool bDataWasBuilt = false;
+			if (GetDerivedDataCacheRef().GetSynchronous(DeriveAudioData, OutData, &bDataWasBuilt))
 			{
+				COOK_STAT(Timer.AddHitOrMiss(bDataWasBuilt ? FCookStats::CallStats::EHitOrMiss::Miss : FCookStats::CallStats::EHitOrMiss::Hit, OutData.Num()));
 				Result->Lock(LOCK_READ_WRITE);
 				FMemory::Memcpy(Result->Realloc(OutData.Num()), OutData.GetData(), OutData.Num());
 				Result->Unlock();

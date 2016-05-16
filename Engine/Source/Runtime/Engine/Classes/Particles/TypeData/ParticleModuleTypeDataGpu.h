@@ -60,6 +60,9 @@ struct FGPUSpriteLocalVectorFieldInfo
 	/** Tile vector field in z axis? */
 	UPROPERTY() 
 	uint32 bTileZ:1;
+	/** Use fix delta time in the simulation? */
+	UPROPERTY()
+	uint32 bUseFixDT:1;
 
 
 	FGPUSpriteLocalVectorFieldInfo()
@@ -73,6 +76,7 @@ struct FGPUSpriteLocalVectorFieldInfo
 		, bTileX(false)
 		, bTileY(false)
 		, bTileZ(false)
+		, bUseFixDT(false)
 	{
 	}
 

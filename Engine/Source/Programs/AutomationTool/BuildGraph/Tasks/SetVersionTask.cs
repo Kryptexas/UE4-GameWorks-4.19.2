@@ -26,6 +26,12 @@ namespace AutomationTool.Tasks
 		public string Branch;
 
 		/// <summary>
+		/// The build version string
+		/// </summary>
+		[TaskParameter(Optional = true)]
+		public string Build;
+
+		/// <summary>
 		/// Whether to set the IS_LICENSEE_VERSION flag to true
 		/// </summary>
 		[TaskParameter(Optional = true)]
@@ -74,7 +80,7 @@ namespace AutomationTool.Tasks
 		public override bool Execute(JobContext Job, HashSet<FileReference> BuildProducts, Dictionary<string, HashSet<FileReference>> TagNameToFileSet)
 		{
 			// Update the version files
-			List<string> FileNames = UE4Build.StaticUpdateVersionFiles(Parameters.Change, Parameters.Branch, Parameters.Licensee, !Parameters.SkipWrite);
+			List<string> FileNames = UE4Build.StaticUpdateVersionFiles(Parameters.Change, Parameters.Branch, Parameters.Build, Parameters.Licensee, !Parameters.SkipWrite);
 			List<FileReference> VersionFiles = FileNames.Select(x => new FileReference(x)).ToList();
 
 			// Apply the optional tag to them

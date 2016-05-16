@@ -280,16 +280,19 @@ void FObjectReplicator::StartReplicating( class UActorChannel * InActorChannel )
 	}
 }
 
-static FORCEINLINE void ValidateRetirementHistory( FPropertyRetirement & Retire )
+static FORCEINLINE void ValidateRetirementHistory( const FPropertyRetirement & Retire, const UObject* Object )
 {
+	checkf( Retire.SanityTag == FPropertyRetirement::ExpectedSanityTag, TEXT( "Invalid Retire.SanityTag. Object: %s" ), Object ? *Object->GetFullName() : TEXT( "NULL" ) );
+
 	FPropertyRetirement * Rec = Retire.Next;	// Note the first element is 'head' that we dont actually use
 
 	FPacketIdRange LastRange;
 
 	while ( Rec != NULL )
 	{
-		check( Rec->OutPacketIdRange.Last >= Rec->OutPacketIdRange.First );
-		check( Rec->OutPacketIdRange.First >= LastRange.Last );		// Bunch merging and queuing can cause this overlap
+		checkf( Rec->SanityTag == FPropertyRetirement::ExpectedSanityTag, TEXT( "Invalid Rec->SanityTag. Object: %s" ), Object ? *Object->GetFullName() : TEXT( "NULL" ) );
+		checkf( Rec->OutPacketIdRange.Last >= Rec->OutPacketIdRange.First, TEXT( "Invalid packet id range (Last < First). Object: %s" ), Object ? *Object->GetFullName() : TEXT( "NULL" ) );
+		checkf( Rec->OutPacketIdRange.First >= LastRange.Last, TEXT( "Invalid packet id range (First < LastRange.Last). Object: %s" ), Object ? *Object->GetFullName() : TEXT( "NULL" ) );		// Bunch merging and queuing can cause this overlap
 
 		LastRange = Rec->OutPacketIdRange;
 
@@ -304,10 +307,12 @@ void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 
 	OwningChannel = NULL;
 
+	const UObject* Object = GetObject();
+
 	// Cleanup retirement records
 	for ( int32 i = Retirement.Num() - 1; i >= 0; i-- )
 	{
-		ValidateRetirementHistory( Retirement[i] );
+		ValidateRetirementHistory( Retirement[i], Object );
 
 		FPropertyRetirement * Rec = Retirement[i].Next;
 		Retirement[i].Next = NULL;
@@ -332,7 +337,7 @@ void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 
 void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 {
-	UObject* Object = GetObject();
+	const UObject* Object = GetObject();
 
 	if ( Object == NULL )
 	{
@@ -346,7 +351,7 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 
 		for ( int32 i = Retirement.Num() - 1; i >= 0; i-- )
 		{
-			ValidateRetirementHistory( Retirement[i] );
+			ValidateRetirementHistory( Retirement[i], Object );
 
 			// If this is a dynamic array property, we have to look through the list of retirement records to see if we need to reset the base state
 			FPropertyRetirement * Rec = Retirement[i].Next; // Retirement[i] is head and not actually used in this case
@@ -390,7 +395,7 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 				Rec = Rec->Next;
 			}
 				
-			ValidateRetirementHistory( Retirement[i] );
+			ValidateRetirementHistory( Retirement[i], Object );
 		}
 	}
 }
@@ -699,9 +704,9 @@ void FObjectReplicator::PostReceivedBunch()
 	}
 }
 
-static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetirement &	Retire, int32 OutAckPacketId )
+static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetirement &	Retire, const int32 OutAckPacketId, const UObject* Object )
 {
-	ValidateRetirementHistory( Retire );
+	ValidateRetirementHistory( Retire, Object );
 
 	FPropertyRetirement ** Rec = &Retire.Next;	// Note the first element is 'head' that we dont actually use
 
@@ -797,12 +802,12 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FNetBitWriter & Bunch, F
 
 		// Update Retirement records with this new state so we can handle packet drops.
 		// LastNext will be pointer to the last "Next" pointer in the list (so pointer to a pointer)
-		FPropertyRetirement ** LastNext = UpdateAckedRetirements( Retire, OwningChannelConnection->OutAckPacketId );
+		FPropertyRetirement ** LastNext = UpdateAckedRetirements( Retire, OwningChannelConnection->OutAckPacketId, Object );
 
 		check( LastNext != NULL );
 		check( *LastNext == NULL );
 
-		ValidateRetirementHistory( Retire );
+		ValidateRetirementHistory( Retire, Object );
 
 		FNetBitWriter TempBitWriter( OwningChannel->Connection->PackageMap, 0 );
 
@@ -912,7 +917,9 @@ void FObjectReplicator::ForceRefreshUnreliableProperties()
 
 void FObjectReplicator::PostSendBunch( FPacketIdRange & PacketRange, uint8 bReliable )
 {
-	if ( GetObject() == NULL )
+	const UObject* Object = GetObject();
+
+	if ( Object == nullptr )
 	{
 		UE_LOG(LogNet, Verbose, TEXT("PostSendBunch: Object == NULL"));
 		return;
@@ -943,7 +950,7 @@ void FObjectReplicator::PostSendBunch( FPacketIdRange & PacketRange, uint8 bReli
 			Next = Next->Next;
 		}
 
-		ValidateRetirementHistory( Retire );
+		ValidateRetirementHistory( Retire, Object );
 	}
 }
 

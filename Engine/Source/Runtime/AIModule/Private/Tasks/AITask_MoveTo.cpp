@@ -38,6 +38,10 @@ UAITask_MoveTo* UAITask_MoveTo::AIMoveTo(AAIController* Controller, FVector InGo
 		MoveReq.SetStopOnOverlap(FAISystem::PickAIOption(StopOnOverlap, MoveReq.CanStopOnOverlap()));
 		MoveReq.SetAllowPartialPath(FAISystem::PickAIOption(AcceptPartialPath, MoveReq.IsUsingPartialPaths()));
 		MoveReq.SetUsePathfinding(bUsePathfinding);
+		if (Controller)
+		{
+			MoveReq.SetNavigationFilter(Controller->GetDefaultNavigationFilterClass());
+		}
 
 		MyTask->SetUp(Controller, MoveReq);
 

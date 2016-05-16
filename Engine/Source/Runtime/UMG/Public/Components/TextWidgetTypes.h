@@ -74,15 +74,15 @@ protected:
 	TEnumAsByte<ETextJustify::Type> Justification;
 
 	/** True if we're wrapping text automatically based on the computed horizontal space for this widget. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Wrapping)
 	bool AutoWrapText;
 
 	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Wrapping)
 	float WrapTextAt;
 
 	/** The wrapping policy to use. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Wrapping, AdvancedDisplay)
 	ETextWrappingPolicy WrappingPolicy;
 
 	/** The amount of blank space left around the edges of text area. */

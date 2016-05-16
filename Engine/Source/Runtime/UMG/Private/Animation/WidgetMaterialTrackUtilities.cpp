@@ -8,7 +8,7 @@ const FString SlateBrushStructName = "SlateBrush";
 
 FSlateBrush* GetPropertyValueByPath( void* DataObject, UStruct* PropertySource, const TArray<FName>& PropertyPath, int32 PathIndex )
 {
-	if ( DataObject != nullptr )
+	if ( DataObject != nullptr && PathIndex < PropertyPath.Num() )
 	{
 		for ( TFieldIterator<UProperty> PropertyIterator( PropertySource ); PropertyIterator; ++PropertyIterator )
 		{

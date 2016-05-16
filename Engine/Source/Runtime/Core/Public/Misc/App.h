@@ -28,6 +28,13 @@ public:
 	 */
 	static EBuildConfigurations::Type GetBuildConfiguration();
 
+	/*
+	* Gets the unique version string for this build. This string is not assumed to have any particular format other being a unique identifier for the build.
+	*
+	* @return The build version
+	*/
+	static const TCHAR* GetBuildVersion();
+
 	/**
 	 * Gets the deployment name (also known as "EpicApp" in the launcher), e.g. DevPlaytest, PublicTest, Live etc.
 	 *

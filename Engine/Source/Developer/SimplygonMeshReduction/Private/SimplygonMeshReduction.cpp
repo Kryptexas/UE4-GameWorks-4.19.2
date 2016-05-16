@@ -10,6 +10,7 @@
 #include "StaticMeshResources.h"
 #include "Components/SplineMeshComponent.h"
 #include "SimplygonSDK.h"
+#include "ScopedTimers.h"
 
 #include "MeshMergeData.h"
 
@@ -681,8 +682,12 @@ public:
 		
 		// Perform LOD processing
 		UE_LOG(LogSimplygon, Log, TEXT("Processing with %s."), *FString(Processor->GetClass()));
-		Processor->RunProcessing();
-		UE_LOG(LogSimplygon, Log, TEXT("Processing done."));
+		double ProcessingTime = 0.0;
+		{
+			FScopedDurationTimer ProcessingTimer(ProcessingTime);
+			Processor->RunProcessing();
+		}
+		UE_LOG(LogSimplygon, Log, TEXT("Processing done in %.2f s."), ProcessingTime);
 
 		// Cast input materials to output materials and convert to FFlattenMaterial
 		UE_LOG(LogSimplygon, Log, TEXT("Casting materials."));

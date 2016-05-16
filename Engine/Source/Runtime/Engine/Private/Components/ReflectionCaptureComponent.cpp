@@ -22,6 +22,18 @@
 #include "Components/ReflectionCaptureComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SkyLightComponent.h"
+#include "CookStats.h"
+
+#if ENABLE_COOK_STATS
+namespace ReflectionCaptureCookStats
+{
+	static FCookStats::FDDCResourceUsageStats UsageStats;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		UsageStats.LogStats(AddStat, TEXT("ReflectionCapture.Usage"), TEXT(""));
+	});
+}
+#endif
 
 /** 
  * Size of all reflection captures.
@@ -634,7 +646,9 @@ TRefCountPtr<FReflectionCaptureEncodedHDRDerivedData> FReflectionCaptureEncodedH
 	TRefCountPtr<FReflectionCaptureEncodedHDRDerivedData> EncodedHDRData = new FReflectionCaptureEncodedHDRDerivedData();
 	const FString KeyString = GetDDCKeyString(StateId);
 
-	if (!GetDerivedDataCacheRef().GetSynchronous(*KeyString, EncodedHDRData->CapturedData))
+	COOK_STAT(auto Timer = ReflectionCaptureCookStats::UsageStats.TimeSyncWork());
+	bool DDCHit = GetDerivedDataCacheRef().GetSynchronous(*KeyString, EncodedHDRData->CapturedData);
+	if (!DDCHit)
 	{
 		EncodedHDRData->GenerateFromDerivedDataSource(FullHDRData, Brightness);
 
@@ -643,6 +657,7 @@ TRefCountPtr<FReflectionCaptureEncodedHDRDerivedData> FReflectionCaptureEncodedH
 			GetDerivedDataCacheRef().Put(*KeyString, EncodedHDRData->CapturedData);
 		}
 	}
+	COOK_STAT(Timer.AddHitOrMiss(DDCHit ? FCookStats::CallStats::EHitOrMiss::Hit : FCookStats::CallStats::EHitOrMiss::Miss, EncodedHDRData->CapturedData.Num()));
 
 	check(EncodedHDRData->CapturedData.Num() > 0);
 	INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory,EncodedHDRData->CapturedData.GetAllocatedSize());

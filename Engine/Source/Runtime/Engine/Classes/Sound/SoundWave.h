@@ -57,7 +57,7 @@ struct FStreamedAudioChunk
 	 * Place chunk data in the derived data cache associated with the provided
 	 * key.
 	 */
-	void StoreInDerivedDataCache(const FString& InDerivedDataKey);
+	uint32 StoreInDerivedDataCache(const FString& InDerivedDataKey);
 #endif // #if WITH_EDITORONLY_DATA
 };
 

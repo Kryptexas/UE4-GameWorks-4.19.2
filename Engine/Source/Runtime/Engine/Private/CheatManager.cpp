@@ -1232,14 +1232,14 @@ void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, con
 	const FString DescPlusExtension = FString::Printf( TEXT("%s%i.txt"), *InScreenShotDesc, GScreenshotBitmapIndex );
 	const FString TxtFileName = CreateProfileFilename( DescPlusExtension, false );
 
-	//FString::Printf( TEXT("BugIt%s-%s%05i"), *FEngineVersion::Current().ToString(), *InScreenShotDesc, GScreenshotBitmapIndex+1 ) + TEXT( ".txt" );
+	//FString::Printf( TEXT("BugIt%s-%s%05i"), FApp::GetBuildVersion(), *InScreenShotDesc, GScreenshotBitmapIndex+1 ) + TEXT( ".txt" );
 	const FString FullFileName = OutputDir + TxtFileName;
 
 	FOutputDeviceFile OutputFile(*FullFileName);
 	//FArchive* OutputFile = IFileManager::Get().CreateDebugFileWriter( *(FullFileName), FILEWRITE_Append );
 
 
-	OutputFile.Logf( TEXT("Dumping BugIt data chart at %s using build %s built from changelist %i"), *FDateTime::Now().ToString(), *FEngineVersion::Current().ToString(), GetChangeListNumberForPerfTesting() );
+	OutputFile.Logf( TEXT("Dumping BugIt data chart at %s using build %s built from changelist %i"), *FDateTime::Now().ToString(), FApp::GetBuildVersion(), GetChangeListNumberForPerfTesting() );
 
 	const FString MapNameStr = GetWorld()->GetMapName();
 

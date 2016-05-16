@@ -480,7 +480,7 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 					{
 						ALODActor* LODActor = CastChecked<ALODActor>(Actor);
 						
-						if (LODActor->IsDirty() && LODActor->SubActors.Num() > 1)
+						if (LODActor->IsDirty() && LODActor->HasValidSubActors())
 						{
 							LODLevelActors[LODActor->LODLevel - 1].Add(LODActor);
 							NumLODActors++;

@@ -159,7 +159,14 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "DeploymentName"), FApp::GetDeploymentName() );
 	AddCrashProperty( TEXT( "EngineVersion" ), *FEngineVersion::Current().ToString() );
 	AddCrashProperty( TEXT("CommandLine"), *NCachedCrashContextProperties::CommandLine );
-	AddCrashProperty( TEXT( "LanguageLCID" ), FInternationalization::Get().GetCurrentCulture()->GetLCID() );
+	if (FInternationalization::IsAvailable())
+	{
+		AddCrashProperty(TEXT("LanguageLCID"), FInternationalization::Get().GetCurrentCulture()->GetLCID());
+	}
+	else
+	{
+		AddCrashProperty(TEXT("LanguageLCID"), TEXT("en"));
+	}
 	AddCrashProperty( TEXT( "AppDefaultLocale" ), *NCachedCrashContextProperties::DefaultLocale );
 
 	AddCrashProperty( TEXT( "IsUE4Release" ), NCachedCrashContextProperties::bIsUE4Release );

@@ -274,6 +274,8 @@ struct FParticleEventCollideData : public FParticleExistingData
 	/** Name of bone we hit (for skeletal meshes). */
 	FName BoneName;
 
+	/** The physical material for this collision. */
+	UPhysicalMaterial* PhysMat;
 
 	FParticleEventCollideData()
 		: Normal(ForceInit)
@@ -1011,11 +1013,11 @@ public:
 		SILENT, // this would only be appropriate for editor only or other unusual things that we never see in game
 	};
 	/** If there is async work outstanding, force it to be completed now **/
-	FORCEINLINE void ForceAsyncWorkCompletion(EForceAsyncWorkCompletion Behavior) const
+	FORCEINLINE void ForceAsyncWorkCompletion(EForceAsyncWorkCompletion Behavior, bool bDefinitelyGameThread = true) const
 	{
 		if (AsyncWork.GetReference())
 		{
-			WaitForAsyncAndFinalize(Behavior);
+			WaitForAsyncAndFinalize(Behavior, bDefinitelyGameThread);
 		}
 	}
 
@@ -1033,7 +1035,7 @@ public:
 
 private:
 	/** Wait on the async task and call finalize on the tick **/
-	void WaitForAsyncAndFinalize(EForceAsyncWorkCompletion Behavior) const;
+	void WaitForAsyncAndFinalize(EForceAsyncWorkCompletion Behavior, bool bDefinitelyGameThread = true) const;
 
 	/** Cache view relevance flags. */
 	void CacheViewRelevanceFlags(class UParticleSystem* TemplateToCache);
@@ -1225,7 +1227,7 @@ public:
 	 */
 	void ReportEventCollision(const FName InEventName, const float InEmitterTime, const FVector InLocation,
 		const FVector InDirection, const FVector InVelocity, const TArray<class UParticleModuleEventSendToGame*>& InEventData, 
-		const float InParticleTime, const FVector InNormal, const float InTime, const int32 InItem, const FName InBoneName);
+		const float InParticleTime, const FVector InNormal, const float InTime, const int32 InItem, const FName InBoneName, UPhysicalMaterial* PhysMat);
 
 	/**
 	 *	Record a bursting event.

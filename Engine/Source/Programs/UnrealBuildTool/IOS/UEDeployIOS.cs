@@ -706,7 +706,6 @@ namespace UnrealBuildTool
 				}
 
 				Directory.CreateDirectory(CookedContentDirectory);
-				CopyFolder(InEngineDir + "/Content/Stats", AppDirectory + "/cookeddata/engine/content/stats", true);
 			}
 
 			return true;

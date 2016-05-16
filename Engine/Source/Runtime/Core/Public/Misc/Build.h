@@ -183,18 +183,21 @@
 	#define DO_CHECK										1
 	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE)
 	#define ALLOW_DEBUG_FILES								1
+	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										0
 #elif UE_BUILD_DEVELOPMENT
 	#define DO_GUARD_SLOW									0
 	#define DO_CHECK										1
 	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE)
 	#define ALLOW_DEBUG_FILES								1
+	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										0
 #elif UE_BUILD_TEST
 	#define DO_GUARD_SLOW									0
 	#define DO_CHECK										USE_CHECKS_IN_SHIPPING
 	#define STATS											0
 	#define ALLOW_DEBUG_FILES								1
+	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										!USE_LOGGING_IN_SHIPPING
 #elif UE_BUILD_SHIPPING
 	#if WITH_EDITOR
@@ -202,16 +205,24 @@
 		#define DO_CHECK									1
 		#define STATS										1
 		#define ALLOW_DEBUG_FILES							1
+		#define ALLOW_CONSOLE								0
 		#define NO_LOGGING									0
 	#else
 		#define DO_GUARD_SLOW								0
 		#define DO_CHECK									USE_CHECKS_IN_SHIPPING
 		#define STATS										0
 		#define ALLOW_DEBUG_FILES							0
+		#define ALLOW_CONSOLE								0
 		#define NO_LOGGING									!USE_LOGGING_IN_SHIPPING
 	#endif
 #else
 	#error Exactly one of [UE_BUILD_DEBUG UE_BUILD_DEVELOPMENT UE_BUILD_TEST UE_BUILD_SHIPPING] should be defined to be 1
+#endif
+
+// ORION TEMP - turning on stats to judge perf
+#if UE_SERVER && UE_BUILD_TEST
+	#undef STATS
+	#define STATS 1
 #endif
 
 

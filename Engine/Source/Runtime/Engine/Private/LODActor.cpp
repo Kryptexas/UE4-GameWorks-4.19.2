@@ -462,9 +462,29 @@ void ALODActor::SetIsDirty(const bool bNewState)
 	}
 }
 
-const bool ALODActor::HasValidSubActors()
+const bool ALODActor::HasValidSubActors() const
 {
-	return (SubActors.Num() != 0);	
+	int32 NumMeshes = 0;
+
+	// Make sure there are at least two meshes in the subactors
+	TInlineComponentArray<UStaticMeshComponent*> Components;
+	for (AActor* SubActor : SubActors)
+	{
+		SubActor->GetComponents(/*out*/ Components);
+		NumMeshes += Components.Num();
+
+		if (NumMeshes > 1)
+		{
+			break;
+		}
+	}
+
+	return NumMeshes > 1;
+}
+
+const bool ALODActor::HasAnySubActors() const
+{
+	return (SubActors.Num() != 0);
 }
 
 void ALODActor::ToggleForceView()

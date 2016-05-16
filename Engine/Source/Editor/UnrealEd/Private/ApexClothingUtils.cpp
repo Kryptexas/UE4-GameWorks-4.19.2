@@ -844,21 +844,22 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 		RestoreSectionIndex = SectionIndex;
 	}
 
-	FSkelMeshSection& OriginMeshSection = LODModel.Sections[OriginSectionIndex];
-	FSkelMeshChunk& OriginChunk = LODModel.Chunks[OriginMeshSection.ChunkIndex];
-
 	// Check the influences on the original chunk to make sure the influences match
-	if(OriginChunk.MaxBoneInfluences > MAX_INFLUENCES_PER_STREAM)
 	{
-		const FText Text = FText::Format(LOCTEXT("Error_TooManyInfluences", "Chunk {0} in Skeletal Mesh {1} has up to {2} influences on it's vertices. The maximum when using cloth is 4, reduce the number of influences and reimport the mesh to allow cloth on this mesh."),
-			FText::AsNumber(OriginMeshSection.ChunkIndex),
-			FText::FromString(SkelMesh->GetName()),
-			FText::AsNumber(OriginChunk.MaxBoneInfluences));
+		FSkelMeshSection& CheckOriginMeshSection = LODModel.Sections[OriginSectionIndex];
+		FSkelMeshChunk& CheckOriginChunk = LODModel.Chunks[CheckOriginMeshSection.ChunkIndex];
+		if(CheckOriginChunk.MaxBoneInfluences > MAX_INFLUENCES_PER_STREAM)
+		{
+			const FText Text = FText::Format(LOCTEXT("Error_TooManyInfluences", "Chunk {0} in Skeletal Mesh {1} has up to {2} influences on it's vertices. The maximum when using cloth is 4, reduce the number of influences and reimport the mesh to allow cloth on this mesh."),
+				FText::AsNumber(CheckOriginMeshSection.ChunkIndex),
+				FText::FromString(SkelMesh->GetName()),
+				FText::AsNumber(CheckOriginChunk.MaxBoneInfluences));
 
-		FMessageDialog::Open(EAppMsgType::Ok, Text);
+			FMessageDialog::Open(EAppMsgType::Ok, Text);
 
-		// Can't associate, influences don't match
-		return false;
+			// Can't associate, influences don't match
+			return false;
+		}
 	}
 
 	//add new one after restoring to original section
@@ -872,6 +873,9 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	//add new section & chunk for clothing
 	int32 NewSectionIndex = LODModel.Sections.AddZeroed();
 	int16 NewChunkIndex = LODModel.Chunks.Add(TempChunk);
+
+	FSkelMeshSection& OriginMeshSection = LODModel.Sections[OriginSectionIndex];
+	FSkelMeshChunk& OriginChunk = LODModel.Chunks[OriginMeshSection.ChunkIndex];
 
 	FSkelMeshSection& ClothSection = LODModel.Sections[NewSectionIndex];
 

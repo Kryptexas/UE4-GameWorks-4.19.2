@@ -46,6 +46,11 @@ public class WebBrowser : ModuleRules
 			}
 		}
 
-        bEnableShadowVariableWarnings = false;
+		if (Target.Platform == UnrealTargetPlatform.PS4)
+		{
+			PrivateDependencyModuleNames.Add("OnlineSubsystem");
+		}
+		
+		bEnableShadowVariableWarnings = false;
 	}
 }

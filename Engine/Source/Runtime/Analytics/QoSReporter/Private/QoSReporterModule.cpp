@@ -164,7 +164,7 @@ FAnalyticsProviderQoSReporter::FAnalyticsProviderQoSReporter(const FQoSReporterM
 	InstanceId = FGuid::NewGuid();
 	FPlatformMisc::CreateGuid(InstanceId);
 
-	UE_LOG(LogQoSReporter, Log, TEXT("QoSReporter initialized (Guid = '%s')"), *InstanceId.ToString());
+	UE_LOG(LogQoSReporter, Log, TEXT("QoSReporter initialized (InstanceId = '%s', SystemId = '%s')"), *InstanceId.ToString(), *FPlatformMisc::GetOperatingSystemId());
 	UE_LOG(LogQoSReporter, Log, TEXT("APIKey = '%s'. APIServer = '%s'. AppVersion = '%s'. AppEnvironment = '%s'"), *APIKey, *APIServer, *AppVersion, *AppEnvironment);
 }
 

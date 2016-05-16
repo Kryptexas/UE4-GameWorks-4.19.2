@@ -286,16 +286,16 @@ namespace AutomationTool
 			NewSchema.Items.Add(CreatePropertyType(ScriptSchemaStandardType.Local));
 			NewSchema.Items.Add(CreateDiagnosticType(ScriptSchemaStandardType.Warning));
 			NewSchema.Items.Add(CreateDiagnosticType(ScriptSchemaStandardType.Error));
-			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.Name, "(" + NamePattern + "|" + StringWithPropertiesPattern + ")"));
-			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.NameList, "(" + NameListPattern + "|" + StringWithPropertiesPattern + ")"));
-			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.Tag, "(" + TagPattern + "|" + StringWithPropertiesPattern + ")"));
-			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.TagList, "(" + TagListPattern + "|" + StringWithPropertiesPattern + ")"));
-			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.NameOrTag, "(" + NameOrTagPattern + "|" + StringWithPropertiesPattern + ")"));
-			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.NameOrTagList, "(" + NameOrTagListPattern + "|" + StringWithPropertiesPattern + ")"));
-			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.QualifiedName, "(" + QualifiedNamePattern + "|" + StringWithPropertiesPattern + ")"));
-			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.BalancedString, BalancedStringPattern));
-			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.Boolean, "(" + "true" + "|" + "false" + "|" + StringWithPropertiesPattern + ")"));
-			NewSchema.Items.Add(CreateSimpleTypeFromRegex(ScriptSchemaStandardType.Integer, "(" + "(-?[1-9][0-9]*|0)" + "|" + StringWithPropertiesPattern + ")"));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(GetTypeName(ScriptSchemaStandardType.Name), "(" + NamePattern + "|" + StringWithPropertiesPattern + ")"));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(GetTypeName(ScriptSchemaStandardType.NameList), "(" + NameListPattern + "|" + StringWithPropertiesPattern + ")"));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(GetTypeName(ScriptSchemaStandardType.Tag), "(" + TagPattern + "|" + StringWithPropertiesPattern + ")"));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(GetTypeName(ScriptSchemaStandardType.TagList), "(" + TagListPattern + "|" + StringWithPropertiesPattern + ")"));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(GetTypeName(ScriptSchemaStandardType.NameOrTag), "(" + NameOrTagPattern + "|" + StringWithPropertiesPattern + ")"));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(GetTypeName(ScriptSchemaStandardType.NameOrTagList), "(" + NameOrTagListPattern + "|" + StringWithPropertiesPattern + ")"));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(GetTypeName(ScriptSchemaStandardType.QualifiedName), "(" + QualifiedNamePattern + "|" + StringWithPropertiesPattern + ")"));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(GetTypeName(ScriptSchemaStandardType.BalancedString), BalancedStringPattern));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(GetTypeName(ScriptSchemaStandardType.Boolean), "(" + "true" + "|" + "false" + "|" + StringWithPropertiesPattern + ")"));
+			NewSchema.Items.Add(CreateSimpleTypeFromRegex(GetTypeName(ScriptSchemaStandardType.Integer), "(" + "(-?[1-9][0-9]*|0)" + "|" + StringWithPropertiesPattern + ")"));
 			foreach(XmlSchemaComplexType Type in TaskNameToType.Values)
 			{
 				NewSchema.Items.Add(Type);
@@ -779,12 +779,32 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Creates a simple type that is the union of two other types
+		/// </summary>
+		/// <param name="Name">The name of the type</param>
+		/// <param name="ValidTypes">List of valid types for the union</param>
+		/// <returns>A simple type which will match the given pattern</returns>
+		static XmlSchemaSimpleType CreateSimpleTypeFromUnion(string Name, params XmlSchemaType[] ValidTypes)
+		{
+			XmlSchemaSimpleTypeUnion Union = new XmlSchemaSimpleTypeUnion();
+			foreach (XmlSchemaType ValidType in ValidTypes)
+			{
+				Union.BaseTypes.Add(ValidType);
+			}
+
+			XmlSchemaSimpleType UnionType = new XmlSchemaSimpleType();
+			UnionType.Name = Name;
+			UnionType.Content = Union;
+			return UnionType;
+		}
+
+		/// <summary>
 		/// Creates a simple type that matches a regex
 		/// </summary>
-		/// <param name="Type">The type enumeration to define</param>
+		/// <param name="Name">Name of the new type</param>
 		/// <param name="Pattern">Regex pattern to match</param>
 		/// <returns>A simple type which will match the given pattern</returns>
-		static XmlSchemaSimpleType CreateSimpleTypeFromRegex(ScriptSchemaStandardType Type, string Pattern)
+		static XmlSchemaSimpleType CreateSimpleTypeFromRegex(string Name, string Pattern)
 		{
 			XmlSchemaPatternFacet PatternFacet = new XmlSchemaPatternFacet();
 			PatternFacet.Value = Pattern;
@@ -794,7 +814,7 @@ namespace AutomationTool
 			Restriction.Facets.Add(PatternFacet);
 
 			XmlSchemaSimpleType SimpleType = new XmlSchemaSimpleType();
-			SimpleType.Name = GetTypeName(Type);
+			SimpleType.Name = Name;
 			SimpleType.Content = Restriction;
 			return SimpleType;
 		}
@@ -808,7 +828,7 @@ namespace AutomationTool
 		{
 			if(Type.IsEnum)
 			{
-				return CreateEnumType(Name, Type);
+				return CreateSimpleTypeFromUnion(Name, CreateEnumType(null, Type), CreateSimpleTypeFromRegex(null, StringWithPropertiesPattern));
 			}
 			else
 			{

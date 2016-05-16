@@ -2867,7 +2867,7 @@ void FDeferredShadingSceneRenderer::InitViewsPossiblyAfterPrepass(FRHICommandLis
 	UpdatePrimitivePrecomputedLightingBuffers();
 	}
 
-	UpdateSeparateTranslucencyBufferSize(RHICmdList);
+	UpdateTranslucencyTimersAndSeparateTranslucencyBufferSize(RHICmdList);
 }
 
 /*------------------------------------------------------------------------------

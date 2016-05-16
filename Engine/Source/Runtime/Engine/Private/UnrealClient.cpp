@@ -809,7 +809,7 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	}
 #endif
 
-	AppVersionString = FString::Printf( TEXT( "Version: %s" ), *FEngineVersion::Current().ToString() );
+	AppVersionString = FString::Printf( TEXT( "Build: %s" ), FApp::GetBuildVersion() );
 
 	bIsPlayInEditorViewport = false;
 }

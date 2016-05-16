@@ -2727,6 +2727,9 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	uint32 bLocalVectorFieldTileY : 1;
 	/** Tile vector field in z axis? */
 	uint32 bLocalVectorFieldTileZ : 1;
+	/** Tile vector field in z axis? */
+	uint32 bLocalVectorFieldUseFixDT : 1;
+
 
 	/** Current MacroUV override settings */
 	FMacroUVOverride MacroUVOverride;
@@ -2742,6 +2745,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 		, bLocalVectorFieldTileX(false)
 		, bLocalVectorFieldTileY(false)
 		, bLocalVectorFieldTileZ(false)
+		, bLocalVectorFieldUseFixDT(false)
 	{
 		GetNewParticleArray(NewParticles);
 	}
@@ -2772,6 +2776,8 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 		Simulation->LocalVectorField.bTileX = bLocalVectorFieldTileX;
 		Simulation->LocalVectorField.bTileY = bLocalVectorFieldTileY;
 		Simulation->LocalVectorField.bTileZ = bLocalVectorFieldTileZ;
+		Simulation->LocalVectorField.bUseFixDT = bLocalVectorFieldUseFixDT;
+
 		if (Simulation->LocalVectorField.Resource)
 		{
 			Simulation->LocalVectorField.UpdateTransforms(LocalVectorFieldToWorld);
@@ -3156,6 +3162,7 @@ public:
 		DynamicData->bLocalVectorFieldTileX = EmitterInfo.LocalVectorField.bTileX;	
 		DynamicData->bLocalVectorFieldTileY = EmitterInfo.LocalVectorField.bTileY;	
 		DynamicData->bLocalVectorFieldTileZ = EmitterInfo.LocalVectorField.bTileZ;	
+		DynamicData->bLocalVectorFieldUseFixDT = EmitterInfo.LocalVectorField.bUseFixDT;
 		DynamicData->SortMode = EmitterInfo.RequiredModule->SortMode;
 		DynamicData->bSelected = bSelected;
 		DynamicData->bUseLocalSpace = EmitterInfo.RequiredModule->bUseLocalSpace;
@@ -3242,46 +3249,55 @@ public:
 			// If using fixDT strategy
 			if (FixDeltaSeconds > 0)
 			{
-				// Move some time from varying DT to fix DT simulation.
-				NumIterationsInFix = FMath::FloorToInt(DeltaSecondsInVar / FixDeltaSeconds);
-				DeltaSecondsInVar -= NumIterationsInFix * FixDeltaSeconds;
-
-				float SecondsInFix = NumIterationsInFix * FixDeltaSeconds;
-
-				const float RelativeVar = DeltaSecondsInVar / FixDeltaSeconds;
-
-				// If we had some fixed steps, try to move a small value from var dt to fix dt as an optimization (skips on full simulation step)
-				if (NumIterationsInFix > 0 && RelativeVar < FixTolerance)
+				if (!Simulation || !Simulation->LocalVectorField.bUseFixDT)
 				{
-					SecondsInFix += DeltaSecondsInVar;
-					DeltaSecondsInVar = 0;
-					NumIterationsInVar = 0;
+					// With FixDeltaSeconds > 0, "InFix" is the persistent delta time, while "InVar" is only used for interpolation.
+					Swap(DeltaSecondsInFix, DeltaSecondsInVar);
+					Swap(NumIterationsInFix, NumIterationsInVar);
 				}
-				// Also check if there is almost one full step.
-				else if (1.f - RelativeVar < FixTolerance) 
+				else
 				{
-					SecondsInFix += DeltaSecondsInVar;
-					NumIterationsInFix += 1;
-					DeltaSecondsInVar = 0;
-					NumIterationsInVar = 0;
-				}
-				// Otherwise, transfer a part from the varying time to the fix time. At this point, we know we will have both fix and var iterations.
-				// This prevents DT that are multiple of FixDT, from keeping an non zero OffsetSeconds.
-				else if (NumIterationsInFix > 0)
-				{
-					const float TransferedSeconds = FixTolerance * FixDeltaSeconds;
-					DeltaSecondsInVar -= TransferedSeconds;
-					SecondsInFix += TransferedSeconds;
-				}
+					// Move some time from varying DT to fix DT simulation.
+					NumIterationsInFix = FMath::FloorToInt(DeltaSecondsInVar / FixDeltaSeconds);
+					DeltaSecondsInVar -= NumIterationsInFix * FixDeltaSeconds;
 
-				if (NumIterationsInFix > 0)
-				{
-					// Here we limit the iteration count to prevent long frames from taking even longer.
-					NumIterationsInFix = FMath::Min<int32>(NumIterationsInFix, MaxNumIterations);
-					DeltaSecondsInFix = SecondsInFix / (float)NumIterationsInFix;
-				}
+					float SecondsInFix = NumIterationsInFix * FixDeltaSeconds;
 
-				OffsetSeconds = DeltaSecondsInVar;
+					const float RelativeVar = DeltaSecondsInVar / FixDeltaSeconds;
+
+					// If we had some fixed steps, try to move a small value from var dt to fix dt as an optimization (skips on full simulation step)
+					if (NumIterationsInFix > 0 && RelativeVar < FixTolerance)
+					{
+						SecondsInFix += DeltaSecondsInVar;
+						DeltaSecondsInVar = 0;
+						NumIterationsInVar = 0;
+					}
+					// Also check if there is almost one full step.
+					else if (1.f - RelativeVar < FixTolerance) 
+					{
+						SecondsInFix += DeltaSecondsInVar;
+						NumIterationsInFix += 1;
+						DeltaSecondsInVar = 0;
+						NumIterationsInVar = 0;
+					}
+					// Otherwise, transfer a part from the varying time to the fix time. At this point, we know we will have both fix and var iterations.
+					// This prevents DT that are multiple of FixDT, from keeping an non zero OffsetSeconds.
+					else if (NumIterationsInFix > 0)
+					{
+						const float TransferedSeconds = FixTolerance * FixDeltaSeconds;
+						DeltaSecondsInVar -= TransferedSeconds;
+						SecondsInFix += TransferedSeconds;
+					}
+
+					if (NumIterationsInFix > 0)
+					{
+						// Here we limit the iteration count to prevent long frames from taking even longer.
+						NumIterationsInFix = FMath::Min<int32>(NumIterationsInFix, MaxNumIterations);
+						DeltaSecondsInFix = SecondsInFix / (float)NumIterationsInFix;
+					}
+
+					OffsetSeconds = DeltaSecondsInVar;
+				}
 
 			#if STATS
 				if (NumIterationsInFix + NumIterationsInVar == 1)
@@ -4669,7 +4685,7 @@ void FFXSystem::SimulateGPUParticles(
 		FTextureRHIParamRef CurrentStateRHIs[2] = { CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.VelocityTextureTargetRHI };
 		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, CurrentStateRHIs, 2);
 
-		FParticleStateTextures& VisualizeStateTextures = ParticleSimulationResources->GetVisualizeStateTextures();
+		FParticleStateTextures& VisualizeStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
 		FTextureRHIParamRef VisualizeStateRHIs[2] = { VisualizeStateTextures.PositionTextureTargetRHI, VisualizeStateTextures.VelocityTextureTargetRHI };
 		RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, VisualizeStateRHIs, 2);	
 		SetRenderTargets(RHICmdList, 2, VisualizeStateRHIs, FTextureRHIParamRef(), 0, NULL);

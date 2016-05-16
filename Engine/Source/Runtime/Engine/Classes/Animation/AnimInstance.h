@@ -317,16 +317,24 @@ struct FNativeStateBinding
 /** Tracks state of active slot nodes in the graph */
 struct FMontageActiveSlotTracker
 {
-	//Weighting of root motion from this montage
-	float RootMotionWeight;
+	/** Local weight of Montages being played (local to the slot node) */
+	float MontageLocalWeight;
+
+	/** Global weight of this slot node */
+	float NodeGlobalWeight;
 
 	//Is the montage slot part of the active graph this tick
 	bool  bIsRelevantThisTick;
 
-	//Was the motnage slot part of the active graph last tick
+	//Was the montage slot part of the active graph last tick
 	bool  bWasRelevantOnPreviousTick;
 
-	FMontageActiveSlotTracker() : RootMotionWeight(0.f), bIsRelevantThisTick(false), bWasRelevantOnPreviousTick(false) {}
+	FMontageActiveSlotTracker()
+		: MontageLocalWeight(0.f)
+		, NodeGlobalWeight(0.f)
+		, bIsRelevantThisTick(false)
+		, bWasRelevantOnPreviousTick(false) 
+	{}
 };
 
 struct FMontageEvaluationState
@@ -519,19 +527,22 @@ public:
 	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	void RegisterSlotNodeWithAnimInstance(FName SlotNodeName);
 	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void UpdateSlotNodeWeight(FName SlotNodeName, float Weight);
+	void UpdateSlotNodeWeight(FName SlotNodeName, float InLocalMontageWeight, float InGlobalWeight);
 	// if it doesn't tick, it will keep old weight, so we'll have to clear it in the beginning of tick
 	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
 	void ClearSlotNodeWeights();
 	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
 
-	// Allow slot nodes to store off their root motion weight during ticking
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void UpdateSlotRootMotionWeight(FName SlotNodeName, float Weight);
-	// Get the root motion weight for the montage slot
-	float GetSlotRootMotionWeight(FName SlotNodeName) const;
+	/** Get global weight in AnimGraph for this slot node.
+	* Note: this is the weight of the node, not the weight of any potential montage it is playing. */
+	float GetSlotNodeGlobalWeight(FName SlotNodeName) const;
+
 	// Should Extract Root Motion or not. Return true if we do. 
 	bool ShouldExtractRootMotion() const { return RootMotionMode == ERootMotionMode::RootMotionFromEverything || RootMotionMode == ERootMotionMode::IgnoreRootMotion; }
+
+	/** Get Global weight of any montages this slot node is playing.
+	* If this slot is not currently playing a montage, it will return 0. */
+	float GetSlotMontageGlobalWeight(FName SlotNodeName) const;
 
 	// kismet event functions
 
@@ -817,6 +828,10 @@ public:
 	UFUNCTION(BlueprintPure, Category="Asset Player", meta=(DisplayName="Time Remaining (ratio)", BlueprintInternalUseOnly="true", AnimGetter="true"))
 	float GetInstanceAssetPlayerTimeFromEndFraction(int32 AssetPlayerIndex);
 
+	/** Get the blend weight of a specified state machine */
+	UFUNCTION(BlueprintPure, Category = "States", meta = (DisplayName = "Machine Weight", BlueprintInternalUseOnly = "true", AnimGetter = "true"))
+	float GetInstanceMachineWeight(int32 MachineIndex);
+
 	/** Get the blend weight of a specified state */
 	UFUNCTION(BlueprintPure, Category="States", meta = (DisplayName="State Weight", BlueprintInternalUseOnly = "true", AnimGetter="true"))
 	float GetInstanceStateWeight(int32 MachineIndex, int32 StateIndex);
@@ -888,6 +903,8 @@ public:
 
 	/** Get the machine description for the specified instance. Does not rely on PRIVATE_MachineDescription being initialized */
 	const FBakedAnimationStateMachine* GetMachineDescription(IAnimClassInterface* AnimBlueprintClass, FAnimNode_StateMachine* MachineInstance);
+
+	void GetStateMachineIndexAndDescription(FName InMachineName, int32& OutMachineIndex, const FBakedAnimationStateMachine** OutMachineDescription);
 
 	/** Returns the baked sync group index from the compile step */
 	int32 GetSyncGroupIndexFromName(FName SyncGroupName) const;
@@ -1204,6 +1221,9 @@ public:
 
 	/** Add curve float data using a curve Uid, the name of the curve will be resolved from the skeleton **/
 	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags);
+
+	/** Given a machine index, record a state machine weight for this frame */
+	void RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight);
 
 	/** Given a machine and state index, record a state weight for this frame */
 	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);

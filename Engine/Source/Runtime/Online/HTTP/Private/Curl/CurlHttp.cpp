@@ -16,10 +16,12 @@ FCurlHttpRequest::FCurlHttpRequest(CURLSH* InShareHandle)
 	,	bCompleted(false)
 	,	CurlAddToMultiResult(CURLM_OK)
 	,	CurlCompletionResult(CURLE_OK)
-	,	BytesSent(0)
 	,	CompletionStatus(EHttpRequestStatus::NotStarted)
 	,	ElapsedTime(0.0f)
 	,	TimeSinceLastResponse(0.0f)
+	,	BytesSent(0)
+	,	LastReportedBytesRead(0)
+	,	LastReportedBytesSent(0)
 {
 	EasyHandle = curl_easy_init();
 
@@ -326,12 +328,21 @@ size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlo
 	{
 		TimeSinceLastResponse = 0.0f;
 
+		int32 OldTotalBytesRead = 0;
 		uint32 SizeToDownload = SizeInBlocks * BlockSizeInBytes;
+		{
+			FScopeLock ScopeLock(&ProgressLock);
+			// Note that we are incrementing the number of total bytes read before we actually perform the memcpy, and this progress could be
+			// reported via the progress delegate but we are expecting the progress delegate to not expose access to the raw bytes so this
+			// would be a benign race condition
+			OldTotalBytesRead = Response->TotalBytesRead;
+			Response->TotalBytesRead += SizeToDownload;
+		}
 
 		UE_LOG(LogHttp, Verbose, TEXT("%p: ReceiveResponseBodyCallback: %d bytes out of %d received. (SizeInBlocks=%d, BlockSizeInBytes=%d, Response->TotalBytesRead=%d, Response->GetContentLength()=%d, SizeToDownload=%d (<-this will get returned from the callback))"),
 			this,
-			static_cast<int32>(Response->TotalBytesRead + SizeToDownload), Response->GetContentLength(),
-			static_cast<int32>(SizeInBlocks), static_cast<int32>(BlockSizeInBytes), Response->TotalBytesRead, Response->GetContentLength(), static_cast<int32>(SizeToDownload)
+			static_cast<int32>(OldTotalBytesRead + SizeToDownload), Response->GetContentLength(),
+			static_cast<int32>(SizeInBlocks), static_cast<int32>(BlockSizeInBytes), OldTotalBytesRead, Response->GetContentLength(), static_cast<int32>(SizeToDownload)
 			);
 
 		// note that we can be passed 0 bytes if file transmitted has 0 length
@@ -340,11 +351,7 @@ size_t FCurlHttpRequest::ReceiveResponseBodyCallback(void* Ptr, size_t SizeInBlo
 			Response->Payload.AddUninitialized(SizeToDownload);
 
 			// save
-			FMemory::Memcpy( static_cast< uint8* >( Response->Payload.GetData() ) + Response->TotalBytesRead, Ptr, SizeToDownload );
-			Response->TotalBytesRead += SizeToDownload;
-
-			// Update response progress
-			OnRequestProgress().ExecuteIfBound(SharedThis(this), BytesSent, Response->TotalBytesRead);
+			FMemory::Memcpy(static_cast<uint8*>(Response->Payload.GetData()) + OldTotalBytesRead, Ptr, SizeToDownload);
 
 			return SizeToDownload;
 		}
@@ -361,27 +368,38 @@ size_t FCurlHttpRequest::UploadCallback(void* Ptr, size_t SizeInBlocks, size_t B
 {
 	TimeSinceLastResponse = 0.0f;
 
-	size_t SizeToSend = RequestPayload.Num() - BytesSent;
+	int32 OldBytesSent = 0;
+	size_t SizeToSend = 0;
 	size_t SizeToSendThisTime = 0;
 
-	if (SizeToSend != 0)
 	{
-		OnRequestProgress().ExecuteIfBound(SharedThis(this), BytesSent, 0);
-
-		SizeToSendThisTime = FMath::Min(SizeToSend, SizeInBlocks * BlockSizeInBytes);
-		if (SizeToSendThisTime != 0)
+		FScopeLock ScopeLock(&ProgressLock);
+		OldBytesSent = BytesSent;
+		SizeToSend = RequestPayload.Num() - BytesSent;
+		if (SizeToSend != 0)
 		{
-			// static cast just ensures that this is uint8* in fact
-			FMemory::Memcpy(Ptr, static_cast< uint8* >( RequestPayload.GetData() ) + BytesSent, SizeToSendThisTime);
-			BytesSent += SizeToSendThisTime;
+			SizeToSendThisTime = FMath::Min(SizeToSend, SizeInBlocks * BlockSizeInBytes);
+			if (SizeToSendThisTime != 0)
+			{
+				// Note that we are incrementing the number of total bytes sent before we actually perform the memcpy, and this progress could be
+				// reported via the progress delegate but we are expecting the progress delegate to not expose access to the raw bytes so this
+				// would be a benign race condition
+				BytesSent += SizeToSendThisTime;
+			}
 		}
 	}
 
-	UE_LOG(LogHttp, Verbose, TEXT("%p: UploadCallback: %d bytes out of %d sent. (SizeInBlocks=%d, BlockSizeInBytes=%d, RequestPayload.Num()=%d, BytesSent=%d, SizeToSend=%d, SizeToSendThisTime=%d (<-this will get returned from the callback))"), 
+	if (SizeToSendThisTime != 0)
+	{
+		// static cast just ensures that this is uint8* in fact
+		FMemory::Memcpy(Ptr, static_cast<uint8*>(RequestPayload.GetData()) + OldBytesSent, SizeToSendThisTime);
+	}
+
+	UE_LOG(LogHttp, Verbose, TEXT("%p: UploadCallback: %d bytes out of %d sent. (SizeInBlocks=%d, BlockSizeInBytes=%d, RequestPayload.Num()=%d, BytesSent=%d, SizeToSend=%d, SizeToSendThisTime=%d (<-this will get returned from the callback))"),
 		this,
-		static_cast< int32 >(BytesSent), RequestPayload.Num(),
-		static_cast< int32 >(SizeInBlocks), static_cast< int32 >(BlockSizeInBytes), RequestPayload.Num(), static_cast< int32 >(BytesSent), static_cast< int32 >(SizeToSend),
-		static_cast< int32 >(SizeToSendThisTime)
+		static_cast<int32>(OldBytesSent + SizeToSendThisTime), RequestPayload.Num(),
+		static_cast<int32>(SizeInBlocks), static_cast<int32>(BlockSizeInBytes), RequestPayload.Num(), static_cast<int32>(OldBytesSent + SizeToSendThisTime), static_cast<int32>(SizeToSend),
+		static_cast<int32>(SizeToSendThisTime)
 		);
 
 	return SizeToSendThisTime;
@@ -637,14 +655,42 @@ bool FCurlHttpRequest::ProcessRequest()
 	// Response object to handle data that comes back after starting this request
 	Response = MakeShareable(new FCurlHttpResponse(*this));
 	// Add to global list while being processed so that the ref counted request does not get deleted
-	FHttpModule::Get().GetHttpManager().AddRequest(SharedThis(this));
+	FHttpModule::Get().GetHttpManager().AddThreadedRequest(SharedThis(this));
+	
+	UE_LOG(LogHttp, Verbose, TEXT("%p: request (easy handle:%p) has been added to threaded queue for processing"), this, EasyHandle );
+	return true;
+}
+
+bool FCurlHttpRequest::StartThreadedRequest()
+{
 	// reset timeout
 	ElapsedTime = 0.0f;
 	TimeSinceLastResponse = 0.0f;
-	
-	UE_LOG(LogHttp, Verbose, TEXT("%p: request (easy handle:%p) has been added to multi handle for processing"), this, EasyHandle );
+
+	UE_LOG(LogHttp, Verbose, TEXT("%p: request (easy handle:%p) has started threaded processing"), this, EasyHandle);
 
 	return true;
+}
+
+void FCurlHttpRequest::FinishRequest()
+{
+	FinishedRequest();
+}
+
+bool FCurlHttpRequest::IsThreadedRequestComplete()
+{
+	const float HttpTimeout = FHttpModule::Get().GetHttpTimeout();
+	bool bTimedOut = (HttpTimeout > 0 && TimeSinceLastResponse >= HttpTimeout);
+	return (bCompleted && ElapsedTime >= FHttpModule::Get().GetHttpDelayTime()) ||
+		bCanceled ||
+		(CurlAddToMultiResult != CURLM_OK) ||
+		bTimedOut;
+}
+
+void FCurlHttpRequest::TickThreadedRequest(float DeltaSeconds)
+{
+	ElapsedTime += DeltaSeconds;
+	TimeSinceLastResponse += DeltaSeconds;
 }
 
 FHttpRequestCompleteDelegate& FCurlHttpRequest::OnProcessRequestComplete()
@@ -660,9 +706,7 @@ FHttpRequestProgressDelegate& FCurlHttpRequest::OnRequestProgress()
 void FCurlHttpRequest::CancelRequest()
 {
 	bCanceled = true;
-    
-    // Cleanup cancel request and fire off any necessary delegates.
-    FinishedRequest();
+	FHttpModule::Get().GetHttpManager().CancelThreadedRequest(SharedThis(this));
 }
 
 EHttpRequestStatus::Type FCurlHttpRequest::GetStatus()
@@ -677,42 +721,43 @@ const FHttpResponsePtr FCurlHttpRequest::GetResponse() const
 
 void FCurlHttpRequest::Tick(float DeltaSeconds)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpRequest_Tick);
-	// keep track of elapsed seconds
-	ElapsedTime += DeltaSeconds;
-	TimeSinceLastResponse += DeltaSeconds;
+	CheckProgressDelegate();
+}
 
-	// check for true completion/cancellation
-	if (bCompleted && 
-		ElapsedTime >= FHttpModule::Get().GetHttpDelayTime())
+void FCurlHttpRequest::CheckProgressDelegate()
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpRequest_CheckProgressDelegate);
+	int32 CurrentBytesRead = 0;
+	int32 CurrentBytesSent = 0;
 	{
-		FinishedRequest();
-	}
-	else if (bCanceled)
-	{
-		FinishedRequest();
-	}
-	else if (CurlAddToMultiResult != CURLM_OK)
-	{
-		FinishedRequest();
-	}
-	else
-	{
-		const float HttpTimeout = FHttpModule::Get().GetHttpTimeout();
-		if (HttpTimeout > 0 && TimeSinceLastResponse >= HttpTimeout)
+		FScopeLock ScopeLock(&ProgressLock);
+		if (Response.IsValid())
 		{
-			UE_LOG(LogHttp, Warning, TEXT("Timeout processing Http request. %p"),
-				this);
-
-			// finish it off since it is timeout
-			FinishedRequest();
+			CurrentBytesRead = Response->TotalBytesRead;
 		}
+		CurrentBytesSent = BytesSent;
+	}
+
+	bool bProcessing = CompletionStatus == EHttpRequestStatus::Processing;
+	bool bProgessChanged = (CurrentBytesSent != LastReportedBytesSent) ||
+		(Response.IsValid() && CurrentBytesRead != LastReportedBytesRead);
+	if (bProcessing && bProgessChanged)
+	{
+		LastReportedBytesSent = CurrentBytesSent;
+		if (Response.IsValid())
+		{
+			LastReportedBytesRead = CurrentBytesRead;
+		}
+		// Update response progress
+		OnRequestProgress().ExecuteIfBound(SharedThis(this), LastReportedBytesSent, LastReportedBytesRead);
 	}
 }
 
 void FCurlHttpRequest::FinishedRequest()
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpRequest_FinishedRequest);
+	
+	CheckProgressDelegate();
 	// if completed, get more info
 	if (bCompleted)
 	{
@@ -783,7 +828,19 @@ void FCurlHttpRequest::FinishedRequest()
 		// Mark last request attempt as completed successfully
 		CompletionStatus = EHttpRequestStatus::Succeeded;
 		// Call delegate with valid request/response objects
-		OnProcessRequestComplete().ExecuteIfBound(SharedThis(this),Response,true);
+
+		double DelegateTime = 0.0;
+		
+		{
+			FSimpleScopeSecondsCounter TickTimer(DelegateTime);
+			OnProcessRequestComplete().ExecuteIfBound(SharedThis(this),Response,true);
+		}
+
+		if (DelegateTime > 0.01)
+		{
+			UE_LOG(LogHttp, Warning, TEXT("HITCHHUNTER: Hitch in delegate (result == success) for HTTP request (time: %.1f ms) has been detected (URL: '%s')"), DelegateTime * 1000.0, *GetURL());
+		}
+
 	}
 	else
 	{
@@ -812,10 +869,18 @@ void FCurlHttpRequest::FinishedRequest()
 		Response = NULL;
 
 		// Call delegate with failure
-		OnProcessRequestComplete().ExecuteIfBound(SharedThis(this),NULL,false);
+		double DelegateTime = 0.0;
+
+		{
+			FSimpleScopeSecondsCounter TickTimer(DelegateTime);
+			OnProcessRequestComplete().ExecuteIfBound(SharedThis(this), NULL, false);
+		}
+
+		if (DelegateTime > 0.01)
+		{
+			UE_LOG(LogHttp, Warning, TEXT("HITCHHUNTER: Hitch in delegate (result == failure) for HTTP request (time: %.1f ms) has been detected (URL: '%s')"), DelegateTime * 1000.0, *GetURL());
+		}
 	}
-	// Remove from global list since processing is now complete
-	FHttpModule::Get().GetHttpManager().RemoveRequest(SharedThis(this));
 }
 
 float FCurlHttpRequest::GetElapsedTime()

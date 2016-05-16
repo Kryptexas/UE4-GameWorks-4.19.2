@@ -552,6 +552,8 @@ namespace BTGraphHelpers
 				// collect services (task node)
 				if (TaskInstance)
 				{
+					TaskInstance->Services.Reset();
+
 					for (int32 ServiceIdx = 0; ServiceIdx < GraphNode->Services.Num(); ServiceIdx++)
 					{
 						UBTService* ServiceInstance = GraphNode->Services[ServiceIdx] ? Cast<UBTService>(GraphNode->Services[ServiceIdx]->NodeInstance) : NULL;

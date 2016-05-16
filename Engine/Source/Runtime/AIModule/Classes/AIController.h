@@ -140,6 +140,9 @@ protected:
 
 	UPROPERTY()
 	UGameplayTasksComponent* CachedGameplayTasksComponent;
+	
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+	TSubclassOf<UNavigationQueryFilter> DefaultNavigationFilterClass;
 
 public:
 
@@ -160,7 +163,7 @@ public:
 	 *  @param bStopOnOverlap - add pawn's radius to AcceptanceRadius
 	 *  @param bUsePathfinding - use navigation data to calculate path (otherwise it will go in straight line)
 	 *  @param bCanStrafe - set focus related flag: bAllowStrafe
-	 *  @param FilterClass - navigation filter for pathfinding adjustments
+	 *  @param FilterClass - navigation filter for pathfinding adjustments. If none specified DefaultNavigationFilterClass will be used
 	 *  @param bAllowPartialPath - use incomplete path when goal can't be reached
 	 *	@note AcceptanceRadius has default value or -1 due to Header Parser not being able to recognize UPathFollowingComponent::DefaultAcceptanceRadius
 	 */
@@ -175,7 +178,7 @@ public:
 	 *  @param bUsePathfinding - use navigation data to calculate path (otherwise it will go in straight line)
 	 *  @param bProjectDestinationToNavigation - project location on navigation data before using it
 	 *  @param bCanStrafe - set focus related flag: bAllowStrafe
-	 *  @param FilterClass - navigation filter for pathfinding adjustments
+	 *  @param FilterClass - navigation filter for pathfinding adjustments. If none specified DefaultNavigationFilterClass will be used
 	 *  @param bAllowPartialPath - use incomplete path when goal can't be reached
 	 *	@note AcceptanceRadius has default value or -1 due to Header Parser not being able to recognize UPathFollowingComponent::DefaultAcceptanceRadius
 	 */
@@ -221,6 +224,8 @@ public:
 	/** Blueprint notification that we've completed the current movement request */
 	UPROPERTY(BlueprintAssignable, meta = (DisplayName = "MoveCompleted"))
 	FAIMoveCompletedSignature ReceiveMoveCompleted;
+
+	TSubclassOf<UNavigationQueryFilter> GetDefaultNavigationFilterClass() const { return DefaultNavigationFilterClass; }
 
 	/** Returns status of path following */
 	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")

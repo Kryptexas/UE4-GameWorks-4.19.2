@@ -412,6 +412,49 @@ private:
 /** Random table for occlusion **/
 extern FOcclusionRandomStream GOcclusionRandomStream;
 
+
+/**
+Helper class to time sections of the GPU work.
+Buffers multiple frames to avoid waiting on the GPU so times are a little lagged.
+*/
+class FLatentGPUTimer
+{
+	static const int32 NumBufferedFrames = FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1;
+
+public:
+
+	FLatentGPUTimer(int32 InAvgSamples = 30);
+
+	void Release();
+
+	/** Retrieves the most recently ready query results. */
+	bool Tick(FRHICommandListImmediate& RHICmdList);
+	/** Kicks off the query for the start of the rendering you're timing. */
+	void Begin(FRHICommandListImmediate& RHICmdList);
+	/** Kicks off the query for the end of the rendering you're timing. */
+	void End(FRHICommandListImmediate& RHICmdList);
+
+	/** Returns the most recent time in ms. */
+	float GetTimeMS();
+	/** Gets the average time in ms. Average is tracked over AvgSamples. */
+	float GetAverageTimeMS();
+
+private:
+
+	int32 GetQueryIndex();
+
+	//Average Tracking;
+	int32 AvgSamples;
+	TArray<float> TimeSamples;
+	float TotalTime;
+	int32 SampleIndex;
+
+	int32 QueryIndex;
+	FRenderQueryRHIRef StartQueries[NumBufferedFrames];
+	FRenderQueryRHIRef EndQueries[NumBufferedFrames];
+	FGraphEventRef QuerySubmittedFences[NumBufferedFrames];
+};
+
 /**
  * The scene manager's private implementation of persistent view state.
  * This class is associated with a particular camera across multiple frames by the game thread.
@@ -640,8 +683,8 @@ public:
 	FRWBuffer CapsuleTileIntersectionCountsBuffer;
 
 	/** Timestamp queries around separate translucency, used for auto-downsampling. */
-	TArray<FRenderQueryRHIRef, TInlineAllocator<FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1> > PendingTranslucencyStartTimestamps;
-	TArray<FRenderQueryRHIRef, TInlineAllocator<FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1> > PendingTranslucencyEndTimestamps;
+	FLatentGPUTimer TranslucencyTimer;
+	FLatentGPUTimer SeparateTranslucencyTimer;
 
 	/** This is float since it is derived off of UWorld::RealTimeSeconds, which is relative to BeginPlay time. */
 	float LastAutoDownsampleChangeTime;
@@ -858,15 +901,8 @@ public:
 		IndirectShadowLightDirectionSRV.SafeRelease();
 		CapsuleTileIntersectionCountsBuffer.Release();
 
-		for (int32 QueryIndex = 0; QueryIndex < PendingTranslucencyStartTimestamps.Num(); QueryIndex++)
-		{
-			PendingTranslucencyStartTimestamps[QueryIndex].SafeRelease();
-		}
-
-		for (int32 QueryIndex = 0; QueryIndex < PendingTranslucencyEndTimestamps.Num(); QueryIndex++)
-		{
-			PendingTranslucencyEndTimestamps[QueryIndex].SafeRelease();
-		}
+		TranslucencyTimer.Release();
+		SeparateTranslucencyTimer.Release();
 	}
 
 	// FSceneViewStateInterface

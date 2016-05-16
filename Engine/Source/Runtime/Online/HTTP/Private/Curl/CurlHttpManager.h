@@ -20,7 +20,7 @@ protected:
 	 */
 	struct CurlEasyRequestData
 	{
-		CurlEasyRequestData(const TSharedRef<class IHttpRequest>& InRequest)
+		CurlEasyRequestData(IHttpRequest* InRequest)
 			: Request(InRequest)
 			, DateTime(FDateTime::Now())
 			, bProcessingStarted(false)
@@ -29,7 +29,7 @@ protected:
 		}
 
 		/** Pointer to the Http Request */
-		TSharedRef<class IHttpRequest> Request;
+		IHttpRequest* Request;
 		
 		/** Date time this was added to ensure first in first out */
 		FDateTime DateTime;
@@ -68,7 +68,9 @@ public:
 	//~ Begin HttpManager Interface
 	virtual void AddRequest(const TSharedRef<class IHttpRequest>& Request) override;
 	virtual void RemoveRequest(const TSharedRef<class IHttpRequest>& Request) override;
-	virtual bool Tick(float DeltaSeconds) override;
+	virtual void HttpThreadTick(float DeltaSeconds) override;
+	virtual bool StartThreadedRequest(IHttpThreadedRequest* Request) override;
+	virtual void CompleteThreadedRequest(IHttpThreadedRequest* Request) override;
 	//~ End HttpManager Interface
 
 	FCurlHttpManager();

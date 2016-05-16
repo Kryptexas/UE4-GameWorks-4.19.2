@@ -351,7 +351,7 @@ public:
 	/** 
 	 * Setters
 	 */
-	void SetPosition(float const & InPosition) { Position = InPosition; }
+	void SetPosition(float const & InPosition) { Position = InPosition; MarkerTickRecord.Reset(); }
 	void SetPlayRate(float const & InPlayRate) { PlayRate = InPlayRate; }
 
 	/**

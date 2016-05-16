@@ -257,3 +257,11 @@ void FAnimNode_Fabrik::InitializeBoneReferences(const FBoneContainer& RequiredBo
 	RootBone.Initialize(RequiredBones);
 	EffectorTransformBone.Initialize(RequiredBones);
 }
+
+void FAnimNode_Fabrik::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+
+	DebugData.AddDebugItem(DebugLine);
+	ComponentPose.GatherDebugData(DebugData);
+}

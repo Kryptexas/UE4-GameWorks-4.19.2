@@ -741,12 +741,17 @@ public:
 	 */
 	ENGINE_API bool ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces=false);
 
+	// Helper function for GetAllAnimationSequencesReferred, it adds itself first and call GetAllAnimationSEquencesReferred
+	ENGINE_API void HandleAnimReferenceCollection(TArray<UAnimationAsset*>& AnimationAssets);
+
+protected:
 	/** Retrieve all animations that are used by this asset 
 	 * 
 	 * @param (out)		AnimationSequences 
 	 **/
 	ENGINE_API virtual bool GetAllAnimationSequencesReferred(TArray<class UAnimationAsset*>& AnimationSequences);
 
+public:
 	/** Replace this assets references to other animations based on ReplacementMap 
 	 * 
 	 * @param ReplacementMap	Mapping of original asset to new asset

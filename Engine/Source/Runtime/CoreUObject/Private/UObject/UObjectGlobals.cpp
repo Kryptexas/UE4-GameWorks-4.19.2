@@ -13,6 +13,7 @@
 #include "BlueprintSupport.h" // for FDeferredObjInitializerTracker
 #include "ExclusiveLoadPackageTimeTracker.h"
 #include "AssetRegistryInterface.h"
+#include "CookStats.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 
@@ -43,6 +44,21 @@ DEFINE_STAT(STAT_DestroyObject);
 DECLARE_CYCLE_STAT(TEXT("InstanceSubobjects"), STAT_InstanceSubobjects, STATGROUP_Object);
 DECLARE_CYCLE_STAT(TEXT("PostInitProperties"), STAT_PostInitProperties, STATGROUP_Object);
 
+#if ENABLE_COOK_STATS
+#include "ScopedTimers.h"
+
+namespace LoadPackageStats
+{
+	static double LoadPackageTimeSec = 0.0;
+	static int NumPackagesLoaded = 0;
+	static FCookStatsManager::FAutoRegisterCallback RegisterCookStats([](FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		AddStat(TEXT("Package.Load"), FCookStatsManager::CreateKeyValueArray(
+			TEXT("NumPackagesLoaded"), NumPackagesLoaded,
+			TEXT("LoadPackageTimeSec"), LoadPackageTimeSec));
+	});
+}
+#endif
 
 /** CoreUObject delegates */
 FCoreUObjectDelegates::FRegisterClassForHotReloadReinstancingDelegate FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate;
@@ -74,6 +90,7 @@ FCoreUObjectDelegates::FOnLoadObjectsOnTop FCoreUObjectDelegates::ShouldLoadOnTo
 FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;
 FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
 FCoreUObjectDelegates::FPackageCreatedForLoad FCoreUObjectDelegates::PackageCreatedForLoad;
+FCoreUObjectDelegates::FPackageLoadedFromStringAssetReference FCoreUObjectDelegates::PackageLoadedFromStringAssetReference;
 
 /** Check whether we should report progress or not */
 bool ShouldReportProgress()
@@ -1362,6 +1379,8 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 
 UPackage* LoadPackage(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags)
 {
+	COOK_STAT(LoadPackageStats::NumPackagesLoaded++);
+	COOK_STAT(FScopedDurationTimer LoadTimer(LoadPackageStats::LoadPackageTimeSec));
 	// Change to 1 if you want more detailed stats for loading packages, but at the cost of adding dynamic stats.
 #if	STATS && 0
 	static FString Package = TEXT( "Package" );

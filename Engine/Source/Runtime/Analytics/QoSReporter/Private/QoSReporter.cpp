@@ -285,7 +285,7 @@ void FQoSReporter::AddServerHeartbeatAttributes(TArray<FAnalyticsEventAttribute>
 					break;
 				default:
 					// don't write anything (supporting these requires more changes in PerfCounters API)
-					UE_LOG(LogQoSReporter, Log, TEXT("PerfCounter '%s' of unsupported type %d skipped"), *It.Key, static_cast<int32>(JsonValue.Format));
+					UE_LOG(LogQoSReporter, Verbose, TEXT("PerfCounter '%s' of unsupported type %d skipped"), *It.Key, static_cast<int32>(JsonValue.Format));
 					break;
 			}
 		}

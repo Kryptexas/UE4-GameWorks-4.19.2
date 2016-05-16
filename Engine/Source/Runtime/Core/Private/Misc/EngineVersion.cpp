@@ -8,7 +8,12 @@
 #include "UObject/ReleaseObjectVersion.h"
 
 /** Version numbers for networking */
+#if LOCKED_NETWORK_VERSION
+int32 GEngineNetVersion = LOCKED_NETWORK_VERSION;
+#else
 int32 GEngineNetVersion = BUILT_FROM_CHANGELIST;
+#endif
+
 const int32 GEngineMinNetVersion		= 7038;
 const int32 GEngineNegotiationVersion	= 3077;
 
@@ -157,30 +162,6 @@ FString FEngineVersion::ToString(EVersionComponent LastComponent) const
 		}
 	}
 	return Result;
-}
-
-FString FEngineVersion::ToBuildInfoString() const
-{
-	FString PlatformCopy(FPlatformProperties::PlatformName());
-
-	// Strip off the word "server" from server builds
-	const int32 ServerPos = PlatformCopy.Find(TEXT("Server"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-	if (ServerPos != INDEX_NONE)
-	{
-		PlatformCopy[ServerPos] = TEXT('\0');
-	}
-	else
-	{
-		// Strip off the word "client" from client builds
-		const int32 ClientPos = PlatformCopy.Find(TEXT("Client"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-		if (ClientPos != INDEX_NONE)
-		{
-			PlatformCopy[ClientPos] = TEXT('\0');
-		}
-	}
-
-	// <Branch>-CL-<CL#>-<Platform>
-	return FString::Printf(TEXT("%s-CL-%u-%s"), *Branch, GetChangelist(), *PlatformCopy);
 }
 
 bool FEngineVersion::Parse(const FString &Text, FEngineVersion &OutVersion)

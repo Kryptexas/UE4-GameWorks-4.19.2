@@ -405,7 +405,7 @@ EWindowZone::Type SDockingTabWell::GetWindowZoneOverride() const
 
 FReply SDockingTabWell::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if (this->HasMouseCapture())
+	if (this->HasMouseCapture() && TabBeingDraggedPtr.IsValid()) 
 	{
 		const TSharedRef<SDockTab> TabBeingDragged = TabBeingDraggedPtr.ToSharedRef();
 		this->TabBeingDraggedPtr.Reset();

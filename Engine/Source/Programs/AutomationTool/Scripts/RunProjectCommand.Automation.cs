@@ -785,7 +785,7 @@ public partial class Project : CommandUtils
 					TempCmdLine += "-allowcaching ";
 				}
 			}
-			else if (Params.UsePak(SC.StageTargetPlatform) || Params.SignedPak)
+			else if (Params.UsePak(SC.StageTargetPlatform))
 			{
 				if (Params.SignedPak)
 				{
@@ -979,7 +979,7 @@ public partial class Project : CommandUtils
 			Args += String.Format("{0} -server -abslog={1}  -unattended -FORCELOGFLUSH -log -Messaging -nomcp", Map, CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile));
 		}
 
-		if (ServerParams.UsePak(SC.StageTargetPlatform) || ServerParams.SignedPak)
+		if (ServerParams.UsePak(SC.StageTargetPlatform))
 		{
 			if (ServerParams.SignedPak)
 			{

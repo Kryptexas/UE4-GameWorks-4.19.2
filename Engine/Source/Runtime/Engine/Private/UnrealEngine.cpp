@@ -1319,10 +1319,21 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 
 
 		SET_FLOAT_STAT(STAT_GameTickWantedWaitTime,WaitTime * 1000.f);
-		SET_FLOAT_STAT(STAT_GameTickAdditionalWaitTime,FMath::Max<float>((ActualWaitTime-WaitTime)*1000.f,0.f));
+		double AdditionalWaitTimeInMs = (ActualWaitTime - static_cast<double>(WaitTime)) * 1000.0;
+		SET_FLOAT_STAT(STAT_GameTickAdditionalWaitTime,FMath::Max<float>(static_cast<float>(AdditionalWaitTimeInMs),0.f));
 
 		FApp::SetDeltaTime(FApp::GetCurrentTime() - LastTime);
 		FApp::SetIdleTime(ActualWaitTime);
+
+		if (IsRunningDedicatedServer())
+		{
+			// if we slept longer than intended, log this out
+			const double PermissibleDelayInMs = 10;	// server kernel may be configured to tick at 100 HZ, so forgive scheduler some imprecision
+			if (UNLIKELY(AdditionalWaitTimeInMs > PermissibleDelayInMs))
+			{
+				UE_LOG(LogEngine, Warning, TEXT("HITCHHUNTER: spent %f ms sleeping instead of %f ms intended (overshot by %f ms)"), ActualWaitTime * 1000.0, WaitTime * 1000.0f, AdditionalWaitTimeInMs);
+			}
+		}
 
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
 		if( FApp::GetDeltaTime() < 0 )
@@ -2905,11 +2916,16 @@ bool UEngine::HandleFlushLogCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 bool UEngine::HandleGameVerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	FString VersionString = FString::Printf( TEXT( "GameVersion Branch: %s, Configuration: %s, Version: %s, CommandLine: %s" ),
-											 *FApp::GetBranchName(), EBuildConfigurations::ToString( FApp::GetBuildConfiguration() ), *FEngineVersion::Current().ToString(), FCommandLine::Get() );
+	FString VersionString = FString::Printf( TEXT( "GameVersion Branch: %s, Configuration: %s, Build: %s, CommandLine: %s" ),
+											 *FApp::GetBranchName(), EBuildConfigurations::ToString( FApp::GetBuildConfiguration() ), FApp::GetBuildVersion(), FCommandLine::Get() );
 
 	Ar.Logf( *VersionString );
 	FPlatformMisc::ClipboardCopy( *VersionString );
+
+	if (FCString::Stristr(Cmd, TEXT("-display")))
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, VersionString);
+	}
 
 	return 1;
 }

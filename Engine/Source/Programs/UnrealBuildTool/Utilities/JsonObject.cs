@@ -164,6 +164,27 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		public double GetDoubleField(string FieldName)
+		{
+			double DoubleValue;
+			if (!TryGetDoubleField(FieldName, out DoubleValue))
+			{
+				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
+			}
+			return DoubleValue;
+		}
+
+		public bool TryGetDoubleField(string FieldName, out double Result)
+		{
+			object RawValue;
+			if (!RawObject.TryGetValue(FieldName, out RawValue) || !double.TryParse(RawValue.ToString(), out Result))
+			{
+				Result = 0.0;
+				return false;
+			}
+			return true;
+		}
+
 		public T GetEnumField<T>(string FieldName) where T : struct
 		{
 			T EnumValue;
@@ -335,6 +356,11 @@ namespace UnrealBuildTool
 		}
 
 		public void WriteValue(string Name, int Value)
+		{
+			WriteValueInternal(Name, Value.ToString());
+		}
+
+		public void WriteValue(string Name, double Value)
 		{
 			WriteValueInternal(Name, Value.ToString());
 		}

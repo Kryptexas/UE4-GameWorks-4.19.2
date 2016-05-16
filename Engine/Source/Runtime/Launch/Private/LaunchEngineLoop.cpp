@@ -3229,8 +3229,9 @@ bool FEngineLoop::AppInit( )
 	}
 
 	//// Command line.
-	UE_LOG(LogInit, Log, TEXT("Version: %s"), *FEngineVersion::Current().ToString());
-	UE_LOG(LogInit, Log, TEXT("API Version: %u"), FEngineVersion::CompatibleWith().GetChangelist());
+	UE_LOG(LogInit, Log, TEXT("Build: %s"), FApp::GetBuildVersion());
+	UE_LOG(LogInit, Log, TEXT("Engine Version: %s"), *FEngineVersion::Current().ToString());
+	UE_LOG(LogInit, Log, TEXT("Compatible Engine Version: %s"), *FEngineVersion::CompatibleWith().ToString());
 	UE_LOG(LogInit, Log, TEXT("Net Version: %u"), GEngineNetVersion);
 	FDevVersionRegistration::DumpVersionsToLog();
 

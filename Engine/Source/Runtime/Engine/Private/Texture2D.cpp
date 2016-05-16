@@ -151,7 +151,7 @@ void FTexture2DMipMap::Serialize(FArchive& Ar, UObject* Owner, int32 MipIdx)
 }
 
 #if WITH_EDITORONLY_DATA
-void FTexture2DMipMap::StoreInDerivedDataCache(const FString& InDerivedDataKey)
+uint32 FTexture2DMipMap::StoreInDerivedDataCache(const FString& InDerivedDataKey)
 {
 	int32 BulkDataSizeInBytes = BulkData.GetBulkDataSize();
 	check(BulkDataSizeInBytes > 0);
@@ -164,10 +164,11 @@ void FTexture2DMipMap::StoreInDerivedDataCache(const FString& InDerivedDataKey)
 		Ar.Serialize(BulkMipData, BulkDataSizeInBytes);
 		BulkData.Unlock();
 	}
-
+	const uint32 Result = DerivedData.Num();
 	GetDerivedDataCacheRef().Put(*InDerivedDataKey, DerivedData);
 	DerivedDataKey = InDerivedDataKey;
 	BulkData.RemoveBulkData();
+	return Result;
 }
 #endif // #if WITH_EDITORONLY_DATA
 

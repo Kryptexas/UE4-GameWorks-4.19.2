@@ -30,6 +30,7 @@ UQosRegionManager::UQosRegionManager(const FObjectInitializer& ObjectInitializer
 	: bUseOldQosServers(false)
 	, NumTestsPerRegion(3)
 	, PingTimeout(5.0f)
+	, LastCheckTimestamp(0)
 	, Evaluator(nullptr)
 	, QosEvalResult(EQosCompletionResult::Invalid)
 {
@@ -138,9 +139,22 @@ void UQosRegionManager::BeginQosEvaluation(UWorld* World, const TSharedPtr<IAnal
 	check(World);
 
 	// no point doing the qos tests at all if we're forcing this
- 	if (!ForceRegionId.IsEmpty())
+	if (!ForceRegionId.IsEmpty())
 	{
-		World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([OnComplete]() {
+		World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([OnComplete]()
+		{
+			OnComplete.ExecuteIfBound();
+		}));
+		return;
+	}
+
+	// There are valid cached results, use them
+	if ((RegionOptions.Num() > 0) &&
+		(QosEvalResult == EQosCompletionResult::Success) &&
+		(FDateTime::UtcNow() - LastCheckTimestamp).GetTotalSeconds() <= 3)
+	{
+		World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([OnComplete]()
+		{
 			OnComplete.ExecuteIfBound();
 		}));
 		return;
@@ -177,6 +191,8 @@ void UQosRegionManager::OnQosEvaluationComplete(EQosCompletionResult Result, con
 
 	// Always capture the region information (its still correct, even if in a bad state)
 	RegionOptions = RegionInfo;
+
+	LastCheckTimestamp = FDateTime::UtcNow();
 
 	if (!SelectedRegionId.IsEmpty() && SelectedRegionId == TEXT("NONE"))
 	{

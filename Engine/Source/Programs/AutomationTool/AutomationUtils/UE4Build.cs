@@ -454,7 +454,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Updates the engine version files
 		/// </summary>
-		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null)
+		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null, string Build = null)
 		{
 			bool bIsLicenseeVersion = ParseParam("Licensee");
 			bool bDoUpdateVersionFiles = CommandUtils.P4Enabled && ActuallyUpdateVersionFiles;		
@@ -465,10 +465,10 @@ namespace AutomationTool
 			}
 
 			string Branch = P4Enabled ? P4Env.BuildRootEscaped : "";
-			return StaticUpdateVersionFiles(ChangelistNumber, Branch, bIsLicenseeVersion, bDoUpdateVersionFiles);
+			return StaticUpdateVersionFiles(ChangelistNumber, Branch, Build, bIsLicenseeVersion, bDoUpdateVersionFiles);
 		}
 
-		public static List<string> StaticUpdateVersionFiles(int ChangelistNumber, string Branch, bool bIsLicenseeVersion, bool bDoUpdateVersionFiles)
+		public static List<string> StaticUpdateVersionFiles(int ChangelistNumber, string Branch, string Build, bool bIsLicenseeVersion, bool bDoUpdateVersionFiles)
 		{
 			string ChangelistString = (ChangelistNumber != 0 && bDoUpdateVersionFiles)? ChangelistNumber.ToString() : String.Empty;
 
@@ -509,11 +509,19 @@ namespace AutomationTool
 					LogLog("Updating {0} with:", VerFile);
 					LogLog(" #define	BRANCH_NAME  {0}", Branch);
 					LogLog(" #define	BUILT_FROM_CHANGELIST  {0}", ChangelistString);
+					if (Build != null)
+					{
+						LogLog(" #define	BUILD_VERSION  {0}", Build);
+					}
 					LogLog(" #define   ENGINE_IS_LICENSEE_VERSION  {0}", bIsLicenseeVersion ? "1" : "0");
 
 					VersionFileUpdater VersionH = new VersionFileUpdater(VerFile);
 					VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + Branch + "\"");
 					VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", ChangelistString);
+					if (Build != null)
+					{
+						VersionH.ReplaceLine("#define BUILD_VERSION ", "L\"" + Build + "\"");
+					}
 					VersionH.ReplaceOrAddLine("#define ENGINE_IS_LICENSEE_VERSION ", bIsLicenseeVersion ? "1" : "0");
 
                     VersionH.Commit();

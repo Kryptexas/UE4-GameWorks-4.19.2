@@ -1895,8 +1895,12 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	static FOnLoadObjectsOnTop ShouldLoadOnTop;
 
 	/** called when loading a string asset reference */
-	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, FString const& /*LoadedAssetLongPathname*/);
+	DECLARE_DELEGATE_OneParam(FStringAssetReferenceLoaded, const FString&);
 	static FStringAssetReferenceLoaded StringAssetReferenceLoaded;
+
+	/** called when loading a string asset reference */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageLoadedFromStringAssetReference, const FName&);
+	static FPackageLoadedFromStringAssetReference PackageLoadedFromStringAssetReference;
 
 	/** called when path to world root is changed */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FPackageCreatedForLoad, class UPackage*);

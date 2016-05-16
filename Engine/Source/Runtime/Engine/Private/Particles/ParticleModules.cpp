@@ -4623,7 +4623,7 @@ void UParticleModuleTypeDataGpu::Build( FParticleEmitterBuildInfo& EmitterBuildI
 	EmitterInfo.LocalVectorField.bTileX = EmitterBuildInfo.bLocalVectorFieldTileX;
 	EmitterInfo.LocalVectorField.bTileY = EmitterBuildInfo.bLocalVectorFieldTileY;
 	EmitterInfo.LocalVectorField.bTileZ = EmitterBuildInfo.bLocalVectorFieldTileZ;
-
+	EmitterInfo.LocalVectorField.bUseFixDT = EmitterBuildInfo.bLocalVectorFieldUseFixDT;
 
 	// Vector field scales.
 	FComposableFloatDistribution NormalizedVectorFieldScale(EmitterBuildInfo.VectorFieldScale);

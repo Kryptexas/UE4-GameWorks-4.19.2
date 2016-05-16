@@ -22,6 +22,8 @@ UBorder::UBorder(const FObjectInitializer& ObjectInitializer)
 	HorizontalAlignment = HAlign_Fill;
 	VerticalAlignment = VAlign_Fill;
 
+	DesiredSizeScale = FVector2D(1, 1);
+
 	bShowEffectWhenDisabled = true;
 }
 
@@ -58,8 +60,9 @@ void UBorder::SynchronizeProperties()
 
 	MyBorder->SetBorderImage(ImageBinding);
 	
+	MyBorder->SetDesiredSizeScale(DesiredSizeScale);
 	MyBorder->SetShowEffectWhenDisabled(bShowEffectWhenDisabled);
-
+	
 	MyBorder->SetOnMouseButtonDown(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonDown));
 	MyBorder->SetOnMouseButtonUp(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonUp));
 	MyBorder->SetOnMouseMove(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseMove));
@@ -252,6 +255,15 @@ UMaterialInstanceDynamic* UBorder::GetDynamicMaterial()
 	//TODO UMG can we do something for textures?  General purpose dynamic material for them?
 
 	return NULL;
+}
+
+void UBorder::SetDesiredSizeScale(FVector2D InScale)
+{
+	DesiredSizeScale = InScale;
+	if (MyBorder.IsValid())
+	{
+		MyBorder->SetDesiredSizeScale(InScale);
+	}
 }
 
 const FSlateBrush* UBorder::ConvertImage(TAttribute<FSlateBrush> InImageAsset) const

@@ -283,40 +283,14 @@ FCurlHttpManager::FCurlHttpManager()
 	}
 }
 
-// note that we cannot call parent implementation because lock might be possible non-multiple
 void FCurlHttpManager::AddRequest(const TSharedRef<IHttpRequest>& Request)
 {
-	FScopeLock ScopeLock(&RequestLock);
-
-	Requests.Add(Request);
-
-	FCurlHttpRequest* CurlRequest = static_cast<FCurlHttpRequest*>(&Request.Get());
-	CURL* EasyHandle = CurlRequest->GetEasyHandle();
-	ensure(!HandlesToRequests.Contains(EasyHandle));
-	HandlesToRequests.Add(EasyHandle, CurlEasyRequestData(Request));
+	checkf(false, TEXT("Should not be called for curl http anymore, should be using AddThreadedRequest."));
 }
 
-// note that we cannot call parent implementation because lock might be possible non-multiple
 void FCurlHttpManager::RemoveRequest(const TSharedRef<IHttpRequest>& Request)
 {
-	FScopeLock ScopeLock(&RequestLock);
-
-	// Keep track of requests that have been removed to be destroyed later
-	PendingDestroyRequests.AddUnique(FRequestPendingDestroy(DeferredDestroyDelay,Request));
-
-	FCurlHttpRequest* CurlRequest = static_cast<FCurlHttpRequest*>(&Request.Get());
-	CURL* EasyHandle = CurlRequest->GetEasyHandle();
-	const CurlEasyRequestData* RequestData = HandlesToRequests.Find(EasyHandle);
-	if (RequestData)
-	{
-		if (RequestData->bAddedToMulti)
-		{
-			curl_multi_remove_handle(MultiHandle, EasyHandle);
-			--NumRequestsAddedToMulti;
-		}
-		HandlesToRequests.Remove(EasyHandle);
-	}
-	Requests.Remove(Request);
+	checkf(false, TEXT("Should not be called for curl http anymore."));
 }
 
 bool FCurlHttpManager::FindNextEasyHandle(CURL** OutEasyHandle) const
@@ -336,89 +310,127 @@ bool FCurlHttpManager::FindNextEasyHandle(CURL** OutEasyHandle) const
 	return LowestDateTime != FDateTime::MaxValue();
 }
 
-bool FCurlHttpManager::Tick(float DeltaSeconds)
+void FCurlHttpManager::HttpThreadTick(float DeltaSeconds)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpManager_Tick);
 	check(MultiHandle);
-	if (Requests.Num() > 0)
+
+	double CurlTick = 0.0;
+	const int NumRequestsToTick = Requests.Num();
+
 	{
-		FScopeLock ScopeLock(&RequestLock);
+		FSimpleScopeSecondsCounter CurlTickTimer(CurlTick);
 
-		int RunningRequests = -1;
+		if (RunningThreadedRequests.Num() > 0)
 		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpManager_Tick_Perform);
+			int RunningRequests = -1;
 			curl_multi_perform(MultiHandle, &RunningRequests);
-		}
 
-		// read more info if number of requests changed or if there's zero running
-		// (note that some requests might have never be "running" from libcurl's point of view)
-		if (RunningRequests == 0 || RunningRequests != NumRequestsAddedToMulti)
-		{
-			for(;;)
+			// read more info if number of requests changed or if there's zero running
+			// (note that some requests might have never be "running" from libcurl's point of view)
+			if (RunningRequests == 0 || RunningRequests != NumRequestsAddedToMulti)
 			{
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpManager_Tick_Loop);
-				int MsgsStillInQueue = 0;	// may use that to impose some upper limit we may spend in that loop
-				CURLMsg * Message = curl_multi_info_read(MultiHandle, &MsgsStillInQueue);
-
-				if (Message == NULL)
+				for(;;)
 				{
-					break;
+					int MsgsStillInQueue = 0;	// may use that to impose some upper limit we may spend in that loop
+					CURLMsg * Message = curl_multi_info_read(MultiHandle, &MsgsStillInQueue);
+
+					if (Message == NULL)
+					{
+						break;
+					}
+
+					// find out which requests have completed
+					if (Message->msg == CURLMSG_DONE)
+					{
+						CURL* CompletedHandle = Message->easy_handle;
+						curl_multi_remove_handle(GMultiHandle, CompletedHandle);
+						--NumRequestsAddedToMulti;
+
+						CurlEasyRequestData* RequestData = HandlesToRequests.Find(CompletedHandle);
+						if (RequestData)
+						{
+							RequestData->bAddedToMulti = false;
+
+							FCurlHttpRequest* CurlRequest = static_cast< FCurlHttpRequest* >(RequestData->Request);
+							CurlRequest->MarkAsCompleted(Message->data.result);
+
+							UE_LOG(LogHttp, Verbose, TEXT("Request %p (easy handle:%p) has completed (code:%d) and has been marked as such"), CurlRequest, CompletedHandle, (int32)Message->data.result);
+						}
+						else
+						{
+							UE_LOG(LogHttp, Warning, TEXT("Could not find mapping for completed request (easy handle: %p)"), CompletedHandle);
+						}
+					}
+				}
+			}
+
+			int NumAdded = 0;
+			CURL* EasyHandle;
+			while ((MaxSimultaneousRequests == 0 || NumRequestsAddedToMulti < MaxSimultaneousRequests) &&
+				(MaxRequestsAddedPerFrame == 0 || NumAdded < MaxRequestsAddedPerFrame) &&
+				FindNextEasyHandle(&EasyHandle))
+			{
+				CurlEasyRequestData& RequestData = HandlesToRequests.FindChecked(EasyHandle);
+
+				CURLMcode AddResult = curl_multi_add_handle(GMultiHandle, EasyHandle);
+				RequestData.bProcessingStarted = true;
+
+				if (AddResult == CURLM_OK)
+				{
+					++NumAdded;
+					++NumRequestsAddedToMulti;
+					RequestData.bAddedToMulti = true;
+				}
+				else
+				{
+					UE_LOG(LogHttp, Warning, TEXT("Failed to add easy handle %p to multi handle with code %d"), EasyHandle, (int)AddResult);
 				}
 
-				// find out which requests have completed
-				if (Message->msg == CURLMSG_DONE)
-				{
-					CURL* CompletedHandle = Message->easy_handle;
-					curl_multi_remove_handle(GMultiHandle, CompletedHandle);
-					--NumRequestsAddedToMulti;
-
-					CurlEasyRequestData* RequestData = HandlesToRequests.Find(CompletedHandle);
-					if (RequestData)
-					{
-						RequestData->bAddedToMulti = false;
-
-						FCurlHttpRequest* CurlRequest = static_cast< FCurlHttpRequest* >(&RequestData->Request.Get());
-						CurlRequest->MarkAsCompleted(Message->data.result);
-
-						UE_LOG(LogHttp, Verbose, TEXT("Request %p (easy handle:%p) has completed (code:%d) and has been marked as such"), CurlRequest, CompletedHandle, (int32)Message->data.result);
-					}
-					else
-					{
-						UE_LOG(LogHttp, Warning, TEXT("Could not find mapping for completed request (easy handle: %p)"), CompletedHandle);
-					}
-				}
+				FCurlHttpRequest* CurlRequest = static_cast<FCurlHttpRequest*>(RequestData.Request);
+				CurlRequest->SetAddToCurlMultiResult(AddResult);
 			}
-		}
-
-		int NumAdded = 0;
-		CURL* EasyHandle;
-		while ((MaxSimultaneousRequests == 0 || NumRequestsAddedToMulti < MaxSimultaneousRequests) &&
-			(MaxRequestsAddedPerFrame == 0 || NumAdded < MaxRequestsAddedPerFrame) &&
-			FindNextEasyHandle(&EasyHandle))
-		{
-			CurlEasyRequestData& RequestData = HandlesToRequests.FindChecked(EasyHandle);
-
-			CURLMcode AddResult = curl_multi_add_handle(GMultiHandle, EasyHandle);
-			RequestData.bProcessingStarted = true;
-
-			if (AddResult == CURLM_OK)
-			{
-				++NumAdded;
-				++NumRequestsAddedToMulti;
-				RequestData.bAddedToMulti = true;
-			}
-			else
-			{
-				UE_LOG(LogHttp, Warning, TEXT("Failed to add easy handle %p to multi handle with code %d"), EasyHandle, (int)AddResult);
-			}
-
-			FCurlHttpRequest* CurlRequest = static_cast<FCurlHttpRequest*>(&RequestData.Request.Get());
-			CurlRequest->SetAddToCurlMultiResult(AddResult);
 		}
 	}
 
-	// we should be outside scope lock here to be able to call parent!
-	return FHttpManager::Tick(DeltaSeconds);
+	double ParentTick = 0.0;
+	{
+		FSimpleScopeSecondsCounter TickTimer(ParentTick);
+		FHttpManager::HttpThreadTick(DeltaSeconds);
+	}
+
+	if (ParentTick + CurlTick > 0.02)
+	{
+		UE_LOG(LogHttp, Warning, TEXT("HITCHHUNTER: Hitch in CurlHttp (CurlTick: %.1f ms, HttpManagerTick: %.1f) has been detected this frame, NumRequestsToTick = %d"), CurlTick * 1000.0, ParentTick * 1000.0, NumRequestsToTick);
+	}
+}
+
+bool FCurlHttpManager::StartThreadedRequest(IHttpThreadedRequest* Request)
+{
+	FCurlHttpRequest* CurlRequest = static_cast<FCurlHttpRequest*>(Request);
+	CURL* EasyHandle = CurlRequest->GetEasyHandle();
+	ensure(!HandlesToRequests.Contains(EasyHandle));
+	HandlesToRequests.Add(EasyHandle, CurlEasyRequestData(Request));
+
+	return true;
+}
+
+void FCurlHttpManager::CompleteThreadedRequest(IHttpThreadedRequest* Request)
+{
+	FCurlHttpRequest* CurlRequest = static_cast<FCurlHttpRequest*>(Request);
+	CURL* EasyHandle = CurlRequest->GetEasyHandle();
+
+	CurlEasyRequestData* RequestData = HandlesToRequests.Find(EasyHandle);
+	ensure(RequestData);
+	if (RequestData)
+	{
+		if (RequestData->bAddedToMulti)
+		{
+			curl_multi_remove_handle(GMultiHandle, EasyHandle);
+			--NumRequestsAddedToMulti;
+		}
+		HandlesToRequests.Remove(EasyHandle);
+	}
 }
 
 #endif //WITH_LIBCURL

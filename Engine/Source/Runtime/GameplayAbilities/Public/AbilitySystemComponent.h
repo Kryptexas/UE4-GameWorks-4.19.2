@@ -474,6 +474,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 		TagContainer.AppendTags(GameplayTagCountContainer.GetExplicitGameplayTags());
 	}
 
+	FORCEINLINE int32 GetTagCount(FGameplayTag TagToCheck) const
+	{
+		return GameplayTagCountContainer.GetTagCount(TagToCheck);
+	}
+
 	/** 	 
 	 *  Allows GameCode to add loose gameplaytags which are not backed by a GameplayEffect. 
 	 *
@@ -534,6 +539,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	
 	/** Allow events to be registered for specific gameplay tags being added or removed */
 	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(FGameplayTag Tag, EGameplayTagEventType::Type EventType=EGameplayTagEventType::NewOrRemoved);
+
+	void RegisterAndCallGameplayTagEvent(FGameplayTag Tag, FOnGameplayEffectTagCountChanged::FDelegate Delegate, EGameplayTagEventType::Type EventType=EGameplayTagEventType::NewOrRemoved);
 
 	/** Returns multicast delegate that is invoked whenever a tag is added or removed (but not if just count is increased. Only for 'new' and 'removed' events) */
 	FOnGameplayEffectTagCountChanged& RegisterGenericGameplayTagEvent();
@@ -882,7 +889,15 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	// Functions meant to be called from GameplayAbility and subclasses, but not meant for general use
 
 	/** Returns the list of all activatable abilities */
-	const TArray<FGameplayAbilitySpec>& GetActivatableAbilities() const;
+	const TArray<FGameplayAbilitySpec>& GetActivatableAbilities() const
+	{
+		return ActivatableAbilities.Items;
+	}
+
+	TArray<FGameplayAbilitySpec>& GetActivatableAbilities()
+	{
+		return ActivatableAbilities.Items;
+	}
 
 	/** Returns local world time that an ability was activated. Valid on authority (server) and autonomous proxy (controlling client).  */
 	float GetAbilityLastActivatedTime() const { return AbilityLastActivatedTime; }
@@ -1204,6 +1219,9 @@ protected:
 	UFUNCTION()
 	void OnRep_ReplicatedAnimMontage();
 
+	/** Returns true if we are ready to handle replicated montage information */
+	virtual bool IsReadyForReplicatedMontage();
+
 	/** RPC function called from CurrentMontageSetNextSectopnName, replicates to other clients */
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerCurrentMontageSetNextSectionName(UAnimMontage* ClientAnimMontage, float ClientPosition, FName SectionName, FName NextSectionName);
@@ -1254,6 +1272,9 @@ public:
 
 	/** Changes the avatar actor, leaves the owner actor the same */
 	void SetAvatarActor(AActor* InAvatarActor);
+
+	/** called when the ASC's AbilityActorInfo has a PlayerController set. */
+	virtual void OnPlayerControllerSet() { }
 
 	/**
 	* This is called when the actor that is initialized to this system dies, this will clear that actor from this system and FGameplayAbilityActorInfo

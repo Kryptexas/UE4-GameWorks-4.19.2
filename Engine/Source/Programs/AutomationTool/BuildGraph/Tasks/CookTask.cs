@@ -96,7 +96,8 @@ namespace BuildGraph.Tasks
 			using(TelemetryStopwatch CookStopwatch = new TelemetryStopwatch("Cook.{0}.{1}", (ProjectFile == null)? "UE4" : ProjectFile.GetFileNameWithoutExtension(), Parameters.Platform))
 			{
 				string[] Maps = (Parameters.Maps == null)? null : Parameters.Maps.Split(new char[]{ '+' });
-				CommandUtils.CookCommandlet(ProjectFile, "UE4Editor-Cmd.exe", Maps, null, null, null, Parameters.Platform, (Parameters.Versioned? "" : "-Unversioned ") + Parameters.Arguments);
+				string Arguments = (Parameters.Versioned ? "" : "-Unversioned ") + "-LogCmds=\"LogSavePackage Warning\" " + Parameters.Arguments;
+				CommandUtils.CookCommandlet(ProjectFile, "UE4Editor-Cmd.exe", Maps, null, null, null, Parameters.Platform, Arguments);
 			}
 
 			// Find all the cooked files

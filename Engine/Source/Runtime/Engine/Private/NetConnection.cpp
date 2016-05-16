@@ -102,13 +102,11 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
  */
 void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, const FURL& InURL, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)
 {
+	// Oodle depends upon this
+	check(InMaxPacket <= MAX_PACKET_SIZE);
+
 	// Owning net driver
 	Driver = InDriver;
-
-	// Reset Handler
-	Handler.Reset(NULL);
-
-	InitHandler();
 
 	// Stats
 	StatUpdateTime			= Driver->Time;
@@ -131,6 +129,13 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	PacketOverhead = InPacketOverhead;
 
 	check(MaxPacket > 0 && PacketOverhead > 0);
+
+
+	// Reset Handler
+	Handler.Reset(NULL);
+
+	InitHandler();
+
 
 #if DO_ENABLE_NET_TEST
 	// Copy the command line settings from the net driver
@@ -169,8 +174,6 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed, int32 InMaxPacket)
 {
 	Driver = InDriver;
-
-	// NOTE: If Handler assignment is added, it must be initialized, and GetPacketOverhead must be factored into MaxPacketHandlerBits
 
 	// We won't be sending any packets, so use a default size
 	MaxPacket = (InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket;
@@ -211,31 +214,48 @@ void UNetConnection::InitHandler()
 {
 	check(!Handler.IsValid());
 
-	Handler = MakeUnique<PacketHandler>();
-
-	if (Handler.IsValid())
+#if !UE_BUILD_SHIPPING
+	if (!FParse::Param(FCommandLine::Get(), TEXT("NoPacketHandler")))
+#endif
 	{
-		Handler::Mode Mode = Driver->ServerConnection != nullptr ? Handler::Mode::Client : Handler::Mode::Server;
+		Handler = MakeUnique<PacketHandler>();
 
-		Handler->Initialize(Mode);
-
-
-		// Add handling for the stateless connect handshake, for connectionless packets, as the outermost layer
-		TSharedPtr<HandlerComponent> NewComponent =
-			Handler->AddHandler(TEXT("Engine.EngineHandlerComponentFactory(StatelessConnectHandlerComponent)"), true);
-
-		StatelessConnectComponent = StaticCastSharedPtr<StatelessConnectHandlerComponent>(NewComponent);
-
-		if (StatelessConnectComponent.IsValid())
+		if (Handler.IsValid())
 		{
-			StatelessConnectComponent.Pin()->SetDriver(Driver);
+			Handler::Mode Mode = Driver->ServerConnection != nullptr ? Handler::Mode::Client : Handler::Mode::Server;
+
+			Handler->Initialize(Mode, MaxPacket * 8);
+
+
+			// Add handling for the stateless connect handshake, for connectionless packets, as the outermost layer
+			TSharedPtr<HandlerComponent> NewComponent =
+				Handler->AddHandler(TEXT("Engine.EngineHandlerComponentFactory(StatelessConnectHandlerComponent)"), true);
+
+			StatelessConnectComponent = StaticCastSharedPtr<StatelessConnectHandlerComponent>(NewComponent);
+
+			if (StatelessConnectComponent.IsValid())
+			{
+				StatelessConnectComponent.Pin()->SetDriver(Driver);
+			}
+
+
+			Handler->InitializeComponents();
+
+			MaxPacketHandlerBits = Handler->GetTotalReservedPacketBits();
 		}
-
-
-		Handler->InitializeComponents();
-
-		MaxPacketHandlerBits = Handler->GetTotalPacketOverheadBits();
 	}
+
+
+#if !UE_BUILD_SHIPPING
+	uint32 MaxPacketBits = MaxPacket * 8;
+	uint32 ReservedTotal = MaxPacketHandlerBits + MAX_PACKET_HEADER_BITS + MAX_PACKET_TRAILER_BITS;
+
+	SET_DWORD_STAT(STAT_MaxPacket, MaxPacketBits);
+	SET_DWORD_STAT(STAT_MaxPacketMinusReserved, MaxPacketBits - ReservedTotal);
+	SET_DWORD_STAT(STAT_PacketReservedTotal, ReservedTotal);
+	SET_DWORD_STAT(STAT_PacketReservedNetConnection, MAX_PACKET_HEADER_BITS + MAX_PACKET_TRAILER_BITS);
+	SET_DWORD_STAT(STAT_PacketReservedPacketHandler, MaxPacketHandlerBits);
+#endif
 }
 
 void UNetConnection::Serialize( FArchive& Ar )
@@ -516,7 +536,6 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 {
 	uint8* Data = (uint8*)InData;
 
-	// UnProcess the packet
 	if (Handler.IsValid())
 	{
 		const ProcessedPacket UnProcessedPacket = Handler->Incoming(Data, Count);
@@ -534,6 +553,7 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 		}
 	}
 
+
 	// Handle an incoming raw packet from the driver.
 	UE_LOG(LogNetTraffic, Verbose, TEXT("%6.3f: Received %i"), FPlatformTime::Seconds() - GStartTime, Count );
 	int32 PacketBytes = Count + PacketOverhead;
@@ -541,22 +561,37 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 	++InPackets;
 	Driver->InBytes += PacketBytes;
 	Driver->InPackets++;
-	if( Count>0 )
+
+	if (Count > 0)
 	{
 		uint8 LastByte = Data[Count-1];
-		if( LastByte )
+
+		if (LastByte != 0)
 		{
-			int32 BitSize = Count*8-1;
-			while( !(LastByte & 0x80) )
+			int32 BitSize = (Count * 8) - 1;
+
+			// Bit streaming, starts at the Least Significant Bit, and ends at the MSB.
+			while (!(LastByte & 0x80))
 			{
 				LastByte *= 2;
 				BitSize--;
 			}
-			FBitReader Reader( Data, BitSize );
-			ReceivedPacket( Reader );
+
+
+			FBitReader Reader(Data, BitSize);
+
+			if (Handler.IsValid())
+			{
+				Handler->IncomingHigh(Reader);
+			}
+
+			if (Reader.GetBitsLeft() > 0)
+			{
+				ReceivedPacket(Reader);
+			}
 		}
 		// MalformedPacket - Received a packet with 0's in the last byte
-		else 
+		else
 		{
 			CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT("Received packet with 0's in last byte of packet"));
 		}
@@ -587,17 +622,24 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 			WriteBitsToSendBuffer( NULL, 0 );		// This will force the packet id to be written
 		}
 
-		const int NumBitsPrePadding = SendBuffer.GetNumBits();
 
-		// Make sure packet size is byte-aligned.
-		SendBuffer.WriteBit( 1 );
-		while( SendBuffer.GetNumBits() & 7 )
+		// @todo #JohnB: Since OutgoingHigh uses SendBuffer, its ReservedPacketBits needs to be modified to account for this differently
+		if (Handler.IsValid())
 		{
-			SendBuffer.WriteBit( 0 );
+			Handler->OutgoingHigh(SendBuffer);
 		}
+
+
+		// Write the UNetConnection-level termination bit
+		SendBuffer.WriteBit(1);
+
 		ValidateSendBuffer();
 
-		NumPaddingBits += SendBuffer.GetNumBits() - NumBitsPrePadding;
+		const int32 NumStrayBits = SendBuffer.GetNumBits();
+
+		// @todo: This is no longer accurate, given potential for PacketHandler termination bit and bit padding
+		//NumPaddingBits += (NumStrayBits != 0) ? (8 - NumStrayBits) : 0;
+
 
 		NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
 

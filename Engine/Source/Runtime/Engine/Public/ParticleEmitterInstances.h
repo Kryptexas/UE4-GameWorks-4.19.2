@@ -174,7 +174,9 @@ struct FParticleEmitterBuildInfo
 	uint32 bLocalVectorFieldTileY : 1;
 	/** Tile vector field in z axis? */
 	uint32 bLocalVectorFieldTileZ : 1;
-
+	/** Use fix delta time in the simulation? */
+	uint32 bLocalVectorFieldUseFixDT : 1;
+	
 	/** Default constructor. */
 	FParticleEmitterBuildInfo();
 };

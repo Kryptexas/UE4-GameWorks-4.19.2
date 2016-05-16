@@ -3131,6 +3131,8 @@ void UAnimSequence::PostProcessSequence(bool bForceNewRawDatGuid)
 	InitializeNotifyTrack();
 	//Make sure we dont have any notifies off the end of the sequence
 	ClampNotifiesAtEndOfSequence();
+	// mark package as dirty
+	MarkPackageDirty();
 }
 
 void UAnimSequence::RemoveNaNTracks()
@@ -3294,9 +3296,9 @@ int32 UAnimSequence::InsertTrack(const FName& BoneName)
 
 bool UAnimSequence::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets)
 {
-	if (RefPoseSeq)
+	if (RefPoseSeq  && RefPoseSeq != this)
 	{
-		AnimationAssets.AddUnique(RefPoseSeq);
+		RefPoseSeq->HandleAnimReferenceCollection(AnimationAssets);
 	}
 	return AnimationAssets.Num() > 0;
 }

@@ -74,7 +74,7 @@ namespace EditorAnimUtils
 			while (AssetIndex < AnimationAssetsToRetarget.Num())
 			{
 				UAnimationAsset* AnimAsset = AnimationAssetsToRetarget[AssetIndex++];
-				AnimAsset->GetAllAnimationSequencesReferred(AnimationAssetsToRetarget);
+				AnimAsset->HandleAnimReferenceCollection(AnimationAssetsToRetarget);
 			}
 		}
 	}
@@ -213,6 +213,7 @@ namespace EditorAnimUtils
 				AssetToRetarget->ReplaceReferredAnimations(DuplicatedAnimAssets);
 			}
 			AssetToRetarget->ReplaceSkeleton(NewSkeleton, bConvertAnimationDataInComponentSpaces);
+			AssetToRetarget->MarkPackageDirty();
 		}
 
 		// Put duplicated and remapped assets in one list

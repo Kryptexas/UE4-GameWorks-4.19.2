@@ -186,6 +186,10 @@ struct FPacketIdRange
 /** Information for tracking retirement and retransmission of a property. */
 struct FPropertyRetirement
 {
+	static const uint32 ExpectedSanityTag = 0xDF41C9A3;
+
+	uint32			SanityTag;
+
 	FPropertyRetirement * Next;
 
 	TSharedPtr<class INetDeltaBaseState> DynamicState;
@@ -197,7 +201,8 @@ struct FPropertyRetirement
 	uint32			Config			: 1;
 
 	FPropertyRetirement()
-		:	Next ( NULL )
+		:	SanityTag( ExpectedSanityTag )
+		,	Next( NULL )
 		,	DynamicState ( NULL )
 		,   Reliable( 0 )
 		,   CustomDelta( 0 )

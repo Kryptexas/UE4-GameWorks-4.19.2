@@ -307,6 +307,7 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 	// time to test sync groups
 	for (auto& MontageInstance : MontageInstances)
 	{
+		bool bRecordNeedsResetting = true;
 		if (MontageInstance->bDidUseMarkerSyncThisTick)
 		{
 			const int32 GroupIndexToUse = MontageInstance->GetSyncGroupIndex();
@@ -314,6 +315,7 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 			// that is public data, so if anybody decided to play with it
 			if (ensure (GroupIndexToUse != INDEX_NONE))
 			{
+				bRecordNeedsResetting = false;
 				FAnimGroupInstance* SyncGroup;
 				FAnimTickRecord& TickRecord = GetProxyOnGameThread<FAnimInstanceProxy>().CreateUninitializedTickRecord(GroupIndexToUse, /*out*/ SyncGroup);
 				MakeMontageTickRecord(TickRecord, MontageInstance->Montage, MontageInstance->GetPosition(), 
@@ -327,6 +329,10 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 				}
 			}
 			MontageInstance->bDidUseMarkerSyncThisTick = false;
+		}
+		if (bRecordNeedsResetting)
+		{
+			MontageInstance->MarkerTickRecord.Reset();
 		}
 	}
 
@@ -414,10 +420,14 @@ void UAnimInstance::PostUpdateAnimation()
 	SCOPE_CYCLE_COUNTER(STAT_PostUpdateAnimation);
 	check(!IsRunningParallelEvaluation());
 
+	bNeedsUpdate = false;
+
 	// acquire the proxy as we need to update
 	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
 
-	bNeedsUpdate = false;
+	// flip read/write index
+	// Do this first, as we'll be reading cached slot weights, and we want this to be up to date for this frame.
+	Proxy.TickSyncGroupWriteIndex();
 
 	Proxy.PostUpdate(this);
 
@@ -426,7 +436,7 @@ void UAnimInstance::PostUpdateAnimation()
 	// blend in any montage-blended root motion that we now have correct weights for
 	for(const FQueuedRootMotionBlend& RootMotionBlend : RootMotionBlendQueue)
 	{
-		const float RootMotionSlotWeight = GetSlotRootMotionWeight(RootMotionBlend.SlotName);
+		const float RootMotionSlotWeight = GetSlotNodeGlobalWeight(RootMotionBlend.SlotName);
 		const float RootMotionInstanceWeight = RootMotionBlend.Weight * RootMotionSlotWeight;
 		ExtractedRootMotion.AccumulateWithBlend(RootMotionBlend.Transform, RootMotionInstanceWeight);
 	}
@@ -437,9 +447,6 @@ void UAnimInstance::PostUpdateAnimation()
 	{
 		ExtractedRootMotion.MakeUpToFullWeight();
 	}
-
-	// flip read/write index
-	Proxy.TickSyncGroupWriteIndex();
 
 	// now trigger Notifies
 	TriggerAnimNotifies(Proxy.GetDeltaSeconds());
@@ -1273,9 +1280,9 @@ void UAnimInstance::RegisterSlotNodeWithAnimInstance(FName SlotNodeName)
 	GetProxyOnGameThread<FAnimInstanceProxy>().RegisterSlotNodeWithAnimInstance(SlotNodeName);
 }
 
-void UAnimInstance::UpdateSlotNodeWeight(FName SlotNodeName, float Weight)
+void UAnimInstance::UpdateSlotNodeWeight(FName SlotNodeName, float InLocalMontageWeight, float InGlobalWeight)
 {
-	GetProxyOnGameThread<FAnimInstanceProxy>().UpdateSlotNodeWeight(SlotNodeName, Weight);
+	GetProxyOnGameThread<FAnimInstanceProxy>().UpdateSlotNodeWeight(SlotNodeName, InLocalMontageWeight, InGlobalWeight);
 }
 
 void UAnimInstance::ClearSlotNodeWeights()
@@ -1288,14 +1295,14 @@ bool UAnimInstance::IsSlotNodeRelevantForNotifies(FName SlotNodeName) const
 	return GetProxyOnGameThread<FAnimInstanceProxy>().IsSlotNodeRelevantForNotifies(SlotNodeName);
 }
 
-void UAnimInstance::UpdateSlotRootMotionWeight(FName SlotNodeName, float Weight)
+float UAnimInstance::GetSlotNodeGlobalWeight(FName SlotNodeName) const
 {
-	GetProxyOnGameThread<FAnimInstanceProxy>().UpdateSlotRootMotionWeight(SlotNodeName, Weight);
+	return GetProxyOnGameThread<FAnimInstanceProxy>().GetSlotNodeGlobalWeight(SlotNodeName);
 }
 
-float UAnimInstance::GetSlotRootMotionWeight(FName SlotNodeName) const
+float UAnimInstance::GetSlotMontageGlobalWeight(FName SlotNodeName) const
 {
-	return GetProxyOnGameThread<FAnimInstanceProxy>().GetSlotRootMotionWeight(SlotNodeName);
+	return GetProxyOnAnyThread<FAnimInstanceProxy>().GetSlotMontageGlobalWeight(SlotNodeName);
 }
 
 float UAnimInstance::GetCurveValue(FName CurveName)
@@ -2534,6 +2541,11 @@ float UAnimInstance::GetInstanceAssetPlayerTimeFromEnd(int32 AssetPlayerIndex)
 	return GetProxyOnAnyThread<FAnimInstanceProxy>().GetInstanceAssetPlayerTimeFromEnd(AssetPlayerIndex);
 }
 
+float UAnimInstance::GetInstanceMachineWeight(int32 MachineIndex)
+{
+	return GetProxyOnAnyThread<FAnimInstanceProxy>().GetInstanceMachineWeight(MachineIndex);
+}
+
 float UAnimInstance::GetInstanceStateWeight(int32 MachineIndex, int32 StateIndex)
 {
 	return GetProxyOnAnyThread<FAnimInstanceProxy>().GetInstanceStateWeight(MachineIndex, StateIndex);
@@ -2605,6 +2617,11 @@ int32 UAnimInstance::GetStateMachineIndex(FName MachineName)
 	return GetProxyOnAnyThread<FAnimInstanceProxy>().GetStateMachineIndex(MachineName);
 }
 
+void UAnimInstance::GetStateMachineIndexAndDescription(FName InMachineName, int32& OutMachineIndex, const FBakedAnimationStateMachine** OutMachineDescription)
+{
+	return GetProxyOnAnyThread<FAnimInstanceProxy>().GetStateMachineIndexAndDescription(InMachineName, OutMachineIndex, OutMachineDescription);
+}
+
 FAnimNode_Base* UAnimInstance::GetCheckedNodeFromIndexUntyped(int32 NodeIdx, UScriptStruct* RequiredStructType)
 {
 	return GetProxyOnGameThread<FAnimInstanceProxy>().GetCheckedNodeFromIndexUntyped(NodeIdx, RequiredStructType);
@@ -2653,6 +2670,11 @@ FAnimInstanceProxy* UAnimInstance::CreateAnimInstanceProxy()
 void UAnimInstance::DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy)
 {
 	delete InProxy;
+}
+
+void UAnimInstance::RecordMachineWeight(const int32& InMachineClassIndex, const float& InMachineWeight)
+{
+	GetProxyOnAnyThread<FAnimInstanceProxy>().RecordMachineWeight(InMachineClassIndex, InMachineWeight);
 }
 
 void UAnimInstance::RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight)

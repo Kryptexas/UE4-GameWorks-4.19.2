@@ -940,7 +940,9 @@ void USceneComponent::UpdateBounds()
 {
 	SCOPE_CYCLE_COUNTER(STAT_ComponentUpdateBounds);
 
+#if WITH_EDITOR
 	FBoxSphereBounds OriginalBounds = Bounds; // Save old bounds
+#endif
 
 	// if use parent bound if attach parent exists, and the flag is set
 	// since parents tick first before child, this should work correctly

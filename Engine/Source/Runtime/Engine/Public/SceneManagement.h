@@ -1150,6 +1150,9 @@ public:
 
 	void InitializeFadingParameters(float AbsSpawnTime, float FadeDuration, float FadeStartDelay);
 
+	/** @return True if the decal is visible in the given view. */
+	bool IsShown( const FSceneView* View ) const;
+
 	/** Pointer back to the game thread decal component. */
 	const UDecalComponent* Component;
 
@@ -1158,11 +1161,14 @@ public:
 	/** Used to compute the projection matrix on the render thread side, includes the DecalSize  */
 	FTransform ComponentTrans;
 
-	/** 
-	 * Whether the decal should be drawn or not
-	 * This has to be passed to the rendering thread to handle G mode in the editor, where there is no game world, but we don't want to show components with HiddenGame set. 
-	 */
+private:
+	/** Whether or not the decal should be drawn in the game, or when the editor is in 'game mode'. */
 	bool DrawInGame;
+
+	/** Whether or not the decal should be drawn in the editor. */
+	bool DrawInEditor;
+
+public:
 
 	bool bOwnerSelected;
 

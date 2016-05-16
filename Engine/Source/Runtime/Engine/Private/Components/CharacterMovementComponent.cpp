@@ -6915,10 +6915,7 @@ void UCharacterMovementComponent::ForcePositionUpdate(float DeltaTime)
 	check(CharacterOwner->Role == ROLE_Authority);
 	check(CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy);
 
-	if (!Velocity.IsZero())
-	{
-		PerformMovement(DeltaTime);
-	}
+	PerformMovement(DeltaTime);
 }
 
 
@@ -7063,7 +7060,8 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 	FSavedMovePtr OldMove = NULL;
 	if( ClientData->LastAckedMove.IsValid() )
 	{
-		for (int32 i=0; i < ClientData->SavedMoves.Num()-1; i++)
+		const int32 NumSavedMoves = ClientData->SavedMoves.Num();
+		for (int32 i=0; i < NumSavedMoves-1; i++)
 		{
 			const FSavedMovePtr& CurrentMove = ClientData->SavedMoves[i];
 			if (CurrentMove->IsImportantMove(ClientData->LastAckedMove))
@@ -7122,7 +7120,8 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 			// Remove pending move from move list. It would have to be the last move on the list.
 			if (ClientData->SavedMoves.Num() > 0 && ClientData->SavedMoves.Last() == ClientData->PendingMove)
 			{
-				ClientData->SavedMoves.Pop();
+				const bool bAllowShrinking = false;
+				ClientData->SavedMoves.Pop(bAllowShrinking);
 			}
 			ClientData->FreeMove(ClientData->PendingMove);
 			ClientData->PendingMove = NULL;
@@ -7786,7 +7785,7 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float ClientTimeSt
 		if (GetDefault<AGameNetworkManager>()->ClientAuthorativePosition)
 		{
 			const FVector LocDiff = UpdatedComponent->GetComponentLocation() - ClientLoc;
-			if (!LocDiff.IsZero() || ClientMovementMode != PackNetworkMovementMode())
+			if (!LocDiff.IsZero() || ClientMovementMode != PackNetworkMovementMode() || GetMovementBase() != ClientMovementBase || (CharacterOwner && CharacterOwner->GetBasedMovement().BoneName != ClientBaseBoneName))
 			{
 				// Just set the position. On subsequent moves we will resolve initially overlapping conditions.
 				UpdatedComponent->SetWorldLocation(ClientLoc, false);
@@ -7800,6 +7799,10 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float ClientTimeSt
 
 				// Even if base has not changed, we need to recompute the relative offsets (since we've moved).
 				SaveBaseLocation();
+
+				LastUpdateLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
+				LastUpdateRotation = UpdatedComponent ? UpdatedComponent->GetComponentQuat() : FQuat::Identity;
+				LastUpdateVelocity = Velocity;
 			}
 		}
 
@@ -8161,6 +8164,10 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 
 	// Even if base has not changed, we need to recompute the relative offsets (since we've moved).
 	SaveBaseLocation();
+	
+	LastUpdateLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
+	LastUpdateRotation = UpdatedComponent ? UpdatedComponent->GetComponentQuat() : FQuat::Identity;
+	LastUpdateVelocity = Velocity;
 
 	UpdateComponentVelocity();
 	ClientData->bUpdatePosition = true;
@@ -8655,7 +8662,7 @@ void UCharacterMovementComponent::TickCharacterPose(float DeltaTime)
 
 bool UCharacterMovementComponent::HasRootMotionSources() const
 {
-	return CurrentRootMotion.HasActiveRootMotionSources() || (CharacterOwner->IsPlayingRootMotion() && CharacterOwner->GetMesh());
+	return CurrentRootMotion.HasActiveRootMotionSources() || (CharacterOwner && CharacterOwner->IsPlayingRootMotion() && CharacterOwner->GetMesh());
 }
 
 uint16 UCharacterMovementComponent::ApplyRootMotionSource(FRootMotionSource* SourcePtr)
@@ -8850,7 +8857,7 @@ FNetworkPredictionData_Client_Character::FNetworkPredictionData_Client_Character
 	, CurrentTimeStamp(0.f)
 	, PendingMove(NULL)
 	, LastAckedMove(NULL)
-	, MaxFreeMoveCount(32)
+	, MaxFreeMoveCount(96)
 	, MaxSavedMoveCount(96)
 	, bUpdatePosition(false)
 	, bSmoothNetUpdates(false) // Deprecated
@@ -8887,6 +8894,12 @@ FNetworkPredictionData_Client_Character::FNetworkPredictionData_Client_Character
 	}
 
 	MaxResponseTime = MaxMoveDeltaTime; // MaxResponseTime is deprecated, use MaxMoveDeltaTime instead
+
+	if (ClientMovement.GetOwnerRole() == ROLE_AutonomousProxy)
+	{
+		SavedMoves.Reserve(MaxSavedMoveCount);
+		FreeMoves.Reserve(MaxFreeMoveCount);
+	}
 }
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS // For deprecated members of FNetworkPredictionData_Client_Character
@@ -8918,14 +8931,15 @@ FSavedMovePtr FNetworkPredictionData_Client_Character::CreateSavedMove()
 	{
 		// No free moves, allocate a new one.
 		FSavedMovePtr NewMove = AllocateNewMove();
-		check(NewMove.IsValid());
+		checkSlow(NewMove.IsValid());
 		NewMove->Clear();
 		return NewMove;
 	}
 	else
 	{
 		// Pull from the free pool
-		FSavedMovePtr FirstFree = FreeMoves.Pop();
+		const bool bAllowShrinking = false;
+		FSavedMovePtr FirstFree = FreeMoves.Pop(bAllowShrinking);
 		FirstFree->Clear();
 		return FirstFree;
 	}
@@ -9006,7 +9020,8 @@ void FNetworkPredictionData_Client_Character::AckMove(int32 AckedMoveIndex)
 		}
 
 		// And finally cull all of those, so only the unacknowledged moves remain in SavedMoves.
-		SavedMoves.RemoveAt(0, AckedMoveIndex + 1);
+		const bool bAllowShrinking = false;
+		SavedMoves.RemoveAt(0, AckedMoveIndex + 1, bAllowShrinking);
 	}
 }
 

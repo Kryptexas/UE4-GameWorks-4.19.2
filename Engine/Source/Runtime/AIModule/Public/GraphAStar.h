@@ -25,11 +25,10 @@ enum EGraphAStarResult
  *		int32 GetNeighbourCount(FNodeRef NodeRef) const;	- returns number of neighbours that the graph node identified with NodeRef has
  *		bool IsValidRef(FNodeRef NodeRef) const;			- returns whether given node identyfication is correct
  *	
- *	it also needs to specify two types
+ *	it also needs to specify node type 
  *		FNodeRef		- type used as identification of nodes in the graph
- *		FQueryFilter	- filter class that decides which graph edges can be used and at what cost
- *	
- *	FQueryFilter needs to implement following functions:
+  *	
+ *	TQueryFilter (FindPath's parameter) filter class is what decides which graph edges can be used and at what cost. It needs to implement following functions:
  *		float GetHeuristicScale() const;														- used as GetHeuristicCost's multiplier
  *		float GetHeuristicCost(const FNodeRef StartNodeRef, const FNodeRef EndNodeRef) const;	- estimate of cost from StartNodeRef to EndNodeRef
  *		float GetTraversalCost(const FNodeRef StartNodeRef, const FNodeRef EndNodeRef) const;	- real cost of traveling from StartNodeRef directly to EndNodeRef
@@ -41,7 +40,6 @@ template<typename TGraph, typename Policy = FGraphAStarDefaultPolicy>
 struct FGraphAStar
 {
 	typedef typename TGraph::FNodeRef FGraphNodeRef;
-	typedef typename TGraph::FQueryFilter FQueryFilter;
 
 	struct FSearchNode
 	{
@@ -171,7 +169,8 @@ struct FGraphAStar
 	 *	@param [OUT] OutPath - on successful search contains a sequence of graph nodes representing 
 	 *		solution optimal within given constraints
 	 */
-	EGraphAStarResult FindPath(const FGraphNodeRef StartNodeRef, const FGraphNodeRef EndNodeRef, const FQueryFilter& Filter, TArray<FGraphNodeRef>& OutPath)
+	template<typename TQueryFilter>
+	EGraphAStarResult FindPath(const FGraphNodeRef StartNodeRef, const FGraphNodeRef EndNodeRef, const TQueryFilter& Filter, TArray<FGraphNodeRef>& OutPath)
 	{
 		if (!(Graph.IsValidRef(StartNodeRef) && Graph.IsValidRef(EndNodeRef)))
 		{
@@ -240,7 +239,7 @@ struct FGraphAStar
 				// Calculate cost and heuristic.
 				const float NewTraversalCost = Filter.GetTraversalCost(ConsideredNode.NodeRef, NeighbourNode.NodeRef) + ConsideredNode.TraversalCost;
 				const float NewHeuristicCost = (NeighbourNode.NodeRef != EndNodeRef) 
-					? (Filter.GetHeuristicCost(ConsideredNode.NodeRef, EndNodeRef) * HeuristicScale)
+					? (Filter.GetHeuristicCost(NeighbourNode.NodeRef, EndNodeRef) * HeuristicScale)
 					: 0.f;
 				const float NewTotalCost = NewTraversalCost + NewHeuristicCost;
 
@@ -300,6 +299,7 @@ struct FGraphAStar
 				Result = EGraphAStarResult::InfiniteLoop;
 			}
 
+			OutPath.Reset(PathLength);
 			OutPath.AddZeroed(PathLength);
 
 			// store the path

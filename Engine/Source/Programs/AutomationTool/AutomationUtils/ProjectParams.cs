@@ -509,7 +509,7 @@ namespace AutomationTool
 					this.SignPak = null;
 				}
 			}
-			this.Pak = this.SignedPak || GetParamValueIfNotSpecified(Command, Pak, this.Pak, "pak");
+			this.Pak = GetParamValueIfNotSpecified(Command, Pak, this.Pak, "pak");
 			this.SkipPak = GetParamValueIfNotSpecified(Command, SkipPak, this.SkipPak, "skippak");
 			if (this.SkipPak)
 			{

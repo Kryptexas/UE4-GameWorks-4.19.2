@@ -436,8 +436,7 @@ bool FAnimTrack::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& Anim
 		const struct FAnimSegment & Segment = AnimSegments[I];
 		if ( Segment.bValid && Segment.AnimReference  )
 		{
-			AnimationAssets.AddUnique(Segment.AnimReference);
-			Segment.AnimReference->GetAllAnimationSequencesReferred(AnimationAssets);
+			Segment.AnimReference->HandleAnimReferenceCollection(AnimationAssets);
 		}
 	}
 
