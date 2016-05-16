@@ -66,6 +66,7 @@ public:
 	id<MTLBuffer> GetVisibilityResultsBuffer() const { return VisibilityResults; }
 	bool GetScissorRectEnabled() const { return bScissorRectEnabled; }
 	bool NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& RenderTargetsInfo) const;
+	bool HasValidDepthStencilSurface() const { return IsValidRef(DepthStencilSurface); }
 
 private:
 	void ConditionalUpdateBackBuffer(FMetalSurface& Surface);
@@ -102,6 +103,7 @@ private:
 	MTLScissorRect Scissor;
 	
 	FRHISetRenderTargetsInfo RenderTargetsInfo;
+	FTextureRHIRef DepthStencilSurface;
 	bool bHasValidRenderTarget;
 	bool bHasValidColorTarget;
 	bool bScissorRectEnabled;

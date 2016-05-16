@@ -75,6 +75,10 @@ void FMetalStateCache::Reset(void)
 	}
 	
 	PipelineDesc.Hash = 0;
+	if (PipelineDesc.PipelineDescriptor)
+	{
+		PipelineDesc.PipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
+	}
 	
 	Viewport.originX = Viewport.originY = Viewport.width = Viewport.height = Viewport.znear = Viewport.zfar = 0.0;
 	
@@ -94,6 +98,7 @@ void FMetalStateCache::Reset(void)
 	RasterizerState.SafeRelease();
 	BoundShaderState.SafeRelease();
 	ComputeShader.SafeRelease();
+	DepthStencilSurface.SafeRelease();
 	StencilRef = 0;
 	
 	BlendFactor = FLinearColor::Transparent;
@@ -605,6 +610,11 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				[StencilAttachment release];
 			}
 		}
+		
+		// Retain and/or release the depth-stencil surface in case it is a temporary surface for a draw call that writes to depth without a depth/stencil buffer bound.
+		DepthStencilSurface = RenderTargetsInfo.DepthStencilRenderTarget.Texture;
+		
+		// Assert that the render target state is valid because there appears to be a bug where it isn't.
 		check(bHasValidRenderTarget);
 	
 		// update hash for the depth/stencil buffer & sample count
