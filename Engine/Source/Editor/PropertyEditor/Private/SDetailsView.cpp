@@ -595,12 +595,23 @@ void SDetailsView::PreSetObject()
 		if( ExternalRootNode.IsValid() )
 		{
 			SaveExpandedItems( ExternalRootNode.Pin().ToSharedRef() );
+
+			FComplexPropertyNode* ComplexNode = ExternalRootNode.Pin()->AsComplexNode();
+			if(ComplexNode)
+			{
+				ComplexNode->Disconnect();
+			}
 		}
 	}
 
 	ExternalRootPropertyNodes.Empty();
 
-	RootNodesPendingKill.Add(RootPropertyNode);
+	if(RootPropertyNode.IsValid())
+	{
+		RootNodesPendingKill.Add(RootPropertyNode);
+		RootPropertyNode->RemoveAllObjects();
+		RootPropertyNode->ClearCachedReadAddresses(true);
+	}
 
 	RootPropertyNode = MakeShareable(new FObjectPropertyNode);
 
