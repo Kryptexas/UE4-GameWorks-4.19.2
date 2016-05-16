@@ -3874,11 +3874,17 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 		else if (Output.PinCategory == PC_Interface)
 		{
 			UClass const* OutputClass = Cast<UClass const>(Output.PinSubCategoryObject.Get());
-			check(OutputClass && OutputClass->IsChildOf(UInterface::StaticClass()));
-
 			UClass const* InputClass = Cast<UClass const>(Input.PinSubCategoryObject.Get());
-			check(InputClass && InputClass->IsChildOf(UInterface::StaticClass()));
-			
+			if (!OutputClass || !InputClass 
+				|| !OutputClass->IsChildOf(UInterface::StaticClass())
+				|| !InputClass->IsChildOf(UInterface::StaticClass()))
+			{
+				UE_LOG(LogBlueprint, Error,
+					TEXT("UEdGraphSchema_K2::ArePinTypesCompatible invalid interface types - OutputClass: %s, InputClass: %s, CallingContext: %s"),
+					*GetPathNameSafe(OutputClass), *GetPathNameSafe(InputClass), *GetPathNameSafe(CallingContext));
+				return false;
+			}
+
 			return ExtendedIsChildOf(OutputClass, InputClass);
 		}
 		else if (((Output.PinCategory == PC_Asset) && (Input.PinCategory == PC_Asset))
