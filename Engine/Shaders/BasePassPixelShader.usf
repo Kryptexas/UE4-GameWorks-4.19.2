@@ -964,16 +964,16 @@ void Main(
 	#if !MATERIAL_SHADINGMODEL_UNLIT
 
 		float3 DiffuseDir = MaterialParameters.WorldNormal;
-		float3 EffectiveDiffuseColor = DiffuseColor;
+		float3 DiffuseColorForIndirect = DiffuseColor;
 
 		#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
 			// Add subsurface energy to diffuse
 			//@todo - better subsurface handling for these shading models with skylight and precomputed GI
-			EffectiveDiffuseColor += SubsurfaceColor;
+			DiffuseColorForIndirect += SubsurfaceColor;
 		#endif
 
 		#if MATERIAL_SHADINGMODEL_CLOTH
-			EffectiveDiffuseColor += SubsurfaceColor * saturate( GetMaterialCustomData0(MaterialParameters) );
+			DiffuseColorForIndirect += SubsurfaceColor * saturate( GetMaterialCustomData0(MaterialParameters) );
 		#endif
 
 		#if MATERIAL_SHADINGMODEL_HAIR
@@ -982,7 +982,7 @@ void Main(
 			float3 V = MaterialParameters.CameraVector;
 			float3 L = normalize( V - N * dot(V,N) );
 			DiffuseDir = L;
-			EffectiveDiffuseColor = PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
+			DiffuseColorForIndirect = PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
 		}
 		#endif
 			
@@ -990,7 +990,7 @@ void Main(
 		float3 SubsurfaceIndirectLighting;
 		GetPrecomputedIndirectLightingAndSkyLight(MaterialParameters, Interpolants, BasePassInterpolants, DiffuseDir, DiffuseIndirectLighting, SubsurfaceIndirectLighting, IndirectIrradiance);
 		
-		Color += (DiffuseIndirectLighting * EffectiveDiffuseColor + SubsurfaceIndirectLighting * SubsurfaceColor) * MaterialAO;
+		Color += (DiffuseIndirectLighting * DiffuseColorForIndirect + SubsurfaceIndirectLighting * SubsurfaceColor) * MaterialAO;
 
 
 		#if SIMPLE_DYNAMIC_LIGHTING
