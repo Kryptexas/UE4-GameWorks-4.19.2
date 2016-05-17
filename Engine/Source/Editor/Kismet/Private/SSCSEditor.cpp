@@ -4565,7 +4565,7 @@ bool SSCSEditor::IsEditingAllowed() const
 
 UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset  )
 {
-	if (NewComponentClass->ClassWithin)
+	if (NewComponentClass->ClassWithin && NewComponentClass->ClassWithin != UObject::StaticClass())
 	{
 		FNotificationInfo Info(LOCTEXT("AddComponentFailed", "Cannot add components that have \"Within\" markup"));
 		Info.Image = FEditorStyle::GetBrush(TEXT("Icons.Error"));
