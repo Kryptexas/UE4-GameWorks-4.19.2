@@ -394,7 +394,7 @@ void UChildActorComponent::DestroyChildActor()
 				check(!CachedInstanceData);
 #endif
 				// If we're already tearing down we won't be needing this
-				if (!HasAnyFlags(RF_BeginDestroyed))
+				if (!HasAnyFlags(RF_BeginDestroyed) && !IsUnreachable())
 				{
 					CachedInstanceData = new FChildActorComponentInstanceData(this);
 				}
