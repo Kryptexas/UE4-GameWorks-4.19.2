@@ -7228,7 +7228,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
 		{
 			// Whether this channel has data
-			if (bOcuppiedUVChannels[0][ChannelIdx])
+			if (bOcuppiedUVChannels[ExportLODIndex][ChannelIdx])
 			{
 				const TArray<FVector2D>& SourceChannel = SourceRawMesh.WedgeTexCoords[ChannelIdx];
 				TArray<FVector2D>& TargetChannel = TargetRawMesh.WedgeTexCoords[ChannelIdx];
