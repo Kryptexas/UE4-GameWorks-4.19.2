@@ -2860,6 +2860,8 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 {
 	const FString WorldPackageName = EditorWorld->GetOutermost()->GetName();
 	
+	const bool bUseVRPreview = bUseVRPreviewForPlayWorld && (InPIEInstance >= 0 && InPIEInstance <= 1);
+
 	// Start a new PIE log page
 	{
 		FFormatNamedArguments Arguments;
@@ -3063,7 +3065,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				bool bUseOSWndBorder = false;
 				bool bRenderDirectlyToWindow = false;
 				bool bEnableStereoRendering = false;
-				if (bUseVRPreviewForPlayWorld)	// @todo vreditor: Is not having an OS window border a problem?  We could spawn a dedicated VR window if so.  What about true fullscreen in VR?
+				if (bUseVRPreview)	// @todo vreditor: Is not having an OS window border a problem?  We could spawn a dedicated VR window if so.  What about true fullscreen in VR?
 				{
 					// modify window and viewport properties for VR.
 					bUseOSWndBorder = true;
@@ -3210,7 +3212,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				// Change the system resolution to match our window, to make sure game and slate window are kept syncronised
 				FSystemResolution::RequestResolutionChange(NewWindowWidth, NewWindowHeight, EWindowMode::Windowed);
 
-				if (bUseVRPreviewForPlayWorld && GEngine->HMDDevice.IsValid())
+				if (bUseVRPreview && GEngine->HMDDevice.IsValid())
 				{
 					GEngine->HMDDevice->EnableStereo(true);
 
