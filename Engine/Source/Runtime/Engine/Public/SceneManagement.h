@@ -18,6 +18,7 @@
 #include "MeshBatch.h"
 #include "RendererInterface.h"
 #include "SceneUtils.h"
+#include "TessellationRendering.h"
 
 // Forward declarations.
 class FLightSceneInfo;
@@ -2214,9 +2215,6 @@ extern ENGINE_API void ApplyViewModeOverrides(
 
 /** Draws the UV layout of the supplied asset (either StaticMeshRenderData OR SkeletalMeshRenderData, not both!) */
 extern ENGINE_API void DrawUVs(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos, const int32 LODLevel, int32 UVChannel, TArray<FVector2D> SelectedEdgeTexCoords, class FStaticMeshRenderData* StaticMeshRenderData, class FStaticLODModel* SkeletalMeshRenderData );
-
-/** Returns true if the Material and Vertex Factory combination require adjacency information. */
-ENGINE_API bool RequiresAdjacencyInformation(class UMaterialInterface* Material, const class FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel);
 
 /**
  * Computes the screen size of a given sphere bounds in the given view
