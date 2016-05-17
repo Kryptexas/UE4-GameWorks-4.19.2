@@ -1527,9 +1527,9 @@ void UEngine::InitializeObjectReferences()
 	}
 
 	if( HighFrequencyNoiseTexture == NULL )
-		{
+	{
 		HighFrequencyNoiseTexture = LoadObject<UTexture2D>(NULL, *HighFrequencyNoiseTextureName.ToString(), NULL, LOAD_None, NULL);
-		}
+	}
 
 	if( DefaultBokehTexture == NULL )
 	{
@@ -1611,25 +1611,23 @@ void UEngine::InitializeObjectReferences()
 		}
 	}
 
-	if (GameSingleton == NULL && GameSingletonClassName.ToString().Len() > 0)
+	if (GameSingleton == nullptr && GameSingletonClassName.ToString().Len() > 0)
 	{
-		UClass *SingletonClass = LoadClass<UObject>(NULL, *GameSingletonClassName.ToString(), NULL, LOAD_None, NULL);
+		UClass *SingletonClass = LoadClass<UObject>(nullptr, *GameSingletonClassName.ToString());
 
-		checkf(SingletonClass != NULL, TEXT("Engine config value GameSingletonClassName is not a valid class name."));
-
-		GameSingleton = NewObject<UObject>(this, SingletonClass);
+		if (SingletonClass)
+		{
+			GameSingleton = NewObject<UObject>(this, SingletonClass);
+		}
+		else
+		{
+			UE_LOG(LogEngine, Error, TEXT("Engine config value GameSingletonClassName '%s' is not a valid class name."), *GameSingletonClassName.ToString());
+		}
 	}
 
-	if (DefaultTireType == NULL && DefaultTireTypeName.ToString().Len())
+	if (DefaultTireType == nullptr && DefaultTireTypeName.ToString().Len())
 	{
-		DefaultTireType = LoadObject<UTireType>(NULL, *DefaultTireTypeName.ToString(), NULL, LOAD_None, NULL);
-	}
-
-	if (DefaultPreviewPawnClass == NULL && DefaultPreviewPawnClassName.ToString().Len())
-	{
-		DefaultPreviewPawnClass = LoadClass<APawn>(NULL, *DefaultPreviewPawnClassName.ToString(), NULL, LOAD_None, NULL);
-
-		checkf(DefaultPreviewPawnClass != NULL, TEXT("Engine config value DefaultPreviewPawnClass is not a valid class name."));
+		DefaultTireType = LoadObject<UTireType>(NULL, *DefaultTireTypeName.ToString());
 	}
 
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());

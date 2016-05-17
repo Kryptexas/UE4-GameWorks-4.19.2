@@ -710,14 +710,6 @@ public:
 	UPROPERTY(globalconfig, EditAnywhere, Category=DefaultClasses, meta=(AllowedClasses="TireType", DisplayName="Default Tire Type"), AdvancedDisplay)
 	FStringAssetReference DefaultTireTypeName;
 
-	/** The class to use previewing camera animations. */
-	UPROPERTY()
-	TSubclassOf<class APawn>  DefaultPreviewPawnClass;
-
-	/** The name of the class to use when previewing camera animations. */
-	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="Pawn", DisplayName="Default Preview Pawn Class"), AdvancedDisplay)
-	FStringClassReference DefaultPreviewPawnClassName;
-
 	/** Path that levels for play on console will be saved to (relative to FPaths::GameSavedDir()) */
 	UPROPERTY(config)
 	FString PlayOnConsoleSaveDir;
