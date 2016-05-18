@@ -26,7 +26,11 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 
 #include "D3D12RHI.h"
-#include "D3D12RHIBasePrivate.h"
+#if PLATFORM_WINRT
+#include "WinRT/D3D12RHIBasePrivate.h"
+#else
+#include "Windows/D3D12RHIBasePrivate.h"
+#endif
 #include "StaticArray.h"
 
 #include "AllowWindowsPlatformTypes.h"
@@ -39,7 +43,10 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 #include "../Public/D3D12Resources.h"
 #include "../Public/D3D12Viewport.h"
 #include "../Public/D3D12ConstantBuffer.h"
-#include "D3D12StateCache.h"
+#if PLATFORM_WINRT
+#else
+#include "Windows/D3D12StateCache.h"
+#endif
 #include "D3D12DirectCommandListManager.h"
 #include "D3D12Allocation.h"
 

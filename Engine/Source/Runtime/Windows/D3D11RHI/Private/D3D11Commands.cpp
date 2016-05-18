@@ -21,7 +21,11 @@
 	#endif // _MSC_VER == 1900
 #include "HideWindowsPlatformTypes.h"
 #endif
-#include "D3D11RHIPrivateUtil.h"
+#if PLATFORM_WINRT
+#include "WinRT/D3D11RHIPrivateUtil.h"
+#else
+#include "Windows/D3D11RHIPrivateUtil.h"
+#endif
 #include "StaticBoundShaderState.h"
 #include "GlobalShader.h"
 #include "OneColorShader.h"

@@ -139,7 +139,7 @@ namespace AutomationTool
 			{
 				if(!Task.Execute(Job, BuildProducts, TagNameToFileSet))
 				{
-					CommandUtils.LogError("Failed to execute task.");
+					CommandUtils.Log("Failed to execute task.");
 					return false;
 				}
 			}

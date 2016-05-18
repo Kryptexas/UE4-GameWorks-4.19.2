@@ -120,10 +120,6 @@ goto Exit_Failure
 
 :Error_UATFailed
 set RUNUAT_EXITCODE=%ERRORLEVEL%
-echo copying UAT log files...
-if not "%uebp_LogFolder%" == "" copy log*.txt %uebp_LogFolder%\UAT_*.*
-rem if "%uebp_LogFolder%" == "" copy log*.txt c:\LocalBuildLogs\UAT_*.*
-popd
 goto Exit_Failure
 
 :Exit_Failure

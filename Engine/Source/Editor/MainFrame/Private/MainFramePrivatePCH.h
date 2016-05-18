@@ -59,7 +59,7 @@ const FText StaticGetApplicationTitle( const bool bIncludeGameName );
 #include "PackageProjectMenu.h"
 #include "RecentProjectsMenu.h"
 #include "SettingsMenu.h"
-#include "TranslationEditorMenu.h"
+#include "MainFrameTranslationEditorMenu.h"
 
 #include "MainMenu.h"
 #include "RootWindowLocation.h"

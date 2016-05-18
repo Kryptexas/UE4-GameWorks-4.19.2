@@ -81,7 +81,14 @@ namespace BuildGraph.Tasks
 			{
 				CommandLine += String.Format(" -Telemetry={0}", CommandUtils.MakePathSafeToUseWithCommandLine(TelemetryFile.FullName));
 			}
-			CommandUtils.RunUAT(CommandUtils.CmdEnv, CommandLine);
+			try
+			{
+				CommandUtils.RunUAT(CommandUtils.CmdEnv, CommandLine);
+			}
+			catch(CommandUtils.CommandFailedException)
+			{
+				return false;
+			}
 
 			// Merge in any new telemetry data that was produced
 			if (Parameters.MergeTelemetryWithPrefix != null)

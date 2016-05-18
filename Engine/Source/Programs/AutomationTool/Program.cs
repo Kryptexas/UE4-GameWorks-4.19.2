@@ -123,7 +123,6 @@ namespace AutomationTool
 		static void Domain_ProcessExit(object sender, EventArgs e)
 		{
 			// Kill all spawned processes (Console instead of Log because logging is closed at this time anyway)
-			Console.WriteLine("Domain_ProcessExit");
 			if (ShouldKillProcesses && !Utils.IsRunningOnMono)
 			{			
 				ProcessManager.KillAll();

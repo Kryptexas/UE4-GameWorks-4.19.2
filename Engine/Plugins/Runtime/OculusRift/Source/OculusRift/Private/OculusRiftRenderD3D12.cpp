@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 //
-#include "HMDPrivatePCH.h"
+#include "OculusRiftPrivatePCH.h"
 #include "OculusRiftHMD.h"
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS

@@ -7,7 +7,10 @@
 //	Include Files
 //-----------------------------------------------------------------------------
 #include "D3D12RHIPrivate.h"
-#include "D3D12StateCache.h"
+#if PLATFORM_WINRT
+#else
+#include "Windows/D3D12StateCache.h"
+#endif
 #include <emmintrin.h>
 
 #define IL_MAX_SEMANTIC_NAME 255

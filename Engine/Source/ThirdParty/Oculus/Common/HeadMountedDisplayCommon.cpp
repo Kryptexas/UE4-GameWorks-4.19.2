@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HMDPrivatePCH.h"
+#include "Engine.h"
 #include "HeadMountedDisplayCommon.h"
 
 FHMDSettings::FHMDSettings() :

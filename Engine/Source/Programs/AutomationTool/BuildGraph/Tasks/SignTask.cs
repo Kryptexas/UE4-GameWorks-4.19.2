@@ -60,7 +60,7 @@ namespace BuildGraph.Tasks
 			FileReference[] Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet).OrderBy(x => x.FullName).ToArray();
 
 			// Sign all the files
-			CodeSign.SignMultipleFilesIfEXEOrDLL(Files.Select(x => x.FullName).ToList(), true);
+			CodeSign.SignMultipleIfEXEOrDLL(Job.OwnerCommand, (Files.Select(x => x.FullName).ToList()));
 
 			// Apply the optional tag to the build products
 			if(!String.IsNullOrEmpty(Parameters.Tag))

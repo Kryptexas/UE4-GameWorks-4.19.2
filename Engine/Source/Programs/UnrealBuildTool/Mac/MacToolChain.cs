@@ -507,7 +507,7 @@ namespace UnrealBuildTool
 
 		private string LoadLauncherDisplayVersion()
 		{
-			string[] VersionHeader = Utils.ReadAllText("../../Portal/Source/Layers/DataAccess/Public/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
+			string[] VersionHeader = Utils.ReadAllText("../../Portal/Source/Layers/DataAccess/Public/PortalVersion.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
 			string LauncherVersionMajor = "1";
 			string LauncherVersionMinor = "0";
 			string LauncherVersionPatch = "0";

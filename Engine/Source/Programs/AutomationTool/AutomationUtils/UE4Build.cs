@@ -1412,6 +1412,10 @@ namespace AutomationTool
 					{
 						XGETool = XGEConsoleExePath;
 						Args = "\"" + TaskFilePath + "\" /Rebuild /MaxCPUS=200";
+						if (ParseParam("StopOnErrors"))
+						{
+							Args += " /StopOnErrors";
+						}
 					}
 
 					if (!bCanUseParallelExecutor && String.IsNullOrEmpty(XGETool))

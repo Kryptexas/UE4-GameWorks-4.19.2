@@ -17,7 +17,11 @@ D3D12Commands.cpp: D3D RHI commands implementation.
 	#endif // _MSC_VER == 1900
 #include "HideWindowsPlatformTypes.h"
 #endif
-#include "D3D12RHIPrivateUtil.h"
+#if PLATFORM_WINRT
+#include "WinRT/D3D12RHIPrivateUtil.h"
+#else
+#include "Windows/D3D12RHIPrivateUtil.h"
+#endif
 #include "StaticBoundShaderState.h"
 #include "GlobalShader.h"
 #include "OneColorShader.h"

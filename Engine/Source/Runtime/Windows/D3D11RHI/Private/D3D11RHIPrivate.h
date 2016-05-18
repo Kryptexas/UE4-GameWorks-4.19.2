@@ -16,7 +16,11 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 
-#include "D3D11RHIBasePrivate.h"
+#if PLATFORM_WINRT
+#include "WinRT/D3D11RHIBasePrivate.h"
+#else
+#include "Windows/D3D11RHIBasePrivate.h"
+#endif
 #include "StaticArray.h"
 
 // D3D RHI public headers.
