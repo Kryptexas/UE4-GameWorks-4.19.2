@@ -301,7 +301,7 @@ void FEdModeLandscape::Enter()
 	ALandscapeProxy* SelectedLandscape = GEditor->GetSelectedActors()->GetTop<ALandscapeProxy>();
 	if (SelectedLandscape)
 	{
-		CurrentToolTarget.LandscapeInfo = SelectedLandscape->GetLandscapeInfo();
+		CurrentToolTarget.LandscapeInfo = SelectedLandscape->GetLandscapeInfo(false);
 		GEditor->SelectNone(false, true);
 		GEditor->SelectActor(SelectedLandscape, true, false);
 	}
