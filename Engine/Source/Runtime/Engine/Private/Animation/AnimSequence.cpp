@@ -2264,6 +2264,10 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 	TrackToSkeletonMapTable = MoveTemp(NewTrackToSkeletonMapTable);
 	RawCurveData = NewCurveTracks;
 
+	const FSmartNameMapping* Mapping = GetSkeleton()->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+	check(Mapping); // Should always exist
+	RawCurveData.UpdateLastObservedNames(Mapping);
+
 #if 0 //Validate baked data
 	for (FRawAnimSequenceTrack& RawTrack : RawAnimationData)
 	{
