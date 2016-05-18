@@ -251,7 +251,7 @@ void FMetalDeviceContext::ClearFreeList()
  	while(DelayedFreeLists.Num())
 	{
 		FMetalDelayedFreeList* Pair = DelayedFreeLists[Index];
-		if(dispatch_semaphore_wait(Pair->Signal, DISPATCH_TIME_NOW))
+		if(dispatch_semaphore_wait(Pair->Signal, DISPATCH_TIME_NOW) == 0)
 		{
 			Pair->FrameCount--;
             if (Pair->FrameCount == 0)
