@@ -125,6 +125,7 @@ ATP_VehicleAdvPawn::ATP_VehicleAdvPawn()
 	// Create the chase camera component 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ChaseCamera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+	Camera->SetRelativeLocation(FVector(-125.0, 0.0f, 0.0f));
 	Camera->SetRelativeRotation(FRotator(10.0f, 0.0f, 0.0f));
 	Camera->bUsePawnControlRotation = false;
 	Camera->FieldOfView = 90.f;
