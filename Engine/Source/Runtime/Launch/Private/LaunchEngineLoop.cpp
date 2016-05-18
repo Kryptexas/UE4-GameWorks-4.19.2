@@ -1799,7 +1799,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			// Log warning/ error summary.
 			if( Commandlet->ShowErrorCount )
 			{
-				if( GWarn->Errors.Num() || GWarn->Warnings.Num() )
+				TArray<FString> AllErrors;
+				TArray<FString> AllWarnings;
+				GWarn->GetErrors(AllErrors);
+				GWarn->GetWarnings(AllWarnings);
+
+				if (AllErrors.Num() || AllWarnings.Num())
 				{
 					SET_WARN_COLOR(COLOR_WHITE);
 					UE_LOG(LogInit, Display, TEXT(""));
@@ -1807,18 +1812,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 					UE_LOG(LogInit, Display, TEXT("-----------------------------------"));
 
 					const int32 MaxMessagesToShow = (GIsBuildMachine || FParse::Param(FCommandLine::Get(), TEXT("DUMPALLWARNINGS"))) ? 
-						FMath::Max(GWarn->Errors.Num(), GWarn->Warnings.Num()) : 50;
-
-					TSet<FString> ShownMessages;
+						FMath::Max(AllErrors.Num(), AllWarnings.Num()) : 50;
 					
-					SET_WARN_COLOR(COLOR_RED);
+					TSet<FString> ShownMessages;					
 					ShownMessages.Empty(MaxMessagesToShow);
-					int ErrorIndex = 0;
 
-					while (ErrorIndex < GWarn->Errors.Num())
+					SET_WARN_COLOR(COLOR_RED);
+
+					for (const FString& ErrorMessage : AllErrors)
 					{
-						FString ErrorMessage = GWarn->Errors[ErrorIndex];
-
 						bool bAlreadyShown = false;
 						ShownMessages.Add(ErrorMessage, &bAlreadyShown);
 
@@ -1827,24 +1829,19 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 							if (ShownMessages.Num() > MaxMessagesToShow)
 							{
 								SET_WARN_COLOR(COLOR_WHITE);
-								UE_CLOG(MaxMessagesToShow < GWarn->Errors.Num(), LogInit, Display, TEXT("NOTE: Only first %d errors displayed."), MaxMessagesToShow);
+								UE_CLOG(MaxMessagesToShow < AllErrors.Num(), LogInit, Display, TEXT("NOTE: Only first %d errors displayed."), MaxMessagesToShow);
 								break;
 							}
 
 							UE_LOG(LogInit, Display, TEXT("%s"), *ErrorMessage);
 						}
-
-						ErrorIndex++;
 					}
 
 					SET_WARN_COLOR(COLOR_YELLOW);
 					ShownMessages.Empty(MaxMessagesToShow);
 
-					int WarnIndex = 0;
-					while (WarnIndex < GWarn->Warnings.Num())
+					for (const FString& WarningMessage : AllWarnings)
 					{
-						FString WarningMessage = GWarn->Warnings[WarnIndex];
-
 						bool bAlreadyShown = false;
 						ShownMessages.Add(WarningMessage, &bAlreadyShown);
 
@@ -1853,14 +1850,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 							if (ShownMessages.Num() > MaxMessagesToShow)
 							{
 								SET_WARN_COLOR(COLOR_WHITE);
-								UE_CLOG(MaxMessagesToShow < GWarn->Warnings.Num(), LogInit, Display, TEXT("NOTE: Only first %d warnings displayed."), MaxMessagesToShow);
+								UE_CLOG(MaxMessagesToShow < AllWarnings.Num(), LogInit, Display, TEXT("NOTE: Only first %d warnings displayed."), MaxMessagesToShow);
 								break;
 							}
 
 							UE_LOG(LogInit, Display, TEXT("%s"), *WarningMessage);
 						}
-
-						++WarnIndex;
 					}
 				}
 
@@ -1870,17 +1865,17 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				{
 					SET_WARN_COLOR(COLOR_RED);
 					UE_LOG(LogInit, Display, TEXT("Commandlet->Main return this error code: %d"), ErrorLevel );
-					UE_LOG(LogInit, Display, TEXT("With %d error(s), %d warning(s)"), GWarn->Errors.Num(), GWarn->Warnings.Num() );
+					UE_LOG(LogInit, Display, TEXT("With %d error(s), %d warning(s)"), AllErrors.Num(), AllWarnings.Num() );
 				}
-				else if( ( GWarn->Errors.Num() == 0 ) )
+				else if( ( AllErrors.Num() == 0 ) )
 				{
-					SET_WARN_COLOR(GWarn->Warnings.Num() ? COLOR_YELLOW : COLOR_GREEN);
-					UE_LOG(LogInit, Display, TEXT("Success - %d error(s), %d warning(s)"), GWarn->Errors.Num(), GWarn->Warnings.Num() );
+					SET_WARN_COLOR(AllWarnings.Num() ? COLOR_YELLOW : COLOR_GREEN);
+					UE_LOG(LogInit, Display, TEXT("Success - %d error(s), %d warning(s)"), AllErrors.Num(), AllWarnings.Num() );
 				}
 				else
 				{
 					SET_WARN_COLOR(COLOR_RED);
-					UE_LOG(LogInit, Display, TEXT("Failure - %d error(s), %d warning(s)"), GWarn->Errors.Num(), GWarn->Warnings.Num() );
+					UE_LOG(LogInit, Display, TEXT("Failure - %d error(s), %d warning(s)"), AllErrors.Num(), AllWarnings.Num() );
 					ErrorLevel = 1;
 				}
 				CLEAR_WARN_COLOR();

@@ -2881,18 +2881,22 @@ public:
 
 			if(Verbosity == ELogVerbosity::Error)
 			{
-				Errors.Add(Format);
+				AddError(Format);
 			}
 			else
 			{
-				Warnings.Add(Format);
+				AddWarning(Format);
 			}
 		}
 
-		if( GLogConsole )
-			GLogConsole->Serialize( V, Verbosity, Category );
-		if( !GLog->IsRedirectingTo( this ) )
-			GLog->Serialize( V, Verbosity, Category );
+		if (GLogConsole)
+		{
+			GLogConsole->Serialize(V, Verbosity, Category);
+		}
+		if (!GLog->IsRedirectingTo(this))
+		{
+			GLog->Serialize(V, Verbosity, Category);
+		}
 	}
 
 	FContextSupplier* GetContext() const

@@ -181,7 +181,7 @@ int32 UOodleTrainerCommandlet::Main(const FString& Params)
 #endif
 
 
-	return (GWarn->Errors.Num() == 0 ? 0 : 1);
+	return (GWarn->GetNumErrors() == 0 ? 0 : 1);
 }
 
 #if HAS_OODLE_SDK

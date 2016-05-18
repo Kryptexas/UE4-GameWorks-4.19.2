@@ -46,7 +46,7 @@ public:
 				// Only store off the message if running a commandlet.
 				if ( IsRunningCommandlet() )
 				{
-					Errors.Add(Format);
+					AddError(Format);
 				}
 			}
 			else
@@ -55,7 +55,7 @@ public:
 				// Only store off the message if running a commandlet.
 				if ( IsRunningCommandlet() )
 				{
-					Warnings.Add(Format);
+					AddWarning(Format);
 				}
 			}
 		}

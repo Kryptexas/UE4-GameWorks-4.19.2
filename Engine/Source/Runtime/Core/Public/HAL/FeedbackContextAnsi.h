@@ -57,11 +57,11 @@ public:
 			{
 				if(Verbosity == ELogVerbosity::Error)
 				{
-					Errors.Add(Format);
+					AddError(Format);
 				}
 				else
 				{
-					Warnings.Add(Format);
+					AddWarning(Format);
 				}
 			}
 			LocalPrint(*Format);

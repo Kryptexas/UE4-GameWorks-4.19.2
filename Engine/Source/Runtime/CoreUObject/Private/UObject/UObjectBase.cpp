@@ -727,21 +727,17 @@ static void UObjectLoadAllCompiledInDefaultProperties()
 			Class->GetDefaultObject();
 		}
 		FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
-		if (ErrorsFC.Errors.Num() || ErrorsFC.Warnings.Num())
+		if (ErrorsFC.GetNumErrors() || ErrorsFC.GetNumWarnings())
 		{
-			TArray<FString> All;
-			All = ErrorsFC.Errors;
-			All += ErrorsFC.Warnings;
-
-			ErrorsFC.Errors.Empty();
-			ErrorsFC.Warnings.Empty();
+			TArray<FString> AllErrorsAndWarnings;
+			ErrorsFC.GetErrorsAndWarningsAndEmpty(AllErrorsAndWarnings);
 
 			FString AllInOne;
 			UE_LOG(LogUObjectBase, Warning, TEXT("-------------- Default Property warnings and errors:"));
-			for (int32 Index = 0; Index < All.Num(); Index++)
+			for (const FString& ErrorOrWarning : AllErrorsAndWarnings)
 			{
-				UE_LOG(LogUObjectBase, Warning, TEXT("%s"), *All[Index]);
-				AllInOne += All[Index];
+				UE_LOG(LogUObjectBase, Warning, TEXT("%s"), *ErrorOrWarning);
+				AllInOne += ErrorOrWarning;
 				AllInOne += TEXT("\n");
 			}
 			FMessageDialog::Open(EAppMsgType::Ok, FText::Format( NSLOCTEXT("Core", "DefaultPropertyWarningAndErrors", "Default Property warnings and errors:\n{0}"), FText::FromString( AllInOne ) ) );

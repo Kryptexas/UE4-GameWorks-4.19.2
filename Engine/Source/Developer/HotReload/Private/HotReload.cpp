@@ -736,9 +736,10 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 
 	ModuleManager.ResetModulePathsCache();
 
+	
 	FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
-	ErrorsFC.Errors.Empty();
-	ErrorsFC.Warnings.Empty();
+	ErrorsFC.ClearWarningsAndErrors();
+
 	// Rebind the hot reload DLL 
 	TGuardValue<bool> GuardIsHotReload(GIsHotReload, true);
 	TGuardValue<bool> GuardIsInitialLoad(GIsInitialLoad, true);
@@ -794,19 +795,15 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 		}
 	}
 
-	if (ErrorsFC.Errors.Num() || ErrorsFC.Warnings.Num())
+	if (ErrorsFC.GetNumErrors() || ErrorsFC.GetNumWarnings())
 	{
-		TArray<FString> All;
-		All = ErrorsFC.Errors;
-		All += ErrorsFC.Warnings;
-
-		ErrorsFC.Errors.Empty();
-		ErrorsFC.Warnings.Empty();
+		TArray<FString> AllErrorsAndWarnings;
+		ErrorsFC.GetErrorsAndWarningsAndEmpty(AllErrorsAndWarnings);
 
 		FString AllInOne;
-		for (int32 Index = 0; Index < All.Num(); Index++)
+		for (const FString& ErrorOrWarning : AllErrorsAndWarnings)
 		{
-			AllInOne += All[Index];
+			AllInOne += ErrorOrWarning;
 			AllInOne += TEXT("\n");
 		}
 		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("Some classes could not be reloaded:\n%s"), *AllInOne);

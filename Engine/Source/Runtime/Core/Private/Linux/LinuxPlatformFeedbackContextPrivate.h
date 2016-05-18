@@ -47,7 +47,7 @@ public:
 				// Only store off the message if running a commandlet.
 				if (IsRunningCommandlet())
 				{
-					Errors.Add(Format);
+					AddError(Format);
 				}
 
 				// send errors (warnings are too spammy) to syslog too (for zabbix etc)
@@ -58,7 +58,7 @@ public:
 				// Only store off the message if running a commandlet.
 				if ( IsRunningCommandlet() )
 				{
-					Warnings.Add(Format);
+					AddWarning(Format);
 				}
 			}
 		}

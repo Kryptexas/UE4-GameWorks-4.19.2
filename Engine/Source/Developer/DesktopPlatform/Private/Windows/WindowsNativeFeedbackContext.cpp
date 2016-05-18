@@ -45,7 +45,7 @@ void FWindowsNativeFeedbackContext::Serialize( const TCHAR* V, ELogVerbosity::Ty
 			// Only store off the message if running a commandlet.
 			if ( IsRunningCommandlet() )
 			{
-				Errors.Add(Format);
+				AddError(Format);
 			}
 		}
 		else
@@ -53,7 +53,7 @@ void FWindowsNativeFeedbackContext::Serialize( const TCHAR* V, ELogVerbosity::Ty
 			// Only store off the message if running a commandlet.
 			if ( IsRunningCommandlet() )
 			{
-				Warnings.Add(Format);
+				AddWarning(Format);
 			}
 		}
 	}

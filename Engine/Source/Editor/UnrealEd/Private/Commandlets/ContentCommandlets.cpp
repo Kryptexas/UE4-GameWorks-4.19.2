@@ -352,7 +352,7 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 		static int32 LastErrorCount = 0;
 
-		int32 NumErrorsFromLoading = GWarn->Errors.Num();
+		int32 NumErrorsFromLoading = GWarn->GetNumErrors();
 		if (NumErrorsFromLoading > LastErrorCount)
 		{
 			UE_LOG(LogContentCommandlet, Warning, TEXT("%d total errors encountered during loading"), NumErrorsFromLoading);
@@ -415,9 +415,9 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 			// if we do then we want to resave this package
 			if( !bSavePackage && FParse::Param(FCommandLine::Get(),TEXT("SavePackagesThatHaveFailedLoads")) == true )
 			{
-				//UE_LOG(LogContentCommandlet, Warning, TEXT( "NumErrorsFromLoading: %d GWarn->Errors num: %d" ), NumErrorsFromLoading, GWarn->Errors.Num() );
+				//UE_LOG(LogContentCommandlet, Warning, TEXT( "NumErrorsFromLoading: %d GWarn->Errors num: %d" ), NumErrorsFromLoading, GWarn->GetNumErrors() );
 
-				if( NumErrorsFromLoading != GWarn->Errors.Num() )
+				if( NumErrorsFromLoading != GWarn->GetNumErrors() )
 				{
 					bSavePackage = true;
 				}
