@@ -208,8 +208,8 @@ bool UActorRecording::ValidComponent(USceneComponent* SceneComponent) const
 	{
 		const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 		for (TSubclassOf<USceneComponent> ComponentClass : Settings->ComponentClassesToRecord)
-		{
-			if (SceneComponent->IsA(ComponentClass))
+		{			
+			if (ComponentClass != nullptr && SceneComponent->IsA(ComponentClass))
 			{
 				return true;
 			}
