@@ -158,6 +158,9 @@ private:
 	/** Update the time cursor position and handle stopping & looping. */
 	void UpdateTimeCursorPosition(float NewPosition);
 
+	/** Add tick prerequisites so that the level sequence actor ticks before all the actors it controls */
+	void SetTickPrerequisites(bool bAddTickPrerequisites);
+	
 private:
 
 	/** The level sequence to play. */

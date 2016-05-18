@@ -3,8 +3,10 @@
 #include "LevelSequencePCH.h"
 #include "LevelSequencePlayer.h"
 #include "MovieScene.h"
+#include "MovieSceneSubSection.h"
 #include "MovieSceneSequence.h"
 #include "MovieSceneSequenceInstance.h"
+#include "MovieSceneTrack.h"
 #include "LevelSequenceSpawnRegister.h"
 #include "Engine/LevelStreaming.h"
 
@@ -121,7 +123,122 @@ void ULevelSequencePlayer::Stop()
 	TimeCursorPosition = PlaybackSettings.PlayRate < 0.f ? GetLength() : 0.f;
 	CurrentNumLoops = 0;
 
+	SetTickPrerequisites(false);
+
 	// todo: Trigger an event?
+}
+
+void GetDescendantSequences(UMovieSceneSequence* InSequence, TArray<UMovieSceneSequence*> & InSequences)
+{
+	if (InSequence == nullptr)
+	{
+		return;
+	}
+
+	InSequences.Add(InSequence);
+	
+	UMovieScene* MovieScene = InSequence->GetMovieScene();
+	if (MovieScene == nullptr)
+	{
+		return;
+	}
+
+	for (auto MasterTrack : MovieScene->GetMasterTracks())
+	{
+		for (auto Section : MasterTrack->GetAllSections())
+		{
+			UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>(Section);
+			if (SubSection != nullptr)
+			{
+				UMovieSceneSequence* SubSequence = SubSection->GetSequence();
+				if (SubSequence != nullptr)
+				{
+					GetDescendantSequences(SubSequence, InSequences);
+				}
+			}
+		}
+	}
+}
+
+void ULevelSequencePlayer::SetTickPrerequisites(bool bAddTickPrerequisites)
+{
+	AActor* LevelSequenceActor = Cast<AActor>(GetOuter());
+	if (LevelSequenceActor == nullptr)
+	{
+		return;
+	}
+
+	TArray<UMovieSceneSequence*> AllSequences;
+	GetDescendantSequences(LevelSequence, AllSequences);
+
+	for (auto Sequence : AllSequences)
+	{
+		UMovieScene* MovieScene = Sequence->GetMovieScene();
+		if (MovieScene == nullptr)
+		{
+			continue;
+		}
+
+		TArray<AActor*> ControlledActors;
+
+		for (int32 PossessableCount = 0; PossessableCount < MovieScene->GetPossessableCount(); ++PossessableCount)
+		{
+			FMovieScenePossessable& Possessable = MovieScene->GetPossessable(PossessableCount);
+				
+			UObject* PossessableObject = Sequence->FindPossessableObject(Possessable.GetGuid(), this);
+			if (PossessableObject != nullptr)
+			{
+				AActor* PossessableActor = Cast<AActor>(PossessableObject);
+
+				if (PossessableActor != nullptr)
+				{
+					ControlledActors.Add(PossessableActor);
+				}
+			}
+		}
+
+		for (int32 SpawnableCount = 0; SpawnableCount < MovieScene->GetSpawnableCount(); ++ SpawnableCount)
+		{
+			FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable(SpawnableCount);
+
+			UObject* SpawnableObject = Spawnable.GetObjectTemplate();
+			if (SpawnableObject != nullptr)
+			{
+				AActor* SpawnableActor = Cast<AActor>(SpawnableObject);
+
+				if (SpawnableActor != nullptr)
+				{
+					ControlledActors.Add(SpawnableActor);
+				}
+			}
+		}
+
+
+		for (AActor* ControlledActor : ControlledActors)
+		{
+			USceneComponent* RootComponent = ControlledActor->GetRootComponent();
+			if (RootComponent)
+			{
+				if (bAddTickPrerequisites)
+				{
+					RootComponent->PrimaryComponentTick.AddPrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+				}
+				else
+				{
+					RootComponent->PrimaryComponentTick.RemovePrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+				}
+			}
+
+			if (bAddTickPrerequisites)
+			{
+				ControlledActor->PrimaryActorTick.AddPrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+			}
+			else
+			{
+				ControlledActor->PrimaryActorTick.RemovePrerequisite(LevelSequenceActor, LevelSequenceActor->PrimaryActorTick);
+			}
+		}
+	}
 }
 
 void ULevelSequencePlayer::Play()
@@ -137,6 +254,8 @@ void ULevelSequencePlayer::Play()
 	{
 		RootMovieSceneInstance = MakeShareable(new FMovieSceneSequenceInstance(*LevelSequence));
 		RootMovieSceneInstance->RefreshInstance(*this);
+
+		SetTickPrerequisites(true);
 	}
 
 	bIsPlaying = true;
@@ -268,6 +387,10 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 
 	if (CameraObject == ViewTarget)
 	{
+		if ( bJumpCut && PC->PlayerCameraManager )
+		{
+			PC->PlayerCameraManager->bGameCameraCutThisFrame = true;
+		}
 		return;
 	}
 
