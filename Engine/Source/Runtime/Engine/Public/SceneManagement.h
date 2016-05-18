@@ -173,6 +173,10 @@ public:
 	//
 	virtual uint32 GetCurrentTemporalAASampleIndex() const = 0;
 
+	virtual void SetSequencerState(const bool bIsPaused) = 0;
+
+	virtual bool GetSequencerState() = 0;
+
 	/** 
 	 * returns the occlusion frame counter 
 	 */

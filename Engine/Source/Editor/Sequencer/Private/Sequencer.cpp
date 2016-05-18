@@ -1656,6 +1656,17 @@ void FSequencer::SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatu
 {
 	PlaybackState = InPlaybackStatus;
 
+	// Inform the renderer when Sequencer is in a 'paused' state for the sake of inter-frame effects
+	const bool bIsPaused = (InPlaybackStatus == EMovieScenePlayerStatus::Stopped || InPlaybackStatus == EMovieScenePlayerStatus::Scrubbing);
+
+	for (FLevelEditorViewportClient* LevelVC : GEditor->LevelViewportClients)
+	{
+		if (LevelVC && LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview())
+		{
+			LevelVC->ViewState.GetReference()->SetSequencerState(bIsPaused);
+		}
+	}
+
 	// backup or restore tick rate
 	if (InPlaybackStatus == EMovieScenePlayerStatus::Playing)
 	{

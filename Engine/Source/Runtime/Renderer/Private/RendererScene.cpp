@@ -92,6 +92,8 @@ FSceneViewState::FSceneViewState()
 	bDOFHistory = true;
 	bDOFHistory2 = true;
 
+	bSequencerIsPaused = false;
+
 	LightPropagationVolume = NULL; 
 
 	bIsStereoView = false;
