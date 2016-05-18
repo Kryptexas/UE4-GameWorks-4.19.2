@@ -218,6 +218,12 @@ public:
 		Allow_DeleteOnRender= 1<<1
 	};
 
+	enum ECanvasDrawMode
+	{
+		CDM_DeferDrawing,
+		CDM_ImmediateDrawing
+	};
+
 	/** 
 	* Constructor.
 	*/
@@ -226,7 +232,7 @@ public:
 	/** 
 	* Constructor. For situations where a world is not available, but time information is
 	*/
-	ENGINE_API FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel);
+	ENGINE_API FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel, ECanvasDrawMode DrawMode = CDM_DeferDrawing);
 
 	/** 
 	* Destructor.
@@ -598,6 +604,8 @@ private:
 	/** Cached render target size, depth and ortho-projection matrices for stereo rendering */
 	FMatrix CachedOrthoProjection[2];
 	int32 CachedRTWidth, CachedRTHeight, CachedDrawDepth;
+
+	ECanvasDrawMode DrawMode;
 
 	bool GetOrthoProjectionMatrices(float InDrawDepth, FMatrix OutOrthoProjection[2]);
 

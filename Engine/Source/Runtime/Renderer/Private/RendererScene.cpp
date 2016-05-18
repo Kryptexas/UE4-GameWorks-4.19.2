@@ -511,8 +511,6 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	bRequiresHitProxies(bInRequiresHitProxies)
 ,	bIsEditorScene(bInIsEditorScene)
 ,	NumUncachedStaticLightingInteractions(0)
-,	UpperDynamicSkylightColor(FLinearColor::Black)
-,	LowerDynamicSkylightColor(FLinearColor::Black)
 ,	SceneLODHierarchy(this)
 ,	DefaultMaxDistanceFieldOcclusionDistance(InWorld->GetWorldSettings()->DefaultMaxDistanceFieldOcclusionDistance)
 ,	GlobalDistanceFieldViewDistance(InWorld->GetWorldSettings()->GlobalDistanceFieldViewDistance)
@@ -1550,20 +1548,6 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 				}
 			});
 	}
-}
-
-/** Updates the scene's dynamic skylight. */
-void FScene::UpdateDynamicSkyLight(const FLinearColor& UpperColor, const FLinearColor& LowerColor)
-{
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-		UpdateDynamicSkyLight,
-		FScene*,Scene,this,
-		FLinearColor,UpperColor,UpperColor,
-		FLinearColor,LowerColor,LowerColor,
-	{
-		Scene->UpperDynamicSkylightColor = UpperColor;
-		Scene->LowerDynamicSkylightColor = LowerColor;
-	});
 }
 
 void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)

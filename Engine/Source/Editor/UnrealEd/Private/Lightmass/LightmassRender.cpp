@@ -250,6 +250,10 @@ public:
 			{
 				return true;
 			}
+			else if(FCString::Stristr(ShaderType->GetName(), TEXT("Simple")))
+			{
+				return true;
+			}
 			else if(FCString::Stristr(ShaderType->GetName(), TEXT("BasePassPSFNoLightMapPolicy")))
 			{
 				return true;

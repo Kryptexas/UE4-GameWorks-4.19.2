@@ -194,6 +194,7 @@ void DoTileCulling(uint3 GroupId, uint ThreadIndex, float MinTileZ, float MaxTil
 	float4 ViewPos2 = mul(float4(ScreenPos1.x, ScreenPos0.y, ScreenPos1.z, 1), View.ClipToView);	ViewPos2.xyz /= ViewPos2.w;
 	float4 ViewPos3 = mul(float4(ScreenPos1.x, ScreenPos1.y, ScreenPos1.z, 1), View.ClipToView);	ViewPos3.xyz /= ViewPos3.w;
 	// front point
+	// Warning: this assumes a point at the near depth, which is not a valid assumption, will cause culling artifacts
 	float4 ViewPos4 = mul(float4(ScreenPos0.xy, ScreenPos0.z, 1), View.ClipToView);	ViewPos4.xyz /= ViewPos4.w;
 
 	float3 TileBoxMin = min(ViewPos4.xyz, min(ViewPos0.xyz, ViewPos3.xyz));

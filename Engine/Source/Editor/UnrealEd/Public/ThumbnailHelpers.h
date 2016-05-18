@@ -216,6 +216,10 @@ class UActorComponent;
 class UNREALED_API FClassActorThumbnailScene : public FThumbnailPreviewScene
 {
 public:
+	FClassActorThumbnailScene()
+		:PreviewActor(0)
+	{
+	}
 
 	/** Returns true if this component can be visualized */
 	bool IsValidComponentForVisualization(UActorComponent* Component) const;

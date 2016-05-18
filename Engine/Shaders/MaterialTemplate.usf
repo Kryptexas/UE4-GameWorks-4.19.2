@@ -83,6 +83,8 @@ struct FMaterialParticleParameters
 	half4 MacroUV;
 	/** Dynamic parameter used by particle systems. */
 	half4 DynamicParameter;
+	/** mesh particle orientation */
+	float4x4 LocalToWorld;
 
 #if USE_PARTICLE_SUBUVS
 	/** SubUV texture coordinates*/
@@ -1271,7 +1273,11 @@ half3 GetMaterialEmissiveRaw(FPixelMaterialInputs PixelMaterialInputs)
 
 half3 GetMaterialEmissive(FPixelMaterialInputs PixelMaterialInputs)
 {
-	return max(GetMaterialEmissiveRaw(PixelMaterialInputs), 0.0f);
+	half3 EmissiveColor = GetMaterialEmissiveRaw(PixelMaterialInputs);
+#if !MATERIAL_ALLOW_NEGATIVE_EMISSIVECOLOR
+	EmissiveColor = max(EmissiveColor, 0.0f);
+#endif
+	return EmissiveColor;
 }
 
 half3 GetMaterialEmissiveForCS(FMaterialPixelParameters Parameters)
@@ -1521,12 +1527,18 @@ void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out 
 	// The Normal is a special case as it might have its own expressions and also be used to calculate other inputs, so perform the assignment here
 %s
 
-	// Note that here the Parameters.TangentNormal can be in world space or tangent space
-	Parameters.TangentNormal = GetMaterialNormal(Parameters, PixelMaterialInputs);
+	// Note that here MaterialNormal can be in world space or tangent space
+	float3 MaterialNormal = GetMaterialNormal(Parameters, PixelMaterialInputs);
 
 #if MATERIAL_TANGENTSPACENORMAL
+
+#if SIMPLE_FORWARD_SHADING
+	// Drop normal with simple forward shading for scalability
+	MaterialNormal = float3(0, 0, 1);
+#endif
+
 	// flip the normal for backfaces being rendered with a two-sided material
-	Parameters.TangentNormal *= Parameters.TwoSidedSign;
+	Parameters.TangentNormal = MaterialNormal * Parameters.TwoSidedSign;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	// ES2 will rely on only the final normalize for performance
@@ -1538,7 +1550,7 @@ void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out 
 	Parameters.WorldNormal = normalize(float3(TransformTangentVectorToWorld(Parameters.TangentToWorld, Parameters.TangentNormal)));
 #else
 	// Here we don't supoport two sided materials
-	Parameters.TangentNormal = Parameters.WorldNormal = normalize(Parameters.TangentNormal);
+	Parameters.TangentNormal = Parameters.WorldNormal = normalize(MaterialNormal);
 #endif
 
 	Parameters.ReflectionVector = ReflectionAboutCustomWorldNormal(Parameters, Parameters.WorldNormal, false);
@@ -1554,27 +1566,6 @@ void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out 
 // Programmatically set the line number after all the material inputs which have a variable number of line endings
 // This allows shader error line numbers after this point to be the same regardless of which material is being compiled
 #line %s
-
-float3 GetMaterialHemisphereLightTransferFull(float3 DiffuseColor,FMaterialPixelParameters Parameters, float3 UpperColor, float3 LowerColor)
-{
-	float3	UpperLighting = 0;
-	float3  LowerLighting = 0;
-
-#if (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE) && TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
-	UpperLighting = DiffuseColor;
-	LowerLighting = DiffuseColor;	
-#else
-	float3 SkyVector = float3(0, 0, 1);
-	float  NormalContribution  = dot(SkyVector,Parameters.WorldNormal);
-	float2 ContributionWeightsSqrt = float2(0.5, 0.5f) + float2(0.5f, -0.5f) * NormalContribution;
-	float2 ContributionWeights = ContributionWeightsSqrt * ContributionWeightsSqrt;
-	UpperLighting = DiffuseColor * ContributionWeights[0];
-	LowerLighting = DiffuseColor * ContributionWeights[1];
-#endif
-
-	return UpperLighting * UpperColor +
-	       LowerLighting * LowerColor;
-}
 
 void ClipLODTransition(float2 SvPosition, float DitherFactor)
 {
@@ -1630,9 +1621,9 @@ void ClipLODTransition(float2 SvPosition)
 void GetMaterialClippingShadowDepth(FMaterialPixelParameters Parameters, FPixelMaterialInputs PixelMaterialInputs)
 {
 	ClipLODTransition(Parameters);
-	#if MATERIALBLENDING_MASKED && MATERIAL_DITHER_OPACITY_MASK
-		clip(GetMaterialMaskInputRaw(PixelMaterialInputs) - 1.0f / 255.0f);
-	#elif MATERIALBLENDING_MASKED
+	//#if MATERIALBLENDING_MASKED && MATERIAL_DITHER_OPACITY_MASK
+	//	clip(GetMaterialMaskInputRaw(PixelMaterialInputs) - 1.0f / 255.0f);
+	#if MATERIALBLENDING_MASKED
 		clip(GetMaterialMask(PixelMaterialInputs)); 
 	#elif MATERIALBLENDING_TRANSLUCENT
 		clip(GetMaterialOpacity(PixelMaterialInputs) - 1.0f / 255.0f);

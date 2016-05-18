@@ -522,7 +522,7 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 {
 	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingSceneColor);
 
-	if (IsSimpleDynamicLightingEnabled())
+	if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(CurrentFeatureLevel)))
 	{
 		// in this non-standard case, just render to scene color with default mode
 		BeginRenderingSceneColor(RHICmdList);
@@ -612,7 +612,7 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 
 void FSceneRenderTargets::FinishRenderingGBuffer(FRHICommandListImmediate& RHICmdList)
 {
-	if (IsSimpleDynamicLightingEnabled())
+	if (IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(CurrentFeatureLevel)))
 	{
 		// in this non-standard case, just render to scene color with default mode
 		FinishRenderingSceneColor(RHICmdList, true);
@@ -642,7 +642,7 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 {
 	int32 NumGBufferTargets = 1;
 
-	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4 && !IsSimpleDynamicLightingEnabled())
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4 && !IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(CurrentFeatureLevel)))
 	{
 		// This needs to match TBasePassPixelShaderBaseType::ModifyCompilationEnvironment()
 		NumGBufferTargets = bAllowStaticLighting ? 6 : 5;

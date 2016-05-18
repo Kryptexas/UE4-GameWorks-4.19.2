@@ -2740,7 +2740,7 @@ bool ShouldRenderDynamicSkyLight(const FScene* Scene, const FSceneViewFamily& Vi
 		&& !Scene->SkyLight->bHasStaticLighting
 		&& ViewFamily.EngineShowFlags.SkyLighting
 		&& Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4
-		&& !IsSimpleDynamicLightingEnabled() 
+		&& !IsSimpleForwardShadingEnabled(Scene->GetShaderPlatform()) 
 		&& !ViewFamily.EngineShowFlags.VisualizeLightCulling;
 }
 

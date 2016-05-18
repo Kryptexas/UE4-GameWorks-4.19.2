@@ -398,20 +398,11 @@ public:
 	UPROPERTY()
 	TArray<FGuid> StreamingTextureGuids;
 
-	/** Static information used by texture streaming code, generated during PreSave									*/
-	TMap<UTexture2D*,TArray<FStreamableTextureInstance> >	TextureToInstancesMap;
-
-	/** Information about textures on dynamic primitives. Used by texture streaming code, generated during PreSave.		*/
-	TMap<TWeakObjectPtr<UPrimitiveComponent>,TArray<FDynamicTextureInstance> >	DynamicTextureInstances;
-
-	/** Set of textures used by PrimitiveComponents that have bForceMipStreaming checked. */
-	TMap<UTexture2D*,bool>									ForceStreamTextures;
-
 	/** Index into Actors array pointing to first net relevant actor. Used as an optimization for FActorIterator	*/
-	int32											iFirstNetRelevantActor;
+	int32										iFirstNetRelevantActor;
 
 	/** Data structures for holding the tick functions **/
-	class FTickTaskLevel*		TickTaskLevel;
+	class FTickTaskLevel*						TickTaskLevel;
 
 	/** 
 	* The precomputed light information for this level.  
@@ -433,9 +424,6 @@ public:
 
 	/** Whether the geometry needs to be rebuilt for correct lighting */
 	uint32										bGeometryDirtyForLighting:1;
-
-	/** Has texture streaming been built */
-	uint32										bTextureStreamingBuilt:1;
 
 	/** Whether a level transform rotation was applied since the texture streaming builds. Invalidates the precomputed streaming bounds. */
 	UPROPERTY()
@@ -651,8 +639,6 @@ public:
 	 */
 	void RouteActorInitialize();
 
-
-
 	/**
 	 * Rebuilds static streaming data for all levels in the specified UWorld.
 	 *
@@ -661,22 +647,6 @@ public:
 	 * @param TargetTexture		[opt] Specifies a single texture to process. If NULL, all textures will be processed.
 	 */
 	ENGINE_API static void BuildStreamingData(UWorld* World, ULevel* TargetLevel=NULL, UTexture2D* TargetTexture=NULL);
-
-	/**
-	 * Rebuilds static streaming data for this level.
-	 *
-	 * @param TargetTexture			[opt] Specifies a single texture to process. If NULL, all textures will be processed.
-	 */
-	void BuildStreamingData(UTexture2D* TargetTexture=NULL);
-
-	/**
-	 * Clamp lightmap and shadowmap texelfactors to 20-80% range.
-	 * This is to prevent very low-res or high-res charts to dominate otherwise decent streaming.
-	 */
-	void NormalizeLightmapTexelFactor();
-
-	/** Retrieves the array of streamable texture isntances. */
-	ENGINE_API TArray<FStreamableTextureInstance>* GetStreamableTextureInstances(UTexture2D*& TargetTexture);
 
 	/**
 	* Deprecated. Returns the default brush for this level.

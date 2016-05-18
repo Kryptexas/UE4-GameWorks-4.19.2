@@ -32,7 +32,7 @@
 	 
 #endif
 
-#if MATERIAL_SHADINGMODEL_HAIR
+#if MATERIAL_SHADINGMODEL_HAIR || SIMPLE_FORWARD_DIRECTIONAL_LIGHT
 #include "ShadingModels.usf"
 #endif
 
@@ -45,6 +45,7 @@ SamplerState	PrevSceneColorSampler;
 	#define COMPILER_GLSL 0
 #endif
 
+#define FORCE_FULLY_ROUGH (SIMPLE_FORWARD_SHADING)
 #define EDITOR_ALPHA2COVERAGE (USE_EDITOR_COMPOSITING && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !COMPILER_GLSL)
 
 #if TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL || MATERIAL_SHADINGMODEL_CLEAR_COAT
@@ -357,6 +358,12 @@ float3 GetTranslucencyLighting(
 	return InterpolatedLighting;
 }
 
+#if SIMPLE_FORWARD_SHADING
+	#define GetEffectiveSkySHDiffuse GetSkySHDiffuseSimple
+#else
+	#define GetEffectiveSkySHDiffuse GetSkySHDiffuse
+#endif
+
 /** Computes sky diffuse lighting, including precomputed shadowing. */
 void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuseLighting, out float3 OutSubsurfaceLighting)
 {
@@ -411,13 +418,13 @@ void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuse
 	#endif
 			
 	// Compute the preconvolved incoming lighting with the bent normal direction
-	float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * Frame.SkyLightColor.rgb;
+	float3 DiffuseLookup = GetEffectiveSkySHDiffuse(SkyLightingNormal) * Frame.SkyLightColor.rgb;
 
 	// Apply AO to the sky diffuse
 	OutDiffuseLighting += DiffuseLookup * (SkyVisibility * GeometryTerm);
 
 	#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
-		float3 BackfaceDiffuseLookup = GetSkySHDiffuse(-WorldNormal) * Frame.SkyLightColor.rgb;
+		float3 BackfaceDiffuseLookup = GetEffectiveSkySHDiffuse(-WorldNormal) * Frame.SkyLightColor.rgb;
 		OutSubsurfaceLighting += BackfaceDiffuseLookup * SkyVisibility;
 	#endif
 
@@ -566,6 +573,23 @@ void GetPrecomputedIndirectLightingAndSkyLight(
 		OutIndirectIrradiance = Luminance(OutDiffuseLighting);
 	#endif
 }
+
+#if SIMPLE_FORWARD_DIRECTIONAL_LIGHT
+
+float3 GetSimpleForwardLightingDirectionalLight(float3 DiffuseColor, float3 SpecularColor, float Roughness, float3 WorldNormal, float3 CameraVector)
+{
+	float3 V = CameraVector;
+	float3 N = WorldNormal;
+	float3 L = Frame.DirectionalLightDirection;
+	float NoL = saturate( dot( N, L ) );
+
+	float3 LightColor = Frame.DirectionalLightColor.rgb * PI;
+	
+	// Not computing specular, material was forced fully rough
+	return LightColor * NoL * StandardShading(DiffuseColor, SpecularColor, Roughness.xxx, 1.0f, L, V, N, float2(1, 0));
+}
+
+#endif
 
 #if USE_EDITOR_COMPOSITING
 	bool bEnableEditorPrimitiveDepthTest;
@@ -839,6 +863,12 @@ void Main(
 	}
 #endif
 
+	#if FORCE_FULLY_ROUGH
+		// Factors derived from EnvBRDFApprox( SpecularColor, 1, 1 ) == SpecularColor * 0.4524 - 0.0024
+		DiffuseColor += SpecularColor * 0.45;
+		SpecularColor = 0;
+	#endif
+
 	half Opacity = GetMaterialOpacity(PixelMaterialInputs);
 
 	FGBufferData GBuffer = (FGBufferData)0;
@@ -985,7 +1015,7 @@ void Main(
 			EffectiveDiffuseColor = PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
 		}
 		#endif
-			
+
 		float3 DiffuseIndirectLighting;
 		float3 SubsurfaceIndirectLighting;
 		GetPrecomputedIndirectLightingAndSkyLight(MaterialParameters, Interpolants, BasePassInterpolants, DiffuseDir, DiffuseIndirectLighting, SubsurfaceIndirectLighting, IndirectIrradiance);
@@ -993,17 +1023,24 @@ void Main(
 		Color += (DiffuseIndirectLighting * EffectiveDiffuseColor + SubsurfaceIndirectLighting * SubsurfaceColor) * MaterialAO;
 
 
-		#if SIMPLE_DYNAMIC_LIGHTING
-			// always unshadowed so BiasedNDotL is not needed
-			half Lambert = saturate(dot(MaterialParameters.WorldNormal, Frame.DirectionalLightDirection));
-			Color += DiffuseColor * Lambert * Frame.DirectionalLightColor.rgb;
+		#if SIMPLE_FORWARD_DIRECTIONAL_LIGHT
 
-			Color += GetMaterialHemisphereLightTransferFull(
-				DiffuseColor,
-				MaterialParameters,
-				Frame.UpperSkyColor.rgb,
-				Frame.LowerSkyColor.rgb
-				);
+			float3 DirectionalLighting = GetSimpleForwardLightingDirectionalLight(
+				EffectiveDiffuseColor,
+				SpecularColor,
+				Roughness,
+				MaterialParameters.WorldNormal, 
+				MaterialParameters.CameraVector);
+			
+			#if STATICLIGHTING_SIGNEDDISTANCEFIELD
+				half4 PrecomputedShadowMasks = GetPrecomputedShadowMasks(Interpolants);
+				DirectionalLighting *= PrecomputedShadowMasks.x;
+			#elif CACHED_POINT_INDIRECT_LIGHTING
+				DirectionalLighting *= PrecomputedLightingBuffer.DirectionalLightShadowing;
+			#endif
+			
+			Color += DirectionalLighting;
+
 		#endif
 	#endif
 
@@ -1014,7 +1051,7 @@ void Main(
 	#endif
 		
 	// Volume lighting for lit translucency
-	#if (MATERIAL_SHADINGMODEL_DEFAULT_LIT || MATERIAL_SHADINGMODEL_SUBSURFACE) && (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE)
+	#if (MATERIAL_SHADINGMODEL_DEFAULT_LIT || MATERIAL_SHADINGMODEL_SUBSURFACE) && (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE) && !SIMPLE_FORWARD_SHADING
 		Color += GetTranslucencyLighting(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, GBuffer, DiffuseColor, SpecularColor, IndirectIrradiance);
 	#endif
 

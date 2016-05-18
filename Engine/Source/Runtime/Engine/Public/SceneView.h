@@ -478,8 +478,6 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FFrameUniformShaderParameters, ENGI
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, DirectionalLightShadowSize, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix, DirectionalLightScreenToShadow, [MAX_FORWARD_SHADOWCASCADES])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, DirectionalLightShadowDistances, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FLinearColor, UpperSkyColor, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FLinearColor, LowerSkyColor, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, TranslucencyLightingVolumeMin, [TVC_MAX])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4, TranslucencyLightingVolumeInvSize, [TVC_MAX])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, TemporalAAParams)
@@ -933,13 +931,17 @@ public:
 // for r.DisplayInternals (allows for easy passing down data from main to render thread)
 struct FDisplayInternalsData
 {
+	//
 	int32 DisplayInternalsCVarValue;
 	// current time Matinee location (in seconds) of the single playing playing actor, -1 if none is playing, -2 if multiple are playing
 	float MatineeTime;
+	// -1 if not set, from IStreamingManager::Get().StreamAllResources(Duration) in FStreamAllResourcesLatentCommand
+	uint32 NumPendingStreamingRequests;
 
 	FDisplayInternalsData()
 		: DisplayInternalsCVarValue(0)
 		, MatineeTime(-1.0f)
+		, NumPendingStreamingRequests(-1)
 	{
 		check(!IsValid());
 	}

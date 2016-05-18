@@ -372,10 +372,13 @@ void UModelComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& Lev
 				// Add each texture to the output with the appropriate parameters.
 				for(int32 TextureIndex = 0;TextureIndex < Textures.Num();TextureIndex++)
 				{
+					UTexture2D* Texture2D = Cast<UTexture2D>(Textures[TextureIndex]);
+					if (!Texture2D) continue;
+
 					FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
 					StreamingTexture.Bounds = SurfaceBoundingSphere;
 					StreamingTexture.TexelFactor = TexelFactor;
-					StreamingTexture.Texture = Textures[TextureIndex];
+					StreamingTexture.Texture = Texture2D;
 				}
 			}
 		}

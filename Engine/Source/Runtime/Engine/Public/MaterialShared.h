@@ -98,6 +98,7 @@ enum EMaterialCommonBasis
 	MCB_World,
 	MCB_View,
 	MCB_Camera,
+	MCB_MeshParticle,
 	MCB_MAX,
 };
 
@@ -1001,7 +1002,9 @@ public:
 	virtual bool UseLmDirectionality() const { return true; }
 	virtual bool IsMasked() const = 0;
 	virtual bool IsDitherMasked() const { return false; }
+	virtual bool AllowNegativeEmissiveColor() const { return false; }
 	virtual enum EBlendMode GetBlendMode() const = 0;
+	ENGINE_API virtual enum ERefractionMode GetRefractionMode() const;
 	virtual enum EMaterialShadingModel GetShadingModel() const = 0;
 	virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const { return TLM_VolumetricNonDirectional; };
 	virtual float GetOpacityMaskClipValue() const = 0;
@@ -1616,6 +1619,7 @@ public:
 	ENGINE_API virtual bool IsNonmetal() const override;
 	ENGINE_API virtual bool UseLmDirectionality() const override;
 	ENGINE_API virtual enum EBlendMode GetBlendMode() const override;
+	ENGINE_API virtual enum ERefractionMode GetRefractionMode() const override;
 	ENGINE_API virtual uint32 GetDecalBlendMode() const override;
 	ENGINE_API virtual uint32 GetMaterialDecalResponse() const override;
 	ENGINE_API virtual bool HasNormalConnected() const override;
@@ -1635,6 +1639,7 @@ public:
 	ENGINE_API virtual float GetTranslucentShadowStartOffset() const override;
 	ENGINE_API virtual bool IsMasked() const override;
 	ENGINE_API virtual bool IsDitherMasked() const override;
+	ENGINE_API virtual bool AllowNegativeEmissiveColor() const override;
 	ENGINE_API virtual FString GetFriendlyName() const override;
 	ENGINE_API virtual bool RequiresSynchronousCompilation() const override;
 	ENGINE_API virtual bool IsDefaultMaterial() const override;

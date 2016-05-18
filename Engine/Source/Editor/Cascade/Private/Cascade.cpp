@@ -2163,6 +2163,12 @@ void FCascade::BindCommands()
 		FIsActionChecked::CreateSP(this, &FCascade::IsViewSystemCompletedChecked));
 
 	ToolkitCommands->MapAction(
+		Commands.View_EmitterTickTimes,
+		FExecuteAction::CreateSP(this, &FCascade::OnViewEmitterTickTimes),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FCascade::IsViewEmitterTickTimesChecked));
+
+	ToolkitCommands->MapAction(
 		Commands.ToggleGeometry,
 		FExecuteAction::CreateSP(this, &FCascade::OnViewGeometry),
 		FCanExecuteAction(),
@@ -3585,6 +3591,17 @@ bool FCascade::IsDrawOptionEnabled(int32 Element) const
 		return false;
 	}
 }
+
+void FCascade::OnViewEmitterTickTimes()
+{
+	ToggleDrawOption(FCascadeEdPreviewViewportClient::EmitterTickTimes);
+}
+
+bool FCascade::IsViewEmitterTickTimesChecked() const
+{
+	return IsDrawOptionEnabled(FCascadeEdPreviewViewportClient::EmitterTickTimes);
+}
+
 
 void FCascade::OnViewOriginAxis()
 {

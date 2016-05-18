@@ -551,17 +551,17 @@ GetBasePassForForwardShadingShaders<FUniformLightMapPolicy, NumDynamicPointLight
 	case LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
 		GetUniformBasePassorForwardShadingShaders<LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
 		break;
-	case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
-		GetUniformBasePassorForwardShadingShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
+	case LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
+		GetUniformBasePassorForwardShadingShaders<LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
 		break;
-	case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT:
-		GetUniformBasePassorForwardShadingShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
+	case LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT:
+		GetUniformBasePassorForwardShadingShaders<LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
 		break;
-	case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT:
-		GetUniformBasePassorForwardShadingShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
+	case LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT:
+		GetUniformBasePassorForwardShadingShaders<LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
 		break;
-	case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT:
-		GetUniformBasePassorForwardShadingShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
+	case LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT:
+		GetUniformBasePassorForwardShadingShaders<LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
 		break;
 	case LMP_MOVABLE_DIRECTIONAL_LIGHT:
 		GetUniformBasePassorForwardShadingShaders<LMP_MOVABLE_DIRECTIONAL_LIGHT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
@@ -949,22 +949,22 @@ void ProcessBasePassMeshForForwardShading(
 			{
 				if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
 				{
-					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT), Parameters.Mesh.LCI);
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT), Parameters.Mesh.LCI);
 				}
 				else
 				{
-					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT), Parameters.Mesh.LCI);
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT), Parameters.Mesh.LCI);
 				}
 			}
 			else
 			{
 				if (bUseCSM)
 				{
-					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT), Parameters.Mesh.LCI);
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT), Parameters.Mesh.LCI);
 				}
 				else
 				{
-					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT), Parameters.Mesh.LCI);
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_FORWARD_DIRECTIONAL_LIGHT_AND_SH_INDIRECT), Parameters.Mesh.LCI);
 				}
 			}
 

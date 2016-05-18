@@ -244,7 +244,6 @@ FCachedSystemScalabilityCVars::FCachedSystemScalabilityCVars()
 	, MaxShadowResolution(-1)
 	, ViewDistanceScale(-1)
 	, ViewDistanceScaleSquared(-1)
-	, SimpleDynamicLighting(-1)
 	, MaxAnisotropy(-1)
 {
 
@@ -282,11 +281,6 @@ void ScalabilityCVarsSinkCallback()
 		LocalScalabilityCVars.MaterialQualityLevel = (EMaterialQualityLevel::Type)FMath::Clamp(MaterialQualityLevelVar->GetValueOnGameThread(), 0, (int32)EMaterialQualityLevel::Num - 1);
 	}
 
-	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SimpleDynamicLighting"));
-		LocalScalabilityCVars.SimpleDynamicLighting = FMath::Clamp(CVar->GetInt(), 0, 1);
-	}
-
 	LocalScalabilityCVars.bInitialized = true;
 
 	if (!GCachedScalabilityCVars.bInitialized)
@@ -298,12 +292,6 @@ void ScalabilityCVarsSinkCallback()
 	{
 		bool bRecreateRenderstate = false;
 		bool bCacheResourceShaders = false;
-
-		if (LocalScalabilityCVars.DetailMode != GCachedScalabilityCVars.DetailMode ||
-			LocalScalabilityCVars.SimpleDynamicLighting != GCachedScalabilityCVars.SimpleDynamicLighting)
-		{
-			bRecreateRenderstate = true;
-		}
 
 		if (LocalScalabilityCVars.MaterialQualityLevel != GCachedScalabilityCVars.MaterialQualityLevel)
 		{
@@ -3638,7 +3626,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	TArray<FSortedTexture> SortedTextures;
 	for( TObjectIterator<UTexture2D> It; It; ++It )
 	{
-		UTexture2D*		Texture				= *It;
+		UTexture2D*			Texture				= *It;
 		int32				LODGroup			= Texture->LODGroup;
 		int32				LODBias				= Texture->GetCachedLODBias();
 		int32				NumMips				= Texture->GetNumMips();	
@@ -3651,7 +3639,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		int32				DroppedMips			= Texture->GetNumMips() - Texture->ResidentMips;
 		int32				CurSizeX			= Texture->GetSizeX() >> DroppedMips;
 		int32				CurSizeY			= Texture->GetSizeY() >> DroppedMips;
-		bool			bIsStreamingTexture		= IStreamingManager::Get().IsTextureStreamingEnabled() ? IStreamingManager::Get().GetTextureStreamingManager().IsManagedStreamingTexture( Texture ) : false;
+		bool			bIsStreamingTexture		= Texture->GetStreamingIndex() != INDEX_NONE;
 		int32				MaxSize				= Texture->CalcTextureMemorySizeEnum( TMC_AllMips );
 		int32				CurrentSize			= Texture->CalcTextureMemorySizeEnum( TMC_ResidentMips );
 		int32				UsageCount			= TextureToUsageMap.FindRef( Texture );

@@ -218,6 +218,9 @@ public:
 		return PlatformData->Mips;
 	}
 
+
+	FORCEINLINE int32 GetStreamingIndex() const { return StreamingIndex; }
+
 private:
 	/** The minimum number of mips that must be resident in memory (cannot be streamed). */
 	static ENGINE_API int32 GMinTextureResidentMipCount;

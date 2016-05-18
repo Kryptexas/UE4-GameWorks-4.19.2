@@ -47,8 +47,8 @@ void FPrimitiveDistanceAccuracyPS::SetMesh(
 	float CPULogDistance = -1.f;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnRenderThread() != 0;
-	float DistanceMultiplier = 1.f;
-	const FStreamingSectionBuildInfo* SectionData = Proxy ? Proxy->GetStreamingSectionData(DistanceMultiplier, VisualizeLODIndex, BatchElement.VisualizeElementIndex) : nullptr;
+	float ComponentExtraScale = 1.f, MeshExtraScale = 1.f;
+	const FStreamingSectionBuildInfo* SectionData = Proxy ? Proxy->GetStreamingSectionData(ComponentExtraScale, MeshExtraScale, VisualizeLODIndex, BatchElement.VisualizeElementIndex) : nullptr;
 	if (SectionData)
 	{
 		FVector ViewToObject = SectionData->BoxOrigin - View.ViewMatrices.ViewOrigin;
@@ -67,7 +67,7 @@ void FPrimitiveDistanceAccuracyPS::SetMesh(
 			DistSqMinusRadiusSq = FMath::Square(Distance) - SectionData->BoxExtent.SizeSquared();
 		}
 
-		const float OneOverDistanceMultiplier = 1.f / FMath::Max<float>(SMALL_NUMBER, DistanceMultiplier);
+		const float OneOverDistanceMultiplier = 1.f / FMath::Max<float>(SMALL_NUMBER, ComponentExtraScale);
 		CPULogDistance =  FMath::Log2(OneOverDistanceMultiplier * FMath::Sqrt(FMath::Max<float>(1.f, DistSqMinusRadiusSq)));
 	}
 #endif

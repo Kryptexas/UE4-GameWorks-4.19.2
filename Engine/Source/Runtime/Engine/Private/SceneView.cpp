@@ -2115,7 +2115,7 @@ public:
 		{
 			if(CObj->TestFlags(ECVF_Scalability) || CObj->TestFlags(ECVF_ScalabilityGroup))
 			{
-				// float shoudl work on int32 as well
+				// float should work on int32 as well
 				float Value = CVar->GetFloat();
 				Crc = FCrc::MemCrc32(&Value, sizeof(Value), Crc);
 			}
@@ -2141,7 +2141,7 @@ static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& I
 		auto State = InView.State;
 
 		FCanvas Canvas((FRenderTarget*)Family->RenderTarget, NULL, Family->CurrentRealTime, Family->CurrentWorldTime, Family->DeltaWorldTime, InView.GetFeatureLevel());
-		Canvas.SetRenderTargetRect(InView.ViewRect);
+		Canvas.SetRenderTargetRect(FIntRect(0, 0, Family->RenderTarget->GetSizeXY().X, Family->RenderTarget->GetSizeXY().Y));
 
 		SetRenderTarget(RHICmdList, Family->RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 
@@ -2154,7 +2154,8 @@ static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& I
 		const int32 FontSizeY = 14;
 
 		// dark background
-		Canvas.DrawTile(Pos.X - 4, Pos.Y - 4, 500 + 8, FontSizeY * 26 + 8, 0, 0, 1, 1, FLinearColor(0,0,0,0.6f), 0, true);
+		const uint32 BackgroundHeight = 28;
+		Canvas.DrawTile(Pos.X - 4, Pos.Y - 4, 500 + 8, FontSizeY * BackgroundHeight + 8, 0, 0, 1, 1, FLinearColor(0,0,0,0.6f), 0, true);
 
 		UFont* Font = GEngine->GetSmallFont();
 		FCanvasTextItem SmallTextItem( Pos, FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
@@ -2163,42 +2164,61 @@ static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& I
 		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("r.DisplayInternals = %d"), Family->DisplayInternalsData.DisplayInternalsCVarValue));
 		Canvas.DrawItem(SmallTextItem, Pos);
 		SmallTextItem.SetColor(FLinearColor::Gray);
-		Pos.Y += FontSizeY;
-		Pos.Y += FontSizeY;
+		Pos.Y += 2 * FontSizeY;
 
-		SmallTextItem.Text = FText::FromString(TEXT("command line options:")); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		{
-			bool bDeterministic = FApp::UseFixedTimeStep() && FApp::bUseFixedSeed;
-			SmallTextItem.SetColor(bDeterministic ? FLinearColor::Gray : FLinearColor::Red);
-			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  -UseFixedTimeStep: %u"), FApp::UseFixedTimeStep())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  -FixedSeed: %u"), FApp::bUseFixedSeed)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-			SmallTextItem.SetColor(FLinearColor::Gray);
-			SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  -gABC= (changelist): %d"), GetChangeListNumberForPerfTesting())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+#define CANVAS_HEADER(txt) \
+		{ \
+			SmallTextItem.SetColor(FLinearColor::Gray); \
+			SmallTextItem.Text = FText::FromString(txt); \
+			Canvas.DrawItem(SmallTextItem, Pos); \
+			Pos.Y += FontSizeY; \
+		}
+#define CANVAS_LINE(bHighlight, txt, ... ) \
+		{ \
+			SmallTextItem.SetColor(bHighlight ? FLinearColor::Red : FLinearColor::Gray); \
+			SmallTextItem.Text = FText::FromString(FString::Printf(txt, __VA_ARGS__)); \
+			Canvas.DrawItem(SmallTextItem, Pos); \
+			Pos.Y += FontSizeY; \
 		}
 
-		SmallTextItem.Text = FText::FromString(TEXT("Global:")); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  Scalability CVar Hash: %x (use console command \"Scalability\")"), ComputeScalabilityCVarHash())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  FrameNumberRT: %u"), GFrameNumberRenderThread)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  FrameCounter: %u"), GFrameCounter)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  rand()/SRand: %x/%x"), FMath::Rand(), FMath::GetRandSeed())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		CANVAS_HEADER(TEXT("command line options:"))
+		{
+			bool bHighlight = FApp::UseFixedTimeStep() && FApp::bUseFixedSeed;
+			CANVAS_LINE(bHighlight, TEXT("  -UseFixedTimeStep: %u"), FApp::UseFixedTimeStep())
+			CANVAS_LINE(bHighlight, TEXT("  -FixedSeed: %u"), FApp::bUseFixedSeed)
+			CANVAS_LINE(false, TEXT("  -gABC= (changelist): %d"), GetChangeListNumberForPerfTesting())
+		}
 
-		SmallTextItem.Text = FText::FromString(TEXT("State:")); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  TemporalAASample: %u"), State->GetCurrentTemporalAASampleIndex())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  LODTransition: %.2f"), State->GetTemporalLODTransition())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		CANVAS_HEADER(TEXT("Global:"))
+		CANVAS_LINE(false, TEXT("  FrameNumberRT: %u"), GFrameNumberRenderThread)
+		CANVAS_LINE(false, TEXT("  Scalability CVar Hash: %x (use console command \"Scalability\")"), ComputeScalabilityCVarHash())
+		CANVAS_LINE(false, TEXT("  FrameNumberRT: %u"), GFrameNumberRenderThread)
+		CANVAS_LINE(false, TEXT("  FrameCounter: %u"), GFrameCounter)
+		CANVAS_LINE(false, TEXT("  rand()/SRand: %x/%x"), FMath::Rand(), FMath::GetRandSeed())
+		{
+			bool bHighlight = Family->DisplayInternalsData.NumPendingStreamingRequests != 0;
+			CANVAS_LINE(bHighlight, TEXT("  FStreamAllResourcesLatentCommand: %d"), bHighlight)
+		}
 
-		SmallTextItem.Text = FText::FromString(TEXT("Family:")); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  Time (Real/World/DeltaWorld): %.2f/%.2f/%.2f"), Family->CurrentRealTime, Family->CurrentWorldTime, Family->DeltaWorldTime)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  MatineeTime: %f"), Family->DisplayInternalsData.MatineeTime)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  FrameNumber: %u"), Family->FrameNumber)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  ExposureSettings: %s"), *Family->ExposureSettings.ToString())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  GammaCorrection: %.2f"), Family->GammaCorrection)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		CANVAS_HEADER(TEXT("State:"))
+		CANVAS_LINE(false, TEXT("  TemporalAASample: %u"), State->GetCurrentTemporalAASampleIndex())
+		CANVAS_LINE(false, TEXT("  LODTransition: %.2f"), State->GetTemporalLODTransition())
 
-		SmallTextItem.Text = FText::FromString(TEXT("View:")); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  TemporalJitter: %.2f/%.2f"), InView.TemporalJitterPixelsX, InView.TemporalJitterPixelsY)); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  ViewProjectionMatrix Hash: %x"), InView.ViewProjectionMatrix.ComputeHash())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  ViewLocation: %s"), *InView.ViewLocation.ToString())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  ViewRotation: %s"), *InView.ViewRotation.ToString())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
-		SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("  ViewRect: %s"), *InView.ViewRect.ToString())); Canvas.DrawItem(SmallTextItem, Pos); Pos.Y += FontSizeY;
+		CANVAS_HEADER(TEXT("Family:"))
+		CANVAS_LINE(false, TEXT("  Time (Real/World/DeltaWorld): %.2f/%.2f/%.2f"), Family->CurrentRealTime, Family->CurrentWorldTime, Family->DeltaWorldTime)
+		CANVAS_LINE(false, TEXT("  MatineeTime: %f"), Family->DisplayInternalsData.MatineeTime)
+		CANVAS_LINE(false, TEXT("  FrameNumber: %u"), Family->FrameNumber)
+		CANVAS_LINE(false, TEXT("  ExposureSettings: %s"), *Family->ExposureSettings.ToString())
+		CANVAS_LINE(false, TEXT("  GammaCorrection: %.2f"), Family->GammaCorrection)
+
+		CANVAS_HEADER(TEXT("View:"))
+		CANVAS_LINE(false, TEXT("  TemporalJitter: %.2f/%.2f"), InView.TemporalJitterPixelsX, InView.TemporalJitterPixelsY)
+		CANVAS_LINE(false, TEXT("  ViewProjectionMatrix Hash: %x"), InView.ViewProjectionMatrix.ComputeHash())
+		CANVAS_LINE(false, TEXT("  ViewLocation: %s"), *InView.ViewLocation.ToString())
+		CANVAS_LINE(false, TEXT("  ViewRotation: %s"), *InView.ViewRotation.ToString())
+		CANVAS_LINE(false, TEXT("  ViewRect: %s"), *InView.ViewRect.ToString())
+
+#undef CANVAS_LINE
 
 		Canvas.Flush_RenderThread(RHICmdList);
 	}

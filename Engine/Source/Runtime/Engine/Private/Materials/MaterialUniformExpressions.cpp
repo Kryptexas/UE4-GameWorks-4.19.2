@@ -513,7 +513,7 @@ bool FMaterialUniformExpressionTexture::IsIdentical(const FMaterialUniformExpres
 	return TextureIndex == OtherTextureExpression->TextureIndex;
 }
 
-bool FMaterialUniformExpressionVectorParameter::GetGameThreadNumberValue(const UMaterialInterface* SourceMaterialToCopyFrom, FLinearColor& OutValue) const
+void FMaterialUniformExpressionVectorParameter::GetGameThreadNumberValue(const UMaterialInterface* SourceMaterialToCopyFrom, FLinearColor& OutValue) const
 {
 	check(IsInGameThread());
 	checkSlow(SourceMaterialToCopyFrom);
@@ -530,7 +530,7 @@ bool FMaterialUniformExpressionVectorParameter::GetGameThreadNumberValue(const U
 			if(ParameterValue)
 			{
 				OutValue = ParameterValue->ParameterValue;
-				return true;
+				break;
 			}
 
 			// go up the hierarchy
@@ -541,12 +541,12 @@ bool FMaterialUniformExpressionVectorParameter::GetGameThreadNumberValue(const U
 			// we reached the base material
 			// get the copy form the base material
 			GetDefaultValue(OutValue);
-			return false;
+			break;
 		}
 	}
 }
 
-bool FMaterialUniformExpressionScalarParameter::GetGameThreadNumberValue(const UMaterialInterface* SourceMaterialToCopyFrom, float& OutValue) const
+void FMaterialUniformExpressionScalarParameter::GetGameThreadNumberValue(const UMaterialInterface* SourceMaterialToCopyFrom, float& OutValue) const
 {
 	check(IsInGameThread());
 	checkSlow(SourceMaterialToCopyFrom);
@@ -563,7 +563,7 @@ bool FMaterialUniformExpressionScalarParameter::GetGameThreadNumberValue(const U
 			if(ParameterValue)
 			{
 				OutValue = ParameterValue->ParameterValue;
-				return true;
+				break;
 			}
 
 			// go up the hierarchy
@@ -574,7 +574,7 @@ bool FMaterialUniformExpressionScalarParameter::GetGameThreadNumberValue(const U
 			// we reached the base material
 			// get the copy form the base material
 			GetDefaultValue(OutValue);
-			return false;
+			break;
 		}
 	}
 }

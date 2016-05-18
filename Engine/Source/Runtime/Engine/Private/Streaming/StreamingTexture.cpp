@@ -19,27 +19,14 @@ FStreamingTexture::FStreamingTexture( UTexture2D* InTexture )
 	STAT( MostResidentMips = InTexture->ResidentMips );
 	LODGroup = (TextureGroup) InTexture->LODGroup;
 
-	bIsHLODTexture = LODGroup == TEXTUREGROUP_HierarchicalLOD;
-
-	// Landscape textures and HLOD textures should not be affected by MipBias
 	//@TODO: Long term this should probably be a property of the texture group instead
-	bCanBeAffectedByMipBias = true;
-	if ((LODGroup == TEXTUREGROUP_Terrain_Heightmap) || (LODGroup == TEXTUREGROUP_Terrain_Weightmap) || bIsHLODTexture)
-	{
-		bCanBeAffectedByMipBias = false;
-	}
-
+	bCanBeAffectedByMipBias = LODGroup != TEXTUREGROUP_Terrain_Heightmap && LODGroup != TEXTUREGROUP_Terrain_Weightmap && LODGroup != TEXTUREGROUP_HierarchicalLOD;
 	NumNonStreamingMips = InTexture->GetNumNonStreamingMips();
-	ForceLoadRefCount = 0;
 	bIsStreamingLightmap = IsStreamingLightmap( Texture );
 	bIsLightmap = bIsStreamingLightmap || LODGroup == TEXTUREGROUP_Lightmap || LODGroup == TEXTUREGROUP_Shadowmap;
-	bUsesStaticHeuristics = false;
-	bUsesDynamicHeuristics = false;
-	bUsesLastRenderHeuristics = false;
-	bUsesForcedHeuristics = false;
-	bUsesOrphanedHeuristics = false;
 	bHasSplitRequest = false;
 	bIsLastSplitRequest = false;
+	bIsVisibleWantedMips = false;
 	BoostFactor = 1.0f;
 	InstanceRemovedTimestamp = -FLT_MAX;
 	LastRenderTimeRefCountTimestamp = -FLT_MAX;
@@ -55,47 +42,57 @@ FStreamingTexture::FStreamingTexture( UTexture2D* InTexture )
 
 void FStreamingTexture::UpdateCachedInfo( )
 {
+	static auto CVarOnlyStreamInTextures = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.OnlyStreamInTextures"));
+	const bool bOnlyStreamIn = CVarOnlyStreamInTextures->GetValueOnAnyThread() != 0;
+	const int32 HLODStategy = CVarStreamingHLODStrategy.GetValueOnAnyThread();
+
 	check(Texture && Texture->Resource);
 	ResidentMips = Texture->ResidentMips;
 	RequestedMips = Texture->RequestedMips;
 	MinAllowedMips = 1;			//FMath::Min(Texture->ResidentMips, Texture->RequestedMips);
 	MaxAllowedMips = MipCount;	//FMath::Max(Texture->ResidentMips, Texture->RequestedMips);
-	MaxAllowedOptimalMips = MaxAllowedMips;
 	STAT( MostResidentMips = FMath::Max(MostResidentMips, Texture->ResidentMips) );
 	float LastRenderTimeForTexture = Texture->GetLastRenderTimeForStreaming();
 	LastRenderTime = (FApp::GetCurrentTime() > LastRenderTimeForTexture) ? float( FApp::GetCurrentTime() - LastRenderTimeForTexture ) : 0.0f;
-	MinDistance = MAX_STREAMINGDISTANCE;
-	bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident() || (ForceLoadRefCount > 0);
+
+	bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident() || (bOnlyStreamIn && LastRenderTime < 300)
+		|| LODGroup == TEXTUREGROUP_Skybox || (LODGroup == TEXTUREGROUP_HierarchicalLOD && HLODStategy == 2);
+
 	TextureLODBias = Texture->GetCachedLODBias();
 	bInFlight = false;
 	bReadyForStreaming = IsStreamingTexture( Texture ) && IsReadyForStreaming( Texture );
 	NumCinematicMipLevels = Texture->bUseCinematicMipLevels ? Texture->NumCinematicMipLevels : 0;
 }
 
-ETextureStreamingType FStreamingTexture::GetStreamingType() const
+/** Set the wanted mips from the async task data */
+void FStreamingTexture::SetPerfectWantedMips(float MaxSize, float MaxSize_VisibleOnly, float MipBias)
 {
-	if ( bUsesForcedHeuristics || bForceFullyLoad )
+	const float HiddenScale = CVarStreamingHiddenPrimitiveScale.GetValueOnAnyThread();
+	const float MaxResolution = (float)(0x1 << (MaxAllowedMips - 1));
+	const float ExtraScale = GetStreamingScale();
+
+	// Do this now before clamping the resolutions.
+	bAsNeverStream = (MaxSize == FLT_MAX || MaxSize_VisibleOnly == FLT_MAX);
+
+	MaxSize_VisibleOnly = FMath::Clamp<float>(MaxSize_VisibleOnly * ExtraScale, 1.f, MaxResolution);
+	MaxSize = FMath::Clamp<float>(MaxSize * ExtraScale, MaxSize_VisibleOnly, MaxResolution) * HiddenScale;
+
+	int32 WantedMips_VisibleOnly = GetWantedMipsFromSize(MaxSize_VisibleOnly, MipBias);
+	int32 WantedMips_Any = GetWantedMipsFromSize(MaxSize, MipBias);
+
+	// Load visible mips first, then non visible mips.
+	if (WantedMips_Any > WantedMips_VisibleOnly && WantedMips_VisibleOnly <= ResidentMips)
 	{
-		return StreamType_Forced;
+		PerfectWantedMips = WantedMips = WantedMips_Any;
+		bIsVisibleWantedMips = false;
 	}
-	else if ( bUsesDynamicHeuristics )
+	else
 	{
-		return StreamType_Dynamic;
+		PerfectWantedMips = WantedMips = WantedMips_VisibleOnly;
+		bIsVisibleWantedMips = true;
 	}
-	else if ( bUsesStaticHeuristics )
-	{
-		return StreamType_Static;
-	}
-	else if ( bUsesOrphanedHeuristics )
-	{
-		return StreamType_Orphaned;
-	}
-	else if ( bUsesLastRenderHeuristics )
-	{
-		return StreamType_LastRenderTime;
-	}
-	return StreamType_Other;
 }
+
 
 bool FStreamingTexture::UpdateMipCount(  FStreamingManagerTexture& Manager, FStreamingContext& Context )
 {
@@ -155,8 +152,8 @@ bool FStreamingTexture::UpdateMipCount(  FStreamingManagerTexture& Manager, FStr
 				RequestedMips = WantedMips;
 				Texture->RequestedMips = RequestedMips;
 
-				Texture2DResource->BeginUpdateMipCount( bForceFullyLoad );
-				TrackTextureEvent( this, Texture, bForceFullyLoad, &Manager );
+				Texture2DResource->BeginUpdateMipCount( bAsNeverStream );
+				TrackTextureEvent( this, Texture, bAsNeverStream, &Manager );
 				return true;
 			}
 		}
@@ -173,9 +170,9 @@ float FStreamingTexture::CalcRetentionPriority( )
 {
 	const int32 WantedMipsForPriority = GetWantedMipsForPriority();
 
-	bool bMustKeep = LODGroup == TEXTUREGROUP_Terrain_Heightmap || bForceFullyLoad || WantedMipsForPriority <= MinAllowedMips;
+	bool bMustKeep = bAsNeverStream || WantedMipsForPriority <= MinAllowedMips || LODGroup == TEXTUREGROUP_Terrain_Heightmap;
 	bool bIsVisible = !GStreamWithTimeFactor || IsVisible();
-	bool bAlreadyLowRez = /*(PixelPerTexel > 1.5 && Distance > 1) ||*/ bIsHLODTexture || bIsLightmap;
+	bool bAlreadyLowRez = /*(PixelPerTexel > 1.5 && Distance > 1) ||*/ LODGroup == TEXTUREGROUP_HierarchicalLOD || bIsLightmap;
 		
 	// Don't consider dropping mips that give nothing. This is because streaming time has a high cost per texture.
 	// Dropping many textures for not so much memory would affect the time it takes the streamer to recover.
@@ -195,10 +192,10 @@ float FStreamingTexture::CalcLoadOrderPriority()
 {
 	const int32 WantedMipsForPriority = GetWantedMipsForPriority();
 
-	bool bMustLoadFirst = LODGroup == TEXTUREGROUP_Terrain_Heightmap || bForceFullyLoad;
+	bool bMustLoadFirst = bAsNeverStream || LODGroup == TEXTUREGROUP_Terrain_Heightmap;
 	bool bIsVisible = !GStreamWithTimeFactor || IsVisible();
 	bool bFarFromTargetMips = WantedMipsForPriority - ResidentMips > 2;
-	bool bBigOnScreen = WantedMipsForPriority > 9.f || bIsHLODTexture;
+	bool bBigOnScreen = WantedMipsForPriority > 9.f || LODGroup == TEXTUREGROUP_HierarchicalLOD;
 
 	float Priority = 0;
 	if (bMustLoadFirst)		Priority += 1024.f;
@@ -207,6 +204,27 @@ float FStreamingTexture::CalcLoadOrderPriority()
 	if (bFarFromTargetMips)		Priority += 128.f;
 	if (bBigOnScreen)			Priority += 64.f;
 	return Priority;
+}
+
+int32 FStreamingTexture::GetWantedMipsFromSize(float Size, float Bias) const
+{
+	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0;
+
+	float WantedMipsFloat = 1.0f + FMath::Log2(Size);
+	if (bCanBeAffectedByMipBias)
+	{
+		WantedMipsFloat -= Bias;
+	}
+
+	if (bUseNewMetrics && !bIsLightmap) // Lightmap have approximate logic already so don't apply a bias here.
+	{
+		// Allow a little threshold before going up on mip (so that 513 does not stream a 1024)
+		WantedMipsFloat -= .2f;
+	}
+
+	// Using the new metrics has very conservative distance computation. Rounding to mip here compensates.
+	int32 WantedMipsInt = FMath::CeilToInt(WantedMipsFloat - .01f);
+	return FMath::Clamp<int32>(WantedMipsInt, MinAllowedMips, MaxAllowedMips);
 }
 
 bool FStreamingTexture::IsReadyForStreaming( UTexture2D* Texture )

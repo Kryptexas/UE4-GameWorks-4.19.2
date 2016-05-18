@@ -225,6 +225,144 @@ void FParticleBeam2EmitterInstance::SetBeamTargetStrength(float NewTargetStrengt
 	UserSetTargetStrengthArray[TargetIndex] = NewTargetStrength;
 }
 
+/**
+*	Get the end point position
+*
+*	@param	OutEndPoint	Current end point position
+*
+*	@return	true		End point is set - OutEndPoint is valid
+*			false		End point is not set - OutEndPoint is invalid
+*/
+bool FParticleBeam2EmitterInstance::GetBeamEndPoint(FVector& OutEndPoint) const
+{
+	if (UserSetTargetArray.Num() < 1)
+	{
+		return false;
+	}
+	OutEndPoint = UserSetTargetArray[0];
+	return true;
+}
+
+/**
+*	Get the source point at the given index
+*
+*	@param	SourceIndex			The index of the source point
+*	@param	OutSourcePoint		Value of of source point
+*
+*	@return	true		SourceIndex is valid - OutSourcePoint is valid
+*			false		SourceIndex is invalid - OutSourcePoint is invalid
+*/
+bool FParticleBeam2EmitterInstance::GetBeamSourcePoint(int32 SourceIndex, FVector& OutSourcePoint) const
+{  
+	if (SourceIndex < 0 || (UserSetSourceArray.Num() < (SourceIndex + 1)))
+	{
+		return false;
+	}
+
+	OutSourcePoint = UserSetSourceArray[SourceIndex];
+	return true;
+}
+
+/**
+*	Get the source tangent at the given index
+*
+*	@param	SourceIndex			The index of the source point
+*	@param	OutSourceTangent	Value of of source tangent
+*
+*	@return	true		SourceIndex is valid - OutSourceTangent is valid
+*			false		SourceIndex is invalid - OutSourceTangent is invalid
+*/
+bool FParticleBeam2EmitterInstance::GetBeamSourceTangent(int32 SourceIndex, FVector& OutSourcePoint) const
+{
+	if (SourceIndex < 0 || (UserSetSourceTangentArray.Num() < (SourceIndex + 1)))
+	{
+		return false;
+	}
+
+	OutSourcePoint = UserSetSourceTangentArray[SourceIndex];
+	return true;
+}
+
+/**
+*	Get the source strength at the given index
+*
+*	@param	SourceIndex			The index of the source point
+*	@param	OutSourceStrength	Value of of source strength
+*
+*	@return	true		SourceIndex is valid - OutSourceStrength is valid
+*			false		SourceIndex is invalid - OutSourceStrength is invalid
+*/
+bool FParticleBeam2EmitterInstance::GetBeamSourceStrength(int32 SourceIndex, float& OutSourceStrength) const
+{
+	if (SourceIndex < 0 || (UserSetSourceStrengthArray.Num() < (SourceIndex + 1)))
+	{
+		return false;
+	}
+
+	OutSourceStrength = UserSetSourceStrengthArray[SourceIndex];
+	return true;
+}
+
+/**
+*	Get the target point at the given index
+*
+*	@param	TargetIndex			The index of the target point
+*	@param	OutTargetPoint		Value of of target point
+*
+*	@return	true		TargetIndex is valid - OutTargetPoint is valid
+*			false		TargetIndex is invalid - OutTargetPoint is invalid
+*/
+bool FParticleBeam2EmitterInstance::GetBeamTargetPoint(int32 TargetIndex, FVector& OutTargetPoint) const
+{
+	if (TargetIndex < 0 || (UserSetTargetArray.Num() < (TargetIndex + 1)))
+	{
+		return false;
+	}
+
+	OutTargetPoint = UserSetTargetArray[TargetIndex];
+	return true;
+}
+
+/**
+*	Get the target tangent at the given index
+*
+*	@param	TargetIndex			The index of the target point
+*	@param	OutTangentPoint		Value of of target tangent
+*
+*	@return	true		TargetIndex is valid - OutTangentPoint is valid
+*			false		TargetIndex is invalid - OutTangentPoint is invalid
+*/
+bool FParticleBeam2EmitterInstance::GetBeamTargetTangent(int32 TargetIndex, FVector& OutTangentPoint) const
+{
+	if (TargetIndex < 0 || (UserSetTargetTangentArray.Num() < (TargetIndex + 1)))
+	{
+		return false;
+	}
+
+	OutTangentPoint = UserSetTargetTangentArray[TargetIndex];
+	return true;
+}
+
+/**
+*	Get the target strength at the given index
+*
+*	@param	TargetIndex			The index of the target point
+*	@param	OutTargetStrength	Value of of target strength
+*
+*	@return	true		TargetIndex is valid - OutTargetStrength is valid
+*			false		TargetIndex is invalid - OutTargetStrength is invalid
+*/
+bool FParticleBeam2EmitterInstance::GetBeamTargetStrength(int32 TargetIndex, float& OutTargetStrength) const
+{
+	if (TargetIndex < 0 || (UserSetTargetStrengthArray.Num() < (TargetIndex + 1)))
+	{
+		return false;
+	}
+
+	OutTargetStrength = UserSetTargetStrengthArray[TargetIndex];
+	return true;
+}
+
 void FParticleBeam2EmitterInstance::ApplyWorldOffset(FVector InOffset, bool bWorldShift)
 {
 	FParticleEmitterInstance::ApplyWorldOffset(InOffset, bWorldShift);

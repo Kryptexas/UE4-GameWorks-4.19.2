@@ -18,6 +18,7 @@ Level.cpp: Level-related functions
 #include "BlueprintUtilities.h"
 #include "DynamicMeshBuilder.h"
 #include "Engine/LevelBounds.h"
+#include "RenderingObjectVersion.h"
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -281,57 +282,6 @@ void ULevel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 {
 	ULevel* This = CastChecked<ULevel>(InThis);
 
-	// List of textures to remove
-	TArray< UTexture2D*, TInlineAllocator<32> > TexturesToRemove;
-
-	// Let GC know that we're referencing some UTexture2D objects
-	for (auto& It : This->TextureToInstancesMap)
-	{
-		UTexture2D* Texture2D = It.Key;
-		Collector.AddReferencedObject(Texture2D, This);
-		if (!Texture2D)
-		{
-			// The texture has been probably marked as pending kill and has been removed by GC
-			// We need to remove it after we exit this loop.
-			TexturesToRemove.Add(It.Key);
-		}
-	}
-	for (UTexture2D* Texture : TexturesToRemove)
-	{
-		This->TextureToInstancesMap.Remove(Texture);
-	}
-	TexturesToRemove.Reset();
-
-	// Let GC know that we're referencing some UTexture2D objects
-	for( auto& It : This->DynamicTextureInstances )
-	{
-		UPrimitiveComponent* Primitive = It.Key.Get();
-		const TArray<FDynamicTextureInstance>& TextureInstances = It.Value;
-
-		for ( FDynamicTextureInstance& Instance : It.Value )
-		{
-			Collector.AddReferencedObject( Instance.Texture, This );
-		}
-	}
-
-	// Let GC know that we're referencing some UTexture2D objects
-	for (auto& It : This->ForceStreamTextures)
-	{
-		UTexture2D* Texture2D = It.Key;
-		Collector.AddReferencedObject(Texture2D, This);
-		if (!Texture2D)
-		{
-			// The texture has been probably marked as pending kill and has been removed by GC
-			// We need to remove it after we exit this loop.
-			TexturesToRemove.Add(It.Key);
-		}
-	}
-	for (UTexture2D* Texture : TexturesToRemove)
-	{
-		This->ForceStreamTextures.Remove(Texture);
-	}
-	TexturesToRemove.Reset();
-
 	// Let GC know that we're referencing some AActor objects
 	for (auto& Actor : This->Actors)
 	{
@@ -375,37 +325,18 @@ void ULevel::Serialize( FArchive& Ar )
 	if( !Ar.IsTransacting() )
 	{
 		Ar << LevelScriptActor;
+	}
 
-		if( ( Ar.IsLoading() && !FPlatformProperties::SupportsTextureStreaming() ) ||
-			( Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::TextureStreaming) ) )
-		{
-			// Strip for unsupported platforms
-			TMap< UTexture2D*, TArray< FStreamableTextureInstance > >		Dummy0;
-			TMap< UPrimitiveComponent*, TArray< FDynamicTextureInstance > >	Dummy1;
-			Ar << Dummy0;
-			Ar << Dummy1;
-		}
-		else
-		{
-			Ar << TextureToInstancesMap;
-			Ar << DynamicTextureInstances;
-		}
-
-		bool bIsCooked = Ar.IsCooking();
-		if (Ar.UE4Ver() >= VER_UE4_REBUILD_TEXTURE_STREAMING_DATA_ON_LOAD)
-		{
-			Ar << bIsCooked;
-		}
-		if (Ar.UE4Ver() < VER_UE4_REBUILD_TEXTURE_STREAMING_DATA_ON_LOAD)
-		{
-			bool bTextureStreamingBuiltDummy = bIsCooked;
-			Ar << bTextureStreamingBuiltDummy;
-		}
-		if (Ar.IsLoading())
-		{
-			// Always rebuild texture streaming data after loading
-			bTextureStreamingBuilt = false;
-		}
+	// Stop serializing deprecated classes with new versions
+	if ( Ar.IsLoading() && Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::RemovedTextureStreamingLevelData )
+	{
+		// Strip for unsupported platforms
+		TMap< UTexture2D*, TArray< FStreamableTextureInstance > >		Dummy0;
+		TMap< UPrimitiveComponent*, TArray< FDynamicTextureInstance > >	Dummy1;
+		bool Dummy2;
+		Ar << Dummy0;
+		Ar << Dummy1;
+		Ar << Dummy2;
 
 		//@todo legacy, useless
 		if (Ar.IsLoading())
@@ -426,16 +357,8 @@ void ULevel::Serialize( FArchive& Ar )
 			Ar << DummySetup;
 		}
 
-		if( ( Ar.IsLoading() && !FPlatformProperties::SupportsTextureStreaming() ) ||
-			( Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::TextureStreaming) ) )
-		{
-			TMap< UTexture2D*, bool > Dummy;
-			Ar << Dummy;
-		}
-		else
-		{
-			Ar << ForceStreamTextures;
-		}
+		TMap< UTexture2D*, bool > Dummy3;
+		Ar << Dummy3;
 	}
 
 	// Mark archive and package as containing a map if we're serializing to disk.
@@ -618,9 +541,6 @@ void ULevel::PostLoad()
 	{
 		SortActorList();
 	}
-
-	// Remove UTexture2D references that are NULL (missing texture).
-	ForceStreamTextures.Remove( NULL );
 
 	// Validate navigable geometry
 	if (Model == NULL || Model->NumUniqueVertices == 0)
@@ -1500,8 +1420,6 @@ void ULevel::BuildStreamingData(UWorld* World, ULevel* TargetLevel/*=NULL*/, UTe
 #if WITH_EDITORONLY_DATA
 	double StartTime = FPlatformTime::Seconds();
 
-	bool bUseDynamicStreaming = false;
-	GConfig->GetBool(TEXT("TextureStreaming"), TEXT("UseDynamicStreaming"), bUseDynamicStreaming, GEngineIni);
 
 	TArray<ULevel* > LevelsToCheck;
 	if ( TargetLevel )
@@ -1528,227 +1446,19 @@ void ULevel::BuildStreamingData(UWorld* World, ULevel* TargetLevel/*=NULL*/, UTe
 	for ( int32 LevelIndex=0; LevelIndex < LevelsToCheck.Num(); LevelIndex++ )
 	{
 		ULevel* Level = LevelsToCheck[LevelIndex];
-		Level->BuildStreamingData( UpdateSpecificTextureOnly );
+		if (!Level) continue;
+
+		if (Level->bIsVisible || Level->IsPersistentLevel())
+		{
+			IStreamingManager::Get().AddLevel(Level);
+		}
+		//@todo : handle UpdateSpecificTextureOnly
 	}
 
 	UE_LOG(LogLevel, Verbose, TEXT("ULevel::BuildStreamingData took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
 #else
 	UE_LOG(LogLevel, Fatal,TEXT("ULevel::BuildStreamingData should not be called on a console"));
 #endif
-}
-
-void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
-{
-	bool bUseDynamicStreaming = false;
-	GConfig->GetBool(TEXT("TextureStreaming"), TEXT("UseDynamicStreaming"), bUseDynamicStreaming, GEngineIni);
-
-	if ( UpdateSpecificTextureOnly == NULL )
-	{
-		// Reset the streaming manager, when building data for a whole Level
-		IStreamingManager::Get().RemoveLevel( this );
-		TextureToInstancesMap.Empty();
-		DynamicTextureInstances.Empty();
-		ForceStreamTextures.Empty();
-		bTextureStreamingBuilt = false;
-	}
-
-	TArray<UObject *> ObjectsInOuter;
-	GetObjectsWithOuter(this, ObjectsInOuter);
-
-	FStreamingTextureLevelContext LevelContext(this);
-
-	for( int32 Index = 0; Index < ObjectsInOuter.Num(); Index++ )
-	{
-		UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(ObjectsInOuter[Index]);
-		if (Primitive)
-		{
-			const bool bIsClassDefaultObject = Primitive->IsTemplate(RF_ClassDefaultObject);
-			if ( !bIsClassDefaultObject && Primitive->IsRegistered() )
-			{
-				const AActor* const Owner = Primitive->GetOwner();
-				const bool bIsStatic = Owner == NULL || Primitive->Mobility == EComponentMobility::Static || Primitive->Mobility == EComponentMobility::Stationary;
-
-				TArray<FStreamingTexturePrimitiveInfo> PrimitiveStreamingTextures;
-
-				// Ask the primitive to enumerate the streaming textures it uses.
-				Primitive->GetStreamingTextureInfoWithNULLRemoval(LevelContext, PrimitiveStreamingTextures);
-
-				for(int32 TextureIndex = 0;TextureIndex < PrimitiveStreamingTextures.Num();TextureIndex++)
-				{
-					const FStreamingTexturePrimitiveInfo& PrimitiveStreamingTexture = PrimitiveStreamingTextures[TextureIndex];
-					UTexture2D* Texture2D = Cast<UTexture2D>(PrimitiveStreamingTexture.Texture);
-					bool bCanBeStreamedByDistance = !FMath::IsNearlyZero(PrimitiveStreamingTexture.TexelFactor) && !FMath::IsNearlyZero(PrimitiveStreamingTexture.Bounds.SphereRadius);
-
-					// Only handle 2D textures that match the target texture.
-					const bool bIsTargetTexture = (!UpdateSpecificTextureOnly || UpdateSpecificTextureOnly == Texture2D);
-					bool bShouldHandleTexture = (Texture2D && bIsTargetTexture);
-
-					// Check if this is a lightmap/shadowmap that shouldn't be streamed.
-					if ( bShouldHandleTexture )
-					{
-						UShadowMapTexture2D* ShadowMap2D	= Cast<UShadowMapTexture2D>(Texture2D);
-						ULightMapTexture2D* Lightmap2D		= Cast<ULightMapTexture2D>(Texture2D);
-						if ( (Lightmap2D && (Lightmap2D->LightmapFlags & LMF_Streamed) == 0) ||
-							(ShadowMap2D && (ShadowMap2D->ShadowmapFlags & SMF_Streamed) == 0) )
-						{
-							bShouldHandleTexture			= false;
-						}
-					}
-
-					// Check if this is a duplicate texture
-					if (bShouldHandleTexture)
-					{
-						for (int32 HandledTextureIndex = 0; HandledTextureIndex < TextureIndex; HandledTextureIndex++)
-						{
-							const FStreamingTexturePrimitiveInfo& HandledStreamingTexture = PrimitiveStreamingTextures[HandledTextureIndex];
-							if ( PrimitiveStreamingTexture.Texture == HandledStreamingTexture.Texture &&
-								FMath::IsNearlyEqual(PrimitiveStreamingTexture.TexelFactor, HandledStreamingTexture.TexelFactor) &&
-								PrimitiveStreamingTexture.Bounds.GetSphere().Equals( HandledStreamingTexture.Bounds.GetSphere() ) )
-							{
-								// It's a duplicate, don't handle this one.
-								bShouldHandleTexture = false;
-								break;
-							}
-						}
-					}
-
-					if(bShouldHandleTexture)
-					{
-						// Is the primitive set to force its textures to be resident?
-						if ( Primitive->bForceMipStreaming )
-						{
-							// Add them to the ForceStreamTextures set.
-							ForceStreamTextures.Add(Texture2D,true);
-						}
-						// Is this texture used by a static object?
-						else if ( bIsStatic && bCanBeStreamedByDistance )
-						{
-							// Texture instance information.
-							FStreamableTextureInstance TextureInstance;
-							TextureInstance.Bounds = PrimitiveStreamingTexture.Bounds;
-							TextureInstance.TexelFactor = PrimitiveStreamingTexture.TexelFactor;
-
-							// HLOD support.
-							TextureInstance.MinDistance = Primitive->MinDrawDistance;
-							const UPrimitiveComponent* LODParentPrimitive = Primitive->GetLODParentPrimitive();
-							if (LODParentPrimitive) // Max distance when HLOD becomes visible.
-							{
-								TextureInstance.MaxDistance = LODParentPrimitive->MinDrawDistance;
-								// Taken into account the streaming distance offsets.
-								TextureInstance.MaxDistance += (Primitive->Bounds.Origin - LODParentPrimitive->Bounds.Origin).Size();
-							}
-							else
-							{
-								TextureInstance.MaxDistance = FLT_MAX;
-							}
-
-							// See whether there already is an instance in the level.
-							TArray<FStreamableTextureInstance>* TextureInstances = TextureToInstancesMap.Find( Texture2D );
-							// We have existing instances.
-							if( TextureInstances )
-							{
-								// Add to the array.
-								TextureInstances->Add( TextureInstance );
-							}
-							// This is the first instance.
-							else
-							{
-								// Create array with current instance as the only entry.
-								TArray<FStreamableTextureInstance> NewTextureInstances;
-								NewTextureInstances.Add( TextureInstance );
-								// And set it.
-								TextureToInstancesMap.Add( Texture2D, NewTextureInstances );
-							}
-						}
-						// Is the texture used by a dynamic object that we can track at run-time.
-						else if ( bUseDynamicStreaming && Owner && bCanBeStreamedByDistance )
-						{
-							// Texture instance information.
-							FDynamicTextureInstance TextureInstance;
-							TextureInstance.Texture = Texture2D;
-							TextureInstance.Bounds = PrimitiveStreamingTexture.Bounds;
-							TextureInstance.TexelFactor	= PrimitiveStreamingTexture.TexelFactor;
-							TextureInstance.OriginalRadius = PrimitiveStreamingTexture.Bounds.SphereRadius;
-
-							// See whether there already is an instance in the level.
-							TArray<FDynamicTextureInstance>* TextureInstances = DynamicTextureInstances.Find( Primitive );
-							// We have existing instances.
-							if( TextureInstances )
-							{
-								// Add to the array.
-								TextureInstances->Add( TextureInstance );
-							}
-							// This is the first instance.
-							else
-							{
-								// Create array with current instance as the only entry.
-								TArray<FDynamicTextureInstance> NewTextureInstances;
-								NewTextureInstances.Add( TextureInstance );
-								// And set it.
-								DynamicTextureInstances.Add( Primitive, NewTextureInstances );
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if ( UpdateSpecificTextureOnly == NULL )
-	{
-		// Normalize the texelfactor for lightmaps and shadowmaps
-		NormalizeLightmapTexelFactor();
-
-		bTextureStreamingBuilt = true;
-
-		// Update the streaming manager.
-		IStreamingManager::Get().AddPreparedLevel( this );
-	}
-}
-
-
-void ULevel::NormalizeLightmapTexelFactor()
-{
-	for ( TMap<UTexture2D*,TArray<FStreamableTextureInstance> >::TIterator It(TextureToInstancesMap); It; ++It )
-	{
-		UTexture2D* Texture2D = It.Key();
-		if ( Texture2D->LODGroup == TEXTUREGROUP_Lightmap || Texture2D->LODGroup == TEXTUREGROUP_Shadowmap)
-		{
-			TArray<FStreamableTextureInstance>& TextureInstances = It.Value();
-
-			// Clamp texelfactors to 20-80% range.
-			// This is to prevent very low-res or high-res charts to dominate otherwise decent streaming.
-			struct FCompareTexelFactor
-			{
-				FORCEINLINE bool operator()( const FStreamableTextureInstance& A, const FStreamableTextureInstance& B ) const
-				{
-					return A.TexelFactor < B.TexelFactor;
-				}
-			};
-			TextureInstances.Sort( FCompareTexelFactor() );
-
-			float MinTexelFactor = TextureInstances[ TextureInstances.Num() * 0.2f ].TexelFactor;
-			float MaxTexelFactor = TextureInstances[ TextureInstances.Num() * 0.8f ].TexelFactor;
-			for ( int32 InstanceIndex=0; InstanceIndex < TextureInstances.Num(); ++InstanceIndex )
-			{
-				FStreamableTextureInstance& Instance = TextureInstances[InstanceIndex];
-				Instance.TexelFactor = FMath::Clamp( Instance.TexelFactor, MinTexelFactor, MaxTexelFactor );
-			}
-		}
-	}
-}
-
-TArray<FStreamableTextureInstance>* ULevel::GetStreamableTextureInstances(UTexture2D*& TargetTexture)
-{
-	typedef TArray<FStreamableTextureInstance>	STIA_Type;
-	for (TMap<UTexture2D*,STIA_Type>::TIterator It(TextureToInstancesMap); It; ++It)
-	{
-		TArray<FStreamableTextureInstance>& TSIA = It.Value();
-		TargetTexture = It.Key();
-		return &TSIA;
-	}		
-
-	return NULL;
 }
 
 ABrush* ULevel::GetBrush() const
@@ -2073,23 +1783,12 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset);
 
-	if (bTextureStreamingBuilt && !InWorldOffset.IsZero())
+	if (!InWorldOffset.IsZero())
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset_TextureStreaming);
-		// Update texture streaming data to account for the move
-		for (TMap< UTexture2D*, TArray<FStreamableTextureInstance> >::TIterator It(TextureToInstancesMap); It; ++It)
-		{
-			TArray<FStreamableTextureInstance>& TextureInfo = It.Value();
-			for (int32 i = 0; i < TextureInfo.Num(); i++)
-			{
-				TextureInfo[i].Bounds.Origin += InWorldOffset;
-			}
-		}
-
 		// Re-add level data to a manager, in case level is visible it this point
 		if (bIsVisible)
 		{
-			IStreamingManager::Get().AddPreparedLevel( this );
+			IStreamingManager::Get().AddLevel( this );
 		}
 	}
 

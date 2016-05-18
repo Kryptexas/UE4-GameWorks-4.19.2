@@ -3138,7 +3138,7 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 
 void UParticleSystemComponent::SetRequiredSignificance(EParticleSignificanceLevel NewRequiredSignificance)
 {
-	if (ensure(Template))
+	if (Template)
 	{
 		RequiredSignificance = NewRequiredSignificance;
 
@@ -3643,6 +3643,9 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 	check( EmitterReplayData != NULL );
 
 	FScopeCycleCounterEmitter AdditionalScope(EmitterInstance);
+#if WITH_EDITOR
+	uint32 StartTime = FPlatformTime::Cycles();
+#endif
 
 	// Allocate the appropriate type of emitter data
 	FDynamicEmitterDataBase* EmitterData = NULL;
@@ -3754,6 +3757,12 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 		EmitterData->StatID = EmitterInstance->SpriteTemplate->GetStatID();
 	}
 #endif
+
+#if WITH_EDITOR
+	uint32 EndTime = FPlatformTime::Cycles();
+	EmitterInstance->LastTickDurationMs += FPlatformTime::ToMilliseconds(EndTime - StartTime);
+#endif
+
 	return EmitterData;
 }
 
@@ -3897,6 +3906,9 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData(ERHIFeatureLev
 				if (EmitterInst)
 				{
 					FScopeCycleCounterEmitter AdditionalScope(EmitterInst);
+#if WITH_EDITOR
+					uint32 StartTime = FPlatformTime::Cycles();
+#endif
 
 					// Generate the dynamic data for this emitter
 					{
@@ -3945,6 +3957,10 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData(ERHIFeatureLev
 							NewEmitterReplayFrame->FrameState = NewEmitterReplayData;
 						}
 					}
+#if WITH_EDITOR
+					uint32 EndTime = FPlatformTime::Cycles();
+					EmitterInst->LastTickDurationMs += FPlatformTime::ToMilliseconds(EndTime - StartTime);
+#endif
 				}
 			}
 		}
@@ -4475,6 +4491,17 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	PlayerLocations.Reset();
 	PlayerLODDistanceFactor.Reset();
 
+#if WITH_EDITOR
+	// clear tick timers
+	for (auto Instance : EmitterInstances)
+	{
+		if (Instance)
+		{
+			Instance->LastTickDurationMs = 0.0f;
+		}
+	}
+#endif
+
 	if (World->IsGameWorld())
 	{
 		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
@@ -4605,6 +4632,9 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 	{
 		FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
 		FScopeCycleCounterEmitter AdditionalScopeInner(Instance);
+#if WITH_EDITOR
+		uint32 StartTime = FPlatformTime::Cycles();
+#endif
 
 		if (EmitterIndex + 1 < EmitterInstances.Num())
 		{
@@ -4658,6 +4688,11 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 				}
 				TotalActiveParticles += Instance->ActiveParticles;
 			}
+
+#if WITH_EDITOR
+			uint32 EndTime = FPlatformTime::Cycles();
+			Instance->LastTickDurationMs += FPlatformTime::ToMilliseconds(EndTime - StartTime);
+#endif
 		}
 	}
 	if (bAsyncWorkOutstanding)
@@ -5180,7 +5215,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 	// System settings may have been lowered. Support late deactivation.
 	const bool bDetailModeAllowsRendering = DetailMode <= GetCurrentDetailMode();
 
-	if( GIsAllowingParticles && bDetailModeAllowsRendering )
+	if( GIsAllowingParticles && bDetailModeAllowsRendering && Template )
 	{
 		// Auto attach if requested
 		const bool bWasAutoAttached = bDidAutoAttach;
@@ -5326,6 +5361,12 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 			WarmupTime = 0.0f;
 			bSkipUpdateDynamicDataDuringTick = bSaveSkipUpdate;
 		}
+
+		//We are definitely insignificant already so set insignificant before we ever begin ticking.
+		if (bIsManagingSignificance && Template->GetHighestSignificance() < RequiredSignificance && Template->InsignificanceDelay == 0.0f)
+		{
+			OnSignificanceChanged(false, true);
+		}
 	}
 
 	// Mark render state dirty to ensure the scene proxy is added and registered with the scene.
@@ -5334,12 +5375,6 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 	if(!bWasDeactivated && !bWasCompleted && ensure(GetWorld()))
 	{
 		LastRenderTime = GetWorld()->GetTimeSeconds();
-	}
-
-	//We are definitely insignificant already so set insignificant before we ever begin ticking.
-	if (bIsManagingSignificance && Template->GetHighestSignificance() < RequiredSignificance && Template->InsignificanceDelay == 0.0f)
-	{
-		OnSignificanceChanged(false, true);
 	}
 }
 
@@ -5997,6 +6032,103 @@ void UParticleSystemComponent::SetBeamTargetStrength(int32 EmitterIndex,float Ne
 			EmitterInst->SetBeamTargetStrength(NewTargetStrength, TargetIndex);
 		}
 	}
+}
+
+bool UParticleSystemComponent::GetBeamEndPoint(int32 EmitterIndex, FVector& OutSourcePoint) const
+{
+	if ((EmitterIndex >= 0) && (EmitterIndex < EmitterInstances.Num()))
+	{
+		FParticleEmitterInstance* EmitterInst = EmitterInstances[EmitterIndex];
+		if (EmitterInst)
+		{
+			return EmitterInst->GetBeamEndPoint(OutSourcePoint);
+		}
+	}
+
+	return false;
+}
+
+bool UParticleSystemComponent::GetBeamSourcePoint(int32 EmitterIndex, int32 SourceIndex, FVector& OutSourcePoint) const
+{
+	if ((EmitterIndex >= 0) && (EmitterIndex < EmitterInstances.Num()))
+	{
+		FParticleEmitterInstance* EmitterInst = EmitterInstances[EmitterIndex];
+		if (EmitterInst)
+		{
+			return EmitterInst->GetBeamSourcePoint(SourceIndex, OutSourcePoint);
+		}
+	}
+
+	return false;
+}
+
+bool UParticleSystemComponent::GetBeamSourceTangent(int32 EmitterIndex, int32 SourceIndex, FVector& OutSourcePoint) const
+{
+	if ((EmitterIndex >= 0) && (EmitterIndex < EmitterInstances.Num()))
+	{
+		FParticleEmitterInstance* EmitterInst = EmitterInstances[EmitterIndex];
+		if (EmitterInst)
+		{
+			return EmitterInst->GetBeamSourceTangent(SourceIndex, OutSourcePoint);
+		}
+	}
+
+	return false;
+}
+
+bool UParticleSystemComponent::GetBeamSourceStrength(int32 EmitterIndex, int32 SourceIndex, float& OutSourceStrength) const
+{
+	if ((EmitterIndex >= 0) && (EmitterIndex < EmitterInstances.Num()))
+	{
+		FParticleEmitterInstance* EmitterInst = EmitterInstances[EmitterIndex];
+		if (EmitterInst)
+		{
+			return EmitterInst->GetBeamSourceStrength(SourceIndex, OutSourceStrength);
+		}
+	}
+
+	return false;
+}
+bool UParticleSystemComponent::GetBeamTargetPoint(int32 EmitterIndex, int32 TargetIndex, FVector& OutTargetPoint) const
+{
+	if ((EmitterIndex >= 0) && (EmitterIndex < EmitterInstances.Num()))
+	{
+		FParticleEmitterInstance* EmitterInst = EmitterInstances[EmitterIndex];
+		if (EmitterInst)
+		{
+			return EmitterInst->GetBeamTargetPoint(TargetIndex, OutTargetPoint);
+		}
+	}
+
+	return false;
+}
+
+bool UParticleSystemComponent::GetBeamTargetTangent(int32 EmitterIndex, int32 TargetIndex, FVector& OutTangentPoint) const
+{
+	if ((EmitterIndex >= 0) && (EmitterIndex < EmitterInstances.Num()))
+	{
+		FParticleEmitterInstance* EmitterInst = EmitterInstances[EmitterIndex];
+		if (EmitterInst)
+		{
+			return EmitterInst->GetBeamTargetTangent(TargetIndex, OutTangentPoint);
+		}
+	}
+
+	return false;
+}
+
+bool UParticleSystemComponent::GetBeamTargetStrength(int32 EmitterIndex, int32 TargetIndex, float& OutTargetStrength) const
+{
+	if ((EmitterIndex >= 0) && (EmitterIndex < EmitterInstances.Num()))
+	{
+		FParticleEmitterInstance* EmitterInst = EmitterInstances[EmitterIndex];
+		if (EmitterInst)
+		{
+			return EmitterInst->GetBeamTargetStrength(TargetIndex, OutTargetStrength);
+		}
+	}
+
+	return false;
 }
 
 

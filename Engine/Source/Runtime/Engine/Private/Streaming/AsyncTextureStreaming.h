@@ -8,16 +8,46 @@ AsyncTextureStreaming.h: Definitions of classes used for texture streaming async
 
 #include "StreamingManagerTexture.h"
 
+
+/** Thread-safe helper struct for streaming information. */
+class FAsyncTextureStreamingData
+{
+public:
+
+	/** Set the data but do as little as possible, called from the game thread. */
+	void Init(TArray<FStreamingViewInfo> InViewInfos, TArray<FLevelTextureManager>& LevelTextureManagers, FDynamicComponentTextureManager& DynamicComponentManager);
+
+	/** Update everything internally so to allow calls to CalcWantedMips */
+	void Update_Async();
+
+	uint32 GetAllocatedSize() const { return ViewInfos.GetAllocatedSize() + StaticInstancesViews.GetAllocatedSize(); }
+
+	FORCEINLINE const FTextureInstanceAsyncView& GetDynamicInstancesView() const { return DynamicInstancesView; }
+	FORCEINLINE const TArray<FTextureInstanceAsyncView>& GetStaticInstancesViews() const { return StaticInstancesViews; }
+	FORCEINLINE const TArray<FStreamingViewInfo>& GetViewInfos() const { return ViewInfos; }
+
+private:
+
+	/** Cached from FStreamingManagerBase. */
+	TArray<FStreamingViewInfo> ViewInfos;
+	
+	FTextureInstanceAsyncView DynamicInstancesView;
+
+	/** Cached from each ULevel. */
+	TArray<FTextureInstanceAsyncView> StaticInstancesViews;
+};
+
+
 /*-----------------------------------------------------------------------------
 	Asynchronous texture streaming.
 -----------------------------------------------------------------------------*/
 
 /** Async work class for calculating priorities for all textures. */
 // this could implement a better abandon, but give how it is used, it does that anyway via the abort mechanism
-class FAsyncTextureStreaming : public FNonAbandonableTask
+class FAsyncTextureStreamingTask : public FNonAbandonableTask
 {
 public:
-	FAsyncTextureStreaming( FStreamingManagerTexture* InStreamingManager )
+	FAsyncTextureStreamingTask( FStreamingManagerTexture* InStreamingManager )
 	:	StreamingManager( *InStreamingManager )
 	,	ThreadContext( false, NULL, false )
 	,	bAbort( false )
@@ -118,14 +148,16 @@ public:
 		return ThreadStats;
 	}
 
+	FAsyncTextureStreamingData StreamingData;
+
 private:
-	friend class FAsyncTask<FAsyncTextureStreaming>;
+	friend class FAsyncTask<FAsyncTextureStreamingTask>;
 	/** Performs the async work. */
 	void DoWork();
 
 	FORCEINLINE TStatId GetStatId() const
 	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncTextureStreaming, STATGROUP_ThreadPoolAsyncTasks);
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncTextureStreamingTask, STATGROUP_ThreadPoolAsyncTasks);
 	}
 
 	/** Reference to the owning streaming manager, for accessing the thread-safe data. */

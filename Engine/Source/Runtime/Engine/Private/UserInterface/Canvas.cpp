@@ -219,6 +219,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyCon
 ,	CurrentDeltaWorldTime(0)
 ,	FeatureLevel(InFeatureLevel)
 ,	StereoDepth(150)
+,	DrawMode(CDM_DeferDrawing)
 {
 	Construct();
 
@@ -230,7 +231,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget, FHitProxyConsumer* InHitProxyCon
 	}
 }
 
-FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel)
+FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyConsumer, float InRealTime, float InWorldTime, float InWorldDeltaTime, ERHIFeatureLevel::Type InFeatureLevel, ECanvasDrawMode InDrawMode)
 :	ViewRect(0,0,0,0)
 ,	RenderTarget(InRenderTarget)
 ,	HitProxyConsumer(InHitProxyConsumer)
@@ -241,6 +242,7 @@ FCanvas::FCanvas(FRenderTarget* InRenderTarget,FHitProxyConsumer* InHitProxyCons
 ,	CurrentDeltaWorldTime(InWorldDeltaTime)
 ,	FeatureLevel(InFeatureLevel)
 ,	StereoDepth(150)
+,	DrawMode(InDrawMode)
 {
 	Construct();
 }
@@ -757,8 +759,6 @@ void FCanvas::Flush_GameThread(bool bForce)
 		CanvasFlushSetupCommand,
 		FCanvasFlushParameters,Parameters,FlushParameters,
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush);
-
 		// Set the RHI render target.
 		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
 		// disable depth test & writes
@@ -1792,6 +1792,11 @@ void FCanvas::DrawItem(FCanvasItem& Item)
 	{
 		Item.Draw(this);
 	}
+
+	if (DrawMode == CDM_ImmediateDrawing)
+	{
+		Flush_GameThread();
+	}
 }
 
 void FCanvas::DrawItem(FCanvasItem& Item, const FVector2D& InPosition)
@@ -1813,6 +1818,11 @@ void FCanvas::DrawItem(FCanvasItem& Item, const FVector2D& InPosition)
 	{
 		Item.Draw(this , InPosition);
 	}
+
+	if (DrawMode == CDM_ImmediateDrawing)
+	{
+		Flush_GameThread();
+	}
 }
 
 void FCanvas::DrawItem(FCanvasItem& Item, float X, float Y)
@@ -1833,6 +1843,11 @@ void FCanvas::DrawItem(FCanvasItem& Item, float X, float Y)
 	else
 	{
 		Item.Draw(this, X, Y);
+	}
+
+	if (DrawMode == CDM_ImmediateDrawing)
+	{
+		Flush_GameThread();
 	}
 }
 

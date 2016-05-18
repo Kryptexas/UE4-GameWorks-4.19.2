@@ -411,10 +411,6 @@ void Main(
 
 	#if !MATERIAL_SHADINGMODEL_UNLIT
 		half Shadow = GetPrimaryPrecomputedShadowMask(Interpolants).r;
-
-		#if SIMPLE_DYNAMIC_LIGHTING
-			Shadow = PrecomputedLightingBuffer.DirectionalLightShadowing;
-		#endif
 			
 		#if DIRECTIONAL_LIGHT_CSM
 		// Cascaded Shadow Map

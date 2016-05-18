@@ -1883,10 +1883,8 @@ bool UParticleModuleBeamSource::ResolveSourceData(FParticleBeam2EmitterInstance*
 					if (BeamInst->SourceEmitter)
 					{
 						FVector CalcSourcePosition;
-						FVector CalcSourceTangent;
 
-						static int32 SourceIndex = -1;
-						static int32 LastSelectedParticleIndex = -1;
+						int32 SourceIndex = LastSelectedParticleIndex;
 
 						if (BeamInst->SourceEmitter && BeamInst->SourceEmitter->ParticleIndices)
 						{
@@ -1905,7 +1903,7 @@ bool UParticleModuleBeamSource::ResolveSourceData(FParticleBeam2EmitterInstance*
 								int32 Index = 0;
 								// TODO: add selection method and random selection
 								/*
-								switch (SourceModule->SelectionMethod)
+								switch (SelectionMethod)
 								{
 								case EPSSM_Random:
 								{
@@ -1955,14 +1953,12 @@ bool UParticleModuleBeamSource::ResolveSourceData(FParticleBeam2EmitterInstance*
 								else
 								{
 									CalcSourcePosition = SourceParticle->Location + WorldOrigin;
-									CalcSourceTangent = SourceParticle->Location - SourceParticle->OldLocation;
 								}
 							}
 							else
 							{
 								// Fall back to the emitter location??
 								CalcSourcePosition = Comp->GetComponentLocation();
-								CalcSourceTangent = Comp->PartSysVelocity;
 								//@todo. How to handle this... can potentially cause a jump from the emitter to the
 								// particle...
 								SourceIndex = -1;//No valid particle source;
@@ -1971,7 +1967,6 @@ bool UParticleModuleBeamSource::ResolveSourceData(FParticleBeam2EmitterInstance*
 
 						//@todo. fill this in correctly...
 						BeamData->SourcePoint = CalcSourcePosition; 
-						BeamData->SourceTangent = CalcSourceTangent;
 						bSetSource = true;
 					}
 				}
@@ -2354,10 +2349,8 @@ bool UParticleModuleBeamTarget::ResolveTargetData(FParticleBeam2EmitterInstance*
 					if (BeamInst->TargetEmitter)
 					{
 						FVector LocalTargetPosition;
-						FVector LocalTargetTangent;
 
-						static int32 TargetIndex = -1;
-						static int32 LastSelectedParticleIndex = -1;
+						int32 TargetIndex = LastSelectedParticleIndex;
 
 						if (BeamInst->TargetEmitter && BeamInst->TargetEmitter->ParticleIndices)
 						{
@@ -2426,14 +2419,12 @@ bool UParticleModuleBeamTarget::ResolveTargetData(FParticleBeam2EmitterInstance*
 								else
 								{
 									LocalTargetPosition = TargetParticle->Location + WorldOrigin;
-									LocalTargetTangent = TargetParticle->Location - TargetParticle->OldLocation;
 								}
 							}
 							else
 							{
 								// Fall back to the emitter location??
 								LocalTargetPosition = BeamInst->TargetEmitter->Component->GetComponentLocation();
-								LocalTargetTangent = BeamInst->TargetEmitter->Component->PartSysVelocity;
 								//@todo. How to handle this... can potentially cause a jump from the emitter to the
 								// particle...
 								TargetIndex = -1;//No valid particle Target;
@@ -2441,7 +2432,6 @@ bool UParticleModuleBeamTarget::ResolveTargetData(FParticleBeam2EmitterInstance*
 
 							//@todo. fill this in correctly...
 							BeamData->TargetPoint = LocalTargetPosition; //BeamInst->TargetEmitter->Component->GetComponentLocation();
-							BeamData->TargetTangent = LocalTargetTangent;
 							bSetTarget = true;
 						}
 					}

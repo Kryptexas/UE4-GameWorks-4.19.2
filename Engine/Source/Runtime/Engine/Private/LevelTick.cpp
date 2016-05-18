@@ -1046,6 +1046,35 @@ static FAutoConsoleVariableRef CVarTimeBetweenPurgingPendingKillObjects(
 
 #include "GameFramework/SpawnActorTimer.h"
 
+TDrawEvent<FRHICommandList>* BeginTickDrawEvent()
+{
+	TDrawEvent<FRHICommandList>* TickDrawEvent = new TDrawEvent<FRHICommandList>();
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		BeginDrawEventCommand,
+		TDrawEvent<FRHICommandList>*,TickDrawEvent,TickDrawEvent,
+	{
+		BEGIN_DRAW_EVENTF(
+			RHICmdList, 
+			WorldTick, 
+			(*TickDrawEvent),
+			TEXT("WorldTick"));
+	});
+
+	return TickDrawEvent;
+}
+
+void EndTickDrawEvent(TDrawEvent<FRHICommandList>* TickDrawEvent)
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		EndDrawEventCommand,
+		TDrawEvent<FRHICommandList>*,TickDrawEvent,TickDrawEvent,
+	{
+		STOP_DRAW_EVENT((*TickDrawEvent));
+		delete TickDrawEvent;
+	});
+}
+
 /**
  * Update the level after a variable amount of time, DeltaSeconds, has passed.
  * All child actors are ticked after their owners have been ticked.
@@ -1056,6 +1085,8 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		return;
 	}
+
+	TDrawEvent<FRHICommandList>* TickDrawEvent = BeginTickDrawEvent();
 
 	FWorldDelegates::OnWorldTickStart.Broadcast(TickType, DeltaSeconds);
 
@@ -1481,6 +1512,8 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		}
 	}
 	);
+
+	EndTickDrawEvent(TickDrawEvent);
 }
 
 /**

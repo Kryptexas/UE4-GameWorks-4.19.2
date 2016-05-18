@@ -744,7 +744,9 @@ void UStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext
 		const ERHIFeatureLevel::Type FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
 		const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
 
-		LevelContext.BindComponent(bUseNewMetrics ? &StreamingTextureData : nullptr, Bounds, WorldTexelFactor, FMath::Max(0.0f, StreamingDistanceMultiplier));
+		const float MeshExtraScale = FMath::Max(0.0f, StaticMesh->StreamingDistanceMultiplier);
+		const float PrimitiveExtraScale = FMath::Max(0.0f, StreamingDistanceMultiplier);
+		LevelContext.BindComponent(bUseNewMetrics ? &StreamingTextureData : nullptr, Bounds, MeshExtraScale * PrimitiveExtraScale, WorldTexelFactor * PrimitiveExtraScale);
 
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{

@@ -351,20 +351,37 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 			VET_Float3
 			);
 
+		uint32 TangentXOffset = 0;
+		uint32 TangetnZOffset = 0;
+		uint32 UVsBaseOffset = 0;
+
+		SELECT_STATIC_MESH_VERTEX_TYPE(
+			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis(),
+			RenderData->VertexBuffer.GetUseFullPrecisionUVs(),
+			RenderData->VertexBuffer.GetNumTexCoords(),
+			{
+				TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
+				TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
+				UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
+			});
+
 		Data.TangentBasisComponents[0] = FVertexStreamComponent(
 			&RenderData->VertexBuffer,
-			STRUCT_OFFSET(FStaticMeshFullVertex, RawTangentX),
+			TangentXOffset,
 			RenderData->VertexBuffer.GetStride(),
-			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis() ? VET_URGB10A2N : VET_PackedNormal
+			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis() ?
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
 			);
 
 		Data.TangentBasisComponents[1] = FVertexStreamComponent(
 			&RenderData->VertexBuffer,
-			STRUCT_OFFSET(FStaticMeshFullVertex, TangentZ),
+			TangetnZOffset,
 			RenderData->VertexBuffer.GetStride(),
-			VET_UShort2N
+			RenderData->VertexBuffer.GetUseHighPrecisionTangentBasis() ?
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+				TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
 			);
-
 
 		if( RenderData->ColorVertexBuffer.GetNumVertices() > 0 )
 		{
@@ -377,73 +394,48 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 		}
 
 		Data.TextureCoordinates.Empty();
+
+		uint32 UVSizeInBytes = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
+			sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>::UVsTypeT) : sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::Default>::UVsTypeT);
+
+		EVertexElementType UVDoubleWideVertexElementType = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
+			VET_Float4 : VET_Half4;
+
+		EVertexElementType UVVertexElementType = RenderData->VertexBuffer.GetUseFullPrecisionUVs() ?
+			VET_Float2 : VET_Half2;
+
 		// Only bind InstancedStaticMeshMaxTexCoord, even if the mesh has more.
 		int32 NumTexCoords = FMath::Min<int32>((int32)RenderData->VertexBuffer.GetNumTexCoords(), InstancedStaticMeshMaxTexCoord);
-		if( !RenderData->VertexBuffer.GetUseFullPrecisionUVs() )
-		{
-			int32 UVIndex;
-			for (UVIndex = 0; UVIndex < NumTexCoords - 1; UVIndex += 2)
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Half4
-					));
-			}
-			// possible last UV channel if we have an odd number
-			if( UVIndex < NumTexCoords )
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2DHalf) * UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Half2
-					));
-			}
 
-			if (Parent->LightMapCoordinateIndex >= 0 && Parent->LightMapCoordinateIndex < NumTexCoords)
-			{
-				Data.LightMapCoordinateComponent = FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* Parent->LightMapCoordinateIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Half2
-					);
-			}
+		int32 UVIndex;
+		for (UVIndex = 0; UVIndex < NumTexCoords - 1; UVIndex += 2)
+		{
+			Data.TextureCoordinates.Add(FVertexStreamComponent(
+				&RenderData->VertexBuffer,
+				UVsBaseOffset + UVSizeInBytes * UVIndex,
+				RenderData->VertexBuffer.GetStride(),
+				UVDoubleWideVertexElementType
+				));
 		}
-		else
+		// possible last UV channel if we have an odd number
+		if( UVIndex < NumTexCoords )
 		{
-			int32 UVIndex;
-			for (UVIndex = 0; UVIndex < NumTexCoords - 1; UVIndex += 2)
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D)* UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Float4
-					));
-			}
-			// possible last UV channel if we have an odd number
-			if (UVIndex < NumTexCoords)
-			{
-				Data.TextureCoordinates.Add(FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2D) * UVIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Float2
-					));
-			}
+			Data.TextureCoordinates.Add(FVertexStreamComponent(
+				&RenderData->VertexBuffer,
+				UVsBaseOffset + UVSizeInBytes * UVIndex,
+				RenderData->VertexBuffer.GetStride(),
+				UVVertexElementType
+				));
+		}
 
-			if (Parent->LightMapCoordinateIndex >= 0 && Parent->LightMapCoordinateIndex < NumTexCoords)
-			{
-				Data.LightMapCoordinateComponent = FVertexStreamComponent(
-					&RenderData->VertexBuffer,
-					STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<InstancedStaticMeshMaxTexCoord>, UVs) + sizeof(FVector2D)* Parent->LightMapCoordinateIndex,
-					RenderData->VertexBuffer.GetStride(),
-					VET_Float2
-					);
-			}
+		if (Parent->LightMapCoordinateIndex >= 0 && Parent->LightMapCoordinateIndex < NumTexCoords)
+		{
+			Data.LightMapCoordinateComponent = FVertexStreamComponent(
+				&RenderData->VertexBuffer,
+				UVsBaseOffset + UVSizeInBytes * Parent->LightMapCoordinateIndex,
+				RenderData->VertexBuffer.GetStride(),
+				UVVertexElementType
+				);
 		}
 
 		if (bInstanced)

@@ -466,6 +466,11 @@ public:
 				Errorf(TEXT("Post process materials must use unlit."));
 			}
 
+			if (Material->AllowNegativeEmissiveColor() && MaterialShadingModel != MSM_Unlit)
+			{
+				Errorf(TEXT("Only unlit materials can output negative emissive color."));
+			}
+
 			if (MaterialCompilationOutput.bNeedsSceneTextures)
 			{
 				if (Domain != MD_DeferredDecal && Domain != MD_PostProcess)
@@ -3747,6 +3752,11 @@ protected:
 						CodeStr = TEXT("<A>");
 					}
 				}
+				else if (DestCoordBasis == MCB_MeshParticle)
+				{
+					CodeStr = TEXT("mul(<A>, <MATRIX>(Parameters.Particle.LocalToWorld))");
+				}
+
 				// else use MCB_TranslatedWorld as intermediary basis
 				IntermediaryBasis = MCB_TranslatedWorld;
 				break;
@@ -3769,6 +3779,18 @@ protected:
 				}
 				// else use MCB_TranslatedWorld as intermediary basis
 				IntermediaryBasis = MCB_TranslatedWorld;
+				break;
+			}
+			case MCB_MeshParticle:
+			{
+				if (DestCoordBasis == MCB_World)
+				{
+					CodeStr = TEXT("mul(<MATRIX>(Parameters.Particle.LocalToWorld), <A>)");
+				}
+				else
+				{
+					return Errorf(TEXT("Can transform only to world space from particle space"));
+				}
 				break;
 			}
 			default:

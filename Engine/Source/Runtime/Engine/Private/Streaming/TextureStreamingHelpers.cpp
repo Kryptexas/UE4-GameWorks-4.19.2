@@ -8,6 +8,8 @@ TextureStreamingHelpers.cpp: Definitions of classes used for texture streaming.
 #include "TextureStreamingHelpers.h"
 #include "Engine/Texture2D.h"
 #include "GenericPlatformMemoryPoolStats.h"
+#include "Engine/LightMapTexture2D.h"
+#include "Engine/ShadowMapTexture2D.h"
 
 /** Streaming stats */
 
@@ -178,7 +180,6 @@ bool GNeverStreamOutTextures = false;
 /** Accumulated total time spent on dynamic primitives, in seconds. */
 double GStreamingDynamicPrimitivesTime = 0.0;
 
-
 /**
  * Checks whether a UTexture2D is supposed to be streaming.
  * @param Texture	Texture to check
@@ -186,7 +187,14 @@ double GStreamingDynamicPrimitivesTime = 0.0;
  */
 bool IsStreamingTexture( const UTexture2D* Texture2D )
 {
-	return Texture2D && Texture2D->bIsStreamable && Texture2D->NeverStream == false && Texture2D->GetNumMips() > UTexture2D::GetMinTextureResidentMipCount();
+	if (Texture2D && Texture2D->bIsStreamable && !Texture2D->NeverStream && Texture2D->GetNumMips() > UTexture2D::GetMinTextureResidentMipCount())
+	{
+		const UShadowMapTexture2D* ShadowMap2D = Cast<const UShadowMapTexture2D>(Texture2D);
+		const ULightMapTexture2D* Lightmap2D = Cast<const ULightMapTexture2D>(Texture2D);
+
+		return !(Lightmap2D && (Lightmap2D->LightmapFlags & LMF_Streamed) == 0) && !(ShadowMap2D && (ShadowMap2D->ShadowmapFlags & SMF_Streamed) == 0);
+	}
+	return false;
 }
 
 void FStreamingContext::Reset( bool bProcessEverything, UTexture2D* IndividualStreamingTexture, bool bInCollectTextureStats )

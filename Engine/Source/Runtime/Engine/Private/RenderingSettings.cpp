@@ -78,6 +78,6 @@ void URendererSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 void URendererSettings::SanatizeReflectionCaptureResolution()
 {
-	static const int32 MaxReflectionCaptureResolution = 4096;
+	static const int32 MaxReflectionCaptureResolution = 1024;
 	ReflectionCaptureResolution = FMath::Min(int32(FMath::RoundUpToPowerOfTwo(ReflectionCaptureResolution)), MaxReflectionCaptureResolution);
 }

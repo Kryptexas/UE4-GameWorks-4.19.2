@@ -1863,9 +1863,6 @@ public:
 	/** Set by the rendering thread to signal to the game thread that the scene needs a static lighting build. */
 	volatile mutable int32 NumUncachedStaticLightingInteractions;
 
-	FLinearColor UpperDynamicSkylightColor;
-	FLinearColor LowerDynamicSkylightColor;
-
 	FMotionBlurInfoData MotionBlurInfoData;
 
 	/** Uniform buffers for parameter collections with the corresponding Ids. */
@@ -1921,7 +1918,6 @@ public:
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
 	virtual void UpdateLightTransform(ULightComponent* Light) override;
 	virtual void UpdateLightColorAndBrightness(ULightComponent* Light) override;
-	virtual void UpdateDynamicSkyLight(const FLinearColor& UpperColor, const FLinearColor& LowerColor) override;
 	virtual void AddExponentialHeightFog(UExponentialHeightFogComponent* FogComponent) override;
 	virtual void RemoveExponentialHeightFog(UExponentialHeightFogComponent* FogComponent) override;
 	virtual void AddAtmosphericFog(UAtmosphericFogComponent* FogComponent) override;
@@ -1942,12 +1938,6 @@ public:
 	virtual void DumpStaticMeshDrawListStats() const override;
 	virtual void SetClearMotionBlurInfoGameThread() override;
 	virtual void UpdateParameterCollections(const TArray<FMaterialParameterCollectionInstanceResource*>& InParameterCollections) override;
-
-	/** Determines whether the scene has dynamic sky lighting. */
-	bool HasDynamicSkyLighting() const
-	{
-		return (!UpperDynamicSkylightColor.Equals(FLinearColor::Black) || !LowerDynamicSkylightColor.Equals(FLinearColor::Black));
-	}
 
 	/** Determines whether the scene has atmospheric fog and sun light. */
 	bool HasAtmosphericFog() const

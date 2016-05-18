@@ -40,8 +40,9 @@ float4x4 PreviousLocalToWorld;
 struct FVertexFactoryInput
 {
 	float4	Position	: ATTRIBUTE0;
-	half4	TangentX	: ATTRIBUTE1;
-	half2	TangentZ	: ATTRIBUTE2;
+	half3	TangentX	: ATTRIBUTE1;
+	// TangentZ.w contains sign of tangent basis determinant
+	half4	TangentZ	: ATTRIBUTE2;
 	half4	VertexColor : ATTRIBUTE3;
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
@@ -115,6 +116,8 @@ struct FVertexFactoryInterpolantsVSToPS
 
 	/** Relative alive time of the particle */
 	float ParticleTime : PARTICLE_TIME;
+
+	float4 LocalToWorld[4] : PARTICLE_TRANSFORM;
 #endif
 
 #if INSTANCED_STEREO
@@ -151,6 +154,8 @@ struct FVertexFactoryIntermediates
 	
 	/** Relative time. */
 	float RelativeTime;
+
+	float4 LocalToWorld[4];
 };
 
 float4x4 GetParticleTransform(FVertexFactoryInput Input)
@@ -251,6 +256,10 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	Result.Particle.PositionAndSize.w = 1;
 	Result.Particle.Velocity = Interpolants.ParticleVelocity;
 	Result.Particle.RelativeTime = Interpolants.ParticleTime;
+	Result.Particle.LocalToWorld[0] = Interpolants.LocalToWorld[0];
+	Result.Particle.LocalToWorld[1] = Interpolants.LocalToWorld[1];
+	Result.Particle.LocalToWorld[2] = Interpolants.LocalToWorld[2];
+	Result.Particle.LocalToWorld[3] = Interpolants.LocalToWorld[3];
 #endif
 
 	Result.Particle.MotionBlurFade = 1.0f;
@@ -278,6 +287,10 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 
 	float4x4 Transform = GetParticleTransform(Input);
 	Result.InstanceLocalToWorld = Transform;
+	Result.Particle.LocalToWorld[0] = Transform[0];
+	Result.Particle.LocalToWorld[1] = Transform[1];
+	Result.Particle.LocalToWorld[2] = Transform[2];
+	Result.Particle.LocalToWorld[3] = Transform[3];
 
 	Result.TangentToWorld = mul(TangentToLocal, (float3x3)Transform ); 
 
@@ -333,9 +346,14 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	// Swizzle vertex color.
 	Intermediates.VertexColor = Input.VertexColor FCOLOR_COMPONENT_SWIZZLE;
 
-	// World position.
+	// World position and localtoworld transform.
 #if PARTICLE_MESH_INSTANCED
 	float3 ParticleWorldPosition = float3( Input.Transform1.w, Input.Transform2.w, Input.Transform3.w);
+	float4x4 LocalToWorldMat = float4x4(Input.Transform1, Input.Transform2, Input.Transform3, float4(0.0f, 0.0f, 0.0f, 1.0f));
+	Intermediates.LocalToWorld[0] = LocalToWorldMat[0];
+	Intermediates.LocalToWorld[1] = LocalToWorldMat[1];
+	Intermediates.LocalToWorld[2] = LocalToWorldMat[2];
+	Intermediates.LocalToWorld[3] = LocalToWorldMat[3];
 #else
 	float3 ParticleWorldPosition = float3( Transform1.w, Transform2.w, Transform3.w);
 #endif
@@ -398,21 +416,21 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 float3x3 VertexFactoryGetTangentToLocal( FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates )
 {
 	float3x3 Result=0;	
-	float4 TangentX = TangentBias(Input.TangentX);
-	float3 TangentZ = OctToUnit(TangentBias(Input.TangentZ));
+	float3 TangentX = TangentBias(Input.TangentX);
+	float4 TangentZ = TangentBias(Input.TangentZ);
 
 	// pass-thru the tangent
-	Result[0] = TangentX.xyz;
+	Result[0] = TangentX;
 	// pass-thru the normal
-	Result[2] = TangentZ;	
+	Result[2] = TangentZ.xyz;	
 
 	
 	// derive the binormal by getting the cross product of the normal and tangent
-	Result[1] = cross(Result[2], Result[0]) * TangentX.w;	
+	Result[1] = cross(Result[2], Result[0]) * TangentZ.w;	
 	// Recalculate TangentX off of the other two vectors
 	// This corrects quantization error since TangentX was passed in as a quantized vertex input
 	// The error shows up most in specular off of a mesh with a smoothed UV seam (normal is smooth, but tangents vary across the seam)
-	Result[0] = cross(Result[1], Result[2]) * TangentX.w;
+	Result[0] = cross(Result[1], Result[2]) * TangentZ.w;
 
 	return Result;
 }
@@ -442,7 +460,7 @@ void CalcTangentToWorld(FVertexFactoryInput Input, FVertexFactoryIntermediates I
 
 	// Normalize to remove scaling. Incorrect but faster than computing the inverse-transpose.
 	TangentToWorld0 = normalize(TangentToWorld[0]);
-	TangentToWorld2 = float4(normalize(TangentToWorld[2]), TangentBias(Input.TangentX.w) * Primitive.LocalToWorldDeterminantSign);
+	TangentToWorld2 = float4(normalize(TangentToWorld[2]), TangentBias(Input.TangentZ.w) * Primitive.LocalToWorldDeterminantSign);
 }
 
 FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, FMaterialVertexParameters VertexParameters)
@@ -503,6 +521,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	Interpolants.ParticlePosition = Intermediates.ParticleWorldPosition;
 	Interpolants.ParticleVelocity = Intermediates.ParticleVelocity;
 	Interpolants.ParticleTime = Intermediates.RelativeTime;
+	Interpolants.LocalToWorld = Intermediates.LocalToWorld;
 #endif
 
 #if INSTANCED_STEREO

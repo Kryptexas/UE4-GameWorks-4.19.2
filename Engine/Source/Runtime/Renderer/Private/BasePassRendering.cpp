@@ -65,7 +65,11 @@ IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSelfShadowedCachedPointIndirectLigh
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_NO_LIGHTMAP>, FNoLightMapPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_CACHED_VOLUME_INDIRECT_LIGHTING>, FCachedVolumeIndirectLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_CACHED_POINT_INDIRECT_LIGHTING>, FCachedPointIndirectLightingPolicy );
-IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_DYNAMIC_LIGHTING>, FSimpleDynamicLightingPolicy );
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_NO_LIGHTMAP>, FSimpleNoLightmapLightingPolicy );
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_LIGHTMAP_ONLY_LIGHTING>, FSimpleLightmapOnlyLightingPolicy );
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_DIRECTIONAL_LIGHT_LIGHTING>, FSimpleDirectionalLightLightingPolicy );
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_STATIONARY_PRECOMPUTED_SHADOW_LIGHTING>, FSimpleStationaryLightPrecomputedShadowsLightingPolicy );
+IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING>, FSimpleStationaryLightSingleSampleShadowsLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_LQ_LIGHTMAP>, TLightMapPolicyLQ );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_HQ_LIGHTMAP>, TLightMapPolicyHQ );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( TUniformLightMapPolicy<LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP>, TDistanceFieldShadowsAndLightMapPolicyHQ  );
@@ -296,24 +300,30 @@ public:
 			TStaticMeshDrawList<TBasePassDrawingPolicy<LightMapPolicyType> >& DrawList =
 				Scene->GetBasePassDrawList<LightMapPolicyType>(DrawType);
 
+			const bool bRenderSkylight = Parameters.ShadingModel != MSM_Unlit
+				&& Scene->SkyLight 
+				&& !Scene->SkyLight->bHasStaticLighting 
+				// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
+				&& (Scene->SkyLight->bWantsStaticShadowing || IsSimpleForwardShadingEnabled(Scene->GetShaderPlatform()));
+
 			// Add the static mesh to the draw list.
 			DrawList.AddMesh(
 				StaticMesh,
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 				TBasePassDrawingPolicy<LightMapPolicyType>(
-				StaticMesh->VertexFactory,
-				StaticMesh->MaterialRenderProxy,
-				*Parameters.Material,
-				Parameters.FeatureLevel,
-				LightMapPolicy,
-				Parameters.BlendMode,
-				Parameters.TextureMode,
-				Parameters.ShadingModel != MSM_Unlit && Scene->SkyLight && Scene->SkyLight->bWantsStaticShadowing && !Scene->SkyLight->bHasStaticLighting,
-				IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog(),
-				/* DebugViewShaderMode = */ DVSM_None,
-				/* bInAllowGlobalFog = */ false,
-				/* bInEnableEditorPrimitiveDepthTest = */ false,
-				/* bInEnableReceiveDecalOutput = */ true
+					StaticMesh->VertexFactory,
+					StaticMesh->MaterialRenderProxy,
+					*Parameters.Material,
+					Parameters.FeatureLevel,
+					LightMapPolicy,
+					Parameters.BlendMode,
+					Parameters.TextureMode,
+					bRenderSkylight,
+					IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog(),
+					/* DebugViewShaderMode = */ DVSM_None,
+					/* bInAllowGlobalFog = */ false,
+					/* bInEnableEditorPrimitiveDepthTest = */ false,
+					/* bInEnableReceiveDecalOutput = */ true
 				),
 				Scene->GetFeatureLevel()
 				);
@@ -412,6 +422,11 @@ public:
 #endif
 		const FScene* Scene = Parameters.PrimitiveSceneProxy ? Parameters.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->Scene : NULL;
 
+		const bool bRenderSkylight = Scene && Scene->SkyLight 
+			&& !Scene->SkyLight->bHasStaticLighting 
+			// The deferred shading renderer does movable skylight diffuse in a later deferred pass, not in the base pass
+			&& (Scene->SkyLight->bWantsStaticShadowing || IsSimpleForwardShadingEnabled(Scene->GetShaderPlatform()))
+			&& bIsLitMaterial;
 
 		TBasePassDrawingPolicy<LightMapPolicyType> DrawingPolicy(
 			Parameters.Mesh.VertexFactory,
@@ -421,7 +436,7 @@ public:
 			LightMapPolicy,
 			Parameters.BlendMode,
 			Parameters.TextureMode,
-			Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting && Scene->SkyLight->bWantsStaticShadowing && bIsLitMaterial,
+			bRenderSkylight,
 			IsTranslucentBlendMode(Parameters.BlendMode) && (Scene && Scene->HasAtmosphericFog()) && View.Family->EngineShowFlags.AtmosphericFog,
 			View.Family->GetDebugViewShaderMode(),
 			false,
@@ -616,8 +631,20 @@ void GetBasePassShaders<FUniformLightMapPolicy>(
 	case LMP_CACHED_POINT_INDIRECT_LIGHTING:
 		GetUniformBasePassShaders<LMP_CACHED_POINT_INDIRECT_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
 		break;
-	case LMP_SIMPLE_DYNAMIC_LIGHTING:
-		GetUniformBasePassShaders<LMP_SIMPLE_DYNAMIC_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+	case LMP_SIMPLE_DIRECTIONAL_LIGHT_LIGHTING:
+		GetUniformBasePassShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+	case LMP_SIMPLE_NO_LIGHTMAP:
+		GetUniformBasePassShaders<LMP_SIMPLE_NO_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+	case LMP_SIMPLE_LIGHTMAP_ONLY_LIGHTING:
+		GetUniformBasePassShaders<LMP_SIMPLE_LIGHTMAP_ONLY_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+	case LMP_SIMPLE_STATIONARY_PRECOMPUTED_SHADOW_LIGHTING:
+		GetUniformBasePassShaders<LMP_SIMPLE_STATIONARY_PRECOMPUTED_SHADOW_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
+		break;
+	case LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING:
+		GetUniformBasePassShaders<LMP_SIMPLE_STATIONARY_SINGLESAMPLE_SHADOW_LIGHTING>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);
 		break;
 	case LMP_LQ_LIGHTMAP:
 		GetUniformBasePassShaders<LMP_LQ_LIGHTMAP>(Material, VertexFactoryType, bNeedsHSDS, bEnableAtmosphericFog, bEnableSkyLight, HullShader, DomainShader, VertexShader, PixelShader);

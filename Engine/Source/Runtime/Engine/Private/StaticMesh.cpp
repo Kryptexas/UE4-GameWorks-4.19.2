@@ -63,7 +63,7 @@ FStaticMeshVertexBuffer::FStaticMeshVertexBuffer():
 	Stride(0),
 	NumVertices(0),
 	bUseFullPrecisionUVs(false),
-	bUseHighPrecisionTangentBasis(true)
+	bUseHighPrecisionTangentBasis(false)
 {}
 
 FStaticMeshVertexBuffer::~FStaticMeshVertexBuffer()
@@ -145,72 +145,43 @@ void FStaticMeshVertexBuffer::RemoveLegacyShadowVolumeVertices(uint32 InNumVerti
 	Data = VertexData->GetDataPointer();
 }
 
-/**
-* Convert the existing data in this mesh from 16 bit to 32 bit UVs.
-* Without rebuilding the mesh (loss of precision)
-*/
-template<int32 NumTexCoordsT>
-void FStaticMeshVertexBuffer::ConvertToFullPrecisionUVs()
+template<typename SrcVertexTypeT, typename DstVertexTypeT>
+void FStaticMeshVertexBuffer::ConvertVertexFormat()
 {
-	if( !bUseFullPrecisionUVs )
+	if (SrcVertexTypeT::TangentBasisType == DstVertexTypeT::TangentBasisType &&
+		SrcVertexTypeT::UVType == DstVertexTypeT::UVType)
 	{
-		check(NumTexCoords == NumTexCoordsT);
-		// create temp array to store 32 bit values
-		TArray< TStaticMeshFullVertexFloat32UVs<NumTexCoordsT> > DestVertexData;
-		// source vertices
-		TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<NumTexCoordsT> >& SrcVertexData = 
-			*(TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<NumTexCoordsT> >*)VertexData;
-		// copy elements from source vertices to temp data
-		DestVertexData.AddUninitialized(SrcVertexData.Num());
-		for( int32 VertIdx=0; VertIdx < SrcVertexData.Num(); VertIdx++ )
-		{
-			TStaticMeshFullVertexFloat32UVs<NumTexCoordsT>& DestVert = DestVertexData[VertIdx];
-			TStaticMeshFullVertexFloat16UVs<NumTexCoordsT>& SrcVert = SrcVertexData[VertIdx];		
-			FMemory::Memcpy(&DestVert,&SrcVert,sizeof(FStaticMeshFullVertex));
-			for( int32 UVIdx=0; UVIdx < NumTexCoordsT; UVIdx++ )
-			{
-				DestVert.UVs[UVIdx] = FVector2D(SrcVert.UVs[UVIdx]);
-			}
-		}
-		// force 32 bit UVs
-		bUseFullPrecisionUVs = true;
-		AllocateData();
-		*(TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<NumTexCoordsT> >*)VertexData = DestVertexData;
-		Data = VertexData->GetDataPointer();
-		Stride = VertexData->GetStride();
+		return;
 	}
-}
 
-template<typename StaticMeshVertexT>
-void ConvertInPlaceLowPrecisionTangentBasis(StaticMeshVertexT* VertexData)
-{
-	auto& SrcVertexData = *VertexData;
+	check(SrcVertexTypeT::NumTexCoords == DstVertexTypeT::NumTexCoords);
 
-	for (int32 VertIdx = 0; VertIdx < SrcVertexData.Num(); ++VertIdx)
+	auto& SrcVertexData = *static_cast<TStaticMeshVertexData<SrcVertexTypeT>*>(VertexData);
+
+	TArray<DstVertexTypeT> DstVertexData;
+	DstVertexData.AddUninitialized(SrcVertexData.Num());
+
+	for (int32 VertIdx = 0; VertIdx < SrcVertexData.Num(); VertIdx++)
 	{
-		auto& SrcVert = SrcVertexData[VertIdx];
+		SrcVertexTypeT& SrcVert = SrcVertexData[VertIdx];
+		DstVertexTypeT& DstVert = DstVertexData[VertIdx];
 
-		FVector4 FullVector = *reinterpret_cast<FPackedRGB10A2*>(&SrcVert.RawTangentX);
-		*reinterpret_cast<FPackedNormal*>(&SrcVert.RawTangentX) = FullVector;
-	}
-}
+		DstVert.SetTangents(SrcVert.GetTangentX(), SrcVert.GetTangentY(), SrcVert.GetTangentZ());
 
-template<int32 NumTexCoordsT>
-void FStaticMeshVertexBuffer::ConvertToLowPrecisionTangentBasis()
-{
-	if (bUseHighPrecisionTangentBasis)
-	{
-		if (GetUseFullPrecisionUVs())
+		for (int32 UVIdx = 0; UVIdx < DstVertexTypeT::NumTexCoords; UVIdx++)
 		{
-			ConvertInPlaceLowPrecisionTangentBasis((TStaticMeshVertexData<TStaticMeshFullVertexFloat32UVs<NumTexCoordsT> >*)VertexData);
+			DstVert.SetUV(UVIdx, SrcVert.GetUV(UVIdx));
 		}
-		else
-		{
-			ConvertInPlaceLowPrecisionTangentBasis((TStaticMeshVertexData<TStaticMeshFullVertexFloat16UVs<NumTexCoordsT> >*)VertexData);
-		}
-
-		bUseHighPrecisionTangentBasis = false;
 	}
+
+	bUseHighPrecisionTangentBasis = DstVertexTypeT::TangentBasisType == EStaticMeshVertexTangentBasisType::HighPrecision;
+	bUseFullPrecisionUVs = DstVertexTypeT::UVType == EStaticMeshVertexUVType::HighPrecision;
+
+	AllocateData();
+	*static_cast<TStaticMeshVertexData<DstVertexTypeT>*>(VertexData) = DstVertexData;
+
+	Data = VertexData->GetDataPointer();
+	Stride = VertexData->GetStride();
 }
 
 /**
@@ -277,36 +248,12 @@ void FStaticMeshVertexBuffer::AllocateData( bool bNeedsCPUAccess /*= true*/ )
 	// Clear any old VertexData before allocating.
 	CleanUp();
 
-	if( !bUseFullPrecisionUVs )
-	{
-		switch(NumTexCoords)
-		{
-		case 1: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<1> >(bNeedsCPUAccess); break;
-		case 2: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<2> >(bNeedsCPUAccess); break;
-		case 3: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<3> >(bNeedsCPUAccess); break;
-		case 4: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<4> >(bNeedsCPUAccess); break;
-		case 5: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<5> >(bNeedsCPUAccess); break;
-		case 6: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<6> >(bNeedsCPUAccess); break;
-		case 7: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<7> >(bNeedsCPUAccess); break;
-		case 8: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat16UVs<8> >(bNeedsCPUAccess); break;
-		default: UE_LOG(LogStaticMesh, Fatal,TEXT("Invalid number of texture coordinates"));
-		};		
-	}
-	else
-	{
-		switch(NumTexCoords)
-		{
-		case 1: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<1> >(bNeedsCPUAccess); break;
-		case 2: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<2> >(bNeedsCPUAccess); break;
-		case 3: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<3> >(bNeedsCPUAccess); break;
-		case 4: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<4> >(bNeedsCPUAccess); break;
-		case 5: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<5> >(bNeedsCPUAccess); break;
-		case 6: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<6> >(bNeedsCPUAccess); break;
-		case 7: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<7> >(bNeedsCPUAccess); break;
-		case 8: VertexData = new TStaticMeshVertexData< TStaticMeshFullVertexFloat32UVs<8> >(bNeedsCPUAccess); break;
-		default: UE_LOG(LogStaticMesh, Fatal,TEXT("Invalid number of texture coordinates"));
-		};		
-	}	
+	SELECT_STATIC_MESH_VERTEX_TYPE(
+		GetUseHighPrecisionTangentBasis(),
+		GetUseFullPrecisionUVs(),
+		GetNumTexCoords(),
+		VertexData = new TStaticMeshVertexData<VertexType>(bNeedsCPUAccess);
+		);
 
 	// Calculate the vertex stride.
 	Stride = VertexData->GetStride();
@@ -426,10 +373,27 @@ void FStaticMeshLODResources::InitVertexFactory(
 	Params.bOverrideColorVertexBuffer = bInOverrideColorVertexBuffer;
 	Params.Parent = InParentMesh;
 
+	uint32 TangentXOffset = 0;
+	uint32 TangetnZOffset = 0;
+	uint32 UVsBaseOffset = 0;
+
+	SELECT_STATIC_MESH_VERTEX_TYPE(
+		Params.LODResources->VertexBuffer.GetUseHighPrecisionTangentBasis(),
+		Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs(),
+		Params.LODResources->VertexBuffer.GetNumTexCoords(),
+		{
+			TangentXOffset = STRUCT_OFFSET(VertexType, TangentX);
+			TangetnZOffset = STRUCT_OFFSET(VertexType, TangentZ);
+			UVsBaseOffset = STRUCT_OFFSET(VertexType, UVs);
+		});
+
 	// Initialize the static mesh's vertex factory.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 		InitStaticMeshVertexFactory,
-		InitStaticMeshVertexFactoryParams,Params,Params,
+		InitStaticMeshVertexFactoryParams, Params, Params,
+		uint32, TangentXOffset, TangentXOffset,
+		uint32, TangetnZOffset, TangetnZOffset,
+		uint32, UVsBaseOffset, UVsBaseOffset,
 		{
 			FLocalVertexFactory::FDataType Data;
 			Data.PositionComponent = FVertexStreamComponent(
@@ -441,16 +405,20 @@ void FStaticMeshLODResources::InitVertexFactory(
 
 			Data.TangentBasisComponents[0] = FVertexStreamComponent(
 				&Params.LODResources->VertexBuffer,
-				STRUCT_OFFSET(FStaticMeshFullVertex, RawTangentX),
+				TangentXOffset,
 				Params.LODResources->VertexBuffer.GetStride(),
-				Params.LODResources->VertexBuffer.GetUseHighPrecisionTangentBasis() ? VET_URGB10A2N : VET_PackedNormal
+				Params.LODResources->VertexBuffer.GetUseHighPrecisionTangentBasis() ? 
+					TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+					TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
 				);
 
 			Data.TangentBasisComponents[1] = FVertexStreamComponent(
 				&Params.LODResources->VertexBuffer,
-				STRUCT_OFFSET(FStaticMeshFullVertex, TangentZ),
+				TangetnZOffset,
 				Params.LODResources->VertexBuffer.GetStride(),
-				VET_UShort2N
+				Params.LODResources->VertexBuffer.GetUseHighPrecisionTangentBasis() ?
+					TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::HighPrecision>::VertexElementType : 
+					TStaticMeshVertexTangentTypeSelector<EStaticMeshVertexTangentBasisType::Default>::VertexElementType
 				);
 
 			// Use the "override" color vertex buffer if one was supplied.  Otherwise, the color vertex stream
@@ -482,72 +450,46 @@ void FStaticMeshLODResources::InitVertexFactory(
 
 			Data.TextureCoordinates.Empty();
 
-			if( !Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs() )
-			{
-				int32 UVIndex;
-				for (UVIndex = 0; UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
-				{
-					Data.TextureCoordinates.Add(FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* UVIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Half4
-						));
-				}
-				// possible last UV channel if we have an odd number
-				if (UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords())
-				{
-					Data.TextureCoordinates.Add(FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2DHalf)* UVIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Half2
-						));
-				}
+			uint32 UVSizeInBytes = Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs() ?
+				sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::HighPrecision>::UVsTypeT) : sizeof(TStaticMeshVertexUVsTypeSelector<EStaticMeshVertexUVType::Default>::UVsTypeT);
 
-				if(	Params.Parent->LightMapCoordinateIndex >= 0 && (uint32)Params.Parent->LightMapCoordinateIndex < Params.LODResources->VertexBuffer.GetNumTexCoords())
-				{
-					Data.LightMapCoordinateComponent = FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat16UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2DHalf) * Params.Parent->LightMapCoordinateIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Half2
-						);
-				}
+			EVertexElementType UVDoubleWideVertexElementType = Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs() ?
+				VET_Float4 : VET_Half4;
+
+			EVertexElementType UVVertexElementType = Params.LODResources->VertexBuffer.GetUseFullPrecisionUVs() ?
+				VET_Float2 : VET_Half2;
+
+			int32 UVIndex;
+			for (UVIndex = 0; UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
+			{
+				Data.TextureCoordinates.Add(FVertexStreamComponent(
+					&Params.LODResources->VertexBuffer,
+					UVsBaseOffset + UVSizeInBytes * UVIndex,
+					Params.LODResources->VertexBuffer.GetStride(),
+					UVDoubleWideVertexElementType
+					));
 			}
-			else
-			{
-				int32 UVIndex;
-				for (UVIndex = 0; UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords() - 1; UVIndex += 2)
-				{
-					Data.TextureCoordinates.Add(FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D)* UVIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Float4
-						));
-				}
-				// possible last UV channel if we have an odd number
-				if (UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords())
-				{
-					Data.TextureCoordinates.Add(FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>, UVs) + sizeof(FVector2D)* UVIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Float2
-						));
-				}
 
-				if(	Params.Parent->LightMapCoordinateIndex >= 0 && (uint32)Params.Parent->LightMapCoordinateIndex < Params.LODResources->VertexBuffer.GetNumTexCoords())
-				{
-					Data.LightMapCoordinateComponent = FVertexStreamComponent(
-						&Params.LODResources->VertexBuffer,
-						STRUCT_OFFSET(TStaticMeshFullVertexFloat32UVs<MAX_STATIC_TEXCOORDS>,UVs) + sizeof(FVector2D) * Params.Parent->LightMapCoordinateIndex,
-						Params.LODResources->VertexBuffer.GetStride(),
-						VET_Float2
-						);
-				}
-			}	
+			// possible last UV channel if we have an odd number
+			if (UVIndex < (int32)Params.LODResources->VertexBuffer.GetNumTexCoords())
+			{
+				Data.TextureCoordinates.Add(FVertexStreamComponent(
+					&Params.LODResources->VertexBuffer,
+					UVsBaseOffset + UVSizeInBytes * UVIndex,
+					Params.LODResources->VertexBuffer.GetStride(),
+					UVVertexElementType
+					));
+			}
+
+			if(	Params.Parent->LightMapCoordinateIndex >= 0 && (uint32)Params.Parent->LightMapCoordinateIndex < Params.LODResources->VertexBuffer.GetNumTexCoords())
+			{
+				Data.LightMapCoordinateComponent = FVertexStreamComponent(
+					&Params.LODResources->VertexBuffer,
+					UVsBaseOffset + UVSizeInBytes * Params.Parent->LightMapCoordinateIndex,
+					Params.LODResources->VertexBuffer.GetStride(),
+					UVVertexElementType
+					);
+			}
 
 			Params.VertexFactory->SetData(Data);
 		});
@@ -1131,6 +1073,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	Ar << BuildSettings.bRemoveDegenerates;
 	Ar << BuildSettings.bBuildAdjacencyBuffer;
 	Ar << BuildSettings.bBuildReversedIndexBuffer;
+	Ar << BuildSettings.bUseHighPrecisionTangentBasis;
 	Ar << BuildSettings.bUseFullPrecisionUVs;
 	Ar << BuildSettings.bGenerateLightmapUVs;
 
@@ -1165,7 +1108,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
 // and set this new GUID as the version.                                       
-#define STATICMESH_DERIVEDDATA_VER TEXT("7C4164E1813428CB338EDD50CC040049")
+#define STATICMESH_DERIVEDDATA_VER TEXT("6F4494992CB61A37E4B1403C6156E6A")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
@@ -1651,7 +1594,8 @@ bool UStaticMesh::GetStreamingTextureFactor(float& OutTexelFactor, FBoxSphereBou
 	}
 
 	OutBounds = TransformedSectionBox;
-	OutTexelFactor = WeightedTexelFactorSum / AreaSum * FMath::Max(0.0f, StreamingDistanceMultiplier);
+	OutTexelFactor = WeightedTexelFactorSum / AreaSum; 
+	// Don't take into account StreamingDistanceMultiplier here (but rather in the components using it). That allows realtime feedback without requiring a TextureStreamingBuild.
 	return true;
 
 #else
@@ -2268,7 +2212,6 @@ void UStaticMesh::Serialize(FArchive& Ar)
 //
 //	UStaticMesh::PostLoad
 //
-
 void UStaticMesh::PostLoad()
 {
 	Super::PostLoad();
@@ -2341,7 +2284,7 @@ void UStaticMesh::PostLoad()
 #endif // #if WITH_EDITOR
 
 	EnforceLightmapRestrictions();
-	
+
 	if (!GVertexElementTypeSupport.IsSupported(VET_Half2))
 	{
 		for (int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); ++LODIndex)
@@ -2349,35 +2292,15 @@ void UStaticMesh::PostLoad()
 			if (RenderData->LODResources.IsValidIndex(LODIndex))
 			{
 				FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
-				// Determine the correct version of ConvertToFullPrecisionUVs based on the number of UVs in the vertex buffer
-				const uint32 NumTexCoords = LOD.VertexBuffer.GetNumTexCoords();
-				switch(NumTexCoords)
-				{
-				case 1: LOD.VertexBuffer.ConvertToFullPrecisionUVs<1>(); break;
-				case 2: LOD.VertexBuffer.ConvertToFullPrecisionUVs<2>(); break; 
-				case 3: LOD.VertexBuffer.ConvertToFullPrecisionUVs<3>(); break; 
-				case 4: LOD.VertexBuffer.ConvertToFullPrecisionUVs<4>(); break; 
-				}
-			}
-		}
-	}
-
-	if (!GVertexElementTypeSupport.IsSupported(VET_URGB10A2N))
-	{
-		for (int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); ++LODIndex)
-		{
-			if (RenderData->LODResources.IsValidIndex(LODIndex))
-			{
-				FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
-
-				const uint32 NumTexCoords = LOD.VertexBuffer.GetNumTexCoords();
-				switch (NumTexCoords)
-				{
-				case 1: LOD.VertexBuffer.ConvertToLowPrecisionTangentBasis<1>(); break;
-				case 2: LOD.VertexBuffer.ConvertToLowPrecisionTangentBasis<2>(); break;
-				case 3: LOD.VertexBuffer.ConvertToLowPrecisionTangentBasis<3>(); break;
-				case 4: LOD.VertexBuffer.ConvertToLowPrecisionTangentBasis<4>(); break;
-				}
+				
+				SELECT_STATIC_MESH_VERTEX_TYPE(
+					LOD.VertexBuffer.GetUseHighPrecisionTangentBasis(),
+					LOD.VertexBuffer.GetUseFullPrecisionUVs(),
+					LOD.VertexBuffer.GetNumTexCoords(),
+					{
+						typedef TStaticMeshFullVertex<VertexType::TangentBasisType, EStaticMeshVertexUVType::HighPrecision, VertexType::NumTexCoords> DstVertexType;
+						LOD.VertexBuffer.ConvertVertexFormat<VertexType, DstVertexType>();
+					});
 			}
 		}
 	}

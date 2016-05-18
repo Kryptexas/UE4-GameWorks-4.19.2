@@ -127,6 +127,11 @@ void Main(
 			// The quad material used only has a valid TexCoord for UV 0
 			MaterialParameters.TexCoords[CoordinateIndex] = CoordinateIndex != CurrentCoordIndex ? 0 : DebugInputs.TexCoord01.xy;
 		}
+
+		// The scale must also be computed to match the actual coord inspected. That would be required when rendering the mesh in world space
+		// Although not required here as using the material quad only use texcoord0.
+		// Params.OneOverDDU = GetComponent(Params.OneOverDDU, CurrentCoordIndex).xxxx;
+		// Params.OneOverDDV = GetComponent(Params.OneOverDDV, CurrentCoordIndex).xxxx;
 #endif
 	}	
 

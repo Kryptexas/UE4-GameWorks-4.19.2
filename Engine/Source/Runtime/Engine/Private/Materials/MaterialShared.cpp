@@ -394,7 +394,12 @@ void FMaterial::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& O
 EMaterialTessellationMode FMaterial::GetTessellationMode() const 
 { 
 	return MTM_NoTessellation; 
-};
+}
+
+ERefractionMode FMaterial::GetRefractionMode() const 
+{ 
+	return RM_IndexOfRefraction; 
+}
 
 void FMaterial::GetShaderMapIDsWithUnfinishedCompilation(TArray<int32>& ShaderMapIds)
 {
@@ -955,6 +960,11 @@ EBlendMode FMaterialResource::GetBlendMode() const
 	return MaterialInstance ? MaterialInstance->GetBlendMode() : Material->GetBlendMode();
 }
 
+ERefractionMode FMaterialResource::GetRefractionMode() const
+{
+	return Material->RefractionMode;
+}
+
 EMaterialShadingModel FMaterialResource::GetShadingModel() const 
 {
 	return MaterialInstance ? MaterialInstance->GetShadingModel() : Material->GetShadingModel();
@@ -978,6 +988,11 @@ bool FMaterialResource::IsMasked() const
 bool FMaterialResource::IsDitherMasked() const 
 {
 	return Material->DitherOpacityMask;
+}
+
+bool FMaterialResource::AllowNegativeEmissiveColor() const 
+{
+	return Material->bAllowNegativeEmissiveColor;
 }
 
 bool FMaterialResource::IsDistorted() const { return Material->bUsesDistortion && IsTranslucentBlendMode(GetBlendMode()); }
@@ -1379,6 +1394,15 @@ void FMaterial::SetupMaterialEnvironment(
 		OutEnvironment.SetDefine(TEXT("MATERIALDECALRESPONSEMASK"), MaterialDecalResponseMask);
 	}
 
+	switch(GetRefractionMode())
+	{
+	case RM_IndexOfRefraction: OutEnvironment.SetDefine(TEXT("REFRACTION_USE_INDEX_OF_REFRACTION"),TEXT("1")); break;
+	case RM_PixelNormalOffset: OutEnvironment.SetDefine(TEXT("REFRACTION_USE_PIXEL_NORMAL_OFFSET"),TEXT("1")); break;
+	default: 
+		UE_LOG(LogMaterial, Warning, TEXT("Unknown material refraction mode: %u  Setting to RM_IndexOfRefraction"),(int32)GetRefractionMode());
+		OutEnvironment.SetDefine(TEXT("REFRACTION_USE_INDEX_OF_REFRACTION"),TEXT("1"));
+	}
+
 	OutEnvironment.SetDefine(TEXT("USE_DITHERED_LOD_TRANSITION_FROM_MATERIAL"), IsDitheredLODTransition());
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TWOSIDED"), IsTwoSided());
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TANGENTSPACENORMAL"), IsTangentSpaceNormal());
@@ -1393,6 +1417,7 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_SSR"), ShouldDoSSR());
 	OutEnvironment.SetDefine(TEXT("MATERIAL_BLOCK_GI"), ShouldBlockGI());
 	OutEnvironment.SetDefine(TEXT("MATERIAL_DITHER_OPACITY_MASK"), IsDitherMasked());
+	OutEnvironment.SetDefine(TEXT("MATERIAL_ALLOW_NEGATIVE_EMISSIVECOLOR"), AllowNegativeEmissiveColor());
 
 	{
 		auto DecalBlendMode = (EDecalBlendMode)GetDecalBlendMode();

@@ -99,7 +99,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 #if WITH_EDITORONLY_DATA
 	, StreamingSectionData(InComponent->StreamingSectionData)
 	, StreamingDistanceMultiplier(InComponent->StreamingDistanceMultiplier)
-	, StreamingTexelFactor(0)
+	, StreamingTexelFactor(1.f)
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -414,14 +414,16 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchI
 }
 
 #if WITH_EDITORONLY_DATA
-const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData(float& OutDistanceMultiplier, int32 LODIndex, int32 ElementIndex) const
+const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData(float& OutComponentExtraScale, float& OutMeshExtraScale, int32 LODIndex, int32 ElementIndex) const
 {
 	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnRenderThread() != 0;
 
-	OutDistanceMultiplier = StreamingDistanceMultiplier;
+	OutComponentExtraScale = StreamingDistanceMultiplier;
 
 	if (!bUseNewMetrics)
 	{
+		OutMeshExtraScale = 1.f; // No extra scale as this scale is already taken into account in StreamingTexelFactor
+
 		// In this case the element is not in the build data.
 		static FStreamingSectionBuildInfo FallbackData;
 
@@ -429,6 +431,7 @@ const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData
 		FallbackData.BoxExtent = GetBounds().BoxExtent;
 		for (int32 I = 0; I < FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD; ++I)
 		{
+			// This fallback factor has already the mesh extra scale in it.
 			FallbackData.TexelFactors[I] = StreamingTexelFactor;
 		}
 		return &FallbackData;
@@ -437,6 +440,8 @@ const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData
 	{
 		if (StreamingSectionData.IsValid())
 		{
+			OutMeshExtraScale = StaticMesh ? StaticMesh->StreamingDistanceMultiplier : 1.f;
+
 			for (const FStreamingSectionBuildInfo& SectionData : *StreamingSectionData)
 			{
 				if (SectionData.LODIndex == LODIndex && SectionData.ElementIndex == ElementIndex)

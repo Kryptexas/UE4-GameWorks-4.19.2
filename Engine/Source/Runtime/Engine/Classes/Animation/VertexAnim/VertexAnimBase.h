@@ -32,7 +32,7 @@ struct FVertexAnimDelta
 
 			if (Ar.IsLoading())
 			{
-				V.TangentZDelta = FVector(TangentZDelta_DEPRECATED);
+				V.TangentZDelta = TangentZDelta_DEPRECATED;
 			}
 		}
 		else

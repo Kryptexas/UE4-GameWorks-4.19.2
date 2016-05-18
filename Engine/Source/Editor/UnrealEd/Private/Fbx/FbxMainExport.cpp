@@ -557,7 +557,7 @@ void FFbxExporter::ExportModel(UModel* Model, FbxNode* Node, const char* Name)
 	for (uint32 VertexIdx = 0; VertexIdx < VertCount; ++VertexIdx)
 	{
 		FModelVertex& Vertex = Model->VertexBuffer.Vertices[VertexIdx];
-		FVector Normal = (FVector) Vertex.TangentZ;
+		FVector Normal = Vertex.TangentZ;
 
 		// If the vertex is outside of the world extent, snap it to the origin.  The faces associated with
 		// these vertices will be removed before exporting.  We leave the snapped vertex in the buffer so

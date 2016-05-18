@@ -444,12 +444,25 @@ struct FPackedNormal
 * The full C++ class is located here: Engine\Source\Runtime\RenderCore\Public\PackedNormal.h
 */
 USTRUCT(immutable, noexport)
-struct FPackedRGB10A2
+struct FPackedRGB10A2N
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PackedBasis, SaveGame)
 	int32 Packed;
 };
 
+/**
+* A packed vector.
+* The full C++ class is located here: Engine\Source\Runtime\RenderCore\Public\PackedNormal.h
+*/
+USTRUCT(immutable, noexport)
+struct FPackedRGBA16N
+{
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PackedNormal, SaveGame)
+	int32 XY;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PackedNormal, SaveGame)
+	int32 ZW;
+};
 
 /**
  * Screen coordinates.

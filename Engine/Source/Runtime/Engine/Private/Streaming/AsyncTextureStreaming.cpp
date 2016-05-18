@@ -7,7 +7,32 @@ AsyncTextureStreaming.cpp: Definitions of classes used for texture streaming asy
 #include "EnginePrivate.h"
 #include "AsyncTextureStreaming.h"
 
-void FAsyncTextureStreaming::ClearRemovedTextureReferences()
+void FAsyncTextureStreamingData::Init(TArray<FStreamingViewInfo> InViewInfos, TArray<FLevelTextureManager>& LevelTextureManagers, FDynamicComponentTextureManager& DynamicComponentManager)
+{
+	ViewInfos = InViewInfos;
+
+	DynamicInstancesView = DynamicComponentManager.GetAsyncView();
+
+	StaticInstancesViews.Reset();
+	for (FLevelTextureManager& LevelManager : LevelTextureManagers)
+	{
+		StaticInstancesViews.Push(LevelManager.GetAsyncView());
+	}
+}
+
+void FAsyncTextureStreamingData::Update_Async()
+{
+	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() > 0;
+	const float MaxEffectiveScreenSize = CVarStreamingScreenSizeEffectiveMax.GetValueOnAnyThread();
+
+	for (FTextureInstanceAsyncView& StaticInstancesView : StaticInstancesViews)
+	{
+		StaticInstancesView.Update_Async(ViewInfos, bUseNewMetrics, MaxEffectiveScreenSize);
+	}
+	DynamicInstancesView.Update_Async(ViewInfos, bUseNewMetrics, MaxEffectiveScreenSize);
+}
+
+void FAsyncTextureStreamingTask::ClearRemovedTextureReferences()
 {
 	// CleanUp Prioritized Textures, account for removed textures.
 	for (int32 TexPrioIndex = 0; TexPrioIndex < PrioritizedTextures.Num(); ++TexPrioIndex)
@@ -24,39 +49,33 @@ void FAsyncTextureStreaming::ClearRemovedTextureReferences()
 	}
 }
 
-void FAsyncTextureStreaming::DoWork()
+void FAsyncTextureStreamingTask::DoWork()
 {
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FAsyncTextureStreaming::DoWork"), STAT_AsyncTextureStreaming_DoWork, STATGROUP_StreamingDetails);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FAsyncTextureStreamingTask::DoWork"), STAT_AsyncTextureStreaming_DoWork, STATGROUP_StreamingDetails);
 	PrioritizedTextures.Empty( StreamingManager.StreamingTextures.Num() );
 	PrioTexIndicesSortedByLoadOrder.Empty( StreamingManager.StreamingTextures.Num() );
 
 	const int32 SplitRequestSizeThreshold = CVarStreamingSplitRequestSizeThreshold.GetValueOnAnyThread();
 
-	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() > 0;
-	const float MaxEffectiveScreenSize = CVarStreamingScreenSizeEffectiveMax.GetValueOnAnyThread();
-	StreamingManager.ThreadSettings.TextureBoundsVisibility->ComputeBoundsViewInfos(StreamingManager.ThreadSettings.ThreadViewInfos, bUseNewMetrics, MaxEffectiveScreenSize);
-
 	// Number of textures that want more mips.
 	ThreadStats.NumWantingTextures = 0;
 	ThreadStats.NumVisibleTexturesWithLowResolutions = 0;
+
+	StreamingData.Update_Async();
 
 	for ( int32 Index=0; Index < StreamingManager.StreamingTextures.Num() && !IsAborted(); ++Index )
 	{
 		FStreamingTexture& StreamingTexture = StreamingManager.StreamingTextures[ Index ];
 
-		StreamingTexture.bUsesStaticHeuristics = false;
-		StreamingTexture.bUsesDynamicHeuristics = false;
-		StreamingTexture.bUsesLastRenderHeuristics = false;
-		StreamingTexture.bUsesForcedHeuristics = false;
-		StreamingTexture.bUsesOrphanedHeuristics = false;
 		StreamingTexture.bHasSplitRequest  = false;
 		StreamingTexture.bIsLastSplitRequest = false;
+		StreamingTexture.bAsNeverStream = false;
 
-			// Figure out max number of miplevels allowed by LOD code.
-			StreamingManager.CalcMinMaxMips( StreamingTexture );
+		// Figure out max number of miplevels allowed by LOD code.
+		StreamingManager.CalcMinMaxMips( StreamingTexture );
 
-			// Determine how many mips this texture should have in memory.
-			StreamingManager.CalcWantedMips( StreamingTexture );
+		// Determine how many mips this texture should have in memory.
+		StreamingManager.CalcWantedMips( StreamingData, StreamingTexture, false, false );
 
 		ThreadStats.TotalResidentSize += StreamingTexture.GetSize( StreamingTexture.ResidentMips );
 		ThreadStats.TotalPossibleResidentSize += StreamingTexture.GetSize( FMath::Max<int32>(StreamingTexture.ResidentMips, StreamingTexture.RequestedMips) );
@@ -91,7 +110,7 @@ void FAsyncTextureStreaming::DoWork()
 			ThreadStats.NumWantingTextures++;
 		}
 
-		bool bTrackedTexture = TrackTextureEvent( &StreamingTexture, StreamingTexture.Texture, StreamingTexture.bForceFullyLoad, &StreamingManager );
+		bool bTrackedTexture = TrackTextureEvent( &StreamingTexture, StreamingTexture.Texture, StreamingTexture.bAsNeverStream, &StreamingManager );
 
 		// Add to sort list, if it wants to stream in or could potentially stream out.
 		if ( StreamingTexture.MaxAllowedMips > StreamingTexture.NumNonStreamingMips)

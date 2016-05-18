@@ -1330,8 +1330,8 @@ struct FRHICommandUpdateTextureReference : public FRHICommand<FRHICommandUpdateT
 };
 
 
-#define CMD_CONTEXT(Method) GetContext().RHI##Method
-#define COMPUTE_CONTEXT(Method) GetComputeContext().RHI##Method
+#define CMD_CONTEXT(Method) GetContext().Method
+#define COMPUTE_CONTEXT(Method) GetComputeContext().Method
 
 template<> void FRHICommandSetShaderParameter<FComputeShaderRHIParamRef, ECmdList::ECompute>::Execute(FRHICommandListBase& CmdList);
 template<> void FRHICommandSetShaderUniformBuffer<FComputeShaderRHIParamRef, ECmdList::ECompute>::Execute(FRHICommandListBase& CmdList);
@@ -1397,7 +1397,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetBoundShaderState)(LocalBoundShaderState.BypassBSS);
+			CMD_CONTEXT(RHISetBoundShaderState)(LocalBoundShaderState.BypassBSS);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetLocalBoundShaderState>()) FRHICommandSetLocalBoundShaderState(this, LocalBoundShaderState);
@@ -1424,7 +1424,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetShaderUniformBuffer)(Shader, BaseIndex, UniformBuffer.BypassUniform);
+			CMD_CONTEXT(RHISetShaderUniformBuffer)(Shader, BaseIndex, UniformBuffer.BypassUniform);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetLocalUniformBuffer<TShaderRHIParamRef> >()) FRHICommandSetLocalUniformBuffer<TShaderRHIParamRef>(this, Shader, BaseIndex, UniformBuffer);
@@ -1441,7 +1441,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetShaderUniformBuffer)(Shader, BaseIndex, UniformBuffer);
+			CMD_CONTEXT(RHISetShaderUniformBuffer)(Shader, BaseIndex, UniformBuffer);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetShaderUniformBuffer<TShaderRHI*, ECmdList::EGfx> >()) FRHICommandSetShaderUniformBuffer<TShaderRHI*, ECmdList::EGfx>(Shader, BaseIndex, UniformBuffer);
@@ -1457,7 +1457,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetShaderParameter)(Shader, BufferIndex, BaseIndex, NumBytes, NewValue);
+			CMD_CONTEXT(RHISetShaderParameter)(Shader, BufferIndex, BaseIndex, NumBytes, NewValue);
 			return;
 		}
 		void* UseValue = Alloc(NumBytes, 16);
@@ -1475,7 +1475,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetShaderTexture)(Shader, TextureIndex, Texture);
+			CMD_CONTEXT(RHISetShaderTexture)(Shader, TextureIndex, Texture);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetShaderTexture<TShaderRHIParamRef, ECmdList::EGfx> >()) FRHICommandSetShaderTexture<TShaderRHIParamRef, ECmdList::EGfx>(Shader, TextureIndex, Texture);
@@ -1492,7 +1492,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetShaderResourceViewParameter)(Shader, SamplerIndex, SRV);
+			CMD_CONTEXT(RHISetShaderResourceViewParameter)(Shader, SamplerIndex, SRV);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetShaderResourceViewParameter<TShaderRHIParamRef, ECmdList::EGfx> >()) FRHICommandSetShaderResourceViewParameter<TShaderRHIParamRef, ECmdList::EGfx>(Shader, SamplerIndex, SRV);
@@ -1509,7 +1509,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetShaderSampler)(Shader, SamplerIndex, State);
+			CMD_CONTEXT(RHISetShaderSampler)(Shader, SamplerIndex, State);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetShaderSampler<TShaderRHIParamRef, ECmdList::EGfx> >()) FRHICommandSetShaderSampler<TShaderRHIParamRef, ECmdList::EGfx>(Shader, SamplerIndex, State);
@@ -1525,7 +1525,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetUAVParameter)(Shader, UAVIndex, UAV);
+			CMD_CONTEXT(RHISetUAVParameter)(Shader, UAVIndex, UAV);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetUAVParameter<FComputeShaderRHIParamRef, ECmdList::EGfx> >()) FRHICommandSetUAVParameter<FComputeShaderRHIParamRef, ECmdList::EGfx>(Shader, UAVIndex, UAV);
@@ -1540,7 +1540,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetUAVParameter)(Shader, UAVIndex, UAV, InitialCount);
+			CMD_CONTEXT(RHISetUAVParameter)(Shader, UAVIndex, UAV, InitialCount);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetUAVParameter_IntialCount<FComputeShaderRHIParamRef, ECmdList::EGfx> >()) FRHICommandSetUAVParameter_IntialCount<FComputeShaderRHIParamRef, ECmdList::EGfx>(Shader, UAVIndex, UAV, InitialCount);
@@ -1555,7 +1555,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetBoundShaderState)(BoundShaderState);
+			CMD_CONTEXT(RHISetBoundShaderState)(BoundShaderState);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetBoundShaderState>()) FRHICommandSetBoundShaderState(BoundShaderState);
@@ -1565,7 +1565,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetRasterizerState)(State);
+			CMD_CONTEXT(RHISetRasterizerState)(State);
 			return;
 		}
 		if (StateCacheEnabled && CachedRasterizerState && CachedRasterizerState->State == State)
@@ -1579,7 +1579,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetBlendState)(State, BlendFactor);
+			CMD_CONTEXT(RHISetBlendState)(State, BlendFactor);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetBlendState>()) FRHICommandSetBlendState(State, BlendFactor);
@@ -1589,7 +1589,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(DrawPrimitive)(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
+			CMD_CONTEXT(RHIDrawPrimitive)(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
 			return;
 		}
 		new (AllocCommand<FRHICommandDrawPrimitive>()) FRHICommandDrawPrimitive(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
@@ -1599,7 +1599,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(DrawIndexedPrimitive)(IndexBuffer, PrimitiveType, BaseVertexIndex, FirstInstance, NumVertices, StartIndex, NumPrimitives, NumInstances);
+			CMD_CONTEXT(RHIDrawIndexedPrimitive)(IndexBuffer, PrimitiveType, BaseVertexIndex, FirstInstance, NumVertices, StartIndex, NumPrimitives, NumInstances);
 			return;
 		}
 		new (AllocCommand<FRHICommandDrawIndexedPrimitive>()) FRHICommandDrawIndexedPrimitive(IndexBuffer, PrimitiveType, BaseVertexIndex, FirstInstance, NumVertices, StartIndex, NumPrimitives, NumInstances);
@@ -1609,7 +1609,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetStreamSource)(StreamIndex, VertexBuffer, Stride, Offset);
+			CMD_CONTEXT(RHISetStreamSource)(StreamIndex, VertexBuffer, Stride, Offset);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetStreamSource>()) FRHICommandSetStreamSource(StreamIndex, VertexBuffer, Stride, Offset);
@@ -1619,7 +1619,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetDepthStencilState)(NewStateRHI, StencilRef);
+			CMD_CONTEXT(RHISetDepthStencilState)(NewStateRHI, StencilRef);
 			return;
 		}
 		if (StateCacheEnabled && CachedDepthStencilState && CachedDepthStencilState->State == NewStateRHI && CachedDepthStencilState->StencilRef == StencilRef)
@@ -1633,7 +1633,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetViewport)(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
+			CMD_CONTEXT(RHISetViewport)(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetViewport>()) FRHICommandSetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
@@ -1643,7 +1643,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetScissorRect)(bEnable, MinX, MinY, MaxX, MaxY);
+			CMD_CONTEXT(RHISetScissorRect)(bEnable, MinX, MinY, MaxX, MaxY);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetScissorRect>()) FRHICommandSetScissorRect(bEnable, MinX, MinY, MaxX, MaxY);
@@ -1659,7 +1659,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetRenderTargets)(
+			CMD_CONTEXT(RHISetRenderTargets)(
 				NewNumSimultaneousRenderTargets,
 				NewRenderTargetsRHI,
 				NewDepthStencilTargetRHI,
@@ -1679,7 +1679,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetRenderTargetsAndClear)(RenderTargetsInfo);
+			CMD_CONTEXT(RHISetRenderTargetsAndClear)(RenderTargetsInfo);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetRenderTargetsAndClear>()) FRHICommandSetRenderTargetsAndClear(RenderTargetsInfo);
@@ -1689,7 +1689,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(BindClearMRTValues)(bClearColor, bClearDepth, bClearStencil);
+			CMD_CONTEXT(RHIBindClearMRTValues)(bClearColor, bClearDepth, bClearStencil);
 			return;
 		}
 		new (AllocCommand<FRHICommandBindClearMRTValues>()) FRHICommandBindClearMRTValues(bClearColor, bClearDepth, bClearStencil);
@@ -1699,7 +1699,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(BeginDrawPrimitiveUP)(PrimitiveType, NumPrimitives, NumVertices, VertexDataStride, OutVertexData);
+			CMD_CONTEXT(RHIBeginDrawPrimitiveUP)(PrimitiveType, NumPrimitives, NumVertices, VertexDataStride, OutVertexData);
 			return;
 		}
 		check(!DrawUPData.OutVertexData && NumVertices * VertexDataStride > 0);
@@ -1717,7 +1717,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(EndDrawPrimitiveUP)();
+			CMD_CONTEXT(RHIEndDrawPrimitiveUP)();
 			return;
 		}
 		check(DrawUPData.OutVertexData && DrawUPData.NumVertices);
@@ -1731,7 +1731,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(BeginDrawIndexedPrimitiveUP)(PrimitiveType, NumPrimitives, NumVertices, VertexDataStride, OutVertexData, MinVertexIndex, NumIndices, IndexDataStride, OutIndexData);
+			CMD_CONTEXT(RHIBeginDrawIndexedPrimitiveUP)(PrimitiveType, NumPrimitives, NumVertices, VertexDataStride, OutVertexData, MinVertexIndex, NumIndices, IndexDataStride, OutIndexData);
 			return;
 		}
 		check(!DrawUPData.OutVertexData && !DrawUPData.OutIndexData && NumVertices * VertexDataStride > 0 && NumIndices * IndexDataStride > 0);
@@ -1755,7 +1755,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(EndDrawIndexedPrimitiveUP)();
+			CMD_CONTEXT(RHIEndDrawIndexedPrimitiveUP)();
 			return;
 		}
 		check(DrawUPData.OutVertexData && DrawUPData.OutIndexData && DrawUPData.NumIndices && DrawUPData.NumVertices);
@@ -1772,7 +1772,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SetComputeShader)(ComputeShader);
+			CMD_CONTEXT(RHISetComputeShader)(ComputeShader);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetComputeShader<ECmdList::EGfx>>()) FRHICommandSetComputeShader<ECmdList::EGfx>(ComputeShader);
@@ -1782,7 +1782,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(DispatchComputeShader)(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+			CMD_CONTEXT(RHIDispatchComputeShader)(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 			return;
 		}
 		new (AllocCommand<FRHICommandDispatchComputeShader<ECmdList::EGfx>>()) FRHICommandDispatchComputeShader<ECmdList::EGfx>(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
@@ -1792,7 +1792,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(DispatchIndirectComputeShader)(ArgumentBuffer, ArgumentOffset);
+			CMD_CONTEXT(RHIDispatchIndirectComputeShader)(ArgumentBuffer, ArgumentOffset);
 			return;
 		}
 		new (AllocCommand<FRHICommandDispatchIndirectComputeShader<ECmdList::EGfx>>()) FRHICommandDispatchIndirectComputeShader<ECmdList::EGfx>(ArgumentBuffer, ArgumentOffset);
@@ -1802,7 +1802,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(AutomaticCacheFlushAfterComputeShader)(bEnable);
+			CMD_CONTEXT(RHIAutomaticCacheFlushAfterComputeShader)(bEnable);
 			return;
 		}
 		new (AllocCommand<FRHICommandAutomaticCacheFlushAfterComputeShader>()) FRHICommandAutomaticCacheFlushAfterComputeShader(bEnable);
@@ -1812,7 +1812,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(FlushComputeShaderCache)();
+			CMD_CONTEXT(RHIFlushComputeShaderCache)();
 			return;
 		}
 		new (AllocCommand<FRHICommandFlushComputeShaderCache>()) FRHICommandFlushComputeShaderCache();
@@ -1822,7 +1822,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(DrawPrimitiveIndirect)(PrimitiveType, ArgumentBuffer, ArgumentOffset);
+			CMD_CONTEXT(RHIDrawPrimitiveIndirect)(PrimitiveType, ArgumentBuffer, ArgumentOffset);
 			return;
 		}
 		new (AllocCommand<FRHICommandDrawPrimitiveIndirect>()) FRHICommandDrawPrimitiveIndirect(PrimitiveType, ArgumentBuffer, ArgumentOffset);
@@ -1832,7 +1832,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(DrawIndexedIndirect)(IndexBufferRHI, PrimitiveType, ArgumentsBufferRHI, DrawArgumentsIndex, NumInstances);
+			CMD_CONTEXT(RHIDrawIndexedIndirect)(IndexBufferRHI, PrimitiveType, ArgumentsBufferRHI, DrawArgumentsIndex, NumInstances);
 			return;
 		}
 		new (AllocCommand<FRHICommandDrawIndexedIndirect>()) FRHICommandDrawIndexedIndirect(IndexBufferRHI, PrimitiveType, ArgumentsBufferRHI, DrawArgumentsIndex, NumInstances);
@@ -1842,7 +1842,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(DrawIndexedPrimitiveIndirect)(PrimitiveType, IndexBuffer, ArgumentsBuffer, ArgumentOffset);
+			CMD_CONTEXT(RHIDrawIndexedPrimitiveIndirect)(PrimitiveType, IndexBuffer, ArgumentsBuffer, ArgumentOffset);
 			return;
 		}
 		new (AllocCommand<FRHICommandDrawIndexedPrimitiveIndirect>()) FRHICommandDrawIndexedPrimitiveIndirect(PrimitiveType, IndexBuffer, ArgumentsBuffer, ArgumentOffset);
@@ -1852,7 +1852,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(EnableDepthBoundsTest)(bEnable, MinDepth, MaxDepth);
+			CMD_CONTEXT(RHIEnableDepthBoundsTest)(bEnable, MinDepth, MaxDepth);
 			return;
 		}
 		new (AllocCommand<FRHICommandEnableDepthBoundsTest>()) FRHICommandEnableDepthBoundsTest(bEnable, MinDepth, MaxDepth);
@@ -1862,7 +1862,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(ClearUAV)(UnorderedAccessViewRHI, Values);
+			CMD_CONTEXT(RHIClearUAV)(UnorderedAccessViewRHI, Values);
 			return;
 		}
 		new (AllocCommand<FRHICommandClearUAV>()) FRHICommandClearUAV(UnorderedAccessViewRHI, Values);
@@ -1872,7 +1872,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(CopyToResolveTarget)(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
+			CMD_CONTEXT(RHICopyToResolveTarget)(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
 			return;
 		}
 		new (AllocCommand<FRHICommandCopyToResolveTarget>()) FRHICommandCopyToResolveTarget(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
@@ -1882,7 +1882,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(Clear)(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+			CMD_CONTEXT(RHIClear)(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 			return;
 		}
 		new (AllocCommand<FRHICommandClear>()) FRHICommandClear(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
@@ -1892,7 +1892,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(ClearMRT)(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+			CMD_CONTEXT(RHIClearMRT)(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 			return;
 		}
 		new (AllocCommand<FRHICommandClearMRT>()) FRHICommandClearMRT(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
@@ -1902,7 +1902,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(BeginRenderQuery)(RenderQuery);
+			CMD_CONTEXT(RHIBeginRenderQuery)(RenderQuery);
 			return;
 		}
 		new (AllocCommand<FRHICommandBeginRenderQuery>()) FRHICommandBeginRenderQuery(RenderQuery);
@@ -1911,7 +1911,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(EndRenderQuery)(RenderQuery);
+			CMD_CONTEXT(RHIEndRenderQuery)(RenderQuery);
 			return;
 		}
 		new (AllocCommand<FRHICommandEndRenderQuery>()) FRHICommandEndRenderQuery(RenderQuery);
@@ -1921,7 +1921,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(BeginOcclusionQueryBatch)();
+			CMD_CONTEXT(RHIBeginOcclusionQueryBatch)();
 			return;
 		}
 		new (AllocCommand<FRHICommandBeginOcclusionQueryBatch>()) FRHICommandBeginOcclusionQueryBatch();
@@ -1931,7 +1931,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(EndOcclusionQueryBatch)();
+			CMD_CONTEXT(RHIEndOcclusionQueryBatch)();
 			return;
 		}
 		new (AllocCommand<FRHICommandEndOcclusionQueryBatch>()) FRHICommandEndOcclusionQueryBatch();
@@ -1941,7 +1941,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(SubmitCommandsHint)();
+			CMD_CONTEXT(RHISubmitCommandsHint)();
 			return;
 		}
 		new (AllocCommand<FRHICommandSubmitCommandsHint<ECmdList::EGfx>>()) FRHICommandSubmitCommandsHint<ECmdList::EGfx>();
@@ -1952,7 +1952,7 @@ public:
 		FTextureRHIParamRef Texture = InTexture;
 		if (Bypass())
 		{
-			CMD_CONTEXT(TransitionResources)(TransitionType, &Texture, 1);
+			CMD_CONTEXT(RHITransitionResources)(TransitionType, &Texture, 1);
 			return;
 		}
 		new (AllocCommand<FRHICommandTransitionTextures>()) FRHICommandTransitionTextures(TransitionType, &Texture, 1);
@@ -1962,7 +1962,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(TransitionResources)(TransitionType, InTextures, NumTextures);
+			CMD_CONTEXT(RHITransitionResources)(TransitionType, InTextures, NumTextures);
 			return;
 		}
 		new (AllocCommand<FRHICommandTransitionTextures>()) FRHICommandTransitionTextures(TransitionType, InTextures, NumTextures);
@@ -1972,7 +1972,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(TransitionResources)(TransitionType, &InTextures[0], InTextures.Num());
+			CMD_CONTEXT(RHITransitionResources)(TransitionType, &InTextures[0], InTextures.Num());
 			return;
 		}
 		new (AllocCommand<FRHICommandTransitionTexturesArray>()) FRHICommandTransitionTexturesArray(TransitionType, InTextures);
@@ -1983,7 +1983,7 @@ public:
 		FUnorderedAccessViewRHIParamRef UAV = InUAV;
 		if (Bypass())
 		{
-			CMD_CONTEXT(TransitionResources)(TransitionType, TransitionPipeline, &UAV, 1, WriteFence);
+			CMD_CONTEXT(RHITransitionResources)(TransitionType, TransitionPipeline, &UAV, 1, WriteFence);
 			return;
 		}
 		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::EGfx>>()) FRHICommandTransitionUAVs<ECmdList::EGfx>(TransitionType, TransitionPipeline, &UAV, 1, WriteFence);
@@ -1998,7 +1998,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(TransitionResources)(TransitionType, TransitionPipeline, InUAVs, NumUAVs, WriteFence);
+			CMD_CONTEXT(RHITransitionResources)(TransitionType, TransitionPipeline, InUAVs, NumUAVs, WriteFence);
 			return;
 		}
 		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::EGfx>>()) FRHICommandTransitionUAVs<ECmdList::EGfx>(TransitionType, TransitionPipeline, InUAVs, NumUAVs, WriteFence);
@@ -2013,7 +2013,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(WaitComputeFence)(WaitFence);
+			CMD_CONTEXT(RHIWaitComputeFence)(WaitFence);
 			return;
 		}
 		new (AllocCommand<FRHICommandWaitComputeFence<ECmdList::EGfx>>()) FRHICommandWaitComputeFence<ECmdList::EGfx>(WaitFence);
@@ -2033,7 +2033,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(PushEvent)(Name, Color);
+			CMD_CONTEXT(RHIPushEvent)(Name, Color);
 			return;
 		}
 		int32 Len = FCString::Strlen(Name) + 1;
@@ -2046,7 +2046,7 @@ public:
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(PopEvent)();
+			CMD_CONTEXT(RHIPopEvent)();
 			return;
 		}
 		new (AllocCommand<FRHICommandPopEvent<ECmdList::EGfx>>()) FRHICommandPopEvent<ECmdList::EGfx>();
@@ -2080,7 +2080,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(SetShaderUniformBuffer)(Shader, BaseIndex, UniformBuffer);
+			COMPUTE_CONTEXT(RHISetShaderUniformBuffer)(Shader, BaseIndex, UniformBuffer);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetShaderUniformBuffer<FComputeShaderRHIParamRef, ECmdList::ECompute> >()) FRHICommandSetShaderUniformBuffer<FComputeShaderRHIParamRef, ECmdList::ECompute>(Shader, BaseIndex, UniformBuffer);		
@@ -2095,7 +2095,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(SetShaderParameter)(Shader, BufferIndex, BaseIndex, NumBytes, NewValue);
+			COMPUTE_CONTEXT(RHISetShaderParameter)(Shader, BufferIndex, BaseIndex, NumBytes, NewValue);
 			return;
 		}
 		void* UseValue = Alloc(NumBytes, 16);
@@ -2112,7 +2112,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(SetShaderTexture)(Shader, TextureIndex, Texture);
+			COMPUTE_CONTEXT(RHISetShaderTexture)(Shader, TextureIndex, Texture);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetShaderTexture<FComputeShaderRHIParamRef, ECmdList::ECompute> >()) FRHICommandSetShaderTexture<FComputeShaderRHIParamRef, ECmdList::ECompute>(Shader, TextureIndex, Texture);
@@ -2122,7 +2122,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(SetShaderResourceViewParameter)(Shader, SamplerIndex, SRV);
+			COMPUTE_CONTEXT(RHISetShaderResourceViewParameter)(Shader, SamplerIndex, SRV);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetShaderResourceViewParameter<FComputeShaderRHIParamRef, ECmdList::ECompute> >()) FRHICommandSetShaderResourceViewParameter<FComputeShaderRHIParamRef, ECmdList::ECompute>(Shader, SamplerIndex, SRV);
@@ -2132,7 +2132,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(SetShaderSampler)(Shader, SamplerIndex, State);
+			COMPUTE_CONTEXT(RHISetShaderSampler)(Shader, SamplerIndex, State);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetShaderSampler<FComputeShaderRHIParamRef, ECmdList::ECompute> >()) FRHICommandSetShaderSampler<FComputeShaderRHIParamRef, ECmdList::ECompute>(Shader, SamplerIndex, State);
@@ -2142,7 +2142,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(SetUAVParameter)(Shader, UAVIndex, UAV);
+			COMPUTE_CONTEXT(RHISetUAVParameter)(Shader, UAVIndex, UAV);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetUAVParameter<FComputeShaderRHIParamRef, ECmdList::ECompute> >()) FRHICommandSetUAVParameter<FComputeShaderRHIParamRef, ECmdList::ECompute>(Shader, UAVIndex, UAV);
@@ -2152,7 +2152,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(SetUAVParameter)(Shader, UAVIndex, UAV, InitialCount);
+			COMPUTE_CONTEXT(RHISetUAVParameter)(Shader, UAVIndex, UAV, InitialCount);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetUAVParameter_IntialCount<FComputeShaderRHIParamRef, ECmdList::ECompute> >()) FRHICommandSetUAVParameter_IntialCount<FComputeShaderRHIParamRef, ECmdList::ECompute>(Shader, UAVIndex, UAV, InitialCount);
@@ -2162,7 +2162,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(SetComputeShader)(ComputeShader);
+			COMPUTE_CONTEXT(RHISetComputeShader)(ComputeShader);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetComputeShader<ECmdList::ECompute> >()) FRHICommandSetComputeShader<ECmdList::ECompute>(ComputeShader);
@@ -2172,7 +2172,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(SetAsyncComputeBudget)(Budget);
+			COMPUTE_CONTEXT(RHISetAsyncComputeBudget)(Budget);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetAsyncComputeBudget<ECmdList::ECompute>>()) FRHICommandSetAsyncComputeBudget<ECmdList::ECompute>(Budget);
@@ -2182,7 +2182,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(DispatchComputeShader)(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+			COMPUTE_CONTEXT(RHIDispatchComputeShader)(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 			return;
 		}
 		new (AllocCommand<FRHICommandDispatchComputeShader<ECmdList::ECompute> >()) FRHICommandDispatchComputeShader<ECmdList::ECompute>(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
@@ -2192,7 +2192,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(DispatchIndirectComputeShader)(ArgumentBuffer, ArgumentOffset);
+			COMPUTE_CONTEXT(RHIDispatchIndirectComputeShader)(ArgumentBuffer, ArgumentOffset);
 			return;
 		}
 		new (AllocCommand<FRHICommandDispatchIndirectComputeShader<ECmdList::ECompute> >()) FRHICommandDispatchIndirectComputeShader<ECmdList::ECompute>(ArgumentBuffer, ArgumentOffset);
@@ -2203,7 +2203,7 @@ public:
 		FUnorderedAccessViewRHIParamRef UAV = InUAV;
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(TransitionResources)(TransitionType, TransitionPipeline, &UAV, 1, WriteFence);
+			COMPUTE_CONTEXT(RHITransitionResources)(TransitionType, TransitionPipeline, &UAV, 1, WriteFence);
 			return;
 		}
 		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::ECompute> >()) FRHICommandTransitionUAVs<ECmdList::ECompute>(TransitionType, TransitionPipeline, &UAV, 1, WriteFence);
@@ -2218,7 +2218,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(TransitionResources)(TransitionType, TransitionPipeline, InUAVs, NumUAVs, WriteFence);
+			COMPUTE_CONTEXT(RHITransitionResources)(TransitionType, TransitionPipeline, InUAVs, NumUAVs, WriteFence);
 			return;
 		}
 		new (AllocCommand<FRHICommandTransitionUAVs<ECmdList::ECompute> >()) FRHICommandTransitionUAVs<ECmdList::ECompute>(TransitionType, TransitionPipeline, InUAVs, NumUAVs, WriteFence);
@@ -2233,7 +2233,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(PushEvent)(Name, Color);
+			COMPUTE_CONTEXT(RHIPushEvent)(Name, Color);
 			return;
 		}
 		int32 Len = FCString::Strlen(Name) + 1;
@@ -2246,7 +2246,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(PopEvent)();
+			COMPUTE_CONTEXT(RHIPopEvent)();
 			return;
 		}
 		new (AllocCommand<FRHICommandPopEvent<ECmdList::ECompute> >()) FRHICommandPopEvent<ECmdList::ECompute>();
@@ -2271,7 +2271,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(SubmitCommandsHint)();
+			COMPUTE_CONTEXT(RHISubmitCommandsHint)();
 			return;
 		}
 		new (AllocCommand<FRHICommandSubmitCommandsHint<ECmdList::ECompute>>()) FRHICommandSubmitCommandsHint<ECmdList::ECompute>();
@@ -2281,7 +2281,7 @@ public:
 	{
 		if (Bypass())
 		{
-			COMPUTE_CONTEXT(WaitComputeFence)(WaitFence);
+			COMPUTE_CONTEXT(RHIWaitComputeFence)(WaitFence);
 			return;
 		}
 		new (AllocCommand<FRHICommandWaitComputeFence<ECmdList::ECompute>>()) FRHICommandWaitComputeFence<ECmdList::ECompute>(WaitFence);

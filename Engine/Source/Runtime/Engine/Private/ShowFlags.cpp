@@ -362,19 +362,6 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 	}
 
 	{
-		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
-		if(ICVar->GetValueOnGameThread() == 0)
-		{
-			EngineShowFlags.AmbientOcclusion = 0;
-			EngineShowFlags.ScreenSpaceAO = 0;
-			EngineShowFlags.Decals = 0;
-			EngineShowFlags.DynamicShadows = 0;
-			EngineShowFlags.GlobalIllumination = 0;
-			EngineShowFlags.ScreenSpaceReflections = 0;
-		}
-	}
-
-	{
 		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EyeAdaptationQuality"));
 		if(ICVar->GetValueOnGameThread() <= 0)
 		{

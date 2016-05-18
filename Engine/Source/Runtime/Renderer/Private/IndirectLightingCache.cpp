@@ -507,6 +507,13 @@ void FIndirectLightingCache::UpdateCachePrimitivesInternal(FScene* Scene, FScene
 						uint32 PrimitiveIndex = BitIt.GetIndex();
 						SetBitIndices[ViewIndex].Add(PrimitiveIndex);					
 					}
+
+					// Any visible primitives with an indirect shadow need their ILC updated, since that determines the indirect shadow direction
+					for (int32 IndirectPrimitiveIndex = 0; IndirectPrimitiveIndex < View.IndirectShadowPrimitives.Num(); IndirectPrimitiveIndex++)
+					{
+						int32 PrimitiveIndex = View.IndirectShadowPrimitives[IndirectPrimitiveIndex]->GetIndex();
+						SetBitIndices[ViewIndex].AddUnique(PrimitiveIndex);
+					}
 				}			
 			}
 

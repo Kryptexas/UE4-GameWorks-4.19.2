@@ -4087,6 +4087,7 @@ void FLevelEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& 
  */
 void FLevelEditorViewportClient::DrawTextureStreamingBounds(const FSceneView* View,FPrimitiveDrawInterface* PDI)
 {
+#if 0 //@todo
 	// Iterate each level
 	for (TObjectIterator<ULevel> It; It; ++It)
 	{
@@ -4118,6 +4119,7 @@ void FLevelEditorViewportClient::DrawTextureStreamingBounds(const FSceneView* Vi
 			}
 		}
 	}
+#endif
 }
 
 

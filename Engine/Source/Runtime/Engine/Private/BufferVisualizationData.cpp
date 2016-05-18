@@ -20,12 +20,6 @@ static TAutoConsoleVariable<int32> CVarBufferVisualizationDumpFrames(
 	TEXT("1:on"),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarSaveUncompressedEXRFrames(
-	TEXT("r.SaveUncompressedEXRFrames"),
-	0,
-	TEXT("If enabled will save EXR screenshots with no compression, rather then the zip default"),
-	ECVF_RenderThreadSafe);
-
 void FBufferVisualizationData::Initialize()
 {
 	if (!bIsInitialized)

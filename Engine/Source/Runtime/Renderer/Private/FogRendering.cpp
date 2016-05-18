@@ -28,6 +28,13 @@ static TAutoConsoleVariable<float> CVarFogDensity(
 	ECVF_Cheat | ECVF_RenderThreadSafe);
 #endif
 
+static TAutoConsoleVariable<int32> CVarFog(
+	TEXT("r.Fog"),
+	1,
+	TEXT(" 0: disabled\n")
+	TEXT(" 1: enabled (default)"),
+	ECVF_RenderThreadSafe | ECVF_Scalability);
+
 /** Binds the parameters. */
 void FExponentialHeightFogShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 {
@@ -357,6 +364,7 @@ bool ShouldRenderFog(const FSceneViewFamily& Family)
 	return EngineShowFlags.Fog
 		&& EngineShowFlags.Materials 
 		&& !Family.UseDebugViewPS()
+		&& CVarFog.GetValueOnRenderThread() == 1
 		&& !EngineShowFlags.StationaryLightOverlap 
 		&& !EngineShowFlags.VertexDensities
 		&& !EngineShowFlags.LightMapDensity;

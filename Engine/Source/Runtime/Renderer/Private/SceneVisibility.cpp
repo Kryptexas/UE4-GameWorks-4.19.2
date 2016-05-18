@@ -2664,7 +2664,7 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 					// Don't render if the light's origin is behind the view
 					if(ProjectedBlurOrigin.W >= 0.0f
 						// Don't render point lights that have completely faded out
-							&& (LightSceneInfo->Proxy->GetLightType() == LightType_Directional 
+						&& (LightSceneInfo->Proxy->GetLightType() == LightType_Directional 
 							|| DistanceToBlurOrigin < LightSceneInfo->Proxy->GetRadius() * PointLightRadiusFadeFactor))
 					{
 						View.bLightShaftUse = bNotMobileMSAA;
@@ -2757,7 +2757,7 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 	{
 
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_PostVisibilityFrameSetup_InitFogConstants);
-	InitFogConstants();
+		InitFogConstants();
 	}
 }
 
@@ -2787,6 +2787,10 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 	}
 	PreVisibilityFrameSetup(RHICmdList);
 	ComputeViewVisibility(RHICmdList);
+
+	// This has to happen before Scene->IndirectLightingCache.UpdateCache, since primitives in View.IndirectShadowPrimitives need ILC updates
+	CreateIndirectCapsuleShadows();
+
 	PostVisibilityFrameSetup(ILCTaskData);
 
 	FVector AverageViewPosition(0);
@@ -2849,7 +2853,7 @@ void FDeferredShadingSceneRenderer::InitViewsPossiblyAfterPrepass(FRHICommandLis
 
 	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
 
-	if (bDynamicShadows && !IsSimpleDynamicLightingEnabled())
+	if (bDynamicShadows && !IsSimpleForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel)))
 	{
 		// Setup dynamic shadows.
 		InitDynamicShadows(RHICmdList);
@@ -2863,8 +2867,8 @@ void FDeferredShadingSceneRenderer::InitViewsPossiblyAfterPrepass(FRHICommandLis
 
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitViews_UpdatePrimitivePrecomputedLightingBuffers);
-	// Now that the indirect lighting cache is updated, we can update the primitive precomputed lighting buffers.
-	UpdatePrimitivePrecomputedLightingBuffers();
+		// Now that the indirect lighting cache is updated, we can update the primitive precomputed lighting buffers.
+		UpdatePrimitivePrecomputedLightingBuffers();
 	}
 
 	UpdateTranslucencyTimersAndSeparateTranslucencyBufferSize(RHICmdList);

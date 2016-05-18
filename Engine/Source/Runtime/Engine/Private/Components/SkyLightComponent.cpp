@@ -175,7 +175,7 @@ void USkyLightComponent::SetCaptureIsDirty()
 
 void USkyLightComponent::SanatizeCubemapSize()
 {
-	static const int32 MaxCubemapResolution = 4096;
+	static const int32 MaxCubemapResolution = 1024;
 	CubemapResolution = FMath::Min(int32(FMath::RoundUpToPowerOfTwo(CubemapResolution)), MaxCubemapResolution);
 }
 

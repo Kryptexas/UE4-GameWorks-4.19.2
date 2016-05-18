@@ -320,14 +320,18 @@ void RemapPaintedVertexColors(
 		if ( PointsToConsider.Num() > 0 )
 		{
 			FPaintedVertex BestVertex = PointsToConsider[0];
+			FVector BestVertexNormal = BestVertex.Normal;
+
 			float BestDistanceSquared = ( BestVertex.Position - CurPosition ).SizeSquared();
-			float BestNormalDot = FVector( BestVertex.Normal ) | CurNormal;
+			float BestNormalDot = BestVertexNormal | CurNormal;
 
 			for ( int32 ConsiderationIndex = 1; ConsiderationIndex < PointsToConsider.Num(); ++ConsiderationIndex )
 			{
 				FPaintedVertex& Vertex = PointsToConsider[ ConsiderationIndex ];
+				FVector VertexNormal = Vertex.Normal;
+
 				const float DistSqrd = ( Vertex.Position - CurPosition ).SizeSquared();
-				const float NormalDot = FVector( Vertex.Normal ) | CurNormal;
+				const float NormalDot = VertexNormal | CurNormal;
 				if ( DistSqrd < BestDistanceSquared - DistanceOverNormalThreshold )
 				{
 					BestVertex = Vertex;

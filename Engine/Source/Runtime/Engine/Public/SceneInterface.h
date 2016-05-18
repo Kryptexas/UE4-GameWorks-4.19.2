@@ -147,9 +147,6 @@ public:
 	 */
 	virtual void UpdateLightColorAndBrightness(ULightComponent* Light) = 0;
 
-	/** Updates the scene's dynamic skylight. */
-	virtual void UpdateDynamicSkyLight(const FLinearColor& UpperColor, const FLinearColor& LowerColor) {}
-
 	/** Sets the precomputed visibility handler for the scene, or NULL to clear the current one. */
 	virtual void SetPrecomputedVisibility(const class FPrecomputedVisibilityHandler* PrecomputedVisibilityHandler) {}
 

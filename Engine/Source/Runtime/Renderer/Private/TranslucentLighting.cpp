@@ -1144,22 +1144,35 @@ void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLighting(FRHICommandLi
 		SCOPED_DRAW_EVENT(RHICmdList, ClearTranslucentVolumeLighting);
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-		// Clear all volume textures in the same draw with MRT, which is faster than individually
+		// to track down Jira UE-22073
+		ensure(SceneContext.GetCurrentFeatureLevel() >= ERHIFeatureLevel::SM4);
+		ensure(SceneContext.TranslucencyLightingVolumeAmbient[0]);
+		ensure(SceneContext.TranslucencyLightingVolumeDirectional[0]);
+		ensure(SceneContext.TranslucencyLightingVolumeAmbient[1]);
+		ensure(SceneContext.TranslucencyLightingVolumeDirectional[1]);
+		// if to prevent crash (Jira UE-22073) but it happen later
+		if( SceneContext.TranslucencyLightingVolumeAmbient[0] &&
+			SceneContext.TranslucencyLightingVolumeDirectional[0] &&
+			SceneContext.TranslucencyLightingVolumeAmbient[1] &&
+			SceneContext.TranslucencyLightingVolumeDirectional[1])
+		{
+			// Clear all volume textures in the same draw with MRT, which is faster than individually
 
-		static_assert(TVC_MAX == 2, "Only expecting two translucency lighting cascades.");
-		FTextureRHIParamRef RenderTargets[4];
-		RenderTargets[0] = SceneContext.TranslucencyLightingVolumeAmbient[0]->GetRenderTargetItem().TargetableTexture;
-		RenderTargets[1] = SceneContext.TranslucencyLightingVolumeDirectional[0]->GetRenderTargetItem().TargetableTexture;
-		RenderTargets[2] = SceneContext.TranslucencyLightingVolumeAmbient[1]->GetRenderTargetItem().TargetableTexture;
-		RenderTargets[3] = SceneContext.TranslucencyLightingVolumeDirectional[1]->GetRenderTargetItem().TargetableTexture;
+			static_assert(TVC_MAX == 2, "Only expecting two translucency lighting cascades.");
+			FTextureRHIParamRef RenderTargets[4];
+			RenderTargets[0] = SceneContext.TranslucencyLightingVolumeAmbient[0]->GetRenderTargetItem().TargetableTexture;
+			RenderTargets[1] = SceneContext.TranslucencyLightingVolumeDirectional[0]->GetRenderTargetItem().TargetableTexture;
+			RenderTargets[2] = SceneContext.TranslucencyLightingVolumeAmbient[1]->GetRenderTargetItem().TargetableTexture;
+			RenderTargets[3] = SceneContext.TranslucencyLightingVolumeDirectional[1]->GetRenderTargetItem().TargetableTexture;
 
-		FLinearColor ClearColors[4];
-		ClearColors[0] = FLinearColor(0, 0, 0, 0);
-		ClearColors[1] = FLinearColor(0, 0, 0, 0);
-		ClearColors[2] = FLinearColor(0, 0, 0, 0);
-		ClearColors[3] = FLinearColor(0, 0, 0, 0);
+			FLinearColor ClearColors[4];
+			ClearColors[0] = FLinearColor(0, 0, 0, 0);
+			ClearColors[1] = FLinearColor(0, 0, 0, 0);
+			ClearColors[2] = FLinearColor(0, 0, 0, 0);
+			ClearColors[3] = FLinearColor(0, 0, 0, 0);
 
-		ClearVolumeTextures<ARRAY_COUNT(RenderTargets)>(RHICmdList, FeatureLevel, RenderTargets, ClearColors);
+			ClearVolumeTextures<ARRAY_COUNT(RenderTargets)>(RHICmdList, FeatureLevel, RenderTargets, ClearColors);
+		}
 	}
 }
 
@@ -1212,15 +1225,19 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 	//@todo - support multiple views
 	const FViewInfo& View = Views[0];
 
-	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering && View.FinalPostProcessSettings.ContributingCubemaps.Num() && !IsSimpleDynamicLightingEnabled())
+	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering && View.FinalPostProcessSettings.ContributingCubemaps.Num())
 	{
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+		// to track down Jira UE-22073
+		ensure(SceneContext.GetCurrentFeatureLevel() >= ERHIFeatureLevel::SM4);
+
 		SCOPED_DRAW_EVENT(RHICmdList, InjectAmbientCubemapTranslucentVolumeLighting);
 
 		const FVolumeBounds VolumeBounds(GTranslucencyLightingVolumeDim);
 
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 		
-		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 		for (int32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
 		{
 			// we don't update the directional volume (could be a HQ option)
@@ -1543,6 +1560,9 @@ static void InjectTranslucentLightArray(FRHICommandListImmediate& RHICmdList, co
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	INC_DWORD_STAT_BY(STAT_NumLightsInjectedIntoTranslucency, LightInjectionData.Num());
+
+	// to track down Jira UE-22073
+	ensure(SceneContext.GetCurrentFeatureLevel() >= ERHIFeatureLevel::SM4);
 
 	// Inject into each volume cascade
 	// Operate on one cascade at a time to reduce render target switches

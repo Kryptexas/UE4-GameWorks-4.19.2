@@ -44,73 +44,6 @@ void FlushResourceStreaming()
 	IStreamingManager::Get().BlockTillAllRequestsFinished();
 }
 
-// ----------------------------------------------------------------------
-
-FFloatMipLevel::FFloatMipLevel() 
-{
-	Invalidate();
-}
-
-int32 FFloatMipLevel::ComputeMip(const FStreamingTexture* StreamingTexture, float MipBias, bool bOptimal) const
-{	
-	check(MipBias >= 0);
-
-	int32 MinAllowedMips = 1;
-	int32 MaxAllowedMips = 16;
-
-	if(StreamingTexture)
-	{
-		MinAllowedMips = StreamingTexture->MinAllowedMips;
-		MaxAllowedMips = bOptimal ? StreamingTexture->MaxAllowedOptimalMips : StreamingTexture->MaxAllowedMips;
-
-		if (!StreamingTexture->bCanBeAffectedByMipBias)
-		{
-			MipBias = 0.0f;
-		}
-	}
-
-	// bias the clamped mip level
-	int32 LocalMipLevel = (int32)(FMath::Min(MipLevel, (float)MaxAllowedMips) - MipBias);
-
-	LocalMipLevel = FMath::Max(LocalMipLevel, MinAllowedMips);
-
-	return LocalMipLevel;
-}
-
-bool FFloatMipLevel::operator>=(const FFloatMipLevel& rhs) const
-{
-	return MipLevel >= rhs.MipLevel;
-}
-
-FFloatMipLevel FFloatMipLevel::FromScreenSizeInTexels(float ScreenSizeInTexels)
-{
-	//check(ScreenSizeInTexels >= 0);  @todo: should we figure out why this is negative?
-	const float ScreenSizeInTexelsClamped = FMath::Max(0.f, ScreenSizeInTexels);
-
-	FFloatMipLevel Ret;
-
-	// int
-//	Ret.MipLevel = 1 + FMath::CeilLogTwo( FMath::TruncToInt(ScreenSizeInTexels) );
-	// float
-	Ret.MipLevel = 1.0f + FMath::Log2(ScreenSizeInTexelsClamped);
-
-	return Ret;
-}
-
-FFloatMipLevel FFloatMipLevel::FromMipLevel(int32 InMipLevel)
-{
-	FFloatMipLevel Ret;
-
-	Ret.MipLevel = (float)InMipLevel;
-
-	return Ret;
-}
-
-void FFloatMipLevel::Invalidate()
-{
-	MipLevel = -1.0f;
-}
-
 /*-----------------------------------------------------------------------------
 	Texture tracking.
 -----------------------------------------------------------------------------*/
@@ -128,7 +61,6 @@ struct FTrackedTextureEvent
 	,	WantedMips(0)
 	,	StreamingStatus(0)
 	,	Timestamp(0.0f)
-	,	StreamType(StreamType_Other)
 	,	BoostFactor(1.0f)
 	{
 	}
@@ -138,7 +70,6 @@ struct FTrackedTextureEvent
 	,	WantedMips(0)
 	,	StreamingStatus(0)
 	,	Timestamp(0.0f)
-	,	StreamType(StreamType_Other)
 	,	BoostFactor(1.0f)
 	{
 		TextureName = new TCHAR[InTextureNameString.Len() + 1];
@@ -152,14 +83,10 @@ struct FTrackedTextureEvent
 	int32			NumRequestedMips;
 	/** Number of wanted mips. */
 	int32			WantedMips;
-	/** Number of wanted mips, as calculated by the heuristics for dynamic primitives. */
-	FFloatMipLevel	DynamicWantedMips;
 	/** Streaming status. */
 	int32			StreamingStatus;
 	/** Timestamp, in seconds from startup. */
 	float			Timestamp;
-	/** Which streaming heuristic this texture uses. */
-	ETextureStreamingType	StreamType;
 	/** Currently used boost factor for the streaming distance. */
 	float			BoostFactor;
 };
@@ -277,7 +204,7 @@ bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture
 		TrackTextureInit();
 	}
 
-	float MipBias = Manager ? Manager->ThreadSettings.MipBias : 0;
+	float MipBias =  Manager ? Manager->MipBias : 0;
 
 	int32 NumTrackedTextures = GTrackedTextureNames.Num();
 	if ( NumTrackedTextures )
@@ -312,14 +239,10 @@ bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture
 
 					int32 StreamingStatus	= Texture->PendingMipChangeRequestStatus.GetValue();
 					int32 WantedMips		= Texture->RequestedMips;
-					FFloatMipLevel DynamicWantedMips;
 					float BoostFactor		= 1.0f;
-					ETextureStreamingType StreamType = bForceMipLevelsToBeResident ? StreamType_Forced : StreamType_Other;
 					if ( StreamingTexture )
 					{
 						WantedMips			= StreamingTexture->WantedMips;
-						//@TODO: DynamicWantedMips	= FFloatMipLevel::FromScreenSizeInTexels(StreamingTexture->DynamicScreenSize);
-						StreamType			= StreamingTexture->GetStreamingType();
 						BoostFactor			= StreamingTexture->BoostFactor;
 					}
 
@@ -327,8 +250,6 @@ bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture
 						 LastEvent->NumRequestedMips != Texture->RequestedMips ||
 						 LastEvent->StreamingStatus != StreamingStatus ||
 						 LastEvent->WantedMips != WantedMips ||
-						 LastEvent->DynamicWantedMips.ComputeMip(StreamingTexture, MipBias, false) != DynamicWantedMips.ComputeMip(StreamingTexture, MipBias, false) ||
-						 LastEvent->StreamType != StreamType ||
 						 LastEvent->BoostFactor != BoostFactor ||
 						 bIsDestroying )
 					{
@@ -338,15 +259,12 @@ bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture
 						NewEvent.NumResidentMips		= LastEvent->NumResidentMips	= Texture->ResidentMips;
 						NewEvent.NumRequestedMips		= LastEvent->NumRequestedMips	= Texture->RequestedMips;
 						NewEvent.WantedMips				= LastEvent->WantedMips			= WantedMips;
-						NewEvent.DynamicWantedMips		= LastEvent->DynamicWantedMips	= DynamicWantedMips;
 						NewEvent.StreamingStatus		= LastEvent->StreamingStatus	= StreamingStatus;
 						NewEvent.Timestamp				= LastEvent->Timestamp			= float(FPlatformTime::Seconds() - GStartTime);
-						NewEvent.StreamType				= LastEvent->StreamType			= StreamType;
 						NewEvent.BoostFactor			= LastEvent->BoostFactor		= BoostFactor;
-						UE_LOG(LogContentStreaming, Log, TEXT("Texture: \"%s\", ResidentMips: %d/%d, RequestedMips: %d, WantedMips: %d, DynamicWantedMips: %d, StreamingStatus: %d, StreamType: %s, Boost: %.1f (%s)"),
-							TextureName, LastEvent->NumResidentMips, Texture->GetNumMips(), bIsDestroying ? 0 : LastEvent->NumRequestedMips,
-							LastEvent->WantedMips, LastEvent->DynamicWantedMips.ComputeMip(StreamingTexture, MipBias, false), LastEvent->StreamingStatus, GStreamTypeNames[StreamType],
-							BoostFactor, bIsDestroying ? TEXT("DESTROYED") : TEXT("updated") );
+						UE_LOG(LogContentStreaming, Log, TEXT("Texture: \"%s\", ResidentMips: %d/%d, RequestedMips: %d, WantedMips: %d, StreamingStatus: %d, Boost: %.1f (%s)"),
+							TextureName, LastEvent->NumResidentMips, Texture->GetNumMips(), bIsDestroying ? 0 : LastEvent->NumRequestedMips, LastEvent->WantedMips, 
+							LastEvent->StreamingStatus, BoostFactor, bIsDestroying ? TEXT("DESTROYED") : TEXT("updated") );
 					}
 				}
 				return true;
@@ -1011,15 +929,11 @@ void FStreamingManagerCollection::AddLevel( ULevel* Level )
 	UE_LOG(LogContentStreaming, Log, TEXT("FStreamingManagerCollection::AddLevel(\"%s\")"), *Level->GetOutermost()->GetName());
 #endif
 
-	if ( Level->bTextureStreamingBuilt == false )
+	// Route to streaming managers.
+	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		// If it hasn't been done yet for this level, build its texture streaming data now.
-		// This will also add the level.
-		Level->BuildStreamingData();
-	}
-	else
-	{
-		AddPreparedLevel( Level );
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
+		StreamingManager->AddLevel( Level );
 	}
 }
 
@@ -1035,23 +949,6 @@ void FStreamingManagerCollection::RemoveLevel( ULevel* Level )
 	{
 		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		StreamingManager->RemoveLevel( Level );
-	}
-}
-
-/** Adds a ULevel that has already built StreamingData to the streaming manager. */
-void FStreamingManagerCollection::AddPreparedLevel( class ULevel* Level )
-{
-#if STREAMING_LOG_LEVELS
-	UE_LOG(LogContentStreaming, Log, TEXT("FStreamingManagerCollection::AddPreparedLevel(\"%s\")"), *Level->GetOutermost()->GetName());
-#endif
-
-	check( Level->bTextureStreamingBuilt );
-
-	// Route to streaming managers.
-	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
-	{
-		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
-		StreamingManager->AddPreparedLevel( Level );
 	}
 }
 
@@ -1167,9 +1064,6 @@ void FStreamingManagerCollection::AddOrRemoveTextureStreamingManagerIfNeeded(boo
 			GConfig->GetFloat( TEXT("TextureStreaming"), TEXT("LoadMapTimeLimit"), LoadMapTimeLimit, GEngineIni );
 			// Create the streaming manager and add the default streamers.
 			TextureStreamingManager = new FStreamingManagerTexture();
-			TextureStreamingManager->AddTextureStreamingHandler( new FStreamingHandlerTextureDynamic() );
-			TextureStreamingManager->AddTextureStreamingHandler( new FStreamingHandlerTextureStatic() );
-			TextureStreamingManager->AddTextureStreamingHandler( new FStreamingHandlerTextureLevelForced() );
 			AddStreamingManager( TextureStreamingManager );		
 				
 			//Need to work out if all textures should be streamable and added to the texture streaming manager.
@@ -1339,7 +1233,7 @@ FArchive& operator<<( FArchive& Ar, FStreamableTextureInstance& TextureInstance 
 	else if (Ar.IsLoading())
 	{
 		TextureInstance.MinDistance = 0;
-		TextureInstance.MaxDistance = MAX_FLT;
+		TextureInstance.MaxDistance = FLT_MAX;
 	}
 
 	Ar << TextureInstance.TexelFactor;

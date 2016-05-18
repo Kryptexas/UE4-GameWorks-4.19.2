@@ -53,6 +53,8 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 
 	if (!GUsingNullRHI)
 	{
+		GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
+
 		// handle translucent material blend modes
 		if (IsTranslucentBlendMode(MaterialBlendMode))
 		{

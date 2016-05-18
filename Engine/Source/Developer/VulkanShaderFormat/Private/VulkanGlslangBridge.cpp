@@ -4,6 +4,13 @@
 
 #include "VulkanShaderFormat.h"
 
+#if _MSC_VER == 1800
+#pragma warning(push)
+// warning C4510: 'glslang::TShader::Includer::IncludeResult' : default constructor could not be generated
+//error C4610: struct 'glslang::TShader::Includer::IncludeResult' can never be instantiated - user defined constructor required
+#pragma warning(disable:4510)
+#pragma warning(disable:4610)
+#endif // _MSC_VER == 1800
 #include "glslang/Include/ShHandle.h"
 #include "glslang/Include/revision.h"
 #include "glslang/Public/ShaderLang.h"
@@ -11,6 +18,9 @@
 #include "SPIRV/GLSL.std.450.h"
 #include "SPIRV/doc.h"
 #include "SPIRV/disassemble.h"
+#if _MSC_VER == 1800
+#pragma warning(pop)
+#endif // _MSC_VER == 1800
 
 #include "hlslcc.h"
 

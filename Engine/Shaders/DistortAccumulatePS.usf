@@ -42,10 +42,14 @@ void Main(
 	// X = IOR, Y = Refraction Bias
 	float2 Refraction = GetMaterialRefraction(PixelMaterialInputs);
 	 	
+#if REFRACTION_USE_PIXEL_NORMAL_OFFSET && MATERIAL_TANGENTSPACENORMAL
+	half3 ViewVertexNormal = TransformTangentVectorToView(MaterialParameters, float3(0, 0, 1));
+	float2 Distortion = (ViewVertexNormal.xy - ViewNormal.xy) * (Refraction.x - 1);
+#else
 	// we assume the camera is in air
 	float AirIOR = 1.0f;
-
 	float2 Distortion = ViewNormal.xy * (Refraction.x - AirIOR);
+#endif
 
 	//clip if the distortion distance (squared) is too small to be noticed
 	//this will result in a less expensive apply pass since the clipped pixels won't set stencil to pass

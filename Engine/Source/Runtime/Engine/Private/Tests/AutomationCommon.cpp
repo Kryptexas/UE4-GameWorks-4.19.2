@@ -194,21 +194,22 @@ bool FEngineWaitLatentCommand::Update()
 	return false;
 }
 
+ENGINE_API uint32 GStreamAllResourcesStillInFlight = -1;
 bool FStreamAllResourcesLatentCommand::Update()
 {
-	const float CommandStartTime = FPlatformTime::Seconds();
+	float LocalStartTime = FPlatformTime::Seconds();
 
-	int32 StillInFlight = IStreamingManager::Get().StreamAllResources(Duration);
+	GStreamAllResourcesStillInFlight = IStreamingManager::Get().StreamAllResources(Duration);
 
 	float Time = FPlatformTime::Seconds();
 
-	if(StillInFlight)
+	if(GStreamAllResourcesStillInFlight)
 	{
-		UE_LOG(LogEngineAutomationLatentCommand, Warning, TEXT("StreamAllResources() waited for %.2fs but %d resources are still in flight."), Time - CommandStartTime, StillInFlight);
+		UE_LOG(LogEngineAutomationLatentCommand, Warning, TEXT("StreamAllResources() waited for %.2fs but %d resources are still in flight."), Time - LocalStartTime, GStreamAllResourcesStillInFlight);
 	}
 	else
 	{
-		UE_LOG(LogEngineAutomationLatentCommand, Log, TEXT("StreamAllResources() waited for %.2fs (max duration: %.2f)."), Time - CommandStartTime, Duration);
+		UE_LOG(LogEngineAutomationLatentCommand, Log, TEXT("StreamAllResources() waited for %.2fs (max duration: %.2f)."), Time - LocalStartTime, Duration);
 	}
 
 	return true;

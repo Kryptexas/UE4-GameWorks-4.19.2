@@ -37,9 +37,18 @@ FArchive& operator<<(FArchive& Ar,FPackedNormal& N)
 	return Ar;
 }
 
-FArchive& operator<<(FArchive& Ar, FPackedRGB10A2& N)
+FArchive& operator<<(FArchive& Ar, FPackedRGB10A2N& N)
 {
 	Ar << N.Vector.Packed;
+	return Ar;
+}
+
+FArchive& operator<<(FArchive& Ar, FPackedRGBA16N& N)
+{
+	Ar << N.X;
+	Ar << N.Y;
+	Ar << N.Z;
+	Ar << N.W;
 	return Ar;
 }
 
@@ -798,10 +807,17 @@ RENDERCORE_API FVertexDeclarationRHIRef& GetVertexDeclarationFVector3()
 	return GVector3VertexDeclaration.VertexDeclarationRHI;
 }
 
-RENDERCORE_API bool IsSimpleDynamicLightingEnabled()
+RENDERCORE_API bool PlatformSupportsSimpleForwardShading(EShaderPlatform Platform)
 {
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SimpleDynamicLighting"));
-	return (CVar->GetValueOnAnyThread() != 0);
+	static const auto SupportSimpleForwardShadingCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportSimpleForwardShading"));
+	// Scalability feature only needed / used on PC
+	return IsPCPlatform(Platform) && SupportSimpleForwardShadingCVar->GetValueOnAnyThread() != 0;
+}
+
+RENDERCORE_API bool IsSimpleForwardShadingEnabled(EShaderPlatform Platform)
+{
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SimpleForwardShading"));
+	return CVar->GetValueOnAnyThread() != 0 && PlatformSupportsSimpleForwardShading(Platform);
 }
 
 class FUnitCubeVertexBuffer : public FVertexBuffer

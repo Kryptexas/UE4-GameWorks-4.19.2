@@ -394,15 +394,6 @@ void FLevelUtils::ApplyLevelTransform( ULevel* Level, const FTransform& LevelTra
 			Level->bTextureStreamingRotationChanged = true;
 		}
 
-		for (TMap< UTexture2D*, TArray<FStreamableTextureInstance> >::TIterator It(Level->TextureToInstancesMap); It; ++It)
-		{
-			TArray<FStreamableTextureInstance>& TextureInfo = It.Value();
-			for (int32 i = 0; i < TextureInfo.Num(); i++)
-			{
-				TextureInfo[i].Bounds.Origin = LevelTransform.TransformPosition(TextureInfo[i].Bounds.Origin);
-			}
-		}
-
 		// Iterate over all actors in the level and transform them
 		for( int32 ActorIndex=0; ActorIndex<Level->Actors.Num(); ActorIndex++ )
 		{

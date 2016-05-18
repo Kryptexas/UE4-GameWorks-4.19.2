@@ -28,6 +28,7 @@
 #include "GameFramework/CheatManager.h"
 #include "GameFramework/DamageType.h"
 #include "Components/ChildActorComponent.h"
+#include "Streaming/TextureStreamingHelpers.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
@@ -246,9 +247,19 @@ void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextu
 	GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
 	for (int32 Index = 0; Index < OutStreamingTextures.Num(); Index++)
 	{
-		if (!OutStreamingTextures[Index].Texture || !Cast<UTexture2D>(OutStreamingTextures[Index].Texture))
+		const FStreamingTexturePrimitiveInfo& Info = OutStreamingTextures[Index];
+		if (!IsStreamingTexture(Info.Texture))
 		{
 			OutStreamingTextures.RemoveAt(Index--);
+		}
+		else
+		{
+			// Other wise check that everything is setup right.
+			const bool bCanBeStreamedByDistance = Info.TexelFactor > SMALL_NUMBER && Info.Bounds.SphereRadius > SMALL_NUMBER && ensure(FMath::IsFinite(Info.TexelFactor));
+			if (!bForceMipStreaming && !bCanBeStreamedByDistance && !(Info.TexelFactor < 0 && Info.Texture->LODGroup == TEXTUREGROUP_Terrain_Heightmap))
+			{
+				OutStreamingTextures.RemoveAt(Index--);
+			}
 		}
 	}
 }

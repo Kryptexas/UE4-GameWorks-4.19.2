@@ -20,8 +20,6 @@ struct FStreamingTexture
 	/** Reinitializes the cached variables from UTexture2D. */
 	void UpdateCachedInfo( );
 
-	ETextureStreamingType GetStreamingType() const;
-
 	/**
 	 * Checks whether a UTexture2D is ready for streaming.
 	 *
@@ -57,7 +55,7 @@ struct FStreamingTexture
 	 */
 	FORCEINLINE bool IsVisible() const
 	{
-		return LastRenderTime < 5.f && LastRenderTime != MAX_FLT;
+		return LastRenderTime < 5.f && LastRenderTime != MAX_FLT && bIsVisibleWantedMips;
 	}
 	
 	/**
@@ -67,7 +65,7 @@ struct FStreamingTexture
 	 */
 	FORCEINLINE bool CanDropMips() const
 	{
-		return (LODGroup != TEXTUREGROUP_Terrain_Heightmap) && WantedMips > MinAllowedMips && !bForceFullyLoad;
+		return (LODGroup != TEXTUREGROUP_Terrain_Heightmap) && WantedMips > MinAllowedMips && !bAsNeverStream;
 	}
 
 
@@ -88,6 +86,16 @@ struct FStreamingTexture
 		}
 	}
 
+	FORCEINLINE float GetStreamingScale() const
+	{
+		if (LODGroup == TEXTUREGROUP_Lightmap)
+			return BoostFactor * GLightmapStreamingFactor;
+		else if (LODGroup == TEXTUREGROUP_Shadowmap)
+			return BoostFactor * GShadowmapStreamingFactor;
+		else 
+			return BoostFactor;
+	}
+
 	/**
 	 * Calculates a retention priority value for the textures. Higher value means more important.
 	 * Retention is used determine which texture to drop when out of texture pool memory.
@@ -104,7 +112,9 @@ struct FStreamingTexture
 	 */
 	float CalcLoadOrderPriority();
 
-		
+	int32 GetWantedMipsFromSize(float Size, float Bias) const;
+
+
 	/**
 	 * Not thread-safe: Sets the streaming index in the corresponding UTexture2D.
 	 * @param ArrayIndex	Index into the FStreamingManagerTexture::StreamingTextures array
@@ -113,6 +123,9 @@ struct FStreamingTexture
 	{
 		Texture->StreamingIndex = ArrayIndex;
 	}
+
+	/** Set the wanted mips from the async task data */
+	void SetPerfectWantedMips(float MaxSize, float MaxSize_VisibleOnly, float MipBias);
 
 	/** Update texture streaming. Returns whether it did anything */
 	bool UpdateMipCount(  FStreamingManagerTexture& Manager, FStreamingContext& Context );
@@ -130,8 +143,6 @@ struct FStreamingTexture
 	int32			WantedMips;
 	/** Legacy: Same as WantedMips, but not clamped by fudge factor. */
 	int32			PerfectWantedMips;
-	/** Same as MaxAllowedMips, but not clamped by the -reducepoolsize command line option. */
-	int32			MaxAllowedOptimalMips;
 #if STATS
 	/** Most number of mip-levels this texture has ever had resident in memory. */
 	int32			MostResidentMips;
@@ -142,8 +153,6 @@ struct FStreamingTexture
 	int32			MaxAllowedMips;
 	/** Cached memory sizes for each possible mipcount. */
 	int32			TextureSizes[MAX_TEXTURE_MIP_COUNT + 1];
-	/** Ref-count for how many ULevels want this texture fully-loaded. */
-	int32			ForceLoadRefCount;
 
 	/** Cached texture group. */
 	TextureGroup	LODGroup;
@@ -156,8 +165,6 @@ struct FStreamingTexture
 
 	/** Last time this texture was rendered, 0-based from GStartTime. */
 	float			LastRenderTime;
-	/** Distance to the closest instance of this texture, in world space units. Defaults to a specific value for non-staticmesh textures. */
-	float			MinDistance;
 	/** If non-zero, the most recent time an instance location was removed for this texture. */
 	double			InstanceRemovedTimestamp;
 
@@ -172,7 +179,9 @@ struct FStreamingTexture
 	 */
 	float			BoostFactor;
 
-	/** Whether the texture should be forcibly fully loaded. */
+	/** Whether the texture should be handled as a never stream. This is the final value and results from the CalcWantedMips analysis*/
+	uint32			bAsNeverStream : 1;
+	/** Whether the texture should be forcibly fully loaded. This comes from the texture only and ignores things like texture group settings and components  */
 	uint32			bForceFullyLoad : 1;
 	/** Whether the texture is ready to be streamed in/out (cached from IsReadyForStreaming()). */
 	uint32			bReadyForStreaming : 1;
@@ -182,23 +191,13 @@ struct FStreamingTexture
 	uint32			bIsStreamingLightmap : 1;
 	/** Whether this is a lightmap or shadowmap. */
 	uint32			bIsLightmap : 1;
-	/** Whether this texture uses StaticTexture heuristics. */
-	uint32			bUsesStaticHeuristics : 1;
-	/** Whether this texture uses DynamicTexture heuristics. */
-	uint32			bUsesDynamicHeuristics : 1;
-	/** Whether this texture uses LastRenderTime heuristics. */
-	uint32			bUsesLastRenderHeuristics : 1;
-	/** Whether this texture uses ForcedIntoMemory heuristics. */
-	uint32			bUsesForcedHeuristics : 1;
-	/** Whether this texture uses the OrphanedTexture heuristics. */
-	uint32			bUsesOrphanedHeuristics : 1;
 	/** Whether this texture has a split request strategy. */
 	uint32			bHasSplitRequest : 1;
 	/** Whether this is the second request to converge to the wanted mip. */
 	uint32			bIsLastSplitRequest : 1;
 	/** Can this texture be affected by mip bias? */
 	uint32			bCanBeAffectedByMipBias : 1;
-	/** Is this texture a HLOD texture? */
-	//@TODO: Temporary: Done because there is currently no texture group for HLOD textures and adding one in a branch isn't ideal; this should be removed / replaced once there is a real HLOD texture group
-	uint32			bIsHLODTexture : 1;
+	/** Is the wanted mip for a visible wanted mips */
+	uint32			bIsVisibleWantedMips : 1;
+
 };

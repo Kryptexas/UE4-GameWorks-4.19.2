@@ -187,7 +187,7 @@ struct IStreamingManager
 	}
 
 	/** Adds a ULevel that has already prepared StreamingData to the streaming manager. */
-	virtual void AddPreparedLevel( class ULevel* Level ) = 0;
+	virtual void AddLevel( class ULevel* Level ) = 0;
 
 	/** Removes a ULevel from the streaming manager. */
 	virtual void RemoveLevel( class ULevel* Level ) = 0;
@@ -386,9 +386,6 @@ struct ITextureStreamingManager : public IStreamingManager
 	/** Removes a texture from the streaming manager. */
 	virtual void RemoveStreamingTexture(UTexture2D* Texture) = 0;
 
-	/** Returns true if this is a streaming texture that is managed by the streaming manager. */
-	virtual bool IsManagedStreamingTexture(const UTexture2D* Texture2D) = 0;
-
 	virtual int64 GetMemoryOverBudget() const = 0;
 
 	/** Max required textures ever seen in bytes. */
@@ -569,13 +566,10 @@ struct FStreamingManagerCollection : public IStreamingManager
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
 	/** Adds a ULevel to the streaming manager. */
-	virtual void AddLevel( class ULevel* Level );
+	virtual void AddLevel( class ULevel* Level ) override;
 
 	/** Removes a ULevel from the streaming manager. */
 	virtual void RemoveLevel( class ULevel* Level ) override;
-
-	/** Adds a ULevel that has already prepared StreamingData to the streaming manager. */
-	virtual void AddPreparedLevel( class ULevel* Level ) override;
 
 	/** Called when an actor is spawned. */
 	virtual void NotifyActorSpawned( AActor* Actor ) override;

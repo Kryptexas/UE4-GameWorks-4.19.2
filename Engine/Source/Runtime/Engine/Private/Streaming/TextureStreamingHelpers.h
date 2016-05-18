@@ -106,7 +106,7 @@ class FTextureBoundsVisibility;
 class FDynamicComponentTextureManager;
 template<typename T>
 class FAsyncTask;
-class FAsyncTextureStreaming;
+class FAsyncTextureStreamingTask;
 
 
 struct FStreamingTexture;
@@ -156,27 +156,6 @@ struct FTextureSortElement
 	int32			NumRequiredResidentMips;
 };
 
-
-enum ETextureStreamingType
-{
-	StreamType_Static,
-	StreamType_Dynamic,
-	StreamType_Forced,
-	StreamType_LastRenderTime,
-	StreamType_Orphaned,
-	StreamType_Other,
-};
-
-static const TCHAR* GStreamTypeNames[] =
-{
-	TEXT("Static"),
-	TEXT("Dynamic"),
-	TEXT("Forced"),
-	TEXT("LastRenderTime"),
-	TEXT("Orphaned"),
-	TEXT("Other"),
-};
-
 struct FTexturePriority
 {
 	FTexturePriority( bool InCanDropMips, float InRetentionPriority, float InLoadOrderPriority, int32 InTextureIndex, const UTexture2D* InTexture)
@@ -204,14 +183,13 @@ struct FTexturePriority
 #if STATS
 struct FTextureStreamingStats
 {
-	FTextureStreamingStats( UTexture2D* InTexture2D, ETextureStreamingType InType, int32 InResidentMips, int32 InWantedMips, int32 InMostResidentMips, int32 InResidentSize, int32 InWantedSize, int32 InMaxSize, int32 InMostResidentSize, float InBoostFactor, float InPriority, int32 InTextureIndex )
+	FTextureStreamingStats( UTexture2D* InTexture2D, int32 InResidentMips, int32 InWantedMips, int32 InMostResidentMips, int32 InResidentSize, int32 InWantedSize, int32 InMaxSize, int32 InMostResidentSize, float InBoostFactor, float InPriority, int32 InTextureIndex )
 	:	TextureName( InTexture2D->GetFullName() )
 	,	SizeX( InTexture2D->GetSizeX() )
 	,	SizeY( InTexture2D->GetSizeY() )
 	,	NumMips( InTexture2D->GetNumMips() )
 	,	LODBias( InTexture2D->GetCachedLODBias() )
 	,	LastRenderTime( FMath::Clamp( InTexture2D->Resource ? (FApp::GetCurrentTime() - InTexture2D->Resource->LastRenderTime) : 1000000.0, 0.0, 1000000.0) )
-	,	StreamType( InType )
 	,	ResidentMips( InResidentMips )
 	,	WantedMips( InWantedMips )
 	,	MostResidentMips( InMostResidentMips )
@@ -236,8 +214,6 @@ struct FTextureStreamingStats
 	int32		LODBias;
 	/** How many seconds since it was last rendered: FApp::GetCurrentTime() - UTexture2D::Resource->LastRenderTime */
 	float		LastRenderTime;
-	/** What streaming heuristics were primarily used for this texture. */
-	ETextureStreamingType	StreamType;
 	/** Number of resident mip levels. */
 	int32		ResidentMips;
 	/** Number of wanted mip levels. */

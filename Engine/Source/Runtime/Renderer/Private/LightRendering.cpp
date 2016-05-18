@@ -322,11 +322,6 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 {
 	SCOPED_DRAW_EVENT(RHICmdList, Lights);
 
-	if(IsSimpleDynamicLightingEnabled())
-	{
-		return;
-	}
-
 	bool bStencilBufferDirty = false;	// The stencil buffer should've been cleared to 0 already
 
 	SCOPE_CYCLE_COUNTER(STAT_LightingDrawTime);

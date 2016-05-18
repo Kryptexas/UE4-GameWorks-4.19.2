@@ -9,91 +9,11 @@ TextureStreamingManager.h: Definitions of classes used for texture streaming.
 #include "StreamingTexture.h"
 #include "TextureInstanceManager.h"
 
+class FAsyncTextureStreamingData;
+
 /*-----------------------------------------------------------------------------
 	Texture streaming.
 -----------------------------------------------------------------------------*/
-
-
-/**
- * Structure containing all information needed for determining the screen space
- * size of an object/ texture instance.
- */
-struct FStreamableTextureInstance4
-{
-	FStreamableTextureInstance4()
-	:	BoundsOriginX( MAX_FLT, MAX_FLT, MAX_FLT, MAX_FLT )
-	,	BoundsOriginY( 0, 0, 0, 0 )
-	,	BoundsOriginZ( 0, 0, 0, 0 )
-	,	BoxExtentSizeX( 0, 0, 0, 0 )
-	,	BoxExtentSizeY( 0, 0, 0, 0 )
-	,	BoxExtentSizeZ( 0, 0, 0, 0 )
-	,	BoundingSphereRadius( 0, 0, 0, 0 )
-	,	MinDistanceSq( 0, 0, 0, 0 )
-	,	MaxDistanceSq( MAX_FLT, MAX_FLT, MAX_FLT, MAX_FLT )
-	,	TexelFactor( 0, 0, 0, 0 )
-	{
-	}
-
-	/** X coordinates for the bounds origin of 4 texture instances */
-	FVector4 BoundsOriginX;
-	/** Y coordinates for the bounds origin of 4 texture instances */
-	FVector4 BoundsOriginY;
-	/** Z coordinates for the bounds origin of 4 texture instances */
-	FVector4 BoundsOriginZ;
-
-	/** X size of the bounds box extent of 4 texture instances */
-	FVector4 BoxExtentSizeX;
-	/** Y size of the bounds box extent of 4 texture instances */
-	FVector4 BoxExtentSizeY;
-	/** Z size of the bounds box extent of 4 texture instances */
-	FVector4 BoxExtentSizeZ;
-
-	/** Sphere radii for the bounding sphere of 4 texture instances */
-	FVector4 BoundingSphereRadius;
-	/** Minimal distance ^2 (between the bounding sphere origin and the view origin) for which this entry is valid */
-	FVector4 MinDistanceSq;
-	/** Maximal distance ^2 (between the bounding sphere origin and the view origin) for which this entry is valid */
-	FVector4 MaxDistanceSq;
-
-	/** Texel scale factors for 4 texture instances */
-	FVector4 TexelFactor;
-};
-
-
-// To compute the maximum mip size required by any heuristic
-// float to avoid float->int conversion, unclamped until the end
-class FFloatMipLevel
-{
-public:
-	// constructor
-	FFloatMipLevel();
-
-	/**
-	 * Helper function to map screen texels to a mip level, includes the global bias
-	 * @param StreamingTexture can be 0 (if texture is getting destroyed)
-	 * @apram MipBias from cvar
-	 * @param bOptimal only needed for stats
-	 */
-	int32 ComputeMip(const FStreamingTexture* StreamingTexture, float MipBias, bool bOptimal) const;
-	//
-	bool operator>=(const FFloatMipLevel& rhs) const;
-	//
-	static FFloatMipLevel FromScreenSizeInTexels(float ScreenSizeInTexels);
-	
-	static FFloatMipLevel FromMipLevel(int32 InMipLevel);
-
-	void Invalidate();
-
-	// @return true: means this handle has a mip level that needs to be considered
-	bool IsHandled() const
-	{
-		return MipLevel > 0.0f;
-	}
-
-private:
-	// -1: not set yet
-	float MipLevel;
-};
 
 /**
  * Streaming manager dealing with textures.
@@ -138,22 +58,6 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 * Notifies manager of "level" change so it can prioritize character textures for a few frames.
 	 */
 	virtual void NotifyLevelChange() override;
-
-	/**
-	 * Adds a textures streaming handler to the array of handlers used to determine which
-	 * miplevels need to be streamed in/ out.
-	 *
-	 * @param TextureStreamingHandler	Handler to add
-	 */
-	void AddTextureStreamingHandler( FStreamingHandlerTextureBase* TextureStreamingHandler );
-
-	/**
-	 * Removes a textures streaming handler from the array of handlers used to determine which
-	 * miplevels need to be streamed in/ out.
-	 *
-	 * @param TextureStreamingHandler	Handler to remove
-	 */
-	void RemoveTextureStreamingHandler( FStreamingHandlerTextureBase* TextureStreamingHandler );
 
 	/** Don't stream world resources for the next NumFrames. */
 	virtual void SetDisregardWorldResourcesForFrames( int32 NumFrames ) override;
@@ -216,7 +120,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	virtual void RemoveStreamingTexture( UTexture2D* Texture ) override;
 
 	/** Adds a ULevel to the streaming manager. */
-	virtual void AddPreparedLevel( class ULevel* Level ) override;
+	virtual void AddLevel( class ULevel* Level ) override;
 
 	/** Removes a ULevel from the streaming manager. */
 	virtual void RemoveLevel( class ULevel* Level ) override;
@@ -264,10 +168,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	virtual void NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive ) override;
 
 	/** Returns the corresponding FStreamingTexture for a UTexture2D. */
-	FStreamingTexture& GetStreamingTexture( const UTexture2D* Texture2D );
-
-	/** Returns true if this is a streaming texture that is managed by the streaming manager. */
-	virtual bool IsManagedStreamingTexture( const UTexture2D* Texture2D ) override;
+	FStreamingTexture* GetStreamingTexture( const UTexture2D* Texture2D );
 
 	/** Updates the I/O state of a texture (allowing it to progress to the next stage) and some stats. */
 	void UpdateTextureStatus( FStreamingTexture& StreamingTexture, FStreamingContext& Context );
@@ -290,18 +191,6 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 * @param bAllTexturesProcessed		Whether all processing is complete
 	 */
 	void UpdateStreamingStats( const FStreamingContext& Context, bool bAllTexturesProcessed );
-
-	/** Returns the number of cached view infos (thread-safe). */
-	int32 ThreadNumViews()
-	{
-		return ThreadSettings.ThreadViewInfos.Num();
-	}
-
-	/** Returns a cached view info for the specified index (thread-safe). */
-	const FStreamingViewInfo& ThreadGetView( int32 ViewIndex )
-	{
-		return ThreadSettings.ThreadViewInfos[ ViewIndex ];
-	}
 
 #if STATS
 	/** Ringbuffer of bandwidth samples for streaming in mip-levels (MB/sec). */
@@ -326,25 +215,16 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 
 protected:
 //BEGIN: Thread-safe functions and data
-		friend class FAsyncTextureStreaming;
-		friend struct FStreamingHandlerTextureStatic;
-		friend struct FStreamingHandlerTextureDynamic;
+		friend class FAsyncTextureStreamingTask;
 
 		/** Calculates the minimum and maximum number of mip-levels for a streaming texture. */
 		void CalcMinMaxMips( FStreamingTexture& StreamingTexture );
 
-		/** Calculates the number of mip-levels we would like to have in memory for a texture. */
-		void CalcWantedMips( FStreamingTexture& StreamingTexture );
 
-		/**
-		 * Fallback handler to catch textures that have been orphaned recently.
-		 * This handler prevents massive spike in texture memory usage.
-		 * Orphaned textures were previously streamed based on distance but those instance locations have been removed -
-		 * for instance because a ULevel is being unloaded. These textures are still active and in memory until they are garbage collected,
-		 * so we must ensure that they do not start using the LastRenderTime fallback handler and suddenly stream in all their mips -
-		 * just to be destroyed shortly after by a garbage collect.
-		 */
-		FFloatMipLevel GetWantedMipsForOrphanedTexture( FStreamingTexture& StreamingTexture, float& Distance );
+		static FORCEINLINE void LogHeuristic(bool bOutputToLog, bool bUseHeuristic, const TCHAR*& Heuristic, const TCHAR* NewHeuristic);
+
+		/** Calculates the number of mip-levels we would like to have in memory for a texture. */
+		const TCHAR* CalcWantedMips( const FAsyncTextureStreamingData& StreamingData, FStreamingTexture& StreamingTexture, bool bGetHeuristic, bool bOutputToLog );
 
 		/** Updates this frame's STATs by one texture. */
 		void UpdateFrameStats( FStreamingContext& Context, FStreamingTexture& StreamingTexture, int32 TextureIndex );
@@ -399,47 +279,6 @@ protected:
 		 */
 		void DropForcedMips( FStreamingContext& Context );
 
-		/** Thread-safe helper struct for per-level information. */
-		struct FThreadLevelData
-		{
-			FThreadLevelData()
-			:	bRemove( false )
-			{
-			}
-
-			/** Whether this level has been removed. */
-			bool bRemove;
-
-			/** Texture instances used in this level, stored in SIMD-friendly format. */
-			TMap<const UTexture2D*,TArray<FStreamableTextureInstance4> > ThreadTextureInstances;
-		};
-
-		typedef TKeyValuePair< class ULevel*, FThreadLevelData >	FLevelData;
-
-		/** Thread-safe helper struct for streaming information. */
-		struct FThreadSettings
-		{
-			FThreadSettings() : TextureBoundsVisibility(nullptr) {}
-			
-			/** Cached from the system settings. */
-			int32 NumStreamedMips[TEXTUREGROUP_MAX];
-
-			/** Cached from each ULevel. */
-			TArray< FLevelData > LevelData;
-
-			/** Cached from FStreamingManagerBase. */
-			TArray<FStreamingViewInfo> ThreadViewInfos;
-
-			FTextureBoundsVisibility* TextureBoundsVisibility;
-
-			/** from cvar, >=0 */
-			float MipBias;
-		};
-
-
-		/** Thread-safe helper data for streaming information. */
-		FThreadSettings	ThreadSettings;
-
 		/** All streaming UTexture2D objects. */
 		TArray<FStreamingTexture> StreamingTextures;
 
@@ -457,6 +296,8 @@ protected:
 
 	void	DumpTextureGroupStats( bool bDetailedStats );
 
+	void	IncrementalUpdate( float Percentage );
+
 	/**
 	 * Prints out detailed information about streaming textures that has a name that contains the given string.
 	 * Triggered by the InvestigateTexture exec command.
@@ -464,8 +305,6 @@ protected:
 	 * @param InvestigateTextureName	Partial name to match textures against
 	 */
 	void	InvestigateTexture( const FString& InvestigateTextureName );
-
-	void	DumpTextureInstances( const UPrimitiveComponent* Primitive, UTexture2D* Texture2D );
 
 	/** Next sync, dump texture group stats. */
 	bool	bTriggerDumpTextureGroupStats;
@@ -479,17 +318,22 @@ protected:
 	/** Name of a texture to investigate. Can be partial name. */
 	FString	InvestigateTextureName;
 
-	/** Async work for calculating priorities for all textures. */
-	FAsyncTask<FAsyncTextureStreaming>*	AsyncWork;
+	/** Cached from the system settings. */
+	int32 NumStreamedMips[TEXTUREGROUP_MAX];
 
-	/** Textures from dynamic primitives. */
-	FDynamicComponentTextureManager* DynamicComponentTextureManager;
+	float MipBias;
+
+	/** Async work for calculating priorities for all textures. */
+	FAsyncTask<FAsyncTextureStreamingTask>*	AsyncWork;
+
+	/** Textures from dynamic primitives. Owns the data for all levels. */
+	FDynamicComponentTextureManager DynamicComponentManager;
 
 	/** New textures, before they've been added to the thread-safe container. */
-	TArray<UTexture2D*>		PendingStreamingTextures;
+	TArray<UTexture2D*>	PendingStreamingTextures;
 
-	/** New levels, before they've been added to the thread-safe container. */
-	TArray<class ULevel*>	PendingLevels;
+	/** Level data */
+	TArray<FLevelTextureManager> LevelTextureManagers;
 
 	/** Stages [0,N-2] is non-threaded data collection, Stage N-1 is wait-for-AsyncWork-and-finalize. */
 	int32					ProcessingStage;
@@ -504,9 +348,6 @@ protected:
 
 	/** Extra distance added to the range test, to start streaming the texture before they are actually used. */
 	float					RangePrefetchDistance;
-
-	/** Array of texture streaming objects to use during update. */
-	TArray<FStreamingHandlerTextureBase*> TextureStreamingHandlers;
 
 	/** Amount of memory to leave free in the texture pool. */
 	int64					MemoryMargin;
@@ -617,145 +458,4 @@ protected:
 #endif
 	
 	friend bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture, bool bForceMipLevelsToBeResident, const FStreamingManagerTexture* Manager);
-};
-
-
-
-
-/*-----------------------------------------------------------------------------
-	Texture streaming handler.
------------------------------------------------------------------------------*/
-
-/**
- * Base of texture streaming handler functionality.
- */
-struct FStreamingHandlerTextureBase
-{
-	/** Friendly name identifying the handler for debug purposes. */
-	const TCHAR* HandlerName;
-
-	/** Default constructor. */
-	FStreamingHandlerTextureBase()
-		: HandlerName(TEXT("Base"))
-	{
-	}
-
-	/**
-	 * Returns mip count wanted by this handler for the passed in texture. 
-	 * 
-	 * @param	StreamingManager	Streaming manager
-	 * @param	Streaming Texture	Texture to determine wanted mip count for
-	 * @param	MinDistance			[out] Distance to the closest instance of this texture, in world space units.
-	 * @return	Number of miplevels that should be streamed in or INDEX_NONE if texture isn't handled by this handler.
-	 */
-	virtual FFloatMipLevel GetWantedMips( FStreamingManagerTexture& StreamingManager, FStreamingTexture& StreamingTexture, float& MinDistance ) = 0;
-};
-
-/**
- * Static texture streaming handler. Used to stream textures on static level geometry.
- */
-struct FStreamingHandlerTextureStatic : public FStreamingHandlerTextureBase
-{
-	/** Default constructor. */
-	FStreamingHandlerTextureStatic()
-	{
-		HandlerName = TEXT("Static");
-	}
-
-	/**
-	 * Returns mip count wanted by this handler for the passed in texture. 
-	 * 
-	 * @param	StreamingManager	Streaming manager
-	 * @param	Streaming Texture	Texture to determine wanted mip count for
-	 * @param	MinDistance			[out] Distance to the closest instance of this texture, in world space units.
-	 * @return	Number of miplevels that should be streamed in or INDEX_NONE if texture isn't handled by this handler.
-	 */
-	virtual FFloatMipLevel GetWantedMips( FStreamingManagerTexture& StreamingManager, FStreamingTexture& StreamingTexture, float& MinDistance );
-};
-
-
-/**
- * Dynamic texture streaming handler. Used to stream textures for dynamic primitives.
- */
-struct FStreamingHandlerTextureDynamic : public FStreamingHandlerTextureBase
-{
-	/** Default constructor. */
-	FStreamingHandlerTextureDynamic()
-	{
-		HandlerName = TEXT("Dynamic");
-	}
-
-	/**
-	 * Returns mip count wanted by this handler for the passed in texture. 
-	 * 
-	 * @param	StreamingManager	Streaming manager
-	 * @param	Streaming Texture	Texture to determine wanted mip count for
-	 * @param	MinDistance			[out] Distance to the closest instance of this texture, in world space units.
-	 * @return	Number of miplevels that should be streamed in or INDEX_NONE if texture isn't handled by this handler.
-	 */
-	virtual FFloatMipLevel GetWantedMips( FStreamingManagerTexture& StreamingManager, FStreamingTexture& StreamingTexture, float& MinDistance );
-};
-
-/**
- * Streaming handler that bases its decision on the last render time.
- */
-struct FStreamingHandlerTextureLastRender : public FStreamingHandlerTextureBase
-{
-	/** Default constructor. */
-	FStreamingHandlerTextureLastRender()
-	{
-		HandlerName = TEXT("LastRender");
-	}
-
-	/**
-	 * Returns mip count wanted by this handler for the passed in texture. 
-	 * 
-	 * @param	StreamingManager	Streaming manager
-	 * @param	Streaming Texture	Texture to determine wanted mip count for
-	 * @param	MinDistance			[out] Distance to the closest instance of this texture, in world space units.
-	 * @return	Number of miplevels that should be streamed in or INDEX_NONE if texture isn't handled by this handler.
-	 */
-	virtual FFloatMipLevel GetWantedMips( FStreamingManagerTexture& StreamingManager, FStreamingTexture& StreamingTexture, float& MinDistance );
-};
-
-/**
- *	Streaming handler that bases its decision on the bForceMipStreaming flag in PrimitiveComponent.
- */
-struct FStreamingHandlerTextureLevelForced : public FStreamingHandlerTextureBase
-{
-	/** Default constructor. */
-	FStreamingHandlerTextureLevelForced()
-	{
-		HandlerName = TEXT("LevelForced");
-	}
-
-	/**
-	 * Returns mip count wanted by this handler for the passed in texture. 
-	 * 
-	 * @param	StreamingManager	Streaming manager
-	 * @param	Streaming Texture	Texture to determine wanted mip count for
-	 * @param	MinDistance			[out] Distance to the closest instance of this texture, in world space units.
-	 * @return	Number of miplevels that should be streamed in or INDEX_NONE if texture isn't handled by this handler.
-	 */
-	virtual FFloatMipLevel GetWantedMips( FStreamingManagerTexture& StreamingManager, FStreamingTexture& StreamingTexture, float& MinDistance );
-};
-
-/*-----------------------------------------------------------------------------
-	Texture streaming helper structs.
------------------------------------------------------------------------------*/
-
-struct FSpawnedTextureInstance
-{
-	FSpawnedTextureInstance( UTexture2D* InTexture2D, float InTexelFactor, float InOriginalRadius )
-	:	Texture2D( InTexture2D )
-	,	TexelFactor( InTexelFactor )
-	,	InvOriginalRadius( (InOriginalRadius > 0.0f) ? (1.0f/InOriginalRadius) : 1.0f )
-	{
-	}
-	/** Texture that is used by a dynamic UPrimitiveComponent. */
-	UTexture2D*		Texture2D;
-	/** Texture specific texel scale factor  */
-	float			TexelFactor;
-	/** 1.0f / OriginalBoundingSphereRadius, at the time the TexelFactor was calculated originally. */
-	float			InvOriginalRadius;
 };

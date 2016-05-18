@@ -604,10 +604,13 @@ void USkinnedMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContex
 				MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, World ? World->FeatureLevel : GMaxRHIFeatureLevel, false);
 				for(int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++ )
 				{
+					UTexture2D* Texture2D = Cast<UTexture2D>(Textures[TextureIndex]);
+					if (!Texture2D) continue;
+
 					FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
 					StreamingTexture.Bounds = Bounds.GetSphere();
 					StreamingTexture.TexelFactor = WorldTexelFactor;
-					StreamingTexture.Texture = Textures[TextureIndex];
+					StreamingTexture.Texture = Texture2D;
 				}
 			}
 		}

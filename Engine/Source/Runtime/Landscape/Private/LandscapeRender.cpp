@@ -2572,10 +2572,13 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 		// TODO: Take into account which UVIndex is being used.
 		for (int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++)
 		{
+			UTexture2D* Texture2D = Cast<UTexture2D>(Textures[TextureIndex]);
+			if (!Texture2D) continue;
+
 			FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures)FStreamingTexturePrimitiveInfo;
 			StreamingTexture.Bounds = BoundingSphere;
 			StreamingTexture.TexelFactor = TexelFactor;
-			StreamingTexture.Texture = Textures[TextureIndex];
+			StreamingTexture.Texture = Texture2D;
 		}
 
 		UMaterial* Material = MaterialInstance->GetMaterial();
@@ -2681,7 +2684,7 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 		StreamingHeightmap.Bounds = BoundingSphere;
 
 		float HeightmapTexelFactor = TexelFactor * (static_cast<float>(HeightmapTexture->GetSizeY()) / (ComponentSizeQuads + 1));
-		StreamingHeightmap.TexelFactor = ForcedLOD >= 0 ? -13 + ForcedLOD : HeightmapTexelFactor; // Minus Value indicate ForcedLOD, 13 for 8k texture
+		StreamingHeightmap.TexelFactor = ForcedLOD >= 0 ? -(1 << (13 - ForcedLOD)) : HeightmapTexelFactor; // Minus Value indicate forced resolution (Mip 13 for 8k texture)
 		StreamingHeightmap.Texture = HeightmapTexture;
 	}
 

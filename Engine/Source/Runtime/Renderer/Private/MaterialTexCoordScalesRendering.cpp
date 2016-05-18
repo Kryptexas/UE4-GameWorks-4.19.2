@@ -66,8 +66,8 @@ void FMaterialTexCoordScalePS::SetMesh(
 	FMemory::Memzero(TexCoordIndices);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	float DistanceMultiplier = 1.f;
-	const FStreamingSectionBuildInfo* SectionData = Proxy ? Proxy->GetStreamingSectionData(DistanceMultiplier, VisualizeLODIndex, BatchElement.VisualizeElementIndex) : nullptr;
+	float ComponentExtraScale = 1.f, MeshExtraScale = 1.f;
+	const FStreamingSectionBuildInfo* SectionData = Proxy ? Proxy->GetStreamingSectionData(ComponentExtraScale, MeshExtraScale, VisualizeLODIndex, BatchElement.VisualizeElementIndex) : nullptr;
 	if (SectionData)
 	{
 		for (int32 ScaleIndex = 0; ScaleIndex < MAX_NUM_TEXTURE_REGISTER && ScaleIndex < SectionData->TexCoordData.Num(); ++ScaleIndex)

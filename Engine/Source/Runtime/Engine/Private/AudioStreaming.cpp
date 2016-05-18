@@ -436,7 +436,7 @@ void FAudioStreamingManager::SetDisregardWorldResourcesForFrames(int32 NumFrames
 {
 }
 
-void FAudioStreamingManager::AddPreparedLevel(class ULevel* Level)
+void FAudioStreamingManager::AddLevel(class ULevel* Level)
 {
 }
 

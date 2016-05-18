@@ -443,6 +443,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
 	uint32 DitherOpacityMask:1;
 
+	/** Whether the material should allow outputting negative emissive color values.  Only allowed on unlit materials. */
+	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
+	uint32 bAllowNegativeEmissiveColor:1;
+
 	/** Number of customized UV inputs to display.  Unconnected customized UV inputs will just pass through the vertex UVs. */
 	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay, meta=(ClampMin=0))
 	int32 NumCustomizedUVs;
@@ -739,9 +743,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PostProcessMaterial, meta=(DisplayName = "Blendable Priority"))
 	int32 BlendablePriority;
 
+	/** Controls how the Refraction input is interpreted and how the refraction offset into scene color is computed for this material. */
+	UPROPERTY(EditAnywhere, Category=Refraction)
+	TEnumAsByte<enum ERefractionMode> RefractionMode;
+
 	/** This is the refraction depth bias, larger values offset distortion to prevent closer objects from rendering into the distorted surface at acute viewing angles but increases the disconnect between surface and where the refraction starts. */
-	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category=Refraction)
 	float RefractionDepthBias;
+
 	/** 
 	 * Guid that uniquely identifies this material. 
 	 * Any changes to the state of the material that do not appear separately in the shadermap DDC keys must cause this guid to be regenerated!

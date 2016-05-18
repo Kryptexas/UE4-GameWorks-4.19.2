@@ -21,6 +21,7 @@
 #include "AtmosphereRendering.h"
 #include "Components/PlanarReflectionComponent.h"
 #include "Matinee/MatineeActor.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -141,6 +142,20 @@ static TAutoConsoleVariable<float> CVarTessellationAdaptivePixelsPerTriangle(
 	ECVF_RenderThreadSafe);
 
 extern ENGINE_API TAutoConsoleVariable<int32> CVarReflectionCaptureSize;
+
+static TAutoConsoleVariable<int32> CVarSupportSimpleForwardShading(
+	TEXT("r.SupportSimpleForwardShading"),
+	0,
+	TEXT("Whether to compile the shaders to support r.SimpleForwardShading being enabled (PC only)."),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarSimpleForwardShading(
+	TEXT("r.SimpleForwardShading"),
+	0,
+	TEXT("Whether to use the simple forward shading base pass shaders which only support lightmaps + stationary directional light + stationary skylight\n")
+	TEXT("All other lighting features are disabled when true.  This is useful for supporting very low end hardware, and is only supported on PC platforms.\n")
+	TEXT("0:off, 1:on"),
+	ECVF_RenderThreadSafe | ECVF_Scalability);
 
 /*-----------------------------------------------------------------------------
 BitCounting
@@ -821,9 +836,6 @@ void FViewInfo::CreateUniformBuffer(
 			FrameUniformShaderParameters.DirectionalLightColor = FLinearColor::Black;
 			FrameUniformShaderParameters.DirectionalLightDirection = FVector::ZeroVector;
 		}
-		
-		FrameUniformShaderParameters.UpperSkyColor = Scene->UpperDynamicSkylightColor;
-		FrameUniformShaderParameters.LowerSkyColor = Scene->LowerDynamicSkylightColor;
 
 		// Atmospheric fog parameters
 		if (ShouldRenderAtmosphere(*Family) && Scene->AtmosphericFog)
@@ -867,8 +879,6 @@ void FViewInfo::CreateUniformBuffer(
 	{
 		FrameUniformShaderParameters.DirectionalLightDirection = FVector::ZeroVector;
 		FrameUniformShaderParameters.DirectionalLightColor = FLinearColor::Black;
-		FrameUniformShaderParameters.UpperSkyColor = FLinearColor::Black;
-		FrameUniformShaderParameters.LowerSkyColor = FLinearColor::Black;
 
 		// Atmospheric fog parameters
 		FrameUniformShaderParameters.AtmosphericFogSunPower = 0.f;
@@ -1439,6 +1449,9 @@ void FDisplayInternalsData::Setup(UWorld *World)
 		}
 
 		check(IsValid());
+		
+		extern ENGINE_API uint32 GStreamAllResourcesStillInFlight;
+		NumPendingStreamingRequests = GStreamAllResourcesStillInFlight;
 	}
 #endif
 }
@@ -2032,6 +2045,32 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 		SET_CYCLE_COUNTER(STAT_TotalGPUFrameTime, RHIGetGPUFrameCycles());
 	}
 #endif
+}
+
+void OnChangeSimpleForwardShading(IConsoleVariable* Var)
+{
+	static const auto SupportSimpleForwardShadingCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportSimpleForwardShading"));
+	static const auto SimpleForwardShadingCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SimpleForwardShading"));
+
+	if (SimpleForwardShadingCVar->GetValueOnAnyThread() != 0)
+	{
+		if (SupportSimpleForwardShadingCVar->GetValueOnAnyThread() == 0)
+		{
+			UE_LOG(LogRenderer, Warning, TEXT("r.SimpleForwardShading ignored as r.SupportSimpleForwardShading is not enabled"));
+		}
+		else if (!PlatformSupportsSimpleForwardShading(GMaxRHIShaderPlatform))
+		{
+			UE_LOG(LogRenderer, Warning, TEXT("r.SimpleForwardShading ignored, only supported on PC shader platforms.  Current shader platform %s"), *LegacyShaderPlatformToShaderFormat(GMaxRHIShaderPlatform).ToString());
+		}
+	}
+
+	// Propgate cvar change to static draw lists
+	FGlobalComponentRecreateRenderStateContext Context;
+}
+
+FRendererModule::FRendererModule()
+{
+	CVarSimpleForwardShading.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&OnChangeSimpleForwardShading));
 }
 
 void FRendererModule::CreateAndInitSingleView(FRHICommandListImmediate& RHICmdList, class FSceneViewFamily* ViewFamily, const struct FSceneViewInitOptions* ViewInitOptions)

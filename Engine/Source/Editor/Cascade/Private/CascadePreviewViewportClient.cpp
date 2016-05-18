@@ -295,6 +295,12 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* InViewport, FCanvas* Canva
 					continue;
 				}
 
+				if (GetDrawElement(EmitterTickTimes))
+				{
+					FString StatLine = Instance->SpriteTemplate->EmitterName.ToString() + " tick: " + FString::Printf(TEXT("%.3f ms"), Instance->LastTickDurationMs);
+					Canvas->DrawShadowedString(0, i*16+25, *StatLine, GEngine->GetTinyFont(), FLinearColor::Gray);
+				}
+
 				strOutput = TEXT("");
 				if (Instance->SpriteTemplate->EmitterRenderMode != ERM_None)
 				{
