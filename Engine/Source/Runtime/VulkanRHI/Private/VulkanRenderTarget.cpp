@@ -124,6 +124,13 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 
 void FVulkanDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRect Rect, TArray<FColor>& OutData, FReadSurfaceDataFlags InFlags)
 {
+	if (!ensure(TextureRHI))
+	{
+		OutData.Empty();
+		OutData.AddZeroed(Rect.Width() * Rect.Height());
+		return;
+	}
+
 	VULKAN_SIGNAL_UNIMPLEMENTED();
 }
 

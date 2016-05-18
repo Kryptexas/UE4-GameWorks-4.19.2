@@ -763,6 +763,13 @@ void FOpenGLDynamicRHI::ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FT
 
 void FOpenGLDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<FColor>& OutData, FReadSurfaceDataFlags InFlags)
 {
+	if (!ensure(TextureRHI))
+	{
+		OutData.Empty();
+		OutData.AddZeroed(Rect.Width() * Rect.Height());
+		return;
+	}
+
 	TArray<uint8> Temp;
 
 	FOpenGLContextState& ContextState = GetContextStateForCurrentContext();

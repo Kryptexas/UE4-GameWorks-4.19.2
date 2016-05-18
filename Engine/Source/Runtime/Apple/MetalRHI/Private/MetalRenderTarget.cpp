@@ -428,6 +428,13 @@ static void ConvertSurfaceDataToFColor(EPixelFormat Format, uint32 Width, uint32
 
 void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRect Rect, TArray<FColor>& OutData, FReadSurfaceDataFlags InFlags)
 {
+	if (!ensure(TextureRHI))
+	{
+		OutData.Empty();
+		OutData.AddZeroed(Rect.Width() * Rect.Height());
+		return;
+	}
+
 	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
 
 	// allocate output space
