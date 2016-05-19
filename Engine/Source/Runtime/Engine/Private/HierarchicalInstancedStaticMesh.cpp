@@ -1478,9 +1478,13 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 				{
 					uint32 ViewId = View->GetViewKey();
 					const FFoliageOcclusionResults* OldResults = OcclusionResults.Find(ViewId);
-					if (OldResults && 
+					if (OldResults &&
 						OldResults->FrameNumberRenderThread == GFrameNumberRenderThread &&
-						1 + LastOcclusionNode - FirstOcclusionNode == OldResults->NumResults
+						1 + LastOcclusionNode - FirstOcclusionNode == OldResults->NumResults &&
+						// OcclusionResultsArray[Params.OcclusionResultsStart + Index - Params.FirstOcclusionNode]
+
+						OldResults->Results->IsValidIndex(OldResults->ResultsStart) &&
+						OldResults->Results->IsValidIndex(OldResults->ResultsStart + LastOcclusionNode - FirstOcclusionNode)
 						)
 					{
 						InstanceParams.FirstOcclusionNode = FirstOcclusionNode;
