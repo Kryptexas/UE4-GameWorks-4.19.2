@@ -164,8 +164,7 @@ ENGINE_API bool GShowDebugSelectedLightmap = false;
 
 #if WITH_PROFILEGPU
 	/**
-	 * true if we debug material names with SCOPED_DRAW_EVENT.
-	 * Toggle with "ShowMaterialDrawEvents" console command.
+	 * true if we debug material names with SCOPED_DRAW_EVENT.	 
 	 */
 	int32 GShowMaterialDrawEvents = 0;	
 	static FAutoConsoleVariableRef CVARShowMaterialDrawEvents(

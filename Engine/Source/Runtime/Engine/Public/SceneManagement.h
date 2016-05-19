@@ -2191,7 +2191,7 @@ extern ENGINE_API bool IsRichView(const FSceneViewFamily& ViewFamily);
 #if WANTS_DRAW_MESH_EVENTS
 	/**
 	 * true if we debug material names with SCOPED_DRAW_EVENT.
-	 * Toggle with "ShowMaterialDrawEvents" console command.
+	 * Toggle with "r.ShowMaterialDrawEvents" cvar.
 	 */
 	extern ENGINE_API int32 GShowMaterialDrawEvents;
 	extern ENGINE_API void BeginMeshDrawEvent_Inner(FRHICommandList& RHICmdList, const class FPrimitiveSceneProxy* PrimitiveSceneProxy, const struct FMeshBatch& Mesh, struct TDrawEvent<FRHICommandList>& DrawEvent);
