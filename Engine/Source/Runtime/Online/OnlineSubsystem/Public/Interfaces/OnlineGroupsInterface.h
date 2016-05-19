@@ -17,7 +17,7 @@ struct FGroupDisplayInfo
 		, Description(Other.Description)
 		, Motto(Other.Motto)
 		, Language(Other.Language)
-		, Revision(Other.Revision)
+		, InviteOnly(Other.InviteOnly)
 	{
 	}
 
@@ -33,8 +33,8 @@ struct FGroupDisplayInfo
 	/** The main language of the team */
 	FString Language;
 
-	/** The version of the info. Must be present and match the current version on the server when updating. */
-	uint32 Revision;
+	/** Is the group PUBLIC (anyone can join) or not? */
+	bool InviteOnly;
 };
 
 /**
@@ -84,6 +84,9 @@ struct FGroupMemberInvite
 	TSharedPtr<const FUniqueNetId> Id;
 	FDateTime InvitedAt;
 	FString Host;
+	FString Message;
+	TSharedPtr<const FUniqueNetId> JobId;
+	FString JobSummary;
 };
 
 /**
@@ -92,7 +95,9 @@ struct FGroupMemberInvite
 struct FGroupMemberRequest
 {
 	TSharedPtr<const FUniqueNetId> Id;
-	FDateTime RequestedAt;
+	FDateTime JoinedAt;
+	bool IsAdmin;
+	bool IsOwner;
 };
 
 /**
@@ -271,12 +276,21 @@ struct FGroupsResult
 {
 	int32 HttpStatus;
 	TSharedPtr<const FUniqueNetId> PrimaryId;
+	FString ErrorContent;
 
 	inline bool DidSucceed() const { return (HttpStatus / 100) == 2; }
 
 	FGroupsResult(int32 InHttpStatus = 0, TSharedPtr<const FUniqueNetId> InPrimaryId = nullptr)
 		: HttpStatus(InHttpStatus)
 		, PrimaryId(InPrimaryId)
+		, ErrorContent()
+	{
+	}
+
+	FGroupsResult(int32 InHttpStatus, const FString& Error, TSharedPtr<const FUniqueNetId> InPrimaryId = nullptr)
+		: HttpStatus(InHttpStatus)
+		, PrimaryId(InPrimaryId)
+		, ErrorContent(Error)
 	{
 	}
 };
@@ -297,6 +311,7 @@ struct FFindGroupsResult
 	int32 HttpStatus;
 	TArray< TSharedPtr<const IGroupInfo> > MatchingGroups;
 	FPagedQuery Paging;
+	FString ErrorContent;
 
 	inline bool DidSucceed() const { return (HttpStatus / 100) == 2; }
 

@@ -737,6 +737,11 @@ namespace UnrealBuildTool
 				{
 					List<string> LocalFilenames = new List<string>();
 
+					if (!Directory.Exists(Dir))
+					{
+						Directory.CreateDirectory(Dir);
+					}
+
 					// look only for useful extensions
 					foreach (string Ext in RsyncExtensions)
 					{

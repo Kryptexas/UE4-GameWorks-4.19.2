@@ -676,16 +676,16 @@ public:
 	}
 
 	/**
-	* Sets whether or not the cursor is hidden when the viewport captures the mouse
-	*/
+	 * Sets whether or not the cursor is hidden when the viewport captures the mouse
+	 */
 	void SetHideCursorDuringCapture(bool InHideCursorDuringCapture)
 	{
 		bHideCursorDuringCapture = InHideCursorDuringCapture;
 	}
 
 	/**
-	* Gets whether or not the cursor is hidden when the viewport captures the mouse
-	*/
+	 * Gets whether or not the cursor is hidden when the viewport captures the mouse
+	 */
 	virtual bool HideCursorDuringCapture() override
 	{
 		return bHideCursorDuringCapture;

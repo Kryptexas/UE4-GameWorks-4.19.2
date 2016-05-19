@@ -892,7 +892,6 @@ namespace AutomationTool
 			}
 		}
 	}
-
 	/// <summary>
 	/// Commandlet to clean up all folders under a temp storage root that are older than a given number of days
 	/// </summary>
