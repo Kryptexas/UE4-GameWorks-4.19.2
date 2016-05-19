@@ -418,10 +418,13 @@ void UK2Node_GetClassDefaults::CreateOutputPins(UClass* InClass)
 	}
 
 	// If the class was generated for a Blueprint, bind delegates to handle any OnChanged() & OnCompiled() events.
-	if (UBlueprint* Blueprint = Cast<UBlueprint>(InClass->ClassGeneratedBy))
+	if (InClass)
 	{
-		OnBlueprintChangedDelegate = Blueprint->OnChanged().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
-		OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+		if (UBlueprint* Blueprint = Cast<UBlueprint>(InClass->ClassGeneratedBy))
+		{
+			OnBlueprintChangedDelegate = Blueprint->OnChanged().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+			OnBlueprintCompiledDelegate = Blueprint->OnCompiled().AddLambda([this](UBlueprint* /* InBlueprint */) { ReconstructNode(); });
+		}
 	}
 }
 
