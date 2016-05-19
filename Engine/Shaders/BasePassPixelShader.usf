@@ -254,8 +254,6 @@ float3 GetTranslucencyLighting(
 	FPixelMaterialInputs PixelMaterialInputs,
 	FBasePassInterpolantsVSToPS BasePassInterpolants, 
 	FGBufferData GBuffer, 
-	float3 DiffuseColor,
-	float3 SpecularColor,
 	float IndirectIrradiance)
 {
 	float4 VolumeLighting;
@@ -268,22 +266,22 @@ float3 GetTranslucencyLighting(
 
 	#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL
 
-		GetVolumeLightingDirectional(float4(BasePassInterpolants.AmbientLightingVector, 1), BasePassInterpolants.DirectionalLightingVector, MaterialParameters.WorldNormal, DiffuseColor, InterpolatedLighting, VolumeLighting);
+		GetVolumeLightingDirectional(float4(BasePassInterpolants.AmbientLightingVector, 1), BasePassInterpolants.DirectionalLightingVector, MaterialParameters.WorldNormal, GBuffer.DiffuseColor, InterpolatedLighting, VolumeLighting);
 
 	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL
 
-		GetVolumeLightingNonDirectional(float4(BasePassInterpolants.AmbientLightingVector, 1), DiffuseColor, InterpolatedLighting, VolumeLighting);
+		GetVolumeLightingNonDirectional(float4(BasePassInterpolants.AmbientLightingVector, 1), GBuffer.DiffuseColor, InterpolatedLighting, VolumeLighting);
 
 	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE
 	
 		float4 AmbientLightingVector = GetAmbientLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
 		float3 DirectionalLightingVector = GetDirectionalLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
-		GetVolumeLightingDirectional(AmbientLightingVector, DirectionalLightingVector, MaterialParameters.WorldNormal, DiffuseColor, InterpolatedLighting, VolumeLighting);
+		GetVolumeLightingDirectional(AmbientLightingVector, DirectionalLightingVector, MaterialParameters.WorldNormal, GBuffer.DiffuseColor, InterpolatedLighting, VolumeLighting);
 
 	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
 
 		float4 AmbientLightingVector = GetAmbientLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
-		GetVolumeLightingNonDirectional(AmbientLightingVector, DiffuseColor, InterpolatedLighting, VolumeLighting);
+		GetVolumeLightingNonDirectional(AmbientLightingVector, GBuffer.DiffuseColor, InterpolatedLighting, VolumeLighting);
 
 	#elif TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
 
@@ -345,13 +343,13 @@ float3 GetTranslucencyLighting(
 			float3 SelfShadowingCorrection = DirectionalLightColor.rgb * VolumeLighting.a * (1 - SelfShadowing);
 				
 			// Combine backscattering and directional light self shadowing
-			InterpolatedLighting = (BackscatteredLighting + DiffuseColor * max(VolumeLighting.rgb - SelfShadowingCorrection, 0));
+			InterpolatedLighting = (BackscatteredLighting + GBuffer.DiffuseColor * max(VolumeLighting.rgb - SelfShadowingCorrection, 0));
 		}
 
 	#endif
 
 	#if TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
-		InterpolatedLighting += GetImageBasedReflectionLighting(MaterialParameters, GBuffer.Roughness, SpecularColor, IndirectIrradiance);
+		InterpolatedLighting += GetImageBasedReflectionLighting(MaterialParameters, GBuffer.Roughness, GBuffer.SpecularColor, IndirectIrradiance);
 	#endif
 
 	return InterpolatedLighting;
@@ -827,18 +825,6 @@ void Main(
 	}
 #endif
 
-	// So that the following code can still use DiffuseColor and SpecularColor.
-	half3 DiffuseColor = LocalBaseColor - LocalBaseColor * Metallic;
-	half3 SpecularColor = lerp( 0.08 * LocalSpecular.xxx, LocalBaseColor, Metallic.xxx );
-
-#if USE_DEVELOPMENT_SHADERS
-	{
-		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-		DiffuseColor = DiffuseColor * Frame.DiffuseOverrideParameter.w + Frame.DiffuseOverrideParameter.xyz;
-		SpecularColor = SpecularColor * Frame.SpecularOverrideParameter.w + Frame.SpecularOverrideParameter.xyz;
-	}
-#endif
-
 	half Opacity = GetMaterialOpacity(PixelMaterialInputs);
 
 	FGBufferData GBuffer = (FGBufferData)0;
@@ -957,6 +943,18 @@ void Main(
 		#endif
 	#endif
 
+	// So that the following code can still use DiffuseColor and SpecularColor.
+	GBuffer.DiffuseColor = LocalBaseColor - LocalBaseColor * Metallic;
+	GBuffer.SpecularColor = lerp( 0.08 * LocalSpecular.xxx, LocalBaseColor, Metallic.xxx );
+
+#if USE_DEVELOPMENT_SHADERS
+	{
+		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
+		GBuffer.DiffuseColor = GBuffer.DiffuseColor * Frame.DiffuseOverrideParameter.w + Frame.DiffuseOverrideParameter.xyz;
+		GBuffer.SpecularColor = GBuffer.SpecularColor * Frame.SpecularOverrideParameter.w + Frame.SpecularOverrideParameter.xyz;
+	}
+#endif
+
 
 	half3 Color = 0;
 	float IndirectIrradiance = 0;
@@ -964,7 +962,7 @@ void Main(
 	#if !MATERIAL_SHADINGMODEL_UNLIT
 
 		float3 DiffuseDir = MaterialParameters.WorldNormal;
-		float3 DiffuseColorForIndirect = DiffuseColor;
+		float3 DiffuseColorForIndirect = GBuffer.DiffuseColor;
 
 		#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
 			// Add subsurface energy to diffuse
@@ -996,10 +994,10 @@ void Main(
 		#if SIMPLE_DYNAMIC_LIGHTING
 			// always unshadowed so BiasedNDotL is not needed
 			half Lambert = saturate(dot(MaterialParameters.WorldNormal, Frame.DirectionalLightDirection));
-			Color += DiffuseColor * Lambert * Frame.DirectionalLightColor.rgb;
+			Color += GBuffer.DiffuseColor * Lambert * Frame.DirectionalLightColor.rgb;
 
 			Color += GetMaterialHemisphereLightTransferFull(
-				DiffuseColor,
+				GBuffer.DiffuseColor,
 				MaterialParameters,
 				Frame.UpperSkyColor.rgb,
 				Frame.LowerSkyColor.rgb
@@ -1015,11 +1013,11 @@ void Main(
 		
 	// Volume lighting for lit translucency
 	#if (MATERIAL_SHADINGMODEL_DEFAULT_LIT || MATERIAL_SHADINGMODEL_SUBSURFACE) && (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE)
-		Color += GetTranslucencyLighting(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, GBuffer, DiffuseColor, SpecularColor, IndirectIrradiance);
+		Color += GetTranslucencyLighting(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, GBuffer, IndirectIrradiance);
 	#endif
 
 	#if !MATERIAL_SHADINGMODEL_UNLIT && USE_DEVELOPMENT_SHADERS
-		Color = lerp(Color, DiffuseColor + SpecularColor, Frame.UnlitViewmodeMask);
+		Color = lerp(Color, GBuffer.DiffuseColor + GBuffer.SpecularColor * 0.45, Frame.UnlitViewmodeMask);
 	#endif
 
 	half3 Emissive = GetMaterialEmissive(PixelMaterialInputs);
