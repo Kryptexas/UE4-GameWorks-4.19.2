@@ -709,7 +709,13 @@ void FCanvas::Flush_GameThread(bool bForce)
 	}
 
 	// current render target set for the canvas
-	check(RenderTarget);	 	
+	check(RenderTarget);	
+	
+	if (!IsValidRef(RenderTarget->GetRenderTargetTexture()))
+	{
+		ensureMsgf(false, TEXT("Tried to flush CanvasParams with invalid render target texture."));
+		return;
+	}
 
 	// no need to set the render target if we aren't going to draw anything to it!
 	if (SortedElements.Num() == 0)
