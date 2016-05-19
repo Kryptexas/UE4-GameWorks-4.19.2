@@ -302,6 +302,15 @@ struct FInEditorCapture
 
 		bScreenMessagesWereEnabled = GAreScreenMessagesEnabled;
 		GAreScreenMessagesEnabled = false;
+		IConsoleVariable* CVarTextureStreaming = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TextureStreaming"));
+		if (CVarTextureStreaming)
+		{
+			bTextureStreamingWasEnabled = CVarTextureStreaming->GetInt() != 0;
+			if (bTextureStreamingWasEnabled != InCaptureObject->Settings.bEnableTextureStreaming)
+			{
+				CVarTextureStreaming->Set(InCaptureObject->Settings.bEnableTextureStreaming);
+			}
+		}
 		OnStarted = InOnStarted;
 		FObjectWriter(PlayInEditorSettings, BackedUpPlaySettings);
 		OverridePlaySettings(PlayInEditorSettings);
@@ -406,7 +415,15 @@ struct FInEditorCapture
 		CaptureObject->OnCaptureFinished().RemoveAll(this);
 
 		GAreScreenMessagesEnabled = bScreenMessagesWereEnabled;
-
+		IConsoleVariable* CVarTextureStreaming = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TextureStreaming"));
+		if (CVarTextureStreaming)
+		{
+			bool bTextureStreamingEnabled = CVarTextureStreaming->GetInt() != 0;
+			if (bTextureStreamingEnabled != bTextureStreamingWasEnabled)
+			{
+				CVarTextureStreaming->Set(bTextureStreamingWasEnabled);
+			}
+		}
 		FObjectReader(GetMutableDefault<ULevelEditorPlaySettings>(), BackedUpPlaySettings);
 
 		CaptureObject->Close();
@@ -429,6 +446,7 @@ struct FInEditorCapture
 
 	TFunction<void()> OnStarted;
 	bool bScreenMessagesWereEnabled;
+	bool bTextureStreamingWasEnabled;
 	TArray<uint8> BackedUpPlaySettings;
 	UMovieSceneCapture* CaptureObject;
 };
