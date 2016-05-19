@@ -2405,7 +2405,9 @@ void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps
 	
 	// SceneComponent has no physical representation, so no overlaps to test for/
 	// But, we need to test down the attachment chain since there might be PrimitiveComponents below.
-	for (USceneComponent* ChildComponent : GetAttachChildren())
+	TInlineComponentArray<USceneComponent*> AttachedChildren;
+	AttachedChildren.Append(GetAttachChildren());
+	for (USceneComponent* ChildComponent : AttachedChildren)
 	{
 		if (ChildComponent)
 		{
