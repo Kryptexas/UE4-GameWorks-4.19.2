@@ -459,7 +459,7 @@ void SPropertyEditorAsset::OnMenuOpenChanged(bool bOpen)
 
 bool SPropertyEditorAsset::IsFilteredActor( const AActor* const Actor ) const
 {
-	return Actor->IsA( ObjectClass );
+	return Actor->IsA( ObjectClass ) && !Actor->IsChildActor();
 }
 
 void SPropertyEditorAsset::CloseComboButton()

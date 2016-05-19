@@ -1139,7 +1139,8 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 			[
 				SNew(STextBlock)
 				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-				.Text(LOCTEXT("Recompute Tangent", "Recompute Tangent"))
+				.Text(LOCTEXT("RecomputeTangent_Title", "Recompute Tangent"))
+				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable skin cache (r.SkinCaching) and recompute tangent console variable(r.SkinCache.RecomputeTangents). Please note that skin cache is an experimental feature and only works if you have compute shaders."))
 			]
 		]
 

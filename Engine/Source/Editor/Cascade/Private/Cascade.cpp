@@ -4713,7 +4713,11 @@ void FCascade::OnConvertToSeeded()
 				{
 					UE_LOG(LogCascade, Warning, TEXT("Failed to convert module!"));
 				}
-				EndTransaction( Transaction );
+				EndTransaction(Transaction);
+
+				//Have to reset all existing component using this system.
+				FParticleResetContext ResetCtx;
+				ResetCtx.AddTemplate(ParticleSystem);
 
 				SetSelectedModule(SelectedEmitter, BaseLODLevel->Modules[ConvertModuleIdx]);
 

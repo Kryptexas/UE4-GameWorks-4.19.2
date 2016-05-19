@@ -231,6 +231,12 @@ public:
 	bool CanShowReferencePose() const;
 	void ShowReferencePose(bool bReferencePose);
 
+	/* Handle error checking for additive base pose */
+	bool ShouldDisplayAdditiveScaleErrorMessage();
+
+	/** Validates curve use */
+	void TestSkeletonCurveNamesForUse() const;
+
 protected:
 	bool IsPreviewAssetEnabled() const;
 	bool CanPreviewAsset() const;
@@ -730,4 +736,8 @@ private:
 
 	/** Last Cached LOD value of Preview Mesh Component */
 	int32 LastCachedLODForPreviewComponent;
+
+	/** Handle additive anim scale validation */
+	bool bDoesAdditiveRefPoseHaveZeroScale;
+	FGuid RefPoseGuid;
 };

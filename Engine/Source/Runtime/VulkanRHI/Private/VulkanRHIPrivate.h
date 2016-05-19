@@ -190,6 +190,34 @@ public:
 
 	void InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer);
 
+	// Returns the backbuffer render target if used by this framebuffer
+	FVulkanBackBuffer* GetBackBuffer()
+	{
+		return BackBuffer;
+	}
+
+	inline bool ContainsRenderTarget(const FVulkanTextureBase* Texture) const
+	{
+		for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
+		{
+			FRHITexture* RHITexture = RTInfo.ColorRenderTarget[Index].Texture;
+			if (RHITexture->GetTexture2D() && Texture == (FVulkanTextureBase*)(FVulkanTexture2D*)RHITexture)
+			{
+				return true;
+			}
+			else if (RHITexture->GetTextureCube() && Texture == (FVulkanTextureBase*)(FVulkanTextureCube*)RHITexture)
+			{
+				return true;
+			}
+			else if (RHITexture->GetTexture3D() && Texture == (FVulkanTextureBase*)(FVulkanTexture3D*)RHITexture)
+			{
+				return true;
+			}
+		}
+
+		return Texture == (FVulkanTexture2D*)RTInfo.DepthStencilRenderTarget.Texture;
+	}
+
 private:
 	VkFramebuffer Framebuffer;
 
@@ -197,6 +225,8 @@ private:
 	// it's up to VulkanRHI to handle this correctly.
 	FRHISetRenderTargetsInfo RTInfo;
 	uint32 NumColorAttachments;
+
+	FVulkanBackBuffer* BackBuffer;
 
 	// Predefined set of barriers, when executes ensuring all writes are finished
 	TArray<VkImageMemoryBarrier> WriteBarriers;

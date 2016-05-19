@@ -9,6 +9,7 @@ UStereoLayerComponent::UStereoLayerComponent(const FObjectInitializer& ObjectIni
 	, bLiveTexture(false)
 	, bNoAlphaChannel(false)
 	, Texture(nullptr)
+	, bQuadPreserveTextureRatio(false)
 	, QuadSize(FVector2D(100.0f, 100.0f))
 	, UVRect(FBox2D(FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f)))
 	, StereoLayerType(SLT_FaceLocked)
@@ -88,6 +89,7 @@ void UStereoLayerComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 			
 			LayerDsec.Flags |= (bLiveTexture) ? IStereoLayers::LAYER_FLAG_TEX_CONTINUOUS_UPDATE : 0;
 			LayerDsec.Flags |= (bNoAlphaChannel) ? IStereoLayers::LAYER_FLAG_TEX_NO_ALPHA_CHANNEL : 0;
+			LayerDsec.Flags |= (bQuadPreserveTextureRatio) ? IStereoLayers::LAYER_FLAG_QUAD_PRESERVE_TEX_RATIO : 0;
 
 			switch (StereoLayerType)
 			{

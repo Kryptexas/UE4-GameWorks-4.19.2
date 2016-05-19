@@ -2206,6 +2206,16 @@ public:
 	 */
 	void ConvertActorsFromClass( UClass* FromClass, UClass* ToClass );
 
+	/**
+	 * Gets a delegate that is executed when a matinee is requested to be opened
+	 *
+	 * The first parameter is the matinee actor
+	 *
+	 * @return The event delegate.
+	 */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FShouldOpenMatineeCallback, AMatineeActor*)
+	FShouldOpenMatineeCallback& OnShouldOpenMatinee() { return ShouldOpenMatineeCallback; }
+
 	/** 
 	 * Show a (Suppressable) warning dialog to remind the user he is about to lose his undo buffer 
 	 *
@@ -2702,6 +2712,9 @@ private:
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
 		be able to capture state for simulating actor (for Sequencer recording features) */
 	FGetActorRecordingState GetActorRecordingStateEvent;
+
+	/** Delegate to be called when a matinee is requested to be opened */
+	FShouldOpenMatineeCallback ShouldOpenMatineeCallback;
 
 	/** Reference to owner of the current popup */
 	TWeakPtr<class SWindow> PopupWindow;

@@ -207,14 +207,6 @@ public:
 public:
 
 	/**
-	 * Attempts to add a new spawnable to the MovieScene for the specified object (asset, class or actor instance)
-	 *
-	 * @param	Object	The asset, class, or actor to add a spawnable for
-	 * @return	The spawnable guid for the spawnable, or an invalid Guid if we were not able to create a spawnable
-	 */
-	FGuid MakeNewSpawnable(UObject& SourceObject);
-
-	/**
 	 * Converts the specified possessable GUID to a spawnable
 	 *
 	 * @param	PossessableGuid		The guid of the possessable to convert
@@ -427,7 +419,7 @@ public:
 	void CreateCamera();
 
 	/** Called when a new camera is added */
-	void NewCameraAdded(ACineCameraActor* NewCamera, FGuid PossessableGuid, bool bLockToCamera);
+	void NewCameraAdded(ACineCameraActor* NewCamera, FGuid CameraGuid, bool bLockToCamera);
 
 	/** Attempts to automatically fix up broken actor references in the current scene. */
 	void FixActorReferences();
@@ -533,6 +525,7 @@ public:
 	virtual TSharedRef<SWidget> MakeTimeRange(const TSharedRef<SWidget>& InnerContent, bool bShowWorkingRange, bool bShowViewRange, bool bShowPlaybackRange) override;
 	virtual void SetViewportTransportControlsVisibility(bool bVisible) override;
 	virtual UObject* FindSpawnedObjectOrTemplate(const FGuid& BindingId) const override;
+	virtual FGuid MakeNewSpawnable(UObject& SourceObject) override;
 	
 public:
 

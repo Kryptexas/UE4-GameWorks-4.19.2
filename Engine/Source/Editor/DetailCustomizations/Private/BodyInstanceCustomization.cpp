@@ -21,9 +21,18 @@ FBodyInstanceCustomization::FBodyInstanceCustomization()
 	RefreshCollisionProfiles();
 }
 
-UStaticMeshComponent* GetDefaultCollisionProvider(const FBodyInstance* BI)
+UStaticMeshComponent* FBodyInstanceCustomization::GetDefaultCollisionProvider(const FBodyInstance* BI) const
 {
-	UStaticMeshComponent* SMC = BI ? Cast<UStaticMeshComponent>(BI->OwnerComponent.Get()) : nullptr;
+	UPrimitiveComponent* OwnerComp = BI->OwnerComponent.Get();
+	if(!OwnerComp)
+	{
+		if(UPrimitiveComponent* const* FoundComp = BodyInstanceToPrimComponent.Find(BI))
+		{
+			OwnerComp = *FoundComp;
+		}
+	}
+	
+	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(OwnerComp);
 	return SMC && SMC->SupportsDefaultCollision() ? SMC : nullptr;
 }
 
@@ -182,33 +191,29 @@ void FBodyInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 		if(UPrimitiveComponent* PrimComponent = Cast<UPrimitiveComponent>(Obj))
 		{
 			PrimComponents.Add(PrimComponent);	
+
+			if(FBodyInstance* BI = PrimComponent->GetBodyInstance())
+			{
+				BodyInstanceToPrimComponent.Add(BI, PrimComponent);
+			}
 		}
 	}
 
 	RefreshCollisionProfiles();
 	
 	// get all parent instances
-	TSharedPtr<IPropertyHandle> ParentPropertyHandle = StructPropertyHandle->GetParentHandle();
-	bool bFoundValidProperty = false;	//Need to go up root until we find a valid property. This is a bad hack but is needed because GetChildHandle assumes property is always non-null
-	while(ParentPropertyHandle.IsValid() && !bFoundValidProperty)
-	{
-		if(ParentPropertyHandle->GetProperty())
-		{
-			bFoundValidProperty = true;
-		}
-		else
-		{
-			ParentPropertyHandle = ParentPropertyHandle->GetParentHandle();
-		}
-	}
+	TSharedPtr<IPropertyHandle> CollisionCategoryHandle = StructPropertyHandle->GetParentHandle();
+	TSharedPtr<IPropertyHandle> StaticMeshComponentHandle = CollisionCategoryHandle->GetParentHandle();
 
-
-	if(ParentPropertyHandle.IsValid())
+	if(CollisionCategoryHandle.IsValid())
 	{
 		
-		UseDefaultCollisionHandle = ParentPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, bUseDefaultCollision));
-		StaticMeshHandle = ParentPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, StaticMesh));
+		UseDefaultCollisionHandle = CollisionCategoryHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, bUseDefaultCollision));
+	}
 
+	if (StaticMeshComponentHandle.IsValid())
+	{
+		StaticMeshHandle = StaticMeshComponentHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, StaticMesh));
 		if(StaticMeshHandle.IsValid())
 		{
 			FSimpleDelegate OnStaticMeshChangedDelegate = FSimpleDelegate::CreateSP(this, &FBodyInstanceCustomization::RefreshCollisionProfiles);
@@ -791,13 +796,29 @@ void FBodyInstanceCustomization::OnCollisionProfileComboOpening()
 	}
 }
 
-void MarkAllBodiesDefaultCollision(TArray<FBodyInstance*>& BodyInstances, bool bUseDefaultCollision)
+void FBodyInstanceCustomization::MarkAllBodiesDefaultCollision(bool bUseDefaultCollision)
 {
-	for (const FBodyInstance* BI : BodyInstances)
+	if(PrimComponents.Num())	//If we have prim components we might be coming from bp editor which needs to propagate all instances
 	{
-		if (UStaticMeshComponent* SMC = GetDefaultCollisionProvider(BI))
+		for(UPrimitiveComponent* PrimComp : PrimComponents)
 		{
-			if(SMC->SupportsDefaultCollision())
+			if(UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(PrimComp))
+			{
+				const bool bOldDefault = SMC->bUseDefaultCollision;
+				const bool bNewDefault = bUseDefaultCollision;
+
+				TSet<USceneComponent*> UpdatedInstances;
+				FComponentEditorUtils::PropagateDefaultValueChange(SMC, UseDefaultCollisionHandle->GetProperty(), bOldDefault, bNewDefault, UpdatedInstances);
+
+				SMC->bUseDefaultCollision = bNewDefault;
+			}
+		}
+	}
+	else
+	{
+		for (const FBodyInstance* BI : BodyInstances)
+		{
+			if (UStaticMeshComponent* SMC = GetDefaultCollisionProvider(BI))
 			{
 				SMC->bUseDefaultCollision = bUseDefaultCollision;
 			}
@@ -820,7 +841,7 @@ void FBodyInstanceCustomization::OnCollisionProfileChanged( TSharedPtr<FString> 
 				// trigget transaction before UpdateCollisionProfile
 				const FScopedTransaction Transaction( LOCTEXT( "ChangeCollisionProfile", "Change Collision Profile" ) );
 				// set profile set up
-				MarkAllBodiesDefaultCollision(BodyInstances, false);
+				MarkAllBodiesDefaultCollision(false);
 				ensure ( CollisionProfileNameHandle->SetValue(NewValue) ==  FPropertyAccess::Result::Success );
 				UpdateCollisionProfile();
 				return;
@@ -831,7 +852,7 @@ void FBodyInstanceCustomization::OnCollisionProfileChanged( TSharedPtr<FString> 
 		{
 			if(NewSelection == CollisionProfileComboList[GetDefaultIndex()])
 			{
-				MarkAllBodiesDefaultCollision(BodyInstances, true);
+				MarkAllBodiesDefaultCollision(true);
 				return;
 			}
 		}
@@ -846,7 +867,7 @@ void FBodyInstanceCustomization::OnCollisionProfileChanged( TSharedPtr<FString> 
 		FName Name=UCollisionProfile::CustomCollisionProfileName;
 		ensure ( CollisionProfileNameHandle->SetValue(Name) ==  FPropertyAccess::Result::Success );
 
-		MarkAllBodiesDefaultCollision(BodyInstances, false);
+		MarkAllBodiesDefaultCollision(false);
 	}
 }
 
@@ -897,7 +918,7 @@ FReply FBodyInstanceCustomization::SetToDefaultProfile()
 {
 	// trigger transaction before UpdateCollisionProfile
 	const FScopedTransaction Transaction( LOCTEXT( "ResetCollisionProfile", "Reset Collision Profile" ) );
-	MarkAllBodiesDefaultCollision(BodyInstances, false);
+	MarkAllBodiesDefaultCollision(false);
 	CollisionProfileNameHandle.Get()->ResetToDefault();
 	UpdateCollisionProfile();
 	return FReply::Handled();

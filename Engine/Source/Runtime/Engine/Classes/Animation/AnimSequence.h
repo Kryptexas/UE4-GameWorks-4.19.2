@@ -878,6 +878,9 @@ public:
 	// Bakes out the additive version of this animation into the raw data.
 	void BakeOutAdditiveIntoRawData();
 
+	// Test whether at any point we will scale a bone to 0 (needed for validating additive anims)
+	bool DoesSequenceContainZeroScale();
+
 	// Helper function to allow us to notify animations that depend on us that they need to update
 	void FlagDependentAnimationsAsRawDataOnly() const;
 

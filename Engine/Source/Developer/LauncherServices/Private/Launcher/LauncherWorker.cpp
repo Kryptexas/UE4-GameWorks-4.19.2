@@ -331,10 +331,12 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		*InitialMap);
 
 	// additional commands to be sent to the commandline
+	FString SessionName = InProfile->GetName().Replace(TEXT("\'"), TEXT("_")).Replace(TEXT("\'"), TEXT("_"));
+	FString SessionOwner = FString(FPlatformProcess::UserName(false)).Replace(TEXT("\'"), TEXT("_")).Replace(TEXT("\'"), TEXT("_"));;
 	FString AdditionalCommandLine = FString::Printf(TEXT(" -addcmdline=\"-SessionId=%s -SessionOwner='%s' -SessionName='%s'%s\""),
 		*SessionId.ToString(),
-		FPlatformProcess::UserName(false),
-		*InProfile->GetName(),
+		*SessionOwner,
+		*SessionName,
 		*RoleCommands);
 
 	// map list

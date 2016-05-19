@@ -5,6 +5,22 @@
 #include "AndroidRuntimeSettings.generated.h"
 
 UENUM()
+namespace EAndroidAntVerbosity
+{
+	enum Type
+	{
+		/** Extra quiet logging (-quiet), errors will be logged by second run at normal verbosity. */
+		Quiet,
+
+		/** Normal logging (no options) */
+		Normal,
+
+		/** Extra verbose logging (-verbose) */
+		Verbose,
+	};
+}
+
+UENUM()
 namespace EAndroidScreenOrientation
 {
 	// IF THIS CHANGES, MAKE SURE TO UPDATE UEDeployAndroid.cs, ConvertOrientationIniValue()!
@@ -137,10 +153,14 @@ public:
 	// Disable the verification of an OBB file when it is downloaded or on first start when in a distribution build. 
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Disable verify OBB on first start/update."))
 	bool bDisableVerifyOBBOnStartUp;
-	
+
 	// The permitted orientation of the application on the device
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
 	TEnumAsByte<EAndroidScreenOrientation::Type> Orientation;
+
+	// Level of verbosity to use during packaging with Ant
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
+	TEnumAsByte<EAndroidAntVerbosity::Type> AntVerbosity;
 
 	// Should the software navigation buttons be hidden or not
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Enable FullScreen Immersive on KitKat and above devices."))
@@ -224,7 +244,7 @@ public:
 	bool bBuildForES31;
 
 	// Enable Vulkan support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support Vulkan"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support Vulkan [Experimental]"))
 	bool bSupportsVulkan;
 
 	// If selected, the checked architectures will be split into separate .apk files [CURRENTLY FOR FULL SOURCE GAMES ONLY]

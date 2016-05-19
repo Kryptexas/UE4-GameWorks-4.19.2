@@ -32,17 +32,19 @@ static bool SupportsVulkan()
 	bool bSupportsVulkan = false;
 	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bSupportsVulkan"), bSupportsVulkan, GEngineIni);
 
-	// make sure the SDK env var is set and the directory exists so that compiling for shaders will work
-	TCHAR SDKPath[MAX_PATH] = { 0 };
-	FPlatformMisc::GetEnvironmentVariable(TEXT("VULKAN_SDK"), SDKPath, MAX_PATH);
-	bool bVulkanSDKExists = SDKPath[0] && IFileManager::Get().DirectoryExists(SDKPath);
-	if (!bVulkanSDKExists)
-	{
-	FPlatformMisc::GetEnvironmentVariable(TEXT("VK_SDK_PATH"), SDKPath, MAX_PATH);
-		bVulkanSDKExists = SDKPath[0] && IFileManager::Get().DirectoryExists(SDKPath);
-	}
+	// glslang library is needed for vulkan shader compiling
+	bool GlslangAvailable = false;
+#if PLATFORM_WINDOWS
+	#if PLATFORM_64BITS
+		GlslangAvailable = true;
+	#endif
+#elif PLATFORM_MAC
+	GlslangAvailable = false;	// @TODO: change when glslang library compiled for Mac
+#elif PLATFORM_LINUX
+	GlslangAvailable = false;	// @TODO: change when glslang library compiled for Linux
+#endif
 
-	return bSupportsVulkan && bVulkanSDKExists;
+	return bSupportsVulkan && GlslangAvailable;
 }
 
 template<class TPlatformProperties>

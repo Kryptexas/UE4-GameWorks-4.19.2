@@ -141,9 +141,12 @@ TArray<UMovieSceneSection*> FMovieSceneSubTrackInstance::GetAllTraversedSections
 
 bool FMovieSceneSubTrackInstance::ShouldEvaluateIfOverlapping(const TArray<UMovieSceneSection*>& TraversedSections, UMovieSceneSection* Section) const
 {
+	// Check with this shot's exclusive upper bound for when shots are adjacent to each other but on different rows.
+	TRange<float> ThisSectionWithExclusiveUpper = TRange<float>(Section->GetRange().GetLowerBoundValue(), Section->GetRange().GetUpperBoundValue());
+
 	const bool bShouldRemove = TraversedSections.ContainsByPredicate([=](UMovieSceneSection* OtherSection){
 		if (Section->GetRowIndex() == OtherSection->GetRowIndex() &&
-			Section->GetRange().Overlaps(OtherSection->GetRange()) &&
+			ThisSectionWithExclusiveUpper.Overlaps(OtherSection->GetRange()) &&
 			Section->GetOverlapPriority() < OtherSection->GetOverlapPriority())
 		{
 			return true;

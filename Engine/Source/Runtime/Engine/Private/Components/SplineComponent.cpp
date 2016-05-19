@@ -20,11 +20,9 @@ USplineComponent::USplineComponent(const FObjectInitializer& ObjectInitializer)
 	, bDrawDebug(true)
 	, bClosedLoop(false)
 	, DefaultUpVector(FVector::UpVector)
-#if !UE_BUILD_SHIPPING
+#if WITH_EDITORONLY_DATA
 	, EditorUnselectedSplineSegmentColor(FLinearColor(1.0f, 1.0f, 1.0f))
 	, EditorSelectedSplineSegmentColor(FLinearColor(1.0f, 0.0f, 0.0f))
-#endif
-#if WITH_EDITORONLY_DATA
 	, bShouldVisualizeScale(false)
 	, ScaleVisualizationWidth(30.0f)
 #endif
@@ -441,7 +439,7 @@ bool USplineComponent::IsClosedLoop() const
 
 void USplineComponent::SetUnselectedSplineSegmentColor(const FLinearColor& Color)
 {
-#if !UE_BUILD_SHIPPING
+#if WITH_EDITORONLY_DATA
 	EditorUnselectedSplineSegmentColor = Color;
 #endif
 }
@@ -449,7 +447,7 @@ void USplineComponent::SetUnselectedSplineSegmentColor(const FLinearColor& Color
 
 void USplineComponent::SetSelectedSplineSegmentColor(const FLinearColor& Color)
 {
-#if !UE_BUILD_SHIPPING
+#if WITH_EDITORONLY_DATA
 	EditorSelectedSplineSegmentColor = Color;
 #endif
 }
@@ -1140,7 +1138,11 @@ FPrimitiveSceneProxy* USplineComponent::CreateSceneProxy()
 			: FPrimitiveSceneProxy(InComponent)
 			, bDrawDebug(InComponent->bDrawDebug)
 			, SplineInfo(InComponent->SplineInfo)
+#if WITH_EDITORONLY_DATA
 			, LineColor(InComponent->EditorUnselectedSplineSegmentColor)
+#else
+			, LineColor(FLinearColor::White)
+#endif
 		{}
 
 		virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override

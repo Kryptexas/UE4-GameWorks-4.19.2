@@ -16,7 +16,7 @@ public:
 
 	void Destroy();
 
-	void Present(FVulkanQueue* Queue);
+	void Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore);
 
 protected:
 	VkSwapchainKHR SwapChain;
@@ -33,10 +33,9 @@ protected:
 	int32 CurrentImageIndex;
 	int32 SemaphoreIndex;
 	TArray<FVulkanSemaphore*> ImageAcquiredSemaphore;
-	//TArray<FVulkanSemaphore*> RenderingCompletedSemaphore;
 
 	int32 AcquireImageIndex(FVulkanSemaphore** OutSemaphore);
-	friend class FVulkanViewport;
 
+	friend class FVulkanViewport;
 	friend class FVulkanQueue;
 };

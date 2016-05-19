@@ -312,7 +312,7 @@ protected:
 public:	
 
 	/** Accessor for ReplicatedServerLastTransformUpdateTimeStamp. */
-	FORCEINLINE float GetServerLastTransformUpdateTimeStamp() const { return ReplicatedServerLastTransformUpdateTimeStamp; }
+	FORCEINLINE float GetReplicatedServerLastTransformUpdateTimeStamp() const { return ReplicatedServerLastTransformUpdateTimeStamp; }
 
 	/** Accessor for BasedMovement */
 	FORCEINLINE const FBasedMovementInfo& GetBasedMovement() const { return BasedMovement; }

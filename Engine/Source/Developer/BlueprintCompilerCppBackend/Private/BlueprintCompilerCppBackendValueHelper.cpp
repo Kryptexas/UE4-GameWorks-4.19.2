@@ -33,10 +33,16 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 
 		return false;
 	};
-
+	check(Property);
 	if (Property->HasAnyPropertyFlags(CPF_EditorOnly | CPF_Transient))
 	{
 		UE_LOG(LogK2Compiler, Verbose, TEXT("FEmitDefaultValueHelper Skip EditorOnly or Transient property: %s"), *Property->GetPathName());
+		return;
+	}
+
+	if (Property->IsA<UDelegateProperty>() || Property->IsA<UMulticastDelegateProperty>())
+	{
+		UE_LOG(LogK2Compiler, Verbose, TEXT("FEmitDefaultValueHelper delegate property: %s"), *Property->GetPathName());
 		return;
 	}
 

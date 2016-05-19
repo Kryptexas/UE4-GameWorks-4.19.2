@@ -923,6 +923,7 @@ void FGearVR::Startup()
 
 	Settings->Flags.InitStatus |= FSettings::eInitialized;
 
+	LoadFromIni();
 	UpdateHmdRenderInfo();
 	UpdateStereoRenderingParams();
 
@@ -930,7 +931,6 @@ void FGearVR::Startup()
 	pGearVRBridge = new FGearVRCustomPresent(GNativeAndroidApp->activity->clazz, MinimumVsyncs);
 #endif
 
-	LoadFromIni();
 	SaveSystemValues();
 
 	if(CVarGearVREnableMSAA.GetValueOnAnyThread())
@@ -1013,8 +1013,8 @@ void FGearVR::UpdateStereoRenderingParams()
 		const int SuggestedEyeResolutionWidth  = vrapi_GetSystemPropertyInt(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH);
 		const int SuggestedEyeResolutionHeight = vrapi_GetSystemPropertyInt(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT);
 
-		CurrentSettings->RenderTargetSize.X = SuggestedEyeResolutionWidth * 2;
-		CurrentSettings->RenderTargetSize.Y = SuggestedEyeResolutionHeight;
+		CurrentSettings->RenderTargetSize.X = SuggestedEyeResolutionWidth * 2 * CurrentSettings->ScreenPercentage / 100;
+		CurrentSettings->RenderTargetSize.Y = SuggestedEyeResolutionHeight * CurrentSettings->ScreenPercentage / 100;
 
 		const float SuggestedEyeFovDegreesX = vrapi_GetSystemPropertyFloat(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X);
 		const float SuggestedEyeFovDegreesY = vrapi_GetSystemPropertyFloat(&JavaGT, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y);
@@ -1180,7 +1180,7 @@ void FGearVR::DrawDebug(UCanvas* Canvas)
 #if !UE_BUILD_SHIPPING
 	check(IsInGameThread());
 	const auto frame = GetCurrentFrame();
-	if (frame)
+	if (frame && Canvas && Canvas->SceneView)
 	{
 		if (frame->Settings->Flags.bDrawSensorFrustum)
 		{

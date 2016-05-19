@@ -539,10 +539,13 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 								if (LightSceneInfo->ShouldRenderLight(View))
 								{
 									FSceneViewState* ViewState = (FSceneViewState*)View.State;
-									FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
-									if ( Lpv && LightSceneInfo->Proxy )
+									if (ViewState)
 									{
-										Lpv->InjectLightDirect( RHICmdList, *LightSceneInfo->Proxy, View );
+										FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume(View.GetFeatureLevel());
+										if (Lpv && LightSceneInfo->Proxy)
+										{
+											Lpv->InjectLightDirect(RHICmdList, *LightSceneInfo->Proxy, View);
+										}
 									}
 								}
 							}					

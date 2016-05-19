@@ -44,6 +44,11 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void* GetHardwareWindow();
 
+	static bool AllowThreadHeartBeat()
+	{
+		return false;
+	}
+
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent()
 	{

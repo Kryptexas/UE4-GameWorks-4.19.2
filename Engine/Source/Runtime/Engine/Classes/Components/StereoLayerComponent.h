@@ -98,6 +98,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StereoLayer)
 	class UTexture* Texture;
 
+public:
+	/** True if the quad should internally set it's Y value based on the set texture's dimensions */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = StereoLayer)
+	uint32 bQuadPreserveTextureRatio : 1;
+
+protected:
 	/** Size of the rendered stereo layer quad **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, export, Category=StereoLayer)
 	FVector2D QuadSize;

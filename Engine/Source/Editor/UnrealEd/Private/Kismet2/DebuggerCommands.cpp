@@ -118,6 +118,7 @@ public:
 	static bool IsStoppedAtBreakpoint();
 
 	static bool CanShowNonPlayWorldOnlyActions();
+	static bool CanShowVulkanNonPlayWorldOnlyActions();
 	static bool CanShowVROnlyActions();
 
 	static int32 GetNumberOfClients();
@@ -238,7 +239,7 @@ void FPlayWorldCommands::RegisterCommands()
 	UI_COMMAND( PlayInEditorFloating, "New Editor Window (PIE)", "Play this level in a new window", EUserInterfaceActionType::Check, FInputChord() );
 	UI_COMMAND( PlayInVR, "VR Preview", "Play this level in VR", EUserInterfaceActionType::Check, FInputChord() );
 	UI_COMMAND( PlayInMobilePreview, "Mobile Preview (PIE)", "Play this level as a mobile device preview (runs in its own process)", EUserInterfaceActionType::Check, FInputChord() );
-	UI_COMMAND( PlayInVulkanPreview, "Vulkan Preview (PIE)", "Play this level using mobile Vulkan rendering (runs in its own process)", EUserInterfaceActionType::Check, FInputChord() );
+	UI_COMMAND( PlayInVulkanPreview, "Vulkan Mobile Preview (PIE)", "Play this level using mobile Vulkan rendering (runs in its own process)", EUserInterfaceActionType::Check, FInputChord() );
 	UI_COMMAND( PlayInNewProcess, "Standalone Game", "Play this level in a new window that runs in its own process", EUserInterfaceActionType::Check, FInputChord() );
 	UI_COMMAND( PlayInCameraLocation, "Current Camera Location", "Spawn the player at the current camera location", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( PlayInDefaultPlayerStart, "Default Player Start", "Spawn the player at the map's default player start", EUserInterfaceActionType::RadioButton, FInputChord() );
@@ -323,7 +324,7 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 		FExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked, false, true),
 		FCanExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInNewProcess_CanExecute),
 		FIsActionChecked::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_InVulkanPreview),
-		FIsActionButtonVisible::CreateStatic(&FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions)
+		FIsActionButtonVisible::CreateStatic(&FInternalPlayWorldCommandCallbacks::CanShowVulkanNonPlayWorldOnlyActions)
 		);
 
 	ActionList.MapAction(Commands.PlayInNewProcess,
@@ -1642,19 +1643,17 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		}
 
 		// report to main frame
-		switch (Result)
+		if ((Result & ETargetPlatformReadyStatus::CodeUnsupported) != 0)
 		{
-		case ETargetPlatformReadyStatus::CodeUnsupported:
 			// show the message
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported_CodeBased", "Sorry, launching a code-based project for the selected platform is currently not supported. This feature may be available in a future release."));
 			return false;
-
-		case ETargetPlatformReadyStatus::PluginsUnsupported:
+		}
+		if ((Result & ETargetPlatformReadyStatus::PluginsUnsupported) != 0)
+		{
 			// show the message
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported_Plugins", "Sorry, launching a project with third-party plugins is currently not supported for the selected platform. This feature may be available in a future release."));
 			return false;
-		default:
-			break;
 		}
 	}
 	else
@@ -1852,6 +1851,11 @@ void FInternalPlayWorldCommandCallbacks::TogglePlayPause_Clicked()
 bool FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions()
 {
 	return !HasPlayWorld();
+}
+
+bool FInternalPlayWorldCommandCallbacks::CanShowVulkanNonPlayWorldOnlyActions()
+{
+	return !HasPlayWorld() && GetDefault<UEditorExperimentalSettings>()->bAllowVulkanPreview && FModuleManager::Get().ModuleExists(TEXT("VulkanRHI"));
 }
 
 bool FInternalPlayWorldCommandCallbacks::CanShowVROnlyActions()

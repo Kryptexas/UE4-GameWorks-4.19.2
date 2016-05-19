@@ -126,7 +126,7 @@ FVulkanCmdBuffer* FVulkanCommandBufferManager::GetActiveCmdBuffer()
 	{
 		check(UploadCmdBuffer->IsOutsideRenderPass());
 		UploadCmdBuffer->End();
-		Device->GetQueue()->Submit(UploadCmdBuffer);
+		Device->GetQueue()->Submit(UploadCmdBuffer, nullptr, 0, nullptr);
 		UploadCmdBuffer = nullptr;
 	}
 

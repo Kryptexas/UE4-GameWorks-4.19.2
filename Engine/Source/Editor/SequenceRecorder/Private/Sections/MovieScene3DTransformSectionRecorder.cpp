@@ -89,69 +89,73 @@ void FMovieScene3DTransformSectionRecorder::FinalizeSection()
 		check(BufferedTransforms.Num() == 0);
 
 		UAnimSequence* AnimSequence = AnimRecorder->GetAnimSequence();
-		USkeletalMesh* SkeletalMesh = AnimRecorder->GetSkeletalMesh();
-		if(AnimSequence && SkeletalMesh)
+		USkeletalMeshComponent* SkeletalMeshComponent = AnimRecorder->GetSkeletalMeshComponent();
+		if (SkeletalMeshComponent)
 		{
-			// find the root bone
-			int32 RootIndex = INDEX_NONE;
-			USkeleton* AnimSkeleton = AnimSequence->GetSkeleton();
-			for (int32 TrackIndex = 0; TrackIndex < AnimSequence->RawAnimationData.Num(); ++TrackIndex)
+			USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->MasterPoseComponent != nullptr ? SkeletalMeshComponent->MasterPoseComponent->SkeletalMesh : SkeletalMeshComponent->SkeletalMesh;
+			if (AnimSequence && SkeletalMesh)
 			{
-				// verify if this bone exists in skeleton
-				int32 BoneTreeIndex = AnimSequence->GetSkeletonIndexFromRawDataTrackIndex(TrackIndex);
-				if (BoneTreeIndex != INDEX_NONE)
+				// find the root bone
+				int32 RootIndex = INDEX_NONE;
+				USkeleton* AnimSkeleton = AnimSequence->GetSkeleton();
+				for (int32 TrackIndex = 0; TrackIndex < AnimSequence->RawAnimationData.Num(); ++TrackIndex)
 				{
-					int32 BoneIndex = AnimSkeleton->GetMeshBoneIndexFromSkeletonBoneIndex(SkeletalMesh, BoneTreeIndex);
-					int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-					if(ParentIndex == INDEX_NONE)
+					// verify if this bone exists in skeleton
+					int32 BoneTreeIndex = AnimSequence->GetSkeletonIndexFromRawDataTrackIndex(TrackIndex);
+					if (BoneTreeIndex != INDEX_NONE)
 					{
-						// found root
-						RootIndex = BoneIndex;
-						break;
+						int32 BoneIndex = AnimSkeleton->GetMeshBoneIndexFromSkeletonBoneIndex(SkeletalMesh, BoneTreeIndex);
+						int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+						if (ParentIndex == INDEX_NONE)
+						{
+							// found root
+							RootIndex = BoneIndex;
+							break;
+						}
 					}
 				}
-			}
 
-			check(RootIndex != INDEX_NONE);
+				check(RootIndex != INDEX_NONE);
 
-			const float StartTime = MovieSceneSection->GetStartTime();
+				const float StartTime = MovieSceneSection->GetStartTime();
 
-			// we may need to offset the transform here if the animation was not recorded on the root component
-			FTransform InvComponentTransform = AnimRecorder->GetComponentTransform().Inverse();
+				// we may need to offset the transform here if the animation was not recorded on the root component
+				FTransform InvComponentTransform = AnimRecorder->GetComponentTransform().Inverse();
 
-			FRawAnimSequenceTrack& RawTrack = AnimSequence->RawAnimationData[RootIndex];
-			const int32 KeyCount = FMath::Max(FMath::Max(RawTrack.PosKeys.Num(), RawTrack.RotKeys.Num()), RawTrack.ScaleKeys.Num());
-			for(int32 KeyIndex = 0; KeyIndex < KeyCount; KeyIndex++)
-			{
-				FTransform Transform;
-				if(RawTrack.PosKeys.IsValidIndex(KeyIndex))
+				FRawAnimSequenceTrack& RawTrack = AnimSequence->RawAnimationData[RootIndex];
+				const int32 KeyCount = FMath::Max(FMath::Max(RawTrack.PosKeys.Num(), RawTrack.RotKeys.Num()), RawTrack.ScaleKeys.Num());
+				for (int32 KeyIndex = 0; KeyIndex < KeyCount; KeyIndex++)
 				{
-					Transform.SetTranslation(RawTrack.PosKeys[KeyIndex]);
-				}
-				else if(RawTrack.PosKeys.Num() > 0)
-				{
-					Transform.SetTranslation(RawTrack.PosKeys[0]);
-				}
-				
-				if(RawTrack.RotKeys.IsValidIndex(KeyIndex))
-				{
-					Transform.SetRotation(RawTrack.RotKeys[KeyIndex]);
-				}
-				else if(RawTrack.RotKeys.Num() > 0)
-				{
-					Transform.SetRotation(RawTrack.RotKeys[0]);
-				}
+					FTransform Transform;
+					if (RawTrack.PosKeys.IsValidIndex(KeyIndex))
+					{
+						Transform.SetTranslation(RawTrack.PosKeys[KeyIndex]);
+					}
+					else if (RawTrack.PosKeys.Num() > 0)
+					{
+						Transform.SetTranslation(RawTrack.PosKeys[0]);
+					}
 
-				if(RawTrack.ScaleKeys.IsValidIndex(KeyIndex))
-				{
-					Transform.SetScale3D(RawTrack.ScaleKeys[KeyIndex]);
-				}
-				else if(RawTrack.ScaleKeys.Num() > 0)
-				{
-					Transform.SetScale3D(RawTrack.ScaleKeys[0]);
-				}
+					if (RawTrack.RotKeys.IsValidIndex(KeyIndex))
+					{
+						Transform.SetRotation(RawTrack.RotKeys[KeyIndex]);
+					}
+					else if (RawTrack.RotKeys.Num() > 0)
+					{
+						Transform.SetRotation(RawTrack.RotKeys[0]);
+					}
 
-				BufferedTransforms.Add(FBufferedTransformKey(InvComponentTransform * Transform, StartTime + AnimSequence->GetTimeAtFrame(KeyIndex)));
+					if (RawTrack.ScaleKeys.IsValidIndex(KeyIndex))
+					{
+						Transform.SetScale3D(RawTrack.ScaleKeys[KeyIndex]);
+					}
+					else if (RawTrack.ScaleKeys.Num() > 0)
+					{
+						Transform.SetScale3D(RawTrack.ScaleKeys[0]);
+					}
+
+					BufferedTransforms.Add(FBufferedTransformKey(InvComponentTransform * Transform, StartTime + AnimSequence->GetTimeAtFrame(KeyIndex)));
+				}
 			}
 		}
 	}

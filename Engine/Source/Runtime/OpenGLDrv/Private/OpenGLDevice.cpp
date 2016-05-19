@@ -1103,7 +1103,7 @@ static void CheckVaryingLimit()
 		UE_LOG(LogRHI, Display, TEXT("Testing for gl_FragCoord requiring a varying since mosaic is enabled"));
 		FOpenGL::bIsCheckingShaderCompilerHacks = true;
 
-		static const ANSICHAR* TestVertexProgram = "\n"
+		static const ANSICHAR TestVertexProgram[] = "\n"
 			"#version 100\n"
 			"attribute vec4 in_ATTRIBUTE0;\n"
 			"attribute vec4 in_ATTRIBUTE1;\n"
@@ -1127,7 +1127,7 @@ static void CheckVaryingLimit()
 			"   TexCoord7 = in_ATTRIBUTE1 * vec4(0.56,0.66,0.76,0.86);\n"
 			"	gl_Position.xyzw = in_ATTRIBUTE0;\n"
 			"}\n";
-		static const ANSICHAR* TestFragmentProgram = "\n"
+		static const ANSICHAR TestFragmentProgram[] = "\n"
 			"#version 100\n"
 			"varying highp vec4 TexCoord0;\n"
 			"varying highp vec4 TexCoord1;\n"

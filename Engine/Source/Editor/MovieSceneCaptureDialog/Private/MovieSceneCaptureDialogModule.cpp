@@ -333,6 +333,8 @@ struct FInEditorCapture
 			.HasCloseButton(true)
 			.SupportsMaximize(false)
 			.SupportsMinimize(true)
+			.MaxWidth( Settings.Resolution.ResX )
+			.MaxHeight( Settings.Resolution.ResY )
 			.SizingRule(ESizingRule::FixedSize);
 
 		FSlateApplication::Get().AddWindow(CustomWindow);

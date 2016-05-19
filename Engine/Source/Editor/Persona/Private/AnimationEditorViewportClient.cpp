@@ -869,6 +869,15 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 		return;
 	}
 
+	TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
+
+	if (SharedPersona.IsValid() && SharedPersona->ShouldDisplayAdditiveScaleErrorMessage())
+	{
+		InfoString = TEXT("Additve ref pose contains scales of 0.0, this can cause additive animations to not give the desired results");
+		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
+		CurYOffset += YL + 2;
+	}
+
 	if (PreviewSkelMeshComp->SkeletalMesh->MorphTargets.Num() > 0)
 	{
 		int32 SubHeadingIndent = CurXOffset + 10;

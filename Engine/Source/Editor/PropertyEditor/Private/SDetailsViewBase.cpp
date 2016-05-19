@@ -1258,7 +1258,7 @@ void SDetailsViewBase::UpdatePropertyMap()
 	auto RootPropertyNode = GetRootNode();
 	check(RootPropertyNode.IsValid());
 
-	bool const bEnableFavoriteSystem = GIsRequestingExit ? false : (GetDefault<UEditorStyleSettings>()->bEnableFavoriteSystem && DetailsViewArgs.bAllowFavoriteSystem);
+	bool const bEnableFavoriteSystem = GIsRequestingExit ? false : (GetDefault<UEditorExperimentalSettings>()->bEnableFavoriteSystem && DetailsViewArgs.bAllowFavoriteSystem);
 
 	// Currently object property nodes do not provide any useful information other than being a container for its children.  We do not draw anything for them.
 	// When we encounter object property nodes, add their children instead of adding them to the tree.

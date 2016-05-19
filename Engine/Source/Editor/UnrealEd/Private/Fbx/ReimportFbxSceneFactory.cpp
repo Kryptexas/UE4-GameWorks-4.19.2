@@ -48,7 +48,6 @@ UFbxSceneImportData *GetFbxSceneImportData(UObject *Obj)
 			if (Mesh != nullptr && Mesh->AssetImportData != nullptr)
 			{
 				ImportData = Cast<UFbxAssetImportData>(Mesh->AssetImportData);
-				SceneImportData = ImportData->bImportAsScene ? ImportData->FbxSceneImportDataReference : nullptr;
 			}
 		}
 		else if (Obj->IsA(USkeletalMesh::StaticClass()))
@@ -58,7 +57,6 @@ UFbxSceneImportData *GetFbxSceneImportData(UObject *Obj)
 			if (SkeletalMesh != nullptr && SkeletalMesh->AssetImportData != nullptr)
 			{
 				ImportData = Cast<UFbxAssetImportData>(SkeletalMesh->AssetImportData);
-				SceneImportData = ImportData->bImportAsScene ? ImportData->FbxSceneImportDataReference : nullptr;
 			}
 		}
 		else if (Obj->IsA(UAnimSequence::StaticClass()))
@@ -68,10 +66,14 @@ UFbxSceneImportData *GetFbxSceneImportData(UObject *Obj)
 			if (AnimSequence != nullptr && AnimSequence->AssetImportData != nullptr)
 			{
 				ImportData = Cast<UFbxAssetImportData>(AnimSequence->AssetImportData);
-				SceneImportData = ImportData->bImportAsScene ? ImportData->FbxSceneImportDataReference : nullptr;
 			}
 		}
 		//TODO: add all type the fbx scene import can create: material, texture, skeletal mesh, animation, ... 
+
+		if (ImportData != nullptr)
+		{
+			SceneImportData = ImportData->bImportAsScene ? ImportData->FbxSceneImportDataReference : nullptr;
+		}
 	}
 	return SceneImportData;
 }

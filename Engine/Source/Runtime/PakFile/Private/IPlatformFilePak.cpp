@@ -2296,7 +2296,7 @@ public:
 			// Decrypt and Uncompress from memory to memory.
 			int64 EncryptionSize = EncryptionPolicy::AlignReadRequest(CompressedSize);
 			EncryptionPolicy::DecryptBlock(CompressedBuffer, EncryptionSize);
-			FCompression::UncompressMemory(Flags, UncompressedBuffer, UncompressedSize, CompressedBuffer, CompressedSize, false);
+			FCompression::UncompressMemory(Flags, UncompressedBuffer, UncompressedSize, CompressedBuffer, CompressedSize, false, FPlatformMisc::GetPlatformCompression()->GetCompressionBitWindow());
 			if (CopyOut)
 			{
 				FMemory::Memcpy(CopyOut, UncompressedBuffer+CopyOffset, CopyLength);
@@ -2340,7 +2340,7 @@ public:
 		FCompressionScratchBuffers& ScratchSpace = FCompressionScratchBuffers::Get();
 		bool bStartedUncompress = false;
 
-		int64 WorkingBufferRequiredSize = FCompression::CompressMemoryBound((ECompressionFlags)PakEntry.CompressionMethod,CompressionBlockSize);
+		int64 WorkingBufferRequiredSize = FCompression::CompressMemoryBound((ECompressionFlags)PakEntry.CompressionMethod,CompressionBlockSize, FPlatformMisc::GetPlatformCompression()->GetCompressionBitWindow());
 		WorkingBufferRequiredSize = EncryptionPolicy::AlignReadRequest(WorkingBufferRequiredSize);
 		ScratchSpace.EnsureBufferSpace(CompressionBlockSize, WorkingBufferRequiredSize*2);
 		WorkingBuffers[0] = ScratchSpace.ScratchBuffer;

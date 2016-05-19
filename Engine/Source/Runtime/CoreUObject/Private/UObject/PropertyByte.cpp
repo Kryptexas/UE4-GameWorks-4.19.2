@@ -174,9 +174,9 @@ void UByteProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue
 }
 const TCHAR* UByteProperty::ImportText_Internal( const TCHAR* InBuffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
 {
-	FString Temp;
 	if( Enum && (PortFlags & PPF_ConsoleVariable) == 0 )
 	{
+		FString Temp;
 		const TCHAR* Buffer = UPropertyHelpers::ReadToken( InBuffer, Temp, true );
 		if( Buffer != NULL )
 		{
@@ -188,6 +188,27 @@ const TCHAR* UByteProperty::ImportText_Internal( const TCHAR* InBuffer, void* Da
 			}
 		}
 	}
+	
+	// Interpret "True" and "False" as 1 and 0. This is mostly for importing a property that was exported as a bool and is imported as a non-enum byte.
+	if (!Enum)
+	{
+		FString Temp;
+		const TCHAR* Buffer = UPropertyHelpers::ReadToken(InBuffer, Temp);
+		if (Buffer)
+		{
+			if (Temp == TEXT("True") || Temp == *(GTrue.ToString()))
+			{
+				SetIntPropertyValue(Data, 1ull);
+				return Buffer;
+			}
+			else if (Temp == TEXT("False") || Temp == *(GFalse.ToString()))
+			{
+				SetIntPropertyValue(Data, 0ull);
+				return Buffer;
+			}
+		}
+	}
+
 	return Super::ImportText_Internal( InBuffer, Data, PortFlags, Parent, ErrorText );
 }
 

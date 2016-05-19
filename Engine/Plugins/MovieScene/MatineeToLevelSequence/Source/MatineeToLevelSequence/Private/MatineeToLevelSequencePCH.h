@@ -20,6 +20,7 @@
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpTrackFloatBase.h"
 #include "Matinee/InterpTrackBoolProp.h"
+#include "Matinee/InterpTrackColorScale.h"
 #include "Matinee/InterpTrackColorProp.h"
 #include "Matinee/InterpTrackFloatProp.h"
 #include "Matinee/InterpTrackMove.h"
@@ -35,6 +36,7 @@
 #include "Matinee/InterpGroupInst.h"
 #include "Matinee/InterpGroupDirector.h"
 #include "Matinee/MatineeActor.h"
+#include "Matinee/MatineeActorCameraAnim.h"
 #include "MatineeUtils.h"
 
 #include "LevelEditor.h"

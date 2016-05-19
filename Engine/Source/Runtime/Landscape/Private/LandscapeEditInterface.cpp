@@ -1619,7 +1619,10 @@ void ULandscapeComponent::DeleteLayer(ULandscapeLayerInfoObject* LayerInfo, FLan
 	}
 
 	// Mark the channel as unallocated, so we can reuse it later
-	ALandscapeProxy* Proxy = GetLandscapeProxy();
+	ALandscapeProxy* Proxy = Component->GetLandscapeProxy();
+	Component->Modify();
+	Proxy->Modify();
+
 	FLandscapeWeightmapUsage* Usage = Proxy->WeightmapUsageMap.Find(Component->WeightmapTextures[DeleteLayerAllocation.WeightmapTextureIndex]);
 	if (Usage) // can be null if WeightmapUsageMap hasn't been built yet
 	{
@@ -2059,11 +2062,13 @@ bool DeleteLayerIfAllZero(ULandscapeComponent* const Component, const uint8* con
 		}
 	}
 
+	ALandscapeProxy* Proxy = Component->GetLandscapeProxy();
 	Component->Modify();
+	Proxy->Modify();
 
 	// Mark the channel as unallocated, so we can reuse it later
 	const int32 DeleteLayerWeightmapTextureIndex = Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureIndex;
-	FLandscapeWeightmapUsage& Usage = Component->GetLandscapeProxy()->WeightmapUsageMap.FindChecked(Component->WeightmapTextures[DeleteLayerWeightmapTextureIndex]);
+	FLandscapeWeightmapUsage& Usage = Proxy->WeightmapUsageMap.FindChecked(Component->WeightmapTextures[DeleteLayerWeightmapTextureIndex]);
 	Usage.ChannelUsage[Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureChannel] = NULL;
 
 	// Remove the layer as it's totally painted away.

@@ -385,8 +385,9 @@ public:
 		{
 			check(IsInParallelRenderingThread());
 
-			// this test prevents the skeletal meshes to keep velocity when we pause (e.g. simulate pause)
-			if ((CurrentFrameNumber - PreviousFrameNumber) > 1)
+			// This test prevents skeletal meshes keeping velocity when we pause (e.g. simulate pause)
+			// CurrentFrameNumber <= FrameNumber which means non-sequential frames are also skipped 
+			if ((FrameNumber - PreviousFrameNumber) > 1)
 			{				
 				bPrevious = false;
 			}			

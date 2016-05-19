@@ -460,7 +460,6 @@ void FViewInfo::Init()
 	bIsSnapshot = false;
 
 	bAllowStencilDither = false;
-	InitAtmosphereConstantsInView(*this);
 }
 
 FViewInfo::~FViewInfo()

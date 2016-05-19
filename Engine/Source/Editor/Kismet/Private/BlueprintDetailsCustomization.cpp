@@ -586,7 +586,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		}
 	}
 
-	TSharedPtr<SToolTip> BitmaskEnumTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarBitmaskEnumTooltip", "If this is a bitmask, choose an optional enumeration type for the flags."), nullptr, DocLink, TEXT("Bitmask Flags"));
+	TSharedPtr<SToolTip> BitmaskEnumTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarBitmaskEnumTooltip", "If this is a bitmask, choose an optional enumeration type for the flags. Note that changing this will also reset the default value."), nullptr, DocLink, TEXT("Bitmask Flags"));
 	
 	Category.AddCustomRow(LOCTEXT("BitmaskEnumLabel", "Bitmask Enum"))
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::BitmaskVisibility))
@@ -1788,14 +1788,28 @@ void FBlueprintVarActionDetails::OnBitmaskChanged(ECheckBoxState InNewState)
 	const FName VarName = CachedVariableName;
 	if (VarName != NAME_None)
 	{
+		UBlueprint* LocalBlueprint = GetBlueprintObj();
+
 		const bool bIsBitmask = (InNewState == ECheckBoxState::Checked);
 		if (bIsBitmask)
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_Bitmask, TEXT(""));
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(LocalBlueprint, VarName, nullptr, FBlueprintMetadata::MD_Bitmask, TEXT(""));
 		}
 		else
 		{
-			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_Bitmask);
+			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(LocalBlueprint, VarName, nullptr, FBlueprintMetadata::MD_Bitmask);
+		}
+
+		// Reset default value
+		if (LocalBlueprint->GeneratedClass)
+		{
+			UObject* CDO = LocalBlueprint->GeneratedClass->GetDefaultObject(false);
+			UProperty* VarProperty = FindField<UProperty>(LocalBlueprint->GeneratedClass, VarName);
+
+			if (CDO != nullptr && VarProperty != nullptr)
+			{
+				VarProperty->InitializeValue_InContainer(CDO);
+			}
 		}
 
 		TArray<UK2Node_Variable*> VariableNodes;
@@ -1842,13 +1856,27 @@ void FBlueprintVarActionDetails::OnBitmaskEnumTypeChanged(TSharedPtr<FString> It
 	const FName VarName = CachedVariableName;
 	if (VarName != NAME_None)
 	{
+		UBlueprint* LocalBlueprint = GetBlueprintObj();
+
 		if (ItemSelected == BitmaskEnumTypeNames[0])
 		{
-			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum);
+			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(LocalBlueprint, VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum);
 		}
 		else if(ItemSelected.IsValid())
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum, *ItemSelected);
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(LocalBlueprint, VarName, nullptr, FBlueprintMetadata::MD_BitmaskEnum, *ItemSelected);
+		}
+
+		// Reset default value
+		if (LocalBlueprint->GeneratedClass)
+		{
+			UObject* CDO = LocalBlueprint->GeneratedClass->GetDefaultObject(false);
+			UProperty* VarProperty = FindField<UProperty>(LocalBlueprint->GeneratedClass, VarName);
+
+			if (CDO != nullptr && VarProperty != nullptr)
+			{
+				VarProperty->InitializeValue_InContainer(CDO);
+			}
 		}
 
 		TArray<UK2Node_Variable*> VariableNodes;

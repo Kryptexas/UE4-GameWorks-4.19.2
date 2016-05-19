@@ -283,16 +283,22 @@ void FAnimPreviewInstanceProxy::UpdateCurveController()
 
 void FAnimPreviewInstanceProxy::ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &InBoneControllers, FCSPose<FCompactPose>& OutMeshPose)
 {
-	for(auto& SingleBoneController : InBoneControllers)
+	if(USkeletalMesh* SkelMesh = Component->SkeletalMesh)
 	{
-		SingleBoneController.BoneToModify.BoneIndex = GetRequiredBones().GetPoseBoneIndexForBoneName(SingleBoneController.BoneToModify.BoneName);
-		if(SingleBoneController.IsValidToEvaluate(GetSkeleton(), GetRequiredBones()))
+		if(USkeleton* LocalSkeleton = SkelMesh->Skeleton)
 		{
-			TArray<FBoneTransform> BoneTransforms;
-			SingleBoneController.EvaluateBoneTransforms(Component, OutMeshPose, BoneTransforms);
-			if(BoneTransforms.Num() > 0)
+			for (auto& SingleBoneController : InBoneControllers)
 			{
-				OutMeshPose.LocalBlendCSBoneTransforms(BoneTransforms, 1.0f);
+				SingleBoneController.BoneToModify.BoneIndex = GetRequiredBones().GetPoseBoneIndexForBoneName(SingleBoneController.BoneToModify.BoneName);
+				TArray<FBoneTransform> BoneTransforms;
+				if (SingleBoneController.IsValidToEvaluate(LocalSkeleton, OutMeshPose.GetPose().GetBoneContainer()))
+				{
+					SingleBoneController.EvaluateBoneTransforms(Component, OutMeshPose, BoneTransforms);
+					if (BoneTransforms.Num() > 0)
+					{
+						OutMeshPose.LocalBlendCSBoneTransforms(BoneTransforms, 1.0f);
+					}
+				}
 			}
 		}
 	}

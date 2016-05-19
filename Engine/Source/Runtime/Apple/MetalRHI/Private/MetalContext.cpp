@@ -80,9 +80,31 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 	TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = FPlatformMisc::GetGPUDescriptors();
 	check(GPUs.Num() > 0);
 	
-	id<MTLDevice> SelectedDevice = nil;
-	
 	int32 ExplicitRendererId = FPlatformMisc::GetExplicitRendererIndex();
+	if(ExplicitRendererId < 0 && GPUs.Num() > 1 && FMacPlatformMisc::MacOSXVersionCompare(10, 11, 5) == 0)
+	{
+		int32 OverrideRendererId = -1;
+		bool bForceExplicitRendererId = false;
+		for(uint32 i = 0; i < GPUs.Num(); i++)
+		{
+			FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[i];
+			if((GPU.GPUVendorId == 0x10DE))
+			{
+				OverrideRendererId = i;
+				bForceExplicitRendererId = (GPU.GPUMetalBundle && ![GPU.GPUMetalBundle isEqualToString:@"GeForceMTLDriverWeb"]);
+			}
+			else if(!GPU.GPUHeadless && GPU.GPUVendorId != 0x8086)
+			{
+				OverrideRendererId = i;
+			}
+		}
+		if (bForceExplicitRendererId)
+		{
+			ExplicitRendererId = OverrideRendererId;
+		}
+	}
+	
+	id<MTLDevice> SelectedDevice = nil;
 	if (ExplicitRendererId >= 0 && ExplicitRendererId < GPUs.Num())
 	{
 		FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[ExplicitRendererId];
@@ -225,16 +247,15 @@ void FMetalDeviceContext::BeginFrame()
 
 void FMetalDeviceContext::ClearFreeList()
 {
+	uint32 Index = 0;
  	while(DelayedFreeLists.Num())
 	{
-		FMetalDelayedFreeList* Pair = DelayedFreeLists[0];
+		FMetalDelayedFreeList* Pair = DelayedFreeLists[Index];
 		if(dispatch_semaphore_wait(Pair->Signal, DISPATCH_TIME_NOW))
 		{
-#if PLATFORM_IOS
-            Pair->FrameCount--;
+			Pair->FrameCount--;
             if (Pair->FrameCount == 0)
             {
-#endif
                 dispatch_release(Pair->Signal);
                 for( id Entry : Pair->FreeList )
                 {
@@ -243,13 +264,15 @@ void FMetalDeviceContext::ClearFreeList()
                 }
                 delete Pair;
                 DelayedFreeLists.RemoveAt(0, 1, false);
-#if PLATFORM_IOS
             }
-            else
-            {
-                break;
-            }
-#endif
+			else
+			{
+				Index++;
+				if (Index >= DelayedFreeLists.Num())
+				{
+					break;
+				}
+			}
 		}
 		else
 		{
@@ -304,9 +327,7 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	
 	// kick the whole buffer
 	FMetalDelayedFreeList* NewList = new FMetalDelayedFreeList;
-#if PLATFORM_IOS
     NewList->FrameCount = 3;
-#endif
 	NewList->Signal = dispatch_semaphore_create(0);
 	if(GUseRHIThread)
 	{
@@ -862,7 +883,7 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 {
 	// Force submit if there's enough outstanding commands to prevent the GPU going idle.
-	ConditionalSwitchToGraphics();
+	ConditionalSwitchToGraphics(StateCache.NeedsToSetRenderTarget(RenderTargetsInfo), !(PLATFORM_MAC));
 	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	if (!CommandList.IsImmediate())
@@ -1166,9 +1187,9 @@ void FMetalContext::CommitNonComputeShaderConstants()
 	}
 }
 
-void FMetalContext::ConditionalSwitchToGraphics()
+void FMetalContext::ConditionalSwitchToGraphics(bool bRTChangePending, bool bRTChangeForce)
 {
-	ConditionalSubmit();
+	ConditionalSubmit(bRTChangePending, bRTChangeForce);
 	
 	StateCache.ConditionalSwitchToRender();
 }
@@ -1191,11 +1212,38 @@ void FMetalContext::ConditionalSwitchToCompute()
 	}
 }
 
-void FMetalContext::ConditionalSubmit()
+void FMetalContext::ConditionalSubmit(bool bRTChangePending, bool bRTChangeForce)
 {
-	if (GMetalCommandBufferCommitThreshold > 0 && OutstandingOpCount >= GMetalCommandBufferCommitThreshold)
+	if ((GMetalCommandBufferCommitThreshold > 0 && OutstandingOpCount >= GMetalCommandBufferCommitThreshold) || (bRTChangePending && bRTChangeForce))
 	{
-		SubmitCommandsHint();
+		// AJB: This triggers a 'unset' of the RT. Causing a Load/Store at potentially awkward times.
+		// check that the load/store behaviour of the current RT setup will allows resumption without affecting RT content.
+		// i.e. - dont want to clear 1/2 way through a pass either.
+		bool bCanChangeRT = false;
+		if( bRTChangePending == false)
+		{
+			const FRHISetRenderTargetsInfo& CurrentRenderTargets = StateCache.GetRenderTargetsInfo();
+			const bool bIsMSAAActive = StateCache.GetHasValidRenderTarget() && StateCache.GetRenderPipelineDesc().SampleCount != 1;
+			bCanChangeRT = !bIsMSAAActive;
+			for (int32 RenderTargetIndex = 0; RenderTargetIndex < CurrentRenderTargets.NumColorRenderTargets && bCanChangeRT; RenderTargetIndex++)
+			{
+				const FRHIRenderTargetView& RenderTargetView = CurrentRenderTargets.ColorRenderTarget[RenderTargetIndex];
+				bCanChangeRT = bCanChangeRT
+				&& RenderTargetView.LoadAction == ERenderTargetLoadAction::ELoad
+				&& RenderTargetView.StoreAction == ERenderTargetStoreAction::EStore;
+			}
+			bCanChangeRT = bCanChangeRT
+			&& (!CurrentRenderTargets.DepthStencilRenderTarget.Texture
+				|| (CurrentRenderTargets.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::ELoad
+					&& CurrentRenderTargets.DepthStencilRenderTarget.DepthStoreAction == ERenderTargetStoreAction::EStore
+					&& CurrentRenderTargets.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::ELoad
+					&& CurrentRenderTargets.DepthStencilRenderTarget.GetStencilStoreAction() == ERenderTargetStoreAction::EStore));
+		}
+
+		if(bRTChangePending || bCanChangeRT)
+		{
+			SubmitCommandsHint();
+		}
 	}
 }
 

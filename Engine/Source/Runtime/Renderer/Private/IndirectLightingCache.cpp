@@ -473,8 +473,10 @@ void FIndirectLightingCache::UpdateCachePrimitivesInternal(FScene* Scene, FScene
 
 				// If it was already dirty, then the primitive is already in one of the view dirty primitive list at this point.
 				// This also ensures that a primitive does not get added twice to the list, which could create an array reallocation.
-				if (!bPrecomputedLightingBufferWasDirty && PrimitiveSceneInfo->NeedsPrecomputedLightingBufferUpdate())
+				if (!bPrecomputedLightingBufferWasDirty)
 				{
+					PrimitiveSceneInfo->MarkPrecomputedLightingBufferDirty();
+
 					// Check if it is visible otherwise, it will be updated next time it is visible.
 					for (int32 ViewIndex = 0; ViewIndex < Renderer.Views.Num(); ViewIndex++)
 					{
@@ -578,7 +580,7 @@ void FIndirectLightingCache::FinalizeUpdateInternal_RenderThread(FScene* Scene, 
 	}
 }
 
-void FIndirectLightingCache::UpdateCacheAllocation(
+bool FIndirectLightingCache::UpdateCacheAllocation(
 	const FBoxSphereBounds& Bounds,
 	int32 BlockSize,
 	bool bPointSample,
@@ -587,6 +589,8 @@ void FIndirectLightingCache::UpdateCacheAllocation(
 	TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate,
 	TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate)
 {
+	bool bUpdated = false;
+
 	if (Allocation && Allocation->IsValid())
 	{
 		FIndirectLightingCacheBlock& Block = FindBlock(Allocation->MinTexel);
@@ -611,11 +615,15 @@ void FIndirectLightingCache::UpdateCacheAllocation(
 
 			Allocation->SetParameters(Allocation->MinTexel, Allocation->AllocationTexelSize, NewScale, NewAdd, MinUV, MaxUV, bPointSample, bUnbuiltPreview);
 			BlocksToUpdate.Add(Block.MinTexel, FBlockUpdateInfo(Block, Allocation));
-		}
 
-		if ((Allocation->SingleSamplePosition - Allocation->TargetPosition).SizeSquared() > DELTA)
+			// Updating the block will also update the target position, meaning the ILC must be updated too.
+			TransitionsOverTimeToUpdate.AddUnique(Allocation);
+			bUpdated = true;
+		}
+		else if ((Allocation->SingleSamplePosition - Allocation->TargetPosition).SizeSquared() > DELTA)
 		{
 			TransitionsOverTimeToUpdate.AddUnique(Allocation);
+			bUpdated = true;
 		}
 	}
 	else
@@ -628,7 +636,10 @@ void FIndirectLightingCache::UpdateCacheAllocation(
 			// Must interpolate lighting for this new block
 			BlocksToUpdate.Add(Allocation->MinTexel, FBlockUpdateInfo(VolumeBlocks.FindChecked(Allocation->MinTexel), Allocation));
 		}
+		bUpdated = true;
 	}
+
+	return bUpdated;
 }
 
 void FIndirectLightingCache::UpdateCachePrimitive(
@@ -662,12 +673,13 @@ void FIndirectLightingCache::UpdateCachePrimitive(
 			}
 		}
 
-		const FIndirectLightingCacheAllocation* OriginalPrimitiveAllocation = PrimitiveSceneInfo->IndirectLightingCacheAllocation;
-
 		if (AttachmentParentAllocation)
 		{
 			// Reuse the attachment parent's lighting allocation if part of an attachment group
 			PrimitiveSceneInfo->IndirectLightingCacheAllocation = AttachmentParentAllocation;
+
+			// Don't know here if this parent ILC is or will be dirty or not. Always update.
+			PrimitiveSceneInfo->MarkPrecomputedLightingBufferDirty();
 		}
 		else
 		{
@@ -677,7 +689,7 @@ void FIndirectLightingCache::UpdateCachePrimitive(
 			const int32 BlockSize = bPointSample ? 1 : GLightingCacheMovableObjectAllocationSize;
 
 			// Light with the cumulative bounds of the entire attachment group
-			UpdateCacheAllocation(PrimitiveSceneInfo->GetAttachmentGroupBounds(), BlockSize, bPointSample, bUnbuiltPreview, PrimitiveAllocation, BlocksToUpdate, TransitionsOverTimeToUpdate);
+			const bool bUpdated = UpdateCacheAllocation(PrimitiveSceneInfo->GetAttachmentGroupBounds(), BlockSize, bPointSample, bUnbuiltPreview, PrimitiveAllocation, BlocksToUpdate, TransitionsOverTimeToUpdate);
 
 			// Cache the primitive allocation pointer on the FPrimitiveSceneInfo for base pass rendering
 			PrimitiveSceneInfo->IndirectLightingCacheAllocation = PrimitiveAllocation;
@@ -692,11 +704,11 @@ void FIndirectLightingCache::UpdateCachePrimitive(
 				// Allocate space in the atlas for this primitive and add it to a map, whose key is the component, so the allocation will persist through a re-register
 				PrimitiveAllocations.Add(PrimitiveSceneInfo->PrimitiveComponentId, PrimitiveAllocation);
 			}
-		}
 
-		if (OriginalPrimitiveAllocation != PrimitiveSceneInfo->IndirectLightingCacheAllocation)
-		{
-			PrimitiveSceneInfo->MarkPrecomputedLightingBufferDirty();
+			if (bUpdated)
+			{
+				PrimitiveSceneInfo->MarkPrecomputedLightingBufferDirty();
+			}
 		}
 	}
 }

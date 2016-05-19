@@ -860,7 +860,7 @@ void UStruct::InitTaggedPropertyRedirectsMap()
 
 				check(ClassName != NAME_None && OldPropertyName != NAME_None && NewPropertyName != NAME_None );
 				TaggedPropertyRedirects.FindOrAdd(ClassName).Add(OldPropertyName, NewPropertyName);
-			}			
+			}
 		}
 	}
 	else
@@ -869,14 +869,62 @@ void UStruct::InitTaggedPropertyRedirectsMap()
 	}
 }
 
+template <typename OldIntType, typename NewIntType>
+struct TConvertIntToIntProperty
+{
+	static void Convert(FArchive& Ar, UProperty* Property, void* Obj, int32 ArrayIndex, const TCHAR* PropName, const TCHAR* ObjName, const TCHAR* ArName)
+	{
+		OldIntType OldValue;
+		Ar << OldValue;
+		NewIntType NewValue = OldValue;
+		static_cast<typename UE4Types_Private::TIntegerPropertyMapping<NewIntType>::Type*>(Property)->SetPropertyValue_InContainer(Obj, NewValue, ArrayIndex);
+
+		UE_CLOG(
+			(TIsSignedIntegralType<OldIntType>::Value && !TIsSignedIntegralType<NewIntType>::Value && OldValue < 0) || (sizeof(NewIntType) < sizeof(OldIntType) && (OldIntType)NewValue != OldValue),
+			LogClass,
+			Warning,
+			TEXT("Potential data loss during conversion of integer property %s of %s - was (%s) now (%s) - for package: %s"),
+			PropName,
+			ObjName,
+			*LexicalConversion::ToString(OldValue),
+			*LexicalConversion::ToString(NewValue),
+			ArName
+		);
+	}
+};
+
+template <typename OldIntType>
+struct TConvertIntToEnumProperty
+{
+	static void Convert(FArchive& Ar, UByteProperty* Property, UEnum* Enum, void* Obj, int32 ArrayIndex, const TCHAR* PropName, const TCHAR* ObjName, const TCHAR* ArName)
+	{
+		OldIntType OldValue;
+		Ar << OldValue;
+
+		uint8 NewValue = OldValue;
+		if (OldValue > (OldIntType)TNumericLimits<uint8>::Max() || !Enum->IsValidEnumValue(NewValue))
+		{
+			UE_LOG(
+				LogClass,
+				Warning,
+				TEXT("Failed to find valid enum value '%d' for enum type '%s' when converting property '%s' during property loading - setting to '%s'"),
+				OldValue,
+				*Enum->GetName(),
+				PropName,
+				*Enum->GetNameByValue(Enum->GetMaxEnumValue()).ToString()
+			);
+
+			NewValue = Enum->GetMaxEnumValue();
+		}
+
+		Property->SetPropertyValue_InContainer(Obj, NewValue, ArrayIndex);
+	}
+};
+
 void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad) const
 {
 	//SCOPED_LOADTIMER(SerializeTaggedPropertiesTime);
 	
-	check(Ar.IsLoading() || Ar.IsSaving());
-
-	UClass* DefaultsClass = dynamic_cast<UClass*>(DefaultsStruct);
-	UScriptStruct* DefaultsScriptStruct = dynamic_cast<UScriptStruct*>(DefaultsStruct);
 	// Determine if this struct supports optional property guid's (UBlueprintGeneratedClasses Only)
 	const bool bArePropertyGuidsAvailable = (Ar.UE4Ver() >= VER_UE4_PROPERTY_GUID_IN_PROPERTY_TAG) && !FPlatformProperties::RequiresCookedData() && ArePropertyGuidsAvailable();
 
@@ -888,8 +936,57 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 		// and makes it an O(n) when properties are saved in the same order as they are loaded (default case). In the 
 		// case that a property was reordered the code falls back to a slower search.
 		UProperty*	Property			= PropertyLink;
-		bool		AdvanceProperty		= 0;
+		bool		AdvanceProperty		= false;
 		int32		RemainingArrayDim	= Property ? Property->ArrayDim : 0;
+
+		auto CanSerializeFromStructWithDifferentName = [](const FArchive& InAr, const FPropertyTag& PropertyTag, const UStructProperty* StructProperty)
+		{
+			if (InAr.UE4Ver() < VER_UE4_STRUCT_GUID_IN_PROPERTY_TAG)
+			{
+				// Old Implementation
+				return StructProperty && !StructProperty->UseBinaryOrNativeSerialization(InAr);
+			}
+			return PropertyTag.StructGuid.IsValid() && StructProperty && StructProperty->Struct && (PropertyTag.StructGuid == StructProperty->Struct->GetCustomGuid());
+		};
+
+		auto ReadEnumAsUint8 = [DefaultsStruct, &Ar](FName TaggedEnumName, const TCHAR* PropertyName) -> uint8
+		{
+			//@warning: mirrors loading code in UByteProperty::SerializeItem()
+			FName EnumName;
+			Ar << EnumName;
+
+			UEnum* Enum = FindField<UEnum>(dynamic_cast<UClass*>(DefaultsStruct) ? static_cast<UClass*>(DefaultsStruct) : DefaultsStruct->GetTypedOuter<UClass>(), TaggedEnumName);
+			if (!Enum)
+			{
+				Enum = FindObject<UEnum>(ANY_PACKAGE, *TaggedEnumName.ToString(), true);
+			}
+
+			if (!Enum)
+			{
+				UE_LOG(LogClass, Warning, TEXT("Failed to find enum '%s' when converting property '%s' during property loading - setting to 0"), *TaggedEnumName.ToString(), PropertyName);
+				return 0;
+			}
+
+			Ar.Preload(Enum);
+
+			uint8 Result = Enum->GetValueByName(EnumName);
+			if (!Enum->IsValidEnumValue(Result))
+			{
+				UE_LOG(
+					LogClass,
+					Warning,
+					TEXT("Failed to find valid enum value '%s' for enum type '%s' when converting property '%s' during property loading - setting to '%s'"),
+					*EnumName.ToString(),
+					*Enum->GetName(),
+					PropertyName,
+					*Enum->GetNameByValue(Enum->GetMaxEnumValue()).ToString()
+				);
+
+				return Enum->GetMaxEnumValue();
+			}
+
+			return Result;
+		};
 
 		// Load all stored properties, potentially skipping unknown ones.
 		while (1)
@@ -906,16 +1003,6 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				UE_LOG(LogClass, Warning, TEXT("Invalid tag name: struct '%s', archive '%s'"), *GetName(), *Ar.GetArchiveName());
 				break;
 			}
-
-			auto CanSerializeFromStructWithDifferentName = [](const FArchive& InAr, const FPropertyTag& PropertyTag, const UStructProperty* StructProperty)
-			{
-				if (InAr.UE4Ver() < VER_UE4_STRUCT_GUID_IN_PROPERTY_TAG)
-				{
-					// Old Implementation
-					return StructProperty && !StructProperty->UseBinaryOrNativeSerialization(InAr);
-				}
-				return PropertyTag.StructGuid.IsValid() && StructProperty && StructProperty->Struct && (PropertyTag.StructGuid == StructProperty->Struct->GetCustomGuid());
-			};
 
 			// Move to the next property to be serialized
 			if( AdvanceProperty && --RemainingArrayDim <= 0 )
@@ -1021,8 +1108,12 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				Property = CustomFindProperty(Tag.Name);
 			}
 #endif // WITH_EDITOR
+
+			FName PropID = Property ? Property->GetID() : NAME_None;
+			FName ArrayInnerID = NAME_None;
+
 			// Check if this is a struct property and we have a redirector
-			if (Tag.Type==NAME_StructProperty && Property != NULL && Tag.Type == Property->GetID())
+			if (Tag.Type == NAME_StructProperty && PropID == NAME_StructProperty)
 			{
 				FName* NewName = FLinkerLoad::StructNameRedirects.Find(Tag.StructName);
 				FName StructName = CastChecked<UStructProperty>(Property)->Struct->GetFName();
@@ -1054,151 +1145,16 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					*Tag.Name.ToString(), Tag.ArrayIndex, *GetName(), Property->ArrayDim-1, *Ar.GetArchiveName());
 			}
 
+			else if( !Property->ShouldSerializeValue(Ar) )
+			{
+				UE_CLOG((Ar.IsPersistent() && FPlatformProperties::RequiresCookedData()), LogClass, Warning, TEXT("Skipping saved property %s of %s since it is no longer serializable for asset:  %s. (Maybe resave asset?)"), *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName() );
+			}
+
 			// Convert properties from old type to new type automatically if types are compatible
 			// If you add an entry to this, you will also need to add an entry to the array case below
 			// For converting to a struct, you can just implement SerializeFromMismatchedTag on the struct
 
-			else if( Tag.Type==NAME_StrProperty && dynamic_cast<UNameProperty*>(Property) )
-			{
-				FString str;
-				Ar << str;
-				CastChecked<UNameProperty>(Property)->SetPropertyValue_InContainer(Data, FName(*str), Tag.ArrayIndex);
-				AdvanceProperty = true;
-				continue; 
-			}
-			else if( Tag.Type==NAME_StrProperty && dynamic_cast<UTextProperty*>(Property) ) // Convert serialized string to text.
-			{ 
-				FString str;
-				Ar << str;
-				FText Text = FText::FromString(str);
-				Text.TextData->PersistText();
-				Text.Flags |= ETextFlag::ConvertedProperty;
-				CastChecked<UTextProperty>(Property)->SetPropertyValue_InContainer(Data, Text, Tag.ArrayIndex);
-				AdvanceProperty = true;
-				continue; 
-			}
-			else if( Tag.Type==NAME_TextProperty && dynamic_cast<UStrProperty*>(Property) ) // Convert serialized text to string.
-			{ 
-				FText Text;  
-				Ar << Text;
-				FString String = FTextInspector::GetSourceString(Text) ? *FTextInspector::GetSourceString(Text) : TEXT("");
-				CastChecked<UStrProperty>(Property)->SetPropertyValue_InContainer(Data, String, Tag.ArrayIndex);
-				AdvanceProperty = true;
-				continue; 
-			}
-			else if( Tag.Type==NAME_NameProperty && dynamic_cast<UTextProperty*>(Property) ) // Convert serialized name to text.
-			{ 
-				FName Name;  
-				Ar << Name;
-				FText Text = FText::FromName(Name);
-				Text.Flags |= ETextFlag::ConvertedProperty;
-				CastChecked<UTextProperty>(Property)->SetPropertyValue_InContainer(Data, Text, Tag.ArrayIndex);
-				AdvanceProperty = true;
-				continue; 
-			}
-			else if( Tag.Type==NAME_TextProperty && dynamic_cast<UNameProperty*>(Property) ) // Convert serialized text to name.
-			{ 
-				FText Text;  
-				Ar << Text;
-				FName Name = FName(*Text.ToString());
-				CastChecked<UNameProperty>(Property)->SetPropertyValue_InContainer(Data, Name, Tag.ArrayIndex);
-				AdvanceProperty = true;
-				continue; 
-			}
-			else if ( Tag.Type == NAME_ByteProperty && Property->GetID() == NAME_IntProperty )
-			{
-				// this property's data was saved as a uint8, but the property has been changed to an int32.  Since there is no loss of data
-				// possible, we can auto-convert to the right type.
-				uint8 PreviousValue;
-
-				// de-serialize the previous value
-				// if the byte property had an enum, it's serialized differently so we need to account for that
-				if (Tag.EnumName != NAME_None)
-				{
-					//@warning: mirrors loading code in UByteProperty::SerializeItem()
-					FName EnumName;
-					Ar << EnumName;
-					UEnum* Enum = FindField<UEnum>((DefaultsClass != NULL) ? DefaultsClass : DefaultsStruct->GetTypedOuter<UClass>(), Tag.EnumName);
-					if (Enum == NULL)
-					{
-						Enum = FindObject<UEnum>(ANY_PACKAGE, *Tag.EnumName.ToString(), true);
-					}
-					if (Enum == NULL)
-					{
-						UE_LOG(LogClass, Warning, TEXT("Failed to find enum '%s' when converting property '%s' to int during property loading"), *Tag.EnumName.ToString(), *Tag.Name.ToString());
-						PreviousValue = 0;
-					}
-					else
-					{
-						Ar.Preload(Enum);
-						PreviousValue = Enum->GetValueByName(EnumName);
-						if (!Enum->IsValidEnumValue(PreviousValue))
-						{
-							PreviousValue = Enum->GetMaxEnumValue();
-						}
-					}
-				}
-				else
-				{
-					Ar << PreviousValue;
-				}
-
-				// now copy the value into the object's address spaace
-				CastChecked<UIntProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
-				AdvanceProperty = true;
-				continue;
-			}
-			else if ((Tag.Type == NAME_AssetObjectProperty || Tag.Type == NAME_AssetSubclassOfProperty) && (Property->GetID() == NAME_ObjectProperty || Property->GetID() == NAME_ClassProperty))
-			{
-				// This property used to be a TAssetPtr<Foo> but is now a raw UObjectProperty Foo*, we can convert without loss of data
-				FAssetPtr PreviousValue;
-				Ar << PreviousValue;
-
-				// now copy the value into the object's address space
-				UObject* PreviousValueObj = PreviousValue.Get();
-				CastChecked<UObjectProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValueObj, Tag.ArrayIndex);
-
-				AdvanceProperty = true;
-				continue;
-			}
-			else if ((Tag.Type == NAME_ObjectProperty || Tag.Type == NAME_ClassProperty) && (Property->GetID() == NAME_AssetObjectProperty || Property->GetID() == NAME_AssetSubclassOfProperty))
-			{
-				// This property used to be a raw UObjectProperty Foo* but is now a TAssetPtr<Foo>
-				UObject* PreviousValue = NULL;
-				Ar << PreviousValue;
-
-				// now copy the value into the object's address space
-				FAssetPtr PreviousValueAssetPtr(PreviousValue);
-				CastChecked<UAssetObjectProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValueAssetPtr, Tag.ArrayIndex);
-
-				AdvanceProperty = true;
-				continue;
-			}
-			else if (Tag.Type == NAME_IntProperty && Property->GetID() == NAME_BoolProperty)
-			{
-				// Property was saved as an int32, but has been changed to a bool (bitfield)
-				int32 IntValue;
-				Ar << IntValue;
-
-				if( IntValue != 0 )
-				{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-					if(IntValue != 1)
-					{
-						UE_LOG(LogClass, Log, TEXT("Loading int32 property (%s) that is now a uint32 - value '%d', expecting 0 or 1. Value set to true."), *Property->GetPathName(), IntValue);
-					}
-#endif
-					CastChecked<UBoolProperty>(Property)->SetPropertyValue_InContainer(Data, true, Tag.ArrayIndex);
-				}
-				else
-				{
-					CastChecked<UBoolProperty>(Property)->SetPropertyValue_InContainer(Data, false, Tag.ArrayIndex);
-				}
-
-				AdvanceProperty = true;
-				continue; 
-			}
-			else if( dynamic_cast<UStructProperty*>(Property) && static_cast<UStructProperty*>(Property)->Struct && (Tag.Type != Property->GetID() || (Tag.Type == NAME_StructProperty && Tag.StructName != static_cast<UStructProperty*>(Property)->Struct->GetFName())) && (static_cast<UStructProperty*>(Property)->Struct->StructFlags & STRUCT_SerializeFromMismatchedTag))
+			else if( dynamic_cast<UStructProperty*>(Property) && static_cast<UStructProperty*>(Property)->Struct && (Tag.Type != PropID || (Tag.Type == NAME_StructProperty && Tag.StructName != static_cast<UStructProperty*>(Property)->Struct->GetFName())) && (static_cast<UStructProperty*>(Property)->Struct->StructFlags & STRUCT_SerializeFromMismatchedTag))
 			{
 				UScriptStruct::ICppStructOps* CppStructOps = static_cast<UStructProperty*>(Property)->Struct->GetCppStructOps();
 				check(CppStructOps && CppStructOps->HasSerializeFromMismatchedTag()); // else should not have STRUCT_SerializeFromMismatchedTag
@@ -1210,29 +1166,595 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				}
 				else
 				{
-					UE_LOG(LogClass, Warning, TEXT("SerializeFromMismatchedTag failed: Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );
+					UE_LOG(LogClass, Warning, TEXT("SerializeFromMismatchedTag failed: Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *PropID.ToString(), *Ar.GetArchiveName() );
 				}
 			}
-			else if (Tag.Type == NAME_StructProperty && Property->GetID() == NAME_AssetObjectProperty)
+			else if (Tag.Type != PropID)
 			{
-				// This property used to be a FStringAssetReference but is now a TAssetPtr<Foo>
-				FStringAssetReference PreviousValue;
-				// explicitly call Serialize to ensure that the various delegates needed for cooking are fired
-				PreviousValue.Serialize(Ar);
+				if( Tag.Type==NAME_StrProperty && dynamic_cast<UNameProperty*>(Property) )
+				{
+					FString str;
+					Ar << str;
+					CastChecked<UNameProperty>(Property)->SetPropertyValue_InContainer(Data, FName(*str), Tag.ArrayIndex);
+					AdvanceProperty = true;
+					continue; 
+				}
+				else if( Tag.Type==NAME_StrProperty && dynamic_cast<UTextProperty*>(Property) ) // Convert serialized string to text.
+				{ 
+					FString str;
+					Ar << str;
+					FText Text = FText::FromString(str);
+					Text.TextData->PersistText();
+					Text.Flags |= ETextFlag::ConvertedProperty;
+					CastChecked<UTextProperty>(Property)->SetPropertyValue_InContainer(Data, Text, Tag.ArrayIndex);
+					AdvanceProperty = true;
+					continue; 
+				}
+				else if( Tag.Type==NAME_TextProperty && dynamic_cast<UStrProperty*>(Property) ) // Convert serialized text to string.
+				{ 
+					FText Text;  
+					Ar << Text;
+					FString String = FTextInspector::GetSourceString(Text) ? *FTextInspector::GetSourceString(Text) : TEXT("");
+					CastChecked<UStrProperty>(Property)->SetPropertyValue_InContainer(Data, String, Tag.ArrayIndex);
+					AdvanceProperty = true;
+					continue; 
+				}
+				else if( Tag.Type==NAME_NameProperty && dynamic_cast<UTextProperty*>(Property) ) // Convert serialized name to text.
+				{ 
+					FName Name;  
+					Ar << Name;
+					FText Text = FText::FromName(Name);
+					Text.Flags |= ETextFlag::ConvertedProperty;
+					CastChecked<UTextProperty>(Property)->SetPropertyValue_InContainer(Data, Text, Tag.ArrayIndex);
+					AdvanceProperty = true;
+					continue; 
+				}
+				else if( Tag.Type==NAME_TextProperty && dynamic_cast<UNameProperty*>(Property) ) // Convert serialized text to name.
+				{ 
+					FText Text;  
+					Ar << Text;
+					FName Name = FName(*Text.ToString());
+					CastChecked<UNameProperty>(Property)->SetPropertyValue_InContainer(Data, Name, Tag.ArrayIndex);
+					AdvanceProperty = true;
+					continue; 
+				}
+				else if ((Tag.Type == NAME_AssetObjectProperty || Tag.Type == NAME_AssetSubclassOfProperty) && (PropID == NAME_ObjectProperty || PropID == NAME_ClassProperty))
+				{
+					// This property used to be a TAssetPtr<Foo> but is now a raw UObjectProperty Foo*, we can convert without loss of data
+					FAssetPtr PreviousValue;
+					Ar << PreviousValue;
 
-				// now copy the value into the object's address space
-				FAssetPtr PreviousValueAssetPtr;
-				PreviousValueAssetPtr = PreviousValue;
-				CastChecked<UAssetObjectProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValueAssetPtr, Tag.ArrayIndex);
+					// now copy the value into the object's address space
+					UObject* PreviousValueObj = PreviousValue.Get();
+					CastChecked<UObjectProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValueObj, Tag.ArrayIndex);
 
-				AdvanceProperty = true;
-				continue;
+					AdvanceProperty = true;
+					continue;
+				}
+				else if ((Tag.Type == NAME_ObjectProperty || Tag.Type == NAME_ClassProperty) && (PropID == NAME_AssetObjectProperty || PropID == NAME_AssetSubclassOfProperty))
+				{
+					// This property used to be a raw UObjectProperty Foo* but is now a TAssetPtr<Foo>
+					UObject* PreviousValue = NULL;
+					Ar << PreviousValue;
+
+					// now copy the value into the object's address space
+					FAssetPtr PreviousValueAssetPtr(PreviousValue);
+					CastChecked<UAssetObjectProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValueAssetPtr, Tag.ArrayIndex);
+
+					AdvanceProperty = true;
+					continue;
+				}
+				else if (Tag.Type == NAME_IntProperty && PropID == NAME_BoolProperty)
+				{
+					// Property was saved as an int32, but has been changed to a bool (bitfield)
+					int32 IntValue;
+					Ar << IntValue;
+
+					if( IntValue != 0 )
+					{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+						if(IntValue != 1)
+						{
+							UE_LOG(LogClass, Log, TEXT("Loading int32 property (%s) that is now a uint32 - value '%d', expecting 0 or 1. Value set to true."), *Property->GetPathName(), IntValue);
+						}
+#endif
+						CastChecked<UBoolProperty>(Property)->SetPropertyValue_InContainer(Data, true, Tag.ArrayIndex);
+					}
+					else
+					{
+						CastChecked<UBoolProperty>(Property)->SetPropertyValue_InContainer(Data, false, Tag.ArrayIndex);
+					}
+
+					AdvanceProperty = true;
+					continue; 
+				}
+				else if (Tag.Type == NAME_StructProperty && PropID == NAME_AssetObjectProperty)
+				{
+					// This property used to be a FStringAssetReference but is now a TAssetPtr<Foo>
+					FStringAssetReference PreviousValue;
+					// explicitly call Serialize to ensure that the various delegates needed for cooking are fired
+					PreviousValue.Serialize(Ar);
+
+					// now copy the value into the object's address space
+					FAssetPtr PreviousValueAssetPtr;
+					PreviousValueAssetPtr = PreviousValue;
+					CastChecked<UAssetObjectProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValueAssetPtr, Tag.ArrayIndex);
+
+					AdvanceProperty = true;
+					continue;
+				}
+				/* BEGIN - Up-converting ints to larger ints */
+				else if( Tag.Type == NAME_Int8Property && PropID == NAME_Int16Property )
+				{
+					TConvertIntToIntProperty<int8, int16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int8Property && PropID == NAME_IntProperty )
+				{
+					TConvertIntToIntProperty<int8, int32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int8Property && PropID == NAME_Int64Property )
+				{
+					TConvertIntToIntProperty<int8, int64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int16Property && PropID == NAME_IntProperty )
+				{
+					TConvertIntToIntProperty<int16, int32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int16Property && PropID == NAME_Int64Property )
+				{
+					TConvertIntToIntProperty<int16, int64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_IntProperty && PropID == NAME_Int64Property )
+				{
+					TConvertIntToIntProperty<int32, int64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				/* BEGIN - Up-converting uints to larger uints */
+				else if( Tag.Type == NAME_ByteProperty && PropID == NAME_UInt16Property )
+				{
+					if (Tag.EnumName != NAME_None)
+					{
+						uint8 PreviousValue = ReadEnumAsUint8(Tag.EnumName, *Tag.Name.ToString());
+						CastChecked<UIntProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
+					}
+					else
+					{
+						TConvertIntToIntProperty<uint8, uint16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_ByteProperty && PropID == NAME_UInt32Property )
+				{
+					if (Tag.EnumName != NAME_None)
+					{
+						uint8 PreviousValue = ReadEnumAsUint8(Tag.EnumName, *Tag.Name.ToString());
+						CastChecked<UIntProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
+					}
+					else
+					{
+						TConvertIntToIntProperty<uint8, uint32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_ByteProperty && PropID == NAME_UInt64Property )
+				{
+					if (Tag.EnumName != NAME_None)
+					{
+						uint8 PreviousValue = ReadEnumAsUint8(Tag.EnumName, *Tag.Name.ToString());
+						CastChecked<UIntProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
+					}
+					else
+					{
+						TConvertIntToIntProperty<uint8, uint64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt16Property && PropID == NAME_UInt32Property )
+				{
+					TConvertIntToIntProperty<uint16, uint32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt16Property && PropID == NAME_UInt64Property )
+				{
+					TConvertIntToIntProperty<uint16, uint64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt32Property && PropID == NAME_UInt64Property )
+				{
+					TConvertIntToIntProperty<uint32, uint64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				/* BEGIN - Up-converting ints to larger uints */
+				else if( Tag.Type == NAME_Int8Property && PropID == NAME_UInt16Property )
+				{
+					TConvertIntToIntProperty<int8, uint16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int8Property && PropID == NAME_UInt32Property )
+				{
+					TConvertIntToIntProperty<int8, uint32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int8Property && PropID == NAME_UInt64Property )
+				{
+					TConvertIntToIntProperty<int8, uint64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int16Property && PropID == NAME_UInt32Property )
+				{
+					TConvertIntToIntProperty<int16, uint32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int16Property && PropID == NAME_UInt64Property )
+				{
+					TConvertIntToIntProperty<int16, uint64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_IntProperty && PropID == NAME_UInt64Property )
+				{
+					TConvertIntToIntProperty<int32, uint64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				/* BEGIN - Up-converting uints to larger ints */
+				else if( Tag.Type == NAME_ByteProperty && PropID == NAME_Int16Property )
+				{
+					if (Tag.EnumName != NAME_None)
+					{
+						uint8 PreviousValue = ReadEnumAsUint8(Tag.EnumName, *Tag.Name.ToString());
+						CastChecked<UIntProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
+					}
+					else
+					{
+						TConvertIntToIntProperty<uint8, int16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_ByteProperty && PropID == NAME_IntProperty )
+				{
+					if (Tag.EnumName != NAME_None)
+					{
+						uint8 PreviousValue = ReadEnumAsUint8(Tag.EnumName, *Tag.Name.ToString());
+						CastChecked<UIntProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
+					}
+					else
+					{
+						TConvertIntToIntProperty<uint8, int32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_ByteProperty && PropID == NAME_Int64Property )
+				{
+					if (Tag.EnumName != NAME_None)
+					{
+						uint8 PreviousValue = ReadEnumAsUint8(Tag.EnumName, *Tag.Name.ToString());
+						CastChecked<UIntProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
+					}
+					else
+					{
+						TConvertIntToIntProperty<uint8, int64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt16Property && PropID == NAME_IntProperty )
+				{
+					TConvertIntToIntProperty<uint16, int32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt16Property && PropID == NAME_Int64Property )
+				{
+					TConvertIntToIntProperty<uint16, int64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt32Property && PropID == NAME_Int64Property )
+				{
+					TConvertIntToIntProperty<uint32, int64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				/* BEGIN - Down-converting ints to smaller ints */
+				else if( Tag.Type == NAME_Int64Property && PropID == NAME_Int8Property )
+				{
+					TConvertIntToIntProperty<int64, int8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int64Property && PropID == NAME_Int16Property )
+				{
+					TConvertIntToIntProperty<int64, int16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int64Property && PropID == NAME_IntProperty )
+				{
+					TConvertIntToIntProperty<int64, int32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_IntProperty && PropID == NAME_Int8Property )
+				{
+					TConvertIntToIntProperty<int32, int8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_IntProperty && PropID == NAME_Int16Property )
+				{
+					TConvertIntToIntProperty<int32, int16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int16Property && PropID == NAME_Int8Property )
+				{
+					TConvertIntToIntProperty<int16, int8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				/* BEGIN - Down-converting uints to smaller uints */
+				else if( Tag.Type == NAME_UInt64Property && PropID == NAME_ByteProperty )
+				{
+					UByteProperty* ByteProperty = static_cast<UByteProperty*>(Property);
+					if (UEnum* Enum = ByteProperty->GetIntPropertyEnum())
+					{
+						TConvertIntToEnumProperty<uint64>::Convert(Ar, ByteProperty, Enum, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					else
+					{
+						TConvertIntToIntProperty<uint64, uint8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt64Property && PropID == NAME_UInt16Property )
+				{
+					TConvertIntToIntProperty<uint64, uint16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt64Property && PropID == NAME_UInt32Property )
+				{
+					TConvertIntToIntProperty<uint64, uint32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt32Property && PropID == NAME_ByteProperty )
+				{
+					UByteProperty* ByteProperty = static_cast<UByteProperty*>(Property);
+					if (UEnum* Enum = ByteProperty->GetIntPropertyEnum())
+					{
+						TConvertIntToEnumProperty<uint32>::Convert(Ar, ByteProperty, Enum, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					else
+					{
+						TConvertIntToIntProperty<uint32, uint8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt32Property && PropID == NAME_UInt16Property )
+				{
+					TConvertIntToIntProperty<uint32, uint16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt16Property && PropID == NAME_ByteProperty )
+				{
+					UByteProperty* ByteProperty = static_cast<UByteProperty*>(Property);
+					if (UEnum* Enum = ByteProperty->GetIntPropertyEnum())
+					{
+						TConvertIntToEnumProperty<uint16>::Convert(Ar, ByteProperty, Enum, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					else
+					{
+						TConvertIntToIntProperty<uint16, uint8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					AdvanceProperty = true;
+					continue;
+				}
+				/* BEGIN - Down-converting ints to smaller uints */
+				else if( Tag.Type == NAME_Int64Property && PropID == NAME_ByteProperty )
+				{
+					UByteProperty* ByteProperty = static_cast<UByteProperty*>(Property);
+					if (UEnum* Enum = ByteProperty->GetIntPropertyEnum())
+					{
+						TConvertIntToEnumProperty<int64>::Convert(Ar, ByteProperty, Enum, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					else
+					{
+						TConvertIntToIntProperty<int64, uint8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int64Property && PropID == NAME_UInt16Property )
+				{
+					TConvertIntToIntProperty<int64, uint16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int64Property && PropID == NAME_UInt32Property )
+				{
+					TConvertIntToIntProperty<int64, uint32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_IntProperty && PropID == NAME_ByteProperty )
+				{
+					UByteProperty* ByteProperty = static_cast<UByteProperty*>(Property);
+					if (UEnum* Enum = ByteProperty->GetIntPropertyEnum())
+					{
+						TConvertIntToEnumProperty<int32>::Convert(Ar, ByteProperty, Enum, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					else
+					{
+						TConvertIntToIntProperty<int32, uint8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_IntProperty && PropID == NAME_UInt16Property )
+				{
+					TConvertIntToIntProperty<int32, uint16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int16Property && PropID == NAME_ByteProperty )
+				{
+					UByteProperty* ByteProperty = static_cast<UByteProperty*>(Property);
+					if (UEnum* Enum = ByteProperty->GetIntPropertyEnum())
+					{
+						TConvertIntToEnumProperty<int16>::Convert(Ar, ByteProperty, Enum, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					else
+					{
+						TConvertIntToIntProperty<int16, uint8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					AdvanceProperty = true;
+					continue;
+				}
+				/* BEGIN - Down-converting uints to smaller ints */
+				else if( Tag.Type == NAME_UInt64Property && PropID == NAME_Int8Property )
+				{
+					TConvertIntToIntProperty<uint64, int8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt64Property && PropID == NAME_Int16Property )
+				{
+					TConvertIntToIntProperty<uint64, int16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt64Property && PropID == NAME_IntProperty )
+				{
+					TConvertIntToIntProperty<uint64, int32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt32Property && PropID == NAME_Int8Property )
+				{
+					TConvertIntToIntProperty<uint32, int8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt32Property && PropID == NAME_Int16Property )
+				{
+					TConvertIntToIntProperty<uint32, int16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt16Property && PropID == NAME_Int8Property )
+				{
+					TConvertIntToIntProperty<uint16, int8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				/* BEGIN - Converting ints to same-sized uints */
+				else if( Tag.Type == NAME_Int8Property && PropID == NAME_ByteProperty )
+				{
+					UByteProperty* ByteProperty = static_cast<UByteProperty*>(Property);
+					if (UEnum* Enum = ByteProperty->GetIntPropertyEnum())
+					{
+						TConvertIntToEnumProperty<int8>::Convert(Ar, ByteProperty, Enum, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					else
+					{
+						TConvertIntToIntProperty<int8, uint8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int16Property && PropID == NAME_UInt16Property )
+				{
+					TConvertIntToIntProperty<int16, uint16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_IntProperty && PropID == NAME_UInt32Property )
+				{
+					TConvertIntToIntProperty<int32, uint32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_Int64Property && PropID == NAME_UInt64Property )
+				{
+					TConvertIntToIntProperty<int64, uint64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				/* BEGIN - Converting uints to same-sized ints */
+				else if( Tag.Type == NAME_ByteProperty && PropID == NAME_Int8Property )
+				{
+					if (Tag.EnumName != NAME_None)
+					{
+						uint8 PreviousValue = ReadEnumAsUint8(Tag.EnumName, *Tag.Name.ToString());
+						CastChecked<UIntProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
+					}
+					else
+					{
+						TConvertIntToIntProperty<uint8, int8>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					}
+
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt16Property && PropID == NAME_Int16Property )
+				{
+					TConvertIntToIntProperty<uint16, int16>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt32Property && PropID == NAME_IntProperty )
+				{
+					TConvertIntToIntProperty<uint32, int32>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				else if( Tag.Type == NAME_UInt64Property && PropID == NAME_Int64Property )
+				{
+					TConvertIntToIntProperty<uint64, int64>::Convert(Ar, Property, Data, Tag.ArrayIndex, *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName());
+					AdvanceProperty = true;
+					continue;
+				}
+				/* END - Converting ints */
+				else
+				{
+					UE_LOG(LogClass, Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *PropID.ToString(), *Ar.GetArchiveName() );
+				}
 			}
-			else if( Tag.Type!=Property->GetID() )
-			{
-				UE_LOG(LogClass, Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );
-			}
-			else if( Tag.Type == NAME_ArrayProperty && Tag.InnerType != NAME_None && Tag.InnerType != CastChecked<UArrayProperty>(Property)->Inner->GetID() )
+			else if( Tag.Type == NAME_ArrayProperty && Tag.InnerType != NAME_None && Tag.InnerType != (ArrayInnerID = CastChecked<UArrayProperty>(Property)->Inner->GetID()) )
 			{
 				UArrayProperty* ArrayProperty = static_cast<UArrayProperty*>(Property);
 				void* ArrayPropertyData = ArrayProperty->ContainerPtrToValuePtr<void>(Data);
@@ -1297,7 +1819,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					}
 					continue; 
 				}
-				else if ((Tag.InnerType == NAME_AssetObjectProperty || Tag.InnerType == NAME_AssetSubclassOfProperty) && (ArrayProperty->Inner->GetID() == NAME_ObjectProperty || ArrayProperty->Inner->GetID() == NAME_ClassProperty))
+				else if ((Tag.InnerType == NAME_AssetObjectProperty || Tag.InnerType == NAME_AssetSubclassOfProperty) && (ArrayInnerID == NAME_ObjectProperty || ArrayInnerID == NAME_ClassProperty))
 				{
 					for (int32 i = 0; i < ElementCount; ++i)
 					{
@@ -1313,7 +1835,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					}
 					continue;
 				}
-				else if ((Tag.InnerType == NAME_ObjectProperty || Tag.InnerType == NAME_ClassProperty) && (ArrayProperty->Inner->GetID() == NAME_AssetObjectProperty || ArrayProperty->Inner->GetID() == NAME_AssetSubclassOfProperty))
+				else if ((Tag.InnerType == NAME_ObjectProperty || Tag.InnerType == NAME_ClassProperty) && (ArrayInnerID == NAME_AssetObjectProperty || ArrayInnerID == NAME_AssetSubclassOfProperty))
 				{
 					for (int32 i = 0; i < ElementCount; ++i)
 					{
@@ -1332,7 +1854,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				// TODO: Implement SerializeFromMismatchedTag handling for arrays of structs
 				else
 				{
-					UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UArrayProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName() );
+					UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *ArrayInnerID.ToString(), *Ar.GetArchiveName() );
 				}
 			}
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() 
@@ -1340,10 +1862,6 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			{
 				UE_LOG(LogClass, Warning, TEXT("Property %s of %s has a struct type mismatch (tag %s != prop %s) in package:  %s. If that struct got renamed, add an entry to ActiveStructRedirects."),
 					*Tag.Name.ToString(), *GetName(), *Tag.StructName.ToString(), *CastChecked<UStructProperty>(Property)->Struct->GetName(), *Ar.GetArchiveName() );
-			}
-			else if( !Property->ShouldSerializeValue(Ar) )
-			{
-				UE_CLOG((Ar.IsPersistent() && FPlatformProperties::RequiresCookedData()), LogClass, Warning, TEXT("Skipping saved property %s of %s since it is no longer serializable for asset:  %s. (Maybe resave asset?)"), *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName() );
 			}
 			else if ( Tag.Type == NAME_ByteProperty && ( (Tag.EnumName == NAME_None && ExactCast<UByteProperty>(Property)->Enum != NULL) || 
 														(Tag.EnumName != NAME_None && ExactCast<UByteProperty>(Property)->Enum == NULL) ))
@@ -1359,31 +1877,10 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				else
 				{
 					// attempt to find the old enum and get the byte value from the serialized enum name
-					//@warning: mirrors loading code in UByteProperty::SerializeItem()
-					FName EnumName;
-					Ar << EnumName;
-					UEnum* Enum = FindField<UEnum>((DefaultsClass != NULL) ? DefaultsClass : DefaultsStruct->GetTypedOuter<UClass>(), Tag.EnumName);
-					if (Enum == NULL)
-					{
-						Enum = FindObject<UEnum>(ANY_PACKAGE, *Tag.EnumName.ToString(), true);
-					}
-					if (Enum == NULL)
-					{
-						UE_LOG(LogClass, Warning, TEXT("Failed to find enum '%s' when converting property '%s' to byte during property loading"), *Tag.EnumName.ToString(), *Tag.Name.ToString());
-						PreviousValue = 0;
-					}
-					else
-					{
-						Ar.Preload(Enum);
-						PreviousValue = Enum->GetValueByName(EnumName);
-						if (!Enum->IsValidEnumValue(PreviousValue))
-						{
-							PreviousValue = Enum->GetMaxEnumValue();
-						}
-					}
+					PreviousValue = ReadEnumAsUint8(Tag.EnumName, *Tag.Name.ToString());
 				}
 				
-				// now copy the value into the object's address spaace
+				// now copy the value into the object's address space
 				CastChecked<UByteProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
 				AdvanceProperty = true;
 				continue;
@@ -1416,6 +1913,10 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 	}
 	else
 	{
+		check(Ar.IsSaving());
+
+		UScriptStruct* DefaultsScriptStruct = dynamic_cast<UScriptStruct*>(DefaultsStruct);
+
 		/** If true, it means that we want to serialize all properties of this struct if any properties differ from defaults */
 		bool bUseAtomicSerialization = false;
 		if (DefaultsScriptStruct)

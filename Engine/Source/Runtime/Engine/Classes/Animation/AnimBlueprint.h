@@ -89,6 +89,8 @@ class ENGINE_API UAnimBlueprint : public UBlueprint
 	{
 		return false;
 	}
+
+	virtual bool IsValidForBytecodeOnlyRecompile() const override { return false; }
 	// End of UBlueprint interface
 
 	// Finds the index of the specified group, or creates a new entry for it (unless the name is NAME_None, which will return INDEX_NONE)

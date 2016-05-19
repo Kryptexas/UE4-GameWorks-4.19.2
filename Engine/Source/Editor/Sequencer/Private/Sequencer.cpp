@@ -505,17 +505,14 @@ void FSequencer::ResetToNewRootSequence(UMovieSceneSequence& NewSequence)
 
 	//@todo Sequencer - Encapsulate this better
 	SequenceInstanceStack.Empty();
-	Selection.Empty();
 	SequenceInstanceBySection.Empty();
 
 	// Focusing the initial movie scene needs to be done before the first time NewSequence or GetRootMovieSceneInstance is used
 	RootMovieSceneSequenceInstance = MakeShareable(new FMovieSceneSequenceInstance(NewSequence));
 	SequenceInstanceStack.Add(RootMovieSceneSequenceInstance.ToSharedRef());
 
+	ResetPerMovieSceneData();
 	SequencerWidget->ResetBreadcrumbs();
-
-	NotifyMovieSceneDataChanged();
-	UpdateTimeBoundsToFocusedMovieScene();
 
 	OnActivateSequenceEvent.Broadcast(*SequenceInstanceStack.Top());
 }
@@ -562,11 +559,6 @@ void FSequencer::FocusSequenceInstance(UMovieSceneSubSection& InSubSection)
 
 	// Reset data that is only used for the previous movie scene
 	ResetPerMovieSceneData();
-
-	// Update internal data for the new movie scene
-	NotifyMovieSceneDataChanged();
-	UpdateTimeBoundsToFocusedMovieScene();
-
 	SequencerWidget->UpdateBreadcrumbs();
 
 	SetGlobalTime(AbsoluteShotPosition, ESnapTimeMode::STM_Interval);
@@ -761,8 +753,7 @@ void FSequencer::PopToSequenceInstance(TSharedRef<FMovieSceneSequenceInstance> S
 		SetPerspectiveViewportCameraCutEnabled(true);
 
 		ResetPerMovieSceneData();
-		NotifyMovieSceneDataChanged();
-		UpdateTimeBoundsToFocusedMovieScene();
+		SequencerWidget->UpdateBreadcrumbs();
 
 		OnActivateSequenceEvent.Broadcast(*SequenceInstanceStack.Top());
 	}
@@ -1712,6 +1703,13 @@ void FSequencer::ResetPerMovieSceneData()
 {
 	//@todo Sequencer - We may want to preserve selections when moving between movie scenes
 	Selection.Empty();
+
+	SequencerWidget->UpdateLayoutTree();
+
+	UpdateTimeBoundsToFocusedMovieScene();
+	UpdateRuntimeInstances();
+
+	LabelManager.SetMovieScene( SequenceInstanceStack.Top()->GetSequence()->GetMovieScene() );
 
 	// @todo run through all tracks for new movie scene changes
 	//  needed for audio track decompression
@@ -2997,7 +2995,8 @@ void FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode> N
 
 	if( bAnythingRemoved )
 	{
-		NotifyMovieSceneDataChanged();
+		SequencerWidget->UpdateLayoutTree();
+		UpdateRuntimeInstances();
 	}
 }
 
@@ -3045,7 +3044,8 @@ void FSequencer::GetActorRecordingState( bool& bIsRecording /* In+Out */ ) const
 
 void FSequencer::PostUndo(bool bSuccess)
 {
-	NotifyMovieSceneDataChanged();
+	SequencerWidget->UpdateLayoutTree();
+	UpdateRuntimeInstances();
 }
 
 
@@ -3794,10 +3794,9 @@ void FSequencer::AssignActor(FMenuBuilder& MenuBuilder, FGuid InObjectBinding)
 	// actor selector to allow the user to choose an actor
 	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");
 	TSharedRef< SWidget > MiniSceneOutliner =
-		SNew( SVerticalBox )
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.MaxHeight(400.0f)
+		SNew( SBox )
+		.MaxDesiredHeight(400.0f)
+		.WidthOverride(300.0f)
 		[
 			SceneOutlinerModule.CreateSceneOutliner(
 				InitOptions,
@@ -3952,7 +3951,9 @@ void FSequencer::DoAssignActor(AActor*const* InActors, int32 NumActors, FGuid In
 	}
 
 	RootMovieSceneSequenceInstance->RestoreState(*this);
-	NotifyMovieSceneDataChanged();
+
+	SequencerWidget->UpdateLayoutTree();
+	UpdateRuntimeInstances();
 }
 
 
@@ -4752,21 +4753,41 @@ void FSequencer::CreateCamera()
 	{
 		return;
 	}
+
+	FGuid CameraGuid;
+
+	if (Settings->GetCreateSpawnableCameras())
+	{
+		CameraGuid = MakeNewSpawnable(*NewCamera);
+		UpdateRuntimeInstances();
+		UObject* SpawnedCamera = FindSpawnedObjectOrTemplate(CameraGuid);
+		if (SpawnedCamera)
+		{
+			GWorld->EditorDestroyActor(NewCamera, true);
+			NewCamera = Cast<ACineCameraActor>(SpawnedCamera);
+		}
+	}
+	else
+	{
+		CameraGuid = CreateBinding(*NewCamera, NewCamera->GetActorLabel());
+	}
+	
+	if (!CameraGuid.IsValid())
+	{
+		return;	
+	}	
+
 	NewCamera->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
 	NewCamera->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
 	//pNewCamera->CameraComponent->FieldOfView = ViewportClient->ViewFOV; //@todo set the focal length from this field of view
-	FGuid PossessableGuid = CreateBinding(*NewCamera, NewCamera->GetActorLabel());
-	if (!PossessableGuid.IsValid())
-	{
-		return;
-	}
-	OnActorAddedToSequencerEvent.Broadcast(NewCamera, PossessableGuid);
+	
+	OnActorAddedToSequencerEvent.Broadcast(NewCamera, CameraGuid);
 
 	const bool bLockToCamera = true;
-	NewCameraAdded(NewCamera, PossessableGuid, bLockToCamera);
+	NewCameraAdded(NewCamera, CameraGuid, bLockToCamera);
 }
 
-void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid PossessableGuid, bool bLockToCamera)
+void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid CameraGuid, bool bLockToCamera)
 {
 	SetPerspectiveViewportCameraCutEnabled(false);
 
@@ -4806,7 +4827,7 @@ void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid PossessableGu
 		if (CameraCutSection)
 		{
 			CameraCutSection->Modify();
-			CameraCutSection->SetCameraGuid(PossessableGuid);
+			CameraCutSection->SetCameraGuid(CameraGuid);
 		}
 		else
 		{
@@ -4815,7 +4836,7 @@ void FSequencer::NewCameraAdded(ACineCameraActor* NewCamera, FGuid PossessableGu
 			UMovieSceneCameraCutSection* NewSection = Cast<UMovieSceneCameraCutSection>(CameraCutTrack->CreateNewSection());
 			NewSection->SetStartTime(GetPlaybackRange().GetLowerBoundValue());
 			NewSection->SetEndTime(GetPlaybackRange().GetUpperBoundValue());
-			NewSection->SetCameraGuid(PossessableGuid);
+			NewSection->SetCameraGuid(CameraGuid);
 			CameraCutTrack->AddSection(*NewSection);
 		}
 	}
@@ -5010,7 +5031,11 @@ void FSequencer::BindCommands()
 				FMovieScenePossessable* Possessable = MovieScene->FindPossessable(static_cast<FSequencerObjectBindingNode&>(*Node).GetObjectBinding());
 				if (Possessable && !Possessable->GetParent().IsValid())
 				{
-					return true;
+					UObject* RuntimeObject = GetFocusedMovieSceneSequenceInstance()->FindObject(Possessable->GetGuid(), *this);
+					if (RuntimeObject)
+					{
+						return true;
+					}
 				}
 			}
 		}

@@ -21,6 +21,7 @@ const FString FGenericCrashContext::NewLineTag = TEXT( "&nl;" );
 
 bool FGenericCrashContext::bIsInitialized = false;
 FPlatformMemoryStats FGenericCrashContext::CrashMemoryStats = FPlatformMemoryStats();
+int32 FGenericCrashContext::StaticCrashContextIndex = 0;
 
 namespace NCachedCrashContextProperties
 {
@@ -47,7 +48,7 @@ namespace NCachedCrashContextProperties
 	static FString DefaultLocale;
 	static int32 CrashDumpMode;
 	static int32 SecondsSinceStart;
-	static FString CrashGUID;
+	static FString CrashGUIDRoot;
 	static FString UserActivityHint;
 	static FString GameSessionID;
 	static FString CommandLine;
@@ -96,7 +97,7 @@ void FGenericCrashContext::Initialize()
 	}
 
 	const FGuid Guid = FGuid::NewGuid();
-	NCachedCrashContextProperties::CrashGUID = FString::Printf(TEXT("UE4CC-%s-%s"), *NCachedCrashContextProperties::PlatformNameIni, *Guid.ToString(EGuidFormats::Digits));
+	NCachedCrashContextProperties::CrashGUIDRoot = FString::Printf(TEXT("UE4CC-%s-%s"), *NCachedCrashContextProperties::PlatformNameIni, *Guid.ToString(EGuidFormats::Digits));
 
 	// Initialize delegate for updating SecondsSinceStart, because FPlatformTime::Seconds() is not POSIX safe.
 	const float PollingInterval = 1.0f;
@@ -128,17 +129,21 @@ FGenericCrashContext::FGenericCrashContext()
 	: bIsEnsure(false)
 {
 	CommonBuffer.Reserve( 32768 );
+	CrashContextIndex = StaticCrashContextIndex++;
 }
 
 void FGenericCrashContext::SerializeContentToBuffer()
 {
+	TCHAR CrashGUID[CrashGUIDLength];
+	GetUniqueCrashName(CrashGUID, CrashGUIDLength);
+
 	// Must conform against:
 	// https://www.securecoding.cert.org/confluence/display/seccode/SIG30-C.+Call+only+asynchronous-safe+functions+within+signal+handlers
 	AddHeader();
 
 	BeginSection( *RuntimePropertiesTag );
 	AddCrashProperty( TEXT( "CrashVersion" ), (int32)ECrashDescVersions::VER_3_CrashContext );
-	AddCrashProperty( TEXT( "CrashGUID" ), *NCachedCrashContextProperties::CrashGUID );
+	AddCrashProperty( TEXT( "CrashGUID" ), (const TCHAR*)CrashGUID);
 	AddCrashProperty( TEXT( "ProcessId" ), FPlatformProcess::GetCurrentProcessId() );
 	AddCrashProperty( TEXT( "IsInternalBuild" ), NCachedCrashContextProperties::bIsInternalBuild );
 	AddCrashProperty( TEXT( "IsPerforceBuild" ), NCachedCrashContextProperties::bIsPerforceBuild );
@@ -244,18 +249,18 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddFooter();
 }
 
-const FString& FGenericCrashContext::GetUniqueCrashName()
+void FGenericCrashContext::GetUniqueCrashName(TCHAR* GUIDBuffer, int32 BufferSize) const
 {
-	return NCachedCrashContextProperties::CrashGUID;
+	FCString::Snprintf(GUIDBuffer, BufferSize, TEXT("%s_%04i"), *NCachedCrashContextProperties::CrashGUIDRoot, CrashContextIndex);
 }
 
-const bool FGenericCrashContext::IsFullCrashDump()
+const bool FGenericCrashContext::IsFullCrashDump() const
 {
 	return (NCachedCrashContextProperties::CrashDumpMode == (int32)ECrashDumpMode::FullDump) ||
 		(NCachedCrashContextProperties::CrashDumpMode == (int32)ECrashDumpMode::FullDumpAlways);
 }
 
-const bool FGenericCrashContext::IsFullCrashDumpOnEnsure()
+const bool FGenericCrashContext::IsFullCrashDumpOnEnsure() const
 {
 	return (NCachedCrashContextProperties::CrashDumpMode == (int32)ECrashDumpMode::FullDumpAlways);
 }

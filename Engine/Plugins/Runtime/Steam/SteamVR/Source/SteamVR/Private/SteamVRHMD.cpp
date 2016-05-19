@@ -954,6 +954,10 @@ void FSteamVRHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport&
 	check(IsInGameThread());
 
 	FRHIViewport* const ViewportRHI = InViewport.GetViewportRHI().GetReference();
+	if (!ViewportRHI)
+	{
+		return;
+	}
 
 	if (!IsStereoEnabled())
 	{

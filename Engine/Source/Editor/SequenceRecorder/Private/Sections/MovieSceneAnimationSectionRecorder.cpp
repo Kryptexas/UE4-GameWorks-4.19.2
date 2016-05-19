@@ -53,52 +53,47 @@ void FMovieSceneAnimationSectionRecorder::CreateSection(UObject* InObjectToRecor
 	if(SkeletalMeshComponent.IsValid())
 	{
 		SkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
-
-		// turn off URO and make sure we always update even if out of view
-		bEnableUpdateRateOptimizations = SkeletalMeshComponent->bEnableUpdateRateOptimizations;
-		MeshComponentUpdateFlag = SkeletalMeshComponent->MeshComponentUpdateFlag;
-
-		SkeletalMeshComponent->bEnableUpdateRateOptimizations = false;
-		SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-
-		ComponentTransform = SkeletalMeshComponent->GetComponentToWorld().GetRelativeTransform(SkeletalMeshComponent->GetOwner()->GetTransform());
-
-		if(!AnimSequence.IsValid())
+		if (SkeletalMesh != nullptr)
 		{
-			// build an asset path
-			const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
+			ComponentTransform = SkeletalMeshComponent->GetComponentToWorld().GetRelativeTransform(SkeletalMeshComponent->GetOwner()->GetTransform());
 
-			FString AssetPath = Settings->SequenceRecordingBasePath.Path;
-			if(Settings->AnimationSubDirectory.Len() > 0)
+			if (!AnimSequence.IsValid())
 			{
-				AssetPath /= Settings->AnimationSubDirectory;
-			}
+				// build an asset path
+				const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
 
-			FString AssetName = Settings->SequenceName.Len() > 0 ? Settings->SequenceName : TEXT("RecordedSequence");
-			AssetName += TEXT("_");
-			AssetName += Actor->GetActorLabel();
-
-			AnimSequence = SequenceRecorderUtils::MakeNewAsset<UAnimSequence>(AssetPath, AssetName);
-			if(AnimSequence.IsValid())
-			{
-				FAssetRegistryModule::AssetCreated(AnimSequence.Get());
-
-				// set skeleton
-				AnimSequence->SetSkeleton(SkeletalMeshComponent->SkeletalMesh->Skeleton);
-			}
-		}
-
-		if(AnimSequence.IsValid())
-		{
-			FAnimationRecorderManager::Get().RecordAnimation(SkeletalMeshComponent.Get(), AnimSequence.Get(), AnimationSettings);
-
-			if(MovieScene)
-			{
-				UMovieSceneSkeletalAnimationTrack* AnimTrack = MovieScene->AddTrack<UMovieSceneSkeletalAnimationTrack>(Guid);
-				if(AnimTrack)
+				FString AssetPath = Settings->SequenceRecordingBasePath.Path;
+				if (Settings->AnimationSubDirectory.Len() > 0)
 				{
-					AnimTrack->AddNewAnimation(Time, AnimSequence.Get());
-					MovieSceneSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimTrack->GetAllSections()[0]);
+					AssetPath /= Settings->AnimationSubDirectory;
+				}
+
+				FString AssetName = Settings->SequenceName.Len() > 0 ? Settings->SequenceName : TEXT("RecordedSequence");
+				AssetName += TEXT("_");
+				AssetName += Actor->GetActorLabel();
+
+				AnimSequence = SequenceRecorderUtils::MakeNewAsset<UAnimSequence>(AssetPath, AssetName);
+				if (AnimSequence.IsValid())
+				{
+					FAssetRegistryModule::AssetCreated(AnimSequence.Get());
+
+					// set skeleton
+					AnimSequence->SetSkeleton(SkeletalMeshComponent->SkeletalMesh->Skeleton);
+				}
+			}
+
+			if (AnimSequence.IsValid())
+			{
+				FAnimationRecorderManager::Get().RecordAnimation(SkeletalMeshComponent.Get(), AnimSequence.Get(), AnimationSettings);
+
+				if (MovieScene)
+				{
+					UMovieSceneSkeletalAnimationTrack* AnimTrack = MovieScene->AddTrack<UMovieSceneSkeletalAnimationTrack>(Guid);
+					if (AnimTrack)
+					{
+						AnimTrack->AddNewAnimation(Time, AnimSequence.Get());
+						MovieSceneSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimTrack->GetAllSections()[0]);
+					}
 				}
 			}
 		}
@@ -116,10 +111,6 @@ void FMovieSceneAnimationSectionRecorder::FinalizeSection()
 
 	if(SkeletalMeshComponent.IsValid())
 	{
-		// restore update flags
-		SkeletalMeshComponent->bEnableUpdateRateOptimizations = bEnableUpdateRateOptimizations;
-		SkeletalMeshComponent->MeshComponentUpdateFlag = MeshComponentUpdateFlag;
-
 		// only show a message if we dont have a valid movie section
 		const bool bShowMessage = !MovieSceneSection.IsValid();
 		FAnimationRecorderManager::Get().StopRecordingAnimation(SkeletalMeshComponent.Get(), bShowMessage);

@@ -2800,7 +2800,7 @@ enum class EParticleSystemInsignificanceReaction: uint8
 };
 
 /** Helper class to reset and recreate all PSCs with specific templates on their next tick. */
-class FParticleResetContext
+class ENGINE_API FParticleResetContext
 {
 public:
 

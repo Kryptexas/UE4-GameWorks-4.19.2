@@ -548,7 +548,7 @@ bool FMatineeImportTools::CopyInterpVisibilityTrack( UInterpTrackVisibility* Mat
 				{
 					bVisible = false;
 				}
-				else if (VisibilityTrackKey.Action == EVisibilityTrackAction::EVTA_Hide)
+				else if (VisibilityTrackKey.Action == EVisibilityTrackAction::EVTA_Show)
 				{
 					bVisible = true;
 				}

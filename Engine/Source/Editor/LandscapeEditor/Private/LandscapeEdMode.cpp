@@ -621,7 +621,7 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 		if (CurrentTool)
 		{
 			Result = CurrentTool->MouseMove(ViewportClient, Viewport, MouseX, MouseY);
-			//ViewportClient->Invalidate( false, false );
+			ViewportClient->Invalidate(false, false);
 		}
 	}
 	return Result;
@@ -738,9 +738,15 @@ bool FEdModeLandscape::LandscapeMouseTrace(FEditorViewportClient* ViewportClient
 
 	FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
 	FViewportCursorLocation MouseViewportRay(View, ViewportClient, MouseX, MouseY);
+	FVector BrushTraceDirection = MouseViewportRay.GetDirection();
 
 	FVector Start = MouseViewportRay.GetOrigin();
-	FVector End = Start + WORLD_MAX * MouseViewportRay.GetDirection();
+	if (ViewportClient->IsOrtho())
+	{
+		Start += -WORLD_MAX * BrushTraceDirection;
+	}
+
+	FVector End = Start + WORLD_MAX * BrushTraceDirection;
 
 	static FName TraceTag = FName(TEXT("LandscapeMouseTrace"));
 	TArray<FHitResult> Results;
@@ -1247,6 +1253,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 							{
 								Viewport->CaptureMouse(false);
 							}
+							ViewportClient->Invalidate(false, false);
 							return bToolActive;
 						}
 					}
@@ -1609,6 +1616,8 @@ void FEdModeLandscape::SetCurrentTool(int32 ToolIndex)
 	{
 		StaticCastSharedPtr<FLandscapeToolKit>(Toolkit)->NotifyToolChanged();
 	}
+
+	GEditor->RedrawLevelEditingViewports();
 }
 
 void FEdModeLandscape::SetCurrentBrushSet(FName BrushSetName)
@@ -2733,6 +2742,8 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			OldLandscapeProxy->Destroy();
 		}
 	}
+
+	GEditor->RedrawLevelEditingViewports();
 
 	return Landscape;
 }

@@ -110,9 +110,9 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 
 			if (bSignatureWasChanged)
 			{
-				for (auto CurrentBP : StoredDependentBlueprints)
+				for (UBlueprint* CurrentBP : StoredDependentBlueprints)
 				{
-					Reinstancer->EnlistDependentBlueprintToRecompile(CurrentBP, !(CurrentBP->IsPossiblyDirty() || CurrentBP->Status == BS_Error));
+					Reinstancer->EnlistDependentBlueprintToRecompile(CurrentBP, !(CurrentBP->IsPossiblyDirty() || CurrentBP->Status == BS_Error) && CurrentBP->IsValidForBytecodeOnlyRecompile());
 				}
 			}
 		}

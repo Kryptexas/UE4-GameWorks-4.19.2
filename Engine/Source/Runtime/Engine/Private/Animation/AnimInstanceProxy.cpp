@@ -1014,7 +1014,7 @@ float FAnimInstanceProxy::GetInstanceAssetPlayerTime(int32 AssetPlayerIndex)
 {
 	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
 	{
-		return PlayerNode->GetAccumulatedTime();
+		return PlayerNode->GetCurrentAssetTime();
 	}
 
 	return 0.0f;

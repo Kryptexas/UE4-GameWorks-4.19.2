@@ -34,7 +34,7 @@ public:
 	 * @param ShotPrefix The parsed shot prefix
 	 * @param ShotNumber The parsed shot number
 	 * @param TakeNumber The parsed take number
-	 * &return Whether the shot name was parsed successfully
+	 * @return Whether the shot name was parsed successfully
 	 */
 	static bool ParseShotName(const FString& ShotName, FString& ShotPrefix, uint32& ShotNumber, uint32& TakeNumber);
 
@@ -47,6 +47,15 @@ public:
 	 * @return The composed shot name
 	 */
 	static FString ComposeShotName(const FString& ShotPrefix, uint32 ShotNumber, uint32 TakeNumber);
+
+	/**
+	 * Generate a new shot package
+	 *
+	 * @param SequenceMovieScene The sequence movie scene for the new shot
+	 * @param NewShotName The new shot name
+	 * @return The new shot path
+	 */
+	static FString GenerateNewShotPath(UMovieScene* SequenceMovieScene, FString& NewShotName);
 
 	/**
 	 * Generate a new shot name

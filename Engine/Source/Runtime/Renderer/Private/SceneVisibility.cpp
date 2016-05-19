@@ -3054,7 +3054,7 @@ void FLODSceneTree::ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArra
 
 void FLODSceneTree::HideNodeChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags)
 {
-	if(Node.LatestUpdateCount != UpdateCount)
+	if (Node.LatestUpdateCount != UpdateCount)
 	{
 		Node.LatestUpdateCount = UpdateCount;
 

@@ -62,6 +62,8 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	, bInModalSizeLoop( false )
 
 {
+	FMemory::Memzero(ModifierKeyState, EModifierKey::Count);
+
 	// Disable the process from being showing "ghosted" not responding messages during slow tasks
 	// This is a hack.  A more permanent solution is to make our slow tasks not block the editor for so long
 	// that message pumping doesn't occur (which causes these messages).
@@ -288,33 +290,24 @@ bool FWindowsApplication::IsGamepadAttached() const
 
 FModifierKeysState FWindowsApplication::GetModifierKeys() const
 {
-	return CachedModifierKeyState;
-}
-
-void FWindowsApplication::UpdateModifierKeyState(int32 ModifierKey, bool bNewState)
-{
-	const bool bIsLeftShiftDown = (ModifierKey == VK_LSHIFT ? bNewState : CachedModifierKeyState.IsLeftShiftDown());
-	const bool bIsRightShiftDown = (ModifierKey == VK_RSHIFT ? bNewState : CachedModifierKeyState.IsRightShiftDown());
-	const bool bIsLeftControlDown = (ModifierKey == VK_LCONTROL ? bNewState : CachedModifierKeyState.IsLeftControlDown());
-	const bool bIsRightControlDown = (ModifierKey == VK_RCONTROL ? bNewState : CachedModifierKeyState.IsRightControlDown());
-	const bool bIsLeftAltDown = (ModifierKey == VK_LMENU ? bNewState : CachedModifierKeyState.IsLeftAltDown());
-	const bool bIsRightAltDown = (ModifierKey == VK_RMENU ? bNewState : CachedModifierKeyState.IsRightAltDown());
-	const bool bAreCapsLocked = (ModifierKey == VK_CAPITAL ? bNewState : CachedModifierKeyState.AreCapsLocked());
-
-	CachedModifierKeyState = FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked); // Win key is ignored
+	return FModifierKeysState(
+		ModifierKeyState[EModifierKey::LeftShift], ModifierKeyState[EModifierKey::RightShift], 
+		ModifierKeyState[EModifierKey::LeftControl], ModifierKeyState[EModifierKey::RightControl], 
+		ModifierKeyState[EModifierKey::LeftAlt], ModifierKeyState[EModifierKey::RightAlt], 
+		false, false, 
+		ModifierKeyState[EModifierKey::CapsLock]
+		); // Win key is ignored
 }
 
 void FWindowsApplication::UpdateAllModifierKeyStates()
 {
-	const bool bIsLeftShiftDown = (::GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0;
-	const bool bIsRightShiftDown = (::GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0;
-	const bool bIsLeftControlDown = (::GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0;
-	const bool bIsRightControlDown = (::GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0;
-	const bool bIsLeftAltDown = (::GetAsyncKeyState(VK_LMENU) & 0x8000) != 0;
-	const bool bIsRightAltDown = (::GetAsyncKeyState(VK_RMENU) & 0x8000) != 0;
-	const bool bAreCapsLocked = (::GetKeyState(VK_CAPITAL) & 0x0001) != 0;
-
-	CachedModifierKeyState = FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked); // Win key is ignored
+	ModifierKeyState[EModifierKey::LeftShift]		= (::GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::RightShift]		= (::GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::LeftControl]		= (::GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::RightControl]	= (::GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::LeftAlt]			= (::GetAsyncKeyState(VK_LMENU) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::RightAlt]		= (::GetAsyncKeyState(VK_RMENU) & 0x8000) != 0;
+	ModifierKeyState[EModifierKey::CapsLock]		= (::GetKeyState(VK_CAPITAL) & 0x0001) != 0;
 }
 
 static TSharedPtr< FWindowsWindow > FindWindowByHWND(const TArray< TSharedRef< FWindowsWindow > >& WindowsToSearch, HWND HandleToFind)
@@ -1201,10 +1194,13 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 
 void FWindowsApplication::CheckForShiftUpEvents(const int32 KeyCode)
 {
+	check(KeyCode == VK_LSHIFT || KeyCode == VK_RSHIFT);
+
 	// Since VK_SHIFT doesn't get an up message if the other shift key is held we need to poll for it
-	if (PressedModifierKeys.Contains(KeyCode) && ((::GetKeyState(KeyCode) & 0x8000) == 0) )
+	const EModifierKey::Type ModifierKeyIndex = KeyCode == VK_LSHIFT ? EModifierKey::LeftShift : EModifierKey::RightShift;
+	if (ModifierKeyState[ModifierKeyIndex] && ((::GetKeyState(KeyCode) & 0x8000) == 0) )
 	{
-		PressedModifierKeys.Remove(KeyCode);
+		ModifierKeyState[ModifierKeyIndex] = false;
 		MessageHandler->OnKeyUp( KeyCode, 0, false );
 	}
 }
@@ -1224,6 +1220,11 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 		// This allows us to continue receiving messages for it.
 		if ( !MessageHandler->ShouldProcessUserInputMessages( CurrentNativeEventWindowPtr ) && IsInputMessage( msg ) )
 		{
+			if (IsKeyboardInputMessage(msg))
+			{
+				// Force an update since we may have just consumed a modifier key state change
+				UpdateAllModifierKeyStates();
+			}
 			return 0;	// consume input messages
 		}
 
@@ -1285,52 +1286,47 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 					if( (lParam & 0x1000000) == 0 )
 					{
 						ActualKey = VK_LMENU;
-						if ( (bIsRepeat = PressedModifierKeys.Contains( VK_LMENU )) == false)
-						{
-							PressedModifierKeys.Add( VK_LMENU );
-						}
+						bIsRepeat = ModifierKeyState[EModifierKey::LeftAlt];
+						ModifierKeyState[EModifierKey::LeftAlt] = true;
 					}
 					else
 					{
 						ActualKey = VK_RMENU;
-						if ( (bIsRepeat = PressedModifierKeys.Contains( VK_RMENU )) == false)
-						{
-							PressedModifierKeys.Add( VK_RMENU );
-						}
+						bIsRepeat = ModifierKeyState[EModifierKey::RightAlt];
+						ModifierKeyState[EModifierKey::RightAlt] = true;
 					}
-					UpdateModifierKeyState(ActualKey, true);
 					break;
 				case VK_CONTROL:
 					// Differentiate between left and right control
 					if( (lParam & 0x1000000) == 0 )
 					{
 						ActualKey = VK_LCONTROL;
-						if ( (bIsRepeat = PressedModifierKeys.Contains( VK_LCONTROL )) == false)
-						{
-							PressedModifierKeys.Add( VK_LCONTROL );
-						}
+						bIsRepeat = ModifierKeyState[EModifierKey::LeftControl];
+						ModifierKeyState[EModifierKey::LeftControl] = true;
 					}
 					else
 					{
 						ActualKey = VK_RCONTROL;
-						if ( (bIsRepeat = PressedModifierKeys.Contains( VK_RCONTROL )) == false)
-						{
-							PressedModifierKeys.Add( VK_RCONTROL );
-						}
+						bIsRepeat = ModifierKeyState[EModifierKey::RightControl];
+						ModifierKeyState[EModifierKey::RightControl] = true;
 					}
-					UpdateModifierKeyState(ActualKey, true);
 					break;
 				case VK_SHIFT:
 					// Differentiate between left and right shift
 					ActualKey = MapVirtualKey( (lParam & 0x00ff0000) >> 16, MAPVK_VSC_TO_VK_EX);
-					if ( (bIsRepeat = PressedModifierKeys.Contains( ActualKey )) == false)
+					if (ActualKey == VK_LSHIFT)
 					{
-						PressedModifierKeys.Add( ActualKey );
+						bIsRepeat = ModifierKeyState[EModifierKey::LeftShift];
+						ModifierKeyState[EModifierKey::LeftShift] = true;
 					}
-					UpdateModifierKeyState(ActualKey, true);
+					else
+					{
+						bIsRepeat = ModifierKeyState[EModifierKey::RightShift];
+						ModifierKeyState[EModifierKey::RightShift] = true;
+					}
 					break;
 				case VK_CAPITAL:
-					UpdateModifierKeyState(VK_CAPITAL, true);
+					ModifierKeyState[EModifierKey::CapsLock] = (::GetKeyState(VK_CAPITAL) & 0x0001) != 0;
 					break;
 				default:
 					// No translation needed
@@ -1372,35 +1368,41 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 					if( (lParam & 0x1000000) == 0 )
 					{
 						ActualKey = VK_LMENU;
+						ModifierKeyState[EModifierKey::LeftAlt] = false;
 					}
 					else
 					{
 						ActualKey = VK_RMENU;
+						ModifierKeyState[EModifierKey::RightAlt] = false;
 					}
-					PressedModifierKeys.Remove( ActualKey );
-					UpdateModifierKeyState(ActualKey, false);
 					break;
 				case VK_CONTROL:
 					// Differentiate between left and right control
 					if( (lParam & 0x1000000) == 0 )
 					{
 						ActualKey = VK_LCONTROL;
+						ModifierKeyState[EModifierKey::LeftControl] = false;
 					}
 					else
 					{
 						ActualKey = VK_RCONTROL;
+						ModifierKeyState[EModifierKey::RightControl] = false;
 					}
-					PressedModifierKeys.Remove( ActualKey );
-					UpdateModifierKeyState(ActualKey, false);
 					break;
 				case VK_SHIFT:
 					// Differentiate between left and right shift
 					ActualKey = MapVirtualKey( (lParam & 0x00ff0000) >> 16, MAPVK_VSC_TO_VK_EX);
-					PressedModifierKeys.Remove( ActualKey );
-					UpdateModifierKeyState(ActualKey, false);
+					if (ActualKey == VK_LSHIFT)
+					{
+						ModifierKeyState[EModifierKey::LeftShift] = false;
+					}
+					else
+					{
+						ModifierKeyState[EModifierKey::RightShift] = false;
+					}
 					break;
 				case VK_CAPITAL:
-					UpdateModifierKeyState(VK_CAPITAL, false);
+					ModifierKeyState[EModifierKey::CapsLock] = (::GetKeyState(VK_CAPITAL) & 0x0001) != 0;
 					break;
 				default:
 					// No translation needed
@@ -1760,7 +1762,7 @@ void FWindowsApplication::ProcessDeferredDragDropOperation(const FDeferredWindow
 	}
 }
 
-bool FWindowsApplication::IsInputMessage( uint32 msg )
+bool FWindowsApplication::IsKeyboardInputMessage( uint32 msg )
 {
 	switch(msg)
 	{
@@ -1772,6 +1774,15 @@ bool FWindowsApplication::IsInputMessage( uint32 msg )
 	case WM_SYSKEYUP:
 	case WM_KEYUP:
 	case WM_SYSCOMMAND:
+		return true;
+	}
+	return false;
+}
+
+bool FWindowsApplication::IsMouseInputMessage( uint32 msg )
+{
+	switch(msg)
+	{
 	// Mouse input notification messages...
 	case WM_MOUSEHWHEEL:
 	case WM_MOUSEWHEEL:
@@ -1802,6 +1813,20 @@ bool FWindowsApplication::IsInputMessage( uint32 msg )
 	case WM_XBUTTONDBLCLK:
 	case WM_XBUTTONDOWN:
 	case WM_XBUTTONUP:
+		return true;
+	}
+	return false;
+}
+
+bool FWindowsApplication::IsInputMessage( uint32 msg )
+{
+	if (IsKeyboardInputMessage(msg) || IsMouseInputMessage(msg))
+	{
+		return true;
+	}
+
+	switch(msg)
+	{
 	// Raw input notification messages...
 	case WM_INPUT:
 	case WM_INPUT_DEVICE_CHANGE:

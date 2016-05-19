@@ -828,6 +828,9 @@ void FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuil
 
 void FWidgetBlueprintEditor::AddObjectToAnimation(UObject* ObjectToAnimate)
 {
+	const FScopedTransaction Transaction( LOCTEXT( "AddWidgetToAnimation", "Add widget to animation" ) );
+	Sequencer->GetFocusedMovieSceneSequence()->Modify();
+
 	// @todo Sequencer - Make this kind of adding more explicit, this current setup seem a bit brittle.
 	Sequencer->GetHandleToObject(ObjectToAnimate);
 }

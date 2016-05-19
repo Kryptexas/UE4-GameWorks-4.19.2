@@ -22,6 +22,22 @@ FWmfMediaPlayer::~FWmfMediaPlayer()
 }
 
 
+/* FTickerObjectBase interface
+ *****************************************************************************/
+
+bool FWmfMediaPlayer::Tick(float DeltaTime)
+{
+	TFunction<void()> Task;
+
+	while (Tasks.Dequeue(Task))
+	{
+		Task();
+	}
+
+	return true;
+}
+
+
 /* IMediaInfo interface
  *****************************************************************************/
 
@@ -244,8 +260,7 @@ bool FWmfMediaPlayer::SetRate(float Rate)
 
 void FWmfMediaPlayer::ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FString ResolvedUrl)
 {
-	// forward event to game thread
-	AsyncTask(ENamedThreads::GameThread, [=]() {
+	Tasks.Enqueue([=]() {
 		MediaEvent.Broadcast(
 			InitializeMediaSession(SourceObject, ResolvedUrl)
 				? EMediaEvent::MediaOpened
@@ -257,8 +272,7 @@ void FWmfMediaPlayer::ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FSt
 
 void FWmfMediaPlayer::ProcessResolveFailed(FString FailedUrl)
 {
-	// forward event to game thread
-	AsyncTask(ENamedThreads::GameThread, [=]() {
+	Tasks.Enqueue([=]() {
 		MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
 	});
 }

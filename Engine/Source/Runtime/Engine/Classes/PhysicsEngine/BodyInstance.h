@@ -1121,10 +1121,10 @@ private:
 	/**
 	 * Type of collision enabled.
 	 * 
-	 *	No Collision      : No collision is performed against this body.
-	 *	Query Only        : This body is used only for collision queries (raycasts, sweeps, and overlaps).
-	 *	Physics Only      : This body is used only for physics collision.
-	 *	Collision Enabled : This body interacts with all collision (Query and Physics).
+	 *	No Collision      : Will not create any representation in the physics engine. Cannot be used for spatial queries (raycasts, sweeps, overlaps) or simulation (rigid body, constraints). Best performance possible (especially for moving objects)
+	 *	Query Only        : Only used for spatial queries (raycasts, sweeps, and overlaps). Cannot be used for simulation (rigid body, constraints). Useful for character movement and things that do not need physical simulation. Performance gains by keeping data out of simulation tree.
+	 *	Physics Only      : Only used only for physics simulation (rigid body, constraints). Cannot be used for spatial queries (raycasts, sweeps, overlaps). Useful for jiggly bits on characters that do not need per bone detection. Performance gains by keeping data out of query tree
+	 *	Collision Enabled : Can be used for both spatial queries (raycasts, sweeps, overlaps) and simulation (rigid body, constraints).
 	 */
 	UPROPERTY(EditAnywhere, Category=Custom)
 	TEnumAsByte<ECollisionEnabled::Type> CollisionEnabled;

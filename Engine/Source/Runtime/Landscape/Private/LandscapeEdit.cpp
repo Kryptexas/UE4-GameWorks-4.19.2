@@ -277,9 +277,10 @@ void ULandscapeComponent::UpdateMaterialInstances()
 			MaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
 		}
 
-		// For undo
-		MaterialInstance->SetFlags(RF_Transactional);
-		MaterialInstance->Modify();
+		// Material Instances don't support Undo/Redo (the shader map goes out of sync and crashes happen)
+		// so we call UpdateMaterialInstances() from ULandscapeComponent::PostEditUndo instead
+		//MaterialInstance->SetFlags(RF_Transactional);
+		//MaterialInstance->Modify();
 
 		MaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
 		MaterialInstance->ClearParameterValuesEditorOnly();

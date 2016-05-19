@@ -197,11 +197,9 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 	VERIFYVULKANRESULT_EXPANDED(GetSwapchainImagesKHR(Device.GetInstanceHandle(), SwapChain, &NumSwapChainImages, OutImages.GetData()));
 
 	ImageAcquiredSemaphore.AddUninitialized(DesiredNumBuffers);
-	//RenderingCompletedSemaphore.AddUninitialized(DesiredNumBuffers);
 	for (uint32 BufferIndex = 0; BufferIndex < DesiredNumBuffers; ++BufferIndex)
 	{
 		ImageAcquiredSemaphore[BufferIndex] = new FVulkanSemaphore(Device);
-		//RenderingCompletedSemaphore[BufferIndex] = new FVulkanSemaphore(Device);
 	}
 }
 
@@ -214,10 +212,7 @@ void FVulkanSwapChain::Destroy()
 	for (int BufferIndex = 0; BufferIndex < ImageAcquiredSemaphore.Num(); ++BufferIndex)
 	{
 		delete ImageAcquiredSemaphore[BufferIndex];
-		//delete RenderingCompletedSemaphore[BufferIndex];
 	}
-	ImageAcquiredSemaphore.Empty(0);
-	//RenderingCompletedSemaphore.Empty(0);
 }
 
 int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
@@ -244,7 +239,7 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	return CurrentImageIndex;
 }
 
-void FVulkanSwapChain::Present(FVulkanQueue* Queue)
+void FVulkanSwapChain::Present(FVulkanQueue* Queue, FVulkanSemaphore* BackBufferRenderingDoneSemaphore)
 {
 	check(CurrentImageIndex != -1);
 
@@ -252,7 +247,7 @@ void FVulkanSwapChain::Present(FVulkanQueue* Queue)
 	FMemory::Memzero(Info);
 	Info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	Info.waitSemaphoreCount = 1;
-	VkSemaphore Semaphore = ImageAcquiredSemaphore[SemaphoreIndex]->GetHandle();
+	VkSemaphore Semaphore = BackBufferRenderingDoneSemaphore->GetHandle();
 	Info.pWaitSemaphores = &Semaphore;
 	Info.swapchainCount = 1;
 	Info.pSwapchains = &SwapChain;

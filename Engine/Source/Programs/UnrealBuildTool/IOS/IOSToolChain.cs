@@ -132,6 +132,11 @@ namespace UnrealBuildTool
 			{
 				FileReference StubFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".stub");
 				BuildProducts.Add(StubFile, BuildProductType.Executable);
+                if (CppPlatform == CPPTargetPlatform.TVOS)
+                {
+                    FileReference AssetFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, "Assets.car");
+                    BuildProducts.Add(AssetFile, BuildProductType.Executable);
+                }
 			}
 		}
 
@@ -732,38 +737,81 @@ namespace UnrealBuildTool
 
 			LinkAction.StatusDescription = string.Format("{0}", OutputFile.AbsolutePath);
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
-			// For iPhone, generate the dSYM file if the config file is set to do so
+/*			// For iPhone, generate the dSYM file if the config file is set to do so
 			if (BuildConfiguration.bGeneratedSYMFile == true && Path.GetExtension(OutputFile.AbsolutePath) != ".a")
 			{
 				Log.TraceInformation("Generating the dSYM file - this will add some time to your build...");
 				RemoteOutputFile = GenerateDebugInfo(RemoteOutputFile);
-			}
+			}*/
 
 			return RemoteOutputFile;
 		}
 
-		/// <summary>
-		/// Generates debug info for a given executable
-		/// </summary>
-		/// <param name="Executable">FileItem describing the executable to generate debug info for</param>
-		public FileItem GenerateDebugInfo(FileItem Executable)
+        public FileItem CompileAssetCatalog(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir)
+        {
+            // Make a file item for the source and destination files
+            FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
+            string FullDestPathRoot = Path.Combine(Path.GetDirectoryName(LocalExecutable.AbsolutePath), "Assets.car");
+
+            FileItem OutputFile;
+/*            if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+            {
+                OutputFile = FileItem.GetRemoteItemByPath(FullDestPathRoot, UnrealTargetPlatform.IOS);
+            }
+            else*/
+            {
+                OutputFile = FileItem.GetItemByPath(FullDestPathRoot);
+            }
+
+            // Make the compile action
+            Action CompileAssetAction = new Action(ActionType.CreateAppBundle);
+            if (!Utils.IsRunningOnMono)
+            {
+                CompileAssetAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
+            }
+
+            CompileAssetAction.WorkingDirectory = GetMacDevSrcRoot();
+            CompileAssetAction.CommandPath = "/usr/bin/xcrun";
+
+            FileItem AssetCat = FileItem.GetItemByPath(Path.Combine(IntermediateDir, "Assets.xcassets"));
+            FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
+            FileItem InputFile = LocalToRemoteFileItem(AssetCat, BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
+
+            string Arguments = "";
+            Arguments += " actool --output-format human-readable-text --notices --warnings";
+            Arguments += " --output-partial-info-plist \"";
+            Arguments += Path.GetDirectoryName(DestFile.AbsolutePath).Replace("\\", "/") + "/assetcatalog_generated_info.plist\"";
+            Arguments += " --app-icon AppIcon --launch-image LaunchImage --compress-pngs";
+            Arguments += " --enable-on-demand-resources YES --filter-for-device-model AppleTV5,3 --filter-for-device-os-version 9.2";
+            Arguments += " --target-device tv --minimum-deployment-target 9.2 --platform appletvos --compile \"";
+            Arguments += Path.GetDirectoryName(DestFile.AbsolutePath).Replace("\\", "/") + "\" \"" + InputFile.AbsolutePath + "\"";
+
+            CompileAssetAction.CommandArguments = Arguments;
+            CompileAssetAction.PrerequisiteItems.Add(Executable);
+            CompileAssetAction.ProducedItems.Add(DestFile);
+            CompileAssetAction.StatusDescription = CompileAssetAction.CommandArguments;// string.Format("Generating debug info for {0}", Path.GetFileName(Executable.AbsolutePath));
+            CompileAssetAction.bCanExecuteRemotely = false;
+
+            return DestFile;
+        }
+
+        /// <summary>
+        /// Generates debug info for a given executable
+        /// </summary>
+        /// <param name="Executable">FileItem describing the executable to generate debug info for</param>
+        public FileItem GenerateDebugInfo(FileItem Executable)
 		{
-			// Make a file item for the source and destination files
-			string FullDestPathRoot = Executable.AbsolutePath + ".dSYM";
+            // Make a file item for the source and destination files
+            FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
+            string FullDestPathRoot = Path.GetDirectoryName(LocalExecutable.AbsolutePath) + "\\" + Path.GetFileName(LocalExecutable.AbsolutePath) + ".dSYM";
 			string FullDestPath = FullDestPathRoot;
 
-			FileItem DestFile;
-			if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
-			{
-				DestFile = FileItem.GetRemoteItemByPath(FullDestPath, UnrealTargetPlatform.IOS);
-			}
-			else
-			{
-				DestFile = FileItem.GetItemByPath(FullDestPath);
-			}
+            FileItem OutputFile;
+            OutputFile = FileItem.GetItemByPath(FullDestPathRoot);
+            FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
 
-			// Make the compile action
-			Action GenDebugAction = new Action(ActionType.GenerateDebugInfo);
+            // Make the compile action
+            Action GenDebugAction = new Action(ActionType.GenerateDebugInfo);
 			if (!Utils.IsRunningOnMono)
 			{
 				GenDebugAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
@@ -771,23 +819,9 @@ namespace UnrealBuildTool
 
 			GenDebugAction.WorkingDirectory = GetMacDevSrcRoot();
 			GenDebugAction.CommandPath = "sh";
-
-			// note that the source and dest are switched from a copy command
-/*			if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
-			{
-				GenDebugAction.CommandArguments = string.Format("-c '/usr/bin/dsymutil \"{0}\" -f -o \"{1}\"; cd \"{3}\"; zip -r -y -1 {2}.dSYM.zip {2}.dSYM'",
+			GenDebugAction.CommandArguments = string.Format("-c '/usr/bin/dsymutil \"{0}\" -f -o \"{1}\"'",
 					Executable.AbsolutePath,
-					FullDestPathRoot,
-					Path.GetFileName(Executable.AbsolutePath),
-					Executable.AbsolutePath.Substring(0, Executable.AbsolutePath.LastIndexOf("/")));
-			}
-			else*/
-			{
-				GenDebugAction.CommandArguments = string.Format("-c '/usr/bin/dsymutil \"{0}\" -f -o \"{1}\"'",
-					Executable.AbsolutePath,
-					FullDestPathRoot);
-			}
-
+					DestFile.AbsolutePath);
 			GenDebugAction.PrerequisiteItems.Add(Executable);
 			GenDebugAction.ProducedItems.Add(DestFile);
 			GenDebugAction.StatusDescription = GenDebugAction.CommandArguments;// string.Format("Generating debug info for {0}", Path.GetFileName(Executable.AbsolutePath));
@@ -950,9 +984,120 @@ namespace UnrealBuildTool
 					}
 				}
 			}
-		}
+        }
 
-		public override void PostBuildSync(UEBuildTarget Target)
+        public void GenerateAssetCatalog(string EngineDir, string BuildDir, string IntermediateDir)
+        {
+            string[] Directories = { "Assets.xcassets",
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconLarge.imagestack"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconLarge.imagestack", "Back.imagestacklayer"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconLarge.imagestack", "Back.imagestacklayer", "Content.imageset"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconLarge.imagestack", "Front.imagestacklayer"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconLarge.imagestack", "Front.imagestacklayer", "Content.imageset"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconLarge.imagestack", "Middle.imagestacklayer"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconLarge.imagestack", "Middle.imagestacklayer", "Content.imageset"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconSmall.imagestack"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconSmall.imagestack", "Back.imagestacklayer"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconSmall.imagestack", "Back.imagestacklayer", "Content.imageset"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconSmall.imagestack", "Front.imagestacklayer"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconSmall.imagestack", "Front.imagestacklayer", "Content.imageset"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconSmall.imagestack", "Middle.imagestacklayer"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "AppIconSmall.imagestack", "Middle.imagestacklayer", "Content.imageset"),
+                                            Path.Combine("Assets.xcassets", "AppIcon.brandassets", "TopShelf.imageset"),
+                                            Path.Combine("Assets.xcassets", "LaunchImage.launchimage"),
+            };
+            string[] Contents = { "{\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"assets\" : [\n\t\t{\n\t\t\t\"size\" : \"1280x768\",\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"AppIconLarge.imagestack\",\n\t\t\t\"role\" : \"primary-app-icon\"\n\t\t},\n\t\t{\n\t\t\t\"size\" : \"400x240\",\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"AppIconSmall.imagestack\",\n\t\t\t\"role\" : \"primary-app-icon\"\n\t\t},\n\t\t{\n\t\t\t\"size\" : \"1920x720\",\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"TopShelf.imageset\",\n\t\t\t\"role\" : \"top-shelf-image\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"layers\" : [\n\t\t{\n\t\t\t\"filename\" : \"Front.imagestacklayer\"\n\t\t},\n\t\t{\n\t\t\t\"filename\" : \"Middle.imagestacklayer\"\n\t\t},\n\t\t{\n\t\t\t\"filename\" : \"Back.imagestacklayer\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"images\" : [\n\t\t{\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"Icon_Large_Back.png\",\n\t\t\t\"scale\" : \"1x\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"images\" : [\n\t\t{\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"Icon_Large_Front.png\",\n\t\t\t\"scale\" : \"1x\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"images\" : [\n\t\t{\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"Icon_Large_Middle.png\",\n\t\t\t\"scale\" : \"1x\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"layers\" : [\n\t\t{\n\t\t\t\"filename\" : \"Front.imagestacklayer\"\n\t\t},\n\t\t{\n\t\t\t\"filename\" : \"Middle.imagestacklayer\"\n\t\t},\n\t\t{\n\t\t\t\"filename\" : \"Back.imagestacklayer\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"images\" : [\n\t\t{\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"Icon_Small_Back.png\",\n\t\t\t\"scale\" : \"1x\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"images\" : [\n\t\t{\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"Icon_Small_Front.png\",\n\t\t\t\"scale\" : \"1x\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"images\" : [\n\t\t{\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"Icon_Small_Middle.png\",\n\t\t\t\"scale\" : \"1x\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"images\" : [\n\t\t{\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"TopShelf.png\",\n\t\t\t\"scale\" : \"1x\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+                                    "{\n\t\"images\" : [\n\t\t{\n\t\t\t\"orientation\" : \"landscape\",\n\t\t\t\"idiom\" : \"tv\",\n\t\t\t\"filename\" : \"Launch.png\",\n\t\t\t\"extent\" : \"full-screen\",\n\t\t\t\"minimum-system-version\" : \"9.0\",\n\t\t\t\"scale\" : \"1x\"\n\t\t}\n\t],\n\t\"info\" : {\n\t\t\"version\" : 1,\n\t\t\"author\" : \"xcode\"\n\t}\n}",
+            };
+            string[] Images = { null,
+                                null,
+                                null,
+                                null,
+                                "Icon_Large_Back.png",
+                                null,
+                                "Icon_Large_Front.png",
+                                null,
+                                "Icon_Large_Middle.png",
+                                null,
+                                null,
+                                "Icon_Small_Back.png",
+                                null,
+                                "Icon_Small_Front.png",
+                                null,
+                                "Icon_Small_Middle.png",
+                                "TopShelf.png",
+                                "Launch.png"
+            };
+
+            // create asset catalog for images
+            for (int i = 0; i < Directories.Length; ++i)
+            {
+                string Dir = Path.Combine(IntermediateDir, Directories[i]);
+                if (!Directory.Exists(Dir))
+                {
+                    Directory.CreateDirectory(Dir);
+                }
+                File.WriteAllText(Path.Combine(Dir, "Contents.json"), Contents[i]);
+                LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, "Contents.json")), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
+                if (Images[i] != null)
+                {
+                    string Image = Path.Combine((Directory.Exists(Path.Combine(BuildDir, "Resource", "Graphics")) ? (BuildDir) : (Path.Combine(EngineDir,"Build", "TVOS"))), "Resources", "Graphics", Images[i]);
+                    if (File.Exists(Image))
+                    {
+                        File.Copy(Image, Path.Combine(Dir, Images[i]), true);
+                        LocalToRemoteFileItem(FileItem.GetItemByPath(Path.Combine(Dir, Images[i])), BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac);
+                        FileInfo DestFileInfo = new FileInfo(Path.Combine(Dir, Images[i]));
+                        DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+                    }
+                }
+            }
+        }
+
+        public override ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment BinaryLinkEnvironment)
+        {
+            var OutputFiles = base.PostBuild(Executable, BinaryLinkEnvironment);
+
+            if (BinaryLinkEnvironment.Config.bIsBuildingLibrary)
+            {
+                return OutputFiles;
+            }
+
+            // For IOS/tvOS, generate the dSYM file if the config file is set to do so
+            if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bUsePDBFiles == true) && (!BinaryLinkEnvironment.Config.bIsBuildingLibrary || BinaryLinkEnvironment.Config.bIsBuildingDLL))
+            {
+                OutputFiles.Add(GenerateDebugInfo(Executable));
+            }
+
+            // for tvOS generate the asset catalog
+            if (CppPlatform == CPPTargetPlatform.TVOS)
+            {
+                string EngineDir = UnrealBuildTool.EngineDirectory.ToString();
+                string BuildDir = (((ProjectFile != null) ? ProjectFile.Directory : UnrealBuildTool.EngineDirectory)) + "/Build/TVOS";
+                string IntermediateDir = (((ProjectFile != null) ? ProjectFile.Directory : UnrealBuildTool.EngineDirectory)) + "/Intermediate/TVOS";
+                GenerateAssetCatalog(EngineDir, BuildDir, IntermediateDir);
+                OutputFiles.Add(CompileAssetCatalog(Executable, EngineDir, BuildDir, IntermediateDir));
+            }
+
+            return OutputFiles;
+        }
+        public override void PostBuildSync(UEBuildTarget Target)
 		{
 			base.PostBuildSync(Target);
 
@@ -1307,8 +1452,15 @@ namespace UnrealBuildTool
 					}
 				}
 
-				// If it is requested, send the app bundle back to the platform executing these commands.
-				if (BuildConfiguration.bCopyAppBundleBackToDevice)
+                if (CppPlatform == CPPTargetPlatform.TVOS)
+                {
+                    // copy back the built asset catalog
+                    string CatPath = Path.GetDirectoryName(Target.OutputPath.FullName) + "\\Assets.car";
+                    RPCUtilHelper.CopyFile(ConvertPath(CatPath), CatPath, false);
+                }
+
+                // If it is requested, send the app bundle back to the platform executing these commands.
+                if (BuildConfiguration.bCopyAppBundleBackToDevice)
 				{
 					Log.TraceInformation("Copying binaries back to this device...");
 

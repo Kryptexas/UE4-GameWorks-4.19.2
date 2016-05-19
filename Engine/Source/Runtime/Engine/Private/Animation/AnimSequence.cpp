@@ -2126,6 +2126,22 @@ void UAnimSequence::UpdateSHAWithCurves(FSHA1& Sha, const FRawCurveTracks& InRaw
 	}
 }
 
+bool UAnimSequence::DoesSequenceContainZeroScale()
+{
+	for (const FRawAnimSequenceTrack& RawTrack : RawAnimationData)
+	{
+		for (const FVector ScaleKey : RawTrack.ScaleKeys)
+		{
+			if (ScaleKey.IsZero())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 FGuid UAnimSequence::GenerateGuidFromRawData() const
 {
 	FSHA1 Sha;

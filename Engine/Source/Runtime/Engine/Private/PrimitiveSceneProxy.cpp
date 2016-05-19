@@ -73,7 +73,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bSelectable(InComponent->bSelectable)
 ,	bHasPerInstanceHitProxies(InComponent->bHasPerInstanceHitProxies)
 ,	bUseEditorCompositing(InComponent->bUseEditorCompositing)
-,	bReceiveCSMFromDynamicObjects(InComponent->bReceiveCSMFromDynamicObjects)
+,	bReceiveCombinedCSMAndStaticShadowsFromStationaryLights(InComponent->bReceiveCombinedCSMAndStaticShadowsFromStationaryLights)
 ,	bRenderCustomDepth(InComponent->bRenderCustomDepth)
 ,	CustomDepthStencilValue((uint8)InComponent->CustomDepthStencilValue) 
 ,	LightingChannelMask(GetLightingChannelMaskForStruct(InComponent->LightingChannels))

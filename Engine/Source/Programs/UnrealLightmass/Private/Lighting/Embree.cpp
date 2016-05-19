@@ -290,7 +290,7 @@ void EmbreeFilterFunc(void* UserPtr, RTCRay& InRay)
 	}
 
 	// No collision with translucent primitives.
-	if (Proc.Desc.Translucent)
+	if (Proc.Desc.Translucent && !(Proc.Ray.bDirectShadowingRay && Proc.Desc.CastShadowAsMasked))
 	{
 		if (Proc.Ray.bCalculateTransmission)
 		{

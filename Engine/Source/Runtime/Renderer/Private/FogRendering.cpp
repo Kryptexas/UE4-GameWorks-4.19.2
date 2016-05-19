@@ -232,6 +232,7 @@ void FSceneRenderer::InitFogConstants()
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 	{
 		FViewInfo& View = Views[ViewIndex];
+		InitAtmosphereConstantsInView(View);
 		// set fog consts based on height fog components
 		if(ShouldRenderFog(*View.Family))
 		{

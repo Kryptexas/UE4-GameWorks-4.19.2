@@ -69,8 +69,7 @@ static bool RunCommandInternalRaw(const FString& InCommand, const FString& InPat
 		FullCommand += RepositoryRoot;
 		// and the ".git" subdirectory in it (before the command itself)
 		FullCommand += TEXT("\" --git-dir=\"");
-		FullCommand += RepositoryRoot;
-		FullCommand += TEXT(".git\" ");
+		FullCommand += FPaths::Combine(*RepositoryRoot, TEXT(".git\" "));
 	}
 	// then the git command itself ("status", "log", "commit"...)
 	LogableCommand += InCommand;

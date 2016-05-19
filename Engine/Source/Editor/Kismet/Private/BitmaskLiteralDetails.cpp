@@ -35,8 +35,9 @@ void FBitmaskLiteralDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BitmaskEnumLabel", "Bitmask Enum"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(LOCTEXT("BitmaskEnumLabel", "Bitmask Enum"))
+			.ToolTipText(LOCTEXT("BitmaskEnumTooltip", "Choose an optional enumeration type for the flags. Note that changing this will also reset the input pin's default value."))
 		]
 		.ValueContent()
 		[
@@ -80,6 +81,15 @@ void FBitmaskLiteralDetails::OnBitmaskEnumTypeChanged(TSharedPtr<FString> ItemSe
 	}
 
 	TargetNode->ReconstructNode();
+
+	// Reset default value
+	if (UEdGraphPin* InputPin = TargetNode->FindPin(TargetNode->GetBitmaskInputPinName()))
+	{
+		if (const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(InputPin->GetSchema()))
+		{
+			K2Schema->SetPinDefaultValueBasedOnType(InputPin);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

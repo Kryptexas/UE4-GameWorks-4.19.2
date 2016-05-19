@@ -860,8 +860,11 @@ void UEditorEngine::FinishDestroy()
 {
 	if ( !HasAnyFlags(RF_ClassDefaultObject) )
 	{
-		// this needs to be already cleaned up
-		check(PlayWorld == NULL);
+		if (PlayWorld)
+		{
+			// this needs to be already cleaned up
+			UE_LOG(LogEditor, Warning, TEXT("Warning: Play world is active"));
+		}
 
 		// Unregister events
 		FEditorDelegates::MapChange.RemoveAll(this);
@@ -3452,7 +3455,7 @@ bool UEditorEngine::ShouldOpenMatinee(AMatineeActor* MatineeActor) const
 void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 {
 	// Drop out if the user doesn't want to proceed to matinee atm
-	if( bWarnUser && !ShouldOpenMatinee( MatineeActor ) )
+	if( bWarnUser && ( (ShouldOpenMatineeCallback.IsBound() && !ShouldOpenMatineeCallback.Execute(MatineeActor)) || !ShouldOpenMatinee( MatineeActor ) ) )
 	{
 		return;
 	}

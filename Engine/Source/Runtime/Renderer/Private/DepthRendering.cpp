@@ -195,7 +195,7 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	):
 	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,DVSM_None,/*bInTwoSidedOverride=*/ bIsTwoSided)
 {
-	bNeedsPixelShader = (!InMaterialResource.WritesEveryPixel() || InMaterialResource.HasPixelDepthOffsetConnected());
+	bNeedsPixelShader = (!InMaterialResource.WritesEveryPixel() || InMaterialResource.MaterialUsesPixelDepthOffset());
 	if (!bNeedsPixelShader)
 	{
 		PixelShader = nullptr;
@@ -436,7 +436,7 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 	const EBlendMode BlendMode = Material->GetBlendMode();
 	const auto FeatureLevel = Scene->GetFeatureLevel();
 
-	if (!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected())
+	if (!Material->WritesEveryPixel() || Material->MaterialUsesPixelDepthOffset())
 	{
 		// only draw if required
 		Scene->MaskedDepthDrawList.AddMesh(

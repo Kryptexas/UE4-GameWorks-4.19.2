@@ -383,8 +383,12 @@ public:
 	virtual AActor* GetGameplayTaskOwner(const UGameplayTask* Task) const override { return const_cast<AAIController*>(this); }
 	virtual AActor* GetGameplayTaskAvatar(const UGameplayTask* Task) const override { return GetPawn(); }
 	virtual uint8 GetGameplayTaskDefaultPriority() const { return FGameplayTasks::DefaultPriority - 1; }
-
 	FORCEINLINE UGameplayTasksComponent* GetGameplayTasksComponent() const { return CachedGameplayTasksComponent; }
+
+	// add empty overrides to fix linker errors if project implements a child class without adding GameplayTasks module dependency
+	virtual void OnGameplayTaskInitialized(UGameplayTask& Task) override {}
+	virtual void OnGameplayTaskActivated(UGameplayTask& Task) override {}
+	virtual void OnGameplayTaskDeactivated(UGameplayTask& Task) override {}
 
 	UFUNCTION()
 	virtual void OnGameplayTaskResourcesClaimed(FGameplayResourceSet NewlyClaimed, FGameplayResourceSet FreshlyReleased);

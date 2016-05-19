@@ -1332,6 +1332,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 	FFloatInterval ScaleY;
 	FFloatInterval ScaleZ;
 	bool RandomRotation;
+	bool RandomScale;
 	bool AlignToSurface;
 	float PlacementJitter;
 	FRandomStream RandomStream;
@@ -1366,6 +1367,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		, ScaleY(GrassVariety.ScaleY)
 		, ScaleZ(GrassVariety.ScaleZ)
 		, RandomRotation(GrassVariety.RandomRotation)
+		, RandomScale(GrassVariety.ScaleX.Size() > 0 || GrassVariety.ScaleY.Size() > 0 || GrassVariety.ScaleZ.Size() > 0)
 		, AlignToSurface(GrassVariety.AlignToSurface)
 		, PlacementJitter(GrassVariety.PlacementJitter)
 		, RandomStream(HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed)
@@ -1525,7 +1527,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 				bool bKeep = Weight > 0.0f && Weight >= RandomStream.GetFraction();
 				if (bKeep)
 				{
-					const FVector Scale = GetRandomScale();
+					const FVector Scale = RandomScale ? GetRandomScale() : FVector(1);
 					const float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
 					const FMatrix BaseXForm = FScaleRotationTranslationMatrix(Scale, FRotator(0.0f, Rot, 0.0f), FVector::ZeroVector);
 					FMatrix OutXForm;
@@ -1624,7 +1626,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 							const FInstanceLocal& Instance = Instances[InstanceIndex];
 							if (Instance.bKeep)
 							{
-								const FVector Scale = GetRandomScale();
+								const FVector Scale = RandomScale ? GetRandomScale() : FVector(1);
 								const float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
 								const FMatrix BaseXForm = FScaleRotationTranslationMatrix(Scale, FRotator(0.0f, Rot, 0.0f), FVector::ZeroVector);
 								FMatrix OutXForm;

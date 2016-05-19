@@ -43,8 +43,6 @@ public:
 	typedef void (TCallback)(void*);
 	void SubmitPendingCommandBuffers(TCallback* Callback, void* CallbackUserData);
 
-	void SubmitPendingCommandBuffersBlockingNoRenderPass();
-
 	// Pipeline states
 	void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ);
 	void SetScissor(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY);
@@ -61,6 +59,7 @@ public:
 	FVulkanRenderPass& GetRenderPass();
 
 	FVulkanFramebuffer* GetFrameBuffer();
+	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
 
 	inline void UpdateRenderPass(FVulkanCmdBuffer* CmdBuffer)
 	{

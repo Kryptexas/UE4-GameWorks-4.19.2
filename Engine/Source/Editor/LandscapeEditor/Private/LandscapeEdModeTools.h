@@ -1332,12 +1332,14 @@ public:
 			if (MousePositions.Num() > 0)
 			{
 				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
+				ViewportClient->Invalidate(false, false);
 				MousePositions.Empty(1);
 			}
 			else if (TStrokeClass::UseContinuousApply && TimeSinceLastMouseMove >= 0.25f)
 			{
 				MousePositions.Emplace(LastMousePosition, IsShiftDown(ViewportClient->Viewport));
 				ToolStroke->Apply(ViewportClient, EdMode->CurrentBrush, EdMode->UISettings, MousePositions);
+				ViewportClient->Invalidate(false, false);
 				MousePositions.Empty(1);
 			}
 			TimeSinceLastMouseMove += DeltaTime;

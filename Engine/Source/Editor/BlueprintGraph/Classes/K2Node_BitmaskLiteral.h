@@ -6,7 +6,7 @@
 #include "K2Node_BitmaskLiteral.generated.h"
 
 UCLASS(MinimalAPI)
-class UK2Node_BitmaskLiteral : public UK2Node
+class UK2Node_BitmaskLiteral : public UK2Node, public INodeDependingOnEnumInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -14,11 +14,12 @@ class UK2Node_BitmaskLiteral : public UK2Node
 	UEnum* BitflagsEnum;
 
 	//~ Begin UObject Interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostLoad() override;
 	//~ End UObject Interface
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;
+	virtual void ReconstructNode() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	//~ End UEdGraphNode Interface
 	
@@ -30,6 +31,15 @@ class UK2Node_BitmaskLiteral : public UK2Node
 	virtual FText GetMenuCategory() const override;
 	//~ End UK2Node Interface
 
-	static const FString& GetBitmaskInputPinName();
+	//~ Begin INodeDependingOnEnumInterface
+	virtual class UEnum* GetEnum() const override { return BitflagsEnum; }
+	virtual bool ShouldBeReconstructedAfterEnumChanged() const override { return true; }
+	//~ End INodeDependingOnEnumInterface
+
+	BLUEPRINTGRAPH_API static const FString& GetBitmaskInputPinName();
+
+protected:
+	/** Internal helper method used to validate the current enum type */
+	void ValidateBitflagsEnumType();
 };
 

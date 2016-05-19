@@ -24,6 +24,8 @@ public:
 	TSharedPtr<FUICommandInfo> ChangeSkeletonPreviewMesh;
 	// Command to allow users to remove unused bones (not referenced by any skeletalmesh) from the skeleton
 	TSharedPtr<FUICommandInfo> RemoveUnusedBones;
+	// Command to allow users to look for unused curves (curves that exist in animations that do not drive any morph/materials
+	TSharedPtr<FUICommandInfo> TestSkeletonCurveNamesForUse;
 	// Command to show Anim Notify window
 	TSharedPtr<FUICommandInfo> AnimNotifyWindow;
 	// Command to show Retarget Source Manager

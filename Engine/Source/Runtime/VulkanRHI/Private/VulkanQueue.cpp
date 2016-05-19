@@ -33,21 +33,35 @@ FVulkanQueue::~FVulkanQueue()
 	check(Device);
 }
 
-void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer)
+void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSemaphore, VkPipelineStageFlags WaitStageFlags, FVulkanSemaphore* SignalSemaphore)
 {
 	check(CmdBuffer->HasEnded());
-
-	VkSubmitInfo SubmitInfo;
-	FMemory::Memzero(SubmitInfo);
 
 	auto* Fence = CmdBuffer->GetFence();
 	check(!Fence->IsSignaled());
 
 	const VkCommandBuffer CmdBuffers[] = { CmdBuffer->GetHandle() };
 
+	VkSemaphore Semaphores[2];
+
+	VkSubmitInfo SubmitInfo;
+	FMemory::Memzero(SubmitInfo);
 	SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	SubmitInfo.commandBufferCount = 1;
 	SubmitInfo.pCommandBuffers = CmdBuffers;
+	if (SignalSemaphore)
+	{
+		SubmitInfo.signalSemaphoreCount = 1;
+		Semaphores[0] = SignalSemaphore->GetHandle();
+		SubmitInfo.pSignalSemaphores = &Semaphores[0];
+	}
+	if (WaitSemaphore)
+	{
+		SubmitInfo.waitSemaphoreCount = 1;
+		Semaphores[1] = WaitSemaphore->GetHandle();
+		SubmitInfo.pWaitSemaphores = &Semaphores[1];
+		SubmitInfo.pWaitDstStageMask = &WaitStageFlags;
+	}
 	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
 
 	if (GWaitForIdleOnSubmit != 0)
@@ -58,30 +72,4 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer)
 	CmdBuffer->State = FVulkanCmdBuffer::EState::Submitted;
 
 	CmdBuffer->GetOwner()->RefreshFenceStatus();
-}
-
-void FVulkanQueue::SubmitBlocking(FVulkanCmdBuffer* CmdBuffer)
-{
-#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
-	check(0);
-#else
-	check(CmdBuffer);
-	CmdBuffer->End();
-
-	const VkCommandBuffer CmdBufs[] = { CmdBuffer->GetHandle(false) };
-
-	VkSubmitInfo SubmitInfo;
-	FMemory::Memzero(SubmitInfo);
-	SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	SubmitInfo.commandBufferCount = 1;
-	SubmitInfo.pCommandBuffers = CmdBufs;
-
-	auto* Fence = Device->GetFenceManager().AllocateFence();
-	VERIFYVULKANRESULT(vkQueueSubmit(Queue, 1, &SubmitInfo, Fence->GetHandle()));
-
-	bool bSuccess = Device->GetFenceManager().WaitForFence(Fence, 0xFFFFFFFF);
-	check(bSuccess);
-
-	Device->GetFenceManager().ReleaseFence(Fence);
-#endif
 }

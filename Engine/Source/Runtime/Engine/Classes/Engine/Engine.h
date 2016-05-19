@@ -546,6 +546,9 @@ class ENGINE_API UEngine
 {
 	GENERATED_UCLASS_BODY()
 
+	// Called after GEngine->Init has been called
+	static FSimpleMulticastDelegate OnPostEngineInit;
+
 private:
 	// Fonts.
 	UPROPERTY()

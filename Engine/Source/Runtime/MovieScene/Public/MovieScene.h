@@ -228,11 +228,11 @@ public:
 	 *
 	 * @param TrackClass The class of the track to find.
 	 * @param ObjectGuid The runtime object guid that the track is bound to.
-	 * @param TrackName The name of the track to differentiate the one we are searching for from other tracks of the same class.
+	 * @param TrackName The name of the track to differentiate the one we are searching for from other tracks of the same class (optional).
 	 * @return The found track or nullptr if one does not exist.
 	 * @see AddTrack, RemoveTrack
 	 */
-	UMovieSceneTrack* FindTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, const FName& TrackName) const;
+	UMovieSceneTrack* FindTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, const FName& TrackName = NAME_None) const;
 	
 	/**
 	 * Finds a track.
@@ -454,6 +454,11 @@ public:
 	FMovieSceneEditorData& GetEditorData()
 	{
 		return EditorData;
+	}
+
+	void SetEditorData(FMovieSceneEditorData& InEditorData)
+	{
+		EditorData = InEditorData;
 	}
 #endif
 

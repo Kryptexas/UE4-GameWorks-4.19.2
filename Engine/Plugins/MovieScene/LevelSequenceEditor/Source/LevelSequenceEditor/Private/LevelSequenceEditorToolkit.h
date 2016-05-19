@@ -13,6 +13,7 @@ class ISequencer;
 class IToolkitHost;
 class SWidget;
 class UWorld;
+class UMovieSceneCinematicShotTrack;
 struct FSequencerViewParams;
 
 
@@ -103,6 +104,9 @@ protected:
 
 	/** Menu extension callback for the add menu */
 	void AddPosessActorMenuExtensions(FMenuBuilder& MenuBuilder);
+	
+	/** Add a shot to a master sequence */
+	void AddShot(UMovieSceneCinematicShotTrack* ShotTrack, const FString& ShotAssetName, const FString& ShotPackagePath, float ShotStartTime, float ShotEndTime, UObject* AssetToDuplicate);
 
 private:
 
@@ -114,6 +118,9 @@ private:
 
 	/** Callback for map changes. */
 	void HandleMapChanged(UWorld* NewWorld, EMapChangeType MapChangeType);
+
+	/** Callback for when a master sequence is created. */
+	void HandleMasterSequenceCreated(UObject* MasterSequenceAsset);
 
 	/** Callback for the menu extensibility manager. */
 	TSharedRef<FExtender> HandleMenuExtensibilityGetExtender(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects);

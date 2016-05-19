@@ -1416,7 +1416,9 @@ void ALandscapeProxy::PostLoad()
 	}
 
 #if WITH_EDITOR
-	if ((GetLinker() && (GetLinker()->UE4Ver() < VER_UE4_LANDSCAPE_COMPONENT_LAZY_REFERENCES)) || LandscapeComponents.Num() != CollisionComponents.Num())
+	if ((GetLinker() && (GetLinker()->UE4Ver() < VER_UE4_LANDSCAPE_COMPONENT_LAZY_REFERENCES)) ||
+		LandscapeComponents.Num() != CollisionComponents.Num() ||
+		LandscapeComponents.ContainsByPredicate([](ULandscapeComponent* Comp) { return !Comp->CollisionComponent.IsValid(); }))
 	{
 		// Need to clean up invalid collision components
 		RecreateCollisionComponents();
@@ -1427,7 +1429,7 @@ void ALandscapeProxy::PostLoad()
 		bStaticSectionOffset = false;
 	}
 
-	EditorLayerSettings.Remove(NULL);
+	EditorLayerSettings.Remove(nullptr);
 
 	if (EditorCachedLayerInfos_DEPRECATED.Num() > 0)
 	{

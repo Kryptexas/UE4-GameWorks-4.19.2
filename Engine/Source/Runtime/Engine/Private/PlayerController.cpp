@@ -2111,6 +2111,15 @@ bool APlayerController::InputTouch(uint32 Handle, ETouchType::Type Type, const F
 {
 	bool bResult = false;
 
+	if (GEngine->HMDDevice.IsValid())
+	{
+		bResult = GEngine->HMDDevice->HandleInputTouch(Handle, Type, TouchLocation, DeviceTimestamp, TouchpadIndex);
+		if (bResult)
+		{
+			return bResult;
+		}
+	}
+
 	if (PlayerInput)
 	{
 		bResult = PlayerInput->InputTouch(Handle, Type, TouchLocation, DeviceTimestamp, TouchpadIndex);

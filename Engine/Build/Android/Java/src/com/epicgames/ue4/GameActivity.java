@@ -662,12 +662,13 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			HasAllFiles = true;
 		}
 
-//$${gameActivityOnCreateAdditions}$$
 		// Need to create our surface view here regardless of if we are going to end up using it
 		getWindow().takeSurface(null);
 		MySurfaceView = new SurfaceView(this);
 		MySurfaceView.getHolder().addCallback(this);
 		setContentView(MySurfaceView);
+
+//$${gameActivityOnCreateAdditions}$$
 		
 		Log.debug("==============> GameActive.onCreate complete!");
 	}
@@ -1438,19 +1439,32 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			InputDevice inputDevice = InputDevice.getDevice(deviceIds[deviceIndex]);
 			if (inputDevice.getId() == deviceId)
 			{
-				// note: inputDevice.getName may not return a proper name so check vendor and product id first
-				int vendorId = inputDevice.getVendorId();
-				int productId = inputDevice.getProductId();
-				for (DeviceInfoData deviceInfo : DeviceInfoList)
+				int vendorId = 0;
+				int productId = 0;
+				int controllerNumber = 0;
+
+				// requires 4.1 (Jellybean)
+				String descriptor = ANDROID_BUILD_VERSION >= 16 ? inputDevice.getDescriptor() : Integer.toString(deviceId);
+
+				// supported on 4.4 (KitKat) onward
+				if (ANDROID_BUILD_VERSION >= 19)
 				{
-					if (deviceInfo.IsMatch(vendorId, productId))
+					vendorId = inputDevice.getVendorId();
+					productId = inputDevice.getProductId();
+					controllerNumber = inputDevice.getControllerNumber();
+
+					// note: inputDevice.getName may not return a proper name so check vendor and product id first
+					for (DeviceInfoData deviceInfo : DeviceInfoList)
 					{
-						return new InputDeviceInfo(deviceId, vendorId, productId, inputDevice.getControllerNumber(), deviceInfo.name, inputDevice.getDescriptor());
+						if (deviceInfo.IsMatch(vendorId, productId))
+						{
+							return new InputDeviceInfo(deviceId, vendorId, productId, controllerNumber, deviceInfo.name, descriptor);
+						}
 					}
 				}
 
 				// use device name as fallback (may be generic like "Bluetooth HID" so not always useful)
-				return new InputDeviceInfo(deviceId, vendorId, productId, inputDevice.getControllerNumber(), inputDevice.getName(), inputDevice.getDescriptor());
+				return new InputDeviceInfo(deviceId, vendorId, productId, controllerNumber, inputDevice.getName(), descriptor);
 			}
 		}
 		return new InputDeviceInfo(deviceId, 0, 0, -1, "Unknown", "Unknown");

@@ -203,11 +203,12 @@ void UObjectBase::SetClass(UClass* NewClass)
 
 	UnhashObject(this);
 #if USE_UBER_GRAPH_PERSISTENT_FRAME
+	UClass* OldClass = ClassPrivate;
 	ClassPrivate->DestroyPersistentUberGraphFrame((UObject*)this);
 #endif
 	ClassPrivate = NewClass;
 #if USE_UBER_GRAPH_PERSISTENT_FRAME
-	ClassPrivate->CreatePersistentUberGraphFrame((UObject*)this);
+	ClassPrivate->CreatePersistentUberGraphFrame((UObject*)this, /*bCreateOnlyIfEmpty =*/false, /*bSkipSuperClass =*/false, OldClass);
 #endif
 	HashObject(this);
 }

@@ -29,8 +29,6 @@ UActorRecording::UActorRecording(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bWasSpawnedPostRecord = false;
-	MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	bEnableUpdateRateOptimizations = false;
 	Guid.Invalidate();
 	bNewComponentAddedWhileRecording = false;
 

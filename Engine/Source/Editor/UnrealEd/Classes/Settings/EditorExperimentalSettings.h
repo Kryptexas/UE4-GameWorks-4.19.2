@@ -37,6 +37,12 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = ( DisplayName = "Single Layout Blueprint Editor" ))
 	bool bUnifiedBlueprintEditor;
 
+	/** When enabled, all details panels will be able to have properties marked as favorite that show in a top most category.  
+	 * NOTE: Some customizations are not supported yet
+	 */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Enable Details Panel Favorites"))
+	bool bEnableFavoriteSystem;
+
 	/** Enable being able to subclass components in blueprints */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(ConfigRestartRequired=true))
 	bool bBlueprintableComponents;
@@ -104,13 +110,17 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools)
 	bool bLiveStreamingFromEditor;
 
-	/** Enables Metal/High-end mobile rendering path previw on Desktop */
-	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/High-end mobile rendering preview"))
+	/** Enables Metal/High-end mobile rendering path preview on Desktop */
+	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor"))
 	bool bFeatureLevelES31Preview;
 
 	/** Enable late joining in PIE */
 	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow late joining"))
 	bool bAllowLateJoinInPIE;
+
+	/** Allow Vulkan Preview */
+	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow Vulkan Mobile Preview"))
+	bool bAllowVulkanPreview;
 
 	/** Enable multithreaded lightmap encoding (decreases time taken to encode lightmaps) */
 	UPROPERTY(EditAnywhere, config, Category = LightingBuilds, meta = (DisplayName = "Enable Multithreaded lightmap encoding"))

@@ -17,25 +17,34 @@ FPackageReader::~FPackageReader()
 	}
 }
 
-bool FPackageReader::OpenPackageFile(const FString& InPackageFilename)
+bool FPackageReader::OpenPackageFile(const FString& InPackageFilename, EOpenPackageResult* OutErrorCode)
 {
 	PackageFilename = InPackageFilename;
 	Loader = IFileManager::Get().CreateFileReader(*PackageFilename);
-	return OpenPackageFile();
+	return OpenPackageFile(OutErrorCode);
 }
 
-bool FPackageReader::OpenPackageFile(FArchive* InLoader)
+bool FPackageReader::OpenPackageFile(FArchive* InLoader, EOpenPackageResult* OutErrorCode)
 {
 	Loader = InLoader;
 	PackageFilename = Loader->GetArchiveName();
-	return OpenPackageFile();
+	return OpenPackageFile(OutErrorCode);
 }
 
-bool FPackageReader::OpenPackageFile()
+bool FPackageReader::OpenPackageFile(EOpenPackageResult* OutErrorCode)
 {
+	auto SetPackageErrorCode = [&](const EOpenPackageResult InErrorCode)
+	{
+		if (OutErrorCode)
+		{
+			*OutErrorCode = InErrorCode;
+		}
+	};
+
 	if( Loader == NULL )
 	{
 		// Couldn't open the file
+		SetPackageErrorCode(EOpenPackageResult::NoLoader);
 		return false;
 	}
 
@@ -48,18 +57,21 @@ bool FPackageReader::OpenPackageFile()
 	if( PackageFileSummary.Tag != PACKAGE_FILE_TAG )
 	{
 		// Unrecognized or malformed package file
+		SetPackageErrorCode(EOpenPackageResult::MalformedTag);
 		return false;
 	}
 
 	// Don't read packages that are too old
 	if( PackageFileSummary.GetFileVersionUE4() < VER_UE4_OLDEST_LOADABLE_PACKAGE )
 	{
+		SetPackageErrorCode(EOpenPackageResult::VersionTooOld);
 		return false;
 	}
 
 	// Don't read packages that were saved with an package version newer than the current one.
 	if( (PackageFileSummary.GetFileVersionUE4() > GPackageFileUE4Version) || (PackageFileSummary.GetFileVersionLicenseeUE4() > GPackageFileLicenseeUE4Version) )
 	{
+		SetPackageErrorCode(EOpenPackageResult::VersionTooNew);
 		return false;
 	}
 
@@ -69,8 +81,14 @@ bool FPackageReader::OpenPackageFile()
 	for (const FCustomVersion& SerializedCustomVersion : PackageCustomVersions)
 	{
 		auto* LatestVersion = LatestCustomVersions.GetVersion(SerializedCustomVersion.Key);
-		if (!LatestVersion || SerializedCustomVersion.Version > LatestVersion->Version)
+		if (!LatestVersion)
 		{
+			SetPackageErrorCode(EOpenPackageResult::CustomVersionMissing);
+			return false;
+		}
+		else if (SerializedCustomVersion.Version > LatestVersion->Version)
+		{
+			SetPackageErrorCode(EOpenPackageResult::VersionTooNew);
 			return false;
 		}
 	}
@@ -111,6 +129,7 @@ bool FPackageReader::OpenPackageFile()
 	SetCustomVersions(PackageFileSummaryVersions);
 	Loader->SetCustomVersions(PackageFileSummaryVersions);
 
+	SetPackageErrorCode(EOpenPackageResult::Success);
 	return true;
 }
 

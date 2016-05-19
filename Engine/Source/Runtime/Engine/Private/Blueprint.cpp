@@ -361,14 +361,14 @@ void UBlueprint::Serialize(FArchive& Ar)
 		}
 	}
 
-	if (Ar.UE4Ver() < VER_UE4_FIX_BLUEPRINT_VARIABLE_FLAGS)
+	for (int32 i = 0; i < NewVariables.Num(); ++i)
 	{
+		FBPVariableDescription& Variable = NewVariables[i];
+
 		// Actor variables can't have default values (because Blueprint templates are library elements that can 
 		// bridge multiple levels and different levels might not have the actor that the default is referencing).
-		for (int32 i = 0; i < NewVariables.Num(); ++i)
+		if (Ar.UE4Ver() < VER_UE4_FIX_BLUEPRINT_VARIABLE_FLAGS)
 		{
-			FBPVariableDescription& Variable = NewVariables[i];
-
 			const FEdGraphPinType& VarType = Variable.VarType;
 
 			bool bDisableEditOnTemplate = false;
@@ -383,7 +383,7 @@ void UBlueprint::Serialize(FArchive& Ar)
 				}
 			}
 
-			if(bDisableEditOnTemplate)
+			if (bDisableEditOnTemplate)
 			{
 				Variable.PropertyFlags |= CPF_DisableEditOnTemplate;
 			}
@@ -391,6 +391,12 @@ void UBlueprint::Serialize(FArchive& Ar)
 			{
 				Variable.PropertyFlags &= ~CPF_DisableEditOnTemplate;
 			}
+		}
+
+		if (Ar.IsLoading())
+		{
+			// Validate metadata keys/values on load only
+			FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(Variable);
 		}
 	}
 

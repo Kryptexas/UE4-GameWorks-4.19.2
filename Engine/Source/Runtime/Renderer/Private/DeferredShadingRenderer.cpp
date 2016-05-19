@@ -1907,9 +1907,18 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 		bDidPrePre = true;
 	}
 
-	// Dithered transition stencil mask clear
-	if(bDitheredLODTransitionsUseStencil)
+	// Dithered transition stencil mask clear, accounting for all active viewports
+	if (bDitheredLODTransitionsUseStencil)
 	{
+		if (Views.Num() > 1)
+		{
+			FIntRect FullViewRect = Views[0].ViewRect;
+			for (int32 ViewIndex = 1; ViewIndex < Views.Num(); ++ViewIndex)
+			{
+				FullViewRect.Union(Views[ViewIndex].ViewRect);
+			}
+			RHICmdList.SetViewport(FullViewRect.Min.X, FullViewRect.Min.Y, 0, FullViewRect.Max.X, FullViewRect.Max.Y, 1);
+		}
 		RHICmdList.Clear(false, FLinearColor::Black, false, 0.f, true, 0, FIntRect());
 	}
 

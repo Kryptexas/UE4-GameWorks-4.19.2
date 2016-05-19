@@ -407,8 +407,7 @@ void FAsyncLoadingThread::CancelAsyncLoadingInternal()
 		LoadedPackagesToProcessNameLookup.Reset();
 	}
 
-	AsyncLoadingCounter.Reset();
-	AsyncPackagesCounter.Reset();
+	ExistingAsyncPackagesCounter.Reset();
 	QueuedPackagesCounter.Reset();
 
 	FUObjectThreadContext::Get().ObjLoaded.Empty();
@@ -456,11 +455,10 @@ void FAsyncLoadingThread::UpdateExistingPackagePriorities(FAsyncPackage* InPacka
 		// always inserted anyway AsyncPackageNameLookup.Remove(InPackage->GetPackageName());
 		InPackage->SetPriority(InNewPriority);
 
-		// Reduce loading counters ready for InsertPackage to increment them again
-		AsyncLoadingCounter.Decrement();
-		AsyncPackagesCounter.Decrement();
-
 		InsertPackage(InPackage, EAsyncPackageInsertMode::InsertBeforeMatchingPriorities);
+
+		// Reduce loading counters as InsertPackage incremented them again
+		ExistingAsyncPackagesCounter.Decrement();
 	}
 
 #if !WITH_EDITOR
@@ -631,10 +629,7 @@ void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package, EAsyncPackageIns
 	checkSlow(IsInAsyncLoadThread());
 
 	// Incremented on the Async Thread, decremented on the game thread
-	AsyncLoadingCounter.Increment();
-
-	// Incemented and decremented on the AsyncThread
-	AsyncPackagesCounter.Increment();
+	ExistingAsyncPackagesCounter.Increment();
 
 	{
 #if THREADSAFE_UOBJECTS
@@ -767,11 +762,6 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 		// Check if there's any new packages in the queue.
 		CreateAsyncPackagesFromQueue();
 
-		if (bPackageFullyLoaded)
-		{
-			AsyncPackagesCounter.Decrement();
-		}
-
 		if (bNeedsHeartbeatTick)
 		{
 			// Update heartbeat after each package has been processed
@@ -840,8 +830,8 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 				}
 
 				// Incremented on the Async Thread, now decrement as we're done with this package				
-				const int32 NewAsyncLoadingCounterValue = AsyncLoadingCounter.Decrement();
-				UE_CLOG(NewAsyncLoadingCounterValue < 0, LogStreaming, Fatal, TEXT("AsyncLoadingCounter is negative, this means we loaded more packages then requested so there must be a bug in async loading code."));
+				const int32 NewExistingAsyncPackagesCounterValue = ExistingAsyncPackagesCounter.Decrement();
+				UE_CLOG(NewExistingAsyncPackagesCounterValue < 0, LogStreaming, Fatal, TEXT("ExistingAsyncPackagesCounter is negative, this means we loaded more packages then requested so there must be a bug in async loading code."));
 
 				// Call external callbacks
 				const bool bInternalCallbacks = false;
@@ -903,7 +893,8 @@ EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimi
 			FScopeLock QueueLock(&QueueCritical);
 			FScopeLock LoadedLock(&LoadedPackagesCritical);
 #endif
-			if (AsyncPackagesCounter.GetValue() == 0 && LoadedPackagesToProcess.Num() == 0)
+			// Release references we acquired when async loading when there are no more FAsyncPackages in existence
+			if (ExistingAsyncPackagesCounter.GetValue() == 0)
 			{
 				FDeferredMessageLog::Flush();
 				FAsyncObjectsReferencer::Get().EmptyReferencedObjects();

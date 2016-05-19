@@ -433,7 +433,7 @@ public:
 	inline bool NeedsLevelAddedToWorldNotification() const { return bNeedsLevelAddedToWorldNotification; }
 	inline bool IsComponentLevelVisible() const { return bIsComponentLevelVisible; }
 	inline bool IsStaticPathAvailable() const { return !bDisableStaticPath; }
-	inline bool ShouldRenderCSMForDynamicObjects() const { return bReceiveCSMFromDynamicObjects; }
+	inline bool ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights() const { return bReceiveCombinedCSMAndStaticShadowsFromStationaryLights; }
 
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
@@ -716,7 +716,7 @@ private:
 	uint32 bUseEditorCompositing : 1;
 
 	/** Should this primitive receive dynamic-only CSM shadows */
-	uint32 bReceiveCSMFromDynamicObjects : 1;
+	uint32 bReceiveCombinedCSMAndStaticShadowsFromStationaryLights : 1;
 		
 	/** This primitive has bRenderCustomDepth enabled */
 	uint32 bRenderCustomDepth : 1;

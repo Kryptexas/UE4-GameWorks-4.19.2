@@ -121,7 +121,7 @@ protected:
 	/**
 	 * Possibly switch from blit or compute to graphics
 	 */
-	void ConditionalSwitchToGraphics();
+	void ConditionalSwitchToGraphics(bool bRTChangePending = false, bool bRTChangeForce = false);
 	
 	/**
 	 * Switch to blitting
@@ -134,7 +134,7 @@ protected:
 	void ConditionalSwitchToCompute();
 	
 	/** Conditionally submit based on the number of outstanding draw/dispatch ops. */
-	void ConditionalSubmit();
+	void ConditionalSubmit(bool bRTChangePending = false, bool bRTChangeForce = false);
 	
 	/** Apply the SRT before drawing */
 	void CommitGraphicsResourceTables();
@@ -257,9 +257,7 @@ private:
 	{
 		dispatch_semaphore_t Signal;
 		TSet<id> FreeList;
-#if PLATFORM_IOS
         int FrameCount;
-#endif
 	};
 	TArray<FMetalDelayedFreeList*> DelayedFreeLists;
 	

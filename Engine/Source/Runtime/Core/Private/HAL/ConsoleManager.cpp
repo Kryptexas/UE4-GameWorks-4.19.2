@@ -1781,6 +1781,13 @@ static TAutoConsoleVariable<int32> CVarMobileDynamicPointLightsUseStaticBranch(
 	TEXT("1: Use a shared shader with static branching for rendering 1 or more dynamic point lights (slightly slower but reduces shaders generated, recommended for most games)."),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
+static TAutoConsoleVariable<int32> CVarMobileEnableStaticAndCSMShadowReceivers(
+	TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"),
+	1,
+	TEXT("0: Primitives can receive only static shadowing from stationary lights.\n")
+	TEXT("1: Primitives can receive both CSM and static shadowing from stationary lights. (default)"),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> CVarMobileHDR32bppMode(
 	TEXT("r.MobileHDR32bppMode"),
 	0,

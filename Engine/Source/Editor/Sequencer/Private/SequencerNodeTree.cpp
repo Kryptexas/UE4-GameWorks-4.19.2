@@ -169,17 +169,27 @@ void FSequencerNodeTree::Update()
 	}
 
 	// Add all other nodes after the camera cut track
-	TArray<TSharedRef<FSequencerDisplayNode>> FolderMasterTrackAndObjectNodes;
-	CreateAndPopulateFolderNodes( MasterTrackNodes, ObjectNodes, MovieScene->GetRootFolders(), FolderMasterTrackAndObjectNodes );
+	TArray<TSharedRef<FSequencerDisplayNode>> FolderAndObjectNodes;
+	TArray<TSharedRef<FSequencerDisplayNode>> MasterTrackNodesNotInFolders;
+	CreateAndPopulateFolderNodes( MasterTrackNodes, ObjectNodes, MovieScene->GetRootFolders(), FolderAndObjectNodes, MasterTrackNodesNotInFolders );
 	
-	// Sort the created nodes.
-	FolderMasterTrackAndObjectNodes.Sort(FDisplayNodeSorter());
-	for ( TSharedRef<FSequencerDisplayNode> Node : FolderMasterTrackAndObjectNodes )
+	// Add all other master tracks after the camera cut track
+	MasterTrackNodesNotInFolders.Sort(FDisplayNodeSorter());
+	for ( TSharedRef<FSequencerDisplayNode> Node : MasterTrackNodesNotInFolders)
 	{
 		Node->SortChildNodes(FDisplayNodeSorter());
 	}
 
-	RootNodes.Append( FolderMasterTrackAndObjectNodes );
+	RootNodes.Append( MasterTrackNodesNotInFolders );
+
+	// Sort the created nodes.
+	FolderAndObjectNodes.Sort(FDisplayNodeSorter());
+	for ( TSharedRef<FSequencerDisplayNode> Node : FolderAndObjectNodes )
+	{
+		Node->SortChildNodes(FDisplayNodeSorter());
+	}
+
+	RootNodes.Append( FolderAndObjectNodes );
 
 	RootNodes.Reserve(RootNodes.Num()*2);
 	for (int32 Index = 0; Index < RootNodes.Num(); Index += 2)
@@ -387,7 +397,7 @@ TSharedRef<FSequencerDisplayNode> CreateFolderNode(
 
 void FSequencerNodeTree::CreateAndPopulateFolderNodes( 
 	TArray<TSharedRef<FSequencerTrackNode>>& MasterTrackNodes, TArray<TSharedRef<FSequencerObjectBindingNode>>& ObjectNodes,
-	TArray<UMovieSceneFolder*>& MovieSceneFolders, TArray<TSharedRef<FSequencerDisplayNode>>& GroupedNodes )
+	TArray<UMovieSceneFolder*>& MovieSceneFolders, TArray<TSharedRef<FSequencerDisplayNode>>& FolderAndObjectNodes, TArray<TSharedRef<FSequencerDisplayNode>>&  MasterTrackNodesNotInFolders )
 {
 	TMap<UMovieSceneTrack*, TSharedRef<FSequencerTrackNode>> MasterTrackToDisplayNodeMap;
 	for ( TSharedRef<FSequencerTrackNode> MasterTrackNode : MasterTrackNodes )
@@ -403,21 +413,21 @@ void FSequencerNodeTree::CreateAndPopulateFolderNodes(
 
 	for ( UMovieSceneFolder* MovieSceneFolder : MovieSceneFolders )
 	{
-		GroupedNodes.Add( CreateFolderNode( *MovieSceneFolder, *this, MasterTrackToDisplayNodeMap, ObjectGuidToDisplayNodeMap ) );	
+		FolderAndObjectNodes.Add( CreateFolderNode( *MovieSceneFolder, *this, MasterTrackToDisplayNodeMap, ObjectGuidToDisplayNodeMap ) );	
 	}
 
 	TArray<TSharedRef<FSequencerTrackNode>> NonFolderTrackNodes;
 	MasterTrackToDisplayNodeMap.GenerateValueArray( NonFolderTrackNodes );
 	for ( TSharedRef<FSequencerTrackNode> NonFolderTrackNode : NonFolderTrackNodes )
 	{
-		GroupedNodes.Add( NonFolderTrackNode );
+		MasterTrackNodesNotInFolders.Add( NonFolderTrackNode );
 	}
 
 	TArray<TSharedRef<FSequencerObjectBindingNode>> NonFolderObjectNodes;
 	ObjectGuidToDisplayNodeMap.GenerateValueArray( NonFolderObjectNodes );
 	for ( TSharedRef<FSequencerObjectBindingNode> NonFolderObjectNode : NonFolderObjectNodes )
 	{
-		GroupedNodes.Add( NonFolderObjectNode );
+		FolderAndObjectNodes.Add( NonFolderObjectNode );
 	}
 }
 

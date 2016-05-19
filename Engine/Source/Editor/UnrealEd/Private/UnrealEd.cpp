@@ -176,6 +176,10 @@ void EditorExit()
 	// Save out default file directories
 	FEditorDirectories::Get().SaveLastDirectories();
 
+	// Allow the game thread to finish processing any latent tasks.
+	// Some editor functions may queue tasks that need to be run before the editor is finished.
+	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+
 	// Cleanup the misc editor
 	FUnrealEdMisc::Get().OnExit();
 
@@ -184,10 +188,8 @@ void EditorExit()
 		GLogConsole->Show( false );
 	}
 
-
 	delete GDebugToolExec;
 	GDebugToolExec = NULL;
-
 }
 
 IMPLEMENT_MODULE( FDefaultModuleImpl, UnrealEd );

@@ -25,6 +25,8 @@ struct FVulkanTextureBase;
 class FVulkanTexture2D;
 struct FVulkanBufferView;
 class FVulkanResourceMultiBuffer;
+struct FVulkanSemaphore;
+class FVulkanPendingState;
 
 namespace VulkanRHI
 {
@@ -172,6 +174,7 @@ public:
 
 	void Destroy();
 
+#if 0
 	/**
 	 * Locks one of the texture's mip-maps.
 	 * @param ArrayIndex Index of the texture array/face in the form Index*6+Face
@@ -183,6 +186,7 @@ public:
 	 * @param ArrayIndex Index of the texture array/face in the form Index*6+Face
 	 */
 	void Unlock(uint32 MipIndex, uint32 ArrayIndex);
+#endif
 
 	/**
 	 * Returns how much memory is used by the surface
@@ -307,7 +311,6 @@ class FVulkanTexture2D : public FRHITexture2D, public FVulkanTextureBase
 {
 public:
 	FVulkanTexture2D(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, uint32 NumMips, uint32 NumSamples, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
-	FVulkanTexture2D(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
 	virtual ~FVulkanTexture2D();
 
 	void Destroy(FVulkanDevice& Device);
@@ -325,6 +328,33 @@ public:
 	{
 		return FRHIResource::GetRefCount();
 	}
+
+	virtual bool IsBackBuffer() const
+	{
+		return false;
+	}
+
+protected:
+	// Only used for back buffer
+	FVulkanTexture2D(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
+};
+
+class FVulkanBackBuffer : public FVulkanTexture2D
+{
+public:
+	FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo);
+	virtual ~FVulkanBackBuffer();
+
+	virtual bool IsBackBuffer() const override final
+	{
+		return true;
+	}
+
+	// Just a pointer, not owned by this class
+	FVulkanSemaphore* AcquiredSemaphore;
+
+	// Is owned by this class
+	FVulkanSemaphore* RenderingDoneSemaphore;
 };
 
 class FVulkanTexture2DArray : public FRHITexture2DArray, public FVulkanTextureBase
@@ -583,9 +613,6 @@ public:
 	void* Lock(uint32 InSize, uint32 InOffset = 0);
 
 	void Unlock();
-
-	// By not providing a pending state, the copy is occuring immediately and is blocking..
-	void CopyTo(FVulkanSurface& Surface, const VkBufferImageCopy& CopyDesc, class FVulkanPendingState* State = nullptr);
 
 	inline const VkFlags& GetFlags() const { return Usage; }
 
@@ -1065,8 +1092,8 @@ private:
 		TArray<VkDeviceSize> VertexOffsets;
 	} Tmp;
 
-	// these are the cache pipeline state objects used in this BSS
-	TMap<FVulkanPipelineGraphicsKey, class FVulkanPipeline*> PipelineCache;
+	// these are the cache pipeline state objects used in this BSS; RefCounts must be manually controlled for the FVulkanPipelines!
+	TMap<FVulkanPipelineGraphicsKey, FVulkanPipeline* > PipelineCache;
 
 	struct FDescriptorSetsPair
 	{

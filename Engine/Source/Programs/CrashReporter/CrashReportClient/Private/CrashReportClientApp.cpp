@@ -40,6 +40,9 @@ static TArray<FString> FoundReportDirectoryAbsolutePaths;
 /** Name of the game passed via the command line. */
 static FString GameNameFromCmd;
 
+/** GUID of the crash passed via the command line. */
+static FString CrashGUIDFromCmd;
+
 /**
  * Look for the report to upload, either in the command line or in the platform's report queue
  */
@@ -86,7 +89,13 @@ void ParseCommandLine(const TCHAR* CommandLine)
 			FoundReportDirectoryAbsolutePaths.Add(Tokens[0]);
 		}
 
-		GameNameFromCmd = Params.FindRef("AppName");
+		GameNameFromCmd = Params.FindRef(TEXT("AppName"));
+
+		CrashGUIDFromCmd = FString();
+		if (Params.Contains(TEXT("CrashGUID")))
+		{
+			CrashGUIDFromCmd = Params.FindRef(TEXT("CrashGUID"));
+		}
 	}
 
 	if (FoundReportDirectoryAbsolutePaths.Num() == 0)
@@ -122,18 +131,28 @@ FPlatformErrorReport LoadErrorReport()
 		}
 		else
 		{
-			UE_LOG(CrashReportClientLog, Warning, TEXT("No error report found"));
-			return FPlatformErrorReport();
+			continue;
 		}
 
 #if CRASH_REPORT_UNATTENDED_ONLY
 		return ErrorReport;
 #else
+		bool NameMatch = false;
 		if (GameNameFromCmd.IsEmpty() || GameNameFromCmd == FPrimaryCrashProperties::Get()->GameName)
+		{
+			NameMatch = true;
+		}
+
+		bool GUIDMatch = false;
+		if (CrashGUIDFromCmd.IsEmpty() || CrashGUIDFromCmd == FPrimaryCrashProperties::Get()->CrashGUID)
+		{
+			GUIDMatch = true;
+		}
+
+		if (NameMatch && GUIDMatch)
 		{
 			return ErrorReport;
 		}
-		
 #endif
 	}
 
@@ -298,7 +317,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 				// UI failed to initialize, probably due to driver crash. Send in unattended mode if allowed.
 				bool bCanSendWhenUIFailedToInitialize = true;
 				GConfig->GetBool(TEXT("CrashReportClient"), TEXT("CanSendWhenUIFailedToInitialize"), bCanSendWhenUIFailedToInitialize, GEngineIni);
-				if (bCanSendWhenUIFailedToInitialize)
+				if (bCanSendWhenUIFailedToInitialize && !FCrashReportClientConfig::Get().IsAllowedToCloseWithoutSending())
 				{
 					RunUnattended(ErrorReport);
 				}

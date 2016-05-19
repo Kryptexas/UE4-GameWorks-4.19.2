@@ -138,7 +138,7 @@ static bool appCompressMemoryGZIP(void* CompressedBuffer, int32& CompressedSize,
  * @param	CompressedSize				Size of CompressedBuffer data in bytes
  * @return true if compression succeeds, false if it fails because CompressedBuffer was too small or other reasons
  */
-bool appUncompressMemoryZLIB( void* UncompressedBuffer, int32 UncompressedSize, const void* CompressedBuffer, int32 CompressedSize )
+bool appUncompressMemoryZLIB( void* UncompressedBuffer, int32 UncompressedSize, const void* CompressedBuffer, int32 CompressedSize, int32 BitWindow )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "Uncompress Memory ZLIB" ), STAT_appUncompressMemoryZLIB, STATGROUP_Compression );
 
@@ -155,7 +155,7 @@ bool appUncompressMemoryZLIB( void* UncompressedBuffer, int32 UncompressedSize, 
 	stream.next_out = (uint8*)UncompressedBuffer;
 	stream.avail_out = ZUncompressedSize;
 
-	int32 Result = inflateInit(&stream);
+	int32 Result = inflateInit2(&stream, BitWindow);
 
 	if(Result != Z_OK)
 		return false;
@@ -254,7 +254,7 @@ int32 FCompression::CompressMemoryBound( ECompressionFlags Flags, int32 Uncompre
 	IPlatformCompression* PlatformCompression = FPlatformMisc::GetPlatformCompression();
 	if (PlatformCompression != nullptr)
 	{
-		int32 PlatformSpecificCompressionBound = PlatformCompression->CompressMemoryBound(Flags, UncompressedSize);
+		int32 PlatformSpecificCompressionBound = PlatformCompression->CompressMemoryBound(Flags, UncompressedSize, BitWindow);
 		// since we don't know at this point if platform specific compression will actually work, we need to take the worst case number
 		// between the platform specific and generic code paths
 		if (PlatformSpecificCompressionBound > CompressionBound)
@@ -295,7 +295,7 @@ bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuff
 	IPlatformCompression* PlatformCompression = FPlatformMisc::GetPlatformCompression();
 	if (PlatformCompression != nullptr)
 	{
-		bCompressSucceeded = PlatformCompression->CompressMemory(Flags, CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize);
+		bCompressSucceeded = PlatformCompression->CompressMemory(Flags, CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize, BitWindow);
 		if (bCompressSucceeded)
 		{
 			// Keep track of compression time and stats.
@@ -349,7 +349,7 @@ bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuff
  */
 DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("Uncompressor total time"),STAT_UncompressorTime,STATGROUP_Compression);
 
-bool FCompression::UncompressMemory( ECompressionFlags Flags, void* UncompressedBuffer, int32 UncompressedSize, const void* CompressedBuffer, int32 CompressedSize, bool bIsSourcePadded /*= false*/ )
+bool FCompression::UncompressMemory( ECompressionFlags Flags, void* UncompressedBuffer, int32 UncompressedSize, const void* CompressedBuffer, int32 CompressedSize, bool bIsSourcePadded /*= false*/, int32 BitWindow /*= DEFAULT_ZLIB_BIT_WINDOW*/ )
 {
 	// Keep track of time spent uncompressing memory.
 	STAT(double UncompressorStartTime = FPlatformTime::Seconds();)
@@ -363,7 +363,7 @@ bool FCompression::UncompressMemory( ECompressionFlags Flags, void* Uncompressed
 	IPlatformCompression* PlatformCompression = FPlatformMisc::GetPlatformCompression();
 	if (PlatformCompression != nullptr)
 	{
-		bUncompressSucceeded = PlatformCompression->UncompressMemory(Flags, UncompressedBuffer, UncompressedSize, CompressedBuffer, CompressedSize, bIsSourcePadded);
+		bUncompressSucceeded = PlatformCompression->UncompressMemory(Flags, UncompressedBuffer, UncompressedSize, CompressedBuffer, CompressedSize, bIsSourcePadded, BitWindow);
 		if (bUncompressSucceeded)
 		{
 #if	STATS
@@ -380,7 +380,7 @@ bool FCompression::UncompressMemory( ECompressionFlags Flags, void* Uncompressed
 	switch(Flags & COMPRESSION_FLAGS_TYPE_MASK)
 	{
 		case COMPRESS_ZLIB:
-			bUncompressSucceeded = appUncompressMemoryZLIB(UncompressedBuffer, UncompressedSize, CompressedBuffer, CompressedSize);
+			bUncompressSucceeded = appUncompressMemoryZLIB(UncompressedBuffer, UncompressedSize, CompressedBuffer, CompressedSize, BitWindow);
 			if (!bUncompressSucceeded)
 			{
 				// This is only to skip serialization errors caused by asset corruption 

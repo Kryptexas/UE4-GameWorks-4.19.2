@@ -129,6 +129,12 @@ public:
 protected:
 	bool RecursiveFindPathToNode(USoundNode* CurrentNode, const UPTRINT CurrentHash, const UPTRINT NodeHashToFind, TArray<USoundNode*>& OutPath) const;
 
+private:
+	void OnPostEngineInit();
+	void EvaluateNodes(bool bAddToRoot);
+
+	FDelegateHandle OnPostEngineInitHandle;
+
 public:
 
 	/**

@@ -27,6 +27,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,)
 END_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct)
 
 extern float GMinScreenRadiusForLights;
+extern uint32 GetShadowQuality();
 
 template<typename ShaderRHIParamRef>
 void SetDeferredLightParameters(
@@ -77,8 +78,9 @@ void SetDeferredLightParameters(
 		ShadowMapChannel == 2 ? 1 : 0,
 		ShadowMapChannel == 3 ? 1 : 0);
 
+	const bool bDynamicShadows = View.Family->EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
 	const bool bHasLightFunction = LightSceneInfo->Proxy->GetLightFunctionMaterial() != NULL;
-	DeferredLightUniformsValue.bShadowed = LightSceneInfo->Proxy->CastsDynamicShadow() || LightSceneInfo->Proxy->CastsStaticShadow() || bHasLightFunction;
+	DeferredLightUniformsValue.bShadowed = ((LightSceneInfo->Proxy->CastsDynamicShadow() || LightSceneInfo->Proxy->CastsStaticShadow()) && bDynamicShadows) || bHasLightFunction;
 
 	if( LightSceneInfo->Proxy->IsInverseSquared() )
 	{

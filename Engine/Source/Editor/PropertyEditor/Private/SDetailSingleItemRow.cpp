@@ -213,7 +213,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 		TSharedRef<SWidget> KeyFrameButton = CreateKeyframeButton( *Customization, InOwnerTreeNode );
 		TAttribute<bool> IsPropertyEditingEnabled = InOwnerTreeNode->IsPropertyEditingEnabled();
 
-		bool const bEnableFavoriteSystem = GIsRequestingExit ? false : (GetDefault<UEditorStyleSettings>()->bEnableFavoriteSystem && bAllowFavoriteSystem);
+		bool const bEnableFavoriteSystem = GIsRequestingExit ? false : (GetDefault<UEditorExperimentalSettings>()->bEnableFavoriteSystem && bAllowFavoriteSystem);
 
 		TSharedRef<SHorizontalBox> InternalLeftColumnRowBox = SNew(SHorizontalBox);
 

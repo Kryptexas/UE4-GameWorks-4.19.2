@@ -88,10 +88,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=UserInterface, meta=(DisplayName="Show Friendly Variable Names"))
 	uint32 bShowFriendlyNames:1;
 
-	/** When enabled, all properties editor will be able to have favorites category */
-	UPROPERTY(EditAnywhere, config, Category = UserInterface, meta = (DisplayName = "Enable Properties Editor Favorite System"))
-	uint32 bEnableFavoriteSystem : 1;
-
 	/** When enabled, the Editor Preferences and Project Settings menu items in the main menu will be expanded with sub-menus for each settings section. */
 	UPROPERTY(EditAnywhere, config, Category=UserInterface, AdvancedDisplay)
 	uint32 bExpandConfigurationMenus:1;

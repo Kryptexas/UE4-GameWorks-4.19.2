@@ -80,16 +80,16 @@ inline uint32 GetTypeHash(const FVulkanPipelineStateKey& Key)
 
 #endif
 
-class FVulkanPipeline
+class FVulkanPipeline : public VulkanRHI::FRefCount
 {
 public:
 	FVulkanPipeline(FVulkanDevice* InDevice);
+	~FVulkanPipeline();
 
 #if !VULKAN_ENABLE_PIPELINE_CACHE
 	void Create(const FVulkanPipelineState& State);
-#endif
-
 	void Destroy();
+#endif
 
 	inline VkPipeline GetHandle() const
 	{
@@ -144,6 +144,8 @@ public:
 #endif
 		return Found ? *Found : nullptr;
 	}
+
+	void DestroyPipeline(FVulkanPipeline* Pipeline);
 
 	// Array of potential cache locations; first entries have highest priority. Only one cache file is loaded. If unsuccessful, tries next entry in the array.
 	void InitAndLoad(const TArray<FString>& CacheFilenames);

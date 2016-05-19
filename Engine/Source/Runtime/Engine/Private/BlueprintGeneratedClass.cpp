@@ -881,14 +881,23 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 	return ParentClass->GetPersistentUberGraphFrame(Obj, FuncToCheck);
 }
 
-void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty, bool bSkipSuperClass) const
+void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty, bool bSkipSuperClass, UClass* OldClass) const
 {
 	ensure(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
 		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
 		check(PointerToUberGraphFrame);
-		check(bCreateOnlyIfEmpty || !PointerToUberGraphFrame->RawPointer);
+
+		if ( !ensureMsgf(bCreateOnlyIfEmpty || !PointerToUberGraphFrame->RawPointer
+			, TEXT("Attempting to recreate an object's UberGraphFrame when the previous one was not properly destroyed (transitioning '%s' from '%s' to '%s'). We'll attempt to free the frame memory, but cannot clean up its properties (this may result in leaks and undesired side effects).")
+			, *Obj->GetPathName()
+			, (OldClass == nullptr) ? TEXT("<NULL>") : *OldClass->GetName()
+			, *GetName()) )
+		{
+			FMemory::Free(PointerToUberGraphFrame->RawPointer);
+			PointerToUberGraphFrame->RawPointer = nullptr;
+		}
 		
 		if (!PointerToUberGraphFrame->RawPointer)
 		{

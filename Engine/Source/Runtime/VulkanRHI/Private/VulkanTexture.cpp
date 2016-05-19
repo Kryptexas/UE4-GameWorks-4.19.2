@@ -414,6 +414,7 @@ void FVulkanSurface::Destroy()
 	}
 }
 
+#if 0
 void* FVulkanSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode LockMode, uint32& DestStride)
 {
 	DestStride = 0;
@@ -525,6 +526,7 @@ void FVulkanSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 	// Release buffer
 	LinearBuffer = nullptr;
 }
+#endif
 
 uint32 FVulkanSurface::GetMemorySize()
 {
@@ -612,7 +614,6 @@ VkImageAspectFlags FVulkanSurface::GetAspectMask() const
 
 void FVulkanSurface::Clear(const FClearValueBinding& ClearValueBinding, bool bTransitionToPresentable)
 {
-#if VULKAN_CLEAR_SURFACE_ON_CREATE
 	VkImageSubresourceRange Range;
 	FMemory::Memzero(Range);
 	Range.aspectMask = GetAspectMask();
@@ -651,7 +652,6 @@ void FVulkanSurface::Clear(const FClearValueBinding& ClearValueBinding, bool bTr
 		VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), Image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, Range.aspectMask);
 		ImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	}
-#endif
 }
 
 /*-----------------------------------------------------------------------------
@@ -832,13 +832,15 @@ void FVulkanDynamicRHI::RHIUnlockTexture2D(FTexture2DRHIParamRef TextureRHI,uint
 void* FVulkanDynamicRHI::RHILockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
 	FVulkanTexture2DArray* Texture = ResourceCast(TextureRHI);
-	return Texture->Surface.Lock(MipIndex, TextureIndex, LockMode, DestStride);
+	VULKAN_SIGNAL_UNIMPLEMENTED();
+	return nullptr;//Texture->Surface.Lock(MipIndex, TextureIndex, LockMode, DestStride);
 }
 
 void FVulkanDynamicRHI::RHIUnlockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,bool bLockWithinMiptail)
 {
 	FVulkanTexture2DArray* Texture = ResourceCast(TextureRHI);
-	Texture->Surface.Unlock(MipIndex, TextureIndex);
+	VULKAN_SIGNAL_UNIMPLEMENTED();
+	//Texture->Surface.Unlock(MipIndex, TextureIndex);
 }
 
 void FVulkanDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)
@@ -1082,12 +1084,12 @@ FVulkanTexture2D::FVulkanTexture2D(FVulkanDevice& Device, EPixelFormat Format, u
 
 FVulkanTexture2D::~FVulkanTexture2D()
 {
-	Destroy(*Surface.Device);
-}
+	if ((GetFlags() & (TexCreate_DepthStencilTargetable | TexCreate_RenderTargetable)) != 0)
+	{
+		Surface.Device->NotifyDeletedRenderTarget(this);
+	}
 
-void FVulkanTextureReference::SetReferencedTexture(FRHITexture* InTexture)
-{
-	FRHITextureReference::SetReferencedTexture(InTexture);
+	Destroy(*Surface.Device);
 }
 
 void FVulkanTexture2D::Destroy(FVulkanDevice& Device)
@@ -1095,6 +1097,27 @@ void FVulkanTexture2D::Destroy(FVulkanDevice& Device)
 	View.Destroy(Device);
 	Surface.Destroy();
 }
+
+
+FVulkanBackBuffer::FVulkanBackBuffer(FVulkanDevice& Device, EPixelFormat Format, uint32 SizeX, uint32 SizeY, VkImage Image, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo)
+	: FVulkanTexture2D(Device, Format, SizeX, SizeY, Image, UEFlags, CreateInfo)
+	, AcquiredSemaphore(nullptr)
+{
+	RenderingDoneSemaphore = new FVulkanSemaphore(Device);
+}
+
+FVulkanBackBuffer::~FVulkanBackBuffer()
+{
+	//#todo-rco: Enqueue for deletion as we first need to destroy the cmd buffers and queues otherwise validation fails
+	delete RenderingDoneSemaphore;
+}
+
+
+void FVulkanTextureReference::SetReferencedTexture(FRHITexture* InTexture)
+{
+	FRHITextureReference::SetReferencedTexture(InTexture);
+}
+
 
 FVulkanTextureCube::FVulkanTextureCube(FVulkanDevice& Device, EPixelFormat Format, uint32 Size, bool bArray, uint32 ArraySize, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData, const FClearValueBinding& InClearValue)
 :	 FRHITextureCube(Size, NumMips, Format, Flags, InClearValue)
@@ -1105,6 +1128,11 @@ FVulkanTextureCube::FVulkanTextureCube(FVulkanDevice& Device, EPixelFormat Forma
 
 FVulkanTextureCube::~FVulkanTextureCube()
 {
+	if ((GetFlags() & (TexCreate_DepthStencilTargetable | TexCreate_RenderTargetable)) != 0)
+	{
+		Surface.Device->NotifyDeletedRenderTarget(this);
+	}
+
 	Destroy(*Surface.Device);
 }
 

@@ -14,6 +14,8 @@
 #include "SceneUtils.h"
 #include "PostProcessUpscale.h"
 #include "PostProcessCompositeEditorPrimitives.h"
+#include "PostProcessHMD.h"
+#include "IHeadMountedDisplay.h"
 
 uint32 GetShadowQuality();
 
@@ -133,7 +135,8 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	const bool bRequiresUpscale = !ViewFamily.bUseSeparateRenderTarget && ((uint32)ViewFamily.RenderTarget->GetSizeXY().X > ViewFamily.FamilySizeX || (uint32)ViewFamily.RenderTarget->GetSizeXY().Y > ViewFamily.FamilySizeY);
 	// ES2 requires that the back buffer and depth match dimensions.
 	// For the most part this is not the case when using scene captures. Thus scene captures always render to scene color target.
-	const bool bRenderToSceneColor = bRequiresUpscale || FSceneRenderer::ShouldCompositeEditorPrimitives(View) || View.bIsSceneCapture;
+	const bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
+	const bool bRenderToSceneColor = bStereoRenderingAndHMD || bRequiresUpscale || FSceneRenderer::ShouldCompositeEditorPrimitives(View) || View.bIsSceneCapture;
 
 	if (bGammaSpace && !bRenderToSceneColor)
 	{
@@ -273,6 +276,24 @@ void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RH
 		Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
 	}
 #endif
+
+	bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
+	if (bStereoRenderingAndHMD)
+	{
+		FRenderingCompositePass* Node = NULL;
+		const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
+		if (DeviceType == EHMDDeviceType::DT_ES2GenericStereoMesh ||
+			DeviceType == EHMDDeviceType::DT_OculusRift) // PC Preview
+		{
+			Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
+		}
+
+		if (Node)
+		{
+			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+		}
+	}
 
 	// currently created on the heap each frame but View.Family->RenderTarget could keep this object and all would be cleaner
 	TRefCountPtr<IPooledRenderTarget> Temp;

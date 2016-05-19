@@ -19,7 +19,6 @@ FVulkanViewport::FVulkanViewport(FVulkanDynamicRHI* InRHI, void* WindowHandle, u
 	, PixelFormat(InPreferredPixelFormat)
 	, CurrentBackBuffer(-1)
 	, SwapChain(nullptr)
-	, PendingImageSemaphore(nullptr)
 {
 	check(IsInGameThread());
 	RHI->Viewports.Add(this);
@@ -45,7 +44,7 @@ FVulkanViewport::FVulkanViewport(FVulkanDynamicRHI* InRHI, void* WindowHandle, u
 		VkImage Image = Images[Index];
 
 		// Constructor will set to color optimal
-		BackBuffers[Index] = new FVulkanTexture2D(*RHI->Device, PixelFormat, InSizeX, InSizeY, Image, TexCreate_Presentable | TexCreate_RenderTargetable, FClearValueBinding());
+		BackBuffers[Index] = new FVulkanBackBuffer(*RHI->Device, PixelFormat, InSizeX, InSizeY, Image, TexCreate_Presentable | TexCreate_RenderTargetable, FClearValueBinding());
 
 		FName Name = FName(*FString::Printf(TEXT("BackBuffer%d"), Index));
 		BackBuffers[Index]->SetName(Name);
@@ -70,6 +69,7 @@ FVulkanViewport::~FVulkanViewport()
 FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRenderTargetsInfo& InRTInfo, const FVulkanRenderTargetLayout& RTLayout, const FVulkanRenderPass& RenderPass)
 	: Framebuffer(VK_NULL_HANDLE)
 	, NumColorAttachments(0)
+	, BackBuffer(0)
 {
 	Attachments.Empty(RTLayout.GetNumAttachments());
 
@@ -126,6 +126,16 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		Barrier.subresourceRange.levelCount = 1;
 		//Barrier.subresourceRange.baseArrayLayer = 0;
 		Barrier.subresourceRange.layerCount = 1;
+
+		if (Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_2D)
+		{
+			FVulkanTexture2D* Texture2D = (FVulkanTexture2D*)Texture;
+			if (Texture2D->IsBackBuffer())
+			{
+				check(BackBuffer == nullptr);
+				BackBuffer = (FVulkanBackBuffer*)Texture2D;
+			}
+		}
 
 		NumColorAttachments++;
 	}
@@ -232,15 +242,19 @@ bool FVulkanFramebuffer::Matches(const FRHISetRenderTargetsInfo& InRTInfo) const
 
 void FVulkanViewport::AcquireBackBuffer(FVulkanCmdBuffer* CmdBuffer)
 {
-	CurrentBackBuffer = SwapChain->AcquireImageIndex(&PendingImageSemaphore);
+	FVulkanSemaphore* AcquireSemaphore = nullptr;
+	CurrentBackBuffer = SwapChain->AcquireImageIndex(&AcquireSemaphore);
 	check(CurrentBackBuffer != -1);
-	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_GENERAL);
+	check(!BackBuffers[CurrentBackBuffer]->AcquiredSemaphore);
+	BackBuffers[CurrentBackBuffer]->AcquiredSemaphore = AcquireSemaphore;
+	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 }
 
-void FVulkanViewport::PrepareBackBufferForPresent(FVulkanCmdBuffer* CmdBuffer)
+FVulkanBackBuffer* FVulkanViewport::PrepareBackBufferForPresent(FVulkanCmdBuffer* CmdBuffer)
 {
 	check(CurrentBackBuffer != -1);
-	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBuffers[CurrentBackBuffer]->Surface.Image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+	return BackBuffers[CurrentBackBuffer];
 }
 
 void FVulkanFramebuffer::InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer)
@@ -307,12 +321,14 @@ void FVulkanDynamicRHI::Present()
 	{
 		PendingState.RenderPassEnd(CmdBuffer);
 	}
-	DrawingViewport->PrepareBackBufferForPresent(CmdBuffer);
+	FVulkanBackBuffer* BackBuffer = DrawingViewport->PrepareBackBufferForPresent(CmdBuffer);
 	WriteEndFrameTimestamp(this);
 	CmdBuffer->End();
-	Device->GetQueue()->Submit(CmdBuffer);
+	Device->GetQueue()->Submit(CmdBuffer, BackBuffer->AcquiredSemaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, BackBuffer->RenderingDoneSemaphore);
+	// No need to acquire it anymore
+	BackBuffer->AcquiredSemaphore = nullptr;
 
-	DrawingViewport->GetSwapChain()->Present(Device->GetQueue());
+	DrawingViewport->GetSwapChain()->Present(Device->GetQueue(), BackBuffer->RenderingDoneSemaphore);
 
 	bool bNativelyPresented = true;
 	if (bNativelyPresented)

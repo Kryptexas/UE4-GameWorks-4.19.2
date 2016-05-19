@@ -55,9 +55,10 @@ void FVulkanDevice::CreateDevice()
 	FMemory::Memzero(DeviceInfo);
 	DeviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
+	bool bDebugMarkersFound = false;
 	TArray<const ANSICHAR*> DeviceExtensions;
 	TArray<const ANSICHAR*> ValidationLayers;
-	GetDeviceExtensions(DeviceExtensions, ValidationLayers);
+	GetDeviceExtensions(DeviceExtensions, ValidationLayers, bDebugMarkersFound);
 
 	DeviceInfo.enabledExtensionCount = DeviceExtensions.Num();
 	DeviceInfo.ppEnabledExtensionNames = DeviceExtensions.GetData();
@@ -139,6 +140,17 @@ void FVulkanDevice::CreateDevice()
 
 	// Create Graphics Queue, here we submit command buffers for execution
 	Queue = new FVulkanQueue(this, GfxQueueFamilyIndex, 0);
+
+#if VULKAN_ENABLE_DRAW_MARKERS
+	if (bDebugMarkersFound)
+	{
+		VkCmdDbgMarkerBegin = (PFN_vkCmdDbgMarkerBegin)(void*)vkGetDeviceProcAddr(Device, "vkCmdDbgMarkerBegin");
+		VkCmdDbgMarkerEnd = (PFN_vkCmdDbgMarkerEnd)(void*)vkGetDeviceProcAddr(Device, "vkCmdDbgMarkerEnd");
+
+		// We're running under RenderDoc or other trace tool, so enable capturing mode
+		GDynamicRHI->EnableIdealGPUCaptureOptions(true);
+	}
+#endif
 }
 
 void FVulkanDevice::SetupFormats()
@@ -423,11 +435,6 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 		FSamplerStateInitializerRHI Default(SF_Point);
 		DefaultSampler = new FVulkanSamplerState(Default, *this);
 	}
-
-#if VULKAN_ENABLE_DRAW_MARKERS
-	VkCmdDbgMarkerBegin = (PFN_vkCmdDbgMarkerBegin)(void*)vkGetDeviceProcAddr(Device, "vkCmdDbgMarkerBegin");
-	VkCmdDbgMarkerEnd = (PFN_vkCmdDbgMarkerEnd)(void*)vkGetDeviceProcAddr(Device, "vkCmdDbgMarkerEnd");
-#endif
 }
 
 void FVulkanDevice::PrepareForDestroy()
@@ -513,4 +520,10 @@ void FVulkanDevice::BindSRV(FVulkanShaderResourceView* SRV, uint32 TextureIndex,
 	{
 		ShaderState.SetBufferViewState(Stage, TextureIndex, nullptr);
 	}
+}
+
+void FVulkanDevice::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)
+{
+	//#todo-rco: Loop through all contexts!
+	GetPendingState().NotifyDeletedRenderTarget(Texture);
 }

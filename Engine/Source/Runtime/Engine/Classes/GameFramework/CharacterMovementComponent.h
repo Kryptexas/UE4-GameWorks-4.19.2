@@ -642,6 +642,18 @@ public:
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
 	float NetworkSimulatedSmoothRotationTime;
 
+	/**
+	* Similar setting as NetworkSimulatedSmoothLocationTime but only used on Listen servers.
+	*/
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
+	float ListenServerNetworkSimulatedSmoothLocationTime;
+
+	/**
+	* Similar setting as NetworkSimulatedSmoothRotationTime but only used on Listen servers.
+	*/
+	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
+	float ListenServerNetworkSimulatedSmoothRotationTime;
+
 	/** Maximum distance character is allowed to lag behind server location when interpolating between updates. */
 	UPROPERTY(Category="Character Movement (Networking)", EditDefaultsOnly, meta=(ClampMin="0.0", UIMin="0.0"))
 	float NetworkMaxSmoothUpdateDistance;

@@ -261,7 +261,7 @@ void FSequencerTrackNode::GetChildKeyAreaNodesRecursively(TArray<TSharedRef<FSeq
 
 FText FSequencerTrackNode::GetDisplayName() const
 {
-	return AssociatedTrack->GetDisplayName();
+	return AssociatedTrack.IsValid() ? AssociatedTrack->GetDisplayName() : FText::GetEmpty();
 }
 
 

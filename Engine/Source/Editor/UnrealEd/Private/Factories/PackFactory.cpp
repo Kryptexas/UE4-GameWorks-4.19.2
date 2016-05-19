@@ -66,7 +66,7 @@ namespace PackFactoryHelper
 		}
 
 		int64 WorkingSize = Entry.CompressionBlockSize;
-		int32 MaxCompressionBlockSize = FCompression::CompressMemoryBound((ECompressionFlags)Entry.CompressionMethod, WorkingSize);
+		int32 MaxCompressionBlockSize = FCompression::CompressMemoryBound((ECompressionFlags)Entry.CompressionMethod, WorkingSize, FPlatformMisc::GetPlatformCompression()->GetCompressionBitWindow());
 		WorkingSize += MaxCompressionBlockSize;
 		if (PersistentBuffer.Num() < WorkingSize)
 		{
@@ -88,7 +88,7 @@ namespace PackFactoryHelper
 				FAES::DecryptData(PersistentBuffer.GetData(), SizeToRead);
 			}
 
-			if(!FCompression::UncompressMemory((ECompressionFlags)Entry.CompressionMethod,UncompressedBuffer,UncompressedBlockSize,PersistentBuffer.GetData(),CompressedBlockSize))
+			if(!FCompression::UncompressMemory((ECompressionFlags)Entry.CompressionMethod,UncompressedBuffer,UncompressedBlockSize,PersistentBuffer.GetData(),CompressedBlockSize, false, FPlatformMisc::GetPlatformCompression()->GetCompressionBitWindow()))
 			{
 				return false;
 			}

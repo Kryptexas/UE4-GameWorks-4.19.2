@@ -35,7 +35,7 @@ CXXFLAGS = -std=c++11
 ifeq ($(DEBUG),1)
 CPPFLAGS += -g -O0
 else
-CPPFLAGS += -O2
+CPPFLAGS += -DNDEBUG -g -O2
 endif
 
 

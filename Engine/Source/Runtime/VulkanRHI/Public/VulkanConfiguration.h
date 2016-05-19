@@ -27,13 +27,6 @@
 #define VULKAN_UB_RING_BUFFER_SIZE								(8 * 1024 * 1024)
 #define VULKAN_TEMP_FRAME_ALLOCATOR_SIZE						(8 * 1024 * 1024)
 
-//@NOTE: VULKAN_NUM_IMAGE_BUFFERS should be smaller than VULKAN_NUM_COMMAND_BUFFERS, to make sure that we wait for the fence before we reset the cmd buffer
-//@TODO: Clean up VULKAN_NUM_IMAGE_BUFFERS and VULKAN_NUM_COMMAND_BUFFERS once the Vulkan API and SDK stabilizes.
-#define VULKAN_NUM_IMAGE_BUFFERS								3
-
-//@NOTE: VULKAN_NUM_COMMAND_BUFFERS should be larger than NUM_QUEUES_IN_FLIGHT VulkanQueue.h, to make sure that we wait for the fence before we reset the cmd buffer
-#define VULKAN_NUM_COMMAND_BUFFERS								(VULKAN_NUM_IMAGE_BUFFERS + 1)
-
 enum class EDescriptorSetStage
 {
 	// Adjusting these requires a full shader rebuild
@@ -70,7 +63,7 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 }
 
 #define VULKAN_ENABLE_API_DUMP									0
-#define VULKAN_ENABLE_DRAW_MARKERS								0//PLATFORM_WINDOWS
+#define VULKAN_ENABLE_DRAW_MARKERS								PLATFORM_WINDOWS
 #define VULKAN_ALLOW_MIDPASS_CLEAR								0
 
 #define VULKAN_SINGLE_ALLOCATION_PER_RESOURCE					0
@@ -82,19 +75,17 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 // Please remove this after we are done with testing
 #if PLATFORM_WINDOWS
 	#define VULKAN_DISABLE_DEBUG_CALLBACK						0	/* Disable the DebugReportFunction() callback in VulkanDebug.cpp */
-	#define VULKAN_CLEAR_SURFACE_ON_CREATE						1
 	#define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS					0	/* 1 = use resolve attachments, 0 = Use a command buffer vkResolveImage for MSAA resolve */
 	#define VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS				1
 #else
 	#define VULKAN_DISABLE_DEBUG_CALLBACK						1	/* Disable the DebugReportFunction() callback in VulkanDebug.cpp */
-	#define VULKAN_CLEAR_SURFACE_ON_CREATE						1
 	#define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS					1
 	#define VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS				1
 #endif
 
 #define VULKAN_ENABLE_AGGRESSIVE_STATS							1
 
-#define VULKAN_ENABLE_PIPELINE_CACHE							0
+#define VULKAN_ENABLE_PIPELINE_CACHE							1
 
 #define VULKAN_ENABLE_RHI_DEBUGGING								1
 

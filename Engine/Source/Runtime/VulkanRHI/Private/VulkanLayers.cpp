@@ -7,10 +7,17 @@
 #include "VulkanRHIPrivate.h"
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
+
+	#if VULKAN_ENABLE_DRAW_MARKERS
+		#define DEBUG_MARKER_NAME		"VK_LUNARG_DEBUG_MARKER"
+		#define RENDERDOC_LAYER_NAME	"VK_LAYER_RENDERDOC_Capture"
+	#endif
+
 TAutoConsoleVariable<int32> GValidationCvar(
 	TEXT("r.Vulkan.EnableValidation"),
 	0,
-	TEXT("1 to use validation layers")
+	TEXT("1 to use validation layers"),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe
 	);
 
 // List of validation layers which we want to activate for the (device)-instance (used in VulkanRHI.cpp)
@@ -97,15 +104,8 @@ static const ANSICHAR* GDeviceExtensions[] =
 #else
 	//	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,	// Not supported, even if it's reported as a valid extension... (SDK/driver bug?)
 #endif
-#if VULKAN_ENABLE_DRAW_MARKERS
-	// This is removed from the SDK as of 1.0.5.0 but RenderDoc does expose it
-	"VK_LUNARG_DEBUG_MARKER",
-#endif
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
-
-
-#define RENDERDOC_LAYER_NAME	"VK_LAYER_RENDERDOC_Capture"
 
 
 struct FLayerExtension
@@ -190,20 +190,12 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 	}
 	while (Result == VK_INCOMPLETE);
 
-	bool bRenderDocFound = false;
 	for (int32 Index = 0; Index < GlobalLayerProperties.Num(); ++Index)
 	{
 		auto* Layer = new(GlobalLayers) FLayerExtension;
 		Layer->LayerProps = GlobalLayerProperties[Index];
 		GetInstanceLayerExtensions(GlobalLayerProperties[Index].layerName, *Layer);
-		if (!bRenderDocFound)
-		{
-			if (!FCStringAnsi::Strcmp(GlobalLayerProperties[Index].layerName, RENDERDOC_LAYER_NAME))
-			{
-				bRenderDocFound  = true;
-			}
-			UE_LOG(LogVulkanRHI, Display, TEXT("- Found Global Layer %s"), ANSI_TO_TCHAR(GlobalLayerProperties[Index].layerName));
-		}
+		UE_LOG(LogVulkanRHI, Display, TEXT("- Found Global Layer %s"), ANSI_TO_TCHAR(GlobalLayerProperties[Index].layerName));
 	}
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
@@ -267,8 +259,10 @@ void FVulkanDynamicRHI::GetInstanceLayersAndExtensions(TArray<const ANSICHAR*>& 
 }
 
 
-void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers)
+void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers, bool& bOutDebugMarkers)
 {
+	bOutDebugMarkers = false;
+
 	// Setup device layer properties
 	TArray<VkLayerProperties> LayerProperties;
 	{
@@ -302,8 +296,20 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 				UE_LOG(LogVulkanRHI, Warning, TEXT("Unable to find Vulkan device validation layer '%s'"), ANSI_TO_TCHAR(CurrValidationLayer));
 			}
 		}
-
 	}
+
+	#if VULKAN_ENABLE_DRAW_MARKERS
+		bool bRenderDocFound = false;
+		for (int32 Index = 0; Index < LayerProperties.Num(); ++Index)
+		{
+			if (!FCStringAnsi::Strcmp(LayerProperties[Index].layerName, RENDERDOC_LAYER_NAME))
+			{
+				bRenderDocFound = true;
+				break;
+			}
+		}
+	#endif
+
 #endif	// VULKAN_HAS_DEBUGGING_ENABLED
 
 	//@TODO: Extensions mechanisms are currently unavailable
@@ -323,6 +329,22 @@ void FVulkanDevice::GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtens
 			}
 		}
 	}
+
+	#if VULKAN_ENABLE_DRAW_MARKERS
+	if (bRenderDocFound)
+	{
+		for (int32 i = 0; i < Extensions.ExtensionProps.Num(); i++)
+		{
+			if (!FCStringAnsi::Strcmp(Extensions.ExtensionProps[i].extensionName, DEBUG_MARKER_NAME))
+			{
+				OutDeviceExtensions.Add(DEBUG_MARKER_NAME);
+				bOutDebugMarkers = true;
+				break;
+			}
+		}
+	}
+	#endif
+
 
 #endif	// !PLATFORM_ANDROID
 

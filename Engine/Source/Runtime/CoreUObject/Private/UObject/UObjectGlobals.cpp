@@ -2857,8 +2857,8 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 	{
 		// @TODO: temporarily disabling the PostConstructLink optimization here
 		//        since it is unknowingly causing issues in gameplay (see 
-		//        UE-29940) - we're still unclear on what specifically this is
-		//        doing wrong, but will investigate (UE-30120)
+		//        UE-30745) - we're still unclear on what specifically this is
+		//        doing wrong, but will investigate (UE-30852)
 		bCanUsePostConstructLink = false;
 
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitProperties_Blueprint);
@@ -2939,15 +2939,7 @@ void FObjectInitializer::InitArrayPropertyFromCustomList(const UArrayProperty* A
 
 	if (SrcNum > DstNum)
 	{
-		const int32 Count = SrcNum - DstNum;
-		if (!(ArrayProperty->Inner->PropertyFlags & CPF_IsPlainOldData))
-		{
-			DstArrayValueHelper.AddValues(Count);
-		}
-		else
-		{
-			DstArrayValueHelper.AddUninitializedValues(Count);
-		}
+		DstArrayValueHelper.AddValues(SrcNum - DstNum);
 	}
 	else if (SrcNum < DstNum)
 	{

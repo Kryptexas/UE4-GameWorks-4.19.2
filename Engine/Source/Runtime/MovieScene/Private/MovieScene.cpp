@@ -307,15 +307,18 @@ UMovieSceneTrack* UMovieScene::FindTrack(TSubclassOf<UMovieSceneTrack> TrackClas
 	for (const auto& Binding : ObjectBindings)
 	{
 		if (Binding.GetObjectGuid() != ObjectGuid) 
-	{
+		{
 			continue;
 		}
 
 		for (const auto& Track : Binding.GetTracks())
 		{
-			if ((Track->GetClass() == TrackClass) && (Track->GetTrackName() == TrackName))
+			if (Track->GetClass() == TrackClass)
 			{
-				return Track;
+				if (TrackName == NAME_None || Track->GetTrackName() == TrackName)
+				{
+					return Track;
+				}
 			}
 		}
 	}

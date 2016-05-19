@@ -224,6 +224,8 @@ bool GIsTextureMemoryCorrupted = false;
 	bool GIsPrepareMapChangeBroken = false;
 #endif
 
+FSimpleMulticastDelegate UEngine::OnPostEngineInit;
+
 // We expose these variables to everyone as we need to access them in other files via an extern
 ENGINE_API float GAverageFPS = 0.0f;
 ENGINE_API float GAverageMS = 0.0f;
@@ -6358,7 +6360,6 @@ void UEngine::OnLostFocusPause(bool EnablePause)
 
 void UEngine::StartHardwareSurvey()
 {
-
 	// The hardware survey costs time and we don't want to slow down debug builds.
 	// This is mostly because of the CPU benchmark running in the survey and the results in debug are not being valid.
 	// Never run the survey in games, only in the editor.

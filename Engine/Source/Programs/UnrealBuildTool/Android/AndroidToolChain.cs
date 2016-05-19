@@ -406,7 +406,7 @@ namespace UnrealBuildTool
 			// debug info
 			if (CompileEnvironment.Config.bCreateDebugInfo)
 			{
-				Result += " -g2 -gdwarf-2";
+				Result += " -g2 -gdwarf-4";
 			}
 
 			// optimization level
@@ -1110,9 +1110,34 @@ namespace UnrealBuildTool
 		{
 			List<FileItem> Outputs = new List<FileItem>();
 
+			var NDKRoot = Environment.GetEnvironmentVariable("NDKROOT").Replace("\\", "/");
+			int NDKApiLevelInt = GetNdkApiLevelInt();
+			string OptionalLinkArguments;
+
 			for (int ArchIndex = 0; ArchIndex < Arches.Count; ArchIndex++)
 			{
 				string Arch = Arches[ArchIndex];
+
+				// 32-bit ABI may need fixup for removed bsd_signal in NDK11 for android-21+
+				OptionalLinkArguments = "";
+				if (NDKApiLevelInt >= 21)
+				{
+					// this file was added in NDK11 so use existence to detect (RELEASE.TXT no longer present)
+					if (File.Exists(Path.Combine(NDKRoot, "source.properties")))
+					{
+						switch (Arch)
+						{
+							case "-armv7":
+								OptionalLinkArguments = string.Format(" \"{0}\"", Path.Combine(UnrealBuildTool.EngineDirectory.FullName, "Build/Android/Prebuilt/bsdsignal/lib/armeabi-v7a/libbsdsignal.a"));
+								break;
+
+							case "-x86":
+								OptionalLinkArguments = string.Format(" \"{0}\"", Path.Combine(UnrealBuildTool.EngineDirectory.FullName, "Build/Android/Prebuilt/bsdsignal/lib/x86/libbsdsignal.a"));
+								break;
+						}
+					}
+				}
+
 				for (int GPUArchIndex = 0; GPUArchIndex < GPUArchitectures.Count; GPUArchIndex++)
 				{
 					string GPUArchitecture = GPUArchitectures[GPUArchIndex];
@@ -1228,6 +1253,7 @@ namespace UnrealBuildTool
 								}
 							}
 						}
+						LinkAction.CommandArguments += OptionalLinkArguments;
 						LinkAction.CommandArguments += string.Format(" -Wl,--end-group");
 					}
 

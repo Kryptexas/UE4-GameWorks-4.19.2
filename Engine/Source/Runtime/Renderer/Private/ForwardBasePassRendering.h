@@ -891,9 +891,13 @@ void ProcessBasePassMeshForForwardShading(
 		const FLightSceneInfo* SimpleDirectionalLight = Action.GetSimpleDirectionalLight();
 		const bool bUseMovableLight = SimpleDirectionalLight && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
 
+		static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
 		static auto* ConsoleVarAllReceiveDynamicCSM = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllReceiveDynamicCSM"));
 		const bool bAllReceiveDynamicCSM = (ConsoleVarAllReceiveDynamicCSM->GetValueOnAnyThread() == 1);
-		const bool bUseCSM = SimpleDirectionalLight && SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects() && (bAllReceiveDynamicCSM || (Parameters.PrimitiveSceneProxy != nullptr && Parameters.PrimitiveSceneProxy->ShouldRenderCSMForDynamicObjects()));
+		
+		const bool bUseCSM = SimpleDirectionalLight && SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()
+			&& CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnRenderThread() == 1
+			&& (bAllReceiveDynamicCSM || (Parameters.PrimitiveSceneProxy != nullptr && Parameters.PrimitiveSceneProxy->ShouldReceiveCombinedCSMAndStaticShadowsFromStationaryLights()));
 
 		if (LightMapInteraction.GetType() == LMIT_Texture)
 		{

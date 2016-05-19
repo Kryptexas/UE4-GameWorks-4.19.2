@@ -5244,6 +5244,23 @@ bool FBlueprintEditorUtils::ValidateAllFunctionGraphs(UBlueprint* InBlueprint, U
 	return false;
 }
 
+void FBlueprintEditorUtils::ValidateBlueprintVariableMetadata(FBPVariableDescription& VarDesc)
+{
+	// Remove bitflag enum type metadata if the enum type is no longer a bitflags type.
+	if (VarDesc.HasMetaData(FBlueprintMetadata::MD_Bitmask))
+	{
+		FString BitmaskEnumTypeName = VarDesc.GetMetaData(FBlueprintMetadata::MD_BitmaskEnum);
+		if (!BitmaskEnumTypeName.IsEmpty())
+		{
+			UEnum* BitflagsEnum = FindObject<UEnum>(ANY_PACKAGE, *BitmaskEnumTypeName);
+			if (BitflagsEnum == nullptr || !BitflagsEnum->HasMetaData(*FBlueprintMetadata::MD_Bitflags.ToString()))
+			{
+				VarDesc.RemoveMetaData(FBlueprintMetadata::MD_BitmaskEnum);
+			}
+		}
+	}
+}
+
 void FBlueprintEditorUtils::ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName)
 {
 	// Iterate over currently-loaded Blueprints and potentially adjust their variable names if they conflict with the parent

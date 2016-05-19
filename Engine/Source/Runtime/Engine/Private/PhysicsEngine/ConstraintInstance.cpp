@@ -351,6 +351,19 @@ PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Bod
 	return PScene;
 }
 
+bool CanActorSimulate(const FBodyInstance* BI, const PxRigidActor* PActor)
+{
+	if (PActor && (PActor->getActorFlags() & PxActorFlag::eDISABLE_SIMULATION))
+	{
+		const UPrimitiveComponent* PrimComp = BI->OwnerComponent.Get();
+		UE_LOG(LogPhysics, Warning, TEXT("Attempting to create a joint on actor (%s) which is not eligible for simulation. Is it marked QueryOnly?"), *PrimComp->GetReadableName());
+
+		return false;
+	}
+
+	return true;
+}
+
 /*various logical checks to find the correct physx actor. Returns true if found valid actors that can be constrained*/
 bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* Body2, PxRigidActor** PActor1Out, PxRigidActor** PActor2Out)
 {
@@ -372,6 +385,11 @@ bool GetPActors_AssumesLocked(const FBodyInstance* Body1, const FBodyInstance* B
 		return false;
 	}
 
+	if(!CanActorSimulate(Body1, PActor1) || !CanActorSimulate(Body2, PActor2))
+	{
+		return false;
+	}
+	
 	// Need to worry about the case where one is static and one is dynamic, and make sure the static scene is used which matches the dynamic scene
 	if (PActor1 != NULL && PActor2 != NULL)
 	{

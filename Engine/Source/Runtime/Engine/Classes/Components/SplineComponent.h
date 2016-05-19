@@ -99,16 +99,16 @@ public:
 	/** Default up vector in local space to be used when calculating transforms along the spline */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Spline)
 	FVector DefaultUpVector;
-#if !UE_BUILD_SHIPPING
+
+#if WITH_EDITORONLY_DATA
 	/** Color of an unselected spline component segment in the editor */
 	UPROPERTY(EditAnywhere, Category = Editor)
 	FLinearColor EditorUnselectedSplineSegmentColor;
+
 	/** Color of a selected spline component segment in the editor */
 	UPROPERTY(EditAnywhere, Category = Editor)
 	FLinearColor EditorSelectedSplineSegmentColor;
-#endif
 
-#if WITH_EDITORONLY_DATA
 	/** Whether scale visualization should be displayed */
 	UPROPERTY(EditAnywhere, Category = Editor)
 	bool bShouldVisualizeScale;

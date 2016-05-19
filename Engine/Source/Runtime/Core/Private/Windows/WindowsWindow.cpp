@@ -440,7 +440,6 @@ void FWindowsWindow::MoveWindowTo( int32 X, int32 Y )
 		X += BorderRect.left;
 		Y += BorderRect.top;
 	}
-
 	::SetWindowPos(HWnd, nullptr, X, Y, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER);
 }
 

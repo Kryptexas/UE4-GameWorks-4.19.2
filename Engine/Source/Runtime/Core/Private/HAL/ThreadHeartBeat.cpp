@@ -12,9 +12,11 @@ FThreadHeartBeat::FThreadHeartBeat()
 , bReadyToCheckHeartbeat(false)
 , HangDuration(25.0)
 {
+	bool bAllowThreadHeartBeat = FPlatformMisc::AllowThreadHeartBeat();
+
 	// We don't care about programs for now so no point in spawning the extra thread
 #if !IS_PROGRAM
-	if (FPlatformProcess::SupportsMultithreading())
+	if (bAllowThreadHeartBeat && FPlatformProcess::SupportsMultithreading())
 	{
 		Thread = FRunnableThread::Create(this, TEXT("FHeartBeatThread"), 0, TPri_BelowNormal);
 	}
@@ -24,6 +26,11 @@ FThreadHeartBeat::FThreadHeartBeat()
 	if (GConfig)
 	{
 		GConfig->GetDouble(TEXT("Core.System"), TEXT("HangDuration"), HangDuration, GEngineIni);
+	}
+	if (!bAllowThreadHeartBeat)
+	{
+		// Disable the check
+		HangDuration = 0.0;
 	}
 }
 

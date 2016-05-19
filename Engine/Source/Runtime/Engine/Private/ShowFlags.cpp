@@ -540,10 +540,6 @@ EViewModeIndex FindViewMode(const FEngineShowFlags& EngineShowFlags)
 	{
 		return VMI_StationaryLightOverlap;
 	}
-	else if(EngineShowFlags.ShaderComplexity)
-	{
-		return VMI_ShaderComplexity;
-	}
 	// Test QuadComplexity before ShaderComplexity because QuadComplexity also use ShaderComplexity
 	else if(EngineShowFlags.QuadOverdraw)
 	{

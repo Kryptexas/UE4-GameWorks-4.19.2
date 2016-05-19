@@ -89,7 +89,12 @@ void FVulkanCommandListContext::RHICopyToResolveTarget(FTextureRHIParamRef Sourc
 	if (GSubmitOnCopyToResolve)
 	{
 		CmdBuffer->End();
-		Device->GetQueue()->Submit(CmdBuffer);
+
+		FVulkanSemaphore* BackBufferAcquiredSemaphore = Framebuffer->GetBackBuffer() ? Framebuffer->GetBackBuffer()->AcquiredSemaphore : nullptr;
+
+		Device->GetQueue()->Submit(CmdBuffer, BackBufferAcquiredSemaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, nullptr);
+		// No need to acquire it anymore
+		Framebuffer->GetBackBuffer()->AcquiredSemaphore = nullptr;
 		CommandBufferManager->PrepareForNewActiveCommandBuffer();
 	}
 #else

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "GenericPlatformCompression.h"
 
 
 /**
@@ -691,7 +692,7 @@ public:
 	void DoWork()
 	{
 		// Uncompress from memory to memory.
-		verify( FCompression::UncompressMemory( Flags, UncompressedBuffer, UncompressedSize, CompressedBuffer, CompressedSize, bIsSourceMemoryPadded ) );
+		verify( FCompression::UncompressMemory( Flags, UncompressedBuffer, UncompressedSize, CompressedBuffer, CompressedSize, bIsSourceMemoryPadded, FPlatformMisc::GetPlatformCompression()->GetCompressionBitWindow()) );
 	}
 
 	FORCEINLINE TStatId GetStatId() const

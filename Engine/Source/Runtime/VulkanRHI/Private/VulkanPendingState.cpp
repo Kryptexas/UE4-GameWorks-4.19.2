@@ -599,22 +599,6 @@ void FVulkanPendingState::PrepareDraw(FVulkanCommandListContext* CmdListContext,
 
 		CurrentState.Shader->BindDescriptorSets(Cmd);
 		CurrentState.Shader->BindVertexStreams(Cmd, PendingStreams);
-
-		switch (Topology)
-		{
-		default:
-			if (CurrentState.RasterizerState->RasterizerState.polygonMode != VK_POLYGON_MODE_LINE)
-			{
-				break;
-			}
-			// Fall through...
-		case VK_PRIMITIVE_TOPOLOGY_LINE_LIST:
-		case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP:
-		case VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY:
-		case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY:
-			vkCmdSetLineWidth(Cmd->GetHandle(), 1.0f);
-			break;
-		}
 	}
 }
 
@@ -636,16 +620,6 @@ void FVulkanPendingState::SubmitPendingCommandBuffers(FVulkanPendingState::TCall
 	check(Device);
 	//#todo-rco: FIX ME!
 	Device->GetImmediateContext().GetCommandBufferManager()->Submit(&GetCurrentCommandBuffer());
-#endif
-}
-
-void FVulkanPendingState::SubmitPendingCommandBuffersBlockingNoRenderPass()
-{
-#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
-	check(0);
-#else
-	check(Device);
-	Device->GetQueue()->SubmitBlocking(&GetCurrentCommandBuffer());
 #endif
 }
 
@@ -909,4 +883,22 @@ void FVulkanPendingState::SetRasterizerState(FVulkanRasterizerState* NewState)
 FVulkanFramebuffer* FVulkanPendingState::GetFrameBuffer()
 {
 	return CurrentState.FrameBuffer;
+}
+
+void FVulkanPendingState::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)
+{
+	for (auto& Pair : FrameBufferMap)
+	{
+		TArray<FVulkanFramebuffer*>& FrameBuffers = Pair.Value;
+		for (int32 Index = FrameBuffers.Num() - 1; Index >= 0; --Index)
+		{
+			FVulkanFramebuffer* FB = FrameBuffers[Index];
+			if (FB->ContainsRenderTarget(Texture))
+			{
+				FB->Destroy(*Device);
+				delete FB;
+				FrameBuffers.RemoveAtSwap(Index, 1, false);
+			}
+		}
+	}
 }

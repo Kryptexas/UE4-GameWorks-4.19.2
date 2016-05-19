@@ -449,9 +449,9 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 				FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType& ClothShaderData = VertexFactoryData.ClothVertexFactories[ChunkIdx]->GetClothShaderData();
 				ClothShaderData.ClothBlendWeight = DynamicData->ClothBlendWeight;
 				int16 ActorIdx = Chunk.CorrespondClothAssetIndex;
-				if( DynamicData->ClothSimulUpdateData.IsValidIndex(ActorIdx) )
+				if( FClothSimulData* SimData = DynamicData->ClothSimulUpdateData.Find(ActorIdx) )
 				{
-					bNeedFence = ClothShaderData.UpdateClothSimulData(RHICmdList, DynamicData->ClothSimulUpdateData[ActorIdx].ClothSimulPositions, DynamicData->ClothSimulUpdateData[ActorIdx].ClothSimulNormals, FrameNumberToPrepare, FeatureLevel) || bNeedFence;
+					bNeedFence = ClothShaderData.UpdateClothSimulData(RHICmdList, SimData->ClothSimulPositions, SimData->ClothSimulNormals, FrameNumberToPrepare, FeatureLevel) || bNeedFence;
 				}
 			}
 #endif // WITH_APEX_CLOTHING

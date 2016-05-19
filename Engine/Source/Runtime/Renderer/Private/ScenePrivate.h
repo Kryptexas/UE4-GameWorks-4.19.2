@@ -1414,8 +1414,8 @@ private:
 	/** Internal helper to perform blockupdates and transition updates on the results of UpdateCachePrimitivesInternal.  Must be on render thread. */
 	void FinalizeUpdateInternal_RenderThread(FScene* Scene, FSceneRenderer& Renderer, TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate, const TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate);
 
-	/** Internal helper which adds an entry to the update lists for this allocation, if needed (due to movement, etc). */
-	void UpdateCacheAllocation(
+	/** Internal helper which adds an entry to the update lists for this allocation, if needed (due to movement, etc). Returns true if the allocation was updated or will be udpated */
+	bool UpdateCacheAllocation(
 		const FBoxSphereBounds& Bounds, 
 		int32 BlockSize,
 		bool bPointSample,

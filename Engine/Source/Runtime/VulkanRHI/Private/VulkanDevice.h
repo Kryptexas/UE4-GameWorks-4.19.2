@@ -136,6 +136,8 @@ public:
 		return *ImmediateContext;
 	}
 
+	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
+
 #if VULKAN_ENABLE_DRAW_MARKERS
 
 	typedef void(VKAPI_PTR *PFN_vkCmdDbgMarkerBegin)(VkCommandBuffer commandBuffer, const char *pMarker);
@@ -192,7 +194,7 @@ private:
 
 	FVulkanRingBuffer* UBRingBuffer;
 
-	void GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers);
+	void GetDeviceExtensions(TArray<const ANSICHAR*>& OutDeviceExtensions, TArray<const ANSICHAR*>& OutDeviceLayers, bool& bOutDebugMarkers);
 	void SetupFormats();
 
 #if VULKAN_ENABLE_DRAW_MARKERS

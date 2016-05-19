@@ -1095,6 +1095,8 @@ void FBodyInstance::UpdatePhysicsFilterData()
 #endif
 }
 
+TAutoConsoleVariable<int32> CDisableQueryOnlyActors(TEXT("p.DisableQueryOnlyActors"), 0, TEXT("If QueryOnly is used, actors are marked as simulation disabled. This is NOT compatible with origin shifting at the moment."));
+
 #if UE_WITH_PHYSICS
 
 
@@ -1186,7 +1188,7 @@ struct FInitBodiesHelper
 		physx::PxRigidDynamic* PNewDynamic = nullptr;
 
 		const ECollisionEnabled::Type CollisionType = Instance->GetCollisionEnabled();
-		const bool bDisableSim = CollisionType == ECollisionEnabled::QueryOnly || CollisionType == ECollisionEnabled::NoCollision;
+		const bool bDisableSim = (CollisionType == ECollisionEnabled::QueryOnly || CollisionType == ECollisionEnabled::NoCollision) && CDisableQueryOnlyActors.GetValueOnGameThread();
 
 		if (IsStatic())
 		{
@@ -4568,7 +4570,8 @@ void FBodyInstance::LoadProfileData(bool bVerifyProfile)
 			// if external profile copy the data over
 			if (ExternalCollisionProfileBodySetup.IsValid(true))
 			{
-				const FBodyInstance& ExternalBodyInstance = ExternalCollisionProfileBodySetup->DefaultInstance;
+				UBodySetup* BodySetupInstance = ExternalCollisionProfileBodySetup.Get(true);
+				const FBodyInstance& ExternalBodyInstance = BodySetupInstance->DefaultInstance;
 				CollisionProfileName = ExternalBodyInstance.CollisionProfileName;
 				ObjectType = ExternalBodyInstance.ObjectType;
 				CollisionEnabled = ExternalBodyInstance.CollisionEnabled;

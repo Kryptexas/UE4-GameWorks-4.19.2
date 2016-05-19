@@ -293,6 +293,8 @@ FVulkanRasterizerState::FVulkanRasterizerState(const FRasterizerStateInitializer
 
 	RasterizerState.depthBiasSlopeFactor = Initializer.SlopeScaleDepthBias;
 	RasterizerState.depthBiasConstantFactor = Initializer.DepthBias;
+
+	RasterizerState.lineWidth = 1.0f;
 }
 
 FVulkanDepthStencilState::FVulkanDepthStencilState(const FDepthStencilStateInitializerRHI& Initializer) :

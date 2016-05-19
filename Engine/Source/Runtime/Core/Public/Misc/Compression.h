@@ -94,7 +94,7 @@ struct FCompression
 	 * @param	bIsSourcePadded		Whether the source memory is padded with a full cache line at the end
 	 * @return true if compression succeeds, false if it fails because CompressedBuffer was too small or other reasons
 	 */
-	CORE_API static bool UncompressMemory( ECompressionFlags Flags, void* UncompressedBuffer, int32 UncompressedSize, const void* CompressedBuffer, int32 CompressedSize, bool bIsSourcePadded = false );
+	CORE_API static bool UncompressMemory( ECompressionFlags Flags, void* UncompressedBuffer, int32 UncompressedSize, const void* CompressedBuffer, int32 CompressedSize, bool bIsSourcePadded = false, int32 BitWindow = DEFAULT_ZLIB_BIT_WINDOW );
 };
 
 

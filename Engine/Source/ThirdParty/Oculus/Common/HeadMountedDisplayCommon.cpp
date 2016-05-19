@@ -1020,7 +1020,7 @@ void FHeadMountedDisplay::SetScreenPercentage(float InScreenPercentage)
 
 float FHeadMountedDisplay::GetScreenPercentage() const
 {
-	return (Settings->Flags.bOverrideScreenPercentage) ? Settings->ScreenPercentage : 0.0f;
+	return Settings->GetActualScreenPercentage();
 }
 
 void FHeadMountedDisplay::ResetControlRotation() const
@@ -1403,12 +1403,23 @@ void FHeadMountedDisplay::SetLayerDesc(uint32 LayerId, const IStereoLayers::FLay
 	const FHMDLayerDesc* pLayer = pLayerMgr->GetLayerDesc(LayerId);
 	if (pLayer && pLayer->GetType() == FHMDLayerDesc::Quad)
 	{
+		FVector2D NewQuadSize = InLayerDesc.QuadSize;
+		if (InLayerDesc.Flags & IStereoLayers::LAYER_FLAG_QUAD_PRESERVE_TEX_RATIO && InLayerDesc.Texture.IsValid())
+		{
+			FRHITexture2D* Texture2D = InLayerDesc.Texture->GetTexture2D();
+			if (Texture2D)
+			{
+				const float TexRatio = (Texture2D->GetSizeY() == 0) ? 1280.0f/720.0f : (float)Texture2D->GetSizeX() / (float)Texture2D->GetSizeY();
+				NewQuadSize.Y = (TexRatio) ? NewQuadSize.X / TexRatio : NewQuadSize.Y;
+			}
+		}
+
 		FHMDLayerDesc Layer = *pLayer;
 		Layer.SetFlags(InLayerDesc.Flags);
 		Layer.SetLockedToHead(InLayerDesc.Type == IStereoLayers::ELayerType::FaceLocked);
 		Layer.SetLockedToTorso(InLayerDesc.Type == IStereoLayers::ELayerType::TorsoLocked);
 		Layer.SetTexture(InLayerDesc.Texture);
-		Layer.SetQuadSize(InLayerDesc.QuadSize);
+		Layer.SetQuadSize(NewQuadSize);
 		Layer.SetTransform(InLayerDesc.Transform);
 		Layer.ResetChangedFlags();
 		Layer.SetTextureViewport(InLayerDesc.UVRect);

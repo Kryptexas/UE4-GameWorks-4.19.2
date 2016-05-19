@@ -158,8 +158,11 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 			const bool bVisibleForSelection = !bDrawOnlyIfSelected || IsSelected();
 			const bool bVisibleForShowFlags = true; // @TODO
 
+			// Should we draw this because collision drawing is enabled, and we have collision
+			const bool bShowForCollision = View->Family->EngineShowFlags.Collision && IsCollisionEnabled();
+
 			FPrimitiveViewRelevance Result;
-			Result.bDrawRelevance = IsShown(View) && bVisibleForSelection && bVisibleForShowFlags;
+			Result.bDrawRelevance = (IsShown(View) && bVisibleForSelection && bVisibleForShowFlags) || bShowForCollision;
 			Result.bDynamicRelevance = true;
 			Result.bShadowRelevance = IsShadowCast(View);
 			Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);

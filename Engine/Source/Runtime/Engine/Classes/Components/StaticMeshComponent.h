@@ -186,10 +186,6 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(transient)
 	uint32 bForceNavigationObstacle : 1;
 
-	/** Use the collision profile specified in the StaticMesh asset.*/
-	UPROPERTY()
-	uint32 bUseDefaultCollision : 1;
-
 	/** If true, mesh painting is disallowed on this instance. Set if vertex colors are overridden in a construction script. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Rendering)
 	uint32 bDisallowMeshPaintPerInstance : 1;
@@ -242,6 +238,11 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	/** The list of texture, bounds and scales. As computed in the texture streaming build process. */
 	UPROPERTY(duplicatetransient, NonTransactional)
 	TArray<FStreamingTextureBuildInfo> StreamingTextureData;
+
+
+	/** Use the collision profile specified in the StaticMesh asset.*/
+	UPROPERTY(EditAnywhere, Category = Collision)
+	bool bUseDefaultCollision;
 
 #if WITH_EDITORONLY_DATA
 	/** 

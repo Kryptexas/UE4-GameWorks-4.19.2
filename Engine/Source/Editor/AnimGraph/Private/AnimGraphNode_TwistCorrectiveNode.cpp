@@ -42,7 +42,7 @@ FText UAnimGraphNode_TwistCorrectiveNode::GetNodeTitle(ENodeTitleType::Type Titl
 
 FText UAnimGraphNode_TwistCorrectiveNode::GetControllerDescription() const
 {
-	return LOCTEXT("TwistCorrectiveNode", "Twist Corrective Nodes");
+	return LOCTEXT("TwistCorrectiveNode", "Twist Corrective Node");
 }
 
 void UAnimGraphNode_TwistCorrectiveNode::ValidateAnimNodeDuringCompilation(USkeleton* ForSkeleton, FCompilerResultsLog& MessageLog)

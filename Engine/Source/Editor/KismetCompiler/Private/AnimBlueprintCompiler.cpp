@@ -1360,7 +1360,7 @@ void FAnimBlueprintCompiler::PostCompile()
 		if(EvaluationHandler.ServicedProperties.Num() > 0)
 		{
 			const FAnimNodeSinglePropertyHandler& Handler = EvaluationHandler.ServicedProperties.CreateConstIterator()->Value;
-			UAnimGraphNode_Base* Node = CastChecked<UAnimGraphNode_Base>(Handler.ArrayPins.Num() > 0 ? Handler.ArrayPins[0]->GetOwningNode() : Handler.SinglePin->GetOwningNode());
+			UAnimGraphNode_Base* Node = CastChecked<UAnimGraphNode_Base>(Handler.ArrayPins.Num() > 0 ? Handler.ArrayPins.CreateConstIterator()->Value->GetOwningNode() : Handler.SinglePin->GetOwningNode());
 			UAnimGraphNode_Base* TrueNode = MessageLog.FindSourceObjectTypeChecked<UAnimGraphNode_Base>(Node);	
 
 			FExposedValueHandler* HandlerPtr = EvaluationHandler.EvaluationHandlerProperty->ContainerPtrToValuePtr<FExposedValueHandler>(EvaluationHandler.NodeVariableProperty->ContainerPtrToValuePtr<void>(DefaultAnimInstance));
@@ -2072,8 +2072,16 @@ void FAnimBlueprintCompiler::FEvaluationHandlerRecord::RegisterPin(UEdGraphPin* 
 {
 	FAnimNodeSinglePropertyHandler& Handler = ServicedProperties.FindOrAdd(AssociatedProperty->GetFName());
 
+	bool bIsMultiPropertyToArrayCopy = false;
 	if (AssociatedPropertyArrayIndex != INDEX_NONE)
 	{
+		if (Handler.SimpleCopyPropertyName != NAME_None)
+		{
+			// already-existing handler with a simple copy into an array, so we will need multiple copy records. 
+			// For now we just fall back to slow path
+			Handler.SimpleCopyPropertyName = NAME_None;
+			bIsMultiPropertyToArrayCopy = true;
+		}
 		Handler.ArrayPins.Add(AssociatedPropertyArrayIndex, SourcePin);
 	}
 	else
@@ -2082,7 +2090,7 @@ void FAnimBlueprintCompiler::FEvaluationHandlerRecord::RegisterPin(UEdGraphPin* 
 		Handler.SinglePin = SourcePin;
 	}
 
-	if(GetDefault<UEngine>()->bOptimizeAnimBlueprintMemberVariableAccess)
+	if(GetDefault<UEngine>()->bOptimizeAnimBlueprintMemberVariableAccess && !bIsMultiPropertyToArrayCopy)
 	{
 		typedef bool (FAnimBlueprintCompiler::FEvaluationHandlerRecord::*GraphCheckerFunc)(FAnimNodeSinglePropertyHandler&, UEdGraphPin*);
 

@@ -873,6 +873,9 @@ public:
 	/** Replaces all variable references in the specified blueprint */
 	static void ReplaceVariableReferences(UBlueprint* Blueprint, const UProperty* OldVariable, const UProperty* NewVariable);
 
+	/** Check blueprint variable metadata keys/values for validity and make adjustments if needed */
+	static void ValidateBlueprintVariableMetadata(FBPVariableDescription& VarDesc);
+
 	/** Validate child blueprint component member variables, member variables, and timelines, and function graphs against the given variable name */
 	static void ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName);
 

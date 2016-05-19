@@ -397,13 +397,16 @@ void FTransaction::Apply()
 		Record.bRestored = false;
 
 		UObject* Object = Record.Object.Get();
-		if (!ChangedObjects.Contains(Object))
+		if (Object)
 		{
-			Object->CheckDefaultSubobjects();
-			Object->PreEditUndo();
-		}
+			if (!ChangedObjects.Contains(Object))
+			{
+				Object->CheckDefaultSubobjects();
+				Object->PreEditUndo();
+			}
 
-		ChangedObjects.Add(Object, Record.ObjectAnnotation);
+			ChangedObjects.Add(Object, Record.ObjectAnnotation);
+		}
 	}
 	for( int32 i=Start; i!=End; i+=Inc )
 	{

@@ -116,6 +116,11 @@ public:
 			TSet<ULandscapeComponent*> SelectedComponents;
 			LandscapeInfo->GetComponentsInRegion(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, SelectedComponents);
 
+			for (ULandscapeComponent* Component : SelectedComponents)
+			{
+				Component->Modify();
+			}
+
 			if (bAddToWhitelist)
 			{
 				for (ULandscapeComponent* Component : SelectedComponents)

@@ -366,6 +366,7 @@ void FMaterialCompilationOutput::Serialize(FArchive& Ar)
 	Ar << bModifiesMeshPosition;
 	Ar << bNeedsGBuffer;
 	Ar << bUsesGlobalDistanceField;
+	Ar << bUsesPixelDepthOffset;
 }
 
 void FMaterial::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -624,6 +625,12 @@ bool FMaterial::MaterialMayModifyMeshPosition() const
 	// This function is only intended for use in deciding whether or not shader permutations are required.
 	return HasVertexPositionOffsetConnected() || HasPixelDepthOffsetConnected() || HasMaterialAttributesConnected() || GetTessellationMode() != MTM_NoTessellation
 		|| (GetMaterialDomain() == MD_DeferredDecal && GetDecalBlendMode() == DBM_Volumetric_DistanceFunction);
+}
+
+bool FMaterial::MaterialUsesPixelDepthOffset() const
+{
+	check(IsInParallelRenderingThread());
+	return RenderingThreadShaderMap ? RenderingThreadShaderMap->UsesPixelDepthOffset() : false;
 }
 
 FMaterialShaderMap* FMaterial::GetRenderingThreadShaderMap() const 

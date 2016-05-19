@@ -202,6 +202,9 @@ private:
 	/** Register responsible for managing spawned objects */
 	TSharedPtr<FLevelSequenceSpawnRegister> SpawnRegister;
 
+	/** The last view target to reset to when updating camera cuts to null */
+	mutable TWeakObjectPtr<AActor> LastViewTarget;
+
 #if WITH_EDITOR
 public:
 

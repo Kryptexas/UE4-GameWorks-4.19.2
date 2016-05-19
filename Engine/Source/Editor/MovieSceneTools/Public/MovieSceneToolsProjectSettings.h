@@ -30,23 +30,23 @@ public:
 	FString ShotPrefix;
 
 	/** The first shot number. */
-	UPROPERTY(config, EditAnywhere, Category=Shots)
+	UPROPERTY(config, EditAnywhere, Category=Shots, meta = (UIMin = "1", UIMax = "100"))
 	uint32 FirstShotNumber;
 
 	/** The default shot increment. */
-	UPROPERTY(config, EditAnywhere, Category=Shots)
+	UPROPERTY(config, EditAnywhere, Category=Shots, meta = (UIMin = "1", UIMax = "100"))
 	uint32 ShotIncrement;
 
 	/** The number of digits for the shot number. */
-	UPROPERTY(config, EditAnywhere, Category=Shots)
+	UPROPERTY(config, EditAnywhere, Category=Shots, meta = (UIMin = "1", UIMax = "10"))
 	uint32 ShotNumDigits;
 
 	/** The number of digits for the take number. */
-	UPROPERTY(config, EditAnywhere, Category=Shots)
+	UPROPERTY(config, EditAnywhere, Category=Shots, meta = (UIMin = "1", UIMax = "10"))
 	uint32 TakeNumDigits;
 
 	/** The first take number. */
-	UPROPERTY(config, EditAnywhere, Category=Shots)
+	UPROPERTY(config, EditAnywhere, Category=Shots, meta = (UIMin = "1", UIMax = "10"))
 	uint32 FirstTakeNumber;
 
 	/** The separator between the shot number and the take number. */
