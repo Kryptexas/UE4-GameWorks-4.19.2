@@ -55,9 +55,9 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 	check(BaseSource.IsValidTarget(TargetSource));
 
 	// create the LOD entry if it doesn't already exist
-	if( LODIndex == MorphLODModels.Num() )
+	if( LODIndex >= MorphLODModels.Num() )
 	{
-		new(MorphLODModels) FMorphTargetLODModel();
+		MorphLODModels.AddDefaulted(LODIndex - MorphLODModels.Num() + 1);
 	}
 
 	// morph mesh data to modify
