@@ -709,13 +709,7 @@ void FCanvas::Flush_GameThread(bool bForce)
 	}
 
 	// current render target set for the canvas
-	check(RenderTarget);	
-	
-	if (!IsValidRef(RenderTarget->GetRenderTargetTexture()))
-	{
-		ensureMsgf(false, TEXT("Tried to flush CanvasParams with invalid render target texture."));
-		return;
-	}
+	check(RenderTarget);	 	
 
 	// no need to set the render target if we aren't going to draw anything to it!
 	if (SortedElements.Num() == 0)
@@ -772,7 +766,8 @@ void FCanvas::Flush_GameThread(bool bForce)
 
 		if (Parameters.bIsScaledToRenderTarget)
 		{
-			Parameters.ViewRect = FIntRect(0, 0, Parameters.CanvasRenderTarget->GetRenderTargetTexture()->GetSizeX(), Parameters.CanvasRenderTarget->GetRenderTargetTexture()->GetSizeY());
+			FIntPoint CanvasSize = Parameters.CanvasRenderTarget->GetSizeXY();
+			Parameters.ViewRect = FIntRect(0, 0, CanvasSize.X, CanvasSize.Y);
 		}
 
 		const FIntRect& ViewportRect = Parameters.ViewRect;
