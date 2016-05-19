@@ -302,15 +302,25 @@ struct FInEditorCapture
 
 		bScreenMessagesWereEnabled = GAreScreenMessagesEnabled;
 		GAreScreenMessagesEnabled = false;
-		IConsoleVariable* CVarTextureStreaming = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TextureStreaming"));
-		if (CVarTextureStreaming)
+
+		if (!InCaptureObject->Settings.bEnableTextureStreaming)
 		{
-			bTextureStreamingWasEnabled = CVarTextureStreaming->GetInt() != 0;
-			if (bTextureStreamingWasEnabled != InCaptureObject->Settings.bEnableTextureStreaming)
+			const int32 UndefinedTexturePoolSize = -1;
+			IConsoleVariable* CVarStreamingPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.PoolSize"));
+			if (CVarStreamingPoolSize)
 			{
-				CVarTextureStreaming->Set(InCaptureObject->Settings.bEnableTextureStreaming);
+				BackedUpStreamingPoolSize = CVarStreamingPoolSize->GetInt();
+				CVarStreamingPoolSize->Set(UndefinedTexturePoolSize, ECVF_SetByConsole);
+			}
+
+			IConsoleVariable* CVarUseFixedPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.UseFixedPoolSize"));
+			if (CVarUseFixedPoolSize)
+			{
+				BackedUpUseFixedPoolSize = CVarUseFixedPoolSize->GetInt(); 
+				CVarUseFixedPoolSize->Set(0, ECVF_SetByConsole);
 			}
 		}
+
 		OnStarted = InOnStarted;
 		FObjectWriter(PlayInEditorSettings, BackedUpPlaySettings);
 		OverridePlaySettings(PlayInEditorSettings);
@@ -415,15 +425,22 @@ struct FInEditorCapture
 		CaptureObject->OnCaptureFinished().RemoveAll(this);
 
 		GAreScreenMessagesEnabled = bScreenMessagesWereEnabled;
-		IConsoleVariable* CVarTextureStreaming = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TextureStreaming"));
-		if (CVarTextureStreaming)
+
+		if (!CaptureObject->Settings.bEnableTextureStreaming)
 		{
-			bool bTextureStreamingEnabled = CVarTextureStreaming->GetInt() != 0;
-			if (bTextureStreamingEnabled != bTextureStreamingWasEnabled)
+			IConsoleVariable* CVarStreamingPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.PoolSize"));
+			if (CVarStreamingPoolSize)
 			{
-				CVarTextureStreaming->Set(bTextureStreamingWasEnabled);
+				CVarStreamingPoolSize->Set(BackedUpStreamingPoolSize, ECVF_SetByConsole);
+			}
+
+			IConsoleVariable* CVarUseFixedPoolSize = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.UseFixedPoolSize"));
+			if (CVarUseFixedPoolSize)
+			{
+				CVarUseFixedPoolSize->Set(BackedUpUseFixedPoolSize, ECVF_SetByConsole);
 			}
 		}
+
 		FObjectReader(GetMutableDefault<ULevelEditorPlaySettings>(), BackedUpPlaySettings);
 
 		CaptureObject->Close();
@@ -446,7 +463,8 @@ struct FInEditorCapture
 
 	TFunction<void()> OnStarted;
 	bool bScreenMessagesWereEnabled;
-	bool bTextureStreamingWasEnabled;
+	int32 BackedUpStreamingPoolSize;
+	int32 BackedUpUseFixedPoolSize;
 	TArray<uint8> BackedUpPlaySettings;
 	UMovieSceneCapture* CaptureObject;
 };
