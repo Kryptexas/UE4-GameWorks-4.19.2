@@ -21,9 +21,7 @@
 #define DO_FOLIAGE_CHECK			0			// whether to validate foliage data during editing.
 #define FOLIAGE_CHECK_TRANSFORM		0			// whether to compare transforms between render and painting data.
 
-
-DEFINE_LOG_CATEGORY_STATIC(LogInstancedFoliage, Log, All);
-
+DEFINE_LOG_CATEGORY(LogInstancedFoliage);
 
 // Custom serialization version for all packages containing Instance Foliage
 struct FFoliageCustomVersion
