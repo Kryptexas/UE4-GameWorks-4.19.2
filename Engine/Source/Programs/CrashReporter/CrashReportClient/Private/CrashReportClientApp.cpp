@@ -182,12 +182,14 @@ bool RunWithUI(FPlatformErrorReport ErrorReport)
 
 	// Try to initialize the renderer. It's possible that we launched when the driver crashed so try a few times before giving up.
 	bool bRendererInitialized = false;
+	bool bRendererFailedToInitializeAtLeastOnce = false;
 	do 
 	{
 		SlateRendererInitRetryCount--;
 		bRendererInitialized = FSlateApplication::Get().InitializeRenderer(SlateRenderer, true);
 		if (!bRendererInitialized && SlateRendererInitRetryCount > 0)
 		{
+			bRendererFailedToInitializeAtLeastOnce = true;
 			FPlatformProcess::Sleep(SlateRendererInitRetryInterval);
 		}
 	} while (!bRendererInitialized && SlateRendererInitRetryCount > 0);
@@ -197,6 +199,16 @@ bool RunWithUI(FPlatformErrorReport ErrorReport)
 		// Close down the Slate application
 		FSlateApplication::Shutdown();
 		return false;
+	}
+	else if (bRendererFailedToInitializeAtLeastOnce)
+	{
+		// Wait until the driver is fully restored
+		FPlatformProcess::Sleep(2.0f);
+
+		// Update the display metrics
+		FDisplayMetrics DisplayMetrics;
+		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+		FSlateApplication::Get().GetPlatformApplication()->OnDisplayMetricsChanged().Broadcast(DisplayMetrics);
 	}
 
 	// Set up the main ticker
