@@ -1701,6 +1701,35 @@ FName MakeObjectNameFromDisplayLabel(const FString& DisplayLabel, const FName Cu
    Duplicating Objects.
 -----------------------------------------------------------------------------*/
 
+struct FObjectDuplicationHelperMethods
+{
+	// Helper method intended to gather up all default subobjects that have already been created and prepare them for duplication.
+	static void GatherDefaultSubobjectsForDuplication(UObject* SrcObject, UObject* DstObject, FUObjectAnnotationSparse<FDuplicatedObject, false>& DuplicatedObjectAnnotation, FDuplicateDataWriter& Writer)
+	{
+		TArray<UObject*> SrcDefaultSubobjects;
+		SrcObject->GetDefaultSubobjects(SrcDefaultSubobjects);
+		
+		// Iterate over all default subobjects within the source object.
+		for (UObject* SrcDefaultSubobject : SrcDefaultSubobjects)
+		{
+			if (SrcDefaultSubobject)
+			{
+				// Attempt to find a default subobject with the same name within the destination object.
+				UObject* DupDefaultSubobject = DstObject->GetDefaultSubobjectByName(SrcDefaultSubobject->GetFName());
+				if (DupDefaultSubobject)
+				{
+					// Map the duplicated default subobject to the source and register it for serialization.
+					DuplicatedObjectAnnotation.AddAnnotation(SrcDefaultSubobject, FDuplicatedObject(DupDefaultSubobject));
+					Writer.UnserializedObjects.Add(SrcDefaultSubobject);
+
+					// Recursively gather any nested default subobjects that have already been constructed through CreateDefaultSubobject().
+					GatherDefaultSubobjectsForDuplication(SrcDefaultSubobject, DupDefaultSubobject, DuplicatedObjectAnnotation, Writer);
+				}
+			}
+		}
+	}
+};
+
 /**
  * Constructor - zero initializes all members
  */
@@ -1847,6 +1876,9 @@ UObject* StaticDuplicateObjectEx( FObjectDuplicationParameters& Parameters )
 	{
 		FBlueprintSupport::DuplicateAllFields(dynamic_cast<UStruct*>(Parameters.SourceObject), Writer);
 	}
+
+	// Add default subobjects to the DuplicatedObjects map so they don't get recreated during serialization.
+	FObjectDuplicationHelperMethods::GatherDefaultSubobjectsForDuplication(Parameters.SourceObject, DupRootObject, DuplicatedObjectAnnotation, Writer);
 
 	InstanceGraph.SetDestinationRoot( DupRootObject );
 	while(Writer.UnserializedObjects.Num())
