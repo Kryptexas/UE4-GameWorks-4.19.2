@@ -49,7 +49,7 @@ If this line is missing or not formatted properly, CIS will generate an error an
     * Typedefs should be prefixed by whatever is appropriate for that type: F if it's a typedef of a struct, U if it's a typedef of a UObject etc.
         * A typedef of a particular template instantiation is no longer a template and should be prefixed accordingly, e.g.:
 
-			typedef TArray<FMyType> FArrayOfMyTypes;
+                typedef TArray<FMyType> FArrayOfMyTypes;
     * Prefixes are omitted in C#.
     * UnrealHeaderTool requires the correct prefixes in most cases, so it's important to provide them.
 * Type and variable names are nouns.
