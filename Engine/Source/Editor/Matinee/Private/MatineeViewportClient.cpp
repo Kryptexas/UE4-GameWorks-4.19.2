@@ -636,10 +636,10 @@ bool FMatineeViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, F
 
 				if(bBoxSelecting)
 				{
-					const int32 MinX = FMath::Min(BoxStartX, BoxEndX);
-					const int32 MinY = FMath::Min(BoxStartY, BoxEndY);
-					const int32 MaxX = FMath::Max(BoxStartX, BoxEndX);
-					const int32 MaxY = FMath::Max(BoxStartY, BoxEndY);
+					const int32 MinX = FMath::Max(0, FMath::Min(BoxStartX, BoxEndX));
+					const int32 MinY = FMath::Max(0, FMath::Min(BoxStartY, BoxEndY));
+					const int32 MaxX = FMath::Min(Viewport->GetSizeXY().X - 1, FMath::Max(BoxStartX, BoxEndX));
+					const int32 MaxY = FMath::Min(Viewport->GetSizeXY().Y - 1, FMath::Max(BoxStartY, BoxEndY));
 					const int32 TestSizeX = MaxX - MinX + 1;
 					const int32 TestSizeY = MaxY - MinY + 1;
 
