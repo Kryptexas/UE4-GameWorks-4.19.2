@@ -2762,12 +2762,6 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 	}
 	else
 	{
-		// @TODO: temporarily disabling the PostConstructLink optimization here
-		//        since it is unknowingly causing issues in gameplay (see 
-		//        UE-30745) - we're still unclear on what specifically this is
-		//        doing wrong, but will investigate (UE-30852)
-		bCanUsePostConstructLink = false;
-
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitProperties_Blueprint);
 
 		UObject* ClassDefaults = bCopyTransientsFromClassDefaults ? DefaultsClass->GetDefaultObject() : NULL;		
@@ -2823,11 +2817,8 @@ void FObjectInitializer::InitPropertiesFromCustomList(const FCustomPropertyListN
 		}
 		else if (const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CustomPropertyListNode->Property))
 		{
-			// This should never be NULL; we should not be recording the ArrayProperty without at least one sub property, but we'll verify just to be sure.
-			if (ensure(CustomPropertyListNode->SubPropertyList != nullptr))
-			{
-				InitArrayPropertyFromCustomList(ArrayProperty, CustomPropertyListNode->SubPropertyList, PropertyValue, DefaultPropertyValue);
-			}
+			// Note: The sub-property list can be NULL here; in that case only the array size will differ from the default value, but the elements themselves will simply be initialized to defaults.
+			InitArrayPropertyFromCustomList(ArrayProperty, CustomPropertyListNode->SubPropertyList, PropertyValue, DefaultPropertyValue);
 		}
 		else
 		{
