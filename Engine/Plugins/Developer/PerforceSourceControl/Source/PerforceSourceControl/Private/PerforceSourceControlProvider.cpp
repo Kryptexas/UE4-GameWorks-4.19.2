@@ -565,13 +565,27 @@ void FPerforceSourceControlProvider::LoadSSLLibraries()
 
 	const FString PlatformString = TEXT("Win64");
 	const FString RootOpenSSLPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/OpenSSL/") / PlatformString / VSVersion;
+	const FText LoadFailed = LOCTEXT("SourceControlLoadSSLLibraryFailed", "Failed to load \"{DLLPath}\". You may be unable to use SSL functionality with source control.");
 
 	FString DLLToLoad = RootOpenSSLPath + TEXT("libeay32.dll");
 	Module_libeay32 = LoadLibraryW(*DLLToLoad);
-	verifyf(Module_libeay32, TEXT("Failed to load DLL %s"), *DLLToLoad);
+
+	if(Module_libeay32 == nullptr)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add( TEXT("DLLPath"), FText::FromString(DLLToLoad) );
+		FMessageLog("SourceControl").Error(FText::Format(LoadFailed, Arguments));
+	}
+
 	DLLToLoad = RootOpenSSLPath + TEXT("ssleay32.dll");
 	Module_ssleay32 = LoadLibraryW(*DLLToLoad);
-	verifyf(Module_ssleay32, TEXT("Failed to load DLL %s"), *DLLToLoad);
+
+	if(Module_ssleay32 == nullptr)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add( TEXT("DLLPath"), FText::FromString(DLLToLoad) );
+		FMessageLog("SourceControl").Error(FText::Format(LoadFailed, Arguments));
+	}
 #endif
 #endif
 }
