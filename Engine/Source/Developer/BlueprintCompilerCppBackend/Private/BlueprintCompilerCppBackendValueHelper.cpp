@@ -248,10 +248,10 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UScriptStruct* S
 			const auto Rotation = Transform->GetRotation();
 			const auto Translation = Transform->GetTranslation();
 			const auto Scale = Transform->GetScale3D();
-			*OutResult = FString::Printf(TEXT("FTransform(FQuat(%f, %f, %f, %f), FVector(%f, %f, %f), FVector(%f, %f, %f))")
-				, Rotation.X, Rotation.Y, Rotation.Z, Rotation.W
-				, Translation.X, Translation.Y, Translation.Z
-				, Scale.X, Scale.Y, Scale.Z);
+			*OutResult = FString::Printf(TEXT("FTransform( FQuat(%s,%s,%s,%s), FVector(%s,%s,%s), FVector(%s,%s,%s) )"),
+				*FEmitHelper::FloatToString(Rotation.X), *FEmitHelper::FloatToString(Rotation.Y), *FEmitHelper::FloatToString(Rotation.Z), *FEmitHelper::FloatToString(Rotation.W),
+				*FEmitHelper::FloatToString(Translation.X), *FEmitHelper::FloatToString(Translation.Y), *FEmitHelper::FloatToString(Translation.Z),
+				*FEmitHelper::FloatToString(Scale.X), *FEmitHelper::FloatToString(Scale.Y), *FEmitHelper::FloatToString(Scale.Z));
 		}
 		return true;
 	}
@@ -261,7 +261,7 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UScriptStruct* S
 		if (OutResult)
 		{
 			const FVector* Vector = reinterpret_cast<const FVector*>(ValuePtr);
-			*OutResult = FString::Printf(TEXT("FVector(%f, %f, %f)"), Vector->X, Vector->Y, Vector->Z);
+			*OutResult = FString::Printf(TEXT("FVector(%s, %s, %s)"), *FEmitHelper::FloatToString(Vector->X), *FEmitHelper::FloatToString(Vector->Y), *FEmitHelper::FloatToString(Vector->Z));
 		}
 		return true;
 	}
@@ -281,7 +281,7 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UScriptStruct* S
 		if (OutResult)
 		{
 			const FRotator* Rotator = reinterpret_cast<const FRotator*>(ValuePtr);
-			*OutResult = FString::Printf(TEXT("FRotator(%f, %f, %f)"), Rotator->Pitch, Rotator->Yaw, Rotator->Roll);
+			*OutResult = FString::Printf(TEXT("FRotator(%s, %s, %s)"), *FEmitHelper::FloatToString(Rotator->Pitch), *FEmitHelper::FloatToString(Rotator->Yaw), *FEmitHelper::FloatToString(Rotator->Roll));
 		}
 		return true;
 	}
@@ -291,7 +291,7 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UScriptStruct* S
 		if (OutResult)
 		{
 			const FLinearColor* LinearColor = reinterpret_cast<const FLinearColor*>(ValuePtr);
-			*OutResult = FString::Printf(TEXT("FLinearColor(%f, %f, %f, %f)"), LinearColor->R, LinearColor->G, LinearColor->B, LinearColor->A);
+			*OutResult = FString::Printf(TEXT("FLinearColor(%s, %s, %s, %s)"), *FEmitHelper::FloatToString(LinearColor->R), *FEmitHelper::FloatToString(LinearColor->G), *FEmitHelper::FloatToString(LinearColor->B), *FEmitHelper::FloatToString(LinearColor->A));
 		}
 		return true;
 	}
@@ -311,7 +311,7 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UScriptStruct* S
 		if (OutResult)
 		{
 			const FVector2D* Vector2D = reinterpret_cast<const FVector2D*>(ValuePtr);
-			*OutResult = FString::Printf(TEXT("FVector2D(%f, %f)"), Vector2D->X, Vector2D->Y);
+			*OutResult = FString::Printf(TEXT("FVector2D(%s, %s)"), *FEmitHelper::FloatToString(Vector2D->X), *FEmitHelper::FloatToString(Vector2D->Y));
 		}
 		return true;
 	}
@@ -321,11 +321,11 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UScriptStruct* S
 		if (OutResult)
 		{
 			const FBox2D* Box2D = reinterpret_cast<const FBox2D*>(ValuePtr);
-			*OutResult = FString::Printf(TEXT("CreateFBox2D(FVector2D(%f, %f), FVector2D(%f, %f), %s)")
-				, Box2D->Min.X
-				, Box2D->Min.Y
-				, Box2D->Max.X
-				, Box2D->Max.Y
+			*OutResult = FString::Printf(TEXT("CreateFBox2D(FVector2D(%s, %s), FVector2D(%s, %s), %s)")
+				, *FEmitHelper::FloatToString(Box2D->Min.X)
+				, *FEmitHelper::FloatToString(Box2D->Min.Y)
+				, *FEmitHelper::FloatToString(Box2D->Max.X)
+				, *FEmitHelper::FloatToString(Box2D->Max.Y)
 				, Box2D->bIsValid ? TEXT("true") : TEXT("false"));
 		}
 		return true;
@@ -338,11 +338,11 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UScriptStruct* S
 			const FFloatRangeBound* FloatRangeBound = reinterpret_cast<const FFloatRangeBound*>(ValuePtr);
 			if (FloatRangeBound->IsExclusive())
 			{
-				*OutResult = FString::Printf(TEXT("FFloatRangeBound::Exclusive(%f)"), FloatRangeBound->GetValue());
+				*OutResult = FString::Printf(TEXT("FFloatRangeBound::Exclusive(%s)"), *FEmitHelper::FloatToString(FloatRangeBound->GetValue()));
 			}
 			if (FloatRangeBound->IsInclusive())
 			{
-				*OutResult = FString::Printf(TEXT("FFloatRangeBound::Inclusive(%f)"), FloatRangeBound->GetValue());
+				*OutResult = FString::Printf(TEXT("FFloatRangeBound::Inclusive(%s)"), *FEmitHelper::FloatToString(FloatRangeBound->GetValue()));
 			}
 			if (FloatRangeBound->IsOpen())
 			{
@@ -416,7 +416,7 @@ bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UScriptStruct* S
 		if (OutResult)
 		{
 			const FFloatInterval* Interval = reinterpret_cast<const FFloatInterval*>(ValuePtr);
-			*OutResult = FString::Printf(TEXT("FFloatInterval(%f, %f)"), Interval->Min, Interval->Max);
+			*OutResult = FString::Printf(TEXT("FFloatInterval(%s, %s)"), *FEmitHelper::FloatToString(Interval->Min), *FEmitHelper::FloatToString(Interval->Max));
 		}
 		return true;
 	}

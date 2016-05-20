@@ -71,6 +71,10 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	, bBlueprintableComponents(true)
 	, bBlueprintPerformanceAnalysisTools(false)
 	, BlueprintProfilerRecentSampleBias(0.2f)
+	, BlueprintProfilerEventThreshold(1.f)
+	, BlueprintProfilerExclNodeThreshold(0.2f)
+	, BlueprintProfilerInclNodeThreshold(0.25f)
+	, BlueprintProfilerMaxNodeThreshold(0.5f)
 	, bUseOpenCLForConvexHullDecomp(false)
 	, bAllowPotentiallyUnsafePropertyEditing(false)
 {
@@ -110,6 +114,22 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 	else if (Name == FName(TEXT("BlueprintProfilerRecentSampleBias")))
 	{
 		FScriptPerfData::SetRecentSampleBias(BlueprintProfilerRecentSampleBias);
+	}
+	else if (Name == FName(TEXT("BlueprintProfilerEventThreshold")))
+	{
+		FScriptPerfData::SetEventPerformanceThreshold(BlueprintProfilerEventThreshold);
+	}
+	else if (Name == FName(TEXT("BlueprintProfilerExclNodeThreshold")))
+	{
+		FScriptPerfData::SetNodePerformanceThreshold(BlueprintProfilerExclNodeThreshold);
+	}
+	else if (Name == FName(TEXT("BlueprintProfilerInclNodeThreshold")))
+	{
+		FScriptPerfData::SetInclusivePerformanceThreshold(BlueprintProfilerInclNodeThreshold);
+	}
+	else if (Name == FName(TEXT("BlueprintProfilerMaxNodeThreshold")))
+	{
+		FScriptPerfData::SetMaxPerformanceThreshold(BlueprintProfilerMaxNodeThreshold);
 	}
 
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())

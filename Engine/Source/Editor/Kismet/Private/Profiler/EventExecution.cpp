@@ -2,7 +2,6 @@
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "EventExecution.h"
-#include "ScriptPerfData.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FScriptNodeExecLinkage
@@ -21,6 +20,14 @@ TSharedPtr<FScriptExecutionNode> FScriptNodeExecLinkage::GetLinkedNodeByScriptOf
 		Result = *SearchResult;
 	}
 	return Result;
+}
+
+void FScriptNodeExecLinkage::GetFilteredChildNodes(TArray<FLinearExecPath>& ChildArrayInOut, const FTracePath& TracePath)
+{
+	for (auto Child : ChildNodes)
+	{
+		ChildArrayInOut.Add(FLinearExecPath(Child, TracePath));
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -54,7 +61,7 @@ TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetPerfDataByInstanceAndTracePa
 	TSharedPtr<FScriptPerfData>& Result = InstanceMap.FindOrAdd(TracePath);
 	if (!Result.IsValid())
 	{
-		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData);
+		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType()));
 	}
 	return Result;
 }
@@ -80,7 +87,7 @@ TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetBlueprintPerfDataByTracePath
 	TSharedPtr<FScriptPerfData>& Result = BlueprintMap.FindOrAdd(TracePath);
 	if (!Result.IsValid())
 	{
-		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData);
+		Result = MakeShareable<FScriptPerfData>(new FScriptPerfData(GetPerfDataType()));
 	}
 	return Result;
 }
@@ -127,11 +134,18 @@ bool FScriptExecutionNode::operator == (const FScriptExecutionNode& NodeIn) cons
 	return NodeName == NodeIn.NodeName;
 }
 
-void FScriptExecutionNode::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath)
+void FScriptExecutionNode::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren)
 {
 	LinearExecutionNodes.Add(FLinearExecPath(AsShared(), TracePath));
-	FTracePath NewTracePath(TracePath);
-	if (GetNumLinkedNodes() == 1)
+	if (bIncludeChildren)
+	{
+		for (auto Child : ChildNodes)
+		{
+			FTracePath ChildTracePath(TracePath);
+			Child->GetLinearExecutionPath(LinearExecutionNodes, ChildTracePath, bIncludeChildren);
+		}
+	}
+	if (bIncludeChildren || GetNumLinkedNodes() == 1)
 	{
 		for (auto NodeIter : LinkedNodes)
 		{
@@ -141,11 +155,12 @@ void FScriptExecutionNode::GetLinearExecutionPath(TArray<FLinearExecPath>& Linea
 			}
 			else
 			{
+				FTracePath NewTracePath(TracePath);
 				if (NodeIter.Key != INDEX_NONE && !HasFlags(EScriptExecutionNodeFlags::InvalidTrace))
 				{
 					NewTracePath.AddExitPin(NodeIter.Key);
 				}
-				NodeIter.Value->GetLinearExecutionPath(LinearExecutionNodes, NewTracePath);
+				NodeIter.Value->GetLinearExecutionPath(LinearExecutionNodes, NewTracePath, bIncludeChildren);
 			}
 		}
 	}
@@ -341,6 +356,11 @@ void FScriptExecutionNode::NavigateToObject() const
 	}
 }
 
+const EScriptPerfDataType FScriptExecutionNode::GetPerfDataType() const
+{
+	return IsEvent() ? EScriptPerfDataType::Event : EScriptPerfDataType::Node;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FScriptExecutionTunnelInstance
 
@@ -357,16 +377,75 @@ void FScriptExecutionTunnelInstance::GetBlueprintPerfDataForAllTracePaths(FScrip
 //////////////////////////////////////////////////////////////////////////
 // FScriptExecutionTunnelEntry
 
-void FScriptExecutionTunnelEntry::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath)
+void FScriptExecutionTunnelEntry::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren)
 {
 	LinearExecutionNodes.Add(FLinearExecPath(AsShared(), TracePath));
-	FTracePath TunnelTracePath(TracePath, SharedThis<const FScriptExecutionTunnelEntry>(this));
-	for (auto TunnelExit : LinkedNodes)
+	if (TunnelType != MultiIOTunnel)
 	{
-		if (IsPathValidForTunnel(TunnelExit.Key))
+		FTracePath TunnelTracePath(TracePath, SharedThis<const FScriptExecutionTunnelEntry>(this));
+		for (auto TunnelExit : LinkedNodes)
 		{
-			TunnelTracePath.AddExitPin(TunnelExit.Key);
-			TunnelExit.Value->GetLinearExecutionPath(LinearExecutionNodes, TunnelTracePath);
+			if (IsPathValidForTunnel(TunnelExit.Key))
+			{
+				TunnelTracePath.AddExitPin(TunnelExit.Key);
+				TunnelExit.Value->GetLinearExecutionPath(LinearExecutionNodes, TunnelTracePath);
+			}
+		}
+	}
+}
+
+void FScriptExecutionTunnelEntry::GetFilteredChildNodes(TArray<FLinearExecPath>& ChildArrayInOut, const FTracePath& TracePath)
+{
+	ChildArrayInOut.Reset();
+	switch(TunnelType)
+	{
+		case SimpleTunnel:
+		{
+			FTracePath ChildTrace(TracePath);
+			for (auto Child : ChildNodes)
+			{
+				if (Child->HasFlags(EScriptExecutionNodeFlags::TunnelEntryPin))
+				{
+					for (auto NodeToAdd : Child->GetChildNodes())
+					{
+						FTracePath NewTrace(ChildTrace);
+						ChildArrayInOut.Add(FLinearExecPath(NodeToAdd, NewTrace));
+					}
+				}
+				else if (!Child->HasFlags(EScriptExecutionNodeFlags::TunnelPin))
+				{
+					ChildArrayInOut.Add(FLinearExecPath(Child, ChildTrace));
+				}
+			}
+			break;
+		}
+		case SinglePathTunnel:
+		{
+			FTracePath ChildTrace(TracePath);
+			for (auto Child : ChildNodes)
+			{
+				ChildArrayInOut.Add(FLinearExecPath(Child, ChildTrace));
+			}
+			break;
+		}
+		case MultiIOTunnel:
+		{
+			TArray<FLinearExecPath> Results;
+			FTracePath ChildTrace(TracePath);
+			for (auto Child : ChildNodes)
+			{
+				const bool bIgnoreChildren = Child->HasFlags(EScriptExecutionNodeFlags::TunnelExitPin);
+				ChildArrayInOut.Add(FLinearExecPath(Child, ChildTrace, bIgnoreChildren));
+				Child->GetLinearExecutionPath(Results, ChildTrace, true);
+			}
+			for (auto Node : Results)
+			{
+				if (Node.LinkedNode->HasFlags(EScriptExecutionNodeFlags::TunnelExitPin))
+				{
+					ChildArrayInOut.Add(FLinearExecPath(Node.LinkedNode, TracePath, true));
+				}
+			}
+			break;
 		}
 	}
 }
@@ -453,31 +532,63 @@ void FScriptExecutionTunnelEntry::RefreshStats(const FTracePath& TracePath)
 	}
 }
 
-//////////////////////////////////////////////////////////////////////////
-// FScriptExecutionTunnelExit
-
-void FScriptExecutionTunnelExit::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath)
+void FScriptExecutionTunnelEntry::BuildExitBranches()
 {
-	LinearExecutionNodes.Add(FLinearExecPath(AsShared(), TracePath));
-	FTracePath NewTracePath(TracePath);
-	TSharedPtr<const FScriptExecutionTunnelEntry> ActiveTunnel = TracePath.GetTunnel();
-	if (ActiveTunnel.IsValid())
+	if (TunnelType == ETunnelType::MultiIOTunnel)
 	{
-		for (auto TunnelExit : LinkedNodes)
+		BranchedExitSites.Reset();
+		TArray<FLinearExecPath> Results;
+		FTracePath TracePath(SharedThis<FScriptExecutionTunnelEntry>(this));
+		for (auto Child : ChildNodes)
 		{
-			if (ActiveTunnel->IsPathValidForTunnel(TunnelExit.Key))
+			Child->GetLinearExecutionPath(Results, TracePath, true);
+		}
+		for (auto Node : Results)
+		{
+			if (Node.LinkedNode->HasFlags(EScriptExecutionNodeFlags::TunnelExitPin))
 			{
-				NewTracePath.AddExitPin(TunnelExit.Key);
-				TunnelExit.Value->GetLinearExecutionPath(LinearExecutionNodes, NewTracePath);
+				BranchedExitSites.Add(Node);
 			}
 		}
 	}
 }
 
 //////////////////////////////////////////////////////////////////////////
+// FScriptExecutionTunnelExit
+
+void FScriptExecutionTunnelExit::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeExitLinks)
+{
+	TSharedPtr<const FScriptExecutionTunnelEntry> ActiveTunnel = TracePath.GetTunnel();
+	if (ActiveTunnel.IsValid())
+	{
+		if (ActiveTunnel->GetTunnelType() != FScriptExecutionTunnelEntry::SimpleTunnel)
+		{
+			LinearExecutionNodes.Add(FLinearExecPath(AsShared(), TracePath));
+			FTracePath NewTracePath(TracePath);
+			for (auto TunnelExit : LinkedNodes)
+			{
+				if (bIncludeExitLinks && ActiveTunnel->IsPathValidForTunnel(TunnelExit.Key))
+				{
+					NewTracePath.AddExitPin(TunnelExit.Key);
+					TunnelExit.Value->GetLinearExecutionPath(LinearExecutionNodes, NewTracePath);
+				}
+			}
+		}
+	}
+}
+
+void FScriptExecutionTunnelExit::NavigateToObject() const
+{
+	if (ObservedObject.IsValid())
+	{
+		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(ObservedObject.Get());
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
 // FScriptExecutionPureNode
 
-void FScriptExecutionPureNode::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath)
+void FScriptExecutionPureNode::GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren)
 {
 	LinearExecutionNodes.Add(FLinearExecPath(AsShared(), TracePath));
 	FTracePath NewTracePath(TracePath);

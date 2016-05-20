@@ -5,11 +5,30 @@
 #include "Editor/Kismet/Public/Profiler/TracePath.h"
 
 //////////////////////////////////////////////////////////////////////////
+// FBlueprintExecutionTrace
+
+struct FBlueprintExecutionTrace
+{
+	EScriptInstrumentation::Type TraceType;
+	FTracePath TracePath;
+	FName InstanceName;
+	FName FunctionName;
+	FName NodeName;
+	int32 Offset;
+	double ObservationTime;
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FBlueprintExecutionContext
 
 class FBlueprintExecutionContext : public TSharedFromThis<FBlueprintExecutionContext>
 {
 public:
+
+	FBlueprintExecutionContext()
+		: ExecutionTraceHistory(256)
+	{
+	}
 
 	/** Initialise the context from the blueprint path name */
 	bool InitialiseContext(const FString& BlueprintPath);
@@ -25,6 +44,12 @@ public:
 
 	/** Returns the blueprint exec node for this context */
 	TSharedPtr<class FScriptExecutionBlueprint> GetBlueprintExecNode() const { return BlueprintNode; }
+
+	/** Returns the blueprint trace history */
+	const TSimpleRingBuffer<FBlueprintExecutionTrace>& GetTraceHistory() const { return ExecutionTraceHistory; }
+
+	/** Returns a new trace history event */
+	FBlueprintExecutionTrace& AddNewTraceHistoryEvent() { return ExecutionTraceHistory.WriteNewElementInitialized(); }
 
 	/** Add event execution node */
 	void AddEventNode(TSharedPtr<FScriptExecutionNode> EventExecNode);
@@ -83,7 +108,8 @@ private:
 	TMap<FName, FName> PIEInstanceNameMap;
 	/** Editor instances */
 	TMap<FName, TWeakObjectPtr<const UObject>> ActorInstances;
-
+	/** Event Trace History */
+	TSimpleRingBuffer<FBlueprintExecutionTrace> ExecutionTraceHistory;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -132,11 +158,14 @@ public:
 	/** Returns the function name for this context */
 	FName GetFunctionName() const { return FunctionName; }
 
+	/** Returns the tunnel type */
+	const FScriptExecutionTunnelEntry::ETunnelType GetTunnelType(const FName TunnelName) const;
+
 	/** Returns the tunnel entry from the script code offset */
 	TSharedPtr<FScriptExecutionTunnelEntry> GetTunnelEntrySite(const int32 ScriptCodeOffset);
 
 	/** Returns the tunnel custom entry from the script code offset */
-	TSharedPtr<FScriptExecutionTunnelEntry> GetTunnelFromExitSite(const int32 ScriptCodeOffset);
+	void GetTunnelsFromExitSite(const int32 ScriptCodeOffset, TArray<TSharedPtr<FScriptExecutionTunnelEntry>>& ResultsOut) const;
 
 private:
 
@@ -219,9 +248,9 @@ private:
 	/** Map associating function entry points to exit points */
 	TMap<FName, TArray<TSharedPtr<FScriptExecutionNode>>> TunnelExitPointMap;
 	/** Map associating tunnel entry points to script code offsets */
-	TMap<int32, TSharedPtr<FScriptExecutionTunnelEntry>> TunnelEntrySites;
+	TMultiMap<int32, TSharedPtr<FScriptExecutionTunnelEntry>> TunnelEntrySites;
 	/** Map associating custom tunnel entries to script code offsets */
-	TMap<int32, TSharedPtr<FScriptExecutionTunnelEntry>> TunnelExitSites;
+	TMultiMap<int32, TSharedPtr<FScriptExecutionTunnelEntry>> TunnelExitSites;
 	/** Staging tunnel name during mapping */
 	FName StagingTunnelName;
 	/** Map of tunnel Ids */

@@ -38,7 +38,7 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 		ObjectClassToUse = (UUserDefinedEnum::StaticClass() == ObjectClassToUse) ? UEnum::StaticClass() : ObjectClassToUse;
 		ObjectClassToUse = (UUserDefinedStruct::StaticClass() == ObjectClassToUse) ? UScriptStruct::StaticClass() : ObjectClassToUse;
 		ObjectClassToUse = (!ExpectedClass && ObjectClassToUse && ObjectClassToUse->IsChildOf<UBlueprintGeneratedClass>()) ? UClass::StaticClass() : ObjectClassToUse;
-		return FEmitHelper::GetCppName((UUserDefinedEnum::StaticClass() == ObjectClassToUse) ? UEnum::StaticClass() : ObjectClassToUse);
+		return FEmitHelper::GetCppName(ObjectClassToUse);
 	};
 	
 	if (ActualClass && Object 
@@ -329,7 +329,12 @@ FString FEmitHelper::GetCppName(const UField* Field, bool bUInterface)
 		return AsProperty->GetNameCPP();
 	}
 
-	if (!Field->IsNative() && !Field->IsA<UUserDefinedEnum>())
+	if (Field->IsA<UUserDefinedEnum>())
+	{
+		return ::UnicodeToCPPIdentifier(Field->GetName(), false, TEXT("E__"));
+	}
+
+	if (!Field->IsNative())
 	{
 		return ::UnicodeToCPPIdentifier(Field->GetName(), false, TEXT("bpf__"));
 	}
@@ -413,6 +418,10 @@ bool FEmitHelper::IsMetaDataValid(const FName Name, const FString& Value)
 bool FEmitHelper::MetaDataCanBeNative(const FName MetaDataName, const UField* Field)
 {
 	if (MetaDataName == TEXT("ModuleRelativePath"))
+	{
+		return false;
+	}
+	if (MetaDataName == TEXT("MakeStructureDefaultValue")) // can be too long
 	{
 		return false;
 	}
@@ -808,6 +817,16 @@ void FEmitHelper::EmitLifetimeReplicatedPropsImpl(FEmitterLocalContext& EmitterC
 	}
 }
 
+FString FEmitHelper::FloatToString(float Value)
+{
+	if (FMath::IsNaN(Value))
+	{
+		UE_LOG(LogK2Compiler, Warning, TEXT("A NotANNumber value cannot be nativized. It is changed into 0.0f."));
+		return TEXT("/*The original value was NaN!*/ 0.0f");
+	}
+	return FString::Printf(TEXT("%f"), Value);
+}
+
 FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject, const FText* OptionalTextLiteral)
 {
 	auto Schema = GetDefault<UEdGraphSchema_K2>();
@@ -828,7 +847,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 	else if (UEdGraphSchema_K2::PC_Float == Type.PinCategory)
 	{
 		float Value = CustomValue.IsEmpty() ? 0.0f : FCString::Atof(*CustomValue);
-		return FString::Printf(TEXT("%f"), Value);
+		return FString::Printf(TEXT("%s"), *FloatToString(Value));
 	}
 	else if (UEdGraphSchema_K2::PC_Int == Type.PinCategory)
 	{
@@ -876,13 +895,13 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 		{
 			FVector Vect = FVector::ZeroVector;
 			FDefaultValueHelper::ParseVector(CustomValue, /*out*/ Vect);
-			return FString::Printf(TEXT("FVector(%f,%f,%f)"), Vect.X, Vect.Y, Vect.Z);
+			return FString::Printf(TEXT("FVector(%s,%s,%s)"), *FloatToString(Vect.X), *FloatToString(Vect.Y), *FloatToString(Vect.Z));
 		}
 		else if (StructType == TBaseStructure<FRotator>::Get())
 		{
 			FRotator Rot = FRotator::ZeroRotator;
 			FDefaultValueHelper::ParseRotator(CustomValue, /*out*/ Rot);
-			return FString::Printf(TEXT("FRotator(%f,%f,%f)"), Rot.Pitch, Rot.Yaw, Rot.Roll);
+			return FString::Printf(TEXT("FRotator(%s,%s,%s)"), *FloatToString(Rot.Pitch), *FloatToString(Rot.Yaw), *FloatToString(Rot.Roll));
 		}
 		else if (StructType == TBaseStructure<FTransform>::Get())
 		{
@@ -891,14 +910,16 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 			const FQuat Rot = Trans.GetRotation();
 			const FVector Translation = Trans.GetTranslation();
 			const FVector Scale = Trans.GetScale3D();
-			return FString::Printf(TEXT("FTransform( FQuat(%f,%f,%f,%f), FVector(%f,%f,%f), FVector(%f,%f,%f) )"),
-				Rot.X, Rot.Y, Rot.Z, Rot.W, Translation.X, Translation.Y, Translation.Z, Scale.X, Scale.Y, Scale.Z);
+			return FString::Printf(TEXT("FTransform( FQuat(%s,%s,%s,%s), FVector(%s,%s,%s), FVector(%s,%s,%s) )"),
+				*FloatToString(Rot.X), *FloatToString(Rot.Y), *FloatToString(Rot.Z), *FloatToString(Rot.W),
+				*FloatToString(Translation.X), *FloatToString(Translation.Y), *FloatToString(Translation.Z), 
+				*FloatToString(Scale.X), *FloatToString(Scale.Y), *FloatToString(Scale.Z));
 		}
 		else if (StructType == TBaseStructure<FLinearColor>::Get())
 		{
 			FLinearColor LinearColor;
 			LinearColor.InitFromString(CustomValue);
-			return FString::Printf(TEXT("FLinearColor(%f,%f,%f,%f)"), LinearColor.R, LinearColor.G, LinearColor.B, LinearColor.A);
+			return FString::Printf(TEXT("FLinearColor(%s,%s,%s,%s)"), *FloatToString(LinearColor.R), *FloatToString(LinearColor.G), *FloatToString(LinearColor.B), *FloatToString(LinearColor.A));
 		}
 		else if (StructType == TBaseStructure<FColor>::Get())
 		{
@@ -910,7 +931,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 		{
 			FVector2D Vect = FVector2D::ZeroVector;
 			Vect.InitFromString(CustomValue);
-			return FString::Printf(TEXT("FVector2D(%f,%f)"), Vect.X, Vect.Y);
+			return FString::Printf(TEXT("FVector2D(%s,%s)"), *FloatToString(Vect.X), *FloatToString(Vect.Y));
 		}
 		else
 		{
@@ -1056,7 +1077,8 @@ FString FEmitHelper::PinTypeToNativeType(const FEdGraphPinType& Type)
 			{
 				const bool bEnumClassForm = Enum->GetCppForm() == UEnum::ECppForm::EnumClass;
 				const bool bNonNativeEnum = Enum->GetClass() != UEnum::StaticClass();
-				FString FullyQualifiedEnumName = (!Enum->CppType.IsEmpty()) ? Enum->CppType : FEmitHelper::GetCppName(Enum);
+				ensure(!bNonNativeEnum || Enum->CppType.IsEmpty());
+				const FString FullyQualifiedEnumName = (!Enum->CppType.IsEmpty()) ? Enum->CppType : FEmitHelper::GetCppName(Enum);
 				// TODO: sometimes we need unwrapped type for enums without size specified. For example when native function has a raw ref param.
 				return (bEnumClassForm || bNonNativeEnum) ? FullyQualifiedEnumName : FString::Printf(TEXT("TEnumAsByte<%s>"), *FullyQualifiedEnumName);
 			}
@@ -1212,6 +1234,7 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 		auto RTypeEnum = Cast<UEnum>(RType.PinSubCategoryObject.Get());
 		if (!RTypeEnum && LTypeEnum)
 		{
+			ensure(!LTypeEnum->IsA<UUserDefinedEnum>() || LTypeEnum->CppType.IsEmpty());
 			const FString EnumCppType = !LTypeEnum->CppType.IsEmpty() ? LTypeEnum->CppType : FEmitHelper::GetCppName(LTypeEnum);
 			OutCastBegin = FString::Printf(TEXT("static_cast<%s>("), *EnumCppType);
 			OutCastEnd = TEXT(")");
@@ -1219,6 +1242,7 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 		}
 		if (!LTypeEnum && RTypeEnum)
 		{
+			ensure(!RTypeEnum->IsA<UUserDefinedEnum>() || RTypeEnum->CppType.IsEmpty());
 			const FString EnumCppType = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : FEmitHelper::GetCppName(RTypeEnum);
 			OutCastBegin = FString::Printf(TEXT("EnumToByte<%s>("), *EnumCppType); 
 			OutCastEnd = TEXT(")");

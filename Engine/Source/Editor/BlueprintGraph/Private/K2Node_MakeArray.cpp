@@ -92,6 +92,32 @@ UEdGraphPin* UK2Node_MakeArray::GetOutputPin() const
 	return FindPin(OutputPinName);
 }
 
+void UK2Node_MakeArray::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
+{
+	Super::ReallocatePinsDuringReconstruction(OldPins);
+
+	// This is necessary to retain type information after pasting or loading from disc
+	UEdGraphPin* OutputPin = GetOutputPin();
+	if (OutputPin)
+	{
+		// Only update the output pin if it is currently a wildcard
+		if (OutputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
+		{
+			// Find the matching Old Pin if it exists
+			for (UEdGraphPin* OldPin : OldPins)
+			{
+				if (OldPin->Direction == EGPD_Output)
+				{
+					// Update our output pin with the old type information and then propagate it to our input pins
+					OutputPin->PinType = OldPin->PinType;
+					PropagatePinType();
+					break;
+				}
+			}
+		}
+	}
+}
+
 void UK2Node_MakeArray::AllocateDefaultPins()
 {
 	// Create the output pin

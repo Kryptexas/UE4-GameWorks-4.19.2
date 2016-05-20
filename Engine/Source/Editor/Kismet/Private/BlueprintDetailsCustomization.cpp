@@ -2762,7 +2762,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 					[
 						SNew(STextBlock)
 						.Text( LOCTEXT("KeywordsLabel", "Keywords") )
-						.ToolTip(CategoryTooltip)
+						.ToolTip(KeywordsTooltip)
 						.Font( IDetailLayoutBuilder::GetDetailFont() )
 					]
 				.ValueContent()
@@ -2781,7 +2781,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 					[
 						SNew(STextBlock)
 						.Text( LOCTEXT("CompactNodeTitleLabel", "Compact Node Title") )
-						.ToolTip(CategoryTooltip)
+						.ToolTip(CompactNodeTitleTooltip)
 						.Font( IDetailLayoutBuilder::GetDetailFont() )
 					]
 				.ValueContent()

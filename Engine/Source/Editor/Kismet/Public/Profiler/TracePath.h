@@ -25,6 +25,12 @@ public:
 	{
 	}
 
+	FTracePath(TSharedPtr<const class FScriptExecutionTunnelEntry> TunnelNode)
+		: CachedCrc(0U)
+		, Tunnel(TunnelNode)
+	{
+	}
+
 	FTracePath(const FTracePath& TracePathIn, TSharedPtr<const class FScriptExecutionTunnelEntry> TunnelNode)
 		: CachedCrc(TracePathIn.CachedCrc)
 		, Tunnel(TunnelNode)

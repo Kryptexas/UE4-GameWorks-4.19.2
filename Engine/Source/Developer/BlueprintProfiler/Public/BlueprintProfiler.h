@@ -39,6 +39,8 @@ public:
 	virtual void ProcessEventProfilingData() override;
 	virtual EBlueprintProfilerHeatMapDisplayMode::Type GetGraphNodeHeatMapDisplayMode() const { return GraphNodeHeatMapDisplayMode; }
 	virtual void SetGraphNodeHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) { GraphNodeHeatMapDisplayMode = InHeatMapDisplayMode; }
+	virtual EBlueprintProfilerHeatMapDisplayMode::Type GetWireHeatMapDisplayMode() const { return WireHeatMapDisplayMode; }
+	virtual void SetWireHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) { WireHeatMapDisplayMode = InHeatMapDisplayMode; }
 #endif
 	// End IBlueprintProfilerModule
 
@@ -85,10 +87,14 @@ protected:
 	bool bPIEActive;
 	/** Current graph node heat map display mode */
 	EBlueprintProfilerHeatMapDisplayMode::Type GraphNodeHeatMapDisplayMode;
+	/** Current wire heat map display mode */
+	EBlueprintProfilerHeatMapDisplayMode::Type WireHeatMapDisplayMode;
 	/** Suspended script events */
 	TMap<FName, TSharedPtr<FScriptEventPlayback>> SuspendedEvents;
 	/** Cached object path and code offset lookup to UObjects */
 	TMap<FString, TSharedPtr<FBlueprintExecutionContext>> PathToBlueprintContext;
+	/** The profiler connection factory */
+	TSharedPtr<struct FGraphPanelPinConnectionFactory> ConnectionFactory;
 #endif
 	
 };

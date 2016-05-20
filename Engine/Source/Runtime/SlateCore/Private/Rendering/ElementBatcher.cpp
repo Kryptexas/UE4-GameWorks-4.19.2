@@ -1144,6 +1144,15 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 	const float DirectLength = (InPayload.EndPt - InPayload.StartPt).Size();
 	const float HandleLength = ((InPayload.EndPt - InPayload.EndDir) - (InPayload.StartPt + InPayload.StartDir)).Size();
 	float NumSteps = FMath::Clamp<float>(FMath::CeilToInt(FMath::Max(DirectLength,HandleLength)/15.0f), 1, 256);
+	float GradientSubSteps = 0.f;
+	// Is this spline using a color gradient?
+	const bool bColorGradient = InPayload.GradientStops.Num() > 0;
+	if (bColorGradient)
+	{
+		const float GradientSteps = InPayload.GradientStops.Num() - 1.f;
+		GradientSubSteps = FMath::CeilToInt(NumSteps/GradientSteps);
+		NumSteps = GradientSteps * GradientSubSteps;
+	}
 
 	// 1 is the minimum thickness we support
 	// Thickness is given in screenspace, so convert it to local space before proceeding.
@@ -1179,10 +1188,10 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 	FVector2D StartPos = StartPt;
 	FVector2D EndPos = FVector2D( FMath::CubicInterp( StartPt, StartDir, EndPt, EndDir, Alpha ) );
 
-	FColor FinalColor = PackVertexColor(InPayload.Tint);
+	FColor VertexCol = bColorGradient ? PackVertexColor(InPayload.GradientStops[0].Color) : PackVertexColor(InPayload.Tint);
 
-	BatchVertices.Add( FSlateVertex( RenderTransform, StartPos + Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), FinalColor, RenderClipRect ) );
-	BatchVertices.Add( FSlateVertex( RenderTransform, StartPos - Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), FinalColor, RenderClipRect ) );
+	BatchVertices.Add( FSlateVertex( RenderTransform, StartPos + Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), VertexCol, RenderClipRect ) );
+	BatchVertices.Add( FSlateVertex( RenderTransform, StartPos - Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), VertexCol, RenderClipRect ) );
 
 	// Generate the rest of the segments
 	for( int32 Step = 0; Step < NumSteps; ++Step )
@@ -1193,6 +1202,13 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 			const float StepAlpha = (Step+1.0f)/NumSteps;
 			EndPos = FVector2D( FMath::CubicInterp( StartPt, StartDir, EndPt, EndDir, StepAlpha ) );
 		}
+		if (bColorGradient)
+		{
+			const float InterpVal = FMath::Min<float>(InPayload.GradientStops.Num()-1, (Step+1.f)/GradientSubSteps);
+			const int32 ColorIdx = FMath::CeilToInt(InterpVal);
+			const float ColorAlpha = InterpVal - (ColorIdx-1);
+			VertexCol = PackVertexColor(FLinearColor::LerpUsingHSV(InPayload.GradientStops[ColorIdx-1].Color, InPayload.GradientStops[ColorIdx].Color, ColorAlpha));
+		}
 
 		int32 IndexStart = BatchVertices.Num();
 
@@ -1202,8 +1218,8 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 		// Create the new vertices for the thick line segment
 		Up = SegmentNormal * HalfThickness;
 
-		BatchVertices.Add( FSlateVertex( RenderTransform, EndPos + Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), FinalColor, RenderClipRect ) );
-		BatchVertices.Add( FSlateVertex( RenderTransform, EndPos - Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), FinalColor, RenderClipRect ) );
+		BatchVertices.Add( FSlateVertex( RenderTransform, EndPos + Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), VertexCol, RenderClipRect ) );
+		BatchVertices.Add( FSlateVertex( RenderTransform, EndPos - Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), VertexCol, RenderClipRect ) );
 
 		BatchIndices.Add( IndexStart - 2 );
 		BatchIndices.Add( IndexStart - 1 );

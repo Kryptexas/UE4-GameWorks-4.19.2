@@ -366,6 +366,7 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 			{
 				IncludeInHeader.Add(InterfaceProperty->InterfaceClass);
 			}
+			/* Delegate signatures are recreated in local scope anyway.
 			else if (auto DelegateProperty = Cast<const UDelegateProperty>(Property))
 			{
 				IncludeInHeader.Add(DelegateProperty->SignatureFunction ? DelegateProperty->SignatureFunction->GetOwnerClass() : nullptr);
@@ -374,6 +375,7 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 			{
 				IncludeInHeader.Add(MulticastDelegateProperty->SignatureFunction ? MulticastDelegateProperty->SignatureFunction->GetOwnerClass() : nullptr);
 			}
+			*/
 			else
 			{
 				HeaderReferenceFinder.FindReferences(Obj);

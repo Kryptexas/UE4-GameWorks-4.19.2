@@ -3,6 +3,7 @@
 #pragma once
 
 #include "TracePath.h"
+#include "ScriptPerfData.h"
 
 /**  Execution node flags */
 namespace EScriptExecutionNodeFlags
@@ -39,7 +40,9 @@ namespace EScriptExecutionNodeFlags
 	};
 }
 
-/** Stat Container Type */
+//////////////////////////////////////////////////////////////////////////
+// Stat Container Type
+
 namespace EScriptStatContainerType
 {
 	enum Type
@@ -60,14 +63,16 @@ public:
 
 	struct FLinearExecPath
 	{
-		FLinearExecPath(TSharedPtr<class FScriptExecutionNode> NodeIn, const FTracePath TracePathIn)
+		FLinearExecPath(TSharedPtr<class FScriptExecutionNode> NodeIn, const FTracePath TracePathIn, const bool bIncludeChildrenIn = false)
 			: TracePath(TracePathIn)
 			, LinkedNode(NodeIn)
+			, bIncludeChildren(bIncludeChildrenIn)
 		{
 		}
 
 		FTracePath TracePath;
 		TSharedPtr<class FScriptExecutionNode> LinkedNode;
+		bool bIncludeChildren;
 	};
 
 	/** Returns the linked nodes map */
@@ -84,6 +89,9 @@ public:
 
 	/** Returns the child nodes map */
 	TArray<TSharedPtr<class FScriptExecutionNode>>& GetChildNodes() { return ChildNodes; }
+
+	/** Returns the filtered child nodes */
+	virtual void GetFilteredChildNodes(TArray<FLinearExecPath>& ChildArrayInOut, const FTracePath& TracePath);
 
 	/** Returns the number of children */
 	int32 GetNumChildren() const { return ChildNodes.Num(); }
@@ -129,6 +137,11 @@ public:
 
 protected:
 
+	/** Returns performance data type */
+	virtual const EScriptPerfDataType GetPerfDataType() const { return EScriptPerfDataType::Node; }
+
+protected:
+	
 	/** FScriptExeutionPath hash to perf data */
 	TMap<FName, TMap<const uint32, TSharedPtr<FScriptPerfData>>> InstanceInputPinToPerfDataMap;
 
@@ -255,7 +268,7 @@ public:
 	void SetPureNodeScriptCodeRange(FInt32Range InScriptCodeRange) { PureNodeScriptCodeRange = InScriptCodeRange; }
 
 	/** Return the linear execution path from this node */
-	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath);
+	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren = false);
 
 	/** Get statistic container type */
 	virtual EScriptStatContainerType::Type GetStatisticContainerType() const;
@@ -276,6 +289,10 @@ protected:
 
 	/** Get all pure nodes - private implementation */
 	void GetAllPureNodes_Internal(TMap<int32, TSharedPtr<FScriptExecutionNode>>& PureNodesOut, const FInt32Range& ScriptCodeRange);
+
+	// FScriptNodePerfData
+	virtual const EScriptPerfDataType GetPerfDataType() const override;
+	// ~FScriptNodePerfData
 
 protected:
 
@@ -334,14 +351,24 @@ class KISMET_API FScriptExecutionTunnelEntry : public FScriptExecutionNode
 {
 public:
 
-	FScriptExecutionTunnelEntry(const FScriptExecNodeParams& InitParams, const class UK2Node_Tunnel* TunnelInstanceIn)
+	/** Tunnel execution type */
+	enum ETunnelType
+	{
+		SimpleTunnel = 0,
+		SinglePathTunnel,
+		MultiIOTunnel
+	};
+
+	FScriptExecutionTunnelEntry(const FScriptExecNodeParams& InitParams, const class UK2Node_Tunnel* TunnelInstanceIn, const ETunnelType TypeIn)
 		: FScriptExecutionNode(InitParams)
+		, TunnelType(TypeIn)
 		, TunnelInstance(TunnelInstanceIn)
 	{
 	}
 
 	// FScriptExecutionNode
-	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath) override;
+	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren = false) override;
+	virtual void GetFilteredChildNodes(TArray<FLinearExecPath>& ChildArrayInOut, const FTracePath& TracePath) override;
 	virtual void RefreshStats(const FTracePath& TracePath) override;
 	// ~FScriptExecutionNode
 
@@ -355,6 +382,9 @@ public:
 	bool IsPathValidForTunnel(const int32 ScriptOffset) const;
 
 	/** Returns the tunnel instance graph node */
+	const ETunnelType GetTunnelType() const { return TunnelType; }
+
+	/** Returns the tunnel instance graph node */
 	const UK2Node_Tunnel* GetTunnelInstance() const { return TunnelInstance.Get(); }
 
 	/** Adds a valid exit script offset */
@@ -366,12 +396,19 @@ public:
 	/** Returns if the exit point associated with the script offset is the final exit site */
 	bool IsFinalExitSite(const int32 ScriptOffset) const;
 
+	/** Builds exit sites for instance */
+	void BuildExitBranches();
+
 private:
 
+	/** The tunnel type */
+	ETunnelType TunnelType;
 	/** The tunnel instance this node represents */
 	TWeakObjectPtr<const UK2Node_Tunnel> TunnelInstance;
 	/** List of valid exit scripts offsets */
 	TMap<int32, TSharedPtr<FScriptExecutionNode>> ValidExitPoints;
+	/** Branched exit sites */
+	TArray<FLinearExecPath> BranchedExitSites;
 
 };
 
@@ -388,7 +425,8 @@ public:
 	}
 
 	// FScriptExecutionNode
-	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath) override;
+	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren = false) override;
+	virtual void NavigateToObject() const;
 	// ~FScriptExecutionNode
 
 };
@@ -406,7 +444,7 @@ public:
 	}
 
 	// FScriptExecutionNode
-	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath) override;
+	virtual void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath, const bool bIncludeChildren = false) override;
 	virtual void RefreshStats(const FTracePath& TracePath) override;
 	// ~FScriptExecutionNode
 

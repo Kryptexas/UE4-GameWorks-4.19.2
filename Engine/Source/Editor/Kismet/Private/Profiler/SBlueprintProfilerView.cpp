@@ -126,6 +126,48 @@ void SBlueprintProfilerView::UpdateActiveProfilerWidget()
 			NAME_None,
 			EUserInterfaceActionType::Check);
 
+		FMenuBuilder WireHeatMapDisplayModeComboContent(true, nullptr);
+		WireHeatMapDisplayModeComboContent.AddMenuEntry(LOCTEXT("WireHeatMapDisplayMode_None", "Off"),
+			LOCTEXT("HeatMapDisplayMode_None_Desc", "Normal Display (No Heat Map)"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SBlueprintProfilerView::OnWireHeatMapDisplayModeChanged, EBlueprintProfilerHeatMapDisplayMode::None),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SBlueprintProfilerView::IsWireHeatMapDisplayModeSelected, EBlueprintProfilerHeatMapDisplayMode::None)
+			),
+			NAME_None,
+			EUserInterfaceActionType::Check);
+		WireHeatMapDisplayModeComboContent.AddMenuEntry(LOCTEXT("HeatMapDisplayMode_Exclusive", "Exclusive"),
+			LOCTEXT("HeatMapDisplayMode_Exclusive_Desc", "Heat Map - Exclusive Timings"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SBlueprintProfilerView::OnWireHeatMapDisplayModeChanged, EBlueprintProfilerHeatMapDisplayMode::Exclusive),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SBlueprintProfilerView::IsWireHeatMapDisplayModeSelected, EBlueprintProfilerHeatMapDisplayMode::Exclusive)
+			),
+			NAME_None,
+			EUserInterfaceActionType::Check);
+		WireHeatMapDisplayModeComboContent.AddMenuEntry(LOCTEXT("HeatMapDisplayMode_Inclusive", "Inclusive"),
+			LOCTEXT("HeatMapDisplayMode_Inclusive_Desc", "Heat Map - Inclusive Timings"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SBlueprintProfilerView::OnWireHeatMapDisplayModeChanged, EBlueprintProfilerHeatMapDisplayMode::Inclusive),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SBlueprintProfilerView::IsWireHeatMapDisplayModeSelected, EBlueprintProfilerHeatMapDisplayMode::Inclusive)
+			),
+			NAME_None,
+			EUserInterfaceActionType::Check);
+		WireHeatMapDisplayModeComboContent.AddMenuEntry(LOCTEXT("HeatMapDisplayMode_MaxTiming", "Max Time"),
+			LOCTEXT("HeatMapDisplayMode_MaxTiming_Desc", "Heat Map - Max Time"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SBlueprintProfilerView::OnWireHeatMapDisplayModeChanged, EBlueprintProfilerHeatMapDisplayMode::MaxTiming),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SBlueprintProfilerView::IsWireHeatMapDisplayModeSelected, EBlueprintProfilerHeatMapDisplayMode::MaxTiming)
+			),
+			NAME_None,
+			EUserInterfaceActionType::Check);
+
 		ChildSlot
 		[
 			SNew(SVerticalBox)
@@ -156,6 +198,30 @@ void SBlueprintProfilerView::UpdateActiveProfilerWidget()
 						.ButtonContent()
 						[
 							CreateHeatMapDisplayModeButton()
+						]
+					]
+					+SHorizontalBox::Slot()
+					.Padding(FMargin(5, 0))
+					[
+						SNew(SSeparator)
+						.Orientation(Orient_Vertical)
+					]
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(FMargin(5, 0))
+					[
+						SAssignNew(WireHeatMapDisplayModeComboButton, SComboButton)
+						.ForegroundColor(this, &SBlueprintProfilerView::GetWireHeatMapDisplayModeButtonForegroundColor)
+						.ToolTipText(LOCTEXT("BlueprintProfilerWireHeatMapDisplayMode_Tooltip", "Wire Heat Map Display Mode"))
+						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+						.ContentPadding(2)
+						.MenuContent()
+						[
+							WireHeatMapDisplayModeComboContent.MakeWidget()
+						]
+						.ButtonContent()
+						[
+							CreateWireHeatMapDisplayModeButton()
 						]
 					]
 					+SHorizontalBox::Slot()
@@ -286,6 +352,52 @@ void SBlueprintProfilerView::OnHeatMapDisplayModeChanged(const EBlueprintProfile
 	if (ProfilerModule.GetGraphNodeHeatMapDisplayMode() != NewHeatMapDisplayMode)
 	{
 		ProfilerModule.SetGraphNodeHeatMapDisplayMode(NewHeatMapDisplayMode);
+	}
+}
+
+FText SBlueprintProfilerView::GetCurrentWireHeatMapDisplayModeText() const
+{
+	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+	switch (ProfilerModule.GetWireHeatMapDisplayMode())
+	{
+	case EBlueprintProfilerHeatMapDisplayMode::None:		return LOCTEXT("WireHeatMapDisplayModeLabel_None", "Wire Heat Map: Off");
+	case EBlueprintProfilerHeatMapDisplayMode::Exclusive:	return LOCTEXT("WireHeatMapDisplayModeLabel_Exclusive", "Wire Heat Map: Exclusive");
+	case EBlueprintProfilerHeatMapDisplayMode::Inclusive:	return LOCTEXT("WireHeatMapDisplayModeLabel_Inclusive", "Wire Heat Map: Inclusive");
+	case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:	return LOCTEXT("WireHeatMapDisplayModeLabel_MaxTiming", "Wire Heat Map: Max Timing");
+	}
+	return LOCTEXT("WireHeatMapDisplayModeLabel_Unknown", "<unknown>");
+}
+
+TSharedRef<SWidget> SBlueprintProfilerView::CreateWireHeatMapDisplayModeButton() const
+{
+	return SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(this, &SBlueprintProfilerView::GetCurrentWireHeatMapDisplayModeText)
+		];
+}
+
+FSlateColor SBlueprintProfilerView::GetWireHeatMapDisplayModeButtonForegroundColor() const
+{
+	static const FName InvertedForegroundName("InvertedForeground");
+	static const FName DefaultForegroundName("DefaultForeground");
+	return WireHeatMapDisplayModeComboButton->IsHovered() ? FEditorStyle::GetSlateColor(InvertedForegroundName) : FEditorStyle::GetSlateColor(DefaultForegroundName);
+}
+
+bool SBlueprintProfilerView::IsWireHeatMapDisplayModeSelected(const EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) const
+{
+	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+	return ProfilerModule.GetWireHeatMapDisplayMode() == InHeatMapDisplayMode;
+}
+
+void SBlueprintProfilerView::OnWireHeatMapDisplayModeChanged(const EBlueprintProfilerHeatMapDisplayMode::Type NewHeatMapDisplayMode)
+{
+	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+	if (ProfilerModule.GetWireHeatMapDisplayMode() != NewHeatMapDisplayMode)
+	{
+		ProfilerModule.SetWireHeatMapDisplayMode(NewHeatMapDisplayMode);
 	}
 }
 

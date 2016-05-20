@@ -2,6 +2,7 @@
 
 #include "BlueprintProfilerPCH.h"
 #include "EditorStyleSet.h"
+#include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintProfiler"
 
@@ -19,7 +20,17 @@ FBlueprintProfiler::FBlueprintProfiler()
 	, bProfilingCaptureActive(false)
 	, bPIEActive(false)
 	, GraphNodeHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::None)
+	, WireHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::None)
 {
+	// Update stat watermarks from editor settings, the callbacks should keep them in sync after this.
+	if (const UEditorExperimentalSettings* EditorSettings = GetDefault<UEditorExperimentalSettings>())
+	{
+		FScriptPerfData::SetRecentSampleBias(EditorSettings->BlueprintProfilerRecentSampleBias);
+		FScriptPerfData::SetEventPerformanceThreshold(EditorSettings->BlueprintProfilerEventThreshold);
+		FScriptPerfData::SetNodePerformanceThreshold(EditorSettings->BlueprintProfilerExclNodeThreshold);
+		FScriptPerfData::SetInclusivePerformanceThreshold(EditorSettings->BlueprintProfilerInclNodeThreshold);
+		FScriptPerfData::SetMaxPerformanceThreshold(EditorSettings->BlueprintProfilerMaxNodeThreshold);
+	}
 }
 
 FBlueprintProfiler::~FBlueprintProfiler()
@@ -297,6 +308,12 @@ void FBlueprintProfiler::RegisterDelegates(bool bEnabled)
 		// Register for PIE begin and end events in the editor
 		FEditorDelegates::BeginPIE.AddRaw(this, &FBlueprintProfiler::BeginPIE);
 		FEditorDelegates::EndPIE.AddRaw(this, &FBlueprintProfiler::EndPIE);
+		// Register the connection drawing policy
+		if (!ConnectionFactory.IsValid())
+		{
+			ConnectionFactory = MakeShareable(new FBlueprintProfilerPinConnectionFactory);
+		}
+		FEdGraphUtilities::RegisterVisualPinConnectionFactory(ConnectionFactory);
 #endif // WITH_EDITOR
 		ResetProfilingData();
 		// Start consuming profiling events for capture
@@ -308,6 +325,11 @@ void FBlueprintProfiler::RegisterDelegates(bool bEnabled)
 		// Unregister for PIE begin and end events in the editor
 		FEditorDelegates::BeginPIE.RemoveAll(this);
 		FEditorDelegates::EndPIE.RemoveAll(this);
+		// Unregister the connection drawing policy
+		if (ConnectionFactory.IsValid())
+		{
+			FEdGraphUtilities::UnregisterVisualPinConnectionFactory(ConnectionFactory);
+		}
 #endif // WITH_EDITOR
 		ResetProfilingData();
 		// Stop consuming profiling events for capture

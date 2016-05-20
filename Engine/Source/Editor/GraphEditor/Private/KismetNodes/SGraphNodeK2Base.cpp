@@ -294,7 +294,7 @@ FSlateColor SGraphNodeK2Base::GetNodeIndicatorOverlayColor() const
 		TSharedPtr<class FScriptExecutionNode> ExecNode = ProfilerModule.GetProfilerDataForNode(GetNodeObj());
 		if (ExecNode.IsValid())
 		{
-			FScriptPerfData NodePerfData;
+			FScriptPerfData NodePerfData(EScriptPerfDataType::Node);
 			ExecNode->GetBlueprintPerfDataForAllTracePaths(NodePerfData);
 
 			switch (ProfilerModule.GetGraphNodeHeatMapDisplayMode())

@@ -86,6 +86,13 @@ FString UByteProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 {
 	if (Enum)
 	{
+		const bool bEnumClassForm = Enum->GetCppForm() == UEnum::ECppForm::EnumClass;
+		const bool bNonNativeEnum = Enum->GetClass() != UEnum::StaticClass(); // cannot use RF_Native flag, because in UHT the flag is not set
+		const bool bRawParam = (CPPExportFlags & CPPF_ArgumentOrReturnValue)
+			&& (((PropertyFlags & CPF_ReturnParm) || !(PropertyFlags & CPF_OutParm))
+				|| bEnumClassForm || bNonNativeEnum);
+		const bool bConvertedCode = (CPPExportFlags & CPPF_BlueprintCppBackend) && (bEnumClassForm || bNonNativeEnum);
+
 		FString FullyQualifiedEnumName;
 		if (!Enum->CppType.IsEmpty())
 		{
@@ -95,15 +102,17 @@ FString UByteProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 		{
 			// This would give the wrong result if it's a namespaced type and the CppType hasn't
 			// been set, but we do this here in case existing code relies on it... somehow.
-			FullyQualifiedEnumName = Enum->GetName();
+			if ((CPPExportFlags & CPPF_BlueprintCppBackend) && bNonNativeEnum)
+			{
+				ensure(Enum->CppType.IsEmpty());
+				FullyQualifiedEnumName = ::UnicodeToCPPIdentifier(Enum->GetName(), false, TEXT("E__"));
+			}
+			else
+			{
+				FullyQualifiedEnumName = Enum->GetName();
+			}
 		}
 		 
-		const bool bEnumClassForm = Enum->GetCppForm() == UEnum::ECppForm::EnumClass;
-		const bool bNonNativeEnum = Enum->GetClass() != UEnum::StaticClass(); // cannot use RF_Native flag, because in UHT the flag is not set
-		const bool bRawParam = (CPPExportFlags & CPPF_ArgumentOrReturnValue) 
-			&& (((PropertyFlags & CPF_ReturnParm) || !(PropertyFlags & CPF_OutParm)) 
-			|| bEnumClassForm || bNonNativeEnum);
-		const bool bConvertedCode = (CPPExportFlags & CPPF_BlueprintCppBackend) && (bEnumClassForm || bNonNativeEnum);
 		if (bRawParam || bConvertedCode)
 		{
 			return FullyQualifiedEnumName;
@@ -125,15 +134,18 @@ void UByteProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue
 			const int32 ActualValue = *(const uint8*)PropertyValue;
 			const int32 MaxValue = Enum->GetMaxEnumValue();
 			const int32 GoodValue = Enum->IsValidEnumValue(ActualValue) ? ActualValue : MaxValue;
+			const bool bNonNativeEnum = Enum->GetClass() != UEnum::StaticClass();
+			ensure(!bNonNativeEnum || Enum->CppType.IsEmpty());
+			const FString FullyQualifiedEnumName = bNonNativeEnum ? ::UnicodeToCPPIdentifier(Enum->GetName(), false, TEXT("E__"))
+				: (Enum->CppType.IsEmpty() ? Enum->GetName() : Enum->CppType);
 			if (GoodValue == MaxValue)
 			{
 				// not all native enums have Max value declared
-				const FString FullyQualifiedEnumName = Enum->CppType.IsEmpty() ? Enum->GetName() : Enum->CppType;
 				ValueStr += FString::Printf(TEXT("(%s)(%d)"), *FullyQualifiedEnumName, ActualValue);
 			}
 			else
 			{
-				ValueStr += FString::Printf(TEXT("%s::%s"), *Enum->GetName(),
+				ValueStr += FString::Printf(TEXT("%s::%s"), *FullyQualifiedEnumName,
 					*Enum->GetEnumName(Enum->GetIndexByValue(GoodValue)));
 			}
 		}

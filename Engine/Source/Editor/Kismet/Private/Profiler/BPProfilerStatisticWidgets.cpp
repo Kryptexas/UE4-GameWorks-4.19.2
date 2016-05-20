@@ -415,14 +415,16 @@ void FBPProfilerStatWidget::GenerateExecNodeWidgets(const TSharedPtr<FBPProfiler
 		}
 		else
 		{
-			for (auto Iter : ExecNode->GetChildNodes())
+			TArray<FScriptNodeExecLinkage::FLinearExecPath> Children;
+			ExecNode->GetFilteredChildNodes(Children, WidgetTracePath);
+			for (auto Iter : Children)
 			{
 				// Filter out events based on graph
-				if (!DisplayOptions->IsFiltered(Iter))
+				if (!DisplayOptions->IsFiltered(Iter.LinkedNode))
 				{
 					TArray<FScriptNodeExecLinkage::FLinearExecPath> LinearExecNodes;
-					FTracePath ChildTracePath(WidgetTracePath);
-					Iter->GetLinearExecutionPath(LinearExecNodes, ChildTracePath);
+					FTracePath ChildTracePath(Iter.TracePath);
+					Iter.LinkedNode->GetLinearExecutionPath(LinearExecNodes, ChildTracePath, Iter.bIncludeChildren);
 					if (LinearExecNodes.Num() > 1)
 					{
 						TSharedPtr<FBPProfilerStatWidget> ChildContainer = AsShared();
@@ -442,7 +444,7 @@ void FBPProfilerStatWidget::GenerateExecNodeWidgets(const TSharedPtr<FBPProfiler
 					}
 					else
 					{
-						TSharedPtr<FBPProfilerStatWidget> NewChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(Iter, ChildTracePath));
+						TSharedPtr<FBPProfilerStatWidget> NewChildNode = MakeShareable<FBPProfilerStatWidget>(new FBPProfilerStatWidget(Iter.LinkedNode, ChildTracePath));
 						NewChildNode->GenerateExecNodeWidgets(DisplayOptions);
 						CachedChildren.Add(NewChildNode);
 					}

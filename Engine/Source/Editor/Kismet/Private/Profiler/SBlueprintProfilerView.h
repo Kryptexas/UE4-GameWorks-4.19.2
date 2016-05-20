@@ -75,6 +75,21 @@ protected:
 	/** Called when the heat map display mode is changed */
 	void OnHeatMapDisplayModeChanged(const EBlueprintProfilerHeatMapDisplayMode::Type NewHeatMapDisplayMode);
 
+	/** Returns the current wire heat map display mode label */
+	FText GetCurrentWireHeatMapDisplayModeText() const;
+
+	/** Constructs and returns the wire heat map display mode button widget */
+	TSharedRef<SWidget> CreateWireHeatMapDisplayModeButton() const;
+
+	/** Returns the active wire heat map display mode button foreground color */
+	FSlateColor GetWireHeatMapDisplayModeButtonForegroundColor() const;
+
+	/** Returns whether or not the given wire heat map display mode is selected */
+	bool IsWireHeatMapDisplayModeSelected(const EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) const;
+
+	/** Called when the wire heat map display mode is changed */
+	void OnWireHeatMapDisplayModeChanged(const EBlueprintProfilerHeatMapDisplayMode::Type NewHeatMapDisplayMode);
+
 	/** Create active statistic display widget */
 	TSharedRef<SWidget> CreateActiveStatisticWidget();
 
@@ -94,4 +109,7 @@ protected:
 
 	/** Heat map display mode combo button widget */
 	TSharedPtr<SComboButton> HeatMapDisplayModeComboButton;
+
+	/** Heat map display mode combo button widget */
+	TSharedPtr<SComboButton> WireHeatMapDisplayModeComboButton;
 };

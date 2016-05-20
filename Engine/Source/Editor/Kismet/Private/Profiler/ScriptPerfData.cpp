@@ -9,9 +9,10 @@
 FNumberFormattingOptions FScriptPerfData::StatNumberFormat;
 float FScriptPerfData::RecentSampleBias = 0.2f;
 float FScriptPerfData::HistoricalSampleBias = 0.8f;
-float FScriptPerfData::NodePerformanceThreshold = 1.f;
-float FScriptPerfData::InclusivePerformanceThreshold = 1.5f;
-float FScriptPerfData::MaxPerformanceThreshold = 2.f;
+float FScriptPerfData::EventPerformanceThreshold = 1.f;
+float FScriptPerfData::NodePerformanceThreshold = 0.2f;
+float FScriptPerfData::InclusivePerformanceThreshold = 0.25f;
+float FScriptPerfData::MaxPerformanceThreshold = 0.5f;
 
 void FScriptPerfData::AddEventTiming(const double NodeTimingIn)
 {
@@ -29,8 +30,6 @@ void FScriptPerfData::AddPureChainTiming(const double PureNodeTimingIn)
 	const double NewInclusiveTimingInMs = NodeTiming + PureTimingInMs;
 	InclusiveTiming = (NewInclusiveTimingInMs * RecentSampleBias) + (InclusiveTiming * HistoricalSampleBias);
 	TotalTiming += PureNodeTimingIn;
-	MaxTiming = FMath::Max<double>(MaxTiming, InclusiveTiming);
-	MinTiming = FMath::Min<double>(MinTiming, InclusiveTiming);
 }
 
 void FScriptPerfData::AddInclusiveTiming(const double InclusiveNodeTimingIn)
@@ -39,8 +38,6 @@ void FScriptPerfData::AddInclusiveTiming(const double InclusiveNodeTimingIn)
 	InclusiveTiming = (TimingInMs * RecentSampleBias) + (InclusiveTiming * HistoricalSampleBias);
 	TotalTiming += InclusiveNodeTimingIn;
 	NumSamples++;
-	MaxTiming = FMath::Max<double>(MaxTiming, InclusiveTiming);
-	MinTiming = FMath::Min<double>(MinTiming, InclusiveTiming);
 }
 
 void FScriptPerfData::AddData(const FScriptPerfData& DataIn)
@@ -84,34 +81,40 @@ void FScriptPerfData::SetRecentSampleBias(const float RecentSampleBiasIn)
 	HistoricalSampleBias = 1.f - RecentSampleBias;
 }
 
+void FScriptPerfData::SetEventPerformanceThreshold(const float EventPerformanceThresholdIn)
+{
+	EventPerformanceThreshold = 1.f / EventPerformanceThresholdIn;
+}
+
 void FScriptPerfData::SetNodePerformanceThreshold(const float NodePerformanceThresholdIn)
 {
-	NodePerformanceThreshold = NodePerformanceThresholdIn;
+	NodePerformanceThreshold = 1.f / NodePerformanceThresholdIn;
 }
 
 float FScriptPerfData::GetNodeHeatLevel() const
 {
-	return FMath::Min<float>(NodeTiming / NodePerformanceThreshold, 1.f);
+	const float PerfMetric = StatType == EScriptPerfDataType::Event ? EventPerformanceThreshold : NodePerformanceThreshold;
+	return FMath::Min<float>(NodeTiming * PerfMetric, 1.f);
 }
 
 void FScriptPerfData::SetInclusivePerformanceThreshold(const float InclusivePerformanceThresholdIn)
 {
-	InclusivePerformanceThreshold = InclusivePerformanceThresholdIn;
+	InclusivePerformanceThreshold = 1.f / InclusivePerformanceThresholdIn;
 }
 
 float FScriptPerfData::GetInclusiveHeatLevel() const
 {
-	return FMath::Min<float>(InclusiveTiming / InclusivePerformanceThreshold, 1.f);
+	return FMath::Min<float>(InclusiveTiming * InclusivePerformanceThreshold, 1.f);
 }
 
 void FScriptPerfData::SetMaxPerformanceThreshold(const float MaxPerformanceThresholdIn)
 {
-	MaxPerformanceThreshold = MaxPerformanceThresholdIn;
+	MaxPerformanceThreshold = 1.f / MaxPerformanceThresholdIn;
 }
 
 float FScriptPerfData::GetMaxTimeHeatLevel() const
 {
-	return FMath::Min<float>(MaxTiming / MaxPerformanceThreshold, 1.f);
+	return FMath::Min<float>(MaxTiming * MaxPerformanceThreshold, 1.f);
 }
 
 FText FScriptPerfData::GetNodeTimingText() const

@@ -636,6 +636,25 @@ void UGameplayStatics::GetAllActorsWithInterface(UObject* WorldContextObject, TS
 	}
 }
 
+void UGameplayStatics::GetAllActorsWithTag(UObject* WorldContextObject, FName Tag, TArray<AActor*>& OutActors)
+{
+	OutActors.Empty();
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+
+	// We do nothing if no tag is provided, rather than giving ALL actors!
+	if (!Tag.IsNone() && World)
+	{
+		for (FActorIterator It(World); It; ++It)
+		{
+			AActor* Actor = *It;
+			if (Actor && !Actor->IsPendingKill() && Actor->ActorHasTag(Tag))
+			{
+				OutActors.Add(Actor);
+			}
+		}
+	}
+}
 
 void UGameplayStatics::PlayWorldCameraShake(UObject* WorldContextObject, TSubclassOf<class UCameraShake> Shake, FVector Epicenter, float InnerRadius, float OuterRadius, float Falloff, bool bOrientShakeTowardsEpicenter)
 {

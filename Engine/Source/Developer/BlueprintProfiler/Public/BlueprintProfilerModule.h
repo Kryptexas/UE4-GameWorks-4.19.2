@@ -68,6 +68,12 @@ public:
 	/** Sets the current graph node heat map display mode setting */
 	virtual void SetGraphNodeHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) {}
 
+	/** Returns the current wire heat map display mode setting */
+	virtual EBlueprintProfilerHeatMapDisplayMode::Type GetWireHeatMapDisplayMode() const = 0;
+
+	/** Sets the current wire heat map display mode setting */
+	virtual void SetWireHeatMapDisplayMode(EBlueprintProfilerHeatMapDisplayMode::Type InHeatMapDisplayMode) {}
+
 #endif // WITH_EDITOR
 
 };

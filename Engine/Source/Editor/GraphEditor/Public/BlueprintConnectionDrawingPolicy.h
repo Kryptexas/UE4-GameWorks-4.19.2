@@ -8,7 +8,7 @@
 // FKismetConnectionDrawingPolicy
 
 // This class draws the connections for an UEdGraph using a K2-based schema
-class FKismetConnectionDrawingPolicy : public FConnectionDrawingPolicy
+class GRAPHEDITOR_API FKismetConnectionDrawingPolicy : public FConnectionDrawingPolicy
 {
 protected:
 	// Times for one execution pair within the current graph
@@ -79,7 +79,7 @@ public:
 	virtual void SetIncompatiblePinDrawState(const TSharedPtr<SGraphPin>& StartPin, const TSet< TSharedRef<SWidget> >& VisiblePins) override;
 	virtual void ResetIncompatiblePinDrawState(const TSet< TSharedRef<SWidget> >& VisiblePins) override;
 
-private: 
+protected: 
 	/**
 	* Checks that the specified nodes are connected in the graph directly by an 
 	* exec pin.
