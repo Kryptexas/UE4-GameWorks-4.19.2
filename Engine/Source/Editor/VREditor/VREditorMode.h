@@ -70,6 +70,7 @@ public:
 
 	// IVREditorMode interface
 	virtual bool GetLaserPointer( const int32 HandIndex, FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfUIIsInFront = false, const float LaserLengthOverride = 0.0f) const override;
+	virtual FTransform GetHeadTransform() const override;
 	virtual bool IsInputCaptured( const FVRAction VRAction ) const;
 	virtual AActor* GetAvatarMeshActor() override
 	{
@@ -83,6 +84,8 @@ public:
 	{
 		return OnVRHoverUpdateEvent;
 	}
+	virtual FHandInfo GetHandInfo( const int32 HandIndex ) const override;
+	virtual void SetAllowTriggerLightPressLocking( const int32 HandIndex, const bool bAllow ) override;
 
 	/** Returns the Unreal controller ID for the motion controllers we're using */
 	int32 GetMotionControllerID() const
@@ -157,9 +160,6 @@ public:
 
 	/** Gets the transform of the user's HMD in room space */
 	FTransform GetRoomSpaceHeadTransform() const;
-
-	/** Gets the transform of the user's HMD in world space */
-	FTransform GetHeadTransform() const;
 
 	/** Spawns a transient actor that we can use in the editor world (templated for convenience) */
 	template<class T>

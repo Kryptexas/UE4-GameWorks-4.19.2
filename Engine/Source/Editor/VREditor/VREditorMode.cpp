@@ -1580,6 +1580,9 @@ bool FVREditorMode::HandleInputAxis(FEditorViewportClient* ViewportClient, FView
 		{
 			if( VRAction.ActionType == EVRActionType::TriggerAxis )
 			{
+				// Store latest trigger value amount
+				Hand.SelectAndMoveTriggerValue = Delta;
+
 				// Synthesize "lightly pressed" events for the trigger
 				{
 					const bool bIsFullPressAlreadyCapturing = Hand.IsInputCaptured[ (int32)EVRActionType::SelectAndMove ];
@@ -1832,6 +1835,24 @@ bool FVREditorMode::IsInputCaptured( const FVRAction VRAction ) const
 	check( VRAction.HandIndex >= 0 && VRAction.HandIndex < VREditorConstants::NumVirtualHands );
 	check( (int32)VRAction.ActionType >= 0 && VRAction.ActionType < EVRActionType::TotalActionTypes );
 	return VirtualHands[ VRAction.HandIndex ].IsInputCaptured[ (int32)VRAction.ActionType ];
+}
+
+
+IVREditorMode::FHandInfo FVREditorMode::GetHandInfo( const int32 HandIndex ) const
+{
+	const FVirtualHand& Hand = GetVirtualHand( HandIndex );
+
+	IVREditorMode::FHandInfo HandInfo;
+	HandInfo.bIsModifierPressed = Hand.bIsModifierPressed;
+	HandInfo.SelectAndMoveTriggerValue = Hand.SelectAndMoveTriggerValue;
+	HandInfo.bIsHoveringOverUI = Hand.bIsHoveringOverUI;
+	return HandInfo;
+}
+
+
+void FVREditorMode::SetAllowTriggerLightPressLocking( const int32 HandIndex, const bool bAllow )
+{
+	GetVirtualHand( HandIndex ).bAllowTriggerLightPressLocking = bAllow;
 }
 
 

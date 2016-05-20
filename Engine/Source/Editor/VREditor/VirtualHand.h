@@ -102,6 +102,9 @@ struct FVirtualHand
 	/** True if trigger has been fully released since the last press */
 	bool bHasTriggerBeenReleasedSinceLastPress;
 
+	/** Current trigger pressed amount for 'select and move' (0.0 - 1.0) */
+	float SelectAndMoveTriggerValue;
+
 
 	//
 	// Trackpad support
@@ -287,6 +290,7 @@ struct FVirtualHand
 		bAllowTriggerLightPressLocking = true;
 		RealTimeTriggerWasLightlyPressed = 0.0;
 		bHasTriggerBeenReleasedSinceLastPress = true;
+		SelectAndMoveTriggerValue = 0.0f;
 
 		bIsTouchingTrackpad = false;
 		bIsModifierPressed = false;

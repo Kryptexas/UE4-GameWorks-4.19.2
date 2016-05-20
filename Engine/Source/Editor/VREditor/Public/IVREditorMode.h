@@ -76,6 +76,13 @@ public:
 	virtual bool GetLaserPointer( const int32 HandIndex, FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfUIIsInFront = false, const float LaserLengthOverride = 0.0f ) const = 0;
 
 	/**
+	 * Gets the world space transform of the HMD (head)
+	 *
+	 * @return	World space space HMD transform
+	 */
+	virtual FTransform GetHeadTransform() const = 0;
+
+	/**
 	 * Gets our avatar's mesh actor
 	 *
 	 * @return	The mesh actor
@@ -103,5 +110,40 @@ public:
 		first, as there may be sibling subscribers that handle the event before you! */
 	DECLARE_EVENT_FiveParams( IVREditorMode, FOnVRHoverUpdate, class FEditorViewportClient& /* ViewportClient */, const int32 /* HandIndex */, FVector& /* HoverImpactPoint */, bool& /* bIsHoveringOverUI */, bool& /* bWasHandled */ );
 	virtual FOnVRHoverUpdate& OnVRHoverUpdate() = 0;
+
+
+	struct FHandInfo
+	{
+		/** Is the Modifier button held down? */
+		bool bIsModifierPressed;
+
+		/** How much the trigger is held down for the 'select and move' action */
+		float SelectAndMoveTriggerValue;
+
+		/** True if we're hovering over UI right now.  When hovering over UI, we don't bother drawing a see-thru laser pointer */
+		bool bIsHoveringOverUI;
+	};
+
+
+	/**
+	 * Gets some information about the specified hand (motion controller)
+	 *
+	 * @param	HandIndex	Which hand to query info for
+	 *
+	 * @return	A structure containing information about the hand's current state
+	 */
+	virtual FHandInfo GetHandInfo( const int32 HandIndex ) const = 0;
+
+	/**
+	 * Enables or disable "light press" locking for the specified hand.  This is an advanced feature.
+	 * It should be true if we allow locking of the lightly pressed state for the current event.  This can 
+	 * be useful to turn off in cases where you always want a full press to override the light press, even 
+	 * if it was a very slow press
+	 *
+	 * @param	HandIndex	The hand to change light press locking state for
+	 * @param	bAllow		Enables or disables light press locking for this hand
+	 */
+	virtual void SetAllowTriggerLightPressLocking( const int32 HandIndex, const bool bAllow ) = 0;
+
 };
 
