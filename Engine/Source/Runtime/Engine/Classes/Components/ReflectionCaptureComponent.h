@@ -59,7 +59,7 @@ struct FReflectionCaptureEncodedHDRDerivedData : FRefCountedObject
 		// Data / (6 cubemaps * sizeof(FColor)) = (4*topMip - lastMip)/3
 		// when lastMip = 1 simplifies to the following:
 		// see https://en.wikipedia.org/wiki/1/4_%2B_1/16_%2B_1/64_%2B_1/256_%2B_%E2%8B%AF for maths
-		return (int32)sqrt((2 * sizeof(FColor) + CapturedData.Num()) / (8 * sizeof(FColor)));
+		return (int32)sqrt((float)(2 * sizeof(FColor) + CapturedData.Num()) / (float)(8 * sizeof(FColor)));
 	}
 
 	/** Generates encoded HDR data from full HDR data and saves it in the DDC, or loads an already generated version from the DDC. */

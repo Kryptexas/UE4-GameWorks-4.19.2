@@ -1104,11 +1104,9 @@ void UReflectionCaptureComponent::PostLoad()
 		else
 		{
 			UE_LOG(
-				LogMaterial, 
-				Error, 
-				TEXT("Encoded reflection caputure resolution and project setting mismatch. " 
-					"(Project Setting: %d, Encoded Reflection Capture: %d. "
-					"Reflection cubemaps will be unavailable and cooking will fail."), 
+				LogMaterial,
+				Error,
+				TEXT("Encoded reflection caputure resolution and project setting mismatch.\n(Project Setting: %d, Encoded Reflection Capture: %d.\nReflection cubemaps will be unavailable and cooking will fail."), 
 				CVarReflectionCaptureSize.GetValueOnGameThread(), 
 				EncodedCubemapSize
 				);
