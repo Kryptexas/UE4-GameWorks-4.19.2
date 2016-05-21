@@ -672,19 +672,56 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 				}
 			}
 
+			TArray<UBlueprint*> OrderedBytecodeRecompile;
+
 			while (DependentBlueprintsToByteRecompile.Num())
 			{
 				auto Iter = DependentBlueprintsToByteRecompile.CreateIterator();
-				TWeakObjectPtr<UBlueprint> BPPtr = *Iter;
-				Iter.RemoveCurrent();
-				if (auto BP = BPPtr.Get())
+				if (UBlueprint* BP = Iter->Get())
 				{
-					FKismetEditorUtilities::RecompileBlueprintBytecode(BP, nullptr, true);
-					CompiledBlueprints.Add(BP);
+					OrderedBytecodeRecompile.Add(BP);
 				}
+				Iter.RemoveCurrent();
 			}
 
-			ensure(0 == DependentBlueprintsToRecompile.Num());
+			// Make sure we compile classes that are deeper in the class hierarchy later
+			// than ones that are higher:
+			OrderedBytecodeRecompile.Sort(
+				[](const UBlueprint& LHS, const UBlueprint& RHS)
+				{
+					int32 LHS_Depth = 0;
+					int32 RHS_Depth = 0;
+
+					UStruct* Iter = LHS.ParentClass;
+					while (Iter)
+					{
+						LHS_Depth += 1;
+						Iter = Iter->GetSuperStruct();
+					}
+
+					Iter = RHS.ParentClass;
+					while (Iter)
+					{
+						RHS_Depth += 1;
+						Iter = Iter->GetSuperStruct();
+					}
+
+					// use name as tie breaker, just so we're stable
+					// across editor sessions:
+					return LHS_Depth != RHS_Depth ? (LHS_Depth < RHS_Depth) : LHS.GetName() < RHS.GetName();
+				}
+			);
+
+			DependentBlueprintsToByteRecompile.Empty();
+
+			for (int I = 0; I != OrderedBytecodeRecompile.Num(); ++I)
+			{
+				UBlueprint* BP = OrderedBytecodeRecompile[I];
+				FKismetEditorUtilities::RecompileBlueprintBytecode(BP, nullptr, true);
+				ensure(0 == DependentBlueprintsToRecompile.Num());
+				CompiledBlueprints.Add(BP);
+			}
+
 
 			if (!bIsReinstancingSkeleton)
 			{
