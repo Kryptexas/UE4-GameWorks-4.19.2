@@ -429,7 +429,8 @@ void SafeCreateTexture2D(ID3D11Device* Direct3DDevice, const D3D11_TEXTURE2D_DES
 			TextureDesc->ArraySize,
 			TextureDesc->Format,
 			TextureDesc->MipLevels,
-			TextureDesc->BindFlags
+			TextureDesc->BindFlags,
+			Direct3DDevice
 			);
 #if GUARDED_TEXTURE_CREATES
 		bDriverCrash = false;
@@ -936,7 +937,8 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 		SizeZ,
 		PlatformShaderResourceFormat,
 		NumMips,
-		TextureDesc.BindFlags
+		TextureDesc.BindFlags,
+		Direct3DDevice
 		);
 
 	// Create a shader resource view for the texture.
@@ -1441,7 +1443,8 @@ void* TD3D11Texture2D<RHIResourceType>::Lock(uint32 MipIndex,uint32 ArrayIndex,E
 			GetSizeZ(),
 			StagingTextureDesc.Format,
 			1,
-			0
+			0,
+			D3DRHI->GetDevice()
 			);
 		LockedData.StagingResource = StagingTexture;
 
