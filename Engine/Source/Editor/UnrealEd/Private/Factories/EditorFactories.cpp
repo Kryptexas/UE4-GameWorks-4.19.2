@@ -6109,7 +6109,6 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 	}
 
 	UnFbx::FFbxImporter* Importer = UnFbx::FFbxImporter::GetInstance();
-	UnFbx::FBXImportOptions::ResetOptions(Importer->ImportOptions);
 
 	CurrentFilename = Filename;
 
