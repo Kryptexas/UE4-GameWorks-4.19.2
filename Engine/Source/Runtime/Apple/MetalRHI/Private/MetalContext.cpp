@@ -243,7 +243,7 @@ void FMetalDeviceContext::BeginFrame()
 void FMetalDeviceContext::ClearFreeList()
 {
 	uint32 Index = 0;
-	while(DelayedFreeLists.Num())
+	while(Index < DelayedFreeLists.Num())
 	{
 		FMetalDelayedFreeList* Pair = DelayedFreeLists[Index];
 		Pair->FrameCount--;
@@ -258,16 +258,12 @@ void FMetalDeviceContext::ClearFreeList()
 					[Entry release];
 				}
 				delete Pair;
-				DelayedFreeLists.RemoveAt(0, 1, false);
+				DelayedFreeLists.RemoveAt(Index, 1, false);
 			}
 		}
 		else
 		{
 			Index++;
-			if (Index >= DelayedFreeLists.Num())
-			{
-				break;
-			}
 		}
 	}
 }
