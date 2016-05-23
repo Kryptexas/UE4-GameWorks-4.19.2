@@ -686,47 +686,6 @@ void UAIPerceptionComponent::DescribeSelfToGameplayDebugger(FGameplayDebuggerCat
 		SenseConfig->DescribeSelfToGameplayDebugger(this, DebuggerCategory);
 	}
 }
-
-void UAIPerceptionComponent::GrabGameplayDebuggerData(TArray<FString>& OutTexts, TArray<FGameplayDebuggerShapeElement>& OutShapes) const
-{
-	// temporary code for compatibility
-	FGameplayDebuggerCategory DummyCategory;
-	DescribeSelfToGameplayDebugger(&DummyCategory);
-
-	OutTexts = DummyCategory.GetReplicatedLinesCopy();
-
-	TArray<FGameplayDebuggerShape> LoggedShapes = DummyCategory.GetReplicatedShapesCopy();
-	for (int32 Idx = 0; Idx < LoggedShapes.Num(); Idx++)
-	{
-		const FGameplayDebuggerShape& ShapeItem = LoggedShapes[Idx];
-		switch (LoggedShapes[Idx].Type)
-		{
-		case EGameplayDebuggerShape::Box:
-			OutShapes.Add(FGameplayDebuggerShapeElement::MakeBox(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1], ShapeItem.Color, ShapeItem.Description));
-			break;
-		case EGameplayDebuggerShape::Capsule:
-			OutShapes.Add(FGameplayDebuggerShapeElement::MakeCapsule(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1].X, ShapeItem.ShapeData[1].Z, ShapeItem.Color, ShapeItem.Description));
-			break;
-		case EGameplayDebuggerShape::Cone:
-			OutShapes.Add(FGameplayDebuggerShapeElement::MakeCone(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1], ShapeItem.ShapeData[2].X, ShapeItem.Color, ShapeItem.Description));
-			break;
-		case EGameplayDebuggerShape::Cylinder:
-			OutShapes.Add(FGameplayDebuggerShapeElement::MakeCylinder(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1].X, ShapeItem.ShapeData[1].Z, ShapeItem.Color, ShapeItem.Description));
-			break;
-		case EGameplayDebuggerShape::Point:
-			OutShapes.Add(FGameplayDebuggerShapeElement::MakePoint(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1].X, ShapeItem.Color, ShapeItem.Description));
-			break;
-		case EGameplayDebuggerShape::Polygon:
-			OutShapes.Add(FGameplayDebuggerShapeElement::MakePolygon(ShapeItem.ShapeData, ShapeItem.Color, ShapeItem.Description));
-			break;
-		case EGameplayDebuggerShape::Segment:
-			OutShapes.Add(FGameplayDebuggerShapeElement::MakeSegment(ShapeItem.ShapeData[0], ShapeItem.ShapeData[1], ShapeItem.ShapeData[2].X, ShapeItem.Color, ShapeItem.Description));
-			break;
-		default:
-			break;
-		}
-	}
-}
 #endif // WITH_GAMEPLAY_DEBUGGER
 
 #if ENABLE_VISUAL_LOG

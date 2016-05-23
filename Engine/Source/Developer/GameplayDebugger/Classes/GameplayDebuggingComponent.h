@@ -51,7 +51,7 @@ enum class EGameplayDebuggerShapeElement : uint8
 };
 
 USTRUCT()
-struct GAMEPLAYDEBUGGER_API FGameplayDebuggerShapeElement
+struct FGameplayDebuggerShapeElement
 {
 	GENERATED_USTRUCT_BODY()
 
