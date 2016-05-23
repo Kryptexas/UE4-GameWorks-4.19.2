@@ -12,7 +12,18 @@ FThreadHeartBeat::FThreadHeartBeat()
 , bReadyToCheckHeartbeat(false)
 , HangDuration(25.0)
 {
-	bool bAllowThreadHeartBeat = FPlatformMisc::AllowThreadHeartBeat();
+	if (GConfig)
+	{
+		GConfig->GetDouble(TEXT("Core.System"), TEXT("HangDuration"), HangDuration, GEngineIni);
+		const double MinHangDuration = 5.0;
+		if (HangDuration > 0.0 && HangDuration < 5.0)
+		{
+			UE_LOG(LogCore, Warning, TEXT("HangDuration is set to %.4llfs which is a very short time for hang detection. Changing to %.2llfs."), HangDuration, MinHangDuration);
+			HangDuration = MinHangDuration;
+		}
+	}
+
+	const bool bAllowThreadHeartBeat = FPlatformMisc::AllowThreadHeartBeat() && HangDuration > 0.0;
 
 	// We don't care about programs for now so no point in spawning the extra thread
 #if !IS_PROGRAM
@@ -21,11 +32,6 @@ FThreadHeartBeat::FThreadHeartBeat()
 		Thread = FRunnableThread::Create(this, TEXT("FHeartBeatThread"), 0, TPri_BelowNormal);
 	}
 #endif
-
-	if (GConfig)
-	{
-		GConfig->GetDouble(TEXT("Core.System"), TEXT("HangDuration"), HangDuration, GEngineIni);
-	}
 
 	if (!bAllowThreadHeartBeat)
 	{
