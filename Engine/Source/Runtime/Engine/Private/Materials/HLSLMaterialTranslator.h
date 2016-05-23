@@ -203,6 +203,9 @@ protected:
 	uint32 bUsesVertexColor : 1;
 	/** true if the material reads particle color in the pixel shader. */
 	uint32 bUsesParticleColor : 1;
+	/** true if the material reads mesh particle transform in the pixel shader. */
+	uint32 bUsesParticleTransform : 1;
+
 	uint32 bUsesTransformVector : 1;
 	// True if the current property requires last frame's information
 	uint32 bCompilingPreviousFrame : 1;
@@ -253,6 +256,7 @@ public:
 	,	bUsesVertexColor(false)
 	,	bUsesParticleColor(false)
 	,	bUsesTransformVector(false)
+	,	bUsesParticleTransform(false)
 	,	bCompilingPreviousFrame(false)
 	,	bOutputsBasePassVelocities(true)
 	,	bUsesPixelDepthOffset(false)
@@ -734,7 +738,8 @@ public:
 		OutEnvironment.SetDefine(TEXT("MATERIAL_ATMOSPHERIC_FOG"), bUsesAtmosphericFog);
 		OutEnvironment.SetDefine(TEXT("INTERPOLATE_VERTEX_COLOR"), bUsesVertexColor); 
 		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_COLOR"), bUsesParticleColor); 
-		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector); 
+		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_TRANSFORM"), bUsesParticleTransform);
+		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector);
 		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset); 
 		// Distortion uses tangent space transform 
 		OutEnvironment.SetDefine(TEXT("USES_DISTORTION"), Material->IsDistorted()); 
@@ -3756,6 +3761,7 @@ protected:
 				else if (DestCoordBasis == MCB_MeshParticle)
 				{
 					CodeStr = TEXT("mul(<A>, <MATRIX>(Parameters.Particle.LocalToWorld))");
+					bUsesParticleTransform = true;
 				}
 
 				// else use MCB_TranslatedWorld as intermediary basis
@@ -3787,6 +3793,7 @@ protected:
 				if (DestCoordBasis == MCB_World)
 				{
 					CodeStr = TEXT("mul(<MATRIX>(Parameters.Particle.LocalToWorld), <A>)");
+					bUsesParticleTransform = true;
 				}
 				else
 				{
