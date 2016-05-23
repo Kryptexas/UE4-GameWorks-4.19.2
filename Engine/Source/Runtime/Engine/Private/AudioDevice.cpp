@@ -2921,9 +2921,9 @@ float FAudioDevice::GetFocusFactor(FAttenuationListenerData& OutListenerData, co
 
 		const FVector& ListenerForwardDir = OutListenerData.Listener->Transform.GetUnitAxis(EAxis::X);
 
-		const float FocusDotProduct = FMath::Clamp(FVector::DotProduct(ListenerForwardDir, OutListenerData.ListenerToSoundDir), 0.0f, 1.0f);
+		const float FocusDotProduct = FVector::DotProduct(ListenerForwardDir, OutListenerData.ListenerToSoundDir);
 		const float FocusAngleRadians = FMath::Acos(FocusDotProduct);
-		const float FocusAngle = FMath::RadiansToDegrees(FMath::Acos(FocusDotProduct));
+		const float FocusAngle = FMath::RadiansToDegrees(FocusAngleRadians);
 
 		const float FocusAzimuth = FMath::Clamp(GlobalFocusSettings.FocusAzimuthScale * AttenuationSettings.FocusAzimuth, 0.0f, 180.0f);
 		const float NonFocusAzimuth = FMath::Clamp(GlobalFocusSettings.NonFocusAzimuthScale * AttenuationSettings.NonFocusAzimuth, 0.0f, 180.0f);
