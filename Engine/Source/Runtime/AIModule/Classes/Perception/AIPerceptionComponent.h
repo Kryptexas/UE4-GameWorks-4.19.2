@@ -3,6 +3,9 @@
 #pragma once
 
 #include "AISystem.h"
+#if WITH_GAMEPLAY_DEBUGGER
+#include "GameplayDebuggingComponent.h"
+#endif
 #include "Perception/AISense.h"
 #include "AIPerceptionSystem.h"
 #include "AIPerceptionComponent.generated.h"
@@ -258,6 +261,7 @@ public:
 
 #if WITH_GAMEPLAY_DEBUGGER
 	virtual void DescribeSelfToGameplayDebugger(FGameplayDebuggerCategory* DebuggerCategory) const;
+	void GrabGameplayDebuggerData(TArray<FString>& OutTexts, TArray<FGameplayDebuggerShapeElement>& OutShapes) const;
 #endif // WITH_GAMEPLAY_DEBUGGER
 
 #if ENABLE_VISUAL_LOG

@@ -1852,7 +1852,6 @@ void UGameplayDebuggingComponent::CollectPerceptionData()
 		return;
 	}
 
-#if 0
 	APawn* MyPawn = Cast<APawn>(GetSelectedActor());
 	if (MyPawn)
 	{
@@ -1881,16 +1880,16 @@ void UGameplayDebuggingComponent::CollectPerceptionData()
 					DistanceFromPlayer = (MyPawn->GetActorLocation() - MyPC->GetPawn()->GetActorLocation()).Size();
 					DistanceFromSensor = SensingComponentLocation != FVector::ZeroVector ? (SensingComponentLocation - MyPC->GetPawn()->GetActorLocation()).Size() : -1;
 				}
-			}
 
-			UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(MyPawn->GetWorld());
-			if (PerceptionSys)
-			{
-				PerceptionLegend = PerceptionSys->GetPerceptionDebugLegend();
+				PerceptionLegend = TEXT("\n");
+				for (int32 Idx = 0; Idx < PerceptionTexts.Num(); Idx++)
+				{
+					PerceptionLegend += PerceptionTexts[Idx];
+					PerceptionLegend += TEXT('\n');
+				}
 			}
 		}
 	}
 
-#endif
 #endif
 }
