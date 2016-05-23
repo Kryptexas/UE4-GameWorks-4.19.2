@@ -29,8 +29,13 @@ static const TCHAR* CrashReporterSettings = TEXT("/Script/UnrealEd.CrashReporter
 
 typedef bool  (WINAPI *TFEnumProcesses)( uint32* lpidProcess, uint32 cb, uint32* cbNeeded);
 typedef bool  (WINAPI *TFEnumProcessModules)(HANDLE hProcess, HMODULE *lphModule, uint32 cb, LPDWORD lpcbNeeded);
+#if WINVER > 0x502
 typedef uint32 (WINAPI *TFGetModuleBaseName)(HANDLE hProcess, HMODULE hModule, LPWSTR lpBaseName, uint32 nSize);
 typedef uint32 (WINAPI *TFGetModuleFileNameEx)(HANDLE hProcess, HMODULE hModule, LPWSTR lpFilename, uint32 nSize);
+#else
+typedef uint32 (WINAPI *TFGetModuleBaseName)(HANDLE hProcess, HMODULE hModule, LPSTR lpBaseName, uint32 nSize);
+typedef uint32 (WINAPI *TFGetModuleFileNameEx)(HANDLE hProcess, HMODULE hModule, LPSTR lpFilename, uint32 nSize);
+#endif
 typedef bool  (WINAPI *TFGetModuleInformation)(HANDLE hProcess, HMODULE hModule, LPMODULEINFO lpmodinfo, uint32 cb);
 
 static TFEnumProcesses			FEnumProcesses;
@@ -394,6 +399,7 @@ bool FWindowsPlatformStackWalk::UploadLocalSymbols()
 {
 	InitStackWalking();
 
+#if WINVER > 0x502
 	// Upload locally compiled files to symbol storage.
 	FString SymbolStorage;
 	if (!GConfig->GetString( CrashReporterSettings, TEXT( "UploadSymbolsPath" ), SymbolStorage, GEditorPerProjectIni ) || SymbolStorage.IsEmpty())
@@ -461,6 +467,9 @@ bool FWindowsPlatformStackWalk::UploadLocalSymbols()
 			}
 		}
 	}
+#else
+	UE_LOG( LogWindows, Log, TEXT( "Symbol server not supported on Windows XP." ) );
+#endif
 	return true;
 }
 
@@ -484,8 +493,13 @@ static void LoadProcessModules(const FString &RemoteStorage)
 	for( int32 ModuleIndex = 0; ModuleHandlePointer[ModuleIndex]; ModuleIndex++ )
 	{
 		MODULEINFO ModuleInfo = {0};
+#if WINVER > 0x502
 		WCHAR ModuleName[FProgramCounterSymbolInfo::MAX_NAME_LENGHT] = {0};
 		WCHAR ImageName[FProgramCounterSymbolInfo::MAX_NAME_LENGHT] = {0};
+#else
+		ANSICHAR ModuleName[FProgramCounterSymbolInfo::MAX_NAME_LENGHT] = { 0 };
+		ANSICHAR ImageName[FProgramCounterSymbolInfo::MAX_NAME_LENGHT] = { 0 };
+#endif
 #if PLATFORM_64BITS
 		static_assert(sizeof( MODULEINFO ) == 24, "Broken alignment for 64bit Windows include.");
 #else
@@ -496,15 +510,21 @@ static void LoadProcessModules(const FString &RemoteStorage)
 		FGetModuleBaseName( ProcessHandle, ModuleHandlePointer[ModuleIndex], ModuleName, FProgramCounterSymbolInfo::MAX_NAME_LENGHT );
 
 		// Set the search path to find PDBs in the same folder as the DLL.
+#if WINVER > 0x502
 		WCHAR SearchPath[MAX_PATH] = {0};
 		WCHAR* FileName = NULL;
 		const auto Result = GetFullPathNameW( ImageName, MAX_PATH, SearchPath, &FileName );
+#else
+		ANSICHAR SearchPath[MAX_PATH] = { 0 };
+		ANSICHAR* FileName = NULL;
+		const auto Result = GetFullPathNameA( ImageName, MAX_PATH, SearchPath, &FileName );
+#endif
 
 		FString SearchPathList;
 		if (Result != 0 && Result < MAX_PATH)
 		{
 			*FileName = 0;
-			SearchPathList = SearchPath;
+			SearchPathList = ANSI_TO_TCHAR(SearchPath);
 		}
 		if (!RemoteStorage.IsEmpty())
 		{
@@ -515,6 +535,7 @@ static void LoadProcessModules(const FString &RemoteStorage)
 			SearchPathList.Append(RemoteStorage);
 		}
 
+#if WINVER > 0x502
 		SymSetSearchPathW(ProcessHandle, *SearchPathList);
 
 		// Load module.
@@ -524,6 +545,17 @@ static void LoadProcessModules(const FString &RemoteStorage)
 			ErrorCode = GetLastError();
 			UE_LOG(LogWindows, Warning, TEXT("SymLoadModuleExW. Error: %d"), GetLastError());
 		}
+#else
+		SymSetSearchPath(ProcessHandle, TCHAR_TO_ANSI(*SearchPathList));
+
+		// Load module.
+		const DWORD64 BaseAddress = SymLoadModuleEx( ProcessHandle, ModuleHandlePointer[ModuleIndex], ImageName, ModuleName, (DWORD64)ModuleInfo.lpBaseOfDll, (uint32)ModuleInfo.SizeOfImage, NULL, 0 );
+		if (!BaseAddress)
+		{
+			ErrorCode = GetLastError();
+			UE_LOG(LogWindows, Warning, TEXT("SymLoadModuleEx. Error: %d"), GetLastError());
+		}
+#endif
 	} 
 
 	// Free the module handle pointer allocated in case the static array was insufficient.
@@ -572,8 +604,13 @@ int32 FWindowsPlatformStackWalk::GetProcessModuleSignatures(FStackWalkModuleInfo
 	for( int32 ModuleIndex = 0; ModuleHandlePointer[ModuleIndex] && SignatureIndex < ModuleSignaturesSize; ModuleIndex++ )
 	{
 		MODULEINFO ModuleInfo = {0};
+#if WINVER > 0x502
 		WCHAR ModuleName[MAX_PATH] = {0};
 		WCHAR ImageName[MAX_PATH] = {0};
+#else
+		ANSICHAR ModuleName[MAX_PATH] = { 0 };
+		ANSICHAR ImageName[MAX_PATH] = { 0 };
+#endif
 #if PLATFORM_64BITS
 		static_assert(sizeof( MODULEINFO ) == 24, "Broken alignment for 64bit Windows include.");
 #else
@@ -683,8 +720,13 @@ bool FWindowsPlatformStackWalk::InitStackWalking()
 		// Load dynamically linked PSAPI routines.
 		FEnumProcesses			= (TFEnumProcesses)			FPlatformProcess::GetDllExport( DllHandle,TEXT("EnumProcesses"));
 		FEnumProcessModules		= (TFEnumProcessModules)	FPlatformProcess::GetDllExport( DllHandle,TEXT("EnumProcessModules"));
+#if WINVER > 0x502
 		FGetModuleFileNameEx	= (TFGetModuleFileNameEx)	FPlatformProcess::GetDllExport( DllHandle,TEXT("GetModuleFileNameExW"));
 		FGetModuleBaseName		= (TFGetModuleBaseName)		FPlatformProcess::GetDllExport( DllHandle,TEXT("GetModuleBaseNameW"));
+#else
+		FGetModuleFileNameEx	= (TFGetModuleFileNameEx)	FPlatformProcess::GetDllExport( DllHandle,TEXT("GetModuleFileNameExA"));
+		FGetModuleBaseName		= (TFGetModuleBaseName)		FPlatformProcess::GetDllExport( DllHandle,TEXT("GetModuleBaseNameA"));
+#endif
 		FGetModuleInformation	= (TFGetModuleInformation)	FPlatformProcess::GetDllExport( DllHandle,TEXT("GetModuleInformation"));
 
 		// Abort if we can't look up the functions.
@@ -715,7 +757,11 @@ bool FWindowsPlatformStackWalk::InitStackWalking()
 	
 		// Initialize the symbol engine.		
 		const FString RemoteStorage = GetRemoteStorage(GetDownstreamStorage());
+#if WINVER > 0x502
 		SymInitializeW( GetCurrentProcess(), RemoteStorage.IsEmpty() ? nullptr : *RemoteStorage, true );
+#else
+		SymInitialize( GetCurrentProcess(), nullptr, true );
+#endif
 	
 		GNeedToRefreshSymbols = false;
 		GStackWalkingInitialized = true;
