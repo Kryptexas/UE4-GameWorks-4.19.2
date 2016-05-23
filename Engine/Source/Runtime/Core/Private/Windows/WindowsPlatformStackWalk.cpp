@@ -524,7 +524,11 @@ static void LoadProcessModules(const FString &RemoteStorage)
 		if (Result != 0 && Result < MAX_PATH)
 		{
 			*FileName = 0;
+#if WINVER > 0x502
+			SearchPathList = SearchPath;
+#else
 			SearchPathList = ANSI_TO_TCHAR(SearchPath);
+#endif
 		}
 		if (!RemoteStorage.IsEmpty())
 		{
