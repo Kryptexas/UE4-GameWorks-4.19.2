@@ -134,7 +134,7 @@ public:
 protected:
 
 	/** Character movement component belongs to */
-	UPROPERTY()
+	UPROPERTY(Transient, DuplicateTransient)
 	ACharacter* CharacterOwner;
 
 public:
