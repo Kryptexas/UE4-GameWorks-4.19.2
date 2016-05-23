@@ -33,7 +33,11 @@ struct ENGINE_API FNavigationFilterArea
 	UPROPERTY(EditAnywhere, Category=Area, meta=(InlineEditConditionToggle))
 	uint32 bOverrideEnteringCost : 1;
 
-	FNavigationFilterArea() : TravelCostOverride(1.0f) {}
+	FNavigationFilterArea()
+	{
+		FMemory::Memzero(*this);
+		TravelCostOverride = 1.f;
+	}
 };
 
 // 
