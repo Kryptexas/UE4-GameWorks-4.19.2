@@ -40,10 +40,11 @@ void FMovieSceneActorReferenceTrackInstance::RestoreState(const TArray<TWeakObje
 
 		if (InitActorReferenceMap.Contains(FObjectKey(Object)))
 		{
-			TWeakObjectPtr<AActor> ActorReferenceValue = *InitActorReferenceMap.Find(FObjectKey(Object));
-			if (ActorReferenceValue.IsValid())
+			TWeakObjectPtr<AActor> ActorReferencePtr = *InitActorReferenceMap.Find(FObjectKey(Object));
+			if (ActorReferencePtr.IsValid())
 			{
-				PropertyBindings->CallFunction<AActor*>(Object, ActorReferenceValue.Get());
+				AActor* ActorReferenceValue = ActorReferencePtr.Get();
+				PropertyBindings->CallFunction<AActor*>(Object, &ActorReferenceValue);
 			}
 		}
 	}
