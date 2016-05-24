@@ -237,7 +237,7 @@ void FMovieSceneSubTrackInstance::UpdateSection( EMovieSceneUpdateData& UpdateDa
 	UMovieScene* SubMovieScene = SubSection->GetSequence()->GetMovieScene();
 	if ( SubMovieScene->GetForceFixedFrameIntervalPlayback() && SubMovieScene->GetFixedFrameInterval() > 0 )
 	{
-		float FixedFrameInterval = SubMovieScene->GetFixedFrameInterval();
+		float FixedFrameInterval = ( SubMovieScene->GetFixedFrameInterval() / SubSection->TimeScale );
 		InstancePosition = FMath::RoundToInt( InstancePosition / FixedFrameInterval ) * FixedFrameInterval;
 		InstanceLastPosition = FMath::RoundToInt( InstanceLastPosition / FixedFrameInterval ) * FixedFrameInterval;
 	}
