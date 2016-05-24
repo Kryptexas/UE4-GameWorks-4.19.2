@@ -2430,7 +2430,7 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 		FWaveInstance* WaveInstance = WaveInstances[InstanceIndex];
 
 		// Editor uses bIsUISound for sounds played in the browser.
-		if (bGameTicking || WaveInstance->bIsUISound)
+		if (!WaveInstance->ShouldStopDueToMaxConcurrency() && (bGameTicking || WaveInstance->bIsUISound))
 		{
 			FSoundSource* Source = WaveInstanceSourceMap.FindRef(WaveInstance);
 			if (!Source &&
