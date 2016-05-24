@@ -52,3 +52,21 @@ void UMovieSceneCameraAnimSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles
 // 		}
 // 	}
 }
+
+TOptional<float> UMovieSceneCameraAnimSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	//if ( AnimWeightCurve.IsKeyHandleValid( KeyHandle ) )
+	//{
+	//	return TOptional<float>( AnimWeightCurve.GetKeyTime( KeyHandle ) );
+	//}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneCameraAnimSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	//if ( AnimWeightCurve.IsKeyHandleValid( KeyHandle ) )
+	//{
+	//	AnimWeightCurve.SetKeyTime( KeyHandle, Time );
+	//}
+}

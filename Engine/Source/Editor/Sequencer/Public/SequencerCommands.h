@@ -57,6 +57,9 @@ public:
 	/** Zoom out of the view range */
 	TSharedPtr< FUICommandInfo > ZoomOutViewRange;
 
+	/** Forces playback both in editor and at runtime to be evaluated at fixed frame intervals. */
+	TSharedPtr< FUICommandInfo > ToggleForceFixedFrameIntervalPlayback;
+
 	/** Toggle constraining the time cursor to the playback range */
 	TSharedPtr< FUICommandInfo > ToggleKeepCursorInPlaybackRange;
 
@@ -159,9 +162,6 @@ public:
 	/** Toggles whether or not the play time should snap to the dragged key. */
 	TSharedPtr< FUICommandInfo > ToggleSnapPlayTimeToDraggedKey;
 
-	/** Toggles whether or not to lock the play rate to the frame rate. */
-	TSharedPtr< FUICommandInfo > ToggleFixedTimeStepPlayback;
-
 	/** Toggles whether or not to snap curve values to the interval. */
 	TSharedPtr< FUICommandInfo > ToggleSnapCurveValueToInterval;
 
@@ -210,6 +210,8 @@ public:
 	/** Attempts to fix broken actor references. */
 	TSharedPtr< FUICommandInfo > FixActorReferences;
 
+	/** Attempts to move all time data for this sequence on to a valid frame */
+	TSharedPtr< FUICommandInfo > FixFrameTiming;
 
 	/**
 	 * Initialize commands

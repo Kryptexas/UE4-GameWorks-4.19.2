@@ -30,6 +30,10 @@ public:
 
 	TArray<FName>* GetLevelNames();
 
+	// UMovieSceneSection interface
+	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
+	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
+
 private:
 	/** Whether or not the levels in this section should be visible or hidden. */
 	UPROPERTY( EditAnywhere, Category = LevelVisibility )

@@ -71,6 +71,50 @@ void UMovieSceneMarginSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TR
 	}
 }
 
+
+TOptional<float> UMovieSceneMarginSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	if ( LeftCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( LeftCurve.GetKeyTime( KeyHandle ) );
+	}
+	if ( TopCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( TopCurve.GetKeyTime( KeyHandle ) );
+	}
+	if ( RightCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( RightCurve.GetKeyTime( KeyHandle ) );
+	}
+	if ( BottomCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( BottomCurve.GetKeyTime( KeyHandle ) );
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneMarginSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	if ( LeftCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		LeftCurve.SetKeyTime( KeyHandle, Time );
+	}
+	else if ( TopCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		TopCurve.SetKeyTime( KeyHandle, Time );
+	}
+	else if ( RightCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		RightCurve.SetKeyTime( KeyHandle, Time );
+	}
+	else if ( BottomCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		BottomCurve.SetKeyTime( KeyHandle, Time );
+	}
+}
+
+
 FMargin UMovieSceneMarginSection::Eval( float Position, const FMargin& DefaultValue ) const
 {
 	return FMargin(	LeftCurve.Eval(Position, DefaultValue.Left),

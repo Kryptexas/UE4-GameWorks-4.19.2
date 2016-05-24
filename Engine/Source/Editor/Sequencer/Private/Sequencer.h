@@ -424,6 +424,9 @@ public:
 	/** Attempts to automatically fix up broken actor references in the current scene. */
 	void FixActorReferences();
 
+	/** Moves all time data for the current scene onto a valid frame. */
+	void FixFrameTiming();
+
 public:
 	
 	/** Access the currently active track area edit tool */

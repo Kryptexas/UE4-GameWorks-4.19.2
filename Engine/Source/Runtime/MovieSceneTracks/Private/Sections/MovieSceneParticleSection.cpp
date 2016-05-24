@@ -52,3 +52,22 @@ void UMovieSceneParticleSection::GetKeyHandles( TSet<FKeyHandle>& OutKeyHandles,
 		}
 	}
 }
+
+
+TOptional<float> UMovieSceneParticleSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	if ( ParticleKeys.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( ParticleKeys.GetKeyTime( KeyHandle ) );
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneParticleSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	if ( ParticleKeys.IsKeyHandleValid( KeyHandle ) )
+	{
+		ParticleKeys.SetKeyTime( KeyHandle, Time );
+	}
+}

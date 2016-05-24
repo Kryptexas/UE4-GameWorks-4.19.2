@@ -366,21 +366,6 @@ void FSequencer::Tick(float InDeltaTime)
 		SetGlobalTimeDirectly(GetGlobalTime() + Offset);
 	}
 
-	// override max frame rate
-	if (PlaybackState == EMovieScenePlayerStatus::Playing)
-	{
-		const float TimeSnapInterval = Settings->GetTimeSnapInterval();
-
-		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSnapInterval) && Settings->GetFixedTimeStepPlayback())
-		{
-			GEngine->SetMaxFPS(1.f / TimeSnapInterval);
-		}
-		else
-		{
-			GEngine->SetMaxFPS(OldMaxTickRate);
-		}
-	}
-
 	// calculate new global time
 	float NewTime = GetGlobalTime() + InDeltaTime * GWorld->GetWorldSettings()->MatineeTimeDilation;
 
@@ -3057,6 +3042,7 @@ void FSequencer::PostUndo(bool bSuccess)
 {
 	SequencerWidget->UpdateLayoutTree();
 	UpdateRuntimeInstances();
+	OnActivateSequenceEvent.Broadcast( *SequenceInstanceStack.Top() );
 }
 
 
@@ -3393,7 +3379,7 @@ void FSequencer::UpdatePreviewLevelViewportClientFromCameraCut(FLevelEditorViewp
 void GetDescendantMovieScenes(UMovieSceneSequence* InSequence, TArray<UMovieScene*> & InMovieScenes)
 {
 	UMovieScene* InMovieScene = InSequence->GetMovieScene();
-	if (InMovieScene == nullptr)
+	if (InMovieScene == nullptr || InMovieScenes.Contains(InMovieScene))
 	{
 		return;
 	}
@@ -4895,6 +4881,141 @@ void FSequencer::FixActorReferences()
 }
 
 
+float SnapTime( float TimeValue, float TimeInterval )
+{
+	return FMath::RoundToInt( TimeValue / TimeInterval ) * TimeInterval;
+}
+
+
+void FixSceneRangeTiming( UMovieScene* MovieScene, float FrameInterval )
+{
+	TRange<float> SceneRange = MovieScene->GetPlaybackRange();
+
+	float LowerBoundValue = SceneRange.GetLowerBoundValue();
+	float SnappedLowerBoundValue = SnapTime( LowerBoundValue, FrameInterval );
+
+	float UpperBoundValue = SceneRange.GetUpperBoundValue();
+	float SnappedUpperBoundValue = SnapTime( UpperBoundValue, FrameInterval );
+
+	if ( SnappedLowerBoundValue != LowerBoundValue || SnappedLowerBoundValue != LowerBoundValue)
+	{
+		MovieScene->SetPlaybackRange( SnappedLowerBoundValue, SnappedUpperBoundValue );
+	}
+}
+
+
+void FixSectionFrameTiming( UMovieSceneSection* Section, float FrameInterval )
+{
+	bool bSectionModified = false;
+	float SnappedStartTime = SnapTime( Section->GetStartTime(), FrameInterval );
+	if ( SnappedStartTime != Section->GetStartTime() )
+	{
+		Section->Modify();
+		bSectionModified = true;
+		Section->SetStartTime( SnappedStartTime );
+	}
+
+	float SnappedEndTime = SnapTime( Section->GetEndTime(), FrameInterval );
+	if ( SnappedEndTime != Section->GetEndTime() )
+	{
+		if ( bSectionModified == false )
+		{
+			Section->Modify();
+			bSectionModified = true;
+		}
+		Section->SetEndTime( SnappedEndTime );
+	}
+
+	TSet<FKeyHandle> KeyHandles;
+	Section->GetKeyHandles( KeyHandles, Section->GetRange() );
+	for ( const FKeyHandle& KeyHandle : KeyHandles )
+	{
+		TOptional<float> KeyTime = Section->GetKeyTime( KeyHandle );
+		if ( KeyTime.IsSet() )
+		{
+			float SnappedKeyTime = SnapTime( KeyTime.GetValue(), FrameInterval );
+			if ( SnappedKeyTime != KeyTime.GetValue() )
+			{
+				if ( bSectionModified == false )
+				{
+					Section->Modify();
+					bSectionModified = true;
+				}
+				Section->SetKeyTime( KeyHandle, SnappedKeyTime );
+			}
+		}
+	}
+}
+
+
+void GetAllMovieScenesRecursively( UMovieScene* CurrentMovieScene, TArray<UMovieScene*>& AllMovieScenes )
+{
+	if( CurrentMovieScene != nullptr && AllMovieScenes.Contains( CurrentMovieScene ) == false)
+	{
+		AllMovieScenes.Add( CurrentMovieScene );
+		for ( UMovieSceneTrack* MasterTrack : CurrentMovieScene->GetMasterTracks() )
+		{
+			UMovieSceneSubTrack* SubTrack = Cast<UMovieSceneSubTrack>( MasterTrack );
+			if ( SubTrack != nullptr )
+			{
+				for ( UMovieSceneSection* Section : SubTrack->GetAllSections() )
+				{
+					UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>( Section );
+					if ( SubSection != nullptr )
+					{
+						GetAllMovieScenesRecursively( SubSection->GetSequence()->GetMovieScene(), AllMovieScenes );
+					}
+				}
+			}
+		}
+	}
+}
+
+
+void FSequencer::FixFrameTiming()
+{
+	TArray<UMovieScene*> ScenesToFix;
+	GetAllMovieScenesRecursively( GetRootMovieSceneSequence()->GetMovieScene(), ScenesToFix );
+
+	FScopedTransaction FixFrameTimingTransaction( NSLOCTEXT( "Sequencer", "FixFrameTiming", "Fix frame timing" ) );
+	for( UMovieScene* SceneToFix : ScenesToFix)
+	{
+		float FrameInterval = SceneToFix->GetFixedFrameInterval();
+		if ( FrameInterval > 0 )
+		{
+			FixSceneRangeTiming( SceneToFix, FrameInterval );
+
+			// Collect all tracks.
+			TArray<UMovieSceneTrack*> TracksToFix;
+
+			if ( SceneToFix->GetCameraCutTrack() != nullptr )
+			{
+				TracksToFix.Add( SceneToFix->GetCameraCutTrack() );
+			}
+
+			for ( UMovieSceneTrack* MasterTrack : SceneToFix->GetMasterTracks() )
+			{
+				TracksToFix.Add( MasterTrack );
+			}
+
+			for ( const FMovieSceneBinding& ObjectBinding : SceneToFix->GetBindings() )
+			{
+				TracksToFix.Append( ObjectBinding.GetTracks() );
+			}
+
+			// Fix section and keys for tracks in the current scene.
+			for ( UMovieSceneTrack* TrackToFix : TracksToFix )
+			{
+				for ( UMovieSceneSection* Section : TrackToFix->GetAllSections() )
+				{
+					FixSectionFrameTiming( Section, FrameInterval );
+				}
+			}
+		}
+	}
+}
+
+
 void FSequencer::GenericTextEntryModeless(const FText& DialogText, const FText& DefaultText, FOnTextCommitted OnTextComitted)
 {
 	TSharedRef<STextEntryPopup> TextEntryPopup = 
@@ -5177,12 +5298,6 @@ void FSequencer::BindCommands()
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetSnapPlayTimeToDraggedKey(); } ) );
 
 	SequencerCommandBindings->MapAction(
-		Commands.ToggleFixedTimeStepPlayback,
-		FExecuteAction::CreateLambda( [this]{ Settings->SetFixedTimeStepPlayback( !Settings->GetFixedTimeStepPlayback() ); } ),
-		FCanExecuteAction::CreateLambda( []{ return true; } ),
-		FIsActionChecked::CreateLambda( [this]{ return Settings->GetFixedTimeStepPlayback(); } ) );
-
-	SequencerCommandBindings->MapAction(
 		Commands.ToggleSnapCurveValueToInterval,
 		FExecuteAction::CreateLambda( [this]{ Settings->SetSnapCurveValueToInterval( !Settings->GetSnapCurveValueToInterval() ); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
@@ -5227,6 +5342,32 @@ void FSequencer::BindCommands()
 		FExecuteAction::CreateSP(this, &FSequencer::CopySelectedKeys),
 		FCanExecuteAction::CreateLambda(CanCutOrCopy)
 	);
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleForceFixedFrameIntervalPlayback,
+		FExecuteAction::CreateLambda( [this] 
+		{
+			UMovieSceneSequence* FocusedMovieSceneSequence = GetFocusedMovieSceneSequence();
+			if ( FocusedMovieSceneSequence != nullptr )
+			{
+				FScopedTransaction ToggleForceFixedFrameIntervalPlaybackTransaction( NSLOCTEXT( "Sequencer", "ToggleForceFixedFrameIntervalPlaybackTransaction", "Toggle force fixed frame interval playback" ) );
+				UMovieScene* MovieScene = FocusedMovieSceneSequence->GetMovieScene();
+				MovieScene->Modify();
+				MovieScene->SetForceFixedFrameIntervalPlayback( !MovieScene->GetForceFixedFrameIntervalPlayback() );
+				if ( MovieScene->GetForceFixedFrameIntervalPlayback() && MovieScene->GetFixedFrameInterval() == 0 )
+				{
+					MovieScene->SetFixedFrameInterval( Settings->GetTimeSnapInterval() );
+				}
+			} 
+		} ),
+		FCanExecuteAction::CreateLambda( [this] { return GetFocusedMovieSceneSequence() != nullptr;	} ),
+		FIsActionChecked::CreateLambda( [this] 
+		{ 
+			UMovieSceneSequence* FocusedMovieSceneSequence = GetFocusedMovieSceneSequence();
+			return FocusedMovieSceneSequence != nullptr
+				? FocusedMovieSceneSequence->GetMovieScene()->GetForceFixedFrameIntervalPlayback()
+				: false;
+		} ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleKeepCursorInPlaybackRange,
@@ -5292,6 +5433,11 @@ void FSequencer::BindCommands()
 		Commands.FixActorReferences,
 		FExecuteAction::CreateSP( this, &FSequencer::FixActorReferences ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.FixFrameTiming,
+		FExecuteAction::CreateSP( this, &FSequencer::FixFrameTiming ),
+		FCanExecuteAction::CreateLambda( [] { return true; } ) );
 
 	for (int32 i = 0; i < TrackEditors.Num(); ++i)
 	{

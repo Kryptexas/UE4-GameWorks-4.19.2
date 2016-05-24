@@ -66,6 +66,7 @@ public:
 	GENERATED_UCLASS_BODY()
 
 	DECLARE_MULTICAST_DELEGATE( FOnShowCurveEditorChanged );
+	DECLARE_MULTICAST_DELEGATE( FOnTimeSnapIntervalChanged );
 
 	/** Gets the current auto-key mode. */
 	EAutoKeyMode GetAutoKeyMode() const;
@@ -151,11 +152,6 @@ public:
 	bool GetSnapPlayTimeToDraggedKey() const;
 	/** Sets whether or not to snap the play time to the dragged key. */
 	void SetSnapPlayTimeToDraggedKey(bool InbSnapPlayTimeToDraggedKey);
-
-	/** Gets whether to lock the play rate to the frame rate. */
-	bool GetFixedTimeStepPlayback() const;
-	/** Sets whether or not to lock the play rate to the frame rate. */
-	void SetFixedTimeStepPlayback(bool InbFTixedTimeStepPlayback);
 
 	/** Gets the snapping interval for curve values. */
 	float GetCurveValueSnapInterval() const;
@@ -243,6 +239,9 @@ public:
 	/** Gets the multicast delegate which is run whenever the curve editor is shown/hidden. */
 	FOnShowCurveEditorChanged& GetOnShowCurveEditorChanged();
 
+	/** Gets the multicast delegate which is run whenever the time snap interval is changed. */
+	FOnTimeSnapIntervalChanged& GetOnTimeSnapIntervalChanged();
+
 protected:
 
 	UPROPERTY( config, EditAnywhere, Category=Keyframing )
@@ -297,9 +296,6 @@ protected:
 	bool bSnapPlayTimeToDraggedKey;
 
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
-	bool bFixedTimeStepPlayback;
-
-	UPROPERTY( config, EditAnywhere, Category=Snapping )
 	float CurveValueSnapInterval;
 
 	UPROPERTY( config, EditAnywhere, Category=Snapping )
@@ -348,4 +344,6 @@ protected:
 	bool bShowViewportTransportControls;
 
 	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
+
+	FOnTimeSnapIntervalChanged OnTimeSnapIntervalChanged;
 };

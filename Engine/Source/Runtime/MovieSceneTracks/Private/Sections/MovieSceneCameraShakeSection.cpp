@@ -46,3 +46,22 @@ void UMovieSceneCameraShakeSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandle
 // 		}
 // 	}
 }
+
+
+TOptional<float> UMovieSceneCameraShakeSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	//if ( ShakeWeightCurve.IsKeyHandleValid( KeyHandle ) )
+	//{
+	//	return TOptional<float>( ShakeWeightCurve.GetKeyTime( KeyHandle ) );
+	//}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneCameraShakeSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	//if ( ShakeWeightCurve.IsKeyHandleValid( KeyHandle ) )
+	//{
+	//	ShakeWeightCurve.SetKeyTime( KeyHandle, Time );
+	//}
+}

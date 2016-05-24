@@ -130,6 +130,49 @@ TSharedPtr<FStructOnScope> UMovieSceneColorSection::GetKeyStruct(const TArray<FK
 }
 
 
+TOptional<float> UMovieSceneColorSection::GetKeyTime( FKeyHandle KeyHandle ) const
+{
+	if ( RedCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( RedCurve.GetKeyTime( KeyHandle ) );
+	}
+	if ( GreenCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( GreenCurve.GetKeyTime( KeyHandle ) );
+	}
+	if ( BlueCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( BlueCurve.GetKeyTime( KeyHandle ) );
+	}
+	if ( AlphaCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		return TOptional<float>( AlphaCurve.GetKeyTime( KeyHandle ) );
+	}
+	return TOptional<float>();
+}
+
+
+void UMovieSceneColorSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
+{
+	if ( RedCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		RedCurve.SetKeyTime( KeyHandle, Time );
+	}
+	else if ( GreenCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		GreenCurve.SetKeyTime( KeyHandle, Time );
+	}
+	else if ( BlueCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		BlueCurve.SetKeyTime( KeyHandle, Time );
+	}
+	else if ( AlphaCurve.IsKeyHandleValid( KeyHandle ) )
+	{
+		AlphaCurve.SetKeyTime( KeyHandle, Time );
+	}
+}
+
+
 /* IKeyframeSection interface
  *****************************************************************************/
 

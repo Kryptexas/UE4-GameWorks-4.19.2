@@ -499,7 +499,18 @@ void ULevelSequencePlayer::UpdateMovieSceneInstance(float CurrentPosition, float
 {
 	if(RootMovieSceneInstance.IsValid())
 	{
-		EMovieSceneUpdateData UpdateData(CurrentPosition + StartTime, PreviousPosition + StartTime);
+		float Position = CurrentPosition + StartTime;
+		float LastPosition = PreviousPosition + StartTime;
+		UMovieSceneSequence* MovieSceneSequence = RootMovieSceneInstance->GetSequence();
+		if (MovieSceneSequence != nullptr && 
+			MovieSceneSequence->GetMovieScene()->GetForceFixedFrameIntervalPlayback() &&
+			MovieSceneSequence->GetMovieScene()->GetFixedFrameInterval() > 0 )
+		{
+			float FixedFrameInterval = MovieSceneSequence->GetMovieScene()->GetFixedFrameInterval();
+			Position = FMath::RoundToInt( Position / FixedFrameInterval ) * FixedFrameInterval;
+			LastPosition = FMath::RoundToInt( LastPosition / FixedFrameInterval ) * FixedFrameInterval;
+		}
+		EMovieSceneUpdateData UpdateData(Position, LastPosition);
 		RootMovieSceneInstance->Update(UpdateData, *this);
 #if WITH_EDITOR
 		OnLevelSequencePlayerUpdate.Broadcast(*this, CurrentPosition, PreviousPosition);
