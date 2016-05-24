@@ -126,6 +126,7 @@ namespace UnrealBuildTool
 				Rules.PrivateDependencyModuleNames.Remove("DX12");
 				Rules.PrivateDependencyModuleNames.Remove("D3D12RHI");
 				Rules.PrivateDependencyModuleNames.Remove("D3D11RHI");
+				Rules.PrivateDependencyModuleNames.Remove("OpenVR");
 
 				// If we're targeting Windows XP, then always delay-load D3D11 as it won't exist on that architecture
 				if (ModuleName == "DX11")
