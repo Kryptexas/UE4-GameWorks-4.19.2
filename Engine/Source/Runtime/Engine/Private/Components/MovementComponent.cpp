@@ -179,7 +179,7 @@ void UMovementComponent::Serialize(FArchive& Ar)
 	USceneComponent* CurrentUpdatedComponent = UpdatedComponent;
 	Super::Serialize(Ar);
 
-	if (Ar.IsLoading() && Ar.UE4Ver() <= VER_UE4_NAME_HASHES_SERIALIZED)
+	if (Ar.IsLoading())
 	{
 		// This was marked Transient so it won't be saved out, but we need still to reject old saved values.
 		UpdatedComponent = CurrentUpdatedComponent;
