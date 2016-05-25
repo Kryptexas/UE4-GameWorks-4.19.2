@@ -1213,7 +1213,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// when we are in the editor we like to do things like build lighting and such
 		// this thread pool can be used for those purposes
 		GLargeThreadPool = FQueuedThreadPool::Allocate();
-		int32 NumThreadsInLargeThreadPool = FPlatformMisc::NumberOfCoresIncludingHyperthreads() - 2;
+		int32 NumThreadsInLargeThreadPool = FMath::Max(FPlatformMisc::NumberOfCoresIncludingHyperthreads() - 2, 2);
 
 		verify(GLargeThreadPool->Create(NumThreadsInLargeThreadPool));
 #endif
