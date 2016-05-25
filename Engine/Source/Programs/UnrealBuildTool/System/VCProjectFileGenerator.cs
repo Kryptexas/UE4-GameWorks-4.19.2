@@ -282,12 +282,6 @@ namespace UnrealBuildTool
 						{
 							VCProjectFileFormat ProposedFormat = ProjectFileFormat;
 
-							// Visual Studio 2015 is not supported by the Android debugger we currently furnish
-							if (SupportedPlatform == UnrealTargetPlatform.Android)
-							{
-								Log.TraceInformation("The default Android debugger does not support Visual Studio 2015. Please use an updated debugger or use -2013 to generate compatible project files.");
-							}
-
 							// Reduce the Visual Studio version to the max supported by each platform we plan to include.
 							if (ProposedFormat < ProjectFileFormat)
 							{
