@@ -70,7 +70,7 @@ public:
 	bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << ShaderComplexityColors << MiniFontTexture << ShaderComplexityParams << NumComplexityColors << QuadOverdrawTexture;
+		Ar << PostprocessParameter << ShaderComplexityColors << MiniFontTexture << ShaderComplexityParams << ShaderComplexityParams2 << QuadOverdrawTexture;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -80,7 +80,7 @@ private:
 	FShaderParameter ShaderComplexityColors;
 	FShaderResourceParameter MiniFontTexture;
 	FShaderParameter ShaderComplexityParams;
-	FShaderParameter NumComplexityColors;
+	FShaderParameter ShaderComplexityParams2;
 	FShaderResourceParameter QuadOverdrawTexture;
 };
 
