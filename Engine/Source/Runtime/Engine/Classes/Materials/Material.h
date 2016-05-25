@@ -767,6 +767,9 @@ public:
 
 private:
 
+	/** Inline material resources serialized from disk. To be processed on game thread in PostLoad. */
+	TArray<FMaterialResource> LoadedMaterialResources;
+
 	/** 
 	 * Material resources used for rendering this material.
 	 * There need to be as many entries in this array as can be used simultaneously for rendering.  

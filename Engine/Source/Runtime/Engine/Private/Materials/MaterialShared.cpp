@@ -752,6 +752,14 @@ void FMaterial::SerializeInlineShaderMap(FArchive& Ar)
 	}
 }
 
+void FMaterial::RegisterInlineShaderMap()
+{
+	if (GameThreadShaderMap)
+	{
+		GameThreadShaderMap->RegisterSerializedShaders();
+	}
+}
+
 void FMaterialResource::LegacySerialize(FArchive& Ar)
 {
 	FMaterial::LegacySerialize(Ar);

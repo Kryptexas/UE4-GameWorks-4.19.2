@@ -246,6 +246,7 @@ void BackupGlobalShaderMap(FGlobalShaderBackupData& OutGlobalShaderBackup)
 			TArray<uint8>* ShaderData = new TArray<uint8>();
 			FMemoryWriter Ar(*ShaderData);
 			GGlobalShaderMap[ShaderPlatform]->SerializeInline(Ar, true, true);
+			GGlobalShaderMap[ShaderPlatform]->RegisterSerializedShaders();
 			GGlobalShaderMap[ShaderPlatform]->Empty();
 			OutGlobalShaderBackup.FeatureLevelShaderData[i] = ShaderData;
 		}
@@ -269,6 +270,7 @@ void RestoreGlobalShaderMap(const FGlobalShaderBackupData& GlobalShaderBackup)
 		{
 			FMemoryReader Ar(*GlobalShaderBackup.FeatureLevelShaderData[i]);
 			GGlobalShaderMap[ShaderPlatform]->SerializeInline(Ar, true, true);
+			GGlobalShaderMap[ShaderPlatform]->RegisterSerializedShaders();
 		}
 	}
 }
@@ -436,6 +438,8 @@ static void SerializeGlobalShaders(FArchive& Ar, TShaderMap<FGlobalShaderType>* 
 
 	// Serialize the global shaders.
 	GlobalShaderMap->SerializeInline(Ar, true, false);
+	// And now register them.
+	GlobalShaderMap->RegisterSerializedShaders();
 }
 
 static FString GetGlobalShaderCacheFilename(EShaderPlatform Platform)
