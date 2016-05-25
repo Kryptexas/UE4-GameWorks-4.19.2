@@ -366,6 +366,27 @@ void FSequencer::Tick(float InDeltaTime)
 		SetGlobalTimeDirectly(GetGlobalTime() + Offset);
 	}
 
+	// override max frame rate
+	if (PlaybackState == EMovieScenePlayerStatus::Playing)
+	{
+		bool bIsFixedFrameIntervalPlayback = false;
+		if (GetFocusedMovieSceneSequence() && GetFocusedMovieSceneSequence()->GetMovieScene())
+		{
+			bIsFixedFrameIntervalPlayback = GetFocusedMovieSceneSequence()->GetMovieScene()->GetForceFixedFrameIntervalPlayback();
+		}
+
+		const float TimeSnapInterval = Settings->GetTimeSnapInterval();
+
+		if (SequencerSnapValues::IsTimeSnapIntervalFrameRate(TimeSnapInterval) && bIsFixedFrameIntervalPlayback)
+		{
+			GEngine->SetMaxFPS(1.f / TimeSnapInterval);
+		}
+		else
+		{
+			GEngine->SetMaxFPS(OldMaxTickRate);
+		}
+	}
+
 	// calculate new global time
 	float NewTime = GetGlobalTime() + InDeltaTime * GWorld->GetWorldSettings()->MatineeTimeDilation;
 

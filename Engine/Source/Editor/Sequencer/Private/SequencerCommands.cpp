@@ -22,7 +22,7 @@ void FSequencerCommands::RegisterCommands()
 	UI_COMMAND( ZoomInViewRange, "Zoom into the View Range", "Zoom into the view range", EUserInterfaceActionType::Button, FInputChord(EKeys::Equals) );
 	UI_COMMAND( ZoomOutViewRange, "Zoom out of the View Range", "Zoom out of the view range", EUserInterfaceActionType::Button, FInputChord(EKeys::Hyphen) );
 
-	UI_COMMAND( ToggleForceFixedFrameIntervalPlayback, "Force fixed frame interval playback.",
+	UI_COMMAND( ToggleForceFixedFrameIntervalPlayback, "Force Fixed Frame Interval Playback.",
 		"Forces scene evaluation to a fixed frame interval in editor and at runtime, even if this would result in duplicated or dropped frames.",
 		EUserInterfaceActionType::ToggleButton, FInputChord() );
 	
