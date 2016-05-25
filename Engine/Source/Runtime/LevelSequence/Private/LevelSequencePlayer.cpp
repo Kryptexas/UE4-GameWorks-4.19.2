@@ -270,9 +270,9 @@ void ULevelSequencePlayer::StartPlayingNextTick()
 	{
 		RootMovieSceneInstance = MakeShareable(new FMovieSceneSequenceInstance(*LevelSequence));
 		RootMovieSceneInstance->RefreshInstance(*this);
-
-		SetTickPrerequisites(true);
 	}
+
+	SetTickPrerequisites(true);
 
 	bPendingFirstUpdate = true;
 	bIsPlaying = true;
