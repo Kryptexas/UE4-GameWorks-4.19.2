@@ -777,8 +777,8 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	bHitProxiesCached(false),
 	bHasRequestedToggleFreeze(false),
 	bIsSlateViewport(false),
-	bTakeHighResScreenShot(false),
-	FlushOnDrawCount(0)
+	FlushOnDrawCount(0),
+	bTakeHighResScreenShot(false)
 {
 	//initialize the hit proxy kernel
 	HitProxySize = 5;
