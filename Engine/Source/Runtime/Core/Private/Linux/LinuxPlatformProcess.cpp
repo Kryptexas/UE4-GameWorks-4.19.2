@@ -788,6 +788,19 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	extern char ** environ;	// provided by libc
 	pid_t ChildPid = -1;
 
+	posix_spawnattr_t SpawnAttr;
+	posix_spawnattr_init(&SpawnAttr);
+	short int SpawnFlags = 0;
+
+	// unmask all signals and set them to default for children
+	// this is particularly important for mono, which otherwise will crash attempting to find usable signals
+	sigset_t EmptySignalSet, FullSignalSet;
+	sigemptyset(&EmptySignalSet);
+	sigfillset(&FullSignalSet);
+	posix_spawnattr_setsigmask(&SpawnAttr, &EmptySignalSet);
+	posix_spawnattr_setsigdefault(&SpawnAttr, &FullSignalSet);
+	SpawnFlags |= (POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK);
+
 	int PosixSpawnErrNo = -1;
 	if (PipeWriteChild || PipeReadChild)
 	{
@@ -806,7 +819,8 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 			posix_spawn_file_actions_adddup2(&FileActions, PipeReadHandle->GetHandle(), STDIN_FILENO);
 		}
 
-		PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_UTF8(*ProcessPath), &FileActions, nullptr, Argv, environ);
+		posix_spawnattr_setflags(&SpawnAttr, SpawnFlags);
+		PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_UTF8(*ProcessPath), &FileActions, &SpawnAttr, Argv, environ);
 		posix_spawn_file_actions_destroy(&FileActions);
 	}
 	else
@@ -818,13 +832,12 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 		//		http://ewontfix.com/7/
 		//		https://sourceware.org/bugzilla/show_bug.cgi?id=14750
 		//		https://sourceware.org/bugzilla/show_bug.cgi?id=14749
-		posix_spawnattr_t SpawnAttr;
-		posix_spawnattr_init(&SpawnAttr);
-		posix_spawnattr_setflags(&SpawnAttr, POSIX_SPAWN_USEVFORK);
+		SpawnFlags |= POSIX_SPAWN_USEVFORK;
 
+		posix_spawnattr_setflags(&SpawnAttr, SpawnFlags);
 		PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_UTF8(*ProcessPath), nullptr, &SpawnAttr, Argv, environ);
-		posix_spawnattr_destroy(&SpawnAttr);
 	}
+	posix_spawnattr_destroy(&SpawnAttr);
 
 	if (PosixSpawnErrNo != 0)
 	{
