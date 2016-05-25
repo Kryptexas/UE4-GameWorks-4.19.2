@@ -239,27 +239,19 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 	}
 	else if( CaptureState == ELevelSequenceCaptureState::ReadyToWarmUp )
 	{
-		Actor->SequencePlayer->Play();
+		Actor->SequencePlayer->StartPlayingNextTick();
+		// Start warming up
 		CaptureState = ELevelSequenceCaptureState::WarmingUp;
 	}
 
-
-	if( CaptureState == ELevelSequenceCaptureState::WarmingUp )
+	// Count down our warm up frames.
+	// The post increment is important - it ensures we capture the very first frame if there are no warm up frames,
+	// but correctly skip n frames if there are n warmup frames
+	if( CaptureState == ELevelSequenceCaptureState::WarmingUp && RemainingWarmUpFrames-- == 0)
 	{
-		// Count down our warm up frames
-		if( RemainingWarmUpFrames == 0 )
-		{
-			CaptureState = ELevelSequenceCaptureState::FinishedWarmUp;
-
-			// It's time to start capturing!
-			StartCapture();
-			CaptureThisFrame(LastSequenceUpdateDelta);
-		}
-		else
-		{
-			// Not ready to capture just yet
-			--RemainingWarmUpFrames;
-		}
+		// Start capturing - this will capture the *next* update from sequencer
+		CaptureState = ELevelSequenceCaptureState::FinishedWarmUp;
+		StartCapture();
 	}
 
 	if( bCapturing && !Actor->SequencePlayer->IsPlaying() )

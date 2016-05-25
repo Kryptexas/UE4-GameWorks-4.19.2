@@ -244,15 +244,8 @@ void FFrameGrabber::CaptureThisFrame(FFramePayloadPtr Payload)
 
 	OutstandingFrameCount.Increment();
 
-	// Issue a rendering command to ensure we capture the frame that is currently being set up
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		IssueCaptureFrameCommand,
-		FFrameGrabber* , This, this,
-		FFramePayloadPtr, Payload, Payload,
-	{
-		FScopeLock Lock(&This->PendingFramePayloadsMutex);
-		This->PendingFramePayloads.Add(Payload);
-	});
+	FScopeLock Lock(&PendingFramePayloadsMutex);
+	PendingFramePayloads.Add(Payload);
 }
 
 void FFrameGrabber::StopCapturingFrames()

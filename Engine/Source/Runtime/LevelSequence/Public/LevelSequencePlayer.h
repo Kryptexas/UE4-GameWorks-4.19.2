@@ -82,6 +82,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void PlayLooping(int32 NumLoops = -1);
 
+	/** Start playback from the current time cursor position, using the current play rate. Does not update the animation until next tick. */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void StartPlayingNextTick();
+
 	/** Pause playback. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void Pause();
@@ -170,6 +174,9 @@ private:
 	/** Whether we're currently playing. If false, then sequence playback is paused or was never started. */
 	UPROPERTY()
 	bool bIsPlaying;
+
+	/** True where we're waiting for the first update of the sequence after calling StartPlayingNextTick. */
+	bool bPendingFirstUpdate;
 
 	/** The current time cursor position within the sequence (in seconds) */
 	UPROPERTY()

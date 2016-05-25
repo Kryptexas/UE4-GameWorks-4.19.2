@@ -243,6 +243,22 @@ void ULevelSequencePlayer::SetTickPrerequisites(bool bAddTickPrerequisites)
 
 void ULevelSequencePlayer::Play()
 {
+	// Start playing
+	StartPlayingNextTick();
+
+	// Update now
+	bPendingFirstUpdate = false;
+	UpdateMovieSceneInstance(TimeCursorPosition, TimeCursorPosition);
+}
+
+void ULevelSequencePlayer::PlayLooping(int32 NumLoops)
+{
+	PlaybackSettings.LoopCount = NumLoops;
+	Play();
+}
+
+void ULevelSequencePlayer::StartPlayingNextTick()
+{
 	if ((LevelSequence == nullptr) || !World.IsValid())
 	{
 		return;
@@ -258,16 +274,9 @@ void ULevelSequencePlayer::Play()
 		SetTickPrerequisites(true);
 	}
 
+	bPendingFirstUpdate = true;
 	bIsPlaying = true;
 	bHasCleanedUpSequence = false;
-
-	UpdateMovieSceneInstance(TimeCursorPosition, TimeCursorPosition);
-}
-
-void ULevelSequencePlayer::PlayLooping(int32 NumLoops)
-{
-	PlaybackSettings.LoopCount = NumLoops;
-	Play();
 }
 
 float ULevelSequencePlayer::GetPlaybackPosition() const
@@ -307,6 +316,12 @@ void ULevelSequencePlayer::SetPlaybackRange( const float NewStartTime, const flo
 void ULevelSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 {
 	float Length = GetLength();
+
+	if (bPendingFirstUpdate)
+	{
+		NewPosition = TimeCursorPosition;
+		bPendingFirstUpdate = false;
+	}
 
 	if ((NewPosition >= Length) || (NewPosition < 0))
 	{
