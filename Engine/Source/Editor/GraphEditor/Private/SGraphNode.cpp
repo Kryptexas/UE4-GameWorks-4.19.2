@@ -1024,6 +1024,18 @@ void SGraphNode::CreatePinWidgets()
 	{
 		UEdGraphPin* CurPin = GraphNode->Pins[PinIndex];
 
+		if ( !ensureMsgf(CurPin->GetOuter() == GraphNode
+			, TEXT("Graph node ('%s' - %s) has an invalid %s pin: '%s'; (with a bad %s outer: '%s'); skiping creation of a widget for this pin.")
+			, *GraphNode->GetNodeTitle(ENodeTitleType::ListView).ToString()
+			, *GraphNode->GetPathName()
+			, (CurPin->Direction == EEdGraphPinDirection::EGPD_Input) ? TEXT("input") : TEXT("output")
+			,  CurPin->PinFriendlyName.IsEmpty() ? *CurPin->PinName : *CurPin->PinFriendlyName.ToString()
+			,  CurPin->GetOuter() ? *CurPin->GetOuter()->GetClass()->GetName() : TEXT("UNKNOWN")
+			,  CurPin->GetOuter() ? *CurPin->GetOuter()->GetPathName() : TEXT("NULL")) )
+		{
+			continue;
+		}
+
 		CreateStandardPinWidget(CurPin);
 	}
 }
