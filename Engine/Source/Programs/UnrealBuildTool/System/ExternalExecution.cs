@@ -915,7 +915,7 @@ namespace UnrealBuildTool
 							AllUObjectFiles.AddRange(Module.PublicUObjectClassesHeaders.ConvertAll(Item => Item.AbsolutePath));
 							AllUObjectFiles.AddRange(Module.PublicUObjectHeaders.ConvertAll(Item => Item.AbsolutePath));
 							AllUObjectFiles.AddRange(Module.PrivateUObjectHeaders.ConvertAll(Item => Item.AbsolutePath));
-							ResponseFile.Create(TimestampFile, AllUObjectFiles);
+							ResponseFile.Create(TimestampFile, AllUObjectFiles, ResponseFile.CreateOptions.WriteEvenIfUnchanged);
 						}
 					}
 				}

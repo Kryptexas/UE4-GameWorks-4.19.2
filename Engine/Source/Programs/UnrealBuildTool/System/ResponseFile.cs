@@ -9,22 +9,32 @@ namespace UnrealBuildTool
 {
 	public class ResponseFile
 	{
+		[FlagsAttribute]
+		public enum CreateOptions
+		{
+			None                 = 0x0,
+			WriteEvenIfUnchanged = 0x1
+		}
+
 		/// <summary>
 		/// Creates a file from a list of strings; each string is placed on a line in the file.
 		/// </summary>
 		/// <param name="TempFileName">Name of response file</param>
 		/// <param name="Lines">List of lines to write to the response file</param>
-		public static FileReference Create(FileReference TempFileName, List<string> Lines)
+		public static FileReference Create(FileReference TempFileName, List<string> Lines, CreateOptions Options = CreateOptions.None)
 		{
 			FileInfo TempFileInfo = new FileInfo(TempFileName.FullName);
 			if (TempFileInfo.Exists)
 			{
-				string Body = string.Join(Environment.NewLine, Lines);
-				// Reuse the existing response file if it remains unchanged
-				string OriginalBody = File.ReadAllText(TempFileName.FullName);
-				if (string.Equals(OriginalBody, Body, StringComparison.Ordinal))
+				if ((Options & CreateOptions.WriteEvenIfUnchanged) != CreateOptions.WriteEvenIfUnchanged)
 				{
-					return TempFileName;
+					string Body = string.Join(Environment.NewLine, Lines);
+					// Reuse the existing response file if it remains unchanged
+					string OriginalBody = File.ReadAllText(TempFileName.FullName);
+					if (string.Equals(OriginalBody, Body, StringComparison.Ordinal))
+					{
+						return TempFileName;
+					}
 				}
 				// Delete the existing file if it exists and requires modification
 				TempFileInfo.IsReadOnly = false;
