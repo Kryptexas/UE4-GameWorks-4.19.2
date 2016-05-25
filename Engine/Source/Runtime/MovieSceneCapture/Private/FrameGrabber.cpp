@@ -165,6 +165,21 @@ FFrameGrabber::FFrameGrabber(TSharedRef<FSceneViewport> Viewport, FIntPoint Desi
 {
 	State = EFrameGrabberState::Inactive;
 
+	// cause the viewport to always flush on draw
+	Viewport->IncrementFlushOnDraw();
+
+	{
+		// Setup a functor to decrement the flag on destruction (this class isn't necessarily tied to scene viewports)
+		TWeakPtr<FSceneViewport> WeakViewport = Viewport;
+		OnShutdown = [WeakViewport]{
+			TSharedPtr<FSceneViewport> PinnedViewport = WeakViewport.Pin();
+			if (PinnedViewport.IsValid())
+			{
+				PinnedViewport->DecrementFlushOnDraw();
+			}
+		};
+	}
+
 	TargetSize = DesiredBufferSize;
 
 	CurrentFrameIndex = 0;
@@ -221,6 +236,11 @@ FFrameGrabber::~FFrameGrabber()
 	if (OnWindowRendered.IsValid())
 	{
 		FSlateApplication::Get().GetRenderer()->OnSlateWindowRendered().Remove(OnWindowRendered);
+	}
+	
+	if (OnShutdown)
+	{
+		OnShutdown();
 	}
 }
 
