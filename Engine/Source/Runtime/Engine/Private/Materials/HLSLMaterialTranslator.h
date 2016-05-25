@@ -1608,17 +1608,16 @@ protected:
 			return INDEX_NONE;
 		}
 
-		if(GetParameterUniformExpression(Code) && !GetParameterUniformExpression(Code)->IsConstant())
-		{
-			return ValidCast(AccessUniformExpression(Code),DestType);
-		}
-
 		EMaterialValueType SourceType = GetParameterType(Code);
-
 		int32 CompiledResult = INDEX_NONE;
+
 		if (SourceType & DestType)
 		{
 			CompiledResult = Code;
+		}
+		else if(GetParameterUniformExpression(Code) && !GetParameterUniformExpression(Code)->IsConstant())
+		{
+			return ValidCast(AccessUniformExpression(Code), DestType);
 		}
 		else if((SourceType & MCT_Float) && (DestType & MCT_Float))
 		{
