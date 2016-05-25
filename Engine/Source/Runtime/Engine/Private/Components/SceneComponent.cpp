@@ -1484,7 +1484,6 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 		return true;
 	}
 
-	FDetachmentTransformRules DetachmentRules(AttachmentRules, true);
 	if(Parent != nullptr)
 	{
 		const bool bSameAttachParentAndSocket = (Parent == GetAttachParent() && SocketName == GetAttachSocketName());
@@ -1565,6 +1564,8 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 		// Find out if we're already attached, and save off our position in the array if we are
 		int32 LastAttachIndex = INDEX_NONE;
 		Parent->GetAttachChildren().Find(this, LastAttachIndex);
+
+		FDetachmentTransformRules DetachmentRules(AttachmentRules, true);
 
 		// Make sure we are detached
 		if (bSameAttachParentAndSocket && !IsRegistered() && AttachmentRules.LocationRule == EAttachmentRule::KeepRelative && AttachmentRules.RotationRule == EAttachmentRule::KeepRelative && AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative && LastAttachIndex == INDEX_NONE)
@@ -1762,11 +1763,6 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 		}
 
 		return true;
-	}
-	else
-	{
-		UE_LOG(LogSceneComponent, Warning, TEXT("AttachTo: '%s' attempted to attach to null. Detaching from parent."), *GetPathName());
-		DetachFromComponent(DetachmentRules);
 	}
 
 	return false;
