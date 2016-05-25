@@ -1466,15 +1466,6 @@ void USceneComponent::ConvertAttachLocation(EAttachLocation::Type InAttachLocati
 
 bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName, EAttachLocation::Type AttachType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*= false*/)
 {
-	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
-	if (ThreadContext.IsInConstructor > 0)
-	{
-		// Validate that the use of AttachTo in the constructor is just setting up the attachment and not expecting to be able to do anything else
-		ensureMsgf(AttachType == EAttachLocation::KeepRelativeOffset && !bWeldSimulatedBodies, TEXT("AttachTo when called from a constructor cannot weld simulated bodies or specify an AttachType"));
-		SetupAttachment(Parent, InSocketName);
-		return true;
-	}
-
 	FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepRelative, bWeldSimulatedBodies);
 	ConvertAttachLocation(AttachType, AttachmentRules.LocationRule, AttachmentRules.RotationRule, AttachmentRules.ScaleRule);
 
@@ -1483,6 +1474,16 @@ bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 
 bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachmentTransformRules& AttachmentRules, FName SocketName)
 {
+	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+	if (ThreadContext.IsInConstructor > 0)
+	{
+		// Validate that the use of AttachTo in the constructor is just setting up the attachment and not expecting to be able to do anything else
+		ensureMsgf(!AttachmentRules.bWeldSimulatedBodies, TEXT("AttachToComponent when called from a constructor cannot weld simulated bodies. Consider calling SetupAttachment directly instead."));
+		ensureMsgf(AttachmentRules.LocationRule == EAttachmentRule::KeepRelative && AttachmentRules.RotationRule == EAttachmentRule::KeepRelative && AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative, TEXT("AttachToComponent when called from a constructor is only setting up attachment and will always be treated as KeepRelative. Consider calling SetupAttachment directly instead."));
+		SetupAttachment(Parent, SocketName);
+		return true;
+	}
+
 	FDetachmentTransformRules DetachmentRules(AttachmentRules, true);
 	if(Parent != nullptr)
 	{
