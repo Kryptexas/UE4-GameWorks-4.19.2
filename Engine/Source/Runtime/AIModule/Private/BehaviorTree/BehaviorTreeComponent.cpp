@@ -1006,7 +1006,8 @@ void UBehaviorTreeComponent::ApplyDiscardedSearch()
 	}
 
 	// apply new observing decorators
-	ApplySearchUpdates(UpdateList, 0);
+	// use MAX_uint16 to ignore execution index checks, building UpdateList checks if observer should be relevant
+	ApplySearchUpdates(UpdateList, MAX_uint16);
 
 	// remove everything else
 	SearchData.PendingUpdates.Reset();
