@@ -234,12 +234,16 @@ void FMovieSceneSubTrackInstance::UpdateSection( EMovieSceneUpdateData& UpdateDa
 	float InstanceLastPosition = InstanceOffset + (UpdateData.LastPosition - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
 	float InstancePosition = InstanceOffset + (UpdateData.Position - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
 
-	UMovieScene* SubMovieScene = SubSection->GetSequence()->GetMovieScene();
-	if ( SubMovieScene->GetForceFixedFrameIntervalPlayback() && SubMovieScene->GetFixedFrameInterval() > 0 )
+	UMovieSceneSequence* SubSequence = SubSection->GetSequence();
+	if (SubSequence)
 	{
-		float FixedFrameInterval = ( SubMovieScene->GetFixedFrameInterval() / SubSection->TimeScale );
-		InstancePosition = FMath::RoundToInt( InstancePosition / FixedFrameInterval ) * FixedFrameInterval;
-		InstanceLastPosition = FMath::RoundToInt( InstanceLastPosition / FixedFrameInterval ) * FixedFrameInterval;
+		UMovieScene* SubMovieScene = SubSequence->GetMovieScene();
+		if (SubMovieScene && SubMovieScene->GetForceFixedFrameIntervalPlayback() && SubMovieScene->GetFixedFrameInterval() > 0 )
+		{
+			float FixedFrameInterval = ( SubMovieScene->GetFixedFrameInterval() / SubSection->TimeScale );
+			InstancePosition = FMath::RoundToInt( InstancePosition / FixedFrameInterval ) * FixedFrameInterval;
+			InstanceLastPosition = FMath::RoundToInt( InstanceLastPosition / FixedFrameInterval ) * FixedFrameInterval;
+		}
 	}
 
 	EMovieSceneUpdateData SubUpdateData(InstancePosition, InstanceLastPosition);
