@@ -792,14 +792,22 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	posix_spawnattr_init(&SpawnAttr);
 	short int SpawnFlags = 0;
 
-	// unmask all signals and set them to default for children
-	// this is particularly important for mono, which otherwise will crash attempting to find usable signals
-	sigset_t EmptySignalSet, FullSignalSet;
+	// unmask all signals and set realtime signals to default for children
+	// the latter is particularly important for mono, which otherwise will crash attempting to find usable signals
+	// (NOTE: setting all signals to default fails)
+	sigset_t EmptySignalSet;
 	sigemptyset(&EmptySignalSet);
-	sigfillset(&FullSignalSet);
 	posix_spawnattr_setsigmask(&SpawnAttr, &EmptySignalSet);
-	posix_spawnattr_setsigdefault(&SpawnAttr, &FullSignalSet);
-	SpawnFlags |= (POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK);
+	SpawnFlags |= POSIX_SPAWN_SETSIGMASK;
+
+	sigset_t SetToDefaultSignalSet;
+	sigemptyset(&SetToDefaultSignalSet);
+	for (int SigNum = SIGRTMIN; SigNum <= SIGRTMAX; ++SigNum)
+	{
+		sigaddset(&SetToDefaultSignalSet, SigNum);
+	}
+	posix_spawnattr_setsigdefault(&SpawnAttr, &SetToDefaultSignalSet);
+	SpawnFlags |= POSIX_SPAWN_SETSIGDEF;
 
 	int PosixSpawnErrNo = -1;
 	if (PipeWriteChild || PipeReadChild)
@@ -1070,6 +1078,7 @@ void FProcState::Wait()
 			ReturnCode = (SignalInfo.si_code == CLD_EXITED) ? SignalInfo.si_status : -1;
 			bHasBeenWaitedFor = true;
 			bIsRunning = false;	// set in advance
+			UE_LOG(LogHAL, Log, TEXT("Child %d's return code is %d."), GetProcessId(), ReturnCode);
 			break;
 		}
 	}
