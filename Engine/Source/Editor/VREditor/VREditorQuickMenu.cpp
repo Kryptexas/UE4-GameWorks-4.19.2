@@ -365,4 +365,15 @@ bool UVREditorQuickMenu::IsAssetEditorVisible() const
 	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( FVREditorUISystem::EEditorUIPanel::AssetEditor ) );
 }
 
+void UVREditorQuickMenu::OnWorldSettingsButtonClicked(const bool bIsChecked)
+{
+	GetOwner()->GetOwner().TogglePanelVisibility(FVREditorUISystem::EEditorUIPanel::WorldSettings);
+
+}
+
+bool UVREditorQuickMenu::IsWorldSettingsVisible() const
+{
+	return (GetOwner()->GetOwner().IsShowingEditorUIPanel(FVREditorUISystem::EEditorUIPanel::WorldSettings));
+}
+
 #undef LOCTEXT_NAMESPACE

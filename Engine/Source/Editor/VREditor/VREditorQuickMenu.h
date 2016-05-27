@@ -147,6 +147,12 @@ public:
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsAssetEditorVisible() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Default")
+	void OnWorldSettingsButtonClicked(const bool bIsChecked);
+
+	UFUNCTION(BlueprintPure, Category = "Default")
+	bool IsWorldSettingsVisible() const;
+
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Refresh"))
 	void RefreshUI();
 

@@ -17,7 +17,7 @@ public:
 		Modes,
 		Tutorial,
 		AssetEditor,
-
+		WorldSettings,
 		// ...
 
 		TotalCount,

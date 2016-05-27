@@ -25,6 +25,10 @@
 // Actor Details, Modes
 #include "LevelEditor.h"
 
+// World Settings
+#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "Editor/PropertyEditor/Public/IDetailsView.h"
+
 #include "SLevelViewport.h"
 #include "SScaleBox.h"
 #include "SDPIScaler.h"
@@ -872,6 +876,37 @@ void FVREditorUISystem::CreateUIs()
 			FGlobalTabmanager::Get()->SetProxyTabManager(ProxyTabManager);
 
 			FAssetEditorManager::Get().OnAssetEditorOpened().AddRaw(this, &FVREditorUISystem::OnAssetEditorOpened);
+		}
+		// create the world settings menu
+		{
+			FPropertyEditorModule& PropertyEditorModule = FModuleManager::Get().LoadModuleChecked< FPropertyEditorModule >( "PropertyEditor" );
+
+			FDetailsViewArgs DetailsViewArgs( false, false, true, FDetailsViewArgs::HideNameArea, false, GUnrealEd );
+			DetailsViewArgs.bShowActorLabel = false;
+
+			TSharedRef<IDetailsView> WorldSettings = PropertyEditorModule.CreateDetailView( DetailsViewArgs );
+
+			UWorld* World = GetOwner().GetWorld();
+			if ( World != NULL )
+			{
+				WorldSettings->SetObject( World->GetWorldSettings() );
+			}
+
+			TSharedRef<SWidget> WidgetToDraw = 
+				SNew( SDPIScaler )
+				.DPIScale( VREd::EditorUIScale->GetFloat() )
+				[
+					WorldSettings
+				]
+			;
+
+			const bool bWithSceneComponent = false;
+			AVREditorFloatingUI* WorldSettingsUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "WorldSettingsUI" ), bWithSceneComponent );
+			WorldSettingsUI->SetSlateWidget( *this, WidgetToDraw, DefaultResolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing );
+			WorldSettingsUI->ShowUI( false );
+			FloatingUIs.Add( WorldSettingsUI );
+
+			EditorUIPanels[ (int32)EEditorUIPanel::WorldSettings ] = WorldSettingsUI;
 		}
 	}
 }
