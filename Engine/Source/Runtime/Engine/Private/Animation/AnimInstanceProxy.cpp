@@ -743,13 +743,11 @@ void FAnimInstanceProxy::EvaluateAnimation(FPoseContext& Output)
 
 void FAnimInstanceProxy::UpdateCurvesToComponents(USkeletalMeshComponent* Component)
 {
+	// AnimInstanceProxy has SkeletalMeshComponent but it's not safe to be used everywhere
+	// so please give us Component to update
 	if (Component)
 	{
 		Component->ApplyAnimationCurvesToComponent(&MaterialParameterCurves, &MorphTargetCurves);
-	}
-	else
-	{
-		SkeletalMeshComponent->ApplyAnimationCurvesToComponent(&MaterialParameterCurves, &MorphTargetCurves);
 	}
 }
 

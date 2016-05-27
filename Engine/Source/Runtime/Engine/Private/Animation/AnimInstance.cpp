@@ -1144,7 +1144,8 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 	}
 
 	// update curves to component
-	Proxy.UpdateCurvesToComponents();
+	// Proxy might not have SkeletalMeshComponent
+	Proxy.UpdateCurvesToComponents(GetOwningComponent());
 }
 
 bool UAnimInstance::HasMorphTargetCurves() const

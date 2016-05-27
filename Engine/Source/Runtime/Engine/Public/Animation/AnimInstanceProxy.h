@@ -366,7 +366,7 @@ protected:
 	void RecalcRequiredBones(USkeletalMeshComponent* Component, UObject* Asset);
 
 	/** Update the material parameters of the supplied component from this instance */
-	void UpdateCurvesToComponents(USkeletalMeshComponent* Component=nullptr);
+	void UpdateCurvesToComponents(USkeletalMeshComponent* Component);
 
 	/** Get Currently active montage evaluation state.
 		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
