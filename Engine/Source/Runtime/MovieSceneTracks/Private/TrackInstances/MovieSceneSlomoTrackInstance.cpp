@@ -57,11 +57,13 @@ void FMovieSceneSlomoTrackInstance::Update(EMovieSceneUpdateData& UpdateData, co
 
 	float FloatValue = 0.0f;
 
-	if (SlomoTrack->Eval(UpdateData.Position, UpdateData.LastPosition, FloatValue))
+	if (!SlomoTrack->Eval(UpdateData.Position, UpdateData.LastPosition, FloatValue) || (FloatValue <= 0.0f))
 	{
-		WorldSettings->MatineeTimeDilation = FloatValue;
-		WorldSettings->ForceNetUpdate();
+		return;
 	}
+
+	WorldSettings->MatineeTimeDilation = FloatValue;
+	WorldSettings->ForceNetUpdate();
 }
 
 
