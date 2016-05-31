@@ -181,7 +181,7 @@ Engine/Rendering/Materials/ExpressionReference/Coordinates#camerapositionws
 [/EXCERPT:UMaterialExpressionCameraPositionWS]
 
 [EXCERPT:UMaterialExpressionLightmapUVs]
-The LightmapUVs expression outputs the lightmap UV texture coordinates in the forum of a two-channel vector value. If lightmap UVs are unavailable, it will output a two-channel vector value of (0,0). 
+The LightmapUVs expression outputs the lightmap UV texture coordinates in the form of a two-channel vector value. If lightmap UVs are unavailable, it will output a two-channel vector value of (0,0).
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Coordinates#lightmapuvs
@@ -910,7 +910,7 @@ Engine/Rendering/Materials/ExpressionReference/Utility#rotateaboutaxis
 [EXCERPT:UMaterialExpressionAntialiasedTextureMask]
 The AntialiasedTextureMask expression allows you to create a material using a soft (anti-aliased) transition mask. The mask can be used to blend between two complex material properties or to fade out an alpha blended material (works well with SoftMasked). 
 
-Simple specify a texture with the mask specified in one channel (red, green, blue, or alpha), set the used channel in the expression and specify the comparison value.
+Simply specify a texture with the mask specified in one channel (red, green, blue, or alpha), set the used channel in the expression and specify the comparison value.
 
 Assuming the channel stores a grayscale value in the range 0=black to 1=white the comparison function defines if the resulting mask should be 0 or 1. This expression is a parameter, allowing the Texture property to be overridden by child MaterialInstances. 
 

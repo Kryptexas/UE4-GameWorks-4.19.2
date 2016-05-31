@@ -16,7 +16,7 @@ The Default Focus creates a short cut to accessing an Actor in your Blueprints a
 
 | Property | Description |
 | -------- | ----------- |
-| **Blackboard Key**| This takes in an Actor Key (and Object Key with its base class set to Actor) to be quickly referenced by the AI Controller using `GetFocusActor`. |
+| **Blackboard Key**| This takes in an Actor Key (an Object Key with its base class set to Actor) to be quickly referenced by the AI Controller using `GetFocusActor`. |
 | **Node Name** | The name the node should display in the Behavior Tree graph. |
 
 [REGION:note]

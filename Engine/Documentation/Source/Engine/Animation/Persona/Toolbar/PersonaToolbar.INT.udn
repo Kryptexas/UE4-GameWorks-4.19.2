@@ -94,7 +94,7 @@ Persona toolbar buttons provide easy access to switching between asset modes, su
 | ![](button_Compression.png)																				| Brings multiple options of compression for the currently selected animation. |
 | ![](button_AnimNotifies.png)																				| Brings up the Anim Notifies window, which displays all Anim Notifies. |
 | ![](button_Key.png)																						| Adds a key to the Additive Layer Track of the currently selected bone for the currently selected animation. |
-| ![](button_Apply.png)																						| Applys added keys to the currently selected animation. |
+| ![](button_Apply.png)																						| Applies added keys to the currently selected animation. |
 
 ## Mode Switching Tabs
 

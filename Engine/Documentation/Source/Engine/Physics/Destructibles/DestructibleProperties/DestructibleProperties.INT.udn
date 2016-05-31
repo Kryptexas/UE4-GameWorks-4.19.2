@@ -39,7 +39,7 @@ Version: 4.9
 | **Damage Spread** | Controls the distance into the destructible Actor to propagate the damage. The damage applied to the chunk is multiplied by Damage Spread to get the propagation distance. |
 | **Enable Impact Damage** | Whether to apply damage to a destructible when colliding with an object. |
 | **Impact Damage** | If a chunk is at a depth which has impact damage set, it will take damage equal to Impact Damage times the impact force when it collides with another object (assuming Report Rigid Collisions are enabled on both objects). |
-| **Custom Impact Resistance** | By default objects that collide with destructibles will bounce back. Custom resistance allows for finer control of how much a destrucible "pushes back" against a colliding object. |
+| **Custom Impact Resistance** | By default objects that collide with destructibles will bounce back. Custom resistance allows for finer control of how much a destructible "pushes back" against a colliding object. |
 | **Impact Resistance** | When a chunk takes impact damage due to physical contact, this parameter is the maximum impulse the contact can generate. Weak materials will have this set low, so heavier objects can pass through them during fracture. 0.0 is interpreted at infinite. |
 | **Default Impact Damage** | Impact damage will be taken to this depth. If negative, impact damage is disabled. |
 | [REGION:tablesection] _Debris Parameters_ [/REGION] ||
