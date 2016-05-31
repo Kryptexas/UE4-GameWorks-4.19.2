@@ -1852,26 +1852,28 @@ bool UInstancedStaticMeshComponent::IsInstanceSelected(int32 InInstanceIndex) co
 void UInstancedStaticMeshComponent::SelectInstance(bool bInSelected, int32 InInstanceIndex, int32 InInstanceCount)
 {
 #if WITH_EDITOR
-	if(PerInstanceSMData.Num() != SelectedInstances.Num())
+	if (InInstanceCount > 0)
 	{
-		SelectedInstances.Init(false, PerInstanceSMData.Num());
+		if (PerInstanceSMData.Num() != SelectedInstances.Num())
+		{
+			SelectedInstances.Init(false, PerInstanceSMData.Num());
+		}
+
+		check(SelectedInstances.IsValidIndex(InInstanceIndex));
+		check(SelectedInstances.IsValidIndex(InInstanceIndex + (InInstanceCount - 1)));
+
+		for (int32 InstanceIndex = InInstanceIndex; InstanceIndex < InInstanceIndex + InInstanceCount; InstanceIndex++)
+		{
+			SelectedInstances[InstanceIndex] = bInSelected;
+		}
 	}
-
-	check(SelectedInstances.IsValidIndex(InInstanceIndex));
-	check(SelectedInstances.IsValidIndex(InInstanceIndex + (InInstanceCount - 1)));
-
-	for (int32 InstanceIndex = InInstanceIndex; InstanceIndex < InInstanceIndex + InInstanceCount; InstanceIndex++)
-	{
-		SelectedInstances[InstanceIndex] = bInSelected;
-	}
-
 	SelectionStamp++;
 #endif
 }
 
 void UInstancedStaticMeshComponent::ClearInstanceSelection()
 {
-#if WITH_EDITOR	
+#if WITH_EDITOR
 	SelectedInstances.Empty();
 	SelectionStamp++;
 #endif
