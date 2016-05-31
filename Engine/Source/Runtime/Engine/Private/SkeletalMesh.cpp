@@ -20,7 +20,7 @@
 #include "SkeletalRenderGPUSkin.h"
 #include "RawIndexBuffer.h"
 #include "PhysicsPublic.h"
-#include "Animation/VertexAnim/MorphTarget.h"
+#include "Animation/MorphTarget.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Animation/AnimBlueprint.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
@@ -1205,6 +1205,36 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 	return Ar;
 }
 
+void FMorphTargetVertexInfoBuffers::InitRHI()
+{
+	if (PerVertexInfoList.Num() > 0)
+	{
+		FRHIResourceCreateInfo CreateInfo;
+		void* PerVertexInfoListVBData = nullptr;
+		PerVertexInfoVB = RHICreateAndLockVertexBuffer(PerVertexInfoList.GetAllocatedSize(), BUF_Static | BUF_ShaderResource, CreateInfo, PerVertexInfoListVBData);
+		FMemory::Memcpy(PerVertexInfoListVBData, PerVertexInfoList.GetData(), PerVertexInfoList.GetAllocatedSize());
+		RHIUnlockVertexBuffer(PerVertexInfoVB);
+		PerVertexInfoSRV = RHICreateShaderResourceView(PerVertexInfoVB, sizeof(uint32), PF_R32_UINT);
+
+		void* FlattenedDeltasVBData = nullptr;
+		FlattenedDeltasVB = RHICreateAndLockVertexBuffer(FlattenedDeltaList.GetAllocatedSize(), BUF_Static | BUF_ShaderResource, CreateInfo, FlattenedDeltasVBData);
+		FMemory::Memcpy(FlattenedDeltasVBData, FlattenedDeltaList.GetData(), FlattenedDeltaList.GetAllocatedSize());
+		RHIUnlockVertexBuffer(FlattenedDeltasVB);
+		FlattenedDeltasSRV = RHICreateShaderResourceView(FlattenedDeltasVB, sizeof(uint32), PF_R32_UINT);
+
+		NumInfluencedVerticesByMorphs = (uint32)PerVertexInfoList.Num();
+
+		PerVertexInfoList.Empty();
+		FlattenedDeltaList.Empty();
+	}
+}
+
+void FMorphTargetVertexInfoBuffers::ReleaseRHI()
+{
+	PerVertexInfoVB.SafeRelease();
+	FlattenedDeltasVB.SafeRelease();
+}
+
 /*-----------------------------------------------------------------------------
 	FStaticLODModel
 -----------------------------------------------------------------------------*/
@@ -1315,7 +1345,7 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 	}
 }
 
-void FStaticLODModel::InitResources(bool bNeedsVertexColors)
+void FStaticLODModel::InitResources(bool bNeedsVertexColors, int32 LODIndex, TArray<UMorphTarget*>& InMorphTargets)
 {
 	INC_DWORD_STAT_BY( STAT_SkeletalMeshIndexMemory, MultiSizeIndexContainer.IsIndexBufferValid() ? (MultiSizeIndexContainer.GetIndexBuffer()->Num() * MultiSizeIndexContainer.GetDataTypeSize()) : 0 );
 	
@@ -1343,6 +1373,51 @@ void FStaticLODModel::InitResources(bool bNeedsVertexColors)
 		AdjacencyMultiSizeIndexContainer.InitResources();
 		INC_DWORD_STAT_BY( STAT_SkeletalMeshIndexMemory, AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() ? (AdjacencyMultiSizeIndexContainer.GetIndexBuffer()->Num() * AdjacencyMultiSizeIndexContainer.GetDataTypeSize()) : 0 );
 	}
+
+	if (RHISupportsComputeShaders(GMaxRHIShaderPlatform) && InMorphTargets.Num() > 0)
+	{
+		// Populate the arrays to be filled in later in the render thread
+
+		// Auxiliary mapping for affected vertex indices by morph to its weights
+		TMap<uint32, TArray<FMorphTargetVertexInfoBuffers::FFlattenedDelta>> AuxDeltaList;
+
+		int32 TotalNumDeltas = 0;
+		for (int32 AnimIdx = 0; AnimIdx < InMorphTargets.Num(); ++AnimIdx)
+		{
+			UMorphTarget* MorphTarget = InMorphTargets[AnimIdx];
+
+			int32 NumSrcDeltas = 0;
+			FMorphTargetDelta* SrcDelta = MorphTarget->GetMorphTargetDelta(LODIndex, NumSrcDeltas);
+			for (int32 SrcDeltaIndex = 0; SrcDeltaIndex < NumSrcDeltas; ++SrcDeltaIndex, ++SrcDelta)
+			{
+				TArray<FMorphTargetVertexInfoBuffers::FFlattenedDelta>& FlattenedDeltas = AuxDeltaList.FindOrAdd(SrcDelta->SourceIdx);
+				FMorphTargetVertexInfoBuffers::FFlattenedDelta* NewDelta = new(FlattenedDeltas) FMorphTargetVertexInfoBuffers::FFlattenedDelta;
+				NewDelta->PosDelta = SrcDelta->PositionDelta;
+				NewDelta->TangentDelta = SrcDelta->TangentZDelta;
+				NewDelta->WeightIndex = AnimIdx;
+				++TotalNumDeltas;
+			}
+		}
+
+		MorphTargetVertexInfoBuffers.FlattenedDeltaList.Empty(TotalNumDeltas);
+		MorphTargetVertexInfoBuffers.PerVertexInfoList.AddUninitialized(AuxDeltaList.Num());
+		int32 StartDelta = 0;
+		FMorphTargetVertexInfoBuffers::FPerVertexInfo* NewPerVertexInfo = MorphTargetVertexInfoBuffers.PerVertexInfoList.GetData();
+		for (auto& Pair : AuxDeltaList)
+		{
+			NewPerVertexInfo->DestVertexIndex = Pair.Key;
+			NewPerVertexInfo->StartDelta = StartDelta;
+			NewPerVertexInfo->NumDeltas = Pair.Value.Num();
+			MorphTargetVertexInfoBuffers.FlattenedDeltaList.Append(Pair.Value);
+			StartDelta += Pair.Value.Num();
+			++NewPerVertexInfo;
+		}
+
+		if (AuxDeltaList.Num() > 0)
+		{
+			BeginInitResource(&MorphTargetVertexInfoBuffers);
+		}
+	}
 }
 
 void FStaticLODModel::ReleaseResources()
@@ -1359,6 +1434,7 @@ void FStaticLODModel::ReleaseResources()
 	BeginReleaseResource(&VertexBufferGPUSkin);
 	BeginReleaseResource(&ColorVertexBuffer);
 	BeginReleaseResource(&APEXClothVertexBuffer);
+	BeginReleaseResource(&MorphTargetVertexInfoBuffers);
 }
 
 int32 FStaticLODModel::GetTotalFaces() const
@@ -1939,14 +2015,14 @@ FSkeletalMeshResource::FSkeletalMeshResource()
 {
 }
 
-void FSkeletalMeshResource::InitResources(bool bNeedsVertexColors)
+void FSkeletalMeshResource::InitResources(bool bNeedsVertexColors, TArray<UMorphTarget*>& InMorphTargets)
 {
 	if (!bInitialized)
 	{
 		// initialize resources for each lod
 		for( int32 LODIndex = 0;LODIndex < LODModels.Num();LODIndex++ )
 		{
-			LODModels[LODIndex].InitResources(bNeedsVertexColors);
+			LODModels[LODIndex].InitResources(bNeedsVertexColors, LODIndex, InMorphTargets);
 		}
 		bInitialized = true;
 	}
@@ -2074,7 +2150,7 @@ void USkeletalMesh::SetNegativeBoundsExtension(const FVector& InExtension)
 	NegativeBoundsExtension = InExtension;
 	CalculateExtendedBounds();
 }
-PRAGMA_DISABLE_OPTIMIZATION
+
 void USkeletalMesh::CalculateExtendedBounds()
 {
 	FBoxSphereBounds CalculatedBounds = ImportedBounds;
@@ -2106,10 +2182,9 @@ void USkeletalMesh::ValidateBoundsExtension()
 	NegativeBoundsExtension.Z = FMath::Clamp(NegativeBoundsExtension.Z, -HalfExtent.Z, MAX_flt);
 }
 
-PRAGMA_ENABLE_OPTIMIZATION
 void USkeletalMesh::InitResources()
 {
-	ImportedResource->InitResources(bHasVertexColors);
+	ImportedResource->InitResources(bHasVertexColors, MorphTargets);
 }
 
 
@@ -3164,27 +3239,37 @@ void USkeletalMesh::InitMorphTargets()
 {
 	MorphTargetIndexMap.Empty();
 
-	// Work from last element in list backwards, so you can replace a specific target by adding a set later in the array.
-	for ( auto TableIter = MorphTargets.CreateIterator(); TableIter; ++TableIter )
+	for (int32 Index = 0; Index < MorphTargets.Num(); ++Index)
 	{
-		UMorphTarget* Item = (*TableIter);
-		FName const ShapeName = Item->GetFName();
-		if( MorphTargetIndexMap.Find(ShapeName) == NULL )
-		{ 
-			MorphTargetIndexMap.Add(ShapeName, Item);
+		UMorphTarget* MorphTarget = MorphTargets[Index];
+		FName const ShapeName = MorphTarget->GetFName();
+		if (MorphTargetIndexMap.Find(ShapeName) == nullptr)
+		{
+			MorphTargetIndexMap.Add(ShapeName, Index);
 		}
 	}
 }
 
-
-UMorphTarget* USkeletalMesh::FindMorphTarget( FName MorphTargetName ) const
+UMorphTarget* USkeletalMesh::FindMorphTarget(FName MorphTargetName) const
 {
+	int32 Index;
+	return FindMorphTargetAndIndex(MorphTargetName, Index);
+}
+
+UMorphTarget* USkeletalMesh::FindMorphTargetAndIndex(FName MorphTargetName, int32& OutIndex) const
+{
+	OutIndex = INDEX_NONE;
 	if( MorphTargetName != NAME_None )
 	{
-		return MorphTargetIndexMap.FindRef(MorphTargetName);
+		const int32* Found = MorphTargetIndexMap.Find(MorphTargetName);
+		if (Found)
+		{
+			OutIndex = *Found;
+			return MorphTargets[*Found];
+		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 USkeletalMeshSocket* USkeletalMesh::FindSocket(FName InSocketName) const
@@ -5168,7 +5253,7 @@ void USkinnedMeshComponent::UpdateMorphMaterialUsageOnProxy()
 	// update morph material usage
 	if( SceneProxy )
 	{
-		const bool bHasMorphs = ActiveVertexAnims.Num() > 0;
+		const bool bHasMorphs = ActiveMorphTargets.Num() > 0;
 		((FSkeletalMeshSceneProxy*)SceneProxy)->UpdateMorphMaterialUsage_GameThread(bHasMorphs);
 	}
 }

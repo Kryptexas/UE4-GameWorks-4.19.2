@@ -1465,15 +1465,6 @@ void USceneComponent::ConvertAttachLocation(EAttachLocation::Type InAttachLocati
 
 bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName, EAttachLocation::Type AttachType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*= false*/)
 {
-	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
-	if (ThreadContext.IsInConstructor > 0)
-	{
-		// Validate that the use of AttachTo in the constructor is just setting up the attachment and not expecting to be able to do anything else
-		ensureMsgf(AttachType == EAttachLocation::KeepRelativeOffset && !bWeldSimulatedBodies, TEXT("AttachTo when called from a constructor cannot weld simulated bodies or specify an AttachType"));
-		SetupAttachment(Parent, InSocketName);
-		return true;
-	}
-
 	FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepRelative, bWeldSimulatedBodies);
 	ConvertAttachLocation(AttachType, AttachmentRules.LocationRule, AttachmentRules.RotationRule, AttachmentRules.ScaleRule);
 
@@ -1482,6 +1473,16 @@ bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 
 bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachmentTransformRules& AttachmentRules, FName SocketName)
 {
+	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+	if (ThreadContext.IsInConstructor > 0)
+	{
+		// Validate that the use of AttachTo in the constructor is just setting up the attachment and not expecting to be able to do anything else
+		ensureMsgf(!AttachmentRules.bWeldSimulatedBodies, TEXT("AttachToComponent when called from a constructor cannot weld simulated bodies. Consider calling SetupAttachment directly instead."));
+		ensureMsgf(AttachmentRules.LocationRule == EAttachmentRule::KeepRelative && AttachmentRules.RotationRule == EAttachmentRule::KeepRelative && AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative, TEXT("AttachToComponent when called from a constructor is only setting up attachment and will always be treated as KeepRelative. Consider calling SetupAttachment directly instead."));
+		SetupAttachment(Parent, SocketName);
+		return true;
+	}
+
 	FDetachmentTransformRules DetachmentRules(AttachmentRules, true);
 	if(Parent != nullptr)
 	{
@@ -1579,45 +1580,48 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 			//Also physics state may not be created yet so we use bSimulatePhysics to determine if the object has any intention of being physically simulated
 			UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this);
 
-			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && !AttachmentRules.bWeldSimulatedBodies && GetWorld() && GetWorld()->IsGameWorld())
+			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && !AttachmentRules.bWeldSimulatedBodies)
 			{
-				 if(!GetWorld()->bIsRunningConstructionScript && (GetOwner()->HasActorBegunPlay() || GetOwner()->IsActorBeginningPlay()))
-				 {
-					 //Since the object is physically simulated it can't be the case that it's a child of object A and being attached to object B (at runtime)
-					 bDisableDetachmentUpdateOverlaps = true;
-					 DetachFromComponent(DetachmentRules);
-					 bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
+				UWorld* MyWorld = GetWorld();
+				if (MyWorld && MyWorld->IsGameWorld())
+				{
+					if (!MyWorld->bIsRunningConstructionScript && (GetOwner()->HasActorBegunPlay() || GetOwner()->IsActorBeginningPlay()))
+					{
+						//Since the object is physically simulated it can't be the case that it's a child of object A and being attached to object B (at runtime)
+						bDisableDetachmentUpdateOverlaps = true;
+						DetachFromComponent(DetachmentRules);
+						bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
 
-					 //User tried to attach but physically based so detach. However, if they provided relative coordinates we should still get the correct position
-					 if (AttachmentRules.LocationRule == EAttachmentRule::KeepRelative || AttachmentRules.RotationRule == EAttachmentRule::KeepRelative || AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative)
-					 {
-						 UpdateComponentToWorldWithParent(Parent, SocketName, EUpdateTransformFlags::None, RelativeRotationCache.RotatorToQuat(RelativeRotation));
-						 if (AttachmentRules.LocationRule == EAttachmentRule::KeepRelative)
-						 {
-							 RelativeLocation = ComponentToWorld.GetLocation(); // or GetComponentLocation(), but worried about custom location...
-						 }
-						 if (AttachmentRules.RotationRule == EAttachmentRule::KeepRelative)
-						 {
-							 RelativeRotation = GetComponentRotation();
-						 }
-						 if (AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative)
-						 {
-							 RelativeScale3D = GetComponentScale();
-						 }
-						 if (IsRegistered())
-						 {
-							 UpdateOverlaps();
-						 }
-					 }
+						//User tried to attach but physically based so detach. However, if they provided relative coordinates we should still get the correct position
+						if (AttachmentRules.LocationRule == EAttachmentRule::KeepRelative || AttachmentRules.RotationRule == EAttachmentRule::KeepRelative || AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative)
+						{
+							UpdateComponentToWorldWithParent(Parent, SocketName, EUpdateTransformFlags::None, RelativeRotationCache.RotatorToQuat(RelativeRotation));
+							if (AttachmentRules.LocationRule == EAttachmentRule::KeepRelative)
+							{
+								RelativeLocation = ComponentToWorld.GetLocation(); // or GetComponentLocation(), but worried about custom location...
+							}
+							if (AttachmentRules.RotationRule == EAttachmentRule::KeepRelative)
+							{
+								RelativeRotation = GetComponentRotation();
+							}
+							if (AttachmentRules.ScaleRule == EAttachmentRule::KeepRelative)
+							{
+								RelativeScale3D = GetComponentScale();
+							}
+							if (IsRegistered())
+							{
+								UpdateOverlaps();
+							}
+						}
 
-					 return false;
-				 }
-				 else
-				 {
-					//A simulated object needs to be detached at runtime. We are in the construction script so we can't do it here. However, we want to make sure it is done in BeginPlay.
-					bWantsBeginPlay = true;
-				 }
-				
+						return false;
+					}
+					else
+					{
+						//A simulated object needs to be detached at runtime. We are in the construction script so we can't do it here. However, we want to make sure it is done in BeginPlay.
+						bWantsBeginPlay = true;
+					}
+				}
 			}
 		}
 
@@ -2211,81 +2215,83 @@ APhysicsVolume* USceneComponent::GetPhysicsVolume() const
 
 void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 {
-	if ( bShouldUpdatePhysicsVolume && !IsPendingKill() && GetWorld() )
+	if ( bShouldUpdatePhysicsVolume && !IsPendingKill() )
 	{
-		SCOPE_CYCLE_COUNTER(STAT_UpdatePhysicsVolume);
-
-		UWorld* const MyWorld = GetWorld();
-		APhysicsVolume* NewVolume = MyWorld->GetDefaultPhysicsVolume();
-		// Avoid doing anything if there are no other physics volumes in the world.
-		if (MyWorld->GetNonDefaultPhysicsVolumeCount() > 0)
+		if (UWorld* MyWorld = GetWorld())
 		{
-			// Avoid a full overlap query if we can do some quick bounds tests against the volumes.
-			static uint32 MaxVolumesToCheck = 100;
-			uint32 VolumeIndex = 0;
-			bool bAnyPotentialOverlap = false;
-			for (auto VolumeIter = MyWorld->GetNonDefaultPhysicsVolumeIterator(); VolumeIter && !bAnyPotentialOverlap; ++VolumeIter, ++VolumeIndex)
+			SCOPE_CYCLE_COUNTER(STAT_UpdatePhysicsVolume);
+
+			APhysicsVolume* NewVolume = MyWorld->GetDefaultPhysicsVolume();
+			// Avoid doing anything if there are no other physics volumes in the world.
+			if (MyWorld->GetNonDefaultPhysicsVolumeCount() > 0)
 			{
-				const APhysicsVolume* Volume = *VolumeIter;
-				if( Volume != nullptr )
+				// Avoid a full overlap query if we can do some quick bounds tests against the volumes.
+				static uint32 MaxVolumesToCheck = 100;
+				uint32 VolumeIndex = 0;
+				bool bAnyPotentialOverlap = false;
+				for (auto VolumeIter = MyWorld->GetNonDefaultPhysicsVolumeIterator(); VolumeIter && !bAnyPotentialOverlap; ++VolumeIter, ++VolumeIndex)
 				{
-					const USceneComponent* VolumeRoot = Volume->GetRootComponent();
-					if (VolumeRoot)
+					const APhysicsVolume* Volume = *VolumeIter;
+					if (Volume != nullptr)
 					{
-						if (FBoxSphereBounds::SpheresIntersect(VolumeRoot->Bounds, Bounds))
+						const USceneComponent* VolumeRoot = Volume->GetRootComponent();
+						if (VolumeRoot)
 						{
-							if (FBoxSphereBounds::BoxesIntersect(VolumeRoot->Bounds, Bounds))
+							if (FBoxSphereBounds::SpheresIntersect(VolumeRoot->Bounds, Bounds))
 							{
-								bAnyPotentialOverlap = true;
+								if (FBoxSphereBounds::BoxesIntersect(VolumeRoot->Bounds, Bounds))
+								{
+									bAnyPotentialOverlap = true;
+								}
+							}
+						}
+					}
+
+					// Bail if too many volumes. Later we'll probably convert to using an octree so this wouldn't be a concern.
+					if (VolumeIndex >= MaxVolumesToCheck)
+					{
+						bAnyPotentialOverlap = true;
+						break;
+					}
+				}
+
+				if (bAnyPotentialOverlap)
+				{
+					// check for all volumes that overlap the component
+					TArray<FOverlapResult> Hits;
+					FComponentQueryParams Params(SceneComponentStatics::PhysicsVolumeTraceName, GetOwner());
+
+					bool bOverlappedOrigin = false;
+					const UPrimitiveComponent* SelfAsPrimitive = Cast<UPrimitiveComponent>(this);
+					if (SelfAsPrimitive)
+					{
+						MyWorld->ComponentOverlapMultiByChannel(Hits, SelfAsPrimitive, GetComponentLocation(), GetComponentQuat(), GetCollisionObjectType(), Params);
+					}
+					else
+					{
+						bOverlappedOrigin = true;
+						MyWorld->OverlapMultiByChannel(Hits, GetComponentLocation(), FQuat::Identity, GetCollisionObjectType(), FCollisionShape::MakeSphere(0.f), Params);
+					}
+
+					for (int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++)
+					{
+						const FOverlapResult& Link = Hits[HitIdx];
+						APhysicsVolume* const V = Cast<APhysicsVolume>(Link.GetActor());
+						if (V && (V->Priority > NewVolume->Priority))
+						{
+							if (bOverlappedOrigin || V->IsOverlapInVolume(*this))
+							{
+								NewVolume = V;
 							}
 						}
 					}
 				}
-
-				// Bail if too many volumes. Later we'll probably convert to using an octree so this wouldn't be a concern.
-				if (VolumeIndex >= MaxVolumesToCheck)
-				{
-					bAnyPotentialOverlap = true;
-					break;
-				}
 			}
-			
-			if (bAnyPotentialOverlap)
+
+			if (PhysicsVolume != NewVolume)
 			{
-				// check for all volumes that overlap the component
-				TArray<FOverlapResult> Hits;
-				FComponentQueryParams Params(SceneComponentStatics::PhysicsVolumeTraceName, GetOwner());
-
-				bool bOverlappedOrigin = false;
-				const UPrimitiveComponent* SelfAsPrimitive = Cast<UPrimitiveComponent>(this);
-				if (SelfAsPrimitive)
-				{
-					MyWorld->ComponentOverlapMultiByChannel(Hits, SelfAsPrimitive, GetComponentLocation(), GetComponentQuat(), GetCollisionObjectType(), Params);
-				}
-				else
-				{
-					bOverlappedOrigin = true;
-					MyWorld->OverlapMultiByChannel(Hits, GetComponentLocation(), FQuat::Identity, GetCollisionObjectType(), FCollisionShape::MakeSphere(0.f), Params);
-				}				
-				
-				for (int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++)
-				{
-					const FOverlapResult& Link = Hits[HitIdx];
-					APhysicsVolume* const V = Cast<APhysicsVolume>(Link.GetActor());
-					if (V && (V->Priority > NewVolume->Priority))
-					{
-						if (bOverlappedOrigin || V->IsOverlapInVolume(*this))
-						{
-							NewVolume = V;
-						}
-					}
-				}
+				SetPhysicsVolume(NewVolume, bTriggerNotifiers);
 			}
-		}
-
-		if (PhysicsVolume != NewVolume)
-		{
-			SetPhysicsVolume( NewVolume, bTriggerNotifiers );
 		}
 	}
 }
@@ -2512,13 +2518,13 @@ bool USceneComponent::ShouldRender() const
 	AActor* Owner = GetOwner();
 	UWorld* World = GetWorld();
 
-#if WITH_EDITOR
+#if !UE_BUILD_SHIPPING
 	// If we want to create render state even for hidden components, return true here
 	if (World && World->bCreateRenderStateForHiddenComponents)
 	{
 		return true;
 	}
-#endif // WITH_EDITOR
+#endif // !UE_BUILD_SHIPPING
 
 	if (Owner)
 	{
@@ -2976,10 +2982,10 @@ void FScopedMovementUpdate::AppendOverlapsAfterMove(const TArray<FOverlapInfo>& 
 	}
 	else
 	{
-		// We don't expect any pending overlaps in the case of a teleport.
-		checkSlow(NewPendingOverlaps.Num() == 0);
+		// We don't know about the final overlaps in the case of a teleport.
 		CurrentOverlapState = EOverlapState::eUnknown;
 		FinalOverlapCandidatesIndex = INDEX_NONE;
+		PendingOverlaps.Append(NewPendingOverlaps);
 	}
 
 	if (bWasForcing)
@@ -3108,11 +3114,14 @@ void USceneComponent::UpdateNavigationData()
 {
 	SCOPE_CYCLE_COUNTER(STAT_ComponentUpdateNavData);
 
-	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() && IsRegistered() && 
-		((GetWorld() == nullptr) || !GetWorld()->IsGameWorld() || GetWorld()->GetNetMode() < ENetMode::NM_Client))
+	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() && IsRegistered())
 	{
-		// use propagated component's transform update in editor OR server game with additional navsys check
-		UNavigationSystem::UpdateComponentInNavOctree(*this);
+		UWorld* MyWorld = GetWorld();
+		if ((MyWorld == nullptr) || !MyWorld->IsGameWorld() || MyWorld->GetNetMode() < ENetMode::NM_Client)
+		{
+			// use propagated component's transform update in editor OR server game with additional navsys check
+			UNavigationSystem::UpdateComponentInNavOctree(*this);
+		}
 	}
 }
 
@@ -3120,11 +3129,14 @@ void USceneComponent::PostUpdateNavigationData()
 {
 	SCOPE_CYCLE_COUNTER(STAT_ComponentPostUpdateNavData);
 
-	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() && IsRegistered() &&
-		((GetWorld() == nullptr) || !GetWorld()->IsGameWorld() || GetWorld()->GetNetMode() < ENetMode::NM_Client))
+	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() && IsRegistered())
 	{
-		// use propagated component's transform update in editor OR server game with additional navsys check
-		UNavigationSystem::UpdateNavOctreeAfterMove(this);
+		UWorld* MyWorld = GetWorld();
+		if ((MyWorld == nullptr) || !MyWorld->IsGameWorld() || MyWorld->GetNetMode() < ENetMode::NM_Client)
+		{
+			// use propagated component's transform update in editor OR server game with additional navsys check
+			UNavigationSystem::UpdateNavOctreeAfterMove(this);
+		}
 	}
 }
 

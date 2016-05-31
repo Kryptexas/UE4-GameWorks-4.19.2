@@ -497,14 +497,14 @@ public:
 #endif
 
 	/**
-	 * Utility to check if there are any NaNs in this vector.
+	 * Utility to check if there are any non-finite values (NaN or Inf) in this vector.
 	 *
-	 * @return true if there are any NaNs in this vector, otherwise false.
+	 * @return true if there are any non-finite values in this vector, false otherwise.
 	 */
 	FORCEINLINE bool ContainsNaN() const
 	{
-		return (FMath::IsNaN(X) || !FMath::IsFinite(X) || 
-			FMath::IsNaN(Y) || !FMath::IsFinite(Y));
+		return (!FMath::IsFinite(X) || 
+				!FMath::IsFinite(Y));
 	}
 
 	/**

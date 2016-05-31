@@ -22,7 +22,6 @@ public:
 	FAnimSingleNodeInstanceProxy(UAnimInstance* InAnimInstance)
 		: FAnimInstanceProxy(InAnimInstance)
 		, CurrentAsset(nullptr)
-		, CurrentVertexAnim(nullptr)
 		, BlendSpaceInput(0.0f, 0.0f, 0.0f)
 		, CurrentTime(0.0f)
 #if WITH_EDITORONLY_DATA
@@ -103,7 +102,6 @@ public:
 	{
 		return BlendFilter.GetFilterLastOutput();
 	}
-	void SetVertexAnimation(UVertexAnimation * NewVertexAnim, bool bIsLooping, float InPlayRate);
 
 	void SetReverse(bool bInReverse);
 
@@ -128,9 +126,6 @@ protected:
 
 	/** Current Asset being played. Note that this will be nullptr outside of pre/post update **/
 	UAnimationAsset* CurrentAsset;
-
-	/** Current vertex anim being played. Note that this will be nullptr outside of pre/post update **/
-	UVertexAnimation* CurrentVertexAnim;
 
 private:
 	/** Random cached values to play each asset **/

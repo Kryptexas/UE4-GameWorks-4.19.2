@@ -1244,8 +1244,6 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 			const FQuat OldRotationQuat = UpdatedComponent->GetComponentQuat();
 			const FVector OldLocation = UpdatedComponent->GetComponentLocation();
 			SimulateRootMotion(DeltaSeconds, RootMotionParams.RootMotionTransform);
-			// Root Motion has been used, clear
-			RootMotionParams.Clear();
 
 			// debug
 			if (false)
@@ -1386,6 +1384,9 @@ void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const F
 			MoveUpdatedComponent(FVector::ZeroVector, NewActorRotationQuat, true);
 		}
 	}
+
+	// Root Motion has been used, clear
+	RootMotionParams.Clear();
 }
 
 

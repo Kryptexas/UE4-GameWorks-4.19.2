@@ -1656,9 +1656,13 @@ void UStaticMesh::PreEditChange(UProperty* PropertyAboutToChange)
 
 void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-#if WITH_EDITORONLY_DATA
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
+	if (PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, bHasNavigationData) && !bHasNavigationData)
+	{
+		NavCollision = nullptr;
+	}
 
+#if WITH_EDITORONLY_DATA
 	LightMapResolution = FMath::Max(LightMapResolution, 0);
 
 	if ( PropertyThatChanged && PropertyThatChanged->GetName() == TEXT("StreamingDistanceMultiplier") )
@@ -2330,9 +2334,13 @@ void UStaticMesh::PostLoad()
 		CreateBodySetup();
 	}
 
-	if(NavCollision == NULL && !!bHasNavigationData)
+	if (NavCollision == nullptr && bHasNavigationData)
 	{
 		CreateNavCollision();
+	}
+	else if (NavCollision && !bHasNavigationData)
+	{
+		NavCollision = nullptr;
 	}
 }
 

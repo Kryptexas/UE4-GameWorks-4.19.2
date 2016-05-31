@@ -343,7 +343,7 @@ public:
 	 */
 	float SizeSquared3() const;
 
-	/** Utility to check if there are any NaNs in this vector. */
+	/** Utility to check if there are any non-finite values (NaN or Inf) in this vector. */
 	bool ContainsNaN() const;
 
 	/** Utility to check if all of the components of this vector are nearly zero given the tolerance. */
@@ -637,10 +637,10 @@ FORCEINLINE bool FVector4::IsUnit3( float LengthSquaredTolerance ) const
 
 FORCEINLINE bool FVector4::ContainsNaN() const
 {
-	return (FMath::IsNaN(X) || !FMath::IsFinite(X) || 
-			FMath::IsNaN(Y) || !FMath::IsFinite(Y) ||
-			FMath::IsNaN(Z) || !FMath::IsFinite(Z) ||
-			FMath::IsNaN(W) || !FMath::IsFinite(W));
+	return (!FMath::IsFinite(X) || 
+			!FMath::IsFinite(Y) ||
+			!FMath::IsFinite(Z) ||
+			!FMath::IsFinite(W));
 }
 
 

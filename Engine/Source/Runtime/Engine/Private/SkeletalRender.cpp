@@ -14,9 +14,9 @@ Globals
 -----------------------------------------------------------------------------*/
 
 // smallest blend weight for vertex anims
-const float MinVertexAnimBlendWeight = SMALL_NUMBER;
+const float MinMorphTargetBlendWeight = SMALL_NUMBER;
 // largest blend weight for vertex anims
-const float MaxVertexAnimBlendWeight = 5.0f;
+const float MaxMorphTargetBlendWeight = 5.0f;
 
 /*-----------------------------------------------------------------------------
 FSkeletalMeshObject

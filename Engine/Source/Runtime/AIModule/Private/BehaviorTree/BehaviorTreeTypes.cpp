@@ -105,7 +105,16 @@ void FBehaviorTreeInstance::Cleanup(UBehaviorTreeComponent& OwnerComp, EBTMemory
 	}
 
 	CleanupNodes(OwnerComp, *RootNode, CleanupType);
-	Info.InstanceMemory = InstanceMemory;
+
+	// remove memory when instance is destroyed - it will need full initialize anyway
+	if (CleanupType == EBTMemoryClear::Destroy)
+	{
+		Info.InstanceMemory.Empty();
+	}
+	else
+	{
+		Info.InstanceMemory = InstanceMemory;
+	}
 }
 
 void FBehaviorTreeInstance::CleanupNodes(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, EBTMemoryClear::Type CleanupType)
@@ -383,7 +392,8 @@ void FBlackboardKeySelector::AddNameFilter(UObject* Owner)
 
 void FBlackboardKeySelector::AddObjectFilter(UObject* Owner, FName PropertyName, TSubclassOf<UObject> AllowedClass)
 {
-	const FString FilterName = PropertyName.ToString() + TEXT("_Object");
+	static int32 FilterCounter = 0;
+	const FString FilterName = FString::Printf(TEXT("%s_Object_%d"), *PropertyName.ToString(), ++FilterCounter);
 	UBlackboardKeyType_Object* FilterOb = NewObject<UBlackboardKeyType_Object>(Owner, *FilterName);
 	FilterOb->BaseClass = AllowedClass;
 	AllowedTypes.Add(FilterOb);

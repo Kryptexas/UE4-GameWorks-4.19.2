@@ -4,7 +4,6 @@
 #include "Matinee/MatineeActor.h"
 #include "InteractiveFoliageActor.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
 #include "Engine/WorldComposition.h"
 #include "EditorSupportDelegates.h"
 #include "Factories.h"
@@ -3029,7 +3028,6 @@ struct FConvertStaticMeshActorInfo
 	// for skeletalmeshcomponent animation conversion
 	// this is temporary until we have SkeletalMeshComponent.Animations
 	UAnimationAsset*					AnimAsset;
-	UVertexAnimation*					VertexAnimation;
 	bool								bLooping;
 	bool								bPlaying;
 	float								Rate;
@@ -3251,7 +3249,6 @@ private:
 	void InternalGetAnimationData(USkeletalMeshComponent * SkeletalComp)
 	{
 		AnimAsset = SkeletalComp->AnimationData.AnimToPlay;
-		VertexAnimation = SkeletalComp->AnimationData.VertexAnimToPlay;
 		bLooping = SkeletalComp->AnimationData.bSavedLooping;
 		bPlaying = SkeletalComp->AnimationData.bSavedPlaying;
 		Rate = SkeletalComp->AnimationData.SavedPlayRate;
@@ -3260,17 +3257,15 @@ private:
 
 	void InternalSetAnimationData(USkeletalMeshComponent * SkeletalComp)
 	{
-		if (!AnimAsset && !VertexAnimation)
+		if (!AnimAsset)
 		{
 			return;
 		}
 
-		UE_LOG(LogAnimation, Log, TEXT("Converting animation data for (%s) : %s(%s), bLooping(%d), bPlaying(%d), Rate(%0.2f), CurrentPos(%0.2f)"), 
-			AnimAsset? TEXT("AnimAsset") : TEXT("VertexAnim"),
-			AnimAsset? *AnimAsset->GetName() : *VertexAnimation->GetName(), bLooping, bPlaying, Rate, CurrentPos);
+		UE_LOG(LogAnimation, Log, TEXT("Converting animation data for AnimAsset : (%s), bLooping(%d), bPlaying(%d), Rate(%0.2f), CurrentPos(%0.2f)"), 
+			*AnimAsset->GetName(), bLooping, bPlaying, Rate, CurrentPos);
 
 		SkeletalComp->AnimationData.AnimToPlay = AnimAsset;
-		SkeletalComp->AnimationData.VertexAnimToPlay = VertexAnimation;
 		SkeletalComp->AnimationData.bSavedLooping = bLooping;
 		SkeletalComp->AnimationData.bSavedPlaying = bPlaying;
 		SkeletalComp->AnimationData.SavedPlayRate = Rate;

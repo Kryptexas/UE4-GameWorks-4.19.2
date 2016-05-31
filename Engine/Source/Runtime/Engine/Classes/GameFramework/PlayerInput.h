@@ -445,9 +445,6 @@ public:
 	 */
 	float SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCount, int32 Index);
 
-	/** Hook to do mouse acceleration if desired. */
-	float AccelMouse(FKey Key, float RawValue, float DeltaTime);
-
 	/**
 	 * Draw important PlayerInput variables on canvas.  HUD will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used
 	 *

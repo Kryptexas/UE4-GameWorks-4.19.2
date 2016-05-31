@@ -8,6 +8,7 @@
 #include "ActorComponent.generated.h"
 
 struct FReplicationFlags;
+class UWorld;
 
 UENUM()
 enum class EComponentCreationMethod : uint8
@@ -22,17 +23,6 @@ enum class EComponentCreationMethod : uint8
 	Instance,
 };
 
-
-/** Whether to teleport physics body or not */
-enum class ETeleportType
-{
-	/** Do not teleport physics body. This means velocity will reflect the movement between initial and final position, and collisions along the way will occur */
-	None,
-	/** Teleport physics body so that velocity remains the same and no collision occurs */
-	TeleportPhysics
-};
-
-FORCEINLINE ETeleportType TeleportFlagToEnum(bool bTeleport) { return bTeleport ? ETeleportType::TeleportPhysics : ETeleportType::None; }
 
 /** Information about how to update transform*/
 enum class EUpdateTransformFlags : int32
@@ -254,7 +244,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components", meta=(Keywords = "Actor Owning Parent"))
 	class AActor* GetOwner() const;
 
-	virtual class UWorld* GetWorld() const override;
+	virtual UWorld* GetWorld() const override final { return (WorldPrivate ? WorldPrivate : GetWorld_Uncached()); }
 
 	/** See if this component contains the supplied tag */
 	UFUNCTION(BlueprintCallable, Category="Components")
@@ -346,6 +336,9 @@ private:
 	 * This is only non-NULL when the component is registered.
 	 */
 	UWorld* WorldPrivate;
+
+	// If WorldPrivate isn't set this will determine the world from outers
+	UWorld* GetWorld_Uncached() const;
 
 protected:
 

@@ -13,6 +13,7 @@ UAudioComponent implementation.
 UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bUseAttachParentBound = true; // Avoid CalcBounds() when transform changes.
 	bAutoDestroy = false;
 	bAutoActivate = true;
 	bAllowSpatialization = true;

@@ -1480,10 +1480,10 @@ FORCEINLINE void FTransform::Multiply(FTransform* OutTransform, const FTransform
 	//	Q(AxB) = Q(B)*Q(A)
 	//	S(AxB) = S(A)*S(B)
 	//	T(AxB) = Q(B)*S(B)*T(A)*-Q(B) + T(B)
+	checkSlow(VectorGetComponent(A->Scale3D, 3) == 0.f);
+	checkSlow(VectorGetComponent(B->Scale3D, 3) == 0.f);
 
-	const VectorRegister MinVector = VectorMin(A->Scale3D, B->Scale3D);
-	const bool bHaveNegativeScale = VectorGetComponent(MinVector, 0) < 0.f || VectorGetComponent(MinVector, 1) < 0.f || VectorGetComponent(MinVector, 2) < 0.f;
-	if (bHaveNegativeScale)
+	if (VectorAnyLesserThan(VectorMin(A->Scale3D, B->Scale3D), GlobalVectorConstants::FloatZero))
 	{
 		// @note, if you have 0 scale with negative, you're going to lose rotation as it can't convert back to quat
 		MultiplyUsingMatrixWithScale(OutTransform, A, B);

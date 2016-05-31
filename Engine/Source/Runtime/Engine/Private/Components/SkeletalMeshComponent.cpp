@@ -16,7 +16,6 @@
 #include "PhysXASync.h"
 #include "Animation/AnimStats.h"
 #include "Animation/AnimNodeBase.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Engine/SkeletalMeshSocket.h"
@@ -270,8 +269,8 @@ void USkeletalMeshComponent::UpdatePostPhysicsTickRegisteredState()
 bool USkeletalMeshComponent::ShouldRunClothTick() const
 {
 #if WITH_APEX_CLOTHING
-	bool bShouldRunCloth = GetNetMode() != NM_DedicatedServer && // Cloth never needs to run on dedicated server
-		SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0;
+	bool bShouldRunCloth = ClothingActors.Num() > 0 && SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0
+								&& GetNetMode() != NM_DedicatedServer; // Cloth never needs to run on dedicated server
 
 	//If we are eligible to run cloth we should check if any of the clothing actors will actually simulate at this LOD
 	if(bShouldRunCloth)
@@ -355,6 +354,11 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 	// I'm moving the check here
 	if ( SkeletalMesh != NULL && IsRegistered() )
 	{
+		if (SkeletalMesh->MorphTargets.Num() > 0 && MorphTargetWeights.Num() == 0)
+		{
+			MorphTargetWeights.AddZeroed(SkeletalMesh->MorphTargets.Num());
+		}
+
 		// We may be doing parallel evaluation on the current anim instance
 		// Calling this here with true will block this init till that thread completes
 		// and it is safe to continue
@@ -451,8 +455,8 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 			bCalledInitialize = true;
 		}		
 
-		// refresh vertex animation - this can happen when re-registration happens
-		RefreshActiveVertexAnims();
+		// refresh morph targets - this can happen when re-registration happens
+		RefreshActiveMorphTargets();
 	}
 	return bCalledInitialize;
 }
@@ -702,10 +706,19 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	UpdateClothTickRegisteredState();
 
 	// clear and add morphtarget curves that are added via SetMorphTarget
-	ActiveVertexAnims.Reset();
-	if (SkeletalMesh && MorphTargetCurves.Num() > 0)
+	ActiveMorphTargets.Reset();
+	if (SkeletalMesh)
 	{
-		FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MorphTargetCurves, ActiveVertexAnims);
+		if (SkeletalMesh->MorphTargets.Num() > 0)
+		{
+			check(MorphTargetWeights.Num() == SkeletalMesh->MorphTargets.Num());
+			FMemory::Memzero(MorphTargetWeights.GetData(), MorphTargetWeights.GetAllocatedSize());
+		}
+
+		if (MorphTargetCurves.Num() > 0)
+		{
+			FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, MorphTargetCurves, ActiveMorphTargets, MorphTargetWeights);
+		}
 	}
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -1072,15 +1085,16 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 		// propagate BP-driven curves from the master SMC...
 		if (SkeletalMesh)
 		{
+			check(MorphTargetWeights.Num() == SkeletalMesh->MorphTargets.Num());
 			if (MasterSMC->MorphTargetCurves.Num() > 0)
 			{
-				FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MasterSMC->MorphTargetCurves, ActiveVertexAnims);
+				FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, MasterSMC->MorphTargetCurves, ActiveMorphTargets, MorphTargetWeights);
 			}
 
 			// if slave also has it, add it here. 
 			if (MorphTargetCurves.Num() > 0)
 			{
-				FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MorphTargetCurves, ActiveVertexAnims);
+				FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, MorphTargetCurves, ActiveMorphTargets, MorphTargetWeights);
 			}
 		}
 
@@ -1407,7 +1421,7 @@ void USkeletalMeshComponent::ApplyAnimationCurvesToComponent(const TMap<FName, f
 	if (SkeletalMesh && InAnimationMorphCurves && InAnimationMorphCurves->Num() > 0)
 	{
 		// we want to append to existing curves - i.e. BP driven curves 
-		FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, *InAnimationMorphCurves, ActiveVertexAnims);
+		FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, *InAnimationMorphCurves, ActiveMorphTargets, MorphTargetWeights);
 	}
 }
 
@@ -1819,21 +1833,6 @@ void USkeletalMeshComponent::SetAnimation(UAnimationAsset* NewAnimToPlay)
 	if (SingleNodeInstance)
 	{
 		SingleNodeInstance->SetAnimationAsset(NewAnimToPlay, false);
-		SingleNodeInstance->SetPlaying(false);
-	}
-	else if( AnimScriptInstance != NULL )
-	{
-		UE_LOG(LogAnimation, Warning, TEXT("Currently in Animation Blueprint mode. Please change AnimationMode to Use Animation Asset"));
-	}
-}
-
-void USkeletalMeshComponent::SetVertexAnimation(UVertexAnimation* NewVertexAnimation)
-{
-	UAnimSingleNodeInstance* SingleNodeInstance = GetSingleNodeInstance();
-	if (SingleNodeInstance)
-	{
-		SingleNodeInstance->SetVertexAnimation(NewVertexAnimation, false);
-		// when set the asset, we shouldn't automatically play. 
 		SingleNodeInstance->SetPlaying(false);
 	}
 	else if( AnimScriptInstance != NULL )
@@ -2281,7 +2280,7 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 	}
 }
 
-void USkeletalMeshComponent::RefreshActiveVertexAnims()
+void USkeletalMeshComponent::RefreshActiveMorphTargets()
 {
 	if (SkeletalMesh && AnimScriptInstance)
 	{
@@ -2298,7 +2297,7 @@ void USkeletalMeshComponent::RefreshActiveVertexAnims()
 	}
 	else
 	{
-		ActiveVertexAnims.Empty();
+		ActiveMorphTargets.Empty();
 	}
 }
 

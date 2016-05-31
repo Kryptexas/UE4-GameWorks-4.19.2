@@ -387,9 +387,9 @@ public:
 	CORE_API bool NetSerialize( FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess );
 
 	/**
-	 * Utility to check if there are any NaNs in this Quaternion.
+	 * Utility to check if there are any non-finite values (NaN or Inf) in this Quat.
 	 *
-	 * @return true if there are any NaNs in this Quaternion, otherwise false.
+	 * @return true if there are any non-finite values in this Quaternion, otherwise false.
 	 */
 	bool ContainsNaN() const;
 
@@ -1089,10 +1089,10 @@ FORCEINLINE FQuat FQuat::FastBilerp( const FQuat& P00, const FQuat& P10, const F
 
 FORCEINLINE bool FQuat::ContainsNaN() const
 {
-	return (FMath::IsNaN(X) || !FMath::IsFinite(X) ||
-			FMath::IsNaN(Y) || !FMath::IsFinite(Y) ||
-			FMath::IsNaN(Z) || !FMath::IsFinite(Z) ||
-			FMath::IsNaN(W) || !FMath::IsFinite(W)
+	return (!FMath::IsFinite(X) ||
+			!FMath::IsFinite(Y) ||
+			!FMath::IsFinite(Z) ||
+			!FMath::IsFinite(W)
 	);
 }
 

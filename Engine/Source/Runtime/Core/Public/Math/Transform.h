@@ -597,8 +597,8 @@ public:
 	}
 
 	/**
-	 * Checks the components for NaN's
-	 * @return Returns true if any component (rotation, translation, or scale) is a NAN
+	 * Checks the components for non-finite values (NaN or Inf).
+	 * @return Returns true if any component (rotation, translation, or scale) is not finite.
 	 */
 	bool ContainsNaN() const
 	{

@@ -25,6 +25,7 @@ class ABrush;
 class UModel;
 class APhysicsVolume;
 class UTexture2D;
+class AController;
 class APlayerController;
 class AMatineeActor;
 class AWorldSettings;
@@ -528,7 +529,7 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 
 	// Group actors currently "active"
 	UPROPERTY(transient)
-	TArray<class AActor*> ActiveGroupActors;
+	TArray<AActor*> ActiveGroupActors;
 
 	/** Information for thumbnail rendering */
 	UPROPERTY(VisibleAnywhere, Instanced, Category=Thumbnail)
@@ -898,8 +899,10 @@ public:
 	 *  You need Physics Scene if you'd like to trace. This flag changed ticking */
 	bool										bShouldSimulatePhysics;
 
+#if !UE_BUILD_SHIPPING
 	/** If TRUE, 'hidden' components will still create render proxy, so can draw info (see USceneComponent::ShouldRender) */
 	bool										bCreateRenderStateForHiddenComponents;
+#endif // !UE_BUILD_SHIPPING
 
 #if WITH_EDITOR
 	/** this is special flag to enable collision by default for components that are not Volume

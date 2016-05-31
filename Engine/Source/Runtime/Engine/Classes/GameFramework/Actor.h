@@ -9,6 +9,7 @@
 #include "InputCoreTypes.h"
 #include "RenderCommandFence.h"
 #include "TimerManager.h"
+#include "Engine/Level.h"
 
 struct FHitResult;
 class AActor;
@@ -2274,7 +2275,7 @@ public:
 	bool IsInLevel(const class ULevel *TestLevel) const;
 
 	/** Return the ULevel that this Actor is part of. */
-	ULevel* GetLevel() const;
+	ULevel* GetLevel() const { return Cast<ULevel>(GetOuter()); }
 
 	/**	Do anything needed to clear out cross level references; Called from ULevel::PreSave	 */
 	virtual void ClearCrossLevelReferences();

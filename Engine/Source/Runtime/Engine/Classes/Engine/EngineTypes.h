@@ -1773,7 +1773,7 @@ struct ENGINE_API FHitResult
 	 * Whether the trace started in penetration, i.e. with an initial blocking overlap.
 	 * In the case of penetration, if PenetrationDepth > 0.f, then it will represent the distance along the Normal vector that will result in
 	 * minimal contact between the swept shape and the object that was hit. In this case, ImpactNormal will be the normal opposed to movement at that location
-	 * (ie, Normal may not equal ImpactNormal).
+	 * (ie, Normal may not equal ImpactNormal). ImpactPoint will be the same as Location, since there is no single impact point to report.
 	 */
 	UPROPERTY()
 	uint32 bStartPenetrating:1;
@@ -1800,6 +1800,7 @@ struct ENGINE_API FHitResult
 	/**
 	 * Location in world space of the actual contact of the trace shape (box, sphere, ray, etc) with the impacted object.
 	 * Example: for a sphere trace test, this is the point where the surface of the sphere touches the other object.
+	 * @note: In the case of initial overlap (bStartPenetrating=true), ImpactPoint will be the same as Location because there is no meaningful single impact point to report.
 	 */
 	UPROPERTY()
 	FVector_NetQuantize ImpactPoint;
@@ -1991,6 +1992,8 @@ struct ENGINE_API FHitResult
 	FString ToString() const;
 };
 
+// All members of FHitResult are PODs.
+template<> struct TIsPODType<FHitResult> { enum { Value = true }; };
 
 template<>
 struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
@@ -2000,6 +2003,18 @@ struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
 		WithNetSerializer = true,
 	};
 };
+
+
+/** Whether to teleport physics body or not */
+enum class ETeleportType
+{
+	/** Do not teleport physics body. This means velocity will reflect the movement between initial and final position, and collisions along the way will occur */
+	None,
+	/** Teleport physics body so that velocity remains the same and no collision occurs */
+	TeleportPhysics
+};
+
+FORCEINLINE ETeleportType TeleportFlagToEnum(bool bTeleport) { return bTeleport ? ETeleportType::TeleportPhysics : ETeleportType::None; }
 
 
 /** Structure containing information about one hit of an overlap test */
@@ -2037,6 +2052,8 @@ struct ENGINE_API FOverlapResult
 	}
 };
 
+// All members of FOverlapResult are PODs.
+template<> struct TIsPODType<FOverlapResult> { enum { Value = true }; };
 
 /** Structure containing information about minimum translation direction (MTD) */
 USTRUCT()
@@ -3677,4 +3694,15 @@ struct FUserActivity
 	FUserActivity(const FString& InActionName)
 		: ActionName(InActionName)
 	{ }
+};
+
+/** Which processors will have access to Mesh Vertex Buffers. */
+UENUM()
+enum class EMeshBufferAccess: uint8
+{
+    /** Access will be determined based on the assets used in the mesh and hardware / software capability. */
+    Default,
+
+    /** Force access on both CPU and GPU. */
+    ForceCPUAndGPU
 };

@@ -8,6 +8,7 @@
 #include "Logging/MessageLog.h"
 
 #include "GameProjectGenerationModule.h"
+#include "AnalyticsEventAttribute.h"
 
 #define LOCTEXT_NAMESPACE "UATHelper"
 

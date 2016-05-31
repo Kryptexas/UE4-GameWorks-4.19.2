@@ -5,7 +5,7 @@
 #include "SkeletalRenderPublic.h"
 #include "AnimationRuntime.h"
 #include "AnimPreviewInstance.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
+#include "Animation/AnimComposite.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/BlendSpace.h"
 
@@ -246,7 +246,6 @@ FString UDebugSkelMeshComponent::GetPreviewText() const
 	if (IsPreviewOn())
 	{
 		UAnimationAsset* CurrentAsset = PreviewInstance->GetCurrentAsset();
-		UVertexAnimation* CurrentVertexAnim = PreviewInstance->GetCurrentVertexAnimation();
 		if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(CurrentAsset))
 		{
 			return FText::Format( LOCTEXT("BlendSpace", "Blend Space {0}"), FText::FromString(BlendSpace->GetName()) ).ToString();
@@ -262,10 +261,6 @@ FString UDebugSkelMeshComponent::GetPreviewText() const
 		else if (UAnimSequence* Sequence = Cast<UAnimSequence>(CurrentAsset))
 		{
 			return FText::Format( LOCTEXT("Animation", "Animation {0}"), FText::FromString(Sequence->GetName()) ).ToString();
-		}
-		else if (UVertexAnimation* VertAnim = Cast<UVertexAnimation>(CurrentVertexAnim))
-		{
-			return FText::Format( LOCTEXT("VertexAnim", "VertexAnim {0}"), FText::FromString(VertAnim->GetName()) ).ToString();
 		}
 	}
 
@@ -301,7 +296,7 @@ void UDebugSkelMeshComponent::InitAnim(bool bForceReinit)
 
 	// if anim script instance is null because it's not playing a blueprint, set to PreviewInstnace by default
 	// that way if user would like to modify bones or do extra stuff, it will work
-	if ((AnimationMode != EAnimationMode::AnimationBlueprint) && (AnimScriptInstance == NULL))
+	if (AnimScriptInstance == NULL)
 	{
 		AnimScriptInstance = PreviewInstance;
 		AnimScriptInstance->InitializeAnimation();
@@ -313,47 +308,37 @@ bool UDebugSkelMeshComponent::IsWindEnabled() const
 	return bEnableWind;
 }
 
-void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* PreviewAsset, UVertexAnimation* PreviewVertexAnim)
+void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* PreviewAsset)
 {
 	if (PreviewInstance)
 	{
 		if (bEnable)
 		{
-				// back up current AnimInstance if not currently previewing anything
-				if (!IsPreviewOn())
-				{
-					SavedAnimScriptInstance = AnimScriptInstance;
-				}
+			// back up current AnimInstance if not currently previewing anything
+			if (!IsPreviewOn())
+			{
+				SavedAnimScriptInstance = AnimScriptInstance;
+			}
 
-				AnimScriptInstance = PreviewInstance;
+			AnimScriptInstance = PreviewInstance;
 
 #if WITH_APEX_CLOTHING
-			    // turn off these options when playing animations because max distances / back stops don't have meaning while moving
-			    bDisplayClothMaxDistances = false;
-				bDisplayClothBackstops = false;
-			    // restore previous state
-			    bDisableClothSimulation = bPrevDisableClothSimulation;
+		    // turn off these options when playing animations because max distances / back stops don't have meaning while moving
+		    bDisplayClothMaxDistances = false;
+			bDisplayClothBackstops = false;
+		    // restore previous state
+		    bDisableClothSimulation = bPrevDisableClothSimulation;
 #endif // #if WITH_APEX_CLOTHING
     
-				if(PreviewAsset)
-				{
-					PreviewInstance->SetVertexAnimation(NULL);
-					PreviewInstance->SetAnimationAsset(PreviewAsset);
-				}
-				else
-				{
-					PreviewInstance->SetAnimationAsset(NULL);
-					PreviewInstance->SetVertexAnimation(PreviewVertexAnim);
-				}
-			}
+			PreviewInstance->SetAnimationAsset(PreviewAsset);
+		}
 		else if (IsPreviewOn())
 		{
 			if (PreviewInstance->GetCurrentAsset() == PreviewAsset || PreviewAsset == NULL)
 			{
 				// now recover to saved AnimScriptInstance;
 				AnimScriptInstance = SavedAnimScriptInstance;
-				PreviewInstance->SetAnimationAsset(NULL);
-				PreviewInstance->SetVertexAnimation(NULL);
+				PreviewInstance->SetAnimationAsset(nullptr);
 			}
 		}
 	}
@@ -736,9 +721,9 @@ void UDebugSkelMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 		FRotator Rotation = GetRelativeTransform().Rotator();
 		// Take into account time dilation, so it doesn't affect turn table turn rate.
 		float CurrentTimeDilation = 1.0f;
-		if(GetWorld())
+		if (UWorld* MyWorld = GetWorld())
 		{
-			CurrentTimeDilation = GetWorld()->GetWorldSettings()->GetEffectiveTimeDilation();
+			CurrentTimeDilation = MyWorld->GetWorldSettings()->GetEffectiveTimeDilation();
 		}
 		Rotation.Yaw += 36.f * TurnTableSpeedScaling * DeltaTime / FMath::Max(CurrentTimeDilation, KINDA_SMALL_NUMBER);
 		SetRelativeRotation(Rotation);

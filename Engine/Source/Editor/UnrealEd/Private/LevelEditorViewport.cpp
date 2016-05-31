@@ -42,7 +42,6 @@
 #include "LevelEditorActions.h"
 #include "BrushBuilderDragDropOp.h"
 #include "AssetRegistryModule.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
 #include "InstancedFoliage.h"
 #include "DynamicMeshBuilder.h"
 #include "Editor/ActorPositioning.h"
@@ -574,19 +573,13 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 
 			// Dropping an Anim Sequence or Vertex Animation?
 			UAnimSequenceBase* DroppedObjAsAnimSequence = Cast<UAnimSequenceBase>(ObjToUse);
-			UVertexAnimation* DroppedObjAsVertexAnimation = Cast<UVertexAnimation>(ObjToUse);
-			if (DroppedObjAsAnimSequence || DroppedObjAsVertexAnimation)
+			if (DroppedObjAsAnimSequence)
 			{
 				USkeleton* AnimSkeleton = nullptr;
-				const bool bVertexAnimHasValidMesh = DroppedObjAsVertexAnimation && DroppedObjAsVertexAnimation->BaseSkelMesh;
 
 				if (DroppedObjAsAnimSequence)
 				{
 					AnimSkeleton = DroppedObjAsAnimSequence->GetSkeleton();
-				}
-				else if (bVertexAnimHasValidMesh)
-				{
-					AnimSkeleton = DroppedObjAsVertexAnimation->BaseSkelMesh->Skeleton;
 				}
 
 				if (AnimSkeleton)
@@ -615,15 +608,6 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 
 							// set runtime data
 							SkeletalMeshComponent->SetAnimation(DroppedObjAsAnimSequence);
-						}
-
-						if (DroppedObjAsVertexAnimation)
-						{
-							SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-							SkeletalMeshComponent->AnimationData.VertexAnimToPlay = DroppedObjAsVertexAnimation;
-
-							// set runtime data
-							SkeletalMeshComponent->SetVertexAnimation(DroppedObjAsVertexAnimation);
 						}
 
 						if (SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)

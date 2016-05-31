@@ -36,6 +36,7 @@ UGameMapsSettings::UGameMapsSettings( const FObjectInitializer& ObjectInitialize
 	, bUseSplitscreen(true)
 	, TwoPlayerSplitscreenLayout(ETwoPlayerSplitScreenType::Horizontal)
 	, ThreePlayerSplitscreenLayout(EThreePlayerSplitScreenType::FavorTop)
+	, bOffsetPlayerGamepadIds(false)
 { }
 
 

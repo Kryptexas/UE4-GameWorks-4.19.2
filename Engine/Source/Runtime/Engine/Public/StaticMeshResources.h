@@ -1117,6 +1117,9 @@ protected:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** LightMap resolution used for VMI_LightmapDensity */
 	int32 LightMapResolution;
+#endif
+
+#if !(UE_BUILD_SHIPPING)
 	/** LOD used for collision */
 	int32 LODForCollision;
 	/** If we want to draw the mesh collision for debugging */

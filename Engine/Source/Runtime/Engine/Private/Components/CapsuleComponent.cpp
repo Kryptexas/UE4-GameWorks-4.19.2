@@ -86,7 +86,7 @@ FPrimitiveSceneProxy* UCapsuleComponent::CreateSceneProxy()
 FBoxSphereBounds UCapsuleComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FVector BoxPoint = FVector(CapsuleRadius,CapsuleRadius,CapsuleHalfHeight);
-	return FBoxSphereBounds(FVector::ZeroVector, BoxPoint, BoxPoint.Size()).TransformBy(LocalToWorld);
+	return FBoxSphereBounds(FVector::ZeroVector, BoxPoint, CapsuleHalfHeight).TransformBy(LocalToWorld);
 }
 
 void UCapsuleComponent::CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const 

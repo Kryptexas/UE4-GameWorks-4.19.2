@@ -31,10 +31,8 @@ public class Engine : ModuleRules
 				"NetworkReplayStreaming",
 				"MovieSceneCapture",
 				"AutomationWorker",
-                "Analytics",
 				"MovieSceneCapture",
 				"DesktopPlatform",
-				"Analytics"
 			}
 		);
 
@@ -76,7 +74,7 @@ public class Engine : ModuleRules
 				"SynthBenchmark",
                 "AIModule",
 				"DatabaseSupport",
-                		"PacketHandler",
+                "PacketHandler",
 				"HardwareSurvey",
             }
         );
@@ -104,8 +102,10 @@ public class Engine : ModuleRules
                 "Internationalization",
                 "MaterialShaderQualitySettings",
                 "CinematicCamera",
+				"Analytics",
+				"AnalyticsET",
             }
-        );
+		);
 
 		bool bVariadicTemplatesSupported = true;
 		if (Target.Platform == UnrealTargetPlatform.XboxOne)
@@ -257,8 +257,6 @@ public class Engine : ModuleRules
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
-				"Analytics",
-				"AnalyticsET",
 				"NetworkReplayStreaming",
 				"NullNetworkReplayStreaming",
 				"HttpNetworkReplayStreaming",

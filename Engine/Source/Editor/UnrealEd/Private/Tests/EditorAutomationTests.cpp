@@ -13,6 +13,8 @@
 #include "ModuleManager.h"
 #include "MainFrame.h"
 #include "FileManager.h"
+#include "EngineAnalytics.h"
+#include "IAnalyticsProvider.h"
 
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"

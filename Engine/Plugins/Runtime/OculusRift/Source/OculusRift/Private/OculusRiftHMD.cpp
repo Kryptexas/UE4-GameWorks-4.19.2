@@ -7,7 +7,8 @@
 #if !PLATFORM_MAC // Mac uses 0.5/OculusRiftHMD_05.cpp
 
 #include "EngineAnalytics.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "IAnalyticsProvider.h"
+#include "AnalyticsEventAttribute.h"
 #include "SceneViewport.h"
 #include "PostProcess/SceneRenderTargets.h"
 #include "HardwareInfo.h"
@@ -1182,26 +1183,26 @@ void FOculusRiftHMD::RecordAnalytics()
 		FString MonResolution(FString::Printf(TEXT("(%d, %d)"), MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Resolution"), MonResolution));
 
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ChromaAbCorrectionEnabled"), Settings->Flags.bChromaAbCorrectionEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MagEnabled"), Settings->Flags.bYawDriftCorrectionEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DevSettingsEnabled"), Settings->Flags.bDevSettingsEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideInterpupillaryDistance"), Settings->Flags.bOverrideIPD));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ChromaAbCorrectionEnabled"), (uint64)Settings->Flags.bChromaAbCorrectionEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MagEnabled"), (uint64)Settings->Flags.bYawDriftCorrectionEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DevSettingsEnabled"), (uint64)Settings->Flags.bDevSettingsEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideInterpupillaryDistance"), (uint64)Settings->Flags.bOverrideIPD));
 		if (Settings->Flags.bOverrideIPD)
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), GetInterpupillaryDistance()));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideStereo"), Settings->Flags.bOverrideStereo));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideStereo"), (uint64)Settings->Flags.bOverrideStereo));
 		if (Settings->Flags.bOverrideStereo)
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HFOV"), Settings->HFOVInRadians));
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VFOV"), Settings->VFOVInRadians));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideVSync"), Settings->Flags.bOverrideVSync));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideVSync"), (uint64)Settings->Flags.bOverrideVSync));
 		if (Settings->Flags.bOverrideVSync)
 		{
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VSync"), Settings->Flags.bVSync));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VSync"), (uint64)Settings->Flags.bVSync));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideScreenPercentage"), Settings->Flags.bOverrideScreenPercentage));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideScreenPercentage"), (uint64)Settings->Flags.bOverrideScreenPercentage));
 		if (Settings->Flags.bOverrideScreenPercentage)
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ScreenPercentage"), Settings->ScreenPercentage));
@@ -1211,11 +1212,11 @@ void FOculusRiftHMD::RecordAnalytics()
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("WorldToMetersScale"), Settings->WorldToMetersScale));
 		}
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), Settings->InterpupillaryDistance));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeWarp"), Settings->Flags.bTimeWarp));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HmdPosTracking"), Settings->Flags.bHmdPosTracking));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HQDistortion"), Settings->Flags.bHQDistortion));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("UpdateOnRT"), Settings->Flags.bUpdateOnRT));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MirrorToWindow"), Settings->Flags.bMirrorToWindow));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeWarp"), (uint64)Settings->Flags.bTimeWarp));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HmdPosTracking"), (uint64)Settings->Flags.bHmdPosTracking));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HQDistortion"), (uint64)Settings->Flags.bHQDistortion));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("UpdateOnRT"), (uint64)Settings->Flags.bUpdateOnRT));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MirrorToWindow"), (uint64)Settings->Flags.bMirrorToWindow));
 
 		FString OutStr(TEXT("Editor.VR.DeviceInitialised"));
 		FEngineAnalytics::GetProvider().RecordEvent(OutStr, EventAttributes);

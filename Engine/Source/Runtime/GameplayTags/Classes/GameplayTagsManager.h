@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Engine/DataTable.h" // Needed for FTableRowBase
 #include "GameplayTagContainer.h"
 #include "GameplayTagsManager.generated.h"
 

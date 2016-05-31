@@ -772,7 +772,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	// We always want a preview instance unless we are using blueprints so that bone manipulation works
 	if (AnimBlueprint == NULL)
 	{
-		PreviewComponent->EnablePreview(true, NULL, NULL);
+		PreviewComponent->EnablePreview(true, nullptr);
 	}
 	else
 	{
@@ -1081,29 +1081,10 @@ void FPersona::SetPreviewAnimationAsset(UAnimationAsset* AnimAsset, bool bEnable
 				}
 			}
 
-			PreviewComponent->EnablePreview(bEnablePreview, AnimAsset, NULL);
+			PreviewComponent->EnablePreview(bEnablePreview, AnimAsset);
 		}
 
 		OnAnimChanged.Broadcast(AnimAsset);
-	}
-}
-
-void FPersona::SetPreviewVertexAnim(UVertexAnimation* VertexAnim)
-{
-	if (Viewport.IsValid() && !Viewport.Pin()->bPreviewLockModeOn)
-	{
-		if (PreviewComponent)
-		{
-			// if same, do not overwrite. It will reset time and everything
-			if( VertexAnim && 
-				PreviewComponent->PreviewInstance && 
-				VertexAnim == PreviewComponent->PreviewInstance->GetCurrentVertexAnimation() )
-			{
-				return;
-			}
-
-			PreviewComponent->EnablePreview(true, NULL, VertexAnim);
-		}
 	}
 }
 
@@ -3271,7 +3252,7 @@ void FPersona::ShowReferencePose(bool bReferencePose)
 		{
 			if(IsInPersonaMode(FPersonaModes::AnimBlueprintEditMode))
 			{
-				PreviewComponent->EnablePreview(false, NULL, NULL);
+				PreviewComponent->EnablePreview(false, nullptr);
 
 				UAnimBlueprint* AnimBP = GetAnimBlueprint();
 				if(AnimBP)
@@ -3282,7 +3263,7 @@ void FPersona::ShowReferencePose(bool bReferencePose)
 			else
 			{
 				UObject* PreviewAsset = CachedPreviewAsset.IsValid()? CachedPreviewAsset.Get() : (GetAnimationAssetBeingEdited());
-				PreviewComponent->EnablePreview(true, Cast<UAnimationAsset>(PreviewAsset), NULL);
+				PreviewComponent->EnablePreview(true, Cast<UAnimationAsset>(PreviewAsset));
 			}
 		}
 		else
@@ -3292,7 +3273,7 @@ void FPersona::ShowReferencePose(bool bReferencePose)
 				CachedPreviewAsset = PreviewComponent->PreviewInstance->GetCurrentAsset();
 			}
 			
-			PreviewComponent->EnablePreview(true, NULL, NULL);
+			PreviewComponent->EnablePreview(true, nullptr);
 		}
 	}
 }

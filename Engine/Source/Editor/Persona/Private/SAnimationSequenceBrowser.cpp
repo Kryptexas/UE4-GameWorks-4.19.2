@@ -3,7 +3,6 @@
 
 #include "PersonaPrivatePCH.h"
 
-#include "Animation/VertexAnim/VertexAnimation.h"
 #include "SAnimationSequenceBrowser.h"
 #include "Persona.h"
 #include "AssetRegistryModule.h"
@@ -84,14 +83,6 @@ void SAnimationSequenceBrowser::OnRequestOpenAsset(const FAssetData& AssetData, 
 				}
 				Persona->OpenNewDocumentTab(Asset);
 				Persona->SetPreviewAnimationAsset(Asset);
-			}
-			else if(UVertexAnimation* VertexAnim = Cast<UVertexAnimation>(RawAsset))
-			{
-				if(!bFromHistory)
-				{
-					AddAssetToHistory(AssetData);
-				}
-				Persona->SetPreviewVertexAnim(VertexAnim);
 			}
 		}
 	}
@@ -419,7 +410,6 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	FAssetPickerConfig Config;
 	Config.Filter.bRecursiveClasses = true;
 	Config.Filter.ClassNames.Add(UAnimationAsset::StaticClass()->GetFName());
-	Config.Filter.ClassNames.Add(UVertexAnimation::StaticClass()->GetFName()); //@TODO: Is currently ignored due to the skeleton check
 	Config.InitialAssetViewType = EAssetViewType::Column;
 	Config.bAddFilterUI = true;
 	Config.bShowPathInColumnView = true;
@@ -941,7 +931,7 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 				PreviewComponent->SetSkeletalMesh(MeshToUse);
 			}
 
-			PreviewComponent->EnablePreview(true, Asset, nullptr);
+			PreviewComponent->EnablePreview(true, Asset);
 			PreviewComponent->PreviewInstance->PlayAnim(true);
 
 			FBoxSphereBounds MeshImportedBounds = MeshToUse->GetImportedBounds();

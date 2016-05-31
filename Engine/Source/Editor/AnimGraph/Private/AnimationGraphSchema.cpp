@@ -12,6 +12,8 @@
 #include "AnimationGraphSchema.h"
 #include "K2Node_TransitionRuleGetter.h"
 #include "AnimStateNode.h"
+#include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/AimOffsetBlendSpace1D.h"
 #include "AnimGraphNode_AssetPlayerBase.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
 #include "AnimGraphNode_ComponentToLocalSpace.h"

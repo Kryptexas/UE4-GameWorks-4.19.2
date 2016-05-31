@@ -35,6 +35,9 @@ struct ENGINE_API FOverlapInfo
 	FHitResult OverlapInfo;
 };
 
+// All added members of FOverlapInfo are PODs.
+template<> struct TIsPODType<FOverlapInfo> { enum { Value = TIsPODType<FHitResult>::Value }; };
+
 /** Detail mode for scene component rendering. */
 UENUM()
 enum EDetailMode
@@ -847,6 +850,7 @@ private:
 	void EndScopedMovementUpdate(class FScopedMovementUpdate& ScopedUpdate);
 
 	friend class FScopedMovementUpdate;
+	friend class FScopedPreventAttachedComponentMove;
 
 #if WITH_EDITORONLY_DATA
 protected:
@@ -1432,9 +1436,9 @@ private:
 	FRotator InitialRelativeRotation;
 	FVector InitialRelativeScale;
 
-	int32 FinalOverlapCandidatesIndex;
-	TArray<FOverlapInfo> PendingOverlaps;
-	TBlockingHitArray BlockingHits;
+	int32 FinalOverlapCandidatesIndex;		// If not INDEX_NONE, overlaps at this index and beyond in PendingOverlaps are at the final destination
+	TArray<FOverlapInfo> PendingOverlaps;	// All overlaps encountered during the scope of moves.
+	TBlockingHitArray BlockingHits;			// All blocking hits encountered during the scope of moves.
 
 	friend class USceneComponent;
 };

@@ -1619,7 +1619,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 
 			// If we had a valid blocking hit, store it.
 			// If we are looking for overlaps, store those as well.
-			uint32 FirstNonInitialOverlapIdx = INDEX_NONE;
+			int32 FirstNonInitialOverlapIdx = INDEX_NONE;
 			if (bHadBlockingHit || bGenerateOverlapEvents)
 			{
 				int32 BlockingHitIndex = INDEX_NONE;
@@ -1706,7 +1706,8 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 					// Remove any pending overlaps after this point, we are not going as far as we swept.
 					if (FirstNonInitialOverlapIdx != INDEX_NONE)
 					{
-						PendingOverlaps.SetNum(FirstNonInitialOverlapIdx);
+						const bool bAllowShrinking = false;
+						PendingOverlaps.SetNum(FirstNonInitialOverlapIdx, bAllowShrinking);
 					}
 				}
 			}
@@ -2547,8 +2548,9 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 					}
 					else
 					{
-						// Remove stale item
-						OverlappingComponents.RemoveSingleSwap(OtherOverlap);
+						// Remove stale item. Reclaim memory only if it's getting large, to try to avoid churn but avoid bloating component's memory usage.
+						const bool bAllowShrinking = (OverlappingComponents.Max() >= 24);
+						OverlappingComponents.RemoveSingleSwap(OtherOverlap, bAllowShrinking);
 					}
 				}
 			}

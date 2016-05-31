@@ -44,6 +44,16 @@ DECLARE_CYCLE_STAT(TEXT("CreatePhysicsShapesAndActors"), STAT_CreatePhysicsShape
 DECLARE_CYCLE_STAT(TEXT("BodyInstance SetCollisionProfileName"), STAT_BodyInst_SetCollisionProfileName, STATGROUP_Physics);
 DECLARE_CYCLE_STAT(TEXT("Phys SetBodyTransform"), STAT_SetBodyTransform, STATGROUP_Physics);
 
+#if WITH_PHYSX
+int32 FillInlinePxShapeArray(FInlinePxShapeArray& Array, const physx::PxRigidActor& RigidActor)
+{
+	const int32 NumShapes = RigidActor.getNbShapes();
+	Array.AddUninitialized(NumShapes);
+	RigidActor.getShapes(Array.GetData(), NumShapes);
+	return NumShapes;
+}
+#endif
+
 ////////////////////////////////////////////////////////////////////////////
 // FCollisionResponse
 ////////////////////////////////////////////////////////////////////////////
@@ -2035,6 +2045,11 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 		return false;
 	}
 
+    if (TheirBody->WeldParent == this) // The body is already welded to this component. Do nothing.
+    {
+        return false;
+    }
+
 	//@TODO: BOX2D: Implement Weld
 
 #if WITH_PHYSX
@@ -2563,9 +2578,9 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
 		// If we want it fixed, and it is currently not kinematic
 		bool bNewKinematic = (bUseSimulate == false);
 		{
-			PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, bNewKinematic);
 			PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, !bNewKinematic && bUseCCD);
-
+            PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, bNewKinematic);
+			
 			//if wake when level starts is true, calling this function automatically wakes body up
 			if (bSimulatePhysics && bStartAwake)
 			{
@@ -3331,9 +3346,8 @@ void FBodyInstance::GetComplexPhysicalMaterials(const FBodyInstance*, TWeakObjec
 /** Util for finding the number of 'collision sim' shapes on this PxRigidActor */
 int32 GetNumSimShapes_AssumesLocked(const PxRigidBody* PRigidBody)
 {
-	TArray<PxShape*, TInlineAllocator<16>> PShapes;
-	PShapes.AddUninitialized(PRigidBody->getNbShapes());
-	int32 NumShapes = PRigidBody->getShapes(PShapes.GetData(), PShapes.Num());
+	FInlinePxShapeArray PShapes;
+	const int32 NumShapes = FillInlinePxShapeArray(PShapes, *PRigidBody);
 
 	int32 NumSimShapes = 0;
 
@@ -4043,12 +4057,11 @@ bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, c
 			float BestHitDistance = BIG_NUMBER;
 
 			// Get all the shapes from the actor
-			TArray<PxShape*, TInlineAllocator<16>> PShapes;
-			PShapes.AddUninitialized(RigidBody->getNbShapes());
-			int32 NumShapes = RigidBody->getShapes(PShapes.GetData(), PShapes.Num());
+			FInlinePxShapeArray PShapes;
+			const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidBody);
 
 			// Iterate over each shape
-			for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ShapeIdx++)
+			for (int32 ShapeIdx = 0; ShapeIdx < NumShapes; ShapeIdx++)
 			{
 				PxShape* PShape = PShapes[ShapeIdx];
 				check(PShape);
@@ -4172,12 +4185,11 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 		PxSweepHit PHit;
 
 		// Get all the shapes from the actor
-		TArray<PxShape*, TInlineAllocator<16>> PShapes;
-		PShapes.AddUninitialized(RigidBody->getNbShapes());
-		int32 NumShapes = RigidBody->getShapes(PShapes.GetData(), PShapes.Num());
+		FInlinePxShapeArray PShapes;
+		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidBody);
 
 		// Iterate over each shape
-		for(int32 ShapeIdx=0; ShapeIdx<PShapes.Num(); ShapeIdx++)
+		for(int32 ShapeIdx=0; ShapeIdx<NumShapes; ShapeIdx++)
 		{
 			PxShape* PShape = PShapes[ShapeIdx];
 			check(PShape);
@@ -4236,14 +4248,13 @@ float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOn
 		bEarlyOut = false;
 
 		// Get all the shapes from the actor
-		TArray<PxShape*, TInlineAllocator<16>> PShapes;
-		PShapes.AddUninitialized(RigidActor->getNbShapes());
-		int32 NumShapes = RigidActor->getShapes(PShapes.GetData(), PShapes.Num());
+		FInlinePxShapeArray PShapes;
+		const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidActor);
 
 		const PxVec3 PPoint = U2PVector(Point);
 
 		// Iterate over each shape
-		for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ShapeIdx++)
+		for (int32 ShapeIdx = 0; ShapeIdx < NumShapes; ShapeIdx++)
 		{
 			PxShape* PShape = PShapes[ShapeIdx];
 			check(PShape);
@@ -4297,11 +4308,10 @@ bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const FQuat& Ro
 		PxTransform PTestGlobalPose = U2PTransform(FTransform(Rot, Pos));
 
 		// Get all the shapes from the actor
-		TArray<PxShape*, TInlineAllocator<16>> PTargetShapes;
-		PTargetShapes.AddUninitialized(TargetRigidActor->getNbShapes());
-		int32 NumTargetShapes = TargetRigidActor->getShapes(PTargetShapes.GetData(), PTargetShapes.Num());
+		FInlinePxShapeArray PTargetShapes;
+		const int32 NumTargetShapes = FillInlinePxShapeArray(PTargetShapes, *TargetRigidActor);
 
-		for (int32 TargetShapeIdx = 0; TargetShapeIdx < PTargetShapes.Num(); ++TargetShapeIdx)
+		for (int32 TargetShapeIdx = 0; TargetShapeIdx < NumTargetShapes; ++TargetShapeIdx)
 		{
 			const PxShape * PTargetShape = PTargetShapes[TargetShapeIdx];
 
@@ -4388,7 +4398,7 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 	// Determine how to convert the local space of this body instance to the test space
 	const FTransform ComponentSpaceToTestSpace(Quat, Pos);
 
-	FTransform BodyInstanceSpaceToTestSpace;
+	FTransform BodyInstanceSpaceToTestSpace(NoInit);
 	if (pWorldToComponent)
 	{
 		const FTransform RootTM = WeldParent ? WeldParent->GetUnrealWorldTransform() : GetUnrealWorldTransform();
@@ -4415,14 +4425,13 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 
 		ExecuteOnPhysicsReadOnly([&]
 		{
-		// Get all the shapes from the actor
-			TArray<PxShape*, TInlineAllocator<16>> PShapes;
-			PShapes.AddUninitialized(PRigidActor->getNbShapes());
-			int32 NumShapes = PRigidActor->getShapes(PShapes.GetData(), PShapes.Num());
+			// Get all the shapes from the actor
+			FInlinePxShapeArray PShapes;
+			const int32 NumShapes = FillInlinePxShapeArray(PShapes, *PRigidActor);
 
 			// Iterate over each shape
 			TArray<struct FOverlapResult> TempOverlaps;
-			for (int32 ShapeIdx = 0; ShapeIdx < PShapes.Num(); ShapeIdx++)
+			for (int32 ShapeIdx = 0; ShapeIdx < NumShapes; ShapeIdx++)
 			{
 				PxShape* PShape = PShapes[ShapeIdx];
 				check(PShape);
@@ -4474,12 +4483,11 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 	}
 
 	// Get all the shapes from the actor
-	TArray<PxShape*, TInlineAllocator<16>> PShapes;
-	PShapes.AddUninitialized(RigidBody->getNbShapes());
-	int32 NumShapes = RigidBody->getShapes(PShapes.GetData(), PShapes.Num());
+	FInlinePxShapeArray PShapes;
+	const int32 NumShapes = FillInlinePxShapeArray(PShapes, *RigidBody);
 
 	// Iterate over each shape
-	for(int32 ShapeIdx=0; ShapeIdx<PShapes.Num(); ++ShapeIdx)
+	for(int32 ShapeIdx=0; ShapeIdx<NumShapes; ++ShapeIdx)
 	{
 		const PxShape* PShape = PShapes[ShapeIdx];
 		check(PShape);

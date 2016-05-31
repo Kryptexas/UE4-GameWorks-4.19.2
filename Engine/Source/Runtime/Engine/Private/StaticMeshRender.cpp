@@ -104,6 +104,8 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	, LightMapResolution(InComponent->GetStaticLightMapResolution())
+#endif
+#if !(UE_BUILD_SHIPPING)
 	, LODForCollision(InComponent->StaticMesh->LODForCollision)
 	, bDrawMeshCollisionWireframe(InComponent->bDrawMeshCollisionWireframe)
 #endif
@@ -980,7 +982,7 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 		}
 	}
 	
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !(UE_BUILD_SHIPPING)
 	// Collision and bounds drawing
 	FColor SimpleCollisionColor = FColor(157, 149, 223, 255);
 	FColor ComplexCollisionColor = FColor(0, 255, 255, 255);
@@ -1046,51 +1048,51 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 						}
 					}
 				}
+			}
 
-				// Draw simple collision as wireframe if 'show collision', collision is enabled, and we are not using the complex as the simple
-				const bool bDrawSimpleWireframeCollision = (EngineShowFlags.Collision && IsCollisionEnabled() && CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple);
+			// Draw simple collision as wireframe if 'show collision', collision is enabled, and we are not using the complex as the simple
+			const bool bDrawSimpleWireframeCollision = (EngineShowFlags.Collision && IsCollisionEnabled() && CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple);
 
-				if((bDrawSimpleCollision || bDrawSimpleWireframeCollision) && BodySetup)
+			if((bDrawSimpleCollision || bDrawSimpleWireframeCollision) && BodySetup)
+			{
+				if(FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
 				{
-					if(FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
+					// Catch this here or otherwise GeomTransform below will assert
+					// This spams so commented out
+					//UE_LOG(LogStaticMesh, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
+				}
+				else
+				{
+					const bool bDrawSolid = !bDrawSimpleWireframeCollision;
+
+					if(AllowDebugViewmodes() && bDrawSolid)
 					{
-						// Catch this here or otherwise GeomTransform below will assert
-						// This spams so commented out
-						//UE_LOG(LogStaticMesh, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
+						// Make a material for drawing solid collision stuff
+						auto SolidMaterialInstance = new FColoredMaterialRenderProxy(
+							GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
+							WireframeColor
+							);
+
+						Collector.RegisterOneFrameMaterialProxy(SolidMaterialInstance);
+
+						FTransform GeomTransform(GetLocalToWorld());
+						BodySetup->AggGeom.GetAggGeom(GeomTransform, WireframeColor.ToFColor(true), SolidMaterialInstance, false, true, UseEditorDepthTest(), ViewIndex, Collector);
 					}
+					// wireframe
 					else
 					{
-						const bool bDrawSolid = !bDrawSimpleWireframeCollision;
-
-						if(bDrawSolid)
-						{
-							// Make a material for drawing solid collision stuff
-							auto SolidMaterialInstance = new FColoredMaterialRenderProxy(
-								GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
-								WireframeColor
-								);
-
-							Collector.RegisterOneFrameMaterialProxy(SolidMaterialInstance);
-
-							FTransform GeomTransform(GetLocalToWorld());
-							BodySetup->AggGeom.GetAggGeom(GeomTransform, WireframeColor.ToFColor(true), SolidMaterialInstance, false, true, UseEditorDepthTest(), ViewIndex, Collector);
-						}
-						// wireframe
-						else
-						{
-							FTransform GeomTransform(GetLocalToWorld());
-							BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(SimpleCollisionColor, bProxyIsSelected, IsHovered()).ToFColor(true), NULL, ( Owner == NULL ), false, UseEditorDepthTest(), ViewIndex, Collector);
-						}
+						FTransform GeomTransform(GetLocalToWorld());
+						BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(SimpleCollisionColor, bProxyIsSelected, IsHovered()).ToFColor(true), NULL, ( Owner == NULL ), false, UseEditorDepthTest(), ViewIndex, Collector);
+					}
 
 
-						// The simple nav geometry is only used by dynamic obstacles for now
-						if (StaticMesh->NavCollision && StaticMesh->NavCollision->bIsDynamicObstacle)
-						{
-							// Draw the static mesh's body setup (simple collision)
-							FTransform GeomTransform(GetLocalToWorld());
-							FColor NavCollisionColor = FColor(118,84,255,255);
-							StaticMesh->NavCollision->DrawSimpleGeom(Collector.GetPDI(ViewIndex), GeomTransform, GetSelectionColor(NavCollisionColor, bProxyIsSelected, IsHovered()).ToFColor(true));
-						}
+					// The simple nav geometry is only used by dynamic obstacles for now
+					if (StaticMesh->NavCollision && StaticMesh->NavCollision->bIsDynamicObstacle)
+					{
+						// Draw the static mesh's body setup (simple collision)
+						FTransform GeomTransform(GetLocalToWorld());
+						FColor NavCollisionColor = FColor(118,84,255,255);
+						StaticMesh->NavCollision->DrawSimpleGeom(Collector.GetPDI(ViewIndex), GeomTransform, GetSelectionColor(NavCollisionColor, bProxyIsSelected, IsHovered()).ToFColor(true));
 					}
 				}
 			}
@@ -1101,7 +1103,7 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 			}
 		}
 	}
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // !(UE_BUILD_SHIPPING)
 
 }
 
@@ -1141,10 +1143,12 @@ FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || WITH_EDITOR
 	bool bDrawSimpleCollision = false, bDrawComplexCollision = false;
 	const bool bInCollisionView = IsCollisionView(View->Family->EngineShowFlags, bDrawSimpleCollision, bDrawComplexCollision);
+#else
+	bool bInCollisionView = false;
 #endif
 
 	if(
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || WITH_EDITOR
+#if !(UE_BUILD_SHIPPING) || WITH_EDITOR
 		IsRichView(*View->Family) || 
 		View->Family->EngineShowFlags.Collision ||
 		bInCollisionView ||
@@ -1162,7 +1166,7 @@ FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView
 	{
 		Result.bDynamicRelevance = true;
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || WITH_EDITOR
+#if !(UE_BUILD_SHIPPING) || WITH_EDITOR
 		// If we want to draw collision, needs to make sure we are considered relevant even if hidden
 		if(View->Family->EngineShowFlags.Collision || bInCollisionView)
 		{

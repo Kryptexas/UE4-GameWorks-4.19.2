@@ -443,17 +443,6 @@ FBoxSphereBounds UStaticMeshComponent::CalcBounds(const FTransform& LocalToWorld
 	{
 		// Graphics bounds.
 		FBoxSphereBounds NewBounds = StaticMesh->GetBounds().TransformBy(LocalToWorld);
-		
-		// Add bounds of collision geometry (if present).
-		if(StaticMesh->BodySetup)
-		{
-			FBox AggGeomBox = StaticMesh->BodySetup->AggGeom.CalcAABB(LocalToWorld);
-			if (AggGeomBox.IsValid)
-			{
-				NewBounds = Union(NewBounds,FBoxSphereBounds(AggGeomBox));
-			}
-		}
-
 		NewBounds.BoxExtent *= BoundsScale;
 		NewBounds.SphereRadius *= BoundsScale;
 

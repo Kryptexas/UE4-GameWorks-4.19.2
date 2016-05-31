@@ -985,11 +985,6 @@ const FMontageEvaluationState* FAnimInstanceProxy::GetActiveMontageEvaluationSta
 	return nullptr;
 }
 
-void FAnimInstanceProxy::AddVertexAnim(const FActiveVertexAnim& VertexAnim)
-{
-	VertexAnims.Add(VertexAnim);
-}
-
 void FAnimInstanceProxy::GatherDebugData(FNodeDebugData& DebugData)
 {
 	if(RootNode != nullptr)

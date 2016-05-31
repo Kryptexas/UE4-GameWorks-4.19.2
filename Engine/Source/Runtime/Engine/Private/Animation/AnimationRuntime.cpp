@@ -16,8 +16,7 @@
 #include "BonePose.h"
 #include "Animation/BlendProfile.h"
 #include "SkeletalRender.h"
-#include "Animation/VertexAnim/VertexAnimBase.h"
-#include "Animation/VertexAnim/MorphTarget.h"
+#include "Animation/MorphTarget.h"
 
 DEFINE_LOG_CATEGORY(LogAnimation);
 DEFINE_LOG_CATEGORY(LogRootMotion);
@@ -1358,12 +1357,12 @@ void FAnimationRuntime::FillUpSpaceBasesRetargetBasePose(const USkeleton* Skelet
 }
 #endif // WITH_EDITOR
 
-/** See if an array of ActiveVertexAnims already contains the supplied anim */
-static int32 FindVertexAnim(const TArray<FActiveVertexAnim>& ActiveAnims, UVertexAnimBase* Anim)
+/** See if an array of ActiveMorphTargets already contains the supplied anim */
+static int32 FindMorphTarget(const TArray<FActiveMorphTarget>& ActiveMorphTargets, UMorphTarget* InMorphTarget)
 {
-	for(int32 i=0; i<ActiveAnims.Num(); i++)
+	for(int32 i=0; i<ActiveMorphTargets.Num(); i++)
 	{
-		if(ActiveAnims[i].VertAnim == Anim)
+		if(ActiveMorphTargets[i].MorphTarget == InMorphTarget)
 		{
 			return i;
 		}
@@ -1372,34 +1371,36 @@ static int32 FindVertexAnim(const TArray<FActiveVertexAnim>& ActiveAnims, UVerte
 	return INDEX_NONE;
 }
 
-void FAnimationRuntime::AppendActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, TArray<FActiveVertexAnim>& InOutActiveAnims)
+void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, TArray<FActiveMorphTarget>& InOutActiveMorphTargets, TArray<float>& InOutMorphTargetWeights)
 {
-
 	// Then go over the CurveKeys finding morph targets by name
 	for(auto CurveIter=MorphCurveAnims.CreateConstIterator(); CurveIter; ++CurveIter)
 	{
 		const FName& CurveName	= (CurveIter).Key();
-		const float& Weight	= (CurveIter).Value();
+		const float Weight	= (CurveIter).Value();
 
 		// If it has a valid weight
-		if(FMath::Abs(Weight) > MinVertexAnimBlendWeight)
+		if(FMath::Abs(Weight) > MinMorphTargetBlendWeight)
 		{
 			// Find morph reference
-			UMorphTarget* Target = InSkeletalMesh ? InSkeletalMesh->FindMorphTarget(CurveName) : NULL;
-			if(Target != NULL)				
+			int32 SkeletalMorphIndex = INDEX_NONE;
+			UMorphTarget* Target = InSkeletalMesh ? InSkeletalMesh->FindMorphTargetAndIndex(CurveName, SkeletalMorphIndex) : nullptr;
+			if (Target != nullptr)
 			{
 				// See if this morph target already has an entry
-				int32 AnimIndex = FindVertexAnim(InOutActiveAnims, Target);
+				int32 MorphIndex = FindMorphTarget(InOutActiveMorphTargets, Target);
 				// If not, add it
-				if(AnimIndex == INDEX_NONE)
+				if(MorphIndex == INDEX_NONE)
 				{
-					InOutActiveAnims.Add(FActiveVertexAnim(Target, Weight));
+					InOutActiveMorphTargets.Add(FActiveMorphTarget(Target, SkeletalMorphIndex));
+					InOutMorphTargetWeights[SkeletalMorphIndex] = Weight;
 				}
-				// If it does, use the max weight
 				else
 				{
-					const float CurrentWeight = InOutActiveAnims[AnimIndex].Weight;
-					InOutActiveAnims[AnimIndex].Weight = FMath::Max<float>(CurrentWeight, Weight);
+					// If it does, use the max weight
+					check(SkeletalMorphIndex == InOutActiveMorphTargets[MorphIndex].WeightIndex);
+					float& CurrentWeight = InOutMorphTargetWeights[SkeletalMorphIndex];
+					CurrentWeight = FMath::Max<float>(CurrentWeight, Weight);
 				}
 			}
 		}

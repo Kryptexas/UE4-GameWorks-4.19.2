@@ -6,6 +6,8 @@
 #include "MovieSceneSkeletalAnimationSection.h"
 #include "IMovieScenePlayer.h"
 #include "Matinee/MatineeAnimInterface.h"
+#include "Animation/AnimMontage.h"
+#include "Animation/AnimSingleNodeInstance.h"
 #include "MovieSceneCommonHelpers.h"
 
 float MapTimeToAnimation(float ThisPosition, UMovieSceneSkeletalAnimationSection* AnimSection)

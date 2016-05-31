@@ -2,7 +2,7 @@
 
 #pragma once
 
-class IAnalyticsProvider;
+class IAnalyticsProviderET;
 class FEngineSessionManager;
 
 /**
@@ -37,7 +37,7 @@ private:
 	static bool bIsInitialized;
 	static bool bIsEditorRun;
 	static bool bIsGameRun;
-	static TSharedPtr<IAnalyticsProvider> Analytics;
+	static TSharedPtr<IAnalyticsProviderET> Analytics;
 	static TSharedPtr<FEngineSessionManager> SessionManager;
 };
 

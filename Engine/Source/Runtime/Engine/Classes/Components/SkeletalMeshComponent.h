@@ -6,7 +6,6 @@
 #include "Components/SkinnedMeshComponent.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "SkeletalMeshTypes.h"
-#include "Animation/AnimationAsset.h"
 #include "AnimCurveTypes.h"
 #include "ClothSimData.h"
 #include "SingleAnimationPlayData.h"
@@ -17,6 +16,8 @@
 class UAnimInstance;
 struct FEngineShowFlags;
 struct FConvexVolume;
+struct FClothingAssetData;
+struct FRootMotionMovementParams;
 
 DECLARE_MULTICAST_DELEGATE(FOnSkelMeshPhysicsCreatedMultiCast);
 typedef FOnSkelMeshPhysicsCreatedMultiCast::FDelegate FOnSkelMeshPhysicsCreated;
@@ -501,9 +502,6 @@ public:
 	uint32 bPrevDisableClothSimulation:1;
 
 	uint32 bDisplayClothFixedVertices:1;
-	/**
-	 * Vertex Animation
-	 */
 	
 	/** Offset of the root bone from the reference pose. Used to offset bounding box. */
 	UPROPERTY(transient)
@@ -606,10 +604,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Components|Animation", meta = (Keywords = "Animation"))
 	void SetAnimation(class UAnimationAsset* NewAnimToPlay);
-
-	// @todo block this until we support vertex animation 
-//	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
-	void SetVertexAnimation(class UVertexAnimation* NewVertexAnimToPlay);
 
 	UFUNCTION(BlueprintCallable, Category = "Components|Animation", meta = (Keywords = "Animation"))
 	void Play(bool bLooping);
@@ -1033,8 +1027,8 @@ public:
 	* @param	InAnimInstance			The anim instance we are evaluating
 	* @param	OutSpaceBases			Component space bone transforms
 	* @param	OutLocalAtoms			Local space bone transforms
-	* @param	OutVertexAnims			Active vertex animations
 	* @param	OutRootBoneTranslation	Calculated root bone translation
+	* @param	OutCurves				Blended Curve
 	*/
 	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
 	void PostAnimEvaluation( FAnimationEvaluationContext& EvaluationContext );
@@ -1344,7 +1338,7 @@ private:
 	bool DoAnyPhysicsBodiesHaveWeight() const;
 
 	void ClearAnimScriptInstance();
-	virtual void RefreshActiveVertexAnims() override;
+	virtual void RefreshActiveMorphTargets() override;
 
 #if WITH_APEX_CLOTHING
 	void GetWindForCloth_GameThread(FVector& WindVector, float& WindAdaption) const;

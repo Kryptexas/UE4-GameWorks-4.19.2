@@ -1668,11 +1668,6 @@ bool AActor::IsInLevel(const ULevel *TestLevel) const
 	return (GetOuter() == TestLevel);
 }
 
-ULevel* AActor::GetLevel() const
-{
-	return Cast<ULevel>(GetOuter());
-}
-
 bool AActor::IsInPersistentLevel(bool bIncludeLevelStreamingPersistent) const
 {
 	ULevel* MyLevel = GetLevel();
@@ -3495,15 +3490,25 @@ AWorldSettings * AActor::GetWorldSettings() const
 	return (World ? World->GetWorldSettings() : nullptr);
 }
 
+UNetDriver* GetNetDriver_Internal(UWorld* World, FName NetDriverName)
+{
+	if (NetDriverName == NAME_GameNetDriver)
+	{
+		return (World ? World->GetNetDriver() : nullptr);
+	}
+
+	return GEngine->FindNamedNetDriver(World, NetDriverName);
+}
+
 ENetMode AActor::GetNetMode() const
 {
-	UNetDriver *NetDriver = GetNetDriver();
+	UWorld* World = GetWorld();
+	UNetDriver* NetDriver = GetNetDriver_Internal(World, NetDriverName);
 	if (NetDriver != nullptr)
 	{
 		return NetDriver->GetNetMode();
 	}
 
-	UWorld* World = GetWorld();
 	if (World != nullptr && World->DemoNetDriver != nullptr)
 	{
 		return World->DemoNetDriver->GetNetMode();
@@ -3514,13 +3519,7 @@ ENetMode AActor::GetNetMode() const
 
 UNetDriver* AActor::GetNetDriver() const
 {
-	UWorld *World = GetWorld();
-	if (NetDriverName == NAME_GameNetDriver)
-	{
-		return (World ? World->GetNetDriver() : nullptr);
-	}
-
-	return GEngine->FindNamedNetDriver(World, NetDriverName);
+	return GetNetDriver_Internal(GetWorld(), NetDriverName);
 }
 
 void AActor::SetNetDriverName(FName NewNetDriverName)

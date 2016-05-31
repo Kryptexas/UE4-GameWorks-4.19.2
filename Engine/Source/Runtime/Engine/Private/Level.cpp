@@ -1941,3 +1941,7 @@ void ULevel::RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass)
 	}
 }
 
+bool ULevel::HasVisibilityRequestPending() const
+{
+	return (OwningWorld && this == OwningWorld->CurrentLevelPendingVisibility);
+}

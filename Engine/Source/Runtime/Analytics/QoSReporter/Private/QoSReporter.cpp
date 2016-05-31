@@ -4,6 +4,7 @@
 
 #include "Core.h"
 #include "Analytics.h"
+#include "IAnalyticsProvider.h"
 #include "EngineVersion.h"
 #include "QoSReporter.h"
 #if WITH_PERFCOUNTERS
@@ -29,9 +30,9 @@ namespace
 * External code should bind this delegate if QoS reporting is desired,
 * preferably in private code that won't be redistributed.
 */
-QOSREPORTER_API FAnalytics::FProviderConfigurationDelegate& GetQoSOverrideConfigDelegate()
+QOSREPORTER_API FAnalyticsProviderConfigurationDelegate& GetQoSOverrideConfigDelegate()
 {
-	static FAnalytics::FProviderConfigurationDelegate Delegate;
+	static FAnalyticsProviderConfigurationDelegate Delegate;
 	return Delegate;
 }
 
@@ -59,7 +60,7 @@ QOSREPORTER_API void FQoSReporter::Initialize()
 	}
 
 	// Setup some default engine analytics if there is nothing custom bound
-	FAnalytics::FProviderConfigurationDelegate DefaultEngineAnalyticsConfig;
+	FAnalyticsProviderConfigurationDelegate DefaultEngineAnalyticsConfig;
 	DefaultEngineAnalyticsConfig.BindLambda(
 		[=](const FString& KeyName, bool bIsValueRequired) -> FString
 	{
@@ -67,7 +68,7 @@ QOSREPORTER_API void FQoSReporter::Initialize()
 		if (ConfigMap.Num() == 0)
 		{
 			ConfigMap.Add(TEXT("ProviderModuleName"), TEXT("QoSReporter"));
-			ConfigMap.Add(TEXT("APIKeyQoS"), FString::Printf(TEXT("%s.%s"), FApp::GetGameName(), FAnalytics::ToString(FAnalytics::Get().GetBuildType())));
+			ConfigMap.Add(TEXT("APIKeyQoS"), FString::Printf(TEXT("%s.%s"), FApp::GetGameName(), AnalyticsBuildTypeToString(GetAnalyticsBuildType())));
 		}
 
 		// Check for overrides

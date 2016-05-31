@@ -476,9 +476,10 @@ void FEnvQueryInstance::NormalizeScores()
 	ItemInfo = Items.GetData();
 	if (MinScore == MaxScore)
 	{
+		const float Score = (MinScore == 0.f) ? 0.f : 1.f;
 		for (int32 ItemIndex = 0; ItemIndex < NumValidItems; ItemIndex++, ItemInfo++)
 		{
-			ItemInfo->Score = 1.0f;
+			ItemInfo->Score = Score;
 		}
 	}
 	else

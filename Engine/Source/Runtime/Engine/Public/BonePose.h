@@ -190,6 +190,16 @@ public:
 			this->Bones = SrcPoseBones;
 		}
 	}
+
+	template <typename OtherAllocator>
+	void CopyBonesTo(TArray<FTransform, OtherAllocator>& DestPoseBones)
+	{
+		// this won't work if you're copying to FBaseCompactPose without BoneContainer data
+		// you'll like to make CopyBonesTo(FBaseCompactPose<OtherAllocator>& DestPose) to fix this properly
+		// if you need bone container
+		DestPoseBones = this->Bones;
+	}
+
 	// Sets this pose to its ref pose
 	void ResetToRefPose()
 	{
@@ -248,7 +258,7 @@ public:
 		return true;
 	}
 
-	// Returns true if any bone rotation contains NaN
+	// Returns true if any bone rotation contains NaN or Inf
 	bool ContainsNaN() const
 	{
 		for (const FTransform& Bone : this->Bones)

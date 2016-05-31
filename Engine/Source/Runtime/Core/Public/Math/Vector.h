@@ -678,9 +678,9 @@ public:
 	CORE_API void UnwindEuler();
 
 	/**
-	 * Utility to check if there are any NaNs in this vector.
+	 * Utility to check if there are any non-finite values (NaN or Inf) in this vector.
 	 *
-	 * @return true if there are any NaNs in this vector, false otherwise.
+	 * @return true if there are any non-finite values in this vector, false otherwise.
 	 */
 	bool ContainsNaN() const;
 
@@ -1774,9 +1774,9 @@ FORCEINLINE FVector FVector::ProjectOnToNormal(const FVector& Normal) const
 
 FORCEINLINE bool FVector::ContainsNaN() const
 {
-	return (FMath::IsNaN(X) || !FMath::IsFinite(X) || 
-		FMath::IsNaN(Y) || !FMath::IsFinite(Y) ||
-		FMath::IsNaN(Z) || !FMath::IsFinite(Z));
+	return (!FMath::IsFinite(X) || 
+			!FMath::IsFinite(Y) ||
+			!FMath::IsFinite(Z));
 }
 
 FORCEINLINE bool FVector::IsUnit(float LengthSquaredTolerance ) const

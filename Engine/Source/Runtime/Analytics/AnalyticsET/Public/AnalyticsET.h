@@ -7,7 +7,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAnalytics, Display, All);
 
-class IAnalyticsProvider;
+class IAnalyticsProviderET;
 
 /**
  * The public interface to this module
@@ -47,7 +47,7 @@ public:
 		 */
 		FString AppVersionET;
 		/** When true, sends events using the legacy ET protocol that passes all attributes as URL parameters. Defaults to false. */
-		bool UseLegacyProtocol;
+		bool UseLegacyProtocol = false;
 		/** The AppEnvironment that the data router should use. Defaults to GetDefaultAppEnvironment. */
 		FString AppEnvironment;
 		/** The UploadType that the data router should use. Defaults to GetDefaultUploadType. */
@@ -55,6 +55,14 @@ public:
 
 		/** Default ctor to ensure all values have their proper default. */
 		Config() : UseLegacyProtocol(false) {}
+		/** Ctor exposing common configurables . */
+		Config(FString InAPIKeyET, FString InAPIServerET, FString InAppVersionET = FString(), bool InUseLegacyProtocol = false, FString InAppEnvironment = FString(), FString InUploadType = FString()) 
+			: APIKeyET(InAPIKeyET)
+			, APIServerET(InAPIServerET)
+			, UseLegacyProtocol(InUseLegacyProtocol)
+			, AppEnvironment(InAppEnvironment)
+			, UploadType(InUploadType)
+		{}
 
 		/** KeyName required for APIKey configuration. */
 		static FString GetKeyNameForAPIKey() { return TEXT("APIKeyET"); }
@@ -83,15 +91,14 @@ public:
 	 * Creates the analytics provider given a configuration delegate.
 	 * The keys required exactly match the field names in the Config object. 
 	 */
-	virtual TSharedPtr<IAnalyticsProvider> CreateAnalyticsProvider(const FAnalytics::FProviderConfigurationDelegate& GetConfigValue) const override;
+	virtual TSharedPtr<IAnalyticsProvider> CreateAnalyticsProvider(const FAnalyticsProviderConfigurationDelegate& GetConfigValue) const override;
 	
 	/** 
-	 * Construct an analytics provider directly from a config object.
+	 * Construct an ET analytics provider directly from a config object.
 	 */
-	virtual TSharedPtr<IAnalyticsProvider> CreateAnalyticsProvider(const Config& ConfigValues) const;
+	virtual TSharedPtr<IAnalyticsProviderET> CreateAnalyticsProvider(const Config& ConfigValues) const;
 
 private:
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 };
-

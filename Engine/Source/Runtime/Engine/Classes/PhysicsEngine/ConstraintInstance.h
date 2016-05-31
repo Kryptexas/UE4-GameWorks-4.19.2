@@ -62,8 +62,11 @@ struct ENGINE_API FConstraintInstance
 	 */
 	int32 ConstraintIndex;
 
-	/** The component that created this instance. */
-	UPROPERTY()
+	/**
+     *  The component that created this instance.
+     *  This is intentionally *not* a UPROPERTY for serialization reasons.
+     *  Further, the owner should never be destroyed before the constraint.
+     */
 	USceneComponent* OwnerComponent;
 
 #if WITH_PHYSX

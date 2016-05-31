@@ -488,6 +488,16 @@ void AGameplayDebuggerCategoryReplicator::ServerSetCategoryEnabled_Implementatio
 	SetCategoryEnabled(CategoryId, bEnable);
 }
 
+bool AGameplayDebuggerCategoryReplicator::ServerSendInputEvent_Validate(int32 CategoryId, int32 HandlerId)
+{
+	return true;
+}
+
+void AGameplayDebuggerCategoryReplicator::ServerSendInputEvent_Implementation(int32 CategoryId, int32 HandlerId)
+{
+	SendInputEvent(CategoryId, HandlerId);
+}
+
 void AGameplayDebuggerCategoryReplicator::OnReceivedDataPackPacket(int32 CategoryId, int32 DataPackId, const FGameplayDebuggerDataPack& DataPacket)
 {
 	if (Categories.IsValidIndex(CategoryId) && Categories[CategoryId]->ReplicatedDataPacks.IsValidIndex(DataPackId))
@@ -675,6 +685,27 @@ void AGameplayDebuggerCategoryReplicator::SetCategoryEnabled(int32 CategoryId, b
 	}
 
 	MarkComponentsRenderStateDirty();
+}
+
+void AGameplayDebuggerCategoryReplicator::SendInputEvent(int32 CategoryId, int32 HandlerId)
+{
+	if (HandlerId >= 0 && Categories.IsValidIndex(CategoryId) &&
+		HandlerId < Categories[CategoryId]->GetNumInputHandlers())
+	{
+		// check enabled category only on local (instigating) side
+		if (!bIsLocal || IsCategoryEnabled(CategoryId))
+		{
+			FGameplayDebuggerInputHandler& InputHandler = Categories[CategoryId]->GetInputHandler(HandlerId);
+			if (InputHandler.Mode == EGameplayDebuggerInputMode::Local || bHasAuthority)
+			{
+				InputHandler.Delegate.ExecuteIfBound();
+			}
+			else
+			{
+				ServerSendInputEvent(CategoryId, HandlerId);
+			}
+		}
+	}
 }
 
 bool AGameplayDebuggerCategoryReplicator::IsCategoryEnabled(int32 CategoryId) const

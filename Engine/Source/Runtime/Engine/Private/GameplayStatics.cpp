@@ -122,6 +122,30 @@ void UGameplayStatics::RemovePlayer(APlayerController* PlayerController, bool bD
 	}
 }
 
+int32 UGameplayStatics::GetPlayerControllerID(APlayerController* PlayerController)
+{
+	if (PlayerController)
+	{
+		if (ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer())
+		{
+			return LocalPlayer->GetControllerId();
+		}
+	}
+
+	return INDEX_NONE;
+}
+
+void UGameplayStatics::SetPlayerControllerID(APlayerController* PlayerController, int32 ControllerId)
+{
+	if (PlayerController)
+	{
+		if (ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer())
+		{
+			LocalPlayer->SetControllerId(ControllerId);
+		}
+	}
+}
+
 AGameMode* UGameplayStatics::GetGameMode(UObject* WorldContextObject)
 {
 	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);

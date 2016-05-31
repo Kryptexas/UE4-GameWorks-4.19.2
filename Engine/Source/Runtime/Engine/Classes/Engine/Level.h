@@ -1,15 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Engine/World.h"
 #include "MaterialMerging.h"
 #include "Level.generated.h"
 
 class ALevelBounds;
+class ABrush;
 class UTexture2D;
 class UNavigationDataChunk;
 class AInstancedFoliageActor;
 class AWorldSettings;
+class UWorld;
 
 /**
  * Structure containing all information needed for determining the screen space
@@ -467,10 +468,7 @@ public:
 	int32										CurrentActorIndexForUpdateComponents;
 
 	/** Whether the level is currently pending being made visible.							*/
-	bool HasVisibilityRequestPending() const
-	{
-		return (OwningWorld && this == OwningWorld->CurrentLevelPendingVisibility);
-	}
+	bool HasVisibilityRequestPending() const;
 
 	// Event on level transform changes
 	DECLARE_MULTICAST_DELEGATE_OneParam(FLevelTransformEvent, const FTransform&);
@@ -661,7 +659,7 @@ public:
 	 *
 	 * @return		The default brush for this level.
 	 */
-	ENGINE_API class ABrush* GetDefaultBrush() const;
+	ENGINE_API ABrush* GetDefaultBrush() const;
 
 	/**
 	 * Returns the world info for this level.

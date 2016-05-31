@@ -22,13 +22,12 @@
 
 #include "EnginePrivate.h"
 #include "SkeletalRenderCPUSkin.h"
-#include "Animation/VertexAnim/VertexAnimBase.h"
+#include "Animation/MorphTarget.h"
 
-struct FVertexAnimDelta;
-struct FVertexAnimEvalStateBase;
+struct FMorphTargetDelta;
 
 template<typename BaseVertexType, typename VertexType>
-static void SkinVertices( FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal, int32 LODIndex, FStaticLODModel& LOD, TArray<FActiveVertexAnim>& ActiveVertexAnims  );
+static void SkinVertices(FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal, int32 LODIndex, FStaticLODModel& LOD, TArray<FActiveMorphTarget>& ActiveMorphTargets, TArray<float>& MorphTargetWeights);
 
 #define INFLUENCE_0		0
 #define INFLUENCE_1		1
@@ -193,11 +192,11 @@ void FSkeletalMeshObjectCPUSkin::UpdateRecomputeTangent(int32 MaterialIndex, boo
 	);
 }
 
-void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims)
+void FSkeletalMeshObjectCPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights)
 {
 	// create the new dynamic data for use by the rendering thread
 	// this data is only deleted when another update is sent
-	FDynamicSkelMeshObjectDataCPUSkin* NewDynamicData = new FDynamicSkelMeshObjectDataCPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveVertexAnims);
+	FDynamicSkelMeshObjectDataCPUSkin* NewDynamicData = new FDynamicSkelMeshObjectDataCPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveMorphTargets, MorphTargetWeights);
 
 	// We prepare the next frame but still have the value from the last one
 	uint32 FrameNumberToPrepare = GFrameNumber + 1;
@@ -270,11 +269,11 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 				// do actual skinning
 				if (LOD.DoesVertexBufferHaveExtraBoneInfluences())
 				{
-					SkinVertices< TGPUSkinVertexBase<true>, TGPUSkinVertexFloat32Uvs<1, true> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveVertexAnims );
+					SkinVertices< TGPUSkinVertexBase<true>, TGPUSkinVertexFloat32Uvs<1, true> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveMorphTargets, DynamicData->MorphTargetWeights);
 				}
 				else
 				{
-					SkinVertices< TGPUSkinVertexBase<false>, TGPUSkinVertexFloat32Uvs<1, false> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveVertexAnims );
+					SkinVertices< TGPUSkinVertexBase<false>, TGPUSkinVertexFloat32Uvs<1, false> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveMorphTargets, DynamicData->MorphTargetWeights);
 				}
 			}
 			else
@@ -282,11 +281,11 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 				// do actual skinning
 				if (LOD.DoesVertexBufferHaveExtraBoneInfluences())
 				{
-					SkinVertices< TGPUSkinVertexBase<true>, TGPUSkinVertexFloat16Uvs<1, true> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveVertexAnims  );
+					SkinVertices< TGPUSkinVertexBase<true>, TGPUSkinVertexFloat16Uvs<1, true> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveMorphTargets, DynamicData->MorphTargetWeights);
 				}
 				else
 				{
-					SkinVertices< TGPUSkinVertexBase<false>, TGPUSkinVertexFloat16Uvs<1, false> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveVertexAnims  );
+					SkinVertices< TGPUSkinVertexBase<false>, TGPUSkinVertexFloat16Uvs<1, false> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveMorphTargets, DynamicData->MorphTargetWeights);
 				}
 			}
 
@@ -447,10 +446,12 @@ FDynamicSkelMeshObjectDataCPUSkin::FDynamicSkelMeshObjectDataCPUSkin(
 	USkinnedMeshComponent* InMeshComponent,
 	FSkeletalMeshResource* InSkeletalMeshResource,
 	int32 InLODIndex,
-	const TArray<FActiveVertexAnim>& InActiveVertexAnims
+	const TArray<FActiveMorphTarget>& InActiveMorphTargets,
+	const TArray<float>& InMorphTargetWeights
 	)
 :	LODIndex(InLODIndex)
-,	ActiveVertexAnims(InActiveVertexAnims)
+,	ActiveMorphTargets(InActiveMorphTargets)
+,	MorphTargetWeights(InMorphTargetWeights)
 {
 	UpdateRefToLocalMatrices( ReferenceToLocal, InMeshComponent, InSkeletalMeshResource, LODIndex );
 
@@ -465,76 +466,63 @@ FDynamicSkelMeshObjectDataCPUSkin::FDynamicSkelMeshObjectDataCPUSkin(
 	FSkeletalMeshObjectCPUSkin - morph target blending implementation
 -----------------------------------------------------------------------------*/
 
-/** Struct used to hold temporary info during vertex animation blending */
-struct FVertexAnimEvalInfo
+/** Struct used to hold temporary info during morph target blending */
+struct FMorphTargetInfo
 {
-	/** Info about anim to blend */
-	FActiveVertexAnim			ActiveVertexAnim;
+	/** Info about morphtarget to blend */
+	FActiveMorphTarget			ActiveMorphTarget;
 	/** Index of next delta to try applying. This prevents us looking at every delta for every vertex. */
 	int32						NextDeltaIndex;
 	/** Array of deltas to apply to mesh, sorted based on the index of the base mesh vert that they affect. */
-	FVertexAnimDelta*			Deltas;
+	FMorphTargetDelta*			Deltas;
 	/** How many deltas are in array */
 	int32						NumDeltas;
-	/** Temporary state allocated by the vertex anim object, cleaned up after we are finished with Deltas. */
-	FVertexAnimEvalStateBase*	EvalState;
 };
 
 /**
- *	Init set of info structs to hold temporary state while blending vertex animations in.
+ *	Init set of info structs to hold temporary state while blending morph targets in.
  * @return							number of active morphs that are valid
  */
-uint32 InitEvalInfos(const TArray<FActiveVertexAnim>& ActiveVertexAnims, int32 LODIndex, TArray<FVertexAnimEvalInfo>& OutEvalInfos)
+static uint32 InitEvalInfos(const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetWeights, int32 LODIndex, TArray<FMorphTargetInfo>& OutEvalInfos)
 {
-	uint32 NumValidVertexAnims=0;
+	uint32 NumValidMorphTargets=0;
 
-	for( int32 AnimIdx=0; AnimIdx < ActiveVertexAnims.Num(); AnimIdx++ )
+	for( int32 MorphIdx=0; MorphIdx < ActiveMorphTargets.Num(); MorphIdx++ )
 	{
-		FVertexAnimEvalInfo NewInfo;
+		FMorphTargetInfo NewInfo;
 
-		const FActiveVertexAnim& ActiveAnim = ActiveVertexAnims[AnimIdx];
-		const float ActiveAnimAbsVertexWeight = FMath::Abs(ActiveAnim.Weight);
+		const FActiveMorphTarget& ActiveMorphTarget = ActiveMorphTargets[MorphIdx];
+		const float ActiveMorphAbsVertexWeight = FMath::Abs(MorphTargetWeights[ActiveMorphTarget.WeightIndex]);
 
-		if( ActiveAnim.VertAnim != NULL &&
-			ActiveAnimAbsVertexWeight >= MinVertexAnimBlendWeight &&
-			ActiveAnimAbsVertexWeight <= MaxVertexAnimBlendWeight &&
-			ActiveAnim.VertAnim->HasDataForLOD(LODIndex) )
+		if( ActiveMorphTarget.MorphTarget != NULL &&
+			ActiveMorphAbsVertexWeight >= MinMorphTargetBlendWeight &&
+			ActiveMorphAbsVertexWeight <= MaxMorphTargetBlendWeight &&
+			ActiveMorphTarget.MorphTarget->HasDataForLOD(LODIndex) )
 		{
 			// start at the first vertex since they affect base mesh verts in ascending order
-			NewInfo.ActiveVertexAnim = ActiveAnim;
+			NewInfo.ActiveMorphTarget = ActiveMorphTarget;
 			NewInfo.NextDeltaIndex = 0;
-			NewInfo.EvalState = ActiveAnim.VertAnim->InitEval();
-			NewInfo.Deltas = ActiveAnim.VertAnim->GetDeltasAtTime(0.f, LODIndex, NewInfo.EvalState, NewInfo.NumDeltas);
+			NewInfo.Deltas = ActiveMorphTarget.MorphTarget->GetMorphTargetDelta(LODIndex, NewInfo.NumDeltas);
 
-			NumValidVertexAnims++;
+			NumValidMorphTargets++;
 		}
 		else
 		{
 			// invalidate the indices for any invalid morph models
-			NewInfo.ActiveVertexAnim = FActiveVertexAnim();
+			NewInfo.ActiveMorphTarget = FActiveMorphTarget();
 			NewInfo.NextDeltaIndex = INDEX_NONE;
-			NewInfo.EvalState = NULL;
-			NewInfo.Deltas = NULL;
+			NewInfo.Deltas = nullptr;
 			NewInfo.NumDeltas = 0;
 		}			
 
 		OutEvalInfos.Add(NewInfo);
 	}
-	return NumValidVertexAnims;
+	return NumValidMorphTargets;
 }
 
-/** Release any state for the vertex animations being evaluated */
-void TermEvalInfos(TArray<FVertexAnimEvalInfo>& EvalInfos)
+/** Release any state for the morphs being evaluated */
+void TermEvalInfos(TArray<FMorphTargetInfo>& EvalInfos)
 {
-	for( int32 InfoIdx=0; InfoIdx < EvalInfos.Num(); InfoIdx++ )
-	{
-		FVertexAnimEvalInfo& Info = EvalInfos[InfoIdx];
-		if(Info.ActiveVertexAnim.VertAnim != NULL)
-		{
-			Info.ActiveVertexAnim.VertAnim->TermEval(Info.EvalState);
-		}
-	}
-
 	EvalInfos.Empty();
 }
 
@@ -557,7 +545,7 @@ FORCEINLINE void RebuildTangentBasis( VertexType& DestVertex )
 * Applies the vertex deltas to a vertex.
 */
 template<typename VertexType>
-FORCEINLINE void ApplyMorphBlend( VertexType& DestVertex, const FVertexAnimDelta& SrcMorph, float Weight )
+FORCEINLINE void ApplyMorphBlend( VertexType& DestVertex, const FMorphTargetDelta& SrcMorph, float Weight )
 {
 	// Add position offset 
 	DestVertex.Position += SrcMorph.PositionDelta * Weight;
@@ -577,21 +565,22 @@ FORCEINLINE void ApplyMorphBlend( VertexType& DestVertex, const FVertexAnimDelta
 * Blends the source vertex with all the active morph targets.
 */
 template<typename VertexType>
-FORCEINLINE void UpdateMorphedVertex( VertexType& MorphedVertex, VertexType& SrcVertex, int32 CurBaseVertIdx, int32 LODIndex, TArray<FVertexAnimEvalInfo>& EvalInfos )
+FORCEINLINE void UpdateMorphedVertex( VertexType& MorphedVertex, VertexType& SrcVertex, int32 CurBaseVertIdx, int32 LODIndex, TArray<FMorphTargetInfo>& EvalInfos, const TArray<float>& MorphWeights )
 {
 	MorphedVertex = SrcVertex;
 
 	// iterate over all active morphs
-	for( int32 AnimIdx=0; AnimIdx < EvalInfos.Num(); AnimIdx++ )
+	for( int32 MorphIdx=0; MorphIdx < EvalInfos.Num(); MorphIdx++ )
 	{
-		FVertexAnimEvalInfo& Info = EvalInfos[AnimIdx];
+		FMorphTargetInfo& Info = EvalInfos[MorphIdx];
 
 		// if the next delta to use matches the current vertex, apply it
 		if( Info.NextDeltaIndex != INDEX_NONE &&
 			Info.NextDeltaIndex < Info.NumDeltas &&
 			Info.Deltas[Info.NextDeltaIndex].SourceIdx == CurBaseVertIdx )
 		{
-			ApplyMorphBlend( MorphedVertex, Info.Deltas[Info.NextDeltaIndex], Info.ActiveVertexAnim.Weight );
+			ApplyMorphBlend( MorphedVertex, Info.Deltas[Info.NextDeltaIndex], MorphWeights[Info.ActiveMorphTarget.WeightIndex] );
+
 			// Update 'next delta to use'
 			Info.NextDeltaIndex += 1;
 		}
@@ -623,7 +612,7 @@ const VectorRegister		VECTOR4_UNPACK_MINUS_1	= DECLARE_VECTOR_REGISTER(-1.f, -1.
 const VectorRegister		VECTOR_0001				= DECLARE_VECTOR_REGISTER(0.f, 0.f, 0.f, 1.f);
 
 template<bool bExtraBoneInfluences, int32 MaxChunkBoneInfluences, typename BaseVertexType, typename VertexType>
-static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEvalInfo>& AnimEvalInfos, const FSkelMeshChunk& Chunk, const FStaticLODModel &LOD, int32 VertexBufferBaseIndex, uint32 NumValidMorphs, int32 &CurBaseVertIdx, int32 LODIndex, int32 RigidInfluenceIndex, const FMatrix* RESTRICT ReferenceToLocal )
+static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FMorphTargetInfo>& MorphEvalInfos, const TArray<float>& MorphWeights, const FSkelMeshChunk& Chunk, const FStaticLODModel &LOD, int32 VertexBufferBaseIndex, uint32 NumValidMorphs, int32 &CurBaseVertIdx, int32 LODIndex, int32 RigidInfluenceIndex, const FMatrix* RESTRICT ReferenceToLocal )
 {
 	// VertexCopy for morph. Need to allocate right struct
 	// To avoid re-allocation, create 2 statics, and assign right struct
@@ -652,7 +641,7 @@ static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEv
 			if( NumValidMorphs ) 
 			{
 				MorphedVertex = &VertexCopy;
-				UpdateMorphedVertex<VertexType>( *MorphedVertex, *SrcRigidVertex, CurBaseVertIdx, LODIndex, AnimEvalInfos );
+				UpdateMorphedVertex<VertexType>( *MorphedVertex, *SrcRigidVertex, CurBaseVertIdx, LODIndex, MorphEvalInfos, MorphWeights);
 			}
 
 			VectorRegister SrcNormals[3];
@@ -722,7 +711,7 @@ static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEv
 			if( NumValidMorphs ) 
 			{
 				MorphedVertex = &VertexCopy;
-				UpdateMorphedVertex<VertexType>( *MorphedVertex, *SrcSoftVertex, CurBaseVertIdx, LODIndex, AnimEvalInfos );
+				UpdateMorphedVertex<VertexType>( *MorphedVertex, *SrcSoftVertex, CurBaseVertIdx, LODIndex, MorphEvalInfos, MorphWeights);
 			}
 
 			const uint8* RESTRICT BoneIndices = MorphedVertex->InfluenceBones;
@@ -857,31 +846,31 @@ static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEv
 }
 
 template< bool bExtraBoneInfluences, typename BaseVertexType, typename VertexType>
-static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FVertexAnimEvalInfo>& AnimEvalInfos, const FSkelMeshChunk& Chunk, const FStaticLODModel &LOD, int32 VertexBufferBaseIndex, uint32 NumValidMorphs, int32 &CurBaseVertIdx, int32 LODIndex, int32 RigidInfluenceIndex, const FMatrix* RESTRICT ReferenceToLocal)
+static void SkinVertexChunk( FFinalSkinVertex*& DestVertex, TArray<FMorphTargetInfo>& MorphEvalInfos, const TArray<float>& MorphWeights, const FSkelMeshChunk& Chunk, const FStaticLODModel &LOD, int32 VertexBufferBaseIndex, uint32 NumValidMorphs, int32 &CurBaseVertIdx, int32 LODIndex, int32 RigidInfluenceIndex, const FMatrix* RESTRICT ReferenceToLocal)
 {
 	switch (Chunk.MaxBoneInfluences)
 	{
-		case 1: SkinVertexChunk<bExtraBoneInfluences, 1, BaseVertexType, VertexType>(DestVertex, AnimEvalInfos, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
-		case 2: SkinVertexChunk<bExtraBoneInfluences, 2, BaseVertexType, VertexType>(DestVertex, AnimEvalInfos, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
-		case 3: SkinVertexChunk<bExtraBoneInfluences, 3, BaseVertexType, VertexType>(DestVertex, AnimEvalInfos, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
-		case 4: SkinVertexChunk<bExtraBoneInfluences, 4, BaseVertexType, VertexType>(DestVertex, AnimEvalInfos, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
-		case 5: SkinVertexChunk<bExtraBoneInfluences, 5, BaseVertexType, VertexType>(DestVertex, AnimEvalInfos, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
-		case 6: SkinVertexChunk<bExtraBoneInfluences, 6, BaseVertexType, VertexType>(DestVertex, AnimEvalInfos, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
-		case 7: SkinVertexChunk<bExtraBoneInfluences, 7, BaseVertexType, VertexType>(DestVertex, AnimEvalInfos, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
-		case 8: SkinVertexChunk<bExtraBoneInfluences, 8, BaseVertexType, VertexType>(DestVertex, AnimEvalInfos, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
+		case 1: SkinVertexChunk<bExtraBoneInfluences, 1, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
+		case 2: SkinVertexChunk<bExtraBoneInfluences, 2, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
+		case 3: SkinVertexChunk<bExtraBoneInfluences, 3, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
+		case 4: SkinVertexChunk<bExtraBoneInfluences, 4, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
+		case 5: SkinVertexChunk<bExtraBoneInfluences, 5, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
+		case 6: SkinVertexChunk<bExtraBoneInfluences, 6, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
+		case 7: SkinVertexChunk<bExtraBoneInfluences, 7, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
+		case 8: SkinVertexChunk<bExtraBoneInfluences, 8, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal); break;
 		default: check(0);
 	}
 }
 
 template<typename BaseVertexType, typename VertexType>
-static void SkinVertices( FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal, int32 LODIndex, FStaticLODModel& LOD, TArray<FActiveVertexAnim>& ActiveVertexAnims )
+static void SkinVertices(FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal, int32 LODIndex, FStaticLODModel& LOD, TArray<FActiveMorphTarget>& ActiveMorphTargets, TArray<float>& MorphTargetWeights)
 {
 	uint32 StatusRegister = VectorGetControlRegister();
 	VectorSetControlRegister( StatusRegister | VECTOR_ROUND_TOWARD_ZERO );
 
-	// Create array to track state during vertex anim blending
-	TArray<FVertexAnimEvalInfo> AnimEvalInfos;
-	uint32 NumValidMorphs = InitEvalInfos(ActiveVertexAnims, LODIndex, AnimEvalInfos);
+	// Create array to track state during morph blending
+	TArray<FMorphTargetInfo> MorphEvalInfos;
+	uint32 NumValidMorphs = InitEvalInfos(ActiveMorphTargets, MorphTargetWeights, LODIndex, MorphEvalInfos);
 
 	static const auto MaxBonesVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Compat.MAX_GPUSKIN_BONES"));
 	const int32 MaxGPUSkinBones = MaxBonesVar->GetValueOnAnyThread();
@@ -904,11 +893,11 @@ static void SkinVertices( FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLoca
 
 		if (LOD.DoChunksNeedExtraBoneInfluences())
 		{
-			SkinVertexChunk<true, BaseVertexType, VertexType>(DestVertex, AnimEvalInfos, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal);
+			SkinVertexChunk<true, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphTargetWeights, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal);
 		}
 		else
 		{
-			SkinVertexChunk<false, BaseVertexType, VertexType>(DestVertex, AnimEvalInfos, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal);
+			SkinVertexChunk<false, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphTargetWeights, Chunk, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal);
 		}
 	}
 

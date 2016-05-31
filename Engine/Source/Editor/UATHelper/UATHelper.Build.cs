@@ -15,7 +15,8 @@ namespace UnrealBuildTool.Rules
 				    "Slate",
 					"SlateCore",
                     "GameProjectGeneration",
-                    "UnrealEd"
+                    "UnrealEd",
+					"Analytics",
 			    }
 			);
 		}

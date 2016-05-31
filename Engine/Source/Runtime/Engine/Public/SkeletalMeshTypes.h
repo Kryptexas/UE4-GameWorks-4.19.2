@@ -1382,6 +1382,53 @@ private:
 	void AllocateData();	
 };
 
+class FMorphTargetVertexInfoBuffers : public FRenderResource
+{
+public:
+	FMorphTargetVertexInfoBuffers()
+		: NumInfluencedVerticesByMorphs(0)
+	{
+	}
+
+	ENGINE_API virtual void InitRHI() override;
+	ENGINE_API virtual void ReleaseRHI() override;
+
+	uint32 GetNumInfluencedVerticesByMorphs() const
+	{
+		return NumInfluencedVerticesByMorphs;
+	}
+
+	FVertexBufferRHIRef PerVertexInfoVB;
+	FShaderResourceViewRHIRef PerVertexInfoSRV;
+
+	FVertexBufferRHIRef FlattenedDeltasVB;
+	FShaderResourceViewRHIRef FlattenedDeltasSRV;
+
+	// Changes to this struct must be reflected in MorphTargets.usf
+	struct FPerVertexInfo
+	{
+		uint32 DestVertexIndex;
+		uint32 StartDelta;
+		uint32 NumDeltas;
+	};
+
+	// Changes to this struct must be reflected in MorphTargets.usf
+	struct FFlattenedDelta
+	{
+		FVector PosDelta;
+		FVector TangentDelta;
+		uint32 WeightIndex;
+	};
+
+protected:
+	// Transient data used while creating the vertex buffers, gets deleted as soon as VB get initialized
+	TArray<FPerVertexInfo> PerVertexInfoList;
+	TArray<FFlattenedDelta> FlattenedDeltaList;
+	uint32 NumInfluencedVerticesByMorphs;
+
+	friend class FStaticLODModel;
+};
+
 struct FMultiSizeIndexContainerData
 {
 	TArray<uint32> Indices;
@@ -1536,12 +1583,15 @@ public:
 	/** The max index in MeshToImportVertexMap, ie. the number of imported (raw) verts. */
 	int32						MaxImportVertex;
 
+	/** GPU friendly access data for MorphTargets for an LOD */
+	FMorphTargetVertexInfoBuffers	MorphTargetVertexInfoBuffers;
+
 	/**
 	* Initialize the LOD's render resources.
 	*
 	* @param Parent Parent mesh
 	*/
-	void InitResources(bool bNeedsVertexColors);
+	void InitResources(bool bNeedsVertexColors, int32 LODIndex, TArray<class UMorphTarget*>& InMorphTargets);
 
 	/**
 	* Releases the LOD's render resources.
@@ -1747,7 +1797,7 @@ public:
 	FSkeletalMeshResource();
 
 	/** Initializes rendering resources. */
-	void InitResources(bool bNeedsVertexColors);
+	void InitResources(bool bNeedsVertexColors, TArray<UMorphTarget*>& InMorphTargets);
 	
 	/** Releases rendering resources. */
 	ENGINE_API void ReleaseResources();

@@ -5,9 +5,9 @@
 #include "UnrealString.h"
 #include "XmlFile.h"
 #include "EngineVersion.h"
-#include "Runtime/Analytics/Analytics/Public/Analytics.h"
 
 struct FPrimaryCrashProperties;
+struct FAnalyticsEventAttribute;
 
 /** PrimaryCrashProperties. Extracted from: FGenericCrashContext::SerializeContentToBuffer */
 /*

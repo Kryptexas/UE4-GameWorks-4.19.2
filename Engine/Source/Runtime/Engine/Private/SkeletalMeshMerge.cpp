@@ -24,10 +24,12 @@
 FSkeletalMeshMerge::FSkeletalMeshMerge(USkeletalMesh* InMergeMesh, 
 									   const TArray<USkeletalMesh*>& InSrcMeshList, 
 									   const TArray<FSkelMeshMergeSectionMapping>& InForceSectionMapping,
-									   int32 InStripTopLODs)
+									   int32 InStripTopLODs,
+                                       EMeshBufferAccess InMeshBufferAccess)
 :	MergeMesh(InMergeMesh)
 ,	SrcMeshList(InSrcMeshList)
 ,	StripTopLODs(InStripTopLODs)
+,   MeshBufferAccess(InMeshBufferAccess)
 ,	ForceSectionMapping(InForceSectionMapping)
 {
 	check(MergeMesh);
@@ -587,6 +589,9 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 		}
 	}
 
+    const bool bNeedsCPUAccess = (MeshBufferAccess == EMeshBufferAccess::ForceCPUAndGPU) ||
+                                    MergeResource->RequiresCPUSkinning(GMaxRHIFeatureLevel);
+
 	// sort required bone array in strictly increasing order
 	MergeLODModel.RequiredBones.Sort();
 	MergeLODModel.ActiveBoneIndices.Sort();
@@ -594,7 +599,7 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 	// copy the new vertices and indices to the vertex buffer for the new model
 	MergeLODModel.VertexBufferGPUSkin.SetUseFullPrecisionUVs(MergeMesh->bUseFullPrecisionUVs);
 	// set CPU skinning on vertex buffer since it affects the type of TResourceArray needed
-	MergeLODModel.VertexBufferGPUSkin.SetNeedsCPUAccess(MergeResource->RequiresCPUSkinning(GMaxRHIFeatureLevel));
+	MergeLODModel.VertexBufferGPUSkin.SetNeedsCPUAccess(bNeedsCPUAccess);
 	MergeLODModel.VertexBufferGPUSkin.SetHasExtraBoneInfluences(MergeResource->HasExtraBoneInfluences());
 	// Set the number of tex coords on this vertex buffer
 	MergeLODModel.VertexBufferGPUSkin.SetNumTexCoords(TotalNumUVs);

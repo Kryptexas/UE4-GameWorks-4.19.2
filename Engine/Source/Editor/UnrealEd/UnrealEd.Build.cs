@@ -143,6 +143,7 @@ public class UnrealEd : ModuleRules
 				"AddContentDialog",
 				"GameProjectGeneration",
                 "HierarchicalLODUtilities",
+				"Analytics",
                 "AnalyticsET",
                 "PluginWarden",
                 "PixelInspectorModule"

@@ -228,7 +228,7 @@ void SAnimationSegmentViewport::InitSkeleton()
 				(PreviewComponent->SkeletalMesh != PreviewMesh))
 			{
 				PreviewComponent->SetSkeletalMesh(PreviewMesh);
-				PreviewComponent->EnablePreview(true, AnimSequence, NULL);
+				PreviewComponent->EnablePreview(true, AnimSequence);
 				PreviewComponent->PreviewInstance->SetLooping(true);
 
 				//Place the camera at a good viewer position

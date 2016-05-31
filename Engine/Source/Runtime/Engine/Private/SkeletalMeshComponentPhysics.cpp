@@ -25,8 +25,7 @@
 	#include "NxClothingActor.h"
 	#include "NxClothingCollision.h"
 	// for cloth morph target	
-	#include "Animation/VertexAnim/VertexAnimBase.h"
-	#include "Animation/VertexAnim/MorphTarget.h"
+	#include "Animation/MorphTarget.h"
 
 #endif// #if WITH_APEX_CLOTHING
 
@@ -3436,7 +3435,7 @@ void USkeletalMeshComponent::PrepareClothMorphTargets()
 			FName MorphTargetName = MorphTarget->GetFName();
 
 			int32 NumVerts;
-			FVertexAnimDelta* Vertices = MorphTarget->GetDeltasAtTime(0.0f, 0, NULL, NumVerts);
+			FMorphTargetDelta* Vertices = MorphTarget->GetMorphTargetDelta(0, NumVerts);
 
 			check(MeshObject);
 			// should exist at least 1 LODModel 
@@ -3554,13 +3553,13 @@ void USkeletalMeshComponent::UpdateClothMorphTarget()
 		return;
 	}
 
-	for (int32 MorphIdx = 0; MorphIdx < ActiveVertexAnims.Num(); MorphIdx++)
+	for (int32 MorphIdx = 0; MorphIdx < ActiveMorphTargets.Num(); MorphIdx++)
 	{
-		if (ActiveVertexAnims[MorphIdx].Weight > 0.0f)
+		if (MorphTargetWeights[ActiveMorphTargets[MorphIdx].WeightIndex] > 0.0f)
 		{
-			if (ActiveVertexAnims[MorphIdx].VertAnim)
+			if (ActiveMorphTargets[MorphIdx].MorphTarget)
 			{
-				FName MorphTargetName = ActiveVertexAnims[MorphIdx].VertAnim->GetFName();
+				FName MorphTargetName = ActiveMorphTargets[MorphIdx].MorphTarget->GetFName();
 
 				int32 SelectedClothMorphIndex = INDEX_NONE;
 				for (int32 ClothMorphIdx = 0; ClothMorphIdx < ClothMorphTargets.Num(); ClothMorphIdx++)
@@ -3583,8 +3582,7 @@ void USkeletalMeshComponent::UpdateClothMorphTarget()
 				// if a currently mapped morph target name is same as MorphTargetName, doesn't change mapping. Otherwise, change morph target mapping
 				ChangeClothMorphTargetMapping(MorphData, MorphTargetName);
 
-				float CurWeight = ActiveVertexAnims[MorphIdx].Weight;
-
+				float CurWeight = MorphTargetWeights[ActiveMorphTargets[MorphIdx].WeightIndex];
 				if (CurWeight != MorphData.PrevWeight)
 				{
 					MorphData.PrevWeight = CurWeight;
@@ -3600,16 +3598,16 @@ void USkeletalMeshComponent::UpdateClothMorphTarget()
 							if(ClothingActor.ParentClothingAssetIndex == AssetIndex)
 							{
 								if (!IsValidClothingActor(ClothingActor))
-						{
-							continue;
-						}
+								{
+									continue;
+								}
 
-						BlendedDelta.AddUninitialized(OriginDelta.Num());
+								BlendedDelta.AddUninitialized(OriginDelta.Num());
 
-						for (int32 DeltaIdx = 0; DeltaIdx < BlendedDelta.Num(); DeltaIdx++)
-						{
-							BlendedDelta[DeltaIdx] = (OriginDelta[DeltaIdx] * CurWeight);
-						}
+								for (int32 DeltaIdx = 0; DeltaIdx < BlendedDelta.Num(); DeltaIdx++)
+								{
+									BlendedDelta[DeltaIdx] = (OriginDelta[DeltaIdx] * CurWeight);
+								}
 
 								CreateClothingActor(AssetIndex, SkeletalMesh->ClothingAssets[AssetIndex].ApexClothingAsset, &BlendedDelta);
 								//Remove the old actor

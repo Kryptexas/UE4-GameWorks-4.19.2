@@ -87,6 +87,7 @@ void UBTNode::InitializeInSubtree(UBehaviorTreeComponent& OwnerComp, uint8* Node
 		FBTInstancedNodeMemory* MyMemory = GetSpecialNodeMemory<FBTInstancedNodeMemory>(NodeMemory);
 		MyMemory->NodeIdx = NextInstancedIndex;
 
+		NodeInstance->InitializeMemory(OwnerComp, NodeMemory, InitType);
 		NodeInstance->OnInstanceCreated(OwnerComp);
 		NextInstancedIndex++;
 	}
@@ -98,9 +99,10 @@ void UBTNode::InitializeInSubtree(UBehaviorTreeComponent& OwnerComp, uint8* Node
 
 void UBTNode::CleanupInSubtree(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTMemoryClear::Type CleanupType) const
 {
-	if (!bCreateNodeInstance && !bIsInjected)
+	const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
+	if (NodeOb)
 	{
-		CleanupMemory(OwnerComp, NodeMemory, CleanupType);
+		NodeOb->CleanupMemory(OwnerComp, NodeMemory, CleanupType);
 	}
 }
 

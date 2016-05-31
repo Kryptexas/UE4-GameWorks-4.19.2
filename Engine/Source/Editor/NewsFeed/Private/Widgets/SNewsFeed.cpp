@@ -4,6 +4,8 @@
 #include "ISettingsModule.h"
 #include "SThrobber.h"
 #include "SHyperlink.h"
+#include "EngineAnalytics.h"
+#include "IAnalyticsProvider.h"
 
 
 #define LOCTEXT_NAMESPACE "SNewsFeed"

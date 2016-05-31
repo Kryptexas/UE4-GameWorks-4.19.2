@@ -127,6 +127,22 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Game", meta=(UnsafeDuringActorConstruction="true"))
 	static void RemovePlayer(APlayerController* Player, bool bDestroyPawn);
 
+	/** 
+	* Gets what controller ID a Player is using
+	* @param Player		The player controller of the player to get the ID of
+	* @return			The ID of the passed in player. -1 if there is no controller for the passed in player
+	*/
+	UFUNCTION(BlueprintCallable, Category="Game", meta=(UnsafeDuringActorConstruction="true"))
+	static int32 GetPlayerControllerID(APlayerController* Player);
+
+	/** 
+	 * Sets what controller ID a Player should be using
+	 * @param Player			The player controller of the player to change the controller ID of
+	 * @param ControllerId		The controller ID to assign to this player
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game", meta=(UnsafeDuringActorConstruction="true"))
+	static void SetPlayerControllerID(APlayerController* Player, int32 ControllerId);
+
 	// --- Level Streaming functions ------------------------
 	
 	/** Stream the level with the LevelName ; Calling again before it finishes has no effect */

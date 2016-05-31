@@ -1627,8 +1627,6 @@ float UPlayerInput::MassageAxisInput(FKey Key, float RawValue, float DeltaTime)
 			}
 		}
 
-		NewVal = AccelMouse(Key, NewVal, DeltaTime);
-
 		// debug
 		if (Key == EKeys::MouseX)
 		{
@@ -1641,11 +1639,6 @@ float UPlayerInput::MassageAxisInput(FKey Key, float RawValue, float DeltaTime)
 	}
 
 	return NewVal;
-}
-
-float UPlayerInput::AccelMouse(FKey Key, float RawValue, float DeltaTime)
-{
-	return RawValue;
 }
 
 void UPlayerInput::Tick(float DeltaTime)

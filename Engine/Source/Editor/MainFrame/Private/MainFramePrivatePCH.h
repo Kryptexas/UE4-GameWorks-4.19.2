@@ -38,8 +38,6 @@
 #include "../../LevelEditor/Public/LevelEditor.h"
 #include "../../LevelEditor/Public/SLevelViewport.h"
 
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "Runtime/Engine/Public/EngineAnalytics.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetDebugUtilities.h"
 

@@ -72,6 +72,7 @@
 #include "PhysicsPublic.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
 #include "KismetReinstanceUtilities.h"
+#include "AnalyticsEventAttribute.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 

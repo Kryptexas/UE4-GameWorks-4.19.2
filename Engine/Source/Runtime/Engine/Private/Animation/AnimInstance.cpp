@@ -87,6 +87,7 @@ extern TAutoConsoleVariable<int32> CVarForceUseParallelAnimUpdate;
 
 UAnimInstance::UAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bUpdatingAnimation(false)
 {
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	RootNode = nullptr;
@@ -342,6 +343,10 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 
 void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMotion)
 {
+#if DO_CHECK
+	checkf(!bUpdatingAnimation, TEXT("UpdateAnimation already in progress, circular detected for SkeletalMeshComponent [%s], AnimInstance [%s]"), *GetNameSafe(GetOwningComponent()),  *GetName());
+	TGuardValue<bool> CircularGuard(bUpdatingAnimation, true);
+#endif
 	SCOPE_CYCLE_COUNTER(STAT_UpdateAnimation);
 	FScopeCycleCounterUObject AnimScope(this);
 

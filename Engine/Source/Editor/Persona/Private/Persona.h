@@ -56,9 +56,6 @@ public:
 	UObject* GetPreviewAnimationAsset() const;
 	UObject* GetAnimationAssetBeingEdited() const;
 
-	/** Set the vertex animation we should preview on the mesh */
-	void SetPreviewVertexAnim(UVertexAnimation* VertexAnim);
-
 	/** Update the inspector that displays information about the current selection*/
 	void UpdateSelectionDetails(UObject* Object, const FText& ForcedTitle);
 

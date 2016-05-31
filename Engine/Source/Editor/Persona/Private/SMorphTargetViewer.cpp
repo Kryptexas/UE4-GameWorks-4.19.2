@@ -7,7 +7,7 @@
 #include "AssetRegistryModule.h"
 #include "ScopedTransaction.h"
 #include "SSearchBox.h"
-#include "Animation/VertexAnim/MorphTarget.h"
+#include "Animation/MorphTarget.h"
 
 #define LOCTEXT_NAMESPACE "SMorphTargetViewer"
 

@@ -293,24 +293,23 @@ bool UActorComponent::IsOwnerSelected() const
 	return MyOwner && MyOwner->IsSelected();
 }
 
-UWorld* UActorComponent::GetWorld() const
+UWorld* UActorComponent::GetWorld_Uncached() const
 {
-	UWorld* ComponentWorld = WorldPrivate;
-	if (ComponentWorld == nullptr)
-	{
-		AActor* MyOwner = GetOwner();
-		// If we don't have a world yet, it may be because we haven't gotten registered yet, but we can try to look at our owner
-		if (MyOwner && !MyOwner->HasAnyFlags(RF_ClassDefaultObject))
-		{
-			ComponentWorld = MyOwner->GetWorld();
-		}
+	UWorld* ComponentWorld = nullptr;
 
-		if( ComponentWorld == nullptr )
-		{
-			// As a fallback check the outer of this component for a world. In some cases components are spawned directly in the world
-			ComponentWorld = Cast<UWorld>(GetOuter());
-		}
+	AActor* MyOwner = GetOwner();
+	// If we don't have a world yet, it may be because we haven't gotten registered yet, but we can try to look at our owner
+	if (MyOwner && !MyOwner->HasAnyFlags(RF_ClassDefaultObject))
+	{
+		ComponentWorld = MyOwner->GetWorld();
 	}
+
+	if( ComponentWorld == nullptr )
+	{
+		// As a fallback check the outer of this component for a world. In some cases components are spawned directly in the world
+		ComponentWorld = Cast<UWorld>(GetOuter());
+	}
+
 	return ComponentWorld;
 }
 
@@ -549,9 +548,9 @@ void UActorComponent::PostEditUndo()
 			}
 		}
 
-		if (GetWorld())
+		if (UWorld* MyWorld = GetWorld())
 		{
-			GetWorld()->UpdateActorComponentEndOfFrameUpdateState(this);
+			MyWorld->UpdateActorComponentEndOfFrameUpdateState(this);
 		}
 	}
 	Super::PostEditUndo();
@@ -921,9 +920,10 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 void UActorComponent::RegisterComponent()
 {
 	AActor* MyOwner = GetOwner();
-	if (ensure(MyOwner && MyOwner->GetWorld()))
+	UWorld* MyOwnerWorld = (MyOwner ? MyOwner->GetWorld() : nullptr);
+	if (ensure(MyOwnerWorld))
 	{
-		RegisterComponentWithWorld(MyOwner->GetWorld());
+		RegisterComponentWithWorld(MyOwnerWorld);
 	}
 }
 
@@ -1269,7 +1269,7 @@ void UActorComponent::DoDeferredRenderUpdates_Concurrent()
 void UActorComponent::MarkRenderStateDirty()
 {
 	// If registered and has a render state to make as dirty
-	if((!bRenderStateDirty || !GetWorld()) && IsRegistered() && bRenderStateCreated)
+	if(IsRegistered() && bRenderStateCreated && (!bRenderStateDirty || !GetWorld()))
 	{
 		// Flag as dirty
 		bRenderStateDirty = true;

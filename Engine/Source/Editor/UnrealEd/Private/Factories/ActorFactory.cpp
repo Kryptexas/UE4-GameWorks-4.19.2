@@ -18,7 +18,6 @@ ActorFactory.cpp:
 #include "Matinee/InterpData.h"
 #include "InteractiveFoliageActor.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
 
 #include "AssetRegistryModule.h"
 
@@ -817,8 +816,7 @@ UActorFactoryAnimationAsset::UActorFactoryAnimationAsset(const FObjectInitialize
 bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
 { 
 	if ( !AssetData.IsValid() || 
-		( !AssetData.GetClass()->IsChildOf( UAnimSequenceBase::StaticClass() ) && 
-		  !AssetData.GetClass()->IsChildOf( UVertexAnimation::StaticClass() )) )
+		( !AssetData.GetClass()->IsChildOf( UAnimSequenceBase::StaticClass() ) )) 
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoAnimData", "A valid anim data must be specified.");
 		return false;
@@ -869,18 +867,6 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 
 	FAssetData SkeletalMeshData;
 
-	if ( AssetData.GetClass()->IsChildOf( UVertexAnimation::StaticClass() ) )
-	{
-		const FString BaseSkeletalMeshPath = AssetData.GetTagValueRef<FString>( "BaseSkelMesh" );
-		if ( BaseSkeletalMeshPath.IsEmpty() ) 
-		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "UVertexAnimationNoSkeleton", "UVertexAnimations must have a valid base skeletal mesh.");
-			return false;
-		}
-
-		SkeletalMeshData = AssetRegistry.GetAssetByObjectPath( *BaseSkeletalMeshPath );
-	}
-
 	if ( !SkeletalMeshData.IsValid() )
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoSkeletalMeshAss", "No valid skeletal mesh was found associated with the animation sequence.");
@@ -901,17 +887,11 @@ USkeletalMesh* UActorFactoryAnimationAsset::GetSkeletalMeshFromAsset( UObject* A
 {
 	USkeletalMesh* SkeletalMesh = NULL;
 	UAnimSequenceBase* AnimationAsset = Cast<UAnimSequenceBase>( Asset );
-	UVertexAnimation* VertexAnimation = Cast<UVertexAnimation>( Asset );
 
 	if( AnimationAsset != NULL )
 	{
 		// base it on preview skeletal mesh, just to have something
 		SkeletalMesh = AnimationAsset->GetSkeleton()? AnimationAsset->GetSkeleton()->GetAssetPreviewMesh(AnimationAsset) : NULL;
-	}
-	else if( VertexAnimation != NULL )
-	{
-		// base it on preview skeletal mesh, just to have something
-		SkeletalMesh = VertexAnimation->BaseSkelMesh;
 	}
 
 	// Check to see if it's actually a DestructibleMesh, in which case we won't use this factory
@@ -928,7 +908,6 @@ void UActorFactoryAnimationAsset::PostSpawnActor( UObject* Asset, AActor* NewAct
 {
 	Super::PostSpawnActor( Asset, NewActor );
 	UAnimationAsset* AnimationAsset = Cast<UAnimationAsset>(Asset);
-	UVertexAnimation* VertexAnimation = Cast<UVertexAnimation>(Asset);
 
 	ASkeletalMeshActor* NewSMActor = CastChecked<ASkeletalMeshActor>(NewActor);
 	USkeletalMeshComponent* NewSASComponent = (NewSMActor->GetSkeletalMeshComponent());
@@ -954,14 +933,6 @@ void UActorFactoryAnimationAsset::PostSpawnActor( UObject* Asset, AActor* NewAct
 			}
 			
 		}
-		else if( VertexAnimation )
-		{
-			NewSASComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-			NewSASComponent->AnimationData.VertexAnimToPlay = VertexAnimation;
-
-			// set runtime data
-			NewSASComponent->SetVertexAnimation(VertexAnimation);
-		}
 	}
 }
 
@@ -972,7 +943,6 @@ void UActorFactoryAnimationAsset::PostCreateBlueprint( UObject* Asset,  AActor* 
 	if (Asset != NULL && CDO != NULL)
 	{
 		UAnimationAsset* AnimationAsset = Cast<UAnimationAsset>(Asset);
-		UVertexAnimation* VertexAnimation = Cast<UVertexAnimation>(Asset);
 
 		ASkeletalMeshActor* SkeletalMeshActor = CastChecked<ASkeletalMeshActor>(CDO);
 		USkeletalMeshComponent* SkeletalComponent = (SkeletalMeshActor->GetSkeletalMeshComponent());
@@ -980,11 +950,6 @@ void UActorFactoryAnimationAsset::PostCreateBlueprint( UObject* Asset,  AActor* 
 		{
 			SkeletalComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
 			SkeletalComponent->SetAnimation(AnimationAsset);
-		}
-		else if (VertexAnimation)
-		{
-			SkeletalComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-			SkeletalComponent->SetVertexAnimation(VertexAnimation);
 		}
 	}
 }

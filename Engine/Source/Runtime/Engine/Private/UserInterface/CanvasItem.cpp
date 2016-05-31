@@ -563,6 +563,9 @@ void FCanvasBorderItem::Draw( class FCanvas* InCanvas )
 		const float BackgroundTilingX = (Right-Left)/(BackTexture->GetSizeX()*BackgroundScale.X);
 		const float BackgroundTilingY = (Bottom-Top)/(BackTexture->GetSizeY()*BackgroundScale.Y);
 
+		const int32 NumElements = 9; // for 1 background + 4 corners + 4 borders
+		BatchedElements->ReserveVertices(4 * NumElements); // 4 verts each
+
 		//Draw background
 		int32 V00 = BatchedElements->AddVertex(
 			FVector4( Left + BorderLeftDrawSizeX, Top + BorderTopDrawSizeY, 0.0f, Z ),
@@ -1002,7 +1005,8 @@ void FCanvasTextItem::DrawStringInternal_OfflineCache( FCanvas* InCanvas, const 
 
 	const TArray< TCHAR >& Chars = TextString.GetCharArray();
 	// Draw all characters in string.
-	for( int32 i=0; i < TextString.Len(); i++ )
+	const int32 TextLen = TextString.Len();
+	for( int32 i=0; i < TextLen; i++ )
 	{
 		int32 Ch = (int32)Font->RemapChar(Chars[i]);
 
@@ -1042,10 +1046,12 @@ void FCanvasTextItem::DrawStringInternal_OfflineCache( FCanvas* InCanvas, const 
 				FBatchedElementParameters* BatchedElementParams = nullptr;
 				BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParams, Tex->Resource, BlendMode, FontRenderInfo.GlowInfo);
 				check(BatchedElements != nullptr);
-				// trade-off between memory and performance by pre-allocating more reserved space 
+				// Trade-off to use memory for performance by pre-allocating more reserved space 
 				// for the triangles/vertices of the batched elements used to render the text tiles
-				//BatchedElements->AddReserveTriangles(TextLen*2,Tex->Resource,BlendMode);
-				//BatchedElements->AddReserveVertices(TextLen*4);
+				// Only reserve initial batch, allow growth afterwards in case there are multiple repeated calls.
+				// Reserving exactly the added amount each time would essentially force an alloc each time on subsequent calls.
+				BatchedElements->ReserveTriangles(TextLen*2,Tex->Resource,BlendMode);
+				BatchedElements->ReserveVertices(TextLen*4);
 
 				InvTextureSize.X = 1.0f / Tex->GetSurfaceWidth();
 				InvTextureSize.Y = 1.0f / Tex->GetSurfaceHeight();
@@ -1149,7 +1155,8 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 
 	float LineX = PosX;
 	
-	for( int32 CharIndex = 0; CharIndex < TextString.Len(); ++CharIndex )
+	const int32 TextLen = TextString.Len();
+	for( int32 CharIndex = 0; CharIndex < TextLen; ++CharIndex )
 	{
 		const TCHAR CurrentChar = TextString[ CharIndex ];
 
@@ -1184,6 +1191,13 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 				FBatchedElementParameters* BatchedElementParams = nullptr;
 				BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParams, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
 				check(BatchedElements);
+
+				// Trade-off to use memory for performance by pre-allocating more reserved space 
+				// for the triangles/vertices of the batched elements used to render the text tiles.
+				// Only reserve initial batch, allow growth afterwards in case there are multiple repeated calls.
+				// Reserving exactly the added amount each time would essentially force an alloc each time on subsequent calls.
+				BatchedElements->ReserveTriangles(TextLen*2, FontTexture, BlendMode);
+				BatchedElements->ReserveVertices(TextLen*4);
 
 				InvTextureSizeX = 1.0f/FontTexture->GetSizeX();
 				InvTextureSizeY = 1.0f/FontTexture->GetSizeY();
@@ -1331,6 +1345,10 @@ void FCanvasShapedTextItem::DrawStringInternal( FCanvas* InCanvas, const FVector
 					BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParams, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
 					check(BatchedElements);
 
+					const int32 NumGlyphs = ShapedGlyphSequence->GetGlyphsToRender().Num();
+					BatchedElements->ReserveVertices(4 * NumGlyphs);
+					BatchedElements->ReserveTriangles(2 * NumGlyphs, FontTexture, BlendMode);
+
 					InvTextureSizeX = 1.0f/FontTexture->GetSizeX();
 					InvTextureSizeY = 1.0f/FontTexture->GetSizeY();
 				}
@@ -1439,7 +1457,14 @@ void FCanvasTriangleItem::Draw( class FCanvas* InCanvas )
 
 		FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
 
-		for (int32 i = 0; i < TriangleList.Num(); i++)
+		const int32 NumTriangles = TriangleList.Num();
+		BatchedElements->ReserveVertices(3 * NumTriangles);
+		if (BatchedElementParameters == nullptr)
+		{
+			BatchedElements->ReserveTriangles(NumTriangles, Texture, BlendMode);
+		}
+
+		for (int32 i = 0; i < NumTriangles; i++)
 		{
 			const FCanvasUVTri& Tri = TriangleList[i];
 			int32 V0 = BatchedElements->AddVertex(FVector4(Tri.V0_Pos.X, Tri.V0_Pos.Y, 0, 1), Tri.V0_UV, Tri.V0_Color, HitProxyId);
@@ -1489,7 +1514,9 @@ void FCanvasTriangleItem::Draw( class FCanvas* InCanvas )
 		FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
 
 		// add the triangles to the triangle render batch
-		for (int32 i = 0; i < TriangleList.Num(); i++)
+		const int32 NumTriangles = TriangleList.Num();
+		RenderBatch->ReserveTriangles(NumTriangles);
+		for (int32 i = 0; i < NumTriangles; i++)
 		{
 			RenderBatch->AddTriangle(TriangleList[i], HitProxyId);
 		}

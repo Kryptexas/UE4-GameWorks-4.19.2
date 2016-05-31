@@ -126,11 +126,11 @@ bool FAudioDevice::Init(int32 InMaxChannels)
 	GConfig->GetBool(TEXT("Audio"), TEXT("DeferStartupPrecache"), bDeferStartupPrecache, GEngineIni);
 
 	// Get an optional engine ini setting for platform headroom. 
-	float Headroom = 1.0f;
+	float Headroom = 0.0f; // in dB
 	if (GConfig->GetFloat(TEXT("Audio"), TEXT("PlatformHeadroomDB"), Headroom, GEngineIni))
 	{
 		// Convert dB to linear volume
-		PlatformAudioHeadroom = FMath::Pow(10.0f, Headroom / 10.0f);
+		PlatformAudioHeadroom = FMath::Pow(10.0f, Headroom / 20.0f);
 	}
 
 	const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;

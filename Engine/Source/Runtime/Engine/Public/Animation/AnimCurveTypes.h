@@ -3,7 +3,8 @@
 #pragma once
 
 #include "Curves/CurveBase.h"
-#include "AnimTypes.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/Skeleton.h"
 #include "AnimCurveTypes.generated.h"
 
 /** native enum for curve types **/

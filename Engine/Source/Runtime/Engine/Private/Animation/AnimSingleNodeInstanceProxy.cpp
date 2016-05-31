@@ -4,7 +4,6 @@
 #include "AnimSingleNodeInstanceProxy.h"
 #include "Animation/AnimComposite.h"
 #include "Animation/AnimMontage.h"
-#include "Animation/VertexAnim/VertexAnimation.h"
 #include "Animation/BlendSpace.h"
 #include "Animation/AnimSingleNodeInstance.h"
 
@@ -13,7 +12,6 @@ void FAnimSingleNodeInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 	FAnimInstanceProxy::Initialize(InAnimInstance);
 
 	CurrentAsset = NULL;
-	CurrentVertexAnim = NULL;
 #if WITH_EDITORONLY_DATA
 	PreviewPoseCurrentTime = 0.0f;
 #endif
@@ -140,11 +138,6 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 		}
 	}
 
-	if(CurrentVertexAnim != NULL)
-	{
-		AddVertexAnim(FActiveVertexAnim(CurrentVertexAnim, 1.f, CurrentTime));
-	}
-
 	return true;
 }
 
@@ -224,11 +217,6 @@ void FAnimSingleNodeInstanceProxy::UpdateAnimationNode(float DeltaSeconds)
 #endif
 		}
 	}
-	else if(CurrentVertexAnim != NULL)
-	{
-		float MoveDelta = DeltaSeconds * NewPlayRate;
-		FAnimationRuntime::AdvanceTime(bLooping, MoveDelta, CurrentTime, CurrentVertexAnim->GetAnimLength());
-	}
 
 #if WITH_EDITORONLY_DATA
 	if(PreviewBasePose)
@@ -266,7 +254,6 @@ void FAnimSingleNodeInstanceProxy::InitializeObjects(UAnimInstance* InAnimInstan
 
 	UAnimSingleNodeInstance* AnimSingleNodeInstance = CastChecked<UAnimSingleNodeInstance>(InAnimInstance);
 	CurrentAsset = AnimSingleNodeInstance->CurrentAsset;
-	CurrentVertexAnim = AnimSingleNodeInstance->CurrentVertexAnim;
 }
 
 void FAnimSingleNodeInstanceProxy::ClearObjects()
@@ -274,7 +261,6 @@ void FAnimSingleNodeInstanceProxy::ClearObjects()
 	FAnimInstanceProxy::ClearObjects();
 
 	CurrentAsset = nullptr;
-	CurrentVertexAnim = nullptr;
 }
 
 void FAnimSingleNodeInstanceProxy::InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext)
@@ -341,12 +327,6 @@ void FAnimSingleNodeInstanceProxy::UpdateBlendspaceSamples(FVector InBlendInput)
 		FMarkerTickRecord TempMarkerTickRecord;
 		BlendSpaceAdvanceImmediate(BlendSpace, InBlendInput, BlendSampleData, BlendFilter, false, 1.f, 0.f, OutCurrentTime, TempMarkerTickRecord);
 	}
-}
-
-void FAnimSingleNodeInstanceProxy::SetVertexAnimation(UVertexAnimation * NewVertexAnim, bool bIsLooping, float InPlayRate)
-{
-	bLooping = bIsLooping;
-	PlayRate = InPlayRate;
 }
 
 void FAnimSingleNodeInstanceProxy::SetReverse(bool bInReverse)

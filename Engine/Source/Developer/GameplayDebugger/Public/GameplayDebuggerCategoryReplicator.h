@@ -80,6 +80,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggerCategoryReplicator : public AActor
 	/** [ALL] set actor for debugging */
 	void SetDebugActor(AActor* Actor);
 
+	/** [ALL] send input event to category */
+	void SendInputEvent(int32 CategoryId, int32 HandlerId);
+
 	/** get current debug actor */
 	AActor* GetDebugActor() const { return IsValid(DebugActor.Actor) ? DebugActor.Actor : nullptr; }
 	
@@ -144,6 +147,10 @@ protected:
 
 	UFUNCTION(Server, Reliable, WithValidation, meta = (CallInEditor = "true"))
 	void ServerSetCategoryEnabled(int32 CategoryId, bool bEnable);
+
+	/** helper function for replicating input for category handlers */
+	UFUNCTION(Server, Reliable, WithValidation, meta = (CallInEditor = "true"))
+	void ServerSendInputEvent(int32 CategoryId, int32 HandlerId);
 
 	/** [LOCAL] notify from CategoryData replication */
 	void OnReceivedDataPackPacket(int32 CategoryId, int32 DataPackId, const FGameplayDebuggerDataPack& DataPacket);

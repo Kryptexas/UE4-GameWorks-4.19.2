@@ -1136,6 +1136,26 @@ public:
 		return Data->AddTriangle(Tri, HitProxyId);
 	};
 
+	/**
+	 * Reserves space in array for NumTriangles new triangles.
+	 *
+	 * @param NumTriangles Additional number of triangles to reserve space for.
+	 */
+	FORCEINLINE void AddReserveTriangles(int32 NumTriangles)
+	{
+		Data->AddReserveTriangles(NumTriangles);
+	}
+
+	/**
+	* Reserves space in array for at least NumTriangles total triangles.
+	*
+	* @param NumTriangles Additional number of triangles to reserve space for.
+	*/
+	FORCEINLINE void ReserveTriangles(int32 NumTriangles)
+	{
+		Data->ReserveTriangles(NumTriangles);
+	}
+
 private:
 	class FRenderData
 	{
@@ -1161,6 +1181,16 @@ private:
 			FTriangleInst NewTri = { Tri, HitProxyId };
 			return Triangles.Add(NewTri);
 		};
+
+		FORCEINLINE void AddReserveTriangles(int32 NumTriangles)
+		{
+			Triangles.Reserve(Triangles.Num() + NumTriangles);
+		}
+
+		FORCEINLINE void ReserveTriangles(int32 NumTriangles)
+		{
+			Triangles.Reserve(NumTriangles);
+		}
 	};
 	/**
 	* Render data which is allocated when a new FCanvasTriangleRendererItem is added for rendering.

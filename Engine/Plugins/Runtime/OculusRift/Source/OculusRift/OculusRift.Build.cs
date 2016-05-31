@@ -28,7 +28,8 @@ namespace UnrealBuildTool.Rules
 					"HeadMountedDisplay",
 					"Slate",
 					"SlateCore",
-                    "MediaAssets"
+                    "MediaAssets",
+					"Analytics",
 				});
 
 			if (UEBuildConfiguration.bBuildEditor == true)

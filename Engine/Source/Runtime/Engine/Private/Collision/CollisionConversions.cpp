@@ -25,7 +25,7 @@ struct FOverlapKey
 
 	friend bool operator==(const FOverlapKey& X, const FOverlapKey& Y)
 	{
-		return (X.Component == Y.Component) && (X.ComponentIndex == Y.ComponentIndex);
+		return (X.ComponentIndex == Y.ComponentIndex) && (X.Component == Y.Component);
 	}
 };
 
@@ -994,15 +994,17 @@ void ConvertQueryOverlap(const PxShape* PShape, const PxRigidActor* PActor, FOve
 {
 	const bool bBlock = IsBlocking(PShape, QueryFilter);
 
-	FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData);
-	FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData);
+	const FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData);
+	const FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData);
 
 	// Grab actor/component
-	UPrimitiveComponent* OwnerComponent = nullptr;
+	const UPrimitiveComponent* OwnerComponent = nullptr;
 
 	// Try body instance
 	if (BodyInst)
 	{
+        BodyInst = BodyInst->GetOriginalBodyInstance(PShape);
+
 		OwnerComponent = BodyInst->OwnerComponent.Get(); // cache weak pointer object, avoid multiple derefs below.
 		if (OwnerComponent)
 		{
@@ -1039,10 +1041,10 @@ static void AddUniqueOverlap(TArray<FOverlapResult>& OutOverlaps, const FOverlap
 	{
 		FOverlapResult& Overlap = OutOverlaps[TestIdx];
 
-		if(Overlap.Component == NewOverlap.Component && Overlap.ItemIndex == NewOverlap.ItemIndex)
+		if (Overlap.ItemIndex == NewOverlap.ItemIndex && Overlap.Component == NewOverlap.Component)
 		{
 			// These should be the same if the component matches!
-			check(Overlap.Actor == NewOverlap.Actor);
+			checkSlow(Overlap.Actor == NewOverlap.Actor);
 
 			// If we had a non-blocking overlap with this component, but now we have a blocking one, use that one instead!
 			if(!Overlap.bBlockingHit && NewOverlap.bBlockingHit)
@@ -1067,8 +1069,8 @@ bool IsBlocking(const PxShape* PShape, const PxFilterData& QueryFilter)
 	return bBlock;
 }
 
-/** Min number of overlaps required before using a TMap for deduplication */
-int32 GNumOverlapsRequiredForTMap = 2;
+/** Min number of overlaps required to start using a TMap for deduplication */
+int32 GNumOverlapsRequiredForTMap = 3;
 
 static FAutoConsoleVariableRef GTestOverlapSpeed(
 	TEXT("Engine.MinNumOverlapsToUseTMap"),
@@ -1080,14 +1082,15 @@ bool ConvertOverlapResults(int32 NumOverlaps, PxOverlapHit* POverlapResults, con
 {
 	SCOPE_CYCLE_COUNTER(STAT_CollisionConvertOverlap);
 
-	OutOverlaps.Reserve(OutOverlaps.Num() + NumOverlaps);
+	const int32 ExpectedSize = OutOverlaps.Num() + NumOverlaps;
+	OutOverlaps.Reserve(ExpectedSize);
 	bool bBlockingFound = false;
 
-	if (OutOverlaps.Max() >= GNumOverlapsRequiredForTMap)
+	if (ExpectedSize >= GNumOverlapsRequiredForTMap)
 	{
 		// Map from an overlap to the position in the result array (the index has one added to it so 0 can be a sentinel)
-		TMap<FOverlapKey, int32> OverlapMap;
-		OverlapMap.Reserve(OutOverlaps.Max());
+		TMap<FOverlapKey, int32, TInlineSetAllocator<64>> OverlapMap;
+		OverlapMap.Reserve(ExpectedSize);
 
 		// Fill in the map with existing hits
 		for (int32 ExistingIndex = 0; ExistingIndex < OutOverlaps.Num(); ++ExistingIndex)

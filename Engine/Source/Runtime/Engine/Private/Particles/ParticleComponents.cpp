@@ -4354,9 +4354,6 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 	DeltaTimeTick = DeltaTime;
 
-	UWorld* World = GetWorld();
-	check(World);
-
 	// Bail out if we are running on a dedicated server and we don't want to update on those
 	if ((bUpdateOnDedicatedServer == false) && (GetNetMode() == NM_DedicatedServer))
 	{
@@ -4371,6 +4368,9 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 		return;
 	}
+
+	UWorld* World = GetWorld();
+	check(World);
 
 	bool bRequiresReset = bResetTriggered;
 	bResetTriggered = false;

@@ -640,13 +640,6 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& 
 	}
 #endif // ENABLE_PREFILTER_LOGGING
 
-	// See if we are ignoring the actor this shape belongs to (word0 of shape filterdata is actorID) or the component (word2 of shape sim filter data is componentID)
-	if(IgnoreActors.Contains(ShapeFilter.word0) || IgnoreComponents.Contains(ShapeSimFilter.word2))
-	{
-		//UE_LOG(LogTemp, Log, TEXT("Ignoring Actor: %d"), ShapeFilter.word0);
-		return (PrefilterReturnValue = PxSceneQueryHitType::eNONE);
-	}
-	
 	// Shape : shape's Filter Data
 	// Querier : filterData that owns the trace
 	PxU32 ShapeFlags = ShapeFilter.word3 & 0xFFFFFF;
@@ -669,6 +662,17 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& 
 	if (Result == PxSceneQueryHitType::eBLOCK && bIgnoreBlocks)
 	{
 		Result = PxSceneQueryHitType::eNONE;
+	}
+
+	// If not already rejected, check ignore actor and component list.
+	if (Result != PxSceneQueryHitType::eNONE)
+	{
+		// See if we are ignoring the actor this shape belongs to (word0 of shape filterdata is actorID) or the component (word2 of shape sim filter data is componentID)
+		if (IgnoreActors.Contains(ShapeFilter.word0) || IgnoreComponents.Contains(ShapeSimFilter.word2))
+		{
+			//UE_LOG(LogTemp, Log, TEXT("Ignoring Actor: %d"), ShapeFilter.word0);
+			Result = PxSceneQueryHitType::eNONE;
+		}
 	}
 
 #if ENABLE_PREFILTER_LOGGING
@@ -1784,7 +1788,7 @@ bool GeomOverlapMultiImp(const UWorld* World, const struct FCollisionShape& Coll
 
 bool GeomOverlapMulti(const UWorld* World, const struct FCollisionShape& CollisionShape, const FVector& Pos, const FQuat& Rot, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams)
 {
-	OutOverlaps.Empty();
+	OutOverlaps.Reset();
 	return GeomOverlapMultiImp<EQueryInfo::GatherAll>(World, CollisionShape, Pos, Rot, OutOverlaps, TraceChannel, Params, ResponseParams, ObjectParams);
 }
 

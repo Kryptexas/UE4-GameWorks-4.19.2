@@ -90,7 +90,8 @@ EAILogicResuming::Type UBehaviorTreeComponent::ResumeLogic(const FString& Reason
 				BlackboardComp->ResumeUpdates();
 			}
 
-			if (ExecutionRequest.ExecuteNode)
+			const bool bOutOfNodesPending = PendingExecution.IsSet() && PendingExecution.bOutOfNodes;
+			if (ExecutionRequest.ExecuteNode || bOutOfNodesPending)
 			{
 				ScheduleExecutionUpdate();
 			}
@@ -703,6 +704,13 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 	if (!bIsRunning || !InstanceStack.IsValidIndex(ActiveInstanceIdx) || (GetOwner() && GetOwner()->IsPendingKillPending()))
 	{
 		UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("> skip: tree is not running"));
+		return;
+	}
+
+	const bool bOutOfNodesPending = PendingExecution.IsSet() && PendingExecution.bOutOfNodes;
+	if (bOutOfNodesPending)
+	{
+		UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("> skip: tree ran out of nodes on previous restart and needs to process it first"));
 		return;
 	}
 
@@ -1866,13 +1874,16 @@ void UBehaviorTreeComponent::RemoveAllInstances()
 	for (int32 Idx = 0; Idx < KnownInstances.Num(); Idx++)
 	{
 		const FBehaviorTreeInstanceId& Info = KnownInstances[Idx];
-		DummyInstance.InstanceMemory = Info.InstanceMemory;
-		DummyInstance.InstanceIdIndex = Idx;
-		DummyInstance.RootNode = Info.RootNode;
+		if (Info.InstanceMemory.Num())
+		{
+			// instance memory will be removed on Cleanup in EBTMemoryClear::Destroy mode
+			// prevent from calling it multiple times - StopTree does it for current InstanceStack
+			DummyInstance.InstanceMemory = Info.InstanceMemory;
+			DummyInstance.InstanceIdIndex = Idx;
+			DummyInstance.RootNode = Info.RootNode;
 
-		DummyInstance.Cleanup(*this, EBTMemoryClear::Destroy);
-
-		DummyInstance.InstanceMemory.Reset();
+			DummyInstance.Cleanup(*this, EBTMemoryClear::Destroy);
+		}
 	}
 
 	KnownInstances.Reset();

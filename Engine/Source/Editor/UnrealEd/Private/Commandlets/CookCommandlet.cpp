@@ -34,7 +34,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 #if ENABLE_COOK_STATS
 #include "ScopedTimers.h"
 #include "AnalyticsET.h"
-#include "IAnalyticsProvider.h"
+#include "IAnalyticsProviderET.h"
+
 namespace DetailedCookStats
 {
 	FString CookProject;
@@ -84,23 +85,21 @@ namespace DetailedCookStats
 		// Optionally create an analytics provider to send stats to for central collection.
 		if (GIsBuildMachine || FParse::Param(FCommandLine::Get(), TEXT("SendCookAnalytics")))
 		{
-			FAnalyticsET::Config Config;
+			FString APIServerET;
 			// This value is set by an INI private to Epic.
-			if (GConfig->GetString(TEXT("CookAnalytics"), TEXT("APIServer"), Config.APIServerET, GEngineIni))
+			if (GConfig->GetString(TEXT("CookAnalytics"), TEXT("APIServer"), APIServerET, GEngineIni))
 			{
-				Config.UseLegacyProtocol = true;
-				Config.APIKeyET = TEXT("Cook");
-				TSharedPtr<IAnalyticsProvider> CookAnalytics = FAnalyticsET::Get().CreateAnalyticsProvider(Config);
+				TSharedPtr<IAnalyticsProviderET> CookAnalytics = FAnalyticsET::Get().CreateAnalyticsProvider(FAnalyticsET::Config(TEXT("Cook"), APIServerET));
 				if (CookAnalytics.IsValid())
 				{
 					// start the session
 					CookAnalytics->SetUserID(FString(FPlatformProcess::ComputerName()) + FString(TEXT("\\")) + FString(FPlatformProcess::UserName(false)));
-					TArray<FAnalyticsEventAttribute> Attrs;
-					Attrs.Emplace(TEXT("Project"), CookProject);
-					Attrs.Emplace(TEXT("CmdLine"), CookCmdLine);
-					Attrs.Emplace(TEXT("IsBuildMachine"), GIsBuildMachine);
-					Attrs.Emplace(TEXT("TargetPlatforms"), TargetPlatforms);
-					CookAnalytics->StartSession(Attrs);
+					CookAnalytics->StartSession(MakeAnalyticsEventAttributeArray(
+						TEXT("Project"), CookProject,
+						TEXT("CmdLine"), CookCmdLine,
+						TEXT("IsBuildMachine"), GIsBuildMachine,
+						TEXT("TargetPlatforms"), TargetPlatforms
+					));
 					// Sends each cook stat to the analytics provider.
 					auto SendCookStatsToAnalytics = [CookAnalytics](const FString& StatName, const TArray<FCookStatsManager::StringKeyValue>& StatAttributes)
 					{

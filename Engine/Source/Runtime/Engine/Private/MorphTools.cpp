@@ -8,19 +8,19 @@
 #include "RawIndexBuffer.h"
 #include "MeshBuild.h"
 #include "PhysicsEngine/PhysXSupport.h"
-#include "Animation/VertexAnim/MorphTarget.h"
+#include "Animation/MorphTarget.h"
 
 
 /** compare based on base mesh source vertex indices */
-struct FCompareVertexAnimDeltas
+struct FCompareMorphTargetDeltas
 {
-	FORCEINLINE bool operator()( const FVertexAnimDelta& A, const FVertexAnimDelta& B ) const
+	FORCEINLINE bool operator()( const FMorphTargetDelta& A, const FMorphTargetDelta& B ) const
 	{
 		return ((int32)A.SourceIdx - (int32)B.SourceIdx) < 0 ? true : false;
 	}
 };
 
-FVertexAnimDelta* UMorphTarget::GetDeltasAtTime(float Time, int32 LODIndex, FVertexAnimEvalStateBase* State, int32& OutNumDeltas)
+FMorphTargetDelta* UMorphTarget::GetMorphTargetDelta(int32 LODIndex, int32& OutNumDeltas)
 {
 	if(LODIndex < MorphLODModels.Num())
 	{
@@ -126,7 +126,7 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 						( bCompareNormal && NormalDeltaZ.SizeSquared() > 0.01f) )
 					{
 						// create a new entry
-						FVertexAnimDelta NewVertex;
+						FMorphTargetDelta NewVertex;
 						// position delta
 						NewVertex.PositionDelta = PositionDelta;
 						// normal delta
@@ -145,7 +145,7 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 	// sort the array of vertices for this morph target based on the base mesh indices 
 	// that each vertex is associated with. This allows us to sequentially traverse the list
 	// when applying the morph blends to each vertex.
-	MorphModel.Vertices.Sort(FCompareVertexAnimDeltas());
+	MorphModel.Vertices.Sort(FCompareMorphTargetDeltas());
 
 	// remove array slack
 	MorphModel.Vertices.Shrink();
@@ -225,7 +225,7 @@ void UMorphTarget::RemapVertexIndices( USkeletalMesh* InBaseMesh, const TArray< 
 				}
 			}
 
-			MorphLODModel.Vertices.Sort(FCompareVertexAnimDeltas());
+			MorphLODModel.Vertices.Sort(FCompareMorphTargetDeltas());
 		}
 	}
 }

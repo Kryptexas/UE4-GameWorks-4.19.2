@@ -13,6 +13,7 @@
 #include "IUATHelperModule.h"
 
 #include "Settings/EditorSettings.h"
+#include "AnalyticsEventAttribute.h"
 
 #define LOCTEXT_NAMESPACE "MainFrameActions"
 

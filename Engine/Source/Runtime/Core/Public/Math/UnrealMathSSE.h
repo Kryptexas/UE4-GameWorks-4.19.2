@@ -1077,16 +1077,16 @@ FORCEINLINE void VectorQuaternionMultiply( void* RESTRICT Result, const void* RE
 // Returns true if the vector contains a component that is either NAN or +/-infinite.
 inline bool VectorContainsNaNOrInfinite(const VectorRegister& Vec)
 {
-	bool IsNotNAN = _mm_movemask_ps(_mm_cmpneq_ps(Vec, Vec)) == 0; // Test for the fact that NAN != NAN
+	// https://en.wikipedia.org/wiki/IEEE_754-1985
+	// Infinity is represented with all exponent bits set, with the correct sign bit.
+	// NaN is represented with all exponent bits set, plus at least one fraction/significand bit set.
+	// This means finite values will not have all exponent bits set, so check against those bits.
 	
-	// Test for infinity, technique "stolen" from DirectXMathVector.inl
-
-	// Mask off signs
-	VectorRegister InfTest = _mm_and_ps(Vec, GlobalVectorConstants::SignMask);
-	// Compare to infinity. If any are infinity, the signs are true.
-	bool IsNotInf = _mm_movemask_ps(_mm_cmpeq_ps(InfTest, GlobalVectorConstants::FloatInfinity)) == 0;
-
-	return !(IsNotNAN & IsNotInf);
+	// Mask off Exponent
+	VectorRegister ExpTest = VectorBitwiseAnd(Vec, GlobalVectorConstants::FloatInfinity);
+	// Compare to full exponent. If any are full exponent (not finite), the signs copied to the mask are non-zero, otherwise it's zero and finite.
+	bool IsFinite = VectorMaskBits(VectorCompareEQ(ExpTest, GlobalVectorConstants::FloatInfinity)) == 0;
+	return !IsFinite;
 }
 
 FORCEINLINE VectorRegister VectorTruncate(const VectorRegister& X)

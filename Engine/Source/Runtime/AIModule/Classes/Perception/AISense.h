@@ -64,7 +64,7 @@ public:
 	/** use with caution! Needs to be called before any senses get instantiated or listeners registered. DOES NOT update any perceptions system instances */
 	static void HardcodeSenseID(TSubclassOf<UAISense> SenseClass, FAISenseID HardcodedID);
 
-	static FAISenseID GetSenseID(TSubclassOf<UAISense> SenseClass) { return SenseClass ? ((UAISense*)SenseClass->GetDefaultObject())->SenseID : FAISenseID::InvalidID(); }
+	static FAISenseID GetSenseID(const TSubclassOf<UAISense> SenseClass) { return SenseClass ? ((const UAISense*)SenseClass->GetDefaultObject())->SenseID : FAISenseID::InvalidID(); }
 	template<typename TSense>
 	static FAISenseID GetSenseID() 
 	{ 

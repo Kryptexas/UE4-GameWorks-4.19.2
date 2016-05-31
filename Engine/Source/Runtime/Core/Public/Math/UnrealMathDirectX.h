@@ -839,8 +839,16 @@ FORCEINLINE void VectorSinCos(VectorRegister* RESTRICT VSinAngles, VectorRegiste
 // Returns true if the vector contains a component that is either NAN or +/-infinite.
 inline bool VectorContainsNaNOrInfinite(const VectorRegister& Vec)
 {
-	using namespace DirectX;
-	return (XMVector4IsNaN( Vec ) || XMVector4IsInfinite( Vec ));
+	// https://en.wikipedia.org/wiki/IEEE_754-1985
+	// Infinity is represented with all exponent bits set, with the correct sign bit.
+	// NaN is represented with all exponent bits set, plus at least one fraction/significand bit set.
+	// This means finite values will not have all exponent bits set, so check against those bits.
+
+	// Mask off Exponent
+	VectorRegister ExpTest = VectorBitwiseAnd(Vec, GlobalVectorConstants::FloatInfinity);
+	// Compare to full exponent. If any are full exponent (not finite), the signs copied to the mask are non-zero, otherwise it's zero and finite.
+	bool IsFinite = VectorMaskBits(VectorCompareEQ(ExpTest, GlobalVectorConstants::FloatInfinity)) == 0;
+	return !IsFinite;
 }
 
 //TODO: Vectorize

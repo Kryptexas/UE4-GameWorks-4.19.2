@@ -9,6 +9,8 @@
 #include "AssetRegistryModule.h"
 #include "IIntroTutorials.h"
 #include "EditorTutorial.h"
+#include "EngineAnalytics.h"
+#include "IAnalyticsProvider.h"
 #endif
 
 #include "SSearchBox.h"

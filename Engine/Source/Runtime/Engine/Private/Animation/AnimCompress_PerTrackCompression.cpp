@@ -300,7 +300,7 @@ protected:
 
 	static FBox CalculateQuatACF96Bounds(const FQuat* Points, int32 NumPoints)
 	{
-		FBox Results;
+		FBox Results(ForceInitToZero);
 
 		for (int32 i = 0; i < NumPoints; ++i)
 		{

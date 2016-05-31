@@ -5,6 +5,10 @@
 #include "Animation/AnimLinkableElement.h"
 #include "AnimTypes.generated.h"
 
+struct FMarkerPair;
+struct FPassedMarker;
+struct FMarkerSyncAnimPosition;
+
 namespace EAnimEventTriggerOffsets
 {
 	enum Type

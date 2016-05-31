@@ -2,7 +2,6 @@
 
 #pragma once
 #include "GameFramework/Pawn.h"
-#include "Animation/AnimationAsset.h"
 #include "GameFramework/RootMotionSource.h"
 #include "Character.generated.h"
 

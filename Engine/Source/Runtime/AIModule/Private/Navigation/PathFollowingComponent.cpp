@@ -570,9 +570,10 @@ void UPathFollowingComponent::SetMovementComponent(UNavMovementComponent* MoveCo
 		MyDefaultAcceptanceRadius = NavAgentProps.AgentRadius;
 		MoveComp->PathFollowingComp = this;
 
-		if (GetWorld() && GetWorld()->GetNavigationSystem())
+		UWorld* MyWorld = GetWorld();
+		if (MyWorld && MyWorld->GetNavigationSystem())
 		{	
-			MyNavData = GetWorld()->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
+			MyNavData = MyWorld->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
 		}
 	}
 }
@@ -1308,7 +1309,13 @@ float UPathFollowingComponent::GetRemainingPathCost() const
 FNavLocation UPathFollowingComponent::GetCurrentNavLocation() const
 {
 	// get navigation location of moved actor
-	if (MovementComp == NULL || GetWorld() == NULL || GetWorld()->GetNavigationSystem() == NULL)
+	if (MovementComp == nullptr)
+	{
+		return FNavLocation();
+	}
+
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld == nullptr || MyWorld->GetNavigationSystem() == nullptr)
 	{
 		return FNavLocation();
 	}
@@ -1322,7 +1329,7 @@ FNavLocation UPathFollowingComponent::GetCurrentNavLocation() const
 		const AActor* OwnerActor = MovementComp->GetOwner();
 		const FVector OwnerExtent = OwnerActor ? OwnerActor->GetSimpleCollisionCylinderExtent() : FVector::ZeroVector;
 
-		GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(OwnerLoc, CurrentNavLocation, OwnerExtent, MyNavData);
+		MyWorld->GetNavigationSystem()->ProjectPointToNavigation(OwnerLoc, CurrentNavLocation, OwnerExtent, MyNavData);
 	}
 
 	return CurrentNavLocation;

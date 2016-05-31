@@ -617,11 +617,15 @@ protected:
 	// in code so we can keep the extended bounds up to date after changing the data.
 	// Property editors will trigger property events to correctly recalculate the extended bounds.
 
-	/** Bound extension values in the positive direction of XYZ, positive value increases bound size */
+	/** Bound extension values in addition to imported bound in the positive direction of XYZ, 
+	 *	positive value increases bound size and negative value decreases bound size. 
+	 *	The final bound would be from [Imported Bound - Negative Bound] to [Imported Bound + Positive Bound]. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mesh)
 	FVector PositiveBoundsExtension;
 
-	/** Bound extension values in the negative direction of XYZ, positive value increases bound size */
+	/** Bound extension values in addition to imported bound in the negative direction of XYZ, 
+	 *	positive value increases bound size and negative value decreases bound size. 
+	 *	The final bound would be from [Imported Bound - Negative Bound] to [Imported Bound + Positive Bound]. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mesh)
 	FVector NegativeBoundsExtension;
 
@@ -747,8 +751,8 @@ public:
 	/** New Reference skeleton type **/
 	FReferenceSkeleton RefSkeleton;
 
-	/** Map of morph target to name **/
-	TMap<FName, UMorphTarget*> MorphTargetIndexMap;
+	/** Map of morph target name to index into USkeletalMesh::MorphTargets**/
+	TMap<FName, int32> MorphTargetIndexMap;
 
 	/** Reference skeleton precomputed bases. */
 	TArray<FMatrix> RefBasesInvMatrix;    
@@ -951,7 +955,8 @@ public:
 	 *
 	 * @return Pointer to found MorphTarget. Returns NULL if could not find target with that name.
 	 */
-	ENGINE_API UMorphTarget* FindMorphTarget( FName MorphTargetName ) const;
+	ENGINE_API UMorphTarget* FindMorphTarget(FName MorphTargetName) const;
+	ENGINE_API UMorphTarget* FindMorphTargetAndIndex(FName MorphTargetName, int32& OutIndex) const;
 
 	/** if name conflicts, it will overwrite the reference */
 	ENGINE_API void RegisterMorphTarget(UMorphTarget* MorphTarget);

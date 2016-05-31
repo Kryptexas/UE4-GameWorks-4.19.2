@@ -641,7 +641,7 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 
 				UDebugSkelMeshComponent* MeshComponent = CastChecked<UDebugSkelMeshComponent>(PreviewActor->GetSkeletalMeshComponent());
 
-				MeshComponent->EnablePreview(true, InAnimation, nullptr);
+				MeshComponent->EnablePreview(true, InAnimation);
 				MeshComponent->Play(false);
 				MeshComponent->Stop();
 				MeshComponent->SetPosition(AnimPosition, false);

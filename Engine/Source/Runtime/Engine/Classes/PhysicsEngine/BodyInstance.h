@@ -45,6 +45,20 @@ namespace physx
 	struct PxFilterData;
 }
 
+
+/**
+ * Default number of inlined elements used in TInlinePxShapeArray.
+ * Increase if for instance character meshes use more than this number of physics bodies and are involved in many queries.
+ */
+enum { NumInlinedPxShapeElements = 32 };
+
+/** Array that is intended for use when fetching shapes from a rigid body. */
+typedef TArray<physx::PxShape*, TInlineAllocator<NumInlinedPxShapeElements>> FInlinePxShapeArray;
+
+/** Helper to fill FInlinePxShapeArray from a PxRigidActor. Returns number of shapes added. */
+ENGINE_API int32 FillInlinePxShapeArray(FInlinePxShapeArray& Array, const physx::PxRigidActor& RigidActor);
+
+
 #endif // WITH_PHYSX
 
 UENUM(BlueprintType)

@@ -338,7 +338,13 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 		return true;
 	}
 
-	if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
+	const int32 NumLocalPlayers = World->GetGameInstance()->GetNumLocalPlayers();
+
+	if (NumLocalPlayers > 1 && Key.IsGamepadKey() && GetDefault<UGameMapsSettings>()->bOffsetPlayerGamepadIds)
+	{
+		++ControllerId;
+	}
+	else if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
 	{
 		GEngine->RemapGamepadControllerIdForPIE(this, ControllerId);
 	}
@@ -360,14 +366,14 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 		}
 	}
 
-	// For PIE, let the next PIE window handle the input if we didn't
+	// For PIE, let the next PIE window handle the input if none of our players did
 	// (this allows people to use multiple controllers to control each window)
-	if (!bResult && ControllerId > 0 && InViewport->IsPlayInEditorViewport())
+	if (!bResult && ControllerId > NumLocalPlayers - 1 && InViewport->IsPlayInEditorViewport())
 	{
 		UGameViewportClient *NextViewport = GEngine->GetNextPIEViewport(this);
 		if (NextViewport)
 		{
-			bResult = NextViewport->InputKey(InViewport, ControllerId-1, Key, EventType, AmountDepressed, bGamepad);
+			bResult = NextViewport->InputKey(InViewport, ControllerId - NumLocalPlayers, Key, EventType, AmountDepressed, bGamepad);
 		}
 	}
 
@@ -382,12 +388,18 @@ bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, F
 		return false;
 	}
 
-	bool bResult = false;
+	const int32 NumLocalPlayers = World->GetGameInstance()->GetNumLocalPlayers();
 
-	if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
+	if (NumLocalPlayers > 1 && Key.IsGamepadKey() && GetDefault<UGameMapsSettings>()->bOffsetPlayerGamepadIds)
+	{
+		++ControllerId;
+	}
+	else if (InViewport->IsPlayInEditorViewport() && Key.IsGamepadKey())
 	{
 		GEngine->RemapGamepadControllerIdForPIE(this, ControllerId);
 	}
+
+	bool bResult = false;
 
 	// Don't allow mouse/joystick input axes while in PIE and the console has forced the cursor to be visible.  It's
 	// just distracting when moving the mouse causes mouse look while you are trying to move the cursor over a button
@@ -408,14 +420,14 @@ bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, F
 			}
 		}
 
-		// For PIE, let the next PIE window handle the input if we didn't
+		// For PIE, let the next PIE window handle the input if none of our players did
 		// (this allows people to use multiple controllers to control each window)
-		if (!bResult && ControllerId > 0 && InViewport->IsPlayInEditorViewport())
+		if (!bResult && ControllerId > NumLocalPlayers - 1 && InViewport->IsPlayInEditorViewport())
 		{
 			UGameViewportClient *NextViewport = GEngine->GetNextPIEViewport(this);
 			if (NextViewport)
 			{
-				bResult = NextViewport->InputAxis(InViewport, ControllerId-1, Key, Delta, DeltaTime, NumSamples, bGamepad);
+				bResult = NextViewport->InputAxis(InViewport, ControllerId - NumLocalPlayers, Key, Delta, DeltaTime, NumSamples, bGamepad);
 			}
 		}
 
@@ -2364,6 +2376,7 @@ void UGameViewportClient::ToggleShowCollision()
 		}
 	}
 
+#if !UE_BUILD_SHIPPING
 	if (World != nullptr)
 	{
 		// Tell engine to create proxies for hidden components, so we can still draw collision
@@ -2372,6 +2385,7 @@ void UGameViewportClient::ToggleShowCollision()
 		// Need to recreate scene proxies when this flag changes.
 		FGlobalComponentRecreateRenderStateContext Recreate;
 	}
+#endif // !UE_BUILD_SHIPPING
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

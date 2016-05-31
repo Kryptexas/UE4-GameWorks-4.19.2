@@ -11,7 +11,7 @@
 #include "SkeletalRenderGPUSkin.h"
 #include "AnimationUtils.h"
 #include "Animation/AnimStats.h"
-#include "Animation/VertexAnim/MorphTarget.h"
+#include "Animation/MorphTarget.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "PhysicsEngine/PhysicsAsset.h"
@@ -365,10 +365,11 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 				// Are morph targets disabled for this LOD?
 				if(SkeletalMesh->LODInfo[UseLOD].bHasBeenSimplified || bDisableMorphTarget || !bMorphTargetsAllowed)
 				{
-					ActiveVertexAnims.Empty();
+					ActiveMorphTargets.Empty();
 				}
 
-				MeshObject->Update(UseLOD, this, ActiveVertexAnims);  // send to rendering thread
+				MorphTargetWeights.SetNum(SkeletalMesh->MorphTargets.Num());
+				MeshObject->Update(UseLOD, this, ActiveMorphTargets, MorphTargetWeights);  // send to rendering thread
 			}
 		}
 
@@ -429,10 +430,11 @@ void USkinnedMeshComponent::SendRenderDynamicData_Concurrent()
 		// Are morph targets disabled for this LOD?
 		if (SkeletalMesh->LODInfo[UseLOD].bHasBeenSimplified || bDisableMorphTarget || !bMorphTargetsAllowed)
 		{
-			ActiveVertexAnims.Empty();
+			ActiveMorphTargets.Empty();
 		}
 
-		MeshObject->Update(UseLOD,this,ActiveVertexAnims);  // send to rendering thread
+		MorphTargetWeights.SetNum(SkeletalMesh->MorphTargets.Num());
+		MeshObject->Update(UseLOD,this,ActiveMorphTargets, MorphTargetWeights);  // send to rendering thread
 		MeshObject->bHasBeenUpdatedAtLeastOnce = true;
 		
 		// scene proxy update of material usage based on active morphs

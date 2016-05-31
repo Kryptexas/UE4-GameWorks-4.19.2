@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Animation/VertexAnim/VertexAnimBase.h"
 #include "MorphTarget.generated.h"
 
 class USkeletalMesh;
@@ -43,7 +42,43 @@ private:
 	void Initialize(FStaticLODModel& LODModel);
 };
 
+/** Morph mesh vertex data used for rendering */
+struct FMorphTargetDelta
+{
+	/** change in position */
+	FVector			PositionDelta;
+	/** Tangent basis normal */
+	FVector			TangentZDelta;
 
+	/** index of source vertex to apply deltas to */
+	uint32			SourceIdx;
+
+	/** pipe operator */
+	friend FArchive& operator<<(FArchive& Ar, FMorphTargetDelta& V)
+	{
+		if (Ar.UE4Ver() < VER_UE4_MORPHTARGET_CPU_TANGENTZDELTA_FORMATCHANGE)
+		{
+			/** old format of change in tangent basis normal */
+			FPackedNormal	TangentZDelta_DEPRECATED;
+			if (Ar.IsSaving())
+			{
+				TangentZDelta_DEPRECATED = FPackedNormal(V.TangentZDelta);
+			}
+
+			Ar << V.PositionDelta << TangentZDelta_DEPRECATED << V.SourceIdx;
+
+			if (Ar.IsLoading())
+			{
+				V.TangentZDelta = TangentZDelta_DEPRECATED;
+			}
+		}
+		else
+		{
+			Ar << V.PositionDelta << V.TangentZDelta << V.SourceIdx;
+		}
+		return Ar;
+	}
+};
 
 /**
 * Mesh data for a single LOD model of a morph target
@@ -51,27 +86,30 @@ private:
 struct FMorphTargetLODModel
 {
 	/** vertex data for a single LOD morph mesh */
-	TArray<FVertexAnimDelta> Vertices;
+	TArray<FMorphTargetDelta> Vertices;
 	/** number of original verts in the base mesh */
 	int32 NumBaseMeshVerts;
 	/** Get Resource Size */
 	SIZE_T GetResourceSize() const;
 
 	/** pipe operator */
-	friend FArchive& operator<<( FArchive& Ar, FMorphTargetLODModel& M )
+	friend FArchive& operator<<(FArchive& Ar, FMorphTargetLODModel& M)
 	{
 		Ar << M.Vertices << M.NumBaseMeshVerts;
 		return Ar;
 	}
 };
 
-
 UCLASS(hidecategories=Object, MinimalAPI)
-class UMorphTarget : public UVertexAnimBase
+class UMorphTarget : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 public:
+	/** USkeletalMesh that this vertex animation works on. */
+	UPROPERTY(AssetRegistrySearchable)
+	class USkeletalMesh* BaseSkelMesh;
+
 	/** morph mesh vertex data for each LOD */
 	TArray<FMorphTargetLODModel>	MorphLODModels;
 
@@ -86,10 +124,8 @@ public:
 	/** Remap vertex indices with base mesh. */
 	void RemapVertexIndices( USkeletalMesh* InBaseMesh, const TArray< TArray<uint32> > & BasedWedgePointIndices );
 
-	//~ Begin UVertexAnimBase Interface
-	virtual FVertexAnimDelta* GetDeltasAtTime(float Time, int32 LODIndex, FVertexAnimEvalStateBase* State, int32& OutNumDeltas) override;
-	virtual bool HasDataForLOD(int32 LODIndex) override;
-	//~ End UVertexAnimBase Interface
+	FMorphTargetDelta* GetMorphTargetDelta(int32 LODIndex, int32& OutNumDeltas);
+	bool HasDataForLOD(int32 LODIndex);
 
 private:
 	/**

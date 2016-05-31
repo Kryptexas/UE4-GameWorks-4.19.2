@@ -7,7 +7,7 @@
 #include "CrashDescription.h"
 #include "CrashReportAnalytics.h"
 #include "CrashReportUtil.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "IAnalyticsProviderET.h"
 #include "EngineBuildSettings.h"
 #include "QoSReporter.h"
 
@@ -191,16 +191,13 @@ void FPrimaryCrashProperties::SendPreUploadAnalytics()
 
 	if (FCrashReportAnalytics::IsAvailable())
 	{
-		// Connect the crash report client analytics provider.
-		IAnalyticsProvider& Analytics = FCrashReportAnalytics::GetProvider();
-
 		if (bIsEnsure)
 		{
-			Analytics.RecordEvent(TEXT("CrashReportClient.ReportEnsure"), CrashAttributes);
+			FCrashReportAnalytics::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportEnsure"), CrashAttributes);
 		}
 		else
 		{
-			Analytics.RecordEvent(TEXT("CrashReportClient.ReportCrash"), CrashAttributes);
+			FCrashReportAnalytics::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportCrash"), CrashAttributes);
 		}
 	}
 
