@@ -397,6 +397,38 @@ public:
 		check(ClassToReinstance);
 
 		const bool bIsActor = ClassToReinstance->IsChildOf<AActor>();
+		const bool bIsAnimInstance = ClassToReinstance->IsChildOf<UAnimInstance>();
+
+		// Check for active skel mesh components. Due to a runtime optimization we will not always reinitialize the anim instances
+		// after a compile if we don't kill the instances here. Because we reinstance in compile order this can lead to
+		// a bad state in the animation when we attempt to refresh transforms
+		for(auto Obj : ObjectsToFinalize)
+		{
+			if(bIsAnimInstance)
+			{
+				if(USkeletalMeshComponent* SkelComponent = Cast<USkeletalMeshComponent>(Obj->GetOuter()))
+				{
+					// Clear out the script instance on the component to force a rebuild during initialization.
+					// This is necessary to correctly reinitialize certain properties that still reference the 
+					// old class as they are unreachable during reinstancing.
+					SkelComponent->AnimScriptInstance = nullptr;
+					SkelComponent->InitAnim(true);
+				}
+			}
+			else if(bIsActor)
+			{
+				// Check actor components for skel mesh components and reinitialize their instances
+				AActor* Actor = CastChecked<AActor>(Obj);
+				for(UActorComponent* Component : Actor->GetComponentsByClass(USkeletalMeshComponent::StaticClass()))
+				{
+					USkeletalMeshComponent* SkelComponent = CastChecked<USkeletalMeshComponent>(Component);
+					SkelComponent->AnimScriptInstance = nullptr;
+					SkelComponent->InitAnim(true);
+
+				}
+			}
+		}
+
 		if (bIsActor)
 		{
 			for (auto Obj : ObjectsToFinalize)
@@ -418,41 +450,6 @@ public:
 				if (SelectedObjecs.Contains(Obj))
 				{
 					GEditor->SelectActor(Actor, /*bInSelected =*/true, /*bNotify =*/true, false, true);
-				}
-			}
-		}
-
-		const bool bIsAnimInstance = ClassToReinstance->IsChildOf<UAnimInstance>();
-		//UAnimBlueprintGeneratedClass* AnimClass = Cast<UAnimBlueprintGeneratedClass>(ClassToReinstance);
-		if(bIsAnimInstance)
-		{
-			for(auto Obj : ObjectsToFinalize)
-			{
-				if(USkeletalMeshComponent* SkelComponent = Cast<USkeletalMeshComponent>(Obj->GetOuter()))
-				{
-					// This snippet catches all of the exposed value handlers that will have invalid UFunctions
-					// and clears the init flag so they will be reinitialized on the next call to InitAnim.
-					// Unknown whether there are other unreachable properties so currently clearing the anim
-					// instance below
-					// #TODO investigate reinstancing anim blueprints to correctly catch all deep references
-
-					//UAnimInstance* ActiveInstance = SkelComponent->GetAnimInstance();
-					//if(AnimClass && ActiveInstance)
-					//{
-					//	for(UStructProperty* NodeProp : AnimClass->AnimNodeProperties)
-					//	{
-					//		// Guaranteed to have only FAnimNode_Base pointers added during compilation
-					//		FAnimNode_Base* AnimNode = NodeProp->ContainerPtrToValuePtr<FAnimNode_Base>(ActiveInstance);
-					//
-					//		AnimNode->EvaluateGraphExposedInputs.bInitialized = false;
-					//	}
-					//}
-
-					// Clear out the script instance on the component to force a rebuild during initialization.
-					// This is necessary to correctly reinitialize certain properties that still reference the 
-					// old class as they are unreachable during reinstancing.
-					SkelComponent->AnimScriptInstance = nullptr;
-					SkelComponent->InitAnim(true);
 				}
 			}
 		}
