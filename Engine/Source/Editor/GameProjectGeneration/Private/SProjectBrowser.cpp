@@ -11,6 +11,9 @@
 #include "PlatformInfo.h"
 #include "SSearchBox.h"
 #include "Settings/EditorSettings.h"
+#include "AnalyticsEventAttribute.h"
+#include "EngineAnalytics.h"
+#include "IAnalyticsProvider.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 
