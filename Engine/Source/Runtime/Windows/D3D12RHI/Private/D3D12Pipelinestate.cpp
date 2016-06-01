@@ -430,6 +430,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDes
 		if (RSBlobLength > 0)
 		{
 			// Save the root signature
+			CA_SUPPRESS(6011);
 			check(computePSODesc.pRootSignature->GetRootSignature() == psoDesc.pRootSignature);
 			DiskCaches[PSO_CACHE_COMPUTE].AppendData(pRSBlob->GetBufferPointer(), RSBlobLength);
 		}

@@ -368,11 +368,15 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		{
 			if (AllEnabledPlugins.Contains(Plugin->Name))
 			{
-				Plugin->bEnabled = (!IS_PROGRAM || !bHasProjectFile) || IsPluginSupportedByCurrentTarget(Plugin);
+#if IS_PROGRAM
+				Plugin->bEnabled = !bHasProjectFile || IsPluginSupportedByCurrentTarget(Plugin);
 				if (!Plugin->bEnabled)
 				{
 					AllEnabledPlugins.Remove(Plugin->Name);
 				}
+#else
+				Plugin->bEnabled = true;
+#endif
 			}
 		}
 
@@ -383,8 +387,11 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			for(const FPluginReferenceDescriptor& Plugin: PluginsCopy)
 			{
 				bool bShouldBeEnabled = Plugin.bEnabled && Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()) && Plugin.IsEnabledForTarget(FPlatformMisc::GetUBTTarget());
-				if ((bShouldBeEnabled && !FindPluginInstance(Plugin.Name).IsValid() && !Plugin.bOptional) &&
-					 (!IS_PROGRAM || AllEnabledPlugins.Contains(Plugin.Name))) // skip if this is a program and the plugin is not enabled
+				if (bShouldBeEnabled && !FindPluginInstance(Plugin.Name).IsValid() && !Plugin.bOptional
+#if IS_PROGRAM
+					 && AllEnabledPlugins.Contains(Plugin.Name) // skip if this is a program and the plugin is not enabled
+#endif
+					)
 				{
 					FText Caption(LOCTEXT("PluginMissingCaption", "Plugin missing"));
 					if(Plugin.MarketplaceURL.Len() > 0)

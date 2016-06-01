@@ -1204,7 +1204,6 @@ public:
 #if WITH_EDITOR
 		if (!Export.bNotForEditorGame)
 		{
-			ensure(true);
 			return false;
 		}
 #endif

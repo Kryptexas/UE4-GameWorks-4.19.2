@@ -1365,7 +1365,7 @@ void FAudioDevice::RecursiveApplyAdjuster(const FSoundClassAdjuster& InAdjuster,
 	}
 	else
 	{
-		UE_LOG(LogAudio, Warning, TEXT("Sound class '%s' does not exist"), *InSoundClass->GetName());
+		UE_LOG(LogAudio, Warning, TEXT("Sound class '%s' does not exist"), InSoundClass ? *InSoundClass->GetName() : TEXT("<null>"));
 	}
 }
 

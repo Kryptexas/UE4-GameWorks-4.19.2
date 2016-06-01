@@ -34,17 +34,6 @@ FThreadSafeBool& InternalSafeGetTokenStreamDirtyFlag()
 	return TokenStreamDirty;
 }
 
-bool SetTokenStreamMaybeDirty(bool bDirty)
-{
-	bool bResult = InternalSafeGetTokenStreamDirtyFlag().AtomicSet(bDirty);
-	return bResult;
-}
-
-bool IsTokenStreamDirty()
-{
-	return InternalSafeGetTokenStreamDirtyFlag();
-}
-
 /**
  * Shared function called from the various InitializePrivateStaticClass functions generated my the IMPLEMENT_CLASS macro.
  */
@@ -145,11 +134,6 @@ void UField::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << Next;
-	if (Ar.IsLoading())
-	{
-		// Make sure that after loading new assets we will check for new classes and generate their token stream.
-		SetTokenStreamMaybeDirty(true);
-	}
 }
 
 void UField::AddCppProperty( UProperty* Property )
@@ -4299,8 +4283,6 @@ UObject* UClass::GetArchetypeForCDO() const
 
 void UClass::PurgeClass(bool bRecompilingOnLoad)
 {
-	SetTokenStreamMaybeDirty(true);
-
 	ClassConstructor = nullptr;
 #if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCaller = nullptr;
@@ -4411,7 +4393,6 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
 ,	ClassDefaultObject(NULL)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
-	SetTokenStreamMaybeDirty(true);
 }
 
 /**
@@ -4427,8 +4408,6 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass)
 ,	bCooked(false)
 ,	ClassDefaultObject(NULL)
 {
-	SetTokenStreamMaybeDirty(true);
-
 	// If you add properties here, please update the other constructors and PurgeClass()
 
 	UClass* ParentClass = GetSuperClass();
@@ -4492,8 +4471,6 @@ UClass::UClass
 	// complains about this operation, but AFAIK it is safe (and we've been doing it a long time)
 	// so the warning has been disabled for now:
 	*(const TCHAR**)&ClassConfigName = InConfigName; //-V580
-
-	SetTokenStreamMaybeDirty(true);
 }
 
 #if WITH_HOT_RELOAD
@@ -4512,8 +4489,6 @@ bool UClass::HotReloadPrivateStaticClass(
 	class UClass* TClass_WithinClass_StaticClass
 	)
 {
-	SetTokenStreamMaybeDirty(true);
-
 	if (InSize != PropertiesSize)
 	{
 		UClass::GetDefaultPropertiesFeedbackContext().Logf(ELogVerbosity::Warning, TEXT("Property size mismatch. Will not update class %s (was %d, new %d)."), *GetName(), PropertiesSize, InSize);
@@ -4737,6 +4712,26 @@ UFunction* UClass::FindFunctionByName(FName InName, EIncludeSuperFlag::Type Incl
 	}
 
 	return Result;
+}
+
+void UClass::AssembleReferenceTokenStreams()
+{
+	// Iterate over all class objects and force the default objects to be created. Additionally also
+	// assembles the token reference stream at this point. This is required for class objects that are
+	// not taken into account for garbage collection but have instances that are.
+	for (FRawObjectIterator It(false); It; ++It) // GetDefaultObject can create a new class, that need to be handled as well, so we cannot use TObjectIterator
+	{
+		if (UClass* Class = Cast<UClass>((UObject*)(It->Object)))
+		{
+			// Force the default object to be created.
+			Class->GetDefaultObject(); // Force the default object to be constructed if it isn't already
+																 // Assemble reference token stream for garbage collection/ RTGC.
+			if (!Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
+			{
+				Class->AssembleReferenceTokenStream();
+			}
+		}
+	}
 }
 
 const FString UClass::GetConfigName() const

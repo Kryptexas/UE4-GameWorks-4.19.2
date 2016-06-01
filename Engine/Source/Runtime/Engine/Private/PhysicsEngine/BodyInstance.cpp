@@ -1059,7 +1059,7 @@ void FBodyInstance::UpdatePhysicsFilterData()
 	const bool bUseSimpleAsComplex = (BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseSimpleAsComplex);
 
 	// Get component ID
-	uint32 ComponentID = OwnerComponentInst->GetUniqueID();
+	uint32 ComponentID = OwnerComponentInst ? OwnerComponentInst->GetUniqueID() : INDEX_NONE;
 
 #if WITH_PHYSX
 	const TEnumAsByte<ECollisionEnabled::Type>* CollisionEnabledOverride = bUseCollisionEnabledOverride ? &UseCollisionEnabled : NULL;
@@ -2685,6 +2685,7 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 				for (int32 ChildIdx = 0; ChildIdx < ChildrenBodies.Num(); ++ChildIdx)
 				{
 					FBodyInstance* ChildBI = ChildrenBodies[ChildIdx];
+					checkSlow(ChildBI);
 					if (ChildBI != this)
 					{
 						Weld(ChildBI, ChildBI->OwnerComponent->GetSocketTransform(ChildrenLabels[ChildIdx]));

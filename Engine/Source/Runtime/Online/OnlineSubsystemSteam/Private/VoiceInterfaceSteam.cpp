@@ -16,6 +16,7 @@ FOnlineVoiceSteam::FOnlineVoiceSteam(FOnlineSubsystemSteam* InSteamSubsystem) :
 	SteamSubsystem(InSteamSubsystem),
 	VoiceEngine(NULL)
 {
+	check(InSteamSubsystem);
 }
 
 FOnlineVoiceSteam::~FOnlineVoiceSteam()
@@ -45,13 +46,10 @@ bool FOnlineVoiceSteam::Init()
 		UE_LOG(LogVoice, Warning, TEXT("Missing VoiceNotificationDelta key in OnlineSubsystem of DefaultEngine.ini"));
 	}
 
-	if (SteamSubsystem)
-	{
-		SessionInt = (FOnlineSessionSteam*)SteamSubsystem->GetSessionInterface().Get();
-		IdentityInt = (FOnlineIdentitySteam*)SteamSubsystem->GetIdentityInterface().Get();
+	SessionInt = (FOnlineSessionSteam*)SteamSubsystem->GetSessionInterface().Get();
+	IdentityInt = (FOnlineIdentitySteam*)SteamSubsystem->GetIdentityInterface().Get();
 
-		bSuccess = SessionInt && IdentityInt;
-	}
+	bSuccess = SessionInt && IdentityInt;
 
 	const bool bIntentionallyDisabled = SteamSubsystem->IsDedicated() || GIsBuildMachine;
 	if (bSuccess && !bIntentionallyDisabled)
@@ -252,84 +250,82 @@ void FOnlineVoiceSteam::UnregisterLocalTalkers()
 bool FOnlineVoiceSteam::RegisterRemoteTalker(const FUniqueNetId& UniqueId) 
 {
 	uint32 Return = E_FAIL;
-	if (SteamSubsystem)
+
+	// Skip this if the session isn't active
+	if (SessionInt && SessionInt->GetNumSessions() > 0 &&
+		// Or when voice is disabled
+		VoiceEngine.IsValid())
 	{
-		// Skip this if the session isn't active
-		if (SessionInt && SessionInt->GetNumSessions() > 0 &&
-			// Or when voice is disabled
-			VoiceEngine.IsValid())
+		// See if this talker has already been registered or not
+		FRemoteTalker* Talker = FindRemoteTalker(UniqueId);
+		if (Talker == NULL)
 		{
-			// See if this talker has already been registered or not
-			FRemoteTalker* Talker = FindRemoteTalker(UniqueId);
-			if (Talker == NULL)
-			{
-				// Add a new talker to our list
-				int32 AddIndex = RemoteTalkers.AddZeroed();
-				Talker = &RemoteTalkers[AddIndex];
-				// Copy the UniqueId
-				const FUniqueNetIdSteam& UniqueIdSteam = (const FUniqueNetIdSteam&)UniqueId;
-				Talker->TalkerId = MakeShareable(new FUniqueNetIdSteam(UniqueIdSteam));
-				// Register the remote talker locally
-				Return = VoiceEngine->RegisterRemoteTalker(UniqueId);
-				UE_LOG(LogVoice, Log, TEXT("RegisterRemoteTalker(%s) returned 0x%08X"),
-					*UniqueId.ToDebugString(), Return);
-			}
-			else
-			{
-				UE_LOG(LogVoice, Verbose, TEXT("Remote talker %s is being re-registered"), *UniqueId.ToDebugString());
-				Return = S_OK;
-			}
-			
-			// Update muting all of the local talkers with this remote talker
-			ProcessMuteChangeNotification();
-			// Now start processing the remote voices
-			Return = VoiceEngine->StartRemoteVoiceProcessing(UniqueId);
-			UE_LOG(LogVoice, Log, TEXT("StartRemoteVoiceProcessing(%s) returned 0x%08X"), *UniqueId.ToDebugString(), Return);
+			// Add a new talker to our list
+			int32 AddIndex = RemoteTalkers.AddZeroed();
+			Talker = &RemoteTalkers[AddIndex];
+			// Copy the UniqueId
+			const FUniqueNetIdSteam& UniqueIdSteam = (const FUniqueNetIdSteam&)UniqueId;
+			Talker->TalkerId = MakeShareable(new FUniqueNetIdSteam(UniqueIdSteam));
+			// Register the remote talker locally
+			Return = VoiceEngine->RegisterRemoteTalker(UniqueId);
+			UE_LOG(LogVoice, Log, TEXT("RegisterRemoteTalker(%s) returned 0x%08X"),
+				*UniqueId.ToDebugString(), Return);
 		}
+		else
+		{
+			UE_LOG(LogVoice, Verbose, TEXT("Remote talker %s is being re-registered"), *UniqueId.ToDebugString());
+			Return = S_OK;
+		}
+		
+		// Update muting all of the local talkers with this remote talker
+		ProcessMuteChangeNotification();
+		// Now start processing the remote voices
+		Return = VoiceEngine->StartRemoteVoiceProcessing(UniqueId);
+		UE_LOG(LogVoice, Log, TEXT("StartRemoteVoiceProcessing(%s) returned 0x%08X"), *UniqueId.ToDebugString(), Return);
 	}
+
 	return Return == S_OK;
 }
 
 bool FOnlineVoiceSteam::UnregisterRemoteTalker(const FUniqueNetId& UniqueId) 
 {
 	uint32 Return = E_FAIL;
-	if (SteamSubsystem)
-	{
-		// Skip this if the session isn't active
-		if (SessionInt && SessionInt->GetNumSessions() > 0 &&
-			// Or when voice is disabled
-			VoiceEngine.IsValid())
-		{
-			// Make sure the talker is valid
-			if (FindRemoteTalker(UniqueId) != NULL)
-			{
-				// Find them in the talkers array and remove them
-				for (int32 Index = 0; Index < RemoteTalkers.Num(); Index++)
-				{
-					const FRemoteTalker& Talker = RemoteTalkers[Index];
-					// Is this the remote talker?
-					if (*Talker.TalkerId == UniqueId)
-					{
-						// Going to remove the talker, so if they were talking recently make sure to indicate they've stopped
-						if (OnPlayerTalkingStateChangedDelegates.IsBound() && (Talker.bIsTalking || Talker.bWasTalking))
-						{
-							OnPlayerTalkingStateChangedDelegates.Broadcast(Talker.TalkerId.ToSharedRef(), false);
-						}
 
-						RemoteTalkers.RemoveAtSwap(Index);
-						break;
-					}
-				}
-				// Remove them from voice engine
-				Return = VoiceEngine->UnregisterRemoteTalker(UniqueId);
-				UE_LOG(LogVoice, Log, TEXT("UnregisterRemoteTalker(%s) returned 0x%08X"), *UniqueId.ToDebugString(), Return);
-			}
-			else
+	// Skip this if the session isn't active
+	if (SessionInt && SessionInt->GetNumSessions() > 0 &&
+		// Or when voice is disabled
+		VoiceEngine.IsValid())
+	{
+		// Make sure the talker is valid
+		if (FindRemoteTalker(UniqueId) != NULL)
+		{
+			// Find them in the talkers array and remove them
+			for (int32 Index = 0; Index < RemoteTalkers.Num(); Index++)
 			{
-				UE_LOG(LogVoice, Verbose, TEXT("Unknown remote talker (%s) specified to UnregisterRemoteTalker()"), *UniqueId.ToDebugString());
+				const FRemoteTalker& Talker = RemoteTalkers[Index];
+				// Is this the remote talker?
+				if (*Talker.TalkerId == UniqueId)
+				{
+					// Going to remove the talker, so if they were talking recently make sure to indicate they've stopped
+					if (OnPlayerTalkingStateChangedDelegates.IsBound() && (Talker.bIsTalking || Talker.bWasTalking))
+					{
+						OnPlayerTalkingStateChangedDelegates.Broadcast(Talker.TalkerId.ToSharedRef(), false);
+					}
+
+					RemoteTalkers.RemoveAtSwap(Index);
+					break;
+				}
 			}
+			// Remove them from voice engine
+			Return = VoiceEngine->UnregisterRemoteTalker(UniqueId);
+			UE_LOG(LogVoice, Log, TEXT("UnregisterRemoteTalker(%s) returned 0x%08X"), *UniqueId.ToDebugString(), Return);
+		}
+		else
+		{
+			UE_LOG(LogVoice, Verbose, TEXT("Unknown remote talker (%s) specified to UnregisterRemoteTalker()"), *UniqueId.ToDebugString());
 		}
 	}
+
 	return Return == S_OK;
 }
 

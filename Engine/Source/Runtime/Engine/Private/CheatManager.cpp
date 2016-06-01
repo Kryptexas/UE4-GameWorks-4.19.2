@@ -301,6 +301,7 @@ void UCheatManager::DestroyAllPawnsExceptTarget()
 		for (TActorIterator<APawn> It(GetWorld(), APawn::StaticClass()); It; ++It)
 		{
 			APawn* Pawn = *It;
+			checkSlow(Pawn);
 			if (!Pawn->IsPendingKill())
 			{
 				if ((Pawn != HitPawnTarget) && Cast<APlayerController>(Pawn->Controller) == NULL)

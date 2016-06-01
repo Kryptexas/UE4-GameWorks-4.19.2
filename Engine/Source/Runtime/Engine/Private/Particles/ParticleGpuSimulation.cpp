@@ -3249,7 +3249,7 @@ public:
 			// If using fixDT strategy
 			if (FixDeltaSeconds > 0)
 			{
-				if (!Simulation || !Simulation->LocalVectorField.bUseFixDT)
+				if (!Simulation->LocalVectorField.bUseFixDT)
 				{
 					// With FixDeltaSeconds > 0, "InFix" is the persistent delta time, while "InVar" is only used for interpolation.
 					Swap(DeltaSecondsInFix, DeltaSecondsInVar);

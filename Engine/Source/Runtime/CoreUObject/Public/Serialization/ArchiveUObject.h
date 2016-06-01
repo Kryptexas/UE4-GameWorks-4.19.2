@@ -1262,6 +1262,7 @@ public:
 				UPackage* ObjPackage = dynamic_cast<UPackage*>(Outermost);
 				if (ObjPackage)
 				{
+					CA_SUPPRESS(6011);
 					if (ObjPackage != Obj && 
 						DestPackage != ObjPackage && 
 						!Obj->HasAnyFlags(RF_Public))

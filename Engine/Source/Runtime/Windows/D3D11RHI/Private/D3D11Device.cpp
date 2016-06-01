@@ -326,17 +326,6 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 	Height = BestMode.Height;
 }
 
-// Suppress static analysis warnings in FD3D11DynamicRHI::RHIGetAvailableResolutions() about a potentially out-of-bounds read access to ModeList. This is a false positive - Index is always within range.
-#if USING_CODE_ANALYSIS
-	MSVC_PRAGMA(warning(push))
-	MSVC_PRAGMA(warning(disable:6385))
-#endif	// USING_CODE_ANALYSIS
-
-// Re-enable static code analysis warning C6385.
-#if USING_CODE_ANALYSIS
-	MSVC_PRAGMA(warning(pop))
-#endif	// USING_CODE_ANALYSIS
-
 void FD3D11DynamicRHI::GetBestSupportedMSAASetting( DXGI_FORMAT PlatformFormat, uint32 MSAACount, uint32& OutBestMSAACount, uint32& OutMSAAQualityLevels )
 {
 	//  We disable MSAA for Feature level 10

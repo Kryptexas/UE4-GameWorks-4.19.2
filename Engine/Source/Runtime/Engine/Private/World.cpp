@@ -2404,7 +2404,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	UE_LOG(LogWorld, Log, TEXT("PIE: Copying PIE streaming level from %s to %s. OwningWorld: %s"),
 		*EditorLevelWorld->GetPathName(),
 		*PIELevelWorld->GetPathName(),
-		*OwningWorld->GetPathName());
+		OwningWorld ? *OwningWorld->GetPathName() : TEXT("<null>"));
 
 	return PIELevelWorld;
 }
@@ -4767,6 +4767,8 @@ UWorld* FSeamlessTravelHandler::Tick()
 	//@fixme: wait for client to verify packages before finishing transition. Is this the right fix?
 	// Once the default map is loaded, go ahead and start loading the destination map
 	// Once the destination map is loaded, wait until all packages are verified before finishing transition
+
+	check(CurrentWorld);
 
 	UNetDriver* NetDriver = CurrentWorld->GetNetDriver();
 

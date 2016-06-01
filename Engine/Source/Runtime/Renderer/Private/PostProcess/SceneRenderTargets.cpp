@@ -268,7 +268,7 @@ inline const TCHAR* GetReflectionBrightnessTargetName(uint32 Index)
 		TEXT("ReflectionBrightness0"), 
 		TEXT("ReflectionBrightness1") 
 	};
-	check(Index < sizeof(Names));
+	check(Index < ARRAY_COUNT(Names));
 	return Names[Index];
 }
 
@@ -279,7 +279,7 @@ inline const TCHAR* GetSceneColorTargetName(FSceneRenderTargets::EShadingPath Sh
 		TEXT("SceneColorForward"), 
 		TEXT("SceneColorDeferred") 
 	};
-	check((uint32)ShadingPath < sizeof(SceneColorNames));
+	check((uint32)ShadingPath < ARRAY_COUNT(SceneColorNames));
 	return SceneColorNames[(uint32)ShadingPath];
 }
 

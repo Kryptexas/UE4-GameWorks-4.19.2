@@ -2414,19 +2414,14 @@ void FOpenGLDynamicRHI::CommitComputeShaderConstants(FComputeShaderRHIParamRef C
 }
 
 template <EShaderFrequency Frequency>
-FORCEINLINE uint32 GetFirstTextureUnit()
-{
-	switch (Frequency)
-	{
-	case SF_Vertex: return FOpenGL::GetFirstVertexTextureUnit();
-	case SF_Hull: return FOpenGL::GetFirstHullTextureUnit();
-	case SF_Domain: return FOpenGL::GetFirstDomainTextureUnit();
-	case SF_Pixel: return FOpenGL::GetFirstPixelTextureUnit();
-	case SF_Geometry: return FOpenGL::GetFirstGeometryTextureUnit();
-	case SF_Compute: return FOpenGL::GetFirstComputeTextureUnit();
-	}
-	return INDEX_NONE;
-}
+uint32 GetFirstTextureUnit();
+
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Vertex>() { return FOpenGL::GetFirstVertexTextureUnit(); }
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Hull>() { return FOpenGL::GetFirstHullTextureUnit(); }
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Domain>() { return FOpenGL::GetFirstDomainTextureUnit(); }
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Pixel>() { return FOpenGL::GetFirstPixelTextureUnit(); }
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Geometry>() { return FOpenGL::GetFirstGeometryTextureUnit(); }
+template <> FORCEINLINE uint32 GetFirstTextureUnit<SF_Compute>() { return FOpenGL::GetFirstComputeTextureUnit(); }
 
 template <EShaderFrequency Frequency>
 FORCEINLINE void SetResource(FOpenGLDynamicRHI* RESTRICT OpenGLRHI, uint32 BindIndex, FRHITexture* RESTRICT TextureRHI, float CurrentTime)

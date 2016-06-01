@@ -2823,6 +2823,7 @@ void FVREditorWorldInteraction::OnAssetDragStartedFromContentBrowser( const TArr
 
 			if( bCanPlace )
 			{
+				CA_SUPPRESS(6240);
 				if( !bTransactionStarted && !bIsPreview )
 				{
 					bTransactionStarted = true;

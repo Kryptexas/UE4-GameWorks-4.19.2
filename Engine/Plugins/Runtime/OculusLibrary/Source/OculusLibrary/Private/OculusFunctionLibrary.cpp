@@ -204,11 +204,11 @@ void UOculusFunctionLibrary::SetBaseRotationAndPositionOffset(FRotator BaseRot, 
 	FHeadMountedDisplay* OculusHMD = GetOculusHMD();
 	if (OculusHMD != nullptr)
 	{
-		if (Options == EOrientPositionSelector::Orientation || EOrientPositionSelector::OrientationAndPosition)
+		if (Options == EOrientPositionSelector::Orientation || Options == EOrientPositionSelector::OrientationAndPosition)
 		{
 			GEngine->HMDDevice->SetBaseRotation(BaseRot);
 		}
-		if (Options == EOrientPositionSelector::Position || EOrientPositionSelector::OrientationAndPosition)
+		if (Options == EOrientPositionSelector::Position || Options == EOrientPositionSelector::OrientationAndPosition)
 		{
 			OculusHMD->GetSettings()->PositionOffset = PosOffset;
 		}

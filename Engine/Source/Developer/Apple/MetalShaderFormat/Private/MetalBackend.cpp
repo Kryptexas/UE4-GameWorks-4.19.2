@@ -1285,7 +1285,8 @@ protected:
 
 		case ir_txf:
 		{
-			if (tex->sampler->type && tex->sampler->type->is_sampler() && tex->sampler->type->sampler_buffer)
+			check(tex->sampler->type);
+			if (tex->sampler->type->is_sampler() && tex->sampler->type->sampler_buffer)
 			{
 				ralloc_asprintf_append(buffer, "[");
 				tex->coordinate->accept(this);

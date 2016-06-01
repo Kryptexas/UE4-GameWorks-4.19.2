@@ -99,6 +99,10 @@ enum ELightmapQuality
 	HQ_LIGHTMAP,
 };
 
+// One of these per lightmap quality
+extern const TCHAR* GLightmapDefineName[2];
+extern int32 GNumLightmapCoefficients[2];
+
 /**
  * Base policy for shaders with lightmaps.
  */
@@ -107,19 +111,8 @@ struct TLightMapPolicy
 {
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		switch( LightmapQuality )
-		{
-			case LQ_LIGHTMAP:
-				OutEnvironment.SetDefine(TEXT("LQ_TEXTURE_LIGHTMAP"),TEXT("1"));
-				OutEnvironment.SetDefine(TEXT("NUM_LIGHTMAP_COEFFICIENTS"), NUM_LQ_LIGHTMAP_COEF);
-				break;
-			case HQ_LIGHTMAP:
-				OutEnvironment.SetDefine(TEXT("HQ_TEXTURE_LIGHTMAP"),TEXT("1"));
-				OutEnvironment.SetDefine(TEXT("NUM_LIGHTMAP_COEFFICIENTS"), NUM_HQ_LIGHTMAP_COEF);
-				break;
-			default:
-				check(0);
-		}
+		OutEnvironment.SetDefine(GLightmapDefineName[LightmapQuality],TEXT("1"));
+		OutEnvironment.SetDefine(TEXT("NUM_LIGHTMAP_COEFFICIENTS"), GNumLightmapCoefficients[LightmapQuality]);
 	}
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
@@ -671,6 +664,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
+		CA_SUPPRESS(6326);
 		switch (Policy)
 		{
 		case LMP_NO_LIGHTMAP:
@@ -734,6 +728,7 @@ public:
 	{
 		OutEnvironment.SetDefine(TEXT("MAX_NUM_LIGHTMAP_COEF"), MAX_NUM_LIGHTMAP_COEF);
 
+		CA_SUPPRESS(6326);
 		switch (Policy)
 		{
 		case LMP_NO_LIGHTMAP:							

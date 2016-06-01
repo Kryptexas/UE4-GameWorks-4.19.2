@@ -7690,6 +7690,7 @@ int32 UInterpTrackAnimControl::CalcChannelIndex()
 		}
 
 		// If not this track, but has same slot name, increment ChannelIndex
+		CA_SUPPRESS(6011);
 		if(AnimTrack && !AnimTrack->IsDisabled() && AnimTrack->SlotName == SlotName)
 		{
 			ChannelIndex++;

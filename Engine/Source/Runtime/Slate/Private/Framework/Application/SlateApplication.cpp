@@ -2840,6 +2840,7 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 	{
 		DragDetector.DetectDragForWidget = WidgetsUnderMouse->GetPathDownTo( TheReply.GetDetectDragRequest().ToSharedRef() );
 		DragDetector.DetectDragButton = TheReply.GetDetectDragRequestButton();
+		checkSlow(InMouseEvent);
 		DragDetector.DetectDragStartLocation = InMouseEvent->GetScreenSpacePosition();
 	}
 
@@ -4530,8 +4531,16 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 	// If none of the widgets requested keyboard focus to be set (or set the keyboard focus explicitly), set it to the leaf-most widget under the mouse.
 	// On Mac we prevent the OS from activating the window on mouse down, so we have full control and can activate only if there's nothing draggable under the mouse cursor.
 	const bool bFocusChangedByEventHandler = PreviouslyFocusedWidget != GetKeyboardFocusedWidget();
-	if( ( !Reply.GetUserFocusRecepient().IsValid() || ( PLATFORM_MAC && PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.DetectDragForWidget.IsValid() ) )
-		&& ( !bFocusChangedByEventHandler || bNeedToActivateWindow ) )
+	if( ( !bFocusChangedByEventHandler || bNeedToActivateWindow ) &&
+		( !Reply.GetUserFocusRecepient().IsValid()
+#if PLATFORM_MAC
+			|| (
+				PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton &&
+				!DragDetector.DetectDragForWidget.IsValid()
+			)
+#endif
+		)
+	)
 	{
 		bool bFocusCandidateFound = false;
 		for( int32 WidgetIndex = WidgetsUnderPointer.Widgets.Num() - 1; !bFocusCandidateFound && WidgetIndex >= 0; --WidgetIndex )

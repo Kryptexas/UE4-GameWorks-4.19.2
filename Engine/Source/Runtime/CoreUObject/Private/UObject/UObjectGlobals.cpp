@@ -800,14 +800,18 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 	if (InOuter)
 	{
 		// If we have a full UObject name then attempt to find the object in memory first,
-		// unless we're currently inside of async loading path because the object may not be fully loaded yet.
-		if (bAllowObjectReconciliation && ((bContainsObjectName && !IsInAsyncLoadingThread())
+		if (bAllowObjectReconciliation && (bContainsObjectName
 #if WITH_EDITOR
 			|| GIsImportingT3D
 #endif
 			))
 		{
 			Result = StaticFindObjectFast(ObjectClass, InOuter, *StrName);
+			if (Result && Result->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects))
+			{
+				// Object needs loading so load it before returning
+				Result = nullptr;
+			}
 		}
 
 		if (!Result)
@@ -1262,26 +1266,33 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 		// fail, so we only currently do this when loading on consoles.
 		// The only exception here is when we're in the middle of async loading where we can't reset loaders yet. This should only happen when
 		// doing synchronous load in the middle of streaming.
-		if (FPlatformProperties::RequiresCookedData() && !IsInAsyncLoadingThread())
+		if (FPlatformProperties::RequiresCookedData())
 		{
-			if (FUObjectThreadContext::Get().ObjBeginLoadCount == 0)
+			if (!IsInAsyncLoadingThread())
 			{
-				// Sanity check to make sure that Linker is the linker that loaded our Result package or the linker has already been detached
-				check(!Result || Result->LinkerLoad == Linker || Result->LinkerLoad == nullptr);
-				if (Result && Linker->Loader)
+				if (FUObjectThreadContext::Get().ObjBeginLoadCount == 0)
 				{
-					ResetLoaders(Result);
+					// Sanity check to make sure that Linker is the linker that loaded our Result package or the linker has already been detached
+					check(!Result || Result->LinkerLoad == Linker || Result->LinkerLoad == nullptr);
+					if (Result && Linker->Loader)
+					{
+						ResetLoaders(Result);
+					}
+					// Reset loaders could have already deleted Linker so guard against deleting stale pointers
+					if (Result && Result->LinkerLoad)
+					{
+						delete Linker->Loader;
+						Linker->Loader = nullptr;
+					}
+					// And make sure no one can use it after it's been deleted
+					Linker = nullptr;
 				}
-				// Reset loaders could have already deleted Linker so guard against deleting stale pointers
-				if (Result && Result->LinkerLoad)
+				// Async loading removes delayed linkers on the game thread after streaming has finished
+				else
 				{
-					delete Linker->Loader;
-					Linker->Loader = nullptr;
+					FUObjectThreadContext::Get().DelayedLinkerClosePackages.AddUnique(Linker);
 				}
-				// And make sure no one can use it after it's been deleted
-				Linker = nullptr;
 			}
-			// Async loading removes delayed linkers on the game thread after streaming has finished
 			else
 			{
 				FUObjectThreadContext::Get().DelayedLinkerClosePackages.AddUnique(Linker);
@@ -1289,11 +1300,6 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 		}
 	}
 
-	if( GUseSeekFreeLoading && Result && !(LoadFlags & LOAD_NoSeekFreeLinkerDetatch) )
-	{
-		// We no longer need the linker. Passing in NULL would reset all loaders so we need to check for that.
-		ResetLoaders( Result );
-	}
 	if (!bFullyLoadSkipped)
 	{
 		// Mark package as loaded.

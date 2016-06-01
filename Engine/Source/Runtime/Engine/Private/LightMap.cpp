@@ -2131,8 +2131,10 @@ void FLightMap2D::Serialize(FArchive& Ar)
 			bool bStripHQLightmaps = !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::HighQualityLightmaps);
 
 			ULightMapTexture2D* Dummy = NULL;
-			Ar << ( bStripHQLightmaps ? Dummy : Textures[0] );
-			Ar << ( bStripLQLightmaps ? Dummy : Textures[1] );
+			ULightMapTexture2D*& Texture1 = bStripHQLightmaps ? Dummy : Textures[0];
+			ULightMapTexture2D*& Texture2 = bStripLQLightmaps ? Dummy : Textures[1];
+			Ar << Texture1;
+			Ar << Texture2;
 		}
 		else
 		{
@@ -2147,11 +2149,13 @@ void FLightMap2D::Serialize(FArchive& Ar)
 				bool bStripHQLightmaps = !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::HighQualityLightmaps);
 
 				ULightMapTexture2D* Dummy = NULL;
-				Ar << (bStripHQLightmaps ? Dummy : SkyOcclusionTexture);
+				ULightMapTexture2D*& SkyTexture = bStripHQLightmaps ? Dummy : SkyOcclusionTexture;
+				Ar << SkyTexture;
 
 				if (Ar.UE4Ver() >= VER_UE4_AO_MATERIAL_MASK)
 				{
-					Ar << (bStripHQLightmaps ? Dummy : AOMaterialMaskTexture);
+					ULightMapTexture2D*& MaskTexture = bStripHQLightmaps ? Dummy : AOMaterialMaskTexture;
+					Ar << MaskTexture;
 				}
 			}
 			else

@@ -76,12 +76,7 @@ void UByteProperty::Serialize( FArchive& Ar )
 		Ar.Preload(Enum);
 	}
 }
-void UByteProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	UByteProperty* This = CastChecked<UByteProperty>(InThis);
-	Collector.AddReferencedObject( This->Enum, This );
-	Super::AddReferencedObjects( This, Collector );
-}
+
 FString UByteProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
 {
 	if (Enum)

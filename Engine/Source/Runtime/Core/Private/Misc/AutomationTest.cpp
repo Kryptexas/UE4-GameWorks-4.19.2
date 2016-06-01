@@ -18,7 +18,7 @@ void FAutomationTestInfo::ParseStringInfo(const FString& InTestInfo)
 	InTestInfo.ParseIntoArray(Pieces, TEXT(","), false);
 
 	// We should always have at least 3 parameters
-	check(Pieces.Num() >= 3)
+	check(Pieces.Num() >= 3);
 
 	DisplayName = Pieces[0];
 	TestName = Pieces[1];

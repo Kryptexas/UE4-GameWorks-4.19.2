@@ -608,6 +608,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			try
 			{
+                //\\epicgames.net\Root\Projects\Paragon\QA_CrashReports
 				bool bHasCrashContext = HasCrashContextFile();
 				if (bHasCrashContext)
 				{
@@ -615,7 +616,28 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					bool bTest = CrashContext != null && !string.IsNullOrEmpty( CrashContext.PrimaryCrashProperties.FullCrashDumpLocation );
 					if(bTest)
 					{
-						bUseFullMinidumpPath = true;// System.IO.Directory.Exists( CrashContext.PrimaryCrashProperties.FullCrashDumpLocation ); Doesn't work, probably due to some permissions.
+						bUseFullMinidumpPath = true;
+
+                        //Some temporary code to redirect to the new file location for fulldumps for paragon.
+                        //Consider removing this once fulldumps stop appearing in the old location.
+                        if (CrashContext.PrimaryCrashProperties.FullCrashDumpLocation.ToLower()
+                                .Contains("\\\\epicgames.net\\root\\dept\\gameqa\\paragon\\paragon_launchercrashdumps"))
+                        {
+                            //Files from old versions of the client may end up in the old location. Check for files there first.
+                            if(!System.IO.Directory.Exists( CrashContext.PrimaryCrashProperties.FullCrashDumpLocation ))
+                            {
+                                var suffix =
+                                CrashContext.PrimaryCrashProperties.FullCrashDumpLocation.Substring("\\\\epicgames.net\\root\\dept\\gameqa\\paragon\\paragon_launchercrashdumps".Length);
+                                CrashContext.PrimaryCrashProperties.FullCrashDumpLocation = String.Format("\\\\epicgames.net\\Root\\Projects\\Paragon\\QA_CrashReports{0}", suffix);
+
+                                //If the file doesn't exist in the new location either then don't use the full minidump path.
+                                bUseFullMinidumpPath =
+                                    System.IO.Directory.Exists(CrashContext.PrimaryCrashProperties.FullCrashDumpLocation);
+                            }
+                        }
+
+                        //End of temporary code.
+
 						FLogger.Global.WriteEvent( "ReadCrashContextIfAvailable " + CrashContext.PrimaryCrashProperties.FullCrashDumpLocation + " is " + bUseFullMinidumpPath );
 					}
 				}
@@ -670,7 +692,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// </summary>
 		public string GetDumpTitle()
 		{
-			var Title = UseFullMinidumpPath() ? "Copy the link and open in the explorer" : "";
+			var Title = UseFullMinidumpPath() ? 
+                "Copy the link and open in the explorer" : "";
 			return Title;
 		}
 
@@ -802,42 +825,41 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				List<string> PatternList = new List<string>();
 				var FunctionCalls = Context.FunctionCalls;
 
-				// Get an array of callstack items
+				// Get an array of call stack items
 				CallStackContainer CallStack = GetCallStack();
 
 				if( Pattern == null )
 				{
-					// Set the module based on the modules in the callstack
+					// Set the module based on the modules in the call stack
 					Module = CallStack.GetModuleName();
 					try
 					{
 						foreach (CallStackEntry Entry in CallStack.CallStackEntries.Take( CallStackContainer.MaxLinesToParse ))
 						{
-							FunctionCall CurrentFunctionCall = new FunctionCall();
+						    FunctionCall currentFunctionCall;
 
-							if( FunctionCalls.Where( f => f.Call == Entry.FunctionName ).Count() > 0 )
+							if( FunctionCalls.Any( f => f.Call == Entry.FunctionName ) )
 							{
-								CurrentFunctionCall = FunctionCalls.Where( f => f.Call == Entry.FunctionName ).First();
+								currentFunctionCall = FunctionCalls.First( f => f.Call == Entry.FunctionName );
 							}
 							else
 							{
-								CurrentFunctionCall = new FunctionCall();
-								CurrentFunctionCall.Call = Entry.FunctionName;
-								FunctionCalls.InsertOnSubmit( CurrentFunctionCall );
+								currentFunctionCall = new FunctionCall();
+								currentFunctionCall.Call = Entry.FunctionName;
+								FunctionCalls.InsertOnSubmit( currentFunctionCall );
 							}
 
-							Context.SubmitChanges();
-
-							PatternList.Add( CurrentFunctionCall.Id.ToString() );
+                            Context.SubmitChanges();
+							PatternList.Add( currentFunctionCall.Id.ToString() );
 						}
 
 						Pattern = string.Join( "+", PatternList );
-
+                        
 						Context.SubmitChanges();
 					}
 					catch( Exception Ex )
 					{
-						FLogger.Global.WriteException( "BuildPattern: " + Ex.ToString() );
+						FLogger.Global.WriteException( "BuildPattern exception: " + Ex.Message.ToString() );
 					}
 				}
 			}

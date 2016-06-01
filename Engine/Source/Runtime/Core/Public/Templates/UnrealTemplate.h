@@ -329,6 +329,30 @@ FORCEINLINE typename TRemoveReference<T>::Type&& MoveTemp(T&& Obj)
 }
 
 /**
+ * CopyTemp will enforce the creation of an rvalue which can bind to rvalue reference parameters.
+ * Unlike MoveTemp, the source object will never be modifed. (i.e. a copy will be made)
+ * There is no std:: equivalent.
+ */
+template <typename T>
+FORCEINLINE T CopyTemp(T& Val)
+{
+	return const_cast<const T&>(Val);
+}
+
+template <typename T>
+FORCEINLINE T CopyTemp(const T& Val)
+{
+	return Val;
+}
+
+template <typename T>
+FORCEINLINE T&& CopyTemp(T&& Val)
+{
+	// If we already have an rvalue, just return it unchanged, rather than needlessly creating yet another rvalue from it.
+	return MoveTemp(Val);
+}
+
+/**
  * Forward will cast a reference to an rvalue reference.
  * This is UE's equivalent of std::forward.
  */

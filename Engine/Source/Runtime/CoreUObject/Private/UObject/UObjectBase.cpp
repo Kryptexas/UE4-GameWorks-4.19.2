@@ -807,8 +807,10 @@ void ProcessNewlyLoadedUObjects()
 #endif
 	UClassRegisterAllCompiledInClasses();
 
+	bool bNewUObjects = false;
 	while( AnyNewlyLoadedUObjects() )
 	{
+		bNewUObjects = true;
 		UObjectProcessRegistrants();
 		UObjectLoadAllCompiledInStructs();
 		UObjectLoadAllCompiledInDefaultProperties();		
@@ -816,6 +818,11 @@ void ProcessNewlyLoadedUObjects()
 #if WITH_HOT_RELOAD
 	UClassReplaceHotReloadClasses();
 #endif
+
+	if (bNewUObjects && !GIsInitialLoad)
+	{
+		UClass::AssembleReferenceTokenStreams();
+	}
 }
 
 static int32 GVarMaxObjectsNotConsideredByGC;

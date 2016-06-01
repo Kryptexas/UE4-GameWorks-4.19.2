@@ -148,13 +148,14 @@ void FStaticMeshVertexBuffer::RemoveLegacyShadowVolumeVertices(uint32 InNumVerti
 template<typename SrcVertexTypeT, typename DstVertexTypeT>
 void FStaticMeshVertexBuffer::ConvertVertexFormat()
 {
+	CA_SUPPRESS(6326);
 	if (SrcVertexTypeT::TangentBasisType == DstVertexTypeT::TangentBasisType &&
 		SrcVertexTypeT::UVType == DstVertexTypeT::UVType)
 	{
 		return;
 	}
 
-	check(SrcVertexTypeT::NumTexCoords == DstVertexTypeT::NumTexCoords);
+	static_assert(SrcVertexTypeT::NumTexCoords == DstVertexTypeT::NumTexCoords, "NumTexCoords don't match");
 
 	auto& SrcVertexData = *static_cast<TStaticMeshVertexData<SrcVertexTypeT>*>(VertexData);
 
@@ -174,7 +175,9 @@ void FStaticMeshVertexBuffer::ConvertVertexFormat()
 		}
 	}
 
+	CA_SUPPRESS(6326);
 	bUseHighPrecisionTangentBasis = DstVertexTypeT::TangentBasisType == EStaticMeshVertexTangentBasisType::HighPrecision;
+	CA_SUPPRESS(6326);
 	bUseFullPrecisionUVs = DstVertexTypeT::UVType == EStaticMeshVertexUVType::HighPrecision;
 
 	AllocateData();
@@ -1622,23 +1625,6 @@ void UStaticMesh::ReleaseResources()
 
 	// insert a fence to signal when these commands completed
 	ReleaseResourcesFence.BeginFence();
-}
-
-/**
- * Callback used to allow object register its direct object references that are not already covered by
- * the token stream.
- *
- * @param ObjectArray	array to add referenced objects to via AddReferencedObject
- */
-void UStaticMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	UStaticMesh* This = CastChecked<UStaticMesh>(InThis);
-	Collector.AddReferencedObject( This->BodySetup, This );
-	if (This->NavCollision != NULL)
-	{
-		Collector.AddReferencedObject( This->NavCollision, This );
-	}
-	Super::AddReferencedObjects( This, Collector );
 }
 
 #if WITH_EDITOR

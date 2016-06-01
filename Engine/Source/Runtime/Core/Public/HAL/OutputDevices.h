@@ -119,7 +119,7 @@ struct CORE_API FLogCategoryBase
 	/** Destructor, unregisters from the log suppression system **/
 	~FLogCategoryBase();
 	/** Should not generally be used directly. Tests the runtime verbosity and maybe triggers a debug break, etc. **/
-	FORCEINLINE bool IsSuppressed(ELogVerbosity::Type VerbosityLevel)
+	FORCEINLINE bool IsSuppressed(ELogVerbosity::Type VerbosityLevel) const
 	{
 		if ((VerbosityLevel & ELogVerbosity::VerbosityMask) <= Verbosity)
 		{

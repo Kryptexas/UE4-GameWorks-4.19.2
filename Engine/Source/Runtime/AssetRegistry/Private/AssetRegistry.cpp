@@ -1585,6 +1585,8 @@ FDependsNode* FAssetRegistry::ResolveRedirector(FDependsNode* InDependency, TMap
 	
 	while (Result == nullptr)
 	{
+		checkSlow(InDependency);
+
 		if (EncounteredDependencies.Contains(InDependency->GetPackageName()))
 		{
 			break;
@@ -1951,6 +1953,8 @@ void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TArray<
 	for (AssetIndex = 0; AssetIndex < AssetResults.Num(); ++AssetIndex)
 	{
 		FAssetData*& BackgroundResult = AssetResults[AssetIndex];
+
+		CA_ASSUME(BackgroundResult);
 
 		// Try to update any asset data that may already exist
 		FAssetData* AssetData = nullptr;

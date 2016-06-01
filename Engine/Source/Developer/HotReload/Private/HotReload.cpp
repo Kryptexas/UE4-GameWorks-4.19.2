@@ -843,7 +843,16 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 			Script->PrepareCppStructOps();
 			check(Script->GetCppStructOps());
 		}
-		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload successful (%d functions remapped  %d scriptstructs remapped)"), NumFunctionsRemapped, ScriptStructs.Num());
+		// Make sure new classes have the token stream assembled
+		for (FRawObjectIterator It; It; ++It)
+		{
+			UClass* Class = Cast<UClass>(static_cast<UObject*>(It->Object));
+			if (Class && !Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
+			{
+				Class->AssembleReferenceTokenStream();
+			}
+		}
+		HotReloadAr.Logf(ELogVerbosity::Display, TEXT("HotReload successful (%d functions remapped  %d scriptstructs remapped)"), NumFunctionsRemapped, ScriptStructs.Num());
 
 		HotReloadFunctionRemap.Empty();
 
@@ -855,7 +864,7 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(const TArray<FRec
 
 	HotReloadEvent.Broadcast( !bIsHotReloadingFromEditor );
 
-	HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload took %4.1fs."), FPlatformTime::Seconds() - HotReloadStartTime);
+	HotReloadAr.Logf(ELogVerbosity::Display, TEXT("HotReload took %4.1fs."), FPlatformTime::Seconds() - HotReloadStartTime);
 
 	bIsHotReloadingFromEditor = false;
 	return Result;

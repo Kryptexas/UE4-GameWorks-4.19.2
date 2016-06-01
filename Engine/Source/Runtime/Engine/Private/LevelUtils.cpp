@@ -269,7 +269,7 @@ void FLevelUtils::MarkLevelForUnloading(ULevel* Level)
  */
 bool FLevelUtils::IsLevelVisible(const ULevelStreaming* StreamingLevel)
 {
-	const bool bVisible = StreamingLevel->bShouldBeVisibleInEditor;
+	const bool bVisible = StreamingLevel && StreamingLevel->bShouldBeVisibleInEditor;
 	return bVisible;
 }
 
@@ -280,8 +280,13 @@ bool FLevelUtils::IsLevelVisible(const ULevelStreaming* StreamingLevel)
  */
 bool FLevelUtils::IsLevelVisible(const ULevel* Level)
 {
+	if (!Level)
+	{
+		return false;
+	}
+
 	// P-level is specially handled
-	if ( Level && Level->IsPersistentLevel() )
+	if ( Level->IsPersistentLevel() )
 	{
 #if WITH_EDITORONLY_DATA
 		return !( Level->OwningWorld->PersistentLevel->GetWorldSettings()->bHiddenEdLevel );
@@ -290,7 +295,8 @@ bool FLevelUtils::IsLevelVisible(const ULevel* Level)
 #endif
 	}
 
-	if (Level->GetName() == TEXT("TransLevelMoveBuffer"))
+	static const FName NAME_TransLevelMoveBuffer(TEXT("TransLevelMoveBuffer"));
+	if (Level->GetFName() == NAME_TransLevelMoveBuffer)
 	{
 		// The TransLevelMoveBuffer does not exist in the streaming list and is never visible
 		return false;

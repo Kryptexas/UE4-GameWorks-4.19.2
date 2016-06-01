@@ -218,7 +218,7 @@ private:
 						ObjectClass->AssembleReferenceTokenStream();
 					}
 				}
-				checkSlow(CurrentObject->GetClass()->HasAnyClassFlags(CLASS_TokenStreamAssembled));
+				check(CurrentObject->GetClass()->HasAnyClassFlags(CLASS_TokenStreamAssembled));
 
 				// Get pointer to token stream and jump to the start.
 				FGCReferenceTokenStream* RESTRICT TokenStream = &CurrentObject->GetClass()->ReferenceTokenStream;

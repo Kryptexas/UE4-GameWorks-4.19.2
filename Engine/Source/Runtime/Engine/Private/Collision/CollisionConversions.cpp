@@ -649,7 +649,7 @@ FVector FindBestOverlappingNormal(const UWorld* World, const PxGeometry& Geom, c
 		}
 
 #if DRAW_OVERLAPPING_TRIS
-		if (bCanDrawOverlaps && (World->PersistentLineBatcher->BatchedLines.Num() < 2048))
+		if (bCanDrawOverlaps && World && World->PersistentLineBatcher && World->PersistentLineBatcher->BatchedLines.Num() < 2048)
 		{
 			static const float LineThickness = 0.9f;
 			static const float NormalThickness = 0.75f;

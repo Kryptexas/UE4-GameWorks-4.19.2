@@ -5,6 +5,7 @@
 #include "SceneTypes.h"
 #include "StaticLighting.h"
 #include "Components/PrimitiveComponent.h"
+#include "LandscapeProxy.h"
 
 #include "LandscapeMeshProxyComponent.generated.h"
 

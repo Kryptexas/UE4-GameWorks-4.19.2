@@ -341,13 +341,17 @@ FGlobalBoundShaderState AtmosphereBoundShaderState[EAtmosphereRenderFlag::E_Rend
 
 void SetAtmosphericFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const FViewInfo& View, const TRefCountPtr<IPooledRenderTarget>& LightShaftOcclusion)
 {
+	uint32 RenderFlag = Scene->AtmosphericFog->RenderFlag;
+
 	auto ShaderMap = View.ShaderMap;
 
 	TShaderMapRef<FAtmosphericVS> VertexShader(ShaderMap);
 	FAtmosphericFogPS* PixelShader = NULL;
-	switch (Scene->AtmosphericFog->RenderFlag)
+	switch (RenderFlag)
 	{
 	default:
+		checkSlow(false)
+
 	case EAtmosphereRenderFlag::E_EnableAll:
 		PixelShader = *TShaderMapRef<TAtmosphericFogPS<EAtmosphereRenderFlag::E_EnableAll> >(ShaderMap);
 		break;
@@ -374,7 +378,7 @@ void SetAtmosphericFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const 
 		break;
 	}
 	
-	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), AtmosphereBoundShaderState[Scene->AtmosphericFog->RenderFlag], GAtmophereVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), AtmosphereBoundShaderState[RenderFlag], GAtmophereVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 	VertexShader->SetParameters(RHICmdList, View);
 	PixelShader->SetParameters(RHICmdList, View, LightShaftOcclusion);
 }

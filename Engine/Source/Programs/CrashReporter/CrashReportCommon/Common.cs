@@ -60,6 +60,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 	/// </summary>
 	public class CrashDescription
 	{
+        /// <summary>The type of the crash e.g. crash, assert or ensure. </summary>
+	    [XmlElement] 
+        public string CrashType = "";
+
 		/// <summary>The name of the branch this game was built out of.</summary>
 		[XmlElement]
 		public string BranchName = "";
@@ -140,6 +144,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary>The error message, can be assertion message, ensure message or message from the fatal error.</summary>
 		[XmlElement]
 		public string[] ErrorMessage = null;
+
+		/// <summary>Crash GUID from the crash context.</summary>
+		[XmlElement]
+		public string CrashGUID = "";
 
 		/// <summary>The UTC time the crash occurred.</summary>
 		[XmlElement]

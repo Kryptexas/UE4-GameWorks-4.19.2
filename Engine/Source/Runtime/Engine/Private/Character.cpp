@@ -1284,7 +1284,7 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 
 	const FAnimMontageInstance* RootMotionMontageInstance = GetRootMotionAnimMontageInstance();
 
-	if ( (CharacterMovement && CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources()) || RootMotionMontageInstance )
+	if ( CharacterMovement->CurrentRootMotion.HasActiveRootMotionSources() || RootMotionMontageInstance )
 	{
 		RepRootMotion.bIsActive = true;
 		// Is position stored in local space?
@@ -1303,18 +1303,10 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		{
 			RepRootMotion.AnimMontage = nullptr;
 		}
-		if (CharacterMovement)
-		{
-			RepRootMotion.AuthoritativeRootMotion = CharacterMovement->CurrentRootMotion;
-			RepRootMotion.Acceleration = CharacterMovement->GetCurrentAcceleration();
-			RepRootMotion.LinearVelocity = CharacterMovement->Velocity;
-		}
-		else
-		{
-			RepRootMotion.AuthoritativeRootMotion.Clear();
-			RepRootMotion.Acceleration = FVector::ZeroVector;
-			RepRootMotion.LinearVelocity = FVector::ZeroVector;
-		}
+
+		RepRootMotion.AuthoritativeRootMotion = CharacterMovement->CurrentRootMotion;
+		RepRootMotion.Acceleration = CharacterMovement->GetCurrentAcceleration();
+		RepRootMotion.LinearVelocity = CharacterMovement->Velocity;
 
 		DOREPLIFETIME_ACTIVE_OVERRIDE( ACharacter, RepRootMotion, true );
 	}

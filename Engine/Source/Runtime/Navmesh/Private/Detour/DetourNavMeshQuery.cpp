@@ -729,6 +729,7 @@ void dtNavMeshQuery::closestPointOnPolyInTile(const dtMeshTile* tile, const dtPo
 		}
 		const float* va = &verts[imin*3];
 		const float* vb = &verts[((imin+1)%nv)*3];
+		CA_SUPPRESS(6385);
 		dtVlerp(closest, va, vb, edget[imin]);
 	}
 
@@ -744,9 +745,14 @@ void dtNavMeshQuery::closestPointOnPolyInTile(const dtMeshTile* tile, const dtPo
 			for (int k = 0; k < 3; ++k)
 			{
 				if (t[k] < poly->vertCount)
+				{
+					CA_SUPPRESS(6385);
 					v[k] = &tile->verts[poly->verts[t[k]]*3];
+				}
 				else
+				{
 					v[k] = &tile->detailVerts[(pd->vertBase+(t[k]-poly->vertCount))*3];
+				}
 			}
 			float h;
 			if (dtClosestHeightPointTriangle(pos, v[0], v[1], v[2], h))
@@ -822,6 +828,7 @@ dtStatus dtNavMeshQuery::closestPointOnPolyBoundary(dtPolyRef ref, const float* 
 		}
 		const float* va = &verts[imin*3];
 		const float* vb = &verts[((imin+1)%nv)*3];
+		CA_SUPPRESS(6385);
 		dtVlerp(closest, va, vb, edget[imin]);
 	}
 	
@@ -3054,6 +3061,7 @@ dtStatus dtNavMeshQuery::raycast(dtPolyRef startRef, const float* startPos, cons
 			
 			// Check for partial edge links.
 			const int v0 = poly->verts[link.edge];
+			CA_SUPPRESS(6385);
 			const int v1 = poly->verts[(link.edge+1) % poly->vertCount];
 			const float* left = &tile->verts[v0*3];
 			const float* right = &tile->verts[v1*3];
@@ -3936,7 +3944,7 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 	dtSegInterval ints[MAX_INTERVAL];
 	int nints;
 	
-	const bool storePortals = false;// segmentRefs != 0;
+	bool storePortals = false;// segmentRefs != 0;
 	
 	dtStatus status = DT_SUCCESS;
 	
@@ -4393,6 +4401,7 @@ dtStatus dtNavMeshQuery::findDistanceToWall(dtPolyRef startRef, const float* cen
 			
 			// Calc distance to the edge.
 			const float* va = &bestTile->verts[bestPoly->verts[link.edge]*3];
+			CA_SUPPRESS(6385);
 			const float* vb = &bestTile->verts[bestPoly->verts[(link.edge+1) % bestPoly->vertCount]*3];
 			float tseg;
 			float distSqr = dtDistancePtSegSqr2D(centerPos, va, vb, tseg);

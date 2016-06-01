@@ -98,11 +98,13 @@ template <typename DistributionType>
 void BuildLookupTable( FDistributionLookupTable* OutTable, const DistributionType* Distribution )
 {
 	check(IsInGameThread() || IsInAsyncLoadingThread());
+	check(Distribution);
+
 	// Always clear the table.
 	OutTable->Empty();
 
 	// Nothing to do if we don't have a distribution.
-	if ( Distribution == NULL || !Distribution->CanBeBaked() )
+	if ( !Distribution->CanBeBaked() )
 	{
 		BuildZeroLookupTable( OutTable, Distribution->GetValueCount() );
 		return;

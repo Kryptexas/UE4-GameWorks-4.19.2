@@ -760,7 +760,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
     
 			    if (bConstrainAspectRatio)
 			    {
-				    if ((int32)ERHIZBuffer::IsInverted != 0)
+				    if ((bool)ERHIZBuffer::IsInverted)
 				    {
 					    ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
 						    MatrixFOV,
@@ -801,7 +801,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 					    YAxisMultiplier = 1.0f;
 				    }
     
-				    if ((int32)ERHIZBuffer::IsInverted != 0)
+				    if ((bool)ERHIZBuffer::IsInverted)
 				    {
 					    ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
 						    MatrixFOV,
@@ -828,7 +828,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, c
 		}
 		else
 		{
-			static_assert((int32)ERHIZBuffer::IsInverted != 0, "Check all the Rotation Matrix transformations!");
+			static_assert((bool)ERHIZBuffer::IsInverted, "Check all the Rotation Matrix transformations!");
 			float ZScale = 0.5f / HALF_WORLD_MAX;
 			float ZOffset = HALF_WORLD_MAX;
 

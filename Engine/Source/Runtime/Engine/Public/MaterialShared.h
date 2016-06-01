@@ -1450,7 +1450,7 @@ public:
 	bool IsReferencedInDrawList() const
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		return bIsStaticDrawListReferenced == 1;
+		return bIsStaticDrawListReferenced != 0;
 #else
 		return false;
 #endif

@@ -834,6 +834,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 			for (int32 ChildIdx = 0; ChildIdx < ChildrenBodies.Num(); ++ChildIdx)
 			{
 				FBodyInstance* ChildBI = ChildrenBodies[ChildIdx];
+				checkSlow(ChildBI);
 				if (ChildBI != NewRootBI)
 				{
 					if (!bRootIsBeingDeleted)

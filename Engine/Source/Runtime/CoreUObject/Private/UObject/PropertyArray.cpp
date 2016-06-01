@@ -202,12 +202,6 @@ void UArrayProperty::Serialize( FArchive& Ar )
 	Ar << Inner;
 	checkSlow(Inner || HasAnyFlags(RF_ClassDefaultObject) || IsPendingKill());
 }
-void UArrayProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	UArrayProperty* This = CastChecked<UArrayProperty>(InThis);
-	Collector.AddReferencedObject( This->Inner, This );
-	Super::AddReferencedObjects( This, Collector );
-}
 
 FString UArrayProperty::GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerTypeText, const FString& InInnerExtendedTypeText) const
 {

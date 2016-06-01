@@ -2197,7 +2197,7 @@ FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 			{
 				World = InConnection->PlayerController->GetWorld();
 			}
-			else
+			else if (ViewerPawn)
 			{
 				World = ViewerPawn->GetWorld();
 			}
@@ -2496,7 +2496,7 @@ static FORCEINLINE_DEBUGGABLE UNetConnection* IsActorOwnedByAndRelevantToConnect
 
 		if ( ActorOwner == ViewerConnection->PlayerController ||
 			 ( ViewerConnection->PlayerController && ActorOwner == ViewerConnection->PlayerController->GetPawn() ) ||
-			 ViewerConnection->ViewTarget->IsRelevancyOwnerFor( Actor, ActorOwner, ViewerConnection->OwningActor ) )
+			 (ViewerConnection->ViewTarget && ViewerConnection->ViewTarget->IsRelevancyOwnerFor( Actor, ActorOwner, ViewerConnection->OwningActor ) ) )
 		{
 			return ViewerConnection;
 		}

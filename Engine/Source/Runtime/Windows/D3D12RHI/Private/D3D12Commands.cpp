@@ -5,18 +5,6 @@ D3D12Commands.cpp: D3D RHI commands implementation.
 =============================================================================*/
 
 #include "D3D12RHIPrivate.h"
-#if WITH_D3DX_LIBS
-#include "AllowWindowsPlatformTypes.h"
-	#if _MSC_VER == 1900
-		#pragma warning(push)
-		#pragma warning(disable:4838)
-	#endif // _MSC_VER == 1900
-	#include <xnamath.h>
-	#if _MSC_VER == 1900
-		#pragma warning(pop)
-	#endif // _MSC_VER == 1900
-#include "HideWindowsPlatformTypes.h"
-#endif
 #if PLATFORM_WINRT
 #include "WinRT/D3D12RHIPrivateUtil.h"
 #else
@@ -2009,7 +1997,7 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	D3D12_RECT ClearRects[4];
 
 	// Only pass a rect down to the driver if we specifically want to clear a sub-rect
-	if (bSupportsFastClear == false || bClearCoversEntireSurface == false)
+	if (!bSupportsFastClear || !bClearCoversEntireSurface)
 	{
 // TODO: Exclude rects are an optional optimzation, need to make them work with the scissor rect as well
 #if 0

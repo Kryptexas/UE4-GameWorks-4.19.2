@@ -677,9 +677,6 @@ void FReferenceFinder::HandleObjectReference( UObject*& InObject, const UObject*
 	}
 }
 
-bool SetTokenStreamMaybeDirty(bool bDirty);
-bool IsTokenStreamDirty();
-
 /**
  * Implementation of parallel realtime garbage collector using recursive subdivision
  *
@@ -701,7 +698,6 @@ public:
 	 * Marks all objects that don't have KeepFlags and EInternalObjectFlags::GarbageCollectionKeepFlags as unreachable
 	 * This function is a template to speed up the case where we don't need to assemble the token stream (saves about 6ms on PS4)
 	 */
-	template <bool bAssembleTokenStream>
 	void MarkObjectsAsUnreachable(TArray<UObject*>& ObjectsToSerialize, const EObjectFlags KeepFlags)
 	{
 		const EInternalObjectFlags FastKeepFlags = EInternalObjectFlags::GarbageCollectionKeepFlags;
@@ -759,20 +755,6 @@ public:
 					ObjectItem->SetFlags(EInternalObjectFlags::Unreachable | EInternalObjectFlags::NoStrongReference);
 				}
 			}
-
-			if (bAssembleTokenStream)
-			{
-				// Compile will strip this out when we don't need to update the token stream since this is a template.
-				// Otherwise the GC will suffer a big performance hit.
-				if (UClass* Class = dynamic_cast<UClass*>(Object))
-				{
-					if (!Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
-					{
-						Class->AssembleReferenceTokenStream();
-						check(Class->HasAnyClassFlags(CLASS_TokenStreamAssembled));
-					}
-				}
-			}
 		}
 	}
 
@@ -799,15 +781,7 @@ public:
 			ObjectsToSerialize.Add(FGCObject::GGCObjectReferencer);
 		}
 
-		if (!IsTokenStreamDirty())
-		{
-			MarkObjectsAsUnreachable<false>(ObjectsToSerialize, KeepFlags);
-		}
-		else
-		{
-			SetTokenStreamMaybeDirty(false);
-			MarkObjectsAsUnreachable<true>(ObjectsToSerialize, KeepFlags);
-		}
+		MarkObjectsAsUnreachable(ObjectsToSerialize, KeepFlags);
 
 		{
 			FGCReferenceProcessor ReferenceProcessor;
@@ -1796,15 +1770,19 @@ void UClass::EmitFixedArrayEnd()
 	ReferenceTokenStream.EmitReturn();
 }
 
-/**
- * Assembles the token stream for realtime garbage collection by combining the per class only
- * token stream for each class in the class hierarchy. This is only done once and duplicate
- * work is avoided by using an object flag.
- */
-void UClass::AssembleReferenceTokenStream()
+void UClass::AssembleReferenceTokenStream(bool bForce)
 {
-	if (!HasAnyClassFlags(CLASS_TokenStreamAssembled))
+	if (!HasAnyClassFlags(CLASS_TokenStreamAssembled) || bForce)
 	{
+		if (bForce)
+		{
+			ReferenceTokenStream.Empty();
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+			DebugTokenMap.Empty();
+#endif
+			ClassFlags &= ~CLASS_TokenStreamAssembled;
+		}
+
 		// Iterate over properties defined in this class
 		for( TFieldIterator<UProperty> It(this,EFieldIteratorFlags::ExcludeSuper); It; ++It)
 		{

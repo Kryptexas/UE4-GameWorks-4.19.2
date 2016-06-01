@@ -2035,7 +2035,8 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 		{
 			const float ShortScale = 1.0f / 32767.0f;
 			auto* InstancingData = (const FInstancingUserData*)BatchElement.UserData;
-						
+			check(InstancingData);
+
 			FVector4 InstanceTransform[3];
 			FVector4 InstanceLightmapAndShadowMapUVBias;
 			FVector4 InstanceOrigin;

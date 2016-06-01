@@ -1238,7 +1238,7 @@ void UPathFollowingComponent::UpdateDecelerationData()
 {
 	const float CurrentMaxSpeed = MovementComp ? MovementComp->GetMaxSpeed() : 0.0f;
 	bool bUpdatePathSegment = (DecelerationSegmentIndex == INDEX_NONE);
-	if (CurrentMaxSpeed != CachedBrakingMaxSpeed)
+	if (MovementComp && CurrentMaxSpeed != CachedBrakingMaxSpeed)
 	{
 		const float PrevBrakingDistance = CachedBrakingDistance;
 		CachedBrakingDistance = MovementComp->GetPathFollowingBrakingDistance(CurrentMaxSpeed);

@@ -1475,7 +1475,7 @@ FText FPropertyValueImpl::GetDisplayName() const
 }
 
 #define IMPLEMENT_PROPERTY_ACCESSOR( ValueType ) \
-	FPropertyAccess::Result FPropertyHandleBase::SetValue( const ValueType& InValue, EPropertyValueSetFlags::Type Flags ) \
+	FPropertyAccess::Result FPropertyHandleBase::SetValue( ValueType const& InValue, EPropertyValueSetFlags::Type Flags ) \
 	{ \
 		return FPropertyAccess::Fail; \
 	} \
@@ -1502,6 +1502,7 @@ IMPLEMENT_PROPERTY_ACCESSOR( FVector4 )
 IMPLEMENT_PROPERTY_ACCESSOR( FQuat )
 IMPLEMENT_PROPERTY_ACCESSOR( FRotator )
 IMPLEMENT_PROPERTY_ACCESSOR( UObject* )
+IMPLEMENT_PROPERTY_ACCESSOR( const UObject* )
 IMPLEMENT_PROPERTY_ACCESSOR( FAssetData )
 
 FPropertyHandleBase::FPropertyHandleBase( TSharedPtr<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities )
@@ -2603,6 +2604,11 @@ bool FPropertyHandleObject::Supports( TSharedRef<FPropertyNode> PropertyNode )
 
 FPropertyAccess::Result FPropertyHandleObject::GetValue( UObject*& OutValue ) const
 {
+	return FPropertyHandleObject::GetValue((const UObject*&)OutValue);
+}
+
+FPropertyAccess::Result FPropertyHandleObject::GetValue( const UObject*& OutValue ) const
+{
 	void* PropValue = nullptr;
 	FPropertyAccess::Result Res = Implementation->GetValueData( PropValue );
 
@@ -2614,7 +2620,12 @@ FPropertyAccess::Result FPropertyHandleObject::GetValue( UObject*& OutValue ) co
 	return Res;
 }
 
-FPropertyAccess::Result FPropertyHandleObject::SetValue( const UObject*& NewValue, EPropertyValueSetFlags::Type Flags )
+FPropertyAccess::Result FPropertyHandleObject::SetValue( UObject* const& NewValue, EPropertyValueSetFlags::Type Flags )
+{
+	return FPropertyHandleObject::SetValue((const UObject*)NewValue);
+}
+
+FPropertyAccess::Result FPropertyHandleObject::SetValue( const UObject* const& NewValue, EPropertyValueSetFlags::Type Flags )
 {
 	UProperty* Property = Implementation->GetPropertyNode()->GetProperty();
 

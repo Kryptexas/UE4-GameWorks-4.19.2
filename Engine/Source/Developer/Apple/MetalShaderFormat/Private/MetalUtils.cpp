@@ -1394,10 +1394,12 @@ static ir_rvalue* GenShaderOutputSemantic(
 	exec_list* DeclInstructions,
 	const glsl_type** DestVariableType)
 {
+	check(Semantic);
+
 	FSystemValue* SystemValues = SystemValueTable[Frequency];
 	ir_variable* Variable = NULL;
 
-	if (Semantic && FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
+	if (FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 	{
 		for (int i = 0; SystemValues[i].Semantic != NULL; ++i)
 		{
@@ -2424,7 +2426,12 @@ void FMetalCodeBackend::RemovePackedVarReferences(exec_list* ir, _mesa_glsl_pars
 	FDeReferencePackedVarsVisitor Visitor(State);
 	Visitor.run(ir);
 
-	auto* Main = Visitor.Replaced.empty() ? nullptr : GetMainFunction(ir);
+	if (Visitor.Replaced.empty())
+	{
+		return;
+	}
+
+	ir_function_signature* Main = GetMainFunction(ir);
 	for (auto& OuterPair : Visitor.Replaced)
 	{
 		auto* NewVar = OuterPair.second;

@@ -486,6 +486,7 @@ bool UBehaviorTreeComponent::IsAuxNodeActive(const UBTAuxiliaryNode* AuxNode) co
 			}
 
 			// check instanced version
+			CA_SUPPRESS(6011);
 			if (AuxNode->IsInstanced() && TestAuxNode && TestAuxNode->GetExecutionIndex() == AuxExecutionIndex)
 			{
 				const uint8* NodeMemory = TestAuxNode->GetNodeMemory<uint8>(InstanceInfo);
@@ -639,17 +640,17 @@ static void FindCommonParent(const TArray<FBehaviorTreeInstance>& Instances, con
 	UBTCompositeNode* NodeB = (CommonInstanceIdx == InstanceIdxB) ? InNodeB : Instances[CommonInstanceIdx].ActiveNode->GetParentNode();
 
 	// special case: node was taken from CommonInstanceIdx, but it had ActiveNode set to root (no parent)
-	if (NodeA == NULL && CommonInstanceIdx != InstanceIdxA)
+	if (!NodeA && CommonInstanceIdx != InstanceIdxA)
 	{
 		NodeA = Instances[CommonInstanceIdx].RootNode;
 	}
-	if (NodeB == NULL && CommonInstanceIdx != InstanceIdxB)
+	if (!NodeB && CommonInstanceIdx != InstanceIdxB)
 	{
 		NodeB = Instances[CommonInstanceIdx].RootNode;
 	}
 
 	// if one of nodes is still empty, we have serious problem with execution flow - crash and log details
-	if (NodeA == NULL || NodeB == NULL)
+	if (!NodeA || !NodeB)
 	{
 		FString AssetAName = Instances.IsValidIndex(InstanceIdxA) && KnownInstances.IsValidIndex(Instances[InstanceIdxA].InstanceIdIndex) ? GetNameSafe(KnownInstances[Instances[InstanceIdxA].InstanceIdIndex].TreeAsset) : TEXT("unknown");
 		FString AssetBName = Instances.IsValidIndex(InstanceIdxB) && KnownInstances.IsValidIndex(Instances[InstanceIdxB].InstanceIdIndex) ? GetNameSafe(KnownInstances[Instances[InstanceIdxB].InstanceIdIndex].TreeAsset) : TEXT("unknown");
@@ -912,6 +913,8 @@ void UBehaviorTreeComponent::ApplySearchUpdates(const TArray<FBehaviorTreeSearch
 		}
 
 		const UBTNode* UpdateNode = UpdateInfo.AuxNode ? (const UBTNode*)UpdateInfo.AuxNode : (const UBTNode*)UpdateInfo.TaskNode;
+		checkSlow(UpdateNode);
+
 		if ((UpdateInfo.Mode == EBTNodeUpdateMode::Remove && !bIsComponentActive) ||
 			(UpdateInfo.Mode == EBTNodeUpdateMode::Add && (bIsComponentActive || UpdateNode->GetExecutionIndex() > NewNodeExecutionIndex)) ||
 			(UpdateInfo.bPostUpdate != bPostUpdate))
@@ -1431,6 +1434,8 @@ void UBehaviorTreeComponent::UnregisterAuxNodesInBranch(const UBTCompositeNode* 
 	const int32 InstanceIdx = FindInstanceContainingNode(Node);
 	if (InstanceIdx != INDEX_NONE)
 	{
+		check(Node);
+
 		TArray<FBehaviorTreeSearchUpdate> UpdateList;
 
 		for (int32 Idx = 0; Idx < InstanceStack[InstanceIdx].ActiveAuxNodes.Num(); Idx++)

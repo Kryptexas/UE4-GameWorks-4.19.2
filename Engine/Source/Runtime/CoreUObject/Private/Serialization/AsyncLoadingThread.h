@@ -46,6 +46,7 @@ class FAsyncLoadingThread : public FRunnable
 #endif
 	/** [GAME THREAD] Event used to signal there's queued packages to stream */
 	TArray<FAsyncPackage*> LoadedPackagesToProcess;
+	TArray<FAsyncPackage*> PackagesToDelete;
 	TMap<FName, FAsyncPackage*> LoadedPackagesToProcessNameLookup;
 #if THREADSAFE_UOBJECTS
 	/** [ASYNC/GAME THREAD] Critical section for LoadedPackagesToProcess list. 

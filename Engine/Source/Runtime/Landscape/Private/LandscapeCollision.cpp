@@ -263,8 +263,9 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 
 				FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
 
-				PxRigidStatic* HeightFieldActorAsync = NULL;
-				if (PhysScene->HasAsyncScene())
+				PxRigidStatic* HeightFieldActorAsync = nullptr;
+				bool bHasAsyncScene = PhysScene->HasAsyncScene();
+				if (bHasAsyncScene)
 				{
 					// Create the async scene actor
 					HeightFieldActorAsync = GPhysXSDK->createRigidStatic(PhysXLandscapeComponentTransform);
@@ -302,11 +303,11 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 				BodyInstance.PhysxUserData = FPhysxUserData(&BodyInstance);
 				BodyInstance.OwnerComponent = this;
 				BodyInstance.SceneIndexSync = PhysScene->PhysXSceneIndex[PST_Sync];
-				BodyInstance.SceneIndexAsync = PhysScene->HasAsyncScene() ? PhysScene->PhysXSceneIndex[PST_Async] : 0;
+				BodyInstance.SceneIndexAsync = bHasAsyncScene ? PhysScene->PhysXSceneIndex[PST_Async] : 0;
 				BodyInstance.RigidActorSync = HeightFieldActorSync;
 				BodyInstance.RigidActorAsync = HeightFieldActorAsync;
 				HeightFieldActorSync->userData = &BodyInstance.PhysxUserData;
-				if (PhysScene->HasAsyncScene())
+				if (bHasAsyncScene)
 				{
 					HeightFieldActorAsync->userData = &BodyInstance.PhysxUserData;
 				}
@@ -316,7 +317,7 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 				SCOPED_SCENE_WRITE_LOCK(SyncScene);
 				SyncScene->addActor(*HeightFieldActorSync);
 
-				if (PhysScene->HasAsyncScene())
+				if (bHasAsyncScene)
 				{
 					PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
 
@@ -983,8 +984,9 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 
 				FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
 
-				PxRigidStatic* MeshActorAsync = NULL;
-				if (PhysScene->HasAsyncScene())
+				PxRigidStatic* MeshActorAsync = nullptr;
+				bool bHasAsyncScene = PhysScene->HasAsyncScene();
+				if (bHasAsyncScene)
 				{
 					// Create the async scene actor
 					MeshActorAsync = GPhysXSDK->createRigidStatic(PhysXLandscapeComponentTransform);
@@ -1031,11 +1033,11 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 				BodyInstance.PhysxUserData = FPhysxUserData(&BodyInstance);
 				BodyInstance.OwnerComponent = this;
 				BodyInstance.SceneIndexSync = PhysScene->PhysXSceneIndex[PST_Sync];
-				BodyInstance.SceneIndexAsync = PhysScene->HasAsyncScene() ? PhysScene->PhysXSceneIndex[PST_Async] : 0;
+				BodyInstance.SceneIndexAsync = bHasAsyncScene ? PhysScene->PhysXSceneIndex[PST_Async] : 0;
 				BodyInstance.RigidActorSync = MeshActorSync;
 				BodyInstance.RigidActorAsync = MeshActorAsync;
 				MeshActorSync->userData = &BodyInstance.PhysxUserData;
-				if (PhysScene->HasAsyncScene())
+				if (bHasAsyncScene)
 				{
 					MeshActorAsync->userData = &BodyInstance.PhysxUserData;
 				}
@@ -1045,7 +1047,7 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 				SCOPED_SCENE_WRITE_LOCK(SyncScene);
 				SyncScene->addActor(*MeshActorSync);
 
-				if (PhysScene->HasAsyncScene())
+				if (bHasAsyncScene)
 				{
 					PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
 

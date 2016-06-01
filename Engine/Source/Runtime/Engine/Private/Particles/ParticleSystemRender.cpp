@@ -5713,6 +5713,8 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 	int32 MaxTessellationBetweenParticles = FMath::Max<int32>(Source.MaxTessellationBetweenParticles, 1);
 	int32 Sheets = 1;
 
+	bool bUseDynamic = bUsesDynamicParameter && TempDynamicParamData != nullptr;
+
 	// The distance tracking for tiling the 2nd UV set
 	float CurrDistance = 0.0f;
 
@@ -5744,7 +5746,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 		int32 VertexStride = sizeof(FParticleBeamTrailVertex);
 		int32 DynamicParameterStride = 0;
 		bool bFillDynamic = false;
-		if (bUsesDynamicParameter == true && Data.DynamicParameterData != NULL)
+		if (bUseDynamic)
 		{
 			DynamicParameterStride = sizeof(FParticleBeamTrailVertexDynamicParameter);
 			if (Source.DynamicParameterDataOffset > 0)
@@ -5846,7 +5848,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 					Vertex->Tex_V2 = 0.0f;
 					Vertex->Rotation = PackingParticle->Rotation;
 					Vertex->Color = InterpColor;
-					if (bUsesDynamicParameter == true)
+					if (bUseDynamic)
 					{
 						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 						DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -5871,7 +5873,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 					Vertex->Tex_V2 = 1.0f;
 					Vertex->Rotation = PackingParticle->Rotation;
 					Vertex->Color = InterpColor;
-					if (bUsesDynamicParameter == true)
+					if (bUseDynamic)
 					{
 						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 						DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -5914,7 +5916,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 				Vertex->Tex_V2 = 0.0f;
 				Vertex->Rotation = PackingParticle->Rotation;
 				Vertex->Color = PackingParticle->Color;
-				if (bUsesDynamicParameter == true)
+				if (bUseDynamic)
 				{
 					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 					if (CurrDynPayload != NULL)
@@ -5948,7 +5950,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 				Vertex->Tex_V2 = 1.0f;
 				Vertex->Rotation = PackingParticle->Rotation;
 				Vertex->Color = PackingParticle->Color;
-				if (bUsesDynamicParameter == true)
+				if (bUseDynamic)
 				{
 					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 					if (CurrDynPayload != NULL)
@@ -6415,6 +6417,8 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 
 	int32 Sheets = 1;
 
+	bool bUseDynamic = bUsesDynamicParameter && TempDynamicParamData != nullptr;
+
 	// The increment for going [0..1] along the complete trail
 	float TextureIncrement = 1.0f / (Data.VertexCount / 2.0f);
 	// The distance tracking for tiling the 2nd UV set
@@ -6443,7 +6447,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 		int32 VertexStride = sizeof(FParticleBeamTrailVertex);
 		int32 DynamicParamStride = 0;
 		bool bFillDynamic = false;
-		if (bUsesDynamicParameter == true && Data.DynamicParameterData != NULL)
+		if (bUseDynamic)
 		{
 			DynamicParamStride = sizeof(FParticleBeamTrailVertexDynamicParameter);
 			if (Source.DynamicParameterDataOffset > 0)
@@ -6496,7 +6500,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 					Vertex->Tex_V2 = 0.0f;
 					Vertex->Rotation = RenderData.Particle->Rotation;
 					Vertex->Color = InterpColor;
-					if (bUsesDynamicParameter == true)
+					if (bUseDynamic)
 					{
 						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 						DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -6519,7 +6523,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 					Vertex->Tex_V2 = 1.0f;
 					Vertex->Rotation = RenderData.Particle->Rotation;
 					Vertex->Color = InterpColor;
-					if (bUsesDynamicParameter == true)
+					if (bUseDynamic)
 					{
 						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 						DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -6559,7 +6563,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 				Vertex->Tex_V2 = 0.0f;
 				Vertex->Rotation = RenderData.Particle->Rotation;
 				Vertex->Color = InterpColor;
-				if (bUsesDynamicParameter == true)
+				if (bUseDynamic)
 				{
 					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 					DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -6583,7 +6587,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 				Vertex->Tex_V2 = 1.0f;
 				Vertex->Rotation = RenderData.Particle->Rotation;
 				Vertex->Color = InterpColor;
-				if (bUsesDynamicParameter == true)
+				if (bUseDynamic)
 				{
 					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 					DynParamVertex->DynamicValue[0] = InterpDynamic.X;
@@ -6639,7 +6643,7 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemCompon
 	LODMethod = Component->LODMethod;
 
 	// Particle systems intrinsically always have motion, but is this motion relevant to systems external to particle systems?
-	bAlwaysHasVelocity = Component->Template->DoesAnyEmitterHaveMotionBlur(Component->GetCurrentLODIndex());
+	bAlwaysHasVelocity = Component->Template && Component->Template->DoesAnyEmitterHaveMotionBlur(Component->GetCurrentLODIndex());
 }
 
 FParticleSystemSceneProxy::~FParticleSystemSceneProxy()
@@ -7009,9 +7013,9 @@ void FParticleSystemSceneProxy::GatherSimpleLights(const FSceneViewFamily& ViewF
 		for (int32 EmitterIndex = 0; EmitterIndex < DynamicData->DynamicEmitterDataArray.Num(); EmitterIndex++)
 		{
 			const FDynamicEmitterDataBase* DynamicEmitterData = DynamicData->DynamicEmitterDataArray[EmitterIndex];
-			FScopeCycleCounter AdditionalScope(DynamicEmitterData->StatID);
 			if (DynamicEmitterData)
 			{
+				FScopeCycleCounter AdditionalScope(DynamicEmitterData->StatID);
 				DynamicEmitterData->GatherSimpleLights(this, ViewFamily, OutParticleLights);
 			}
 		}

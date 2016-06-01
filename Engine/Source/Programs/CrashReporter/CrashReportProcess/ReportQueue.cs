@@ -449,12 +449,14 @@ namespace Tools.CrashReporter.CrashReportProcess
 			{
 				CrashReporterProcessServicer.WriteEvent("% Warning NoBranch: BuiltFromCL=" + string.Format("{0,7}", BuiltFromCL) + " Path=" + NewReportPath + " EngineVersion=" + Context.PrimaryCrashProperties.EngineVersion);
 				Context.PrimaryCrashProperties.ProcessorFailedMessage = "Engine version has no branch name. EngineVersion=" + Context.PrimaryCrashProperties.EngineVersion;
-			}
+                Context.ToFile();
+            }
 			else if (BranchName.Equals(CrashReporterConstants.LicenseeBranchName, StringComparison.InvariantCultureIgnoreCase))
 			{
 				CrashReporterProcessServicer.WriteEvent("% Warning branch is UE4-QA  : BuiltFromCL=" + string.Format("{0,7}", BuiltFromCL) + " Path=" + NewReportPath);
 				Context.PrimaryCrashProperties.ProcessorFailedMessage = "Branch was the forbidden LicenseeBranchName=" + BranchName;
-			}
+                Context.ToFile();
+            }
 
 			// Look for the Diagnostics.txt, if we have a diagnostics file we can continue event if the CL is marked as broken.
 			bool bHasDiagnostics = FindDiagnostics(NewReportPath);
@@ -464,7 +466,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 				// For now ignore all locally made crashes.
 				CrashReporterProcessServicer.WriteEvent("% Warning CL=0 and no useful data : BuiltFromCL=" + string.Format("{0,7}", BuiltFromCL) + " Path=" + NewReportPath);
 				Context.PrimaryCrashProperties.ProcessorFailedMessage = "Report from CL=0 has no diagnostics, callstack or error msg";
-			}
+                Context.ToFile();
+            }
 
 			// Check static reports index for duplicated reports
 			// This WILL happen when running multiple, non-mutually exclusive crash sources (e.g. Receiver + Data Router)

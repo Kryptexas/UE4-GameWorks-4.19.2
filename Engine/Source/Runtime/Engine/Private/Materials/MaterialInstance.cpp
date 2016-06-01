@@ -2130,7 +2130,7 @@ void UMaterialInstance::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 
 void UMaterialInstance::SetParentInternal(UMaterialInterface* NewParent, bool RecacheShaders)
 {
-	if (Parent == NULL || Parent != NewParent)
+	if (!Parent || Parent != NewParent)
 	{
 		// Check if the new parent is already an existing child
 		UMaterialInstance* ParentAsMaterialInstance = Cast<UMaterialInstance>(NewParent);

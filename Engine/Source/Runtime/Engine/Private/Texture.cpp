@@ -258,7 +258,7 @@ void UTexture::Serialize(FArchive& Ar)
 void UTexture::PostInitProperties()
 {
 #if WITH_EDITORONLY_DATA
-	if (!HasAnyFlags(RF_ClassDefaultObject))
+	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
 	}
@@ -271,7 +271,12 @@ void UTexture::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITORONLY_DATA
-	if (!SourceFilePath_DEPRECATED.IsEmpty() && AssetImportData)
+	if (AssetImportData == nullptr)
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+
+	if (!SourceFilePath_DEPRECATED.IsEmpty())
 	{
 		FAssetImportInfo Info;
 		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));

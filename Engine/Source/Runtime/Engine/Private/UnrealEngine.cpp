@@ -2806,7 +2806,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleObjCommand( Cmd, Ar );
 	}
-	else if( FParse::Command( &Cmd, TEXT("TESTSLATEGAMEUI")) && InWorld->IsGameWorld() )
+	else if( FParse::Command( &Cmd, TEXT("TESTSLATEGAMEUI")) && InWorld && InWorld->IsGameWorld() )
 	{
 		return HandleTestslateGameUICommand( Cmd, Ar );
 	}
@@ -5472,6 +5472,8 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				UClass* LastOwnerClass = NULL;
 				for ( TFieldIterator<UProperty> It(Obj->GetClass()); It; ++It )
 				{
+					UClass* Owner = It->GetOwnerClass();
+
 					Value.Empty();
 #if WITH_EDITOR
 					if ( HiddenCategories.Num() )
@@ -5485,7 +5487,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 								break;
 							}
 
-							if ( HiddenCategories[i] == *It->GetOwnerClass()->GetName() )
+							if ( HiddenCategories[i] == *Owner->GetName() )
 							{
 								break;
 							}
@@ -5507,7 +5509,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 								break;
 							}
 
-							if ( ShowingCategories[i] == *It->GetOwnerClass()->GetName() )
+							if ( ShowingCategories[i] == *Owner->GetName() )
 							{
 								break;
 							}
@@ -5519,9 +5521,9 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 						}
 					}
 #endif // #if WITH_EDITOR
-					if ( LastOwnerClass != It->GetOwnerClass() )
+					if ( LastOwnerClass != Owner )
 					{
-						LastOwnerClass = It->GetOwnerClass();
+						LastOwnerClass = Owner;
 						Ar.Logf(TEXT("=== %s properties ==="), *LastOwnerClass->GetName());
 					}
 
@@ -5899,7 +5901,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 #if !UE_BUILD_SHIPPING
 	if (FParse::Command(&Cmd, TEXT("RENDERCRASH")))
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetImageIntegrtiryStatus(-1); UE_LOG(LogEngine, Fatal, TEXT("Crashing the renderthread at your request")); });
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetImageIntegrityStatus(-1); UE_LOG(LogEngine, Fatal, TEXT("Crashing the renderthread at your request")); });
 		return true;
 	}
 	if (FParse::Command(&Cmd, TEXT("RENDERCHECK")))
@@ -5909,7 +5911,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void Check()
 			{				
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-				SetImageIntegrtiryStatus(-1);
+				SetImageIntegrityStatus(-1);
 				check(!"Crashing the renderthread via check(0) at your request");
 			}
 		};
@@ -5918,7 +5920,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	}
 	if (FParse::Command(&Cmd, TEXT("RENDERGPF")))
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetImageIntegrtiryStatus(-1); *(int32 *)3 = 123; });
+		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash, { UE_LOG(LogEngine, Warning, TEXT("Printed warning to log.")); SetImageIntegrityStatus(-1); *(int32 *)3 = 123; });
 		return true;
 	}
 	if (FParse::Command(&Cmd, TEXT("RENDERFATAL")))
@@ -5926,7 +5928,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		ENQUEUE_UNIQUE_RENDER_COMMAND(CauseRenderThreadCrash,
 		{
 			UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-			SetImageIntegrtiryStatus(-1);
+			SetImageIntegrityStatus(-1);
 			LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
 		});
 		return true;
@@ -5950,7 +5952,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void Crash(ENamedThreads::Type, const  FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-				SetImageIntegrtiryStatus(-1);
+				SetImageIntegrityStatus(-1);
 				UE_LOG(LogEngine, Fatal, TEXT("Crashing the worker thread at your request"));
 			}
 		};
@@ -5975,7 +5977,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void Check(ENamedThreads::Type, const FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-				SetImageIntegrtiryStatus(-1);
+				SetImageIntegrityStatus(-1);
 				check(!"Crashing a worker thread via check(0) at your request");
 			}
 		};
@@ -6000,7 +6002,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void GPF(ENamedThreads::Type, const FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-				SetImageIntegrtiryStatus(-1);
+				SetImageIntegrityStatus(-1);
 				*(int32 *)3 = 123;
 			}
 		};
@@ -6048,7 +6050,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 			static void Fatal(ENamedThreads::Type, const FGraphEventRef&)
 			{
 				UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-				SetImageIntegrtiryStatus(-1);
+				SetImageIntegrityStatus(-1);
 				LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
 			}
 		};
@@ -6068,14 +6070,14 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("CRASH")))
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-		SetImageIntegrtiryStatus(-1);
+		SetImageIntegrityStatus(-1);
 		UE_LOG(LogEngine, Fatal, TEXT("%s"), TEXT("Crashing the gamethread at your request"));
 		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("CHECK")))
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-		SetImageIntegrtiryStatus(-1);
+		SetImageIntegrityStatus(-1);
 		check(!"Crashing the game thread via check(0) at your request");
 		return true;
 	}
@@ -6083,7 +6085,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
 		Ar.Log(TEXT("Crashing with voluntary GPF"));
-		SetImageIntegrtiryStatus(-1);
+		SetImageIntegrityStatus(-1);
 		// changed to 3 from NULL because clang noticed writing to NULL and warned about it
 		*(int32 *)3 = 123;
 		return true;
@@ -6107,7 +6109,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("FATAL")))
 	{
 		UE_LOG(LogEngine, Warning, TEXT("Printed warning to log."));
-		SetImageIntegrtiryStatus(-1);
+		SetImageIntegrityStatus(-1);
 		LowLevelFatalError(TEXT("FError::LowLevelFatal test"));
 		return true;
 	}
@@ -6115,13 +6117,13 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		// stack overflow test - this case should be caught by /GS (Buffer Overflow Check) compile option
 		ANSICHAR SrcBuffer[] = "12345678901234567890123456789012345678901234567890";
-		SetImageIntegrtiryStatus(-1);
+		SetImageIntegrityStatus(-1);
 		BufferOverflowFunction(ARRAY_COUNT(SrcBuffer), SrcBuffer);
 		return true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("CRTINVALID")))
 	{
-		SetImageIntegrtiryStatus(-1);
+		SetImageIntegrityStatus(-1);
 		FString::Printf(NULL);
 		return true;
 	}
@@ -6144,7 +6146,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		Ar.Logf(TEXT("Recursing to create a very deep callstack."));
 		GLog->Flush();
-		SetImageIntegrtiryStatus(-1);
+		SetImageIntegrityStatus(-1);
 		InfiniteRecursionFunction(1);
 		Ar.Logf(TEXT("You will never see this log line."));
 		return true;
@@ -6156,7 +6158,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			static void InfiniteRecursion(ENamedThreads::Type, const FGraphEventRef&)
 			{
-				SetImageIntegrtiryStatus(-1);
+				SetImageIntegrityStatus(-1);
 				InfiniteRecursionFunction(1);
 			}
 		};
@@ -6176,7 +6178,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("EATMEM")))
 	{
 		Ar.Log(TEXT("Eating up all available memory"));
-		SetImageIntegrtiryStatus(-1);
+		SetImageIntegrityStatus(-1);
 		while (1)
 		{
 			void* Eat = FMemory::Malloc(65536);
@@ -6193,7 +6195,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("STACKOVERFLOW")))
 	{
 		Ar.Log(TEXT("Infinite recursion to cause stack overflow"));
-		SetImageIntegrtiryStatus(-1);
+		SetImageIntegrityStatus(-1);
 		StackOverflowFunction(nullptr);
 		return true;
 	}
@@ -6204,7 +6206,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			static void StackOverflow(ENamedThreads::Type, const FGraphEventRef&)
 			{
-				SetImageIntegrtiryStatus(-1);
+				SetImageIntegrityStatus(-1);
 				StackOverflowFunction(nullptr);
 			}
 		};
@@ -6224,7 +6226,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("SOFTLOCK")))
 	{
 		Ar.Log(TEXT("Hanging the current thread"));
-		SetImageIntegrtiryStatus(-1);
+		SetImageIntegrityStatus(-1);
 		while (1)
 		{
 			FPlatformProcess::Sleep(1.0f);
@@ -6234,7 +6236,7 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 	else if (FParse::Command(&Cmd, TEXT("INFINITELOOP")))
 	{
 		Ar.Log(TEXT("Hanging the current thread (CPU-intensive)"));
-		SetImageIntegrtiryStatus(-1);
+		SetImageIntegrityStatus(-1);
 		for(;;)
 		{
 		}
@@ -6363,10 +6365,12 @@ void UEngine::StartHardwareSurvey()
 	// The hardware survey costs time and we don't want to slow down debug builds.
 	// This is mostly because of the CPU benchmark running in the survey and the results in debug are not being valid.
 	// Never run the survey in games, only in the editor.
-	if (WITH_EDITOR && GIsEditor && !IsRunningCommandlet() && FEngineAnalytics::IsAvailable())
+#if WITH_EDITOR
+	if (GIsEditor && !IsRunningCommandlet() && FEngineAnalytics::IsAvailable())
 	{
 		IHardwareSurveyModule::Get().StartHardwareSurvey(FEngineAnalytics::GetProvider());
 	}
+#endif
 }
 
 void UEngine::InitHardwareSurvey()
@@ -8519,8 +8523,13 @@ void UEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetwor
 {
 	UE_LOG(LogNet, Log, TEXT("NetworkFailure: %s, Error: '%s'"), ENetworkFailure::ToString(FailureType), *ErrorString);
 
+	if (!NetDriver)
+	{
+		return;
+	}
+
 	// Only handle failure at this level for game or pending net drivers.
-	FName NetDriverName = NetDriver ? NetDriver->NetDriverName : NAME_None;
+	FName NetDriverName = NetDriver->NetDriverName;
 	if (NetDriverName == NAME_GameNetDriver || NetDriverName == NAME_PendingNetDriver)
 	{
 		// If this net driver has already been unregistered with this world, then don't handle it.

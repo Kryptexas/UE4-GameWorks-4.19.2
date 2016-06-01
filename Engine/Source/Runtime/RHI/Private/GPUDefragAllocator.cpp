@@ -63,21 +63,22 @@ FGPUDefragAllocator::FRelocationEntry::FRelocationEntry(const uint8* InOldBase, 
 FGPUDefragAlllocator::FMemoryChunk implementation.
 -----------------------------------------------------------------------------*/
 
+#define FGPUDEFRAGALLOCATOR_FMEMORYCHUNK_MAINTAIN_SORT_ORDER 1
+
 /**
 * Inserts this chunk at the head of the free chunk list.
 * If bMaintainSortOrder is true, insert-sort this chunk into the free chunk list.
 */
 void FGPUDefragAllocator::FMemoryChunk::LinkFree(FMemoryChunk* FirstFreeChunkToSearch)
 {
-	const bool bMaintainSortOrder = true;
 	check(!bIsAvailable);
 	bIsAvailable = true;
 	DefragCounter = 0;
 	UserPayload = 0;
 	bTail = false;
 
-	if (bMaintainSortOrder == false)
-	{
+	#if !FGPUDEFRAGALLOCATOR_FMEMORYCHUNK_MAINTAIN_SORT_ORDER
+
 		if (BestFitAllocator.FirstFreeChunk)
 		{
 			NextFreeChunk = BestFitAllocator.FirstFreeChunk;
@@ -91,9 +92,9 @@ void FGPUDefragAllocator::FMemoryChunk::LinkFree(FMemoryChunk* FirstFreeChunkToS
 			NextFreeChunk = nullptr;
 			BestFitAllocator.FirstFreeChunk = this;
 		}
-	}
-	else
-	{
+
+	#else
+
 		if (BestFitAllocator.FirstFreeChunk)
 		{
 			FMemoryChunk* InsertBefore = (FirstFreeChunkToSearch && FirstFreeChunkToSearch->bIsAvailable) ? FirstFreeChunkToSearch : BestFitAllocator.FirstFreeChunk;
@@ -119,7 +120,8 @@ void FGPUDefragAllocator::FMemoryChunk::LinkFree(FMemoryChunk* FirstFreeChunkToS
 			NextFreeChunk = nullptr;
 			BestFitAllocator.FirstFreeChunk = this;
 		}
-	}
+
+	#endif
 }
 
 /*-----------------------------------------------------------------------------

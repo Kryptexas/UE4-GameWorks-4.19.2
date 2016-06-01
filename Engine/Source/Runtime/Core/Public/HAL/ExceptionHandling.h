@@ -37,5 +37,5 @@ extern CORE_API void CheckImageIntegrity();
 extern CORE_API void CheckImageIntegrityAtRuntime();
 
 /** In debug builds we can crash on demand so we want to let the crash reporting system know about it */
-extern CORE_API void SetImageIntegrtiryStatus(int32 Status);
+extern CORE_API void SetImageIntegrityStatus(int32 Status);
 extern CORE_API int32 GetImageIntegrityStatus();

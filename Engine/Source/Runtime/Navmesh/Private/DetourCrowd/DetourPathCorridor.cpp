@@ -353,6 +353,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 	for (int i = 0; i < ncorners - 1; i++)
 	{
 		int fromIdx = 0;
+		CA_SUPPRESS(6385);
 		while (m_path[fromIdx] != cornerPolys[i] && fromIdx < m_npath)
 		{
 			fromIdx++;

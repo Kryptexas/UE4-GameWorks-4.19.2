@@ -857,7 +857,7 @@ void UReflectionCaptureComponent::SerializeSourceData(FArchive& Ar)
 			bool bValid = FullHDRData != NULL;
 			Ar << bValid;
 
-			if (bValid)
+			if (FullHDRData)
 			{
 				Ar << FullHDRData->CubemapSize;
 				Ar << FullHDRData->CompressedCapturedData;
@@ -959,7 +959,7 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 
 					Ar << bValid;
 
-					if (bValid)
+					if (FullHDRData)
 					{
 						Ar << FullHDRData->CubemapSize;
 						Ar << FullHDRData->CompressedCapturedData;

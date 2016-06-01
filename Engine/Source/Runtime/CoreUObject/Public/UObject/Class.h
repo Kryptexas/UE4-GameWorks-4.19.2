@@ -1998,6 +1998,11 @@ public:
 	// The class default object; used for delta serialization and object initialization
 	UObject* ClassDefaultObject;
 
+	/**
+	* Assemble reference token streams for all classes if they haven't had it assembled already
+	*/
+	static void AssembleReferenceTokenStreams();
+
 private:
 	/** Map of all functions by name contained in this class */
 	TMap<FName, UFunction*> FuncMap;
@@ -2368,8 +2373,9 @@ public:
 	 * Assembles the token stream for realtime garbage collection by combining the per class only
 	 * token stream for each class in the class hierarchy. This is only done once and duplicate
 	 * work is avoided by using an object flag.
+	 * @param bForce Assemble the stream even if it has been already assembled (deletes the old one)
 	 */
-	void AssembleReferenceTokenStream();
+	void AssembleReferenceTokenStream(bool bForce = false);
 
 	/** 
 	 * This will return whether or not this class implements the passed in class / interface 

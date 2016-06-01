@@ -1539,7 +1539,7 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceedWithEventData_Implemen
 
 	UGameplayAbility* AbilityToActivate = Spec->Ability;
 
-	ensure(AbilityToActivate);
+	check(AbilityToActivate);
 	ensure(AbilityActorInfo.IsValid());
 
 	Spec->ActivationInfo.SetActivationConfirmed();

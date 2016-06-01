@@ -52,10 +52,22 @@ namespace Tools.CrashReporter.CrashReportProcess
 		[XmlElement]
 		public string DepotRoot { get; set; }
 
-		/// <summary>
-		/// Folder where new crash reports are queued from internal, company users.
-		/// </summary>
-		[XmlElement]
+        /// <summary>
+        /// Perforce username used by the CRP and MDD.
+        /// </summary>
+        [XmlElement]
+        public string P4User { get; set; }
+
+        /// <summary>
+        /// Perforce workspace used by the CRP and MDD.
+        /// </summary>
+        [XmlElement]
+        public string P4Client { get; set; }
+
+        /// <summary>
+        /// Folder where new crash reports are queued from internal, company users.
+        /// </summary>
+        [XmlElement]
 		public string InternalLandingZone { get; set; }
 
 		/// <summary>
@@ -214,6 +226,18 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		[XmlElement]
 		public int ReportsIndexRetentionDays { get; set; }
+
+		/// <summary>
+		/// Timeout when calling AddCrash to submit crashes to the website/database.
+		/// </summary>
+		[XmlElement]
+		public int AddCrashRequestTimeoutMillisec { get; set; }
+
+		/// <summary>
+		/// Time that we wait between a failed AddCrash call and a retry.
+		/// </summary>
+		[XmlElement]
+		public int AddCrashRetryDelayMillisec { get; set; }
 
 		/// <summary>
 		/// Get the default config object (lazy loads it on first access)

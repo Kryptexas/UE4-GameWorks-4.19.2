@@ -341,6 +341,7 @@ void UAtmosphericFogComponent::DestroyRenderState_Concurrent()
 	for(TObjectIterator<UAtmosphericFogComponent> It; It; ++It)
 	{
 		UAtmosphericFogComponent* Component = *It;
+		checkSlow(Component);
 		if (Component != this && Component->IsRegistered())
 		{
 			Component->AddFogIfNeeded();

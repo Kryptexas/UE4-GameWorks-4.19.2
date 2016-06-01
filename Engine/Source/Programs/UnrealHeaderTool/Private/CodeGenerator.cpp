@@ -2303,8 +2303,9 @@ void ExportCopyConstructorDefinition(FUHTStringBuilder& Out, FClass* Class, cons
 {
 	auto ClassNameCPP = NameLookupCPP.GetNameCPP(Class);
 	Out.Logf(TEXT("private:\r\n"));
-	Out.Logf(TEXT("\t/** Private copy-constructor, should never be used */\r\n"));
-	Out.Logf(TEXT("\t%s_API %s(const %s& InCopy);\r\n"), *API, ClassNameCPP, ClassNameCPP);
+	Out.Logf(TEXT("\t/** Private move- and copy-constructors, should never be used */\r\n"));
+	Out.Logf(TEXT("\t%s_API %s(%s&&);\r\n"), *API, ClassNameCPP, ClassNameCPP);
+	Out.Logf(TEXT("\t%s_API %s(const %s&);\r\n"), *API, ClassNameCPP, ClassNameCPP);
 	Out.Logf(TEXT("public:\r\n"));
 }
 
@@ -6056,7 +6057,7 @@ TSharedRef<FUnrealSourceFile> PerformInitialParseOnHeader(UPackage* InParent, co
 	TArray<FSimplifiedParsingClassInfo> ParsedClassArray;
 	FHeaderParser::SimplifiedClassParse(Buffer, /*out*/ ParsedClassArray, /*out*/ DependsOn, ClassHeaderTextStrippedOfCppText);
 
-	FUnrealSourceFile* UnrealSourceFilePtr = new FUnrealSourceFile(InParent, FileName, ClassHeaderTextStrippedOfCppText);
+	FUnrealSourceFile* UnrealSourceFilePtr = new FUnrealSourceFile(InParent, FileName, MoveTemp(ClassHeaderTextStrippedOfCppText));
 	TSharedRef<FUnrealSourceFile> UnrealSourceFile = MakeShareable(UnrealSourceFilePtr);
 	UHTMakefile.AddUnrealSourceFile(UnrealSourceFilePtr);
 	UHTMakefile.AddToHeaderOrder(UnrealSourceFilePtr);

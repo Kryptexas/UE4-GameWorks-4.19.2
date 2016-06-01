@@ -2632,6 +2632,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 					type = type->fields.structure->type;
 				}
 			}
+			check(type);
 			bool is_array = type->is_array();
 			int array_size = is_array ? type->length : 0;
 			if (is_array)
@@ -3839,10 +3840,12 @@ static ir_rvalue* GenShaderOutputSemantic(
 	bool& ApplyClampPowerOfTwo
 	)
 {
+	check(Semantic);
+
 	FSystemValue* SystemValues = SystemValueTable[Frequency];
 	ir_variable* Variable = NULL;
 
-	if (Semantic && FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
+	if (FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 	{
 		for (int i = 0; SystemValues[i].Semantic != NULL; ++i)
 		{

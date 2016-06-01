@@ -102,7 +102,7 @@ FIntPoint GetBufferSizeForCapsuleShadows()
 bool DoesPlatformSupportCapsuleShadows(EShaderPlatform Platform)
 {
 	// Hasn't been tested elsewhere yet
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || SP_METAL_SM5;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4 || Platform == SP_METAL_SM5;
 }
 
 enum ECapsuleShadowingType

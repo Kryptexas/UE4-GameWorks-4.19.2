@@ -128,7 +128,7 @@ void FUMGViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	const bool bIsRealTime = true;
 
 	UWorld* World = GWorld;
-	if ( ( GetScene() != World->Scene ) || ( bIsRealTime == true ) )
+	if ( bIsRealTime || GetScene() != World->Scene )
 	{
 		// Use time relative to start time to avoid issues with float vs double
 		TimeSeconds = FApp::GetCurrentTime() - GStartTime;

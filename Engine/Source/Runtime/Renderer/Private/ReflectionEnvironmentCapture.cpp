@@ -1216,7 +1216,7 @@ void CaptureSceneIntoScratchCubemap(
 
 		// Projection matrix based on the fov, near / far clip settings
 		// Each face always uses a 90 degree field of view
-		if ((int32)ERHIZBuffer::IsInverted != 0)
+		if ((bool)ERHIZBuffer::IsInverted)
 		{
 			ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
 				90.0f * (float)PI / 360.0f,

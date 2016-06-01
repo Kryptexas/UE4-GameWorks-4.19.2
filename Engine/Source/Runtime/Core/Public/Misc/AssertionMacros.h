@@ -5,6 +5,8 @@
 #include "HAL/Platform.h"
 #include "HAL/PlatformMisc.h"
 #include "Misc/Build.h"
+#include "Templates/EnableIf.h"
+#include "LogVerbosity.h"
 
 
 /*----------------------------------------------------------------------------
@@ -136,17 +138,17 @@
 		}
 	}
 
-	#define ensure(           InExpression                ) (LIKELY((InExpression) != 0) || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{}), #InExpression, __FILE__, __LINE__, TEXT("")               ) || UE4Asserts_Private::OptionallyDebugBreakAndPromptForRemoteReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{}), true))
-	#define ensureMsgf(       InExpression, InFormat, ... ) (LIKELY((InExpression) != 0) || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{}), #InExpression, __FILE__, __LINE__, InFormat, ##__VA_ARGS__) || UE4Asserts_Private::OptionallyDebugBreakAndPromptForRemoteReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{}), true))
-	#define ensureAlways(     InExpression                ) (LIKELY((InExpression) != 0) || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(true,                                          #InExpression, __FILE__, __LINE__, TEXT("")               ) || FPlatformMisc::DebugBreakAndPromptForRemoteReturningFalse(true))
-	#define ensureAlwaysMsgf( InExpression, InFormat, ... ) (LIKELY((InExpression) != 0) || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(true,                                          #InExpression, __FILE__, __LINE__, InFormat, ##__VA_ARGS__) || FPlatformMisc::DebugBreakAndPromptForRemoteReturningFalse(true))
+	#define ensure(           InExpression                ) (LIKELY(!!(InExpression)) || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{}), #InExpression, __FILE__, __LINE__, TEXT("")               ) || UE4Asserts_Private::OptionallyDebugBreakAndPromptForRemoteReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{}), true))
+	#define ensureMsgf(       InExpression, InFormat, ... ) (LIKELY(!!(InExpression)) || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{}), #InExpression, __FILE__, __LINE__, InFormat, ##__VA_ARGS__) || UE4Asserts_Private::OptionallyDebugBreakAndPromptForRemoteReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{}), true))
+	#define ensureAlways(     InExpression                ) (LIKELY(!!(InExpression)) || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(true,                                          #InExpression, __FILE__, __LINE__, TEXT("")               ) || FPlatformMisc::DebugBreakAndPromptForRemoteReturningFalse(true))
+	#define ensureAlwaysMsgf( InExpression, InFormat, ... ) (LIKELY(!!(InExpression)) || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(true,                                          #InExpression, __FILE__, __LINE__, InFormat, ##__VA_ARGS__) || FPlatformMisc::DebugBreakAndPromptForRemoteReturningFalse(true))
 
 #else	// DO_CHECK
 
-	#define ensure(           InExpression                ) ((InExpression) != 0)
-	#define ensureMsgf(       InExpression, InFormat, ... ) ((InExpression) != 0)
-	#define ensureAlways(     InExpression                ) ((InExpression) != 0)
-	#define ensureAlwaysMsgf( InExpression, InFormat, ... ) ((InExpression) != 0)
+	#define ensure(           InExpression                ) (!!(InExpression))
+	#define ensureMsgf(       InExpression, InFormat, ... ) (!!(InExpression))
+	#define ensureAlways(     InExpression                ) (!!(InExpression))
+	#define ensureAlwaysMsgf( InExpression, InFormat, ... ) (!!(InExpression))
 
 #endif	// DO_CHECK
 
@@ -289,15 +291,37 @@ struct FTCharArrayTester
 
 #else
 
+	namespace UE4Asserts_Private
+	{
+		template <int32 VerbosityToCheck, typename CategoryType>
+		FORCEINLINE
+			typename TEnableIf<
+				((VerbosityToCheck & ELogVerbosity::VerbosityMask) <= CategoryType::CompileTimeVerbosity &&
+				(VerbosityToCheck & ELogVerbosity::VerbosityMask) <= ELogVerbosity::COMPILED_IN_MINIMUM_VERBOSITY),
+				bool>::Type
+			IsLogActive(const CategoryType& Category)
+		{
+			return !Category.IsSuppressed((ELogVerbosity::Type)VerbosityToCheck);
+		}
+
+		template <int32 VerbosityToCheck, typename CategoryType>
+		FORCEINLINE
+			typename TEnableIf<
+				!((VerbosityToCheck & ELogVerbosity::VerbosityMask) <= CategoryType::CompileTimeVerbosity &&
+				(VerbosityToCheck & ELogVerbosity::VerbosityMask) <= ELogVerbosity::COMPILED_IN_MINIMUM_VERBOSITY),
+				bool>::Type
+			IsLogActive(const CategoryType& Category)
+		{
+			return false;
+		}
+	}
+
 	/** 
 	 * A predicate that returns true if the given logging category is active (logging) at a given verbosity level 
 	 * @param CategoryName name of the logging category
 	 * @param Verbosity, verbosity level to test against
 	**/
-	#define UE_LOG_ACTIVE(CategoryName, Verbosity) \
-		((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) <= FLogCategory##CategoryName::CompileTimeVerbosity && \
-		(ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) <= ELogVerbosity::COMPILED_IN_MINIMUM_VERBOSITY && \
-		!CategoryName.IsSuppressed(ELogVerbosity::Verbosity))
+	#define UE_LOG_ACTIVE(CategoryName, Verbosity) (::UE4Asserts_Private::IsLogActive<(int32)ELogVerbosity::Verbosity>(CategoryName))
 
 	#define UE_SET_LOG_VERBOSITY(CategoryName, Verbosity) \
 		CategoryName.SetVerbosity(ELogVerbosity::Verbosity);
@@ -482,7 +506,7 @@ struct FTCharArrayTester
 extern CORE_API int32 GEnsureOnNANDiagnostic;
 
 // Macro to either log an error or ensure on a NaN error.
-#if DO_CHECK
+#if DO_CHECK && !USING_CODE_ANALYSIS
 namespace UE4Asserts_Private
 {
 	CORE_API void VARARGS InternalLogNANDiagnosticMessage(const TCHAR* FormattedMsg, ...); // UE_LOG(LogCore, Error, _FormatString_, ##__VA_ARGS__);

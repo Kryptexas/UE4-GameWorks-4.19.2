@@ -1302,7 +1302,6 @@ class COREUOBJECT_API UByteProperty : public TProperty_Numeric<uint8>
 
 	// UObject interface.
 	virtual void Serialize( FArchive& Ar ) override;
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
 
 	// UHT interface
@@ -2432,7 +2431,6 @@ public:
 
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
 
 	// UField interface

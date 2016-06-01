@@ -20,7 +20,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			lock (DataLock)
 			{
 				QueueSizes[QueueName] = Size;
-				bQueueSizesAvail = true;
+                SetQueueSizesCallCount++;
 			}
 		}
 
@@ -78,7 +78,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 							TimeSpan Period = PeriodEndTime - PeriodStartTime;
 							PeriodStartTime = PeriodEndTime;
 
-							if (bQueueSizesAvail)
+							if (SetQueueSizesCallCount >= QueueSizes.Count)
 							{
 								int ProcessingStartedInPeriodReceiver = 0;
 								CountsInPeriod.TryGetValue(StatusReportingConstants.ProcessingStartedReceiverEvent, out ProcessingStartedInPeriodReceiver);
@@ -190,7 +190,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		private readonly Dictionary<string, int> CountersAtLastReport = new Dictionary<string, int>();
 		private readonly Object TaskMonitor = new Object();
 		private readonly Object DataLock = new Object();
-		private bool bQueueSizesAvail = false;
+		private int SetQueueSizesCallCount = 0;
 		private readonly DateTime CreationTimeUtc = DateTime.UtcNow;
 	}
 }

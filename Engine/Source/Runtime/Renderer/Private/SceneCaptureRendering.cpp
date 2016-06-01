@@ -178,7 +178,7 @@ void BuildProjectionMatrix(FIntPoint RenderTargetSize, float FOV, FMatrix& Proje
 		YAxisMultiplier = 1.0f;
 	}
 
-	if ((int32)ERHIZBuffer::IsInverted != 0)
+	if ((bool)ERHIZBuffer::IsInverted)
 	{
 		ProjectionMatrix = FReversedZPerspectiveMatrix(
 			FOV,

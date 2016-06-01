@@ -1180,7 +1180,7 @@ void FAnimMontageInstance::Play(float InPlayRate)
 	PlayRate = InPlayRate;
 
 	// if this doesn't exist, nothing works
-	ensure(Montage);
+	check(Montage);
 	
 	// set blend option
 	float CurrentWeight = Blend.GetBlendedValue();

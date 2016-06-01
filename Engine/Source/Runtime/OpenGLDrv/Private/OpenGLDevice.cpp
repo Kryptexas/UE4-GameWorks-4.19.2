@@ -451,10 +451,12 @@ void InitDebugContext()
 		}
 	#endif // GL_AMD_debug_output
 #endif // !ENABLE_VERIFY_GL
-	if (!bDebugOutputInitialized && !PLATFORM_MAC)
+#if !PLATFORM_MAC
+	if (!bDebugOutputInitialized)
 	{
 		UE_LOG(LogRHI,Warning,TEXT("OpenGL debug output extension not supported!"));
 	}
+#endif
 
 	// this is to suppress feeding back of the debug markers and groups to the log, since those originate in the app anyways...
 #if ENABLE_OPENGL_DEBUG_GROUPS && GL_ARB_debug_output && GL_KHR_debug && !OPENGL_ES31
@@ -809,7 +811,8 @@ static void InitRHICapabilitiesForGL()
 	SetupTextureFormat( PF_R16G16B16A16_SINT,	FOpenGLTextureFormat( GL_RGBA16I,				GL_NONE,				GL_RGBA_INTEGER,	GL_SHORT,						false,			false));
 	SetupTextureFormat( PF_R5G6B5_UNORM,		FOpenGLTextureFormat( ));
 #if PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
-	if (PLATFORM_DESKTOP != 0 || PLATFORM_ANDROIDGL4 != 0 || FOpenGL::GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+	CA_SUPPRESS(6286);
+	if (PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || FOpenGL::GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		// Not supported for rendering:
 		SetupTextureFormat( PF_G16,				FOpenGLTextureFormat( GL_R16,					GL_R16,					GL_RED,			GL_UNSIGNED_SHORT,					false,	false));

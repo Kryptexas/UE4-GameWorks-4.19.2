@@ -484,13 +484,14 @@ public:
 		{
 			const FKConvexElem& ConvexElem = BodySetup->AggGeom.ConvexElems[i];
 
-			if (ConvexElem.ConvexMesh || ConvexElem.ConvexMeshNegX)
-			{
-				PxTransform PLocalPose;
-				bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D, PLocalPose);
+			PxTransform PLocalPose;
+			bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D, PLocalPose);
 
+			PxConvexMesh* UseConvexMesh = bUseNegX ? ConvexElem.ConvexMeshNegX : ConvexElem.ConvexMesh;
+			if (UseConvexMesh)
+			{
 				PxConvexMeshGeometry PConvexGeom;
-				PConvexGeom.convexMesh = bUseNegX ? ConvexElem.ConvexMeshNegX : ConvexElem.ConvexMesh;
+				PConvexGeom.convexMesh = UseConvexMesh;
 				PConvexGeom.scale.scale = U2PVector(ShapeScale3DAbs * ConvexElem.GetTransform().GetScale3D().GetAbs());	//scale shape about the origin
 				FTransform ConvexTransform = ConvexElem.GetTransform();
 				if (ConvexTransform.GetScale3D().X < 0 || ConvexTransform.GetScale3D().Y < 0 || ConvexTransform.GetScale3D().Z < 0)

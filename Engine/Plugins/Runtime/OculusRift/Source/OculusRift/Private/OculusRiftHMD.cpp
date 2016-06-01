@@ -1282,7 +1282,7 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo)
 		Window = SceneVP->FindWindow();
 	}
 
-	if (!Window.IsValid() || !SceneVP->GetViewportWidget().IsValid())
+	if (!Window.IsValid() || (SceneVP && !SceneVP->GetViewportWidget().IsValid()))
 	{
 		// try again next frame
 		if(bStereo)
@@ -1297,7 +1297,7 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo)
 		return Settings->Flags.bStereoEnabled;
 	}
 
-	if (OnOculusStateChange(bStereo))
+	if (SceneVP && OnOculusStateChange(bStereo))
 	{
 		Settings->Flags.bStereoEnabled = bStereo;
 

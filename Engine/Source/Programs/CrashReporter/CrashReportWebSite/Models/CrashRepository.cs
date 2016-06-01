@@ -46,6 +46,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			Context = new CrashReportDataContext();
 		}
 
+        /// <summary>
+        /// Constructor that specifies a connection string for the crash repository.
+        /// </summary>
+        /// <param name="connectionString"></param>
+	    public CrashRepository(string connectionString)
+	    {
+	        Context = new CrashReportDataContext(connectionString);
+	    }
+
 		/// <summary> Submits enqueue changes to the database. </summary>
 		public void SubmitChanges()
 		{
@@ -689,27 +698,52 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 			// Set the crash type
 			NewCrash.CrashType = 1;
-			if (NewCrash.RawCallStack != null)
-			{
-				if (NewCrash.RawCallStack.Contains( "FDebug::AssertFailed" ))
-				{
-					NewCrash.CrashType = 2;
-				}
-				else if (NewCrash.RawCallStack.Contains( "FDebug::Ensure" ))
-				{
-					NewCrash.CrashType = 3;			
-				}
-				else if (NewCrash.RawCallStack.Contains( "FDebug::OptionallyLogFormattedEnsureMessageReturningFalse" ))
-				{
-					NewCrash.CrashType = 3;
-				}
-				else if (NewCrash.RawCallStack.Contains( "NewReportEnsure" ))
-				{
-					NewCrash.CrashType = 3;
-				}
-			}
 
-			// As we're adding it, the status is always new
+            //if we have a crashtype set the crash type
+		    if (!string.IsNullOrEmpty(NewCrashInfo.CrashType))
+		    {
+		        switch (NewCrashInfo.CrashType.ToLower())
+		        {
+		            case "crash":
+		                NewCrash.CrashType = 1;
+		                break;
+                    case "assert":
+		                NewCrash.CrashType = 2;
+		                break;
+                    case "ensure":
+		                NewCrash.CrashType = 3;
+		                break;
+                    case "":
+                    case null:
+                    default:
+		                NewCrash.CrashType = 1;
+		                break;
+		        }
+		    }
+		    else //else fall back to the old behaviour and try to determine type from RawCallStack
+		    {
+		        if (NewCrash.RawCallStack != null)
+		        {
+		            if (NewCrash.RawCallStack.Contains("FDebug::AssertFailed"))
+		            {
+		                NewCrash.CrashType = 2;
+		            }
+		            else if (NewCrash.RawCallStack.Contains("FDebug::Ensure"))
+		            {
+		                NewCrash.CrashType = 3;
+		            }
+		            else if (NewCrash.RawCallStack.Contains("FDebug::OptionallyLogFormattedEnsureMessageReturningFalse"))
+		            {
+		                NewCrash.CrashType = 3;
+		            }
+		            else if (NewCrash.RawCallStack.Contains("NewReportEnsure"))
+		            {
+		                NewCrash.CrashType = 3;
+		            }
+		        }
+		    }
+
+		    // As we're adding it, the status is always new
 			NewCrash.Status = "New";
 
 			/*
@@ -744,6 +778,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 			// Build a callstack pattern for crash bucketing
 			NewCrash.BuildPattern( Context );
+            SubmitChanges();
 
 			return NewID;
 		}
@@ -797,11 +832,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			{
 				var DecodedUsername = HttpUtility.HtmlDecode( FormData.UsernameQuery ).ToLower();
 				Results =
-					(
-						from CrashDetail in Results
-						where CrashDetail.UserName.Equals( DecodedUsername )
-						select CrashDetail
-						);
+                (
+                    from CrashDetail in Results
+                    where CrashDetail.UserName.Equals(DecodedUsername)
+                    select CrashDetail
+                );
 			}
 
 			// Start Filtering the results
@@ -889,11 +924,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			if (!string.IsNullOrEmpty( FormData.MessageQuery ))
 			{
 				Results =
-					(
-						from CrashDetail in Results
-						where SqlMethods.Like( CrashDetail.Summary, "%" + FormData.MessageQuery + "%" ) || SqlMethods.Like( CrashDetail.Description, "%" + FormData.MessageQuery + "%" )
-						select CrashDetail
-						);
+                (
+                    from CrashDetail in Results
+                    where SqlMethods.Like(CrashDetail.Summary, "%" + FormData.MessageQuery + "%") || SqlMethods.Like(CrashDetail.Description, "%" + FormData.MessageQuery + "%")
+                    select CrashDetail
+                );
 			}
 
 			// Filter by BuiltFromCL

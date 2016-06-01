@@ -1122,7 +1122,7 @@ namespace VulkanRHI
 			if (bImmediately || !Entry.CmdBuffer || Entry.FenceCounter < Entry.CmdBuffer->GetFenceSignaledCounter())
 			{
 				FPendingItem NewEntry = Entry;
-				NewEntry.FenceCounter = Entry.CmdBuffer->GetFenceSignaledCounter();
+				NewEntry.FenceCounter = Entry.CmdBuffer ? Entry.CmdBuffer->GetFenceSignaledCounter() : 0;
 				PendingFreeStagingBuffers.RemoveAtSwap(Index, 1, false);
 				FreeStagingBuffers.Add(NewEntry);
 			}

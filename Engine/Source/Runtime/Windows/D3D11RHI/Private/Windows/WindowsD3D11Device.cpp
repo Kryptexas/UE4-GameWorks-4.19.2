@@ -75,11 +75,6 @@ static bool IsDelayLoadException(PEXCEPTION_POINTERS ExceptionPointers)
 #endif
 }
 
-// We suppress warning C6322: Empty _except block. Appropriate checks are made upon returning. 
-#if USING_CODE_ANALYSIS
-	MSVC_PRAGMA(warning(push))
-	MSVC_PRAGMA(warning(disable:6322))
-#endif	// USING_CODE_ANALYSIS
 /**
  * Since CreateDXGIFactory1 is a delay loaded import from the D3D11 DLL, if the user
  * doesn't have VistaSP2/DX10, calling CreateDXGIFactory1 will throw an exception.
@@ -94,6 +89,8 @@ static void SafeCreateDXGIFactory(IDXGIFactory1** DXGIFactory1)
 	}
 	__except(IsDelayLoadException(GetExceptionInformation()))
 	{
+		// We suppress warning C6322: Empty _except block. Appropriate checks are made upon returning. 
+		CA_SUPPRESS(6322);
 	}
 #endif	//!D3D11_CUSTOM_VIEWPORT_CONSTRUCTOR
 }
@@ -183,15 +180,12 @@ static bool SafeTestD3D11CreateDevice(IDXGIAdapter* Adapter,D3D_FEATURE_LEVEL Ma
 	}
 	__except(IsDelayLoadException(GetExceptionInformation()))
 	{
+		// We suppress warning C6322: Empty _except block. Appropriate checks are made upon returning. 
+		CA_SUPPRESS(6322);
 	}
 
 	return false;
 }
-
-// Re-enable C6322
-#if USING_CODE_ANALYSIS
-	MSVC_PRAGMA(warning(pop)) 
-#endif // USING_CODE_ANALYSIS
 
 bool FD3D11DynamicRHIModule::IsSupported()
 {
@@ -878,6 +872,7 @@ bool FD3D11DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 
 		for(uint32 m = 0;m < NumModes;m++)
 		{
+			CA_SUPPRESS(6385);
 			if (((int32)ModeList[m].Width >= MinAllowableResolutionX) &&
 				((int32)ModeList[m].Width <= MaxAllowableResolutionX) &&
 				((int32)ModeList[m].Height >= MinAllowableResolutionY) &&

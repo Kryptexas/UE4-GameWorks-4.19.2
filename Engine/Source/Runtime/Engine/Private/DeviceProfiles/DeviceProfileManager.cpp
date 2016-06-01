@@ -331,7 +331,7 @@ void UDeviceProfileManager::GetAllPossibleParentProfiles(const UDeviceProfile* C
 			bool bIsValidPossibleParent = true;
 
 			UDeviceProfile* CurrentAncestor = ParentProfile;
-			while(CurrentAncestor && bIsValidPossibleParent)
+			do
 			{
 				if(CurrentAncestor->BaseProfileName == ChildProfile->GetName())
 				{
@@ -342,7 +342,7 @@ void UDeviceProfileManager::GetAllPossibleParentProfiles(const UDeviceProfile* C
 				{
 					CurrentAncestor = CurrentAncestor->Parent != nullptr ? CastChecked<UDeviceProfile>(CurrentAncestor->Parent) : NULL;
 				}
-			}
+			} while(CurrentAncestor && bIsValidPossibleParent);
 
 			if(bIsValidPossibleParent)
 			{

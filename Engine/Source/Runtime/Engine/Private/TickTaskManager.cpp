@@ -524,6 +524,7 @@ public:
 			SCOPE_CYCLE_COUNTER(STAT_ReleaseTickGroup_Block);
 			for (ETickingGroup Block = WaitForTickGroup; Block <= WorldTickGroup; Block = ETickingGroup(Block + 1))
 			{
+				CA_SUPPRESS(6385);
 				if (TickCompletionEvents[Block].Num())
 				{
 					FTaskGraphInterface::Get().WaitUntilTasksComplete(TickCompletionEvents[Block], ENamedThreads::GameThread);
@@ -865,6 +866,7 @@ public:
 			for ( ; RescheduleIndex < TickFunctionsToReschedule.Num(); ++RescheduleIndex)
 			{
 				FTickFunction* TickFunction = TickFunctionsToReschedule[RescheduleIndex].TickFunction;
+				checkSlow(TickFunction);
 				if (TickFunction->TickState != FTickFunction::ETickState::Disabled)
 				{
 					if (TickFunctionsToReschedule[RescheduleIndex].bDeferredRemove)

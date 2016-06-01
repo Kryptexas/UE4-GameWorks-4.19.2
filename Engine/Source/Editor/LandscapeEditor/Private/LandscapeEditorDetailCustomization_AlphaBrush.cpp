@@ -267,7 +267,7 @@ bool FLandscapeEditorDetailCustomization_AlphaBrush::OnAssetDraggedOver(const UO
 
 void FLandscapeEditorDetailCustomization_AlphaBrush::OnAssetDropped(UObject* InObject, TSharedRef<IPropertyHandle> PropertyHandle_AlphaTexture)
 {
-	ensure(PropertyHandle_AlphaTexture->SetValue((const UObject*&)InObject) == FPropertyAccess::Success);
+	ensure(PropertyHandle_AlphaTexture->SetValue(InObject) == FPropertyAccess::Success);
 }
 
 #undef LOCTEXT_NAMESPACE

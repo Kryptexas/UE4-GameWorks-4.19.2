@@ -392,7 +392,9 @@ int32 USkeletalMesh::GetClothAssetIndex(int32 LODIndex, int32 SectionIndex)
 
 void USkeletalMeshComponent::CreateBodySetup()
 {
-	if (BodySetup == NULL && SkeletalMesh)
+	check(SkeletalMesh);
+
+	if (BodySetup == NULL)
 	{
 		BodySetup = NewObject<UBodySetup>(this);
 	}

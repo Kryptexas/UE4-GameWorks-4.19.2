@@ -1729,7 +1729,7 @@ void UGameplayAbility::NotifyAbilityTaskWaitingOnPlayerData(class UAbilityTask* 
 
 void UGameplayAbility::NotifyAbilityTaskWaitingOnAvatar(class UAbilityTask* AbilityTask)
 {
-	if (!CurrentActorInfo || CurrentActorInfo->AvatarActor.IsValid() == false)
+	if (CurrentActorInfo && CurrentActorInfo->AvatarActor.IsValid() == false)
 	{
 		ABILITY_LOG(Log, TEXT("Ability %s is force cancelling because Task %s has started while there is no valid AvatarActor"), *GetName(), *AbilityTask->GetDebugString());
 		CurrentActorInfo->AbilitySystemComponent->ForceCancelAbilityDueToReplication(this);

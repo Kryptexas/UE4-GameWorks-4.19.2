@@ -434,7 +434,7 @@ void FPerfCounters::SetJson(const FString& Name, const FProduceJsonCounterValue&
 
 bool FPerfCounters::StartMachineLoadTracking()
 {
-	if (UNLIKELY(ZeroLoadRunnable != nullptr || ZeroLoadRunnable != nullptr))
+	if (UNLIKELY(ZeroLoadRunnable != nullptr || ZeroLoadThread != nullptr))
 	{
 		UE_LOG(LogPerfCounters, Warning, TEXT("Machine load tracking has already been started."));
 		return false;

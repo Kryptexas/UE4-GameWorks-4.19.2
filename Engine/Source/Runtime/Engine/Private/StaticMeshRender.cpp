@@ -316,7 +316,8 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, OutMeshBatch.VertexFactory->GetType(), GetScene().GetFeatureLevel() );
 	
 	// Two sided material use bIsFrontFace which is wrong with Reversed Indices. AdjacencyInformation use another index buffer.
-	const bool bUseReversedIndices = GUseReversedIndexBuffer && IsLocalToWorldDeterminantNegative() && LOD.bHasReversedIndices && !bWireframe && !bRequiresAdjacencyInformation && !Material->IsTwoSided();
+	CA_SUPPRESS(6239);
+	const bool bUseReversedIndices = !bWireframe && GUseReversedIndexBuffer && IsLocalToWorldDeterminantNegative() && LOD.bHasReversedIndices && !bRequiresAdjacencyInformation && !Material->IsTwoSided();
 
 	SetIndexSource(LODIndex, SectionIndex, OutMeshBatch, bWireframe, bRequiresAdjacencyInformation, bUseReversedIndices, bAllowPreCulledIndices);
 
@@ -1433,19 +1434,20 @@ float FStaticMeshSceneProxy::GetScreenSize( int32 LODIndex ) const
  */
 int32 FStaticMeshSceneProxy::GetLOD(const FSceneView* View) const 
 {
-	ensureMsgf(RenderData, TEXT("StaticMesh [%s] missing RenderData."), StaticMesh ? *StaticMesh->GetName() : TEXT("None"));
-
-	int32 CVarForcedLODLevel = GetCVarForceLOD();
-
-	//If a LOD is being forced, use that one
-	if (CVarForcedLODLevel >= 0)
+	if (ensureMsgf(RenderData, TEXT("StaticMesh [%s] missing RenderData."), StaticMesh ? *StaticMesh->GetName() : TEXT("None")))
 	{
-		return FMath::Clamp<int32>(CVarForcedLODLevel, 0, RenderData->LODResources.Num() - 1);
-	}
+		int32 CVarForcedLODLevel = GetCVarForceLOD();
 
-	if (ForcedLodModel > 0)
-	{
-		return FMath::Clamp(ForcedLodModel, 1, RenderData->LODResources.Num()) - 1;
+		//If a LOD is being forced, use that one
+		if (CVarForcedLODLevel >= 0)
+		{
+			return FMath::Clamp<int32>(CVarForcedLODLevel, 0, RenderData->LODResources.Num() - 1);
+		}
+
+		if (ForcedLodModel > 0)
+		{
+			return FMath::Clamp(ForcedLodModel, 1, RenderData->LODResources.Num()) - 1;
+		}
 	}
 
 #if WITH_EDITOR
@@ -1461,61 +1463,69 @@ int32 FStaticMeshSceneProxy::GetLOD(const FSceneView* View) const
 
 FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
 {
-	ensureMsgf(RenderData, TEXT("StaticMesh [%s] missing RenderData."), StaticMesh ? *StaticMesh->GetName() : TEXT("None"));
-
 	FLODMask Result;
-	int32 CVarForcedLODLevel = GetCVarForceLOD();
 
-	//If a LOD is being forced, use that one
-	if (CVarForcedLODLevel >= 0)
-	{
-		Result.SetLOD(FMath::Clamp<int32>(CVarForcedLODLevel, 0, RenderData->LODResources.Num() - 1));
-	}
-	else if (View->DrawDynamicFlags & EDrawDynamicFlags::ForceLowestLOD)
-	{
-		Result.SetLOD(RenderData->LODResources.Num() - 1);
-	}
-	else if (ForcedLodModel > 0)
-	{
-		Result.SetLOD(FMath::Clamp(ForcedLodModel, 1, RenderData->LODResources.Num()) - 1);
-	}
-#if WITH_EDITOR
-	else if (View->Family && View->Family->EngineShowFlags.LOD == 0)
+	if (!ensureMsgf(RenderData, TEXT("StaticMesh [%s] missing RenderData."), StaticMesh ? *StaticMesh->GetName() : TEXT("None")))
 	{
 		Result.SetLOD(0);
 	}
-#endif
 	else
 	{
-		const FBoxSphereBounds& ProxyBounds = GetBounds();
-		bool bUseDithered = false;
-		if (LODs.Num())
-		{
-			// only dither if at least one section in LOD0 is dithered. Mixed dithering on sections won't work very well, but it makes an attempt
-			const FLODInfo& ProxyLODInfo = LODs[0];
-			const FStaticMeshLODResources& LODModel = RenderData->LODResources[0];
-			// Draw the static mesh elements.
-			for(int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
-			{
-				UMaterialInterface* Material = ProxyLODInfo.Sections[SectionIndex].Material;
-				if (Material->IsDitheredLODTransition())
-				{
-					bUseDithered = true;
-					break;
-				}
-			}
+		int32 CVarForcedLODLevel = GetCVarForceLOD();
 
-		}
-		if (bUseDithered)
+		//If a LOD is being forced, use that one
+		if (CVarForcedLODLevel >= 0)
 		{
-			for (int32 Sample = 0; Sample < 2; Sample++)
-			{
-				Result.SetLODSample(ComputeTemporalStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD, 1.0f, Sample), Sample);
-			}
+			Result.SetLOD(FMath::Clamp<int32>(CVarForcedLODLevel, 0, RenderData->LODResources.Num() - 1));
 		}
+		else if (View->DrawDynamicFlags & EDrawDynamicFlags::ForceLowestLOD)
+		{
+			Result.SetLOD(RenderData->LODResources.Num() - 1);
+		}
+		else if (ForcedLodModel > 0)
+		{
+			Result.SetLOD(FMath::Clamp(ForcedLodModel, 1, RenderData->LODResources.Num()) - 1);
+		}
+#if WITH_EDITOR
+		else if (View->Family && View->Family->EngineShowFlags.LOD == 0)
+		{
+			Result.SetLOD(0);
+		}
+#endif
 		else
 		{
-			Result.SetLOD(ComputeStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD));
+			const FBoxSphereBounds& ProxyBounds = GetBounds();
+			bool bUseDithered = false;
+			if (LODs.Num())
+			{
+				checkSlow(RenderData);
+
+				// only dither if at least one section in LOD0 is dithered. Mixed dithering on sections won't work very well, but it makes an attempt
+				const FLODInfo& ProxyLODInfo = LODs[0];
+				const FStaticMeshLODResources& LODModel = RenderData->LODResources[0];
+				// Draw the static mesh elements.
+				for(int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+				{
+					UMaterialInterface* Material = ProxyLODInfo.Sections[SectionIndex].Material;
+					if (Material->IsDitheredLODTransition())
+					{
+						bUseDithered = true;
+						break;
+					}
+				}
+
+			}
+			if (bUseDithered)
+			{
+				for (int32 Sample = 0; Sample < 2; Sample++)
+				{
+					Result.SetLODSample(ComputeTemporalStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD, 1.0f, Sample), Sample);
+				}
+			}
+			else
+			{
+				Result.SetLOD(ComputeStaticMeshLOD(RenderData, ProxyBounds.Origin, ProxyBounds.SphereRadius, *View, ClampedMinLOD));
+			}
 		}
 	}
 	

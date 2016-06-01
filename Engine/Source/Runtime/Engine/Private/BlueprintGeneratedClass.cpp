@@ -109,6 +109,8 @@ void UBlueprintGeneratedClass::PostLoad()
 			}
 		}
 	}
+
+	AssembleReferenceTokenStream(true);
 }
 
 void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut)
@@ -1003,6 +1005,8 @@ void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties
 		}
 		checkSlow(UberGraphFramePointerProperty);
 	}
+
+	AssembleReferenceTokenStream(true);
 }
 
 void UBlueprintGeneratedClass::PurgeClass(bool bRecompilingOnLoad)

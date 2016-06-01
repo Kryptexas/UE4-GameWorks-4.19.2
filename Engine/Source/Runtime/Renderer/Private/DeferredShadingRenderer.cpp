@@ -799,6 +799,7 @@ void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RH
 			int32 NumFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
 			for (int32 Dest = 1; Dest < NumFrames; Dest++)
 			{
+				CA_SUPPRESS(6385);
 				OcclusionSubmittedFence[Dest] = OcclusionSubmittedFence[Dest - 1];
 			}
 			OcclusionSubmittedFence[0] = RHICmdList.RHIThreadFence();

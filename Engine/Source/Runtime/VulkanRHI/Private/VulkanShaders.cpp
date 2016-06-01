@@ -989,7 +989,7 @@ void FVulkanBoundShaderState::SetUniformBuffer(FVulkanPendingState& PendingState
 	auto* Shader = GetShaderPtr(Stage);
 	uint32 VulkanBindingPoint = Shader->GetBindingTable().UniformBufferBindingIndices[BindPoint];
 
-	check(!UniformBuffer || (UniformBuffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
+	check(UniformBuffer && (UniformBuffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
 
 	VkDescriptorBufferInfo* BufferInfo = &DescriptorBufferInfoForStage[Stage][BindPoint];
 	BufferInfo->buffer = UniformBuffer->GetHandle();

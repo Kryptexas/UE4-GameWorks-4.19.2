@@ -437,7 +437,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 #endif // #if !UE_BUILD_SHIPPING
 
 	// Render CPU thread and GPU frame times.
-	const bool bStereoRendering = (GEngine && GEngine->IsStereoscopic3D(InViewport));
+	const bool bStereoRendering = GEngine->IsStereoscopic3D(InViewport);
 	UFont* Font = (!FPlatformProperties::SupportsWindowedMode() && GEngine->GetMediumFont()) ? GEngine->GetMediumFont() : GEngine->GetSmallFont();
 
 	// Note InX should already be within the safe zone

@@ -197,9 +197,16 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 		const bool bInitializeWithoutScriptStruct = false;
 		FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ValuePtr);
 		UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner);
-		UScriptStruct* RegularInnerStruct = ((!bInitializeWithoutScriptStruct) && InnerStructProperty && !FEmitDefaultValueHelper::SpecialStructureConstructor(InnerStructProperty->Struct, nullptr, nullptr))
-			? InnerStructProperty->Struct
-			: nullptr;
+
+		UScriptStruct* RegularInnerStruct = nullptr;
+		if (!bInitializeWithoutScriptStruct)
+		{
+			if (InnerStructProperty && !FEmitDefaultValueHelper::SpecialStructureConstructor(InnerStructProperty->Struct, nullptr, nullptr))
+			{
+				RegularInnerStruct = InnerStructProperty->Struct;
+			}
+		}
+
 		if (ScriptArrayHelper.Num())
 		{
 			const TCHAR* ArrayReserveFunctionName = RegularInnerStruct ? TEXT("AddUninitialized") : TEXT("Reserve");

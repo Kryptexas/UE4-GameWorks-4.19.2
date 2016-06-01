@@ -50,15 +50,19 @@ void FEngineAnalytics::Initialize()
 
 	check(GEngine);
 
+#if WITH_EDITOR
 	// this will only be true for builds that have editor support (currently PC, Mac, Linux)
 	// The idea here is to only send editor events for actual editor runs, not for things like -game runs of the editor.
-	bIsEditorRun = WITH_EDITOR && GIsEditor && !IsRunningCommandlet();
-
+	bIsEditorRun = GIsEditor && !IsRunningCommandlet();
+	bIsGameRun = false;
+#else
 	// We also want to identify a real run of a game, which is NOT necessarily the opposite of an editor run.
 	// Ideally we'd be able to tell explicitly, but with content-only games, it becomes difficult.
 	// So we ensure we are not an editor run, we don't have EDITOR stuff compiled in, we are not running a commandlet,
 	// we are not a generic, utility program, and we require cooked data.
-	bIsGameRun = !WITH_EDITOR && !IsRunningCommandlet() && !FPlatformProperties::IsProgram() && FPlatformProperties::RequiresCookedData();
+	bIsEditorRun = false;
+	bIsGameRun = !IsRunningCommandlet() && !FPlatformProperties::IsProgram() && FPlatformProperties::RequiresCookedData();
+#endif
 
 #if UE_BUILD_DEBUG
 	const bool bShouldInitAnalytics = false;

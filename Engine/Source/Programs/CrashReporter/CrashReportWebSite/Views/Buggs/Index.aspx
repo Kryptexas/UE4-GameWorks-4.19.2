@@ -186,8 +186,7 @@
 								DateFrom = Model.DateFrom,
 								DateTo = Model.DateTo,
 								VersionName = Model.VersionName,
-							}
-							, 
+							}, 
 							new { style = "color:black; text-decoration:none;" } )%></span>
 					<span style="background-color: #E8EEF4; font-size: medium; padding:0 1em;"
 						  title="<%= BuggsViewModel.Tooltip %>">

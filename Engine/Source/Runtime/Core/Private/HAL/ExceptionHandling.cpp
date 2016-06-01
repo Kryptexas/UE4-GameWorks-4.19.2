@@ -64,7 +64,7 @@ void CheckImageIntegrityAtRuntime()
 	}
 }
 
-void SetImageIntegrtiryStatus(int32 Status)
+void SetImageIntegrityStatus(int32 Status)
 {
 	GImageIntegrityCompromised = Status;
 }

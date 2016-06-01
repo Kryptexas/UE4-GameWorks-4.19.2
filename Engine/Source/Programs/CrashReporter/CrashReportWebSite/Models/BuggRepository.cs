@@ -367,12 +367,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
                         //    TemporaryResults.Add( Bugg );
                         //}
 					}
-
 				}
 				catch( Exception Ex )
 				{
 					Debug.WriteLine( "Exception in Search: " + Ex.ToString() );
-					
 				}
                 return Results;
 			}
@@ -448,26 +446,25 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					}
 				}
 
-				// Get UserGroup ResultCounts
-				SortedDictionary<string, int> GroupCounts = GetCountsByGroup( Results );
-
 				// Filter by user group if present
 				Results = FilterByUserGroup( Results, FormData.UserGroup );
-            
+
                 if (!string.IsNullOrEmpty(FormData.JiraId))
 			    {
 			        Results = FilterByJira(Results, FormData.JiraId);
 			    }
-			    
+
 				// Pass in the results and return them sorted properly
 				IEnumerable<Bugg> SortedResults = GetSortedResults( Results, FormData.SortTerm, ( FormData.SortOrder == "Descending" ), FormData.DateFrom, FormData.DateTo, FormData.UserGroup );
 
 				// Grab just the results we want to display on this page
-
 				var SortedResultsList = SortedResults.ToList();
 				var TotalCountedRecords = SortedResultsList.Count();
 
 				SortedResultsList = SortedResultsList.GetRange( Skip, TotalCountedRecords >= Skip + Take ? Take : TotalCountedRecords );
+                
+                // Get UserGroup ResultCounts
+				SortedDictionary<string, int> GroupCounts = GetCountsByGroup( Results );
 
 				return new BuggsViewModel
 				{
@@ -484,7 +481,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
                     PlatformName = FormData.PlatformName,
                     BranchName = FormData.BranchName,
 					GroupCounts = GroupCounts,
-                    Jira = FormData.JiraQuery
+                    Jira = FormData.JiraId
 				};
 			}
 		}

@@ -105,6 +105,7 @@ public:
 	{
 	}
 
+	CA_SUPPRESS(6262);
 	void SetParameters(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View, 

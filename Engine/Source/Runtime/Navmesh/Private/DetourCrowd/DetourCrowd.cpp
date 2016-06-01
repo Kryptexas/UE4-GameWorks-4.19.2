@@ -1022,6 +1022,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 					}
 					
 					// Check for partial path.
+					CA_SUPPRESS(6385);
 					if (res[nres-1] != ag->targetRef)
 					{
 						// Partial path, constrain target position inside the last polygon.
@@ -1549,7 +1550,7 @@ void dtCrowd::updateStepAvoidance(const float dt, dtCrowdAgentDebugInfo* debug)
 
 			dtObstacleAvoidanceDebugData* vod = 0;
 			const int agIndex = getAgentIndex(ag);
-			if (debugIdx == agIndex)
+			if (debug && debugIdx == agIndex)
 				vod = debug->vod;
 
 			// Sample new safe velocity.

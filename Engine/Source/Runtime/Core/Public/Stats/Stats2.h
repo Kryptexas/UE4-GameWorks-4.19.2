@@ -1860,32 +1860,21 @@ struct FStat_##StatName\
 #define DECLARE_STATS_GROUP_MAYBE_COMPILED_OUT(GroupDesc, GroupId, GroupCat, CompileIn) \
 	DECLARE_STAT_GROUP(GroupDesc, GroupId, GroupCat, false, CompileIn);
 
-#if UE_BUILD_DEBUG
-	#define SCOPE_CYCLE_COUNTER_GUARD { const char* ReadTheText = "SCOPE_CYCLE_COUNTER can't be used in the global scope."; (void)ReadTheText; }
-#else
-	#define SCOPE_CYCLE_COUNTER_GUARD
-#endif // UE_BUILD_DEBUG
-
 #define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,Stat,GroupId) \
-	SCOPE_CYCLE_COUNTER_GUARD \
 	DECLARE_STAT(CounterName,Stat,GroupId,EStatDataType::ST_int64, true, true, FPlatformMemory::MCR_Invalid); \
 	static DEFINE_STAT(Stat) \
 	FScopeCycleCounter CycleCount_##Stat(GET_STATID(Stat));
 
 #define QUICK_SCOPE_CYCLE_COUNTER(Stat) \
-	SCOPE_CYCLE_COUNTER_GUARD \
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT(#Stat),Stat,STATGROUP_Quick)
 
 #define SCOPE_CYCLE_COUNTER(Stat) \
-	SCOPE_CYCLE_COUNTER_GUARD \
 	FScopeCycleCounter CycleCount_##Stat(GET_STATID(Stat));
 
 #define CONDITIONAL_SCOPE_CYCLE_COUNTER(Stat,bCondition) \
-	SCOPE_CYCLE_COUNTER_GUARD \
 	FScopeCycleCounter CycleCount_##Stat(bCondition ? GET_STATID(Stat) : TStatId());
 
 #define SCOPE_SECONDS_ACCUMULATOR(Stat) \
-	SCOPE_CYCLE_COUNTER_GUARD \
 	FSimpleScopeSecondsStat SecondsAccum_##Stat(GET_STATID(Stat));
 
 #define SET_CYCLE_COUNTER(Stat,Cycles) \

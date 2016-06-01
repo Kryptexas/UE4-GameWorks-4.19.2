@@ -304,8 +304,7 @@ void SDialogueVoicePropertyEditor::ReplaceDialogueVoice( const UDialogueVoice* c
 		if( NewDialogueVoice != PrevDialogueVoice )
 		{
 			// Replace the dialogue voice
-			const UObject* NewObject = NewDialogueVoice;
-			DialogueVoicePropertyHandle->SetValue( NewObject );
+			DialogueVoicePropertyHandle->SetValue( NewDialogueVoice );
 		}
 	}
 }

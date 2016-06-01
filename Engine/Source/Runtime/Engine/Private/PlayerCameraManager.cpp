@@ -1276,6 +1276,8 @@ bool FTViewTarget::Equal(const FTViewTarget& OtherTarget) const
 
 void FTViewTarget::CheckViewTarget(APlayerController* OwningController)
 {
+	check(OwningController);
+
 	if (Target == NULL)
 	{
 		Target = OwningController;
@@ -1339,7 +1341,6 @@ void FTViewTarget::CheckViewTarget(APlayerController* OwningController)
 
 	if ((Target == NULL) || Target->IsPendingKill())
 	{
-		check(OwningController);
 		if (OwningController->GetPawn() && !OwningController->GetPawn()->IsPendingKillPending() )
 		{
 			OwningController->PlayerCameraManager->AssignViewTarget(OwningController->GetPawn(), *this);

@@ -2051,6 +2051,7 @@ static void BindShaderStage(FOpenGLLinkedProgramConfiguration::ShaderInfo& Shade
 				{
 					FOpenGLCodeHeader Header;
 					Header.GlslMarker = 0x474c534c;
+					CA_SUPPRESS(6326);
 					switch ((int32)TOpenGLStage1::StaticFrequency)
 					{
 						case SF_Vertex:

@@ -224,10 +224,10 @@ void SMultiLineEditableTextBox::SetStyle(const FEditableTextBoxStyle* InStyle)
 		VScrollBar->SetStyle(&Style->ScrollBarStyle);
 	}
 
-	BorderImageNormal = &InStyle->BackgroundImageNormal;
-	BorderImageHovered = &InStyle->BackgroundImageHovered;
-	BorderImageFocused = &InStyle->BackgroundImageFocused;
-	BorderImageReadOnly = &InStyle->BackgroundImageReadOnly;
+	BorderImageNormal = &Style->BackgroundImageNormal;
+	BorderImageHovered = &Style->BackgroundImageHovered;
+	BorderImageFocused = &Style->BackgroundImageFocused;
+	BorderImageReadOnly = &Style->BackgroundImageReadOnly;
 }
 
 void SMultiLineEditableTextBox::SetText( const TAttribute< FText >& InNewText )

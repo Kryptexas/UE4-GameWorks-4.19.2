@@ -60,7 +60,7 @@ void UMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponen
 	UpdatedPrimitive = Cast<UPrimitiveComponent>(UpdatedComponent);
 
 	// Assign delegates
-	if (IsValid(UpdatedComponent))
+	if (UpdatedComponent && !UpdatedComponent->IsPendingKill())
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = true;
 		UpdatedComponent->PhysicsVolumeChangedDelegate.AddUniqueDynamic(this, &UMovementComponent::PhysicsVolumeChanged);

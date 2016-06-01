@@ -1180,6 +1180,7 @@ static void StorePathfindingDebugData(const dtNavMeshQuery& NavQuery, const dtNa
 		NodeInfo.bOffMeshLink = NavPoly ? (NavPoly->getType() != DT_POLYTYPE_GROUND) : false;
 		if (Data.Flags & ERecastDebugPathfindingFlags::Vertices)
 		{
+			check(NavPoly);
 			for (int32 iv = 0; iv < NavPoly->vertCount; iv++)
 			{
 				NodeInfo.Verts.Add(Recast2UnrealPoint(&NavTile->verts[NavPoly->verts[iv] * 3]));

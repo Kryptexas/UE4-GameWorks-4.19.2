@@ -292,7 +292,7 @@ void FAnimGraphNodeDetails::OnBlendProfileChanged(UBlendProfile* NewProfile, TSh
 {
 	if(PropertyHandle.IsValid())
 	{
-		PropertyHandle->SetValue((const UObject*&)NewProfile);
+		PropertyHandle->SetValue(NewProfile);
 	}
 }
 

@@ -340,7 +340,7 @@ UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> TrackClas
 			Modify();
 
 			CreatedType = NewObject<UMovieSceneTrack>(this, TrackClass, NAME_None, RF_Transactional);
-			ensure(CreatedType);
+			check(CreatedType);
 			
 			Binding.AddTrack( *CreatedType );
 		}

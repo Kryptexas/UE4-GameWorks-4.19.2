@@ -106,6 +106,8 @@ public:
 	// @return range in SortedPrims[] after sorting
 	FInt32Range GetPassRange(ETranslucencyPass::Type InPass) const
 	{
+		checkSlow(InPass < ETranslucencyPass::TPT_MAX);
+
 		// can be optimized (if needed)
 
 		// inclusive

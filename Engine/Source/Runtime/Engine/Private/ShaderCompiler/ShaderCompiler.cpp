@@ -315,6 +315,8 @@ static void ProcessErrors(const FShaderCompileJob& CurrentJob, TArray<FString>& 
 			}
 			else if (CurrentError.ErrorFile.Contains(TEXT("memory")))
 			{
+				check(CurrentJob.ShaderType);
+
 				// Files passed to the shader compiler through memory will be named memory
 				// Only the shader's main file is passed through memory without a filename
 				CurrentError.ErrorFile = FString(CurrentJob.ShaderType->GetShaderFilename()) + TEXT(".usf");
@@ -1742,6 +1744,7 @@ bool FShaderCompilingManager::HandlePotentialRetryOnError(TMap<int32, FShaderMap
 			for (TMap<TRefCountPtr<FMaterialShaderMap>, TArray<FMaterial*> >::TConstIterator ShaderMapIt(FMaterialShaderMap::ShaderMapsBeingCompiled); ShaderMapIt; ++ShaderMapIt)
 			{
 				const FMaterialShaderMap* TestShaderMap = ShaderMapIt.Key();
+				checkSlow(TestShaderMap);
 
 				if (TestShaderMap->CompilingId == It.Key())
 				{
@@ -2338,7 +2341,7 @@ void GlobalBeginCompileShader(
 		}
 	}
 
-	Input.Environment.SetDefine(TEXT("HAS_INVERTED_Z_BUFFER"), (int32)ERHIZBuffer::IsInverted != 0);
+	Input.Environment.SetDefine(TEXT("HAS_INVERTED_Z_BUFFER"), (bool)ERHIZBuffer::IsInverted);
 
 	{
 		FString ShaderPDBRoot;

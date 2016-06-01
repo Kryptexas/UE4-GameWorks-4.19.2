@@ -1,11 +1,15 @@
 ﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.Remoting.Contexts;
 using System.Text;
 using System.Web.Mvc;
-
 using Tools.DotNETCommon.XmlHandler;
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.CrashReporter.CrashReportWebSite.Models;
@@ -156,56 +160,79 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>The row id of the newly added crash.</returns>
 		public ActionResult AddCrash( int id )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(NewCrashId=" + id + ")" ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(NewCrashId=" + id + ")") )
 			{
 				CrashRepository Crashes = new CrashRepository();
 
 				CrashReporterResult NewCrashResult = new CrashReporterResult();
 				NewCrashResult.ID = -1;
-				string PayloadString = string.Empty;
-
-				for (int Index = 0; Index < 3; Index++)
+				string payloadString;
+                using (var reader = new StreamReader( Request.InputStream, Request.ContentEncoding ))
 				{
+                    payloadString = reader.ReadToEnd();
+                    if (string.IsNullOrEmpty(payloadString))
+                    {
+                        FLogger.Global.WriteEvent(string.Format("Add Crash Failed : Payload string empty"));
+                    }
+                }
+                
+                for (int Index = 0; Index < 3; Index++)
+				{
+                    FLogger.Global.WriteEvent(string.Format("AddCrash : Attempt {0} of 5", Index + 1));
 					try
 					{
-						using (StreamReader Reader = new StreamReader( Request.InputStream, Request.ContentEncoding ))
-						{
-							PayloadString = Reader.ReadToEnd();
-							CrashDescription NewCrash = XmlHandler.FromXmlString<CrashDescription>(PayloadString);
-							NewCrashResult.ID = Crashes.AddNewCrash( NewCrash );
-							NewCrashResult.bSuccess = true;
-						}
-						break;
+                        var newCrash = XmlHandler.FromXmlString<CrashDescription>(payloadString);
+                        NewCrashResult.ID = Crashes.AddNewCrash(newCrash);
+                        NewCrashResult.bSuccess = true;
+					    break;
 					}
-					catch (SqlException SqlExc)
+					catch (SqlException sqlExc)
 					{
-						if (SqlExc.Number == -2)
+						if (sqlExc.Number == -2)//If this is an sql timeout log the timeout and try again.
 						{
 							FLogger.Global.WriteEvent( string.Format( "AddCrash:Timeout, retrying {0} of 3", Index + 1 ) );
+						    if (Index == 2)
+						    {
+						        FLogger.Global.WriteEvent(string.Format(" AddCrash:Timeout, third consecutive timeout. Failing."));
+						        NewCrashResult.Message = "AddCrash timeout limit exceeded";
+						        NewCrashResult.bSuccess = false;
+						        break;
+						    }
 						}
 						else
 						{
-							NewCrashResult.Message = SqlExc.ToString();
-							NewCrashResult.bSuccess = false;
-							break;
+                            var messageBuilder = new StringBuilder();
+                            messageBuilder.AppendLine("Exception was:");
+                            messageBuilder.AppendLine(sqlExc.ToString());
+                            messageBuilder.AppendLine("Received payload was:");
+                            messageBuilder.AppendLine(payloadString);
+
+                            FLogger.Global.WriteException(messageBuilder.ToString());
+
+						    NewCrashResult.Message = messageBuilder.ToString();
+                            NewCrashResult.bSuccess = false;
+						    break;
 						}
 					}
-					catch (Exception Ex)
+					catch (Exception ex)
 					{
-						StringBuilder MessageBuilder = new StringBuilder();
-						MessageBuilder.AppendLine("Exception was:");
-						MessageBuilder.AppendLine(Ex.ToString());
-						MessageBuilder.AppendLine("Received payload was:");
-						MessageBuilder.AppendLine(PayloadString);
+						var messageBuilder = new StringBuilder();
+						messageBuilder.AppendLine("Exception was:");
+						messageBuilder.AppendLine(ex.ToString());
+						messageBuilder.AppendLine("Received payload was:");
+						messageBuilder.AppendLine(payloadString);
 
-						NewCrashResult.Message = MessageBuilder.ToString();
+                        FLogger.Global.WriteException(messageBuilder.ToString());
+
+						NewCrashResult.Message = messageBuilder.ToString();
 						NewCrashResult.bSuccess = false;
-						break;
+                        break;
 					}
 					System.Threading.Thread.Sleep( 5000 * ( Index + 1 ) );
 				}
 
 				string ReturnResult = XmlHandler.ToXmlString<CrashReporterResult>( NewCrashResult );
+                
 				return Content( ReturnResult, "text/xml" );
 			}
 		}

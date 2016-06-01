@@ -46,7 +46,9 @@ void FDeferredShadingSceneRenderer::UpdateTranslucencyTimersAndSeparateTransluce
 {
 	bool bAnyViewWantsDownsampledSeparateTranslucency = false;
 	bool bCVarSeparateTranslucencyAutoDownsample = CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0;
-	if (STATS || bCVarSeparateTranslucencyAutoDownsample)
+#if (!STATS)
+	if (bCVarSeparateTranslucencyAutoDownsample)
+#endif
 	{
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
@@ -126,7 +128,10 @@ void FDeferredShadingSceneRenderer::BeginTimingSeparateTranslucencyPass(FRHIComm
 {
 	if (View.ViewState 
 		&& GSupportsTimestampRenderQueries
-		&& (STATS || CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0))
+#if !STATS
+		&& (CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0)
+#endif
+	)
 	{
 		View.ViewState->SeparateTranslucencyTimer.Begin(RHICmdList);
 	}
@@ -136,7 +141,10 @@ void FDeferredShadingSceneRenderer::EndTimingSeparateTranslucencyPass(FRHIComman
 {
 	if (View.ViewState 
 		&& GSupportsTimestampRenderQueries
-		&& (STATS || CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0))
+#if !STATS
+		&& (CVarSeparateTranslucencyAutoDownsample.GetValueOnRenderThread() != 0)
+#endif
+	)
 	{
 		View.ViewState->SeparateTranslucencyTimer.End(RHICmdList);
 	}
@@ -1095,10 +1103,12 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 				}
 			}
 
-			if (STATS && View.ViewState)
+#if STATS
+			if (View.ViewState)
 			{
 				View.ViewState->TranslucencyTimer.Begin(RHICmdList);
 			}
+#endif
 			
 			ETranslucencyPass::Type TranslucenyPassType = ETranslucencyPass::TPT_NonSeparateTransluceny;
 
@@ -1150,10 +1160,12 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 
 			FinishTranslucentRenderTarget(RHICmdList, View, TranslucenyPassType);
 		}
-		if (STATS && View.ViewState)
+#if STATS
+		if (View.ViewState)
 		{
 			View.ViewState->TranslucencyTimer.End(RHICmdList);
 		}
+#endif
 
 #if 0 // unsupported visualization in the parallel case
 		const FSceneViewState* ViewState = (const FSceneViewState*)View.State;
@@ -1258,10 +1270,12 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 
 			// non separate translucency
 			{
-				if (STATS && View.ViewState)
+#if STATS
+				if (View.ViewState)
 				{
 					View.ViewState->TranslucencyTimer.Begin(RHICmdList);
 				}
+#endif
 
 				bool bFirstTimeThisFrame = (ViewIndex == 0);
 				SetTranslucentRenderTargetAndState(RHICmdList, View, ETranslucencyPass::TPT_NonSeparateTransluceny, bFirstTimeThisFrame);
@@ -1282,10 +1296,12 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 
 				FinishTranslucentRenderTarget(RHICmdList, View, ETranslucencyPass::TPT_NonSeparateTransluceny);
 
-				if (STATS && View.ViewState)
+#if STATS
+				if (View.ViewState)
 				{
 					View.ViewState->TranslucencyTimer.End(RHICmdList);
 				}
+#endif
 			}
 			
 			// separate translucency

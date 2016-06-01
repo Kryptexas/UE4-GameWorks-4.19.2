@@ -318,11 +318,17 @@ public:
 	// Returns the filename (with extension), minus any path information.
 	static FString GetCleanFilename(const FString& InPath);
 
+	// Returns the filename (with extension), minus any path information.
+	static FString GetCleanFilename(FString&& InPath);
+
 	// Returns the same thing as GetCleanFilename, but without the extension
 	static FString GetBaseFilename( const FString& InPath, bool bRemovePath=true );
 
 	// Returns the path in front of the filename
 	static FString GetPath(const FString& InPath);
+
+	// Returns the path in front of the filename
+	static FString GetPath(FString&& InPath);
 
 	// Changes the extension of the given filename
 	static FString ChangeExtension(const FString& InPath, const FString& InNewExtension);
@@ -401,9 +407,29 @@ public:
 	static FString ConvertRelativePathToFull(const FString& InPath);
 
 	/**
+	 * Converts a relative path name to a fully qualified name relative to the process BaseDir().
+	 */
+	static FString ConvertRelativePathToFull(FString&& InPath);
+
+	/**
 	 * Converts a relative path name to a fully qualified name relative to the specified BasePath.
 	 */
 	static FString ConvertRelativePathToFull(const FString& BasePath, const FString& InPath);
+
+	/**
+	 * Converts a relative path name to a fully qualified name relative to the specified BasePath.
+	 */
+	static FString ConvertRelativePathToFull(const FString& BasePath, FString&& InPath);
+
+	/**
+	 * Converts a relative path name to a fully qualified name relative to the specified BasePath.
+	 */
+	static FString ConvertRelativePathToFull(FString&& BasePath, const FString& InPath);
+
+	/**
+	 * Converts a relative path name to a fully qualified name relative to the specified BasePath.
+	 */
+	static FString ConvertRelativePathToFull(FString&& BasePath, FString&& InPath);
 
 	/**
 	 * Converts a normal path to a sandbox path (in Saved/Sandboxes).

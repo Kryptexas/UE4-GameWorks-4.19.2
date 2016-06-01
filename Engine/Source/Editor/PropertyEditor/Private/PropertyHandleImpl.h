@@ -347,7 +347,7 @@ protected:
 };
 
 #define DECLARE_PROPERTY_ACCESSOR( ValueType ) \
-	virtual FPropertyAccess::Result SetValue( const ValueType& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override; \
+	virtual FPropertyAccess::Result SetValue( ValueType const& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override; \
 	virtual FPropertyAccess::Result GetValue( ValueType& OutValue ) const override; 
 
 class FDetailCategoryImpl;
@@ -379,6 +379,7 @@ public:
 	DECLARE_PROPERTY_ACCESSOR( FQuat )
 	DECLARE_PROPERTY_ACCESSOR( FRotator )
 	DECLARE_PROPERTY_ACCESSOR( UObject* )
+	DECLARE_PROPERTY_ACCESSOR( const UObject* )
 	DECLARE_PROPERTY_ACCESSOR( FAssetData )
 
 	/** IPropertyHandle interface */
@@ -519,7 +520,9 @@ public:
 	FPropertyHandleObject( TSharedRef<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities );
 	static bool Supports( TSharedRef<FPropertyNode> PropertyNode );
 	virtual FPropertyAccess::Result GetValue( UObject*& OutValue ) const override;
-	virtual FPropertyAccess::Result SetValue( const UObject*& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
+	virtual FPropertyAccess::Result SetValue( UObject* const& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
+	virtual FPropertyAccess::Result GetValue( const UObject*& OutValue ) const override;
+	virtual FPropertyAccess::Result SetValue( const UObject* const& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
 	virtual FPropertyAccess::Result GetValue( FAssetData& OutValue ) const override;
 	virtual FPropertyAccess::Result SetValue( const FAssetData& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
 

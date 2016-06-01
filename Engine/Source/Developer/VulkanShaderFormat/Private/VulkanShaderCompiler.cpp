@@ -742,6 +742,7 @@ static char* PatchGLSLVersionPosition(const char* InSourceGLSL)
 	}
 
 	char* GlslSource = (char*)malloc(InSrcLength+1);
+	check(GlslSource);
 	memcpy(GlslSource, InSourceGLSL, InSrcLength+1);
 
 	// Find begin of "#version" line
@@ -760,8 +761,9 @@ static char* PatchGLSLVersionPosition(const char* InSourceGLSL)
 		// Copy version line into a temporary buffer (+1 for term-char).
 		const int32 TmpStrBytes = (VersionEnd - VersionBegin) + 1;
 		char* TmpVersionLine = (char*)malloc(TmpStrBytes);
+		check(TmpVersionLine);
 		memset(TmpVersionLine, 0, TmpStrBytes);
-		memcpy(TmpVersionLine, VersionBegin, TmpStrBytes-1);
+		memcpy(TmpVersionLine, VersionBegin, VersionEnd - VersionBegin);
 
 		// Erase current version number, just replace it with spaces...
 		for(char* str=VersionBegin; str<(VersionEnd-1); str++)
@@ -771,6 +773,7 @@ static char* PatchGLSLVersionPosition(const char* InSourceGLSL)
 
 		// Allocate new source buffer to place version string on the first line.
 		char* NewSource = (char*)malloc(InSrcLength + TmpStrBytes);
+		check(NewSource);
 
 		// Copy version line
 		memcpy(NewSource, TmpVersionLine, TmpStrBytes);
@@ -828,6 +831,7 @@ static void PatchForToWhileLoop(char** InOutSourceGLSL)
 
 	// Allocate destination buffer + 1 char for terminating character
 	char* GlslSource = (char*)malloc(newLength+1);
+	check(GlslSource)
 	memset(GlslSource, 0, sizeof(char)*(newLength+1));
 	memcpy(GlslSource, srcGlsl, InSrcLength);
 
@@ -856,39 +860,6 @@ static void PatchForToWhileLoop(char** InOutSourceGLSL)
 	free(*InOutSourceGLSL);
 
 	*InOutSourceGLSL = GlslSource;
-}
-
-static char* PatchForToWhileLoop(const char* InSourceGLSL)
-{
-	const int32 InSrcLength = FCStringAnsi::Strlen(InSourceGLSL);
-	if(InSrcLength <= 0)
-	{
-		check(!"Attempting to patch an empty glsl source-string.");
-		return nullptr;
-	}
-
-	// This is what we are relacing
-	const char* srcPatchable = "for (;;)";
-	const int srcPatchableLength = FCStringAnsi::Strlen(srcPatchable);
-
-	// This is where we are replacing with
-	const char* dstPatchable = "while(true)";
-	const int dstPatchableLength = FCStringAnsi::Strlen(dstPatchable);
-
-	const int newLength = InSrcLength + (dstPatchableLength-srcPatchableLength);
-
-	// Allocate destination buffer + 1 char for terminating character
-	char* GlslSource = (char*)malloc(newLength+1);
-	memset(GlslSource, 0, sizeof(char)*(newLength+1));
-	memcpy(GlslSource, InSourceGLSL, InSrcLength);
-
-	char* replaceBegin = strstr(GlslSource, srcPatchable);
-
-	if(replaceBegin == NULL)
-	{
-		// Nothing to replace
-		return GlslSource;
-	}
 }
 
 static FString CreateShaderCompileCommandLine(FCompilerInfo& CompilerInfo, EHlslCompileTarget Target)

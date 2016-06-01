@@ -551,14 +551,14 @@ void FCanvasBorderItem::Draw( class FCanvas* InCanvas )
 		Right =		( Position.X + Size.X ) * Z;
 		Bottom =	( Position.Y + Size.Y ) * Z;		
 
-		const float BorderLeftDrawSizeX = BorderLeftTexture->GetSizeX()*BorderScale.X;
-		const float BorderLeftDrawSizeY = BorderLeftTexture->GetSizeY()*BorderScale.Y;
-		const float BorderTopDrawSizeX = BorderTopTexture->GetSizeX()*BorderScale.X;
-		const float BorderTopDrawSizeY = BorderTopTexture->GetSizeY()*BorderScale.Y;
-		const float BorderRightDrawSizeX = BorderRightTexture->GetSizeX()*BorderScale.X;
-		const float BorderRightDrawSizeY = BorderRightTexture->GetSizeY()*BorderScale.Y;
-		const float BorderBottomDrawSizeX = BorderBottomTexture->GetSizeX()*BorderScale.X;
-		const float BorderBottomDrawSizeY = BorderBottomTexture->GetSizeY()*BorderScale.Y;
+		const float BorderLeftDrawSizeX = LeftTexture->GetSizeX()*BorderScale.X;
+		const float BorderLeftDrawSizeY = LeftTexture->GetSizeY()*BorderScale.Y;
+		const float BorderTopDrawSizeX = TopTexture->GetSizeX()*BorderScale.X;
+		const float BorderTopDrawSizeY = TopTexture->GetSizeY()*BorderScale.Y;
+		const float BorderRightDrawSizeX = RightTexture->GetSizeX()*BorderScale.X;
+		const float BorderRightDrawSizeY = RightTexture->GetSizeY()*BorderScale.Y;
+		const float BorderBottomDrawSizeX = BottomTexture->GetSizeX()*BorderScale.X;
+		const float BorderBottomDrawSizeY = BottomTexture->GetSizeY()*BorderScale.Y;
 
 		const float BackgroundTilingX = (Right-Left)/(BackTexture->GetSizeX()*BackgroundScale.X);
 		const float BackgroundTilingY = (Bottom-Top)/(BackTexture->GetSizeY()*BackgroundScale.Y);

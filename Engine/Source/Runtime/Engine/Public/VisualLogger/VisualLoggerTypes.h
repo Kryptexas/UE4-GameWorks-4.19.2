@@ -247,7 +247,7 @@ public:
 	virtual void StopRecordingToFile(float TImeStamp) { /* Empty */ }
 	virtual void SetFileName(const FString& InFileName) { /* Empty */ }
 	virtual void GetRecordedLogs(TArray<FVisualLogDevice::FVisualLogEntryItem>& OutLogs)  const { /* Empty */ }
-	virtual bool HasFlags(int32 InFlags) const { return !!(InFlags & EVisualLoggerDeviceFlags::NoFlags); }
+	virtual bool HasFlags(int32 InFlags) const { return false; }
 };
 
 struct ENGINE_API FVisualLoggerCategoryVerbosityPair

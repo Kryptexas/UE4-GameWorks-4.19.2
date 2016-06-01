@@ -1606,6 +1606,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 						const float MaxDrawDistanceScale = GetCachedScalabilityCVars().ViewDistanceScale;
 						const float SphereRadius = RenderData->Bounds.SphereRadius;
 
+						checkSlow(NumLODs > 0);
 						for (int32 LODIndex = 0; LODIndex < NumLODs; LODIndex++)
 						{
 							LODPlanesMax[LODIndex] = MIN_flt;

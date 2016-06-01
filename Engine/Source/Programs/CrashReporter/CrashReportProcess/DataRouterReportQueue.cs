@@ -383,7 +383,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 #if DEBUG
 			// Debug doesn't empty the queue - it's just reads records
 			return true;
-#endif
+#else
 			try
 			{
 				var DeleteRequest = new DeleteMessageRequest
@@ -400,9 +400,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 				CrashReporterProcessServicer.WriteException("TryDeleteRecordSQS: " + Ex.ToString());
 			}
 			return false;
-		}
+#endif
+        }
 
-		private class CrashHeader
+        private class CrashHeader
 		{
 			public const int FixedSize = 4 + 260 + 4 + 260 + 4 + 4;		// 2 x 260 ansi char strings with length + 2 x int32
 

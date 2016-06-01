@@ -260,25 +260,22 @@ void UPaperTileMap::UpdateBodySetup()
 		break;
 	case ESpriteCollisionMode::None:
 		BodySetup = nullptr;
-		break;
+		return;
 	}
 
-	if (SpriteCollisionDomain != ESpriteCollisionMode::None)
+	BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
+
+	for (int32 LayerIndex = 0; LayerIndex < TileLayers.Num(); ++LayerIndex)
 	{
-		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
-
-		for (int32 LayerIndex = 0; LayerIndex < TileLayers.Num(); ++LayerIndex)
-		{
-			const float ZSeparation = LayerIndex * SeparationPerLayer;
-			TileLayers[LayerIndex]->AugmentBodySetup(BodySetup, ZSeparation);
-		}
-
-		// Finalize the BodySetup
-#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
-		BodySetup->InvalidatePhysicsData();
-#endif
-		BodySetup->CreatePhysicsMeshes();
+		const float ZSeparation = LayerIndex * SeparationPerLayer;
+		TileLayers[LayerIndex]->AugmentBodySetup(BodySetup, ZSeparation);
 	}
+
+	// Finalize the BodySetup
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
+	BodySetup->InvalidatePhysicsData();
+#endif
+	BodySetup->CreatePhysicsMeshes();
 }
 
 void UPaperTileMap::GetTileToLocalParameters(FVector& OutCornerPosition, FVector& OutStepX, FVector& OutStepY, FVector& OutOffsetYFactor) const

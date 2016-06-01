@@ -20,7 +20,10 @@ namespace D3DX12Residency
 #include "D3D12Util.h"
 #include "AllowWindowsPlatformTypes.h"
 #include "dxgi1_4.h"
-#include <D3DX12Residency.h>
+#pragma warning(push)
+#pragma warning(disable : 6031)
+	#include <D3DX12Residency.h>
+#pragma warning(pop)
 #include "HideWindowsPlatformTypes.h"
 #endif
 

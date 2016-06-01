@@ -363,6 +363,7 @@ void FD3D12DescriptorCache::SetRenderTargets(FD3D12RenderTargetView** RenderTarg
 	}
 	else
 	{
+		CA_SUPPRESS(6001);
 		CommandList->OMSetRenderTargets(Count, RTVDescriptors, 0, nullptr);
 	}
 }
@@ -460,6 +461,8 @@ void FD3D12DescriptorCache::SetSamplers(EShaderFrequency ShaderStage, FD3D12Samp
 		HeapSlot += SlotsNeeded;
 		D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor = CurrentSamplerHeap->GetCPUSlotHandle(FirstSlotIndex);
 		BindDescriptor = CurrentSamplerHeap->GetGPUSlotHandle(FirstSlotIndex);
+
+		checkSlow(SlotsNeeded < D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT);
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE SrcDescriptors[D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT];
 		// Fill heap slots
